@@ -14,6 +14,8 @@
 // (optional) runs on the Enter key for save-on-Enter cards.
 
 import React, { useState } from 'react';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SecretInputProps {
     value: string;
@@ -26,6 +28,7 @@ interface SecretInputProps {
 }
 
 const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow, className = 'relative flex-1' }: SecretInputProps) => {
+    const { t } = useTranslation();
     const [internalShow, setInternalShow] = useState(false);
     const isControlled = show !== undefined;
     const visible = isControlled ? show : internalShow;
@@ -42,14 +45,15 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
                 value={value}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-1.5 pr-10 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                className={`${FIELD_INPUT} pr-10`}
                 onKeyDown={onEnter ? ((e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && onEnter()) : undefined}
             />
             <button
                 type="button"
                 onClick={toggleShow}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-[var(--text-muted)]"
-                title={visible ? 'Hide' : 'Show'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)]"
+                title={visible ? t('ai_model_setup.secret_hide', 'Hide') : t('ai_model_setup.secret_show', 'Show')}
+                aria-label={visible ? t('ai_model_setup.secret_hide', 'Hide') : t('ai_model_setup.secret_show', 'Show')}
             >
                 {visible ? '👁️' : '👁️‍🗨️'}
             </button>

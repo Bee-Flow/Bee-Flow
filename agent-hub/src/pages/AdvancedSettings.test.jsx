@@ -110,7 +110,7 @@ vi.mock('./settings/ConsumerPrivacySection', () => ({ default: () => <div data-t
 vi.mock('./settings/ConsumerUsageSection', () => ({ default: () => <div data-testid="section-consumer-usage" /> }));
 vi.mock('./settings/ConsumerIntegrationsSection', () => ({ default: () => <div data-testid="section-consumer-integrations" /> }));
 vi.mock('./settings/ConsumerBetaFeaturesSection', () => ({ default: () => <div data-testid="section-consumer-beta" /> }));
-vi.mock('../components/integrations/azure/index', () => ({ default: () => <div data-testid="section-azure" /> }));
+vi.mock('../components/integrations/azure/Microsoft365Panel', () => ({ default: () => <div data-testid="section-azure" /> }));
 vi.mock('../components/knowledge/memory/MemoryPanel', () => ({
     default: (p) => <div data-testid="memory-panel"><button onClick={p.onClose}>close-memory</button></div>,
 }));
@@ -871,14 +871,14 @@ describe('AdvancedSettings — navigation mechanics', () => {
         window.removeEventListener('keydown', listener);
     });
 
-    it('titles a phone detail view with an org sub-tab\'s own label', async () => {
+    it('keeps the screen title on a phone\'s organisation page, which names itself', async () => {
         // The licence exemption puts a phone straight into detail view on an
-        // org sub-tab, which has no top-level row; the title is still the
-        // page's name.
+        // org sub-tab. OrganisationSection heads that page with its own name
+        // (OrgPageHeading), so the bar does not say it a second time.
         subscription = { hasActiveSub: false, sub: null, loading: false };
         viewport = PHONE;
         const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/license' });
-        expect(titleBar(container).textContent).toBe('License & Usage');
+        expect(titleBar(container).textContent).toBe('Settings');
     });
 });
 

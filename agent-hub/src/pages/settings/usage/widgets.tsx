@@ -44,7 +44,7 @@ export const Avatar = ({ user, name, color, size = 26 }: AvatarProps) => {
         return <img src={avatar} alt={displayName} style={{ ...base, objectFit: 'cover' }} />;
     }
     return (
-        <div style={{ ...base, fontSize: Math.round(size * 0.42), fontWeight: 700, color: '#fff', background: `linear-gradient(135deg, ${color || 'var(--accent-primary)'}, ${color || 'var(--accent-primary)'}99)` }}>
+        <div style={{ ...base, fontSize: Math.round(size * 0.42), fontWeight: 700, color: color ? 'var(--text-primary)' : 'var(--accent-primary-fg)', background: color ? `color-mix(in srgb, ${color} 22%, var(--bg-tertiary))` : 'var(--accent-primary)' }}>
             {displayName[0].toUpperCase()}
         </div>
     );
@@ -73,7 +73,7 @@ interface IntegrationLogoProps {
 
 const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }: IntegrationLogoProps) => {
     if (!hasIntegrationIcon(integrationType)) {
-        return <IconBadge icon={Globe} color={fallbackColor || '#94a3b8'} size={size} />;
+        return <IconBadge icon={Globe} color={fallbackColor || 'var(--text-tertiary)'} size={size} />;
     }
     const inner = size * 0.7;
     return (
@@ -100,7 +100,7 @@ const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
             <Cpu className="w-[9px] h-[9px]" /> {shortModel(model)}
         </span>
         {tier && (
-            <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:#f59e0b15] [color:#f59e0b]" title={`tier: ${tier}`}>
+            <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:color-mix(in_srgb,var(--warning)_8%,transparent)] [color:var(--warning-ink)]" title={`tier: ${tier}`}>
                 tier: {tier}
             </span>
         )}

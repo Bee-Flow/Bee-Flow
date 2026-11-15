@@ -3,8 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { intervalLabel, useLicenseText } from './licenseShared';
 import type { OrgSubscription, PlanLimits, SubscriptionBilling } from './licenseShared';
 import { currencySym, UsageBar } from '../orgInfoShared';
-
-const ADD_USER_STYLE = { borderColor: 'rgba(59,130,246,0.3)', color: '#3b82f6', background: 'rgba(59,130,246,0.05)' };
+import { Button } from '@/components/shared/Button';
 
 function SeatsHint({ className }: { className: string }) {
     const { t } = useLicenseText();
@@ -32,14 +31,9 @@ function PerSeatLine({ billing, onAddUser }: { billing: SubscriptionBilling; onA
                         per-seat sub — the plan-limits card below filters
                         out unlimited (-1/null) tiles, so per-seat plans
                         without a finite max_users lost the CTA entirely. */}
-                    <button
-                        type="button"
-                        onClick={onAddUser}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all hover:opacity-80"
-                        style={ADD_USER_STYLE}
-                    >
-                        <Plus className="w-3 h-3" /> {t('org.add_user', 'Add user')}
-                    </button>
+                    <Button variant="secondary" size="sm" icon={Plus} onClick={onAddUser}>
+                        {t('org.add_user', 'Add user')}
+                    </Button>
                 </span>
             </div>
             <SeatsHint className="mt-2 flex items-start gap-2 text-[11px] text-[var(--text-muted)]" />
@@ -80,7 +74,7 @@ export function BillingCard({ sub, billing, cancelBusy, onCancel, onAddUser }: B
                     <button
                         onClick={onCancel}
                         disabled={cancelBusy}
-                        className="text-[11.5px] font-medium text-[#64748b] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
+                        className="text-[11.5px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
                     >
                         {cancelBusy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('org.cancel_subscription', 'Cancel subscription')}
                     </button>
@@ -105,7 +99,6 @@ export function UsageCard({ used, limit }: { used: number; limit: number | null 
                 icon={DollarSign}
                 used={used}
                 limit={limit}
-                color="#10b981"
                 percentOnly
             />
         </div>
@@ -117,7 +110,6 @@ interface LimitItem {
     label: string;
     icon: LucideIcon;
     val: number;
-    color: string;
 }
 
 function LimitTile({ item, seatQuantity, showAddUser, onAddUser }: { item: LimitItem; seatQuantity: number | null | undefined; showAddUser: boolean; onAddUser: () => void }) {
@@ -125,8 +117,8 @@ function LimitTile({ item, seatQuantity, showAddUser, onAddUser }: { item: Limit
     const Icon = item.icon;
     return (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${item.color}10` }}>
-                <Icon className="w-4 h-4" style={{ color: item.color }} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[var(--bg-tertiary)]">
+                <Icon className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
             </div>
             <div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
@@ -142,14 +134,9 @@ function LimitTile({ item, seatQuantity, showAddUser, onAddUser }: { item: Limit
             {/* BFSF-251: direct seat/user add from the Users card —
                 unless the billing card above already offers it. */}
             {item.key === 'users' && showAddUser && (
-                <button
-                    type="button"
-                    onClick={onAddUser}
-                    className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border transition-all hover:opacity-80"
-                    style={ADD_USER_STYLE}
-                >
-                    <Plus className="w-3 h-3" /> {t('org.add_user', 'Add user')}
-                </button>
+                <Button variant="secondary" size="sm" icon={Plus} onClick={onAddUser} className="ml-auto">
+                    {t('org.add_user', 'Add user')}
+                </Button>
             )}
         </div>
     );
@@ -170,9 +157,9 @@ interface PlanLimitsCardProps {
 export function PlanLimitsCard({ sub, limits, billingCardHasSeats, onAddUser }: PlanLimitsCardProps) {
     const { t } = useLicenseText();
     const limitItems = ([
-        { key: 'users', label: t('org.users'), icon: Users, val: limits.max_users, color: '#3b82f6' },
-        { key: 'agents', label: t('org.agents'), icon: Bot, val: limits.max_agents, color: '#f59e0b' },
-        { key: 'knowledge', label: t('org.knowledge_sources'), icon: Database, val: limits.max_knowledge_sources, color: '#10b981' },
+        { key: 'users', label: t('org.users'), icon: Users, val: limits.max_users },
+        { key: 'agents', label: t('org.agents'), icon: Bot, val: limits.max_agents },
+        { key: 'knowledge', label: t('org.knowledge_sources'), icon: Database, val: limits.max_knowledge_sources },
     ] as Array<Omit<LimitItem, 'val'> & { val: number | null | undefined }>)
         .filter((it): it is LimitItem => it.val !== null && it.val !== undefined && it.val !== -1);
     if (limitItems.length === 0 && !sub.notes) return null;

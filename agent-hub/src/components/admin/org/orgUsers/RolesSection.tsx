@@ -3,6 +3,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import { ORG_ROLES, permissionsForRole } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import RolePermissionEditor from '../RolePermissionEditor';
+import { CHIP } from '@/components/shared/adminUi';
+import { nOf } from '@/utils/plural';
 import type { OrgMember, OrgRolePermissions } from '../useOrgDirectory';
 
 type OrgRole = (typeof ORG_ROLES)[number];
@@ -27,42 +29,35 @@ interface RoleRowProps extends Omit<RolesSectionProps, 'users' | 'expandedRole' 
 }
 
 function RoleRow({ role, assignedCount, isExpanded, onToggle, orgRolePerms, editablePermissions, canEditRoles, onRolePermissionsSaved }: RoleRowProps) {
+    const { t } = useTranslation();
     const rolePermissions: Array<{ id: string; label: string }> = permissionsForRole(role.id, orgRolePerms);
     return (
         <div className="group">
             <button
                 onClick={onToggle}
-                className="w-full px-5 py-4 flex items-start gap-4 text-left hover:bg-[var(--bg-secondary)] transition-colors"
+                className="w-full px-5 py-4 flex items-start gap-4 text-left hover:bg-[var(--item-hover-bg)] transition-colors"
             >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${role.color}15` }}>
-                    <Shield className="w-5 h-5" style={{ color: role.color }} />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--bg-tertiary)]">
+                    <Shield className="w-5 h-5 text-[var(--text-primary)]" aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-[var(--text-primary)]">{role.name}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ background: role.color }}>
-                            {role.id}
-                        </span>
+                        <span className={CHIP}>{role.id}</span>
                         {assignedCount > 0 && (
                             <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
                                 <Users className="w-2.5 h-2.5" />
-                                {assignedCount} {assignedCount === 1 ? 'user' : 'users'}
+                                {nOf(t, 'admin_people.role_assigned', assignedCount, '{count} person', '{count} people')}
                             </span>
                         )}
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">{role.description}</p>
 
-                    {/* Permission badges - always visible. Chips are
-                        tinted with the role's own colour rather than a
-                        three-role lookup that left dpo, isms_auditor and
-                        member with unstyled chips. */}
+                    {/* Permission badges - always visible, as neutral theme
+                        chips (the same for every role). */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                         {rolePermissions.map(p => (
-                            <span
-                                key={p.id}
-                                className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                                style={{ background: `${role.color}26`, color: role.color }}
-                            >
+                            <span key={p.id} className={CHIP}>
                                 {p.label}
                             </span>
                         ))}
@@ -97,9 +92,9 @@ export default function RolesSection({ users, expandedRole, setExpandedRole, ...
     const getUsersWithRole = (roleId: string) => users.filter(u => u.orgRole === roleId && !u.isSystem).length;
     return (
         <div className="space-y-3">
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
                 <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                    <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin.org_roles_title', 'Organisation Roles')}</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin.org_roles_title', 'Organisation Roles')}</h3>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
                         {t('admin.org_roles_desc', 'These roles define what members can do within your organisation. Assign roles in the Users tab.')}
                     </p>

@@ -38,7 +38,6 @@ export interface PackListItemProps {
     isActive: boolean;
     isSelected: boolean;
     onSelect: () => void;
-    onActivate?: () => void;
     onExport?: () => void;
     onDelete?: () => void;
 }
@@ -52,7 +51,6 @@ export interface PackEditorProps {
     packId: string;
     categories: IconCategory[];
     isActive: boolean;
-    onActivate: () => void;
     onExport: () => void;
     onPackChanged: (partial: Partial<IconPack>) => void;
 }

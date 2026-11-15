@@ -15,7 +15,8 @@ describe('ServerLicensePanel', () => {
         const user = userEvent.setup();
         render(withQueryClient(<ServerLicensePanel />));
         expect(await screen.findByRole('heading', { name: 'No server-wide licence applied' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Server licence' })).toBeInTheDocument();
+        // The dashboard's page frame names the page; the panel draws no title of its own.
+        expect(screen.queryByRole('heading', { name: 'Server licence' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Deactivate/ })).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /Apply server-wide licence/ }));
         const field = screen.getByLabelText('Activate server-wide');
@@ -34,5 +35,14 @@ describe('ServerLicensePanel', () => {
         expect(screen.getByRole('button', { name: /Replace licence/ })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Deactivate' })).toBeInTheDocument();
         expect(screen.getByText(/does not cover organisations on this deployment/)).toBeInTheDocument();
+    });
+
+    // A tier is not a status: the highest one is not drawn as a warning.
+    it('shows every tier on the same neutral chip, by its translated name', async () => {
+        answerStatus({ serverLicense: { tier: 'full', issuer: 'x', expiresAt: null }, serverOverride: true });
+        render(withQueryClient(<ServerLicensePanel />));
+        const chip = await screen.findByTestId('server-licence-tier');
+        expect(chip).toHaveTextContent('Full');
+        expect(chip.className).not.toMatch(/warning|success/);
     });
 });

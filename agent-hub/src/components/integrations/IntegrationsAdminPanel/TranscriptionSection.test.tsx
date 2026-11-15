@@ -86,9 +86,10 @@ const open = async (name: string): Promise<HTMLElement> => {
 };
 
 describe('TranscriptionSection: layout', () => {
-    it('shows the heading, the engines with the active one selected, and the how-it-works steps', () => {
+    // Changed on purpose (admin dashboard wave 3): the page header is the dashboard's frame (AdminPage), not the section's.
+    it('shows no page heading of its own, the engines with the active one selected, and the how-it-works steps', () => {
         renderSection();
-        expect(screen.getByRole('heading', { level: 2, name: /Meeting Transcription/ })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 2, name: /Meeting Transcription/ })).not.toBeInTheDocument();
         for (const name of ['Voxtral', 'Azure Speech', 'Azure Whisper', 'WhisperX', 'Scaleway (hybrid)', 'pyannoteAI']) {
             expect(within(list()).getByRole('button', { name: new RegExp(name.replace(/[()]/g, '\\$&')) })).toBeInTheDocument();
         }

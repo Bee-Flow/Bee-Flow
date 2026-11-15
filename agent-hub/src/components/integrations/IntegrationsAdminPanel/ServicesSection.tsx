@@ -1,19 +1,28 @@
-// "Services" section of the IntegrationsAdminPanel: the OAuth apps users
-// connect through (LinkedIn, Withings) and Azure Document Processing for the
-// knowledge bases. One settings group per service; the bindings are threaded
-// in as props from the panel.
+// "Connected apps" section of Platform services (the old "Services"): the
+// Google Maps key on every tier, and on Enterprise the OAuth apps users
+// connect through (LinkedIn, Withings) and Azure Document Intelligence for
+// the knowledge bases. One settings group per app; the bindings are threaded
+// in as props from the panel. The Azure OpenAI embedding model moved to AI
+// configuration > Search & retrieval, next to the other embedding models.
 import type React from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { FIELD_INPUT, Field, FieldGrid, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
-import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Toggle from '@/components/shared/Toggle';
 import type { ServicesSectionProps, SetMessage } from './adminPanel.types';
+import GoogleMapsRow from './GoogleMapsRow';
 import { HINT_LINK, Hint, SaveButton, StatusChip } from './ui';
 import { ApiError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 
 const MASK = '••••••••••••••••';
+
+/** The embedding-model fields stay in the panel's state for AI configuration; this section does not take them. */
+type AzureEmbeddingProps = 'azureEmbedEndpoint' | 'setAzureEmbedEndpoint' | 'azureEmbedKey' | 'setAzureEmbedKey'
+    | 'azureEmbedModel' | 'setAzureEmbedModel' | 'hasAzureEmbedEndpoint' | 'setHasAzureEmbedEndpoint'
+    | 'hasAzureEmbedKey' | 'setHasAzureEmbedKey' | 'savingAzureEmbed' | 'setSavingAzureEmbed';
+
+type ConnectedAppsProps = Omit<ServicesSectionProps, AzureEmbeddingProps>;
 
 /** POST /ai/config; null when the server refused. */
 function postConfig(body: Record<string, unknown>) {
@@ -59,8 +68,8 @@ function OAuthAppGroup({ logo, title, description, configured, clientId, setClie
         >
             <SettingsList>
                 <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row">
-                    <input type="text" value={clientId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientId(e.target.value)} placeholder={configured ? MASK : 'Client ID'} className={FIELD_INPUT} />
-                    <input type="password" value={clientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientSecret(e.target.value)} placeholder={configured ? MASK : 'Client Secret'} className={FIELD_INPUT} />
+                    <input type="text" value={clientId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientId(e.target.value)} placeholder={configured ? MASK : t('admin_platform.client_id_ph', 'Client ID')} aria-label={t('admin_platform.client_id_ph', 'Client ID')} className={FIELD_INPUT} />
+                    <input type="password" value={clientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientSecret(e.target.value)} placeholder={configured ? MASK : t('admin_platform.client_secret_ph', 'Client secret')} aria-label={t('admin_platform.client_secret_ph', 'Client secret')} className={FIELD_INPUT} />
                     <SaveButton saving={saving} disabled={!clientId.trim() || !clientSecret.trim()} onClick={onSave}>{t('integ.services_save', 'Save')}</SaveButton>
                 </div>
             </SettingsList>
@@ -73,16 +82,16 @@ const LINKEDIN_LOGO = <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" x
 const WITHINGS_LOGO = <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00A9A6" /><path d="M5 12.5h3l1.6-3.4 2.3 6 1.7-3.6H19" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 const AZURE_LOGO = <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0078D4" /><path d="M2 17l10 5 10-5" stroke="#0078D4" strokeWidth="2" fill="none" /><path d="M2 12l10 5 10-5" stroke="#50A0E0" strokeWidth="2" fill="none" /></svg>;
 
-function LinkedInGroup(p: ServicesSectionProps) {
+function LinkedInGroup(p: ConnectedAppsProps) {
     const { t } = useTranslation();
     const save = () => {
         if (!p.linkedinClientId.trim() || !p.linkedinClientSecret.trim()) return;
-        void runSave(p.setSavingLinkedIn, p.setMessage, 'Failed to save LinkedIn credentials', async () => {
+        void runSave(p.setSavingLinkedIn, p.setMessage, t('admin_platform.linkedin_save_failed', 'Could not save the LinkedIn credentials'), async () => {
             if (await postConfig({ linkedinClientId: p.linkedinClientId, linkedinClientSecret: p.linkedinClientSecret })) {
                 p.setHasLinkedInConfig(true);
                 p.setLinkedinClientId('');
                 p.setLinkedinClientSecret('');
-                p.setMessage({ type: 'success', text: 'LinkedIn credentials saved' });
+                p.setMessage({ type: 'success', text: t('admin_platform.linkedin_saved', 'LinkedIn credentials saved') });
             }
         });
     };
@@ -100,16 +109,16 @@ function LinkedInGroup(p: ServicesSectionProps) {
     );
 }
 
-function WithingsGroup(p: ServicesSectionProps) {
+function WithingsGroup(p: ConnectedAppsProps) {
     const { t } = useTranslation();
     const save = () => {
         if (!p.withingsClientId.trim() || !p.withingsClientSecret.trim()) return;
-        void runSave(p.setSavingWithings, p.setMessage, 'Failed to save Withings credentials', async () => {
+        void runSave(p.setSavingWithings, p.setMessage, t('admin_platform.withings_save_failed', 'Could not save the Withings credentials'), async () => {
             if (await postConfig({ withingsClientId: p.withingsClientId, withingsClientSecret: p.withingsClientSecret })) {
                 p.setHasWithingsConfig(true);
                 p.setWithingsClientId('');
                 p.setWithingsClientSecret('');
-                p.setMessage({ type: 'success', text: 'Withings credentials saved' });
+                p.setMessage({ type: 'success', text: t('admin_platform.withings_saved', 'Withings credentials saved') });
             }
         });
     };
@@ -127,12 +136,12 @@ function WithingsGroup(p: ServicesSectionProps) {
     );
 }
 
-function AzureDocIntelligenceRow(p: ServicesSectionProps) {
+function AzureDocIntelligenceRow(p: ConnectedAppsProps) {
     const { t } = useTranslation();
     const empty = !p.azureDocEndpoint.trim() && !p.azureDocKey.trim();
     const save = () => {
         if (empty) return;
-        void runSave(p.setSavingAzureDoc, p.setMessage, 'Failed to save credentials', async () => {
+        void runSave(p.setSavingAzureDoc, p.setMessage, t('admin_platform.docint_save_failed', 'Could not save the Document Intelligence credentials'), async () => {
             const body: Record<string, string> = {};
             if (p.azureDocEndpoint.trim()) body.azureDocIntelligenceEndpoint = p.azureDocEndpoint;
             if (p.azureDocKey.trim()) body.azureDocIntelligenceKey = p.azureDocKey;
@@ -141,7 +150,7 @@ function AzureDocIntelligenceRow(p: ServicesSectionProps) {
                 if (p.azureDocKey.trim()) p.setHasAzureDocKey(true);
                 p.setAzureDocEndpoint('');
                 p.setAzureDocKey('');
-                p.setMessage({ type: 'success', text: 'Document Intelligence credentials saved' });
+                p.setMessage({ type: 'success', text: t('admin_platform.docint_saved', 'Document Intelligence credentials saved') });
             }
         });
     };
@@ -151,8 +160,8 @@ function AzureDocIntelligenceRow(p: ServicesSectionProps) {
             hint={<>{t('integ.services_create_a_resource_at', 'Create a resource at')} <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesFormRecognizer" target="_blank" rel="noopener noreferrer" className={HINT_LINK}>{t('integ.services_azure_portal_ai_document_intelligence', 'Azure Portal → AI Document Intelligence')}</a>.</>}
             expanded={(
                 <div className="flex flex-col gap-2 sm:flex-row">
-                    <input type="text" value={p.azureDocEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocEndpoint(e.target.value)} placeholder={p.hasAzureDocEndpoint ? MASK : 'https://your-resource.cognitiveservices.azure.com'} className={FIELD_INPUT} />
-                    <input type="password" value={p.azureDocKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocKey(e.target.value)} placeholder={p.hasAzureDocKey ? MASK : 'API Key'} className={FIELD_INPUT} />
+                    <input type="text" value={p.azureDocEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocEndpoint(e.target.value)} placeholder={p.hasAzureDocEndpoint ? MASK : 'https://your-resource.cognitiveservices.azure.com'} aria-label={t('admin_platform.endpoint_label', 'Endpoint')} className={FIELD_INPUT} />
+                    <input type="password" value={p.azureDocKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocKey(e.target.value)} placeholder={p.hasAzureDocKey ? MASK : t('admin_platform.api_key_ph', 'API key')} aria-label={t('admin_platform.api_key_ph', 'API key')} className={FIELD_INPUT} />
                     <SaveButton saving={p.savingAzureDoc} disabled={empty} onClick={save}>{t('integ.services_save', 'Save')}</SaveButton>
                 </div>
             )}
@@ -160,65 +169,23 @@ function AzureDocIntelligenceRow(p: ServicesSectionProps) {
     );
 }
 
-function AzureEmbeddingsRow(p: ServicesSectionProps) {
-    const { t } = useTranslation();
-    const empty = !p.azureEmbedEndpoint.trim() && !p.azureEmbedKey.trim();
-    const save = () => {
-        if (empty) return;
-        void runSave(p.setSavingAzureEmbed, p.setMessage, 'Failed to save credentials', async () => {
-            const body: Record<string, string> = { azureOpenaiEmbeddingModel: p.azureEmbedModel };
-            if (p.azureEmbedEndpoint.trim()) body.azureOpenaiEmbeddingEndpoint = p.azureEmbedEndpoint;
-            if (p.azureEmbedKey.trim()) body.azureOpenaiEmbeddingKey = p.azureEmbedKey;
-            if (await postConfig(body)) {
-                if (p.azureEmbedEndpoint.trim()) p.setHasAzureEmbedEndpoint(true);
-                if (p.azureEmbedKey.trim()) p.setHasAzureEmbedKey(true);
-                p.setAzureEmbedEndpoint('');
-                p.setAzureEmbedKey('');
-                p.setMessage({ type: 'success', text: 'Azure OpenAI embedding credentials saved' });
-            }
-        });
-    };
-    return (
-        <SettingRow
-            label={<span className="flex items-center gap-2">{t('integ.services_azure_openai_embeddings', 'Azure OpenAI Embeddings')}{p.hasAzureEmbedEndpoint && p.hasAzureEmbedKey && <StatusChip>{t('integ.services_connected', 'Connected')}</StatusChip>}</span>}
-            hint={<>{t('integ.services_deploy_an_embedding_model_in_your', 'Deploy an embedding model in your')} <a href="https://oai.azure.com" target="_blank" rel="noopener noreferrer" className={HINT_LINK}>{t('integ.services_azure_openai_studio', 'Azure OpenAI Studio')}</a>{t('integ.services_used_for_kb_document_embeddings_when', '. Used for KB document embeddings when Azure processing is enabled.')}</>}
-            expanded={(
-                <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <input type="text" value={p.azureEmbedEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureEmbedEndpoint(e.target.value)} placeholder={p.hasAzureEmbedEndpoint ? MASK : 'https://your-resource.openai.azure.com'} className={FIELD_INPUT} />
-                        <input type="password" value={p.azureEmbedKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureEmbedKey(e.target.value)} placeholder={p.hasAzureEmbedKey ? MASK : 'API Key'} className={FIELD_INPUT} />
-                        <SaveButton saving={p.savingAzureEmbed} disabled={empty} onClick={save}>{t('integ.services_save', 'Save')}</SaveButton>
-                    </div>
-                    <FieldGrid>
-                        <Field label="Model" htmlFor="azure-embed-model">
-                            <select id="azure-embed-model" value={p.azureEmbedModel} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => p.setAzureEmbedModel(e.target.value)} className={FIELD_INPUT}>
-                                <option value="text-embedding-3-small">{t('integ.services_text_embedding_3_small_1536_dims', 'text-embedding-3-small (1536 dims)')}</option>
-                                <option value="text-embedding-3-large">{t('integ.services_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>
-                                <option value="text-embedding-ada-002">{t('integ.services_text_embedding_ada_002_1536_dims', 'text-embedding-ada-002 (1536 dims)')}</option>
-                            </select>
-                        </Field>
-                    </FieldGrid>
-                </div>
-            )}
-        />
-    );
-}
-
-function AzureGroup(p: ServicesSectionProps) {
+function AzureGroup(p: ConnectedAppsProps) {
     const { t } = useTranslation();
     const toggle = () => {
         const newVal = !p.useAzureDocProcessing;
-        void runSave(p.setSavingAzureToggle, p.setMessage, 'Failed to update setting', async () => {
+        void runSave(p.setSavingAzureToggle, p.setMessage, t('admin_platform.setting_save_failed', 'Could not change the setting'), async () => {
             if (await postConfig({ useAzureDocProcessing: newVal })) {
                 p.setUseAzureDocProcessing(newVal);
-                p.setMessage({ type: 'success', text: newVal ? 'Azure processing enabled for Knowledge Bases' : 'Switched to local processing for Knowledge Bases' });
+                p.setMessage({ type: 'success', text: newVal
+                    ? t('admin_platform.docint_kb_on', 'Knowledge bases now use Azure document processing')
+                    : t('admin_platform.docint_kb_off', 'Knowledge bases now use local document processing') });
             }
         });
     };
     return (
         <SettingsGroup
             title={<span className="flex items-center gap-2">{AZURE_LOGO}{t('integ.services_azure_document_processing', 'Azure Document Processing')}{p.hasAzureDocEndpoint && p.hasAzureDocKey && <StatusChip>{t('integ.services_configured', 'Configured')}</StatusChip>}</span>}
-            description={t('integ.services_use_azure_ai_document_intelligence_for', 'Use Azure AI Document Intelligence for high-quality document extraction + Azure OpenAI for embeddings.')}
+            description={t('admin_platform.docint_desc', 'Extract text from uploaded files with Azure AI Document Intelligence. The Azure embedding model is set under AI configuration › Search & retrieval.')}
         >
             <SettingsList>
                 <SettingRow inline
@@ -230,20 +197,27 @@ function AzureGroup(p: ServicesSectionProps) {
                     </div>
                 </SettingRow>
                 <AzureDocIntelligenceRow {...p} />
-                <AzureEmbeddingsRow {...p} />
             </SettingsList>
         </SettingsGroup>
     );
 }
 
-export default function ServicesSection(props: ServicesSectionProps) {
-    const { t } = useTranslation();
+/**
+ * The Connected apps page. The Google Maps key is on every tier; the OAuth
+ * apps and Document Intelligence are Enterprise. The dashboard's page frame
+ * draws the header (the rail label), so the section starts with its groups.
+ */
+export default function ServicesSection({ enterprise, ...props }: ConnectedAppsProps & { enterprise: boolean }) {
     return (
-        <div className="flex max-w-4xl flex-col gap-8">
-            <SectionHeader title={t('admin.integ_services')} description={t('integ.services_section_hint', 'Apps and cloud services that integrations and knowledge bases connect through.')} />
-            <LinkedInGroup {...props} />
-            <WithingsGroup {...props} />
-            <AzureGroup {...props} />
+        <div className="flex flex-col gap-8" data-testid="connected-apps">
+            <GoogleMapsRow setMessage={props.setMessage} />
+            {enterprise ? (
+                <>
+                    <LinkedInGroup {...props} />
+                    <WithingsGroup {...props} />
+                    <AzureGroup {...props} />
+                </>
+            ) : null}
         </div>
     );
 }

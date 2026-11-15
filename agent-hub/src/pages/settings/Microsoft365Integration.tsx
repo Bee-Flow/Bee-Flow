@@ -51,7 +51,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
     if (!status.configured) {
         return (
             <p className="text-[12px] text-[var(--text-muted)]">
-                {t('integ.microsoft_not_configured', 'Microsoft 365 is not configured. Ask your admin to set the Microsoft Client ID and Secret in Admin → Authentication.')}
+                {t('integ.microsoft_not_configured', 'Microsoft 365 is not configured. Ask your platform administrator to set the Microsoft client ID and secret in Admin → Sign-in & SSO.')}
             </p>
         );
     }

@@ -25,7 +25,8 @@ export interface LanguagesState {
     locales: LocaleEntry[];
     catalog: CatalogEntry[];
     selectedLocale: string | null;
-    setSelectedLocale: Dispatch<SetStateAction<string | null>>;
+    /** Open a locale (and tell the host, which puts it in the address). */
+    setSelectedLocale: (code: string | null) => void;
     loading: boolean;
     error: string;
     setError: Dispatch<SetStateAction<string>>;
@@ -53,10 +54,38 @@ async function downloadExport(code: string) {
 }
 
 const NO_LOCALES: LocaleEntry[] = [];
+
+/** Until anything is chosen: the first non-English locale, or English. */
+function firstLocale(locales: readonly LocaleEntry[]): string | null {
+    return locales.find(l => l.code !== 'en')?.code ?? locales[0]?.code ?? null;
+}
+
+/**
+ * The open locale. The address wins while it names an installed locale; then
+ * the last one opened here; until then the first one (firstLocale). Opening
+ * one also tells the host (`onLocaleChange`), which puts it in the address.
+ */
+function useLocaleSelection(locales: readonly LocaleEntry[], routeLocale: string | undefined, onLocaleChange: ((code: string | null) => void) | undefined) {
+    const [chosenLocale, setChosenLocale] = useState<string | null>(null);
+    const fromRoute = routeLocale && locales.some(l => l.code === routeLocale) ? routeLocale : null;
+    const selectedLocale = fromRoute ?? chosenLocale ?? firstLocale(locales);
+    const setSelectedLocale = useCallback((code: string | null) => {
+        setChosenLocale(code);
+        onLocaleChange?.(code);
+    }, [onLocaleChange]);
+    return { selectedLocale, setSelectedLocale };
+}
 const NO_CATALOG: CatalogEntry[] = [];
 
+interface UseLanguagesOptions {
+    /** The locale the address names (admin/languages/<locale>); wins while it is installed. */
+    routeLocale?: string;
+    /** Called with every locale the page opens, so the host can put it in the address. */
+    onLocaleChange?: (code: string | null) => void;
+}
+
 /** The installed locales, the catalogue, the selection and every locale-level action. */
-export default function useLanguages(): LanguagesState {
+export default function useLanguages({ routeLocale, onLocaleChange }: UseLanguagesOptions = {}): LanguagesState {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const languages = useLanguagesQuery<LocaleEntry, CatalogEntry>();
@@ -66,9 +95,7 @@ export default function useLanguages(): LanguagesState {
     const setLocales = useCallback((next: LocaleEntry[]) => {
         queryClient.setQueryData<LanguagesAnswer<LocaleEntry, CatalogEntry>>(languagesKey, (prev) => ({ catalog: prev?.catalog ?? NO_CATALOG, locales: next }));
     }, [queryClient]);
-    // Until one is chosen, the first non-English locale (or English) is selected.
-    const [chosenLocale, setSelectedLocale] = useState<string | null>(null);
-    const selectedLocale = chosenLocale || locales.find(l => l.code !== 'en')?.code || locales[0]?.code || null;
+    const { selectedLocale, setSelectedLocale } = useLocaleSelection(locales, routeLocale, onLocaleChange);
     const [actionError, setError] = useState('');
     const error = actionError || (languages.isError ? t('admin_languages.error_load', 'Failed to load languages') : '');
     const loading = languages.isPending;

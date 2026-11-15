@@ -19,13 +19,16 @@ import { useShellProps } from '@/authedApp/useShellProps';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
- * RIGHTS. A StudioShell with a SectionNav sidebar switches between:
+ * RIGHTS. In the admin dashboard two tabs above the page (elsewhere a
+ * StudioShell with a SectionNav sidebar) switch between:
  *   - Grants  : distribute capabilities to All members + per group (the matrix)
  *   - Ceiling : what the subscription plan (cloud) / licence (self-hosted)
- *               permits — editable by super-admins, read-only for org-admins
+ *               permits, and per organisation which part of it the organisation
+ *               may use — editable by super-admins, read-only for org-admins
  *
- * MCP server install/config lives on Admin → Integrations (the MCP section);
- * installed servers are ordinary integrations, granted through the matrix here.
+ * MCP servers are installed under Admin dashboard > Connections > MCP servers
+ * (the organisation's) and Whole server > MCP servers; installed servers are
+ * ordinary integrations, granted through the matrix here.
  *
  * A super-admin works on the organisation chosen in the admin dashboard's scope
  * bar (useAdminOrg); with "All organisations" chosen there is no organisation to
@@ -157,20 +160,22 @@ interface AccessTabsPageProps {
     children: ReactNode;
 }
 
-/** Grants and Ceiling as tabs above the page (the admin dashboard, whose rail is the navigation). */
+/**
+ * Grants and Ceiling as tabs above the page (the admin dashboard, whose rail is
+ * the navigation). The dashboard's page frame draws the padding, the width and
+ * the header, so the tabs open the page.
+ */
 function AccessTabsPage({ sections, active, onSelect, children }: AccessTabsPageProps) {
     const { t } = useTranslation();
     return (
-        <div className="h-full overflow-auto">
-            <div className="flex flex-col gap-5 p-6 md:p-8">
-                <Tabs
-                    ariaLabel={t('admin.tab_access', 'Access')}
-                    value={active}
-                    onChange={onSelect}
-                    items={sections.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
-                />
-                {children}
-            </div>
+        <div className="flex flex-col gap-5" data-testid="access-tabs-page">
+            <Tabs
+                ariaLabel={t('admin.tab_access', 'Access')}
+                value={active}
+                onChange={onSelect}
+                items={sections.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
+            />
+            {children}
         </div>
     );
 }

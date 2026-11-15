@@ -6,7 +6,6 @@ import type { FleetOrg } from './healthMeta';
 import OrgHealthDrawer from './OrgHealthDrawer';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ALERT_ERROR, DANGER_BTN, EYEBROW, FILTER_CHIP_OFF, FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
-import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import { apiRequest } from '@/api/typedRequest';
 
@@ -151,12 +150,11 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
     }
 
     return (
-        <div className="max-w-5xl">
-            <SectionHeader
-                className="mb-4"
-                title={t('admin.ch_title', 'Nextcloud connector health')}
-                description={t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
-            />
+        <div>
+            {/* The page (Nextcloud instances) and its Connector health tab name the panel, at the page's width; the hint stays. */}
+            <p className="m-0 mb-4 text-xs text-[var(--text-secondary)]">
+                {t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
+            </p>
 
             {loadFailed && (
                 <div className={`mb-4 items-center justify-between ${ALERT_ERROR}`}>

@@ -68,7 +68,7 @@ const PERMISSION_COPY: Record<string, readonly [string, string]> = {
     use_notebooks: ['Notebooks', 'Create, edit and delete personal notebooks'],
     manage_users: ['Manage Users', 'Add, remove, and assign roles to organisation members'],
     page_settings: ['Edit Organisation Settings', 'Change branding, legal details, and configuration'],
-    admin_security: ['Privacy Shield', 'Configure data redaction, guardrails, users and SSO'],
+    admin_security: ['Security settings', 'Configure the Privacy Shield, sign-in and access, and manage people'],
     admin_compliance: ['Compliance Center', 'Run and review GDPR / AI Act compliance checks and settings'],
     admin_monitoring: ['Usage & Monitoring', 'View organisation usage and activity monitoring'],
     admin_subscriptions: ['Subscriptions', 'Manage the organisation subscription and plan'],

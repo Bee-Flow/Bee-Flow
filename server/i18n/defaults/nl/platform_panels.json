@@ -1,0 +1,25 @@
+{
+  "translations": {
+    "platform_panels.new_user_language": "Nieuwe gebruikers beginnen in",
+    "platform_panels.new_user_language_hint": "De taal waarin een nieuw account begint, voor iedereen op deze server. Mensen kunnen hun eigen taal daarna zelf wijzigen.",
+    "platform_panels.translate_tier": "Modelniveau voor AI-vertaling",
+    "platform_panels.locale_actions": "Acties voor {name}",
+    "platform_panels.access_on": "Mensen zien een themakiezer in de zijbalk en een onderdeel in hun instellingen.",
+    "platform_panels.access_off": "Iedereen ziet het thema van deze server, wat ze op hun eigen apparaat ook kozen.",
+    "platform_panels.icon_packs_in_use": "In gebruik bij jou",
+    "platform_panels.icon_packs_count": "{n} eigen pictogrammen",
+    "platform_panels.icon_packs_choose_hint": "Pakketten zijn van jou. Kies welk pakket je gebruikt via Instellingen > Weergave.",
+    "platform_panels.icon_packs_load_failed": "De pictogrampakketten konden niet worden geladen.",
+    "platform_panels.icon_packs_create_failed": "Het pakket kon niet worden gemaakt.",
+    "platform_panels.icon_packs_export_failed": "Het pakket kon niet worden geëxporteerd.",
+    "platform_panels.icon_packs_import_failed": "Het pakket kon niet worden geïmporteerd: het bestand is geen geldige JSON.",
+    "platform_panels.icon_packs_delete_title": "Dit pictogrampakket verwijderen?",
+    "platform_panels.icon_packs_delete_body": "Dit kan niet ongedaan worden gemaakt.",
+    "platform_panels.icon_pack": "Pictogrampakket",
+    "platform_panels.icon_pack_hint": "Vervangt de pictogrammen in de app. Alleen jij ziet je keuze.",
+    "platform_panels.icon_pack_default": "Standaardpictogrammen",
+    "platform_panels.icon_pack_default_desc": "De pictogrammen die standaard in Bee Flow zitten.",
+    "platform_panels.email_variables": "Variabelen:"
+  },
+  "sameAsEnglish": []
+}

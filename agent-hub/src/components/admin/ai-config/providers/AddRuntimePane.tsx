@@ -6,7 +6,7 @@ import AddRuntimeForm from '../ProviderCards/local/AddRuntimeForm';
 import { ProviderStatusPill } from '../ProviderCards/shared/ProviderCardShell';
 import type { ProviderPaneProps } from './types';
 import Section from '@/components/shared/Section';
-import { PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { PRIMARY_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 import { detectRuntimes, connectRuntime } from '@/api/localRuntimeApi';
 import type { ConnectRequest, DetectResult, RuntimeInfo } from '@/api/runtimeTypes';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -40,7 +40,7 @@ function DetectedRuntimes({ detected, saving, onConnect }: DetectedRuntimesProps
                 <div key={f.url} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-2.5">
                     <span className="text-sm text-[var(--text-primary)]">{f.label}</span>
                     <span className="font-mono text-xs text-[var(--text-muted)]">{f.url}</span>
-                    <ProviderStatusPill tone="blue">{f.modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: f.modelCount })}</ProviderStatusPill>
+                    <ProviderStatusPill tone="info">{f.modelCount === 1 ? t('admin_ai_config.model_count_one', '1 model') : t('admin_ai_config.model_count_other', '{count} models', { count: f.modelCount })}</ProviderStatusPill>
                     <div className="flex-1" />
                     {f.alreadyConfigured ? (
                         <span className="text-xs text-[var(--text-muted)]">{t('admin_ai_config.local_already', 'Already connected')}</span>

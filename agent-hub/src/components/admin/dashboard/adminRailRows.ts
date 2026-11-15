@@ -7,12 +7,13 @@
 //          orgSections deciding which, is a row of its own);
 //   child  indented under the tab's own row while that tab is open; the tab's
 //          own address opens its first child.
+// A tab with a railGate (AdminTab) draws its own row only when the gate opens.
 // Inside a group the rows follow ADMIN_RAIL_ORDER (adminTabs). A row's id is
 // its path under admin/: `tab` or `tab/section`.
 
 import { Building2, Server } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { activeOrgSection, visibleOrgSections, type OrgFactsUser, type OrgHubSection, type OrgSectionFacts } from '@/components/admin/organisation/orgSections';
+import { openOrgSection, visibleOrgSections, type OrgFactsUser, type OrgHubSection, type OrgSectionFacts } from '@/components/admin/organisation/orgSections';
 import { useOrgSectionFacts } from '@/components/admin/organisation/useOrgSectionFacts';
 import { resolveAgentSection } from '@/components/agents/agentSections';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
@@ -22,6 +23,7 @@ import type { AdminRailBlock, AdminRailGateContext, AdminRailRowDef } from './ad
 import { ADMIN_TABS, buildAdminRailSections, type AdminRailSection, type AdminTab } from './adminTabs';
 import type { AdminOrgChoice } from './useAdminOrg';
 import { effectiveAdminOrgOf } from './useEffectiveAdminOrgId';
+import { useHasNextcloudInstances } from './useServerNextcloudFacts';
 
 const ORG_TAB = 'organisation';
 
@@ -53,7 +55,10 @@ function useOrgRailSections(user: (OrgFactsUser & Readonly<Record<string, unknow
 
 /** The Organisation sections as rail rows of the organisation block. */
 function orgSectionRows(sections: readonly OrgHubSection[]): AdminRailRowDef[] {
-    return sections.map(s => ({ section: s.id, labelKey: s.labelKey, labelFallback: s.labelFallback, icon: s.icon, group: s.group, block: 'org', kind: 'row' }));
+    return sections.map(s => ({
+        section: s.id, labelKey: s.labelKey, labelFallback: s.labelFallback, descriptionKey: s.descriptionKey,
+        descriptionFallback: s.descriptionFallback, icon: s.icon, group: s.group, block: 'org', kind: 'row',
+    }));
 }
 
 /** What the row gates read, besides the Organisation tab's facts. */
@@ -77,6 +82,12 @@ export function visibleRailRows(tabs: readonly AdminTab[], { org, viewer }: Visi
         out[tab.id] = tab.id === ORG_TAB ? orgSectionRows(org.sections) : tab.railRows.filter(row => !row.gate || row.gate(ctx));
     }
     return out;
+}
+
+/** The tabs whose own row the rail draws: every tab, except one whose railGate stays shut. */
+export function railShownTabs<T extends AdminTab>(tabs: readonly T[], viewer: RailGateViewer): T[] {
+    const ctx: AdminRailGateContext = { ...viewer, orgFacts: null };
+    return tabs.filter(tab => !tab.railGate || tab.railGate(ctx));
 }
 
 /** A tab whose declared rows are all top-level rows has no row of its own. */
@@ -105,15 +116,22 @@ function railTabsOf(tabs: readonly AdminTab[], rows: VisibleRailRows, t: Transla
     return [...own, ...sections];
 }
 
-/** The section a request opens among a tab's top-level rows: the requested one when it is there, else the first. */
+/**
+ * The section a request opens among a tab's top-level rows: the requested one
+ * when it is there, else the first. An Organisation section that exists opens as
+ * itself even when this viewer does not get it (or not yet: its availability is
+ * being read): the tab says why on that address, and no other row is marked.
+ */
 function openSectionOf(tabId: string, ids: readonly string[], requested: string | undefined): string {
-    if (tabId === ORG_TAB) return activeOrgSection(ids.map(id => ({ id })), requested);
+    if (tabId === ORG_TAB) return openOrgSection(ids.map(id => ({ id })), requested).id;
     return requested && ids.includes(requested) ? requested : (ids[0] ?? '');
 }
 
 /**
  * The row the URL opens: the tab; for a tab that gave way to its rows the
- * section it shows (the first one without a section); for a tab with child
+ * section it shows (the first one without a section; an Organisation section
+ * the viewer does not get is still its own row id, which the rail then does
+ * not mark); for a tab with child
  * rows the child the section names, else its first child (the page the tab's
  * own address opens), else the tab's own row.
  */
@@ -133,6 +151,35 @@ export function activeRailRow(activeTab: string, section: string | undefined, ro
 export function railRowLabel(sections: readonly AdminRailSectionView[], id: string): string | undefined {
     const rows = sections.flatMap(s => s.groups).flatMap(g => g.tabs);
     return [...rows, ...rows.flatMap(row => row.children ?? [])].find(row => row.id === id)?.label;
+}
+
+/** What names a row: a tab's own fields, or those of one of its declared section rows. */
+type RowNaming = Pick<AdminRailRowDef, 'labelKey' | 'labelFallback' | 'descriptionKey' | 'descriptionFallback'>;
+
+/** The definition behind a row id (`tab` or `tab/section`), whether or not the rail draws the row. */
+function rowNamingOf(id: string, tabs: readonly AdminTab[]): RowNaming | undefined {
+    const [tabId, section] = id.split('/');
+    const tab = tabs.find(candidate => candidate.id === tabId);
+    if (!tab) return undefined;
+    return (section ? tab.railRows?.find(row => row.section === section) : undefined) ?? tab;
+}
+
+/** The page header of a row: its label and its description (if any), as the rail names it. */
+export interface AdminRowHeading {
+    label: string;
+    description?: string;
+}
+
+/**
+ * The page header of row `id`. The label is the one the rail draws; a row the
+ * rail leaves out (a section this viewer does not get, a gated tab) is named by
+ * its definition, and an unknown one by `fallback`.
+ */
+export function adminRowHeading(sections: readonly AdminRailSectionView[], id: string, t: TranslateFn, fallback: string, tabs: readonly AdminTab[] = ADMIN_TABS): AdminRowHeading {
+    const naming = rowNamingOf(id, tabs);
+    const label = railRowLabel(sections, id) ?? (naming ? t(naming.labelKey, naming.labelFallback) : fallback);
+    const description = naming?.descriptionKey ? t(naming.descriptionKey, naming.descriptionFallback) : undefined;
+    return description ? { label, description } : { label };
 }
 
 interface AdminRailViewInput {
@@ -202,23 +249,26 @@ interface AdminRailState {
     activeRow: string;
     /** The current row's label (the narrow top bar, the page header); the tab's own name, else the dashboard's. */
     currentLabel: string;
+    /** The current row's description, the line under the page header; none when the row has none. */
+    currentDescription?: string;
 }
 
 /** The rail of the dashboard for this viewer and address: its blocks, the current row and its label. */
 export function useAdminRail({ user, choice, tabs, isPlatformAdmin, activeTab, section, t }: AdminRailInput): AdminRailState {
     const org = useOrgRailSections(user, choice, tabs.some(tab => tab.id === ORG_TAB));
     const { hasFeature, hasTier } = useLicenseContext();
+    const hasNextcloudInstances = useHasNextcloudInstances(isPlatformAdmin && tabs.some(tab => tab.id === 'nextcloud-instances'));
     const viewer: RailGateViewer = {
         isPlatformAdmin,
         isHomeOrgAdmin: isHomeOrgAdmin(user),
         agentSections: resolveAgentSection(user ? { ...user, isAdmin: user.isAdmin ?? undefined, role: user.role ?? undefined } : null, '').visible,
         hasFeature: (feature) => !!hasFeature(feature),
         hasTier: (tier) => !!hasTier(tier),
+        hasNextcloudInstances,
     };
     const rows = visibleRailRows(tabs, { org, viewer });
-    const sections = adminRailView({ tabs, rows, isPlatformAdmin, choice, t });
+    const sections = adminRailView({ tabs: railShownTabs(tabs, viewer), rows, isPlatformAdmin, choice, t });
     const activeRow = activeRailRow(activeTab, section, rows);
-    const activeDef = ADMIN_TABS.find(tab => tab.id === activeTab);
-    const currentLabel = railRowLabel(sections, activeRow) ?? (activeDef ? t(activeDef.labelKey, activeDef.labelFallback) : t('admin.dashboard_title'));
-    return { sections, activeRow, currentLabel };
+    const heading = adminRowHeading(sections, activeRow, t, t('admin.dashboard_title'));
+    return { sections, activeRow, currentLabel: heading.label, currentDescription: heading.description };
 }

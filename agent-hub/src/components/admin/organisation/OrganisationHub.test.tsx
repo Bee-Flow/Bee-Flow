@@ -58,8 +58,8 @@ describe('the Organisation tab for a platform admin', () => {
 
     it('offers a part the server ties to the own organisation only for that one', async () => {
         renderOrgTab({ section: 'meeting-templates', search: '?org=org-b', plan: entitlements([], ['meeting_notes']) });
-        // Two such parts on this page: the summary templates and the Teams setup.
-        expect(await screen.findAllByTestId('admin-home-org-only')).toHaveLength(2);
+        // Changed on purpose (wave 3): one such part on this page, the summary templates; the Teams setup moved to Microsoft 365.
+        expect(await screen.findAllByTestId('admin-home-org-only')).toHaveLength(1);
     });
 
     // Changed on purpose (wave 2): the instance-wide Azure form is no longer a row; Microsoft 365 is the organisation's own.
@@ -120,6 +120,28 @@ describe('the Organisation tab for a platform admin', () => {
 });
 
 describe('the Organisation tab for an organisation admin by role', () => {
+    const marked = () => nav().queryAllByRole('link').filter(a => a.getAttribute('aria-current') === 'page').map(a => a.textContent);
+
+    it('says why on the address of a section the organisation does not have, and marks no other row', async () => {
+        asked = stubOrgApi({ availability: { off: ['mcp'] } });
+        renderOrgTab({ user: ORG_ADMIN_BY_ROLE, section: 'mcp' });
+        // While the availability is read, no row is marked in the requested one's place.
+        expect(marked()).toEqual([]);
+        const notice = await screen.findByTestId('org-section-unavailable-mcp');
+        expect(notice).toHaveTextContent("Not included in this organisation's plan");
+        // The page keeps the section's own name as its header.
+        expect(within(screen.getByTestId('admin-page-header')).getByRole('heading', { level: 2, name: 'MCP servers' })).toBeInTheDocument();
+        expect(marked()).toEqual([]);
+        expect(screen.queryByTestId('org-section-body-info')).not.toBeInTheDocument();
+    });
+
+    it('opens a section it has on its address, marked in the rail and headed by its row', async () => {
+        renderOrgTab({ user: ORG_ADMIN_BY_ROLE, section: 'mcp' });
+        expect(await screen.findByTestId('org-section-body-mcp')).toBeInTheDocument();
+        expect(marked()).toEqual(['MCP servers']);
+        expect(within(screen.getByTestId('admin-page-header')).getByRole('heading', { level: 2, name: 'MCP servers' })).toBeInTheDocument();
+    });
+
     it('works on the home organisation: no picker, its name in the bar, no orgId on the request', async () => {
         renderOrgTab({ user: ORG_ADMIN_BY_ROLE, section: 'mcp-access' });
         await waitFor(() => expect(policyReads()).toContain('/api/org/mcp-access'));

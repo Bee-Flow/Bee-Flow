@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
-import { ACCESS_KIND_SECTIONS } from './accessTypes';
+import { ACCESS_KIND_SECTIONS, notSetUpOnServer } from './accessTypes';
 import type { AccessCapability, AccessData, AccessMessage } from './accessTypes';
 import { AccessStatus, CapabilityGroup, CapabilityRow } from './AccessParts';
 import { ApiError } from '@/api/mutate';
@@ -137,6 +137,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                                 key={cap.id}
                                 cap={cap}
                                 icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />}
+                                notSetUp={notSetUpOnServer(data, cap.id)}
                                 onActivate={unrestricted ? undefined : () => toggle(cap.id)}
                                 trailing={unrestricted
                                     ? <Lock className="h-4 w-4 text-[var(--text-tertiary)]" aria-hidden="true" />

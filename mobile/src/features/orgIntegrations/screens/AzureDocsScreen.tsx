@@ -1,5 +1,5 @@
 /**
- * Azure document processing (web: integrations/azure/DocProcessingSection.jsx):
+ * Azure document processing (web: Platform services, IntegrationsAdminPanel/ServicesSection.tsx):
  * whether knowledge-base uploads go through Azure AI Document Intelligence
  * and Azure OpenAI embeddings instead of local processing, and their
  * endpoints, keys and embedding model. An empty endpoint or key keeps the

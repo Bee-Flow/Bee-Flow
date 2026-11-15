@@ -1,6 +1,6 @@
 import { Key } from 'lucide-react';
 import type { AdminPermission } from './types';
-import { EntityList, EntityRow, EntitySectionHeader } from './EntityRows';
+import { EntityList, EntityRow, EntitySectionIntro } from './EntityRows';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export interface PermissionsSectionProps {
@@ -11,8 +11,8 @@ export default function PermissionsSection({ permissions }: PermissionsSectionPr
     const { t } = useTranslation();
     return (
         <div>
-            <EntitySectionHeader
-                title={t('admin_org.permissions_section_title', 'Permissions')}
+            {/* The page (Roles & permissions) and its Permissions tab name the section; the hint stays. */}
+            <EntitySectionIntro
                 description={t('admin_org.permissions_section_subtitle', 'Available permissions for roles and groups')}
             />
             <EntityList>

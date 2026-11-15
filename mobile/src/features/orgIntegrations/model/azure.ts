@@ -1,5 +1,5 @@
 /**
- * The web Azure panel's constants and rules (integrations/azure/constants.js,
+ * The Azure screens' constants and rules (once the web Azure panel's, whose form is gone;
  * pinned by azure.lockstep.test.ts): its sections, the four chat tiers and
  * their defaults, which models reason, and the group-sync schedule words.
  */
@@ -46,7 +46,7 @@ export const TIER_DEFAULTS: Readonly<Record<TierKey, { maxTokens: number; temper
     pro: { maxTokens: 40960, temperature: 0.7 },
 };
 
-/** A tier's temperature bounds: the web field's min and max (ChatModelsSection.jsx). */
+/** A tier's temperature bounds: the tier temperature of the AI configuration. */
 export const TEMPERATURE_RANGE = { min: 0, max: 2 } as const;
 
 /**

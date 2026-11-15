@@ -1,0 +1,33 @@
+{
+  "translations": {
+    "agent_designer.nav_identity": "Identiteit",
+    "agent_designer.nav_knowledge": "Kennis",
+    "agent_designer.nav_integrations": "Integraties",
+    "agent_designer.nav_behavior": "Gedrag",
+    "agent_designer.nav_share": "Delen en insluiten",
+    "agent_designer.editor_tab_general": "Algemeen",
+    "agent_designer.editor_tab_knowledge": "Kennis",
+    "agent_designer.edit_agent": "Agent bewerken",
+    "agent_designer.saving": "Opslaan…",
+    "agent_designer.save_changes": "Wijzigingen opslaan",
+    "agent_designer.save_reread_failed": "De nieuwste versie van deze agent kon niet worden gelezen, dus er is niets opgeslagen. Probeer het opnieuw.",
+    "agent_designer.empty_system": "Kies een systeemagent in de lijst om die te bewerken.",
+    "agent_designer.publish_to_groups": "Publiceren naar {count} groepen",
+    "agent_designer.tools_title": "Integraties",
+    "agent_designer.tools_intro_admin": "Kies welke integraties deze agent mag gebruiken. Hier staan de integraties die de organisatie van de agent beschikbaar heeft.",
+    "agent_designer.tools_master": "Integraties en zoeken op internet",
+    "agent_designer.tools_master_on": "De agent mag de integraties gebruiken die hieronder aanstaan.",
+    "agent_designer.tools_master_off": "Uit: de agent gebruikt geen enkele integratie en zoekt niet op internet, wat hieronder ook aanstaat.",
+    "agent_designer.tools_checking": "Bezig met nagaan welke integraties deze organisatie heeft…",
+    "agent_designer.tools_own_account": "Eigen account per persoon",
+    "agent_designer.tools_own_account_hint": "Iedereen die deze agent gebruikt, koppelt een eigen account of sleutel.",
+    "agent_designer.tools_none_admin": "Deze organisatie heeft geen integraties beschikbaar. Onder Status van integraties zie je wat is ingericht, onder Toegang wat de organisatie mag gebruiken.",
+    "agent_designer.tools_none_user": "Koppel een account of voeg een API-sleutel toe in je Instellingen om hier integraties te gebruiken.",
+    "agent_designer.share_title": "Delen en insluiten",
+    "agent_designer.share_intro": "Zet deze agent op een website: als openbare chatpagina, in een iframe of als chatbubbel. Dat werkt zodra de agent is gepubliceerd.",
+    "agent_designer.share_save_first": "Sla de agent eerst op om de insluitcode te krijgen."
+  },
+  "sameAsEnglish": [
+    "agent_designer.editor_tab_skills"
+  ]
+}

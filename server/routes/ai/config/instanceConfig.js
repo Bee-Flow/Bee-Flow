@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * AI Config — the /config resource: general AI config CRUD, API-key and
  * setting deletion, service-email connect/test and the Azure reranker
@@ -28,6 +28,7 @@ const { z, worded, bodyOf, flag } = require('../../../core/http/schemaParts');
 const { parseAzureImageModels, AZURE_IMAGE_MODELS_KEY } = require('../../../core/media/imageModels.mts');
 const { SETTING_STEPS, aiConfigToSave } = require('../../../usecases/ai/config/instanceSettingSteps');
 const { AzureImageModelsBody } = require('../../../core/media/imageModelsBody');
+const { TOOL_ROUND_DEFAULTS } = require('../../../core/llm/toolRoundDefaults.mts');
 
 // ── What POST /config accepts ────────────────────────────────────────
 // Every key the handler reads, and nothing else: a misspelled key (the
@@ -136,6 +137,8 @@ router.get('/config', requireAuth, async (req, res) => {
         directChatRegexGuardrails: await configStore.getConfig('direct_chat_regex_guardrails') || null,
         // Tool-call rounds limit for chat surfaces (direct/notebook/webpage/native loop). null -> per-surface defaults.
         maxToolRoundsChat: await configStore.getConfig('max_tool_rounds_chat') || null,
+        // What each surface runs with while maxToolRoundsChat is empty (the admin page shows it).
+        toolRoundDefaults: TOOL_ROUND_DEFAULTS,
         // KB provider — 'local' (in-process pgvector) or 'remote' (search-service). null -> auto.
         kbProvider: await configStore.getConfig('kb_provider') || null,
         // CPU cross-encoder reranker toggle (default on for fresh installs).
@@ -255,7 +258,7 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
     // first-party flows in piiDetection/validate, makes the scan skip
     // entirely for every org that falls back to this config. Checked before
     // anything below is written.
-    if (piiDetectionAction !== undefined && !VALID_PII_ACTIONS.includes(piiDetectionAction)) {
+    if (piiDetectionAction !== undefined && (piiDetectionAction === null || !VALID_PII_ACTIONS.includes(piiDetectionAction))) {
         return res.status(400).json({ error: `piiDetectionAction is one of ${VALID_PII_ACTIONS.join(', ')}.` });
     }
     const existing = await getAIConfig();
@@ -376,12 +379,13 @@ router.post('/config/test-service-email', requireAuth, requireAdmin, validate({ 
  * Resolve the OAuth redirect URI. MUST byte-match the one the support-inbox
  * callback uses, since that path is what's registered with Google. Mirrors
  * supportInbox.redirectUriFor: explicit SERVER_PUBLIC_HOST/PROTOCOL first.
+ * @param {import('express').Request} req
  */
 function _serviceEmailRedirectUri(req) {
     let host = process.env.SERVER_PUBLIC_HOST;
     let protocol = process.env.SERVER_PROTOCOL || req.protocol || 'https';
     if (!host) {
-        host = req.get('X-Forwarded-Host') || null;
+        host = req.get('X-Forwarded-Host') || undefined;
         if (!host) {
             const ref = req.get('Referer');
             if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { fallback('routes/ai/config/instanceConfig:_serviceEmailRedirectUri', err); /* ignore */ } }

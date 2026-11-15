@@ -1,9 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { OrgFormData } from './useOrgInfoForm';
+import type { OrgFormData } from './orgInfoFormRows';
 import { AUTH_METHODS, AllowedDomainsEditor } from './orgInfoShared';
 import { useUnavailableSignInMethods, type AuthMethodId, type SignInUnavailable } from './signInAvailability';
+import AutoApproveSetting from './AutoApproveSetting';
 import ChoiceCards, { type ChoiceCardOption } from '@/components/shared/ChoiceCards';
-import SectionHeader from '@/components/shared/SectionHeader';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface OrgAuthSectionProps {
@@ -23,7 +23,10 @@ const UNAVAILABLE_KEY: Record<SignInUnavailable, string> = {
  * The organisation's preferred sign-in method. Nothing reads it when someone
  * signs in: it is a preference the admin may change at any time, saved on
  * the shared save bar. Only the methods this server offers can be picked; the
- * others say why not.
+ * others say why not. Below it, who may join through single sign-on: the
+ * allowed domains (self-hosted) and auto-approve, whose one home this row is
+ * (it stores itself). The page title and its description are the dashboard
+ * frame's (AdminPage), so the row draws none of its own.
  */
 const OrgAuthSection = ({ t, orgData, setOrgData, isSelfHosted }: OrgAuthSectionProps) => {
     const unavailable = useUnavailableSignInMethods(isSelfHosted);
@@ -40,8 +43,7 @@ const OrgAuthSection = ({ t, orgData, setOrgData, isSelfHosted }: OrgAuthSection
     });
     const value = AUTH_METHODS.some(m => m.id === orgData.authMethod) ? orgData.authMethod as AuthMethodId : null;
     return (
-        <div className="max-w-3xl space-y-5 animate-fadeIn">
-            <SectionHeader title={t('org_signin.title')} description={t('org_signin.subtitle')} />
+        <div className="space-y-5 animate-fadeIn">
             <ChoiceCards
                 appearance="radio"
                 columns={1}
@@ -58,6 +60,7 @@ const OrgAuthSection = ({ t, orgData, setOrgData, isSelfHosted }: OrgAuthSection
                     t={t}
                 />
             )}
+            <AutoApproveSetting t={t} orgData={orgData} setOrgData={setOrgData} />
         </div>
     );
 };

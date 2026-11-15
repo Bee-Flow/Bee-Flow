@@ -1,0 +1,14 @@
+{
+  "translations": {
+    "admin_org_rows.default_language_change": "Wijzig dit onder Talen",
+    "admin_org_rows.default_language_server_wide": "Dit geldt voor iedereen op deze server, niet alleen voor deze organisatie.",
+    "admin_org_rows.default_language_title": "Standaardtaal voor nieuwe gebruikers",
+    "admin_org_rows.legal_details": "Juridische gegevens",
+    "admin_org_rows.legal_details_desc": "De registratienummers van je organisatie.",
+    "admin_org_rows.nc_sync_manual": "Alleen handmatig",
+    "admin_org_rows.nc_sync_mirror_all": "Alles spiegelen",
+    "admin_org_rows.nc_sync_open": "Naar de Nextcloud-instellingen",
+    "admin_org_rows.nc_sync_selective_groups": "Alleen geselecteerde groepen"
+  },
+  "sameAsEnglish": []
+}

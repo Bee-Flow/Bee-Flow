@@ -3,7 +3,7 @@
 // AgentDesigner/index.jsx without a change in behaviour.
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { PRIMARY_BTN, QUIET_BTN } from '@/components/shared/adminUi';
 
 export interface OrgGroup { id: string; name?: string; description?: string | null }
 
@@ -36,7 +36,7 @@ export default function PublishMenu(p: PublishMenuProps) {
                     className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                         p.isPublished
                             ? 'border-[color-mix(in_srgb,var(--success)_40%,transparent)] bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]'
-                            : 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                            : 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]'
                     }`}
                 >
                     {p.isPublished ? (
@@ -64,7 +64,7 @@ function PublishDropdown(p: PublishMenuProps) {
     const { sharedGroups } = p;
     return (
         <div
-            className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl z-50 overflow-hidden [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)]"
+            className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl z-50 overflow-hidden border border-[var(--border-default)] bg-[var(--bg-card)]"
         >
             <div className="p-3 border-b border-[var(--border-subtle)]">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -78,9 +78,9 @@ function PublishDropdown(p: PublishMenuProps) {
             {/* Personal — only the owner can access. */}
             <button
                 onClick={() => p.setPublishState(false, [])}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--item-hover-bg)] transition-colors text-left"
             >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:rgba(107,114,128,0.15)]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
                     <svg className="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={LOCK_PATH} />
                     </svg>
@@ -95,9 +95,9 @@ function PublishDropdown(p: PublishMenuProps) {
             {/* Publish to entire org */}
             <button
                 onClick={() => p.setPublishState(true, [])}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left border-t border-[var(--border-subtle)]"
+                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--item-hover-bg)] transition-colors text-left border-t border-[var(--border-subtle)]"
             >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:rgba(16,185,129,0.15)]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[color-mix(in_srgb,var(--success)_14%,transparent)]">
                     <svg className="w-4 h-4 text-[var(--success-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
@@ -127,7 +127,7 @@ function PublishDropdown(p: PublishMenuProps) {
             <div className="p-2 border-t border-[var(--border-subtle)]">
                 <button
                     onClick={() => p.setShowPublishMenu(false)}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs text-center text-[var(--text-muted)]"
+                    className={`${QUIET_BTN} w-full justify-center`}
                 >
                     {t('agent_studio.agent_designer_cancel', 'Cancel')}
                 </button>
@@ -151,7 +151,7 @@ function GroupChooser({ orgGroups, sharedGroups, setSharedGroups, togglePublish 
 
             <div className="max-h-48 overflow-auto">
                 {orgGroups.map((group) => (
-                    <label key={group.id} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--bg-tertiary)] cursor-pointer transition-colors">
+                    <label key={group.id} className="flex items-center gap-3 px-4 py-2 hover:bg-[var(--item-hover-bg)] cursor-pointer transition-colors">
                         <input
                             type="checkbox"
                             checked={sharedGroups.includes(group.id)}
@@ -180,8 +180,9 @@ function GroupChooser({ orgGroups, sharedGroups, setSharedGroups, togglePublish 
                         onClick={() => togglePublish(sharedGroups)}
                         className={`${PRIMARY_BTN} w-full`}
                     >
-                        {t('agent_studio.agent_designer_publish_to_count_group', 'Publish to {count} group', { count: sharedGroups.length })}
-                        {sharedGroups.length > 1 ? 's' : ''}
+                        {sharedGroups.length === 1
+                            ? t('agent_studio.agent_designer_publish_to_count_group', 'Publish to {count} group', { count: 1 })
+                            : t('agent_designer.publish_to_groups', 'Publish to {count} groups', { count: sharedGroups.length })}
                     </button>
                 </div>
             )}

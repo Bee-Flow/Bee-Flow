@@ -6,7 +6,8 @@
  * key `org_memory_<orgId>`): whether memory is on for the organisation at all,
  * whether members may opt in to sensitive memories, and the per-user cap.
  *
- *   GET  /:orgId        settings + counts (never memory content)
+ *   GET  /:orgId        settings + counts (never memory content) + runsOn, the display name of
+ *                       the model that picks memories out of a chat (set by the server administrator)
  *   PUT  /:orgId        save settings (org admin or super admin) -> {settings, stats, deletedSensitive?};
  *                       turning sensitiveOptInAllowed off hard-deletes the org's art. 9 memories
  *                       and clears every member's opt-in flag, so a later re-enable needs fresh consent
@@ -57,6 +58,8 @@ function makeDefaultDeps() {
         userStore: require('../stores/userStore'),
         configStore: require('../stores/configStore'),
         sensitiveOptInKey: require('../core/memory/memoryPolicy').memorySensitiveOptInKey,
+        /** @type {(orgId: string) => Promise<string | null>} */
+        memoryRunsOn: require('../core/llm/runsOnModel.mts').memoryExtractionRunsOn,
     };
 }
 
@@ -112,11 +115,13 @@ function createOrgMemoryRouter(deps = null) {
 
     router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         await requireAdminOf(req);
-        const [settings, stats] = await Promise.all([
+        const [settings, stats, runsOn] = await Promise.all([
             getOrgMemorySettings(req.params.orgId),
             memoryStore.countOrgMemoryStats(req.params.orgId),
+            // Never throws (runsOnModel.mts); a fake without it reads as unknown.
+            d.memoryRunsOn ? d.memoryRunsOn(req.params.orgId) : null,
         ]);
-        res.json({ settings, stats });
+        res.json({ settings, stats, runsOn });
     });
 
     router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (req, /** @type {import('express').Response} */ res) => {

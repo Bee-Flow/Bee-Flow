@@ -1,6 +1,8 @@
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import React, { useEffect } from 'react';
 import OrganisationSection from './settings/OrganisationSection';
+import OrgPageHeading from './settings/OrgPageHeading';
+import { Button } from '@/components/shared/Button';
 import OrgUsersPanel from '../components/admin/org/OrgUsersPanel';
 import AgentDesigner from '../components/agents/AgentDesigner/index';
 import GitHubSyncPanel from '../components/integrations/github/GitHubSyncPanel';
@@ -87,12 +89,12 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
         return (
             <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
                 <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center [background:rgba(239,68,68,0.1)]">
-                        <ShieldOff className="w-8 h-8 [color:rgb(239,68,68)]" />
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-[color-mix(in_srgb,var(--error)_10%,transparent)]">
+                        <ShieldOff className="w-8 h-8 text-[var(--error-ink)]" />
                     </div>
                     <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title', 'Access Denied')}</h2>
                     <p className="text-sm mb-4 text-[var(--text-muted)]">{t('org.settings_access_denied_text', "You don't have permission to access organisation settings.")}</p>
-                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white bg-[var(--accent-primary)]">{t('admin.go_back', 'Go Back')}</button>}
+                    {onBack && <Button variant="primary" onClick={onBack}>{t('admin.go_back', 'Go Back')}</Button>}
                 </div>
             </div>
         );
@@ -168,15 +170,19 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
                             'knowledge'); the duplicate admin CRUD that used to
                             sit here (KnowledgeBasesSection.jsx) is gone. */}
                         <div className="max-w-5xl mx-auto space-y-6">
+                            <OrgPageHeading section="knowledge-bases" className="" />
                             <SystemKnowledgeBasesPanel />
                         </div>
                     </div>
                 ) : activeTab === 'github-sync' ? (
                     <div className="absolute inset-0 overflow-y-auto p-6">
+                        {/* The panels draw no page title (the admin dashboard's frame does); this page names them. */}
+                        <OrgPageHeading section="github_sync" />
                         <GitHubSyncPanel user={user} />
                     </div>
                 ) : activeTab === 'nextcloud-sync' ? (
                     <div className="absolute inset-0 overflow-y-auto p-6">
+                        <OrgPageHeading section="nextcloud_sync" />
                         <NextcloudSyncPanel user={user} />
                     </div>
                 ) : null}

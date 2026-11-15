@@ -2,6 +2,7 @@ import { Check, ServerCrash, ShieldAlert } from 'lucide-react';
 import { normalizePermissions, permissionCopy, splitEnvPermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
 import { useTranslation } from '@/hooks/useTranslation';
+import { CHIP_SUCCESS, CHIP_WARNING } from '@/components/shared/adminUi';
 
 interface PermissionListProps {
     permissions?: unknown;
@@ -24,12 +25,12 @@ function PermissionRow({ perm, granted, isNew }: { perm: ModulePermission; grant
                         {permissionCopy(t, perm.id)}
                     </span>
                     {isNew && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
+                        <span className={CHIP_WARNING}>
                             {t('modules.permissions.new')}
                         </span>
                     )}
                     {granted && (
-                        <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-500 font-medium">
+                        <span className={CHIP_SUCCESS}>
                             <Check className="w-2.5 h-2.5" /> {t('modules.permissions.granted')}
                         </span>
                     )}
@@ -64,8 +65,8 @@ export default function PermissionList({ permissions, granted = null, diff = nul
                 </ul>
             )}
             {env.length > 0 && (
-                <div className="rounded-lg border p-3 [border-color:rgba(239,68,68,0.35)] [background:rgba(239,68,68,0.06)]" data-testid="perm-env-section">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold [color:#ef4444]!">
+                <div className="rounded-lg border p-3 border-[color-mix(in_srgb,var(--error)_35%,transparent)] bg-[color-mix(in_srgb,var(--error)_6%,transparent)]" data-testid="perm-env-section">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--error-ink)]">
                         <ServerCrash className="w-3.5 h-3.5" /> {t('modules.permissions.env_section')}
                     </div>
                     <p className="text-xs mt-1 leading-relaxed text-[var(--text-secondary)]">

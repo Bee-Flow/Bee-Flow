@@ -1,11 +1,12 @@
 import { CircleCheck, CircleX, Info, Loader2, RefreshCw, type LucideIcon } from 'lucide-react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { CHIP, CHIP_ERROR, CHIP_SUCCESS, QUIET_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 import type { N8nDiagnostics, TestResult } from './n8nModel';
 
 /** The live connection pill above the tabs. */
 export function StatusPill({ configured, testResult }: { configured: boolean; testResult: TestResult | null }) {
     const { t } = useTranslation();
-    let label: string, bg: string, color: string, Icon: LucideIcon;
+    let label: string, chip: string, Icon: LucideIcon;
     if (testResult?.ok) {
         const count = testResult.activeWebhookCount;
         label = count == null
@@ -13,20 +14,20 @@ export function StatusPill({ configured, testResult }: { configured: boolean; te
             : count === 1
                 ? t('settings.n8n.status_connected_one', 'Connected · 1 active webhook workflow')
                 : t('settings.n8n.status_connected_many', 'Connected · {count} active webhook workflows', { count });
-        bg = 'rgba(16,185,129,0.12)'; color = '#10b981'; Icon = CircleCheck;
+        chip = CHIP_SUCCESS; Icon = CircleCheck;
     } else if (testResult && !testResult.ok) {
         label = `${t('settings.n8n.status_failed', 'Connection failed')}${testResult.error ? ` — ${String(testResult.error).slice(0, 80)}` : ''}`;
-        bg = 'rgba(239,68,68,0.12)'; color = '#ef4444'; Icon = CircleX;
+        chip = CHIP_ERROR; Icon = CircleX;
     } else if (configured) {
         label = t('settings.n8n.status_configured', 'Configured — click Test to verify');
-        bg = 'var(--bg-tertiary)'; color = 'var(--text-secondary)'; Icon = Info;
+        chip = CHIP; Icon = Info;
     } else {
         label = t('settings.n8n.status_not_configured', 'Not configured');
-        bg = 'var(--bg-tertiary)'; color = 'var(--text-muted)'; Icon = Info;
+        chip = CHIP; Icon = Info;
     }
     return (
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: bg, color }}>
-            <Icon className="w-3 h-3" /> {label}
+        <span className={chip}>
+            <Icon className="w-3 h-3" aria-hidden="true" /> {label}
         </span>
     );
 }
@@ -100,8 +101,8 @@ function checkRows(t: TranslateFn, diag: N8nDiagnostics, p: AccessCheckProps): C
 }
 
 const Mark = ({ ok, className }: { ok: boolean; className: string }) => (ok
-    ? <CircleCheck className={className} style={{ color: '#10b981' }} />
-    : <CircleX className={className} style={{ color: '#ef4444' }} />);
+    ? <CircleCheck className={`${className} text-[var(--success-ink)]`} aria-hidden="true" />
+    : <CircleX className={`${className} text-[var(--error-ink)]`} aria-hidden="true" />);
 
 /**
  * Renders /ai/n8n/diagnostics as a short, actionable checklist so the admin
@@ -135,11 +136,11 @@ export function AccessCheckCard(p: AccessCheckProps) {
                     </span>
                 </div>
                 <button onClick={onRefresh} disabled={loading}
-                    className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50 text-[var(--text-secondary)]" title={t('settings.n8n.refresh', 'Refresh')} aria-label={t('settings.n8n.refresh', 'Refresh')}>
+                    className={QUIET_BTN} title={t('settings.n8n.refresh', 'Refresh')} aria-label={t('settings.n8n.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>
-            <ul className="divide-y border-[var(--border-subtle)]">
+            <ul className="divide-y divide-[var(--border-subtle)]">
                 {rows.map((r, i) => (
                     <li key={i} className="px-3 py-2 flex items-start gap-2.5">
                         <Mark ok={r.ok} className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -151,7 +152,7 @@ export function AccessCheckCard(p: AccessCheckProps) {
                             <button
                                 onClick={r.fix.action}
                                 disabled={r.fix.disabled}
-                                className="text-[11px] font-medium px-2 py-0.5 rounded border shrink-0 disabled:opacity-50 border-[var(--border-default)] text-[var(--accent-primary)]"
+                                className={`${SECONDARY_BTN} shrink-0`}
                             >
                                 {r.fix.label}
                             </button>

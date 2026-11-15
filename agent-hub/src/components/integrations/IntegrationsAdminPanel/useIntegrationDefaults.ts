@@ -1,7 +1,8 @@
 // Global default-integrations logic of the IntegrationsAdminPanel — the
-// combined integrations list, the default toggles and the save call, moved
-// verbatim from IntegrationsAdminPanel.jsx.
+// combined integrations list, the default toggles and the save call. Each
+// toggle saves at once and says so as the panel's toast.
 import { useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ALL_INTEGRATIONS } from './sections';
 import { orderCategories } from '@/config/integrationCatalog';
 import type { DefaultIntegration, SetMessage } from './adminPanel.types';
@@ -24,14 +25,15 @@ interface UseIntegrationDefaultsArgs {
 }
 
 export default function useIntegrationDefaults({ defaults, setDefaults, setSaving, setMessage, mcpServers }: UseIntegrationDefaultsArgs) {
+    const { t } = useTranslation();
     const saveDefaults = async (newDefaults: string[] | null) => {
         setDefaults(newDefaults);
         setSaving(true);
         try {
             await apiRequest('PUT /auth/default-integrations', { body: { defaults: newDefaults } });
-            setMessage({ type: 'success', text: 'Default integrations updated' });
-        } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save' });
+            setMessage({ type: 'success', text: t('admin_platform.defaults_saved', 'Defaults for new organisations saved') });
+        } catch {
+            setMessage({ type: 'error', text: t('admin_platform.defaults_save_failed', 'Could not save the defaults') });
         }
         setSaving(false);
         setTimeout(() => setMessage(null), 3000);
@@ -39,15 +41,20 @@ export default function useIntegrationDefaults({ defaults, setDefaults, setSavin
 
     // Build combined integrations list: built-in + installed MCP servers
     const allIntegrations = useMemo(() => {
-        const mcpIntegrations: DefaultIntegration[] = mcpServers.map(s => ({
-            id: `mcp:${s.id}`,
-            label: s.name,
-            description: s.description || `${(s.tools_cache || []).length} tool(s)`,
-            category: 'MCP',
-            icon: s.icon || '🔌',
-        }));
+        const mcpIntegrations: DefaultIntegration[] = mcpServers.map(s => {
+            const tools = (s.tools_cache || []).length;
+            return {
+                id: `mcp:${s.id}`,
+                label: s.name,
+                description: s.description || (tools === 1
+                    ? t('admin_platform.mcp_tools_one', '1 tool')
+                    : t('admin_platform.mcp_tools_many', '{count} tools', { count: tools })),
+                category: 'MCP',
+                icon: s.icon || '🔌',
+            };
+        });
         return [...ALL_INTEGRATIONS, ...mcpIntegrations];
-    }, [mcpServers]);
+    }, [mcpServers, t]);
 
     const isDefaultEnabled = (id: string) => !defaults || defaults.includes(id);
     const toggleDefault = (id: string) => {

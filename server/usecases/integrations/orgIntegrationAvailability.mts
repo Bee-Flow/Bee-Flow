@@ -282,6 +282,12 @@ const ENABLED_UNLESS_FALSE = (v: unknown) => v !== false && v !== 'false';
 
 async function readNextcloud(d: ReturnType<typeof withDeps>, org: OrgRow): Promise<OrgIntegrationAvailability['nextcloud']> {
     const instanceId = typeof org.nc_instance_id === 'string' && org.nc_instance_id ? org.nc_instance_id : null;
+    // Pairing has no server switch to read: an organisation admin (or a platform
+    // admin for any organisation) may mint a code on every server
+    // (POST /auth/admin/nc-bindings/generate-pairing-code), and the connector
+    // redeems it whatever the provisioning mode, which governs only an unknown
+    // Nextcloud creating a new organisation (auth/connector/provisioning.js).
+    // The one condition is that the organisation is not bound yet.
     if (!instanceId) return { bound: false, apps: [], pairingAvailable: true };
     // The org's own Nextcloud switches (the NC integrations panel). No document
     // yet means nobody chose: every family is on.

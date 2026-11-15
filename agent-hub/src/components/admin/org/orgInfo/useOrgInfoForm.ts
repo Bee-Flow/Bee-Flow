@@ -1,51 +1,12 @@
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
-import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
 import { ApiError, errorBody, RefusedError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 import { useOrgFormReads } from '@/api/queries/orgInfoForm';
-import { imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
-import type { ImageLimits, ImageLimitsInput } from '@/utils/imageLimits';
-
-/**
- * The organisation's fields this form shows. A save sends only the fields of
- * the row being saved, and of those only the ones that changed (orgFormSaveBody):
- * fields edited elsewhere (auto-approve, default groups, sign-up) are not held
- * here at all, so a save of this form can never send them back stale.
- */
-interface OrgFormFields {
-    name: string;
-    description: string;
-    tagline: string;
-    address: string;
-    billingLine2: string;
-    billingPostalCode: string;
-    billingCity: string;
-    billingCountry: string;
-    email: string;
-    phone: string;
-    website: string;
-    kvk: string;
-    vat: string;
-    /** Stored by its own upload and remove endpoints, never by the save. */
-    logo: string;
-    /** The preferred sign-in method: a preference, it can change at any time. */
-    authMethod: string | null;
-    usagePooled: boolean;
-    allowedDomains: string[];
-    /** The default image limits per user, as typed; empty = not set. Sent as numbers. */
-    imageLimits: ImageLimitsInput;
-}
-
-/** The organisation form as this page edits it. */
-export interface OrgFormData extends OrgFormFields {
-    id: string;
-}
-
-/** One row of GET /auth/organizations, as far as the form reads it. */
-type OrgRow = Partial<Omit<OrgFormFields, 'imageLimits'>> & { id: string; imageLimits?: ImageLimits | null };
+import { changedOrgFields, orgFormRowFields, orgFormSaveBody, toFormData } from './orgInfoFormRows';
+import type { OrgFormData, OrgRow } from './orgInfoFormRows';
 
 interface GroupRow {
     id: string;
@@ -92,88 +53,14 @@ interface UseOrgInfoFormOptions {
     orgId?: string | null;
     /**
      * The row being edited (OrgInfoPanel's activeSection: 'info', 'auth',
-     * 'license'). Its fields are the only ones a save sends and the only ones
-     * the save bar calls unsaved. Left out, every field of the form counts.
+     * 'license', or 'image-limits' for the Models page's card). Its fields are
+     * the only ones a save sends and the only ones the save bar calls unsaved.
+     * Left out, every field of the form counts.
      */
     section?: string;
     t: TranslateFn;
     onSave?: () => void;
     onStateChange?: (state: OrgInfoSaveState) => void;
-}
-
-/** The form's starting values from the stored row. */
-function toFormData(myOrg: OrgRow): OrgFormData {
-    return {
-        id: myOrg.id,
-        name: myOrg.name || '',
-        description: myOrg.description || '',
-        tagline: myOrg.tagline || '',
-        address: myOrg.address || '',
-        billingLine2: myOrg.billingLine2 || '',
-        billingPostalCode: myOrg.billingPostalCode || '',
-        billingCity: myOrg.billingCity || '',
-        billingCountry: myOrg.billingCountry || '',
-        email: myOrg.email || '',
-        phone: myOrg.phone || '',
-        website: myOrg.website || '',
-        kvk: myOrg.kvk || '',
-        vat: myOrg.vat || '',
-        logo: myOrg.logo || '',
-        authMethod: myOrg.authMethod || null,
-        // Default to pooled (true) when the column is null on
-        // pre-migration orgs — matches the server-side default.
-        usagePooled: myOrg.usagePooled === undefined ? true : !!myOrg.usagePooled,
-        allowedDomains: Array.isArray(myOrg.allowedDomains) ? myOrg.allowedDomains : [],
-        imageLimits: imageLimitsToInput(myOrg.imageLimits),
-    };
-}
-
-/** A field the save sends (the logo has its own endpoints). */
-export type OrgSavedField = Exclude<keyof OrgFormFields, 'logo'>;
-
-const INFO_FIELDS: readonly OrgSavedField[] = [
-    'name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity',
-    'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat',
-];
-const ALL_FIELDS: readonly OrgSavedField[] = [...INFO_FIELDS, 'authMethod', 'allowedDomains', 'usagePooled', 'imageLimits'];
-
-/**
- * The fields a row of the organisation form edits, and so the only ones its
- * save sends. The image limits sit on License & Usage on cloud and on
- * Organisation Info on a self-hosted server (OrgInfoPanel). An unknown or
- * missing row counts every field.
- */
-export function orgFormRowFields(section: string | undefined, isSelfHosted: boolean): readonly OrgSavedField[] {
-    switch (section) {
-        case 'info': return isSelfHosted ? [...INFO_FIELDS, 'imageLimits'] : INFO_FIELDS;
-        case 'auth': return ['authMethod', 'allowedDomains'];
-        case 'license': return isSelfHosted ? ['usagePooled'] : ['usagePooled', 'imageLimits'];
-        default: return ALL_FIELDS;
-    }
-}
-
-const sameValue = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-
-/** The fields of `fields` whose value in `current` differs from the stored one. */
-function changedOrgFields(current: OrgFormData, saved: OrgFormData, fields: readonly OrgSavedField[]): OrgSavedField[] {
-    return fields.filter(f => !sameValue(current[f], saved[f]));
-}
-
-type OrgSaveBody = Partial<Omit<OrgFormFields, 'logo' | 'imageLimits'>> & { imageLimits?: ImageLimits | null };
-
-/**
- * The PUT body for `changed`: those fields only, the image limits as whole
- * numbers (or null). undefined: an image limit is not a number, nothing is sent.
- */
-function orgFormSaveBody(current: OrgFormData, changed: readonly OrgSavedField[]): OrgSaveBody | undefined {
-    const body: Record<string, unknown> = {};
-    for (const f of changed) {
-        if (f !== 'imageLimits') { body[f] = current[f]; continue; }
-        const limits = parseImageLimitsInput(current.imageLimits);
-        if (limits === undefined) return undefined;
-        body.imageLimits = limits;
-    }
-    return body as OrgSaveBody;
 }
 
 /**
@@ -281,8 +168,7 @@ export default function useOrgInfoForm({ user, orgId, section, t, onSave: parent
     const [orgData, setOrgData] = useState<OrgFormData | null>(null);
     // The organisation as stored: what an unsaved edit is measured against.
     const [saved, setSaved] = useState<OrgFormData | null>(null);
-    const { isSelfHosted } = useDeploymentMode();
-    const rowFields = orgFormRowFields(section, isSelfHosted);
+    const rowFields = orgFormRowFields(section);
     // handleSave reads the form, the snapshot and the row from these: the copy
     // the parent's save bar holds is only refreshed when hasChanges/saving/
     // message change, which a switch between two dirty rows does not do.

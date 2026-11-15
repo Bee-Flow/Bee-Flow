@@ -1,0 +1,16 @@
+{
+  "reworded": {
+    "admin_languages.tab_prompts": {
+      "nl": "Promptvertalingen",
+      "was": [
+        "Systeemprompts"
+      ]
+    },
+    "appearance.access_control_whether_individual_members_can": {
+      "nl": "Dit thema geldt voor iedereen op deze server. Kies of mensen op hun eigen apparaat een eigen thema mogen kiezen.",
+      "was": [
+        "Bepaal of individuele leden dit thema op hun eigen apparaat mogen overschrijven."
+      ]
+    }
+  }
+}

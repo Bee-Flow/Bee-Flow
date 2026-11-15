@@ -20,6 +20,20 @@ export interface WidgetOptions {
   warningText: string;
 }
 
+/**
+ * The widget with the designer's starting look (the defaults of useAgentState),
+ * for a place that offers the snippet without the look settings.
+ */
+export function defaultWidgetOptions(agentId: string, origin: string): WidgetOptions {
+  return {
+    agentId, origin,
+    bubbleColor: '#f5a623', bubblePosition: 'right', bubbleSize: 60, bubbleIcon: '🐝',
+    windowWidth: 400, windowHeight: 600,
+    chatFont: 'System Default', chatFontSize: 14, chatLineHeight: 1.5,
+    userBubbleColor: '', assistantBubbleColor: '', warningText: '',
+  };
+}
+
 /** The chat page URL with the look parameters that differ from the defaults. */
 export function widgetChatUrl(o: WidgetOptions): string {
   const fontParams: string[] = [];

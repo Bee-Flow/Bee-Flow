@@ -8,7 +8,6 @@ import { saveTranscriptionConfig } from '@/api/transcriptionConfigApi';
 import { useTranslation } from '@/hooks/useTranslation';
 import { CHIP, CHIP_SUCCESS, CHIP_WARNING, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 import { DetailLayout, DetailListGroup, DetailListNav, DetailListRow } from '@/components/shared/DetailList';
-import SectionHeader from '@/components/shared/SectionHeader';
 import AzureSpeechCard from './AzureSpeechCard';
 import PyannoteCard from './PyannoteCard';
 import ScalewayCard from './ScalewayCard';
@@ -113,13 +112,7 @@ export default function TranscriptionSection(props: TranscriptionSectionProps) {
     );
 
     return (
-        <div className="flex max-w-5xl flex-col gap-6">
-            <SectionHeader
-                title={t('integ.transcription_meeting_transcription', 'Meeting Transcription')}
-                description={<>
-                    {t('integ.transcription_configure_which_ai_provider', 'Configure which AI provider transcribes your meeting recordings. All providers support')} <strong>{t('integ.transcription_speaker_diarization', 'speaker diarization')}</strong> {t('integ.transcription_who_said_what_and_automatic_speaker', '(who said what) and automatic speaker name identification. Switch providers at any time without losing settings.')}
-                </>}
-            />
+        <div className="flex flex-col gap-6">
             <DetailLayout list={list}>
                 <EngineDetail
                     engine={selected}

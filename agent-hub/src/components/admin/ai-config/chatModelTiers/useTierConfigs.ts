@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { CustomTier, StatusMessage, TierConfig } from './tierTypes';
-import { flash } from './tierTypes';
+import type { TierConfig } from './tierTypes';
 import { getAiConfig, postAiConfig } from '@/api/aiConfig';
-import { useTranslation } from '@/hooks/useTranslation';
-import { logger } from '@/utils/logger';
 
 const initialTiers = (): TierConfig => ({
     fast: { modelId: '', label: 'Fast' },
@@ -15,122 +12,96 @@ const initialTiers = (): TierConfig => ({
     pro: { modelId: '', label: 'Deep Thinking' }
 });
 
+/** One tier table (regular or EU) as part of the page's draft. */
+interface TierTableDraft {
+    config: TierConfig;
+    setConfig: Dispatch<SetStateAction<TierConfig>>;
+    dirty: boolean;
+    load: () => Promise<void>;
+    /** Store the draft: null when the server took it, else what went wrong. */
+    persist: () => Promise<string | null>;
+    discard: () => void;
+}
+
 export interface TierConfigsState {
     config: TierConfig;
     setConfig: Dispatch<SetStateAction<TierConfig>>;
     euConfig: TierConfig;
-    saving: boolean;
-    euSaving: boolean;
-    message: StatusMessage | null;
-    euMessage: StatusMessage | null;
+    setEuConfig: Dispatch<SetStateAction<TierConfig>>;
+    tiersDirty: boolean;
+    euDirty: boolean;
     expandedTier: string | null;
     setExpandedTier: Dispatch<SetStateAction<string | null>>;
+    /** The EU table opens its own rows: a Flow row open above does not open the EU one. */
+    expandedEuTier: string | null;
+    setExpandedEuTier: Dispatch<SetStateAction<string | null>>;
     loadConfig: () => Promise<void>;
     loadEuConfig: () => Promise<void>;
-    save: () => Promise<void>;
-    saveEu: () => Promise<void>;
+    persistTiers: () => Promise<string | null>;
+    persistEu: () => Promise<string | null>;
+    discardTiers: () => void;
     updateTier: (tierKey: string, field: string, value: unknown) => void;
     updateEuTier: (tierKey: string, field: string, value: unknown) => void;
 }
 
-/** ' (warning; warning)' from the custom-tier save, and the tiers as the server kept them. */
-async function readCustomSave(customRes: Response, setCustomTiers: (tiers: CustomTier[]) => void): Promise<string> {
-    let warn = '';
-    try {
-        const j = customRes.ok ? await customRes.json() : null;
-        if (j && Array.isArray(j.warnings) && j.warnings.length > 0) warn = ' (' + j.warnings.join('; ') + ')';
-        if (j && Array.isArray(j.tiers)) setCustomTiers(j.tiers);
-    } catch (err) { logger.debug('ignore', err); }
-    return warn;
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+function useTierTable(path: 'chat-models' | 'chat-models-eu'): TierTableDraft {
+    const [config, setConfig] = useState<TierConfig>(initialTiers);
+    const [saved, setSaved] = useState<TierConfig>(initialTiers);
+
+    const load = async () => {
+        try {
+            const res = await getAiConfig(path);
+            if (res.ok) {
+                const data = await res.json();
+                setConfig(data);
+                setSaved(data);
+            }
+        } catch (e) { console.error(`Failed to load ${path}:`, e); }
+    };
+
+    const persist = async () => {
+        try {
+            const res = await postAiConfig(path, config);
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                return typeof data.error === 'string' ? data.error : '';
+            }
+            setSaved(config);
+            return null;
+        } catch (e) {
+            console.error(`Failed to save ${path}:`, e);
+            return '';
+        }
+    };
+
+    return { config, setConfig, dirty: !same(config, saved), load, persist, discard: () => setConfig(saved) };
 }
 
 /**
- * The standard tiers (global and EU-only) and their saves. Each save also
- * writes the whole custom-tier array, so one click persists everything the
- * admin edited in that section.
+ * The standard tiers, global and EU-only, as part of the Models page's one
+ * draft: each table knows what is stored, whether the draft differs, and how
+ * to store itself. The page's save bar runs the stores (useChatModelTiersState).
  */
-export default function useTierConfigs(customTiers: CustomTier[], setCustomTiers: (tiers: CustomTier[]) => void): TierConfigsState {
-    const { t } = useTranslation();
-    const [config, setConfig] = useState<TierConfig>(initialTiers);
-    const [euConfig, setEuConfig] = useState<TierConfig>(initialTiers);
-    const [saving, setSaving] = useState(false);
-    const [euSaving, setEuSaving] = useState(false);
-    const [message, setMessage] = useState<StatusMessage | null>(null);
-    const [euMessage, setEuMessage] = useState<StatusMessage | null>(null);
+export default function useTierConfigs(): TierConfigsState {
+    const regular = useTierTable('chat-models');
+    const eu = useTierTable('chat-models-eu');
     const [expandedTier, setExpandedTier] = useState<string | null>(null);
+    const [expandedEuTier, setExpandedEuTier] = useState<string | null>(null);
 
-    const loadConfig = async () => {
-        try {
-            const res = await getAiConfig('chat-models');
-            if (res.ok) setConfig(await res.json());
-        } catch (e) { console.error('Failed to load chat model tiers:', e); }
-    };
-
-    const loadEuConfig = async () => {
-        try {
-            const res = await getAiConfig('chat-models-eu');
-            if (res.ok) setEuConfig(await res.json());
-        } catch (e) { console.error('Failed to load EU chat model tiers:', e); }
-    };
-
-    const save = async () => {
-        setSaving(true);
-        try {
-            const [res, customRes] = await Promise.all([
-                postAiConfig('chat-models', config),
-                postAiConfig('custom-chat-models', { tiers: customTiers }),
-            ]);
-            const bothOk = res.ok && customRes.ok;
-            const warn = await readCustomSave(customRes, setCustomTiers);
-            if (bothOk) {
-                flash(setMessage, { type: warn ? 'warning' : 'success', text: t('admin_ai_config.tiers_saved', 'Chat model tiers saved{warn}', { warn }) }, 4000);
-            } else {
-                setMessage({ type: 'error', text: t('admin_ai_config.tiers_save_failed_some', 'Failed to save (one or more configs)') });
-            }
-        } catch (e) {
-            setMessage({ type: 'error', text: t('admin_ai_config.tiers_save_failed', 'Failed to save tier config') });
-        }
-        setSaving(false);
-    };
-
-    const saveEu = async () => {
-        setEuSaving(true);
-        try {
-            // Save EU standard tiers AND the full custom tiers array (which now
-            // contains each custom tier's euModelId). The custom-chat-models
-            // endpoint overwrites wholesale so race with `save()` is avoided as
-            // long as both callers write from the same local state.
-            const [res, customRes] = await Promise.all([
-                postAiConfig('chat-models-eu', euConfig),
-                postAiConfig('custom-chat-models', { tiers: customTiers }),
-            ]);
-            if (res.ok && customRes.ok) {
-                flash(setEuMessage, { type: 'success', text: t('admin_ai_config.tiers_eu_saved', 'EU model tiers saved!') }, 3000);
-            } else {
-                setEuMessage({ type: 'error', text: t('admin_ai_config.tiers_eu_save_failed_short', 'Failed to save') });
-            }
-        } catch (e) {
-            setEuMessage({ type: 'error', text: t('admin_ai_config.tiers_eu_save_failed', 'Failed to save EU tier config') });
-        }
-        setEuSaving(false);
-    };
-
-    const updateTier = (tierKey: string, field: string, value: unknown) => {
-        setConfig(prev => ({
-            ...prev,
-            [tierKey]: { ...prev[tierKey], [field]: value }
-        }));
-    };
-
-    const updateEuTier = (tierKey: string, field: string, value: unknown) => {
-        setEuConfig(prev => ({
-            ...prev,
-            [tierKey]: { ...prev[tierKey], [field]: value }
-        }));
+    const update = (set: Dispatch<SetStateAction<TierConfig>>) => (tierKey: string, field: string, value: unknown) => {
+        set(prev => ({ ...prev, [tierKey]: { ...prev[tierKey], [field]: value } }));
     };
 
     return {
-        config, setConfig, euConfig, saving, euSaving, message, euMessage, expandedTier, setExpandedTier,
-        loadConfig, loadEuConfig, save, saveEu, updateTier, updateEuTier,
+        config: regular.config, setConfig: regular.setConfig,
+        euConfig: eu.config, setEuConfig: eu.setConfig,
+        tiersDirty: regular.dirty, euDirty: eu.dirty,
+        expandedTier, setExpandedTier, expandedEuTier, setExpandedEuTier,
+        loadConfig: regular.load, loadEuConfig: eu.load,
+        persistTiers: regular.persist, persistEu: eu.persist,
+        discardTiers: () => { regular.discard(); eu.discard(); },
+        updateTier: update(regular.setConfig), updateEuTier: update(eu.setConfig),
     };
 }

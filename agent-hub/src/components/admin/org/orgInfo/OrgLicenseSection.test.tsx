@@ -75,7 +75,8 @@ describe('OrgLicenseSection', () => {
         };
         const billing = billingState({ subscription: sub, showChangePlan: true });
         renderSection(billing);
-        expect(screen.getByText('Subscription & Usage')).toBeTruthy();
+        // The page title is the dashboard frame's: the section draws none.
+        expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
         expect(screen.getByTestId('invoices')).toBeTruthy();
         expect(screen.getByText('Business')).toBeTruthy();
         expect(screen.getByText('2 / 10')).toBeTruthy();

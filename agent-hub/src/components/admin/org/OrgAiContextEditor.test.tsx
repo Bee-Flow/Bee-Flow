@@ -12,7 +12,7 @@ import OrgAiContextEditor from './OrgAiContextEditor';
 
 afterEach(() => vi.unstubAllGlobals());
 
-function stubServer(contextWindowExamples: unknown[]) {
+function stubServer(contextWindowExamples: unknown[], extra: Record<string, unknown> = {}) {
     vi.stubGlobal('fetch', vi.fn(async () => jsonAnswer({
         compactionEnabled: false,
         compactionThreshold: 16,
@@ -21,8 +21,48 @@ function stubServer(contextWindowExamples: unknown[]) {
         configured: false,
         contextBudgetRange: { min: 25, max: 95 },
         contextWindowExamples,
+        ...extra,
     })));
 }
+
+describe('OrgAiContextEditor copy and save', () => {
+    it('says the organisation\'s own threshold, not a fixed 16', async () => {
+        stubServer([], { compactionThreshold: 24 });
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        expect(await screen.findByText(/Once a chat passes about 24 messages/)).toBeInTheDocument();
+    });
+
+    it('names the model that writes the summaries, when the server sends one', async () => {
+        stubServer([], { runsOn: 'Small Model' });
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        expect(await screen.findByTestId('ai-context-runs-on')).toHaveTextContent('Summaries are written by Small Model');
+    });
+
+    it('an older server without runsOn shows no such line', async () => {
+        stubServer([]);
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        await screen.findByRole('radiogroup');
+        expect(screen.queryByTestId('ai-context-runs-on')).not.toBeInTheDocument();
+    });
+
+    it('Save waits for a change, and the safety limit is the shared slider', async () => {
+        stubServer([]);
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        const slider = await screen.findByLabelText('Safety limit');
+        expect(slider).toHaveAttribute('type', 'range');
+        expect(slider).toHaveAttribute('aria-valuetext', '75%');
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+    });
+
+    it('a failed read says so with a retry, never the defaults as saved', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => jsonAnswer({ error: 'no access' }, 403)));
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the long-conversation context settings.');
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+        expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    });
+});
 
 describe('OrgAiContextEditor examples', () => {
     it('names the organisation\'s own tiers and models', async () => {

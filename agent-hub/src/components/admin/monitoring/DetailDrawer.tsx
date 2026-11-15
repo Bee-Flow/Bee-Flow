@@ -9,6 +9,8 @@ interface DetailDrawerProps {
     modelCosts: Record<string, ModelRate | undefined>;
     costPerModel: Record<string, number>;
     recent: UsageRow[];
+    /** overlay: over the right of the positioned pane that scrolls itself; modal: a right-side dialog (a phone, or a page whose frame scrolls). */
+    mode?: 'overlay' | 'modal';
     onClose: () => void;
 }
 
@@ -17,7 +19,7 @@ interface DetailDrawerProps {
  * shared SideDrawer: a card over the right of the page (its host is the
  * positioned content pane), a right-side dialog on a phone.
  */
-export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose }: DetailDrawerProps) {
+export function DetailDrawer({ detail, modelCosts, costPerModel, recent, mode = 'overlay', onClose }: DetailDrawerProps) {
     const { type, data } = detail;
     const { isMobile } = useViewport();
     const eyebrow = type === 'model' ? 'Model Details' : 'Agent Details';
@@ -33,7 +35,7 @@ export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose
         <SideDrawer
             open
             onClose={onClose}
-            mode={isMobile ? 'modal' : 'overlay'}
+            mode={isMobile ? 'modal' : mode}
             width={440}
             ariaLabel={eyebrow}
             testId="monitoring-detail"

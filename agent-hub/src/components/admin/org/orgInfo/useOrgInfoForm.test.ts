@@ -5,7 +5,8 @@
 
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import useOrgInfoForm, { orgFormRowFields, type OrgFormData, type OrgInfoSaveState } from './useOrgInfoForm';
+import useOrgInfoForm, { type OrgInfoSaveState } from './useOrgInfoForm';
+import { orgFormRowFields, type OrgFormData } from './orgInfoFormRows';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { renderHookWithClient } from '@/test/render';
 import { setDemoTransport } from '@/utils/helpers';
@@ -85,19 +86,46 @@ describe('useOrgInfoForm: a save sends only the row being saved', () => {
 });
 
 describe('orgFormRowFields', () => {
-    it('puts the image limits on the page that shows them: License & Usage on cloud, Organisation info self-hosted', () => {
-        expect(orgFormRowFields('license', false)).toContain('imageLimits');
-        expect(orgFormRowFields('info', false)).not.toContain('imageLimits');
-        expect(orgFormRowFields('info', true)).toContain('imageLimits');
-        expect(orgFormRowFields('license', true)).not.toContain('imageLimits');
+    it('puts the image limits on their own row (the Models page) in every deployment mode, never on info or licence', () => {
+        expect(orgFormRowFields('image-limits')).toEqual(['imageLimits']);
+        expect(orgFormRowFields('license')).toEqual(['usagePooled']);
+        expect(orgFormRowFields('info')).not.toContain('imageLimits');
     });
 
     it('gives the sign-in row its two fields, and no row the fields edited elsewhere', () => {
-        expect(orgFormRowFields('auth', false)).toEqual(['authMethod', 'allowedDomains']);
-        for (const row of ['info', 'auth', 'license', undefined]) {
+        expect(orgFormRowFields('auth')).toEqual(['authMethod', 'allowedDomains']);
+        for (const row of ['info', 'auth', 'license', 'image-limits', undefined]) {
             for (const owned of ['autoApproveSSO', 'defaultGroups', 'allowSignup', 'logo']) {
-                expect(orgFormRowFields(row, true)).not.toContain(owned);
+                expect(orgFormRowFields(row)).not.toContain(owned);
             }
         }
+    });
+});
+
+describe('useOrgInfoForm: what the form reads but never saves', () => {
+    it('carries the stored auto-approve and the Nextcloud binding of the chosen organisation', async () => {
+        setDemoTransport(async (url: unknown, init: RequestInit = {}) => {
+            const path = String(url);
+            if ((init.method || 'GET') === 'PUT') {
+                puts.push(JSON.parse(String(init.body)));
+                return json({ success: true });
+            }
+            if (path.endsWith('/auth/organizations')) {
+                return json([{ ...ORG, nc_instance_id: 'nc1', nc_base_url: 'https://cloud.example', nc_admin_uid: 'boss', nc_sync_mode: 'selective_groups' }]);
+            }
+            return json([]);
+        });
+        const { hook, edit, save } = await mountForm('info');
+        expect(hook.result.current.orgData?.autoApproveSSO).toBe(true);
+        expect(hook.result.current.orgData?.nc).toEqual({ instanceId: 'nc1', baseUrl: 'https://cloud.example', adminUid: 'boss', syncMode: 'selective_groups' });
+        // Neither is a field of a row: a save sends the edited field only.
+        edit({ name: 'Acme BV' });
+        await save();
+        expect(puts).toEqual([{ name: 'Acme BV' }]);
+    });
+
+    it('has no Nextcloud binding for an organisation without one', async () => {
+        const { hook } = await mountForm('info');
+        expect(hook.result.current.orgData?.nc).toBeNull();
     });
 });

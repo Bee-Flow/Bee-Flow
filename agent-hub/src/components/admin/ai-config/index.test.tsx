@@ -48,14 +48,14 @@ describe('AIConfigPanel', () => {
     it('shows the provider the URL names, and marks the providers section as current', async () => {
         renderPanel({ activeSection: 'providers', activeProvider: 'mistral' });
         expect(await screen.findByRole('heading', { name: 'Mistral' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /API Keys/ }).getAttribute('aria-current')).toBe('page');
+        expect(screen.getByRole('button', { name: 'Providers' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('button', { name: /Mistral/ }).getAttribute('aria-current')).toBe('true');
     });
 
     it('falls back to the providers section for an unknown one, and to the first connected provider', async () => {
         renderPanel({ activeSection: 'bogus' });
         expect(await screen.findByRole('heading', { name: 'Claude' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /API Keys/ }).getAttribute('aria-current')).toBe('page');
+        expect(screen.getByRole('button', { name: 'Providers' }).getAttribute('aria-current')).toBe('page');
     });
 
     it('navigates to the URL of the section or provider that is clicked', async () => {
@@ -71,6 +71,15 @@ describe('AIConfigPanel', () => {
     it('draws no section column in the dashboard, whose rail rows are the sections', async () => {
         renderPanel({ activeSection: 'providers', activeProvider: 'mistral', nav: false });
         expect(await screen.findByRole('heading', { name: 'Mistral' })).toBeTruthy();
-        expect(screen.queryByRole('button', { name: /API Keys/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Providers' })).toBeNull();
+        // The dashboard frame draws the page header: no heading of the panel's own.
+        expect(screen.queryByRole('heading', { name: 'Providers' })).toBeNull();
+    });
+
+    // The reranker had a pane in the provider list; an old link to it lands on Search & retrieval.
+    it('opens Search & retrieval for the old reranker pane link', async () => {
+        renderPanel({ activeSection: 'providers', activeProvider: 'reranker' });
+        expect(await screen.findByRole('heading', { name: 'Reranking' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Search & retrieval/ }).getAttribute('aria-current')).toBe('page');
     });
 });

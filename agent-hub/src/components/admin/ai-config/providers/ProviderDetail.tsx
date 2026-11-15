@@ -32,15 +32,15 @@ function ProviderBody({ entry, onMessage }: { entry: ProviderEntry } & ProviderP
             {entry.id === 'openai' && <OpenAIRegionToggle onMessage={onMessage} />}
             {entry.id === 'scaleway' && (
                 // One Scaleway secret key opens every Scaleway API, so this is the same key the
-                // Whisper transcription integration uses (Admin -> Integrations -> Transcription).
+                // Whisper transcription uses (Platform services > Transcription).
                 // Say so out loud, so an admin does not go looking for a second key.
-                <p className="mt-3 text-xs text-[var(--text-muted)]">
-                    {t('admin_ai_config.scaleway_hint', 'Serverless open-weight models (Qwen, Mistral, Gemma, GLM, DeepSeek, gpt-oss) served from EU data centres and billed per token. The same secret key is used for Scaleway Whisper transcription under Integrations.')}
+                <p className="mt-3 text-xs text-[var(--text-tertiary)]">
+                    {t('ai_model_setup.scaleway_hint', 'Serverless open-weight models (Qwen, Mistral, Gemma, GLM, DeepSeek, gpt-oss) served from EU data centres and billed per token. The same secret key is used for Scaleway Whisper transcription under Platform services > Transcription.')}
                 </p>
             )}
             {entry.id === 'ionos' && (
-                <p className="mt-3 text-xs text-[var(--text-muted)]">
-                    {t('admin_ai_config.ionos_hint', 'Open-weight models hosted by IONOS in Germany (AI Model Hub): chat, embeddings and reranking, billed per token. Reranking is set up separately under Reranker.')}
+                <p className="mt-3 text-xs text-[var(--text-tertiary)]">
+                    {t('ai_model_setup.ionos_hint', 'Open-weight models hosted by IONOS in Germany (AI Model Hub): chat, embeddings and reranking, billed per token. Reranking is set up separately under Search & retrieval.')}
                 </p>
             )}
         </ApiKeyDetail>

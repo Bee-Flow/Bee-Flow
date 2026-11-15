@@ -1,6 +1,8 @@
 import { Loader2, Plug, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import Button from '@/components/shared/Button';
+import { ALERT_ERROR } from '@/components/shared/adminUi';
 
 interface ConnectHubDialogProps {
     mode?: 'connect' | 'disconnect';
@@ -32,7 +34,7 @@ export default function ConnectHubDialog({ mode = 'connect', licensed = true, bu
             disableEscapeClose={busy}
             title={
                 <span className="flex items-center gap-2">
-                    <Plug className="w-4 h-4" style={{ color: isDisconnect ? '#ef4444' : '#f59e0b' }} aria-hidden="true" />
+                    <Plug className={`w-4 h-4 ${isDisconnect ? 'text-[var(--error-ink)]' : 'text-[var(--text-secondary)]'}`} aria-hidden="true" />
                     {title}
                 </span>
             }
@@ -43,31 +45,20 @@ export default function ConnectHubDialog({ mode = 'connect', licensed = true, bu
             }
             footer={
                 <>
-                    <button
-                        onClick={onCancel}
-                        disabled={busy}
-                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
-                    >
+                    <Button variant="secondary" onClick={onCancel} disabled={busy}>
                         {t('modules.cancel')}
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        disabled={busy}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={isDisconnect
-                            ? { background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.35)' }
-                            : { background: 'var(--accent-primary)', color: '#fff' }}
-                    >
+                    </Button>
+                    <Button variant={isDisconnect ? 'danger' : 'primary'} onClick={onConfirm} busy={busy}>
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                         {cta}
-                    </button>
+                    </Button>
                 </>
             }
         >
             <div className="space-y-3">
                 <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{body}</p>
                 {error && (
-                    <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>
+                    <div className={ALERT_ERROR} role="alert">{error}</div>
                 )}
             </div>
         </Modal>

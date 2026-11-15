@@ -18,7 +18,7 @@
     "agent_studio.can_use.mail_runs_hint": "Een run die door een e-mail start mag deze app dan gebruiken, behalve acties die eerst om bevestiging vragen.",
     "support.ai_config_asking": "Vragen…",
     "support.ai_config_cited": "Geciteerd: {sources}",
-    "support.ai_config_not_seeded": "De Bee Flow Support-agent is nog niet aangemaakt. Herstart de server.",
+    "support.ai_config_not_seeded": "De supportagent is nog niet ingesteld. Herstart de server.",
     "support.ai_config_save": "Opslaan",
     "support.ai_config_saving": "Opslaan…",
     "support.ai_config_sections": "AI-configuratie",

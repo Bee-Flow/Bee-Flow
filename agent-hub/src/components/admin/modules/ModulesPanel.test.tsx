@@ -62,10 +62,12 @@ describe('ModulesPanel', () => {
         reloadSpy.mockReset();
     });
 
-    it('titles the page and offers Installed and Marketplace as tabs', () => {
+    it('leaves the page title to the dashboard frame and offers Installed and Marketplace as tabs', () => {
         asMock(authFetch).mockImplementation(() => new Promise(() => {}));
         renderPanel();
-        expect(screen.getByRole('heading', { name: 'modules.title' })).toBeInTheDocument();
+        // The AdminPage frame names the page from the rail label; the panel keeps only its intro.
+        expect(screen.queryByRole('heading', { name: 'modules.title' })).toBeNull();
+        expect(screen.getByText(/modules\.subtitle/)).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'modules.tab_installed' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: 'modules.tab_marketplace' })).toHaveAttribute('aria-selected', 'false');
     });

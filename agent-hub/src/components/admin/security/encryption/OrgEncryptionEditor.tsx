@@ -17,7 +17,7 @@
  * accepts it from a super-admin, so offering the control here would mean a
  * save that 403s.
  */
-import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useOrgSettingRead } from '@/components/admin/org/useOrgSettingRead';
@@ -28,6 +28,8 @@ import { messageOf } from '@/utils/caughtError';
 import ChoiceCards from '@/components/shared/ChoiceCards';
 import type { ChoiceCardOption } from '@/components/shared/ChoiceCards';
 import { toast } from '@/components/shared/Toast';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { ALERT_ERROR, ALERT_WARNING } from '@/components/shared/adminUi';
 import { errorBody, RefusedError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 
@@ -119,6 +121,8 @@ function useEncryptionForm(orgId: string, t: TranslateFn) {
         setTier(server.tier);
     }
     const isDirty = !!server && tier !== server.tier;
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
+    const [saveFailed, setSaveFailed] = useState(false);
 
     const save = useMutation({
         mutationFn: async () => {
@@ -133,6 +137,7 @@ function useEncryptionForm(orgId: string, t: TranslateFn) {
         },
         onSuccess: async ({ refused, body }) => {
             if (refused !== null) {
+                setSaveFailed(true);
                 toast.error(refused || t('admin.encryption.save_failed', 'Could not save encryption settings'));
                 return;
             }
@@ -145,17 +150,22 @@ function useEncryptionForm(orgId: string, t: TranslateFn) {
             } else {
                 toast.success(t('admin.encryption.saved', 'Encryption settings saved'));
             }
+            setSaveFailed(false);
+            setSavedAt(new Date());
             await refetch();
         },
-        onError: (err) => toast.error(messageOf(err, t('admin.encryption.save_failed', 'Could not save encryption settings'))),
+        onError: (err) => {
+            setSaveFailed(true);
+            toast.error(messageOf(err, t('admin.encryption.save_failed', 'Could not save encryption settings')));
+        },
     });
     const handleSave = () => { if (server && isDirty) save.mutate(); };
-    return { server, loading, loadError, tier, setTier, isDirty, saving: save.isPending, handleSave };
+    return { server, loading, loadError, tier, setTier, isDirty, saving: save.isPending, savedAt, saveFailed, handleSave };
 }
 
 export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     const { t } = useTranslation();
-    const { server, loading, loadError, tier, setTier, isDirty, saving, handleSave } = useEncryptionForm(orgId, t);
+    const { server, loading, loadError, tier, setTier, isDirty, saving, savedAt, saveFailed, handleSave } = useEncryptionForm(orgId, t);
 
     // Note: this component owns its save bar rather than reporting up through
     // the shell's onStateChange — OrgInfoPanel already drives that for the org
@@ -164,16 +174,14 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     const options = useMemo(() => tierChoiceOptions(server, t), [server, t]);
 
     if (loading) {
-        return <div className="p-4 text-sm opacity-70">{t('common.loading', 'Loading…')}</div>;
+        return <div className="text-sm text-[var(--text-muted)]">{t('common.loading', 'Loading…')}</div>;
     }
 
     if (loadError) {
         return (
-            <div className="p-4">
-                <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-                    <AlertTriangle className="mr-2 inline h-4 w-4" aria-hidden="true" />
-                    {t('admin.encryption.load_failed', 'Could not load encryption settings.')} {loadError}
-                </div>
+            <div className={ALERT_ERROR} role="alert">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{t('admin.encryption.load_failed', 'Could not load encryption settings.')} {loadError}</span>
             </div>
         );
     }
@@ -181,19 +189,19 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     const selected = (server?.tierOptions || []).find(o => o.tier === tier);
 
     return (
-        <div className="space-y-5 p-1">
-            <header>
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    <Lock className="h-5 w-5" aria-hidden="true" />
-                    {t('admin.encryption.title', 'Encryption')}
-                </h2>
-                <p className="mt-1 text-sm opacity-75">
+        <div className="space-y-5">
+            {/* The page title is the dashboard frame's (AdminPage); this is the tier block's own heading. */}
+            <div>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                    {t('admin.encryption.choose_tier', 'Encryption level')}
+                </h3>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
                     {t(
                         'admin.encryption.intro',
                         'Choose how your organisation’s conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.',
                     )}
                 </p>
-            </header>
+            </div>
 
             <ChoiceCards
                 value={tier}
@@ -206,47 +214,39 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
 
             {/* Advisory, not a blocker — e.g. OPAQUE not configured for zk. */}
             {selected?.warningReason && (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                    <AlertTriangle className="mr-2 inline h-4 w-4" aria-hidden="true" />
-                    {selected.warningReason}
+                <div className={ALERT_WARNING}>
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>{selected.warningReason}</span>
                 </div>
             )}
 
             {/* Switching into zk signs everyone out — say so before they save. */}
             {isDirty && tier === 'zk' && (
-                <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-                    <AlertTriangle className="mr-2 inline h-4 w-4" aria-hidden="true" />
-                    {t(
-                        'admin.encryption.warn_zk_signout',
-                        'Saving this will sign out everyone in the organisation, including you. Each person must sign in again so their encryption key can be created. Data can no longer be recovered by an administrator.',
-                    )}
+                <div className={ALERT_ERROR} role="alert">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                        {t(
+                            'admin.encryption.warn_zk_signout',
+                            'Saving this will sign out everyone in the organisation, including you. Each person must sign in again so their encryption key can be created. Data can no longer be recovered by an administrator.',
+                        )}
+                    </span>
                 </div>
             )}
 
+            <SaveFooter
+                onSave={handleSave}
+                onCancel={isDirty && server ? () => setTier(server.tier) : undefined}
+                saving={saving}
+                dirty={isDirty}
+                saveState={saving ? 'saving' : saveFailed ? 'error' : savedAt ? 'saved' : 'idle'}
+                lastSavedAt={savedAt}
+                onRetry={handleSave}
+            />
+
+            {/* Below the tier's own save: the backfill acts on the SAVED tier. */}
             {(server?.tier === 'managed' || server?.tier === 'zk') && (
                 <EncryptExistingData orgId={orgId} dirty={isDirty} />
             )}
-
-            <div className="flex items-center gap-3 border-t border-black/10 pt-4 dark:border-white/10">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!isDirty || saving}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-700"
-                >
-                    {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
-                </button>
-                {isDirty && server && (
-                    <button
-                        type="button"
-                        onClick={() => setTier(server.tier)}
-                        disabled={saving}
-                        className="text-sm underline opacity-75 hover:opacity-100"
-                    >
-                        {t('common.cancel', 'Cancel')}
-                    </button>
-                )}
-            </div>
         </div>
     );
 }

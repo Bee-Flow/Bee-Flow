@@ -100,17 +100,21 @@ interface OrgSettingsSection {
     id: string;
     labelKey: string;
     icon: LucideIcon;
-    color: string;
 }
 
+/**
+ * OrgInfoPanel's parts, as the phone's Settings > Organisation lists them
+ * (pages/AdvancedSettings). The mobile org index is pinned to these ids and
+ * label keys (mobile org/model/sections.lockstep.test.ts).
+ */
 const SECTIONS: OrgSettingsSection[] = [
-    { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard, color: '#3b82f6' },
-    { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound, color: '#10b981' },
-    { id: 'privacy', labelKey: 'settings.privacy_shield', icon: Shield, color: '#ef4444' },
-    { id: 'encryption', labelKey: 'settings.encryption', icon: Lock, color: '#8b5cf6' },
-    { id: 'ai_context', labelKey: 'settings.ai_context', icon: Brain, color: '#f59e0b' },
-    { id: 'integration_cache', labelKey: 'settings.integration_cache', icon: DatabaseZap, color: '#06b6d4' },
-    { id: 'info', labelKey: 'settings.org_info', icon: Info, color: '#14b8a6' },
+    { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard },
+    { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound },
+    { id: 'privacy', labelKey: 'settings.privacy_shield', icon: Shield },
+    { id: 'encryption', labelKey: 'settings.encryption', icon: Lock },
+    { id: 'ai_context', labelKey: 'settings.ai_context', icon: Brain },
+    { id: 'integration_cache', labelKey: 'settings.integration_cache', icon: DatabaseZap },
+    { id: 'info', labelKey: 'settings.org_info', icon: Info },
 ];
 
 // ── Allowed Domains editor (tag-input) ──
@@ -188,7 +192,7 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }: AllowedDomainsEdito
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeDomain(domain); }}
                             aria-label={t('org.remove_domain', 'Remove {domain}', { domain })}
-                            className="ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                            className="ml-0.5 rounded-full p-0.5 opacity-80 hover:opacity-100 transition-opacity"
                         >
                             <X className="w-3 h-3" aria-hidden="true" />
                         </button>
@@ -235,17 +239,17 @@ interface UsageBarProps {
     /** null, undefined or -1: unlimited. */
     limit: number | null | undefined;
     unit?: string;
-    color?: string;
     pctLabel?: string;
     percentOnly?: boolean;
 }
 
-const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', pctLabel, percentOnly = false }: UsageBarProps) => {
+/** A usage meter on theme tokens: the accent, the warning colour from 80 %, the error colour from 95 %. */
+const UsageBar = ({ label, icon: Icon, used, limit, unit, pctLabel, percentOnly = false }: UsageBarProps) => {
     const isUnlimited = limit === null || limit === undefined || limit === -1;
     const pct = isUnlimited ? 0 : (limit as number) > 0 ? Math.min(100, Math.round((used / (limit as number)) * 100)) : 0;
     const isWarning = pct >= 80 && pct < 95;
     const isCritical = pct >= 95;
-    const barColor = isCritical ? '#ef4444' : isWarning ? '#f59e0b' : color;
+    const barColor = isCritical ? 'bg-[var(--error)]' : isWarning ? 'bg-[var(--warning)]' : 'bg-[var(--accent-primary)]';
 
     const formatValue = (val: number | null | undefined) => {
         if (val === null || val === undefined || val === -1) return '∞';
@@ -258,7 +262,7 @@ const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', pct
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
-                    <Icon className="w-3.5 h-3.5" style={{ color }} />
+                    <Icon className="w-3.5 h-3.5 text-[var(--text-muted)]" aria-hidden="true" />
                     {label}
                 </div>
                 {!percentOnly && (
@@ -269,16 +273,13 @@ const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', pct
             </div>
             <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
                 <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                        width: isUnlimited ? '0%' : `${pct}%`,
-                        background: isUnlimited ? 'transparent' : barColor,
-                    }}
+                    className={`h-full rounded-full transition-all duration-500 ${isUnlimited ? 'bg-transparent' : barColor}`}
+                    style={{ width: isUnlimited ? '0%' : `${pct}%` }}
                 />
             </div>
             {!isUnlimited && (
                 <div className="flex justify-end">
-                    <span className={`text-[10px] font-medium ${isCritical ? 'text-red-500' : isWarning ? 'text-amber-500' : 'text-[var(--text-muted)]'}`}>
+                    <span className={`text-[10px] font-medium ${isCritical ? 'text-[var(--error-ink)]' : isWarning ? 'text-[var(--warning-ink)]' : 'text-[var(--text-muted)]'}`}>
                         {pctLabel || `${pct}% used`}
                     </span>
                 </div>

@@ -1,6 +1,8 @@
 import { ArrowRight, CreditCard, Loader2, Zap } from 'lucide-react';
 import { intervalLabel, planCurrencySymbol, useLicenseText } from './licenseShared';
 import type { BillingPlan } from './licenseShared';
+import { ALERT_WARNING, CHIP_SUCCESS, CHIP_WARNING } from '@/components/shared/adminUi';
+import { buttonClass } from '@/components/shared/buttonClasses';
 
 interface CheckoutProps {
     plans: BillingPlan[];
@@ -15,8 +17,8 @@ interface CheckoutProps {
 function RecurringNotice() {
     const { t } = useLicenseText();
     return (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-            <CreditCard className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+        <div className={ALERT_WARNING}>
+            <CreditCard className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
             <p className="text-[11px] leading-snug text-[var(--text-secondary)]">
                 {t('billing.recurring_notice', 'This is a recurring subscription. Your selected payment method is charged automatically at the start of each billing period (automatische incasso) until you cancel.')}
             </p>
@@ -39,7 +41,7 @@ export function PlanCaps({ plan }: { plan: BillingPlan }) {
 function TrialBadge({ days }: { days: number }) {
     const { t } = useLicenseText();
     return (
-        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">
+        <span className={CHIP_SUCCESS}>
             {t('admin_org.license_free_trial_days', '{days}d free trial', { days })}
         </span>
     );
@@ -67,7 +69,7 @@ function CheckoutPlanCard({ plan, checkoutLoading, onCheckout }: Omit<CheckoutPr
                     <button
                         onClick={() => onCheckout(plan.id)}
                         disabled={checkoutLoading === plan.id || !plan.has_stripe_price}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:#3b82f6]"
+                        className={buttonClass('primary', 'md')}
                     >
                         {checkoutLoading === plan.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -97,7 +99,7 @@ export function NoSubscriptionOffers({ isCloud, plans, checkoutLoading, onChecko
             {isCloud && plans.length > 0 ? (
                 <div>
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                        <Zap className="w-4 h-4 [color:#3b82f6]" />
+                        <Zap className="w-4 h-4 text-[var(--accent-primary)]" aria-hidden="true" />
                         {t('org.choose_plan', 'Choose a Plan')}
                     </h3>
                     <div className="mb-3"><RecurringNotice /></div>
@@ -111,7 +113,7 @@ export function NoSubscriptionOffers({ isCloud, plans, checkoutLoading, onChecko
                 <div className="p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-center">
                     <p className="text-sm text-[var(--text-primary)]">{t('org.no_plans_configured', 'No plans are available right now.')}</p>
                     <p className="text-xs text-[var(--text-muted)] mt-1">
-                        {t('org.contact_for_plan', 'Reach out to')} <a href="mailto:info@beeflow.nl" className="text-[#3b82f6] hover:underline">info@beeflow.nl</a> {t('org.to_get_started', 'to get started.')}
+                        {t('org.contact_for_plan', 'Reach out to')} <a href="mailto:info@beeflow.nl" className="text-[var(--text-primary)] underline underline-offset-2 hover:no-underline">info@beeflow.nl</a> {t('org.to_get_started', 'to get started.')}
                     </p>
                 </div>
             ) : null}
@@ -141,13 +143,13 @@ function PaidUpgradePlanCard({ plan, checkoutLoading, onCheckout }: Omit<Checkou
                         <button
                             onClick={() => onCheckout(plan.id)}
                             disabled={checkoutLoading === plan.id}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:#3b82f6]"
+                            className={buttonClass('primary', 'md')}
                         >
                             {checkoutLoading === plan.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                             {t('org.subscribe', 'Subscribe')}
                         </button>
                         {/* BFSF-243: recurring-billing disclosure right at the CTA */}
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-amber-500/15 text-amber-500 whitespace-nowrap">
+                        <span className={CHIP_WARNING}>
                             {t('billing.recurring_badge', 'Recurring · automatische incasso')}
                         </span>
                     </div>
@@ -167,7 +169,7 @@ export function UpgradeToPaidOffers({ plans, checkoutLoading, onCheckout }: Chec
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4 [color:#3b82f6]" />
+                <Zap className="w-4 h-4 text-[var(--accent-primary)]" aria-hidden="true" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('org.upgrade_to_paid', 'Upgrade to a paid plan')}</h3>
             </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">

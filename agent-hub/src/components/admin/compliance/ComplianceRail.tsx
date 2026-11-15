@@ -40,9 +40,8 @@ import { GROUPS, SECTIONS, frameworkOf, sectionForRegulation, type Section } fro
 import ArticleRef from './shared/ArticleRef';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import DeadlineClock from '../../shared/DeadlineClock';
-import { kindTileStyle } from '../../shared/kindColors';
 import SegmentedControl from '../../shared/SegmentedControl';
-import { TONES } from '../../shared/statusTone';
+import { toneDotClass, toneInkClass } from './shared/toneClasses';
 import type { TimeInput } from '../../shared/deadlineMath';
 import type { CheckRecord } from './pages/framework/checkSort';
 
@@ -128,17 +127,16 @@ function Meta({ meta, t }: MetaProps) {
     if (meta.kind === 'score') {
         return (
             <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold tabular-nums text-[var(--text-primary)]" data-testid="rail-meta">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: TONES[meta.tone as string]?.raw }} aria-hidden="true" />
+                <span className={`inline-block w-2 h-2 rounded-full ${toneDotClass(meta.tone)}`} aria-hidden="true" />
                 {meta.score}
             </span>
         );
     }
     if (meta.kind === 'clock') {
-        const ink = meta.tone ? TONES[meta.tone]?.ink : 'var(--text-tertiary)';
         return (
             <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] tabular-nums text-[var(--text-tertiary)]" data-testid="rail-meta">
                 {meta.badge && (
-                    <span className="inline-flex items-center gap-[3px] font-semibold" style={{ color: ink }}>
+                    <span className={`inline-flex items-center gap-[3px] font-semibold ${toneInkClass(meta.tone)}`}>
                         <Timer className="w-[11px] h-[11px]" aria-hidden="true" />{meta.badge}
                     </span>
                 )}
@@ -218,7 +216,6 @@ export default function ComplianceRail({
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [mode, setMode] = useState('all');
-    const tile = kindTileStyle('compliance', { size: 28, pct: 18 });
     const attention = countFor(counts, 'attention_open');
     const q = query.trim().toLowerCase();
 
@@ -248,7 +245,10 @@ export default function ComplianceRail({
         <div className="h-full flex flex-col min-h-0 text-[13px] text-[var(--text-primary)]" data-testid={testId}>
             {/* Head — 48 px */}
             <div className="h-12 flex-shrink-0 flex items-center gap-2 px-3.5 border-b border-[var(--border-default)]">
-                <span style={tile.tile} aria-hidden="true"><ShieldCheck style={tile.glyph} /></span>
+                {/* The Compliance kind tile: the one place the rail keeps its kind colour. */}
+                <span className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--kind-compliance)_18%,transparent)] text-[var(--kind-compliance)]" aria-hidden="true">
+                    <ShieldCheck className="w-[15px] h-[15px]" />
+                </span>
                 <div className="min-w-0">
                     <div className="font-semibold text-[14px] leading-4">{t('compliance.rail_title', 'Compliance')}</div>
                     {orgName && (
@@ -273,7 +273,7 @@ export default function ComplianceRail({
                     <input value={query} onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
                         aria-label={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus:ring-2 focus:ring-[var(--accent-primary)] [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]"
                         data-testid={`${testId}-search`} />
                 </label>
                 <SegmentedControl size="sm" fullWidth ariaLabel={t('compliance.rail_filter_aria', 'Show all or only what needs attention')}
@@ -331,10 +331,10 @@ export default function ComplianceRail({
             {chainOk !== undefined && (
                 <div className="flex-shrink-0 px-3.5 py-2.5 border-t border-[var(--border-default)] flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]"
                     data-testid={`${testId}-chain`}>
-                    <ShieldCheck className="w-3 h-3 flex-shrink-0" style={{ color: chainOk ? TONES.success.ink : TONES.error.ink }} aria-hidden="true" />
+                    <ShieldCheck className={`w-3 h-3 flex-shrink-0 ${chainOk ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`} aria-hidden="true" />
                     {chainOk
                         ? t('compliance.rail_chain_intact', 'Evidence chain intact · {rows} rows · {algo}', { rows: typeof evidenceRows === 'number' ? evidenceRows.toLocaleString() : '—', algo })
-                        : <span style={{ color: TONES.error.ink }}>{t('compliance.rail_chain_broken', 'Evidence chain broken — check the integrity report')}</span>}
+                        : <span className="text-[var(--error-ink)]">{t('compliance.rail_chain_broken', 'Evidence chain broken — check the integrity report')}</span>}
                 </div>
             )}
         </div>

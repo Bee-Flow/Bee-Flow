@@ -1,6 +1,7 @@
 import { Link2, Loader2, ShieldCheck, Workflow } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import Tabs from '../../components/shared/Tabs';
+import { ALERT_ERROR, ALERT_SUCCESS } from '../../components/shared/adminUi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAdminOrgScope } from '../../api/adminOrgScope';
 import N8nConnectionTab from './n8n/N8nConnectionTab';
@@ -61,7 +62,7 @@ export default function N8nSection({ diagnostics = true }: N8nSectionProps) {
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <StatusPill configured={conn.configured} testResult={conn.testResult} />
                 {message && (
-                    <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    <span role={message.type === 'success' ? 'status' : 'alert'} className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>
                         {message.text}
                     </span>
                 )}

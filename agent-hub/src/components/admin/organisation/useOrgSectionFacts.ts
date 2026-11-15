@@ -6,7 +6,8 @@
 
 import { useOrgIntegrationAvailability } from '@/api/queries/orgIntegrationAvailability';
 import { homeOrgIdOf } from '@/utils/adminAccess';
-import { orgAvailabilityFactsOf, orgStandingFactsOf, type OrgFactsUser, type OrgSectionFacts } from './orgSections';
+import { orgAvailabilityFactsOf } from './orgAvailabilityFacts';
+import { orgStandingFactsOf, type OrgFactsUser, type OrgSectionFacts } from './orgSections';
 
 export function useOrgSectionFacts(user: (OrgFactsUser & Readonly<Record<string, unknown>>) | null | undefined, orgId: string | null, enabled = true): OrgSectionFacts {
     const { canSeeOrg, canManageKnowledge, isSelfHosted, isNcConnectorUser, isNcOrg, isPlatformAdmin } = orgStandingFactsOf(user);
@@ -14,6 +15,7 @@ export function useOrgSectionFacts(user: (OrgFactsUser & Readonly<Record<string,
     const availability = orgAvailabilityFactsOf({
         read,
         platformAdmin: isPlatformAdmin,
+        orgAdmin: canSeeOrg,
         homeOrg: !!orgId && orgId === homeOrgIdOf(user),
         sessionNcBound: isNcOrg,
     });

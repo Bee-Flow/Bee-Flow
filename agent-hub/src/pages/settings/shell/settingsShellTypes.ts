@@ -26,7 +26,6 @@ export interface OrgSubItem {
     id: string;
     labelKey: string;
     icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-    color: string;
 }
 
 /** The integration and sign-in facts the shell fetches for its nav filters. */

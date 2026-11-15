@@ -14,7 +14,7 @@ import { ApiError } from '@/api/mutate';
 import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { ALERT_ERROR, ALERT_SUCCESS, CHIP_SUCCESS, DANGER_BTN, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
-export const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPackChanged }: PackEditorProps) => {
+export const PackEditor = ({ packId, categories, isActive, onExport, onPackChanged }: PackEditorProps) => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const packsQuery = useIconPackListQuery<IconPack>();
@@ -118,7 +118,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <PackEditorSection t={t} pack={pack} isActive={isActive} canGenerate={hasImageGen} setBulkOpen={setBulkOpen} onExport={onExport} handleResetAll={handleResetAll} onActivate={onActivate} />
+            <PackEditorSection t={t} pack={pack} isActive={isActive} canGenerate={hasImageGen} setBulkOpen={setBulkOpen} onExport={onExport} handleResetAll={handleResetAll} />
 
             <div className="px-4 py-3 flex items-center gap-3 shrink-0 flex-wrap">
                 <div className="flex-1 min-w-48 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
@@ -316,7 +316,7 @@ function PackEditorSection2({ categories, search, pack, showOnly, setEditingIcon
     </div>;
 }
 
-function PackEditorSection({ t, pack, isActive, canGenerate, setBulkOpen, onExport, handleResetAll, onActivate }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; pack: IconPack; isActive: boolean; canGenerate: boolean; setBulkOpen: React.Dispatch<React.SetStateAction<boolean>>; onExport: () => void; handleResetAll: () => Promise<void>; onActivate: () => void; }) {
+function PackEditorSection({ t, pack, isActive, canGenerate, setBulkOpen, onExport, handleResetAll }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; pack: IconPack; isActive: boolean; canGenerate: boolean; setBulkOpen: React.Dispatch<React.SetStateAction<boolean>>; onExport: () => void; handleResetAll: () => Promise<void>; }) {
     return <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-3 shrink-0 border-[var(--border-default)]">
         <div className="min-w-0">
             <h3 className="font-semibold text-base truncate text-[var(--text-primary)]">
@@ -352,14 +352,6 @@ function PackEditorSection({ t, pack, isActive, canGenerate, setBulkOpen, onExpo
             >
                 {t('appearance.icons_editor_reset_all', 'Reset All')}
             </button>
-            {!isActive && (
-                <button
-                    onClick={onActivate}
-                    className={PRIMARY_BTN}
-                >
-                    {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
-                </button>
-            )}
         </div>
     </div>;
 }

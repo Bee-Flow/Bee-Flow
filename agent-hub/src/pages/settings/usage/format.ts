@@ -4,6 +4,8 @@
 // OrgFeedbackPanel.jsx and OrgTerminationsPanel.jsx. Consolidated here so every
 // tab formats numbers, durations, models and dates identically.
 
+import { shortModelName } from '@/utils/modelNames';
+
 // Compact number: 1.2M / 3.4K / 999. Null/undefined → '0'.
 export const fNum = (n?: number | null): string => {
     if (n == null) return '0';
@@ -30,12 +32,8 @@ export const formatDateRange = (startIso?: string | null, endIso?: string | null
     } catch { return ''; }
 };
 
-// Strip provider prefix + trailing dated snapshot from a model id.
-export const shortModel = (m?: string | null): string => {
-    if (!m) return 'Unknown';
-    return m.replace(/^(openai\/|anthropic\/|google\/|azure\/|mistral\/)/, '')
-            .replace(/-\d{4}-\d{2}-\d{2}$/, '');
-};
+// A model id's short name: its provider path and dated snapshot stripped (utils/modelNames).
+export const shortModel = (m?: string | null): string => shortModelName(m);
 
 // Relative "just now / 5m / 3h" within a day, else a locale date.
 export const fmtTime = (ts?: string | number | Date | null): string => {

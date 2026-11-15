@@ -9,6 +9,9 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { AgentEditorData, AgentEditorUIProps } from './AgentEditorUI.types';
 import { useConfigTiersForUser } from '../../api/queries/configModels';
+import Toggle from '../shared/Toggle';
+import { PRIMARY_BTN } from '../shared/adminUi';
+import { defaultWidgetOptions, widgetSnippet } from './AgentDesigner/sections/embedSnippet';
 export type { ToolParamConfig, AgentFormData,  EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
 
 const EMPTY_TIERS: ModelTierMap = {};
@@ -97,7 +100,7 @@ const AgentEditorUI = ({
                                                         handleChange('avatar', emoji);
                                                         setShowEmojiPicker(false);
                                                     }}
-                                                    className="aspect-square flex items-center justify-center rounded hover:bg-white/10 text-lg"
+                                                    className="aspect-square flex items-center justify-center rounded hover:bg-[var(--item-hover-bg)] text-lg"
                                                 >
                                                     {emoji}
                                                 </button>
@@ -190,14 +193,14 @@ const AgentEditorUI = ({
                                                 }
                                             }}
                                             disabled={!newCategoryName.trim()}
-                                            className={`px-3 py-2 rounded-lg text-xs font-medium text-white transition-all ${newCategoryName.trim() ? '[background:var(--accent-primary)]' : '[background:var(--bg-secondary)]'}`}
+                                            className={PRIMARY_BTN}
                                         >
                                             {t('agent.agent_editor_ui_create', 'Create')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
-                                            className="px-2 py-2 rounded-lg text-xs text-[var(--text-muted)] hover:bg-white/10"
+                                            className="px-2 py-2 rounded-lg text-xs text-[var(--text-muted)] hover:bg-[var(--item-hover-bg)]"
                                         >
                                             ✕
                                         </button>
@@ -254,7 +257,7 @@ const AgentEditorUI = ({
                                                     const newPrompts = (data.starterPrompts || []).filter((_, i) => i !== index);
                                                     handleChange('starterPrompts', newPrompts);
                                                 }}
-                                                className="p-2 rounded-lg hover:bg-white/10 text-[var(--error)]"
+                                                className="p-2 rounded-lg hover:bg-[var(--item-hover-bg)] text-[var(--error-ink)]"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                             </button>
@@ -278,43 +281,28 @@ const AgentEditorUI = ({
                                             <div className="text-sm font-medium text-[var(--text-primary)]">{t('agent.agent_editor_ui_allow_copy', 'Allow Copy')}</div>
                                             <div className="text-xs text-[var(--text-muted)]">{t('agent.agent_editor_ui_copy_button', 'Copy button')}</div>
                                         </div>
-                                        <button
-                                            onClick={() => handleChange('copyEnabled', !data.copyEnabled)}
-                                            className={`relative w-10 h-6 rounded-full transition-colors ${data.copyEnabled ? 'bg-green-500' : 'bg-gray-600'}`}
-                                        >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${data.copyEnabled ? 'left-5' : 'left-1'}`} />
-                                        </button>
+                                        <Toggle checked={!!data.copyEnabled} onChange={(next) => handleChange('copyEnabled', next)} ariaLabel={t('agent.agent_editor_ui_allow_copy', 'Allow Copy')} />
                                     </div>
                                     <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]">
                                         <div>
                                             <div className="text-sm font-medium text-[var(--text-primary)]">{t('agent.agent_editor_ui_web_embed', 'Web Embed')}</div>
                                             <div className="text-xs text-[var(--text-muted)]">{t('agent.agent_editor_ui_public_chat_page', 'Public chat page')}</div>
                                         </div>
-                                        <button
-                                            onClick={() => handleChange('embedEnabled', !data.embedEnabled)}
-                                            className={`relative w-10 h-6 rounded-full transition-colors ${data.embedEnabled ? 'bg-green-500' : 'bg-gray-600'}`}
-                                        >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${data.embedEnabled ? 'left-5' : 'left-1'}`} />
-                                        </button>
+                                        <Toggle checked={!!data.embedEnabled} onChange={(next) => handleChange('embedEnabled', next)} ariaLabel={t('agent.agent_editor_ui_web_embed', 'Web Embed')} />
                                     </div>
                                     <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)]">
                                         <div>
                                             <div className="text-sm font-medium text-[var(--text-primary)]">{t('agent.agent_editor_ui_no_external', 'No External')}</div>
                                             <div className="text-xs text-[var(--text-muted)]">{t('agent.agent_editor_ui_no_integrations_search', 'No integrations/search')}</div>
                                         </div>
-                                        <button
-                                            onClick={() => handleChange('disableExternalTools', !data.disableExternalTools)}
-                                            className={`relative w-10 h-6 rounded-full transition-colors ${data.disableExternalTools ? 'bg-amber-500' : 'bg-gray-600'}`}
-                                        >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${data.disableExternalTools ? 'left-5' : 'left-1'}`} />
-                                        </button>
+                                        <Toggle checked={!!data.disableExternalTools} onChange={(next) => handleChange('disableExternalTools', next)} ariaLabel={t('agent.agent_editor_ui_no_external', 'No External')} />
                                     </div>
                                 </div>
 
                                 {/* Embed URL Info Card */}
                                 {data.embedEnabled && agentId && (
-                                    <div className="p-4 rounded-xl border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5 space-y-3">
-                                        <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)]">
+                                    <div className="p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] space-y-3">
+                                        <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                                             {t('agent.agent_editor_ui_embed_settings', 'Embed Settings')}
                                         </div>
@@ -330,7 +318,7 @@ const AgentEditorUI = ({
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`${window.location.origin}/chat/${agentId}`);
                                                     }}
-                                                    className="px-3 py-2 text-xs rounded-lg bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-colors"
+                                                    className={PRIMARY_BTN}
                                                 >
                                                     {t('agent.agent_editor_ui_copy', 'Copy')}
                                                 </button>
@@ -348,7 +336,7 @@ const AgentEditorUI = ({
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`<iframe src="${window.location.origin}/chat/${agentId}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`);
                                                     }}
-                                                    className="px-3 py-2 text-xs rounded-lg bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-colors"
+                                                    className={PRIMARY_BTN}
                                                 >
                                                     {t('agent.agent_editor_ui_copy', 'Copy')}
                                                 </button>
@@ -361,14 +349,14 @@ const AgentEditorUI = ({
                                                 <textarea
                                                     readOnly
                                                     rows={4}
-                                                    value={`<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;right:24px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#f5a623,#f7c948);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(245,166,35,.4);display:flex;align-items:center;justify-content:center;font-size:28px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(245,166,35,.55)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:100px;right:24px;width:400px;height:600px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${window.location.origin}/chat/${agentId}"></iframe></div><button id="bf-bubble" onclick="var w=document.getElementById(\\'bf-window\\'),b=document.getElementById(\\'bf-bubble\\');b.classList.toggle(\\'open\\');w.classList.toggle(\\'open\\');b.textContent=b.classList.contains(\\'open\\')?\\'\u2715\\':\\'🐝\\'">🐝</button>';\n  d.body.appendChild(b);\n})();\n</script>`}
+                                                    value={widgetSnippet(defaultWidgetOptions(agentId, window.location.origin), true)}
                                                     className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] resize-none"
                                                 />
                                                 <button
                                                     onClick={() => {
-                                                        navigator.clipboard.writeText(`<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;right:24px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#f5a623,#f7c948);border:none;cursor:pointer;box-shadow:0 4px 20px rgba(245,166,35,.4);display:flex;align-items:center;justify-content:center;font-size:28px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(245,166,35,.55)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:100px;right:24px;width:400px;height:600px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${window.location.origin}/chat/${agentId}"></iframe></div><button id="bf-bubble" onclick="var w=document.getElementById(\\'bf-window\\'),b=document.getElementById(\\'bf-bubble\\');b.classList.toggle(\\'open\\');w.classList.toggle(\\'open\\');b.textContent=b.classList.contains(\\'open\\')?\\'\u2715\\':\\'🐝\\'">\ud83d\udc1d</button>';\n  d.body.appendChild(b);\n})();\n</script>`);
+                                                        void navigator.clipboard.writeText(widgetSnippet(defaultWidgetOptions(agentId, window.location.origin)));
                                                     }}
-                                                    className="px-3 py-2 text-xs rounded-lg bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-colors self-start"
+                                                    className={`${PRIMARY_BTN} self-start`}
                                                 >
                                                     {t('agent.agent_editor_ui_copy', 'Copy')}
                                                 </button>
@@ -414,7 +402,7 @@ const AgentEditorUI = ({
                                             <label className="text-xs mb-2 block text-[var(--text-muted)]">{t('agent.agent_editor_ui_share_with_specific_groups_leave_empty', 'Share with specific groups (leave empty for all org members)')}</label>
                                             <div className="space-y-1 max-h-32 overflow-auto">
                                                 {orgGroups.map(group => (
-                                                    <label key={group.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer">
+                                                    <label key={group.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] cursor-pointer">
                                                         <input
                                                             type="checkbox"
                                                             checked={(data.sharedGroups || []).includes(group.id)}
@@ -467,17 +455,24 @@ const AgentEditorUI = ({
 export default AgentEditorUI;
 
 function AgentEditorUISection({ hasKnowledge, hasSkills, setActiveTab, activeTab }: { hasKnowledge: boolean; hasSkills: boolean; setActiveTab: (v: string) => void; activeTab: string | null; }) {
+    const { t } = useTranslation();
+    const tabs = [
+        { id: 'general', label: t('agent_designer.editor_tab_general', 'General') },
+        ...(hasKnowledge ? [{ id: 'knowledge', label: t('agent_designer.editor_tab_knowledge', 'Knowledge') }] : []),
+        ...(hasSkills ? [{ id: 'skills', label: t('agent_designer.editor_tab_skills', 'Skills') }] : []),
+    ];
     return <div className="flex border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-        {['General', ...(hasKnowledge ? ['Knowledge'] : []), ...(hasSkills ? ['Skills'] : [])].map(tab => (
+        {tabs.map(tab => (
             <button
-                key={tab}
-                onClick={() => setActiveTab(tab.toLowerCase())}
-                className={`px-4 py-2 text-sm font-medium transition-colors relative ${activeTab === tab.toLowerCase()
-                    ? 'text-white'
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-medium transition-colors relative ${activeTab === tab.id
+                    ? 'text-[var(--text-primary)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
             >
-                {tab}
-                {activeTab === tab.toLowerCase() && (
+                {tab.label}
+                {activeTab === tab.id && (
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-primary)]" />
                 )}
             </button>

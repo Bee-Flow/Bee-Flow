@@ -8,6 +8,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { getLanguages, sendLanguagesJson } from '@/api/languages';
 import { logger } from '@/utils/logger';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import SaveStatus from '@/components/shared/SaveStatus';
+import { SECONDARY_BTN } from '@/components/shared/adminUi';
+import Button from '@/components/shared/Button';
+import ProgressFill from './ProgressFill';
 
 /** GET /api/languages/:locale/prompts */
 interface PromptData {
@@ -35,7 +39,7 @@ function PromptList({ data, translations, selectedPrompt, onSelect }: PromptList
     const labels = data.labels || {};
     const stats = data.stats || {};
     return (
-        <div className="w-56 shrink-0 border rounded-xl overflow-y-auto [border-color:var(--border-default)] [background:var(--bg-secondary)] [scrollbar-width:thin]">
+        <div className="w-56 shrink-0 border rounded-xl overflow-y-auto border-[var(--border-default)] bg-[var(--bg-secondary)] [scrollbar-width:thin]">
             <div className="p-2 border-b border-[var(--border-default)]">
                 <span className="text-xs font-medium text-[var(--text-muted)]">
                     {t('admin_languages.prompt_stats', '{translated} / {total} translated', { translated: stats.translated || 0, total: stats.total || 0 })}
@@ -49,15 +53,16 @@ function PromptList({ data, translations, selectedPrompt, onSelect }: PromptList
                         return (
                             <button
                                 key={id}
+                                type="button"
                                 onClick={() => onSelect(id)}
-                                className={`w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 transition-colors ${active ? 'bg-[var(--accent-primary)] text-white' : 'hover:bg-[var(--bg-tertiary)]'}`}
-                                style={{ color: active ? '#fff' : 'var(--text-primary)' }}
+                                aria-current={active ? 'true' : undefined}
+                                className={`w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 transition-colors ${active ? 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'}`}
                             >
                                 <span className="truncate flex-1">{labels[id] || id}</span>
                                 {translations[id] ? (
-                                    <Check className={`w-3 h-3 shrink-0 ${active ? '[color:#fff]' : '[color:#22c55e]'}`} />
+                                    <Check className="w-3 h-3 shrink-0 text-[var(--success-ink)]" aria-hidden="true" />
                                 ) : (
-                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 [opacity:0.4] ${active ? '[background:rgba(255,255,255,0.4)]' : '[background:var(--text-muted)]'}`} />
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0 opacity-40 bg-[var(--text-muted)]" aria-hidden="true" />
                                 )}
                             </button>
                         );
@@ -74,34 +79,31 @@ interface PromptSideBySideProps {
     defaultText: string;
     editText: string;
     setEditText: (v: string) => void;
-    saving: boolean;
-    saved: boolean;
+    saveState: 'idle' | 'saving' | 'saved' | 'error';
+    savedAt: Date | null;
     onSave: () => void;
 }
 
 /** Right: the English default (read-only) next to the editable translation. */
-function PromptSideBySide({ locale, label, defaultText, editText, setEditText, saving, saved, onSave }: PromptSideBySideProps) {
+function PromptSideBySide({ locale, label, defaultText, editText, setEditText, saveState, savedAt, onSave }: PromptSideBySideProps) {
     const { t } = useTranslation();
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-2 shrink-0">
                 <h4 className="text-sm font-semibold text-[var(--text-primary)]">{label}</h4>
                 <div className="flex items-center gap-2">
-                    {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3 h-3" /> {t('admin_languages.saved', 'Saved')}</span>}
+                    <SaveStatus saveState={saveState} lastSavedAt={savedAt} onRetry={onSave} />
                     <button
+                        type="button"
                         onClick={() => setEditText(defaultText)}
-                        className="px-2 py-1 rounded text-xs border hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]"
+                        className={SECONDARY_BTN}
                         title={t('admin_languages.copy_default_title', 'Copy English default into editor')}
                     >
-                        <Copy className="w-3 h-3 inline mr-1" /> {t('admin_languages.copy_default', 'Copy Default')}
+                        <Copy className="w-3 h-3" aria-hidden="true" /> {t('admin_languages.copy_default', 'Copy Default')}
                     </button>
-                    <button
-                        onClick={onSave}
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
-                    >
-                        {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
-                    </button>
+                    <Button size="sm" onClick={onSave} busy={saveState === 'saving'}>
+                        {t('admin_languages.save', 'Save')}
+                    </Button>
                 </div>
             </div>
 
@@ -112,7 +114,7 @@ function PromptSideBySide({ locale, label, defaultText, editText, setEditText, s
                     <textarea
                         value={defaultText}
                         readOnly
-                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-secondary)]! [outline:none] [scrollbar-width:thin]"
+                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)] outline-none [scrollbar-width:thin]"
                     />
                     <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: defaultText.length })}</div>
                 </div>
@@ -124,7 +126,7 @@ function PromptSideBySide({ locale, label, defaultText, editText, setEditText, s
                         value={editText}
                         onChange={e => setEditText(e.target.value)}
                         placeholder={t('admin_languages.enter_translation', 'Enter translation...')}
-                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none focus:border-[var(--accent-primary)] [border-color:var(--border-default)]! [background:var(--bg-primary)] [color:var(--text-primary)]! [outline:none] [scrollbar-width:thin]"
+                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none border-[var(--border-default)] focus:border-[var(--accent-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none [scrollbar-width:thin]"
                     />
                     <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: editText.length })}</div>
                 </div>
@@ -141,7 +143,7 @@ function shownPrompt(picked: string | null, data: PromptData | null): string | n
 }
 
 /** One locale's prompts and their translations; a save writes the translation into the cached read. */
-function usePromptTranslations(locale: string, onSaved: () => void) {
+function usePromptTranslations(locale: string, onSaved: (ok: boolean) => void) {
     const queryClient = useQueryClient();
     const key = ['languages', locale, 'prompts'] as const;
     const query = useQuery<PromptData>({
@@ -158,11 +160,14 @@ function usePromptTranslations(locale: string, onSaved: () => void) {
             return res.ok;
         },
         onSuccess: (ok, { promptId, text }) => {
+            onSaved(ok);
             if (!ok) return;
             queryClient.setQueryData<PromptData>(key, (prev) => (prev ? { ...prev, translations: { ...prev.translations, [promptId]: text } } : prev));
-            onSaved();
         },
-        onError: (err) => logger.warn('prompt translation save failed', err),
+        onError: (err) => {
+            logger.warn('prompt translation save failed', err);
+            onSaved(false);
+        },
     });
     return { data: query.data ?? null, translations: query.data?.translations ?? NO_TRANSLATIONS, fetchData, save };
 }
@@ -170,22 +175,30 @@ function usePromptTranslations(locale: string, onSaved: () => void) {
 /** The system prompts of one locale: pick one, translate it side by side. */
 export default function PromptEditor({ locale }: { locale: string }) {
     const { t } = useTranslation();
-    const [saved, setSaved] = useState(false);
-    const { data, translations, fetchData, save } = usePromptTranslations(locale, () => {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+    // When the open prompt's translation was last stored; null until a save of THIS prompt.
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
+    const [saveFailed, setSaveFailed] = useState(false);
+    const { data, translations, fetchData, save } = usePromptTranslations(locale, (ok) => {
+        setSaveFailed(!ok);
+        if (ok) setSavedAt(new Date());
     });
     const [pickedPrompt, setSelectedPrompt] = useState<string | null>(null);
     const selectedPrompt = shownPrompt(pickedPrompt, data);
     const [editText, setEditText] = useState('');
-    useAdjustOnChange([selectedPrompt, translations], () => {
+    // A new read refills the editor; only ANOTHER prompt starts the save status
+    // over. A save writes its text into the cached read, and resetting the
+    // status on that change would wipe the "Saved" it just set.
+    useAdjustOnChange([selectedPrompt, translations], ([previousPrompt]) => {
         if (selectedPrompt) {
             setEditText(translations[selectedPrompt] || '');
-            setSaved(false);
+            if (previousPrompt !== selectedPrompt) {
+                setSavedAt(null);
+                setSaveFailed(false);
+            }
         }
     });
 
-    const saving = save.isPending;
+    const saveState = save.isPending ? 'saving' : saveFailed ? 'error' : savedAt ? 'saved' : 'idle';
     const handleSave = () => {
         if (!selectedPrompt) return;
         save.mutate({ promptId: selectedPrompt, text: editText });
@@ -196,7 +209,7 @@ export default function PromptEditor({ locale }: { locale: string }) {
         onReload: fetchData,
     });
 
-    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">Loading...</div>;
+    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">{t('common.loading', 'Loading...')}</div>;
 
     const stats = data.stats || {};
 
@@ -205,9 +218,7 @@ export default function PromptEditor({ locale }: { locale: string }) {
             {/* Stats bar with AI Translate */}
             {locale !== 'en' && (
                 <div className="flex items-center gap-3 mb-3 shrink-0">
-                    <div className="flex-1 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct(stats.translated, stats.total)}%`, background: (stats.translated as number) >= (stats.total as number) ? '#22c55e' : 'var(--accent-primary)' }} />
-                    </div>
+                    <ProgressFill percent={pct(stats.translated, stats.total)} />
                     <span className="text-xs font-medium shrink-0 text-[var(--text-secondary)]">
                         {stats.translated || 0} / {stats.total || 0} ({pct(stats.translated, stats.total)}%)
                     </span>
@@ -226,8 +237,8 @@ export default function PromptEditor({ locale }: { locale: string }) {
                         defaultText={(data.defaults || {})[selectedPrompt] || ''}
                         editText={editText}
                         setEditText={setEditText}
-                        saving={saving}
-                        saved={saved}
+                        saveState={saveState}
+                        savedAt={savedAt}
                         onSave={handleSave}
                     />
                 ) : (

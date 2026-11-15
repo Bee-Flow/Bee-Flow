@@ -4,7 +4,7 @@
 // an address that moved keeps working here instead of being rewritten at every
 // writer. resolveAdminTab (adminTabs) applies the table before it picks a tab;
 // the Organisation tab's own renamed sections are ORG_SECTION_ALIASES, applied
-// where its open section is chosen (organisation/orgSections activeOrgSection).
+// where its open section is chosen (organisation/orgSections openOrgSection).
 //
 // Pure data and functions with no imports, so every module of the dashboard can
 // read it without closing an import cycle. adminPathAliases.test.ts holds every
@@ -73,6 +73,10 @@ export const ORG_SECTION_ALIASES: Readonly<Record<string, string>> = {
 export const ADMIN_PATH_ALIASES: Readonly<Record<string, string>> = {
     ...Object.fromEntries(AGENT_SECTION_IDS.map(id => [id, `agents/${id}`])),
     ...Object.fromEntries(Object.entries(AI_CONFIG_LEGACY_SECTIONS).map(([old, id]) => [`ai-config/${old}`, `ai-config/${id}`])),
+    // The reranker had a pane in the provider list; it is part of Search & retrieval now.
+    'ai-config/providers/reranker': 'ai-config/retrieval',
+    // The Usage explorer's tables are Spend's views now.
+    'monitoring/usage': 'monitoring/spend',
     // Security > Users became People; the rest of its tabs moved out.
     'security/users': 'people',
     ...Object.fromEntries(Object.entries(SECURITY_USERS_TABS).map(([tab, to]) => [`security/users/${tab}`, to])),

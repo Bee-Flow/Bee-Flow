@@ -6,14 +6,16 @@
  * change at any time. The web selects and then saves on its save bar; here a
  * tap saves the new method at once. Allowed domains (self-hosted only) are a
  * list saved through the SaveBar, validated with the web's (and server's)
- * regex. An organisation provisioned through Nextcloud has neither: its
- * identity is the Nextcloud instance's.
+ * regex. Auto-approve (whether someone signing in through single sign-on
+ * with an address on the organisation's domain joins at once) saves on a tap,
+ * as the web's AutoApproveSetting does. An organisation provisioned through
+ * Nextcloud has none of these: its identity is the Nextcloud instance's.
  */
 
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
-import { Group, SaveBar, TagInput } from '@/shared/ui';
+import { Group, SaveBar, TagInput, ToggleRow } from '@/shared/ui';
 
 import { FieldRow } from '../components/FieldRow';
 import { OrgSettingsFrame } from '../components/OrgSettingsFrame';
@@ -98,6 +100,19 @@ export function OrgSignInScreen() {
                             </FieldRow>
                         </Group>
                     ) : null}
+                    <Group>
+                        <ToggleRow
+                            testID="auto-approve"
+                            label={t('org_signin.auto_approve', 'Let people from your domains in straight away')}
+                            description={t(
+                                'org_signin.auto_approve_desc',
+                                "Someone who signs in through single sign-on with an e-mail address on this organisation's domain joins at once, in the default groups. When this is off, they wait as pending until an administrator lets them in.",
+                            )}
+                            value={org.autoApproveSSO === true}
+                            disabled={record.saving}
+                            onValueChange={(next) => void record.save({ autoApproveSSO: next })}
+                        />
+                    </Group>
                 </>
             )}
         </OrgSettingsFrame>

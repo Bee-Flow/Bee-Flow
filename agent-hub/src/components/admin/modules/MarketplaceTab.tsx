@@ -10,6 +10,7 @@ import ConnectHubDialog from './ConnectHubDialog';
 import { useModuleActions, type ModuleApiError } from './moduleActions';
 import { parsePurchaseReturn, stripPurchaseReturnParams } from './purchaseReturn';
 import { parseModuleDeepLink, searchWithModule, searchWithoutModule } from './moduleDeepLink';
+import { ALERT_WARNING } from '@/components/shared/adminUi';
 
 // Marketplace (module hub) tab. Owns the connect/browse/buy/install lifecycle;
 // all wire calls go through the modules.ts hooks and the shared useModuleActions
@@ -252,7 +253,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
             <MarketplaceTabSection t={t} hubUrl={hubUrl} setSideloadOpen={setSideloadOpen} setDialogError={setDialogError} setDialog={setDialog} />
 
             {stale && (
-                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 [background:rgba(245,158,11,0.12)] [color:#f59e0b]!" data-testid="marketplace-stale">
+                <div className={`${ALERT_WARNING} items-center`} data-testid="marketplace-stale">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('modules.marketplace_stale')}
                 </div>
             )}
@@ -264,7 +265,8 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={t('modules.marketplace_search')}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+                    aria-label={t('modules.marketplace_search')}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)]"
                 />
             </div>
 
@@ -286,7 +288,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
 function MarketplaceTabSection({ t, hubUrl, setSideloadOpen, setDialogError, setDialog }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; hubUrl: string | undefined; setSideloadOpen: Dispatch<SetStateAction<boolean>>; setDialogError: Dispatch<SetStateAction<string | null>>; setDialog: Dispatch<SetStateAction<"connect" | "disconnect" | null>>; }) {
     return <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-            <Plug className="w-3.5 h-3.5 [color:#10b981]" />
+            <Plug className="w-3.5 h-3.5 text-[var(--success-ink)]" />
             {t('modules.connected_to', { hub: hubUrl || '' })}
         </div>
         <div className="flex items-center gap-3">

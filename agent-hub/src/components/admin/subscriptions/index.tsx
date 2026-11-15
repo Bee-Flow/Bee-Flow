@@ -17,6 +17,12 @@ interface SubscriptionsPanelProps {
     /** The section from the URL (admin/subscriptions/<section>); Plans when missing or unknown. */
     activeSection?: string;
     onNavigate?: (path: string) => void;
+    /**
+     * false: no section column (a host whose own navigation lists the
+     * sections, SUBSCRIPTIONS_SECTIONS, as rows). The section still comes from
+     * `activeSection`.
+     */
+    nav?: boolean;
 }
 
 const VIEWS: Record<SubscriptionsSectionId, ComponentType> = {
@@ -29,7 +35,7 @@ const VIEWS: Record<SubscriptionsSectionId, ComponentType> = {
     audit: AuditView,
 };
 
-function SubscriptionsPanel({ activeSection, onNavigate: onNavigateProp }: SubscriptionsPanelProps) {
+function SubscriptionsPanel({ activeSection, onNavigate: onNavigateProp, nav = true }: SubscriptionsPanelProps) {
     const { t } = useTranslation();
     // Inside the app shell the navigation comes from context; a host outside
     // it (a test, a kit) still hands it as a prop.
@@ -49,13 +55,17 @@ function SubscriptionsPanel({ activeSection, onNavigate: onNavigateProp }: Subsc
 
     // The editors (plan, org, promo, grant wizard) cover the pane with an
     // absolute inset-0 layer, so the content area is the positioned box.
+    const body = (
+        <div className="relative h-full">
+            <div className="absolute inset-0 overflow-y-auto">
+                <View />
+            </div>
+        </div>
+    );
+    if (!nav) return body;
     return (
         <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
-            <div className="relative h-full">
-                <div className="absolute inset-0 overflow-y-auto">
-                    <View />
-                </div>
-            </div>
+            {body}
         </StudioShell>
     );
 }

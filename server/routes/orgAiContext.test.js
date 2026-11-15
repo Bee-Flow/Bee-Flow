@@ -228,3 +228,19 @@ test('an unauthenticated request is rejected', async () => {
     assert.strictEqual((await request('GET', `/api/org-ai-context/${ORG_ID}`)).status, 401);
     assert.strictEqual((await request('PUT', `/api/org-ai-context/${ORG_ID}`, {})).status, 401);
 });
+
+test('GET and PUT name the model the summaries are written by: the organisation\'s Fast tier', async () => {
+    // The org admin turns summarising on; the server administrator chose the
+    // model. The screen says which one will read the conversation.
+    storeBlobs.chat_model_tiers = { fast: { modelId: 'gemini-3.1-pro-preview' }, thinking: { modelId: 'my-local-model' } };
+    const got = await request('GET', `/api/org-ai-context/${ORG_ID}`);
+    assert.strictEqual(got.body.runsOn, 'Gemini 3.1 Pro');
+    const put = await request('PUT', `/api/org-ai-context/${ORG_ID}`, { compactionEnabled: true });
+    assert.strictEqual(put.body.runsOn, 'Gemini 3.1 Pro');
+});
+
+test('no Fast tier configured: runsOn is null, never a guessed vendor model', async () => {
+    const res = await request('GET', `/api/org-ai-context/${ORG_ID}`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.runsOn, null);
+});

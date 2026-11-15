@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Languages, RotateCcw, Send } from 'lucide-react';
+import { AlertCircle, Check, Loader2, RotateCcw, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useDebouncedValue from '@/hooks/useDebouncedValue';
@@ -9,6 +9,9 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '@/api/languages';
 import { errorMessage } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
+import SaveStatus from '@/components/shared/SaveStatus';
+import Button from '@/components/shared/Button';
+import { FILTER_CHIP_OFF, FILTER_CHIP_ON, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 // Structured-field editor for the verification + welcome emails, per locale.
 // Fields are plain text rendered into the branded shell; a live preview shows
@@ -29,7 +32,7 @@ interface EmailTemplatesData {
     stats?: { missing?: number };
 }
 
-const FIELD_STYLE = { borderColor: 'var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none' };
+const FIELD = 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 
 const getFieldMeta = (t: TranslateFn): Record<string, { label: string; type: 'input' | 'textarea' }> => ({
     subject: { label: t('admin_languages.field_subject', 'Subject'), type: 'input' },
@@ -47,7 +50,9 @@ function useEmailTemplates(locale: string) {
     const queryClient = useQueryClient();
     const [selected, setSelected] = useState('verification');
     const [fields, setFields] = useState<Fields>({});
-    const [saved, setSaved] = useState(false);
+    // When the open template was last stored, and whether the last save failed.
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
+    const [saveFailed, setSaveFailed] = useState(false);
     const [previewHtml, setPreviewHtml] = useState('');
 
     // The reload is also the AI control's onReload, so it reads the template
@@ -96,17 +101,22 @@ function useEmailTemplates(locale: string) {
             return res.ok ? res.json() : null;
         },
         onSuccess: (d: { templates?: EmailTemplatesData['templates'] } | null) => {
+            setSaveFailed(!d);
             if (!d) return;
             queryClient.setQueryData<EmailTemplatesData>(key, (prev) => ({ ...prev, templates: d.templates }));
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
+            setSavedAt(new Date());
         },
-        onError: (err) => logger.debug('ignore', err),
+        onError: (err) => {
+            logger.debug('email template save failed', err);
+            setSaveFailed(true);
+        },
     });
-    const saving = save.isPending;
+    const saveState = save.isPending ? 'saving' : saveFailed ? 'error' : savedAt ? 'saved' : 'idle';
     const handleSave = () => save.mutate();
+    /** A different template is open: its save status starts over. */
+    const resetSaveStatus = () => { setSavedAt(null); setSaveFailed(false); };
 
-    return { data, selected, setSelected, fields, setFields, saving, saved, setSaved, previewHtml, fetchData, handleSave };
+    return { data, selected, setSelected, fields, setFields, saveState, savedAt, resetSaveStatus, previewHtml, fetchData, handleSave };
 }
 
 /** Send the selected template (with its saved text) to an address. */
@@ -143,20 +153,20 @@ function TestEmailSender({ locale, selected, result, setResult }: {
                     value={testRecipient}
                     onChange={e => setTestRecipient(e.target.value)}
                     placeholder="you@example.com"
-                    className="flex-1 px-3 py-1.5 rounded-lg border text-sm focus:border-[var(--accent-primary)]"
-                    style={FIELD_STYLE}
+                    className={`flex-1 px-3 py-1.5 rounded-lg border text-sm ${FIELD}`}
                 />
                 <button
+                    type="button"
                     onClick={handleTest}
                     disabled={testing || !testRecipient.trim()}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 border disabled:opacity-40 hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]"
+                    className={SECONDARY_BTN}
                 >
-                    {testing ? <span className="inline-block w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Send className="w-3.5 h-3.5" aria-hidden="true" />}
                     {t('admin_languages.send_test', 'Send test')}
                 </button>
             </div>
             {result && (
-                <div className="mt-2 text-xs flex items-center gap-1.5" style={{ color: result.error ? '#ef4444' : '#22c55e' }}>
+                <div className={`mt-2 text-xs flex items-center gap-1.5 ${result.error ? 'text-[var(--error-ink)]' : 'text-[var(--success-ink)]'}`} role={result.error ? 'alert' : 'status'}>
                     {result.error ? (<><AlertCircle className="w-3.5 h-3.5" /> {result.error}</>) : (<><Check className="w-3.5 h-3.5" /> {t('admin_languages.test_sent', 'Test email sent')}</>)}
                 </div>
             )}
@@ -184,16 +194,14 @@ function TemplateField({ fieldKey, value, placeholder, onChange }: { fieldKey: s
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
                     rows={5}
-                    className="w-full px-3 py-2 rounded-lg border text-sm resize-y focus:border-[var(--accent-primary)]"
-                    style={FIELD_STYLE}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm resize-y ${FIELD}`}
                 />
             ) : (
                 <input
                     value={value}
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:border-[var(--accent-primary)]"
-                    style={FIELD_STYLE}
+                    className={`w-full px-3 py-2 rounded-lg border text-sm ${FIELD}`}
                 />
             )}
         </div>
@@ -220,7 +228,7 @@ function EmailPreview({ html }: { html: string }) {
 /** The verification and welcome emails of one locale, with a live preview and a test send. */
 export default function EmailTemplateEditor({ locale }: { locale: string }) {
     const { t } = useTranslation();
-    const { data, selected, setSelected, fields, setFields, saving, saved, setSaved, previewHtml, fetchData, handleSave } = useEmailTemplates(locale);
+    const { data, selected, setSelected, fields, setFields, saveState, savedAt, resetSaveStatus, previewHtml, fetchData, handleSave } = useEmailTemplates(locale);
     const [testResult, setTestResult] = useState<{ ok?: boolean; error?: string } | null>(null);
 
     // When switching template, repopulate from the loaded overrides.
@@ -228,7 +236,7 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
     if (shownTemplate !== selected) {
         setShownTemplate(selected);
         if (data) setFields({ ...(data.templates?.[selected] || {}) });
-        setSaved(false);
+        resetSaveStatus();
         setTestResult(null);
     }
 
@@ -237,7 +245,7 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
         onReload: fetchData,
     });
 
-    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">Loading...</div>;
+    if (!data) return <div className="flex items-center justify-center h-full text-[var(--text-muted)]">{t('common.loading', 'Loading...')}</div>;
 
     const defaults = data.defaults?.[selected] || {};
     const labels = data.labels || {};
@@ -251,9 +259,10 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
                 {(data.templateIds || []).map(id => (
                     <button
                         key={id}
+                        type="button"
                         onClick={() => setSelected(id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selected === id ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] border hover:bg-[var(--bg-tertiary)]'}`}
-                        style={selected === id ? {} : { borderColor: 'var(--border-default)' }}
+                        aria-pressed={selected === id}
+                        className={selected === id ? FILTER_CHIP_ON : FILTER_CHIP_OFF}
                     >
                         {labels[id] || id}
                     </button>
@@ -266,8 +275,6 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
                         onTranslate={ai.run}
                         translating={ai.translating}
                         missing={data.stats?.missing}
-                        icon={<Languages className="w-3.5 h-3.5" />}
-                        gradient={false}
                         showCount={false}
                     />
                 )}
@@ -280,7 +287,7 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
                     {/* Variable hint chips */}
                     {variables.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                            <span className="text-[11px] text-[var(--text-muted)]">Variables:</span>
+                            <span className="text-[11px] text-[var(--text-muted)]">{t('platform_panels.email_variables', 'Variables:')}</span>
                             {variables.map(v => (
                                 <code key={v} className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{`{{${v}}}`}</code>
                             ))}
@@ -292,14 +299,10 @@ export default function EmailTemplateEditor({ locale }: { locale: string }) {
 
                     {/* Save + send test */}
                     <div className="flex items-center gap-2 mt-1 mb-3 flex-wrap">
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
-                        >
-                            {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
-                        </button>
-                        {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('admin_languages.saved', 'Saved')}</span>}
+                        <Button size="sm" onClick={handleSave} busy={saveState === 'saving'}>
+                            {t('admin_languages.save', 'Save')}
+                        </Button>
+                        <SaveStatus saveState={saveState} lastSavedAt={savedAt} onRetry={handleSave} />
                     </div>
 
                     <TestEmailSender locale={locale} selected={selected} result={testResult} setResult={setTestResult} />

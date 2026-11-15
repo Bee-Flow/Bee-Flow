@@ -7,24 +7,10 @@ import { useLicenseStatus } from '../../api/queries/serverLicense';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
 import { errorBody, RefusedError } from '../../api/mutate';
-import SectionHeader from '../shared/SectionHeader';
 import { SettingRow, SettingsList } from '../shared/SettingsList';
-import { ALERT_ERROR, ALERT_INFO, CHIP, CHIP_SUCCESS, CHIP_WARNING, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from '../mcpLibrary/ui';
+import { ALERT_ERROR, ALERT_INFO, CHIP, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from '../shared/adminUi';
 import { apiRequest } from '@/api/typedRequest';
-
-interface ServerLicenseRecord {
-    tier?: string;
-    expiresAt?: string | null;
-    issuer?: string;
-    billingInterval?: string;
-}
-
-interface LicenseStatus {
-    serverLicense?: ServerLicenseRecord | null;
-    scope?: string;
-    serverOverride?: boolean;
-    license?: ServerLicenseRecord | null;
-}
+import { licenceTierLabel, serverLicenseView, type LicenseStatus } from './serverLicenseStatus';
 
 interface LicenseActionResponse {
     code?: string;
@@ -39,14 +25,11 @@ interface LicenseActionResponse {
  *
  * Available to super-admins on any deployment mode; the surrounding /admin
  * tab gates on superAdminOnly and the backend re-asserts the super-admin
- * check on activate/deactivate.
+ * check on activate/deactivate. It is the one place the key is changed: the
+ * Access > Ceiling page shows the tier read-only and links here. The admin
+ * dashboard's page frame draws the header (Server licence), so the panel
+ * has no title or width of its own.
  */
-
-const TIER_BADGE: Record<string, { label: string; chip: string }> = {
-    community: { label: 'Community', chip: CHIP },
-    enterprise: { label: 'Enterprise', chip: CHIP_SUCCESS },
-    full: { label: 'Full', chip: CHIP_WARNING },
-};
 
 export default function ServerLicensePanel() {
     const { t } = useTranslation();
@@ -59,7 +42,7 @@ export default function ServerLicensePanel() {
     const [showInput, setShowInput] = useState(false);
     const [busy, setBusy] = useState<'activate' | 'deactivate' | null>(null); // 'activate' | 'deactivate'
     const [mutationError, setActionError] = useState<string | null>(null);
-    const actionError = mutationError ?? (statusQuery.isError ? messageOf(statusQuery.error, 'Failed to load licence status') : null);
+    const actionError = mutationError ?? (statusQuery.isError ? messageOf(statusQuery.error, t('admin_platform.licence_load_failed', 'Failed to load the licence status')) : null);
 
     // Pull the server-wide licence status. The server-side getLicenseStatus
     // returns the server-scope row with serverOverride:true when present,
@@ -70,17 +53,14 @@ export default function ServerLicensePanel() {
         await refetch();
     }, [refetch]);
 
-    // `serverLicense` is present whenever a server-wide row exists, regardless
-    // of deployment mode — so the panel shows/manages the licence on cloud too
-    // (where it no longer overrides per-org billing). `serverOverride` only
-    // reflects whether it currently governs the install, which we surface as a
-    // hint. Fall back to the legacy override shape for older API responses.
-    const serverLicense = status?.serverLicense
-        || (status?.scope === 'server' && status?.serverOverride ? status?.license : null);
+    // The panel shows and manages the server-wide licence on cloud too, where it
+    // does not override per-organisation billing; `governing` says whether it
+    // covers the install, surfaced as a note.
+    const view = serverLicenseView(status);
+    const serverLicense = view.licence;
     const isServerScope = !!serverLicense;
-    const isGoverning = status?.serverOverride === true;
-    const tier = serverLicense?.tier || 'community';
-    const badge = TIER_BADGE[tier] || TIER_BADGE.community;
+    const isGoverning = view.governing;
+    const tierLabel = licenceTierLabel(t, view.tier);
 
     const handleActivate = async () => {
         const token = tokenInput.trim();
@@ -111,7 +91,7 @@ export default function ServerLicensePanel() {
             // Bubble out so the rest of the UI re-derives features.
             reloadLicenseContext && reloadLicenseContext();
         } catch (e) {
-            setActionError(messageOf(e, 'Activation failed'));
+            setActionError(messageOf(e, t('admin_platform.licence_activate_failed', 'Activation failed')));
         } finally {
             setBusy(null);
         }
@@ -140,23 +120,15 @@ export default function ServerLicensePanel() {
             await reload();
             reloadLicenseContext && reloadLicenseContext();
         } catch (e) {
-            setActionError(messageOf(e, 'Deactivation failed'));
+            setActionError(messageOf(e, t('admin_platform.licence_deactivate_failed', 'Deactivation failed')));
         } finally {
             setBusy(null);
         }
     };
 
-    const header = (
-        <SectionHeader
-            title={t('admin.server_license.title', 'Server licence')}
-            description={t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
-        />
-    );
-
     if (loading) {
         return (
-            <div className="flex max-w-4xl flex-col gap-4" aria-busy="true">
-                {header}
+            <div className="flex flex-col gap-4" aria-busy="true">
                 <SettingsList className="animate-pulse">
                     <div className="px-4 py-3"><div className="h-4 w-48 rounded bg-[var(--bg-tertiary)]" /></div>
                     <div className="px-4 py-3"><div className="h-4 w-64 rounded bg-[var(--bg-tertiary)]" /></div>
@@ -187,8 +159,7 @@ export default function ServerLicensePanel() {
     );
 
     return (
-        <div className="flex max-w-4xl flex-col gap-4">
-            {header}
+        <div className="flex flex-col gap-4" data-testid="server-licence-panel">
 
             <SettingsList>
                 <SettingRow
@@ -196,7 +167,7 @@ export default function ServerLicensePanel() {
                     label={isServerScope
                         ? t('admin.server_license.active_badge', 'Server-wide licence active')
                         : t('admin.server_license.inactive_badge', 'No server-wide licence applied')}
-                    hint={<span className={badge.chip}>{badge.label}</span>}
+                    hint={<span className={CHIP} data-testid="server-licence-tier">{tierLabel}</span>}
                 >
                     {actions}
                 </SettingRow>

@@ -1,4 +1,4 @@
-import { GraduationCap, Search, RefreshCw, Award, ScrollText, Users as UsersIcon, Activity } from 'lucide-react';
+import { Search, RefreshCw, Award, ScrollText, Users as UsersIcon, Activity } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { useCan } from '../../components/licensing/Gate';
@@ -10,6 +10,8 @@ import type { SettingsUser } from './shell/settingsShellTypes';
 import AcademyContentEditor from './learning/admin/AcademyContentEditor';
 import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
 import { useOrgAcademyOverviewQuery } from '../../api/queries/orgReports';
+import { CHIP_WARNING, INPUT } from '@/components/shared/adminUi';
+import { buttonClass } from '@/components/shared/buttonClasses';
 
 /** GET /ai/learning/org-overview (server/learning/orgOverview.js). */
 interface AcademyMember {
@@ -57,7 +59,6 @@ interface StatCardProps {
     icon: LucideIcon;
     label: string;
     value: string | number;
-    accent: string;
 }
 
 /**
@@ -92,11 +93,11 @@ function relativeTime(iso: string | null, t: TranslateFn) {
     return new Date(iso).toLocaleDateString();
 }
 
-const StatCard = ({ icon: Icon, label, value, accent }: StatCardProps) => (
+/** One total: an ink tile, so the four read as one row rather than four colours. */
+const StatCard = ({ icon: Icon, label, value }: StatCardProps) => (
     <div className="rounded-xl border p-4 flex items-center gap-3 border-[var(--border-default)] bg-[var(--bg-card)]">
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: `color-mix(in srgb, ${accent} 14%, transparent)` }}>
-            <Icon className="w-4.5 h-4.5" style={{ color: accent, width: 18, height: 18 }} />
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-tertiary)]">
+            <Icon className="w-[18px] h-[18px] text-[var(--text-secondary)]" aria-hidden="true" />
         </div>
         <div className="min-w-0">
             <div className="text-lg font-bold leading-tight text-[var(--text-primary)]">{value}</div>
@@ -113,7 +114,7 @@ const MemberAvatar = ({ m }: { m: AcademyMember }) => {
         return <img src={m.avatar.startsWith('/') ? `${API_BASE}${m.avatar}` : m.avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />;
     }
     return (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+        <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-primary)] text-sm font-bold shrink-0">
             {(m.displayName || '?')[0].toUpperCase()}
         </div>
     );
@@ -151,7 +152,7 @@ function OrgAcademyOverview() {
                 keeps only its own Refresh. */}
             <div className="mb-4 flex justify-end">
                 <button onClick={load} disabled={loading}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!"
+                    className={buttonClass('secondary', 'md')}
                     title={t('org.academy.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     {t('org.academy.refresh', 'Refresh')}
@@ -168,13 +169,13 @@ function OrgAcademyOverview() {
                 <>
                     {/* Totals */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                        <StatCard icon={UsersIcon} accent="#3b82f6"
+                        <StatCard icon={UsersIcon}
                             label={t('org.academy.members', 'Members')} value={totals.members ?? '—'} />
-                        <StatCard icon={Award} accent="#059669"
+                        <StatCard icon={Award}
                             label={t('org.academy.courses_completed', 'Courses completed')} value={totals.coursesCompleted ?? '—'} />
-                        <StatCard icon={ScrollText} accent="#f59e0b"
+                        <StatCard icon={ScrollText}
                             label={t('org.academy.certificates', 'Certificates issued')} value={totals.certificatesIssued ?? '—'} />
-                        <StatCard icon={Activity} accent="#0ea5e9"
+                        <StatCard icon={Activity}
                             label={t('org.academy.active_30d', 'Active last 30 days')} value={totals.activeLast30d ?? '—'} />
                     </div>
 
@@ -184,10 +185,10 @@ function OrgAcademyOverview() {
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={query} onChange={(e) => setQuery(e.target.value)}
                                 placeholder={t('org.academy.search', 'Search members…')}
-                                className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm outline-none focus:border-[var(--accent-primary)] [border-color:var(--border-default)]! [background:var(--bg-card)] [color:var(--text-primary)]!" />
+                                className={`${INPUT} pl-9`} />
                         </div>
                         <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg border text-sm outline-none [border-color:var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!">
+                            className={`${INPUT} w-auto`}>
                             <option value="">{t('org.academy.all_courses', 'All courses')}</option>
                             {courses.map((c: AcademyCourse) => (
                                 <option key={c.id} value={c.id}>{t('org.academy.completed_prefix', 'Completed:')} {c.title}</option>
@@ -217,7 +218,7 @@ function OrgAcademyOverview() {
                                     <span className="w-24 text-right">{t('org.academy.col_activity', 'Last activity')}</span>
                                 </div>
                                 {members.map((m: AcademyMember) => (
-                                    <div key={m.userId} className="px-5 py-3 flex items-center gap-4 flex-wrap md:flex-nowrap hover:bg-[var(--bg-secondary)] transition-colors">
+                                    <div key={m.userId} className="px-5 py-3 flex items-center gap-4 flex-wrap md:flex-nowrap hover:bg-[var(--item-hover-bg)] transition-colors">
                                         <MemberAvatar m={m} />
                                         <div className="flex-1 min-w-0">
                                             <div className="text-sm font-medium truncate text-[var(--text-primary)]">{m.displayName}</div>
@@ -229,7 +230,7 @@ function OrgAcademyOverview() {
                                                 const done = (m.coursesDone || []).includes(c.id);
                                                 return (
                                                     <span key={c.id} title={`${c.title}${done ? ' ✓' : ''}`}
-                                                        className={`w-2.5 h-2.5 rounded-full inline-block ${done ? '[background:#059669] [border:none]' : '[background:transparent] [border:1.5px_solid_var(--border-default)]'}`} />
+                                                        className={`w-2.5 h-2.5 rounded-full inline-block ${done ? 'bg-[var(--success)]' : 'bg-transparent border-[1.5px] border-[var(--border-default)]'}`} />
                                                 );
                                             })}
                                             <span className="text-[11px] ml-1 text-[var(--text-muted)]">
@@ -247,7 +248,7 @@ function OrgAcademyOverview() {
                                             ) : m.certificates.map((cert: AcademyCertificate) => (
                                                 <span key={cert.certificateId}
                                                     title={cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : ''}
-                                                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold [background:color-mix(in_srgb,#f59e0b_15%,transparent)] [color:#b45309]!">
+                                                    className={CHIP_WARNING}>
                                                     📜 {cert.level || cert.certificateId}
                                                 </span>
                                             ))}
@@ -286,19 +287,12 @@ export default function OrgAcademyPanel(_props: OrgAcademyPanelProps) {
 
     return (
         <div>
-            <header className="mb-4">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-                    <GraduationCap className="w-5 h-5 text-[var(--accent-primary)]" aria-hidden="true" />
-                    {t('settings.academy', 'Academy')}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                    {t('org.academy.subtitle', 'Course progress, badges and certificates across your team.')}
-                </p>
-            </header>
+            {/* The page title (the rail's "Learning Center") and its description
+                (org.academy.subtitle) are the dashboard frame's (AdminPage). */}
             <Tabs
                 value={tab}
                 onChange={setTab}
-                ariaLabel={t('settings.academy', 'Academy')}
+                ariaLabel={t('admin_nav.learning_center', 'Learning Center')}
                 className="mb-4"
                 items={items}
             />

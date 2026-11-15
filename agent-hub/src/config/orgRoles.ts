@@ -60,7 +60,7 @@ export const PERMISSION_CATALOG: Record<string, PermissionCopy> = {
     // ── Organisation ──
     manage_users: { label: 'Manage Users', desc: 'Add, remove, and assign roles to organisation members' },
     page_settings: { label: 'Edit Organisation Settings', desc: 'Change branding, legal details, and configuration' },
-    admin_security: { label: 'Privacy Shield', desc: 'Configure data redaction, guardrails, users and SSO' },
+    admin_security: { label: 'Security settings', desc: 'Configure the Privacy Shield, sign-in and access, and manage people' },
     admin_compliance: { label: 'Compliance Center', desc: 'Run and review GDPR / AI Act compliance checks and settings' },
     admin_monitoring: { label: 'Usage & Monitoring', desc: 'View organisation usage and activity monitoring' },
     admin_subscriptions: { label: 'Subscriptions', desc: 'Manage the organisation subscription and plan' },

@@ -1,177 +1,90 @@
-import AiStepModelSection from './chatModelTiers/AiStepModelSection';
+// The Models page of AI configuration, top to bottom: the chat tiers, their EU
+// models, the custom tiers, the Claude recommendations (only with a Claude
+// model), the background models and Reliability. Everything but the two
+// switches (hidden models, the retry) is one draft with one save bar.
+import BackgroundModelsGroups from './chatModelTiers/BackgroundModelsGroups';
 import ChatTiersSection from './chatModelTiers/ChatTiersSection';
-import ClassifierModelSection from './chatModelTiers/ClassifierModelSection';
 import { hasClaudeModels } from './chatModelTiers/claudeRecommendations';
 import ClaudeSettingsSection from './chatModelTiers/ClaudeSettingsSection';
-import DataExtractionModelSection from './chatModelTiers/DataExtractionModelSection';
+import CustomTiersSection from './chatModelTiers/CustomTiersSection';
 import EuTiersSection from './chatModelTiers/EuTiersSection';
-import MemoryExtractionModelSection from './chatModelTiers/MemoryExtractionModelSection';
-import TitleModelSection from './chatModelTiers/TitleModelSection';
+import ReliabilitySection from './chatModelTiers/ReliabilitySection';
 import useChatModelTiersState from './chatModelTiers/useChatModelTiersState';
 import type { CatalogModel } from './chatModelTiers/tierTypes';
-import { SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
-import { useTranslation } from '@/hooks/useTranslation';
+import SaveBar from '@/components/shared/SaveBar';
 
 interface ChatModelTiersConfigProps {
     allModels?: CatalogModel[];
 }
 
 const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => {
-    const { t } = useTranslation();
-    const {
-        config, euConfig, customTiers, saving, euSaving, message, euMessage,
-        expandedTier, setExpandedTier, expandedCustomId, setExpandedCustomId,
-        classifierModel, setClassifierModel, classifierSaving, classifierMessage,
-        titleModel, setTitleModel, titleModelSaving, titleModelMessage,
-        memoryModel, setMemoryModel, memoryModelSaving, memoryModelMessage, saveMemoryModel,
-        aiStepModel, setAiStepModel, aiStepModelSaving, aiStepModelMessage, saveAiStepModel,
-        dataExtractionModel, setDataExtractionModel, dataExtractionModelSaving, dataExtractionModelMessage, saveDataExtractionModel,
-        hiddenModelIds, claudeAutoRetry, setClaudeAutoRetry, claudeSaving,
-        claudeMessage, claudeRecAppliedTier,
-        saveClaudeSettings, applyClaudeRecommendedForTier, applyAllClaudeRecommended,
-        toggleHiddenModel, saveClassifierModel, saveTitleModel,
-        save, saveEu, addCustomTier, updateCustomTier, renameCustomTier,
-        removeCustomTier, toggleCustomTaskType,
-        chatModels, isLocal, reasoningCapable, updateTier, updateEuTier, byProvider,
-        confirmDialog,
-    } = useChatModelTiersState(allModels);
+    const s = useChatModelTiersState(allModels);
+    const picker = { chatModels: s.chatModels, byProvider: s.byProvider, hiddenModelIds: s.hiddenModelIds, toggleHiddenModel: s.toggleHiddenModel };
+    const claude = hasClaudeModels(s.chatModels);
 
     return (
-        <div className="space-y-8">
-            {/* Regular Chat Model Tiers */}
+        <div className="flex flex-col gap-8">
+            <SaveBar dirty={s.dirty} saving={s.saving} onSave={() => { void s.saveAll(); }} onDiscard={s.discardAll} message={s.saveMessage} />
+
             <ChatTiersSection
-                config={config}
-                customTiers={customTiers}
-                saving={saving}
-                message={message}
-                save={save}
-                addCustomTier={addCustomTier}
-                updateTier={updateTier}
-                expandedTier={expandedTier}
-                setExpandedTier={setExpandedTier}
-                expandedCustomId={expandedCustomId}
-                setExpandedCustomId={setExpandedCustomId}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-                isLocal={isLocal}
-                reasoningCapable={reasoningCapable}
-                applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
-                updateCustomTier={updateCustomTier}
-                renameCustomTier={renameCustomTier}
-                removeCustomTier={removeCustomTier}
-                toggleCustomTaskType={toggleCustomTaskType}
+                {...picker}
+                config={s.config}
+                updateTier={s.updateTier}
+                expandedTier={s.expandedTier}
+                setExpandedTier={s.setExpandedTier}
+                isLocal={s.isLocal}
+                reasoningCapable={s.reasoningCapable}
+                applyClaudeRecommendedForTier={s.applyClaudeRecommendedForTier}
             />
 
-            {/* Claude models: recommendations + the empty-answer safety net, only
-                when a Claude model is configured (via Anthropic, Azure or Vertex). */}
-            {hasClaudeModels(chatModels) && (
+            <EuTiersSection
+                {...picker}
+                euConfig={s.euConfig}
+                updateEuTier={s.updateEuTier}
+                expandedTier={s.expandedEuTier}
+                setExpandedTier={s.setExpandedEuTier}
+                isLocal={s.isLocal}
+                reasoningCapable={s.reasoningCapable}
+                applyClaudeRecommendedForTier={s.applyClaudeRecommendedForTier}
+            />
+
+            <CustomTiersSection
+                {...picker}
+                customTiers={s.customTiers}
+                addCustomTier={s.addCustomTier}
+                expandedCustomId={s.expandedCustomId}
+                setExpandedCustomId={s.setExpandedCustomId}
+                reasoningCapable={s.reasoningCapable}
+                updateCustomTier={s.updateCustomTier}
+                renameCustomTier={s.renameCustomTier}
+                removeCustomTier={s.removeCustomTier}
+                toggleCustomTaskType={s.toggleCustomTaskType}
+            />
+
+            {/* Claude models: the recommendations, only when a Claude model is
+                configured (via Anthropic, Azure or Vertex). */}
+            {claude && (
                 <ClaudeSettingsSection
-                    claudeAutoRetry={claudeAutoRetry}
-                    setClaudeAutoRetry={setClaudeAutoRetry}
-                    claudeSaving={claudeSaving}
-                    claudeMessage={claudeMessage}
-                    claudeRecAppliedTier={claudeRecAppliedTier}
-                    saveClaudeSettings={saveClaudeSettings}
-                    applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
-                    applyAllClaudeRecommended={applyAllClaudeRecommended}
-                    chatModels={chatModels}
+                    claudeMessage={s.claudeMessage}
+                    claudeRecAppliedTier={s.claudeRecAppliedTier}
+                    applyClaudeRecommendedForTier={s.applyClaudeRecommendedForTier}
+                    applyAllClaudeRecommended={s.applyAllClaudeRecommended}
+                    chatModels={s.chatModels}
                 />
             )}
 
-            {/* Background models: one small model per job, one row each */}
-            <SettingsGroup
-                title={t('admin_ai_config.bg_models_title', 'Background models')}
-                description={t('admin_ai_config.bg_models_hint', 'Small models for the jobs that run beside a chat. Pick the cheapest, fastest one that does the job.')}
-            >
-            <SettingsList>
-            <ClassifierModelSection
-                classifierModel={classifierModel}
-                setClassifierModel={setClassifierModel}
-                classifierSaving={classifierSaving}
-                classifierMessage={classifierMessage}
-                saveClassifierModel={saveClassifierModel}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
+            <BackgroundModelsGroups
+                {...picker}
+                classifier={s.classifier}
+                title={s.title}
+                memory={s.memory}
+                aiStep={s.aiStep}
+                dataExtraction={s.dataExtraction}
             />
 
-            {/* Title Generation Model */}
-            <TitleModelSection
-                titleModel={titleModel}
-                setTitleModel={setTitleModel}
-                titleModelSaving={titleModelSaving}
-                titleModelMessage={titleModelMessage}
-                saveTitleModel={saveTitleModel}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-            />
-
-            {/* Memory Extraction Model */}
-            <MemoryExtractionModelSection
-                memoryModel={memoryModel}
-                setMemoryModel={setMemoryModel}
-                memoryModelSaving={memoryModelSaving}
-                memoryModelMessage={memoryModelMessage}
-                saveMemoryModel={saveMemoryModel}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-            />
-
-            {/* AI Step Model — temporary override */}
-            <AiStepModelSection
-                aiStepModel={aiStepModel}
-                setAiStepModel={setAiStepModel}
-                aiStepModelSaving={aiStepModelSaving}
-                aiStepModelMessage={aiStepModelMessage}
-                saveAiStepModel={saveAiStepModel}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-            />
-
-            {/* Data Extraction Model — the automation Extract data step's own model */}
-            <DataExtractionModelSection
-                dataExtractionModel={dataExtractionModel}
-                setDataExtractionModel={setDataExtractionModel}
-                dataExtractionModelSaving={dataExtractionModelSaving}
-                dataExtractionModelMessage={dataExtractionModelMessage}
-                saveDataExtractionModel={saveDataExtractionModel}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-            />
-            </SettingsList>
-            </SettingsGroup>
-
-            {/* EU Chat Model Tiers */}
-            <EuTiersSection
-                euConfig={euConfig}
-                customTiers={customTiers}
-                euSaving={euSaving}
-                euMessage={euMessage}
-                saveEu={saveEu}
-                updateEuTier={updateEuTier}
-                expandedTier={expandedTier}
-                setExpandedTier={setExpandedTier}
-                chatModels={chatModels}
-                byProvider={byProvider}
-                hiddenModelIds={hiddenModelIds}
-                toggleHiddenModel={toggleHiddenModel}
-                isLocal={isLocal}
-                reasoningCapable={reasoningCapable}
-                applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
-                updateCustomTier={updateCustomTier}
-            />
-            {confirmDialog}
+            {/* The empty-answer retry: the server applies it to Claude models only. */}
+            {claude && <ReliabilitySection reliability={s.reliability} />}
+            {s.confirmDialog}
         </div>
     );
 };

@@ -176,20 +176,21 @@ function FeatureCard({ item, selected, disabled, icon, onToggle, lockedHint }: F
             role="button"
             tabIndex={interactive ? 0 : -1}
             aria-disabled={disabled}
-            onClick={() => interactive && onToggle()}
+            // The switch toggles by itself; a click on it (or its label) must not toggle twice.
+            onClick={e => interactive && !(e.target as Element).closest('label') && onToggle()}
             onKeyDown={e => {
                 if (!interactive) return;
                 if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle(); }
             }}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all border ${
                 selected
-                    ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_5%,transparent)]'
+                    ? 'border-[var(--text-primary)] bg-[var(--item-active-bg)]'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] opacity-90'
             } ${interactive ? 'cursor-pointer hover:border-[var(--text-tertiary)]' : 'cursor-not-allowed'}`}
         >
             <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    selected ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    selected ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                 }`}
             >
                 {icon || <span className="text-[10px] uppercase font-bold">{(item.label || item.id || '?').slice(0, 2)}</span>}
@@ -203,19 +204,9 @@ function FeatureCard({ item, selected, disabled, icon, onToggle, lockedHint }: F
             {lockedHint ? (
                 <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] whitespace-nowrap">{lockedHint}</span>
             ) : (
-                <label
-                    className={`relative inline-flex items-center shrink-0 ${interactive ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                    onClick={e => e.stopPropagation()}
-                >
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={selected}
-                        disabled={disabled}
-                        onChange={() => interactive && onToggle()}
-                    />
-                    <div className="w-9 h-5 bg-[var(--bg-tertiary)] rounded-full peer peer-checked:bg-[var(--success)] peer-focus:outline-none after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-default)] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white peer-disabled:opacity-60" />
-                </label>
+                <span className="shrink-0">
+                    <Toggle checked={selected} disabled={disabled} onChange={() => interactive && onToggle()} ariaLabel={item.label} />
+                </span>
             )}
         </div>
     );

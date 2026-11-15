@@ -22,6 +22,12 @@ export interface AdminRailGateContext {
     hasFeature: (feature: string) => boolean;
     /** The install's REAL tier reaches this one (LicenseContext.hasTier). */
     hasTier: (tier: string) => boolean;
+    /**
+     * Some organisation on this server is bound to a Nextcloud or came in
+     * through the Nextcloud connector (useServerNextcloudFacts); undefined while
+     * that is not known, which a platform admin's row reads as yes (fail open).
+     */
+    hasNextcloudInstances?: boolean;
 }
 
 /**
@@ -34,6 +40,9 @@ export interface AdminRailRowDef {
     section: string;
     labelKey: string;
     labelFallback?: string;
+    /** The line under the page header (AdminPage), when the row has one. */
+    descriptionKey?: string;
+    descriptionFallback?: string;
     icon: LucideIcon;
     group: AdminTabGroupId;
     block: AdminRailBlock;

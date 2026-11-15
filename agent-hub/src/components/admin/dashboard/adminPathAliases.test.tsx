@@ -150,6 +150,8 @@ describe('the alias table', () => {
         ['ai-config/chat-models', 'ai-config/models'],
         ['ai-config/embeddings', 'ai-config/retrieval'],
         ['ai-config/web-search', 'ai-config/retrieval'],
+        ['ai-config/providers/reranker', 'ai-config/retrieval'],
+        ['monitoring/usage', 'monitoring/spend'],
         ['organisation/ai-context', 'organisation/conversations'],
         ['organisation/meeting-templates', 'organisation/meeting-notes'],
         ['organisation/mcp/server', 'mcp-servers'],

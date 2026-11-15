@@ -18,7 +18,7 @@ interface FilterPillProps {
 const FilterPill = ({ icon: Icon, value, onChange, options, placeholder }: FilterPillProps) => (
     <div className="[position:relative]">
         <div className={`flex items-center gap-[5px] rounded-lg border px-2.5 py-[5px] text-xs font-medium transition-all ${value
-            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]'
             : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'}`}>
             {Icon && <Icon className="w-[12px] h-[12px] [flex-shrink:0]" />}
             <select value={value || ''} onChange={(e) => onChange(e.target.value || null)} className="[background:transparent] [border:none] [outline:none] [color:inherit] [font-size:12px] [font-weight:500] [cursor:pointer] [appearance:none] [-webkit-appearance:none] min-w-[60px] [padding-right:14px]">

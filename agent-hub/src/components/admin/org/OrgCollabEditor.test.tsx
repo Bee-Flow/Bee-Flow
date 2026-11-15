@@ -66,7 +66,9 @@ it('switching on saves at once', async () => {
     expect(box).not.toBeChecked();
     await user.click(box);
     await waitFor(() => expect(puts).toEqual([{ collabEnabled: true }]));
-    expect(await screen.findByRole('status')).toHaveTextContent('Saved.');
+    // A switch that saves on its own says so, and shows that it did.
+    expect(screen.getByText('Applies immediately')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/Saved just now/);
     expect(await toggle()).toBeChecked();
 });
 
@@ -103,6 +105,8 @@ it('switched off by the operator: the toggle is locked and says why', async () =
     expect(box).toBeDisabled();
     expect(box).not.toBeChecked();
     expect(screen.getByTestId('org-collab-server-off')).toHaveTextContent('Switched off for this server by the operator');
+    // A locked switch applies nothing, so it does not claim to.
+    expect(screen.queryByText('Applies immediately')).not.toBeInTheDocument();
     await user.click(box);
     expect(puts).toEqual([]);
 });

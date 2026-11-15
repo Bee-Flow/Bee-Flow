@@ -2,13 +2,15 @@
 // model-download panel (Ollama only) and the download progress bar.
 
 import React, { useState } from 'react';
-import { BTN_PRIMARY, BTN_GHOST, TIER_LABELS, testRuntime, pullModel } from '@/api/localRuntimeApi';
+import { TIER_LABELS, testRuntime, pullModel } from '@/api/localRuntimeApi';
+import { buttonClass } from '@/components/shared/buttonClasses';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import ProbeResult from './ProbeResult';
 import type { ProbeData, RuntimeInfo, RuntimeProvider, StarterModel, PullProgress } from '@/api/runtimeTypes';
 import DeleteConfirmButtons from '../shared/DeleteConfirmButtons';
 import type { ProviderMessage } from '@/hooks/useProviderConfig';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
+import { ProviderStatusPill } from '../shared/ProviderCardShell';
 
 interface PullState {
     model: string;
@@ -66,16 +68,17 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
         <div className="p-3 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-[var(--text-primary)]">{provider.name}</span>
-                <ProviderStatusPill tone="blue">{runtime.label || provider.type}</ProviderStatusPill>
-                {isEnvManaged && <ProviderStatusPill tone="orange">{t('admin_ai_config.row_from_env', 'from environment')}</ProviderStatusPill>}
-                <span className="text-xs font-mono truncate text-[var(--text-muted)]">{provider.url}</span>
+                <ProviderStatusPill tone="info">{runtime.label || provider.type}</ProviderStatusPill>
+                {isEnvManaged && <ProviderStatusPill tone="warning">{t('admin_ai_config.row_from_env', 'from environment')}</ProviderStatusPill>}
+                <span className="text-xs font-mono truncate text-[var(--text-tertiary)]">{provider.url}</span>
                 <div className="flex-1" />
-                <button className={`${BTN_GHOST} text-[var(--text-muted)]`} disabled={testing} onClick={runTest}>
+                <button type="button" className={buttonClass('ghost', 'sm')} disabled={testing} onClick={runTest}>
                     {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.row_test', 'Test')}
                 </button>
                 {runtime.canPull && (
                     <button
-                        className={`${BTN_GHOST} text-[var(--text-muted)]`}
+                        type="button"
+                        className={buttonClass('ghost', 'sm')}
                         onClick={() => { setPullOpen(o => !o); setPullInput(''); }}
                     >
                         {pullOpen ? t('admin_ai_config.close', 'Close') : t('admin_ai_config.row_add_model', 'Add model')}
@@ -90,7 +93,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
             </div>
 
             {isEnvManaged && (
-                <p className="text-[11px] mt-1.5 text-[var(--text-muted)]">
+                <p className="text-[11px] mt-1.5 text-[var(--text-tertiary)]">
                     {t('admin_ai_config.row_env_hint', 'Declared by an environment variable, so it is recreated on restart. Remove the variable to disconnect it permanently.')}
                 </p>
             )}
@@ -99,7 +102,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
 
             {pullOpen && (
                 <div className="mt-3 pt-3 border-t border-[var(--border-default)]">
-                    <p className="text-xs mb-2 text-[var(--text-muted)]">
+                    <p className="text-xs mb-2 text-[var(--text-tertiary)]">
                         {t('admin_ai_config.row_pick_hint', 'Pick a starter model, or enter any tag from the Ollama library.')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mb-3">
@@ -108,14 +111,15 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                                 key={m.model}
                                 onClick={() => download(m.model)}
                                 disabled={downloading}
-                                className="text-left px-3 py-2 rounded-lg text-xs transition-colors hover:bg-white/5 disabled:opacity-50 [background:var(--bg-tertiary)]!"
+                                type="button"
+                                className="rounded-lg bg-[var(--bg-tertiary)] px-3 py-2 text-left text-xs transition-colors hover:bg-[var(--item-hover-bg)] disabled:opacity-50"
                             >
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-medium text-[var(--text-primary)]">{m.label}</span>
-                                    {m.tier && <ProviderStatusPill tone="blue">{TIER_LABELS[m.tier] || m.tier}</ProviderStatusPill>}
-                                    <span className="text-[var(--text-muted)]">{m.vram}</span>
+                                    {m.tier && <ProviderStatusPill tone="info">{TIER_LABELS[m.tier] || m.tier}</ProviderStatusPill>}
+                                    <span className="text-[var(--text-tertiary)]">{m.vram}</span>
                                 </div>
-                                <div className="text-[var(--text-muted)]">{m.note}</div>
+                                <div className="text-[var(--text-tertiary)]">{m.note}</div>
                             </button>
                         ))}
                     </div>
@@ -125,10 +129,9 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                             value={pullInput}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPullInput(e.target.value)}
                             placeholder={t('admin_ai_config.row_tag_placeholder', 'e.g. qwen3:14b or hf.co/unsloth/gpt-oss-20b-GGUF:Q4_K_M')}
-                            className={PROVIDER_INPUT_CLS}
-                            style={PROVIDER_INPUT_STYLE}
+                            className={FIELD_INPUT}
                         />
-                        <button className={BTN_PRIMARY} disabled={!pullInput.trim() || downloading} onClick={() => download(pullInput)}>
+                        <button type="button" className={buttonClass('primary', 'sm')} disabled={!pullInput.trim() || downloading} onClick={() => download(pullInput)}>
                             {t('admin_ai_config.download', 'Download')}
                         </button>
                     </div>
@@ -137,7 +140,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
 
             {pull && (
                 <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs gap-2 text-[var(--text-muted)]">
+                    <div className="flex items-center justify-between text-xs gap-2 text-[var(--text-tertiary)]">
                         <span className="truncate">{pull.model}: {pull.error || pull.status}</span>
                         {pull.pct !== null && <span>{pull.pct}%</span>}
                     </div>

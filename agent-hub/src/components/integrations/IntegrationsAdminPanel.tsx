@@ -1,10 +1,9 @@
 import React from 'react';
-import FeatureKillSwitches from './FeatureKillSwitches';
 import { useLicenseContext } from '../licensing/LicenseContext';
 import EmailSection from './IntegrationsAdminPanel/EmailSection';
 import GlobalDefaultsSection from './IntegrationsAdminPanel/GlobalDefaultsSection';
 import SearchSection from './IntegrationsAdminPanel/SearchSection';
-import { SECTIONS, SECTION_FEATURE_GATE, ENTERPRISE_ONLY_SECTIONS } from './IntegrationsAdminPanel/sections';
+import { SECTIONS, MOUNT_ONLY_SECTIONS, SECTION_FEATURE_GATE, ENTERPRISE_ONLY_SECTIONS } from './IntegrationsAdminPanel/sections';
 import ServicesSection from './IntegrationsAdminPanel/ServicesSection';
 import TranscriptionSection from './IntegrationsAdminPanel/TranscriptionSection';
 import useIntegrationDefaults from './IntegrationsAdminPanel/useIntegrationDefaults';
@@ -14,7 +13,6 @@ import useTranscriptionSettings from './IntegrationsAdminPanel/useTranscriptionS
 import { useTranslation } from '../../hooks/useTranslation';
 import SectionNav from '../shared/SectionNav';
 import StudioShell from '../shared/StudioShell';
-import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import { useToastOnMessage } from '@/components/admin/ai-config/ui/useToastOnMessage';
 import { useShellProps } from '@/authedApp/useShellProps';
@@ -25,12 +23,20 @@ interface IntegrationsAdminPanelProps {
     /**
      * The sections this mount offers, without a section column (the admin
      * dashboard's Platform services child rows, the search provider inside AI
-     * configuration > Search & retrieval). Left out: every section, with the column.
+     * configuration > Search & retrieval, which only a mount that names it
+     * gets). Left out: every Platform services section, with the column.
      */
     sections?: readonly string[];
 }
 
-export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate: onNavigateProp, sections: offered }: IntegrationsAdminPanelProps) {
+/**
+ * Platform services (the old Integrations tab): the defaults for new
+ * organisations, the service e-mail, transcription and the connected apps. The
+ * feature switches are under Licence & features now (an old address there is
+ * aliased), the web search provider under AI configuration. In the admin
+ * dashboard each section is a child row and the page frame draws its header.
+ */
+export default function IntegrationsAdminPanel({ activeSection: activeProp = 'defaults', onNavigate: onNavigateProp, sections: offered }: IntegrationsAdminPanelProps) {
     const { t } = useTranslation();
     // Inside the app shell the navigation comes from context; a host outside
     // it (a test, a kit) still hands it as a prop.
@@ -38,15 +44,15 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     const { hasFeature, hasTier } = useLicenseContext();
     const isEnterprise = hasTier('enterprise');
     // Hide enterprise-gated sections on Community. A deep link to a hidden
-    // section (or a tier downgrade) falls back to the always-visible Features
+    // section (or a tier downgrade) falls back to the always-visible defaults
     // section so the enterprise panel never renders.
-    const visibleSections = SECTIONS.filter(
+    const candidates = offered ? [...SECTIONS, ...MOUNT_ONLY_SECTIONS].filter(s => offered.includes(s.id)) : SECTIONS;
+    const visibleSections = candidates.filter(
         s => (!SECTION_FEATURE_GATE[s.id] || hasFeature(SECTION_FEATURE_GATE[s.id]))
             && (!ENTERPRISE_ONLY_SECTIONS.has(s.id) || isEnterprise)
-            && (!offered || offered.includes(s.id))
     );
     const visibleIds = visibleSections.map(s => s.id);
-    const active = visibleIds.includes(activeProp) ? activeProp : (offered ? visibleIds[0] ?? '' : 'features');
+    const active = visibleIds.includes(activeProp) ? activeProp : (visibleIds[0] ?? '');
     // The MCP marketplace moved to the whole-server MCP servers row (the
     // organisation's own servers are Organisation > MCP servers). An old link or
     // bookmark to admin/integrations/mcp lands there instead of on Features.
@@ -87,12 +93,6 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
         hasAzureDocEndpoint, setHasAzureDocEndpoint,
         hasAzureDocKey, setHasAzureDocKey,
         savingAzureDoc, setSavingAzureDoc,
-        azureEmbedEndpoint, setAzureEmbedEndpoint,
-        azureEmbedKey, setAzureEmbedKey,
-        azureEmbedModel, setAzureEmbedModel,
-        hasAzureEmbedEndpoint, setHasAzureEmbedEndpoint,
-        hasAzureEmbedKey, setHasAzureEmbedKey,
-        savingAzureEmbed, setSavingAzureEmbed,
         useAzureDocProcessing, setUseAzureDocProcessing,
         savingAzureToggle, setSavingAzureToggle,
         azureSpeechKey, setAzureSpeechKey,
@@ -159,13 +159,6 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
 
     const body = (
             <>
-            {active === 'features' && (
-                <div className="flex max-w-4xl flex-col gap-6">
-                    <SectionHeader title={t('admin.integ_features')} description={t('integ.features_section_hint', 'Switch platform features on or off for everyone on this server.')} />
-                    <FeatureKillSwitches />
-                </div>
-            )}
-
             {active === 'defaults' && (
                 <GlobalDefaultsSection
                     enableAllDefaults={enableAllDefaults}
@@ -200,6 +193,7 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
 
             {active === 'connected-apps' && (
                 <ServicesSection
+                    enterprise={isEnterprise}
                     linkedinClientId={linkedinClientId}
                     setLinkedinClientId={setLinkedinClientId}
                     linkedinClientSecret={linkedinClientSecret}
@@ -226,18 +220,6 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                     setHasAzureDocKey={setHasAzureDocKey}
                     savingAzureDoc={savingAzureDoc}
                     setSavingAzureDoc={setSavingAzureDoc}
-                    azureEmbedEndpoint={azureEmbedEndpoint}
-                    setAzureEmbedEndpoint={setAzureEmbedEndpoint}
-                    azureEmbedKey={azureEmbedKey}
-                    setAzureEmbedKey={setAzureEmbedKey}
-                    azureEmbedModel={azureEmbedModel}
-                    setAzureEmbedModel={setAzureEmbedModel}
-                    hasAzureEmbedEndpoint={hasAzureEmbedEndpoint}
-                    setHasAzureEmbedEndpoint={setHasAzureEmbedEndpoint}
-                    hasAzureEmbedKey={hasAzureEmbedKey}
-                    setHasAzureEmbedKey={setHasAzureEmbedKey}
-                    savingAzureEmbed={savingAzureEmbed}
-                    setSavingAzureEmbed={setSavingAzureEmbed}
                     useAzureDocProcessing={useAzureDocProcessing}
                     setUseAzureDocProcessing={setUseAzureDocProcessing}
                     savingAzureToggle={savingAzureToggle}
@@ -328,11 +310,11 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     return (
         <StudioShell
             responsive
-            sidebarTitle={t('admin.tab_integrations')}
+            sidebarTitle={t('admin_platform.title', 'Platform services')}
             sidebar={(
                 <SectionNav
-                    label={t('admin.tab_integrations')}
-                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
+                    label={t('admin_platform.title', 'Platform services')}
+                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey, sec.fallback) }))}
                     activeId={active}
                     onSelect={handleSectionClick}
                 />

@@ -16,7 +16,7 @@ describe('FeatureCardGrid', () => {
         const user = userEvent.setup();
         const onChange = vi.fn();
         render(<FeatureCardGrid options={OPTIONS} value={null} onChange={onChange} restrictLabel="Restrict integrations to selection" />);
-        await user.click(screen.getByRole('switch'));
+        await user.click(screen.getByRole('switch', { name: 'Restrict integrations to selection' }));
         expect(onChange).toHaveBeenCalledWith(['slack', 'jira']);
     });
 

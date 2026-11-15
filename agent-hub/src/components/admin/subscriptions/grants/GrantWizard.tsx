@@ -208,7 +208,7 @@ function GrantWizardHeader({ onBack, t, isServerScope, selectedOrg, STEPS, step 
         <div className="ml-auto hidden sm:flex items-center gap-2">
             {STEPS.map((s, idx) => (
                 <div key={s.id} className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${idx < step ? 'bg-[var(--success)] text-white' :
+                    <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${idx < step ? 'bg-[color-mix(in_srgb,var(--success)_18%,transparent)] text-[var(--success-ink)]' :
                             idx === step ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]' :
                                 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                         {idx < step ? <CheckCircle className="w-3.5 h-3.5" /> : idx + 1}

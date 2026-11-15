@@ -24,16 +24,21 @@ interface DeleteConfirmButtonsProps {
     size?: 'sm' | 'xs';
 }
 
+// Danger from the theme tokens (--error / --error-ink), readable on every theme.
+const DANGER_HOVER = 'hover:bg-[color-mix(in_srgb,var(--error)_12%,transparent)] hover:text-[var(--error-ink)]';
+const DANGER_CONFIRM = 'font-medium border border-[color-mix(in_srgb,var(--error)_40%,transparent)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_18%,transparent)]';
+const CANCEL_HOVER = 'hover:bg-[var(--item-hover-bg)]';
+
 const SIZE_CLASSES = {
     sm: {
-        trigger: 'px-3 py-2.5 rounded-lg text-sm transition-all hover:bg-red-500/20',
-        confirm: 'px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-red-500/20 text-red-400 hover:bg-red-500/30',
-        cancel: 'px-3 py-2.5 rounded-lg text-sm transition-all'
+        trigger: `px-3 py-1.5 rounded-md text-sm transition-colors ${DANGER_HOVER}`,
+        confirm: `px-3 py-1.5 rounded-md text-sm transition-colors ${DANGER_CONFIRM}`,
+        cancel: `px-3 py-1.5 rounded-md text-sm transition-colors ${CANCEL_HOVER}`
     },
     xs: {
-        trigger: 'px-3 py-2 rounded-lg text-xs transition-all hover:bg-red-500/20',
-        confirm: 'px-3 py-2 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30',
-        cancel: 'px-2 py-2 rounded-lg text-xs'
+        trigger: `px-2.5 py-1 rounded-md text-xs transition-colors ${DANGER_HOVER}`,
+        confirm: `px-2.5 py-1 rounded-md text-xs transition-colors ${DANGER_CONFIRM}`,
+        cancel: `px-2 py-1 rounded-md text-xs transition-colors ${CANCEL_HOVER}`
     }
 };
 
@@ -45,8 +50,9 @@ const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm'
     if (!confirming) {
         return (
             <button
+                type="button"
                 onClick={() => setConfirming(true)}
-                className={`${classes.trigger} text-[var(--text-muted)]`}
+                className={`${classes.trigger} text-[var(--text-tertiary)]`}
                 title={title}
             >
                 {label}
@@ -56,12 +62,14 @@ const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm'
 
     return (
         <>
-            <button onClick={onConfirm} className={classes.confirm}>
+            <button type="button" onClick={onConfirm} className={classes.confirm}>
                 {t('admin_ai_config.confirm', 'Confirm')}
             </button>
             <button
+                type="button"
                 onClick={() => setConfirming(false)}
-                className={`${classes.cancel} text-[var(--text-muted)]`}
+                aria-label={t('admin_ai_config.cancel', 'Cancel')}
+                className={`${classes.cancel} text-[var(--text-tertiary)]`}
             >
                 ✕
             </button>

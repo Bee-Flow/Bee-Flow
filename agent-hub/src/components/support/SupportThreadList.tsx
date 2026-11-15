@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Shield } from 'lucide-react';
+import { Inbox, Shield } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import SupportBulkBar from './SupportBulkBar';
 import { CsatStars, SlaBadge, TagChips } from './SupportInboxBadges';
@@ -8,6 +8,7 @@ import { STATUS_DOT, formatRelative, priorityBadges, roleLabel, statusLabels } f
 import type { useSupportBulk } from './useSupportInboxActions';
 import type { useSupportThreadList } from './useSupportThreadList';
 import FilterPills from '../shared/FilterPills';
+import EmptyState from '../shared/EmptyState';
 import { INPUT_FIELD } from '../admin/Studio/SupportStudio/supportStyles';
 import { CHIP_INFO } from '../mcpLibrary/ui';
 
@@ -18,10 +19,12 @@ interface SupportThreadListProps {
     setSelectedId: (id: string | null) => void;
     counter: (key: string) => number;
     activeTotal: number;
+    /** Opens Settings > Connections (from the empty inbox). */
+    onOpenConnections?: () => void;
 }
 
 /** The list column of the inbox (the StudioShell sidebar): search, status filters, the bulk bar and the thread rows. */
-export default function SupportThreadList({ list, bulk, selectedId, setSelectedId, counter, activeTotal }: SupportThreadListProps) {
+export default function SupportThreadList({ list, bulk, selectedId, setSelectedId, counter, activeTotal, onOpenConnections }: SupportThreadListProps) {
     const { t } = useTranslation();
     const { threads, loading } = list;
     return (
@@ -38,7 +41,17 @@ export default function SupportThreadList({ list, bulk, selectedId, setSelectedI
             <SupportBulkBar bulk={bulk} />
             <div className="flex-1 overflow-y-auto">
                 {threads.length === 0 && !loading && (
-                    <div className="p-8 text-center text-sm text-[var(--text-tertiary)]">{t('support.support_inbox_no_threads', 'No threads')}</div>
+                    // An empty inbox says where tickets come from; a filter or search with no match just says so.
+                    activeTotal === 0 && counter('resolved') === 0 && counter('closed') === 0 && !list.search ? (
+                        <EmptyState
+                            icon={<Inbox className="h-8 w-8" />}
+                            title={t('support.inbox_empty_title', 'No tickets yet')}
+                            description={t('support.inbox_empty_desc', 'Tickets arrive from the Help button inside the app and from the contact form on the website. Mail from a connected mailbox shows up here too.')}
+                            action={onOpenConnections ? { label: t('support.inbox_empty_connections', 'Open connections'), onClick: onOpenConnections, variant: 'secondary' } : undefined}
+                        />
+                    ) : (
+                        <div className="p-8 text-center text-sm text-[var(--text-tertiary)]">{t('support.support_inbox_no_threads', 'No threads')}</div>
+                    )
                 )}
                 {threads.map(th => (
                     <SupportThreadRow

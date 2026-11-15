@@ -1,7 +1,7 @@
 import { Activity, Unlink } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AdminOrganization } from './types';
-import { EntitySectionHeader } from './EntityRows';
+import { EntitySectionIntro } from './EntityRows';
 import { QUIET_BTN } from '@/components/mcpLibrary/ui';
 
 export interface NextcloudBindingsSectionProps {
@@ -15,7 +15,8 @@ export default function NextcloudBindingsSection({ organizations, onNavigate, on
     const bound = organizations.filter(o => o.nc_instance_id);
     return (
         <div>
-            <EntitySectionHeader title={t('admin.nc_bindings_title')} description={t('admin.nc_bindings_desc')} />
+            {/* The page (Nextcloud instances) and its Bindings tab name the section; the hint stays. */}
+            <EntitySectionIntro description={t('admin.nc_bindings_desc')} />
             {bound.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-[var(--border-default)] p-6 text-center text-sm text-[var(--text-tertiary)]">{t('admin.nc_bindings_empty')}</div>
             ) : (

@@ -11,4 +11,7 @@ module.exports = {
     "org_signin.unavailable_not_set_up": "Not set up on this server yet. A platform administrator sets it up under Whole server › Identity & access › Sign-in & SSO.",
     "org_signin.unavailable_unlicensed": "Not included in this server's licence.",
     "org_signin.allowed_domains_desc": "E-mail domains that belong to this organisation. Someone who signs in through single sign-on with an address on one of these domains is linked to this organisation, and no new organisation can be created with them.",
+    "org_signin.auto_approve": "Let people from your domains in straight away",
+    "org_signin.auto_approve_desc": "Someone who signs in through single sign-on with an e-mail address on this organisation's domain joins at once, in the default groups. When this is off, they wait as pending until an administrator lets them in.",
+    "org_signin.auto_approve_failed": "The setting could not be saved. Try again.",
 };

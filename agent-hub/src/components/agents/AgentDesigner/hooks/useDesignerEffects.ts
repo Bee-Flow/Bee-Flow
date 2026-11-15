@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import { TOUR_OPEN_DESIGNER_SECTION } from '@/components/onboarding/tourSteps';
 
-const KNOWN_SECTIONS = new Set(['identity', 'knowledge', 'tools', 'behavior']);
+const KNOWN_SECTIONS = new Set(['identity', 'knowledge', 'tools', 'behavior', 'share']);
 
 /**
  * The Agent Designer's window listeners. Split out of AgentDesigner/index.jsx

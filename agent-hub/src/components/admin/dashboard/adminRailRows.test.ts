@@ -4,7 +4,7 @@ import { orgFacts } from '@/test/organisationHubKit';
 import { visibleOrgSections } from '@/components/admin/organisation/orgSections';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { ADMIN_TABS, type AdminTab } from './adminTabs';
-import { activeRailRow, adminRailView, railRowLabel, visibleRailRows, type RailGateViewer, type VisibleRailRows } from './adminRailRows';
+import { activeRailRow, adminRailView, adminRowHeading, railRowLabel, railShownTabs, visibleRailRows, type RailGateViewer, type VisibleRailRows } from './adminRailRows';
 import type { AdminOrgChoice } from './useAdminOrg';
 
 const t = ((key: string, fallback?: string) => fallback ?? key) as TranslateFn;
@@ -97,7 +97,10 @@ describe('adminRailView: the whole-server block', () => {
         ]);
         expect(rows.find(r => r.id === 'appearance')?.children?.map(c => c.id)).toEqual(['appearance/look', 'appearance/icon-packs']);
         expect(rows.find(r => r.id === 'licenses')?.children?.map(c => c.id)).toEqual(['licenses/server', 'licenses/features']);
-        expect(rows.find(r => r.id === 'monitoring')?.children?.map(c => c.id)).toContain('monitoring/spend');
+        // Changed on purpose (wave 3): the Usage explorer is part of Spend (alias monitoring/usage).
+        expect(rows.find(r => r.id === 'monitoring')?.children?.map(c => c.id)).toEqual([
+            'monitoring/overview', 'monitoring/adoption', 'monitoring/spend', 'monitoring/feedback', 'monitoring/activity', 'monitoring/terminations',
+        ]);
     });
 
     it('gates the child rows on the licence and the viewer', () => {
@@ -106,7 +109,8 @@ describe('adminRailView: the whole-server block', () => {
             viewer: viewer(false, { isHomeOrgAdmin: false, hasFeature: () => false, hasTier: () => false }),
         });
         expect(rows.monitoring.map(r => r.section)).toEqual(['overview']);
-        expect(rows.integrations.map(r => r.section)).toEqual(['defaults']);
+        // Changed on purpose (wave 3): Connected apps holds the Maps key every tier uses; Email stays Enterprise.
+        expect(rows.integrations.map(r => r.section)).toEqual(['defaults', 'connected-apps']);
         expect(rows.security.map(r => r.section)).toEqual([]);
         expect(rows.agents.map(r => r.section)).toEqual(['chat']);
         const homeAdmin = visibleRailRows(ADMIN_TABS, { org: { sections: [], facts: null }, viewer: viewer(false) });
@@ -166,7 +170,10 @@ describe('activeRailRow and railRowLabel', () => {
         expect(activeRailRow('people', 'groups', rows)).toBe('people');
         expect(activeRailRow('organisation', 'encryption', rows)).toBe('organisation/encryption');
         expect(activeRailRow('organisation', undefined, rows)).toBe('organisation/info');
-        expect(activeRailRow('organisation', 'github-sync', rows)).toBe('organisation/info');
+        // Changed on purpose (wave 3): a section the viewer does not get stays the current address (the tab says
+        // why there); the rail has no such row, so no other row is marked in its place.
+        expect(activeRailRow('organisation', 'github-sync', rows)).toBe('organisation/github-sync');
+        expect(activeRailRow('organisation', 'no-such-section', rows)).toBe('organisation/info');
         // An old section id lands on its section (ORG_SECTION_ALIASES).
         expect(activeRailRow('organisation', 'mcp_access', rows)).toBe('organisation/mcp-access');
         expect(activeRailRow('organisation', 'ai-context', rows)).toBe('organisation/conversations');
@@ -177,5 +184,40 @@ describe('activeRailRow and railRowLabel', () => {
         const rail = view(tabs(ORG_ADMIN_TABS));
         expect(railRowLabel(rail, 'organisation/encryption')).toBe('Encryption');
         expect(railRowLabel(rail, 'nowhere')).toBeUndefined();
+    });
+});
+
+describe('child rows sit where their hub sits', () => {
+    it('gives every child row the group and the block of its tab', () => {
+        for (const tab of ADMIN_TABS) {
+            for (const row of (tab.railRows ?? []).filter(r => r.kind === 'child')) {
+                expect({ row: `${tab.id}/${row.section}`, group: row.group }).toEqual({ row: `${tab.id}/${row.section}`, group: tab.group });
+                expect({ row: `${tab.id}/${row.section}`, block: row.block }).toEqual({ row: `${tab.id}/${row.section}`, block: tab.scope === 'instance' ? 'instance' : 'org' });
+            }
+        }
+    });
+});
+
+describe('railShownTabs: a tab whose row waits for what the server has', () => {
+    const nextcloud = tabs(['nextcloud-instances', 'mcp-servers']);
+    it('draws Nextcloud instances once some organisation has a Nextcloud, and while that is not known', () => {
+        expect(railShownTabs(nextcloud, viewer(true, { hasNextcloudInstances: false })).map(tab => tab.id)).toEqual(['mcp-servers']);
+        expect(railShownTabs(nextcloud, viewer(true, { hasNextcloudInstances: true })).map(tab => tab.id)).toEqual(['mcp-servers', 'nextcloud-instances']);
+        expect(railShownTabs(nextcloud, viewer(true)).map(tab => tab.id)).toEqual(['mcp-servers', 'nextcloud-instances']);
+    });
+});
+
+describe('adminRowHeading: the page header of the current row', () => {
+    it('is the rail label with the row description, also for a row the rail leaves out', () => {
+        const rail = view(tabs(ORG_ADMIN_TABS));
+        expect(adminRowHeading(rail, 'organisation/encryption', t, 'Admin')).toEqual({
+            label: 'Encryption', description: "How the organisation's data is encrypted, and who holds the keys.",
+        });
+        // GitHub sync is not this viewer's (no row): its own name still heads the page that says why.
+        expect(railRowLabel(rail, 'organisation/github-sync')).toBeUndefined();
+        expect(adminRowHeading(rail, 'organisation/github-sync', t, 'Admin').label).toBe('GitHub sync');
+        expect(adminRowHeading(rail, 'monitoring/spend', t, 'Admin').label).toBe('Spend');
+        expect(adminRowHeading(rail, 'people', t, 'Admin').description).toBe("The organisation's members, invitations, groups and roles.");
+        expect(adminRowHeading(rail, 'nowhere', t, 'Admin')).toEqual({ label: 'Admin' });
     });
 });

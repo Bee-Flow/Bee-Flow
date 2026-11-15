@@ -62,6 +62,10 @@ export const Row = ({ title, desc, children }: { title?: React.ReactNode; desc?:
     </div>
 );
 
+/**
+ * A compact select. It grows to its longest option ("Each member decides" must
+ * not be cut off) and never past its row.
+ */
 export const Select = ({ value, onChange, disabled, options, ariaLabel }: {
     value?: string;
     onChange?: React.ChangeEventHandler<HTMLSelectElement>;
@@ -71,7 +75,7 @@ export const Select = ({ value, onChange, disabled, options, ariaLabel }: {
 }) => (
     <select
         value={value} onChange={onChange} disabled={disabled} aria-label={ariaLabel}
-        className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+        className="w-auto min-w-[12rem] max-w-full px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
     >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>

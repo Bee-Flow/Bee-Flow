@@ -3,7 +3,6 @@ import PeopleDirectory from './people/PeopleDirectory';
 
 import GroupModal from './userManagement/GroupModal';
 import GroupsSection from './userManagement/GroupsSection';
-import MyOrganizationSection from './userManagement/MyOrganizationSection';
 import NextcloudBindingsSection from './userManagement/NextcloudBindingsSection';
 import OrganizationModal from './userManagement/OrganizationModal';
 import OrganizationsSection from './userManagement/OrganizationsSection';
@@ -51,7 +50,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
     // Inside the app shell the signed-in person and the navigation come from
     // context; a host outside it (a test, a kit) still hands them as props.
     const { user: currentUser, onNavigate } = useShellProps({ user: userProp, onNavigate: onNavigateProp });
-    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization', ...ORG_ONLY_SECTIONS]
+    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', ...ORG_ONLY_SECTIONS]
         .filter(key => !offered || offered.includes(key));
     const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : (VALID_SECTIONS[0] ?? 'users');
 
@@ -64,7 +63,6 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
     // (utils/adminAccess, the server's isSuperAdmin), so the org picker below has to
     // ask the same question or it offers an action that answers 403.
     const isPlatformAdmin = isPlatformAdminUser(currentUser);
-    const userOrgIds = currentUser?.organizations || [];
 
     // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only,
     // a platform admin's the organisation chosen in the dashboard (none chosen: every organisation).
@@ -83,26 +81,18 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
     const [confirmState, setConfirmState] = useState<ConfirmOptions | null>(null);
     const askConfirm = (opts: ConfirmOptions) => setConfirmState(opts);
 
-    // The caller's own organisation — used by the my-organization section and by
-    // the org-actions hook, which seeds its form from it. The home org first
-    // (useOrgDirectory does the same): `organizations` comes in id order, and an
-    // org the caller only belongs to through a group is not one they administer.
-    const homeOrgId = typeof currentUser?.organizationId === 'string' ? currentUser.organizationId : '';
-    const myOrg = (homeOrgId ? organizations.find(o => o.id === homeOrgId) : undefined)
-        ?? organizations.find(o => userOrgIds.includes(o.id));
-
     const { isSelfHosted } = useDeploymentMode();
     const userActions = useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
     const groupActions = useGroupActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     // The pills are read once a group is being edited.
     const customTiersMeta = useCustomTiersMeta(groupActions.showEditGroup);
-    const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
+    const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t });
 
     // The server-wide tabs go last, behind a "Whole server" divider, each with the server icon.
     const sections = serverWideLast(
-        sectionsFor(isPlatformAdmin, userOrgIds.length > 0, mayManageListed, !!(currentUser?.ncOrg as { instanceId?: string | null } | null | undefined)?.instanceId)
-            .filter(s => !offered || offered.includes(s.key)),
+        // Only the tabs this mount offers (a dashboard row shows its own).
+        sectionsFor(isPlatformAdmin, mayManageListed).filter(s => VALID_SECTIONS.includes(s.key)),
         s => isPlatformAdmin && isServerWideTab(s.key),
     );
 
@@ -146,11 +136,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
                         {activeSection === 'users' && (
                             <>
                             <UsersOrgControls
-                                key={orgId ?? homeOrgId}
-                                org={organizations.find(o => o.id === (orgId ?? homeOrgId))}
                                 needsChoice={orgTarget.needsChoice}
                                 homeOrg={!orgTarget.scopeOrgId || orgTarget.scopeOrgId === homeOrgIdOf(currentUser)}
-                                onChanged={loadData}
                             />
                             <PeopleDirectory
                                 users={users}
@@ -170,7 +157,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
                             </>
                         )}
 
-                        {/* Invitations, the organisation's roles, its model tiers and Nextcloud sync */}
+                        {/* Invitations and the organisation's roles */}
                         {(ORG_ONLY_SECTIONS as readonly string[]).includes(activeSection) && (
                             <OrgTabContent section={activeSection} target={orgTarget} users={users} currentUser={currentUser} />
                         )}
@@ -226,17 +213,6 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onN
                             <PermissionsSection permissions={permissions} />
                         )}
 
-                        {/* My Organization Section (for org-scoped users) */}
-                        {activeSection === 'my-organization' && (
-                            <MyOrganizationSection
-                                myOrg={myOrg}
-                                orgData={orgActions.orgData}
-                                setOrgData={orgActions.setOrgData}
-                                onSave={orgActions.handleUpdateOrg}
-                                onUploadLogo={orgActions.handleMyOrgLogoUpload}
-                                onRemoveLogo={orgActions.handleMyOrgLogoRemove}
-                            />
-                        )}
                     </>
                 )}
             </div>

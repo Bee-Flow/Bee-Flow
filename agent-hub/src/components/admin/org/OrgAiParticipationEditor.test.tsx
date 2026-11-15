@@ -64,7 +64,9 @@ it('shows the current policy, and saves the whole of it', async () => {
     expect(puts[0]).toMatchObject({ autoAllowed: true, alwaysAllowed: true, commentsAutoAllowed: true, sensitivity: 'conservative', cooldownMinutes: 15, maxGatesPerOrgDay: 500 });
     expect(puts[0]).not.toHaveProperty('configured');
     expect(puts[0]).not.toHaveProperty('ranges');
-    expect(await screen.findByText('Saved. It applies to the next message.')).toBeInTheDocument();
+    // The shared save footer says it landed (SaveStatus), and Save goes quiet again.
+    expect(await screen.findByText(/Saved just now/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 });
 
 it('with the switch off, the rest is locked', async () => {
@@ -83,7 +85,8 @@ it('a refused save says so and keeps the change on screen', async () => {
     renderEditor();
     await user.click(await screen.findByRole('switch', { name: /Allow "Always"/ }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save these settings. Try again.');
+    // The footer's status turns into a retry; the change stays on screen.
+    expect(await screen.findByRole('button', { name: /Save failed/ })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: /Allow "Always"/ })).not.toBeChecked();
 });
 

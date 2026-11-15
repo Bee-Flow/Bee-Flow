@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import OrgAzureConfigPanel from '@/components/integrations/azure/index';
+import Microsoft365Panel from '@/components/integrations/azure/Microsoft365Panel';
 import GroupSyncPanel from '@/components/integrations/azure/GroupSyncPanel';
 import { RequireTier } from '@/components/licensing/LicenseContext';
 import AppearanceSection from '../AppearanceSection';
@@ -89,10 +89,11 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
                 </RequireTier>
             );
         }
-        // The instance-wide Azure setup: a platform admin's, like its API. An
-        // organisation admin on a self-hosted install gets the org's own group sync there.
+        // The organisation's Microsoft 365 page for the platform admin (group sync,
+        // identity links, Teams setup). An organisation admin on a self-hosted
+        // install gets the org's own group sync there.
         if (activeTab === 'org_azure') {
-            if (isPlatformAdmin) return <OrgAzureConfigPanel user={user} />;
+            if (isPlatformAdmin) return <Microsoft365Panel user={user} />;
             return isSelfHosted && canSeeOrg ? <GroupSyncPanel user={user} /> : null;
         }
         if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} />;

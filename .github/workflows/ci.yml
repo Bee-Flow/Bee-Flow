@@ -403,6 +403,7 @@ jobs:
               - 'agent-hub/src/components/agents/AgentWizard/canUse/canUseFacts.*'
               - 'agent-hub/src/components/admin/Studio/SkillsStudio/{skillModel,skillModel.types}.ts'
               - 'agent-hub/src/components/admin/Studio/KnowledgeStudio/plural.ts'
+              - 'agent-hub/src/utils/plural.ts'
               # the form editor's options, run by form.lockstep.test.ts (BFSF-483)
               - 'agent-hub/src/components/forms/formOptions.ts'
               - 'agent-hub/src/shared/expr/**'

@@ -42,4 +42,28 @@ describe('SupportConnectionsConfig', () => {
         expect(init.method).toBe('PUT');
         expect(JSON.parse(String(init.body))).toEqual({ project: 'BF', includeSubject: false });
     });
+
+    it('shows the example address of the chosen chat service in the webhook field', async () => {
+        fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+            const u = String(url);
+            if (u.endsWith('/notifications') && !init?.method) return json({ configured: false, enabled: false, provider: 'slack', events: [], availableEvents: [] });
+            return json({});
+        });
+        renderWithClient(<SupportConnectionsConfig />);
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'Where to send it' })).toHaveValue('slack'));
+        expect(screen.getByLabelText('Webhook URL')).toHaveAttribute('placeholder', 'https://hooks.slack.com/services/…');
+    });
+
+    it('has a Mailbox card that says no mailbox feeds the inbox, or offers to cut one loose', async () => {
+        const { unmount } = renderWithClient(<SupportConnectionsConfig />);
+        expect(await screen.findByText('No mailbox is feeding this inbox.')).toBeInTheDocument();
+        unmount();
+        fetchMock.mockImplementation(async (url: string) => {
+            if (String(url).includes('/api/support/mailbox')) return json({ mailbox: { connected: true, count: 2 } });
+            return json({});
+        });
+        renderWithClient(<SupportConnectionsConfig />);
+        expect(await screen.findByText(/2 tickets here came in over a connected mailbox/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Disconnect mailbox/ })).toBeEnabled();
+    });
 });

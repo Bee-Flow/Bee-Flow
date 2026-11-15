@@ -16,7 +16,7 @@ import React, { useId } from 'react';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import DeadlineClock from '@/components/shared/DeadlineClock';
 import type { TimeInput } from '@/components/shared/deadlineMath';
-import { TONES } from '@/components/shared/statusTone';
+import { toneDotClass, toneInkClass } from '../shared/toneClasses';
 import { visibleSections } from '../ComplianceRail';
 import railMeta, { railHint, railRowTitle } from '../railMeta';
 import { GROUPS, sectionsInGroup } from '../sections';
@@ -51,20 +51,18 @@ function RailMetaText({ meta }: RailMetaTextProps) {
         return <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">{meta.text}</span>;
     }
     if (meta.kind === 'score') {
-        const tone = TONES[meta.tone as string] || TONES.neutral;
         return (
             <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold tabular-nums text-[var(--text-primary)]">
-                <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full" style={{ background: tone.raw }} />
+                <span aria-hidden="true" className={`inline-block w-2 h-2 rounded-full ${toneDotClass(meta.tone)}`} />
                 {meta.score}
             </span>
         );
     }
     if (meta.kind === 'clock') {
-        const tone = meta.tone ? (TONES[meta.tone] || TONES.neutral) : null;
         return (
             <span className="inline-flex items-center gap-1.5 text-[11px] whitespace-nowrap">
-                {meta.badge && tone && (
-                    <span className="inline-flex items-center gap-[3px] font-semibold tabular-nums" style={{ color: tone.ink }}>
+                {meta.badge && meta.tone && (
+                    <span className={`inline-flex items-center gap-[3px] font-semibold tabular-nums ${toneInkClass(meta.tone)}`}>
                         <Timer size={11} aria-hidden="true" />{meta.badge}
                     </span>
                 )}
@@ -86,7 +84,7 @@ interface MobileCardProps {
 
 export function MobileCard({ children, className = '', testId }: MobileCardProps) {
     return (
-        <div data-testid={testId} className={`rounded-xl overflow-hidden ${className} [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]`}>
+        <div data-testid={testId} className={`rounded-xl overflow-hidden border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-sm)] ${className}`}>
             {children}
         </div>
     );
@@ -111,9 +109,10 @@ function MobileSectionRow({ section, meta, hint = null, active, onClick, t }: Mo
             {hint && <span id={hintId} className="sr-only" data-testid={`mobile-hint-${section.id}`}>{hint}</span>}
             <button type="button" data-testid={`mobile-row-${section.id}`} aria-current={active ? 'page' : undefined}
                 title={railRowTitle(label, hint)} aria-describedby={hint ? hintId : undefined}
-                onClick={onClick} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`}
-                style={{ borderColor: 'var(--border-default)', background: active ? 'var(--bg-tertiary)' : 'transparent' }}>
-                {Icon && <Icon size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: active ? 'var(--kind-compliance)' : 'var(--text-secondary)' }} />}
+                onClick={onClick}
+                className={`${MOBILE_ROW_CLASS} border-b border-[var(--border-default)] last:border-b-0 ${active ? 'bg-[var(--item-active-bg)]' : 'bg-transparent'}`}>
+                {/* Selected as on the dashboard rail: the row's surface and an ink icon, not the kind colour. */}
+                {Icon && <Icon size={16} aria-hidden="true" strokeWidth={active ? 2.25 : 1.75} className={`flex-shrink-0 ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`} />}
                 <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-[var(--text-primary)]">
                     {label}
                 </span>

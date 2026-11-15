@@ -1,5 +1,5 @@
 /**
- * Microsoft / Azure AD SSO (web: integrations/azure/SSOSection.jsx): the app
+ * Microsoft / Azure AD SSO (web: Sign-in & SSO, security/sso/MicrosoftSsoTab.tsx): the app
  * registration's client ID, secret and tenant, whether Microsoft sign-ins are
  * approved automatically, and the Azure AD group sync with its settings.
  *

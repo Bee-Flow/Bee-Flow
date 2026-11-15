@@ -17,13 +17,18 @@ export interface TierDefaults {
     verbosity: string;
 }
 
-interface ClaudeRecommendation {
-    modelId: string;
+/** The Claude model families a recommendation can name. */
+export type ClaudeFamily = 'haiku' | 'sonnet' | 'opus';
+
+export interface ClaudeRecommendation {
+    /** Resolved to the newest model of this family the catalogue offers (claudeRecommendations.ts). */
+    family: ClaudeFamily;
     maxTokens: number;
     temperature: number;
     reasoningEffort: string | undefined;
     reasoningSummary: boolean;
     budgetTokens: number | undefined;
+    /** English fallback of ai_model_setup.claude_rec_note_<tier>. */
     note: string;
 }
 
@@ -36,62 +41,64 @@ export const TIERS: TierDef[] = [
     { key: 'pro', icon: '✨', label: 'Deep Thinking', desc: 'Maximum quality output' }
 ];
 
-// Must match the server-side TIER_DEFAULTS in server/core/modelResolver.js —
-// keep these two tables in sync so the admin UI shows the real fallback.
+// Must match TIER_DEFAULTS in server/core/llm/modelResolver.js (what the server
+// falls back to when a field is empty), so the admin UI shows the real value.
+// `pro` (Deep Thinking) falls back to the server's `pro` row, not `deep_thinking`.
 export const TIER_DEFAULTS: Record<string, TierDefaults> = {
     fast: { maxTokens: 4096, temperature: 0.2, verbosity: 'low' },
     standard: { maxTokens: 16384, temperature: 0.5, verbosity: 'medium' },
+    swarm: { maxTokens: 16384, temperature: 0.5, verbosity: 'medium' },
     thinking: { maxTokens: 32768, temperature: 0.7, verbosity: 'medium' },
     writer: { maxTokens: 32768, temperature: 0.7, verbosity: 'high' },
-    pro: { maxTokens: 64000, temperature: 0.7, verbosity: 'high' },
+    pro: { maxTokens: 32768, temperature: 0.7, verbosity: 'high' },
 };
 
 // Custom tier defaults when creating a new one
 export const CUSTOM_TIER_DEFAULTS = { maxTokens: 32768, temperature: 0.7 };
 
 // ── Bee Flow recommended Claude defaults per tier ────────────────────
-// Applied by the "Claude models" section's Apply buttons, and only to a tier
-// whose recommended model the configured catalogue offers
-// (claudeRecommendations.ts). `note` is the English fallback of the
-// ai_model_setup.claude_rec_note_<tier> key. Values picked from Anthropic
-// docs (Sonnet 64K / Opus 128K max output, Haiku no adaptive thinking,
-// Opus 4.7 adaptive-only with no manual budget).
+// Applied by the "Claude models" section's Apply buttons. A recommendation
+// names a family; the model is the newest of that family the configured
+// catalogue offers (claudeRecommendations.ts), so a new release needs no edit
+// here and a tier whose family this server lacks cannot be applied. Values from
+// the provider's docs (64K/128K max output, adaptive thinking: Effort sets the
+// depth, no manual budget).
 export const CLAUDE_RECOMMENDED: Record<string, ClaudeRecommendation> = {
     fast: {
-        modelId: 'claude-haiku-4-5',
+        family: 'haiku',
         maxTokens: 4096, temperature: 0.2,
         reasoningEffort: undefined, reasoningSummary: false, budgetTokens: undefined,
-        note: 'Haiku 4.5 has no adaptive thinking, so effort stays off.',
+        note: 'The small, quick model: it does not think, so effort stays off.',
     },
     standard: {
-        modelId: 'claude-sonnet-4-6',
+        family: 'sonnet',
         maxTokens: 16384, temperature: 0.5,
         reasoningEffort: 'low', reasoningSummary: false, budgetTokens: undefined,
         note: 'Flow: multi-stage workflow with light adaptive thinking.',
     },
     swarm: {
-        modelId: 'claude-sonnet-4-6',
+        family: 'sonnet',
         maxTokens: 16384, temperature: 0.5,
         reasoningEffort: 'low', reasoningSummary: false, budgetTokens: undefined,
         note: 'Per-agent depth handled by the swarm runtime.',
     },
     thinking: {
-        modelId: 'claude-sonnet-5',
+        family: 'sonnet',
         maxTokens: 32768, temperature: 1,
         reasoningEffort: 'medium', reasoningSummary: true, budgetTokens: undefined,
-        note: 'Sonnet 5 thinks adaptively only: Effort sets the depth (no manual budget).',
+        note: 'Medium effort: Effort sets how deep the model thinks.',
     },
     writer: {
-        modelId: 'claude-sonnet-4-6',
+        family: 'sonnet',
         maxTokens: 32768, temperature: 0.7,
         reasoningEffort: 'low', reasoningSummary: false, budgetTokens: undefined,
         note: 'Long-form prose with light adaptive thinking.',
     },
     pro: {
-        modelId: 'claude-opus-4-7',
+        family: 'opus',
         maxTokens: 64000, temperature: 0.7,
         reasoningEffort: 'high', reasoningSummary: true, budgetTokens: undefined,
-        note: 'Opus 4.7 thinks adaptively only: effort sets the thinking budget internally.',
+        note: 'The strongest model at high effort, for the hardest questions.',
     },
 };
 

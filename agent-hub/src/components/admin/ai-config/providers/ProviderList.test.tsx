@@ -12,7 +12,6 @@ const renderList = (over: Partial<React.ComponentProps<typeof ProviderList>> = {
             connectedIds={new Set(['claude', 'mistral'])}
             modelCounts={{ claude: 4, mistral: 3, openai: 9 }}
             localProviders={[{ id: 'ollama-1', name: 'GPU box', type: 'ollama' }]}
-            rerankerConnected={false}
             selectedId="claude"
             onSelect={onSelect}
             {...over}
@@ -21,16 +20,29 @@ const renderList = (over: Partial<React.ComponentProps<typeof ProviderList>> = {
     return onSelect;
 };
 
+const names = (region: HTMLElement) => within(region).getAllByRole('button').map(b => b.textContent);
+
 describe('ProviderList', () => {
-    it('groups providers into Connected, Available and Local with a count each', () => {
+    // A voice and sound provider sat among the language models, under a hint
+    // that its models would show up as chat models. It has a group of its own.
+    it('groups providers by what they serve: language models, speech & media, self-hosted', () => {
         renderList();
-        const connected = screen.getByRole('region', { name: 'Connected' });
-        const available = screen.getByRole('region', { name: 'Available' });
-        const local = screen.getByRole('region', { name: 'Local' });
-        expect(within(connected).getAllByRole('button')).toHaveLength(2);
-        expect(within(connected).getByText('2')).toBeTruthy();
-        expect(within(available).getAllByRole('button')).toHaveLength(PROVIDER_REGISTRY.length - 2);
+        const language = screen.getByRole('region', { name: 'Language models' });
+        const media = screen.getByRole('region', { name: 'Speech & media' });
+        const local = screen.getByRole('region', { name: 'Self-hosted' });
+        expect(within(media).getAllByRole('button')).toHaveLength(1);
+        expect(within(media).getByRole('button', { name: /ElevenLabs/ })).toBeTruthy();
+        expect(within(language).queryByRole('button', { name: /ElevenLabs/ })).toBeNull();
+        expect(within(language).getAllByRole('button')).toHaveLength(PROVIDER_REGISTRY.length - 1);
         expect(within(local).getByRole('button', { name: /GPU box/ })).toBeTruthy();
+    });
+
+    it('puts the connected providers of a group first', () => {
+        renderList();
+        const first = names(screen.getByRole('region', { name: 'Language models' })).slice(0, 3);
+        expect(first[0]).toContain('Mistral');
+        expect(first[1]).toContain('Claude');
+        expect(first[2]).not.toMatch(/Mistral|Claude/);
     });
 
     it('shows the model count on connected providers only', () => {
@@ -40,7 +52,7 @@ describe('ProviderList', () => {
         expect(within(screen.getByRole('button', { name: /OpenAI/ })).queryByText('9')).toBeNull();
     });
 
-    it('marks the selected row and reports a click', async () => {
+    it('marks the selected row and reports a click; the reranker is no longer a row here', async () => {
         const user = userEvent.setup();
         const onSelect = renderList();
         expect(screen.getByRole('button', { name: /Claude/ }).getAttribute('aria-current')).toBe('true');
@@ -49,16 +61,15 @@ describe('ProviderList', () => {
         expect(onSelect).toHaveBeenCalledWith('openai');
         await user.click(screen.getByRole('button', { name: /GPU box/ }));
         expect(onSelect).toHaveBeenCalledWith(localPaneId('ollama-1'));
-        await user.click(screen.getByRole('button', { name: 'Reranker' }));
-        expect(onSelect).toHaveBeenCalledWith('reranker');
+        expect(screen.queryByRole('button', { name: 'Reranker' })).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Add local runtime' }));
         expect(onSelect).toHaveBeenCalledWith('add-local');
     });
 
     it('leaves out a group that is empty', () => {
-        renderList({ connectedIds: new Set(), localProviders: [] });
-        expect(screen.queryByRole('region', { name: 'Connected' })).toBeNull();
-        expect(screen.queryByRole('region', { name: 'Local' })).toBeNull();
-        expect(screen.getByRole('region', { name: 'Available' })).toBeTruthy();
+        renderList({ localProviders: [], entries: PROVIDER_REGISTRY.filter(e => e.group === 'language') });
+        expect(screen.queryByRole('region', { name: 'Speech & media' })).toBeNull();
+        expect(screen.queryByRole('region', { name: 'Self-hosted' })).toBeNull();
+        expect(screen.getByRole('region', { name: 'Language models' })).toBeTruthy();
     });
 });

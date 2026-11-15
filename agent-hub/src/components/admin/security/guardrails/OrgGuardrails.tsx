@@ -1,6 +1,4 @@
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
-import SectionHeader from '@/components/shared/SectionHeader';
-import { useTranslation } from '@/hooks/useTranslation';
 import OrgShieldEditor from './orgShield/OrgShieldEditor';
 
 interface OrgGuardrailsProps {
@@ -25,18 +23,14 @@ interface OrgGuardrailsProps {
  * server console are about every organisation on the server, so they are not
  * part of this view (see GuardrailsHub).
  * Without an organisation and without the picker nothing is rendered or saved.
+ * The page is the dashboard's Privacy Shield row: its frame draws the header
+ * (the rail label), so the editor carries no "Guardrails" heading of its own.
  */
 export default function OrgGuardrails({ orgId, activityOrgId = null, allowOrgPicker = false }: OrgGuardrailsProps) {
-    const { t } = useTranslation();
     // A pinned organisation is one organisation; the picker spans several.
     useAdminScopeOverride(!orgId && allowOrgPicker ? 'mixed' : 'org');
     if (!orgId && !allowOrgPicker) return null;
-    return (
-        <div className="space-y-5">
-            <SectionHeader title={t('admin.sec_guardrails', 'Guardrails')} />
-            {orgId
-                ? <OrgShieldEditor key={orgId} orgId={orgId} showActivityTab activityOrgId={activityOrgId} />
-                : <OrgShieldEditor allowOrgPicker />}
-        </div>
-    );
+    return orgId
+        ? <OrgShieldEditor key={orgId} orgId={orgId} showActivityTab activityOrgId={activityOrgId} />
+        : <OrgShieldEditor allowOrgPicker />;
 }

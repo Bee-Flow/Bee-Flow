@@ -32,9 +32,10 @@ function matches(q: string, ...fields: Array<string | null | undefined>) {
  * server administrator installed for everyone. A server administrator also
  * gets the "Server-wide" tab: those servers and the policy itself.
  *
- * `view` shows one of the two without the tabs: the admin dashboard's
- * organisation row ('org', where "Change policy" opens the whole-server MCP
- * servers row) and that whole-server row ('server'). Left out: both, as tabs.
+ * `view` shows one of the two without the tabs and without the page header
+ * (the admin dashboard frame draws it): the dashboard's organisation row
+ * ('org', where "Change policy" opens the whole-server MCP servers row) and
+ * that whole-server row ('server'). Left out: both, as tabs, under the header.
  */
 interface McpLibraryPageProps {
     isServerAdmin?: boolean;
@@ -55,7 +56,8 @@ export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = fal
 
     return (
         <div className="@container/mcplib flex flex-col gap-5">
-            <header className="flex items-start gap-3">
+            {/* In the admin dashboard (a `view`) the page frame draws the title from the rail label. */}
+            {!view && <header className="flex items-start gap-3">
                 <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--accent-primary)_14%,transparent)] text-[var(--accent-primary)]">
                     <Plug size={18} aria-hidden="true" />
                 </span>
@@ -65,7 +67,7 @@ export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = fal
                         {t('mcp_library.intro', 'Give your agents new tools by connecting MCP servers. Servers run at their vendor, keys stay encrypted in Bee Flow, and you decide who uses what.')}
                     </p>
                 </div>
-            </header>
+            </header>}
 
             {isServerAdmin && !view && (
                 <Tabs
@@ -74,7 +76,7 @@ export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = fal
                     size="sm"
                     ariaLabel={t('mcp_library.title', 'MCP library')}
                     items={[
-                        { id: 'org', label: t('mcp_library.tab.org', 'Your organisation') },
+                        { id: 'org', label: t('mcp_library.tab.org', 'Organisation') },
                         { id: 'server', label: t('mcp_library.tab.server', 'Server-wide') },
                     ]}
                 />

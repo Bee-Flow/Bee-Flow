@@ -82,10 +82,10 @@ export default function VersionSwitcher({
                                 <span className="truncate flex-1 text-[var(--text-muted)]">{v.name}</span>
                                 {isLive ? (
                                     <span
-                                        className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-[9px] font-medium text-emerald-400"
+                                        className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[9px] font-medium text-[var(--success-ink)]"
                                         title={t('cms_site.site.versions.live_title', 'This version is live at the public URL')}
                                     >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                                         {t('cms_site.site.versions.live', 'Live')}
                                     </span>
                                 ) : (

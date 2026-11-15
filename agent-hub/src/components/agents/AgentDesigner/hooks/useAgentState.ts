@@ -6,7 +6,7 @@ import type { DesignerAgent } from '../AgentListSidebar';
 import type { IntegrationStatus } from '../DesignerPanels';
 import type { OrgGroup } from '../PublishMenu';
 
-const VALID_DESIGNER_SECTIONS: (string | null)[] = ['identity', 'tools', 'behavior', 'knowledge'];
+const VALID_DESIGNER_SECTIONS: (string | null)[] = ['identity', 'tools', 'behavior', 'knowledge', 'share'];
 
 /** A tool from `GET /agents/meta/components`. */
 export interface DesignerComponent { id: string; name?: string; category?: string }

@@ -2,12 +2,10 @@ import { useId } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import ActiveSubscriptionView from './license/ActiveSubscriptionView';
 import { CancelSubscriptionDialog, ChangePlanDialog } from './license/LicenseDialogs';
-import { useLicenseText } from './license/licenseShared';
 import type { OrgUsageData } from './license/licenseShared';
 import { NoSubscriptionOffers } from './license/PlanOffers';
 import { CheckoutSettlingNotice, ServerOverrideNotice, SubMessageBanner } from './license/SubscriptionNotices';
 import UsageSharingToggle from './license/UsageSharingToggle';
-import OrgImageLimitsCard from '../imageLimits/OrgImageLimitsCard';
 import type { OrgSubscriptionState } from './license/useOrgSubscription';
 
 interface OrgLicenseSectionProps<T extends OrgUsageData> {
@@ -34,7 +32,10 @@ function SubscriptionSkeleton() {
 }
 
 // ── License & Usage section. The subscription state lives in useOrgSubscription
-// on the parent (OrgInfoPanel) and arrives as `billing`.
+// on the parent (OrgInfoPanel) and arrives as `billing`. The page title and its
+// description are the dashboard frame's (AdminPage). The image limits per user
+// are not here: they are an AI usage limit, on the Models page
+// (imageLimits/OrgImageLimitsSection).
 const OrgLicenseSection = <T extends OrgUsageData>({
     licenseCtx,
     hasActiveLicenseKey,
@@ -45,7 +46,6 @@ const OrgLicenseSection = <T extends OrgUsageData>({
     billing,
     goToUsersPanel,
 }: OrgLicenseSectionProps<T>) => {
-    const { t } = useLicenseText();
     const { subscription: sub, subLoading, subMessage, setSubMessage, checkoutSettling, availablePlans, checkoutLoading, handleCheckout } = billing;
     const { changeTarget, changePreview, showCancelConfirm } = billing;
     const limits = sub?.effective_limits || {};
@@ -66,18 +66,7 @@ const OrgLicenseSection = <T extends OrgUsageData>({
     };
 
     return (
-        <div className="max-w-3xl space-y-6 animate-fadeIn">
-            <div>
-                {/* Heading reflects whether this org is on a real paid subscription:
-                    "Subscription & Usage" when it is, "License & Usage" otherwise. */}
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                    {(sub?.stripe_subscription_id || (sub?.billing?.subscription_total as number || 0) > 0)
-                        ? t('org.subscription_usage', 'Subscription & Usage')
-                        : t('org.license_usage')}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">{t('org.license_subtitle')}</p>
-            </div>
-
+        <div className="space-y-6 animate-fadeIn">
             {subMessage && <SubMessageBanner message={subMessage} onDismiss={() => setSubMessage(null)} />}
 
             {serverOverride && <ServerOverrideNotice />}
@@ -95,11 +84,6 @@ const OrgLicenseSection = <T extends OrgUsageData>({
                 && limits.max_cost_per_month != null && limits.max_cost_per_month !== -1 && (
                 <UsageSharingToggle orgData={orgData} setOrgData={setOrgData} />
             )}
-
-            {/* ── Image limits per user: every plan, so not behind the budget above.
-                Self-hosted has no License & Usage page; it shows them under
-                Organisation Info (OrgInfoPanel). ── */}
-            {orgData && <OrgImageLimitsCard orgData={orgData} setOrgData={setOrgData} />}
 
             {/* ── Change-plan confirmation modal ── */}
             {changeTarget && changePreview && (

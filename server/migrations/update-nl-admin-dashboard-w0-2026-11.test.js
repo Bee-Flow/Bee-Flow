@@ -17,17 +17,65 @@ const path = require('node:path');
 const { NL_REWORDED, DATA_SHA256, manifestHash, applyNl } = require('./update-nl-admin-dashboard-w0-2026-11');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-/** The catalogue that shipped each namespace's old Dutch, and its data file. */
+/** The catalogues that seed Dutch: a migration and its data file (none: the Dutch is inline in the migration). */
+const UI_COMPLETE = { migration: 'add-nl-ui-complete-2026-10-translations', data: 'ui-complete-2026-10-nl.json' };
+const HARDCODED_ADMIN = { migration: 'add-nl-hardcoded-admin-2026-10-translations', data: 'hardcoded-admin-2026-10-nl.json' };
+const HARDCODED_INTEGRATIONS = { migration: 'add-nl-hardcoded-integrations-agents-2026-10-translations', data: 'hardcoded-integrations-agents-2026-10-nl.json' };
+const ADMIN_STUDIO_4A = { migration: 'add-nl-admin-studio-4a-2026-11-translations', data: 'admin-studio-4a-2026-11-nl.json' };
+const LEARN_CONTENT = { migration: 'add-nl-learn-content-2026-10-translations', data: 'learn-content-2026-10-nl.json' };
+const SETTINGS = { migration: 'add-nl-settings-translations' };
+const MCP_ACCESS = { migration: 'add-nl-mcp-access-2026-10-translations' };
+const BFSF_SWEEP = { migration: 'add-nl-bfsf-sweep-translations' };
+
+/**
+ * The catalogues that shipped a key's old Dutch, by key prefix: the longest
+ * prefix that matches wins, so a key that one namespace ships from another
+ * catalogue names itself. A key seeded by two catalogues lists both (the first
+ * in the boot ladder wrote it, so either Dutch may be on an install).
+ */
 const SHIPPED_BY = {
-    'admin_ai_config.': { migration: 'add-nl-hardcoded-admin-2026-10-translations', data: 'hardcoded-admin-2026-10-nl.json' },
-    'learn.': { migration: 'add-nl-learn-content-2026-10-translations', data: 'learn-content-2026-10-nl.json' },
+    'admin.': [UI_COMPLETE],
+    'admin_ai_config.': [HARDCODED_ADMIN],
+    'admin_languages.': [HARDCODED_ADMIN],
+    'admin_monitoring.': [HARDCODED_ADMIN],
+    'admin_subscriptions.': [HARDCODED_ADMIN],
+    'appearance.': [HARDCODED_INTEGRATIONS],
+    'azure.': [UI_COMPLETE],
+    'integ.': [HARDCODED_INTEGRATIONS],
+    'integ.google_not_configured': [BFSF_SWEEP, UI_COMPLETE],
+    'integ.linkedin_not_configured': [SETTINGS],
+    'integ.microsoft_not_configured': [UI_COMPLETE],
+    'integ.withings_not_configured': [UI_COMPLETE],
+    'learn.': [LEARN_CONTENT],
+    'mcp_access.': [MCP_ACCESS],
+    'mcp_library.': [UI_COMPLETE],
+    'org.': [SETTINGS],
+    'support.': [HARDCODED_INTEGRATIONS],
+    'support.ai_config_not_seeded': [ADMIN_STUDIO_4A],
 };
 /** @param {string} key */
-const shipperOf = (key) => {
-    const prefix = Object.keys(SHIPPED_BY).find((p) => key.startsWith(p));
+const shippersOf = (key) => {
+    const prefix = Object.keys(SHIPPED_BY).filter((p) => key.startsWith(p)).sort((a, b) => b.length - a.length)[0];
     assert.ok(prefix, `${key}: no known catalogue shipped its Dutch`);
     return SHIPPED_BY[prefix];
 };
+/** @param {string} rev @param {string} file a path relative to this folder */
+const gitShow = (rev, file) => require('node:child_process').execFileSync('git', ['show', `${rev}:./${file}`], { cwd: __dirname, maxBuffer: 1 << 28 }).toString('utf8');
+/** A string as the inline catalogues write it: single quotes, backslash escapes. */
+const singleQuoted = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}'`;
+/**
+ * The Dutch a catalogue seeds into an empty workspace: the table it exports
+ * (NL_TRANSLATIONS, or SEEDED_NL for the older sweep that predates the catalogue
+ * rules), so no store has to be stood in for its up().
+ * @param {string} migration
+ * @returns {Promise<Record<string, string>>}
+ */
+async function seededTable(migration) {
+    const mod = require(`./${migration}`);
+    const table = mod.NL_TRANSLATIONS || mod.SEEDED_NL;
+    assert.ok(table, `${migration} exports no NL_TRANSLATIONS or SEEDED_NL: export its table so this test can read what it seeds`);
+    return table;
+}
 const placeholders = (s) => [...String(s).matchAll(/\{([a-z_]+)\}/gi)].map((m) => m[1]).sort();
 
 test('the pinned hash matches the manifests, so a manifest change re-runs the migration', () => {
@@ -41,28 +89,60 @@ test('every reworded key exists in English, and there is something to reword', (
 });
 
 test('`was` is the Dutch that shipped, so existing installs match it', () => {
-    const { execFileSync } = require('node:child_process');
-    for (const [key, { was }] of Object.entries(NL_REWORDED)) {
-        const { data } = shipperOf(key);
-        // The data file in the last commit is what installs received; the working copy now ships the new text.
-        let shipped;
-        try {
-            const blob = execFileSync('git', ['show', `HEAD:./data/${data}`], { cwd: __dirname, maxBuffer: 1 << 28 }).toString('utf8');
-            shipped = JSON.parse(blob).translations[key];
-        } catch {
-            return; // no git (an image build): the was texts were checked when the migration was written
+    for (const [key, { was, now }] of Object.entries(NL_REWORDED)) {
+        for (const { migration, data } of shippersOf(key)) {
+            // The catalogue in the last commit is what installs received; the working copy now ships the new text.
+            let blob;
+            try {
+                blob = gitShow('HEAD', data ? `data/${data}` : `${migration}.js`);
+            } catch {
+                return; // no git (an image build): the was texts were checked when the migration was written
+            }
+            if (data) {
+                const { translations, sameAsEnglish = [] } = JSON.parse(blob);
+                const shipped = translations[key];
+                if (shipped === now) continue; // already committed with the new Dutch
+                if (shipped === undefined && sameAsEnglish.includes(key)) continue; // never seeded: a missing key gets the new text
+                assert.ok(shipped && was.includes(shipped), `${key} in data/${data}: shipped ${JSON.stringify(shipped)}`);
+            } else {
+                // An inline catalogue: its key appears once, as `'key': '<Dutch>'`.
+                const shipped = [now, ...was].find((text) => blob.includes(`'${key}': ${singleQuoted(text)}`));
+                assert.ok(shipped !== undefined, `${key} in ${migration}: the shipped Dutch is not one of was`);
+            }
         }
-        if (shipped === NL_REWORDED[key].now) continue; // already committed with the new Dutch
-        assert.ok(shipped && was.includes(shipped), `${key}: shipped ${JSON.stringify(shipped)}`);
     }
 });
 
-test('the catalogue data now ships the new Dutch, so a fresh install starts there', () => {
+test('the catalogue data now ships the new Dutch, so a fresh install starts there', async () => {
     for (const [key, { now }] of Object.entries(NL_REWORDED)) {
-        const { migration, data } = shipperOf(key);
-        const table = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', data), 'utf8')).translations;
-        assert.strictEqual(table[key], now, `${key} in data/${data}`);
-        assert.strictEqual(require(`./${migration}`).NL_TRANSLATIONS[key], now, `${key} in ${migration}`);
+        for (const { migration, data } of shippersOf(key)) {
+            if (data) {
+                const table = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', data), 'utf8')).translations;
+                assert.strictEqual(table[key], now, `${key} in data/${data}`);
+            }
+            assert.strictEqual((await seededTable(migration))[key], now, `${key} in ${migration}`);
+        }
+    }
+});
+
+test('SHIPPED_BY names every catalogue of the boot ladder that seeds a reworded key, and nothing rewords it after them', async () => {
+    const { NL_TRANSLATIONS: ladder } = require('../boot/bootMigrations');
+    const listed = new Set(Object.values(SHIPPED_BY).flat().map((s) => s.migration));
+    /** @type {Record<string, string[]>} */
+    const seeders = {};
+    for (const name of ladder) {
+        if (name === 'update-nl-admin-dashboard-w0-2026-11') continue;
+        const mod = require(`./${name}`);
+        // A catalogue that keeps its table to itself is read through its up(), when it is a listed one.
+        const table = mod.NL_TRANSLATIONS || (listed.has(name) ? await seededTable(name) : {});
+        for (const key of Object.keys(NL_REWORDED)) {
+            if (Object.hasOwn(table, key)) (seeders[key] ||= []).push(name);
+            assert.ok(!(mod.NL_REWORDED && Object.hasOwn(mod.NL_REWORDED, key)), `${key}: ${name} rewords it too`);
+        }
+    }
+    for (const key of Object.keys(NL_REWORDED)) {
+        const shippers = shippersOf(key).map((s) => s.migration).sort();
+        assert.deepStrictEqual((seeders[key] || []).sort(), shippers, `${key}: seeded by ${JSON.stringify(seeders[key] || [])}`);
     }
 });
 
@@ -90,7 +170,7 @@ test('boot runs it after the catalogues whose Dutch it rewords, and before the r
     const { NL_TRANSLATIONS: ladder } = require('../boot/bootMigrations');
     const me = ladder.indexOf('update-nl-admin-dashboard-w0-2026-11');
     assert.ok(me > 0, 'not in the boot ladder');
-    for (const { migration } of Object.values(SHIPPED_BY)) {
+    for (const { migration } of Object.values(SHIPPED_BY).flat()) {
         assert.ok(ladder.indexOf(migration) >= 0 && ladder.indexOf(migration) < me, migration);
     }
     assert.ok(me < ladder.indexOf('rename-routine-i18n-2026-10'));

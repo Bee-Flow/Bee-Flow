@@ -2,6 +2,8 @@ import { ChevronDown, ChevronRight, Edit2, Trash2, Users } from 'lucide-react';
 import { GroupMemberAdd, GroupMembersList } from './GroupMembers';
 import GroupSettings from './GroupSettings';
 import { ORG_ROLES } from '@/config/orgRoles';
+import RoleBadge from '@/components/shared/RoleBadge';
+import { CHIP } from '@/components/shared/adminUi';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CustomTierMeta, OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
@@ -20,12 +22,10 @@ function GroupSummary({ group }: { group: OrgGroupRow }) {
         <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {group.description || t('admin_org.users_no_description', 'No description')}
             {role && (
-                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded text-white font-medium" style={{ background: role.color }}>
-                    {role.name}
-                </span>
+                <span className="ml-2"><RoleBadge role={role.id} tone="neutral" /></span>
             )}
             {group.source === 'azure' && group.lastSyncedAt && (
-                <span className="ml-2 text-[10px] text-[var(--text-muted)] opacity-60">{t('admin_org.users_last_synced', 'Last synced: {date}', { date: new Date(group.lastSyncedAt).toLocaleString() })}</span>
+                <span className="ml-2 text-[10px] text-[var(--text-tertiary)]">{t('admin_org.users_last_synced', 'Last synced: {date}', { date: new Date(group.lastSyncedAt).toLocaleString() })}</span>
             )}
         </p>
     );
@@ -45,7 +45,7 @@ function GroupActions({ group, isSystem, groupsState }: { group: OrgGroupRow; is
                 <>
                     <button
                         onClick={(e) => { e.stopPropagation(); setExpandedGroup(group.id); setEditingGroup(group.id); setEditGroupDesc(group.description || ''); }}
-                        className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         title={t('admin_org.users_edit_group', 'Edit group settings')}
                         aria-label={t('admin_org.users_edit_group', 'Edit group settings')}
                     >
@@ -54,7 +54,7 @@ function GroupActions({ group, isSystem, groupsState }: { group: OrgGroupRow; is
                     {group.source !== 'azure' && (
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--text-muted)] hover:text-[var(--error-ink)] transition-colors"
                             title={t('admin_org.users_delete_group', 'Delete group')}
                             aria-label={t('admin_org.users_delete_group', 'Delete group')}
                         >
@@ -79,19 +79,17 @@ export default function GroupCard({ group, orgUsers, customTiersMeta, groupsStat
     const isSystem = group.id === 'admins' || group.id === 'users';
     const expanded = expandedGroup === group.id;
     return (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] transition-all" style={{ borderColor: expanded ? 'var(--border-default)' : undefined }}>
+        <div className={`rounded-xl border bg-[var(--bg-card)] transition-colors ${expanded ? 'border-[var(--border-default)]' : 'border-[var(--border-subtle)]'}`}>
             <div className="flex items-start justify-between gap-3 p-4 cursor-pointer" onClick={() => setExpandedGroup(expanded ? null : group.id)}>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                         {expanded ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                         <span className="text-sm font-semibold text-[var(--text-primary)]">{group.name}</span>
                         {isSystem && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-500 font-medium">{t('admin_org.users_system', 'System')}</span>
+                            <span className={CHIP}>{t('admin_org.users_system', 'System')}</span>
                         )}
                         {group.source === 'azure' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0078D4]/15 text-[#0078D4] font-medium flex items-center gap-0.5">
-                                🪟 Azure AD
-                            </span>
+                            <span className={CHIP}>Azure AD</span>
                         )}
                     </div>
                     <GroupSummary group={group} />

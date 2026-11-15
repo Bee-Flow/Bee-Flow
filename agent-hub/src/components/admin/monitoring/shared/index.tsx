@@ -1,20 +1,19 @@
 import type { ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Minus, X, Users, Bot, Cpu, Activity } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { usageSourceDetails } from '@/components/shared/usageAreaMeta';
 import DashCard from '@/components/shared/dashboard/DashCard';
 import StatTile from '@/components/shared/dashboard/StatTile';
-import { CHIP, CHIP_INFO, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import { CHIP, CHIP_INFO } from '@/components/mcpLibrary/ui';
 import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
-import type { UsageRecord, CardProps, MetricTileProps, InOutLabelProps, FilterBarProps, FilterOption, FilterState } from '../shared.types';
+import type { UsageRecord, CardProps, MetricTileProps } from '../shared.types';
 import { fmt } from './SvgAreaChart';
-import { fmtCost, SeriesDot } from './ModelRow';
-import { SelectField } from './FilterControls';
+import { fmtCost } from './ModelRow';
 
-export { fmtCost, shortModel, InOutBar, SeriesDot } from './ModelRow';
+export { fmtCost, shortModel, SeriesDot } from './ModelRow';
 export { fmt, Empty, SvgAreaChart } from './SvgAreaChart';
 export { SortableTable } from './SortableTable';
-export type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, FilterState, SortableColumn } from '../shared.types';
+export type { UsageRecord, ModelUsage, AgentUsage, ToolUsage, UsageSummary, ChartPoint, SortableColumn } from '../shared.types';
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 
@@ -116,45 +115,6 @@ function DeltaHint({ delta, note }: { delta?: number | null; note?: ReactNode })
 /** A KPI: the shared StatTile, with the change against the previous period as its hint. */
 export function MetricTile({ label, value, subtitle, delta, deltaLabel, testId }: MetricTileProps) {
     return <StatTile label={label} value={value} hint={<DeltaHint delta={delta} note={subtitle || deltaLabel} />} testId={testId} />;
-}
-
-export function InOutLabel({ input, output }: InOutLabelProps) {
-    return (
-        <div className="mt-1 flex gap-2.5 text-[11px] tabular-nums text-[var(--text-secondary)]">
-            <span className="inline-flex items-center gap-1"><SeriesDot color="var(--chart-1)" square />{fmt(input)}</span>
-            <span className="inline-flex items-center gap-1"><SeriesDot color="var(--chart-4)" square />{fmt(output)}</span>
-        </div>
-    );
-}
-
-// ── Filter Bar ──────────────────────────────────────────────────────────────
-
-function FilterSelect({ icon, value, onChange, options, placeholder }: { icon: typeof Users; value: string | null; onChange: (v: string | null) => void; options: FilterOption[]; placeholder: string }) {
-    return (
-        <SelectField icon={icon} value={value || ''} onChange={v => onChange(v || null)} label={placeholder}>
-            <option value="">{placeholder}</option>
-            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </SelectField>
-    );
-}
-
-export function FilterBar({ filters, setFilters, userOptions = [], agentOptions = [], modelOptions = [], sourceOptions = [] }: FilterBarProps) {
-    const { t } = useTranslation();
-    const hasFilters = filters.user || filters.agent || filters.model || filters.source;
-    const set = (key: keyof FilterState) => (v: string | null) => setFilters(f => ({ ...f, [key]: v }));
-    return (
-        <div role="group" aria-label={t('admin_monitoring.shared_filters', 'Filters')} className="flex flex-wrap items-center gap-2">
-            <FilterSelect icon={Users} value={filters.user} onChange={set('user')} options={userOptions} placeholder={t('admin_monitoring.shared_all_users', 'All Users')} />
-            <FilterSelect icon={Bot} value={filters.agent} onChange={set('agent')} options={agentOptions} placeholder={t('admin_monitoring.shared_all_agents', 'All Agents')} />
-            <FilterSelect icon={Cpu} value={filters.model} onChange={set('model')} options={modelOptions} placeholder={t('admin_monitoring.all_models', 'All Models')} />
-            <FilterSelect icon={Activity} value={filters.source} onChange={set('source')} options={sourceOptions} placeholder={t('admin_monitoring.all_sources', 'All Sources')} />
-            {hasFilters && (
-                <button type="button" onClick={() => setFilters({ user: null, agent: null, model: null, source: null })} className={QUIET_BTN}>
-                    <X className="h-3 w-3" aria-hidden="true" /> {t('admin_monitoring.shared_clear', 'Clear')}
-                </button>
-            )}
-        </div>
-    );
 }
 
 // ── Agent row (Overview's top agents) ───────────────────────────────────────

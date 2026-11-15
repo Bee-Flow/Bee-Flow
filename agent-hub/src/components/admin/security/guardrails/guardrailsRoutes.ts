@@ -81,7 +81,7 @@ const SECTIONS: GuardrailSection[] = [
     {
         id: 'directchat',
         labelKey: 'admin.gr_tab_directchat',
-        fallback: 'Direct chat',
+        fallback: 'Direct chat guardrails',
         icon: MessageSquare,
         capability: null,
         descKey: 'admin.gr_tab_directchat_desc',
@@ -90,7 +90,7 @@ const SECTIONS: GuardrailSection[] = [
     {
         id: 'organisations',
         labelKey: 'admin.gr_tab_orgs',
-        fallback: 'Organisations',
+        fallback: 'Per organisation',
         icon: Building2,
         capability: null,
         descKey: 'admin.gr_tab_orgs_desc',

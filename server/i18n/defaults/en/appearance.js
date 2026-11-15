@@ -67,7 +67,7 @@ module.exports = {
     'appearance.accent_accent_colour': 'Accent colour',
     'appearance.accent_used_for_primary_buttons_selected': 'Used for primary buttons, selected items, focus rings, and active states.',
     'appearance.access_member_access': 'Member access',
-    'appearance.access_control_whether_individual_members_can': 'Control whether individual members can override this theme on their own device.',
+    'appearance.access_control_whether_individual_members_can': 'This theme applies to everyone on this server. Choose whether people may pick their own theme on their own device.',
     'appearance.access_allow_members_to_pick_their_own_theme': 'Allow members to pick their own theme',
     'appearance.advanced_glass_disclosure_advanced_glass_options': 'Advanced glass options',
     'appearance.advanced_glass_disclosure_per_tier_overrides': 'Per-tier overrides',

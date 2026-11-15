@@ -347,6 +347,11 @@
       "count": 1
     }
   },
+  "src/api/queries/automation/runChecksParse.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    }
+  },
   "src/api/queries/automation/runFiles.ts": {
     "no-restricted-imports": {
       "count": 1
@@ -354,11 +359,6 @@
   },
   "src/api/queries/automation/runTables.ts": {
     "no-restricted-imports": {
-      "count": 1
-    }
-  },
-  "src/api/queries/automation/runChecksParse.ts": {
-    "bee-flow/no-unused-imports": {
       "count": 1
     }
   },
@@ -2717,11 +2717,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/KnowledgeStudio/plural.ts": {
-    "max-params": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/KnowledgeStudio/sourceKinds.ts": {
     "complexity": {
       "count": 1
@@ -3223,17 +3218,7 @@
       "count": 1
     }
   },
-  "src/components/admin/ai-config/ChatModelTiersConfig.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/ai-config/EmbeddingsConfig.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/ai-config/LimitsConfig.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -3252,16 +3237,6 @@
     }
   },
   "src/components/admin/ai-config/RerankerConfig.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/ai-config/WebSearchInferenceConfig.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/ai-config/chatModelTiers/ClaudeSettingsSection.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -3818,9 +3793,6 @@
   "src/components/admin/languages/EmailTemplateEditor.tsx": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "src/components/admin/modules/MarketplaceModuleCard.tsx": {
@@ -3924,37 +3896,9 @@
       "count": 1
     }
   },
-  "src/components/admin/org/OrgAiContextEditor.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/org/OrgCustomTiersPanel.tsx": {
     "max-lines-per-function": {
       "count": 3
-    }
-  },
-  "src/components/admin/org/OrgInfoPanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/org/OrgIntegrationCacheEditor.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/org/OrgMemoryEditor.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/org/OrgUsersPanel.test.jsx": {
-    "max-lines": {
-      "count": 1
     }
   },
   "src/components/admin/org/OrgUsersPanel.tsx": {
@@ -3993,16 +3937,6 @@
       "count": 1
     }
   },
-  "src/components/admin/org/orgInfo/OrgDefaultLanguage.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/org/orgInfo/OrgInfoSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/org/orgInfo/OrgLicenseSection.tsx": {
     "complexity": {
       "count": 1
@@ -4029,7 +3963,7 @@
   },
   "src/components/admin/org/orgInfo/useOrgInfoForm.ts": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -4130,9 +4064,6 @@
     }
   },
   "src/components/admin/org/userManagement/useOrgActions.ts": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -4773,9 +4704,6 @@
   "src/components/admin/security/encryption/OrgEncryptionEditor.tsx": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "src/components/admin/security/guardrails/GuardrailsHub.tsx": {
@@ -4997,15 +4925,6 @@
     }
   },
   "src/components/admin/subscriptions/ui/FeatureCardGrid.tsx": {
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
-    "jsx-a11y/label-has-associated-control": {
-      "count": 1
-    },
-    "jsx-a11y/no-noninteractive-element-interactions": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -5484,13 +5403,7 @@
     }
   },
   "src/components/appearance/studio/icons/IconsEditor.tsx": {
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
     "jsx-a11y/no-autofocus": {
-      "count": 1
-    },
-    "jsx-a11y/no-static-element-interactions": {
       "count": 1
     },
     "max-lines-per-function": {
@@ -7790,68 +7703,8 @@
       "count": 1
     }
   },
-  "src/components/integrations/azure/ChatModelsSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
-    "jsx-a11y/no-static-element-interactions": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    }
-  },
-  "src/components/integrations/azure/DocProcessingSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/azure/SSOSection.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/azure/SSOSectionSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
-    "jsx-a11y/no-static-element-interactions": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/azure/components.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/azure/index.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    },
-    "no-restricted-imports": {
-      "count": 1
-    }
-  },
   "src/components/integrations/github/GitHubSyncPanel.tsx": {
     "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -7889,17 +7742,6 @@
     }
   },
   "src/components/integrations/nextcloud/NextcloudSyncPanel.tsx": {
-    "jsx-a11y/label-has-associated-control": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/integrations/nextcloud/OrgNcIntegrationsPanel.tsx": {
-    "jsx-a11y/label-has-associated-control": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -8033,9 +7875,6 @@
     }
   },
   "src/components/licensing/ServerLicensePanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -8144,21 +7983,6 @@
     }
   },
   "src/components/meeting-picker/MeetingPicker.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/meetings/GoogleMeetAdminPanel.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/meetings/MeetingNotesAdminPanel.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/meetings/TeamsAdminPanel.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -10508,11 +10332,6 @@
       "count": 1
     }
   },
-  "src/pages/meeting-notes/detail/TemplateManager.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/meeting-notes/detail/TranscriptLineMenu.tsx": {
     "complexity": {
       "count": 1
@@ -10828,14 +10647,6 @@
       "count": 1
     }
   },
-  "src/pages/settings/OrganisationSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/settings/PreferencesSection.tsx": {
     "complexity": {
       "count": 1
@@ -10957,20 +10768,6 @@
   "src/pages/settings/n8n/N8nPermissionsTab.tsx": {
     "jsx-a11y/no-autofocus": {
       "count": 2
-    }
-  },
-  "src/pages/settings/n8n/N8nWorkflowEditor.tsx": {
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 3
-    },
-    "jsx-a11y/label-has-associated-control": {
-      "count": 2
-    },
-    "jsx-a11y/no-noninteractive-element-interactions": {
-      "count": 2
-    },
-    "jsx-a11y/no-static-element-interactions": {
-      "count": 1
     }
   },
   "src/pages/settings/n8n/useN8nState.ts": {
@@ -11299,6 +11096,11 @@
   },
   "src/utils/mcpLogos.tsx": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "src/utils/plural.ts": {
+    "max-params": {
       "count": 1
     }
   },

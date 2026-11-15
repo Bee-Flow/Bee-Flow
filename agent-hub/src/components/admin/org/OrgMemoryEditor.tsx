@@ -1,24 +1,32 @@
 // Organisation settings › "Memory": the organisation's switch for the assistant
 // remembering things about people, the sensitive-topics rule, the cap per person,
 // and a danger zone that deletes every memory. It shows COUNTS only: what a
-// person's memories say is theirs and is never shown here.
+// person's memories say is theirs and is never shown here. It also names the
+// model that picks memories out of a chat (`runsOn`, set by the server
+// administrator), because that is the model that reads the conversations.
+//
+// The page title is the dashboard frame's (AdminPage); the blocks below carry
+// their own sub-headings so the panel also reads on the phone page that stacks it.
 
-import { AlertTriangle, Brain, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import {
     ORG_MEMORY_MAX_PER_USER, ORG_MEMORY_MIN_PER_USER,
     useClearOrgMemory, useOrgMemory, useSaveOrgMemory, type OrgMemoryState,
 } from '@/api/queries/orgMemory';
-import { useTranslation } from '@/hooks/useTranslation';
-import { nOf } from '../Studio/KnowledgeStudio/plural';
-import Button from '../../shared/Button';
-import FormField from '../../shared/FormField';
-import Modal from '../../shared/Modal';
-import Section from '../../shared/Section';
-import { toast } from '../../shared/Toast';
-import Toggle from '../../shared/Toggle';
-import useConfirm from '../../shared/useConfirm';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { nOf } from '@/utils/plural';
+import Button from '@/components/shared/Button';
+import FormField from '@/components/shared/FormField';
+import Modal from '@/components/shared/Modal';
+import SaveFooter from '@/components/shared/SaveFooter';
+import Section from '@/components/shared/Section';
+import { SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import { toast } from '@/components/shared/Toast';
+import Toggle from '@/components/shared/Toggle';
+import useConfirm from '@/components/shared/useConfirm';
+import { INPUT } from '@/components/shared/adminUi';
 import { errorStatus } from '@/utils/caughtError';
+import OrgEditorLoad from './OrgEditorLoad';
 
 const CONFIRM_WORD = 'DELETE';
 
@@ -27,6 +35,16 @@ export function parseMaxPerUser(raw: string): number | null {
     if (!/^\d+$/.test(raw.trim())) return null;
     const n = Number(raw);
     return n >= ORG_MEMORY_MIN_PER_USER && n <= ORG_MEMORY_MAX_PER_USER ? n : null;
+}
+
+/**
+ * The extraction model's display name, when the read carries one. The query
+ * (api/queries/orgMemory) passes only the fields it knows, so this reads the
+ * optional extra without trusting its type.
+ */
+function runsOnOf(state: OrgMemoryState): string | null {
+    const value: unknown = (state as OrgMemoryState & { runsOn?: unknown }).runsOn;
+    return typeof value === 'string' && value.trim() ? value : null;
 }
 
 function ClearDialog({ orgId, open, onClose }: { orgId: string; open: boolean; onClose: () => void }) {
@@ -66,7 +84,7 @@ function ClearDialog({ orgId, open, onClose }: { orgId: string; open: boolean; o
                     value={typed}
                     onChange={(e) => setTyped(e.target.value)}
                     autoComplete="off"
-                    className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)]"
+                    className={INPUT}
                 />
             </FormField>
         </Modal>
@@ -89,25 +107,97 @@ function StatsSection({ stats }: { stats: OrgMemoryState['stats'] }) {
     );
 }
 
+/** Removes every memory of every member: the typed-word dialog guards it. */
+function DangerZone({ onClear }: { onClear: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <section className="rounded-lg border border-[color-mix(in_srgb,var(--error)_40%,transparent)] bg-[var(--bg-primary)] p-4">
+            <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)]">{t('admin.org_memory.danger_title', 'Danger zone')}</h3>
+            <p className="m-0 mt-0.5 mb-3 text-xs text-[var(--text-secondary)]">
+                {t('admin.org_memory.danger_desc', 'Removes every memory of every member. Use it when the organisation wants a clean start.')}
+            </p>
+            <Button variant="danger" onClick={onClear} data-testid="org-memory-clear">
+                {t('admin.org_memory.clear_button', 'Delete all memories in this organisation')}
+            </Button>
+        </section>
+    );
+}
+
+interface Draft {
+    enabled: boolean;
+    sensitive: boolean;
+    maxRaw: string;
+}
+
+function draftOf(server: OrgMemoryState): Draft {
+    return { enabled: server.settings.enabled, sensitive: server.settings.sensitiveOptInAllowed, maxRaw: String(server.settings.maxPerUser) };
+}
+
+/** The two switches and the cap per person. */
+function SettingsFields({ draft, set, max, busy, t }: { draft: Draft; set: (patch: Partial<Draft>) => void; max: number | null; busy: boolean; t: TranslateFn }) {
+    const range = { min: ORG_MEMORY_MIN_PER_USER, max: ORG_MEMORY_MAX_PER_USER };
+    return (
+        <>
+            <SettingsList>
+                <Toggle
+                    flat
+                    checked={draft.enabled}
+                    onChange={(enabled) => set({ enabled })}
+                    label={t('admin.org_memory.enabled', 'Memory enabled for this organisation')}
+                    description={t('admin.org_memory.enabled_desc', 'When off, nobody in the organisation has anything remembered or read in chats. Existing memories are kept until someone deletes them.')}
+                    disabled={busy}
+                />
+                <Toggle
+                    flat
+                    checked={draft.sensitive}
+                    onChange={(sensitive) => set({ sensitive })}
+                    label={t('admin.org_memory.sensitive', 'Allow members to opt in to sensitive topics')}
+                    description={t('admin.org_memory.sensitive_desc', 'Members can then choose, in their own settings, to let memory keep things such as health or beliefs. Nobody is opted in by default.')}
+                    disabled={busy}
+                />
+            </SettingsList>
+            <FormField
+                label={t('admin.org_memory.max_label', 'Memories per person')}
+                htmlFor="org-memory-max"
+                hint={t('admin.org_memory.max_hint', 'Between {min} and {max}. When someone reaches it, the least useful memories are retired first.', range)}
+                error={max === null ? t('admin.org_memory.max_invalid', 'Enter a whole number between {min} and {max}.', range) : undefined}
+            >
+                <input
+                    id="org-memory-max"
+                    type="number"
+                    inputMode="numeric"
+                    min={ORG_MEMORY_MIN_PER_USER}
+                    max={ORG_MEMORY_MAX_PER_USER}
+                    value={draft.maxRaw}
+                    onChange={(e) => set({ maxRaw: e.target.value })}
+                    disabled={busy}
+                    aria-invalid={max === null}
+                    className={`${INPUT} max-w-[8rem]`}
+                />
+            </FormField>
+        </>
+    );
+}
+
 function Form({ orgId, server }: { orgId: string; server: OrgMemoryState }) {
     const { t } = useTranslation();
     const save = useSaveOrgMemory(orgId);
     const { confirm, confirmDialog } = useConfirm();
-    const [enabled, setEnabled] = useState(server.settings.enabled);
-    const [sensitive, setSensitive] = useState(server.settings.sensitiveOptInAllowed);
-    const [maxRaw, setMaxRaw] = useState(String(server.settings.maxPerUser));
+    const [draft, setDraft] = useState<Draft>(() => draftOf(server));
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
     const [clearOpen, setClearOpen] = useState(false);
+    const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
-    const max = parseMaxPerUser(maxRaw);
-    const dirty = enabled !== server.settings.enabled
-        || sensitive !== server.settings.sensitiveOptInAllowed
+    const max = parseMaxPerUser(draft.maxRaw);
+    const dirty = draft.enabled !== server.settings.enabled
+        || draft.sensitive !== server.settings.sensitiveOptInAllowed
         || (max !== null && max !== server.settings.maxPerUser);
-    const canSave = dirty && max !== null && !save.isPending;
+    const runsOn = runsOnOf(server);
 
     const onSave = async () => {
         if (max === null) return;
         // Turning the permission off deletes members' sensitive memories and their opt-ins.
-        if (server.settings.sensitiveOptInAllowed && !sensitive) {
+        if (server.settings.sensitiveOptInAllowed && !draft.sensitive) {
             const ok = await confirm({
                 title: t('admin.org_memory.sensitive_off_title', 'Stop allowing sensitive topics?'),
                 description: t('admin.org_memory.sensitive_off_desc', 'Members\' sensitive memories, and their choice to keep such memories, will be deleted. This cannot be undone.'),
@@ -116,10 +206,10 @@ function Form({ orgId, server }: { orgId: string; server: OrgMemoryState }) {
             });
             if (!ok) return;
         }
-        save.mutate({ enabled, sensitiveOptInAllowed: sensitive, maxPerUser: max }, {
+        save.mutate({ enabled: draft.enabled, sensitiveOptInAllowed: draft.sensitive, maxPerUser: max }, {
             onSuccess: (saved) => {
-                setMaxRaw(String(saved.settings.maxPerUser));
-                toast.success(t('admin.org_memory.saved', 'Memory settings saved'));
+                set({ maxRaw: String(saved.settings.maxPerUser) });
+                setSavedAt(new Date());
                 if (saved.deletedSensitive > 0) {
                     toast.info(nOf(t, 'admin.org_memory.deleted_sensitive', saved.deletedSensitive, 'Deleted 1 sensitive memory.', 'Deleted {count} sensitive memories.'));
                 }
@@ -131,64 +221,31 @@ function Form({ orgId, server }: { orgId: string; server: OrgMemoryState }) {
     };
 
     return (
-        <div className="space-y-4">
-            <Section>
-                <div className="space-y-3">
-                    <Toggle
-                        checked={enabled}
-                        onChange={setEnabled}
-                        label={t('admin.org_memory.enabled', 'Memory enabled for this organisation')}
-                        description={t('admin.org_memory.enabled_desc', 'When off, nobody in the organisation has anything remembered or read in chats. Existing memories are kept until someone deletes them.')}
-                        disabled={save.isPending}
-                    />
-                    <Toggle
-                        checked={sensitive}
-                        onChange={setSensitive}
-                        label={t('admin.org_memory.sensitive', 'Allow members to opt in to sensitive topics')}
-                        description={t('admin.org_memory.sensitive_desc', 'Members can then choose, in their own settings, to let memory keep things such as health or beliefs. Nobody is opted in by default.')}
-                        disabled={save.isPending}
-                    />
-                    <FormField
-                        label={t('admin.org_memory.max_label', 'Memories per person')}
-                        htmlFor="org-memory-max"
-                        hint={t('admin.org_memory.max_hint', 'Between {min} and {max}. When someone reaches it, the least useful memories are retired first.', { min: ORG_MEMORY_MIN_PER_USER, max: ORG_MEMORY_MAX_PER_USER })}
-                        error={max === null ? t('admin.org_memory.max_invalid', 'Enter a whole number between {min} and {max}.', { min: ORG_MEMORY_MIN_PER_USER, max: ORG_MEMORY_MAX_PER_USER }) : undefined}
-                    >
-                        <input
-                            id="org-memory-max"
-                            type="number"
-                            inputMode="numeric"
-                            min={ORG_MEMORY_MIN_PER_USER}
-                            max={ORG_MEMORY_MAX_PER_USER}
-                            value={maxRaw}
-                            onChange={(e) => setMaxRaw(e.target.value)}
-                            disabled={save.isPending}
-                            aria-invalid={max === null}
-                            className="w-32 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)]"
-                        />
-                    </FormField>
-                </div>
-                <div className="mt-4 flex items-center gap-3 border-t border-[var(--border-subtle)] pt-4">
-                    <Button onClick={onSave} disabled={!canSave} busy={save.isPending}>{save.isPending ? t('common.saving', 'Saving...') : t('common.save', 'Save')}</Button>
-                    {dirty && !save.isPending && (
-                        <Button variant="ghost" onClick={() => { setEnabled(server.settings.enabled); setSensitive(server.settings.sensitiveOptInAllowed); setMaxRaw(String(server.settings.maxPerUser)); }}>
-                            {t('common.cancel', 'Cancel')}
-                        </Button>
-                    )}
-                </div>
-            </Section>
+        <div className="space-y-6">
+            <SettingsGroup
+                title={t('admin_org_ai.memory_settings_title', 'Memory in this organisation')}
+                description={t('admin.org_memory.intro', 'Whether the assistant remembers things about people across chats, and how much. Applies to everyone in the organisation.')}
+            >
+                <SettingsFields draft={draft} set={set} max={max} busy={save.isPending} t={t} />
+                {runsOn && (
+                    <p className="m-0 text-xs text-[var(--text-secondary)]" data-testid="org-memory-runs-on">
+                        {t('admin_org_ai.memory_runs_on', 'Memories are picked out of chats by {model}, which the server administrator chooses.', { model: runsOn })}
+                    </p>
+                )}
+                <SaveFooter
+                    onSave={() => { void onSave(); }}
+                    onCancel={dirty && !save.isPending ? () => setDraft(draftOf(server)) : undefined}
+                    saving={save.isPending}
+                    dirty={dirty}
+                    disabled={max === null}
+                    saveState={save.isPending ? 'saving' : save.isError ? 'error' : 'idle'}
+                    lastSavedAt={savedAt}
+                    onRetry={() => { void onSave(); }}
+                />
+            </SettingsGroup>
 
             <StatsSection stats={server.stats} />
-
-            <Section
-                title={t('admin.org_memory.danger_title', 'Danger zone')}
-                description={t('admin.org_memory.danger_desc', 'Removes every memory of every member. Use it when the organisation wants a clean start.')}
-                className="border-rose-600/30"
-            >
-                <Button variant="danger" onClick={() => setClearOpen(true)} data-testid="org-memory-clear">
-                    {t('admin.org_memory.clear_button', 'Delete all memories in this organisation')}
-                </Button>
-            </Section>
+            <DangerZone onClear={() => setClearOpen(true)} />
             <ClearDialog orgId={orgId} open={clearOpen} onClose={() => setClearOpen(false)} />
             {confirmDialog}
         </div>
@@ -200,29 +257,14 @@ export default function OrgMemoryEditor({ orgId }: { orgId: string | null | unde
     const query = useOrgMemory(orgId);
     if (!orgId) return null;
     return (
-        <section className="space-y-4 p-1" data-testid="org-memory" aria-labelledby="org-memory-title">
-            <header>
-                <h2 id="org-memory-title" className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-                    <Brain className="h-5 w-5" aria-hidden="true" />
-                    {t('admin.org_memory.title', 'Memory')}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                    {t('admin.org_memory.intro', 'Whether the assistant remembers things about people across chats, and how much. Applies to everyone in the organisation.')}
-                </p>
-            </header>
-            {query.isPending && (
-                <div className="flex items-center gap-2 p-2 text-sm text-[var(--text-secondary)]" role="status">
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('common.loading', 'Loading...')}
-                </div>
-            )}
-            {query.isError && (
-                <div className="flex items-center gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-sm text-[var(--text-primary)]" role="alert">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-[var(--error-ink)]" aria-hidden="true" />
-                    <span className="flex-1">{t('admin.org_memory.load_failed', 'Could not load the memory settings.')}</span>
-                    <button type="button" onClick={() => query.refetch()} className="text-sm underline">{t('admin.org_memory.retry', 'Try again')}</button>
-                </div>
-            )}
-            {query.data && <Form key={orgId} orgId={orgId} server={query.data} />}
-        </section>
+        <div className="space-y-4" data-testid="org-memory">
+            <OrgEditorLoad
+                loading={query.isPending}
+                error={query.isError ? t('admin.org_memory.load_failed', 'Could not load the memory settings.') : null}
+                onRetry={() => { void query.refetch(); }}
+            >
+                {query.data && <Form key={orgId} orgId={orgId} server={query.data} />}
+            </OrgEditorLoad>
+        </div>
     );
 }

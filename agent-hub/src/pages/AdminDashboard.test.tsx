@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,13 +16,18 @@ const nobody = { id: 'u3', isAdmin: false, role: 'user', permissions: [] };
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 
+/** The organisations GET /auth/organizations lists (the Nextcloud instances row reads them); none by default. */
+let serverOrgs: object[] = [];
+
 beforeEach(() => {
+    serverOrgs = [];
     // Every panel the tests open reads from the server; an empty answer is enough here,
     // except the chosen organisation's integration availability, which the rail's rows
     // read: this organisation has no Learning Center, meeting notes or GitHub.
     vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
         const orgId = availabilityOrgOf(String(url));
-        return orgId ? json(availabilityAnswer({ orgId, off: ['learningCenter', 'meetingNotes', 'github'] })) : json({});
+        if (orgId) return json(availabilityAnswer({ orgId, off: ['learningCenter', 'meetingNotes', 'github'] }));
+        return String(url).endsWith('/auth/organizations') ? json(serverOrgs) : json({});
     }));
 });
 
@@ -104,6 +109,42 @@ describe('AdminDashboard navigation', () => {
         expect(screen.getByTestId('admin-tab-modules')).toBeInTheDocument();
     });
 
+    it('heads every page with its rail row: the label and the row\'s description, at the width of the page', () => {
+        renderDashboard({ seg1: 'licenses', seg2: 'server' });
+        const header = within(screen.getByTestId('admin-tab-licenses')).getByTestId('admin-page-header');
+        expect(within(header).getByRole('heading', { level: 2, name: 'Server licence' })).toBeInTheDocument();
+        expect(header).toHaveTextContent('The licence key of this server and what it includes.');
+        expect(screen.getByTestId('admin-tab-licenses').querySelector('[data-admin-page-width]')).toHaveAttribute('data-admin-page-width', 'settings');
+    });
+
+    // Changed on purpose (wave 3): the feature switches open on their own note, so the row adds no description that repeats it.
+    it('says what the feature switches do once', () => {
+        renderDashboard({ seg1: 'licenses', seg2: 'features' });
+        const tab = screen.getByTestId('admin-tab-licenses');
+        expect(within(within(tab).getByTestId('admin-page-header')).getByRole('heading', { level: 2, name: 'Feature switches' })).toBeInTheDocument();
+        expect(tab.textContent?.split('Switch platform features on or off for everyone on this server.')).toHaveLength(2);
+    });
+
+    it('heads a tool that fills the pane too, above the tool', () => {
+        renderDashboard({ seg1: 'languages' });
+        const tab = screen.getByTestId('admin-tab-languages');
+        expect(within(within(tab).getByTestId('admin-page-header')).getByRole('heading', { level: 2, name: 'Languages' })).toBeInTheDocument();
+        expect(tab.querySelector('[data-admin-page-width]')).toHaveAttribute('data-admin-page-width', 'fill');
+    });
+
+    // The hubs whose rows render the section body only (no padding of their own): the frame pads them.
+    it.each([
+        ['ai-config', 'retrieval', 'settings'],
+        ['ai-config', 'providers', 'wide'],
+        ['security', 'sso', 'settings'],
+        ['access', 'grants', 'wide'],
+    ])('pads the %s/%s page in the frame, at the %s width', (seg1, seg2, width) => {
+        renderDashboard({ seg1, seg2 });
+        const page = screen.getByTestId(`admin-tab-${seg1}`).querySelector('[data-admin-page-width]');
+        expect(page).toHaveAttribute('data-admin-page-width', width);
+        expect(page).toHaveClass('p-6');
+    });
+
     it('shows a hub\'s child rows under its row while it is open, the first one current on the hub\'s own address', () => {
         renderDashboard({ seg1: 'licenses' });
         const children = within(screen.getByTestId('admin-rail-children-licenses'));
@@ -160,9 +201,11 @@ describe('AdminDashboard scope groups', () => {
     const enterprise = { tier: 'enterprise', deploymentMode: 'self-hosted' } as const;
     const COMPLIANCE = ['compliance_hub_gdpr'];
 
-    it('gives a platform admin both groups: the organisation and the whole server', () => {
+    it('gives a platform admin both groups: the organisation and the whole server', async () => {
         renderDashboard({ seg1: 'agents', license: { ...enterprise, hasTier: () => true }, capabilities: COMPLIANCE });
         const nav = within(rail());
+        // Changed on purpose (wave 3): the Nextcloud instances row goes once the organisations say none has a Nextcloud.
+        await waitFor(() => expect(nav.queryByRole('link', { name: 'Nextcloud instances' })).not.toBeInTheDocument());
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Organisations');
         expect(nav.getByTestId('admin-rail-section-org')).not.toHaveTextContent('Your organisation');
         expect(nav.getByTestId('admin-rail-section-instance')).toHaveTextContent('Whole server');
@@ -179,10 +222,17 @@ describe('AdminDashboard scope groups', () => {
         expect(rowNames(nav.getByTestId('admin-rail-section-instance'))).toEqual([
             'AI configuration', 'System agents',
             'Organisations', 'Roles & permissions', 'Sign-in & SSO', 'Guardrail library',
-            'Platform services', 'MCP servers', 'Nextcloud instances',
+            'Platform services', 'MCP servers',
             'Licence & features', 'Modules', 'Appearance', 'Languages',
             'Support inbox',
         ]);
+    });
+
+    it('draws Nextcloud instances once an organisation on the server has a Nextcloud', async () => {
+        serverOrgs = [{ id: 'org-a', name: 'Org A' }, { id: 'org-b', name: 'Org B', nc_instance_id: 'nc-1' }];
+        renderDashboard({ seg1: 'licenses' });
+        const server = within(within(rail()).getByTestId('admin-rail-section-instance'));
+        expect(await server.findByRole('link', { name: 'Nextcloud instances' })).toHaveAttribute('href', expect.stringContaining('/admin/nextcloud-instances'));
     });
 
     it('gives an organisation admin one group and no tab about the whole server', async () => {
@@ -194,11 +244,12 @@ describe('AdminDashboard scope groups', () => {
         expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
         expect(nav.queryByText('Whole server')).not.toBeInTheDocument();
         // Changed on purpose (wave 2): the target tree; the Privacy Shield needs an admin of the home organisation.
+        // Changed on purpose (wave 3): Nextcloud for the admin's own unbound organisation while pairing is offered.
         expect(rowNames(rail())).toEqual([
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
             'Agents', 'Models', 'Conversations', 'Memory',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access', 'Compliance',
-            'Integration status', 'MCP servers', 'Microsoft 365', 'Automation answer cache',
+            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automation answer cache',
         ]);
         expect(nav.queryByTestId('server-wide-mark')).not.toBeInTheDocument();
     });
@@ -216,11 +267,12 @@ describe('AdminDashboard scope groups', () => {
         renderDashboard({ user: byRole, license: enterprise });
         await within(rail()).findByRole('link', { name: 'MCP servers' });
         // No 'org_admin' permission: the organisation-admin role opens it (and Access and People, which take org_admin too).
+        // Changed on purpose (wave 3): Nextcloud for the admin's own unbound organisation while pairing is offered.
         expect(rowNames(rail())).toEqual([
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
             'Models', 'Conversations', 'Memory',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access',
-            'Integration status', 'MCP servers', 'Microsoft 365', 'Automation answer cache',
+            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automation answer cache',
         ]);
         // admin/ alone falls back to the Organisation tab, which opens its first section.
         expect(within(rail()).getByRole('link', { name: 'Organisation info' })).toHaveAttribute('aria-current', 'page');

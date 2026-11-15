@@ -21,7 +21,7 @@ describe('MonitoringPanel range switch', () => {
         const pending: Promise<unknown>[] = [];
         setDemoTransport(async (url: unknown) => {
             const address = String(url);
-            // The default 7-day range filters by date; "All Time" sends no filter.
+            // The default 7-day range filters by date; "All" sends no filter.
             const ranged = address.includes('startDate');
             if (ranged) { pending.push(rangedGate); await rangedGate; }
             if (address.includes('/api/usage/summary')) return json(summary(ranged ? 777 : 42));
@@ -31,7 +31,7 @@ describe('MonitoringPanel range switch', () => {
         });
 
         render(withAdvanced(<MonitoringPanel activeSection="overview" />));
-        await user.click(await screen.findByRole('radio', { name: 'All Time' }));
+        await user.click(await screen.findByRole('button', { name: 'All' }));
         expect(await screen.findByText('42')).toBeTruthy();
 
         // The 7-day read that was still on its way answers now.

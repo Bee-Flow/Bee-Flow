@@ -107,6 +107,20 @@ describe('TeamsAdminPanel', () => {
         expect(screen.queryByTestId('admin-home-org-only')).toBeNull();
     });
 
+    it('leaves the setup parts to the Microsoft 365 page when told to (the admin dashboard)', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} orgId="orgA" showSetup={false} />);
+        expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
+        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview', 'admin-home-org-only']) {
+            expect(screen.queryByTestId(id)).toBeNull();
+        }
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/teams-setup'))).toBe(false);
+    });
+
+    it('heads its card with a heading, not an eyebrow', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} showSetup={false} />);
+        expect(screen.getByRole('heading', { name: 'Microsoft Teams' })).toBeTruthy();
+    });
+
     it('still offers setup and testing when the org settings could not be loaded', () => {
         state.query = { isLoading: false, isError: true, data: undefined };
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);

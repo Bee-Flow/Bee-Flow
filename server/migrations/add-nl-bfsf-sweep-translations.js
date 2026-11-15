@@ -100,7 +100,7 @@ const NL_TRANSLATIONS = {
     'integ.google_connect': 'Google Workspace verbinden',
     'integ.google_reconnect': 'Opnieuw verbinden',
     'integ.google_opening': 'Google openen…',
-    'integ.google_not_configured': 'Google Workspace is niet geconfigureerd. Vraag je beheerder de Google Client ID en Secret in te stellen bij Beheer → Authenticatie.',
+    'integ.google_not_configured': 'Google Workspace is niet geconfigureerd. Vraag je platformbeheerder om de Google-client-ID en het secret in te stellen bij Beheer → Aanmelden en SSO.',
     'integ.google_disconnect_note': 'Bij het verbreken worden automatiseringen die Gmail, Agenda of Drive gebruiken gepauzeerd totdat je opnieuw verbindt. Je blijft ingelogd.',
     'integ.google_error': 'De Google-verbinding kon niet worden gestart. Probeer het opnieuw.',
 
@@ -151,7 +151,10 @@ async function up() {
     }
 }
 
-module.exports = { up };
+// SEEDED_NL: the table up() seeds, for update-nl tests that check what an install
+// got. Deliberately not exported as NL_TRANSLATIONS: that name enrols a catalogue
+// in nlCatalogues.test's newer rules, which this older sweep predates.
+module.exports = { up, SEEDED_NL: NL_TRANSLATIONS };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch(err => {

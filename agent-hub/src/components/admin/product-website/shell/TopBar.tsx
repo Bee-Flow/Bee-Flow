@@ -120,13 +120,13 @@ export default function TopBar({
                 )}
                 <SiteVersionMenu {...siteMenuProps} />
                 {translationMode && (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)] border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] whitespace-nowrap">
                         <AppIcon name="Flag" className="w-3 h-3" />
                         {t('cms_site.site.shell.tb_translating', 'Translating {locale}', { locale: translatingLocaleName })}
                         <button
                             type="button"
                             onClick={onExitTranslationMode}
-                            className="ml-0.5 hover:text-amber-300"
+                            className="ml-0.5 hover:text-[var(--text-primary)]"
                             title={t('cms_site.site.shell.tb_back_source', 'Back to the source language')}
                             aria-label={t('cms_site.site.shell.tb_back_source', 'Back to the source language')}
                         >

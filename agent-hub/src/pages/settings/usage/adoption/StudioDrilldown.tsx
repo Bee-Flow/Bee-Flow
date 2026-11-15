@@ -32,13 +32,13 @@ function DrillKpis({ kind: k, data, currency }: { kind: AdoptionKind; data: Adop
     const noSignal = t('adoption.studio_no_signal', 'no signal');
     return (
         <MetricGrid min={150} gap={8}>
-            <MetricCard icon={Send} color="#0ea5e9" label={t('adoption.drill_published', 'Published')} value={fInt(k.published)} />
-            <MetricCard icon={Hammer} color="#10b981" label={t('adoption.drill_makers', 'Makers')} value={fInt(k.makers)}
+            <MetricCard icon={Send} color="var(--chart-1)" label={t('adoption.drill_published', 'Published')} value={fInt(k.published)} />
+            <MetricCard icon={Hammer} color="var(--success)" label={t('adoption.drill_makers', 'Makers')} value={fInt(k.makers)}
                 subtitle={t('adoption.drill_makers_new', '{n} new this period', { n: fInt(k.newInPeriod) })} />
-            <MetricCard icon={Users} color="#0ea5e9" label={t('adoption.drill_people', 'People using')} value={k.usage ? fInt(k.usage.people) : noSignal} />
-            <MetricCard icon={Activity} color="#f59e0b" label={k.usage ? usageNoun(k.usage.label, t) : t('adoption.drill_uses', 'Uses')} value={k.usage ? fInt(k.usage.events) : noSignal} />
-            <MetricCard icon={Euro} color="#f59e0b" label={t('adoption.drill_cost', 'AI cost')} value={k.cost == null ? '—' : fMoney(k.cost, currency)} />
-            <MetricCard icon={PackageOpen} color="#94a3b8" label={t('adoption.drill_unused', 'Unused this period')} value={data ? fInt(data.unused.length) : '—'}
+            <MetricCard icon={Users} color="var(--chart-1)" label={t('adoption.drill_people', 'People using')} value={k.usage ? fInt(k.usage.people) : noSignal} />
+            <MetricCard icon={Activity} color="var(--warning)" label={k.usage ? usageNoun(k.usage.label, t) : t('adoption.drill_uses', 'Uses')} value={k.usage ? fInt(k.usage.events) : noSignal} />
+            <MetricCard icon={Euro} color="var(--warning)" label={t('adoption.drill_cost', 'AI cost')} value={k.cost == null ? '—' : fMoney(k.cost, currency)} />
+            <MetricCard icon={PackageOpen} color="var(--text-tertiary)" label={t('adoption.drill_unused', 'Unused this period')} value={data ? fInt(data.unused.length) : '—'}
                 subtitle={t('adoption.drill_unused_sub', 'published, but nobody used them')} />
         </MetricGrid>
     );

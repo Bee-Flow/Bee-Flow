@@ -4,11 +4,12 @@
 // rather than as an empty model list two screens later.
 
 import React, { useState } from 'react';
-import { BTN_PRIMARY, BTN_GHOST, testRuntime } from '@/api/localRuntimeApi';
+import { testRuntime } from '@/api/localRuntimeApi';
+import { buttonClass } from '@/components/shared/buttonClasses';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import ProbeResult from './ProbeResult';
 import type { RuntimeInfo, ProbeData, ConnectRequest } from '@/api/runtimeTypes';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
 interface AddRuntimeFormProps {
     runtimes: RuntimeInfo[];
@@ -57,8 +58,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }: AddRuntimeFormProps) =>
                 <select
                     value={form.type}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => changeType(e.target.value)}
-                    className={PROVIDER_INPUT_CLS}
-                    style={PROVIDER_INPUT_STYLE}
+                    className={FIELD_INPUT}
                 >
                     {runtimes.map((r: RuntimeInfo) => <option key={r.type} value={r.type}>{r.label}</option>)}
                 </select>
@@ -67,47 +67,46 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }: AddRuntimeFormProps) =>
                     value={form.name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder={t('admin_ai_config.add_name_placeholder', 'Display name (e.g. GPU box)')}
-                    className={PROVIDER_INPUT_CLS}
-                    style={PROVIDER_INPUT_STYLE}
+                    className={FIELD_INPUT}
                 />
             </div>
 
-            <p className="text-xs text-[var(--text-muted)]">{current.description}</p>
+            <p className="text-xs text-[var(--text-tertiary)]">{current.description}</p>
 
             <input
                 type="text"
                 value={form.url}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, url: e.target.value }))}
                 placeholder={current.defaultUrl || 'http://localhost:8000/v1'}
-                className={PROVIDER_INPUT_CLS}
-                style={PROVIDER_INPUT_STYLE}
+                className={FIELD_INPUT}
             />
             <input
                 type="password"
                 value={form.apiKey}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, apiKey: e.target.value }))}
                 placeholder={t('admin_ai_config.add_key_placeholder', 'API key: only if you started the server with one (optional)')}
-                className={PROVIDER_INPUT_CLS}
-                style={PROVIDER_INPUT_STYLE}
+                className={FIELD_INPUT}
             />
 
             <div className="flex gap-2 items-center flex-wrap">
                 <button
-                    className={`${BTN_GHOST} border border-[var(--border-default)] text-[var(--text-muted)]`}
+                    type="button"
+                    className={buttonClass('secondary', 'sm')}
                     disabled={!form.url.trim() || testing}
                     onClick={runTest}
                 >
                     {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.add_test', 'Test connection')}
                 </button>
                 <button
-                    className={BTN_PRIMARY}
+                    type="button"
+                    className={buttonClass('primary', 'sm')}
                     disabled={!form.url.trim() || saving}
                     onClick={() => onConnect({ ...form, url: form.url.trim(), name: form.name || current.label || form.type })}
                 >
                     {saving ? t('admin_ai_config.add_connecting', 'Connecting…') : t('admin_ai_config.local_connect', 'Connect')}
                 </button>
                 {current.docsUrl && (
-                    <a href={current.docsUrl} target="_blank" rel="noreferrer" className="text-xs underline text-[var(--text-muted)]">
+                    <a href={current.docsUrl} target="_blank" rel="noreferrer" className="text-xs underline text-[var(--text-tertiary)]">
                         {t('admin_ai_config.add_docs', '{label} docs', { label: current.label })}
                     </a>
                 )}

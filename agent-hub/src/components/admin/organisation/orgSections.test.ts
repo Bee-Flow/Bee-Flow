@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { SETTINGS_ORG_ADMIN_TARGETS } from '@/authedApp/settingsRoutes';
 import { availabilityAnswer, orgFacts } from '@/test/organisationHubKit';
-import { ADMIN_TAB_GROUPS } from '@/components/admin/dashboard/adminTabs';
-import { ORG_HUB_SECTIONS, activeOrgSection, awaitingOrgSection, isOrgSectionVisible, orgAvailabilityFactsOf, orgStandingFactsOf, visibleOrgSections } from './orgSections';
+import { ADMIN_TABS, ADMIN_TAB_GROUPS } from '@/components/admin/dashboard/adminTabs';
+import {
+    ORG_HUB_SECTIONS, awaitingOrgSection, isOrgSectionVisible, openOrgSection,
+    orgSectionUnavailableReason, orgStandingFactsOf, visibleOrgSections,
+} from './orgSections';
+import { orgAvailabilityFactsOf } from './orgAvailabilityFacts';
 
 const ids = (over = {}) => visibleOrgSections(orgFacts(over)).map(s => s.id);
 
@@ -91,63 +95,6 @@ describe('the Organisation tab: which sections a viewer gets', () => {
     });
 });
 
-describe('orgAvailabilityFactsOf: the chosen organisation, not the viewer\'s session', () => {
-    const read = (over = {}) => ({ data: availabilityAnswer(over) });
-    const base = { platformAdmin: false, homeOrg: true, sessionNcBound: false };
-
-    it('Microsoft 365: set up on the server, and a directory connected or the viewer\'s own organisation', () => {
-        const answer = (over: { serverConfigured?: boolean; directoryConnected?: boolean; homeOrg?: boolean }) => {
-            const data = availabilityAnswer({ homeOrg: over.homeOrg ?? true });
-            data.families.microsoft = { ...data.families.microsoft, serverConfigured: over.serverConfigured ?? true };
-            data.microsoft = { directoryConnected: !!over.directoryConnected };
-            return { data };
-        };
-        expect(orgAvailabilityFactsOf({ ...base, read: answer({}) }).microsoft365).toBe(true);
-        expect(orgAvailabilityFactsOf({ ...base, read: answer({ serverConfigured: false }) }).microsoft365).toBe(false);
-        expect(orgAvailabilityFactsOf({ ...base, read: answer({ homeOrg: false }) }).microsoft365).toBe(false);
-        expect(orgAvailabilityFactsOf({ ...base, read: answer({ homeOrg: false, directoryConnected: true }) }).microsoft365).toBe(true);
-        expect(orgAvailabilityFactsOf({ ...base, read: undefined }).microsoft365).toBe(false);
-        expect(orgAvailabilityFactsOf({ ...base, platformAdmin: true, read: undefined }).microsoft365).toBe(true);
-    });
-
-    it('reads each family and the binding from the answer', () => {
-        const facts = orgAvailabilityFactsOf({ ...base, read: read({ off: ['mcp', 'learningCenter'], ncBound: true }) });
-        expect(facts).toMatchObject({ ncBound: true, ncSectionAvailable: true, mcp: false, learningCenter: false, automations: true, meetingNotes: true, projects: true });
-        // A session that says otherwise is not asked once the answer is there.
-        expect(orgAvailabilityFactsOf({ ...base, sessionNcBound: true, read: read() }).ncBound).toBe(false);
-    });
-
-    it('GitHub: the family, or a sync already set up for the organisation', () => {
-        expect(orgAvailabilityFactsOf({ ...base, read: read({ off: ['github'] }) }).githubAvailable).toBe(false);
-        expect(orgAvailabilityFactsOf({ ...base, read: read({ off: ['github'], githubSync: true }) }).githubAvailable).toBe(true);
-        expect(orgAvailabilityFactsOf({ ...base, read: read() }).githubAvailable).toBe(true);
-    });
-
-    it('Nextcloud: a bound organisation, or the platform admin\'s own one while pairing is offered', () => {
-        const unbound = read({ ncBound: false });
-        expect(orgAvailabilityFactsOf({ ...base, read: unbound }).ncSectionAvailable).toBe(false);
-        expect(orgAvailabilityFactsOf({ ...base, platformAdmin: true, read: unbound }).ncSectionAvailable).toBe(true);
-        expect(orgAvailabilityFactsOf({ ...base, platformAdmin: true, read: read({ ncBound: false, homeOrg: false }) }).ncSectionAvailable).toBe(false);
-    });
-
-    it('without an answer: a platform admin fails open, an organisation admin closed; the binding falls back to the session for the home organisation', () => {
-        for (const missing of [undefined, { isError: true }, { data: undefined }]) {
-            const admin = orgAvailabilityFactsOf({ ...base, platformAdmin: true, read: missing });
-            expect(admin).toMatchObject({ mcp: true, learningCenter: true, meetingNotes: true, githubAvailable: true, ncSectionAvailable: true });
-            const orgAdmin = orgAvailabilityFactsOf({ ...base, read: missing });
-            expect(orgAdmin).toMatchObject({ mcp: false, learningCenter: false, meetingNotes: false, githubAvailable: false, ncSectionAvailable: false });
-        }
-        expect(orgAvailabilityFactsOf({ ...base, sessionNcBound: true, read: undefined })).toMatchObject({ ncBound: true, ncSectionAvailable: true });
-        expect(orgAvailabilityFactsOf({ ...base, homeOrg: false, sessionNcBound: true, read: undefined }).ncBound).toBe(false);
-    });
-
-    it('a degraded answer cannot vouch for the plan: unknown, by the fail policy', () => {
-        const degraded = { data: { ...availabilityAnswer({ off: ['mcp'] }), degraded: true } };
-        expect(orgAvailabilityFactsOf({ ...base, platformAdmin: true, read: degraded }).mcp).toBe(true);
-        expect(orgAvailabilityFactsOf({ ...base, read: degraded }).mcp).toBe(false);
-    });
-});
-
 describe('awaitingOrgSection: a deep link waits for the availability instead of opening another section', () => {
     it('waits only while the answer is being read, for a section that exists and is not (yet) visible', () => {
         const pending = orgFacts({ mcp: false, availabilityPending: true });
@@ -158,20 +105,6 @@ describe('awaitingOrgSection: a deep link waits for the availability instead of 
         expect(awaitingOrgSection(orgFacts({ mcp: false }), 'mcp')).toBe(false);
         // An old id waits as its section does.
         expect(awaitingOrgSection(orgFacts({ githubAvailable: false, availabilityPending: true }), 'github_sync')).toBe(true);
-    });
-});
-
-describe('activeOrgSection', () => {
-    it('opens the requested section when the viewer has it, else the first one, and none without sections', () => {
-        const sections = visibleOrgSections(orgFacts());
-        expect(activeOrgSection(sections, 'encryption')).toBe('encryption');
-        // Changed on purpose (wave 2): AI context is Conversations now, Meeting templates Meeting notes.
-        expect(activeOrgSection(sections, 'ai_context')).toBe('conversations');
-        expect(activeOrgSection(sections, 'ai-context')).toBe('conversations');
-        expect(activeOrgSection(sections, 'meeting-templates')).toBe('meeting-notes');
-        expect(activeOrgSection(sections, undefined)).toBe('info');
-        expect(activeOrgSection(sections, 'github-sync')).toBe('info');
-        expect(activeOrgSection([], 'info')).toBe('');
     });
 });
 
@@ -191,5 +124,54 @@ describe('orgStandingFactsOf', () => {
         expect(orgStandingFactsOf({ role: 'admin' })).toMatchObject({ isPlatformAdmin: true, showNcSync: true });
         expect(orgStandingFactsOf({ permissions: ['all'] })).toMatchObject({ isPlatformAdmin: false, showNcSync: true });
         expect(orgStandingFactsOf({ provider: 'nextcloud_connector' }).isNcConnectorUser).toBe(true);
+    });
+});
+
+describe('openOrgSection: a section the viewer does not get opens as itself', () => {
+    it('keeps the requested section (by its current id) and says whether it is there; no section or an unknown one opens the first', () => {
+        const sections = visibleOrgSections(orgFacts());
+        expect(openOrgSection(sections, 'encryption')).toEqual({ id: 'encryption', available: true });
+        expect(openOrgSection(sections, 'github-sync')).toEqual({ id: 'github-sync', available: false });
+        expect(openOrgSection(sections, 'github_sync')).toEqual({ id: 'github-sync', available: false });
+        expect(openOrgSection(sections, 'ai-context')).toEqual({ id: 'conversations', available: true });
+        // Changed on purpose (wave 2): AI context is Conversations now, Meeting templates Meeting notes.
+        expect(openOrgSection(sections, 'ai_context')).toEqual({ id: 'conversations', available: true });
+        expect(openOrgSection(sections, 'meeting-templates')).toEqual({ id: 'meeting-notes', available: true });
+        expect(openOrgSection(sections, undefined)).toEqual({ id: 'info', available: true });
+        expect(openOrgSection(sections, 'no-such-section')).toEqual({ id: 'info', available: true });
+        expect(openOrgSection([], undefined)).toEqual({ id: '', available: false });
+        expect(openOrgSection([], 'info')).toEqual({ id: 'info', available: false });
+    });
+});
+
+describe('orgSectionUnavailableReason: why a section is not there', () => {
+    it('names the availability reason of the family behind the section', () => {
+        const facts = orgAvailabilityFactsOf({ read: { data: availabilityAnswer({ off: ['mcp', 'learningCenter'] }) }, platformAdmin: false, homeOrg: true, sessionNcBound: false });
+        expect(facts.familyReasons).toEqual({ mcp: 'not_in_plan', learningCenter: 'not_in_plan' });
+        expect(orgSectionUnavailableReason('mcp', { ...orgFacts(), ...facts })).toBe('not_in_plan');
+        expect(orgSectionUnavailableReason('academy', { ...orgFacts(), ...facts })).toBe('not_in_plan');
+    });
+
+    it('names the section\'s own reasons, and falls back to a plain one', () => {
+        expect(orgSectionUnavailableReason('license', orgFacts({ isSelfHosted: true }))).toBe('self_hosted_licence');
+        expect(orgSectionUnavailableReason('auth', orgFacts({ ncBound: true }))).toBe('nextcloud_sign_in');
+        expect(orgSectionUnavailableReason('knowledge-bases', orgFacts())).toBe('no_permission');
+        expect(orgSectionUnavailableReason('nextcloud-sync', orgFacts())).toBe('not_bound');
+        expect(orgSectionUnavailableReason('github-sync', orgFacts())).toBe('unknown');
+        expect(orgSectionUnavailableReason('info', orgFacts({ canSeeOrg: false }))).toBe('no_permission');
+    });
+});
+
+describe('the section rows\' icons', () => {
+    it('gives the preferred sign-in method an icon of its own, not the one of Access', () => {
+        const auth = ORG_HUB_SECTIONS.find(s => s.id === 'auth');
+        const access = ADMIN_TABS.find(tab => tab.id === 'access');
+        expect(auth?.icon).toBeDefined();
+        expect(auth?.icon).not.toBe(access?.icon);
+    });
+
+    // Changed on purpose (wave 3): the sign-in row says what its page used to say under its own title.
+    it('describes every section for the page header', () => {
+        for (const section of ORG_HUB_SECTIONS) expect(section.descriptionKey, section.id).toMatch(/^(admin_nav\.|org_signin\.subtitle$)/);
     });
 });

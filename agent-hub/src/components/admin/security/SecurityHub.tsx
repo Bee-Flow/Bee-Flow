@@ -128,6 +128,8 @@ function securityRowsFor(user: AdminCurrentUser | null, enterprise: boolean): st
  * One security row of the admin dashboard: no section column, the rail is the
  * navigation. A section this viewer does not get opens the first one they do
  * (the row the rail marks), and none at all is the denied page, never an empty pane.
+ * The dashboard's page frame (AdminPage) draws the padding, the width and the
+ * header (the rail label), so the row draws none of its own.
  */
 function SecurityRowPage({ section, part, user, go }: RowPageProps) {
     const { hasTier } = useLicenseContext();
@@ -138,7 +140,7 @@ function SecurityRowPage({ section, part, user, go }: RowPageProps) {
     else if (open === 'sso') body = <SsoPage part={part} go={go} />;
     else if (open === 'guardrail-library') body = <GuardrailsHub mode="library" section={open === section ? part : ''} onNavigate={go} />;
     else return <AdminAccessDenied scope="section" inSection />;
-    return <div className="h-full overflow-auto"><div className="p-6 md:p-8">{body}</div></div>;
+    return <div data-testid="security-row">{body}</div>;
 }
 
 const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', onNavigate, user: userProp, nav = true }: SecurityHubProps) => {

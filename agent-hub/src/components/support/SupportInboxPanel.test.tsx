@@ -17,8 +17,9 @@ import { ok, fail } from '../../test/http';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock('./SupportAIConfig', () => ({ default: () => <div data-testid="ai-config" /> }));
+vi.mock('./SupportAIConfig', () => ({ default: ({ section }: { section?: string }) => <div data-testid="ai-config" data-section={section} /> }));
 vi.mock('./SupportConnectionsConfig', () => ({ default: () => <div data-testid="connections" /> }));
+vi.mock('./tabs/SupportInsightsTab', () => ({ default: () => <div data-testid="insights" /> }));
 vi.mock('./LinkedIssuesPanel', () => ({
     default: ({ thread, onChanged }: { thread: { id: string }; onChanged: () => void }) => (
         <button data-testid="linked-issues" onClick={onChanged}>{`linked ${thread.id}`}</button>
@@ -104,7 +105,6 @@ describe('SupportInboxPanel: list', () => {
     it('shows the counters, the rows and what a row carries', async () => {
         renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('Printer on fire')).toBeInTheDocument();
-        expect(screen.getByText('Customer Support')).toBeInTheDocument();
         expect(screen.getByText('4 active · 5 resolved')).toBeInTheDocument();
         expect(screen.getByText('Active (4)')).toBeInTheDocument();
         expect(screen.getByText('Awaiting (1)')).toBeInTheDocument();
@@ -159,21 +159,46 @@ describe('SupportInboxPanel: list', () => {
         await waitFor(() => expect(calls().filter((c) => c.startsWith('GET /api/support/threads?')).length).toBe(before + 1));
     });
 
-    it('switches between the inbox and the two config views', async () => {
+    it('switches between the inbox, the settings and the insights, each at its own address', async () => {
         const user = userEvent.setup();
-        renderWithClient(<SupportInboxPanel />);
+        const onNavigate = vi.fn();
+        renderWithClient(<SupportInboxPanel onNavigate={onNavigate} />);
         await screen.findByText('Printer on fire');
-        expect(screen.getByRole('heading', { level: 2, name: 'Customer Support' })).toBeInTheDocument();
+        // The page's name is the dashboard's (the rail row), not the panel's.
+        expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
         expect(screen.getByRole('radio', { name: /^Inbox$/ })).toHaveAttribute('aria-checked', 'true');
-        await user.click(screen.getByRole('radio', { name: /AI configuration/ }));
-        expect(screen.getByRole('radio', { name: /AI configuration/ })).toHaveAttribute('aria-checked', 'true');
-        expect(screen.getByTestId('ai-config')).toBeInTheDocument();
+        await user.click(screen.getByRole('radio', { name: /Settings/ }));
+        expect(screen.getByRole('radio', { name: /Settings/ })).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByTestId('ai-config')).toHaveAttribute('data-section', 'agent');
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/settings/agent');
         expect(screen.queryByText('Printer on fire')).toBeNull();
         expect(screen.queryByTitle('Refresh')).toBeNull();
-        await user.click(screen.getByRole('radio', { name: /Connections/ }));
-        expect(screen.getByTestId('connections')).toBeInTheDocument();
+        await user.click(screen.getByRole('radio', { name: /Insights/ }));
+        expect(screen.getByTestId('insights')).toBeInTheDocument();
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/insights');
         await user.click(screen.getByRole('radio', { name: /^Inbox$/ }));
         expect(await screen.findByText('Printer on fire')).toBeInTheDocument();
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/inbox');
+    });
+
+    it('opens the view and section its address names, and the old view names where they live now', async () => {
+        const { unmount } = renderWithClient(<SupportInboxPanel view="settings" item="tags" />);
+        expect(screen.getByTestId('ai-config')).toHaveAttribute('data-section', 'tags');
+        unmount();
+        renderWithClient(<SupportInboxPanel focusThreadId="connections" />);
+        expect(screen.getByTestId('ai-config')).toHaveAttribute('data-section', 'connections');
+    });
+
+    it('says where tickets come from when the inbox is empty, and links to the connections', async () => {
+        threads = [];
+        counts = {};
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        renderWithClient(<SupportInboxPanel onNavigate={onNavigate} />);
+        expect(await screen.findByText('No tickets yet')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Open connections' }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/settings/connections');
+        expect(screen.getByTestId('ai-config')).toHaveAttribute('data-section', 'connections');
     });
 });
 
@@ -209,6 +234,28 @@ describe('SupportInboxPanel: bulk', () => {
         await user.click(screen.getAllByRole('checkbox')[1]);
         await user.click(screen.getByRole('button', { name: 'Clear' }));
         expect(screen.queryByText(/selected$/)).toBeNull();
+    });
+});
+
+describe('SupportInboxPanel: ticket addresses', () => {
+    it('opens the ticket of the server\'s link admin/support/<threadId>, and of admin/support/inbox/<threadId>', async () => {
+        const { unmount } = renderWithClient(<SupportInboxPanel focusThreadId="t1" />);
+        expect(await screen.findByText(/^From:/)).toBeInTheDocument();
+        unmount();
+        renderWithClient(<SupportInboxPanel view="inbox" item="t1" />);
+        expect(await screen.findByText(/^From:/)).toBeInTheDocument();
+    });
+
+    it('writes the open ticket into the address, and goes back to the list from it', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        renderWithClient(<SupportInboxPanel onNavigate={onNavigate} />);
+        await openThread(user);
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/inbox/t1');
+        // The way back of a narrow screen (hidden from md up by its class).
+        await user.click(screen.getByRole('button', { name: 'All tickets' }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/support/inbox');
+        expect(screen.queryByRole('button', { name: 'All tickets' })).toBeNull();
     });
 });
 
@@ -407,7 +454,7 @@ describe('SupportInboxPanel: mailbox', () => {
         renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('An email box is feeding this inbox')).toBeInTheDocument();
         expect(screen.getByText(/3 tickets here came in over a connected mailbox \(2 still active\) · last message just now/)).toBeInTheDocument();
-        await user.click(screen.getByRole('radio', { name: /Connections/ }));
+        await user.click(screen.getByRole('radio', { name: /Settings/ }));
         expect(screen.queryByText('An email box is feeding this inbox')).toBeNull();
     });
 
@@ -428,7 +475,7 @@ describe('SupportInboxPanel: mailbox', () => {
         const user = userEvent.setup();
         renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: /Disconnect mailbox/ }));
-        const dialog = await screen.findByRole('dialog', { name: 'Disconnect the email box from Customer Support?' });
+        const dialog = await screen.findByRole('dialog', { name: 'Disconnect the mailbox from the support inbox?' });
         expect(dialog).toHaveTextContent('3 tickets that came in over that mailbox will be permanently deleted');
         const before = calls().filter((c) => c === 'GET /api/support/mailbox').length;
         await user.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
@@ -441,7 +488,7 @@ describe('SupportInboxPanel: mailbox', () => {
         const user = userEvent.setup();
         renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: /Disconnect mailbox/ }));
-        const dialog = await screen.findByRole('dialog', { name: 'Disconnect the email box from Customer Support?' });
+        const dialog = await screen.findByRole('dialog', { name: 'Disconnect the mailbox from the support inbox?' });
         await user.click(within(dialog).getByRole('button', { name: /Cancel/ }));
         expect(calls()).not.toContain('POST /api/support/mailbox/disconnect');
     });

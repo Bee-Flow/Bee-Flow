@@ -27,7 +27,7 @@ function serve(userSettings: Record<string, unknown>) {
 }
 
 const renderEditor = () => render(withQueryClient(
-    <PackEditor packId="p1" categories={CATEGORIES} isActive={false} onActivate={vi.fn()} onExport={vi.fn()} onPackChanged={vi.fn()} />,
+    <PackEditor packId="p1" categories={CATEGORIES} isActive={false} onExport={vi.fn()} onPackChanged={vi.fn()} />,
 ));
 
 describe('PackEditor AI generation', () => {
@@ -37,6 +37,14 @@ describe('PackEditor AI generation', () => {
         vi.stubGlobal('fetch', fetchMock);
     });
     afterEach(() => vi.unstubAllGlobals());
+
+    // Choosing the pack you use moved to Settings > Appearance: the editor offers no switch of its own.
+    it('has no button to make the pack the active one', async () => {
+        serve({ hasGoogleKey: false, hasImageGen: false, imageModels: [] });
+        renderEditor();
+        expect(await screen.findByText('Editing "Mine"')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /set as active/i })).not.toBeInTheDocument();
+    });
 
     it('shows no AI generation when no image model is configured', async () => {
         serve({ hasGoogleKey: false, hasImageGen: false, imageModels: [] });

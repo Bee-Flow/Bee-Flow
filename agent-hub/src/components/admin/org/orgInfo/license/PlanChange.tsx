@@ -5,6 +5,15 @@ import type { BillingPlan, OrgSubscription, PlanLimits } from './licenseShared';
 import { PlanCaps } from './PlanOffers';
 import type { OrgSubscriptionState } from './useOrgSubscription';
 import { hasPaidBillingRelationship } from '@/utils/billing';
+import { CHIP, CHIP_ERROR, CHIP_SUCCESS } from '@/components/shared/adminUi';
+import { buttonClass } from '@/components/shared/buttonClasses';
+
+/** The chip of a subscription status: active is good news, a suspension or an open payment action bad. */
+function statusChip(status: string | undefined): string {
+    if (status === 'active') return CHIP_SUCCESS;
+    if (status === 'suspended' || status === 'manual_action_required') return CHIP_ERROR;
+    return CHIP;
+}
 
 type PickerState = Pick<OrgSubscriptionState, 'handleSelectChange' | 'previewLoading' | 'changeTarget'>;
 
@@ -18,7 +27,7 @@ function ChangePlanCard({ plan, handleSelectChange, previewLoading, changeTarget
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${isDown ? 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]' : 'bg-blue-500/15 text-blue-500'}`}>
+                        <span className={CHIP}>
                             {isDown ? t('org.downgrade', 'Downgrade') : t('org.upgrade', 'Upgrade')}
                         </span>
                     </div>
@@ -33,7 +42,7 @@ function ChangePlanCard({ plan, handleSelectChange, previewLoading, changeTarget
                     <button
                         onClick={() => handleSelectChange(plan)}
                         disabled={previewLoading || !plan.has_stripe_price}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 ${isDown ? '[background:#64748b]' : '[background:#3b82f6]'}`}
+                        className={buttonClass(isDown ? 'secondary' : 'primary', 'md')}
                     >
                         {(previewLoading && changeTarget?.id === plan.id) ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -59,7 +68,7 @@ export function ChangePlanPicker({ plans, pickerRef, ...state }: PickerState & {
     return (
         <div ref={pickerRef} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4 [color:#3b82f6]" />
+                <Zap className="w-4 h-4 text-[var(--accent-primary)]" aria-hidden="true" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('org.change_plan', 'Change plan')}</h3>
             </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
@@ -79,7 +88,7 @@ interface PlanSummaryCardProps {
     billing: Pick<OrgSubscriptionState, 'showChangePlan' | 'setShowChangePlan' | 'handleManageBilling' | 'portalLoading'>;
 }
 
-const OUTLINE_BUTTON = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:opacity-80';
+const OUTLINE_BUTTON = buttonClass('secondary', 'sm');
 
 /** The plan the org is on: name, status, cycle start, the plan actions and the cost cap. */
 export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSummaryCardProps) {
@@ -87,18 +96,15 @@ export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSum
     const { showChangePlan, setShowChangePlan, handleManageBilling, portalLoading } = billing;
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
-            <div className="p-5 flex items-center justify-between [background:rgba(59,130,246,0.06)]">
+            <div className="p-5 flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center [background:#3b82f6]">
-                        <Zap className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--bg-tertiary)]">
+                        <Zap className="w-6 h-6 text-[var(--text-primary)]" aria-hidden="true" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-bold text-[var(--text-primary)]">{sub.plan_name || t('org.custom_plan', 'Custom')}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${sub.status === 'active' ? 'bg-green-500/15 text-green-500'
-                                : (sub.status === 'suspended' || sub.status === 'manual_action_required') ? 'bg-red-500/15 text-red-500'
-                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                                }`}>
+                            <h3 className="text-base font-semibold text-[var(--text-primary)]">{sub.plan_name || t('org.custom_plan', 'Custom')}</h3>
+                            <span className={statusChip(sub.status)}>
                                 {sub.status === 'manual_action_required' ? t('org.sub_status_manual_action_required', 'Payment action required') : sub.status}
                             </span>
                         </div>
@@ -116,7 +122,6 @@ export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSum
                         aria-expanded={showChangePlan}
                         onClick={() => setShowChangePlan(v => !v)}
                         className={OUTLINE_BUTTON}
-                        style={{ borderColor: 'rgba(59,130,246,0.3)', color: '#3b82f6', background: 'rgba(59,130,246,0.05)' }}
                     >
                         <Zap className="w-3 h-3" />
                         {showChangePlan
@@ -134,7 +139,6 @@ export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSum
                         onClick={handleManageBilling}
                         disabled={portalLoading}
                         className={OUTLINE_BUTTON}
-                        style={{ borderColor: 'rgba(59,130,246,0.3)', color: '#3b82f6', background: 'rgba(59,130,246,0.05)' }}
                     >
                         {portalLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
                         {t('org.manage_billing', 'Manage Billing')}

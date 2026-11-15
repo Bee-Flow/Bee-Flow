@@ -1,13 +1,16 @@
-import { AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useMcpAccessQuery, useMcpMembersQuery, useSaveMcpAccess } from '../../api/queries/mcpAccess';
 import type { McpAccessPolicy, McpUserMode } from '../../api/queries/mcpAccess';
 import { ORG_ROLES } from '../../config/orgRoles';
 import { useTranslation } from '../../hooks/useTranslation';
-import toast from '../shared/Toast';
+import SaveFooter from '../shared/SaveFooter';
+import { SettingsGroup } from '../shared/SettingsList';
 import Toggle from '../shared/Toggle';
-import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '../mcpLibrary/ui';
-import { invalidEntries, ipInList, parseList } from './mcpAccessLib';
+import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, QUIET_BTN, SECONDARY_BTN } from '../shared/adminUi';
+import McpConnectBlock from './McpConnectBlock';
+import { MCP_SERVERS, invalidEntries, ipInList, parseList } from './mcpAccessLib';
+import { TOKEN_PLACEHOLDER, mcpOrigin } from './mcpConnect';
 
 /** The form's own shape: the address list is text while it is being typed. */
 interface Draft {
@@ -38,7 +41,7 @@ function RolePicker({ value, onChange }: { value: string[]; onChange: (next: str
             <div className="flex flex-wrap gap-2">
                 {ORG_ROLES.map(r => (
                     <label key={r.id} className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                        <input type="checkbox" checked={value.includes(r.id)} onChange={() => onChange(toggled(value, r.id))} />
+                        <input type="checkbox" className="accent-[var(--accent-primary)]" checked={value.includes(r.id)} onChange={() => onChange(toggled(value, r.id))} />
                         {r.label}
                     </label>
                 ))}
@@ -70,7 +73,7 @@ function MemberPicker({ value, onChange }: { value: string[]; onChange: (next: s
                     {shown.map(m => (
                         <li key={m.id}>
                             <label className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                                <input type="checkbox" checked={value.includes(m.id)} onChange={() => onChange(toggled(value, m.id))} />
+                                <input type="checkbox" className="accent-[var(--accent-primary)]" checked={value.includes(m.id)} onChange={() => onChange(toggled(value, m.id))} />
                                 <span className="truncate">{m.label}</span>
                                 {m.email && m.email !== m.label && <span className="truncate text-[var(--text-tertiary)]">{m.email}</span>}
                             </label>
@@ -139,7 +142,7 @@ function UsersField({ form, onPatch }: { form: Draft; onPatch: (p: Partial<Draft
             <div className="flex flex-wrap gap-4">
                 {modes.map(m => (
                     <label key={m.value} className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                        <input type="radio" name="mcp-access-mode" checked={form.mode === m.value} onChange={() => onPatch({ mode: m.value })} />
+                        <input type="radio" className="accent-[var(--accent-primary)]" name="mcp-access-mode" checked={form.mode === m.value} onChange={() => onPatch({ mode: m.value })} />
                         {m.label}
                     </label>
                 ))}
@@ -164,8 +167,16 @@ function toPolicy(form: Draft): McpAccessPolicy {
     };
 }
 
+interface PolicyFormProps {
+    base: Draft;
+    callerIp: string | null;
+    /** When the policy was last saved; kept by the panel, since a save re-seeds (re-mounts) this form. */
+    lastSavedAt: Date | null;
+    onSaved: (at: Date) => void;
+}
+
 /** The form itself, once the policy has loaded; `edited` is null until the admin changes something. */
-function PolicyForm({ base, callerIp }: { base: Draft; callerIp: string | null }) {
+function PolicyForm({ base, callerIp, lastSavedAt, onSaved }: PolicyFormProps) {
     const { t } = useTranslation();
     const save = useSaveMcpAccess();
     const [edited, setEdited] = useState<Draft | null>(null);
@@ -176,9 +187,10 @@ function PolicyForm({ base, callerIp }: { base: Draft; callerIp: string | null }
     const submit = () => {
         if (hasBadIps || save.isPending) return;
         save.mutate(toPolicy(form), {
-            onSuccess: () => { setEdited(null); toast.success(t('mcp_access.org.saved', 'MCP access saved')); },
+            onSuccess: () => { setEdited(null); onSaved(new Date()); },
         });
     };
+    const saveState = save.isPending ? 'saving' : save.isError ? 'error' : 'idle';
 
     return (
         <>
@@ -197,12 +209,17 @@ function PolicyForm({ base, callerIp }: { base: Draft; callerIp: string | null }
                 onChange={rejectLegacyTokens => patch({ rejectLegacyTokens })}
             />
             {save.isError && <div role="alert" className={ALERT_ERROR}>{save.error.message}</div>}
-            <div>
-                <button type="button" className={PRIMARY_BTN} onClick={submit} disabled={edited === null || hasBadIps || save.isPending}>
-                    {save.isPending && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
-                    {save.isPending ? t('mcp_access.org.saving', 'Saving…') : t('mcp_access.org.save', 'Save')}
-                </button>
-            </div>
+            <SaveFooter
+                onSave={submit}
+                onCancel={edited === null ? undefined : () => setEdited(null)}
+                saving={save.isPending}
+                dirty={edited !== null}
+                disabled={hasBadIps}
+                saveState={saveState}
+                lastSavedAt={lastSavedAt}
+                onRetry={submit}
+                saveLabel={t('mcp_access.org.save', 'Save')}
+            />
         </>
     );
 }
@@ -217,18 +234,14 @@ export default function OrgMcpAccessPanel() {
     const query = useMcpAccessQuery();
     // The form re-seeds from the server's policy after a save (its cache entry is replaced).
     const base = useMemo(() => (query.data ? toDraft(query.data.policy) : null), [query.data]);
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
+    // The page header is the admin dashboard frame's; the intro says what the rules are for.
     return (
-        <section aria-labelledby="mcp-access-title" className="flex flex-col gap-5 max-w-3xl">
-            <header>
-                <h2 id="mcp-access-title" className="m-0 flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-                    <ShieldCheck className="w-5 h-5 text-[var(--accent-primary)] shrink-0" aria-hidden="true" />
-                    {t('mcp_access.org.title', 'MCP Access')}
-                </h2>
-                <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">
-                    {t('mcp_access.org.intro', 'Control how external MCP clients such as Claude Code reach this organisation. These rules apply to MCP only, not to the web app.')}
-                </p>
-            </header>
+        <section aria-label={t('mcp_access.org.title', 'MCP Access')} className="flex flex-col gap-5">
+            <p className="m-0 text-sm text-[var(--text-secondary)]">
+                {t('mcp_access.org.intro', 'Control how external MCP clients (desktop assistants, code editors, command-line agents) reach this organisation. These rules apply to MCP only, not to the web app.')}
+            </p>
             {query.isPending && (
                 <div role="status" className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
                     <Loader2 size={13} className="animate-spin" aria-hidden="true" />
@@ -241,7 +254,15 @@ export default function OrgMcpAccessPanel() {
                     <button type="button" className={SECONDARY_BTN} onClick={() => query.refetch()}>{t('mcp_access.tokens.retry', 'Try again')}</button>
                 </div>
             )}
-            {base && <PolicyForm key={JSON.stringify(base)} base={base} callerIp={query.data?.callerIp ?? null} />}
+            {base && <PolicyForm key={JSON.stringify(base)} base={base} callerIp={query.data?.callerIp ?? null} lastSavedAt={lastSavedAt} onSaved={setLastSavedAt} />}
+            {base && (
+                <SettingsGroup
+                    title={t('admin_connections.mcp_connect_title', 'Connect an MCP client')}
+                    description={t('admin_connections.mcp_connect_org_desc', 'Each member creates their own token in Settings › MCP tokens and puts it where this shows <token>.')}
+                >
+                    <McpConnectBlock servers={MCP_SERVERS} origin={mcpOrigin()} token={TOKEN_PLACEHOLDER} heading={false} />
+                </SettingsGroup>
+            )}
         </section>
     );
 }

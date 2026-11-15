@@ -120,6 +120,8 @@ it('saves the policy and goes back to a clean form', async () => {
     });
     await waitFor(() => expect(save()).toBeDisabled());
     expect(networks()).toHaveValue(`${CALLER}\n203.0.113.0/24`);
+    // The save is confirmed (the form re-seeds from the stored policy, the status stays).
+    expect(await screen.findByText(/^Saved/)).toBeInTheDocument();
 });
 
 it('picks specific members from the organisation and sends their ids only', async () => {
@@ -160,9 +162,21 @@ it('says why the policy could not be loaded', async () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Only an organisation admin can open MCP access.');
 });
 
-it('titles the page with a level-2 heading, like the other organisation pages', async () => {
+it('leaves the page title to the dashboard frame, and opens with a client-neutral intro', async () => {
     serve();
     await renderLoaded();
-    expect(screen.getByRole('heading', { level: 2, name: 'MCP Access' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
     expect(screen.getByRole('region', { name: 'MCP Access' })).toBeInTheDocument();
+    const intro = screen.getByText(/^Control how external MCP clients/);
+    expect(intro).not.toHaveTextContent(/claude/i);
+});
+
+it('shows how any MCP client connects, with the token as a placeholder, and the command-line client as a tab', async () => {
+    serve();
+    const user = await renderLoaded();
+    expect(screen.getByRole('heading', { level: 3, name: 'Connect an MCP client' })).toBeInTheDocument();
+    expect(screen.getByText('Authorization: Bearer <token>')).toBeInTheDocument();
+    expect(screen.getByText(/\/mcp\/automations$/)).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Connect Claude Code' }));
+    expect(screen.getByText(/^claude mcp add --transport http beeflow-automations .*"Authorization: Bearer <token>"$/)).toBeInTheDocument();
 });

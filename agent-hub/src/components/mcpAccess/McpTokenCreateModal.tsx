@@ -4,12 +4,13 @@ import type { FormEvent } from 'react';
 import { useCreateMcpToken, useMcpTokensQuery } from '../../api/queries/mcpAccess';
 import type { McpEligibility, McpLevel, McpServerEligibility, McpScopes, McpServerId, McpTokenCreated } from '../../api/queries/mcpAccess';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import toast from '../shared/Toast';
 import Toggle from '../shared/Toggle';
-import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '../mcpLibrary/ui';
-import { MCP_SERVERS, claudeAddCommand, expiryToIso, invalidEntries, parseList, parseToolList } from './mcpAccessLib';
+import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, PRIMARY_BTN, SECONDARY_BTN } from '../shared/adminUi';
+import { MCP_SERVERS, expiryToIso, invalidEntries, parseList, parseToolList } from './mcpAccessLib';
+import McpConnectBlock from './McpConnectBlock';
+import { mcpOrigin } from './mcpConnect';
 import type { ExpiryChoice, McpServerInfo } from './mcpAccessLib';
 import { useServerName } from './serverNames';
 
@@ -22,13 +23,6 @@ const EMPTY_SERVERS: Record<McpServerId, ServerDraft> = {
     cms: { on: false, level: 'read', tools: '' },
 };
 
-/** Where an MCP client reaches this server: what the server says, else the API's own origin when it is absolute, else the page's. */
-function mcpOrigin(fromServer?: string): string {
-    if (fromServer && /^https?:\/\//i.test(fromServer)) return fromServer.replace(/\/+$/, '');
-    if (/^https?:\/\//i.test(API_BASE)) return API_BASE.replace(/\/+$/, '');
-    return window.location.origin;
-}
-
 async function copyText(text: string): Promise<boolean> {
     try {
         await navigator.clipboard.writeText(text);
@@ -40,14 +34,13 @@ async function copyText(text: string): Promise<boolean> {
 
 function Reveal({ created, baseUrl, onDone }: { created: McpTokenCreated; baseUrl?: string; onDone: () => void }) {
     const { t } = useTranslation();
-    const serverName = useServerName();
-    const [copied, setCopied] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
     const origin = mcpOrigin(baseUrl);
     const enabled = MCP_SERVERS.filter(s => created.record.scopes[s.id]);
 
-    const copy = async (what: string, text: string) => {
-        if (await copyText(text)) {
-            setCopied(what);
+    const copyToken = async () => {
+        if (await copyText(created.token)) {
+            setCopied(true);
             toast.success(t('mcp_access.reveal.copied', 'Copied'));
         } else {
             toast.error(t('mcp_access.reveal.copy_failed', 'Copying failed. Select the text and copy it by hand.'));
@@ -71,32 +64,13 @@ function Reveal({ created, baseUrl, onDone }: { created: McpTokenCreated; baseUr
                     <label className={LABEL} htmlFor="mcp-new-token">{t('mcp_access.reveal.token_label', 'Token')}</label>
                     <div className="flex gap-2">
                         <input id="mcp-new-token" readOnly className={`${INPUT} font-mono`} value={created.token} onFocus={e => e.currentTarget.select()} />
-                        <button type="button" className={SECONDARY_BTN} onClick={() => copy('token', created.token)}>
-                            {copied === 'token' ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                        <button type="button" className={SECONDARY_BTN} onClick={copyToken}>
+                            {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
                             {t('mcp_access.reveal.copy', 'Copy')}
                         </button>
                     </div>
                 </div>
-                {enabled.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        <p className="m-0 text-[12px] font-medium text-[var(--text-secondary)]">{t('mcp_access.reveal.commands', 'Connect Claude Code')}</p>
-                        {enabled.map((s) => {
-                            const command = claudeAddCommand(s, origin, created.token);
-                            const name = serverName(s.id);
-                            return (
-                                <div key={s.id} className="flex items-start gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-[11.5px] text-[var(--text-tertiary)]">{name}</div>
-                                        <pre className="m-0 mt-1 px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[11.5px] font-mono whitespace-pre-wrap break-all text-[var(--text-primary)]">{command}</pre>
-                                    </div>
-                                    <button type="button" className={QUIET_BTN} aria-label={t('mcp_access.reveal.copy_command', 'Copy command for {server}', { server: name })} onClick={() => copy(s.id, command)}>
-                                        {copied === s.id ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                {enabled.length > 0 && <McpConnectBlock servers={enabled} origin={origin} token={created.token} />}
             </div>
         </Modal>
     );
@@ -143,7 +117,7 @@ function ServerCard({ server, draft, onPatch, publish, onPublish, run, onRun, el
                     <div className="flex flex-wrap gap-4 text-[12px] text-[var(--text-primary)]">
                         {levels.map(o => (
                             <label key={o.level} className="inline-flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name={`${groupId}-level`} checked={draft.level === o.level} disabled={o.level === 'write' && !canWrite} onChange={() => onPatch({ level: o.level })} />
+                                <input type="radio" className="accent-[var(--accent-primary)]" name={`${groupId}-level`} checked={draft.level === o.level} disabled={o.level === 'write' && !canWrite} onChange={() => onPatch({ level: o.level })} />
                                 {o.label}
                             </label>
                         ))}
@@ -156,7 +130,7 @@ function ServerCard({ server, draft, onPatch, publish, onPublish, run, onRun, el
                     {server.id === 'automations' && (
                         <div className="flex flex-col gap-1.5">
                             <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                                <input type="checkbox" checked={run && draft.level === 'write'} disabled={draft.level !== 'write'} onChange={e => onRun(e.target.checked)} />
+                                <input type="checkbox" className="accent-[var(--accent-primary)]" checked={run && draft.level === 'write'} disabled={draft.level !== 'write'} onChange={e => onRun(e.target.checked)} />
                                 {t('mcp_access.create.run', 'May start automation runs')}
                             </label>
                             <p className={`${HINT} mt-0`}>{t('mcp_access.create.run_warn', 'A run really sends mail and writes to real systems. Only automations you have already activated can be started, and the client can never activate one. Leave this off unless the client must start runs. Needs read and write access.')}</p>
@@ -165,7 +139,7 @@ function ServerCard({ server, draft, onPatch, publish, onPublish, run, onRun, el
                     {server.id === 'cms' && (
                         <div className="flex flex-col gap-1.5">
                             <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                                <input type="checkbox" checked={publish && canPublish} disabled={!canPublish} onChange={e => onPublish(e.target.checked)} />
+                                <input type="checkbox" className="accent-[var(--accent-primary)]" checked={publish && canPublish} disabled={!canPublish} onChange={e => onPublish(e.target.checked)} />
                                 {t('mcp_access.create.publish', 'May publish the website')}
                             </label>
                             <p className={`${HINT} mt-0`}>{t('mcp_access.create.publish_warn', 'Publishing puts changes on the live website. Leave this off unless the client must go live without you. Needs read and write access.')}</p>
@@ -294,7 +268,7 @@ export default function McpTokenCreateModal({ onClose }: { onClose: () => void }
                 <div>
                     <label className={LABEL} htmlFor={`${formId}-name`}>{t('mcp_access.create.name', 'Name')}</label>
                     <input id={`${formId}-name`} className={INPUT} value={name} maxLength={80} autoComplete="off"
-                        placeholder={t('mcp_access.create.name_placeholder', 'Claude Code on my laptop')}
+                        placeholder={t('mcp_access.create.name_placeholder', 'Work laptop')}
                         onChange={e => setName(e.target.value)} />
                     {tried && nameMissing && <p className="m-0 mt-1 text-[11.5px] text-[var(--error-ink)]">{t('mcp_access.create.name_required', 'Give the token a name.')}</p>}
                 </div>

@@ -4,32 +4,44 @@
 // navigation column inside the pane. Pure data, read by adminTabs.
 
 import {
-    Activity, AlertTriangle, BarChart3, BookLock, Bot, Clock, Coins, Database, Globe, KeyRound, Mail, Mic,
+    AlertTriangle, BarChart3, BookLock, Bot, Clock, Coins, Database, Globe, KeyRound, Mail, Mic,
     Package, Palette, Settings, Shield, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, ToggleLeft, Users,
 } from 'lucide-react';
 import { ADVANCED_PAGES_FEATURE, isPageAllowedFor } from '@/components/admin/monitoring/monitoring.constants';
 import type { AdminRailGateContext, AdminRailRowDef } from './adminRailRowDef';
 
-type ChildDef = Pick<AdminRailRowDef, 'section' | 'labelKey' | 'labelFallback' | 'icon' | 'gate'>;
+type ChildDef = Pick<AdminRailRowDef, 'section' | 'labelKey' | 'labelFallback' | 'descriptionKey' | 'descriptionFallback' | 'icon' | 'gate'>;
 
-/** Child rows: indented under their tab's row while it is open (their group and block are the tab's). */
-function children(defs: readonly ChildDef[]): AdminRailRowDef[] {
-    return defs.map(def => ({ ...def, group: 'ai', block: 'instance', kind: 'child' }));
+/** Where a hub's own row sits: its children sit there too. */
+type Parent = Pick<AdminRailRowDef, 'group' | 'block'>;
+
+/** Child rows: indented under their tab's row while it is open, in the group and block of that row. */
+function children(parent: Parent, defs: readonly ChildDef[]): AdminRailRowDef[] {
+    return defs.map(def => ({ ...def, group: parent.group, block: parent.block, kind: 'child' }));
 }
 
 /** Agents: the organisation's chat agents, and the server-wide system agents in the whole-server block. */
 export const AGENT_RAIL_ROWS: readonly AdminRailRowDef[] = [
-    { section: 'chat', labelKey: 'admin_nav.agents', labelFallback: 'Agents', icon: Bot, group: 'ai', block: 'org', kind: 'row', gate: (c) => c.agentSections.includes('chat') },
-    { section: 'system', labelKey: 'admin_nav.system_agents', labelFallback: 'System agents', icon: Settings, group: 'ai', block: 'instance', kind: 'row', gate: (c) => c.agentSections.includes('system') },
+    {
+        section: 'chat', labelKey: 'admin_nav.agents', labelFallback: 'Agents',
+        descriptionKey: 'admin_nav.agents_desc', descriptionFallback: "The organisation's chat agents: what they know, which tools they use and who may use them.",
+        icon: Bot, group: 'ai', block: 'org', kind: 'row', gate: (c) => c.agentSections.includes('chat'),
+    },
+    {
+        section: 'system', labelKey: 'admin_nav.system_agents', labelFallback: 'System agents',
+        descriptionKey: 'admin_nav.system_agents_desc', descriptionFallback: 'The built-in agents this server runs for its own tasks.',
+        icon: Settings, group: 'ai', block: 'instance', kind: 'row', gate: (c) => c.agentSections.includes('system'),
+    },
 ];
 
 /** AI configuration (the whole server). */
-export const AI_CONFIG_RAIL_ROWS: readonly AdminRailRowDef[] = children([
-    { section: 'providers', labelKey: 'admin_nav.ai_providers', labelFallback: 'Providers', icon: KeyRound },
-    { section: 'models', labelKey: 'admin_nav.models', labelFallback: 'Models', icon: Sparkles },
-    { section: 'retrieval', labelKey: 'admin_nav.ai_retrieval', labelFallback: 'Search & retrieval', icon: Database },
-    { section: 'direct-chat', labelKey: 'admin_nav.ai_direct_chat', labelFallback: 'Direct chat', icon: Bot },
-    { section: 'limits', labelKey: 'admin_nav.ai_limits', labelFallback: 'Limits', icon: SlidersHorizontal },
+export const AI_CONFIG_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group: 'ai', block: 'instance' }, [
+    { section: 'providers', labelKey: 'admin_nav.ai_providers', labelFallback: 'Providers', descriptionKey: 'admin_nav.ai_providers_desc', descriptionFallback: 'The AI providers this server connects to, and their keys.', icon: KeyRound },
+    { section: 'models', labelKey: 'admin_nav.models', labelFallback: 'Models', descriptionKey: 'admin_nav.ai_models_desc', descriptionFallback: 'Which model answers at each tier, for every organisation on this server.', icon: Sparkles },
+    { section: 'retrieval', labelKey: 'admin_nav.ai_retrieval', labelFallback: 'Search & retrieval', descriptionKey: 'admin_nav.ai_retrieval_desc', descriptionFallback: 'How knowledge bases are indexed and searched, and how web search works.', icon: Database },
+    { section: 'direct-chat', labelKey: 'admin_nav.ai_direct_chat', labelFallback: 'Direct chat', descriptionKey: 'admin_nav.ai_direct_chat_desc', descriptionFallback: 'How the chat without an agent behaves.', icon: Bot },
+    // The section id stays `limits` (its address); the page is the read-only setup status now.
+    { section: 'limits', labelKey: 'admin_nav.ai_limits', labelFallback: 'Setup status', descriptionKey: 'admin_nav.ai_limits_desc', descriptionFallback: 'What this server runs with now: search, reranking and the tool-round cap, each with a link to where it is set.', icon: SlidersHorizontal },
 ]);
 
 const platformAdminOnly = (c: AdminRailGateContext) => c.isPlatformAdmin;
@@ -40,44 +52,65 @@ const platformAdminOnly = (c: AdminRailGateContext) => c.isPlatformAdmin;
  * server-wide sign-in providers and guardrail console (the console is Enterprise).
  */
 export const SECURITY_RAIL_ROWS: readonly AdminRailRowDef[] = [
-    { section: 'guardrails', labelKey: 'admin_nav.privacy_shield', labelFallback: 'Privacy Shield', icon: Shield, group: 'security', block: 'org', kind: 'row', gate: (c) => c.isPlatformAdmin || c.isHomeOrgAdmin },
-    { section: 'sso', labelKey: 'admin_nav.sso', labelFallback: 'Sign-in & SSO', icon: KeyRound, group: 'identity', block: 'instance', kind: 'row', gate: platformAdminOnly },
-    { section: 'guardrail-library', labelKey: 'admin_nav.guardrail_library', labelFallback: 'Guardrail library', icon: ShieldCheck, group: 'identity', block: 'instance', kind: 'row', gate: (c) => c.isPlatformAdmin && c.hasTier('enterprise') },
+    {
+        section: 'guardrails', labelKey: 'admin_nav.privacy_shield', labelFallback: 'Privacy Shield',
+        descriptionKey: 'admin_nav.privacy_shield_desc', descriptionFallback: 'What is checked and masked before a message reaches an AI model.',
+        icon: Shield, group: 'security', block: 'org', kind: 'row', gate: (c) => c.isPlatformAdmin || c.isHomeOrgAdmin,
+    },
+    {
+        section: 'sso', labelKey: 'admin_nav.sso', labelFallback: 'Sign-in & SSO',
+        descriptionKey: 'admin_nav.sso_desc', descriptionFallback: 'How people sign in to this server, and which email domains never add someone to an organisation by themselves.',
+        icon: KeyRound, group: 'identity', block: 'instance', kind: 'row', gate: platformAdminOnly,
+    },
+    {
+        section: 'guardrail-library', labelKey: 'admin_nav.guardrail_library', labelFallback: 'Guardrail library',
+        descriptionKey: 'admin_nav.guardrail_library_desc', descriptionFallback: 'The patterns, term lists and profiles every organisation can use in its Privacy Shield.',
+        icon: ShieldCheck, group: 'identity', block: 'instance', kind: 'row', gate: (c) => c.isPlatformAdmin && c.hasTier('enterprise'),
+    },
 ];
 
-/** Platform services (the old Integrations tab): the gates are its sections' own (IntegrationsAdminPanel/sections). */
-export const PLATFORM_SERVICES_RAIL_ROWS: readonly AdminRailRowDef[] = children([
-    { section: 'defaults', labelKey: 'admin_nav.ps_defaults', labelFallback: 'Defaults for new organisations', icon: ToggleLeft },
-    { section: 'email', labelKey: 'admin_nav.ps_email', labelFallback: 'Email', icon: Mail, gate: (c) => c.hasTier('enterprise') },
-    { section: 'transcription', labelKey: 'admin_nav.ps_transcription', labelFallback: 'Transcription', icon: Mic, gate: (c) => c.hasFeature('meeting_notes') },
-    { section: 'connected-apps', labelKey: 'admin_nav.ps_connected_apps', labelFallback: 'Connected apps', icon: Globe, gate: (c) => c.hasTier('enterprise') },
+/**
+ * Platform services (the old Integrations tab): the gates are its sections' own
+ * (IntegrationsAdminPanel/sections). Connected apps holds the Google Maps key,
+ * which every tier uses, so it has no tier gate; Email stays Enterprise.
+ */
+export const PLATFORM_SERVICES_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group: 'connections', block: 'instance' }, [
+    { section: 'defaults', labelKey: 'admin_nav.ps_defaults', labelFallback: 'Defaults for new organisations', descriptionKey: 'admin_nav.ps_defaults_desc', descriptionFallback: 'The integrations a new organisation starts with.', icon: ToggleLeft },
+    { section: 'email', labelKey: 'admin_nav.ps_email', labelFallback: 'Email', descriptionKey: 'admin_nav.ps_email_desc', descriptionFallback: 'The account this server sends its email from.', icon: Mail, gate: (c) => c.hasTier('enterprise') },
+    { section: 'transcription', labelKey: 'admin_nav.ps_transcription', labelFallback: 'Transcription', descriptionKey: 'admin_nav.ps_transcription_desc', descriptionFallback: 'Which service turns meeting recordings into text, with who said what.', icon: Mic, gate: (c) => c.hasFeature('meeting_notes') },
+    { section: 'connected-apps', labelKey: 'admin_nav.ps_connected_apps', labelFallback: 'Connected apps', descriptionKey: 'admin_nav.ps_connected_apps_desc', descriptionFallback: 'The keys of outside services that people can then connect to.', icon: Globe },
 ]);
 
 const advancedPage = (id: string) => (c: AdminRailGateContext) => isPageAllowedFor(id, c.hasFeature(ADVANCED_PAGES_FEATURE));
 
 /**
- * Usage & monitoring: Overview for every admin of the tab, the other pages
+ * Usage & monitoring (the descriptions are the monitoring pages' own; the frame
+ * leaves them out, the panel shows them beside the period). The Usage explorer
+ * is part of Spend now (alias monitoring/usage). Overview for every admin of the tab, the other pages
  * with the advanced-monitoring capability; Feedback also for a platform admin
  * or an organisation admin of the home organisation only (the `/org` route).
  */
-export const MONITORING_RAIL_ROWS: readonly AdminRailRowDef[] = children([
-    { section: 'overview', labelKey: 'admin_nav.mon_overview', labelFallback: 'Overview', icon: BarChart3 },
-    { section: 'adoption', labelKey: 'admin_nav.mon_adoption', labelFallback: 'Adoption', icon: Users, gate: advancedPage('adoption') },
-    { section: 'spend', labelKey: 'admin_nav.mon_spend', labelFallback: 'Spend', icon: Coins, gate: advancedPage('spend') },
-    { section: 'usage', labelKey: 'admin_nav.mon_usage', labelFallback: 'Usage explorer', icon: Activity, gate: advancedPage('usage') },
-    { section: 'feedback', labelKey: 'admin_nav.mon_feedback', labelFallback: 'Feedback', icon: ThumbsUp, gate: (c) => advancedPage('feedback')(c) && (c.isPlatformAdmin || c.isHomeOrgAdmin) },
-    { section: 'activity', labelKey: 'admin_nav.mon_activity', labelFallback: 'Activity', icon: Clock, gate: advancedPage('activity') },
-    { section: 'terminations', labelKey: 'admin_nav.mon_terminations', labelFallback: 'Terminations', icon: AlertTriangle, gate: advancedPage('terminations') },
+export const MONITORING_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group: 'organisation', block: 'org' }, [
+    { section: 'overview', labelKey: 'admin_nav.mon_overview', labelFallback: 'Overview', descriptionKey: 'admin_monitoring.desc_overview', descriptionFallback: 'Dashboard & cost overview', icon: BarChart3 },
+    { section: 'adoption', labelKey: 'admin_nav.mon_adoption', labelFallback: 'Adoption', descriptionKey: 'admin_monitoring.desc_adoption', descriptionFallback: 'Who uses AI, what they build and where the spend goes', icon: Users, gate: advancedPage('adoption') },
+    { section: 'spend', labelKey: 'admin_nav.mon_spend', labelFallback: 'Spend', descriptionKey: 'admin_monitoring.desc_spend', descriptionFallback: 'Where the money goes: models, people, agents and sources', icon: Coins, gate: advancedPage('spend') },
+    { section: 'feedback', labelKey: 'admin_nav.mon_feedback', labelFallback: 'Feedback', descriptionKey: 'admin_monitoring.desc_feedback', descriptionFallback: 'User feedback on AI responses', icon: ThumbsUp, gate: (c) => advancedPage('feedback')(c) && (c.isPlatformAdmin || c.isHomeOrgAdmin) },
+    { section: 'activity', labelKey: 'admin_nav.mon_activity', labelFallback: 'Activity', descriptionKey: 'admin_monitoring.desc_activity', descriptionFallback: 'Recent API call log', icon: Clock, gate: advancedPage('activity') },
+    { section: 'terminations', labelKey: 'admin_nav.mon_terminations', labelFallback: 'Terminations', descriptionKey: 'admin_monitoring.desc_terminations', descriptionFallback: 'Prematurely ended tasks & errors', icon: AlertTriangle, gate: advancedPage('terminations') },
 ]);
 
-/** Licence & features: the server licence, and the global feature switches. */
-export const LICENSE_RAIL_ROWS: readonly AdminRailRowDef[] = children([
-    { section: 'server', labelKey: 'admin_nav.server_licence', labelFallback: 'Server licence', icon: BookLock },
+/**
+ * Licence & features: the server licence, and the global feature switches (no
+ * description: the list opens on its own note, which says what they do and when
+ * a change applies).
+ */
+export const LICENSE_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group: 'platform', block: 'instance' }, [
+    { section: 'server', labelKey: 'admin_nav.server_licence', labelFallback: 'Server licence', descriptionKey: 'admin_nav.server_licence_desc', descriptionFallback: 'The licence key of this server and what it includes.', icon: BookLock },
     { section: 'features', labelKey: 'admin_nav.feature_switches', labelFallback: 'Feature switches', icon: ToggleLeft },
 ]);
 
 /** Appearance: the server's look, and the icon packs. */
-export const APPEARANCE_RAIL_ROWS: readonly AdminRailRowDef[] = children([
-    { section: 'look', labelKey: 'admin_nav.look', labelFallback: 'Look', icon: Palette },
-    { section: 'icon-packs', labelKey: 'admin_nav.icon_packs', labelFallback: 'Icon packs', icon: Package },
+export const APPEARANCE_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group: 'platform', block: 'instance' }, [
+    { section: 'look', labelKey: 'admin_nav.look', labelFallback: 'Look', descriptionKey: 'admin_nav.look_desc', descriptionFallback: 'Colours, fonts, logo and name of this server.', icon: Palette },
+    { section: 'icon-packs', labelKey: 'admin_nav.icon_packs', labelFallback: 'Icon packs', descriptionKey: 'admin_nav.icon_packs_desc', descriptionFallback: 'The icon sets people can choose from.', icon: Package },
 ]);

@@ -10,7 +10,7 @@ beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
         const address = String(url);
         const body = address.endsWith('/api/subscriptions/plans') ? [{ id: 'p1', name: 'Pro' }]
-            : address.endsWith('/api/subscriptions/orgs') ? [{ organization_id: 'org-b', plan_id: 'p1' }]
+            : address.endsWith('/api/subscriptions/orgs') ? [{ organization_id: 'org-b', plan_id: 'p1' }, { organization_id: 'org-c', plan_id: 'p1' }]
                 : {};
         return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
     }));
@@ -23,5 +23,11 @@ describe('CloudCeilingEditor', () => {
         expect(within(edit).getByRole('img', { name: 'Whole server' })).toBeInTheDocument();
         expect(screen.getByRole('combobox', { name: 'Plan' })).toHaveValue('p1');
         expect(screen.getAllByRole('img', { name: 'Whole server' })).toHaveLength(1);
+    });
+
+    it('says the plan edit reaches every organisation on the plan, with their number', async () => {
+        render(withQueryClient(<CloudCeilingEditor orgId="org-b" orgName="Org B" onCeilingChanged={undefined} />));
+        expect(await screen.findByRole('button', { name: /Edit plan for all its organisations/ })).toBeInTheDocument();
+        expect(screen.getByText('Editing Pro changes the ceiling for all 2 organisations on this plan, not only for Org B.')).toBeInTheDocument();
     });
 });

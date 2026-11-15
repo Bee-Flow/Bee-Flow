@@ -1,6 +1,7 @@
-// What Settings > Organisation > Users & Groups offered an organisation admin, now on the Users screen of the
-// admin dashboard: invitations, the organisation's roles, its model tiers, the Nextcloud sync view, letting
-// pending accounts in, auto-approve, and a group's inherited role and allowed tiers.
+// What Settings > Organisation > Users & Groups offered an organisation admin, now the People row of the
+// admin dashboard: invitations, the organisation's roles, letting pending accounts in, and a group's
+// inherited role and allowed tiers. Model tiers are the Models row, the Nextcloud sync the Nextcloud row
+// and auto-approve the Preferred sign-in method row now: none of them is on this screen any more.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -67,7 +68,6 @@ const open = (user: typeof orgAdmin, section: string, orgChoice?: AdminOrgChoice
 const TABS: Array<[string, RegExp]> = [
     ['invitations', /new@example\.com/],
     ['org-roles', /Organisation Roles/],
-    ['custom-tiers', /Organisation Custom Tiers/],
 ];
 
 describe('organisation-only tabs of the Users screen', () => {
@@ -84,7 +84,7 @@ describe('organisation-only tabs of the Users screen', () => {
     it.each(TABS)('%s: a platform admin with "All organisations" is asked to choose one', async (section) => {
         open(platformAdmin, section, choice(null));
         expect(await screen.findByTestId('admin-choose-org')).toHaveTextContent('Choose an organisation above');
-        expect(screen.queryByText('Organisation Custom Tiers')).not.toBeInTheDocument();
+        expect(screen.queryByText('Organisation Roles')).not.toBeInTheDocument();
     });
 
     it.each(TABS)('%s: a platform admin who chose another organisation works on that one', async (section, marker) => {
@@ -112,16 +112,13 @@ describe('organisation-only tabs of the Users screen', () => {
         await waitFor(() => expect(writes).toContainEqual(expect.objectContaining({ method: 'DELETE', path: '/auth/invitations/i1' })));
     });
 
-    it('shows the Nextcloud sync tab to a member of a Nextcloud organisation only, for the viewer\'s organisation', async () => {
+    it('has no Nextcloud sync or model tiers tab: they are rows of their own', async () => {
         open(orgAdmin, 'sync');
-        expect(await screen.findByRole('tab', { name: 'Nextcloud sync' })).toBeInTheDocument();
-        await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('/auth/admin/o1/nc-sync'))).toBe(true));
-    });
-
-    it('leaves the Nextcloud sync tab out for an organisation without a Nextcloud', async () => {
-        open({ ...orgAdmin, ncOrg: null }, 'invitations');
-        await screen.findByRole('tab', { name: 'Invitations' });
+        // The old address falls back to the people list.
+        expect(await screen.findByRole('tab', { name: 'Users' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.queryByRole('tab', { name: 'Nextcloud sync' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: 'Model tiers' })).not.toBeInTheDocument();
+        expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('/nc-sync'))).toBe(false);
     });
 
     it('lets a platform admin tell the organisation roles from the server roles', async () => {
@@ -148,22 +145,11 @@ describe('the people list for an organisation admin', () => {
         await waitFor(() => expect(writes).toContainEqual(expect.objectContaining({ method: 'DELETE', path: '/auth/users/u2' })));
     });
 
-    it('offers auto-approve for an organisation that signs in through a provider', async () => {
-        const user = userEvent.setup();
+    it('has no auto-approve switch: its one home is the Preferred sign-in method row', async () => {
         open(orgAdmin, 'users');
-        await user.click(await screen.findByRole('button', { name: '' }));
-        await waitFor(() => expect(writes).toContainEqual({ method: 'PUT', path: '/auth/organizations/o1', body: { autoApproveSSO: true } }));
-    });
-
-    it('shows a platform admin the switch of the chosen organisation only', async () => {
-        open(platformAdmin, 'users', choice('o2'));
-        await screen.findByText('People');
+        await screen.findByText('Jan');
+        expect(screen.queryByRole('switch')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: '' })).not.toBeInTheDocument();
-    });
-
-    it('shows a platform admin the switch when the chosen organisation signs in through a provider', async () => {
-        open(platformAdmin, 'users', choice('o1'));
-        expect(await screen.findByRole('button', { name: '' })).toBeInTheDocument();
     });
 });
 

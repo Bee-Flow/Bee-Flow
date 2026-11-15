@@ -27,12 +27,12 @@ export default function MemberImageLimitsPopover({ member: u, memberRoles }: { m
                 title={label}
                 aria-label={label}
                 aria-expanded={open}
-                className={`p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors ${hasOwn ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`p-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors ${hasOwn ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
             >
                 <ImageIcon className="w-3.5 h-3.5" />
             </button>
             {open && (
-                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-xl z-50">
+                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] p-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] shadow-xl z-50">
                     <ImageLimitsEditor
                         value={u.imageLimits}
                         label={label}

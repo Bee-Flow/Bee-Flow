@@ -1,0 +1,16 @@
+{
+  "translations": {
+    "meetings.admin_sources.templates_title": "Samenvattingssjablonen",
+    "meetings.admin_sources.templates_unavailable": "De samenvattingssjablonen konden voor deze organisatie niet worden geladen.",
+    "meetings.admin_sources.none": "Er is nog geen vergaderdienst beschikbaar voor deze organisatie. Vergadernotities kunnen uit Nextcloud Talk, Google Meet of Microsoft Teams komen zodra de organisatie er een mag gebruiken (Toegang) en die gekoppeld is (Koppelingen).",
+    "meetings.admin_sources.open_access": "Toegang openen",
+    "meetings.admin_sources.open_connections": "Status van integraties openen",
+    "meetings.admin_sources.teams_setup_elsewhere": "Toestemming van de beheerder, de verbindingstest en import voor de hele organisatie voor Teams staan op de pagina Microsoft 365.",
+    "meetings.admin_sources.open_m365": "Microsoft 365 openen"
+  },
+  "sameAsEnglish": [
+    "meetings.admin_sources.talk_title",
+    "meetings.admin_sources.meet_title",
+    "meetings.admin_sources.teams_title"
+  ]
+}

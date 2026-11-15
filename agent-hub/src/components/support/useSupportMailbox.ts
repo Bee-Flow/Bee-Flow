@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useSupportMailboxQuery } from '../../api/queries/supportInbox';
+import { useQueryClient } from '@tanstack/react-query';
+import { supportInboxKeys, useSupportMailboxQuery } from '../../api/queries/supportInbox';
 import { supportInboxApi } from '../../api/supportInboxApi';
+import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { toast } from '../shared/Toast';
 import type useConfirm from '../shared/useConfirm';
@@ -8,12 +10,14 @@ import type { SupportMailbox } from './SupportInboxPanel.types';
 
 interface MailboxDeps {
     confirm: ReturnType<typeof useConfirm>['confirm'];
-    setSelectedId: (id: string | null) => void;
-    fetchThreads: () => Promise<void>;
+    /** The inbox's open ticket, cleared once its mailbox tickets are gone. */
+    setSelectedId?: (id: string | null) => void;
 }
 
 /** The mailbox feeding the inbox, and the way out of it. */
-export function useSupportMailbox({ confirm, setSelectedId, fetchThreads }: MailboxDeps) {
+export function useSupportMailbox({ confirm, setSelectedId }: MailboxDeps) {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
     // Mailbox feeding this inbox. The company inbox has no connector of its own,
     // so anything here arrived from a Support-studio mailbox — see
     // GET /api/support/mailbox.
@@ -28,11 +32,11 @@ export function useSupportMailbox({ confirm, setSelectedId, fetchThreads }: Mail
     const disconnectMailbox = async () => {
         const n = mailbox?.count || 0;
         const ok = await confirm({
-            title: 'Disconnect the email box from Customer Support?',
-            description: `${n} ticket${n === 1 ? '' : 's'} that came in over that mailbox will be permanently deleted, `
-                + 'together with their messages and history. Tickets from the marketing form and from inside the app are untouched. '
-                + 'This cannot be undone.',
-            confirmLabel: 'Disconnect',
+            title: t('support.mailbox_disconnect_title', 'Disconnect the mailbox from the support inbox?'),
+            description: n === 1
+                ? t('support.mailbox_disconnect_desc_one', '{count} ticket that came in over that mailbox will be permanently deleted, together with its messages and history. Tickets from the website form and from inside the app are untouched. This cannot be undone.', { count: n })
+                : t('support.mailbox_disconnect_desc_other', '{count} tickets that came in over that mailbox will be permanently deleted, together with their messages and history. Tickets from the website form and from inside the app are untouched. This cannot be undone.', { count: n }),
+            confirmLabel: t('support.mailbox_disconnect_confirm', 'Disconnect'),
             destructive: true,
         });
         if (!ok) return;
@@ -41,13 +45,17 @@ export function useSupportMailbox({ confirm, setSelectedId, fetchThreads }: Mail
             const res = await supportInboxApi.disconnectMailbox();
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                toast.error(data.error || 'Disconnecting the mailbox failed.');
+                toast.error(data.error || t('support.mailbox_disconnect_failed', 'Disconnecting the mailbox failed.'));
                 return;
             }
-            setSelectedId(null);
-            await Promise.all([fetchMailbox(), fetchThreads()]);
+            setSelectedId?.(null);
+            // Every read of the inbox: the mailbox, and the ticket lists and
+            // tickets of every filter, wherever the disconnect was asked from
+            // (the inbox's banner, or the Mailbox card under Settings while
+            // the inbox's list stays mounted).
+            await queryClient.invalidateQueries({ queryKey: supportInboxKeys.all });
         } catch (e) {
-            toast.error(`Disconnecting the mailbox failed: ${errorMessage(e)}`);
+            toast.error(t('support.mailbox_disconnect_failed_detail', 'Disconnecting the mailbox failed: {error}', { error: errorMessage(e) }));
         } finally {
             setDisconnecting(false);
         }

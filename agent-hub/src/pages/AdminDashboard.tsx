@@ -52,8 +52,9 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // but is not this viewer's is refused on its own address, not swapped.
     const { activeTab, agentSection, path, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
     // The rail (adminRailRows): the Organisation tab's rows from its section rules,
-    // on the chosen organisation's availability.
-    const { sections, activeRow, currentLabel } = useAdminRail({
+    // on the chosen organisation's availability; the current row names the page
+    // (the header AdminPage draws for every tab).
+    const { sections, activeRow, currentLabel, currentDescription } = useAdminRail({
         user, choice: orgChoice, tabs: ADMIN_TABS.filter(tab => checkTabAccess(tab)), isPlatformAdmin, activeTab, section: path.seg2, t,
     });
 
@@ -118,7 +119,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                         ? (
                             <AdminOrgGate choice={orgChoice}>
                                 <AdminScopeOverrideProvider value={setScopeOverride}>
-                                    <AdminTabContent activeTab={activeTab} hasPermission={hasPermission} agentSection={agentSection} adminPath={path} title={currentLabel} />
+                                    <AdminTabContent activeTab={activeTab} hasPermission={hasPermission} agentSection={agentSection} adminPath={path} title={currentLabel} description={currentDescription} />
                                 </AdminScopeOverrideProvider>
                             </AdminOrgGate>
                         )

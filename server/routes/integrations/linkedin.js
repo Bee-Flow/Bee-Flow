@@ -40,7 +40,7 @@ async function getLinkedInConfig() {
     if (!clientSecret) clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new HttpError(503, 'linkedin_not_configured', 'LinkedIn is not set up. Ask your admin to set the Client ID and Secret in Admin → Integrations.');
+        throw new HttpError(503, 'linkedin_not_configured', 'LinkedIn is not set up. Ask your platform administrator to set the client ID and secret in Admin dashboard → Whole server → Platform services → Connected apps.');
     }
     return { clientId, clientSecret };
 }

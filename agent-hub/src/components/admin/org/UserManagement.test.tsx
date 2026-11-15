@@ -84,7 +84,8 @@ describe('UserManagement', () => {
 
     it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
         render(<UserManagement user={allHolder} />);
-        expect(await screen.findByText('admin.users_tab_my_org')).toBeInTheDocument();
+        expect(await screen.findByText('admin.users_tab_groups')).toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
@@ -122,17 +123,21 @@ describe('UserManagement', () => {
 
     it('offers the full-admin section set to a full admin', async () => {
         render(<UserManagement user={fullAdmin} />);
-        for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_custom_tiers', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
+        for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
             expect(await screen.findByText(key)).toBeInTheDocument();
         }
         expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
+        // Model tiers are the Models row and Nextcloud sync the Nextcloud row now.
+        expect(screen.queryByText('admin_org.users_tab_custom_tiers')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin_org.users_tab_nc_sync')).not.toBeInTheDocument();
     });
 
     it('offers the org-scoped section set to an org-scoped user', async () => {
         render(<UserManagement user={orgScoped} />);
         expect(await screen.findByText('admin.users_tab_users')).toBeInTheDocument();
         expect(screen.getByText('admin.users_tab_groups')).toBeInTheDocument();
-        expect(screen.getByText('admin.users_tab_my_org')).toBeInTheDocument();
+        // The organisation's own details are the Organisation info row, not a tab here.
+        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
     });
@@ -176,20 +181,11 @@ describe('UserManagement', () => {
         expect(await screen.findByText('admin.sec_people_title')).toBeInTheDocument();
     });
 
-    // Regression: the my-organization form used to be seeded by a
-    // `setTimeout(() => setOrgData(editData), 0)` called from inside the render
-    // path, which re-fired on every render until the state landed.
-    it('seeds the my-organization form from the caller org, without a render-time side effect', async () => {
+    // The organisation's details have one editor, Organisation info: an old
+    // my-organization address opens the people list instead of a second form.
+    it('has no my-organization form any more', async () => {
         render(<UserManagement user={orgScoped} activeSection="my-organization" />);
-        expect(await screen.findByDisplayValue('Acme B.V.')).toBeInTheDocument();
-    });
-
-    // The organisations arrive in id order; the caller's own organisation wins
-    // over one they only belong to through a group, whatever its id.
-    it('seeds the my-organization form from the home org, not the first org in the list', async () => {
-        const memberOfBoth = { ...orgScoped, organizationId: 'o2', organizations: ['o1', 'o2'] };
-        render(<UserManagement user={memberOfBoth} activeSection="my-organization" />);
-        expect(await screen.findByDisplayValue('Legacy Org')).toBeInTheDocument();
+        expect(await screen.findByText('admin.sec_people_title')).toBeInTheDocument();
         expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
     });
 

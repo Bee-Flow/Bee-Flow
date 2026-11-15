@@ -259,6 +259,15 @@ describe('SecurityHub', () => {
             expect(screen.getByTestId('sso-panel')).toBeInTheDocument();
         });
 
+        // The dashboard's page frame (AdminPage) pads the page and draws its header from the rail label.
+        it('draws no frame of its own around the row', () => {
+            renderRow({ user: fullAdmin, activeSection: 'sso' });
+            const row = screen.getByTestId('security-row');
+            expect(row.className).toBe('');
+            expect(row.closest('.overflow-auto')).toBeNull();
+            expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+        });
+
         it('Privacy Shield: the chosen organisation\'s shield, a choice asked for under All organisations', () => {
             renderRow({ user: fullAdmin, activeSection: 'guardrails' }, 'org-b');
             expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-b');

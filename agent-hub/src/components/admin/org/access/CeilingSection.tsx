@@ -21,14 +21,15 @@ interface CeilingSectionProps {
  * CeilingSection — routes the ceiling surface by role + deployment mode:
  *   - org-admin (any mode)        → read-only view of the org's access
  *   - super-admin + cloud         → assign plan + edit plan allow-lists
- *   - super-admin + self-hosted   → server licence + global feature switches
+ *   - super-admin + self-hosted   → the licence tier, read-only, with links to
+ *                                   where the licence and the feature switches
+ *                                   are changed (Whole server > Licence & features)
  *
  * For super-admins the organisation's part (the cloud plan, and the per-org
  * "Organisation access" menu: which of the max THIS org may use) comes first,
- * under the organisation's name; the self-hosted licence and the global
- * switches are server-wide (adminTabs: access `ceiling/server`) and come last,
- * under a "Whole server" divider. The grant layer (Grants section) then
- * distributes within the organisation's menu.
+ * under the organisation's name; the self-hosted licence summary is about the
+ * whole server and comes last, under a "Whole server" divider. The grant layer
+ * (Grants section) then distributes within the organisation's menu.
  */
 export default function CeilingSection({ mode, isSuperAdmin, orgId, orgName, onCeilingChanged, chooseOrg = null }: CeilingSectionProps) {
     const { t } = useTranslation();

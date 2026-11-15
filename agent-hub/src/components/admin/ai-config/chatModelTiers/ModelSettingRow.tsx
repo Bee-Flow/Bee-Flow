@@ -1,54 +1,37 @@
-// One single-model setting as a row of the "Background models" list: what it
-// is on the left, the model picker and its own Save on the right. The five
-// *ModelSection files bind it to their ModelSetting.
+// One single-model setting as a row of the "Background models" lists: what it
+// is on the left, the model picker on the right. Part of the Models page's one
+// draft: a pick changes the draft, the page's save bar stores it.
 import type { ReactNode } from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { SettingRow, SAVE_BUTTON } from '@/components/shared/SettingsList';
-import { useToastOnMessage } from '../ui/useToastOnMessage';
-import { useTranslation } from '@/hooks/useTranslation';
+import { SettingRow } from '@/components/shared/SettingsList';
 
 interface ModelSettingRowProps extends ModelPickerSource {
     title: ReactNode;
     hint: ReactNode;
     /** What the picker reads while nothing is chosen. */
     emptyLabel: string;
-    saveLabel: string;
-    model: ModelSetting['model'];
-    setModel: ModelSetting['setModel'];
-    saving: ModelSetting['saving'];
-    message: ModelSetting['message'];
-    save: ModelSetting['save'];
+    setting: Pick<ModelSetting, 'model' | 'setModel'>;
 }
 
 export default function ModelSettingRow({
-    title, hint, emptyLabel, saveLabel, model, setModel, saving, message, save,
-    chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
+    title, hint, emptyLabel, setting, chatModels, byProvider, hiddenModelIds, toggleHiddenModel,
 }: ModelSettingRowProps) {
-    const { t } = useTranslation();
-    useToastOnMessage(message);
-    const selected = chatModels.find(m => m.id === model);
+    const selected = chatModels.find(m => m.id === setting.model);
     const display = selected ? getModelDisplayName(selected) : null;
     const label = selected ? (display !== selected.id ? display : selected.id) : emptyLabel;
     return (
         <SettingRow label={title} hint={hint}>
-            <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                    <SearchableModelSelect
-                        value={model || ''}
-                        label={label}
-                        groups={byProvider}
-                        onChange={({ modelId }) => setModel(modelId || '')}
-                        hiddenIds={hiddenModelIds}
-                        onToggleHidden={toggleHiddenModel}
-                    />
-                </div>
-                <button type="button" onClick={() => save()} disabled={saving} className={SAVE_BUTTON}>
-                    {saving ? t('admin_ai_config.saving', 'Saving...') : saveLabel}
-                </button>
-            </div>
+            <SearchableModelSelect
+                value={setting.model || ''}
+                label={label}
+                groups={byProvider}
+                onChange={({ modelId }) => setting.setModel(modelId || '')}
+                hiddenIds={hiddenModelIds}
+                onToggleHidden={toggleHiddenModel}
+            />
         </SettingRow>
     );
 }

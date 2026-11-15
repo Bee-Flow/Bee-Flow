@@ -69,7 +69,43 @@ describe('LanguagesPanel', () => {
         expect(within(nav).getByRole('button', { name: /Nederlands/ })).toHaveAttribute('aria-current', 'page');
         expect(within(nav).getByRole('button', { name: /English/ })).not.toHaveAttribute('aria-current');
         expect(screen.getByRole('tab', { name: 'GUI Translations' })).toHaveAttribute('aria-selected', 'true');
-        await user.click(screen.getByRole('tab', { name: 'System Prompts' }));
-        expect(screen.getByRole('tab', { name: 'System Prompts' })).toHaveAttribute('aria-selected', 'true');
+        await user.click(screen.getByRole('tab', { name: 'Prompt translations' }));
+        expect(screen.getByRole('tab', { name: 'Prompt translations' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('offers Export and Import once, in the header of the open locale, not on the locale rows', async () => {
+        renderWithClient(<LanguagesPanel />);
+        const nav = await screen.findByRole('navigation', { name: 'Languages' });
+        expect(within(nav).queryByRole('button', { name: 'Export' })).toBeNull();
+        expect(within(nav).queryByRole('button', { name: 'Import' })).toBeNull();
+        expect(within(nav).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /Export/ })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: /Import/ })).toHaveLength(1);
+    });
+
+    it('opens the locale and section the address names, and writes a pick into the address', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        renderWithClient(<LanguagesPanel locale="en" section="prompts" onNavigate={onNavigate} />);
+        const nav = await screen.findByRole('navigation', { name: 'Languages' });
+        expect(within(nav).getByRole('button', { name: /English/ })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('tab', { name: 'Prompt translations' })).toHaveAttribute('aria-selected', 'true');
+
+        await user.click(within(nav).getByRole('button', { name: /Nederlands/ }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/languages/nl/prompts');
+        await user.click(screen.getByRole('tab', { name: 'Email Templates' }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/languages/en/emails');
+    });
+
+    it('sets the language new users start in for the whole server, and says it was saved', async () => {
+        const user = userEvent.setup();
+        renderWithClient(<LanguagesPanel />);
+        const select = await screen.findByRole('combobox', { name: 'New users start in' });
+        expect(select).toHaveValue('en');
+        await user.selectOptions(select, 'nl');
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/languages/org/default', expect.objectContaining({ method: 'PUT' })));
+        const put = fetchMock.mock.calls.find(([u, o]) => u === '/api/languages/org/default' && (o as RequestInit | undefined)?.method === 'PUT');
+        expect(JSON.parse(String((put?.[1] as RequestInit).body))).toEqual({ defaultLocale: 'nl' });
+        expect(await within(screen.getByTestId('new-user-language')).findByText(/Saved/)).toBeInTheDocument();
     });
 });

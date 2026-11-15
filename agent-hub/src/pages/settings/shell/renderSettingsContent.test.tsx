@@ -1,6 +1,6 @@
 import { isValidElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import OrgAzureConfigPanel from '@/components/integrations/azure/index';
+import Microsoft365Panel from '@/components/integrations/azure/Microsoft365Panel';
 import GroupSyncPanel from '@/components/integrations/azure/GroupSyncPanel';
 import { renderSettingsContent, type SettingsContentContext } from './renderSettingsContent';
 
@@ -34,10 +34,10 @@ const ctx = (over: Partial<SettingsContentContext>): SettingsContentContext => (
     ...over,
 });
 
-describe('renderSettingsContent: the Azure tab', () => {
+describe('renderSettingsContent: the Microsoft 365 tab', () => {
     // GET/PUT /api/org-azure-config/:orgId answer a platform admin only, so a
     // deep link must not open a panel an org admin can neither load nor save.
-    it('opens the organisation\'s group sync, not the Azure panel, for an org admin on a self-hosted install', () => {
+    it('opens the organisation\'s group sync, not the whole Microsoft 365 page, for an org admin on a self-hosted install', () => {
         const node = renderSettingsContent(ctx({}));
         expect(isValidElement(node) && node.type).toBe(GroupSyncPanel);
     });
@@ -47,8 +47,8 @@ describe('renderSettingsContent: the Azure tab', () => {
         expect(renderSettingsContent(ctx({ canSeeOrg: false }))).toBeNull();
     });
 
-    it('opens the Azure panel for a platform admin', () => {
+    it('opens the Microsoft 365 page for a platform admin', () => {
         const node = renderSettingsContent(ctx({ isPlatformAdmin: true }));
-        expect(isValidElement(node) && node.type).toBe(OrgAzureConfigPanel);
+        expect(isValidElement(node) && node.type).toBe(Microsoft365Panel);
     });
 });

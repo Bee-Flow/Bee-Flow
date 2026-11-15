@@ -1,0 +1,22 @@
+{
+  "reworded": {
+    "azure.sync_auto_activate_desc": {
+      "nl": "Als dit aanstaat, zijn nieuwe gebruikers uit Entra ID-groepen direct actief. Als het uitstaat, hebben ze goedkeuring van een beheerder nodig.",
+      "was": [
+        "Als dit aanstaat, zijn nieuwe gebruikers uit Azure-groepen direct actief. Als het uitstaat, hebben ze goedkeuring van een beheerder nodig."
+      ]
+    },
+    "azure.sync_periodic_desc": {
+      "nl": "Synchroniseer groepen automatisch met een vast interval vanuit Microsoft Entra ID.",
+      "was": [
+        "Synchroniseer groepen automatisch met een vast interval vanuit Azure AD."
+      ]
+    },
+    "azure.sync_permissions_desc": {
+      "nl": "Groepssynchronisatie met Microsoft Entra ID heeft deze Application permissions nodig in Azure Portal → App registrations → API permissions, met toestemming van een beheerder (admin consent). Zonder groepssynchronisatie laat je ze weg uit de app-registratie:",
+      "was": [
+        "De volgende Application permissions moeten in Azure Portal → App registrations → API permissions worden verleend, met admin consent:"
+      ]
+    }
+  }
+}

@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import GroupSyncBlock from './GroupSyncBlock';
-import type { GroupSyncSettings, GroupSyncStatus } from './SSOSection.types';
+import type { GroupSyncSettings, GroupSyncStatus } from './groupSync.types';
 import { panelOrgId } from '@/utils/adminAccess';
 import { apiRequest } from '@/api/typedRequest';
+import { SettingsGroup } from '@/components/shared/SettingsList';
+import LoadingState from '@/components/shared/LoadingState';
+import { ALERT_ERROR, ALERT_INFO } from '@/components/shared/adminUi';
 
 interface GroupSyncPanelProps {
     user?: { organizationId?: string } | null;
@@ -14,7 +17,7 @@ interface GroupSyncPanelProps {
     orgId?: string | null;
 }
 
-/** What GET /api/org-azure-config/:orgId/sync-groups/status answers (server/routes/orgAzureSyncView.js). */
+/** What GET /api/org-azure-config/:orgId/sync-groups/status answers (server/usecases/orgAzureSyncView.js). */
 interface GroupSyncRead {
     directoryConfigured: boolean;
     status: GroupSyncStatus | null;
@@ -28,11 +31,12 @@ async function readGroupSync(orgId: string): Promise<GroupSyncRead> {
 }
 
 /**
- * Settings > Organisation > Group sync, for an organisation admin who is not
- * the platform admin: the organisation's own Azure AD group sync (last run,
- * "Sync now", the sync settings). Its read answers whether a directory is
- * connected but none of the connection's values; the connection itself is the
- * platform admin's, in the full Azure panel.
+ * An organisation's own Entra ID group sync (last run, "Sync now", the sync
+ * settings): a card of the Microsoft 365 page (Microsoft365Panel), and on its
+ * own the Settings tab of an organisation admin. Its read answers whether a
+ * directory is connected but none of the connection's values; the connection
+ * itself is the platform admin's (the Microsoft sign-in app and the directory
+ * binding of MicrosoftIdentityPanel).
  */
 export default function GroupSyncPanel({ user, orgId: orgIdProp }: GroupSyncPanelProps) {
     const { t } = useTranslation();
@@ -42,52 +46,43 @@ export default function GroupSyncPanel({ user, orgId: orgIdProp }: GroupSyncPane
     const [settings, setSettings] = useState<GroupSyncSettings | null>(null);
     const [status, setStatus] = useState<GroupSyncStatus | null>(null);
 
-    if (!orgId) {
-        return (
-            <div className="rounded-xl px-5 py-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-                <p className="text-[13px] text-[var(--text-muted)]">{t('azure.no_org_message')}</p>
-            </div>
-        );
-    }
-
-    if (query.isPending) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-4">
-            <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest mb-2 text-[var(--text-muted)]">
-                    {t('azure.group_sync_nav', 'Group sync')}
-                </p>
-                <p className="flex items-start gap-2 text-[12px] mb-4 text-[var(--text-muted)]">
-                    <Info size={14} className="mt-0.5 flex-shrink-0" />
-                    {t('azure.group_sync_platform_managed', 'The directory connection itself is managed by the platform administrator.')}
-                </p>
-            </div>
-
-            {query.isError ? (
-                <div role="alert" className="flex items-center gap-2 px-4 py-3 rounded-lg text-[12px] [background:rgba(239,68,68,0.08)] [color:#ef4444]! [border:1px_solid_rgba(239,68,68,0.2)]">
-                    <AlertTriangle size={14} />
-                    {errorMessage(query.error)}
-                </div>
+        <SettingsGroup
+            title={t('azure.sync_groups_title', 'Microsoft Entra ID group sync')}
+            description={t('azure.sync_groups_desc', 'Automatically sync the groups and users assigned to your Entra ID enterprise app to Bee Flow.')}
+        >
+            {!orgId ? (
+                <p className={ALERT_INFO}>{t('azure.no_org_message')}</p>
             ) : (
-                <div className="rounded-xl px-6 py-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-                    <GroupSyncBlock
-                        orgId={orgId}
-                        connected={query.data.directoryConfigured}
-                        groupSyncSettings={settings ?? query.data.settings}
-                        groupSyncStatus={status ?? query.data.status}
-                        onSyncSettingsChange={setSettings}
-                        onSyncStatusChange={setStatus}
-                        notConnectedHint={t('azure.group_sync_not_connected', 'The platform administrator has not connected a directory to this organisation yet, so there is nothing to sync.')}
-                    />
-                </div>
+                <>
+                    <p className="m-0 flex items-start gap-2 text-xs text-[var(--text-tertiary)]">
+                        <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        {t('azure.group_sync_platform_managed', 'The directory connection itself is managed by the platform administrator.')}
+                    </p>
+                    <LoadingState
+                        loading={query.isPending}
+                        error={query.isError ? query.error : null}
+                        errorFallback={(err) => (
+                            <p role="alert" className={ALERT_ERROR}>
+                                <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                                {errorMessage(err)}
+                            </p>
+                        )}
+                    >
+                        {query.data && (
+                            <GroupSyncBlock
+                                orgId={orgId}
+                                connected={query.data.directoryConfigured}
+                                groupSyncSettings={settings ?? query.data.settings}
+                                groupSyncStatus={status ?? query.data.status}
+                                onSyncSettingsChange={setSettings}
+                                onSyncStatusChange={setStatus}
+                                notConnectedHint={t('azure.group_sync_not_connected', 'The platform administrator has not connected a directory to this organisation yet, so there is nothing to sync.')}
+                            />
+                        )}
+                    </LoadingState>
+                </>
             )}
-        </div>
+        </SettingsGroup>
     );
 }

@@ -1,22 +1,22 @@
 // The sections of the admin dashboard's Organisation tab and who sees which:
 // pure, so every rule can be tested without rendering a panel. The rules read
 // the viewer's standing and what the CHOSEN organisation has (its integration
-// availability, orgAvailabilityFactsOf), never the viewer's own session; most ids
+// availability, orgAvailabilityFacts), never the viewer's own session; most ids
 // are the old Settings URL segments (authedApp/settingsRoutes SETTINGS_ORG_ID_TO_URL),
 // and the renamed ones are ORG_SECTION_ALIASES (dashboard/adminPathAliases). Each
 // section is a row of the dashboard rail itself, in the rail group `group` names
 // (dashboard/adminRailRows).
 
 import {
-    BookOpen, Brain, Cloud, CreditCard, DatabaseZap, FileText, FolderGit2, FolderKanban, GraduationCap, Info, KeyRound,
-    Layers, Link2, Lock, MessagesSquare, Plug, RefreshCw, ShieldCheck,
+    BookOpen, Brain, Cloud, CreditCard, DatabaseZap, FileText, FolderGit2, FolderKanban, GraduationCap, Info, Layers,
+    Link2, Lock, LogIn, MessagesSquare, Plug, RefreshCw, ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AdminTabGroupId } from '@/components/admin/dashboard/adminTabs';
 import { orgSectionAlias } from '@/components/admin/dashboard/adminPathAliases';
-import type { IntegrationFamily, OrgIntegrationAvailability } from '@/api/queries/orgIntegrationAvailability';
+import type { IntegrationFamily, UnavailableReason } from '@/api/queries/orgIntegrationAvailability';
 import { isOrgAdminRole, isPlatformAdmin } from '@/utils/adminAccess';
-import { familyAvailable, type AvailabilityRead } from '@/utils/integrationAvailability';
+import type { OrgAvailabilityFacts } from './orgAvailabilityFacts';
 
 /** The rail groups the sections sit in (adminTabs ADMIN_TAB_GROUPS). */
 type OrgRailGroupId = Extract<AdminTabGroupId, 'organisation' | 'ai' | 'security' | 'connections'>;
@@ -25,6 +25,9 @@ export interface OrgHubSection {
     id: string;
     labelKey: string;
     labelFallback?: string;
+    /** The line under the page header (dashboard/AdminPage). */
+    descriptionKey?: string;
+    descriptionFallback?: string;
     icon: LucideIcon;
     /** The rail group the section's row sits in. */
     group: OrgRailGroupId;
@@ -36,24 +39,98 @@ export interface OrgHubSection {
  * meeting-templates, the Settings tab ids) are ORG_SECTION_ALIASES.
  */
 export const ORG_HUB_SECTIONS: readonly OrgHubSection[] = [
-    { id: 'info', labelKey: 'admin_nav.org_info', labelFallback: 'Organisation info', icon: Info, group: 'organisation' },
-    { id: 'license', labelKey: 'admin_nav.license_usage', labelFallback: 'Licence & usage', icon: CreditCard, group: 'organisation' },
-    { id: 'projects', labelKey: 'admin_nav.projects', labelFallback: 'Projects', icon: FolderKanban, group: 'organisation' },
-    { id: 'academy', labelKey: 'admin_nav.learning_center', labelFallback: 'Learning Center', icon: GraduationCap, group: 'organisation' },
-    { id: 'knowledge-bases', labelKey: 'admin_nav.knowledge_bases', labelFallback: 'Knowledge bases', icon: BookOpen, group: 'ai' },
-    { id: 'models', labelKey: 'admin_nav.models', labelFallback: 'Models', icon: Layers, group: 'ai' },
-    { id: 'conversations', labelKey: 'admin_nav.conversations', labelFallback: 'Conversations', icon: MessagesSquare, group: 'ai' },
-    { id: 'memory', labelKey: 'admin_nav.memory', labelFallback: 'Memory', icon: Brain, group: 'ai' },
-    { id: 'meeting-notes', labelKey: 'admin_nav.meeting_notes', labelFallback: 'Meeting notes', icon: FileText, group: 'ai' },
-    { id: 'auth', labelKey: 'org_signin.nav', icon: KeyRound, group: 'security' },
-    { id: 'encryption', labelKey: 'admin_nav.encryption', labelFallback: 'Encryption', icon: Lock, group: 'security' },
-    { id: 'mcp-access', labelKey: 'admin_nav.mcp_client_access', labelFallback: 'MCP client access', icon: ShieldCheck, group: 'security' },
-    { id: 'integrations', labelKey: 'admin_nav.integration_status', labelFallback: 'Integration status', icon: Link2, group: 'connections' },
-    { id: 'mcp', labelKey: 'admin_nav.mcp_servers', labelFallback: 'MCP servers', icon: Plug, group: 'connections' },
-    { id: 'nextcloud-sync', labelKey: 'admin_nav.nextcloud', labelFallback: 'Nextcloud', icon: Cloud, group: 'connections' },
-    { id: 'azure', labelKey: 'admin_nav.microsoft_365', labelFallback: 'Microsoft 365', icon: RefreshCw, group: 'connections' },
-    { id: 'github-sync', labelKey: 'admin_nav.github_sync', labelFallback: 'GitHub sync', icon: FolderGit2, group: 'connections' },
-    { id: 'integration-cache', labelKey: 'admin_nav.answer_cache', labelFallback: 'Automation answer cache', icon: DatabaseZap, group: 'connections' },
+    {
+        id: 'info', labelKey: 'admin_nav.org_info', labelFallback: 'Organisation info',
+        descriptionKey: 'admin_nav.org_info_desc', descriptionFallback: "The organisation's name, contact details and defaults.",
+        icon: Info, group: 'organisation',
+    },
+    {
+        id: 'license', labelKey: 'admin_nav.license_usage', labelFallback: 'Licence & usage',
+        descriptionKey: 'admin_nav.license_usage_desc', descriptionFallback: "The organisation's plan, seats and what it uses of them.",
+        icon: CreditCard, group: 'organisation',
+    },
+    {
+        id: 'projects', labelKey: 'admin_nav.projects', labelFallback: 'Projects',
+        descriptionKey: 'admin_nav.projects_desc', descriptionFallback: 'How the AI takes part in team chats, and editing together in real time.',
+        icon: FolderKanban, group: 'organisation',
+    },
+    {
+        id: 'academy', labelKey: 'admin_nav.learning_center', labelFallback: 'Learning Center',
+        descriptionKey: 'admin_nav.learning_center_desc', descriptionFallback: "Courses and required training for the organisation's members.",
+        icon: GraduationCap, group: 'organisation',
+    },
+    {
+        id: 'knowledge-bases', labelKey: 'admin_nav.knowledge_bases', labelFallback: 'Knowledge bases',
+        descriptionKey: 'admin_nav.knowledge_bases_desc', descriptionFallback: 'The built-in knowledge bases the organisation can switch on.',
+        icon: BookOpen, group: 'ai',
+    },
+    {
+        id: 'models', labelKey: 'admin_nav.models', labelFallback: 'Models',
+        descriptionKey: 'admin_nav.org_models_desc', descriptionFallback: "The organisation's own model tiers, next to the tiers of the whole server.",
+        icon: Layers, group: 'ai',
+    },
+    {
+        id: 'conversations', labelKey: 'admin_nav.conversations', labelFallback: 'Conversations',
+        descriptionKey: 'admin_nav.conversations_desc', descriptionFallback: 'How the AI handles long conversations: keep everything, or summarise older messages.',
+        icon: MessagesSquare, group: 'ai',
+    },
+    {
+        id: 'memory', labelKey: 'admin_nav.memory', labelFallback: 'Memory',
+        descriptionKey: 'admin_nav.memory_desc', descriptionFallback: 'What the AI may remember about people between conversations.',
+        icon: Brain, group: 'ai',
+    },
+    {
+        id: 'meeting-notes', labelKey: 'admin_nav.meeting_notes', labelFallback: 'Meeting notes',
+        descriptionKey: 'admin_nav.meeting_notes_desc', descriptionFallback: 'Summary templates, and the meeting services the notes come from.',
+        icon: FileText, group: 'ai',
+    },
+    {
+        id: 'auth', labelKey: 'org_signin.nav',
+        // The sign-in page's own introduction (the panel draws no header): it says the choice is a preference.
+        descriptionKey: 'org_signin.subtitle',
+        descriptionFallback: 'How you would like members of this organisation to sign in. It is a preference: the other sign-in methods of this server keep working, and you can change it at any time.',
+        icon: LogIn, group: 'security',
+    },
+    {
+        id: 'encryption', labelKey: 'admin_nav.encryption', labelFallback: 'Encryption',
+        descriptionKey: 'admin_nav.encryption_desc', descriptionFallback: "How the organisation's data is encrypted, and who holds the keys.",
+        icon: Lock, group: 'security',
+    },
+    {
+        id: 'mcp-access', labelKey: 'admin_nav.mcp_client_access', labelFallback: 'MCP client access',
+        descriptionKey: 'admin_nav.mcp_client_access_desc', descriptionFallback: "Which outside AI clients may reach the organisation's data through MCP.",
+        icon: ShieldCheck, group: 'security',
+    },
+    {
+        id: 'integrations', labelKey: 'admin_nav.integration_status', labelFallback: 'Integration status',
+        descriptionKey: 'admin_nav.integration_status_desc', descriptionFallback: 'Which integrations the organisation has, and the settings all its members share.',
+        icon: Link2, group: 'connections',
+    },
+    {
+        id: 'mcp', labelKey: 'admin_nav.mcp_servers', labelFallback: 'MCP servers',
+        descriptionKey: 'admin_nav.org_mcp_servers_desc', descriptionFallback: "The MCP servers the organisation's agents and chats can use.",
+        icon: Plug, group: 'connections',
+    },
+    {
+        id: 'nextcloud-sync', labelKey: 'admin_nav.nextcloud', labelFallback: 'Nextcloud',
+        descriptionKey: 'admin_nav.nextcloud_desc', descriptionFallback: "The organisation's Nextcloud: its connection, users and apps.",
+        icon: Cloud, group: 'connections',
+    },
+    {
+        id: 'azure', labelKey: 'admin_nav.microsoft_365', labelFallback: 'Microsoft 365',
+        descriptionKey: 'admin_nav.microsoft_365_desc', descriptionFallback: "The organisation's Microsoft 365: the groups synced from its directory, and the setup of Teams meeting notes.",
+        icon: RefreshCw, group: 'connections',
+    },
+    {
+        id: 'github-sync', labelKey: 'admin_nav.github_sync', labelFallback: 'GitHub sync',
+        descriptionKey: 'admin_nav.github_sync_desc', descriptionFallback: "Keep the organisation's agent configuration in a GitHub repository.",
+        icon: FolderGit2, group: 'connections',
+    },
+    {
+        id: 'integration-cache', labelKey: 'admin_nav.answer_cache', labelFallback: 'Automation answer cache',
+        descriptionKey: 'admin_nav.answer_cache_desc', descriptionFallback: 'Reuse answers from outside services between automation runs.',
+        icon: DatabaseZap, group: 'connections',
+    },
 ];
 
 /** The user fields the standing facts read. */
@@ -116,92 +193,8 @@ export function orgStandingFactsOf(user: OrgFactsUser | null | undefined): OrgSt
     };
 }
 
-/**
- * What the CHOSEN organisation has, from its integration availability
- * (api/queries/orgIntegrationAvailability), never the viewer's own session: a
- * platform admin looking at another organisation gets that organisation's
- * rows. Read by orgAvailabilityFactsOf with the fail policy of
- * utils/integrationAvailability.
- */
-export interface OrgAvailabilityFacts {
-    /** The organisation is bound to a Nextcloud. */
-    ncBound: boolean;
-    /**
-     * The Nextcloud row applies: a bound organisation, or the platform admin's
-     * home organisation while pairing is offered. The pairing half opens to an
-     * organisation admin once the section carries the "Connect a Nextcloud"
-     * pairing of its own (a later wave); today the page is the sync panel.
-     */
-    ncSectionAvailable: boolean;
-    /** The organisation can sync agent configuration with GitHub (the family is available, or a sync is already set up). */
-    githubAvailable: boolean;
-    /** Microsoft 365 applies: Microsoft is set up on the server, and the organisation has a directory connected or is the viewer's own. */
-    microsoft365: boolean;
-    meetingNotes: boolean;
-    mcp: boolean;
-    projects: boolean;
-    learningCenter: boolean;
-    automations: boolean;
-    /**
-     * The availability is still being read (set by useOrgSectionFacts): a
-     * section hidden only for want of an answer may yet open, so the tab waits
-     * instead of showing another section in its place.
-     */
-    availabilityPending?: boolean;
-}
-
 /** Everything the section rules read: the viewer's standing plus what the chosen organisation has. */
 export interface OrgSectionFacts extends Omit<OrgStandingFacts, 'canManageUsers' | 'isNcOrg' | 'showNcSync'>, OrgAvailabilityFacts {}
-
-interface AvailabilityFactsInput {
-    /** The availability query of the chosen organisation (a react-query result fits). */
-    read: AvailabilityRead | null | undefined;
-    /** The fail policy's viewer: a platform admin fails open, anyone else closed. */
-    platformAdmin: boolean;
-    /** The chosen organisation is the viewer's home organisation (the answer's own flag wins once there). */
-    homeOrg: boolean;
-    /** The viewer's session says their home organisation is bound to a Nextcloud: the fallback while there is no answer. */
-    sessionNcBound: boolean;
-}
-
-/** The answer is there and has the shape the rules read. */
-function knownAnswer(read: AvailabilityRead | null | undefined): OrgIntegrationAvailability | null {
-    const data = read?.data;
-    return !read?.isError && data && typeof data === 'object' && data.families && data.nextcloud ? data : null;
-}
-
-/** Microsoft 365 applies to the organisation: set up on the server, and a directory connected or the viewer's own organisation. */
-function microsoft365Of(answer: OrgIntegrationAvailability, ownOrg: boolean): boolean {
-    return !!answer.families.microsoft?.serverConfigured && (!!answer.microsoft?.directoryConnected || ownOrg);
-}
-
-/**
- * The chosen organisation's facts. Without an answer (loading, failed, no
- * organisation chosen) the Nextcloud binding falls back to the viewer's session
- * for their home organisation, the Nextcloud row is offered to a platform admin,
- * and every family follows the fail policy.
- */
-export function orgAvailabilityFactsOf({ read, platformAdmin, homeOrg, sessionNcBound }: AvailabilityFactsInput): OrgAvailabilityFacts {
-    const viewer = { platformAdmin };
-    const has = (family: IntegrationFamily) => familyAvailable(read, family, viewer).available;
-    const answer = knownAnswer(read);
-    const ownOrg = answer ? answer.homeOrg : homeOrg;
-    const ncBound = answer ? !!answer.nextcloud.bound : homeOrg && sessionNcBound;
-    const ncSectionAvailable = answer
-        ? ncBound || (platformAdmin && ownOrg && !!answer.nextcloud.pairingAvailable)
-        : platformAdmin || ncBound;
-    return {
-        ncBound,
-        ncSectionAvailable,
-        githubAvailable: has('github') || !!answer?.github?.syncConfigured,
-        microsoft365: answer ? microsoft365Of(answer, ownOrg) : platformAdmin,
-        meetingNotes: has('meetingNotes'),
-        mcp: has('mcp'),
-        projects: has('projects'),
-        learningCenter: has('learningCenter'),
-        automations: has('automations'),
-    };
-}
 
 /**
  * The rule of each section that does not simply follow canSeeOrg, on the chosen
@@ -256,11 +249,47 @@ export function awaitingOrgSection(f: OrgSectionFacts, requested: string | undef
     return !!f.availabilityPending && !!id && ORG_HUB_SECTIONS.some(s => s.id === id) && !isOrgSectionVisible(id, f);
 }
 
+/** What a request for an Organisation section opens: the section, and whether this viewer gets it. */
+export interface OrgSectionRequest {
+    id: string;
+    available: boolean;
+}
+
 /**
- * The section a request for `requested` opens: that one (by its current id,
- * ORG_SECTION_ALIASES) when this viewer has it, else the first one (none: '').
+ * The section a request opens. A section that exists (by its current id,
+ * ORG_SECTION_ALIASES) opens as itself, available or not: one this viewer does
+ * not get is the unavailable notice on its own address, never another section
+ * in its place. No section, or a name no section has, opens the first one this
+ * viewer gets (none: '').
  */
-export function activeOrgSection(sections: readonly Pick<OrgHubSection, 'id'>[], requested: string | undefined): string {
+export function openOrgSection(sections: readonly Pick<OrgHubSection, 'id'>[], requested: string | undefined): OrgSectionRequest {
     const id = orgSectionAlias(requested);
-    return sections.some(s => s.id === id) ? id as string : (sections[0]?.id ?? '');
+    if (id && ORG_HUB_SECTIONS.some(s => s.id === id)) return { id, available: sections.some(s => s.id === id) };
+    const first = sections[0]?.id ?? '';
+    return { id: first, available: !!first };
+}
+
+/** Why an Organisation section is not there for this viewer: an availability reason, or one of the section's own. */
+export type OrgSectionUnavailableReason = UnavailableReason | 'self_hosted_licence' | 'nextcloud_sign_in' | 'no_permission' | 'unknown';
+
+/** The availability family behind a section, where one decides it. */
+const SECTION_FAMILIES: Readonly<Record<string, IntegrationFamily>> = {
+    projects: 'projects',
+    academy: 'learningCenter',
+    'meeting-notes': 'meetingNotes',
+    mcp: 'mcp',
+    'integration-cache': 'automations',
+    'github-sync': 'github',
+    azure: 'microsoft',
+};
+
+/** Why section `id` is not visible on these facts (read only for a section isOrgSectionVisible refuses). */
+export function orgSectionUnavailableReason(id: string, f: OrgSectionFacts): OrgSectionUnavailableReason {
+    if (!f.canSeeOrg && !f.isPlatformAdmin) return 'no_permission';
+    if (id === 'license') return 'self_hosted_licence';
+    if (id === 'auth') return 'nextcloud_sign_in';
+    if (id === 'knowledge-bases') return 'no_permission';
+    if (id === 'nextcloud-sync') return 'not_bound';
+    const family = Object.hasOwn(SECTION_FAMILIES, id) ? SECTION_FAMILIES[id] : null;
+    return (family && f.familyReasons?.[family]) || 'unknown';
 }

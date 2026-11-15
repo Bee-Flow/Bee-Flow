@@ -30,6 +30,7 @@ const {
     MAX_CONTEXT_BUDGET_PERCENT,
 } = require('../core/llm/contextPolicy');
 const { contextWindowExamples } = require('../core/llm/contextWindowExamples.mts');
+const { compactionRunsOn } = require('../core/llm/runsOnModel.mts');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 
@@ -93,6 +94,10 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,
         },
+        // The display name of the model that writes the summaries (the Fast
+        // tier, set by the server administrator), or null: the screen says
+        // which model reads the conversation before an admin turns this on.
+        runsOn: await compactionRunsOn(orgId),
     });
 });
 
@@ -132,6 +137,7 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @t
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,
         },
+        runsOn: await compactionRunsOn(orgId),
     });
 });
 

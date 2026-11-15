@@ -1,30 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { RefreshCw, Users, Loader2 } from 'lucide-react';
 import { integrationsAdminKeys, useFreshOrgIdQuery, useNcSyncQuery } from '@/api/queries/integrationsAdmin';
 import type { NcSyncConfig, NcSyncUser } from '@/api/queries/integrationsAdmin';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { ApiError, RefusedError, errorBody } from '@/api/mutate';
 import { type ApiBody, apiRequest } from '@/api/typedRequest';
+import { Button } from '@/components/shared/Button';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import SaveStatus from '@/components/shared/SaveStatus';
+import { SettingBlock, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import { ALERT_ERROR, ALERT_SUCCESS, ALERT_WARNING, CHIP, CHIP_SUCCESS, CHIP_WARNING, DOT_LIVE, DOT_OFF, DOT_WARN } from '@/components/shared/adminUi';
+import { NC_SYNC_MODES, isNcSyncMode, relativeSince, syncModeDescription, syncModeLabel, type NcSyncMode } from './ncSyncText';
+import { useAutosaveStatus } from './useAutosaveStatus';
 
-// Theme tokens only, so every card, pill and control stays readable in the
-// dark themes (Tailwind 4 draws a bare `border` in currentColor).
-const SECTION = 'rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4';
-const SECTION_TITLE = 'font-medium text-[var(--text-primary)]';
-const STAT_CARD = 'rounded-xl px-3 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]';
+// Theme tokens only, so every card, pill and control stays readable in every theme.
+const STAT_CARD = 'rounded-lg px-3 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]';
 const STAT_LABEL = 'text-[10px] font-semibold uppercase tracking-wider mb-0.5 text-[var(--text-muted)]';
-const statusPill = (status: string) => (
-    status === 'active' ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]'
-        : status === 'pending' ? 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]'
-            : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-);
+const CHECKBOX = 'h-3.5 w-3.5 accent-[var(--accent-primary)]';
+
+/** "Selected groups" with no group to mirror: not stored until a group is chosen. */
+const needsGroup = (c: NcSyncConfig) => c.mode === 'selective_groups' && !(c.syncGroups && c.syncGroups.length);
+
+const statusChip = (status: string) => (status === 'active' ? CHIP_SUCCESS : status === 'pending' ? CHIP_WARNING : CHIP);
 
 /**
  * Org-admin UI for Nextcloud user/group sync.
  *
  * The org is auto-bound to a NC instance during connector bootstrap. This
  * panel lets the admin pick the sync mode, exclude specific NC groups,
- * and force an on-demand re-sync.
+ * and force an on-demand re-sync. Every control saves itself (SaveStatus);
+ * the page header is the admin dashboard frame's.
  */
 interface NextcloudSyncPanelProps {
     user?: { organizationId?: string | null } | null;
@@ -44,7 +50,7 @@ function useNcSyncData(user: NextcloudSyncPanelProps['user'], orgIdProp: string 
     const orgId = named ? propOrgId : propOrgId || freshOrgId;
     const queryClient = useQueryClient();
     const syncQuery = useNcSyncQuery(orgId);
-    // Unsaved edits on top of the server answer; a reload (after a sync) drops them, like the load it replaces.
+    // Edits on top of the server answer until the next reload (after a sync) drops them.
     const [patch, setPatch] = useState<Partial<NcSyncConfig>>({});
     const config: NcSyncConfig | null = syncQuery.data?.config ? { ...syncQuery.data.config, ...patch } : null;
     const update = (change: Partial<NcSyncConfig>) => setPatch(p => ({ ...p, ...change }));
@@ -60,221 +66,206 @@ function useNcSyncData(user: NextcloudSyncPanelProps['user'], orgIdProp: string 
     };
 }
 
+/** PUT nc-sync with the whole configuration; a refusal is "not saved". */
+async function saveNcSync(orgId: string | null, config: NcSyncConfig, t: TranslateFn): Promise<void> {
+    type Body = ApiBody<'PUT /auth/admin/{orgId}/nc-sync'>;
+    try {
+        await apiRequest('PUT /auth/admin/{orgId}/nc-sync', {
+            params: { orgId: String(orgId) },
+            body: {
+                mode: config.mode as Body['mode'],
+                syncGroups: config.syncGroups,
+                excludedGroups: config.excludedGroups,
+                newUserDefaultStatus: config.newUserDefaultStatus as Body['newUserDefaultStatus'],
+            },
+        });
+    } catch (err) {
+        if (!(err instanceof ApiError)) throw err;
+        throw new Error(t('admin_connections.save_failed', 'Not saved. Try again.'));
+    }
+}
+
 /** POST nc-sync/run; a refusal reads as the server's `error` (or "Sync failed"). */
-async function runNcSync(orgId: string | null): Promise<{ created?: number; deactivated?: number }> {
+async function runNcSync(orgId: string | null, t: TranslateFn): Promise<{ created?: number; deactivated?: number }> {
     try {
         const res = await apiRequest('POST /auth/admin/{orgId}/nc-sync/run', { params: { orgId: String(orgId) } });
         return await res.json();
     } catch (err) {
-        if (err instanceof RefusedError) throw new Error((errorBody(err) as { error?: string } | null)?.error || 'Sync failed');
+        if (err instanceof RefusedError) throw new Error((errorBody(err) as { error?: string } | null)?.error || t('admin_connections.nc_sync_failed', 'Sync failed.'));
         throw err;
     }
 }
 
+type SyncResult = { ok: true; created: number; deactivated: number } | { ok: false; text: string };
+
 const NextcloudSyncPanel = ({ user, orgId: orgIdProp }: NextcloudSyncPanelProps) => {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { orgId, config, groups, users, loading, update, reload } = useNcSyncData(user, orgIdProp);
-    const [saving, setSaving] = useState(false);
+    const autosave = useAutosaveStatus();
     const [syncing, setSyncing] = useState(false);
-    const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);
+    const [result, setResult] = useState<SyncResult | null>(null);
 
-    useEffect(() => {
-        if (message) {
-            const t = setTimeout(() => setMessage(null), 4000);
-            return () => clearTimeout(t);
-        }
-    }, [message]);
+    if (loading) return <div role="status"><Loader2 className="animate-spin text-[var(--text-muted)]" aria-label={t('common.loading', 'Loading...')} /></div>;
+    if (!config) return <div className="text-sm text-[var(--text-muted)]">{t('integ.nextcloud_sync_nextcloud_sync_is_only_available_for', 'Nextcloud sync is only available for organisations bound to a Nextcloud instance.')}</div>;
 
+    /**
+     * Every change is saved at once with the whole configuration, except
+     * "Selected groups" without a group: stored, it mirrors nobody and the next
+     * group change in Nextcloud switches that member's account off. It waits
+     * on screen until a group is ticked, which then saves both.
+     */
+    const change = (patch: Partial<NcSyncConfig>) => {
+        const next = { ...config, ...patch };
+        update(patch);
+        if (needsGroup(next)) return;
+        void autosave.run(() => saveNcSync(orgId, next, t));
+    };
     const toggleGroup = (key: 'syncGroups' | 'excludedGroups', group: string) => {
-        const list = (config as NcSyncConfig)[key] || [];
-        const next = list.includes(group) ? list.filter((g: string) => g !== group) : [...list, group];
-        update({ [key]: next });
+        const list = config[key] || [];
+        change({ [key]: list.includes(group) ? list.filter((g: string) => g !== group) : [...list, group] });
     };
-
-    const handleSave = async () => {
-        if (!config) return;
-        setSaving(true);
-        try {
-            try {
-                await apiRequest('PUT /auth/admin/{orgId}/nc-sync', {
-                    params: { orgId: String(orgId) },
-                    body: {
-                    mode: config.mode as ApiBody<'PUT /auth/admin/{orgId}/nc-sync'>['mode'],
-                    syncGroups: config.syncGroups,
-                    excludedGroups: config.excludedGroups,
-                    newUserDefaultStatus: config.newUserDefaultStatus as ApiBody<'PUT /auth/admin/{orgId}/nc-sync'>['newUserDefaultStatus'],
-                },
-                });
-            } catch (err) {
-                if (!(err instanceof ApiError)) throw err;
-                throw new Error('Save failed');
-            }
-            setMessage({ type: 'ok', text: 'Settings saved' });
-        } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message });
-        } finally { setSaving(false); }
-    };
-
     const handleSyncNow = async () => {
         setSyncing(true);
+        setResult(null);
         try {
-            const j = await runNcSync(orgId);
-            setMessage({ type: 'ok', text: `Sync done: created ${j.created || 0}, deactivated ${j.deactivated || 0}` });
+            const j = await runNcSync(orgId, t);
+            setResult({ ok: true, created: j.created || 0, deactivated: j.deactivated || 0 });
             await reload();
         } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message });
+            setResult({ ok: false, text: (e as Error).message });
         } finally { setSyncing(false); }
     };
 
-    if (loading) return <div><Loader2 className="animate-spin text-[var(--text-muted)]" /></div>;
-    if (!config) return <div className="text-sm text-[var(--text-muted)]">{t('integ.nextcloud_sync_nextcloud_sync_is_only_available_for', 'Nextcloud sync is only available for organisations bound to a Nextcloud instance.')}</div>;
-
-    // Format relative timestamp for "Last sync" — < 1 min ago, 30 min ago,
-    // 4 hr ago, 2 days ago, etc. Falls back to absolute date if older than 7d.
-    const formatLastSync = (iso: string | number | Date | undefined) => {
-        if (!iso) return 'never';
-        const ms = Date.now() - new Date(iso).getTime();
-        if (ms < 60_000) return 'just now';
-        if (ms < 3600_000) return `${Math.floor(ms / 60_000)} min ago`;
-        if (ms < 86400_000) return `${Math.floor(ms / 3600_000)} hr ago`;
-        if (ms < 7 * 86400_000) return `${Math.floor(ms / 86400_000)} d ago`;
-        return new Date(iso).toLocaleDateString();
-    };
-    const modeLabel = ({ mirror_all: 'Mirror everything', selective_groups: 'Selective groups', manual: 'Manual only' } as Record<string, string>)[config.mode as string] || config.mode;
-    const activeUsers = users.filter(u => u.status === 'active').length;
-    const isFresh = config.lastSyncAt && (Date.now() - new Date(config.lastSyncAt).getTime() < 30 * 60_000);
-
+    const mode: NcSyncMode = isNcSyncMode(config.mode) ? config.mode : 'manual';
+    const manual = mode === 'manual';
+    // The shown mode is not stored yet: a sync would still run the stored one.
+    const waitingForGroup = needsGroup(config);
     return (
-        <div className="space-y-6 max-w-3xl">
-            <header className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Cloud className="w-5 h-5 [color:#0082C9]" />
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.nextcloud_sync_nextcloud_sync', 'Nextcloud Sync')}</h2>
-                </div>
-                <button onClick={handleSyncNow} disabled={syncing || config.mode === 'manual'}
-                    title={config.mode === 'manual' ? 'Sync mode is set to Manual — change to mirror or selective to enable.' : 'Run a full diff sync now'}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg disabled:opacity-50 transition-opacity bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]">
-                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        <div className="flex flex-col gap-6" data-testid="nextcloud-sync-panel">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <SaveStatus saveState={autosave.state} lastSavedAt={autosave.lastSavedAt} onRetry={autosave.retry} showWhenIdle size={12} />
+                <Button
+                    variant="primary" size="sm" icon={syncing ? undefined : RefreshCw} busy={syncing} disabled={manual || waitingForGroup} onClick={handleSyncNow}
+                    title={manual ? t('admin_connections.nc_sync_manual_hint', 'The sync mode is Manual only. Pick another mode to sync.') : t('admin_connections.nc_sync_now_hint', 'Compare with Nextcloud and sync now')}
+                >
+                    {syncing && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
                     {t('integ.nextcloud_sync_sync_now', 'Sync now')}
-                </button>
-            </header>
+                </Button>
+            </div>
+            {autosave.state === 'error' && autosave.error && <div role="alert" className={ALERT_ERROR}>{autosave.error}</div>}
+            {result && (result.ok
+                ? <div role="status" className={ALERT_SUCCESS}>{t('admin_connections.nc_sync_done', 'Sync done: {created} created, {deactivated} deactivated.', { created: result.created, deactivated: result.deactivated })}</div>
+                : <div role="alert" className={ALERT_ERROR}>{result.text}</div>)}
 
-            {/* Connection-health stat row — at-a-glance status of the NC binding. */}
-            <NextcloudSyncPanelSection t={t} config={config} modeLabel={modeLabel} activeUsers={activeUsers} users={users} isFresh={isFresh} formatLastSync={formatLastSync} />
+            <SyncStats t={t} config={config} mode={mode} users={users} locale={resolvedLocale} />
 
-            <NextcloudSyncPanelSection2 t={t} config={config} update={update} />
+            <SettingsGroup title={t('integ.nextcloud_sync_sync_mode', 'Sync mode')}>
+                <ChoiceCards
+                    value={mode}
+                    onChange={next => change({ mode: next })}
+                    ariaLabel={t('integ.nextcloud_sync_sync_mode', 'Sync mode')}
+                    columns={3}
+                    options={NC_SYNC_MODES.map(m => ({ value: m, label: syncModeLabel(t, m), description: syncModeDescription(t, m) }))}
+                />
+            </SettingsGroup>
 
-            <section className={`${SECTION} space-y-3`}>
-                <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_new_user_default_status', 'New user default status')}</h3>
-                <select value={config.newUserDefaultStatus} onChange={e => update({ newUserDefaultStatus: e.target.value })}
-                    className="rounded-lg border px-2 py-1 text-sm outline-none bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]">
-                    <option value="active">{t('integ.nextcloud_sync_active_immediately_recommended', 'Active immediately (recommended)')}</option>
-                    <option value="pending">{t('integ.nextcloud_sync_pending_admin_must_approve', 'Pending — admin must approve')}</option>
-                </select>
-            </section>
+            <SettingsGroup title={t('admin_connections.nc_accounts_title', 'New accounts')}>
+                <SettingsList>
+                    <SettingRow label={t('integ.nextcloud_sync_new_user_default_status', 'New user default status')} htmlFor="nc-sync-default-status">
+                        <select
+                            id="nc-sync-default-status"
+                            value={config.newUserDefaultStatus}
+                            onChange={e => change({ newUserDefaultStatus: e.target.value })}
+                            className="w-full rounded-md border px-2 py-1.5 text-[13px] outline-none bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)]"
+                        >
+                            <option value="active">{t('integ.nextcloud_sync_active_immediately_recommended', 'Active immediately (recommended)')}</option>
+                            <option value="pending">{t('integ.nextcloud_sync_pending_admin_must_approve', 'Pending — admin must approve')}</option>
+                        </select>
+                    </SettingRow>
+                    {mode === 'selective_groups' && (
+                        <SettingBlock label={t('integ.nextcloud_sync_groups_to_mirror', 'Groups to mirror')} hint={t('admin_connections.nc_groups_to_mirror_hint', 'Only members of these Nextcloud groups get an account.')}>
+                            {waitingForGroup && (
+                                <div role="note" className={`${ALERT_WARNING} mb-2`}>
+                                    {t('admin_connections.nc_pick_a_group', 'Pick at least one group. "Selected groups" is saved once a group is ticked; until then the saved mode stays in force.')}
+                                </div>
+                            )}
+                            <GroupChecklist groups={groups} checked={config.syncGroups} onToggle={g => toggleGroup('syncGroups', g)} />
+                        </SettingBlock>
+                    )}
+                    <SettingBlock label={t('integ.nextcloud_sync_excluded_groups', 'Excluded groups')} hint={t('admin_connections.nc_excluded_hint', 'Members of these Nextcloud groups never get an account, whatever the sync mode.')}>
+                        <GroupChecklist groups={groups} checked={config.excludedGroups} onToggle={g => toggleGroup('excludedGroups', g)} />
+                    </SettingBlock>
+                </SettingsList>
+            </SettingsGroup>
 
-            {config.mode === 'selective_groups' && (
-                <section className={`${SECTION} space-y-2`}>
-                    <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_groups_to_mirror', 'Groups to mirror')}</h3>
-                    <p className="text-xs text-[var(--text-muted)]">{t('integ.nextcloud_sync_only_members_of_these_nc_groups_are', 'Only members of these NC groups are synced.')}</p>
-                    <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
-                        {groups.map(g => (
-                            <label key={g} className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                                <input type="checkbox" checked={config.syncGroups?.includes(g)}
-                                    onChange={() => toggleGroup('syncGroups', g)} />
-                                {g}
-                            </label>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            <section className={`${SECTION} space-y-2`}>
-                <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_excluded_groups', 'Excluded groups')}</h3>
-                <p className="text-xs text-[var(--text-muted)]">{t('integ.nextcloud_sync_members_of_these_nc_groups_are_never', 'Members of these NC groups are NEVER mirrored, even under "mirror everything".')}</p>
-                <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
-                    {groups.map(g => (
-                        <label key={g} className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                            <input type="checkbox" checked={config.excludedGroups?.includes(g)}
-                                onChange={() => toggleGroup('excludedGroups', g)} />
-                            {g}
-                        </label>
-                    ))}
-                </div>
-            </section>
-
-            <section className={SECTION}>
-                <h3 className={`${SECTION_TITLE} flex items-center gap-2`}><Users className="w-4 h-4" /> {t('integ.nextcloud_sync_synced_users_count', 'Synced users ({count})', { count: users.length })}</h3>
-                <ul className="text-sm mt-2 max-h-48 overflow-y-auto divide-y divide-[var(--border-subtle)] text-[var(--text-primary)]">
+            <SettingsGroup title={<span className="inline-flex items-center gap-2"><Users className="w-4 h-4" aria-hidden="true" />{t('integ.nextcloud_sync_synced_users_count', 'Synced users ({count})', { count: users.length })}</span>}>
+                <ul className="max-h-48 overflow-y-auto divide-y divide-[var(--border-subtle)] rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-sm text-[var(--text-primary)]">
                     {users.map(u => (
-                        <li key={u.id} className="py-1.5 flex items-center justify-between">
-                            <span>{u.displayName} <span className="text-[var(--text-muted)]">({u.email})</span></span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${statusPill(u.status)}`}>{u.status}</span>
+                        <li key={u.id} className="px-3 py-1.5 flex items-center justify-between gap-2">
+                            <span className="min-w-0 truncate">{u.displayName} <span className="text-[var(--text-muted)]">({u.email})</span></span>
+                            <span className={statusChip(u.status)}>{userStatusLabel(t, u.status)}</span>
                         </li>
                     ))}
                 </ul>
-            </section>
-
-            <div className="flex items-center gap-3">
-                <button onClick={handleSave} disabled={saving}
-                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]">
-                    {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
-                </button>
-                {message && (
-                    <span className={`text-sm flex items-center gap-1 ${message.type === 'error' ? 'text-[var(--error-ink)]' : 'text-[var(--success-ink)]'}`}>
-                        {message.type === 'error' ? <AlertTriangle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        {message.text}
-                    </span>
-                )}
-            </div>
+            </SettingsGroup>
         </div>
     );
 };
 
 export default NextcloudSyncPanel;
 
-function NextcloudSyncPanelSection2({ t, config, update }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: NcSyncConfig; update: (patch: Partial<NcSyncConfig>) => void; }) {
-    return <section className={`${SECTION} space-y-3`}>
-        <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</h3>
-        {[
-            { v: 'mirror_all', t: 'Mirror everything', d: 'Every Nextcloud user is automatically created in Bee Flow.' },
-            { v: 'selective_groups', t: 'Selective groups', d: 'Only users in the chosen NC groups are mirrored.' },
-            { v: 'manual', t: 'Manual only', d: 'New NC users are not auto-created — invite manually.' },
-        ].map(opt => (
-            <label key={opt.v} className="flex items-start gap-2">
-                <input type="radio" name="mode" value={opt.v} checked={config.mode === opt.v}
-                    onChange={() => update({ mode: opt.v })} className="mt-1" />
-                <div>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">{opt.t}</div>
-                    <div className="text-xs text-[var(--text-muted)]">{opt.d}</div>
-                </div>
-            </label>
-        ))}
-    </section>;
+function userStatusLabel(t: TranslateFn, status: string): string {
+    switch (status) {
+        case 'active': return t('admin_connections.nc_user_active', 'Active');
+        case 'pending': return t('admin_connections.nc_user_pending', 'Pending');
+        case 'disabled': return t('admin_connections.nc_user_disabled', 'Disabled');
+        default: return status;
+    }
 }
 
-function NextcloudSyncPanelSection({ t, config, modeLabel, activeUsers, users, isFresh, formatLastSync }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: NcSyncConfig; modeLabel: string | undefined; activeUsers: number; users: NcSyncUser[]; isFresh: string | boolean | undefined; formatLastSync: (iso: string | number | Date | undefined) => string; }) {
-    return <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className={STAT_CARD}>
-            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_instance', 'Instance')}</div>
-            <div className="text-[12px] font-medium truncate text-[var(--text-primary)]" title={config.ncBaseUrl}>
-                {config.ncBaseUrl ? config.ncBaseUrl.replace(/^https?:\/\//, '') : '—'}
+function GroupChecklist({ groups, checked, onToggle }: { groups: readonly string[]; checked: readonly string[] | undefined; onToggle: (group: string) => void }) {
+    const { t } = useTranslation();
+    if (groups.length === 0) return <p className="m-0 text-xs text-[var(--text-muted)]">{t('admin_connections.nc_no_groups', 'No Nextcloud groups yet. Run a sync first.')}</p>;
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+            {groups.map(g => (
+                <label key={g} className="flex items-center gap-2 text-sm text-[var(--text-primary)] cursor-pointer">
+                    <input type="checkbox" className={CHECKBOX} checked={!!checked?.includes(g)} onChange={() => onToggle(g)} />
+                    {g}
+                </label>
+            ))}
+        </div>
+    );
+}
+
+function SyncStats({ t, config, mode, users, locale }: { t: TranslateFn; config: NcSyncConfig; mode: NcSyncMode; users: NcSyncUser[]; locale: string }) {
+    // The clock is read once per mount: the page is re-read after every sync anyway.
+    const [now] = useState(() => Date.now());
+    const activeUsers = users.filter(u => u.status === 'active').length;
+    const isFresh = !!config.lastSyncAt && (now - new Date(config.lastSyncAt).getTime() < 30 * 60_000);
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className={STAT_CARD}>
+                <div className={STAT_LABEL}>{t('integ.nextcloud_sync_instance', 'Instance')}</div>
+                <div className="text-[12px] font-medium truncate text-[var(--text-primary)]" title={config.ncBaseUrl}>
+                    {config.ncBaseUrl ? config.ncBaseUrl.replace(/^https?:\/\//, '') : '—'}
+                </div>
+            </div>
+            <div className={STAT_CARD}>
+                <div className={STAT_LABEL}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</div>
+                <div className="text-[12px] font-medium text-[var(--text-primary)]">{syncModeLabel(t, mode)}</div>
+            </div>
+            <div className={STAT_CARD}>
+                <div className={STAT_LABEL}>{t('integ.nextcloud_sync_active_users', 'Active users')}</div>
+                <div className="text-[12px] font-medium text-[var(--text-primary)]">{activeUsers} <span className="text-[var(--text-muted)] font-normal">/ {users.length}</span></div>
+            </div>
+            <div className={STAT_CARD}>
+                <div className={STAT_LABEL}>{t('integ.nextcloud_sync_last_sync', 'Last sync')}</div>
+                <div className="text-[12px] font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
+                    <span className={isFresh ? DOT_LIVE : config.lastSyncAt ? DOT_WARN : DOT_OFF} aria-hidden="true" />
+                    {relativeSince(config.lastSyncAt, locale, now) ?? t('admin_connections.nc_never', 'Never')}
+                </div>
             </div>
         </div>
-        <div className={STAT_CARD}>
-            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</div>
-            <div className="text-[12px] font-medium text-[var(--text-primary)]">{modeLabel}</div>
-        </div>
-        <div className={STAT_CARD}>
-            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_active_users', 'Active users')}</div>
-            <div className="text-[12px] font-medium text-[var(--text-primary)]">{activeUsers} <span className="opacity-60 font-normal">/ {users.length}</span></div>
-        </div>
-        <div className={STAT_CARD}>
-            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_last_sync', 'Last sync')}</div>
-            <div className="text-[12px] font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
-                <span className={`w-1.5 h-1.5 rounded-full ${isFresh ? 'bg-[var(--success)]' : config.lastSyncAt ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                {formatLastSync(config.lastSyncAt)}
-            </div>
-        </div>
-    </div>;
+    );
 }

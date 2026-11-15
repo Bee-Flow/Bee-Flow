@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useBackfillJobQuery, useStartBackfill, type BackfillSurfaceStats } from '@/api/queries/encryptionBackfill';
 import { useTranslation } from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { Button } from '@/components/shared/Button';
 import { toast } from '@/components/shared/Toast';
 import { messageOf } from '@/utils/caughtError';
 
@@ -18,8 +19,6 @@ interface Props {
     /** Unsaved tier selection: the buttons wait until it is saved. */
     dirty: boolean;
 }
-
-const BTN = 'rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50';
 
 function SurfaceLine({ surface, label, st, dryRun }: { surface: string; label: string; st: BackfillSurfaceStats; dryRun: boolean }) {
     const { t } = useTranslation();
@@ -31,7 +30,7 @@ function SurfaceLine({ surface, label, st, dryRun }: { surface: string; label: s
     const encrypted = dryRun ? t('admin.encryption.backfill_would_encrypt', 'would encrypt') : t('admin.encryption.backfill_encrypted', 'encrypted');
     return (
         <li data-testid={`backfill-surface-${surface}`}>
-            <span className="font-medium">{label}</span>
+            <span className="font-medium text-[var(--text-primary)]">{label}</span>
             {': '}
             {legacy ? `${moved} ${st.migrated ?? 0}, ${removed} ${st.encrypted}` : `${encrypted} ${st.encrypted}`}
             {', '}{t('admin.encryption.backfill_skipped', 'already done')} {st.skipped}
@@ -77,52 +76,42 @@ export default function EncryptExistingData({ orgId, dirty }: Props) {
 
     return (
         <section
-            className="space-y-3 rounded-lg border border-[var(--border-color)] p-4"
+            className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-4"
             aria-label={t('admin.encryption.backfill_title', 'Encrypt existing data')}
         >
-            <h3 className="flex items-center gap-2 text-base font-semibold">
-                <DatabaseZap className="h-4 w-4" aria-hidden="true" />
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                <DatabaseZap className="h-4 w-4 text-[var(--text-secondary)]" aria-hidden="true" />
                 {t('admin.encryption.backfill_title', 'Encrypt existing data')}
             </h3>
-            <p className="text-sm opacity-75">
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t(
                     'admin.encryption.backfill_intro',
                     'New messages are already encrypted. This also encrypts what was stored before. Existing messages stay readable either way. It can take a while, so keep a database backup, and note that searching message text in SQL will not work on encrypted rows.',
                 )}
             </p>
-            <p className="text-sm opacity-75">
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t(
                     'admin.encryption.backfill_legacy_note',
                     'Old plaintext copies of conversations are removed once they have been encrypted.',
                 )}
             </p>
             {dirty && (
-                <p className="text-sm text-amber-700 dark:text-amber-300">
+                <p className="text-sm text-[var(--warning-ink)]">
                     {t('admin.encryption.backfill_save_first', 'Save your encryption level first.')}
                 </p>
             )}
             <div className="flex flex-wrap gap-3">
-                <button
-                    type="button"
-                    onClick={() => run(true)}
-                    disabled={disabled}
-                    className={`${BTN} border border-[var(--border-color)] hover:bg-black/5 dark:hover:bg-white/5`}
-                >
+                <Button variant="secondary" onClick={() => run(true)} disabled={disabled}>
                     {t('admin.encryption.backfill_preview', 'Preview')}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={disabled}
-                    className={`${BTN} bg-[var(--accent-primary)] text-white hover:opacity-90`}
-                >
+                </Button>
+                <Button variant="primary" onClick={() => setConfirmOpen(true)} disabled={disabled}>
                     {t('admin.encryption.backfill_run', 'Encrypt existing data')}
-                </button>
+                </Button>
             </div>
 
             {job && job.status !== 'idle' && (
-                <div className="space-y-2 text-sm" role="status" aria-live="polite">
-                    <p className="font-medium">
+                <div className="space-y-2 text-sm text-[var(--text-secondary)]" role="status" aria-live="polite">
+                    <p className="font-medium text-[var(--text-primary)]">
                         {job.status === 'running' && (job.dryRun
                             ? t('admin.encryption.backfill_running_preview', 'Preview is running…')
                             : t('admin.encryption.backfill_running', 'Encrypting existing data…'))}

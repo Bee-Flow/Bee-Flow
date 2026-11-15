@@ -1,6 +1,7 @@
 import { Loader2, Trash2, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import Button from '@/components/shared/Button';
 
 interface RemoveModuleDialogProps {
     module: { id?: string; name: string };
@@ -22,7 +23,7 @@ export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }
             disableEscapeClose={busy}
             title={
                 <span className="flex items-center gap-2">
-                    <Trash2 className="w-4 h-4 [color:#ef4444]" aria-hidden="true" />
+                    <Trash2 className="w-4 h-4 text-[var(--error-ink)]" aria-hidden="true" />
                     {t('modules.remove_confirm_title', { name: module.name })}
                 </span>
             }
@@ -33,21 +34,13 @@ export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }
             }
             footer={
                 <>
-                    <button
-                        onClick={onCancel}
-                        disabled={busy}
-                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
-                    >
+                    <Button variant="secondary" onClick={onCancel} disabled={busy}>
                         {t('modules.cancel')}
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        disabled={busy}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:rgba(239,68,68,0.12)] [color:#ef4444]! [border:1px_solid_rgba(239,68,68,0.35)]"
-                    >
+                    </Button>
+                    <Button variant="danger" onClick={onConfirm} busy={busy}>
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         {t('modules.remove_confirm_cta')}
-                    </button>
+                    </Button>
                 </>
             }
         >

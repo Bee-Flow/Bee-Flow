@@ -1,6 +1,7 @@
 import { Crown, ExternalLink, Info, Loader2, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { CHIP_WARNING, PRIMARY_BTN } from '@/components/shared/adminUi';
 import type { N8nGroup, PermissionSummary } from './n8nModel';
 
 interface Bucket {
@@ -43,7 +44,7 @@ function CreateGroupRow({ onCreate, onCancel }: { onCreate: (name: string) => Pr
             <button
                 onClick={handleCreate}
                 disabled={creating || !newGroupName.trim()}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
+                className={PRIMARY_BTN}
             >
                 {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('settings.n8n.create_grant', 'Create & grant')}
             </button>
@@ -126,9 +127,9 @@ function OrgAdminRow() {
     return (
         <li className="px-3 py-2 flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                <Crown className="w-3.5 h-3.5 [color:#f59e0b]" />
+                <Crown className="w-3.5 h-3.5 text-[var(--warning-ink)]" />
                 {t('settings.n8n.org_admins', 'Organisation Admins')}
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
+                <span className={CHIP_WARNING}>
                     {t('settings.n8n.always', 'always')}
                 </span>
             </span>
@@ -176,7 +177,7 @@ function PermissionBucket({ bucket, availableGroups, orgAdminAlways, onAdd, onRe
                             <button
                                 onClick={() => withBusy(g.id, onRemove)}
                                 disabled={busyGroupId === g.id}
-                                className="p-1 rounded hover:bg-red-500/10 disabled:opacity-50 text-[var(--text-muted)]"
+                                className="p-1 rounded hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] hover:text-[var(--error-ink)] disabled:opacity-50 text-[var(--text-muted)]"
                                 title={t('settings.n8n.revoke', 'Revoke permission')}
                             >
                                 {busyGroupId === g.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}

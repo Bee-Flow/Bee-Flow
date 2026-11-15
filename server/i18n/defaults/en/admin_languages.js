@@ -62,7 +62,7 @@ module.exports = {
     "admin_languages.set_default": "Set as default",
     "admin_languages.tab_emails": "Email Templates",
     "admin_languages.tab_gui": "GUI Translations",
-    "admin_languages.tab_prompts": "System Prompts",
+    "admin_languages.tab_prompts": "Prompt translations",
     "admin_languages.test_sent": "Test email sent",
     "admin_languages.title": "Languages",
     "admin_languages.translation_locale": "Translation ({locale})",

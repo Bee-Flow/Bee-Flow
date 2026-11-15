@@ -1,9 +1,8 @@
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/shared/Button';
+import { ALERT_ERROR, INPUT } from '@/components/shared/adminUi';
 import { useTranslation } from '@/hooks/useTranslation';
 import { AccessCheckCard } from './N8nStatus';
 import type { N8nConnection } from './useN8nState';
-
-const FIELD_STYLE = { borderColor: 'var(--border-default)', color: 'var(--text-primary)' };
 
 /** The instance URL and API key, Save / Test, and the access check once configured. */
 export default function N8nConnectionTab({ conn, saving, onGotoPermissions }: { conn: N8nConnection; saving: boolean; onGotoPermissions: () => void }) {
@@ -26,8 +25,7 @@ export default function N8nConnectionTab({ conn, saving, onGotoPermissions }: { 
                 <input
                     type="url" value={n8nUrl} onChange={e => conn.setN8nUrl(e.target.value)}
                     placeholder="https://n8n.yourdomain.com"
-                    className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
-                    style={FIELD_STYLE}
+                    className={INPUT}
                 />
                 <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                     {t('settings.n8n.instance_url_hint', 'Base URL of your n8n instance. `/api/v1` is appended automatically.')}
@@ -40,8 +38,7 @@ export default function N8nConnectionTab({ conn, saving, onGotoPermissions }: { 
                     type="password" value={apiKey} onChange={e => conn.setApiKey(e.target.value)}
                     /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
                     placeholder={hasApiKey ? '••••••••••••••••' : t('settings.n8n.api_key_placeholder', 'Enter your n8n API key')}
-                    className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)]"
-                    style={FIELD_STYLE}
+                    className={INPUT}
                 />
                 <p className="text-[11px] mt-1 text-[var(--text-muted)]">
                     {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
@@ -49,21 +46,15 @@ export default function N8nConnectionTab({ conn, saving, onGotoPermissions }: { 
                 </p>
             </div>
             <div className="flex items-center gap-2">
-                <button
-                    onClick={conn.saveConnection} disabled={saving || !n8nUrl}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
-                >
+                <Button variant="primary" onClick={conn.saveConnection} busy={saving} disabled={!n8nUrl}>
                     {saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_connection', 'Save Connection')}
-                </button>
-                <button
-                    onClick={conn.testConnection} disabled={testing || !n8nUrl || (!apiKey && !hasApiKey)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 border [border-color:var(--border-default)] [color:var(--text-primary)]! [background:transparent]"
-                >
-                    {testing ? <><Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1.5" />{t('settings.n8n.testing', 'Testing...')}</> : t('settings.n8n.test_connection', 'Test Connection')}
-                </button>
+                </Button>
+                <Button variant="secondary" onClick={conn.testConnection} busy={testing} disabled={!n8nUrl || (!apiKey && !hasApiKey)}>
+                    {testing ? t('settings.n8n.testing', 'Testing...') : t('settings.n8n.test_connection', 'Test Connection')}
+                </Button>
             </div>
             {testResult && !testResult.ok && (
-                <div className="text-[11px] rounded-lg border px-3 py-2 [background:rgba(239,68,68,0.06)] [border-color:rgba(239,68,68,0.2)] [color:#ef4444]!">
+                <div role="alert" className={ALERT_ERROR}>
                     {testResult.error || `HTTP ${testResult.status || '?'}`}
                 </div>
             )}

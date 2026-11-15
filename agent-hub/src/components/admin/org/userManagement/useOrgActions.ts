@@ -27,9 +27,6 @@ export interface OrgActions {
      * org only gets a local preview, held in `_logoFile` until the org exists. */
     handleOrgLogoUpload: (file: File) => Promise<void>;
     handleOrgLogoRemove: () => Promise<void>;
-    /** Logo writes from the My Organization tab — the org always exists there. */
-    handleMyOrgLogoUpload: (file: File) => Promise<void>;
-    handleMyOrgLogoRemove: () => Promise<void>;
 }
 
 export interface UseOrgActionsOptions {
@@ -37,40 +34,14 @@ export interface UseOrgActionsOptions {
     setMessage: Dispatch<SetStateAction<AdminMessage | null>>;
     askConfirm: AskConfirm;
     t: TranslateFn;
-    /** Which tab is showing, and the caller's own organisation — both drive
-     * the my-organization form seed below. */
-    activeSection: string;
-    myOrg?: AdminOrganization;
 }
 
-export default function useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg }: UseOrgActionsOptions): OrgActions {
+export default function useOrgActions({ loadData, setMessage, askConfirm, t }: UseOrgActionsOptions): OrgActions {
     const [showAddOrg, setShowAddOrg] = useState(false);
     const [showEditOrg, setShowEditOrg] = useState(false);
     const [orgData, setOrgData] = useState<OrgFormData>(EMPTY_ORG);
 
     const closeOrgModal = () => { setShowAddOrg(false); setShowEditOrg(false); };
-
-    // Seed the org form when the my-organization section opens. This used to run
-    // as a `setTimeout(..., 0)` from inside the render path, so it re-fired on
-    // every render until the state landed.
-    if (activeSection === 'my-organization' && myOrg && orgData.id !== myOrg.id) {
-        setOrgData({
-            id: myOrg.id,
-            name: myOrg.name || '',
-            description: myOrg.description || '',
-            tagline: myOrg.tagline || '',
-            address: myOrg.address || '',
-            email: myOrg.email || '',
-            phone: myOrg.phone || '',
-            website: myOrg.website || '',
-            kvk: myOrg.kvk || '',
-            vat: myOrg.vat || '',
-            logo: myOrg.logo || '',
-            footerText: myOrg.footerText || '',
-            defaultGroups: myOrg.defaultGroups || [],
-            allowSignup: !!myOrg.allowSignup,
-        });
-    }
 
     const openAddOrg = () => {
         setOrgData(EMPTY_ORG);
@@ -197,36 +168,11 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         setOrgData(p => ({ ...p, logo: '', _logoFile: null }));
     };
 
-    const handleMyOrgLogoUpload = async (file: File) => {
-        if (!orgData.id) return;
-        const formData = new FormData();
-        formData.append('logo', file);
-        try {
-            const res = await apiRequest('POST /auth/organizations/{id}/logo', { params: { id: orgData.id }, init: { body: formData } }).catch((err: unknown) => {
-                if (err instanceof ApiError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setOrgData(p => ({ ...p, logo: data.logo }));
-                setMessage({ type: 'success', text: 'Logo uploaded' });
-            }
-        } catch (err) { setMessage({ type: 'error', text: 'Upload failed' }); }
-    };
-
-    const handleMyOrgLogoRemove = async () => {
-        if (orgData.id) {
-            await settled(apiUrl('DELETE /auth/organizations/{id}/logo', { params: { id: orgData.id } }), { method: 'DELETE' }, 'empty');
-        }
-        setOrgData(p => ({ ...p, logo: '' }));
-    };
-
     return {
         orgData, setOrgData,
         showAddOrg, showEditOrg,
         openAddOrg, openEditOrg, closeOrgModal,
         handleAddOrg, handleUpdateOrg, handleDeleteOrg, handleRemoveNcBinding,
         handleOrgLogoUpload, handleOrgLogoRemove,
-        handleMyOrgLogoUpload, handleMyOrgLogoRemove,
     };
 }

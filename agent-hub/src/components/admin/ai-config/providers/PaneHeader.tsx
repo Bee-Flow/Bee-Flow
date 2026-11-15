@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
-import { CHIP, CHIP_SUCCESS } from '@/components/mcpLibrary/ui';
+import { CHIP, CHIP_SUCCESS } from '@/components/shared/adminUi';
+import { PROVIDER_ICON_CLASS } from './providerRegistry';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface PaneHeaderProps {
     icon: string;
-    iconClass: string;
+    /** The avatar chip's surface; the neutral provider chip when left out. */
+    iconClass?: string;
     title: string;
     connected: boolean;
     /** Replaces the "Connected" chip text (a runtime reads "Self-hosted"). */
@@ -16,7 +18,7 @@ interface PaneHeaderProps {
 }
 
 /** Icon, name, status chip, one-line description and docs link of a provider pane. */
-export default function PaneHeader({ icon, iconClass, title, connected, statusLabel, description, docsUrl, docsLabel, children }: PaneHeaderProps) {
+export default function PaneHeader({ icon, iconClass = PROVIDER_ICON_CLASS, title, connected, statusLabel, description, docsUrl, docsLabel, children }: PaneHeaderProps) {
     const { t } = useTranslation();
     return (
         <header className="flex items-start gap-3">
@@ -34,7 +36,7 @@ export default function PaneHeader({ icon, iconClass, title, connected, statusLa
                 {docsUrl ? (
                     <p className="m-0 mt-1 text-xs text-[var(--text-tertiary)]">
                         {t('admin_ai_config.apikey_get_from')}{' '}
-                        <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel || docsUrl}</a>
+                        <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-primary)]">{docsLabel || docsUrl}</a>
                     </p>
                 ) : null}
             </div>

@@ -3,8 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '@/api/queries/orgAdminReads';
 import type { KeyboardEvent } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ALERT_ERROR, ALERT_SUCCESS, CHIP, PRIMARY_BTN, QUIET_BTN } from '@/components/mcpLibrary/ui';
-import SectionHeader from '@/components/shared/SectionHeader';
+import { ALERT_ERROR, ALERT_SUCCESS, CHIP, PRIMARY_BTN, QUIET_BTN } from '@/components/shared/adminUi';
 import { FIELD_INPUT, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Spinner from '@/components/shared/Spinner';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
@@ -23,6 +22,9 @@ interface DomainMessage {
  *
  * The built-in floor (gmail.com, …) is shown read-only and can never be removed;
  * admins add extra domains, persisted via PUT /auth/free-email-domains.
+ * The list is server-wide (the Email domains tab of Sign-in & SSO); the
+ * dashboard's page frame draws the page header, so the panel opens with what
+ * the list does and keeps its own sub-headings.
  */
 /** The error note of a failed first read, or none. */
 function loadFailedNote(failed: boolean, text: string): DomainMessage | null {
@@ -111,11 +113,10 @@ export default function FreeEmailDomainsPanel() {
     }
 
     return (
-        <div className="flex max-w-3xl flex-col gap-6">
-            <SectionHeader
-                title={t('admin.fed_title', 'Free email-provider domains')}
-                description={t('admin.fed_desc', 'Users signing in with an address at one of these domains are never automatically added to an organisation by email-domain matching. This stops a shared consumer domain (like gmail.com) from binding a stranger into someone else’s workspace. The built-in list always applies; add any extra domains your organisation should also treat as public.')}
-            />
+        <div className="flex flex-col gap-6">
+            <p className="m-0 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                {t('admin.fed_desc', 'Users signing in with an address at one of these domains are never automatically added to an organisation by email-domain matching. This stops a shared consumer domain (like gmail.com) from binding a stranger into someone else’s workspace. The built-in list always applies; add any extra domains that every organisation on this server should also treat as public.')}
+            </p>
             {message && (
                 <div role="status" className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>{message.text}</div>
             )}

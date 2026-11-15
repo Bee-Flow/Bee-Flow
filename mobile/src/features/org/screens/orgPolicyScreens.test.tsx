@@ -243,6 +243,15 @@ describe('OrgSignInScreen', () => {
         expect(screen.queryByTestId('allowed-domains')).toBeNull();
     });
 
+    it('saves auto-approve the moment it moves, alone (its one home on the web too)', async () => {
+        answers = { '/auth/organizations/o1': { id: 'o1', name: 'Acme', authMethod: 'google', autoApproveSSO: false } };
+        await render(<OrgSignInScreen />);
+        const toggle = await screen.findByTestId('auto-approve');
+        expect(toggle.props.accessibilityState).toMatchObject({ checked: false });
+        await fireEvent.press(toggle);
+        await waitFor(() => expect(api.put).toHaveBeenCalledWith('/auth/organizations/o1', { autoApproveSSO: true }));
+    });
+
     it('sends a Nextcloud-provisioned organisation to Nextcloud', async () => {
         (useOrgContext as jest.Mock).mockReturnValue({ ...ADMIN, isNcOrg: true });
         await render(<OrgSignInScreen />);

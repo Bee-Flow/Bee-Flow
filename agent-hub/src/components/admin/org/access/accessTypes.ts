@@ -29,6 +29,16 @@ export interface AccessData {
     betaGoverned?: boolean;
     unrestricted?: boolean;
     available?: string[];
+    /**
+     * Per integration row: can this server serve it at all (an OAuth app, a key,
+     * a binding)? Left out when the server could not tell; then nothing is marked.
+     */
+    serverConfigured?: Record<string, { serverConfigured: boolean; reason?: string }>;
+}
+
+/** True only when the server said this integration is not set up on it; unknown is not "not set up". */
+export function notSetUpOnServer(data: Pick<AccessData, 'serverConfigured'> | null | undefined, capId: string): boolean {
+    return data?.serverConfigured?.[capId]?.serverConfigured === false;
 }
 
 /** Save / load status shown next to the heading. */

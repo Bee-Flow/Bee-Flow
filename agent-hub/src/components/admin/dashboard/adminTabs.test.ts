@@ -46,11 +46,12 @@ describe('the Organisation tab', () => {
     });
 
     // Changed on purpose (wave 2): the Azure services form is no longer offered here, so it has no scope of its own.
-    it('is the organisation the dashboard works on, with the Maps key server-wide', () => {
+    // Changed on purpose (wave 3): the Google Maps key moved to Platform services, so no part is server-wide.
+    it('is the organisation the dashboard works on, in every section and part', () => {
         expect(adminScopeOf(tab('organisation'), 'info')).toBe('mixed');
         expect(adminSectionScope('organisation', 'azure')).toBe('mixed');
         expect(adminSectionScope('organisation', 'azure', 'config')).toBe('mixed');
-        expect(adminSectionScope('organisation', 'integrations', 'maps')).toBe('instance');
+        expect(adminSectionScope('organisation', 'integrations', 'maps')).toBe('mixed');
         expect(fixedOrgViewOf('organisation', 'info')).toBeNull();
     });
 });
@@ -222,7 +223,7 @@ describe('server-wide scope', () => {
         expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: true }, 'feedback')).toBe(true);
         expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: false }, 'feedback')).toBe(false);
         // The other pages read the generic routes, which scope any holder of the tab to their organisation.
-        for (const page of ['overview', 'usage', 'activity', 'terminations']) {
+        for (const page of ['overview', 'spend', 'activity', 'terminations']) {
             expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: false }, page)).toBe(true);
         }
         // A server-wide section stays the platform admin's, whatever the organisation standing.

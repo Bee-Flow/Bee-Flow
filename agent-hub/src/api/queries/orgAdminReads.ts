@@ -2,7 +2,7 @@
 // component's useEffect. Each reader keeps the old effect's contract: which
 // answers are swallowed (rendered as "nothing") and which are surfaced.
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { readOrNull } from './refusableRead';
@@ -15,8 +15,13 @@ const orgAdminReadKeys = {
     groupAccess: (readPath: string) => ['orgAdmin', 'groupAccess', readPath] as const,
 };
 
-/** The Direct Chat system prompt. A refusal or a network failure reads as ''. */
+/**
+ * The Direct Chat system prompt. A refusal or a network failure reads as ''.
+ * `markStored` puts a prompt the server just took into the cache, so a later
+ * read or a page opened again starts from it instead of the answer from before the save.
+ */
 export function useDirectChatPrompt() {
+    const client = useQueryClient();
     const query = useQuery<string, Error>({
         queryKey: orgAdminReadKeys.directChat(),
         retry: false,
@@ -33,7 +38,8 @@ export function useDirectChatPrompt() {
             }
         },
     });
-    return { prompt: query.data ?? '', loading: query.isFetching && query.data === undefined };
+    const markStored = (prompt: string) => client.setQueryData(orgAdminReadKeys.directChat(), prompt);
+    return { prompt: query.data ?? '', loading: query.isFetching && query.data === undefined, markStored };
 }
 
 /** GET /auth/admin/connector-health/mine as far as the banner reads it. */

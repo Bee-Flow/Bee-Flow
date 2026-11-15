@@ -13,7 +13,9 @@ import { apiRequest } from '@/api/typedRequest';
 
 interface FlagDef {
     key: string;
+    labelKey: string;
     label: string;
+    descKey: string;
     desc: string;
     icon: LucideIcon;
 }
@@ -28,24 +30,26 @@ interface FlashMessage {
  * (notebooks / projects / ask-ai / export / open-in-notebook / notebooks-menu),
  * persisted via GET/POST /ai/config (configStore feature_*_enabled).
  *
- * Self-contained (loads + saves its own state) so it can be reused both on the
- * Integrations admin panel and inside the self-hosted Ceiling editor without
- * duplicating the toggle logic. These are operator kill-switches, not
- * entitlement grants — they take effect for everyone on next page load.
+ * Self-contained (loads + saves its own state). Mounted in one place only,
+ * Whole server > Licence & features > Feature switches (the Ceiling under
+ * Access links there). These are operator kill-switches, not entitlement
+ * grants — they take effect for everyone on next page load.
  *
- * One settings row per flag; the outcome of a toggle is said as a toast.
+ * One settings row per flag; a toggle saves at once and says so as a toast.
+ * `bare`: just the list (and the note on when a change applies), for a page
+ * whose frame already names it, so no second heading is stacked on the first.
  */
 
 const FLAGS: FlagDef[] = [
-    { key: 'notebooksEnabled', label: 'Notebooks', desc: 'AI-powered collaborative notebooks', icon: BookOpen },
-    { key: 'projectsEnabled', label: 'Projects', desc: 'Organize chats into shared project folders', icon: FolderKanban },
-    { key: 'askAiEnabled', label: 'Ask AI', desc: 'Enable AI assistance in notebooks', icon: Sparkles },
-    { key: 'exportEnabled', label: 'Export', desc: 'Enable exporting notebooks to Word/PDF', icon: FileDown },
-    { key: 'openInNotebookEnabled', label: 'Open in Notebook', desc: 'Allow opening chats as full notebooks', icon: Maximize2 },
-    { key: 'notebooksMenuEnabled', label: 'Notebooks Menu', desc: "Show 'Notebooks' in the sidebar menu", icon: LayoutList },
+    { key: 'notebooksEnabled', labelKey: 'admin_platform.flag_notebooks', label: 'Notebooks', descKey: 'admin_platform.flag_notebooks_desc', desc: 'Collaborative notebooks with AI assistance', icon: BookOpen },
+    { key: 'projectsEnabled', labelKey: 'admin_platform.flag_projects', label: 'Projects', descKey: 'admin_platform.flag_projects_desc', desc: 'Organise chats into shared project folders', icon: FolderKanban },
+    { key: 'askAiEnabled', labelKey: 'admin_platform.flag_ask_ai', label: 'Ask AI', descKey: 'admin_platform.flag_ask_ai_desc', desc: 'AI assistance inside notebooks', icon: Sparkles },
+    { key: 'exportEnabled', labelKey: 'admin_platform.flag_export', label: 'Export', descKey: 'admin_platform.flag_export_desc', desc: 'Export notebooks to Word or PDF', icon: FileDown },
+    { key: 'openInNotebookEnabled', labelKey: 'admin_platform.flag_open_in_notebook', label: 'Open in notebook', descKey: 'admin_platform.flag_open_in_notebook_desc', desc: 'Open a chat as a full notebook', icon: Maximize2 },
+    { key: 'notebooksMenuEnabled', labelKey: 'admin_platform.flag_notebooks_menu', label: 'Notebooks menu', descKey: 'admin_platform.flag_notebooks_menu_desc', desc: 'Show Notebooks in the sidebar menu', icon: LayoutList },
 ];
 
-export default function FeatureKillSwitches() {
+export default function FeatureKillSwitches({ bare = false }: { bare?: boolean }) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const flagsQuery = useFeatureFlagsQuery();
@@ -63,6 +67,7 @@ export default function FeatureKillSwitches() {
 
     const toggle = async (key: string, label: string) => {
         const newVal = !flags[key];
+        const failed = t('admin_platform.flag_save_failed', 'Could not change {feature}', { feature: label });
         setSaving(s => ({ ...s, [key]: true }));
         try {
             const res = await apiRequest('POST /ai/config', { body: { [key]: newVal } }).catch((err: unknown) => {
@@ -71,34 +76,47 @@ export default function FeatureKillSwitches() {
             });
             if (res) {
                 queryClient.setQueryData<Record<string, unknown> | null>(integrationsAdminKeys.featureFlags, (old) => ({ ...(old ?? {}), [key]: newVal }));
-                setMessage({ type: 'success', text: `${label} ${newVal ? 'enabled' : 'disabled'}` });
+                setMessage({ type: 'success', text: newVal
+                    ? t('admin_platform.flag_on', '{feature} switched on', { feature: label })
+                    : t('admin_platform.flag_off', '{feature} switched off', { feature: label }) });
             } else {
-                setMessage({ type: 'error', text: `Failed to update ${label}` });
+                setMessage({ type: 'error', text: failed });
             }
-        } catch (e) {
-            setMessage({ type: 'error', text: `Failed to update ${label}` });
+        } catch {
+            setMessage({ type: 'error', text: failed });
         }
         setSaving(s => ({ ...s, [key]: false }));
     };
 
+    const list = loading ? (
+        <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+    ) : (
+        <SettingsList>
+            {FLAGS.map(({ key, labelKey, label: fallback, descKey, desc, icon: Icon }) => {
+                const label = t(labelKey, fallback);
+                return (
+                    <SettingRow inline key={key} icon={<Icon className="h-4 w-4" />} label={label} hint={t(descKey, desc)}>
+                        <div className="flex justify-end">
+                            <Toggle checked={flags[key]} onChange={() => toggle(key, label)} disabled={!!saving[key]} ariaLabel={label} />
+                        </div>
+                    </SettingRow>
+                );
+            })}
+        </SettingsList>
+    );
+
+    const note = t('admin_platform.flags_note', 'Switch platform features on or off for everyone on this server. A change applies on the next page load.');
+    if (bare) {
+        return (
+            <div className="flex flex-col gap-3" data-testid="feature-switches">
+                <p className="m-0 text-[13px] text-[var(--text-secondary)]">{note}</p>
+                {list}
+            </div>
+        );
+    }
     return (
-        <SettingsGroup
-            title={t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}
-            description={t('integ.feature_kill_switches_enable_or_disable_platform_features', 'Enable or disable platform features globally. Changes take effect on next page load for all users.')}
-        >
-            {loading ? (
-                <div className="flex justify-center py-6"><Spinner size="sm" /></div>
-            ) : (
-                <SettingsList>
-                    {FLAGS.map(({ key, label, desc, icon: Icon }) => (
-                        <SettingRow inline key={key} icon={<Icon className="h-4 w-4" />} label={label} hint={desc}>
-                            <div className="flex justify-end">
-                                <Toggle checked={flags[key]} onChange={() => toggle(key, label)} disabled={!!saving[key]} ariaLabel={label} />
-                            </div>
-                        </SettingRow>
-                    ))}
-                </SettingsList>
-            )}
+        <SettingsGroup title={t('admin_platform.feature_switches', 'Feature switches')} description={note}>
+            {list}
         </SettingsGroup>
     );
 }

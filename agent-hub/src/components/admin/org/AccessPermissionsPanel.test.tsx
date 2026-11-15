@@ -103,6 +103,8 @@ describe('AccessPermissionsPanel in the admin dashboard', () => {
             </AdminOrgProvider>,
         ));
         expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+        // The dashboard's page frame pads the page; the tabs open it.
+        expect(screen.getByTestId('access-tabs-page').className).not.toMatch(/\bp-6\b/);
         expect(screen.getByRole('tab', { name: /Grants/ })).toHaveAttribute('aria-selected', 'true');
         await user.click(screen.getByRole('tab', { name: /Ceiling/ }));
         expect(onNavigate).toHaveBeenCalledWith('admin/access/ceiling');

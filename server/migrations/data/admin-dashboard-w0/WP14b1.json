@@ -1,0 +1,28 @@
+{
+  "reworded": {
+    "azure.sync_groups_title": {
+      "nl": "Groepssynchronisatie met Microsoft Entra ID",
+      "was": [
+        "Azure AD-groepssynchronisatie"
+      ]
+    },
+    "azure.sync_groups_desc": {
+      "nl": "Synchroniseer de groepen en gebruikers die aan je Entra ID-enterprise-app zijn toegewezen automatisch met Bee Flow.",
+      "was": [
+        "Synchroniseer groepen en gebruikers die aan je Azure AD enterprise-app zijn toegewezen automatisch met BeeFlow."
+      ]
+    },
+    "azure.sync_destructive_desc": {
+      "nl": "Verwijder groepen en groepslidmaatschappen uit Bee Flow wanneer ze in Entra ID niet meer zijn toegewezen.",
+      "was": [
+        "Verwijder groepen en groepslidmaatschappen uit BeeFlow wanneer ze in Azure AD niet meer zijn toegewezen."
+      ]
+    },
+    "azure.sync_destructive_warning": {
+      "nl": "Hiermee worden gebruikers uit Bee Flow-groepen gehaald en worden gesynchroniseerde groepen verwijderd die niet meer aan de enterprise-app zijn toegewezen.",
+      "was": [
+        "Waarschuwing: hiermee worden gebruikers uit BeeFlow-groepen verwijderd en worden met Azure gesynchroniseerde groepen verwijderd die niet meer aan de enterprise-app zijn toegewezen."
+      ]
+    }
+  }
+}

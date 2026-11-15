@@ -9,8 +9,7 @@
 //   statusField - boolean has-key flag in the GET /ai/config response
 //   bodyField   - POST /ai/config body field that stores the key
 //   deleteSlug  - DELETE /ai/config/key/<slug> identifier
-//   icon / iconClass - avatar emoji + Tailwind background class (literal, so
-//                 the scanner keeps it)
+//   icon        - avatar emoji (on the neutral chip of providerRegistry.ts)
 //   docsUrl     - "Get your API key from ..." link
 
 export type ProviderKeyConfig = {
@@ -19,7 +18,6 @@ export type ProviderKeyConfig = {
     bodyField: string;
     deleteSlug: string;
     icon: string;
-    iconClass: string;
     docsUrl: string;
 };
 
@@ -30,7 +28,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'claudeApiKey',
         deleteSlug: 'claude_api_key',
         icon: '🧠',
-        iconClass: 'bg-[rgba(217,119,6,0.15)]',
         docsUrl: 'https://console.anthropic.com/settings/keys',
     },
     openai: {
@@ -39,7 +36,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'openaiApiKey',
         deleteSlug: 'openai_api_key',
         icon: '🤖',
-        iconClass: 'bg-[rgba(16,185,129,0.15)]',
         docsUrl: 'https://platform.openai.com/api-keys',
     },
     google: {
@@ -48,7 +44,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'googleApiKey',
         deleteSlug: 'google_api_key',
         icon: '✨',
-        iconClass: '[background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(234,67,53,0.2),rgba(251,188,4,0.2),rgba(52,168,83,0.2))]',
         docsUrl: 'https://aistudio.google.com/apikey',
     },
     mistral: {
@@ -57,7 +52,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'mistralApiKey',
         deleteSlug: 'mistral_api_key',
         icon: '🌪️',
-        iconClass: 'bg-[rgba(139,92,246,0.15)]',
         docsUrl: 'https://console.mistral.ai',
     },
     scaleway: {
@@ -66,7 +60,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'scalewayApiKey',
         deleteSlug: 'scaleway_api_key',
         icon: '🇪🇺',
-        iconClass: 'bg-[rgba(79,13,224,0.15)]',
         docsUrl: 'https://console.scaleway.com/iam/api-keys',
     },
     eugpt: {
@@ -75,7 +68,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'eugptApiKey',
         deleteSlug: 'eugpt_api_key',
         icon: '🇪🇺',
-        iconClass: 'bg-[rgba(37,99,235,0.15)]',
         docsUrl: 'https://chat.eugpt.ai',
     },
     ionos: {
@@ -84,7 +76,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'ionosApiKey',
         deleteSlug: 'ionos_api_key',
         icon: '🇪🇺',
-        iconClass: 'bg-[rgba(0,61,142,0.15)]',
         docsUrl: 'https://docs.ionos.com/cloud/ai/ai-model-hub',
     },
     elevenlabs: {
@@ -93,7 +84,6 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
         bodyField: 'elevenlabsApiKey',
         deleteSlug: 'elevenlabs_api_key',
         icon: '🎵',
-        iconClass: '[background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(236,72,153,0.2))]',
         docsUrl: 'https://elevenlabs.io/app/settings/api-keys',
     },
 };

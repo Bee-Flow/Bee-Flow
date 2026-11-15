@@ -2,9 +2,10 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 // The console's bordered surface and its header row (icon, title, subtitle,
-// an action on the right). Kept as a small local pair: the shared recipes
-// (CARD in mcpLibrary/ui) give the surface but no header slot, and a dozen
-// screens here are built from the two together.
+// an action on the right): the surface of the shared Section and SettingsList
+// (bg-primary, default border, rounded-lg), so a console card reads as the
+// same kind of box as the settings cards around it, with the header row the
+// shared Section has no icon slot for.
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
     padded?: boolean;
@@ -14,7 +15,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({ children, className = '', padded = true, hover = false, ...rest }: CardProps) {
     return (
         <div
-            className={`rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] ${padded ? 'p-4' : ''} ${hover ? 'transition hover:border-[var(--text-tertiary)] hover:shadow-md' : ''} ${className}`}
+            className={`rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] ${padded ? 'p-4' : ''} ${hover ? 'transition hover:border-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)]' : ''} ${className}`}
             {...rest}
         >
             {children}

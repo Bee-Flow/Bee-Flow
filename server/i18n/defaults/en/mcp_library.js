@@ -219,7 +219,7 @@ module.exports = {
     'mcp_library.status.running': "Running",
     'mcp_library.status.unfinished': "Unfinished",
     'mcp_library.status.waiting_for_keys': "Waiting for keys",
-    'mcp_library.tab.org': "Your organisation",
+    'mcp_library.tab.org': "Organisation",
     'mcp_library.tab.server': "Server-wide",
     'mcp_library.title': "MCP library",
     'mcp_library.tools.all': "All",

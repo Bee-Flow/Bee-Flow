@@ -4,11 +4,11 @@ import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiUrl } from '@/api/typedRequest';
 import { useGroupAccessRead } from '@/api/queries/orgAdminReads';
-import { ACCESS_KIND_SECTIONS } from './accessTypes';
+import { ACCESS_KIND_SECTIONS, notSetUpOnServer } from './accessTypes';
 import type { AccessCapability, AccessData } from './accessTypes';
 import { CapabilityGroup, CapabilityRow } from './AccessParts';
 import Spinner from '@/components/shared/Spinner';
-import { ALERT_ERROR, ALERT_INFO } from '@/components/mcpLibrary/ui';
+import { ALERT_ERROR, ALERT_INFO } from '@/components/shared/adminUi';
 
 /**
  * CeilingReadOnly — the org-admin view of the ceiling. The ceiling (what the
@@ -65,7 +65,7 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
                                 <Lock className="h-3 w-3" aria-hidden="true" /> {t('admin_org.ceiling_ro_none', 'Your organisation has no access in this category.')}
                             </p>
                         ) : caps.map(cap => (
-                            <CapabilityRow key={cap.id} cap={cap} icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />} />
+                            <CapabilityRow key={cap.id} cap={cap} icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />} notSetUp={notSetUpOnServer(data, cap.id)} />
                         ))}
                     </CapabilityGroup>
                 );

@@ -42,7 +42,7 @@ export function FeatureChipGrid({ selected = [], onChange }: FeatureChipGridProp
                         }`}
                     >
                         <span className={`w-4 h-4 rounded inline-flex items-center justify-center border ${
-                            on ? 'border-[var(--success)] bg-[var(--success)] text-white' : 'border-[var(--border-default)]'
+                            on ? 'border-[var(--success-ink)] bg-[color-mix(in_srgb,var(--success)_22%,transparent)] text-[var(--success-ink)]' : 'border-[var(--border-default)]'
                         }`}>
                             {on && <Check className="w-3 h-3" />}
                         </span>

@@ -4,6 +4,8 @@ import { ORG_ROLES } from '@/config/orgRoles';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import Modal from '@/components/shared/Modal';
+import { Button } from '@/components/shared/Button';
+import { INPUT } from '@/components/shared/adminUi';
 import PlatformAdminField from './PlatformAdminField';
 import ImageLimitsField from '../imageLimits/ImageLimitsField';
 import type { AdminGroup, AdminOrganization, UserFormData } from './types';
@@ -62,20 +64,20 @@ export default function UserModal({
             size="md"
             footer={
                 <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium text-[var(--text-secondary)]">
+                    <Button variant="secondary" onClick={onClose}>
                         {t('admin.sec_cancel', 'Cancel')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="primary"
                         // Arrow, not a bare reference: onSubmitUpdate takes no
                         // arguments, and React would hand a bare handler the
                         // click event, which would then be spread into the
                         // request body by handleUpdateUser's `extra` param.
                         onClick={showEditUser ? () => onSubmitUpdate() : onSubmitAdd}
                         disabled={!canSubmit}
-                        className="px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--accent-primary)] text-white"
                     >
                         {showEditUser ? t('admin.sec_save', 'Save') : t('admin.sec_user_add_submit', 'Add user')}
-                    </button>
+                    </Button>
                 </>
             }
         >
@@ -103,7 +105,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                 {/* Mode buttons */}
                 <div className="flex flex-col gap-2">
                     <div className="flex gap-2">
-                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-[var(--bg-tertiary)] text-[var(--text-primary)] ${showEmojiPicker ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}>
+                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-[var(--bg-tertiary)] text-[var(--text-primary)] ${showEmojiPicker ? 'ring-2 ring-[var(--focus-ring)]' : ''}`} aria-pressed={showEmojiPicker}>
                             <Smile className="w-4 h-4" /> {t('admin_org.user_modal_emoji', 'Emoji')}
                         </button>
                         <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
@@ -123,22 +125,22 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
             {showEmojiPicker && (
                 <div className="mt-3 p-3 rounded-lg border grid grid-cols-8 gap-1.5 max-h-40 overflow-auto border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     {EMOJI_CHOICES.map(emoji => (
-                        <button key={emoji} type="button" onClick={() => { setUserData(p => ({ ...p, avatar: emoji, avatarType: 'emoji' })); setShowEmojiPicker(false); } } className="w-8 h-8 flex items-center justify-center rounded-lg text-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer" style={userData.avatar === emoji ? { background: 'var(--accent-primary)', opacity: 0.8 } : {}}>{emoji}</button>
+                        <button key={emoji} type="button" onClick={() => { setUserData(p => ({ ...p, avatar: emoji, avatarType: 'emoji' })); setShowEmojiPicker(false); } } aria-pressed={userData.avatar === emoji} className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg transition-colors cursor-pointer ${userData.avatar === emoji ? 'bg-[var(--item-active-bg)] ring-1 ring-[var(--text-primary)]' : 'hover:bg-[var(--item-hover-bg)]'}`}>{emoji}</button>
                     ))}
                 </div>
             )}
         </div>
-        {!showEditUser && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_username', 'Username')}</label><input type="text" value={userData.username} onChange={e => setUserData(p => ({ ...p, username: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_username_ph', 'johndoe')} /></div>}
-        <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_display_name', 'Display Name')}</label><input type="text" value={userData.displayName} onChange={e => setUserData(p => ({ ...p, displayName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_display_name_ph', 'John Doe')} /></div>
+        {!showEditUser && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_username', 'Username')}</label><input type="text" value={userData.username} onChange={e => setUserData(p => ({ ...p, username: e.target.value }))} className={INPUT} placeholder={t('admin_org.user_modal_username_ph', 'johndoe')} /></div>}
+        <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_display_name', 'Display Name')}</label><input type="text" value={userData.displayName} onChange={e => setUserData(p => ({ ...p, displayName: e.target.value }))} className={INPUT} placeholder={t('admin_org.user_modal_display_name_ph', 'John Doe')} /></div>
         <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_first_name', 'First Name')}</label><input type="text" value={userData.firstName} onChange={e => setUserData(p => ({ ...p, firstName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_first_name_ph', 'John')} /></div>
-            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_last_name', 'Last Name')}</label><input type="text" value={userData.lastName} onChange={e => setUserData(p => ({ ...p, lastName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_last_name_ph', 'Doe')} /></div>
+            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_first_name', 'First Name')}</label><input type="text" value={userData.firstName} onChange={e => setUserData(p => ({ ...p, firstName: e.target.value }))} className={INPUT} placeholder={t('admin_org.user_modal_first_name_ph', 'John')} /></div>
+            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_last_name', 'Last Name')}</label><input type="text" value={userData.lastName} onChange={e => setUserData(p => ({ ...p, lastName: e.target.value }))} className={INPUT} placeholder={t('admin_org.user_modal_last_name_ph', 'Doe')} /></div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_email', 'Email')}</label><input type="email" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="john@example.com" /></div>
-            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_phone', 'Phone')}</label><input type="tel" value={userData.phone} onChange={e => setUserData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
+            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_email', 'Email')}</label><input type="email" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} className={INPUT} placeholder="john@example.com" /></div>
+            <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_phone', 'Phone')}</label><input type="tel" value={userData.phone} onChange={e => setUserData(p => ({ ...p, phone: e.target.value }))} className={INPUT} placeholder="+1 555 123 4567" /></div>
         </div>
-        <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? t('admin_org.user_modal_password_new', 'New Password (blank to keep)') : t('admin_org.user_modal_password', 'Password')}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="••••••••" /></div>
+        <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? t('admin_org.user_modal_password_new', 'New Password (blank to keep)') : t('admin_org.user_modal_password', 'Password')}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className={INPUT} placeholder="••••••••" /></div>
         {isSelfHosted && showEditUser && <UserCostLimitField value={userData.monthlyCostLimit} onChange={v => setUserData(p => ({ ...p, monthlyCostLimit: v }))} t={t} />}
         {/* Image limits: every deployment, cloud too. The create endpoint has no such field, so edit only. */}
         {showEditUser && (
@@ -201,7 +203,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
             {userData.organizationId && (
                 <div>
                     <label className="block text-xs font-medium mb-1.5 text-[var(--text-muted)]">{t('admin_org.user_modal_org_role', 'Organisation Role')}</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('admin_org.user_modal_org_role', 'Organisation Role')}>
                         {ORG_ROLES.map((r) => {
                             const isSelected = userData.orgRole === r.id;
                             return (
@@ -209,10 +211,12 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                                     key={r.id}
                                     type="button"
                                     onClick={() => setUserData(p => ({ ...p, orgRole: r.id }))}
-                                    className={`flex items-start gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${isSelected ? 'border-[var(--accent-primary)] bg-[var(--bg-secondary)]' : 'border-[var(--border-default)] hover:border-[var(--accent-primary)]/40'}`}
+                                    role="radio"
+                                    aria-checked={isSelected}
+                                    className={`flex items-start gap-2 p-2.5 rounded-lg border-[1.5px] text-left transition-colors ${isSelected ? 'border-[var(--text-primary)] bg-[var(--item-active-bg)]' : 'border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--item-hover-bg)]'}`}
                                 >
-                                    <div className={`w-3 h-3 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}>
-                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />}
+                                    <div className={`w-3 h-3 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--text-primary)]' : 'border-[var(--border-default)]'}`}>
+                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-primary)]" />}
                                     </div>
                                     <div>
                                         <div className="text-xs font-semibold text-[var(--text-primary)]">{r.label}</div>
@@ -243,7 +247,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                         <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">{t('admin_org.user_modal_global_groups', 'Global Groups')}</div>
                         <div className="space-y-0.5">
                             {groups.filter(g => !g.organizationId).map(g => (
-                                <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
+                                <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors">
                                     <input type="checkbox" checked={(userData.groups || []).includes(g.id)} onChange={e => setUserData(prev => ({ ...prev, groups: e.target.checked ? [...(prev.groups || []), g.id] : (prev.groups || []).filter(x => x !== g.id) }))} className="accent-[var(--accent-primary)] w-4 h-4" />
                                     <div className="flex-1 min-w-0">
                                         <span className="text-sm font-medium block text-[var(--text-primary)]">{g.name}</span>
@@ -263,7 +267,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                             <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">{org.name}</div>
                             <div className="space-y-0.5">
                                 {orgGroups.map(g => (
-                                    <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
+                                    <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors">
                                         <input type="checkbox" checked={(userData.groups || []).includes(g.id)} onChange={e => setUserData(prev => ({ ...prev, groups: e.target.checked ? [...(prev.groups || []), g.id] : (prev.groups || []).filter(x => x !== g.id) }))} className="accent-[var(--accent-primary)] w-4 h-4" />
                                         <div className="flex-1 min-w-0">
                                             <span className="text-sm font-medium block text-[var(--text-primary)]">{g.name}</span>
@@ -294,7 +298,7 @@ function UserCostLimitField({ value, onChange, t }: { value: string; onChange: (
                 inputMode="decimal"
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                className={INPUT}
                 placeholder={t('admin_org.cost_limit_placeholder', 'No limit')}
             />
             <p className="text-xs mt-1 text-[var(--text-muted)]">{t('admin_org.user_modal_cost_limit_hint', "Leave empty to use the budget of the user's groups (the highest one applies), or no limit if none of them has one.")}</p>

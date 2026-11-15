@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import Toggle from '@/components/shared/Toggle';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { ALERT_WARNING } from '@/components/shared/adminUi';
 import { saveDirectChatGuardrails } from '../api/guardrailsApi';
 import { messageOf } from '@/utils/caughtError';
 import type { DirectChatBinding } from '../api/guardrailsApi';
@@ -25,6 +27,8 @@ interface DirectChatViewProps {
 const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: DirectChatViewProps) => {
     const { t } = useTranslation();
     const [saving, setSaving] = useState(false);
+    const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
 
     const toggleCollection = (id: string) => {
         const has = directChat.collectionIds.includes(id);
@@ -38,44 +42,35 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: Dir
 
     const handleSave = async () => {
         setSaving(true);
+        setSaveState('saving');
         try {
             await saveDirectChatGuardrails(directChat);
+            setSaveState('saved');
+            setSavedAt(new Date());
             toast.success(t('admin.guard_saved'));
             onSaved?.();
         } catch (e) {
-            toast.error(messageOf(e, 'Failed to save'));
+            setSaveState('error');
+            toast.error(messageOf(e, t('common.save_failed', 'Could not save')));
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <div className="space-y-6 max-w-3xl">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin.guard_tab_direct')}</h2>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                        {t('admin.gr_directchat_desc', 'Collections applied to direct chat across this whole installation.')}
-                    </p>
-                </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="shrink-0 px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50
-                               bg-[var(--accent-primary)] hover:opacity-90 transition-opacity
-                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                >
-                    {saving ? t('admin.guard_saving') : t('admin.guard_save_all')}
-                </button>
-            </div>
+        <div className="space-y-6">
+            {/* The tab names the view ("Direct chat"); the page title is the dashboard frame's. */}
+            <p className="text-sm text-[var(--text-secondary)]">
+                {t('admin.gr_directchat_desc', 'Collections applied to direct chat across this whole installation.')}
+            </p>
 
             {/* Scope warning: this is not per-organisation, and nothing on the old
                 screen said so. */}
-            <p className="text-xs px-3 py-2 rounded-lg border border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_6%,transparent)] text-[var(--text-secondary)]">
+            <p className={ALERT_WARNING}>
                 {t('admin.gr_directchat_scope_note', 'This setting is installation-wide. Every organisation shares it — per-organisation rules are configured on the Organisations tab.')}
             </p>
 
-            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 space-y-4">
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 space-y-4">
                 <Toggle
                     checked={directChat.enabled}
                     onChange={(v: boolean) => setDirectChat({ ...directChat, enabled: v })}
@@ -99,15 +94,15 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: Dir
                                         key={col.id}
                                         className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors
                                                     ${directChat.collectionIds.includes(col.id)
-                                                ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30'
-                                                : 'bg-white/5 border-transparent hover:border-white/10'}`}
+                                                ? 'bg-[var(--item-active-bg)] border-[var(--text-primary)]'
+                                                : 'bg-[var(--bg-primary)] border-[var(--border-subtle)] hover:border-[var(--border-default)]'}`}
                                     >
                                         <input
                                             type="checkbox"
                                             checked={directChat.collectionIds.includes(col.id)}
                                             onChange={() => toggleCollection(col.id)}
-                                            className="w-4 h-4 rounded border-[var(--border-default)] bg-transparent text-[var(--accent-primary)]
-                                                       focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                                            className="w-4 h-4 rounded accent-[var(--text-primary)]
+                                                       focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                                         />
                                         <span className="text-sm text-[var(--text-primary)]">{col.name}</span>
                                         <span className="ml-auto text-xs text-[var(--text-tertiary)]">{col.ruleIds?.length || 0}</span>
@@ -118,6 +113,15 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: Dir
                     </div>
                 )}
             </div>
+
+            <SaveFooter
+                onSave={handleSave}
+                saving={saving}
+                saveState={saveState}
+                lastSavedAt={savedAt}
+                onRetry={handleSave}
+                saveLabel={t('admin.guard_save_all')}
+            />
         </div>
     );
 };

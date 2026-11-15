@@ -26,7 +26,6 @@ export default function LocalRuntimePane({ provider, runtime, starterModels, all
         <div className="flex flex-col gap-4">
             <PaneHeader
                 icon="🖥️"
-                iconClass="[background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(16,185,129,0.2))]"
                 title={provider.name || provider.id}
                 connected
                 statusLabel={t('admin_ai_config.local_status', 'Self-hosted')}

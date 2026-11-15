@@ -1,6 +1,8 @@
 import { Plus, Shield } from 'lucide-react';
 import GroupCard from './GroupCard';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import { INPUT } from '@/components/shared/adminUi';
 import type { CustomTierMeta, OrgGroupRow, OrgMember, Organization } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 
@@ -19,13 +21,13 @@ function CreateGroupForm({ organizations, groupsState }: Pick<GroupsSectionProps
         newGroupOrg, setNewGroupOrg, creatingGroup, handleCreateGroup,
     } = groupsState;
     return (
-        <div className="rounded-xl border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/5 p-4 space-y-3">
-            <div className="text-sm font-medium text-[var(--accent-primary)]">{t('admin.org_new_group', 'Create New Group')}</div>
+        <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin.org_new_group', 'Create New Group')}</h3>
             <input
                 type="text"
                 value={newGroupName}
                 onChange={e => setNewGroupName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)]"
+                className={INPUT}
                 placeholder={t('admin_org.users_group_name_ph', 'Group name')}
                 autoFocus
             />
@@ -33,14 +35,14 @@ function CreateGroupForm({ organizations, groupsState }: Pick<GroupsSectionProps
                 type="text"
                 value={newGroupDesc}
                 onChange={e => setNewGroupDesc(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)]"
+                className={INPUT}
                 placeholder={t('admin_org.users_desc_optional_ph', 'Description (optional)')}
             />
             {organizations.length > 1 && (
                 <select
                     value={newGroupOrg}
                     onChange={e => setNewGroupOrg(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none"
+                    className={INPUT}
                 >
                     {organizations.map(org => (
                         <option key={org.id} value={org.id}>{org.name}</option>
@@ -48,19 +50,12 @@ function CreateGroupForm({ organizations, groupsState }: Pick<GroupsSectionProps
                 </select>
             )}
             <div className="flex gap-2 justify-end">
-                <button
-                    onClick={() => { setShowCreateGroup(false); setNewGroupName(''); setNewGroupDesc(''); }}
-                    className="px-3 py-1.5 rounded-lg text-sm text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]"
-                >
+                <Button variant="secondary" onClick={() => { setShowCreateGroup(false); setNewGroupName(''); setNewGroupDesc(''); }}>
                     {t('admin.org_cancel', 'Cancel')}
-                </button>
-                <button
-                    onClick={handleCreateGroup}
-                    disabled={!newGroupName.trim() || creatingGroup}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--accent-primary)] hover:opacity-90 disabled:opacity-50 transition-all"
-                >
+                </Button>
+                <Button variant="primary" onClick={handleCreateGroup} busy={creatingGroup} disabled={!newGroupName.trim()}>
                     {creatingGroup ? t('admin.org_creating', 'Creating...') : t('admin.org_create', 'Create')}
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -76,7 +71,7 @@ export default function GroupsSection({ orgGroups, orgUsers, organizations, cust
             {!showCreateGroup ? (
                 <button
                     onClick={() => setShowCreateGroup(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-[var(--border-subtle)] text-sm font-medium text-[var(--text-muted)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-[var(--border-default)] text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                     {t('admin.org_new_group', 'Create New Group')}
@@ -87,8 +82,8 @@ export default function GroupsSection({ orgGroups, orgUsers, organizations, cust
 
             {/* Groups list */}
             {orgGroups.length === 0 && !showCreateGroup ? (
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-5 py-12 text-center">
-                    <Shield className="w-10 h-10 mx-auto mb-3 text-[var(--text-muted)] opacity-30" />
+                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] px-5 py-12 text-center">
+                    <Shield className="w-10 h-10 mx-auto mb-3 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <p className="text-sm font-medium text-[var(--text-primary)]">{t('admin.org_no_groups', 'No groups yet')}</p>
                     <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
                         {t('admin_org.users_groups_intro', 'Groups let you organise users and control which agents they can access. Create a group to get started.')}

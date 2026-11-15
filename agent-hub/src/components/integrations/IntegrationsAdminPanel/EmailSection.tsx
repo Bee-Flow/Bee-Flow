@@ -1,11 +1,12 @@
 // "Email" section of the IntegrationsAdminPanel: the service mailbox (a Google
 // account connected over OAuth, sending through the Gmail API), its display
 // name and a test send. The bindings are threaded in as props from the panel.
+// The page header and width are the admin dashboard's (dashboard/AdminPage);
+// the sender group carries the connected state.
 import { Mail, Send } from 'lucide-react';
 import type React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { DANGER_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
-import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import type { EmailSectionProps } from './adminPanel.types';
 import { Hint, SaveButton, StatusChip } from './ui';
@@ -66,14 +67,11 @@ export default function EmailSection(props: EmailSectionProps) {
     } = props;
     const { t } = useTranslation();
     return (
-        <div className="flex max-w-4xl flex-col gap-6">
-            <SectionHeader
-                title={t('integ.email_service_email_gmail', 'Service Email (Gmail)')}
-                description={t('integ.email_configure_a_gmail_service_account_to', 'Configure a Gmail service account to send emails to customers from the platform.')}
-                status={hasServiceEmail ? <StatusChip>{t('integ.email_configured', 'Configured')}</StatusChip> : undefined}
-            />
-
-            <SettingsGroup title={t('integ.email_account_group', 'Sender account')}>
+        <div className="flex flex-col gap-6">
+            <SettingsGroup
+                title={t('integ.email_account_group', 'Sender account')}
+                actions={hasServiceEmail ? <StatusChip>{t('integ.email_configured', 'Configured')}</StatusChip> : undefined}
+            >
                 <SettingsList>
                     {hasServiceEmail ? (
                         <>
@@ -89,14 +87,14 @@ export default function EmailSection(props: EmailSectionProps) {
                                 </div>
                             </SettingRow>
                             {showTestEmail && <div className="px-4 py-3"><TestSend {...props} /></div>}
-                            <SettingRow htmlFor="service-email-display-name" label={t('integ.email_display_name_e_g_beeflow', 'Display Name (e.g. BeeFlow)')}>
+                            <SettingRow htmlFor="service-email-display-name" label={t('integ.email_display_name_e_g_beeflow', 'Display Name (e.g. Bee Flow)')}>
                                 <div className="flex gap-2">
                                     <input
                                         id="service-email-display-name"
                                         type="text"
                                         value={serviceEmailDisplayName}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setServiceEmailDisplayName(e.target.value)}
-                                        placeholder={t('integ.email_display_name_e_g_beeflow', 'Display Name (e.g. BeeFlow)')}
+                                        placeholder={t('integ.email_display_name_e_g_beeflow', 'Display Name (e.g. Bee Flow)')}
                                         className={FIELD_INPUT}
                                     />
                                     <SaveButton saving={savingServiceEmail} onClick={saveServiceEmailDisplayName}>{t('integ.email_save', 'Save')}</SaveButton>

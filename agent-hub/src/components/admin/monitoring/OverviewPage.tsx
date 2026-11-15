@@ -28,7 +28,8 @@ interface OverviewPageProps {
     costPerModel: Record<string, number>;
     onSelectModel?: (model: UsageRecord) => void;
     onSelectAgent?: (agent: UsageRecord) => void;
-    onNavigate?: (value: string) => void;
+    /** Opens where the model prices are set; absent when the viewer may not open it (an organisation admin). */
+    onOpenModelPrices?: () => void;
 }
 
 /** Calls, tokens, cost (billed when the org pays as it goes) and latency, each against the previous period. */
@@ -37,7 +38,9 @@ function OverviewKpis({ summary, deltas, deltaLabel, totalCost }: Pick<OverviewP
     const rawCost = summary?.total_estimated_cost || totalCost || 0;
     const billed = Number(summary?.total_billed_cost || 0);
     const isPayg = billed > 0;
-    const latencyLabel = deltas?.latency != null ? (deltas.latency > 0 ? 'slower' : 'faster') : deltaLabel;
+    const latencyLabel = deltas?.latency != null
+        ? (deltas.latency > 0 ? t('admin_monitoring.latency_slower', 'slower') : t('admin_monitoring.latency_faster', 'faster'))
+        : deltaLabel;
     return (
         <StatGrid>
             <MetricTile label={t('admin_monitoring.overview_total_calls', 'Total Calls')} value={fmt(summary?.total_calls || 0)} delta={deltas?.calls} deltaLabel={deltaLabel} />
@@ -67,7 +70,7 @@ function CacheKpis({ summary }: { summary: UsageSummary | null }) {
             />
             <MetricTile
                 label={t('admin_monitoring.overview_reasoning_tokens', 'Reasoning Tokens')} value={fmt(summary?.total_reasoning_tokens || 0)}
-                deltaLabel={t('admin_monitoring.overview_reasoning_hint', 'o-series / thinking')}
+                deltaLabel={t('admin_monitoring.overview_reasoning_hint', 'thinking / reasoning models')}
             />
         </StatGrid>
     );
@@ -116,21 +119,23 @@ function donutItemsOf(byModel: ModelUsage[], costPerModel: Record<string, number
     return items;
 }
 
-function CostBreakdown({ byModel, costPerModel, totalCost, onNavigate }: Pick<OverviewPageProps, 'byModel' | 'costPerModel' | 'totalCost' | 'onNavigate'>) {
+function CostBreakdown({ byModel, costPerModel, totalCost, onOpenModelPrices }: Pick<OverviewPageProps, 'byModel' | 'costPerModel' | 'totalCost' | 'onOpenModelPrices'>) {
     const { t } = useTranslation();
     const donutItems = useMemo(() => donutItemsOf(byModel, costPerModel, t), [byModel, costPerModel, t]);
     const missing = byModel.length - byModel.filter(m => costPerModel[m.model]).length;
     return (
         <Card
             title={t('admin_monitoring.overview_cost_breakdown', 'Cost Breakdown')}
-            action={onNavigate && (
-                <button type="button" onClick={() => onNavigate('admin/ai-config')} className={QUIET_BTN}>
+            action={onOpenModelPrices && (
+                <button type="button" onClick={onOpenModelPrices} className={QUIET_BTN}>
                     <Settings2 className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_monitoring.overview_model_costs', 'Model Costs')}
                 </button>
             )}
         >
             {donutItems.length === 0 ? (
-                <Empty text={t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')} />
+                <Empty text={onOpenModelPrices
+                    ? t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')
+                    : t('admin_monitoring.overview_no_cost_data_ask', 'No cost data yet: ask your platform administrator to set the model prices.')} />
             ) : (
                 <div className="flex flex-col gap-3">
                     <DonutChart items={donutItems} centerLabel={t('admin_monitoring.overview_total', 'Total')} centerValue={fmtCost(totalCost)} />
@@ -150,7 +155,7 @@ export function OverviewPage({
     summary, deltas, deltaLabel,
     byModel, byAgent, timeline, costTimeline, tools,
     totalCost, costPerModel,
-    onSelectModel, onSelectAgent, onNavigate
+    onSelectModel, onSelectAgent, onOpenModelPrices
 }: OverviewPageProps) {
     const { t } = useTranslation();
     return (
@@ -179,7 +184,7 @@ export function OverviewPage({
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-                <CostBreakdown byModel={byModel} costPerModel={costPerModel} totalCost={totalCost} onNavigate={onNavigate} />
+                <CostBreakdown byModel={byModel} costPerModel={costPerModel} totalCost={totalCost} onOpenModelPrices={onOpenModelPrices} />
                 <Card title={t('admin_monitoring.overview_tool_usage', 'Tool Usage')}>
                     {tools.length === 0 ? <Empty text={t('admin_monitoring.overview_no_tool_calls', 'No tool calls recorded')} /> : (
                         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">

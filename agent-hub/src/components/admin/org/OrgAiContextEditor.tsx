@@ -3,28 +3,40 @@
  *
  * Compaction folds older turns of a long chat into a short summary and
  * truncates long tool results. That used to run for everyone, unconditionally,
- * from the 16th message onward — which is what people report as "it forgot what
- * we were talking about". Modern models carry up to a million tokens of
- * context, so on a normal conversation there is nothing to gain from it.
+ * from a fixed message count onward — which is what people report as "it
+ * forgot what we were talking about". Modern models carry up to a million
+ * tokens of context, so on a normal conversation there is nothing to gain from it.
  *
  * Hence: OFF by default, and the copy here is explicit that turning it on
  * trades recall for cost. The server keeps the conversation inside the model's
- * context window either way (server/core/llm/contextPolicy.js).
+ * context window either way (server/core/llm/contextPolicy.js), and names the
+ * model that writes the summaries (`runsOn`, the Fast tier the server
+ * administrator set), so the admin knows which model reads the conversation.
+ *
+ * The page title is the dashboard frame's (AdminPage); this panel opens with
+ * its own sub-heading so it also reads on the phone page that stacks it.
  */
-import { Brain, AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { FoldVertical, ScrollText } from 'lucide-react';
+import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useOrgSettingRead } from './useOrgSettingRead';
+import OrgEditorLoad from './OrgEditorLoad';
 
-import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
-import ChoiceCards from '../../shared/ChoiceCards';
-import { toast } from '../../shared/Toast';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { SettingBlock, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Slider from '@/components/shared/Slider';
+import { toast } from '@/components/shared/Toast';
 import { errorBody, RefusedError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 
 // "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
 const formatTokens = (n: number) => Math.round(n).toLocaleString();
+
+/** The message count the server summarises from when it sends none (contextPolicy.js). */
+const DEFAULT_THRESHOLD = 16;
 
 /** GET /api/org-ai-context/:orgId (the fields this editor reads). */
 interface AiContextSettings {
@@ -34,6 +46,8 @@ interface AiContextSettings {
     contextBudgetPercent?: number;
     contextBudgetRange?: { min: number; max: number };
     contextWindowExamples?: ContextWindowExample[];
+    /** The display name of the model that writes the summaries; null or absent: not known. */
+    runsOn?: string | null;
 }
 
 /**
@@ -65,10 +79,13 @@ function exampleLabel(ex: ContextWindowExample, t: TranslateFn): string {
     return ex.label;
 }
 
+const SAVE_FAILED = 'Could not save the long-conversation context settings';
+
 /** The loaded settings, the selection seeded from them, and the save. */
 function useAiContextForm(orgId: string | null | undefined, t: TranslateFn) {
     const [enabled, setEnabled] = useState(false); // current selection
     const [budgetPercent, setBudgetPercent] = useState(75);
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
 
     const { server, loading, loadError, refetch } = useOrgSettingRead<AiContextSettings>('GET /api/org-ai-context/{orgId}', orgId);
     const [seeded, setSeeded] = useState<AiContextSettings | null>(null);
@@ -98,56 +115,34 @@ function useAiContextForm(orgId: string | null | undefined, t: TranslateFn) {
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};
-                throw new Error(body.error || t('admin.ai_context.save_failed', 'Could not save conversation memory settings'), { cause: err });
+                throw new Error(body.error || t('admin.ai_context.save_failed', SAVE_FAILED), { cause: err });
             }
         },
         onSuccess: async () => {
-            toast.success(t('admin.ai_context.saved', 'Conversation memory settings saved'));
+            setSavedAt(new Date());
             await refetch();
         },
-        onError: (err) => toast.error(messageOf(err, t('admin.ai_context.save_failed', 'Could not save conversation memory settings'))),
+        onError: (err) => toast.error(messageOf(err, t('admin.ai_context.save_failed', SAVE_FAILED))),
     });
-    const saving = save.isPending;
     const handleSave = () => {
         if (!server || !isDirty) return;
         save.mutate(server);
     };
+    const reset = () => {
+        if (!server) return;
+        setEnabled(!!server.compactionEnabled);
+        setBudgetPercent(server.contextBudgetPercent ?? 75);
+    };
 
-    return { enabled, setEnabled, budgetPercent, setBudgetPercent, server, loading, loadError, isDirty, saving, handleSave };
+    return {
+        enabled, setEnabled, budgetPercent, setBudgetPercent, server, loading, loadError, refetch,
+        isDirty, saving: save.isPending, failed: save.isError, savedAt, handleSave, reset,
+    };
 }
 
-export default function OrgAiContextEditor({ orgId }: { orgId?: string | null }) {
-    const { t } = useTranslation();
-    const { enabled, setEnabled, budgetPercent, setBudgetPercent, server, loading, loadError, isDirty, saving, handleSave } = useAiContextForm(orgId, t);
+type AiContextForm = ReturnType<typeof useAiContextForm>;
 
-    if (!orgId) return null;
-
-    if (loading) {
-        return (
-            <div className="flex items-center gap-2 p-4 text-sm opacity-75">
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                {t('common.loading', 'Loading...')}
-            </div>
-        );
-    }
-
-    if (loadError) {
-        return (
-            <div className="p-4">
-                <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-                    <AlertTriangle className="mr-2 inline h-4 w-4" aria-hidden="true" />
-                    {t('admin.ai_context.load_failed', 'Could not load conversation memory settings.')} {loadError}
-                </div>
-            </div>
-        );
-    }
-
-    // The server owns the context-window table and the allowed range; the SPA
-    // only multiplies. Falling back keeps the screen usable against an older
-    // API that doesn't send these yet.
-    const examples = Array.isArray(server?.contextWindowExamples) ? server.contextWindowExamples : [];
-    const range = server?.contextBudgetRange || { min: 25, max: 95 };
-
+function ContextChoice({ form, server, t }: { form: AiContextForm; server: AiContextSettings; t: TranslateFn }) {
     const options = [
         {
             value: 'off',
@@ -156,106 +151,114 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
                 'admin.ai_context.off_desc',
                 'The assistant sees every earlier message, tool result and attachment for as long as they fit in the model context window. Best answers; higher token use on very long chats.',
             ),
-            Icon: Brain,
+            Icon: ScrollText,
         },
         {
             value: 'on',
             label: t('admin.ai_context.on', 'Summarise older messages'),
             description: t(
-                'admin.ai_context.on_desc',
-                'Once a chat passes about 16 messages, everything older is replaced by a short summary and long tool results are shortened. Cheaper, but detail from earlier in the conversation is permanently lost to the assistant.',
+                'admin_org_ai.context_on_desc',
+                'Once a chat passes about {count} messages, everything older is replaced by a short summary and long tool results are shortened. Cheaper, but detail from earlier in the conversation is permanently lost to the assistant.',
+                { count: server.compactionThreshold ?? DEFAULT_THRESHOLD },
             ),
-            Icon: AlertTriangle,
+            Icon: FoldVertical,
         },
     ];
-
     return (
-        <div className="space-y-5 p-1">
-            <header>
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    <Brain className="h-5 w-5" aria-hidden="true" />
-                    {t('admin.ai_context.title', 'Conversation memory')}
-                </h2>
-                <p className="mt-1 text-sm opacity-75">
-                    {t(
-                        'admin.ai_context.intro',
-                        'How much of a long conversation the assistant keeps in view. Applies to chats and agents across the whole organisation and takes effect on the next message.',
-                    )}
-                </p>
-            </header>
-
+        <SettingsGroup
+            title={t('admin.ai_context.title', 'Context in long conversations')}
+            description={t(
+                'admin.ai_context.intro',
+                'How much of a long conversation the assistant keeps in view. This is not the assistant remembering things about people; that is the Memory setting. Applies to chats and agents across the whole organisation and takes effect on the next message.',
+            )}
+        >
             <ChoiceCards
-                value={enabled ? 'on' : 'off'}
-                onChange={(v: string) => setEnabled(v === 'on')}
+                value={form.enabled ? 'on' : 'off'}
+                onChange={(v: string) => form.setEnabled(v === 'on')}
                 options={options}
                 columns={1}
-                ariaLabel={t('admin.ai_context.choose', 'Conversation memory')}
-                disabled={saving}
+                ariaLabel={t('admin.ai_context.choose', 'Context in long conversations')}
+                disabled={form.saving}
             />
-
-            {/* The safety limit applies in BOTH modes, so it sits outside the
-                choice above rather than under one of the two cards. */}
-            <OrgAiContextEditorSection t={t} range={range} budgetPercent={budgetPercent} saving={saving} setBudgetPercent={setBudgetPercent} examples={examples} />
-
-            <div className="flex items-center gap-3 border-t border-black/10 pt-4 dark:border-white/10">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!isDirty || saving}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-700"
-                >
-                    {saving ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
-                </button>
-                {isDirty && server && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEnabled(!!server.compactionEnabled);
-                            setBudgetPercent(server.contextBudgetPercent ?? 75);
-                        }}
-                        disabled={saving}
-                        className="text-sm underline opacity-75 hover:opacity-100"
-                    >
-                        {t('common.cancel', 'Cancel')}
-                    </button>
-                )}
-            </div>
-        </div>
+            {server.runsOn && (
+                <p className="m-0 text-xs text-[var(--text-secondary)]" data-testid="ai-context-runs-on">
+                    {t('admin_org_ai.context_runs_on', 'Summaries are written by {model}, which the server administrator chooses.', { model: server.runsOn })}
+                </p>
+            )}
+        </SettingsGroup>
     );
 }
 
-function OrgAiContextEditorSection({ t, range, budgetPercent, saving, setBudgetPercent, examples }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; range: { min: number; max: number; }; budgetPercent: number; saving: boolean; setBudgetPercent: React.Dispatch<React.SetStateAction<number>>; examples: ContextWindowExample[]; }) {
-    return <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] p-4">
-        <label htmlFor="ai-context-budget" className="block text-sm font-medium">
-            {t('admin.ai_context.budget_label', 'Safety limit')}
-        </label>
-        <p className="text-xs opacity-70">
-            {t(
-                'admin.ai_context.safety_note',
-                'A conversation can never overflow the model: once it reaches this share of the context window, the oldest part is summarised automatically.'
-            )}
-        </p>
-        <div className="flex items-center gap-3">
-            <input
-                id="ai-context-budget"
-                type="range"
-                min={range.min}
-                max={range.max}
-                step={5}
-                value={budgetPercent}
-                disabled={saving}
-                onChange={(e) => setBudgetPercent(Number(e.target.value))}
-                className="flex-1 accent-blue-600"
-                aria-valuetext={`${budgetPercent}%`} />
-            <span className="w-12 text-right text-sm font-medium tabular-nums">{budgetPercent}%</span>
+/** The safety limit applies in BOTH modes, so it sits outside the choice above. */
+function SafetyLimit({ form, server, t }: { form: AiContextForm; server: AiContextSettings; t: TranslateFn }) {
+    // The server owns the context-window table and the allowed range; the SPA
+    // only multiplies. Falling back keeps the screen usable against an older
+    // API that doesn't send these yet.
+    const examples = Array.isArray(server.contextWindowExamples) ? server.contextWindowExamples : [];
+    const range = server.contextBudgetRange || { min: 25, max: 95 };
+    return (
+        <SettingsList>
+            <SettingBlock
+                label={t('admin.ai_context.budget_label', 'Safety limit')}
+                htmlFor="ai-context-budget"
+                hint={t(
+                    'admin.ai_context.safety_note',
+                    'A conversation can never overflow the model: once it reaches this share of the context window, the oldest part is summarised automatically.',
+                )}
+            >
+                <Slider
+                    id="ai-context-budget"
+                    min={range.min}
+                    max={range.max}
+                    step={5}
+                    value={form.budgetPercent}
+                    onChange={form.setBudgetPercent}
+                    suffix="%"
+                    disabled={form.saving}
+                />
+                {examples.length > 0 && (
+                    <p className="m-0 text-xs text-[var(--text-muted)]">
+                        {examples.map(ex => t('admin_ai_context.example_line', '{label}: about {tokens} tokens', {
+                            label: exampleLabel(ex, t),
+                            tokens: formatTokens(ex.contextWindow * form.budgetPercent / 100),
+                        })).join('   ·   ')}
+                    </p>
+                )}
+            </SettingBlock>
+        </SettingsList>
+    );
+}
+
+export default function OrgAiContextEditor({ orgId }: { orgId?: string | null }) {
+    const { t } = useTranslation();
+    const form = useAiContextForm(orgId, t);
+
+    if (!orgId) return null;
+
+    const { server } = form;
+    const loadError = form.loadError
+        ? `${t('admin.ai_context.load_failed', 'Could not load the long-conversation context settings.')} ${form.loadError}`
+        : null;
+
+    return (
+        <div className="space-y-6" data-testid="org-ai-context">
+            <OrgEditorLoad loading={form.loading && !server} error={loadError} onRetry={() => { void form.refetch(); }}>
+                {server && (
+                    <>
+                        <ContextChoice form={form} server={server} t={t} />
+                        <SafetyLimit form={form} server={server} t={t} />
+                        <SaveFooter
+                            onSave={form.handleSave}
+                            onCancel={form.isDirty ? form.reset : undefined}
+                            saving={form.saving}
+                            dirty={form.isDirty}
+                            saveState={form.saving ? 'saving' : form.failed ? 'error' : 'idle'}
+                            lastSavedAt={form.savedAt}
+                            onRetry={form.handleSave}
+                        />
+                    </>
+                )}
+            </OrgEditorLoad>
         </div>
-        {examples.length > 0 && (
-            <p className="text-xs opacity-70">
-                {examples.map(ex => t('admin_ai_context.example_line', '{label}: about {tokens} tokens', {
-                    label: exampleLabel(ex, t),
-                    tokens: formatTokens(ex.contextWindow * budgetPercent / 100),
-                })).join('   ·   ')}
-            </p>
-        )}
-    </div>;
+    );
 }

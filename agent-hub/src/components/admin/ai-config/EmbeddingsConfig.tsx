@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
-import SectionHeader from '@/components/shared/SectionHeader';
-import { FIELD_INPUT, SAVE_BUTTON, SettingRow, SettingsList } from '@/components/shared/SettingsList';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
+import { footerSaveState } from './ui/footerSaveState';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
@@ -101,9 +102,11 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const aiConfig = useAiConfigQuery<EmbeddingChoice>();
     const stored = aiConfig.data?.config;
     const serverForm = useMemo(() => ({ embeddingProviderId: stored?.embeddingProviderId || '', embeddingModel: stored?.embeddingModel || '' }), [stored]);
-    const { value: config, patch: patchConfig } = useDraftOverServer(serverForm);
+    const { value: config, patch: patchConfig, discard } = useDraftOverServer(serverForm);
+    const dirty = config.embeddingProviderId !== serverForm.embeddingProviderId || config.embeddingModel !== serverForm.embeddingModel;
     const loading = aiConfig.isPending;
     const [saving, setSaving] = useState(false);
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
     const [message, setMessage] = useState<StatusMessage | null>(null);
 
     // Ensure the models are loaded once there are providers to ask about.
@@ -132,6 +135,8 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                 throw err;
             });
             if (res) {
+                setLastSavedAt(new Date());
+                void refetchConfig().then(discard);
                 // A new model re-embeds the stored knowledge on the server
                 // (core/kb/embeddingMigration.js); say so, since search is
                 // keyword-only until it finishes.
@@ -161,14 +166,13 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const useModelDropdown = providerModels.length > 0 && !isAzure;
 
     useToastOnMessage(message);
-    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
+    if (loading) return <div className="p-4 text-sm text-[var(--text-tertiary)]">{t('admin_ai_config.embed_loading', 'Loading settings...')}</div>;
 
     return (
-        <div className="flex max-w-4xl flex-col gap-6">
-            <SectionHeader
-                title={t('admin_ai_config.embed_title', 'Embedding Configuration')}
-                description={t('admin_ai_config.embed_subtitle', 'Configure vectors for Knowledge Base')}
-            />
+        <SettingsGroup
+            title={t('ai_model_setup.embed_group_title', 'Embedding model')}
+            description={t('ai_model_setup.embed_group_hint', 'Turns knowledge-base text into vectors for semantic search. Changing it re-indexes your knowledge bases.')}
+        >
             <SettingsList>
                 <ProviderSelect
                     providers={providers}
@@ -207,12 +211,15 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                     <IndexLimitWarning models={providerModels} choice={config} saved={stored} />
                 </SettingRow>
             </SettingsList>
-            <div>
-                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
-                    {saving ? t('admin_ai_config.saving', 'Saving...') : t('admin_ai_config.embed_save', 'Save Configuration')}
-                </button>
-            </div>
-        </div>
+            <SaveFooter
+                onSave={() => { void handleSave(); }}
+                onCancel={dirty ? discard : undefined}
+                saving={saving}
+                dirty={dirty}
+                saveState={footerSaveState(saving, message, lastSavedAt)}
+                lastSavedAt={lastSavedAt}
+            />
+        </SettingsGroup>
     );
 };
 

@@ -4,6 +4,7 @@ import type { ModulePermission } from './permissionCopy';
 import PermissionList from './PermissionList';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import Button from '@/components/shared/Button';
 
 interface PermissionConsentDialogProps {
     module?: { id?: string; name?: string } | null;
@@ -40,7 +41,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
             zIndex={60}
             title={
                 <span className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 [color:#f59e0b]" aria-hidden="true" />
+                    <ShieldCheck className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
                     {title}
                 </span>
             }
@@ -51,22 +52,17 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
             }
             footer={
                 <>
-                    <button
-                        onClick={onCancel}
-                        disabled={busy}
-                        className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
-                    >
+                    <Button variant="secondary" onClick={onCancel} disabled={busy}>
                         {t('modules.cancel')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => onAccept(perms.map((p: ModulePermission) => p.id))}
                         disabled={busy || perms.length === 0}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                         data-testid="consent-accept"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                         {t('modules.consent_accept')}
-                    </button>
+                    </Button>
                 </>
             }
         >

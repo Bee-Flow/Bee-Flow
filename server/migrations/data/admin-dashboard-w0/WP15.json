@@ -1,0 +1,34 @@
+{
+  "reworded": {
+    "admin.fed_desc": {
+      "nl": "Gebruikers die inloggen met een adres van een van deze domeinen worden nooit automatisch aan een organisatie toegevoegd op basis van hun e-maildomein. Zo voorkom je dat een gedeeld consumentendomein (zoals gmail.com) een vreemde in de werkruimte van iemand anders binnenhaalt. De ingebouwde lijst geldt altijd; voeg extra domeinen toe die elke organisatie op deze server ook als openbaar moet behandelen.",
+      "was": [
+        "Gebruikers die inloggen met een adres van een van deze domeinen worden nooit automatisch aan een organisatie toegevoegd op basis van hun e-maildomein. Zo voorkom je dat een gedeeld consumentendomein (zoals gmail.com) een vreemde in de werkruimte van iemand anders binnenhaalt. De ingebouwde lijst geldt altijd; voeg extra domeinen toe die jouw organisatie ook als openbaar wil behandelen."
+      ]
+    },
+    "admin.gr_tab_directchat": {
+      "nl": "Guardrails voor directe chat",
+      "was": [
+        "Directe chat"
+      ]
+    },
+    "admin.gr_tab_orgs": {
+      "nl": "Per organisatie",
+      "was": [
+        "Organisaties"
+      ]
+    },
+    "admin.shield_eu_desc": {
+      "nl": "Stuur chats alleen naar AI-modellen die in de EU worden gehost. Stel die in bij AI-configuratie › Modellen.",
+      "was": [
+        "Stuur chats alleen naar AI-modellen die in de EU worden gehost. Stel die in bij AI-configuratie › Chatmodellen."
+      ]
+    },
+    "admin.sub_no_orgs": {
+      "nl": "Geen organisaties gevonden. Maak er eerst een aan bij Organisaties.",
+      "was": [
+        "Geen organisaties gevonden. Maak eerst organisaties aan bij Beveiliging › Gebruikers."
+      ]
+    }
+  }
+}

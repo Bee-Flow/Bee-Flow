@@ -199,6 +199,13 @@ it('shows the secret once, with a ready command for exactly the servers granted,
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
     expect(within(reveal).getByLabelText('Token')).toHaveValue('bfmcp_abc_secret123');
     expect(within(reveal).getByText(/shown only once/)).toBeInTheDocument();
+    // Any MCP client first: each granted server's address and the token header.
+    expect(within(reveal).getByRole('tab', { name: 'Any MCP client' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(reveal).getByText(/^https?:\/\/.*\/mcp\/cms$/)).toBeInTheDocument();
+    expect(within(reveal).getByText('Authorization: Bearer bfmcp_abc_secret123')).toBeInTheDocument();
+    expect(within(reveal).queryByText(/claude mcp add/)).not.toBeInTheDocument();
+    // The command-line client's ready commands are one tab next to it.
+    await user.click(within(reveal).getByRole('tab', { name: 'Connect Claude Code' }));
     expect(within(reveal).getAllByText(/^claude mcp add --transport http /)).toHaveLength(2);
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms .*\/mcp\/cms --header "Authorization: Bearer bfmcp_abc_secret123"/)).toBeInTheDocument();
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow .*\/mcp --header/)).toBeInTheDocument();
@@ -206,7 +213,7 @@ it('shows the secret once, with a ready command for exactly the servers granted,
 
     await user.click(within(reveal).getByRole('button', { name: 'Copy' }));
     expect(await navigator.clipboard.readText()).toBe('bfmcp_abc_secret123');
-    await user.click(within(reveal).getByRole('button', { name: 'Copy command for Website (CMS)' }));
+    await user.click(within(reveal).getByRole('button', { name: 'Copy: Website (CMS)' }));
     expect(await navigator.clipboard.readText()).toContain('/mcp/cms');
 
     // Done closes it and the secret is gone from the page for good.
@@ -346,7 +353,7 @@ it('disables Create token and says why when the organisation does not allow MCP 
     expect(screen.getByText(/Your organisation does not allow you to use MCP/)).toBeInTheDocument();
 });
 
-it('builds the claude mcp add line from the base URL the server reports', async () => {
+it('builds the server address and the claude mcp add line from the base URL the server reports', async () => {
     listWith({ mcpBaseUrl: 'https://flow.example.org' });
     api.on('POST', PATH, { status: 201, body: { token: 'bfmcp_abc_secret123', record: record({ id: 'tok-new', scopes: { cms: { level: 'read', publish: false } } }) } });
     const user = await renderLoaded();
@@ -355,6 +362,8 @@ it('builds the claude mcp add line from the base URL the server reports', async 
     await user.click(form.getByRole('switch', { name: 'Website (CMS)' }));
     await user.click(form.getByRole('button', { name: 'Create token' }));
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
+    expect(within(reveal).getByText('https://flow.example.org/mcp/cms')).toBeInTheDocument();
+    await user.click(within(reveal).getByRole('tab', { name: 'Connect Claude Code' }));
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms https:\/\/flow\.example\.org\/mcp\/cms /)).toBeInTheDocument();
 });
 

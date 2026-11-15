@@ -32,9 +32,9 @@ describe('UserManagement in the admin dashboard', () => {
         render(<UserManagement user={platformAdmin} />);
         const tabs = within(await screen.findByRole('tablist'));
         const all = tabs.getAllByRole('tab');
-        expect(all.map(tab => tab.textContent?.trim())).toEqual(['Users', 'Invitations', 'Groups', 'Organisation roles', 'Model tiers', 'Organizations', 'Nextcloud', 'Server roles', 'Permissions']);
-        for (const tab of all.slice(5)) expect(within(tab).getByRole('img', { name: 'Whole server' })).toBeInTheDocument();
-        for (const tab of all.slice(0, 5)) expect(within(tab).queryByRole('img')).not.toBeInTheDocument();
+        expect(all.map(tab => tab.textContent?.trim())).toEqual(['Users', 'Invitations', 'Groups', 'Organisation roles', 'Organisations', 'Nextcloud', 'Server roles', 'Permissions']);
+        for (const tab of all.slice(4)) expect(within(tab).getByRole('img', { name: 'Whole server' })).toBeInTheDocument();
+        for (const tab of all.slice(0, 4)) expect(within(tab).queryByRole('img')).not.toBeInTheDocument();
         expect(tabs.getAllByText('Whole server', { selector: 'span[aria-hidden="true"]' })).toHaveLength(1);
     });
 

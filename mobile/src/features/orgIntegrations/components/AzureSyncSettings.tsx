@@ -1,5 +1,5 @@
 /**
- * The group sync's settings (SSOSection.jsx, "Sync Settings"): each switch is
+ * The group sync's settings (web: integrations/azure/GroupSyncSection.tsx, "Sync settings"): each switch is
  * saved the moment it flips, one key per request as the web sends it, and the
  * server's answer becomes the stored settings — the group says so, since the
  * screen's Save bar does not cover them. Destructive sync is confirmed before
@@ -26,7 +26,7 @@ export function AzureSyncSettings({ orgId, settings }: { orgId: string | null; s
     const save = useSaveAzureSyncSettings(orgId);
     const set = <K extends keyof AzureGroupSyncSettings>(key: K, value: AzureGroupSyncSettings[K]) =>
         save.mutate({ [key]: value }, { onError: (err) => toast(describeError(err).message, 'error') });
-    const warning = t('azure.sync_destructive_warning', 'Warning: This will remove users from BeeFlow groups and delete Azure-synced groups that are no longer assigned to the enterprise app.');
+    const warning = t('azure.sync_destructive_warning', 'This removes users from Bee Flow groups and deletes synced groups that are no longer assigned to the enterprise app.');
     const setDestructive = async (on: boolean) => {
         const ok = !on || (await confirm({ title: t('azure.sync_destructive', 'Destructive sync'), message: warning, confirmLabel: t('mobile.orgIntegrations.sync_destructive_on', 'Switch on') }));
         if (ok) set('destructiveSync', on);
@@ -36,7 +36,7 @@ export function AzureSyncSettings({ orgId, settings }: { orgId: string | null; s
 
     return (
         <>
-            <Group title={t('azure.sync_settings', 'Sync Settings')} footer={t('mobile.orgIntegrations.sync_instant', 'Saved as you switch')}>
+            <Group title={t('azure.sync_settings', 'Sync settings')} footer={t('mobile.orgIntegrations.sync_instant', 'Saved as you switch')}>
                 <ToggleRow
                     testID="azure-sync-auto-activate"
                     label={t('azure.sync_auto_activate', 'Auto-activate synced users')}
@@ -48,7 +48,7 @@ export function AzureSyncSettings({ orgId, settings }: { orgId: string | null; s
                 <ToggleRow
                     testID="azure-sync-destructive"
                     label={t('azure.sync_destructive', 'Destructive sync')}
-                    description={t('azure.sync_destructive_desc', 'Remove groups and group memberships from BeeFlow when they are no longer assigned in Azure AD.')}
+                    description={t('azure.sync_destructive_desc', 'Remove groups and group memberships from Bee Flow when they are no longer assigned in Entra ID.')}
                     value={settings.destructiveSync}
                     disabled={save.isPending}
                     onValueChange={(v) => void setDestructive(v)}
