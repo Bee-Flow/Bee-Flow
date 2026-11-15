@@ -4,10 +4,13 @@
  *
  * Endpoints for super-admins (or org admins of the target org) to mint and
  * rotate the per-tenant key the Bee Flow Nextcloud connector uses to sign
- * its JWTs. The customer's NC admin pastes this key into AppAPI's app
- * settings via:
+ * its JWTs. The key is an install-time value of the connector
+ * (BEEFLOW_TENANT_KEY): AppAPI takes it in the deploy options at install, or
+ * when the app is registered again (it has no command that changes a value
+ * of an installed app; see docs/docs/connector/architecture.md):
  *
- *     occ app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY <key>
+ *     occ app_api:app:unregister bee_flow
+ *     occ app_api:app:register bee_flow <daemon> --env BEEFLOW_TENANT_KEY=<key>
  *
  * Keys are stored encrypted at rest in configStore under
  * `connector_tenant_key_<orgId>` (see auth/connectorJwt.js).
@@ -42,6 +45,11 @@ const { z } = require('../utils/zod');
 const { sessionUser } = require('../core/http/sessionUser');
 
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
+
+/** How the key reaches the connector: an install-time value, so at install or by registering the app again. */
+const TENANT_KEY_INSTRUCTIONS = 'Have your Nextcloud admin give this key to the connector as BEEFLOW_TENANT_KEY: in the deploy options when installing it, '
+    + 'or by registering the app again (without --rm-data the connector keeps its data): '
+    + 'occ app_api:app:unregister bee_flow, then occ app_api:app:register bee_flow <daemon> --env BEEFLOW_TENANT_KEY=<tenantKey>';
 
 /** Express 5 leaves `req.body` undefined without a body; a curl POST sends none. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
@@ -82,7 +90,7 @@ router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body:
     res.json({
         orgId,
         tenantKey: key,
-        instructions: 'Have your Nextcloud admin run: occ app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY <tenantKey>',
+        instructions: TENANT_KEY_INSTRUCTIONS,
     });
 });
 

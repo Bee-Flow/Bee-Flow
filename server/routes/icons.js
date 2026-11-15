@@ -48,9 +48,9 @@
  *     now, and an image is a file this route serves (`/api/icons/data/…`):
  *     a pack imported from someone else's file can no longer make every
  *     screen fetch from a third-party address.
- *   - /generate and bulk-generate passed any `model` to Google with the
- *     install's key; it has to be a Gemini image model now, and
- *     `aspectRatio` a ratio like 16:9 instead of a Google 500.
+ *   - /generate and bulk-generate passed any `model` to the image provider;
+ *     it has to be a configured image model now (core/media/
+ *     configuredImageModel.mts), and `aspectRatio` a ratio like 16:9.
  *   - /generate and bulk-generate had no rate limit, so any logged-in user
  *     could run unlimited image generations on the install's Google key.
  *     Both now share `imageGenLimiter` (utils/perUserRateLimit, 20/min per
@@ -66,7 +66,6 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
-const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
@@ -76,7 +75,8 @@ const { uploadGuard } = require('../middleware/uploadGuard');
 const iconStore = require('../stores/iconStore');
 const userStore = require('../stores/userStore');
 const { generateImageForRoute } = require('../core/media/imageHttp');
-const { isImageGenerationAvailable } = require('../core/media/imageModels.mts');
+const { listImageModels } = require('../core/media/imageModels.mts');
+const { assertConfiguredImageModel } = require('../core/media/configuredImageModel.mts');
 const { mediaUsageFields } = require('../core/tools/mediaUsage');
 const { EMOJI_CATEGORIES, ALL_EMOJI_IDS, EMOJI_BY_ID } = require('../core/cms/emojiCatalog');
 const { z, typeError } = require('../utils/zod');
@@ -118,8 +118,8 @@ const uploadIcon = uploadGuard({
     field: 'icon',
 });
 
-// /generate and /bulk-generate both spend real money on the install's Google
-// key — bulk-generate can burn through dozens of images in one call, but that
+// /generate and /bulk-generate both spend real money on the install's image
+// provider — bulk-generate can burn through dozens of images in one call, but that
 // call still costs 1 against this budget: the limiter counts REQUESTS, not
 // icons, so a normal editor session (a bulk run, then a few individual
 // touch-ups) never gets near it. Without this, any logged-in user could run
@@ -182,10 +182,10 @@ const SetIconBody = bodyOf({ type: iconType.optional(), value: iconValue.optiona
     .transform((b) => (b.type === undefined ? null : { type: b.type, value: b.value }));
 const IconParams = z.object({ id: z.string(), key: iconKey });
 
-// A Gemini image model, whichever of them the picker offers; anything else
-// (a text model, another vendor's id) is not an icon generator.
-const MODEL_TEXT = 'model is a Gemini image model, like gemini-3.1-flash-image-preview.';
-const imageModel = worded(MODEL_TEXT).regex(/^gemini-[a-z0-9.-]*image[a-z0-9.-]*$/, MODEL_TEXT);
+// An id listImageModels() returns; the schema checks the shape, the handler
+// the configured list (checkImageModel), since that list is configuration.
+const MODEL_TEXT = 'model is the id of a configured image model.';
+const imageModel = worded(MODEL_TEXT).trim().min(1, MODEL_TEXT).max(200, MODEL_TEXT);
 const STYLE_TEXT = 'A style is text of at most 500 characters.';
 const style = worded(STYLE_TEXT).max(500, STYLE_TEXT);
 
@@ -319,10 +319,13 @@ router.post('/upload', uploadIcon, async (req, res) => {
     res.json({ url: `/api/icons/data/${filename}` });
 });
 
-// ── AI generation (Nano Banana) ─────────────────────────────────
+// ── AI generation (the configured image model) ──────────────────
+
+/** 503 with no image model configured, 400 for a model that is not one of them. @param {string | null | undefined} model */
+const checkImageModel = async (model) => assertConfiguredImageModel(await listImageModels(), model);
 
 /**
- * Build the prompt sent to Nano Banana. We always layer in our base style
+ * Build the prompt sent to the image model. We always layer in our base style
  * so a customised pack stays visually coherent; the user prompt is appended.
  * @param {string} userPrompt
  * @param {{ style?: string }} [opts]
@@ -361,6 +364,7 @@ const generateIconImage = (req, prompt, { aspectRatio, model }) => generateImage
 // POST /api/icons/generate — single-icon generation, returns the saved URL
 router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (req, res) => {
     const { prompt, style, aspectRatio, model } = req.body;
+    await checkImageModel(model);
 
     const fullPrompt = buildIconPrompt(prompt, { style });
     const result = await generateIconImage(req, fullPrompt, { aspectRatio: aspectRatio || '1:1', model });
@@ -376,11 +380,8 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
     const pack = await iconStore.getIconPack(req.params.id);
     if (!pack || pack.user_id !== userId) return res.status(404).json({ error: 'Pack not found or access denied' });
 
-    if (!(await isImageGenerationAvailable())) {
-        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — no image model is configured.');
-    }
-
     const { style, model, overwrite, only } = req.body;
+    await checkImageModel(model);
     const targetIds = (only || ALL_EMOJI_IDS)
         .filter((/** @type {string} */ id) => overwrite || !(pack.icons || {})[id]);
 
@@ -392,7 +393,7 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
     let generated = 0;
     let errors = 0;
 
-    // Cap concurrency — Gemini image gen is rate-limited.
+    // Cap concurrency — image providers rate-limit generations.
     const CONCURRENCY = 3;
     for (let i = 0; i < targetIds.length; i += CONCURRENCY) {
         const batch = targetIds.slice(i, i + CONCURRENCY);

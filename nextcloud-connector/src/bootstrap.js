@@ -447,11 +447,11 @@ const REMEDIATION = {
     saas_auth_rejected:
         'Your Bee Flow server rejected the connector\'s credentials. Check that this Nextcloud has not been disabled in your Bee Flow organisation.',
     tenant_already_provisioned:
-        'Your Bee Flow server answered that this Nextcloud, or its administrator, is already known there. To connect this Nextcloud to the existing organisation, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+        'Your Bee Flow server answered that this Nextcloud, or its administrator, is already known there. To connect this Nextcloud to the existing organisation, ask a Bee Flow organisation admin to generate a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
     pairing_required: () =>
-        `${serverLabel()} does not create an organisation by itself. Ask your Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.`,
+        `${serverLabel()} does not create an organisation by itself. Ask your Bee Flow organisation admin to generate a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page.`,
     pairing_code_invalid: () =>
-        `${serverLabel()} does not accept this pairing code: it is mistyped, expired or already used. Ask your Bee Flow organisation admin to generate a new one (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page. Nothing has to be installed again.`,
+        `${serverLabel()} does not accept this pairing code: it is mistyped, expired or already used. Ask your Bee Flow organisation admin to generate a new one (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page. Nothing has to be installed again.`,
     version_mismatch:
         'The Bee Flow server at this address has no endpoint for this connector. Update the Bee Flow server and the connector to their latest release, and check that the address is the one of the server, not of the web app.',
     appstore_signature_invalid:

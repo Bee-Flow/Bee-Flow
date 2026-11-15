@@ -1,6 +1,7 @@
 import AiStepModelSection from './chatModelTiers/AiStepModelSection';
 import ChatTiersSection from './chatModelTiers/ChatTiersSection';
 import ClassifierModelSection from './chatModelTiers/ClassifierModelSection';
+import { hasClaudeModels } from './chatModelTiers/claudeRecommendations';
 import ClaudeSettingsSection from './chatModelTiers/ClaudeSettingsSection';
 import DataExtractionModelSection from './chatModelTiers/DataExtractionModelSection';
 import EuTiersSection from './chatModelTiers/EuTiersSection';
@@ -63,17 +64,21 @@ const ChatModelTiersConfig = ({ allModels = [] }: ChatModelTiersConfigProps) => 
                 toggleCustomTaskType={toggleCustomTaskType}
             />
 
-            {/* Claude Settings — model-specific recommendations + robustness toggles */}
-            <ClaudeSettingsSection
-                claudeAutoRetry={claudeAutoRetry}
-                setClaudeAutoRetry={setClaudeAutoRetry}
-                claudeSaving={claudeSaving}
-                claudeMessage={claudeMessage}
-                claudeRecAppliedTier={claudeRecAppliedTier}
-                saveClaudeSettings={saveClaudeSettings}
-                applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
-                applyAllClaudeRecommended={applyAllClaudeRecommended}
-            />
+            {/* Claude models: recommendations + the empty-answer safety net, only
+                when a Claude model is configured (via Anthropic, Azure or Vertex). */}
+            {hasClaudeModels(chatModels) && (
+                <ClaudeSettingsSection
+                    claudeAutoRetry={claudeAutoRetry}
+                    setClaudeAutoRetry={setClaudeAutoRetry}
+                    claudeSaving={claudeSaving}
+                    claudeMessage={claudeMessage}
+                    claudeRecAppliedTier={claudeRecAppliedTier}
+                    saveClaudeSettings={saveClaudeSettings}
+                    applyClaudeRecommendedForTier={applyClaudeRecommendedForTier}
+                    applyAllClaudeRecommended={applyAllClaudeRecommended}
+                    chatModels={chatModels}
+                />
+            )}
 
             {/* Background models: one small model per job, one row each */}
             <SettingsGroup

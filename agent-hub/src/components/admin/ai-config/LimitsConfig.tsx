@@ -155,7 +155,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 
                     <SettingRow
                         label={t('admin_ai_config.limits_cpu_title', 'In-process CPU reranker')}
-                        hint={t('admin_ai_config.limits_cpu_hint', 'When Azure Cohere reranker is not configured, fall back to the in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). First call downloads the model; subsequent calls run locally with no network round-trip.')}
+                        hint={t('admin_ai_config.limits_cpu_hint', 'Used when no earlier reranker in the chain answers: a cross-encoder (bge-reranker-base, MIT, ~280 MB) that runs on this server\'s CPU. The first call downloads the model; after that it runs locally with no network round-trip.')}
                     >
                         <div className="flex justify-end">
                             <Toggle

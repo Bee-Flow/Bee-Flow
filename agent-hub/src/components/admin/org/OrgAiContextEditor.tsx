@@ -33,7 +33,36 @@ interface AiContextSettings {
     recentWindow?: number;
     contextBudgetPercent?: number;
     contextBudgetRange?: { min: number; max: number };
-    contextWindowExamples?: Array<{ label: string; contextWindow: number }>;
+    contextWindowExamples?: ContextWindowExample[];
+}
+
+/**
+ * One worked example: the organisation's largest or smallest model
+ * (server/core/llm/contextWindowExamples.mts). `label` is the server's English;
+ * `kind`, `tierKey` and `model` let the line be translated here.
+ */
+interface ContextWindowExample {
+    label: string;
+    contextWindow: number;
+    kind?: 'tier' | 'custom' | 'generic';
+    tierKey?: string | null;
+    model?: string | null;
+}
+
+/**
+ * "Fast (model name)" in the viewer's language; a custom tier keeps the admin's
+ * own label, and a tier name the catalogue does not have keeps the server's
+ * English line.
+ */
+function exampleLabel(ex: ContextWindowExample, t: TranslateFn): string {
+    const tier = ex.kind === 'tier' && ex.tierKey ? t(`tier.${ex.tierKey}`, '') : '';
+    if (tier && ex.model) {
+        return t('admin_ai_context.example_tier', '{tier} ({model})', { tier, model: ex.model });
+    }
+    if (ex.kind === 'generic') {
+        return t('admin_ai_context.example_generic', 'A {size}-token model', { size: formatTokens(ex.contextWindow) });
+    }
+    return ex.label;
 }
 
 /** The loaded settings, the selection seeded from them, and the save. */
@@ -195,7 +224,7 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
     );
 }
 
-function OrgAiContextEditorSection({ t, range, budgetPercent, saving, setBudgetPercent, examples }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; range: { min: number; max: number; }; budgetPercent: number; saving: boolean; setBudgetPercent: React.Dispatch<React.SetStateAction<number>>; examples: { label: string; contextWindow: number; }[]; }) {
+function OrgAiContextEditorSection({ t, range, budgetPercent, saving, setBudgetPercent, examples }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; range: { min: number; max: number; }; budgetPercent: number; saving: boolean; setBudgetPercent: React.Dispatch<React.SetStateAction<number>>; examples: ContextWindowExample[]; }) {
     return <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] p-4">
         <label htmlFor="ai-context-budget" className="block text-sm font-medium">
             {t('admin.ai_context.budget_label', 'Safety limit')}
@@ -222,9 +251,10 @@ function OrgAiContextEditorSection({ t, range, budgetPercent, saving, setBudgetP
         </div>
         {examples.length > 0 && (
             <p className="text-xs opacity-70">
-                {examples.map(ex => (
-                    `${ex.label} → ~${formatTokens(ex.contextWindow * budgetPercent / 100)} tokens`
-                )).join('   ·   ')}
+                {examples.map(ex => t('admin_ai_context.example_line', '{label}: about {tokens} tokens', {
+                    label: exampleLabel(ex, t),
+                    tokens: formatTokens(ex.contextWindow * budgetPercent / 100),
+                })).join('   ·   ')}
             </p>
         )}
     </div>;

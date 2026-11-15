@@ -12,7 +12,7 @@ import { loadWebModule, webSourceText } from '@/shared/testing/webModule';
 
 import { AZURE_SECTIONS, AZURE_TIERS, isClaudeReasoning, isReasoningCapable, PANEL_TIER_LABELS, SYNC_INTERVALS, TIER_DEFAULTS } from './azure';
 import { BRANCH_RE, REPO_NAME_RE } from './github';
-import { FRESH_MS } from './nextcloud';
+import { FRESH_MS, pairingCommands, SETUP_PAGE_ADDRESSES } from './nextcloud';
 
 const SERVER = path.resolve(__dirname, '../../../../../server');
 const readWeb = (rel: string) => webSourceText(rel);
@@ -44,9 +44,9 @@ describe('Azure lockstep', () => {
     });
 
     it('names empty tiers as the server does, and offers the web’s sync intervals', () => {
-        const server = readServer('routes/orgAzureConfig.js');
+        const server = readServer('routes/orgAzureConfigSchemas.mts');
         const labels = Object.entries(PANEL_TIER_LABELS).map(([k, v]) => `${k}: '${v}'`).join(', ');
-        expect(server).toContain(`const PANEL_TIERS = { ${labels} };`);
+        expect(server).toContain(`const PANEL_TIERS: Record<string, string> = { ${labels} };`);
         const sso = readWeb('components/integrations/azure/SSOSection.tsx') + readWeb('components/integrations/azure/SSOSectionSection.tsx');
         const offered = [...sso.matchAll(/<option value=\{(\d+)\}>/g)].map((m) => Number(m[1]));
         expect(offered).toEqual([...SYNC_INTERVALS]);
@@ -72,10 +72,13 @@ describe('n8n lockstep (pages/settings/n8n/)', () => {
 });
 
 describe('Nextcloud lockstep (components/integrations/nextcloud/*)', () => {
-    it('counts down, calls a sync fresh and writes the occ commands as the web does', () => {
+    it('counts down, calls a sync fresh and writes the install command as the web does', () => {
         const pairing = readWeb('components/integrations/nextcloud/OrgNcPairingPanel.tsx');
-        expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s remaining`");
-        expect(pairing).toContain('occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>\nocc app_api:app:disable bee_flow\nocc app_api:app:enable bee_flow');
+        expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s`");
+        expect(pairing).toContain(`const AT_INSTALL_COMMAND = '${pairingCommands('<CODE>')}';`);
+        expect(pairing).toContain(`const SETUP_PAGE_ADDRESSES = \`${SETUP_PAGE_ADDRESSES}\`;`);
+        // AppAPI has no command that changes a value of an installed app.
+        expect(pairing).not.toContain(['app_api:app:', 'setenv'].join(''));
         const sync = readWeb('components/integrations/nextcloud/NextcloudSyncPanel.tsx');
         expect(sync).toContain('< 30 * 60_000');
         expect(FRESH_MS).toBe(30 * 60_000);

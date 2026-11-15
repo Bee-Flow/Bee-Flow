@@ -37,9 +37,9 @@ const CACHE_TTL_MS = 30_000;
  * Percentage of the model's CONTEXT WINDOW at which the emergency fold fires.
  *
  * Expressed as a percentage rather than a token count on purpose: the same
- * setting then means ~750k tokens on Claude Sonnet 5 and ~150k on Haiku 4.5,
- * so an admin never has to know a model's window to pick a safe number, and
- * the value stays correct when the org switches model.
+ * setting then means ~750k tokens on a model with a 1M-token window and ~150k
+ * on one with 200k, so an admin never has to know a model's window to pick a
+ * safe number, and the value stays correct when the org switches model.
  */
 const DEFAULT_CONTEXT_BUDGET_PERCENT = 75;
 const MIN_CONTEXT_BUDGET_PERCENT = 25;
@@ -222,19 +222,6 @@ function overflowTokensFor(modelId, percent = DEFAULT_CONTEXT_BUDGET_PERCENT) {
 }
 
 /**
- * Representative models for the settings screen, so it can show what a chosen
- * percentage means in real tokens without duplicating `contextWindowFor`'s
- * table in the SPA. Two entries is enough to convey the range: the value means
- * very different things on a 1M-token model and a 200k one.
- */
-function contextWindowExamples() {
-    return [
-        { label: 'Claude Sonnet 5', contextWindow: contextWindowFor('claude-sonnet-5') },
-        { label: 'Claude Haiku 4.5', contextWindow: contextWindowFor('claude-haiku-4-5') },
-    ];
-}
-
-/**
  * Build the options blob `compaction.compactMessages` expects from a resolved
  * policy plus the per-conversation state. One helper so the two chat runtimes
  * (agent chatStream + directChat) cannot drift apart.
@@ -261,7 +248,6 @@ module.exports = {
     buildCompactionOptions,
     contextWindowFor,
     overflowTokensFor,
-    contextWindowExamples,
     DEFAULT_POLICY,
     CONFIG_KEY_PREFIX,
     DEFAULT_CONTEXT_BUDGET_PERCENT,

@@ -19,12 +19,12 @@ describe('the Organisation tab: which sections a viewer gets', () => {
         expect(ids({ isSelfHosted: true })).not.toContain('license');
     });
 
-    it('drops Sign-in Method for a Nextcloud-bound organisation or a connector user, and once locked on cloud', () => {
+    it('drops Sign-in Method only for a Nextcloud-bound organisation or a connector user: a stored method never hides it', () => {
         expect(ids({ isNcOrg: true })).not.toContain('auth');
         expect(ids({ isNcConnectorUser: true })).not.toContain('auth');
-        expect(ids({ orgAuthLocked: true })).not.toContain('auth');
-        // Self-hosted keeps it after the lock: the page also holds the Allowed Domains editor.
-        expect(ids({ orgAuthLocked: true, isSelfHosted: true })).toContain('auth');
+        // The preferred method never locks: the row stays, on cloud as self-hosted.
+        expect(ids()).toContain('auth');
+        expect(ids({ isSelfHosted: true })).toContain('auth');
     });
 
     it('offers Academy only with the Learning Center in the plan', () => {

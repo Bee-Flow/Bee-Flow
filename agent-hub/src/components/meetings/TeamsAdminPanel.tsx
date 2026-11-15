@@ -14,7 +14,8 @@ import TeamsConsentLinkCard from './teamsSetup/TeamsConsentLinkCard';
 import TeamsConnectionTest from './teamsSetup/TeamsConnectionTest';
 import TeamsMembersOverview from './teamsSetup/TeamsMembersOverview';
 import TeamsAppImportPanel from './teamsSetup/TeamsAppImportPanel';
-import { panelOrgId } from '@/utils/adminAccess';
+import { homeOrgIdOf, panelOrgId } from '@/utils/adminAccess';
+import HomeOrgOnlyNotice from '@/components/admin/organisation/HomeOrgOnlyNotice';
 
 /**
  * Org-level Microsoft Teams → Meeting Notes settings, next to the Google Meet
@@ -27,7 +28,10 @@ import { panelOrgId } from '@/utils/adminAccess';
  * organizer of a meeting can import it. Below the settings: the setup guide,
  * the admin consent link, a test of the admin's own connection, organisation-wide
  * import (option B, application permissions) and the members overview (all on
- * /api/teams-setup, for the session organisation).
+ * /api/teams-setup, for the session organisation). That route takes no
+ * organisation from the request, so those five parts are shown only when the
+ * chosen organisation is the viewer's own; for any other organisation a notice
+ * stands in their place, so one organisation's setup never shows under another's name.
  */
 const INHERITABLE = ['autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
 const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
@@ -36,6 +40,7 @@ const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: nu
 export default function TeamsAdminPanel({ user, orgId: orgIdProp }: { user?: { organizationId?: string | null } | null; orgId?: string | null }) {
     const { t } = useTranslation();
     const orgId = panelOrgId(orgIdProp, user);
+    const homeOrg = orgId !== null && orgId === homeOrgIdOf(user);
     const query = useTeamsNotesOrgSettings(orgId);
     const save = useSaveTeamsNotesOrgSettings(orgId);
     const [draft, setDraft] = useState<TeamsNotesSettings | null>(null);
@@ -118,14 +123,18 @@ export default function TeamsAdminPanel({ user, orgId: orgIdProp }: { user?: { o
                 </>
             )}
 
-            {/* Setting up and testing: always shown, also when the settings could not be read. */}
-            <div className="mt-6 flex flex-col gap-6">
-                <TeamsSetupGuide />
-                <TeamsConsentLinkCard />
-                <TeamsConnectionTest />
-                <TeamsAppImportPanel />
-                <TeamsMembersOverview />
-            </div>
+            {/* Setting up and testing: also shown when the settings could not be read, but only for the own organisation. */}
+            {homeOrg ? (
+                <div className="mt-6 flex flex-col gap-6">
+                    <TeamsSetupGuide />
+                    <TeamsConsentLinkCard />
+                    <TeamsConnectionTest />
+                    <TeamsAppImportPanel />
+                    <TeamsMembersOverview />
+                </div>
+            ) : (
+                <div className="mt-6"><HomeOrgOnlyNotice /></div>
+            )}
         </div>
     );
 }

@@ -52,7 +52,8 @@ describe('the Organisation tab for a platform admin', () => {
 
     it('offers a part the server ties to the own organisation only for that one', async () => {
         renderOrgTab({ section: 'meeting-templates', search: '?org=org-b', plan: entitlements([], ['meeting_notes']) });
-        expect(await screen.findByTestId('admin-home-org-only')).toBeInTheDocument();
+        // Two such parts on this page: the summary templates and the Teams setup.
+        expect(await screen.findAllByTestId('admin-home-org-only')).toHaveLength(2);
     });
 
     it('on a self-hosted install: no License & Usage, and the Azure setup last in Connections, marked server-wide', async () => {
@@ -71,7 +72,7 @@ describe('the Organisation tab for a platform admin', () => {
         const { onNavigate } = renderOrgTab({ section: 'info', search: '?org=org-a', plan: entitlements(['learning_center'], ['meeting_notes']) });
         await screen.findByDisplayValue('Org A');
         const group = (eyebrow: string) => groupRows(eyebrow).map(a => a.textContent);
-        expect(group('Workspace')).toEqual(['Organisation Info', 'Sign-in Method', 'License & Usage', 'Academy']);
+        expect(group('Workspace')).toEqual(['Organisation Info', 'Preferred sign-in method', 'License & Usage', 'Academy']);
         expect(group('AI & agents')).toEqual(['Agents', 'AI & Collaboration', 'Answer Reuse', 'Meeting Templates']);
         expect(group('Security & access')).toEqual(['Security', 'Access', 'Encryption']);
         expect(group('Connections')).toEqual(['Integrations', 'MCP Library', 'MCP Access', 'Nextcloud Sync']);

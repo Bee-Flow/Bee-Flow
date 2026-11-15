@@ -130,6 +130,16 @@ test('a real organisation gets a new key, with or without an empty body', async 
     }
 });
 
+test('the instructions name a way AppAPI really offers to hand the key to the connector', async () => {
+    const res = await dispatch({ method: 'POST', url: '/admin/connector/tenants/org1/key' });
+    assert.strictEqual(res.statusCode, 200);
+    // Written in two halves so this file does not contain the command it bans:
+    // AppAPI has no command that changes a value of an installed app.
+    assert.ok(!res.body.instructions.includes(['app_api:app:', 'setenv'].join('')), res.body.instructions);
+    assert.match(res.body.instructions, /occ app_api:app:register bee_flow <daemon> --env BEEFLOW_TENANT_KEY=<tenantKey>/);
+    assert.ok(!res.body.instructions.includes(res.body.tenantKey), 'the key itself stays out of the instruction text');
+});
+
 // ── DELETE: revoke ──────────────────────────────────────────────────
 
 test('revoking under a mistyped org id is a 404, and the real key is untouched', async () => {

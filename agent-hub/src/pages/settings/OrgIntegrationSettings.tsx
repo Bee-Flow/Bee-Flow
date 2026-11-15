@@ -1,5 +1,6 @@
 import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
 import { ServerWideDivider, ServerWideMark } from '../../components/admin/dashboard/serverWideNav';
+import { listHasIntegration } from '../../config/integrationIdAliases';
 import { useTranslation } from '../../hooks/useTranslation';
 import { isPlatformAdmin } from '../../utils/adminAccess';
 import GoogleMapsRow from './GoogleMapsRow';
@@ -34,7 +35,8 @@ function integrationRows(user: OrgIntegrationSettingsProps['user'], homeOrg: boo
     const platformAdmin = isPlatformAdmin(user);
     // The Maps key is instance-wide (POST /ai/config takes a platform admin), so
     // only a platform admin gets the row; for anyone else every save is refused.
-    const showGoogleMaps = platformAdmin && (!ei || ei.includes('google-maps'));
+    // The catalogue id is `maps`; an older list may still say `google-maps`.
+    const showGoogleMaps = platformAdmin && (!ei || listHasIntegration(ei, 'maps'));
     return {
         // The viewer's integration list says nothing about another organisation's (a platform admin's choice).
         showN8n: !homeOrg || !ei || ei.includes('n8n'),

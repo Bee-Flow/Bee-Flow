@@ -113,20 +113,23 @@ cmd_reset() {
 
 # Pair a fresh NC install to an EXISTING Bee Flow org via pairing code.
 # Usage: dev-nc.sh pair BEEF-FL0W
-# This is the manual leg of Phase-2 recovery — exercises the same env-var
-# the production "occ app_api:app:setenv" workflow uses.
+# The same route as production: the code is entered on the connector's setup
+# page ("Bind to existing organisation" → "Apply pairing code"), which needs a
+# signed-in Nextcloud admin, so this prints the steps. AppAPI has no command
+# that changes a value of an installed app; BEEFLOW_PAIRING_CODE is only an
+# install-time value (occ app_api:app:register ... --env).
 cmd_pair() {
     local code="${1:-}"
     if [ -z "$code" ]; then
         echo "usage: $0 pair <PAIRING-CODE>" >&2
         exit 2
     fi
-    echo "▶ Setting BEEFLOW_PAIRING_CODE=${code} on connector and restarting…"
-    run_docker "docker exec '${CONNECTOR_CONTAINER}' sh -c 'rm -f /nc_app_bee_flow_data/tenant-key.json /nc_app_bee_flow_data/pending-bootstrap.json'"
-    # Inject via NC's app_api so it survives the connector restart.
-    run_docker "docker exec '${NC_CONTAINER}' sudo -u www-data php occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE '${code}'" || true
-    run_docker "docker restart '${CONNECTOR_CONTAINER}'" >/dev/null
-    echo "✓ Connector restarted. Watch logs with: $0 logs"
+    echo "▶ Enter pairing code ${code} on the connector's setup page, signed in as a Nextcloud admin:"
+    echo "    <your-nextcloud>${VITE_BASE}setup"
+    echo "  Under 'Bind to existing organisation', paste the code and press 'Apply pairing code'."
+    echo "  First install instead? Give it at register time:"
+    echo "    occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=${code}"
+    echo "  Watch the redemption with: $0 logs"
 }
 
 cmd_logs() {

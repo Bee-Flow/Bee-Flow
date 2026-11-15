@@ -98,17 +98,28 @@ test('everything the palette offers is also granted by the single-app check', as
 test('the inline-registered integrations are granted, and invisible to the palette', async () => {
     // Every app a caller could wrongly authorise through the palette helper.
     // The old version of this file read them off a module-private constant;
-    // each is now checked by asking both helpers. `google-maps` and
-    // `music-gen` appear in no public list at all, which is why they are
-    // named here rather than discovered.
+    // each is now checked by asking both helpers. `music-gen` appears in no
+    // public list at all, which is why it is named here rather than discovered.
     const permitted = await getUserPermittedApps(USER);
-    for (const appId of ['browser-fetch', 'google-maps', 'music-gen', 'workspace', 'presentations', 'word-documents', 'spreadsheets', 'regex-generator']) {
+    for (const appId of ['browser-fetch', 'music-gen', 'workspace', 'presentations', 'word-documents', 'spreadsheets', 'regex-generator']) {
         assert.ok(!registryApps.has(appId), `${appId} joined TOOL_REGISTRY — the palette can offer it now`);
         assert.ok(!permitted.has(appId), `${appId} is suddenly in the palette result`);
         assert.strictEqual(
             await isIntegrationPermittedForUser({ userId: 'u1', appId, session: USER.session }), true,
             `${appId} must be reachable through the single-app check — nothing else can authorise it`,
         );
+    }
+});
+
+test('Google Maps is offered under its registry id and granted under either id', async () => {
+    // `maps` is the registry, catalogue and TOOL_REGISTRY id; `google-maps` is
+    // the older id the runtime used to ask about. The two helpers must agree on
+    // both (integrationIdAliases.mts).
+    const permitted = await getUserPermittedApps(USER);
+    assert.ok(registryApps.has('maps'));
+    assert.ok(permitted.has('maps'), 'the palette must offer Maps');
+    for (const appId of ['maps', 'google-maps']) {
+        assert.strictEqual(await isIntegrationPermittedForUser({ userId: 'u1', appId, session: USER.session }), true, appId);
     }
 });
 

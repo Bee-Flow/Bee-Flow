@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import {
     useAppPasswordStatusQuery, useGithubStatusQuery, useLinkedinStatusQuery, useMemoryStatsQuery,
-    useSettingsAgentsQuery, useSettingsOrganizationsQuery, useUserSettingsQuery,
+    useSettingsAgentsQuery, useUserSettingsQuery,
 } from '@/api/queries/shellReads';
 import type { MemoryStats } from '@/components/knowledge/memory/memoryTypes';
 import type { PreferencesAgent } from '../PreferencesSection.types';
-import type { SettingsStatuses, SettingsUser } from './settingsShellTypes';
+import type { SettingsStatuses } from './settingsShellTypes';
 
 type StatsStatus = 'loading' | 'ok' | 'error';
 
@@ -46,8 +46,8 @@ function mergeStatuses(
     return next;
 }
 
-/** The memory counters, the agent list, the integration statuses and whether the org has locked its sign-in method. */
-export function useSettingsData(user: SettingsUser | null | undefined, canSeeOrg: boolean) {
+/** The memory counters, the agent list and the integration statuses. */
+export function useSettingsData() {
     const memory = useMemoryStatsQuery<MemoryStats>();
     // loading | ok | error - MemorySection must never paint a zero for a
     // pending or failed fetch (see its header comment). A refetch with stats
@@ -74,15 +74,8 @@ export function useSettingsData(user: SettingsUser | null | undefined, canSeeOrg
         await Promise.all([refetchUserSettings(), refetchLinkedin(), refetchNextcloud(), refetchGithub()]);
     }, [refetchUserSettings, refetchLinkedin, refetchNextcloud, refetchGithub]);
 
-    // Whether this org has already locked in its sign-in method. Once locked,
-    // the "Sign-in Method" sidebar entry is hidden - the panel is a one-time
-    // choice and adds no value after the fact.
-    const orgs = useSettingsOrganizationsQuery<{ id?: string; authMethod?: string | null }>(canSeeOrg).data;
-    const myOrg = user?.organizationId ? orgs?.find(o => o.id === user.organizationId) : orgs?.[0];
-    const orgAuthLocked = canSeeOrg && !!myOrg?.authMethod;
-
     const { refetch: refetchMemory } = memory;
     const fetchMemoryStats = useCallback(async () => { await refetchMemory(); }, [refetchMemory]);
 
-    return { memoryStats: memory.data ?? null, memoryStatsStatus, agents, statuses, orgAuthLocked, fetchMemoryStats, fetchSettingsStatuses };
+    return { memoryStats: memory.data ?? null, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses };
 }

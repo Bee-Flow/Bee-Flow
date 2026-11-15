@@ -1,0 +1,7 @@
+{
+  "translations": {
+    "sso_licence.microsoft_locked_title": "Inloggen met Microsoft zit niet in deze licentie",
+    "sso_licence.microsoft_locked_message": "Single sign-on met Microsoft vraagt om de SSO-functie van een Enterprise-licentie. Zonder die functie kun je de inlog-app hier en onder Beveiliging > SSO niet instellen."
+  },
+  "sameAsEnglish": []
+}

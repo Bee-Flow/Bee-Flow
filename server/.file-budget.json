@@ -332,7 +332,6 @@
     "routes/notebookExport.js": 461,
     "routes/notebooks.js": 428,
     "routes/notebooksSources.js": 492,
-    "routes/orgAzureConfig.js": 426,
     "routes/orgCustomData.js": 415,
     "routes/orgIntegrations/builder.js": 617,
     "routes/orgPrivacyShield.js": 740,

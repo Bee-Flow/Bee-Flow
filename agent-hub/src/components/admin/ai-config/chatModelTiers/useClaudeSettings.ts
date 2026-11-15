@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { Dispatch, SetStateAction } from 'react';
-import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER } from './constants';
-import type { StatusMessage, TierConfig, TierSettings } from './tierTypes';
+import { CLAUDE_RECOMMENDED } from './constants';
+import { applicableRecommendations, resolveRecommendedModelId } from './claudeRecommendations';
+import type { CatalogModel, StatusMessage, TierConfig, TierSettings } from './tierTypes';
 import { flash } from './tierTypes';
 import { getAiConfig, postAiConfig } from '@/api/aiConfig';
 
@@ -26,15 +27,24 @@ export interface ClaudeSettingsState {
     claudeRecAppliedTier: string | null;
     loadClaudeSettings: () => Promise<void>;
     saveClaudeSettings: (next?: boolean) => Promise<void>;
-    applyClaudeRecommendedForTier: (tierKey: string) => void;
-    applyAllClaudeRecommended: () => void;
+    /**
+     * Lay the recommendation over one tier. With `models` (the configured
+     * catalogue) the recommended model is resolved against it, and nothing
+     * happens when this server does not offer it.
+     */
+    applyClaudeRecommendedForTier: (tierKey: string, models?: readonly CatalogModel[]) => void;
+    /**
+     * Lay the recommendations over every tier whose recommended model is in
+     * `models`; the other tiers keep what they have. Returns how many tiers changed.
+     */
+    applyAllClaudeRecommended: (models: readonly CatalogModel[]) => number;
 }
 
 /** A tier's settings with the recommended Claude values laid over them. */
-function withRecommended(current: TierSettings | undefined, rec: ClaudeRecommendation): TierSettings {
+function withRecommended(current: TierSettings | undefined, rec: ClaudeRecommendation, modelId: string): TierSettings {
     return {
         ...(current || {}),
-        modelId: rec.modelId,
+        modelId,
         maxTokens: rec.maxTokens,
         temperature: rec.temperature,
         reasoningEffort: rec.reasoningEffort,
@@ -49,7 +59,7 @@ function withRecommended(current: TierSettings | undefined, rec: ClaudeRecommend
  * local tier config: the admin still has to hit "Save Tier Configuration",
  * which keeps the action reviewable.
  */
-export default function useClaudeSettings(config: TierConfig, setConfig: Dispatch<SetStateAction<TierConfig>>): ClaudeSettingsState {
+export default function useClaudeSettings(_config: TierConfig, setConfig: Dispatch<SetStateAction<TierConfig>>): ClaudeSettingsState {
     const { t } = useTranslation();
     const [claudeAutoRetry, setClaudeAutoRetry] = useState(true);
     const [claudeSaving, setClaudeSaving] = useState(false);
@@ -82,23 +92,34 @@ export default function useClaudeSettings(config: TierConfig, setConfig: Dispatc
     };
 
     // Flashing the row provides feedback.
-    const applyClaudeRecommendedForTier = (tierKey: string) => {
+    const applyClaudeRecommendedForTier = (tierKey: string, models?: readonly CatalogModel[]) => {
         const rec = RECOMMENDED[tierKey];
         if (!rec) return;
-        setConfig(prev => ({ ...prev, [tierKey]: withRecommended(prev[tierKey], rec) }));
+        const modelId = models ? resolveRecommendedModelId(rec.modelId, models) : rec.modelId;
+        if (!modelId) return;
+        setConfig(prev => ({ ...prev, [tierKey]: withRecommended(prev[tierKey], rec, modelId) }));
         setClaudeRecAppliedTier(tierKey);
         setTimeout(() => setClaudeRecAppliedTier(curr => curr === tierKey ? null : curr), 1500);
     };
 
-    const applyAllClaudeRecommended = () => {
-        const next = { ...config };
-        for (const tierKey of CLAUDE_REC_TIER_ORDER) {
-            const rec = RECOMMENDED[tierKey];
-            if (!rec) continue;
-            next[tierKey] = withRecommended(next[tierKey], rec);
-        }
-        setConfig(next);
-        flash(setClaudeMessage, { type: 'success', text: t('admin_ai_config.claude_applied_all', 'Recommended Claude defaults applied to all tiers. Click Save Tier Configuration to keep them.') }, 5000);
+    const applyAllClaudeRecommended = (models: readonly CatalogModel[]) => {
+        const applicable = Object.entries(applicableRecommendations(models));
+        if (applicable.length === 0) return 0;
+        // Functional update: the caller confirms first, so the config this
+        // render saw may be stale by the time the admin clicks (a load landed).
+        setConfig((prev) => {
+            const next = { ...prev };
+            for (const [tierKey, modelId] of applicable) {
+                const rec = RECOMMENDED[tierKey];
+                if (rec) next[tierKey] = withRecommended(next[tierKey], rec, modelId);
+            }
+            return next;
+        });
+        const text = applicable.length === 1
+            ? t('ai_model_setup.claude_applied_one', 'Recommended settings applied to 1 tier. Click Save Tier Configuration to keep them.')
+            : t('ai_model_setup.claude_applied_some', 'Recommended settings applied to {n} tiers. Click Save Tier Configuration to keep them.', { n: applicable.length });
+        flash(setClaudeMessage, { type: 'success', text }, 5000);
+        return applicable.length;
     };
 
     return {

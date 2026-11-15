@@ -159,7 +159,7 @@ const ALL_INTEGRATIONS = [
     'google-keep', 'google-groups', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts',
     'image-gen', 'video-gen', 'elevenlabs', 'agent-search', 'browser-fetch', 'fireflies', 'youtrack', 'gamma',
     'signrequest', 'afas-profit', 'nmbrs', 'vplan', 'firebird', 'frappe-crm', 'scaleway-billing', 'n8n', 'linkedin', 'withings',
-    'google-maps', 'github', 'transcription', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts',
+    'maps', 'github', 'transcription', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts',
     'nextcloud-deck', 'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes',
     'nextcloud-mail', 'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams',
     'nextcloud-status', 'mcp:srv1', 'custom:c1',

@@ -145,7 +145,7 @@ describe('AdminDashboard scope groups', () => {
         expect(nav.getByTestId('admin-rail-section-instance')).toHaveTextContent('Whole server');
         // The Organisation tab's sections are rows in their groups; the account says cloud, so License & Usage is one.
         expect(rowNames(nav.getByTestId('admin-rail-section-org'))).toEqual([
-            'Organisation Info', 'Sign-in Method', 'License & Usage',
+            'Organisation Info', 'Preferred sign-in method', 'License & Usage',
             'Agents', 'AI & Collaboration', 'Answer Reuse',
             'Security', 'Access', 'Compliance', 'Encryption',
             'Integrations', 'MCP Library', 'MCP Access', 'Nextcloud Sync',
@@ -164,7 +164,7 @@ describe('AdminDashboard scope groups', () => {
         expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
         expect(nav.queryByText('Whole server')).not.toBeInTheDocument();
         expect(rowNames(rail())).toEqual([
-            'Organisation Info', 'Sign-in Method', 'License & Usage',
+            'Organisation Info', 'Preferred sign-in method', 'License & Usage',
             'Agents', 'AI & Collaboration', 'Answer Reuse',
             'Security', 'Access', 'Compliance', 'Encryption',
             'Integrations', 'MCP Library', 'MCP Access',
@@ -178,7 +178,7 @@ describe('AdminDashboard scope groups', () => {
         renderDashboard({ user: systemOnly, seg1: 'agents', license: enterprise });
         const links = rowNames(rail());
         expect(links).not.toContain('Agents');
-        expect(links.slice(0, 4)).toEqual(['Organisation Info', 'Sign-in Method', 'License & Usage', 'AI & Collaboration']);
+        expect(links.slice(0, 4)).toEqual(['Organisation Info', 'Preferred sign-in method', 'License & Usage', 'AI & Collaboration']);
     });
 
     it('opens the Organisation tab for an organisation admin by role alone, and falls back to it without Agents', () => {
@@ -186,7 +186,7 @@ describe('AdminDashboard scope groups', () => {
         renderDashboard({ user: byRole, license: enterprise });
         // No 'org_admin' permission: the organisation-admin role opens it (and Access, which takes org_admin too).
         expect(rowNames(rail())).toEqual([
-            'Organisation Info', 'Sign-in Method', 'License & Usage', 'AI & Collaboration', 'Answer Reuse',
+            'Organisation Info', 'Preferred sign-in method', 'License & Usage', 'AI & Collaboration', 'Answer Reuse',
             'Access', 'Encryption', 'Integrations', 'MCP Library', 'MCP Access', 'Monitoring',
         ]);
         // admin/ alone falls back to the Organisation tab, which opens its first section.

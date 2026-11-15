@@ -6,56 +6,26 @@
 // until they hit "Create plan".
 //
 // Tier slugs (`allowed_models`) match TIER_META keys in
-// agent-hub/src/components/tierMeta.js so the AI Configuratie layer can
-// resolve them to concrete vendor models (Claude primary, Mistral as EU
-// fallback).
+// agent-hub/src/components/tierMeta.js so the AI configuration layer can
+// resolve them to the models the operator has configured.
 //
-// Caps + prices were sized against May 2026 model pricing
-// (Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.7; Mistral Small / Medium / Large)
-// targeting ~75% gross margin at 50% utilisation and ≥50% at cap-hit, with
-// a 70/30 Claude/Mistral mix and a 4,000-input + 600-output token average
-// per message. See the plan file for full math.
+// Caps + prices were sized against May 2026 model pricing; the model mix and
+// the full math live in the plan document, not in this shipped catalogue.
+//
+// `plan.*` is what a customer sees once the plan is saved (plan cards, the
+// consumer plan picker): keep it free of margins, markups, cost economics and
+// competitor names. Notes for the operator go in `display.operatorNote`, which
+// only the template gallery shows (planTemplates.test.ts enforces this).
 //
 // White-label is intentionally **not** included on any cloud template — it's
 // a self-hosted-only feature gated by license-key activation.
 import type { PlanTemplate } from './planTemplates.types';
-// ── Beta feature buckets ────────────────────────────────────────────────────
-const BETA_FREE: string[]      = [];
-const BETA_PLUS: string[]      = [];
-const BETA_TEAM      = ['automations', 'agent_routines'];
-const BETA_BUSINESS  = [
-    'automations', 'agent_routines',
-    'meeting_notes', 'voice_chat',
-    'webpages', 'skills',
-];
-const BETA_ENTERPRISE = [
-    ...BETA_BUSINESS,
-    'swarm', 'advanced_analytics', 'custom_themes',
-    // 'white_label' intentionally omitted — self-hosted only.
-];
-
-// ── Integration buckets ────────────────────────────────────────────────────
-const INT_NEXTCLOUD_CORE = ['nextcloud'];
-const INT_NEXTCLOUD_FULL = [
-    'nextcloud', 'nextcloud-mail', 'nextcloud-calendar', 'nextcloud-contacts',
-    'nextcloud-deck', 'nextcloud-notifications', 'nextcloud-talk',
-    'nextcloud-tasks', 'nextcloud-notes', 'nextcloud-activity', 'nextcloud-status',
-];
-const INT_GOOGLE_WORKSPACE = [
-    'gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-sheets',
-    'google-slides', 'google-contacts', 'google-keep', 'google-groups', 'maps',
-];
-const INT_MICROSOFT_365 = ['outlook', 'ms-calendar', 'onedrive', 'ms-contacts'];
-const INT_GOOGLE_PERSONAL = ['gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-contacts'];
-const INT_MS_PERSONAL = ['outlook', 'ms-calendar', 'onedrive', 'ms-contacts'];
-const INT_AI = ['image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'agent-search', 'transcription', 'kb-search'];
-const INT_THIRD_PARTY = ['fireflies', 'youtrack', 'gamma', 'afas-profit', 'nmbrs', 'vplan', 'firebird', 'frappe-crm', 'scaleway-billing', 'n8n', 'linkedin', 'github', 'signrequest', 'webpages'];
-
-// ── Core feature buckets ───────────────────────────────────────────────────
-const FEAT_FREE  = ['chat', 'direct_chat'];
-const FEAT_PLUS  = ['chat', 'direct_chat', 'agents', 'knowledge_base'];
-const FEAT_TEAM  = ['chat', 'direct_chat', 'agents', 'knowledge_base', 'workspace'];
-const FEAT_FULL  = ['chat', 'direct_chat', 'agents', 'knowledge_base', 'workspace', 'embed_chat', 'encryption'];
+import {
+    BETA_FREE, BETA_PLUS, BETA_TEAM, BETA_BUSINESS, BETA_ENTERPRISE,
+    INT_NEXTCLOUD_CORE, INT_NEXTCLOUD_FULL, INT_GOOGLE_WORKSPACE, INT_MICROSOFT_365,
+    INT_GOOGLE_PERSONAL, INT_MS_PERSONAL, INT_AI, INT_THIRD_PARTY,
+    FEAT_FREE, FEAT_PLUS, FEAT_TEAM, FEAT_FULL,
+} from './planTemplates.buckets';
 
 // ── Templates ──────────────────────────────────────────────────────────────
 export const PLAN_TEMPLATES: PlanTemplate[] = [
@@ -217,10 +187,11 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
             priceLabel: 'PAYG · +25% · per org',
             highlights: ['No flat fee', 'Up to 25 users · 25 agents', 'All model tiers unlocked', 'Stripe meter billing'],
             badge: 'PAYG',
+            operatorNote: 'Billed through Stripe usage meters at raw model cost plus a 25% markup (markup_percent).',
         },
         plan: {
             name: 'Bee Flow PAYG (Org)',
-            description: 'No flat fee — pay only for the AI usage you consume, billed monthly via Stripe usage meters with a 25% margin on raw model cost. Flat per-org (not per seat).',
+            description: 'No flat fee: pay only for the AI usage you consume, billed monthly. One price per organisation, not per seat.',
             tagline: 'Pay for what you use, nothing else',
             plan_type: 'organization',
             tier: '',
@@ -289,13 +260,14 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
         audience: 'consumer',
         display: {
             title: 'Bee Flow Plus',
-            subtitle: 'Entry tier for personal use — undercuts ChatGPT Plus.',
+            subtitle: 'Entry tier for everyday personal use.',
             priceLabel: '€9.99 / month · per account',
             highlights: ['600 messages / month', '3 agents · 10 KB sources', 'Fast + Thinking tiers', 'Personal Google / Microsoft'],
+            operatorNote: '600 messages / month gives about 77% gross margin for an average user.',
         },
         plan: {
             name: 'Bee Flow Plus',
-            description: 'Per-account tier for everyday personal use. Adds the Thinking model tier, personal knowledge bases, and personal Google + Microsoft integrations. 600 messages / month delivers ~77% margin on average users.',
+            description: 'Per-account tier for everyday personal use. Adds the Thinking model tier, personal knowledge bases, and personal Google + Microsoft integrations. 600 messages / month.',
             tagline: 'For everyday personal use',
             plan_type: 'consumer',
             tier: 'pro',
@@ -328,10 +300,11 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
             subtitle: 'All three tiers, voice chat, meeting notes, webpages.',
             priceLabel: '€19.99 / month · per account',
             highlights: ['800 messages / month', '10 agents · 50 KB sources', 'All three model tiers', 'Voice chat · Meeting notes'],
+            operatorNote: '800 messages / month gives about 77% gross margin for an average user.',
         },
         plan: {
             name: 'Bee Flow Pro',
-            description: 'Per-account tier for power users. Unlocks Deep Thinking, voice chat, meeting notes, automations, scheduled agent runs, and personal webpages. 800 msgs / month delivers ~77% margin on average users.',
+            description: 'Per-account tier for power users. Unlocks Deep Thinking, voice chat, meeting notes, automations, scheduled agent runs, and personal webpages. 800 messages / month.',
             tagline: 'For power users',
             plan_type: 'consumer',
             tier: 'pro',
@@ -367,10 +340,11 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
             subtitle: 'Top consumer tier for prosumers and freelancers — unlimited agents.',
             priceLabel: '€39.99 / month · per account',
             highlights: ['1,500 messages / month', 'Unlimited agents', 'All model tiers + Writer', 'Skills · advanced analytics'],
+            operatorNote: 'About 76% gross margin on average use.',
         },
         plan: {
             name: 'Bee Flow Power',
-            description: 'Per-account top consumer tier for prosumers and freelancers who lean on Bee Flow daily. Unlimited agents, all model tiers, plus skills, advanced analytics, and code execution. ~76% margin on average use.',
+            description: 'Per-account top consumer tier for prosumers and freelancers who lean on Bee Flow daily. Unlimited agents, all model tiers, plus skills, advanced analytics, and code execution.',
             tagline: 'For prosumers who live in Bee Flow',
             plan_type: 'consumer',
             tier: 'enterprise',
@@ -408,10 +382,11 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
             priceLabel: 'PAYG · +30% · per account',
             highlights: ['No flat fee', '10 agents · 25 KB sources', 'All model tiers unlocked', 'Stripe meter billing'],
             badge: 'PAYG',
+            operatorNote: 'Billed through Stripe usage meters at raw model cost plus a 30% markup (markup_percent).',
         },
         plan: {
             name: 'Bee Flow PAYG (Consumer)',
-            description: 'No flat fee — pay only for the AI usage you consume, billed monthly via Stripe usage meters with a 30% margin. Per personal account.',
+            description: 'No flat fee: pay only for the AI usage you consume, billed monthly. Per personal account.',
             tagline: 'Pay for what you use, nothing else',
             plan_type: 'consumer',
             tier: '',

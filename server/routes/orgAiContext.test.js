@@ -173,6 +173,31 @@ test('GET carries the context windows and the allowed range for the slider', asy
     assert.deepStrictEqual(res.body.contextBudgetRange, { min: 25, max: 95 });
 });
 
+test('the examples are this organisation\'s own models, on GET and on PUT', async () => {
+    // A self-hosted Fast model and a large hosted one: no vendor the org does
+    // not use may appear, and the numbers are sized by contextWindowFor.
+    storeBlobs.chat_model_tiers = {
+        fast: { modelId: 'my-local-model' },
+        thinking: { modelId: 'gemini-3.1-pro-preview' },
+    };
+    const expected = [
+        { label: 'Think (Gemini 3.1 Pro)', contextWindow: realPolicy.contextWindowFor('gemini-3.1-pro-preview'), kind: 'tier', tierKey: 'thinking', model: 'Gemini 3.1 Pro' },
+        { label: 'Fast (my-local-model)', contextWindow: realPolicy.contextWindowFor('my-local-model'), kind: 'tier', tierKey: 'fast', model: 'my-local-model' },
+    ];
+    const got = await request('GET', `/api/org-ai-context/${ORG_ID}`);
+    assert.deepStrictEqual(got.body.contextWindowExamples, expected);
+
+    const put = await request('PUT', `/api/org-ai-context/${ORG_ID}`, { compactionEnabled: false });
+    assert.strictEqual(put.status, 200);
+    assert.deepStrictEqual(put.body.contextWindowExamples, expected);
+});
+
+test('an org without chat models gets neutral examples, never a vendor\'s', async () => {
+    const res = await request('GET', `/api/org-ai-context/${ORG_ID}`);
+    assert.deepStrictEqual(res.body.contextWindowExamples.map(e => e.label),
+        ['A 1,000,000-token model', 'A 200,000-token model']);
+});
+
 test('a hand-rolled body cannot write unusable tunables', async () => {
     const res = await request('PUT', `/api/org-ai-context/${ORG_ID}`, {
         compactionEnabled: true, compactionThreshold: 1, recentWindow: 100000,

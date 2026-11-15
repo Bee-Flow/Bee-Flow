@@ -21,11 +21,9 @@ describe('Nextcloud sync words', () => {
         expect(countdown(null, NOW)).toBe('');
     });
 
-    it('writes the three occ commands with the code in them', () => {
-        expect(pairingCommands('ABC-123').split('\n')).toEqual([
-            'occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE ABC-123',
-            'occ app_api:app:disable bee_flow',
-            'occ app_api:app:enable bee_flow',
-        ]);
+    it('gives the code as an install-time value, with a command AppAPI has', () => {
+        expect(pairingCommands('ABC-123')).toBe('occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=ABC-123');
+        // AppAPI has no command that changes a value of an installed app.
+        expect(pairingCommands('ABC-123')).not.toContain(['app_api:app:', 'setenv'].join(''));
     });
 });

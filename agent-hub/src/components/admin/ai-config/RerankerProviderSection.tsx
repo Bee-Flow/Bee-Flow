@@ -100,7 +100,7 @@ const RerankerProviderSection = ({ providers, allModels, onMessage }: RerankerPr
     return (
         <div className="space-y-2 pb-4 border-b border-[var(--border-default)]">
             <h4 className="text-sm font-medium text-[var(--text-primary)]">
-                {t('admin_ai_config.rerank_provider_title', 'Provider (OpenAI/Cohere-style /rerank)')}
+                {t('admin_ai_config.rerank_provider_title', 'Reranking through a connected provider')}
                 {isActive && <span className="ml-2 text-xs text-green-500">{t('admin_ai_config.rerank_provider_active', 'Active')}</span>}
             </h4>
             <p className="text-xs text-[var(--text-muted)]">

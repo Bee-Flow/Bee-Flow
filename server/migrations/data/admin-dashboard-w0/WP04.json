@@ -1,0 +1,10 @@
+{
+  "reworded": {
+    "learn.org-context-and-reuse.default-off.body": {
+      "nl": "**Het volledige gesprek bewaren (aanbevolen)** is geselecteerd totdat iemand het wijzigt.\n\nSamenvatten was vroeger onvoorwaardelijk en sloeg toe bij ongeveer 16 berichten. Bij een model met een contextvenster van een miljoen tokens — de hoeveelheid tekst die een model in één keer in beeld kan houden — is dat puur verlies: de chat werd tot een samenvatting samengevouwen lang voordat het venster bijna vol was. Dat is de klacht “de assistent is vergeten wat we hebben besproken”, veroorzaakt door een kostenschakelaar.\n\nDe rekensom is verschoven. Onder de schuifregelaar rekent het scherm voor je eigen modellen: het model met het grootste contextvenster en dat met het kleinste. Bij de standaard **Veiligheidslimiet** van 75% komt een model met een venster van een miljoen tokens uit op ongeveer 750.000 tokens, en een model met 200.000 tokens op ongeveer 150.000. De chat van 60 berichten over de aanbesteding van Nadia bij inkoop zit nergens in de buurt van beide plafonds. Er valt niets te winnen met samenvatten, en er is echt iets te verliezen.",
+      "was": [
+        "**Het volledige gesprek bewaren (aanbevolen)** is geselecteerd totdat iemand het wijzigt.\n\nSamenvatten was vroeger onvoorwaardelijk en sloeg toe bij ongeveer 16 berichten. Bij een model met een contextvenster van een miljoen tokens — de hoeveelheid tekst die een model in één keer in beeld kan houden — is dat puur verlies: de chat werd tot een samenvatting samengevouwen lang voordat het venster bijna vol was. Dat is de klacht “de assistent is vergeten wat we hebben besproken”, veroorzaakt door een kostenschakelaar.\n\nDe rekensom is verschoven. Onder de schuifregelaar rekent het scherm voor twee echte modellen, en bij de standaard **Veiligheidslimiet** van 75% staat er: Claude Sonnet 5 → ongeveer 750.000 tokens, Claude Haiku 4.5 → ongeveer 150.000. De chat van 60 berichten over de aanbesteding van Nadia bij inkoop zit nergens in de buurt van beide plafonds. Er valt niets te winnen met samenvatten, en er is echt iets te verliezen."
+      ]
+    }
+  }
+}

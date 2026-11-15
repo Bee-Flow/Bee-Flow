@@ -129,9 +129,15 @@ Contains, in order:
    instance."**
 2. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
    empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
-   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
-   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
-   pairing code? Anyone who has it will no longer be able to use it."*
+   use."**, expander **"How to use this code on the new Nextcloud"**: a Nextcloud admin opens Bee
+   Flow from the Nextcloud top bar or the connector's setup page
+   (`https://<your-nextcloud>/exapps/bee_flow/setup`, or
+   `/index.php/apps/app_api/proxy/bee_flow/setup`), enters the code under **Bind to existing
+   organisation** and presses **Apply pairing code** (nothing is reinstalled). On a first install
+   the code can also be given as the install-time value `BEEFLOW_PAIRING_CODE` (deploy options, or
+   `occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=<CODE>`); AppAPI has no
+   command that changes a value of an installed app. Revoke confirm: *"Revoke this pairing code?
+   Anyone who has it will no longer be able to use it."*
 3. `MeetingNotesAdminPanel` (Talk Meeting Notes; Talk only exists with a Nextcloud).
 
 The org-level Google Meet and Microsoft Teams meeting-notes panels (`GoogleMeetAdminPanel`,

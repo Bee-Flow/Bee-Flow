@@ -481,7 +481,7 @@ jobs:
               - 'agent-hub/src/components/automation/Builder/settings/{NotificationEventEditor.tsx,NotificationsSection.tsx,notificationSettings.ts}'
               - 'agent-hub/src/components/automation/Builder/versions/{VersionList.tsx,versionText.ts}'
               - 'agent-hub/src/components/automation/Builder/webhooks/{TriggerWebhookPanel.tsx,useWebhooks.ts}'
-              - 'agent-hub/src/components/chat/{ElevenLabsSettings.tsx,ImageGenSettings.tsx,MusicGenSettings.tsx,NanoBananaSettings.tsx,VideoGenSettings.tsx,answerTrace.helpers.ts,answerTrace.ts,composerClaims.ts,knowledgeBaseClaim.ts}'
+              - 'agent-hub/src/components/chat/{ElevenLabsSettings.tsx,ImageGenSettings.tsx,MusicGenSettings.tsx,VideoGenSettings.tsx,answerTrace.helpers.ts,answerTrace.ts,composerClaims.ts,imageModelChoice.ts,knowledgeBaseClaim.ts}'
               - 'agent-hub/src/components/chat/InputArea/{KnowledgeBasePanel.tsx,index.tsx}'
               - 'agent-hub/src/components/chat/MessageItem/{MessageContentBody.tsx,ThinkingPanel.tsx,answerChips.ts,chatToolCallDisplay.ts,citationGroups.ts,privacyLine.ts,timelineParts.tsx,toolConfirmStatus.ts}'
               - 'agent-hub/src/components/chat/dlpReview/dlpFindingsState.ts'

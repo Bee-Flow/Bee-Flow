@@ -25,11 +25,11 @@ const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissio
 const {
     normalizePolicy,
     invalidateContextPolicy,
-    contextWindowExamples,
     CONFIG_KEY_PREFIX,
     MIN_CONTEXT_BUDGET_PERCENT,
     MAX_CONTEXT_BUDGET_PERCENT,
 } = require('../core/llm/contextPolicy');
+const { contextWindowExamples } = require('../core/llm/contextWindowExamples.mts');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 
@@ -85,9 +85,10 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
         ...normalizePolicy(stored),
         // Lets the SPA distinguish "never configured" from "explicitly off".
         configured: !!stored,
-        // So the screen can show what a percentage means in real tokens
-        // without shipping a second copy of the context-window table.
-        contextWindowExamples: contextWindowExamples(),
+        // So the screen can show what a percentage means in real tokens for
+        // this organisation's own models (its largest and smallest context
+        // window), without shipping a second copy of the context-window table.
+        contextWindowExamples: await contextWindowExamples(orgId),
         contextBudgetRange: {
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,
@@ -126,7 +127,7 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @t
     res.json({
         ...policy,
         configured: true,
-        contextWindowExamples: contextWindowExamples(),
+        contextWindowExamples: await contextWindowExamples(orgId),
         contextBudgetRange: {
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,

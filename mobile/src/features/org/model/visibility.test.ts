@@ -13,7 +13,6 @@ const ADMIN: OrgVisibilityInputs = {
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,
-    authLocked: false,
     githubConnected: true,
 };
 
@@ -44,8 +43,8 @@ describe('visibleOrgSections', () => {
         expect(ids({ ...ADMIN, isSuperAdmin: true, isPlatformAdmin: true })).not.toContain('org_azure');
     });
 
-    it('hides the sign-in method once chosen, and for a Nextcloud org', () => {
-        expect(ids({ ...ADMIN, authLocked: true })).not.toContain('auth');
+    it('keeps the sign-in method (a preference, never locked), and hides it for a Nextcloud org', () => {
+        expect(ids(ADMIN)).toContain('auth');
         const nc = ids({ ...ADMIN, isNcOrg: true });
         expect(nc).not.toContain('auth');
         expect(nc).toContain('org_nextcloud_sync');
@@ -65,7 +64,7 @@ describe('visibleOrgSections', () => {
 });
 
 describe('inputsFromAccess', () => {
-    const facts = { isNcOrg: false, provider: 'local', authLocked: false, githubConnected: false };
+    const facts = { isNcOrg: false, provider: 'local', githubConnected: false };
     const snapshot = (over: Partial<User>, permissions: string[]) =>
         buildAccessSnapshot({
             user: { id: 'u1', displayName: 'Ada', isAdmin: false, role: 'user', provider: 'local', ...over },

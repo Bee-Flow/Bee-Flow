@@ -88,6 +88,25 @@ describe('TeamsAdminPanel', () => {
         expect(fetchMock.mock.calls.every(([, init]) => !init || (init as RequestInit).method === undefined || (init as RequestInit).method === 'GET')).toBe(true);
     });
 
+    it('shows the setup parts for another organisation only as a notice, since they act on the session organisation', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} orgId="orgB" />);
+        // The settings form follows the chosen organisation.
+        expect(state.orgIds).toContain('orgB');
+        expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
+        expect(screen.getByTestId('admin-home-org-only')).toBeTruthy();
+        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview']) {
+            expect(screen.queryByTestId(id)).toBeNull();
+        }
+        // Nothing about the session organisation is fetched under the other organisation's name.
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/teams-setup'))).toBe(false);
+    });
+
+    it('mounts the setup parts when the chosen organisation is the own one', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} orgId="orgA" />);
+        expect(screen.getByTestId('teams-setup-guide')).toBeTruthy();
+        expect(screen.queryByTestId('admin-home-org-only')).toBeNull();
+    });
+
     it('still offers setup and testing when the org settings could not be loaded', () => {
         state.query = { isLoading: false, isError: true, data: undefined };
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);

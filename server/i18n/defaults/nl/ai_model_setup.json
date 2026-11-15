@@ -1,0 +1,20 @@
+{
+  "translations": {
+    "ai_model_setup.claude_applied_one": "Aanbevolen instellingen toegepast op 1 tier. Klik op Tierconfiguratie opslaan om ze te bewaren.",
+    "ai_model_setup.claude_applied_some": "Aanbevolen instellingen toegepast op {n} tiers. Klik op Tierconfiguratie opslaan om ze te bewaren.",
+    "ai_model_setup.claude_apply_all_confirm_desc": "Dit vervangt het model en de instellingen van {n} tiers ({tiers}). Tiers waarvan deze server het aanbevolen model niet aanbiedt, houden wat ze hebben. Er wordt niets opgeslagen tot je op Tierconfiguratie opslaan klikt.",
+    "ai_model_setup.claude_apply_all_confirm_desc_one": "Dit vervangt het model en de instellingen van 1 tier ({tiers}). Tiers waarvan deze server het aanbevolen model niet aanbiedt, houden wat ze hebben. Er wordt niets opgeslagen tot je op Tierconfiguratie opslaan klikt.",
+    "ai_model_setup.claude_apply_all_confirm_title": "Aanbevolen instellingen toepassen?",
+    "ai_model_setup.claude_rec_none_available": "Geen van de aanbevolen modellen wordt aangeboden door een provider op deze server.",
+    "ai_model_setup.claude_rec_note_fast": "Haiku 4.5 heeft geen adaptief denken, dus inspanning blijft uit.",
+    "ai_model_setup.claude_rec_note_pro": "Opus 4.7 denkt alleen adaptief: inspanning bepaalt het denkbudget intern.",
+    "ai_model_setup.claude_rec_note_standard": "Flow: werkwijze in meerdere fasen met licht adaptief denken.",
+    "ai_model_setup.claude_rec_note_swarm": "De diepgang per agent regelt de swarm zelf.",
+    "ai_model_setup.claude_rec_note_thinking": "Sonnet 5 denkt alleen adaptief: Inspanning bepaalt hoe diep (geen handmatig budget).",
+    "ai_model_setup.claude_rec_note_writer": "Lange teksten met licht adaptief denken.",
+    "ai_model_setup.claude_rec_unavailable": "Dit model wordt op deze server niet aangeboden.",
+    "ai_model_setup.embed_model_hint": "Kies een embedding-model dat deze provider aanbiedt. Als je het later wijzigt, worden je kennisbanken opnieuw geïndexeerd.",
+    "ai_model_setup.embed_no_providers": "Geen enkele gekoppelde provider biedt embedding-modellen aan. Koppel er een onder Providers."
+  },
+  "sameAsEnglish": []
+}

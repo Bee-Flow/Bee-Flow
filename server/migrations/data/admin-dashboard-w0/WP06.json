@@ -1,0 +1,76 @@
+{
+  "reworded": {
+    "admin_ai_config.claude_title": {
+      "nl": "Claude-modellen",
+      "was": [
+        "Claude-instellingen"
+      ]
+    },
+    "admin_ai_config.claude_subtitle": {
+      "nl": "Aanbevolen instellingen per tier voor de Claude-modellen op deze server, plus een vangnet voor lege antwoorden.",
+      "was": [
+        "De aanbevolen Claude-standaarden van Bee Flow per tier, plus Claude-specifieke robuustheidsinstellingen."
+      ]
+    },
+    "admin_ai_config.tier_bootstrap_hint": {
+      "nl": "Eén keer per direct chat gebruikt om de Flow-fasen van het gesprek te plannen. Kies een klein, snel model om de planningskosten te verlagen. Laat leeg om het hoofdmodel te hergebruiken.",
+      "was": [
+        "Eén keer per direct chat gebruikt om de Flow-fasen van het gesprek te plannen. Kies een klein/snel model (bijv. Haiku) om de planningskosten te verlagen. Laat leeg om het hoofdmodel te hergebruiken."
+      ]
+    },
+    "admin_ai_config.tier_verb_hint": {
+      "nl": "Lengte en detailniveau van de uitvoer.",
+      "was": [
+        "Uitvoerlengte / detailniveau van GPT-5."
+      ]
+    },
+    "admin_ai_config.embed_model_placeholder": {
+      "nl": "Het model-id zoals je provider het noemt",
+      "was": [
+        "bijv. text-embedding-3-small"
+      ]
+    },
+    "admin_ai_config.ws_embed_none": {
+      "nl": "Geen embedding-modellen gevonden bij je geconfigureerde providers: voeg een provider toe die embedding-modellen aanbiedt, of stel er globaal een in op het tabblad Embeddings.",
+      "was": [
+        "Geen embedding-modellen gevonden bij je geconfigureerde providers: voeg een provider met embeddings toe (bijv. OpenAI, Mistral) of stel er globaal een in op het tabblad Embeddings."
+      ]
+    },
+    "admin_ai_config.limits_cpu_hint": {
+      "nl": "Wordt gebruikt als geen eerdere reranker in de keten antwoordt: een cross-encoder (bge-reranker-base, MIT, ~280 MB) die op de CPU van deze server draait. De eerste aanroep downloadt het model; daarna draait hij lokaal, zonder netwerkverkeer.",
+      "was": [
+        "Als de Azure Cohere-reranker niet is ingesteld, wordt teruggevallen op de in-process Transformers.js cross-encoder (Xenova/bge-reranker-base, MIT, ~280 MB). De eerste aanroep downloadt het model; latere aanroepen draaien lokaal zonder netwerkverkeer."
+      ]
+    },
+    "admin_ai_config.rerank_provider_title": {
+      "nl": "Herrangschikken via een gekoppelde provider",
+      "was": [
+        "Provider (OpenAI/Cohere-stijl /rerank)"
+      ]
+    },
+    "admin_ai_config.pk_claude_desc": {
+      "nl": "Nodig voor Claude-modellen",
+      "was": [
+        "Nodig voor Claude-modellen (Opus, Sonnet, Haiku)"
+      ]
+    },
+    "admin_ai_config.pk_openai_desc": {
+      "nl": "Nodig voor OpenAI-modellen",
+      "was": [
+        "Nodig voor OpenAI-modellen (GPT-6 Astra, GPT-5.6, o-serie)"
+      ]
+    },
+    "admin_ai_config.pk_google_desc": {
+      "nl": "Nodig voor Gemini-modellen, inclusief beeldgeneratie",
+      "was": [
+        "Nodig voor Gemini-modellen en beeldgeneratie"
+      ]
+    },
+    "admin_ai_config.tier_adaptive_only_rest": {
+      "nl": "De API weigert handmatige denkbudgetten en de temperatuurinstelling: de Inspanning-keuzelijst hierboven bepaalt hoe diep het model denkt. Gebruik Automatisch opnieuw proberen bij lege uitvoer (onderdeel Claude-modellen) als vangnet voor zware redeneerruns.",
+      "was": [
+        "De API weigert handmatige denkbudgetten en de temperatuurinstelling: de Inspanning-keuzelijst hierboven bepaalt hoe diep het model denkt. Gebruik Automatisch opnieuw proberen bij lege uitvoer (paneel Claude-instellingen) als vangnet voor zware redeneerruns."
+      ]
+    }
+  }
+}

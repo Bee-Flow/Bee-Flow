@@ -32,8 +32,6 @@ export interface OrgVisibilityInputs {
     isNcOrg: boolean;
     /** This session came in through the Nextcloud connector. */
     isNcConnectorUser: boolean;
-    /** The org already chose its sign-in method (a one-time choice). */
-    authLocked: boolean;
     /** The caller connected GitHub (/api/integrations/github/status). */
     githubConnected: boolean;
 }
@@ -46,7 +44,8 @@ const RULES: Partial<Record<OrgSectionId, Rule>> = {
     license: (i) => i.canSeeOrg && !i.isSelfHosted,
     org_users: (i) => i.canSeeOrg && i.canManageUsers,
     org_academy: (i) => i.canSeeOrg && i.canUseLearning,
-    auth: (i) => i.canSeeOrg && !i.isNcOrg && !i.isNcConnectorUser && !i.authLocked,
+    // The preferred sign-in method never locks: a stored one keeps the row.
+    auth: (i) => i.canSeeOrg && !i.isNcOrg && !i.isNcConnectorUser,
     org_nextcloud_sync: (i) => i.canSeeOrg && (i.isNcOrg || i.isSuperAdmin),
     org_github_sync: (i) => i.canSeeOrg && i.githubConnected,
     // Instance-wide settings: /api/org-azure-config/:orgId and
@@ -71,7 +70,6 @@ export function visibleOrgSections(inputs: OrgVisibilityInputs): OrgSection[] {
 export interface OrgSessionFacts {
     isNcOrg: boolean;
     provider: string | undefined;
-    authLocked: boolean;
     githubConnected: boolean;
 }
 
@@ -92,7 +90,6 @@ export function inputsFromAccess(snapshot: AccessSnapshot, facts: OrgSessionFact
         isSelfHosted: snapshot.mode === 'self-hosted',
         isNcOrg: facts.isNcOrg,
         isNcConnectorUser: facts.provider === 'nextcloud_connector',
-        authLocked: facts.authLocked,
         githubConnected: facts.githubConnected,
     };
 }

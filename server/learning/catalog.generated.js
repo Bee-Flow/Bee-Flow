@@ -3477,7 +3477,7 @@ const PRACTICE_TOPICS = {
         "facts": [
             "Conversation Memory defaults to Keep the full conversation (recommended); summarising is opt-in per organisation and is lossy, because detail folded into the summary is gone for the rest of that conversation.",
             "The Safety limit defaults to 75% of the model's context window and can be set between 25% and 95%; it fires in both modes and is the only protection for providers other than Claude.",
-            "At 75% the screen shows worked examples that recalculate as you drag — for instance Claude Sonnet 5 at about 750,000 tokens and Claude Haiku 4.5 at about 150,000.",
+            "At 75% the screen shows worked examples for the organisation's own largest and smallest model that recalculate as you drag — for instance about 750,000 tokens on a one-million-token model and about 150,000 on a 200,000-token model.",
             "Answer Reuse is off by default; its window runs from 1 to 60 minutes with a default of 5 minutes, and shortening it rewrites the expiry on answers already stored.",
             "Choosing Ask every run (recommended) and saving also deletes every answer the organisation had stored, confirmed by the toast reading: Saved. Stored answers were deleted.",
             "Nothing is stored between runs unless three levels agree: the server operator has not switched it off, the organisation allows that kind of answer, and the step's author ticked the nested option keeping the answer for later runs.",

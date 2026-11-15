@@ -99,6 +99,16 @@ describe('NcPairingScreen', () => {
         await fireEvent.press(confirm as NonNullable<typeof confirm>);
         await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/auth/admin/nc-bindings/pairing-codes/c1'));
     });
+
+    it('sends the code to the connector’s setup page, as the web does, not to an environment variable', async () => {
+        answers['/auth/admin/nc-bindings/pairing-codes'] = { codes: [] };
+        await renderScreen(<NcPairingScreen />);
+        expect(await screen.findByText(/enter it on the setup page of the Bee Flow connector/)).toBeTruthy();
+        expect(screen.getByText(/Enter the code under Bind to existing organisation/)).toBeTruthy();
+        expect(screen.getByText(/https:\/\/<your-nextcloud>\/exapps\/bee_flow\/setup/)).toBeTruthy();
+        expect(screen.getByText(/redeems the code once/)).toBeTruthy();
+        expect(screen.queryByText(/environment variable|next boot/)).toBeNull();
+    });
 });
 
 describe('TalkNotesScreen', () => {

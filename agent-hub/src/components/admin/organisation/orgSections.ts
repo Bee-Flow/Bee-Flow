@@ -27,7 +27,7 @@ export interface OrgHubSection {
 /** Every section in nav order (the order inside its rail group); the labels are the Settings rows'. */
 export const ORG_HUB_SECTIONS: readonly OrgHubSection[] = [
     { id: 'info', labelKey: 'settings.org_info', icon: Info, group: 'organisation' },
-    { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound, group: 'organisation' },
+    { id: 'auth', labelKey: 'org_signin.nav', icon: KeyRound, group: 'organisation' },
     { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard, group: 'organisation' },
     { id: 'academy', labelKey: 'settings.academy', icon: GraduationCap, group: 'organisation' },
     { id: 'encryption', labelKey: 'settings.encryption', icon: Lock, group: 'security' },
@@ -105,8 +105,6 @@ export function orgStandingFactsOf(user: OrgFactsUser | null | undefined): OrgSt
 export interface OrgSectionFacts extends Omit<OrgStandingFacts, 'canManageUsers'> {
     canUseLearning: boolean;
     githubConnected: boolean;
-    /** The organisation's sign-in method is stored (it locks once saved). */
-    orgAuthLocked: boolean;
     entitlementsLoading: boolean;
     /** The plan snapshot failed or is degraded: rows that hide on it fail open. */
     entitlementsUnknown: boolean;
@@ -125,10 +123,9 @@ function meetingNotesInPlan(f: OrgSectionFacts): boolean {
 const SECTION_RULES: Readonly<Record<string, (f: OrgSectionFacts) => boolean>> = {
     // Self-hosted: licensing is governed server-wide (Admin → Server licence).
     license: (f) => !f.isSelfHosted,
-    // NC-bound orgs delegate sign-in to Nextcloud entirely. Once the method is
-    // locked, cloud only shows a "locked" notice; self-hosted keeps the
-    // Allowed Domains editor on the same page, which stays editable.
-    auth: (f) => !(f.isNcOrg || f.isNcConnectorUser) && !(f.orgAuthLocked && !f.isSelfHosted),
+    // NC-bound orgs delegate sign-in to Nextcloud entirely. Everyone else keeps
+    // the row: the preferred sign-in method never locks.
+    auth: (f) => !(f.isNcOrg || f.isNcConnectorUser),
     // The Academy overview needs the Learning Center in the plan.
     academy: (f) => f.canUseLearning,
     // Meeting Templates (and the Meet / Teams panels) is behind the

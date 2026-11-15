@@ -27,7 +27,8 @@ export function OrgIntegrationsScreen() {
     const allowed = access.enabledIntegrations;
     const showN8n = !allowed || allowed.includes('n8n');
     // The Maps key is instance-wide: only a platform admin may set it.
-    const showMaps = access.maps && (!allowed || allowed.includes('google-maps'));
+    // The catalogue id is `maps`; an older list may still say `google-maps`.
+    const showMaps = access.maps && (!allowed || allowed.includes('maps') || allowed.includes('google-maps'));
     const maps = useHasMapsKey(access.admin && showMaps);
     const refresh = useUserRefresh(() => maps.refetch());
     const [mapsOpen, setMapsOpen] = useState(false);

@@ -50,15 +50,18 @@ export const TIER_DEFAULTS: Record<string, TierDefaults> = {
 export const CUSTOM_TIER_DEFAULTS = { maxTokens: 32768, temperature: 0.7 };
 
 // ── Bee Flow recommended Claude defaults per tier ────────────────────
-// Applied by the "Claude Settings" panel's Apply buttons. Values picked
-// from Anthropic docs (Sonnet 64K / Opus 128K max output, Haiku no
-// adaptive thinking, Opus 4.7 adaptive-only with no manual budget).
+// Applied by the "Claude models" section's Apply buttons, and only to a tier
+// whose recommended model the configured catalogue offers
+// (claudeRecommendations.ts). `note` is the English fallback of the
+// ai_model_setup.claude_rec_note_<tier> key. Values picked from Anthropic
+// docs (Sonnet 64K / Opus 128K max output, Haiku no adaptive thinking,
+// Opus 4.7 adaptive-only with no manual budget).
 export const CLAUDE_RECOMMENDED: Record<string, ClaudeRecommendation> = {
     fast: {
         modelId: 'claude-haiku-4-5',
         maxTokens: 4096, temperature: 0.2,
         reasoningEffort: undefined, reasoningSummary: false, budgetTokens: undefined,
-        note: 'Haiku 4.5 has no adaptive thinking — effort stays off.',
+        note: 'Haiku 4.5 has no adaptive thinking, so effort stays off.',
     },
     standard: {
         modelId: 'claude-sonnet-4-6',
@@ -76,7 +79,7 @@ export const CLAUDE_RECOMMENDED: Record<string, ClaudeRecommendation> = {
         modelId: 'claude-sonnet-5',
         maxTokens: 32768, temperature: 1,
         reasoningEffort: 'medium', reasoningSummary: true, budgetTokens: undefined,
-        note: 'Sonnet 5 adaptive-only — Effort controls thinking depth (no manual budget).',
+        note: 'Sonnet 5 thinks adaptively only: Effort sets the depth (no manual budget).',
     },
     writer: {
         modelId: 'claude-sonnet-4-6',
@@ -88,7 +91,7 @@ export const CLAUDE_RECOMMENDED: Record<string, ClaudeRecommendation> = {
         modelId: 'claude-opus-4-7',
         maxTokens: 64000, temperature: 0.7,
         reasoningEffort: 'high', reasoningSummary: true, budgetTokens: undefined,
-        note: 'Opus 4.7 adaptive-only — effort controls thinking budget internally.',
+        note: 'Opus 4.7 thinks adaptively only: effort sets the thinking budget internally.',
     },
 };
 

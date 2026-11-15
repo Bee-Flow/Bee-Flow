@@ -16,6 +16,7 @@ import { errorMessage } from '@/utils/caughtError';
 import { RefusedError } from '@/api/mutate';
 import { panelOrgId } from '@/utils/adminAccess';
 import { apiFetch, apiRequest } from '@/api/typedRequest';
+import { useLicenseContext } from '@/components/licensing/LicenseContext';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;
@@ -50,7 +51,12 @@ interface OrgAzureConfigPanelProps {
 
 export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzureConfigPanelProps) {
     const { t } = useTranslation();
-    const [activeSection, setActiveSection] = useState('openai');
+    // Microsoft SSO is Enterprise (`sso_saml`), as on Security > SSO: without it
+    // the section is not offered, and the server refuses its save.
+    const ssoAvailable = useLicenseContext().hasFeature('sso_saml');
+    const sections = SUB_SECTIONS.filter((s: SubSection) => s.id !== 'sso' || ssoAvailable);
+    const [chosenSection, setActiveSection] = useState('openai');
+    const activeSection = sections.some((s: SubSection) => s.id === chosenSection) ? chosenSection : 'openai';
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
@@ -209,7 +215,7 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
                 {...sharedSaveProps}
             />
         ),
-        sso: (
+        sso: ssoAvailable && (
             <SSOSection
                 ssoClientId={ssoClientId} setSsoClientId={setSsoClientId}
                 ssoClientSecret={ssoClientSecret} setSsoClientSecret={setSsoClientSecret}
@@ -261,7 +267,7 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
             )}
 
             {/* Sub-section tabs */}
-            <OrgAzureConfigPanelSection activeSection={activeSection} setActiveSection={setActiveSection} t={t} azureEndpoint={azureEndpoint} hasAzureApiKey={hasAzureApiKey} chatModelTiers={chatModelTiers} ssoConfigured={ssoConfigured} hasAzureDocEndpoint={hasAzureDocEndpoint} hasAzureDocKey={hasAzureDocKey} />
+            <OrgAzureConfigPanelSection sections={sections} activeSection={activeSection} setActiveSection={setActiveSection} t={t} azureEndpoint={azureEndpoint} hasAzureApiKey={hasAzureApiKey} chatModelTiers={chatModelTiers} ssoConfigured={ssoConfigured} hasAzureDocEndpoint={hasAzureDocEndpoint} hasAzureDocKey={hasAzureDocKey} />
 
             {/* Active section content */}
             <div className="rounded-xl px-6 py-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
@@ -271,12 +277,12 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
     );
 }
 
-function OrgAzureConfigPanelSection({ activeSection, setActiveSection, t, azureEndpoint, hasAzureApiKey, chatModelTiers, ssoConfigured, hasAzureDocEndpoint, hasAzureDocKey }: { activeSection: string; setActiveSection: React.Dispatch<React.SetStateAction<string>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; azureEndpoint: string; hasAzureApiKey: boolean; chatModelTiers: Record<string, TierConfig>; ssoConfigured: boolean; hasAzureDocEndpoint: boolean; hasAzureDocKey: boolean; }) {
+function OrgAzureConfigPanelSection({ sections, activeSection, setActiveSection, t, azureEndpoint, hasAzureApiKey, chatModelTiers, ssoConfigured, hasAzureDocEndpoint, hasAzureDocKey }: { sections: SubSection[]; activeSection: string; setActiveSection: React.Dispatch<React.SetStateAction<string>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; azureEndpoint: string; hasAzureApiKey: boolean; chatModelTiers: Record<string, TierConfig>; ssoConfigured: boolean; hasAzureDocEndpoint: boolean; hasAzureDocKey: boolean; }) {
     return <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
-        {SUB_SECTIONS.map((section: SubSection, i: number) => {
+        {sections.map((section: SubSection, i: number) => {
             const Icon = section.icon;
             const isActive = activeSection === section.id;
-            const isLast = i === SUB_SECTIONS.length - 1;
+            const isLast = i === sections.length - 1;
             return (
                 <button
                     key={section.id}

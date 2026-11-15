@@ -33,13 +33,26 @@ export interface EncryptionSaveResult {
     sessionsBusted: boolean;
 }
 
+/**
+ * One worked example under the safety limit: the organisation's largest or
+ * smallest model (server core/llm/contextWindowExamples.mts). `label` is the
+ * server's English; `kind`, `tierKey` and `model` let the line be translated.
+ */
+export interface ContextWindowExample {
+    label: string;
+    contextWindow: number;
+    kind: 'tier' | 'custom' | 'generic' | null;
+    tierKey: string | null;
+    model: string | null;
+}
+
 /** `GET|PUT /api/org-ai-context/:orgId` (routes/orgAiContext.js, core/llm/contextPolicy.js). */
 export interface OrgAiContext {
     compactionEnabled: boolean;
     compactionThreshold: number;
     recentWindow: number;
     contextBudgetPercent: number;
-    contextWindowExamples: { label: string; contextWindow: number }[];
+    contextWindowExamples: ContextWindowExample[];
     contextBudgetRange: { min: number; max: number };
 }
 

@@ -22,7 +22,7 @@ jest.setTimeout(30_000);
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
 const mockOrg = { orgId: 'o1', isOrgAdmin: true, isSelfHosted: true, isNcOrg: false };
-const mockAccess = { isSuperAdmin: false, orgRole: 'org_admin' };
+const mockAccess = { isSuperAdmin: false, orgRole: 'org_admin', entitlementsState: 'ready' };
 let mockLicensed = true;
 
 jest.mock('expo-router', () => ({
@@ -58,7 +58,7 @@ let answers: Record<string, unknown> = {};
 beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockOrg, { orgId: 'o1', isOrgAdmin: true, isSelfHosted: true, isNcOrg: false });
-    Object.assign(mockAccess, { isSuperAdmin: false, orgRole: 'org_admin' });
+    Object.assign(mockAccess, { isSuperAdmin: false, orgRole: 'org_admin', entitlementsState: 'ready' });
     mockLicensed = true;
     answers = { '/api/org-azure-config/o1': AZURE };
     (api.get as jest.Mock).mockImplementation((path: string) => Promise.resolve(answers[path] ?? null));
@@ -77,6 +77,25 @@ describe('Azure', () => {
         await renderScreen(<AzureScreen />);
         await fireEvent.press(await screen.findByTestId('azure-sso'));
         expect(mockRouter.push).toHaveBeenCalledWith('/org/azure/sso');
+    });
+
+    it('offers no Microsoft SSO without the sso_saml licence feature, as on the web', async () => {
+        mockLicensed = false;
+        await renderScreen(<AzureScreen />);
+        expect(await screen.findByTestId('azure-openai')).toBeTruthy();
+        expect(screen.queryByTestId('azure-sso')).toBeNull();
+        await renderScreen(<AzureSsoScreen />);
+        expect(screen.getByText('Microsoft sign-in is not part of this licence')).toBeTruthy();
+        expect(screen.queryByTestId('azure-sso-auto-approve')).toBeNull();
+        expect(api.put).not.toHaveBeenCalled();
+    });
+
+    it('waits for the entitlements before saying Microsoft SSO is not licensed', async () => {
+        mockLicensed = false;
+        mockAccess.entitlementsState = 'loading';
+        await renderScreen(<AzureSsoScreen />);
+        expect(screen.queryByText('Microsoft sign-in is not part of this licence')).toBeNull();
+        expect(screen.queryByTestId('azure-sso-auto-approve')).toBeNull();
     });
 
     it('says a cloud deployment’s Azure belongs to the platform, and asks nothing', async () => {

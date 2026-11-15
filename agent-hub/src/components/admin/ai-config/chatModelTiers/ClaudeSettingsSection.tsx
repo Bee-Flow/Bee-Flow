@@ -1,31 +1,76 @@
-// "Claude Settings" section of ChatModelTiersConfig (recommended defaults
-// table + robustness toggles). Subtree moved verbatim from
-// ChatModelTiersConfig.jsx; all bindings are threaded in as props.
+// "Claude models" section of ChatModelTiersConfig: the recommended Claude
+// defaults per tier and the empty-answer safety net. The panel renders it only
+// when a Claude model is configured (hasClaudeModels); a recommendation whose
+// model this server does not offer cannot be applied.
 import type { ClaudeSettingsState } from './useClaudeSettings';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER, TIERS } from './constants';
+import { applicableRecommendations } from './claudeRecommendations';
 import { getModelMeta } from './modelMeta';
+import type { CatalogModel } from './tierTypes';
 import { QUIET_BUTTON, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from '../ui/useToastOnMessage';
 import Toggle from '@/components/shared/Toggle';
-import { useTranslation } from '@/hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 type ClaudeSettingsSectionProps = Pick<ClaudeSettingsState,
     'claudeAutoRetry' | 'setClaudeAutoRetry' | 'claudeSaving' | 'claudeMessage' | 'claudeRecAppliedTier'
-    | 'saveClaudeSettings' | 'applyClaudeRecommendedForTier' | 'applyAllClaudeRecommended'>;
+    | 'saveClaudeSettings' | 'applyClaudeRecommendedForTier' | 'applyAllClaudeRecommended'> & {
+    /** The configured chat models: a recommendation applies only when its model is among them. */
+    chatModels: readonly CatalogModel[];
+};
+
+/** The translated note of one tier's recommendation (English fallback from constants). */
+function recNote(t: TranslateFn, tierKey: string): string {
+    const fallback = CLAUDE_RECOMMENDED[tierKey]?.note || '';
+    switch (tierKey) {
+        case 'fast': return t('ai_model_setup.claude_rec_note_fast', fallback);
+        case 'standard': return t('ai_model_setup.claude_rec_note_standard', fallback);
+        case 'swarm': return t('ai_model_setup.claude_rec_note_swarm', fallback);
+        case 'thinking': return t('ai_model_setup.claude_rec_note_thinking', fallback);
+        case 'writer': return t('ai_model_setup.claude_rec_note_writer', fallback);
+        case 'pro': return t('ai_model_setup.claude_rec_note_pro', fallback);
+        default: return fallback;
+    }
+}
 
 export default function ClaudeSettingsSection({
     claudeAutoRetry, setClaudeAutoRetry, claudeSaving, claudeMessage,
     claudeRecAppliedTier, saveClaudeSettings,
-    applyClaudeRecommendedForTier, applyAllClaudeRecommended,
+    applyClaudeRecommendedForTier, applyAllClaudeRecommended, chatModels,
 }: ClaudeSettingsSectionProps) {
     const { t } = useTranslation();
+    const { confirm, confirmDialog } = useConfirm();
     useToastOnMessage(claudeMessage);
+    const applicable = applicableRecommendations(chatModels);
+    const applicableTiers = CLAUDE_REC_TIER_ORDER.filter(key => applicable[key]);
+
+    const onApplyAll = async () => {
+        if (applicableTiers.length === 0) return;
+        const labels = applicableTiers.map(key => TIERS.find(x => x.key === key)?.label || key).join(', ');
+        const description = applicableTiers.length === 1
+            ? t('ai_model_setup.claude_apply_all_confirm_desc_one', 'This replaces the model and settings of 1 tier ({tiers}). Tiers whose recommended model this server does not offer keep what they have. Nothing is saved until you click Save Tier Configuration.', { tiers: labels })
+            : t('ai_model_setup.claude_apply_all_confirm_desc', 'This replaces the model and settings of {n} tiers ({tiers}). Tiers whose recommended model this server does not offer keep what they have. Nothing is saved until you click Save Tier Configuration.', { n: applicableTiers.length, tiers: labels });
+        const ok = await confirm({
+            title: t('ai_model_setup.claude_apply_all_confirm_title', 'Apply the recommended settings?'),
+            description,
+            confirmLabel: t('admin_ai_config.claude_apply_all', 'Apply all recommended'),
+        });
+        if (ok) applyAllClaudeRecommended(chatModels);
+    };
+
     return (
         <SettingsGroup
-            title={t('admin_ai_config.claude_title', 'Claude Settings')}
-            description={t('admin_ai_config.claude_subtitle', 'Bee Flow\'s recommended Claude defaults per tier, plus Claude-specific robustness knobs.')}
+            title={t('admin_ai_config.claude_title', 'Claude models')}
+            description={t('admin_ai_config.claude_subtitle', 'Recommended settings per tier for the Claude models on this server, and a safety net for empty answers.')}
             actions={(
-                <button type="button" onClick={applyAllClaudeRecommended} className={QUIET_BUTTON}>
+                <button
+                    type="button"
+                    onClick={() => { void onApplyAll(); }}
+                    disabled={applicableTiers.length === 0}
+                    title={applicableTiers.length === 0 ? t('ai_model_setup.claude_rec_none_available', 'None of the recommended models is offered by a provider on this server.') : undefined}
+                    className={`${QUIET_BUTTON} disabled:cursor-not-allowed`}
+                >
                     {t('admin_ai_config.claude_apply_all', 'Apply all recommended')}
                 </button>
             )}
@@ -53,9 +98,10 @@ export default function ClaudeSettingsSection({
                                     const flash = claudeRecAppliedTier === tierKey;
                                     const meta = getModelMeta(rec.modelId);
                                     const displayName = meta?.name || rec.modelId;
+                                    const available = !!applicable[tierKey];
                                     return (
                                         <tr key={tierKey}
-                                            className={`[border-top:1px_solid_var(--border-default)] [transition:background_300ms_ease] [color:var(--text-primary)] ${flash ? '[background:rgba(34,_197,_94,_0.1)]' : '[background:transparent]'}`}
+                                            className={`[border-top:1px_solid_var(--border-default)] [transition:background_300ms_ease] [color:var(--text-primary)] ${flash ? 'bg-[color-mix(in_srgb,var(--success)_10%,transparent)]' : '[background:transparent]'}`}
                                         >
                                             <td className="px-3 py-2">
                                                 <span className="font-medium">{tier?.label || tierKey}</span>
@@ -75,10 +121,15 @@ export default function ClaudeSettingsSection({
                                                     : <span className="text-[var(--text-tertiary)]">{t('admin_ai_config.claude_adaptive', 'adaptive')}</span>}
                                             </td>
                                             <td className="px-3 py-2 text-[var(--text-tertiary)]">
-                                                {rec.note}
+                                                {available ? recNote(t, tierKey) : t('ai_model_setup.claude_rec_unavailable', 'This model is not offered on this server.')}
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                                <button type="button" onClick={() => applyClaudeRecommendedForTier(tierKey)} className={QUIET_BUTTON}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyClaudeRecommendedForTier(tierKey, chatModels)}
+                                                    disabled={!available}
+                                                    className={`${QUIET_BUTTON} disabled:cursor-not-allowed`}
+                                                >
                                                     {t('admin_ai_config.claude_apply', 'Apply')}
                                                 </button>
                                             </td>
@@ -112,6 +163,7 @@ export default function ClaudeSettingsSection({
                     </div>
                 </SettingRow>
             </SettingsList>
+            {confirmDialog}
         </SettingsGroup>
     );
 }

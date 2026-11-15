@@ -164,12 +164,15 @@ describe('logo', () => {
     });
 });
 
-// ── Sign-in Method: one choice out of three, so one radio group.
-describe('Sign-in Method', () => {
+// ── Preferred sign-in method: one choice out of three, so one radio group.
+// A preference, not a lock: nothing reads it when someone signs in.
+describe('Preferred sign-in method', () => {
+    const NAME = 'Preferred sign-in method';
+
     it('is a radio group that reports and moves its choice', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
         const radios = within(group).getAllByRole('radio');
         expect(radios).toHaveLength(3);
         expect(radios.filter(r => r.getAttribute('aria-checked') === 'true')).toHaveLength(0);
@@ -183,26 +186,28 @@ describe('Sign-in Method', () => {
         expect(microsoft).toHaveFocus();
     });
 
-    it('locks the method once it is saved, not as soon as a card is picked', async () => {
+    it('can change again after it was saved, and says nothing about a lock', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
 
         await user.click(within(group).getByRole('radio', { name: /Sign in with Google/ }));
-        expect(screen.queryByText('Sign-in method is locked')).toBeNull();
-        await user.click(within(group).getByRole('radio', { name: /Sign in with Microsoft/ }));
-
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(puts).toHaveLength(1));
-        expect(puts[0].body.authMethod).toBe('microsoft');
-        expect(await screen.findByText('Sign-in method is locked')).toBeInTheDocument();
-        expect(within(group).getByRole('radio', { name: /Sign in with Google/ })).toBeDisabled();
+        expect(puts[0].body).toEqual({ authMethod: 'google' });
+
+        const microsoft = within(group).getByRole('radio', { name: /Sign in with Microsoft/ });
+        expect(microsoft).toBeEnabled();
+        await user.click(microsoft);
+        const save = screen.getByRole('button', { name: 'Save changes' });
+        await waitFor(() => expect(save).toBeEnabled());
+        await user.click(save);
+        await waitFor(() => expect(puts).toHaveLength(2));
+        expect(puts[1].body).toEqual({ authMethod: 'microsoft' });
+        expect(screen.queryByText(/locked|cannot be changed|Choose carefully/i)).toBeNull();
     });
 
-    it('freezes the choice while the save is in flight, so the lock shows what the server stored', async () => {
-        // The server keeps the first method it receives and ignores a later
-        // one, so a pick made during the PUT would be shown as locked while
-        // the organisation actually signs in with the other.
+    it('a pick made while the save is in flight stays an unsaved change', async () => {
         let release: () => void = () => {};
         const base = fetchMock.getMockImplementation()!;
         fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
@@ -215,21 +220,16 @@ describe('Sign-in Method', () => {
         });
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
-        const google = within(group).getByRole('radio', { name: /Sign in with Google/ });
-        const microsoft = within(group).getByRole('radio', { name: /Sign in with Microsoft/ });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
 
-        await user.click(google);
+        await user.click(within(group).getByRole('radio', { name: /Sign in with Google/ }));
         await user.click(screen.getByRole('button', { name: /Save changes|Saving/ }));
         await waitFor(() => expect(puts).toHaveLength(1));
-        await user.click(microsoft);
-        expect(google).toHaveAttribute('aria-checked', 'true');
-        expect(microsoft).toHaveAttribute('aria-checked', 'false');
-
+        await user.click(within(group).getByRole('radio', { name: /Sign in with Microsoft/ }));
         release();
-        expect(await screen.findByText('Sign-in method is locked')).toBeInTheDocument();
-        expect(google).toHaveAttribute('aria-checked', 'true');
-        expect(microsoft).toBeDisabled();
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
+        expect(within(group).getByRole('radio', { name: /Sign in with Microsoft/ })).toHaveAttribute('aria-checked', 'true');
     });
 });
 

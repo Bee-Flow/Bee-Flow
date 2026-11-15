@@ -12,6 +12,7 @@ import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.t
 import { ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { AgentDesignerPanelSection } from './AgentDesignerPanelSection';
 import { apiRequest } from '@/api/typedRequest';
+import { panelFormFromAgent } from './agentDesignerPanelForm';
 
 /** Only the parameters the author fixed go to the server; a tool without any is left out. */
 function fixedToolParams(toolParams: AgentFormData['toolParams'] | undefined) {
@@ -75,30 +76,8 @@ const AgentDesignerPanel = ({
     // Load agent data when agent changes
     useEffect(() => {
         if (agent) {
-            setFormData({
-                name: agent.name || '',
-                description: agent.description || '',
-                avatar: agent.avatar || '',
-                systemPrompt: agent.system_prompt || '',
-                tools: agent.tools || [],
-                toolParams: agent.tool_params || {},
-                model: agent.model || '',
-                starterPrompts: typeof agent.starter_prompts === 'string'
-                    ? JSON.parse(agent.starter_prompts || '[]')
-                    : (agent.starter_prompts || []),
-                workspaceEnabled: agent.workspace_enabled !== 0,
-                copyEnabled: agent.copy_enabled !== 0,
-                isPublished: agent.is_published === 1,
-                embedEnabled: agent.embed_enabled === 1,
-                organizationId: agent.organization_id || '',
-                sharedGroups: typeof agent.shared_groups === 'string'
-                    ? (() => { try { return JSON.parse(agent.shared_groups || '[]'); } catch (_) { return []; } })()
-                    : (agent.shared_groups || []),
-                categoryId: agent.category_id || '',
-                config: (typeof agent.config === 'string'
-                    ? (() => { try { return JSON.parse(agent.config || '{}'); } catch (_) { return {}; } })()
-                    : (agent.config || {})),
-            });
+            // The on/off columns are Postgres booleans: `=== 1` / `!== 0` misread them.
+            setFormData(panelFormFromAgent(agent));
         } else {
             // New agent
             setFormData({

@@ -28,7 +28,7 @@ const Module = require('module');
 
 // Every write lands in `touched`. A refused request must leave it empty.
 const touched = [];
-const fx = { superAdmin: true, stored: {} };
+const fx = { superAdmin: true, stored: {}, ssoSaml: true };
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -65,6 +65,13 @@ const MOCKS = {
         getSyncStatus: async () => ({}),
         getSyncBinding: async () => ({ syncOrganizationId: 'org1', syncTenantId: '11111111-1111-1111-1111-111111111111' }),
     },
+    // The licence: `sso_saml` decides the Microsoft SSO section, as on Security > SSO.
+    '../core/entitlements/entitlements': {
+        requireCapability: (capId) => (req, res, next) => (capId === 'sso_saml' && fx.ssoSaml
+            ? next()
+            : res.status(403).json({ error: 'feature_locked', feature: capId })),
+        hasCapability: async (capId) => capId === 'sso_saml' && fx.ssoSaml,
+    },
 };
 
 const MOCK_IDS = {};
@@ -97,6 +104,7 @@ test.beforeEach(() => {
     touched.length = 0;
     fx.superAdmin = true;
     fx.stored = {};
+    fx.ssoSaml = true;
 });
 
 /**
@@ -331,6 +339,61 @@ test('the group-sync routes stay with the organisation admin, in cloud and self-
         const run = await dispatch({ method: 'POST', url: '/org1/sync-groups', body: undefined });
         assert.strictEqual(run.statusCode, 200, mode);
     });
+});
+
+// ── Microsoft SSO needs the sso_saml licence capability ─────────────
+
+test('without sso_saml the SSO save is refused and writes nothing, as Security > SSO refuses it', async () => {
+    fx.ssoSaml = false;
+    const res = await put({ section: 'sso', ssoClientId: 'new-id', ssoClientSecret: 's3cret', ssoTenantId: 'common', autoApproveSSO: true });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.feature, 'sso_saml');
+    assert.deepStrictEqual(touched, [], 'neither the Microsoft app nor the org flag was written');
+});
+
+test('without sso_saml the other sections still save: they are not sign-in', async () => {
+    fx.ssoSaml = false;
+    const res = await put({ section: 'openai', azureModels: 'gpt-4o' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched, [{ what: 'setConfig', args: ['azure_models', 'gpt-4o'] }]);
+});
+
+test('with sso_saml the SSO save goes through', async () => {
+    const res = await put({ section: 'sso', ssoClientId: 'new-id', ssoTenantId: 'common' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(touched.filter((t) => t.what === 'saveConfig').length, 1);
+});
+
+test('a body error is still a 400 before the licence answers', async () => {
+    fx.ssoSaml = false;
+    const res = await put({ section: 'sso', ssoTenantId: 'contoso' });
+    assert.strictEqual(res.statusCode, 400);
+});
+
+test('without sso_saml the read leaves the Microsoft app out and says so', async () => {
+    fx.ssoSaml = false;
+    const res = await dispatch({ method: 'GET', url: '/org1', body: undefined });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.ssoAvailable, false);
+    for (const key of ['ssoClientId', 'hasSsoClientSecret', 'ssoClientSecretMasked', 'ssoTenantId']) {
+        assert.ok(!(key in res.body), `${key} is not in the read`);
+    }
+    assert.strictEqual(res.body.autoApproveSSO, false, 'the organisation flag still rides along');
+});
+
+test('with sso_saml the read shows the Microsoft app', async () => {
+    const res = await dispatch({ method: 'GET', url: '/org1', body: undefined });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.ssoAvailable, true);
+    assert.strictEqual(res.body.ssoClientId, 'old');
+    assert.strictEqual(res.body.ssoTenantId, 'common');
+});
+
+test('the SSO gate is tagged as the sso_saml capability', () => {
+    const { readGate } = require('../auth/gateMeta');
+    const putRoute = router.stack.find((l) => l.route && l.route.path === '/:orgId' && l.route.methods.put);
+    const tags = putRoute.route.stack.map((x) => readGate(x.handle)).filter(Boolean);
+    assert.ok(tags.some((t) => t.axis === 'capability' && t.id === 'sso_saml'), JSON.stringify(tags));
 });
 
 test('the platform gate is tagged on the platform axis', () => {

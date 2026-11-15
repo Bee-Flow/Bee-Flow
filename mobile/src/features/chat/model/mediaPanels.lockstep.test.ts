@@ -11,16 +11,17 @@ import { controlValue, MEDIA_PANELS, panelsFor } from './mediaPanels';
 
 const read = (name: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/${name}`, 'utf8');
 const WEB = {
-    image: read('NanoBananaSettings.tsx') + read('ImageGenSettings.tsx'),
+    image: read('ImageGenSettings.tsx') + read('imageModelChoice.ts'),
     video: read('VideoGenSettings.tsx'),
     lyria: read('MusicGenSettings.tsx'),
-    elevenlabs: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.tsx'),
-    sfx: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.tsx'),
+    elevenlabs: read('ElevenLabsSettings.tsx'),
+    sfx: read('ElevenLabsSettings.tsx'),
 };
 
 describe.each(MEDIA_PANELS.flatMap((panel) => panel.controls.map((c) => [`${c.section}.${c.key}`, c] as const)))('%s', (_name, control) => {
     it('is a key the web writes', () => {
-        expect(WEB[control.section]).toMatch(new RegExp(`update\\w*\\('${control.key}'`));
+        // `update('key', v)`, or ImageGenSettings' `{ ...settings, key: v }`.
+        expect(WEB[control.section]).toMatch(new RegExp(`update\\w*\\('${control.key}'|\\.\\.\\.settings, ${control.key}:`));
     });
 
     it("defaults to the web's value", () => {

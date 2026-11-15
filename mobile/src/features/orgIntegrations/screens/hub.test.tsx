@@ -4,7 +4,7 @@
  * the exact request each action sends, and who is turned away.
  */
 
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { api } from '@/core/api/client';
@@ -74,6 +74,16 @@ describe('OrgIntegrationsScreen', () => {
         expect(screen.getByTestId('integrations-n8n')).toBeTruthy();
         expect(screen.queryByTestId('integrations-maps')).toBeNull();
         expect(api.get).not.toHaveBeenCalledWith('/ai/config', expect.anything());
+    });
+
+    it('offers the Maps key for a list that grants Maps under either id', async () => {
+        mockAccess.isSuperAdmin = true;
+        for (const id of ['maps', 'google-maps']) {
+            mockUser.enabledIntegrations = ['n8n', id];
+            await renderScreen(<OrgIntegrationsScreen />);
+            expect(await screen.findByTestId('integrations-maps')).toBeTruthy();
+            await cleanup();
+        }
     });
 
     it('saves a Google Maps key, and never reads one back', async () => {

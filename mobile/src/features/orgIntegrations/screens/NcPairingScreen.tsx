@@ -1,10 +1,11 @@
 /**
- * Pair a new Nextcloud (web: integrations/nextcloud/OrgNcPairingPanel.jsx).
+ * Pair a new Nextcloud (web: integrations/nextcloud/OrgNcPairingPanel.tsx).
  * When this organisation installs Bee Flow on another Nextcloud, a one-shot
- * code set as BEEFLOW_PAIRING_CODE on that connector binds it to this same
- * organisation instead of creating a second one. Codes live 15 minutes and
- * disappear once used. A code is a bearer credential: org admins (of an
- * NC-bound org) and the platform operator only.
+ * code entered on that connector's setup page (or given at a first install as
+ * BEEFLOW_PAIRING_CODE) binds it to this same organisation instead of creating
+ * a second one. The words are the web's own nc_pairing.* keys. Codes live 15
+ * minutes and disappear once used. A code is a bearer credential: org admins
+ * (of an NC-bound org) and the platform operator only.
  */
 
 import React from 'react';
@@ -20,7 +21,7 @@ import { useGeneratePairingCode, useRevokePairingCode } from '../hooks/nextcloud
 import { usePairingCodes } from '../hooks/nextcloudQueries';
 import { useIntegrationAccess } from '../hooks/useIntegrationAccess';
 import { useNow } from '../hooks/useNow';
-import { pairingCommands } from '../model/nextcloud';
+import { pairingCommands, SETUP_PAGE_ADDRESSES } from '../model/nextcloud';
 import type { PairingCode } from '../model/nextcloudTypes';
 
 export function NcPairingScreen() {
@@ -55,8 +56,8 @@ export function NcPairingScreen() {
                 <>
                     <NoteRow>
                         {t(
-                            'mobile.orgIntegrations.pair_intro',
-                            'Generate a one-shot code, then set it as the BEEFLOW_PAIRING_CODE environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.',
+                            'nc_pairing.intro',
+                            'Generate a one-shot code, then enter it on the setup page of the Bee Flow connector on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.',
                         )}
                     </NoteRow>
                     <Button
@@ -79,10 +80,33 @@ export function NcPairingScreen() {
                     <Group
                         title={t('mobile.orgIntegrations.pair_howto', 'How to use this code on the new Nextcloud')}
                         footer={t(
-                            'mobile.orgIntegrations.pair_howto_hint',
-                            'The connector picks up the code on next boot, redeems it once, and binds this Nextcloud to your existing Bee Flow organisation.',
+                            'nc_pairing.howto_result',
+                            'The connector redeems the code once and binds this Nextcloud to your existing Bee Flow organisation. A code that has expired or was already used changes nothing: generate a new one.',
                         )}
                     >
+                        <NoteRow>
+                            {t(
+                                'nc_pairing.howto_setup_page',
+                                "As a Nextcloud administrator, open Bee Flow from the Nextcloud top bar, or open the connector's setup page:",
+                            )}
+                        </NoteRow>
+                        <NoteRow>
+                            <Text variant="code" selectable>
+                                {SETUP_PAGE_ADDRESSES}
+                            </Text>
+                        </NoteRow>
+                        <NoteRow>
+                            {t(
+                                'nc_pairing.howto_enter_code',
+                                'Enter the code under Bind to existing organisation and press Apply pairing code. On a self-hosted server you can also enter it in the Pairing code field when you choose the server. Nothing has to be installed again.',
+                            )}
+                        </NoteRow>
+                        <NoteRow>
+                            {t(
+                                'nc_pairing.howto_at_install',
+                                'Installing the connector on that Nextcloud for the first time? You can also give the code at install, in the deploy options or with:',
+                            )}
+                        </NoteRow>
                         <NoteRow>
                             <Text variant="code" selectable>
                                 {pairingCommands(codes[0]?.code ?? '<CODE>')}

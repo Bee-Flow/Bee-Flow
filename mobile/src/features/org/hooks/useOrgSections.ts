@@ -56,7 +56,6 @@ export function useOrgSections() {
     const inputs = inputsFromAccess(access, {
         isNcOrg: Boolean(user?.ncOrg),
         provider: user?.provider,
-        authLocked: Boolean(org.data?.authMethod),
         githubConnected: github.data === true,
     });
     return { sections: visibleOrgSections(inputs), org, refetch: () => Promise.all([org.refetch(), github.refetch()]) };

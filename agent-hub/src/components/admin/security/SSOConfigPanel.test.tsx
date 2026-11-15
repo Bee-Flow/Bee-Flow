@@ -59,6 +59,19 @@ describe('SSOConfigPanel', () => {
         expect(screen.queryByRole('button', { name: /Google/ })).toBeNull();
     });
 
+    // Azure AD group sync runs only for the directory bound here (PUT
+    // /auth/microsoft/sync-binding, MicrosoftIdentityPanel): without sso_saml
+    // neither the Microsoft app nor that binding can be set, so group sync is
+    // Enterprise in the UI too, and the Azure panel hiding its SSO section
+    // (GroupSyncBlock included) takes nothing a Community install could use.
+    it('offers neither the Microsoft app nor the group-sync binding on Community', async () => {
+        hasFeature.mockReturnValue(false);
+        renderWithClient(<SSOConfigPanel />);
+        expect(await screen.findByText('Nextcloud OAuth 2.0')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Microsoft/ })).toBeNull();
+        expect(screen.queryByTestId('ms-identity')).toBeNull();
+    });
+
     it('saves the Microsoft provider with the typed secret and clears it', async () => {
         const user = userEvent.setup();
         renderWithClient(<SSOConfigPanel />);

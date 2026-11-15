@@ -347,6 +347,12 @@ describe('OrgIntegrationSettings — the integrations\' own settings (Admin > Or
         expect(screen.getByText('Google Maps')).toBeInTheDocument();
     });
 
+    it('shows the Maps key for a list that grants Maps under its catalogue id', async () => {
+        // The Access screen stores `maps`; `google-maps` above is the older id.
+        await settingsTab({ enabledIntegrations: ['n8n', 'maps'], isAdmin: true });
+        expect(screen.getByText('Google Maps')).toBeInTheDocument();
+    });
+
     it('shows only the integrations named in enabledIntegrations', async () => {
         await settingsTab({ enabledIntegrations: ['n8n'], role: 'admin' });
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();

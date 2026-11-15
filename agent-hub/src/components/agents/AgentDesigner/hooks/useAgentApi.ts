@@ -7,7 +7,11 @@ import { filterVisibleModels, fetchAllowedModelsByAgentType } from '@/api/modelM
 import { toast } from '@/components/shared/Toast';
 import useConfirm from '@/components/shared/useConfirm';
 import { messageOf } from '@/utils/caughtError';
-import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerMessage } from './useAgentApi.types';
+import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerConfig, DesignerMessage } from './useAgentApi.types';
+import { storedConfig, storedFlag } from '../storedFlag';
+
+/** GET /agents/:id answers with the published copy of a published agent unless asked for the editor's draft. */
+const DRAFT = { draft: '1' } as const;
 
 /**
  * All API operations for the AgentDesigner: fetch, save, delete, duplicate, publish.
@@ -22,7 +26,7 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
         selectedAgent, setSelectedAgent, setIsCreating,
         setName, setDescription, setSystemPrompt, setSelectedTools,
         setToolParams, setIsPublished, setSharedGroups, setStarterPrompts,
-        setAvatar, setAllowCopy, setEmbedEnabled, setWorkspaceEnabled,
+        setAvatar, allowCopy, setAllowCopy, setEmbedEnabled, setWorkspaceEnabled,
         setEnableGuardrails, setLlamaGuardEnabled, setWebSearchGuardEnabled,
         strictKnowledge, setStrictKnowledge, setIncludeSourceReferences, setKnowledgeBaseIds,
         setEnabledIntegrations, setRegexGuardrailsEnabled, setSelectedCollections,
@@ -38,6 +42,9 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
         setDisableExternalTools,
     } = state;
     const initialSelectionDoneRef = useRef(false);
+    // The config of the agent a new agent starts from (a duplicate's source, or
+    // nothing), so a save keeps the keys the designer does not edit.
+    const baseConfigRef = useRef<Record<string, unknown>>({});
     const { confirm, confirmDialog } = useConfirm();
     const fetchAgents = async () => {
         try {
@@ -167,12 +174,39 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
         loadOrgData();
     }, [setOrgGroups, setOrganizations]);
 
+    /**
+     * The settings kept in the row's on/off columns and its `config`. The
+     * config is also kept whole: a new agent (a duplicate) is saved over it,
+     * so the keys the designer does not edit travel along.
+     */
+    const applyStoredSettings = (stored: { config?: unknown; embed_enabled?: unknown; workspace_enabled?: unknown }) => {
+        const config = storedConfig(stored.config) as DesignerConfig;
+        baseConfigRef.current = config;
+        setAllowCopy(config.allowCopy !== false);
+        setEmbedEnabled(storedFlag(stored.embed_enabled, false));
+        setWorkspaceEnabled(storedFlag(stored.workspace_enabled, false));
+        setEnableGuardrails(config.enableGuardrails === true);
+        setLlamaGuardEnabled(config.llamaGuardEnabled === true);
+        setWebSearchGuardEnabled(config.webSearchGuardEnabled === true);
+        setStrictKnowledge(config.strictKnowledge === true);
+        setDisableExternalTools(config.disableExternalTools === true);
+        setIncludeSourceReferences(config.includeSourceReferences === true);
+        setEnabledIntegrations(config.enabledIntegrations || null);
+        setKnowledgeBaseIds(config.knowledge_base_ids || []);
+        const rgConfig = config.regexGuardrails || {};
+        setRegexGuardrailsEnabled(rgConfig.enabled === true);
+        setSelectedCollections(rgConfig.collectionIds || []);
+        setRegexScope(rgConfig.scope || { userInput: true, agentOutput: true, toolInput: false, toolOutput: false });
+        setGuardrailAction(rgConfig.action || 'delete');
+    };
+
     const selectAgent = async (agent: DesignerAgent) => {
         setSelectedAgent(agent);
         setIsCreating(false);
         if (agent) {
             try {
-                const freshRes = await apiFetch('GET /agents/{id}', { params: { id: agent.id } });
+                // The draft: without `?draft=1` a published agent answers with its published copy.
+                const freshRes = await apiFetch('GET /agents/{id}', { params: { id: agent.id }, query: DRAFT });
                 const freshAgent = await freshRes.json();
                 logger.debug('[AgentDesigner] Loaded agent with tool_params:', freshAgent.tool_params);
 
@@ -182,31 +216,13 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
                 setSelectedTools(freshAgent.tools || []);
                 setToolParams(freshAgent.tool_params || {});
                 setModel(freshAgent.model || '');
-                setIsPublished(freshAgent.is_published === 1);
+                setIsPublished(storedFlag(freshAgent.is_published, false));
                 setSharedGroups(Array.isArray(freshAgent.shared_groups) ? freshAgent.shared_groups : (() => { try { return JSON.parse(freshAgent.shared_groups || '[]'); } catch (_) { return []; } })());
                 setStarterPrompts(typeof freshAgent.starter_prompts === 'string' ? JSON.parse(freshAgent.starter_prompts || '[]') : (freshAgent.starter_prompts || []));
                 setAvatar(freshAgent.avatar || '🤖');
                 setCategoryId(freshAgent.category_id || null);
 
-                const config = freshAgent.config || {};
-                setAllowCopy(config.allowCopy !== false);
-                setEmbedEnabled(freshAgent.embed_enabled === 1);
-                setWorkspaceEnabled(freshAgent.workspace_enabled !== 0);
-                setEnableGuardrails(config.enableGuardrails === true);
-                setLlamaGuardEnabled(config.llamaGuardEnabled === true);
-                setWebSearchGuardEnabled(config.webSearchGuardEnabled === true);
-
-                setStrictKnowledge(config.strictKnowledge === true);
-                setDisableExternalTools(config.disableExternalTools === true);
-                setIncludeSourceReferences(config.includeSourceReferences === true);
-                setEnabledIntegrations(config.enabledIntegrations || null);
-                setKnowledgeBaseIds(config.knowledge_base_ids || []);
-
-                const rgConfig = config.regexGuardrails || {};
-                setRegexGuardrailsEnabled(rgConfig.enabled === true);
-                setSelectedCollections(rgConfig.collectionIds || []);
-                setRegexScope(rgConfig.scope || { userInput: true, agentOutput: true, toolInput: false, toolOutput: false });
-                setGuardrailAction(rgConfig.action || 'delete');
+                applyStoredSettings(freshAgent);
             } catch (err) {
                 console.error('Failed to fetch agent details:', err);
             }
@@ -236,44 +252,51 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
         setStarterPrompts([]);
         setMessages([]);
         setShowChat(false);
-        setAllowCopy(true);
-        setEmbedEnabled(false);
-        setWorkspaceEnabled(false);
-        setEnableGuardrails(false);
-        setLlamaGuardEnabled(false);
-        setWebSearchGuardEnabled(false);
         setAvatar('🤖');
         setCategoryId(null);
-        setStrictKnowledge(false);
-        setDisableExternalTools(false);
-        setIncludeSourceReferences(false);
-        setKnowledgeBaseIds([]);
-        setEnabledIntegrations(null);
+        // Every switch and the config back to a new agent's defaults.
+        applyStoredSettings({});
+    };
+
+    /** An open agent's config as stored now (Agent Studio may have changed it since); a new agent's starting config. */
+    const baseConfigForSave = async (): Promise<Record<string, unknown>> => {
+        if (!selectedAgent) return baseConfigRef.current;
+        // The save writes the draft, so it merges over the draft's config, not the published one.
+        const res = await apiRequest('GET /agents/{id}', { params: { id: selectedAgent.id }, query: DRAFT });
+        return storedConfig((await res.json()).config);
     };
 
     const saveAgent = async () => {
         if (!name.trim()) return;
         setSaving(true);
         try {
+            // The server stores the config it is sent whole: merge the designer's
+            // fields over the config as stored now (skills, action grants, memory,
+            // the chat bubble, written by Agent Studio), never rebuild it.
+            const config: Record<string, unknown> = {
+                ...(await baseConfigForSave()),
+                enableGuardrails, llamaGuardEnabled, webSearchGuardEnabled,
+                strictKnowledge, includeSourceReferences,
+                disableExternalTools,
+                allowCopy,
+                knowledge_base_ids: knowledgeBaseIds,
+                enabledIntegrations: enabledIntegrations || undefined,
+                regexGuardrails: {
+                    enabled: regexGuardrailsEnabled,
+                    collectionIds: selectedCollections,
+                    scope: regexScope,
+                    action: guardrailAction
+                }
+            };
+            // null is "every integration": a stored list must not survive the merge.
+            if (!enabledIntegrations) delete config.enabledIntegrations;
             const body: AgentSaveBody = {
                 name, description, systemPrompt,
                 tools: selectedTools, toolParams,
                 model: model || null, starterPrompts, avatar,
                 workspaceEnabled: workspaceEnabled ? 1 : 0,
                 embedEnabled,
-                config: {
-                    enableGuardrails, llamaGuardEnabled, webSearchGuardEnabled,
-                    strictKnowledge, includeSourceReferences,
-                    disableExternalTools,
-                    knowledge_base_ids: knowledgeBaseIds,
-                    enabledIntegrations: enabledIntegrations || undefined,
-                    regexGuardrails: {
-                        enabled: regexGuardrailsEnabled,
-                        collectionIds: selectedCollections,
-                        scope: regexScope,
-                        action: guardrailAction
-                    }
-                }
+                config,
             };
             body.categoryId = categoryId || null;
             // A new agent belongs to the organisation the list is narrowed to, or it would vanish from it.
@@ -339,25 +362,7 @@ export default function useAgentApi(state: ApiState, { systemMode, initialAgentI
             setAvatar(freshAgent.avatar || '🤖');
             setCategoryId(freshAgent.category_id || null);
 
-            const config = freshAgent.config || {};
-            setAllowCopy(config.allowCopy !== false);
-            setEmbedEnabled(freshAgent.embed_enabled === 1);
-            setWorkspaceEnabled(freshAgent.workspace_enabled !== 0);
-            setEnableGuardrails(config.enableGuardrails === true);
-            setLlamaGuardEnabled(config.llamaGuardEnabled === true);
-            setWebSearchGuardEnabled(config.webSearchGuardEnabled === true);
-
-            setStrictKnowledge(config.strictKnowledge === true);
-            setDisableExternalTools(config.disableExternalTools === true);
-            setIncludeSourceReferences(config.includeSourceReferences === true);
-            setKnowledgeBaseIds(config.knowledge_base_ids || []);
-            setEnabledIntegrations(config.enabledIntegrations || null);
-
-            const rgConfig = config.regexGuardrails || {};
-            setRegexGuardrailsEnabled(rgConfig.enabled === true);
-            setSelectedCollections(rgConfig.collectionIds || []);
-            setRegexScope(rgConfig.scope || { userInput: true, agentOutput: true, toolInput: false, toolOutput: false });
-            setGuardrailAction(rgConfig.action || 'delete');
+            applyStoredSettings(freshAgent);
 
             setMessages([]);
             setShowChat(false);

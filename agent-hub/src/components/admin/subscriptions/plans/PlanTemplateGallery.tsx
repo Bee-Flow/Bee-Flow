@@ -120,6 +120,15 @@ function TemplateCard({ template, onPick }: TemplateCardProps) {
                 ))}
             </ul>
 
+            {display.operatorNote && (
+                <p className="mb-4 rounded-lg border border-dashed border-[var(--border-default)] px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                    <span className="font-semibold text-[var(--text-secondary)]">
+                        {t('plan_templates.operator_note_label', 'Operator note, not shown to customers:')}
+                    </span>{' '}
+                    {display.operatorNote}
+                </p>
+            )}
+
             <span className="mt-auto inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-colors">
                 {t('admin_subscriptions.plans_gallery_use', 'Use this template')}
             </span>

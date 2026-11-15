@@ -47,6 +47,19 @@ describe('the org settings readers', () => {
         });
     });
 
+    it('reads each context-window example with what the line is translated from', () => {
+        const read = readOrgAiContext({
+            contextWindowExamples: [
+                { label: 'Fast (small)', contextWindow: 32000, kind: 'tier', tierKey: 'fast', model: 'small' },
+                { label: 'Old server line', contextWindow: '400000' },
+            ],
+        });
+        expect(read?.contextWindowExamples).toEqual([
+            { label: 'Fast (small)', contextWindow: 32000, kind: 'tier', tierKey: 'fast', model: 'small' },
+            { label: 'Old server line', contextWindow: 400000, kind: null, tierKey: null, model: null },
+        ]);
+    });
+
     it('reads the integration cache, with app answers on and web calls off by default', () => {
         const cache = readOrgIntegrationCache({ enabled: true, entries: 3, expiredEntries: '2', bytes: 100 });
         expect(cache).toMatchObject({

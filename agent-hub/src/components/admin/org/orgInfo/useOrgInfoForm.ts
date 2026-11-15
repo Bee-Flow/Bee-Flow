@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
 import { ApiError, errorBody, RefusedError } from '@/api/mutate';
@@ -8,7 +9,12 @@ import { useOrgFormReads } from '@/api/queries/orgInfoForm';
 import { imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
 import type { ImageLimits, ImageLimitsInput } from '@/utils/imageLimits';
 
-/** The organisation's editable fields; every one is sent on save. */
+/**
+ * The organisation's fields this form shows. A save sends only the fields of
+ * the row being saved, and of those only the ones that changed (orgFormSaveBody):
+ * fields edited elsewhere (auto-approve, default groups, sign-up) are not held
+ * here at all, so a save of this form can never send them back stale.
+ */
 interface OrgFormFields {
     name: string;
     description: string;
@@ -23,12 +29,10 @@ interface OrgFormFields {
     website: string;
     kvk: string;
     vat: string;
+    /** Stored by its own upload and remove endpoints, never by the save. */
     logo: string;
-    footerText: string;
-    defaultGroups: string[];
-    allowSignup: boolean;
+    /** The preferred sign-in method: a preference, it can change at any time. */
     authMethod: string | null;
-    autoApproveSSO: boolean;
     usagePooled: boolean;
     allowedDomains: string[];
     /** The default image limits per user, as typed; empty = not set. Sent as numbers. */
@@ -74,8 +78,6 @@ export interface OrgInfoForm {
     saving: boolean;
     orgData: OrgFormData | null;
     setOrgData: Dispatch<SetStateAction<OrgFormData | null>>;
-    /** The sign-in method as STORED: it locks once saved. */
-    isAuthLocked: boolean;
     handleLogoUpload: (e: ChangeEvent<HTMLInputElement>) => Promise<void>;
     handleLogoRemove: () => Promise<void>;
 }
@@ -88,6 +90,12 @@ interface UseOrgInfoFormOptions {
      * one, or none when it is not in the list: never another one in its place.
      */
     orgId?: string | null;
+    /**
+     * The row being edited (OrgInfoPanel's activeSection: 'info', 'auth',
+     * 'license'). Its fields are the only ones a save sends and the only ones
+     * the save bar calls unsaved. Left out, every field of the form counts.
+     */
+    section?: string;
     t: TranslateFn;
     onSave?: () => void;
     onStateChange?: (state: OrgInfoSaveState) => void;
@@ -111,17 +119,61 @@ function toFormData(myOrg: OrgRow): OrgFormData {
         kvk: myOrg.kvk || '',
         vat: myOrg.vat || '',
         logo: myOrg.logo || '',
-        footerText: myOrg.footerText || '',
-        defaultGroups: myOrg.defaultGroups || [],
-        allowSignup: !!myOrg.allowSignup,
         authMethod: myOrg.authMethod || null,
-        autoApproveSSO: !!myOrg.autoApproveSSO,
         // Default to pooled (true) when the column is null on
         // pre-migration orgs — matches the server-side default.
         usagePooled: myOrg.usagePooled === undefined ? true : !!myOrg.usagePooled,
         allowedDomains: Array.isArray(myOrg.allowedDomains) ? myOrg.allowedDomains : [],
         imageLimits: imageLimitsToInput(myOrg.imageLimits),
     };
+}
+
+/** A field the save sends (the logo has its own endpoints). */
+export type OrgSavedField = Exclude<keyof OrgFormFields, 'logo'>;
+
+const INFO_FIELDS: readonly OrgSavedField[] = [
+    'name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity',
+    'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat',
+];
+const ALL_FIELDS: readonly OrgSavedField[] = [...INFO_FIELDS, 'authMethod', 'allowedDomains', 'usagePooled', 'imageLimits'];
+
+/**
+ * The fields a row of the organisation form edits, and so the only ones its
+ * save sends. The image limits sit on License & Usage on cloud and on
+ * Organisation Info on a self-hosted server (OrgInfoPanel). An unknown or
+ * missing row counts every field.
+ */
+export function orgFormRowFields(section: string | undefined, isSelfHosted: boolean): readonly OrgSavedField[] {
+    switch (section) {
+        case 'info': return isSelfHosted ? [...INFO_FIELDS, 'imageLimits'] : INFO_FIELDS;
+        case 'auth': return ['authMethod', 'allowedDomains'];
+        case 'license': return isSelfHosted ? ['usagePooled'] : ['usagePooled', 'imageLimits'];
+        default: return ALL_FIELDS;
+    }
+}
+
+const sameValue = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The fields of `fields` whose value in `current` differs from the stored one. */
+function changedOrgFields(current: OrgFormData, saved: OrgFormData, fields: readonly OrgSavedField[]): OrgSavedField[] {
+    return fields.filter(f => !sameValue(current[f], saved[f]));
+}
+
+type OrgSaveBody = Partial<Omit<OrgFormFields, 'logo' | 'imageLimits'>> & { imageLimits?: ImageLimits | null };
+
+/**
+ * The PUT body for `changed`: those fields only, the image limits as whole
+ * numbers (or null). undefined: an image limit is not a number, nothing is sent.
+ */
+function orgFormSaveBody(current: OrgFormData, changed: readonly OrgSavedField[]): OrgSaveBody | undefined {
+    const body: Record<string, unknown> = {};
+    for (const f of changed) {
+        if (f !== 'imageLimits') { body[f] = current[f]; continue; }
+        const limits = parseImageLimitsInput(current.imageLimits);
+        if (limits === undefined) return undefined;
+        body.imageLimits = limits;
+    }
+    return body as OrgSaveBody;
 }
 
 /**
@@ -218,21 +270,33 @@ function useOrgLogo(
 }
 
 /**
- * The organisation form: load the right org, track unsaved edits against the
- * stored snapshot, save, and the logo. The parent's shared save bar is driven
- * through `onStateChange`.
+ * The organisation form: load the right org, track unsaved edits of the row
+ * being edited against the stored snapshot, save that row, and the logo. The
+ * parent's shared save bar is driven through `onStateChange`.
  */
-export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, onStateChange }: UseOrgInfoFormOptions): OrgInfoForm {
+export default function useOrgInfoForm({ user, orgId, section, t, onSave: parentOnSave, onStateChange }: UseOrgInfoFormOptions): OrgInfoForm {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<FormMessage | null>(null);
     const [orgData, setOrgData] = useState<OrgFormData | null>(null);
-    const [hasChanges, setHasChanges] = useState(false);
-    const originalDataRef = useRef<string | null>(null);
+    // The organisation as stored: what an unsaved edit is measured against.
+    const [saved, setSaved] = useState<OrgFormData | null>(null);
+    const { isSelfHosted } = useDeploymentMode();
+    const rowFields = orgFormRowFields(section, isSelfHosted);
+    // handleSave reads the form, the snapshot and the row from these: the copy
+    // the parent's save bar holds is only refreshed when hasChanges/saving/
+    // message change, which a switch between two dirty rows does not do.
     const orgDataRef = useRef<OrgFormData | null>(null);
-    // The sign-in method as STORED. It locks once saved; a card merely picked
-    // in the form is still "Selected" and can be changed until Save.
-    const [savedAuthMethod, setSavedAuthMethod] = useState<string | null>(null);
+    const savedRef = useRef<OrgFormData | null>(null);
+    const rowFieldsRef = useRef(rowFields);
+    useEffect(() => {
+        orgDataRef.current = orgData;
+        rowFieldsRef.current = rowFields;
+    });
+    const storeSaved = (next: OrgFormData | null) => {
+        savedRef.current = next;
+        setSaved(next);
+    };
 
     const { readOrgsAndGroups, readCurrentOrgId } = useOrgFormReads<OrgRow, GroupRow>();
     const fetchData = useCallback(async () => {
@@ -249,10 +313,10 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
                     return;
                 }
                 const data = toFormData(myOrg);
+                orgDataRef.current = data;
                 setOrgData(data);
-                setSavedAuthMethod(data.authMethod);
-                originalDataRef.current = JSON.stringify(data);
-                setHasChanges(false);
+                savedRef.current = data;
+                setSaved(data);
             }
         } catch (err) {
             console.error('Failed to fetch org data:', err);
@@ -263,14 +327,7 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    useEffect(() => {
-        // handleSave reads the form from here: the copy the parent's save bar
-        // holds is only refreshed when hasChanges/saving/message change.
-        orgDataRef.current = orgData;
-        if (orgData && originalDataRef.current) {
-            setHasChanges(JSON.stringify(orgData) !== originalDataRef.current);
-        }
-    }, [orgData]);
+    const hasChanges = !!orgData && !!saved && changedOrgFields(orgData, saved, rowFields).length > 0;
 
     useEffect(() => {
         if (message) {
@@ -281,20 +338,24 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
 
     const handleSave = async () => {
         const current = orgDataRef.current;
-        if (!current?.id) return;
+        const stored = savedRef.current;
+        if (!current?.id || !stored) return;
+        // Only this row's fields, and of those only the ones that changed: a
+        // field another screen saved since this one loaded is never sent back.
+        const changed = changedOrgFields(current, stored, rowFieldsRef.current);
+        if (changed.length === 0) return;
         // The image limits go out as whole numbers (or null); a text that is not one stops the save.
-        const imageLimits = parseImageLimitsInput(current.imageLimits);
-        if (imageLimits === undefined) {
+        const body = orgFormSaveBody(current, changed);
+        if (!body) {
             setMessage({ type: 'error', text: t('image_limits.invalid', 'An image limit is a whole number from 0 to 1,000,000, or empty.') });
             return;
         }
         setSaving(true);
         try {
-            // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
-            const { id, ...fields } = current;
             let res: Response | undefined;
             try {
-                res = await apiRequest('PUT /auth/organizations/{id}', { params: { id }, body: { ...fields, imageLimits } });
+                // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
+                res = await apiRequest('PUT /auth/organizations/{id}', { params: { id: current.id }, body });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -302,15 +363,10 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
             }
             if (res) {
                 setMessage({ type: 'success', text: t('common.saved', 'Saved') });
-                originalDataRef.current = JSON.stringify(current);
-                setSavedAuthMethod(current.authMethod);
-                // The sign-in method is set once: the server keeps the one it
-                // stored, so the form shows that one rather than a later pick.
-                if (current.authMethod) {
-                    setOrgData(p => (p && p.authMethod !== current.authMethod ? { ...p, authMethod: current.authMethod } : p));
-                }
-                // An edit made while the PUT was in flight is still unsaved.
-                setHasChanges(JSON.stringify(orgDataRef.current) !== originalDataRef.current);
+                // The sent fields are stored now; an edit made while the PUT
+                // was in flight, or on another row, is still unsaved.
+                const sent = Object.fromEntries(changed.map(f => [f, current[f]]));
+                storeSaved({ ...(savedRef.current ?? stored), ...sent });
                 if (parentOnSave) parentOnSave();
             }
         } catch {
@@ -327,13 +383,11 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
     useEffect(() => { return notifyParent(); }, [hasChanges, saving, message]);
 
     // The logo endpoints store the change themselves, so the saved snapshot
-    // takes the new logo too — otherwise the bar would call an upload that
-    // already happened an unsaved change.
+    // takes the new logo too.
     const markLogoSaved = (logo: string) => {
-        if (!originalDataRef.current) return;
-        originalDataRef.current = JSON.stringify({ ...JSON.parse(originalDataRef.current), logo });
+        if (savedRef.current) storeSaved({ ...savedRef.current, logo });
     };
     const logo = useOrgLogo(orgData?.id, t, setOrgData, setMessage, markLogoSaved);
 
-    return { loading, saving, orgData, setOrgData, isAuthLocked: !!savedAuthMethod, ...logo };
+    return { loading, saving, orgData, setOrgData, ...logo };
 }

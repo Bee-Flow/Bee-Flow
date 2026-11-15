@@ -148,7 +148,7 @@ const AdvancedSettings = ({ onNavigate: onNavigateProp, onLogout, user: userProp
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
     // 'review' when the pending-review row of Settings → Memory opened the panel.
     const [memoryPanelView, setMemoryPanelView] = useState<MemoryView>('active');
-    const { memoryStats, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
+    const { memoryStats, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData();
     // The per-org "License & Usage" section does not exist on self-hosted
     // (licensing is server-wide). On a phone a deep link can still resolve
     // activeTab to 'license'; it goes to Preferences (a desktop redirects above).

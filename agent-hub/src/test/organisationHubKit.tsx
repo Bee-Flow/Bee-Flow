@@ -89,7 +89,7 @@ export function renderOrgTab({ user = PLATFORM_ADMIN, section = 'info', search =
 export function orgFacts(over: Partial<OrgSectionFacts> = {}): OrgSectionFacts {
     return {
         canSeeOrg: true, isSelfHosted: false, isNcConnectorUser: false, isNcOrg: false, showNcSync: false, isPlatformAdmin: false,
-        canUseLearning: true, githubConnected: false, orgAuthLocked: false, entitlementsLoading: false, entitlementsUnknown: false,
+        canUseLearning: true, githubConnected: false, entitlementsLoading: false, entitlementsUnknown: false,
         inCeiling: id => id === 'meeting_notes',
         ...over,
     };

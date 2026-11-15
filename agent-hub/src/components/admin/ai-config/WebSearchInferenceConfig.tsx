@@ -194,7 +194,7 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
                 onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))} />
             {Object.keys(embedGroups).length === 0 && (
                 <p className="m-0 mt-2 text-xs text-[var(--text-tertiary)]">
-                    {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
+                    {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider that offers embedding models, or set one globally in the Embeddings tab.')}
                 </p>
             )}
         </SettingRow>

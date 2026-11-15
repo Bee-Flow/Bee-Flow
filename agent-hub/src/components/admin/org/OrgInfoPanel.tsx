@@ -79,7 +79,8 @@ const OrgInfoPanel = ({ user, orgId, activeSection, onSave: parentOnSave, onStat
     const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
     const ncOrg = user?.ncOrg || null;
     const isNcOrg = !!ncOrg?.instanceId;
-    const { loading, saving, orgData, setOrgData, isAuthLocked, handleLogoUpload, handleLogoRemove } = useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, onStateChange });
+    // section: each row saves (and calls unsaved) only its own fields.
+    const { loading, orgData, setOrgData, handleLogoUpload, handleLogoRemove } = useOrgInfoForm({ user, orgId, section: activeSection, t, onSave: parentOnSave, onStateChange });
     const billing = useOrgSubscription(orgData?.id, deploymentMode, t);
 
     if (loading) return <Skeleton />;
@@ -114,8 +115,6 @@ const OrgInfoPanel = ({ user, orgId, activeSection, onSave: parentOnSave, onStat
                 {activeSection === 'auth' && (
                     <OrgAuthSection
                         t={t}
-                        isAuthLocked={isAuthLocked}
-                        isSaving={saving}
                         orgData={orgData}
                         setOrgData={setOrgData}
                         isSelfHosted={isSelfHosted}

@@ -20,6 +20,7 @@
  */
 
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
+const { canonicalIntegrationId, listHasIntegration } = require('./integrationIdAliases.mts');
 const { fallback } = require('../../utils/bestEffort');
 
 function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy }) {
@@ -132,21 +133,25 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         const isKnownIntegration = (appId) => !!(_capReg && _capReg.getCapability(appId)?.kind === 'integration');
 
         /**
-         * @param {string} appId
+         * Every list below is looked up under each alias of the id
+         * (integrationIdAliases.mts): an organisation grants `maps`, a user's
+         * app toggle stores `google-maps`, and both mean the same app.
+         * @param {string} requestedId
          */
-        const isAppOn = (appId) => {
+        const isAppOn = (requestedId) => {
             if (identityUnknown) return false;
+            const appId = canonicalIntegrationId(requestedId);
             // Must be enabled at user level (a per-user UX preference).
             // extraAppSet (skill-scoped enablement) bypasses ONLY this preference:
             // an active skill may surface an app the user hasn't toggled on, but
             // the entitlement and credential gates below stay authoritative.
-            if (userEnabledApps && !extraAppSet.has(appId)) {
+            if (userEnabledApps && !listHasIntegration(extraAppSet, appId)) {
                 // For auto-enabled apps, they're on unless _explicitly_ in a list that excluded them
                 // after they existed. Since we can't tell, we default to enabled.
                 if (AUTO_ENABLED_APPS.includes(appId)) {
                     // Only block if user explicitly has this app in their list AND it's set to off
                     // For now, auto-enabled apps are always on at user level
-                } else if (!userEnabledApps.includes(appId)) {
+                } else if (!listHasIntegration(userEnabledApps, appId)) {
                     return false;
                 }
             }
@@ -157,10 +162,10 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
             // resolver was unavailable, fall back to the legacy inline org gate so a
             // transient failure never strips an agent's whole toolbelt.
             if (effectiveIntegrations && isKnownIntegration(appId)) {
-                if (!effectiveIntegrations.has(appId)) return false;
+                if (!listHasIntegration(effectiveIntegrations, appId)) return false;
             } else {
-                if (!ORG_EXEMPT_APPS.includes(appId) && orgEnabledIntegrations && !orgEnabledIntegrations.includes(appId)) return false;
-                if (orgActiveSet && !ORG_EXEMPT_APPS.includes(appId) && !ncIdSet.has(appId) && !orgActiveSet.has(appId)) {
+                if (!ORG_EXEMPT_APPS.includes(appId) && orgEnabledIntegrations && !listHasIntegration(orgEnabledIntegrations, appId)) return false;
+                if (orgActiveSet && !ORG_EXEMPT_APPS.includes(appId) && !ncIdSet.has(appId) && !listHasIntegration(orgActiveSet, appId)) {
                     return false;
                 }
             }

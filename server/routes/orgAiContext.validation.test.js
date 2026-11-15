@@ -44,11 +44,11 @@ const MOCKS = {
             contextBudgetPercent: p.contextBudgetPercent ?? 75,
         }),
         invalidateContextPolicy: () => {},
-        contextWindowExamples: () => [],
         CONFIG_KEY_PREFIX: 'org_ai_context_',
         MIN_CONTEXT_BUDGET_PERCENT: 25,
         MAX_CONTEXT_BUDGET_PERCENT: 95,
     },
+    '../core/llm/contextWindowExamples.mts': { contextWindowExamples: async () => [] },
 };
 
 const MOCK_IDS = {};

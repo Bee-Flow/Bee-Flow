@@ -2,7 +2,7 @@
 // Replaces the near-identical local `Dropdown` / `DropdownSelect` components
 // (trigger button + ChevronDown + absolutely-positioned option list with its
 // own outside-click effect) that were copy-pasted into ElevenLabsSettings,
-// VideoGenSettings and NanoBananaSettings. Only the accent colour differed
+// VideoGenSettings and ImageGenSettings. Only the accent colour differed
 // between the copies — pass it via `accentColor`.
 //
 // Usage:
