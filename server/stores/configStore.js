@@ -30,29 +30,8 @@ const log = require('../telemetry/log');
 const { encryptValue, decryptValue, _inferOrgIdFromKey } = require('./configEncryption');
 const { bestEffort } = require('../utils/bestEffort');
 
-// ── In-memory cache (avoids DB round-trips for hot-path reads) ──────
-// Config values change very rarely (monthly). Caching them for 60s
-// eliminates ~6 DB queries per KB search call.
-const CACHE_TTL_MS = 60_000; // 60 seconds
-const _cache = new Map(); // key → { value, ts }
-
-function _cacheGet(key) {
-    const entry = _cache.get(key);
-    if (!entry) return undefined; // undefined = cache miss
-    if (Date.now() - entry.ts > CACHE_TTL_MS) {
-        _cache.delete(key);
-        return undefined;
-    }
-    return entry.value; // may be null (config key exists but has no value)
-}
-
-function _cacheSet(key, value) {
-    _cache.set(key, { value, ts: Date.now() });
-}
-
-function _cacheInvalidate(key) {
-    _cache.delete(key);
-}
+// The in-memory cache (60 s per entry, bounded): see configCache.mts.
+const { cacheGet: _cacheGet, cacheSet: _cacheSet, cacheInvalidate: _cacheInvalidate, cacheClear: _cacheClear } = require('./configCache.mts');
 
 // ── Cross-replica cache invalidation via Postgres LISTEN/NOTIFY ─────
 // The cache above is per-process. In a multi-replica deployment a write on one
@@ -78,7 +57,7 @@ function _notifyInvalidate(key) {
 // missed). Exported for tests. The listener can't tell a plain key from its
 // secret twin, so both are dropped.
 function _applyInvalidation(payload) {
-    if (!payload) { _cache.clear(); return; }
+    if (!payload) { _cacheClear(); return; }
     _cacheInvalidate(payload);
     _cacheInvalidate(`__secret__${payload}`);
 }
@@ -110,7 +89,7 @@ async function _startInvalidationListener() {
         _listenerBackoffMs = 1000;
         // A gap in the listener means missed invalidations — the only safe
         // recovery is to drop the whole local cache and let it re-warm.
-        _cache.clear();
+        _cacheClear();
         log.info('[ConfigStore] cross-replica cache invalidation listener active');
     } catch (e) {
         log.warn('[ConfigStore] invalidation listener connect failed:', e.message);
@@ -132,6 +111,7 @@ function _scheduleReconnect() {
 }
 
 function _stopInvalidationListener() {
+    _listenerStarted = false;
     if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
     if (_listenerClient) {
         try { _listenerClient.removeAllListeners(); _listenerClient.end().catch((e) => bestEffort('stores/configStore:_stopInvalidationListener', e)); } catch (err) { bestEffort('stores/configStore:_stopInvalidationListener#2', err); /* noop */ }
@@ -139,10 +119,20 @@ function _stopInvalidationListener() {
     }
 }
 
-// Start unless disabled (kill switch) or under test. Tests mock ../db but can't
-// intercept `new Client()` from pg, so leaving this on would open a real socket.
-if (process.env.NODE_ENV !== 'test' && process.env.CONFIG_INVALIDATION_LISTENER !== '0') {
+let _listenerStarted = false;
+
+/**
+ * Start the listener: called once by boot (boot/startupTasks.js), never by requiring
+ * this store, so a script or a generator that loads it opens no second connection.
+ * Off with the kill switch (CONFIG_INVALIDATION_LISTENER=0) and under test: tests
+ * mock ../db but cannot intercept `new Client()` from pg, so it would open a real socket.
+ * @returns {boolean} whether this call started it
+ */
+function startInvalidationListener() {
+    if (_listenerStarted || process.env.NODE_ENV === 'test' || process.env.CONFIG_INVALIDATION_LISTENER === '0') return false;
+    _listenerStarted = true;
     _startInvalidationListener().catch((e) => log.warn('[ConfigStore] listener bootstrap failed:', e.message));
+    return true;
 }
 
 // Schema init
@@ -685,6 +675,7 @@ module.exports = {
     reencryptLegacyPlaintextSecrets,
     // cross-replica cache invalidation (exported for tests / shutdown)
     _applyInvalidation,
+    startInvalidationListener,
     _startInvalidationListener,
     _stopInvalidationListener,
     CONFIG_INVALIDATE_CHANNEL,
@@ -702,6 +693,7 @@ Object.assign(module.exports, { initDB, withConfigGroup: require('./configStoreG
  *   encryptValue: typeof encryptValue, decryptValue: typeof decryptValue,
  *   reencryptLegacyPlaintextSecrets: typeof reencryptLegacyPlaintextSecrets, _applyInvalidation: typeof _applyInvalidation,
  *   _startInvalidationListener: typeof _startInvalidationListener, _stopInvalidationListener: typeof _stopInvalidationListener,
+ *   startInvalidationListener: typeof startInvalidationListener,
  *   CONFIG_INVALIDATE_CHANNEL: typeof CONFIG_INVALIDATE_CHANNEL, initDB: typeof initDB,
  *   withConfigGroup: ReturnType<typeof import('./configStoreGroup').createWithConfigGroup> }} ConfigStoreExports
  */

@@ -517,13 +517,17 @@ async function failRun(task, err, { manual, store }) {
 }
 
 // ── Background timer ─────────────────────────────────────
-// Unref'd: a janitor timer has no business keeping the process alive on its
-// own (it hung `node --test` on every suite that merely required this module).
+// Armed by start(), which boot calls (boot/startupJobs.js), never by requiring this
+// module. Unref'd: a janitor timer has no business keeping the process alive on
+// its own.
+
+/** @type {NodeJS.Timeout | null} */
+let _coveragePruneInterval = null;
 
 // R3: prune expired schedule_coverage memories once per hour. Keeps the
 // "previously covered" addendum from suppressing topics forever (default TTL
 // is 30 days inside memoryStore).
-const _coveragePruneInterval = setInterval(async () => {
+async function pruneCoverage() {
     try {
         const memoryStore = require('../stores/memoryStore');
         const expired = await memoryStore.pruneExpiredCoverage();
@@ -531,25 +535,36 @@ const _coveragePruneInterval = setInterval(async () => {
     } catch (err) {
         log.warn(`[AITaskRunner] R3 prune failed: ${/** @type {Error} */ (err).message}`);
     }
-}, 60 * 60_000);
-if (_coveragePruneInterval.unref) _coveragePruneInterval.unref();
-
-log.info('[AITaskRunner] Coverage prune armed (hourly)');
+}
 
 /**
- * Stop every timer this module armed at require time.
+ * Arm the hourly coverage prune. Idempotent.
+ * @returns {boolean} whether this call armed it
+ */
+function start() {
+    if (_coveragePruneInterval) return false;
+    _coveragePruneInterval = setInterval(pruneCoverage, 60 * 60_000);
+    _coveragePruneInterval.unref?.();
+    log.info('[AITaskRunner] Coverage prune armed (hourly)');
+    return true;
+}
+
+/**
+ * Stop the timer start() armed.
  *
- * Unref'ing keeps the timers from holding the process open, but it does not
- * make them cancellable, and a background sweep that nothing can ever call off
+ * Unref'ing keeps the timer from holding the process open, but it does not
+ * make it cancellable, and a background sweep that nothing can ever call off
  * is a defect in its own right in a long-running server. A caller that is
- * shutting down, or a test that wants the module inert, now has a way.
+ * shutting down, or a test that wants the module inert, has a way.
  */
 function stop() {
-    clearInterval(_coveragePruneInterval);
+    if (_coveragePruneInterval) clearInterval(_coveragePruneInterval);
+    _coveragePruneInterval = null;
 }
 
 module.exports = {
     executeTask,
+    start,
     stop,
 };
 

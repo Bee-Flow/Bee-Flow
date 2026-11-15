@@ -25,12 +25,41 @@
 // dozens of existing call sites share window/max shapes and would collide in
 // one Redis namespace; naming is the explicit, reviewable act of making a
 // limit fleet-wide. Name the limiters where the ceiling must be exact across
-// replicas (the studio-app set), leave the rest per-replica until named.
+// replicas (the studio-app set, the routes that spend a model call), leave the
+// rest per-replica until named. The unnamed call sites are counted and may only
+// go down (`npm run lint:unnamed-rate-limit-ratchet`): a new limiter gets a name.
 
 const { recordAuthEvent } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 
 let warnedRedisFallback = false;
+
+// A name is a Redis namespace, so two limiters with one name share their
+// counters: a user's budget on one route is then spent by the other. The same
+// call site building its limiter again is the same limiter (a route factory
+// called twice, a limiter rebuilt when its size changes); a second call site
+// with the name is reported, once per name.
+/** @type {Map<string, string>} name → the call site that used it first */
+const nameSites = new Map();
+/** @type {Set<string>} */
+const warnedNames = new Set();
+
+/** The first stack frame outside this file: who is building the limiter. */
+function callSite() {
+    const frames = (new Error().stack || '').split('\n').slice(1);
+    const frame = frames.find((line) => !line.includes(__filename));
+    return frame ? frame.trim() : 'an unknown call site';
+}
+
+/** @param {string} name */
+function noteLimiterName(name) {
+    const site = callSite();
+    const first = nameSites.get(name);
+    if (first === undefined) { nameSites.set(name, site); return; }
+    if (first === site || warnedNames.has(name)) return;
+    warnedNames.add(name);
+    log.warn(`[RateLimit] The limiter name "${name}" is used twice (${first}; ${site}). With Redis the two share one counter: give each limiter its own name.`);
+}
 
 // `costFn` — how much of the budget THIS request spends. Default 1, i.e. the
 // window counts requests, which is what every existing call site means. A
@@ -54,6 +83,7 @@ function normalizeCost(value) {
 function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
     const buckets = new Map(); // key → array of { t: timestamp ms, cost }
     const ns = name || null;
+    if (ns) noteLimiterName(ns);
 
     // Injected in tests; resolved lazily in prod so the require doesn't drag
     // the pg pool into DB-free suites that stub '../db'.

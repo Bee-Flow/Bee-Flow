@@ -20,7 +20,10 @@ const { trackBootStep } = require('../utils/runtimeState.mts');
 const { startBootProbes, startLicenseAndModuleRuntime, startLateWarmups } = require('./startupProbes');
 const { runOneShotTasks } = require('./startupOneShots');
 const { startDunningAndTrialSchedulers, startPlanCapDriftAudit, startSeatSync, startPaygDrain } = require('./startupBilling');
-const { startRetentionAndComplianceJobs, startRunnersAndFeeds, startSupportAndSyncJobs } = require('./startupJobs');
+const {
+    startRetentionAndComplianceJobs, startConfigInvalidationListener, startModuleSchedulers,
+    startRunnersAndFeeds, startSupportAndSyncJobs,
+} = require('./startupJobs');
 const { seedSystemAgentsAtBoot } = require('./startupSystemAgents');
 const { startPruneSchedulers } = require('./startupPrunes');
 
@@ -121,23 +124,34 @@ function runStartupChecks() {
     ensureNcLinkTicketSecret().catch(err => log.error('[NcLinkTicket] bootstrap failed:', err.message));
 }
 
+/**
+ * The phases of runStartupTasks(), in the order they run. Each lives in a sibling
+ * module (boot/startup*.js) and only schedules or fires work, never waits on it,
+ * so this is the order the timers and requests start. A list, so that a test can
+ * hold it: a phase that is missing here is background work that never starts.
+ */
+const STARTUP_PHASES = [
+    // First: the other phases read config, and the listener's first connect drops
+    // whatever this replica cached while it was not listening.
+    startConfigInvalidationListener,
+    startBootProbes,
+    startLicenseAndModuleRuntime,
+    runOneShotTasks,
+    startDunningAndTrialSchedulers,
+    startPlanCapDriftAudit,
+    startSeatSync,
+    startPaygDrain,
+    startLateWarmups,
+    startRetentionAndComplianceJobs,
+    seedSystemAgentsAtBoot,
+    startModuleSchedulers,
+    startRunnersAndFeeds,
+    startSupportAndSyncJobs,
+    startPruneSchedulers,
+];
+
 function runStartupTasks() {
-    // Each phase lives in a sibling module (boot/startup*.js); this is the
-    // order they run in. Every phase only schedules or fires work and never
-    // waits on it, so the order is the order the timers and requests start.
-    startBootProbes();
-    startLicenseAndModuleRuntime();
-    runOneShotTasks();
-    startDunningAndTrialSchedulers();
-    startPlanCapDriftAudit();
-    startSeatSync();
-    startPaygDrain();
-    startLateWarmups();
-    startRetentionAndComplianceJobs();
-    seedSystemAgentsAtBoot();
-    startRunnersAndFeeds();
-    startSupportAndSyncJobs();
-    startPruneSchedulers();
+    for (const phase of STARTUP_PHASES) phase();
 }
 
-module.exports = { runStartupChecks, runStartupTasks, studioEngineReplicaWarning };
+module.exports = { runStartupChecks, runStartupTasks, STARTUP_PHASES, studioEngineReplicaWarning };

@@ -37,6 +37,7 @@ get effectively published.
 | **`CORE_DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_core` | Connection string for the primary (`beeflow_core`) database — the server's runtime pool. |
 | **`DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_tasks` | Connection string for the productivity-tasks database. |
 | `DB_POOL_MAX` | `40` | Maximum Postgres connections of the core pool, per server process. A query holds a connection only while it runs, so this limits parallel queries, not users. With several replicas keep replicas × `DB_POOL_MAX` below Postgres' `max_connections` (100 in the Compose stack), or put PgBouncer in front. |
+| `CONFIG_CACHE_MAX` | `5000` | Most settings a server process keeps in memory (each for 60 seconds) in front of the `config` table. Above it the expired and then the oldest entries are dropped; a dropped entry costs one extra read. At least `100`. |
 | `MONITORING_DATABASE_URL` | derived by Compose | Monitoring database. The Compose files build all three from `DB_USER` / `DB_PASSWORD` / `DB_NAME` — see [Docker Compose → Three databases](docker-compose.md#three-databases-not-one). |
 
 The Compose stack also creates `beeflow_tasks` and `monitoring_db` on the same
@@ -249,3 +250,9 @@ windows, rate limits, edition/module switches and the automation kill switches
 are all documented where they are set: in the two example files linked above.
 Integration API keys entered in the admin UI are stored encrypted in the
 database, not in `.env`.
+
+The server also reads tunables that neither this page nor the example files
+list yet (time-outs, batch sizes, limits of a single route), each with a
+default in the code. From a checkout, `node scripts/env-inventory.mjs --list`
+prints every variable the server reads, the default where the code states one,
+the files that read it, and whether one of these documents mentions it.

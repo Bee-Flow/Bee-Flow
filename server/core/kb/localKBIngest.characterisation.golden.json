@@ -322,7 +322,7 @@
    },
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -335,6 +335,11 @@
      ],
      4
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -493,7 +498,7 @@
   "trace": [
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -506,6 +511,11 @@
      ],
      4
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -654,7 +664,7 @@
    },
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -667,6 +677,11 @@
      ],
      6
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -848,7 +863,7 @@
   "trace": [
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -861,6 +876,11 @@
      ],
      6
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -1034,7 +1054,7 @@
   "trace": [
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -1047,6 +1067,11 @@
      ],
      6
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -1169,7 +1194,7 @@
    },
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -1182,6 +1207,11 @@
      ],
      6
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",
@@ -1320,7 +1350,7 @@
   "trace": [
    {
     "via": "client",
-    "sql": "SET hnsw.ef_search = 100",
+    "sql": "BEGIN; SET LOCAL hnsw.ef_search = 100",
     "params": null
    },
    {
@@ -1333,6 +1363,11 @@
      ],
      6
     ]
+   },
+   {
+    "via": "client",
+    "sql": "COMMIT",
+    "params": null
    },
    {
     "via": "client",

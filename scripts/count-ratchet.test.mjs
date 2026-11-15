@@ -1033,6 +1033,42 @@ test('env-parseint-fallback counts parseInt/Number of an env var with a numeric 
     assert.match(r.stderr, /2 numeric env vars/);
 });
 
+test('unnamed-rate-limit counts perUserRateLimit calls without a name, on one line or several, in .js and .mts', () => {
+    const dir = sandbox({
+        files: {
+            'routes/a.js': [
+                'const one = perUserRateLimit({ windowMs: 60_000, max: 12 });',
+                "const two = perUserRateLimit({ windowMs: 60_000, max: 12, name: 'ai-chat' });",
+                'const three = perUserRateLimit({',
+                '    windowMs: 60_000,',
+                '    max: 5,',
+                '    keyFn: (req) => `${req.session.user.name}:${req.params.id}`,',
+                '});',
+                'const four = perUserRateLimit({',
+                '    windowMs: 60_000,',
+                '    max: 5,',
+                "    name: 'studio-run',",
+                '});',
+                "// perUserRateLimit({ max: 1 }) in a comment, and 'perUserRateLimit({})' in a string",
+                '',
+            ].join('\n'),
+            'routes/b.mts': 'export const make = (name: string, max: number) => perUserRateLimit({ windowMs: 60_000, max, name });\nconst passed = perUserRateLimit(options);\n',
+            'utils/perUserRateLimit.js': 'function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {}\n',
+            'routes/a.test.js': 'perUserRateLimit({ windowMs: 1, max: 1 });\n',
+            'testUtils/limits.js': 'perUserRateLimit({ windowMs: 1, max: 1 });\n',
+        },
+        metric: 'unnamed-rate-limit', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'unnamed-rate-limit', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /3 perUserRateLimit calls without a name/);
+    assert.match(r.stderr, /give the limiter a `name`/);
+
+    const listed = run(dir, 'unnamed-rate-limit', ['--list'], 'server');
+    assert.match(listed.stdout, /2 {2}routes\/a\.js/);
+    assert.match(listed.stdout, /1 {2}routes\/b\.mts/);
+});
+
 test('secret-equality counts a secret compared with === to a value, not to a literal, null or a shape field', () => {
     const dir = sandbox({
         files: {

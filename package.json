@@ -101,6 +101,8 @@
     "lint:static-mount-ratchet": "node scripts/count-ratchet.mjs static-mount server",
     "lint:multer-guard-ratchet": "node scripts/count-ratchet.mjs multer-guard server",
     "lint:env-parseint-ratchet": "node scripts/count-ratchet.mjs env-parseint-fallback server",
+    "lint:unnamed-rate-limit-ratchet": "node scripts/count-ratchet.mjs unnamed-rate-limit server",
+    "lint:env-inventory-ratchet": "node scripts/env-inventory.mjs --check",
     "lint:secret-equality-ratchet": "node scripts/count-ratchet.mjs secret-equality server",
     "lint:instance-config-gate-ratchet": "node scripts/count-ratchet.mjs instance-config-gate server",
     "lint:tenant-matrix-ratchet": "node scripts/count-ratchet.mjs tenant-matrix-exemptions server"

@@ -57,7 +57,22 @@ require.cache[dbPath] = new Module(dbPath);
 require.cache[dbPath].exports = mockDb;
 require.cache[dbPath].loaded = true;
 
+// The listener's own connection, as a double: the store takes `Client` from pg
+// when it loads, so the double is in place for exactly that moment.
+const listenerClients = [];
+class FakeListenerClient {
+    constructor() { this.queries = []; this.ended = false; listenerClients.push(this); }
+    on() {}
+    removeAllListeners() {}
+    async connect() {}
+    async query(sql) { this.queries.push(sql); }
+    async end() { this.ended = true; }
+}
+const pg = require('pg');
+const RealClient = pg.Client;
+pg.Client = /** @type {typeof RealClient} */ (/** @type {unknown} */ (FakeListenerClient));
 const configStore = require('./configStore');
+pg.Client = RealClient;
 
 test('setConfig emits a pg_notify carrying the key', async () => {
     runCalls.length = 0;
@@ -116,4 +131,36 @@ test('mutateConfig read-modify-writes atomically and busts the local cache', asy
     // Cache was busted by the write → the next read reflects the mutation.
     const after = await configStore.getConfig('cms_projects_index');
     assert.deepStrictEqual(after.projects.map(p => p.id), ['a', 'b']);
+});
+
+test('the listener starts when boot asks for it, once, and not by requiring the store', async (t) => {
+    assert.strictEqual(listenerClients.length, 0, 'requiring the store opened no listener connection');
+
+    // Under test and with the kill switch (both set at the top of this file) it stays off.
+    assert.strictEqual(configStore.startInvalidationListener(), false);
+    process.env.NODE_ENV = 'production';
+    assert.strictEqual(configStore.startInvalidationListener(), false, 'CONFIG_INVALIDATION_LISTENER=0 keeps it off');
+    process.env.NODE_ENV = 'test';
+    delete process.env.CONFIG_INVALIDATION_LISTENER;
+    assert.strictEqual(configStore.startInvalidationListener(), false, 'NODE_ENV=test keeps it off');
+    assert.strictEqual(listenerClients.length, 0);
+
+    process.env.NODE_ENV = 'production';
+    t.after(() => {
+        configStore._stopInvalidationListener();
+        process.env.NODE_ENV = 'test';
+        process.env.CONFIG_INVALIDATION_LISTENER = '0';
+    });
+
+    assert.strictEqual(configStore.startInvalidationListener(), true);
+    assert.strictEqual(configStore.startInvalidationListener(), false, 'a second call opens no second connection');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(listenerClients.length, 1);
+    assert.deepStrictEqual(listenerClients[0].queries, [`LISTEN ${configStore.CONFIG_INVALIDATE_CHANNEL}`]);
+
+    configStore._stopInvalidationListener();
+    assert.strictEqual(listenerClients[0].ended, true);
+    assert.strictEqual(configStore.startInvalidationListener(), true, 'after a stop it can be started again');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(listenerClients.length, 2);
 });

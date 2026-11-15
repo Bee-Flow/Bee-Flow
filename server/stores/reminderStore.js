@@ -209,16 +209,37 @@ async function processDueReminders() {
     }
 }
 
-// Start background checker (every 60s). Both handles are unref'd: a janitor
-// timer must not keep the process alive, and a ref'd one at module scope hangs
-// `node --test` on any suite that requires this file — the same defect that
-// was just found and fixed in core/aiTaskRunner.js. Nothing requires this
-// store in a test today, which is the only reason it had not bitten yet.
-const _checkerInterval = setInterval(processDueReminders, 60_000);
-if (_checkerInterval.unref) _checkerInterval.unref();
-// Run once immediately on startup after a short delay
-const _firstCheck = setTimeout(processDueReminders, 5_000);
-if (_firstCheck.unref) _firstCheck.unref();
+// ── Background checker ───────────────────────────────────
+// Every 60 s, with a first pass 5 s after the start. Armed by start(), which boot
+// calls (boot/startupJobs.js), never by requiring this store: a script, a generator
+// or a test that loads it must not run a job against whatever database it points at.
+// Both handles are unref'd: a janitor timer must not keep the process alive.
+
+/** @type {{ interval: NodeJS.Timeout, first: NodeJS.Timeout } | null} */
+let _checker = null;
+
+/**
+ * Start the reminder checker. Idempotent.
+ * @returns {boolean} whether this call started it
+ */
+function start() {
+    if (_checker) return false;
+    const interval = setInterval(processDueReminders, 60_000);
+    const first = setTimeout(processDueReminders, 5_000);
+    interval.unref?.();
+    first.unref?.();
+    _checker = { interval, first };
+    log.info('[ReminderStore] Background checker started (60s interval)');
+    return true;
+}
+
+/** Stop the checker (shutdown, tests). */
+function stop() {
+    if (!_checker) return;
+    clearInterval(_checker.interval);
+    clearTimeout(_checker.first);
+    _checker = null;
+}
 
 module.exports = {
     createReminder,
@@ -228,6 +249,8 @@ module.exports = {
     deleteReminder,
     markCompleted,
     processDueReminders,
+    start,
+    stop,
     // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
     initDB,
 };

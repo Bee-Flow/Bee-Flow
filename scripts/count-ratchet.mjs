@@ -255,6 +255,17 @@
  *                     target is the store's public functions against
  *                     testUtils/pglitePool.js or pgliteDb.js, asserting what the
  *                     database holds or returns afterwards.
+ *   unnamed-rate-limit  calls of perUserRateLimit( in server (non-test) whose
+ *                     options carry no `name`. Such a limiter counts in the
+ *                     memory of one process, so with N replicas a user gets
+ *                     N times the documented limit; a named one counts in
+ *                     Redis, once for the whole installation
+ *                     (server/utils/perUserRateLimit.js). A call that passes
+ *                     its options as a variable counts too: the name cannot
+ *                     be read off it. Naming an existing limiter changes
+ *                     what a multi-replica installation with Redis allows
+ *                     (N x max becomes max), so it is a behaviour change to
+ *                     announce, not a refactor.
  *
  * Usage:
  *   node scripts/count-ratchet.mjs <metric> <package>            gate
@@ -725,6 +736,28 @@ const MULTER_CALL = /(?<![\w$.])multer\s*\(/g;
 // an unparsable value both fall back to n, so 0 cannot be configured and a bad
 // value is ignored without a word. server/utils/envNumber.mts reads them instead.
 const ENV_PARSEINT_FALLBACK = /\b(?:parseInt|Number|parseFloat)\s*\(\s*process\.env\.[^()]*\)\s*\|\|\s*\d/g;
+// unnamed-rate-limit: a perUserRateLimit( call whose arguments name no `name`
+// option (`name: '…'`, or the shorthand `name`). The definition of the function
+// itself destructures `name` and so does not count.
+const RATE_LIMIT_CALL = /(?<![\w$.])perUserRateLimit\s*\(/g;
+const NAME_OPTION = /(?<![\w$.])name\s*[:,})]/;
+
+/** perUserRateLimit( calls without a `name` option. */
+function countUnnamedRateLimiters(text) {
+    const code = blankNonCode(text);
+    let n = 0;
+    for (const call of code.matchAll(RATE_LIMIT_CALL)) {
+        const open = call.index + call[0].length - 1;
+        let depth = 0;
+        let close = open;
+        for (; close < code.length; close++) {
+            if (code[close] === '(') depth++;
+            else if (code[close] === ')' && --depth === 0) break;
+        }
+        if (!NAME_OPTION.test(code.slice(open, close + 1))) n++;
+    }
+    return n;
+}
 // secret-equality: === or !== with a secret-shaped identifier on the left and a
 // value (not a literal, null or undefined) on the right. `token` is left out of
 // the shape on purpose: most token comparisons in the tree are lookups of an
@@ -1051,6 +1084,13 @@ const METRICS = {
         measure: (text) => (blankNonCode(text).match(ENV_PARSEINT_FALLBACK) || []).length,
         what: 'numeric env vars parsed as parseInt(process.env.X) || default, where 0 cannot be configured',
         advice: 'read it with envInt / envNumber from server/utils/envNumber.mts: envInt(\'X\', default, { min: 1 }) where 0 means nothing, { min: 0 } where 0 means off; a bad value is logged once and the default is used',
+    },
+    'unnamed-rate-limit': {
+        include: (rel) => !ROUTE_TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        ext: ALL_SOURCE,
+        measure: (text) => countUnnamedRateLimiters(text),
+        what: 'perUserRateLimit calls without a name (a limit counted per process)',
+        advice: "give the limiter a `name` (utils/perUserRateLimit.js): with Redis its count is then shared by every replica",
     },
     'secret-equality': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
