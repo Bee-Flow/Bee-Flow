@@ -29,6 +29,17 @@ const { executeCommentTool } = require('./nextcloudFiles/comments');
 const { executeTagTool } = require('./nextcloudFiles/tags');
 const { executeTrashTool } = require('./nextcloudFiles/trash');
 const { executeVersionTool } = require('./nextcloudFiles/versions');
+const { NEXTCLOUD_REQUEST_TOOLS, executeNextcloudRequest, isNextcloudRequestTool } = require('./nextcloudRequestTool.mts');
+
+/**
+ * The generic `nextcloud_request` (automations only, ./nextcloudRequestTool.mts).
+ * @param {string} toolName
+ * @param {Record<string, unknown>} args
+ * @param {import('./nextcloudFiles/webdav').FilesToolCtx} ctx
+ */
+async function executeRequestTool(toolName, args, ctx) {
+    return isNextcloudRequestTool(toolName) ? executeNextcloudRequest(args, ctx) : undefined;
+}
 
 // Each handler answers for its own family and returns undefined for anything
 // else; the tool names are disjoint, so the order here is not semantics.
@@ -41,16 +52,27 @@ const TOOL_HANDLERS = [
     executeTagTool,
     executeTrashTool,
     executeVersionTool,
+    executeRequestTool,
 ];
 
 // ─── Tool Execution ───────────────────────────────────────────────
+
+/**
+ * The automation run a call belongs to: the run (generated_file handles) and
+ * the automation, both set by the automation runner only; nextcloud_request
+ * refuses a call that has neither.
+ * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'], automationId?: string | null } | undefined} extra
+ */
+function runContext(extra) {
+    return { runScope: extra?.runScope || null, automationId: extra?.automationId || null };
+}
 
 /**
  * @param {string} toolName
  * @param {Record<string, unknown>} args
  * @param {string} userId
  * @param {Partial<Express.Session> | null | undefined} session
- * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} [extra]
+ * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'], automationId?: string | null }} [extra]
  */
 async function executeNextcloudTool(toolName, args, userId, session, extra = {}) {
     const ctx = await ncClient.resolveAuth(session, userId);
@@ -66,7 +88,7 @@ async function executeNextcloudTool(toolName, args, userId, session, extra = {})
         publicBaseUrl: ctx.publicBaseUrl || null,
         userId,
         orgId: (session && (session.connectorOrgId || (session.user && session.user.organizationId))) || null,
-        runScope: (extra && extra.runScope) || null,
+        ...runContext(extra),
     };
 
     for (const handler of TOOL_HANDLERS) {
@@ -88,8 +110,18 @@ function isNextcloudTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_');
 }
 
+/**
+ * Every tool of the Nextcloud Files app, the automation-only nextcloud_request
+ * included: what the tool registry (automation/toolRegistry.js) attributes to
+ * the app, so the catalog, the side-effect map and activation know it. Chat,
+ * agents and MCP are offered NEXTCLOUD_TOOLS, which leaves it out.
+ */
+const NEXTCLOUD_CATALOG_TOOLS = [...NEXTCLOUD_TOOLS, ...NEXTCLOUD_REQUEST_TOOLS];
+
 module.exports = {
     NEXTCLOUD_TOOLS,
+    NEXTCLOUD_REQUEST_TOOLS,
+    NEXTCLOUD_CATALOG_TOOLS,
     executeNextcloudTool,
     isNextcloudTool,
 };

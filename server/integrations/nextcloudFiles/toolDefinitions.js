@@ -7,6 +7,7 @@
 const { DECK_INPUT_PROPERTIES } = require('../../core/documents/deckModel');
 const { DECK_THEME_INPUT_SCHEMA } = require('../../core/documents/deckThemeOptions');
 const { FOLDER_TREE_TOOL } = require('./folderTreeTool');
+const { DIRECTORY_TOOLS } = require('./directoryToolDefinitions.mts');
 
 const NEXTCLOUD_TOOLS = [
     {
@@ -42,11 +43,12 @@ const NEXTCLOUD_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_read_file',
-            description: 'Read the contents of a file from Nextcloud. Handles plain text, PDFs (text layer plus Azure / Mistral OCR fallback), DOCX, PPTX (slide text + speaker notes, one section per slide) and XLSX/CSV — the same extraction pipeline used when a user uploads a file directly to chat. Extracted text larger than ~200 KB is truncated.',
+            description: 'Read the contents of a file from Nextcloud. Handles plain text, PDFs (text layer plus Azure / Mistral OCR fallback), DOCX, PPTX (slide text + speaker notes, one section per slide), XLSX/CSV and images (PNG, JPEG, TIFF, ...: their text through the same OCR as a scanned PDF) — the same extraction pipeline used when a user uploads a file directly to chat. Extracted text larger than ~200 KB is truncated. With formFields: true a PDF form also returns its filled-in fields.',
             parameters: {
                 type: 'object',
                 properties: {
-                    path: { type: 'string', description: 'Full path to the file (e.g. "/Documents/notes.md", "/Invoices/2026/invoice.pdf").' }
+                    path: { type: 'string', description: 'Full path to the file (e.g. "/Documents/notes.md", "/Invoices/2026/invoice.pdf").' },
+                    formFields: { type: 'boolean', description: 'Also return the AcroForm fields of a PDF as formFields: [{ name, value, type }] (type text, checkbox, radiobutton, combobox or listbox; a checkbox value is true/false). An empty list for a file that is not a PDF or has no form.' }
                 },
                 required: ['path']
             }
@@ -154,20 +156,7 @@ const NEXTCLOUD_TOOLS = [
             }
         }
     },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_list_groups',
-            description: 'List the Nextcloud user groups on this instance. Needed before sharing with a group — nextcloud_share_with_group takes a group id, not a display name.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    search: { type: 'string', description: 'Optional substring to filter group ids by.' },
-                    limit: { type: 'integer', description: 'Max groups (default 100, max 500).' }
-                }
-            }
-        }
-    },
+    ...DIRECTORY_TOOLS,
     {
         type: 'function',
         function: {

@@ -17,7 +17,7 @@
 const { resolveInputs } = require('../automationModel/bind');
 const { failOnBlankInputs, missesThatFail } = require('./blankInputs');
 const { captureBindingMisses } = require('../automationModel/bindCapture');
-const { isSideEffect } = require('../automationModel/sideEffectMap');
+const { isSideEffectCall } = require('../automationModel/sideEffectCall.mts');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort, hasRunnerPort } = require('./featurePorts');
 
@@ -238,9 +238,11 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // the agent/direct-chat pipeline so automations stop bypassing those controls.
     const { safety, stepInputsSynthetic } = deps;
     // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    const sideEffect = isSideEffect(step.tool);
     const resolved = captureBindingMisses(() => resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' }));
     let inputs = resolved.value;
+    // Per call, not per name: a tool whose effect follows its method
+    // (nextcloud_request) is a read for a GET and dispatches for real in a dry run.
+    const sideEffect = isSideEffectCall(step.tool, inputs);
     // A dry run fails a write on the same holes a live run does, except a
     // hole in data the dry run made up (./blankInputs, ./execCode.js header).
     if (sideEffect) failOnBlankInputs(step, missesThatFail(resolved.misses, runState, ctx, mode));

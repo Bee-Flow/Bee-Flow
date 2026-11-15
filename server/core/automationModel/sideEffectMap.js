@@ -140,6 +140,7 @@ const READ_ONLY = new Set([
     'nextcloud_forms_list', 'nextcloud_forms_get', 'nextcloud_forms_get_submissions',
     // Nextcloud Files (read-only additions)
     'nextcloud_folder_tree', 'nextcloud_direct_link',
+    'nextcloud_file_info', 'nextcloud_get_user',
     // Nextcloud Mail (read-only)
     'nextcloud_mail_list_accounts', 'nextcloud_mail_list_mailboxes',
     'nextcloud_mail_search', 'nextcloud_mail_read', 'nextcloud_mail_read_attachment',
@@ -210,7 +211,7 @@ const SIDE_EFFECTS = new Set([
     'nextcloud_share_by_email', 'nextcloud_update_share', 'nextcloud_delete_share',
     'nextcloud_add_file_comment', 'nextcloud_create_tag', 'nextcloud_tag_file',
     'nextcloud_untag_file', 'nextcloud_restore_from_trash', 'nextcloud_permanent_delete_trash',
-    'nextcloud_restore_version',
+    'nextcloud_restore_version', 'nextcloud_request', // a write by name; per call: ./sideEffectCall.mts
     // Nextcloud Calendar / Contacts / Deck / Talk / Tasks / Notes
     'nextcloud_calendar_create_event', 'nextcloud_calendar_update_event', 'nextcloud_calendar_delete_event',
     'nextcloud_contacts_create', 'nextcloud_contacts_update', 'nextcloud_contacts_delete',

@@ -1,15 +1,18 @@
 // @typecheck strict
 /**
  * nextcloud_read_file — one file's content for the model: rich documents (PDF,
- * DOCX, PPTX, XLSX/CSV) through the shared extraction pipeline, text as UTF-8
- * cut on a character boundary, binary refused. The download is bounded by the
- * tool file cap.
+ * DOCX, PPTX, XLSX/CSV) through the shared extraction pipeline, images through
+ * the same OCR providers as a scanned PDF (text only: no picture is handed to
+ * a model here), text as UTF-8 cut on a character boundary, binary refused.
+ * `formFields: true` adds the filled-in AcroForm fields of a PDF. The download
+ * is bounded by the tool file cap.
  */
 
 'use strict';
 
 const { MAX_TEXT_BYTES, joinDavPath } = require('./webdav');
 const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
+const log = require('../../telemetry/log');
 
 /**
  * @typedef {import('./fileOperations').FileOpArgs} FileOpArgs
@@ -38,17 +41,65 @@ async function readNextcloudFile(args, ctx) {
         return { error: `path "${args.path}" is a folder, not a file. Use nextcloud_list_files to see what is in it.` };
     }
     const filename = args.path.split('/').pop() || args.path;
-    const att = { name: filename, type: contentType };
+    const { result, pdf } = await contentResult(args.path, filename, contentType, buf);
+    return args.formFields === true ? withFormFields(result, { pdf, path: args.path, contentType, buf }) : result;
+}
 
+/**
+ * The file's content by kind, and whether it is a PDF (for the form fields).
+ * @param {string} path
+ * @param {string} filename
+ * @param {string} contentType
+ * @param {Buffer} buf
+ */
+async function contentResult(path, filename, contentType, buf) {
+    const att = { name: filename, type: contentType };
     // Rich-document extraction — PDF, DOCX, PPTX, XLSX/CSV go through
     // the same pipeline used for chat uploads (pdfjs → Azure DI →
     // Mistral OCR for PDFs; Azure DI → mammoth/pptxExtractor/xlsx for
-    // Office docs).
-    const { isPdf, isDocx, isSpreadsheet, isPptx } = require('../../core/documents/attachmentExtractor');
-    if (isPdf(att) || isDocx(att) || isSpreadsheet(att) || isPptx(att)) {
-        return extractedFileResult(args.path, filename, contentType, buf);
+    // Office docs). An image goes to the OCR providers of a scanned PDF
+    // (extractImage without a vision flag answers text or a failure, never
+    // the picture). SVG is markup and stays on the text path.
+    const { isPdf, isDocx, isSpreadsheet, isPptx, isImage } = require('../../core/documents/attachmentExtractor');
+    const pdf = isPdf(att);
+    const image = !pdf && isImage(att) && !isSvg(contentType, filename);
+    const result = (pdf || isDocx(att) || isSpreadsheet(att) || isPptx(att) || image)
+        ? await extractedFileResult(path, filename, contentType, buf, { image })
+        : plainTextFileResult(path, contentType, buf);
+    return { result, pdf };
+}
+
+/**
+ * @param {string} contentType
+ * @param {string} filename
+ */
+function isSvg(contentType, filename) {
+    return contentType.toLowerCase().startsWith('image/svg') || filename.toLowerCase().endsWith('.svg');
+}
+
+/**
+ * The read result with the PDF's filled-in form fields beside it
+ * (`formFields: []` for a file that is not a PDF or has no form). A PDF whose
+ * text could not be extracted but whose form could still answers, with the
+ * extraction failure as a `note`: the fields are what the caller asked for.
+ * @param {Record<string, unknown>} result  what the read gave without form fields
+ * @param {{ pdf: boolean, path: string, contentType: string, buf: Buffer }} file
+ */
+async function withFormFields(result, { pdf, path, contentType, buf }) {
+    if (!pdf) return { ...result, formFields: [] };
+    /** @type {import('../../core/documents/pdfFormFields.mts').FormField[]} */
+    let formFields;
+    try {
+        const { readPdfFormFields } = require('../../core/documents/pdfFormFields.mts');
+        formFields = await readPdfFormFields(buf);
+    } catch (err) {
+        log.warn(`[nextcloud_read_file] form fields unreadable: ${/** @type {Error} */ (err).message}`);
+        return { ...result, formFields: [], formFieldsError: 'The form fields of this PDF could not be read.' };
     }
-    return plainTextFileResult(args.path, contentType, buf);
+    if (typeof result.error === 'string' && formFields.length) {
+        return { path, size: buf.length, contentType, truncated: false, content: '', formFields, note: result.error };
+    }
+    return { ...result, formFields };
 }
 
 /**
@@ -72,8 +123,9 @@ function isFolderAnswer(path, contentType, buf) {
  * @param {string} filename
  * @param {string} contentType
  * @param {Buffer} buf
+ * @param {{ image?: boolean }} [kind]  `image`: the file is a picture, read through OCR
  */
-async function extractedFileResult(path, filename, contentType, buf) {
+async function extractedFileResult(path, filename, contentType, buf, kind = {}) {
     const { extractAttachment } = require('../../core/documents/attachmentExtractor');
     const result = /** @type {ExtractedDoc} */ (await extractAttachment({
         name: filename,
@@ -98,6 +150,13 @@ async function extractedFileResult(path, filename, contentType, buf) {
     if (result.kind === 'images') {
         return {
             error: `${filename} appears to be an image-only document (${result.meta?.numPages || '?'} pages) with no extractable text. Configure Azure Document Intelligence or Mistral OCR to read scanned PDFs from Nextcloud.`,
+            size: buf.length,
+            contentType,
+        };
+    }
+    if (kind.image) {
+        return {
+            error: `No text could be read from ${filename}: it is an image, and its text is read by an OCR provider (Azure Document Intelligence or Mistral OCR). Either none is configured, or the image has no readable text.`,
             size: buf.length,
             contentType,
         };
