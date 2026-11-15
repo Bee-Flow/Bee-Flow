@@ -154,6 +154,17 @@ const THUMBS: Record<string, React.ReactElement> = {
             <text x="60" y="42" textAnchor="middle" fontSize="16" fontFamily="monospace" fill={ACCENT} fillOpacity="0.85">{'</>'}</text>
         </Frame>
     ),
+    'react-component': (
+        <Frame>
+            <rect x="14" y="10" width="92" height="44" rx="4" fill={MUTED} fillOpacity="0.12" stroke={MUTED} strokeOpacity="0.4" />
+            <g transform="translate(60 32)" fill="none" stroke={ACCENT} strokeOpacity="0.85" strokeWidth="1.4">
+                <ellipse rx="16" ry="6" />
+                <ellipse rx="16" ry="6" transform="rotate(60)" />
+                <ellipse rx="16" ry="6" transform="rotate(120)" />
+            </g>
+            <circle cx="60" cy="32" r="2.4" fill={ACCENT} fillOpacity="0.9" />
+        </Frame>
+    ),
     pricing: (
         <Frame>
             <Card x={10} y={14} w={30} h={42} />

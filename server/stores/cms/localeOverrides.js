@@ -12,6 +12,7 @@ const {
 } = require('./shared');
 const { writeSiteAligned, withConfigGroup } = require('./overrideAlign');
 const { cleanOverrideMedia } = require('./localeMedia');
+const { reactBlockIds, reactBlockOverride } = require('./reactBlock.mts');
 
 // ── Locale settings (org-wide) ───────────────────────────────────────
 
@@ -127,8 +128,26 @@ async function setPageLocaleOverride(siteId, pageId, locale, override) {
     assertLocale(locale);
     if (!isPlainObject(override)) throw new Error('Override must be an object');
     const sanitized = sanitizePageOverride(override);
-    await withConfigGroup(pageKey(siteId, pageId), (io) => io.set(pageLocaleKey(siteId, pageId, locale), sanitized));
+    // Read under the page lock: which blocks are React components decides what
+    // their translation may hold (props only, see reactBlock.mts).
+    await withConfigGroup(pageKey(siteId, pageId), async (io) => {
+        limitReactOverrides(sanitized.blocks, await io.get(pageKey(siteId, pageId)));
+        await io.set(pageLocaleKey(siteId, pageId, locale), sanitized);
+    });
     return sanitized;
+}
+
+/**
+ * A React component block translates its props and nothing else: its entry is
+ * rebuilt from that allow-list, in place. Every writer of a page override calls
+ * this under the page lock, with the page as stored.
+ * @param {Record<string, unknown>} blocks  the override's blocks, by block id
+ * @param {unknown} page  the stored page (null when there is none yet)
+ */
+function limitReactOverrides(blocks, page) {
+    for (const id of reactBlockIds(page)) {
+        if (Object.prototype.hasOwnProperty.call(blocks, id)) blocks[id] = reactBlockOverride(blocks[id]);
+    }
 }
 async function deletePageLocaleOverride(siteId, pageId, locale) {
     assertSiteId(siteId);
@@ -205,5 +224,5 @@ module.exports = {
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
     collectLocaleOverrides, pruneBlockLocaleOverrides, writeSiteAligned,
-    sanitizeSiteOverride, sanitizePageOverride,
+    sanitizeSiteOverride, sanitizePageOverride, limitReactOverrides,
 };

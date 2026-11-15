@@ -32,6 +32,7 @@ const STYLE_CAPABILITIES: Record<string, StyleCapability> = {
     cta:                { columns: false, motion: true },
     'cta-banner':       { columns: false, motion: true },
     'live-component':   { columns: false, motion: true },
+    'react-component':  { columns: false, motion: true },
     pricing:            { columns: false, motion: true },
     'customer-support': { columns: false, motion: true },
     form:               { columns: false, motion: true },

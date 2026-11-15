@@ -246,4 +246,106 @@ function checkFeatureDemo(content, path, warnings) {
     }
 }
 
-module.exports = { checkTabs, checkFeatureMatrix, checkStoryHeader, checkScrollStory, checkFeatureDemo };
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const REACT_FIX_TOOL = 'cms_update_react_component (sourceEdits for a small fix)';
+
+/**
+ * The first line of a compile error, with its position when it has one.
+ * The server writes `component.tsx:<line>:<column>: <text>` lines.
+ * @param {string} compileError
+ */
+function firstCompileLine(compileError) {
+    const first = compileError.split('\n')[0] || compileError;
+    return first.length > 300 ? `${first.slice(0, 300)}…` : first;
+}
+
+/**
+ * Whether a prop value fits the type its field declares; '' (unset) fits every type but number and boolean.
+ * @param {Record<string, unknown>} field
+ * @param {unknown} v
+ */
+function propFits(field, v) {
+    switch (field.type) {
+        case 'number': return typeof v === 'number' && Number.isFinite(v);
+        case 'boolean': return typeof v === 'boolean';
+        case 'color': return v === '' || (typeof v === 'string' && HEX_COLOR.test(v));
+        case 'link': return v === '' || v === null || isPlainObject(v);
+        case 'select': return v === '' || (Array.isArray(field.options) && field.options.includes(v));
+        default: return typeof v === 'string';
+    }
+}
+
+/**
+ * @param {Record<string, unknown>} props
+ * @param {Array<Record<string, unknown>>} fields
+ * @param {string} path
+ * @param {Array<Record<string, unknown>>} warnings
+ */
+function checkReactProps(props, fields, path, warnings) {
+    const byName = new Map(fields.map((f) => [String(f.name), f]));
+    for (const [name, value] of Object.entries(props)) {
+        const field = byName.get(name);
+        if (!field) {
+            warnings.push({
+                code: 'react_prop_undeclared',
+                path: `${path}.props.${name}`,
+                message: `Prop "${name}" has no field, so the editor cannot change it and it is not translated.`,
+                hint: `Declare it in content.fields ({ name: "${name}", label, type }) or drop it from props.`,
+            });
+        } else if (!propFits(field, value)) {
+            warnings.push({
+                code: 'react_prop_type',
+                path: `${path}.props.${name}`,
+                message: `Prop "${name}" is ${JSON.stringify(value)?.slice(0, 60)}, which does not fit its field type "${String(field.type)}".`,
+                hint: field.type === 'select'
+                    ? `Use one of the field's options: ${(Array.isArray(field.options) ? field.options : []).join(', ')}.`
+                    : 'number: a number, boolean: true/false, color: "#rrggbb", link: a link object, text/textarea/image: a string.',
+            });
+        }
+    }
+}
+
+/**
+ * react-component: the server compiles `source` on every save and stores the
+ * outcome; a block whose code does not compile renders nothing on the public
+ * site. Also props that do not fit their declared field.
+ * @param {unknown} content
+ * @param {string} path
+ * @param {Array<Record<string, unknown>>} warnings
+ */
+function checkReactComponent(content, path, warnings) {
+    const c = isPlainObject(content) ? content : {};
+    if (typeof c.compileError === 'string' && c.compileError) {
+        warnings.push({
+            code: 'react_compile_error',
+            path: `${path}.source`,
+            message: `The component does not compile: ${firstCompileLine(c.compileError)}`,
+            hint: `The position is component.tsx:line:column. Fix the code with ${REACT_FIX_TOOL}; until it compiles the public page shows nothing for this block. The full list is in content.compileError.`,
+        });
+    }
+    const fields = Array.isArray(c.fields) ? c.fields.filter(isPlainObject) : [];
+    if (isPlainObject(c.props)) checkReactProps(c.props, fields, path, warnings);
+}
+
+/** Block type -> its content check (feature-demo has its own call in validate.js). */
+const TYPE_CHECKS = /** @type {Record<string, (content: unknown, path: string, warnings: Array<Record<string, unknown>>) => void>} */ ({
+    tabs: checkTabs,
+    'feature-matrix': checkFeatureMatrix,
+    scrollStory: checkScrollStory,
+    'story-header': checkStoryHeader,
+    'react-component': checkReactComponent,
+});
+
+/**
+ * Run the content check of `type`, when it has one.
+ * @param {unknown} type
+ * @param {unknown} content
+ * @param {string} path
+ * @param {Array<Record<string, unknown>>} warnings
+ */
+function checkBlockContent(type, content, path, warnings) {
+    const check = typeof type === 'string' ? TYPE_CHECKS[type] : undefined;
+    if (check) check(content, path, warnings);
+}
+
+module.exports = { checkTabs, checkFeatureMatrix, checkStoryHeader, checkScrollStory, checkFeatureDemo, checkReactComponent, checkBlockContent };

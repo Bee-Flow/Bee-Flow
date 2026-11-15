@@ -78,6 +78,7 @@ function makeHarness(over = {}) {
         getTemplates: async () => [{ id: 'tpl_1', name: 'Landing', blocks: [{}, {}] }],
         setSiteLocaleOverride: async (...a) => { calls.live.push(['site-override', ...a]); },
         setPageLocaleOverride: async (...a) => { calls.live.push(['page-override', ...a]); },
+        getPage: async () => null,
         deleteSiteLocaleOverride: async () => {},
         deletePageLocaleOverride: async () => {},
     };

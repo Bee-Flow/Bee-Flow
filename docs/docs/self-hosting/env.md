@@ -123,6 +123,7 @@ Optional; empty means the default.
 | `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |
 | `OUTBOUND_HTTP_TIMEOUT_MS` | `30000` (30 s) | How long an outbound HTTP call of the server (an integration, an OAuth token exchange, a sidecar such as the guard or search service) may take when the code sets no time-out of its own. Streams and downloads count only the wait for the answer, not the body. `0` = no time-out. |
 | `LEGACY_MCP_TOKEN_MAX_AGE_DAYS` | `365` | MCP access tokens that carry no expiry of their own stop working this many days after they were created. `0` = no limit. |
+| `CMS_REACT_SOURCE_MAX_BYTES` | `200000` | Largest source (bytes, UTF-8) of a website React component block the server compiles on save. A bigger source is stored with a compile error and the block renders nothing. `0` = unlimited. |
 
 ## Workflow components and internal addresses
 

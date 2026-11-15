@@ -85,6 +85,7 @@ const TOOL_LABELS = {
     cms_update_page_seo: 'Updated SEO',
     cms_add_blocks: 'Added blocks',
     cms_update_block: 'Edited block',
+    cms_update_react_component: 'Edited React component',
     cms_remove_block: 'Removed block',
     cms_reorder_blocks: 'Reordered blocks',
     cms_set_homepage: 'Set homepage',
@@ -124,6 +125,9 @@ function summariseToolResult(name, args, result) {
             return cap(`Added ${added} block(s)${dropped ? `, ${dropped} dropped (unknown type)` : ''}`);
         }
         case 'cms_update_block': return cap(`Edited ${result?.type || 'block'} ${args?.blockId}${result?.enabled === false ? ' (hidden)' : ''}`);
+        case 'cms_update_react_component': return cap(result?.compiled
+            ? `Edited React component ${args?.blockId}`
+            : `Edited React component ${args?.blockId}: it does not compile yet`);
         case 'cms_remove_block': return cap(`Removed block ${result?.removed || args?.blockId}`);
         case 'cms_reorder_blocks': return cap(`Reordered ${Array.isArray(result?.order) ? result.order.length : 0} block(s)`);
         case 'cms_set_homepage': return cap(`Homepage is now ${result?.homepageId || args?.pageId}`);
