@@ -114,10 +114,41 @@ test('a refused upload is an error naming the file', async () => {
     assert.equal((await resolveMailAttachments([{ sourceHandle: HANDLE }], noAuth.ctx, noAuth.deps)).error, 'Nextcloud is not connected.');
 });
 
-test('the argument shape: a list of { path } or { sourceHandle }, never both, nothing else', () => {
+test('a Files id is looked up as the sender and attached by the path it resolves to', async () => {
+    const { ctx, deps, calls } = setup();
+    /** @type {number[]} */
+    const asked = [];
+    deps.fileById = async (fileId) => {
+        asked.push(fileId);
+        return fileId === 77 ? { path: '/Forms/upload 1.pdf', name: 'upload 1.pdf', isFolder: false, size: 10 } : { error: `File not found: file id ${fileId}` };
+    };
+    assert.deepEqual(await resolveMailAttachments([{ fileId: 77 }], ctx, deps), { attachments: [{ type: 'cloud', fileName: '/Forms/upload 1.pdf' }], names: ['upload 1.pdf'] });
+    assert.deepEqual(asked, [77]);
+    assert.equal(calls.length, 0, 'a Files file is never uploaded');
+    assert.match((await resolveMailAttachments([{ fileId: 78 }], ctx, deps)).error, /Attachment file id 78: File not found/);
+    deps.fileById = async () => ({ path: '/Forms', name: 'Forms', isFolder: true, size: 0 });
+    assert.match((await resolveMailAttachments([{ fileId: 9 }], ctx, deps)).error, /is a folder/);
+});
+
+test('the size cap counts a file given by id', async () => {
+    process.env.NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB = '1';
+    try {
+        const { ctx, deps } = setup();
+        deps.fileById = async () => ({ path: '/big.zip', name: 'big.zip', isFolder: false, size: 2 * 1024 * 1024 });
+        assert.match((await resolveMailAttachments([{ fileId: 5 }], ctx, deps)).error, /NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB/);
+    } finally {
+        delete process.env.NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB;
+    }
+});
+
+test('the argument shape: a list of { path }, { fileId } or { sourceHandle }, one of them, nothing else', () => {
     assert.deepEqual(parseAttachmentArgs(undefined), { items: [] });
     assert.deepEqual(parseAttachmentArgs([{ path: ' /a.pdf ' }]), { items: [{ path: '/a.pdf' }] });
-    assert.match(parseAttachmentArgs([{ path: '/a', sourceHandle: HANDLE }]).error, /not both/);
+    assert.match(parseAttachmentArgs([{ path: '/a', sourceHandle: HANDLE }]).error, /one of path, fileId or sourceHandle/);
+    assert.match(parseAttachmentArgs([{ path: '/a', fileId: 7 }]).error, /one of path, fileId or sourceHandle/);
+    assert.deepEqual(parseAttachmentArgs([{ fileId: '77' }]), { items: [{ fileId: 77 }] });
+    assert.match(parseAttachmentArgs([{ fileId: -1 }]).error, /positive whole number/);
+    assert.match(parseAttachmentArgs([{ fileId: '7 OR 1' }]).error, /positive whole number/);
     assert.match(parseAttachmentArgs([{ sourceHandle: { kind: 'gmail_attachment', messageId: '1' } }]).error, /generated_file/);
     assert.match(parseAttachmentArgs({ path: '/a' }).error, /must be a list/);
 });

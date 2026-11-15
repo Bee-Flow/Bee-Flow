@@ -527,6 +527,22 @@ test('a mail attachment from Files is judged against the FILES scope, every entr
     assert.equal(await send([]), null, 'no attachment, no Files access needed');
 });
 
+test('a mail attachment by Files id: refused under a folder selection and with Files off, allowed with all Files', async () => {
+    const send = (attachments) => guard.checkToolCall({
+        toolName: 'nextcloud_mail_send',
+        toolArgs: { accountId: 1, to: 'a@example.test', subject: 'S', body: 'B', attachments },
+        userId: USER,
+    });
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Invoice2'] } });
+    const selected = await send([{ fileId: 77 }]);
+    assert.ok(selected?.nc_scope_denied, 'an id cannot be placed in the selection without the lookup');
+    assert.match(selected.error, /by its path/);
+    setUserScope({ nextcloud: { mode: 'off' } });
+    assert.ok((await send([{ fileId: 77 }]))?.nc_scope_denied);
+    setUserScope({ nextcloud: { mode: 'all' } });
+    assert.equal(await send([{ fileId: 77 }]), null);
+});
+
 test('Files turned off blocks the borrowed argument even when the owning family is on', async () => {
     setUserScope({ nextcloud: { mode: 'off' } });
     const denied = await guard.checkToolCall({

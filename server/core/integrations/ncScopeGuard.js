@@ -107,6 +107,9 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
                 if (owner.mode === 'off') {
                     return deniedError(ownerLabel, `This call would reach a Nextcloud file, and Files is turned off for this user.`);
                 }
+                if (owner.mode === 'selected' && argKey.endsWith('fileId')) {
+                    return deniedError(ownerLabel, `A file named by its id (${String(value).slice(0, 20)}) cannot be checked against the ${ownerLabel} this user has shared with Bee Flow; name it by its path instead.`);
+                }
                 if (owner.mode === 'selected' && !pathAllowed(owner.selected || new Set(), value)) {
                     return deniedError(ownerLabel, `"${String(value).slice(0, 120)}" is outside the ${ownerLabel} this user has shared with Bee Flow.`);
                 }

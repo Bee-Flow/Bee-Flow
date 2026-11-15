@@ -1,7 +1,12 @@
 /**
  * Attachments for `nextcloud_mail_send`: files from the sender's Nextcloud
- * Files (`{ path }`) and files a document step of the same automation run kept
- * (`{ sourceHandle: { kind: 'generated_file', fileId } }`).
+ * Files (`{ path }`, or `{ fileId }`: the numeric Files id a trigger or another
+ * tool gives, looked up as the sender with nextcloud_file_info's helper,
+ * nextcloudFiles/fileInfo.mts) and files a document step of the same
+ * automation run kept (`{ sourceHandle: { kind: 'generated_file', fileId } }`).
+ * The Files scope judges a path before the call; a file id cannot be placed
+ * in a folder without the lookup, so under a narrowed Files scope it is
+ * refused like nextcloud_file_info by id (core/integrations/ncScopeGuard.js).
  *
  * How the Mail app takes them (nextcloud/mail, stable4.0 to main):
  *   - the outbox draft (`POST /api/outbox`, OutboxController::create) carries
@@ -34,6 +39,7 @@ type NcFetch = (url: string, options?: Record<string, unknown>) => Promise<NcRes
 type RunScope = { runId: string, rootRunId?: string } | null;
 type StatEntry = { name: string, path: string, type: 'file' | 'folder', size?: number } | null;
 type GeneratedFile = { buffer: Buffer, filename: string, mimeType: string, size: number } | null;
+type FoundFile = { path: string, name: string, isFolder: boolean, size: number | null } | { error: string };
 
 export interface MailAttachmentCtx {
     baseUrl: string;
@@ -46,6 +52,8 @@ export interface MailAttachmentCtx {
 export interface MailAttachmentDeps {
     statFile: (path: string, ctx: MailAttachmentCtx) => Promise<StatEntry>;
     readGeneratedFile: (handle: { kind: 'generated_file', fileId: string }, runScope: RunScope) => Promise<GeneratedFile>;
+    /** A Files file by its numeric id, as the sender sees it (nextcloudFiles/fileInfo.mts). */
+    fileById: (fileId: number, ctx: MailAttachmentCtx) => Promise<FoundFile>;
 }
 
 /** One entry of the outbox draft's `attachments`. */
@@ -60,11 +68,12 @@ const MAIL_API_BASE = '/index.php/apps/mail/api';
 /** The `attachments` parameter of nextcloud_mail_send (nextcloudMailTools.js). */
 export const ATTACHMENTS_PARAMETER = {
     type: 'array',
-    description: 'Optional files to attach, each EITHER { path } — a file in the sender\'s Nextcloud Files, e.g. "/Documents/offer.pdf" — OR, inside an automation, { sourceHandle } — the { kind: "generated_file", fileId } a generate_document / fill_document / presentation step returns (bind it: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}). A missing file or a folder stops the send; nothing is sent without all of them. The server caps the number and the total size (NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT, NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB).',
+    description: 'Optional files to attach, each EITHER { path } — a file in the sender\'s Nextcloud Files, e.g. "/Documents/offer.pdf" — OR { fileId } — the numeric Nextcloud Files id of such a file (a trigger\'s fileId, nextcloud_file_info) — OR, inside an automation, { sourceHandle } — the { kind: "generated_file", fileId } a generate_document / fill_document / presentation step returns (bind it: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}). A missing file or a folder stops the send; nothing is sent without all of them. The server caps the number and the total size (NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT, NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB).',
     items: {
         type: 'object',
         properties: {
             path: { type: 'string', description: 'Path of a file in Nextcloud Files.' },
+            fileId: { type: 'integer', description: 'Numeric Nextcloud Files id of a file (instead of path).' },
             sourceHandle: {
                 type: 'object',
                 description: 'A generated file of this automation run: { kind: "generated_file", fileId }.',
@@ -94,6 +103,12 @@ function defaultDeps(): MailAttachmentDeps {
     return {
         statFile: (path, ctx) => webdav.statFile(ctx.fetch, ncClient.webdavRoot(ctx.baseUrl, ctx.uid || ''), path, ctx.baseUrl, ctx.uid || ''),
         readGeneratedFile: generated.readGeneratedFile,
+        fileById: async (fileId, ctx) => {
+            const { nextcloudFileInfo } = nodeRequire('./nextcloudFiles/fileInfo.mts') as typeof import('./nextcloudFiles/fileInfo.mts');
+            const uid = ctx.uid || '';
+            const info = await nextcloudFileInfo({ fileId }, { baseUrl: ctx.baseUrl, ncFetch: ctx.fetch, authError: ctx.authError, uid, root: ncClient.webdavRoot(ctx.baseUrl, uid) });
+            return 'error' in info ? info : { path: info.path, name: info.name, isFolder: info.isFolder, size: info.size };
+        },
     };
 }
 
@@ -103,25 +118,47 @@ type Wanted =
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
-type AttachmentItem = { path: string } | { sourceHandle: { kind: 'generated_file', fileId: string } };
+type AttachmentItem = { path: string } | { fileId: number } | { sourceHandle: { kind: 'generated_file', fileId: string } };
 
-/** One entry of the argument as an item, or the reason it is not one. */
-function parseEntry(entry: unknown, i: number): AttachmentItem | { error: string } {
-    const path = isObject(entry) && typeof entry.path === 'string' ? entry.path.trim() : '';
-    const handle = isObject(entry) && isObject(entry.sourceHandle) ? entry.sourceHandle : null;
-    if (path && handle) return { error: `attachments[${i}]: give a path or a sourceHandle, not both.` };
-    if (path) return { path };
-    if (!handle) return { error: `attachments[${i}]: needs a path in Nextcloud Files (e.g. "/Documents/offer.pdf") or a sourceHandle.` };
+/** A positive whole-number Files id, or null. */
+function filesId(v: unknown): number | null {
+    const text = typeof v === 'number' ? String(v) : (typeof v === 'string' ? v.trim() : '');
+    if (!text || text.length > 15 || ![...text].every((c) => c >= '0' && c <= '9')) return null;
+    const n = Number(text);
+    return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/** A `{ fileId }` entry as an item, or the reason it is not one. */
+function fileIdEntry(raw: unknown, i: number): AttachmentItem | { error: string } {
+    const fileId = filesId(raw);
+    return fileId ? { fileId } : { error: `attachments[${i}]: fileId must be a positive whole number (a Nextcloud Files id).` };
+}
+
+/** A `{ sourceHandle }` entry as an item, or the reason it is not one. */
+function handleEntry(handle: Record<string, unknown>, i: number): AttachmentItem | { error: string } {
     if (handle.kind !== 'generated_file' || typeof handle.fileId !== 'string' || !handle.fileId) {
         return { error: `attachments[${i}]: sourceHandle must be { kind: "generated_file", fileId } from a document step of this automation.` };
     }
     return { sourceHandle: { kind: 'generated_file', fileId: handle.fileId } };
 }
 
+/** One entry of the argument as an item, or the reason it is not one. */
+function parseEntry(entry: unknown, i: number): AttachmentItem | { error: string } {
+    const e = isObject(entry) ? entry : {};
+    const path = typeof e.path === 'string' ? e.path.trim() : '';
+    const hasId = e.fileId !== undefined && e.fileId !== null && e.fileId !== '';
+    const handle = isObject(e.sourceHandle) ? e.sourceHandle : null;
+    if ([!!path, hasId, !!handle].filter(Boolean).length > 1) return { error: `attachments[${i}]: give one of path, fileId or sourceHandle.` };
+    if (path) return { path };
+    if (hasId) return fileIdEntry(e.fileId, i);
+    if (handle) return handleEntry(handle, i);
+    return { error: `attachments[${i}]: needs a path in Nextcloud Files (e.g. "/Documents/offer.pdf"), a fileId or a sourceHandle.` };
+}
+
 /** The `{ path }` and `{ sourceHandle }` entries as given, or the reason the list is malformed. */
 export function parseAttachmentArgs(raw: unknown): { items: AttachmentItem[] } | { error: string } {
     if (raw === undefined || raw === null) return { items: [] };
-    if (!Array.isArray(raw)) return { error: 'attachments must be a list of { path } or { sourceHandle } entries.' };
+    if (!Array.isArray(raw)) return { error: 'attachments must be a list of { path }, { fileId } or { sourceHandle } entries.' };
     const items: AttachmentItem[] = [];
     for (const [i, entry] of raw.entries()) {
         const item = parseEntry(entry, i);
@@ -134,6 +171,19 @@ export function parseAttachmentArgs(raw: unknown): { items: AttachmentItem[] } |
 function tooLarge(totalBytes: number, maxBytes: number): string {
     const mb = (n: number) => `${Math.ceil(n / 104857.6) / 10} MB`;
     return `The attachments come to ${mb(totalBytes)}, more than the ${mb(maxBytes)} one message may carry on this server (NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB). Send fewer or smaller files, or share a link instead.`;
+}
+
+/** A Files file by its id, found as the sender, as a path to attach; or the reason it cannot be. */
+async function byFileId(fileId: number, ctx: MailAttachmentCtx, deps: MailAttachmentDeps): Promise<Wanted | { error: string }> {
+    let found: FoundFile;
+    try {
+        found = await deps.fileById(fileId, ctx);
+    } catch (e) {
+        return { error: (e as Error).message };
+    }
+    if ('error' in found) return { error: `Attachment file id ${fileId}: ${found.error}` };
+    if (found.isFolder) return { error: `File id ${fileId} is a folder (${found.path}); attach the files in it one by one.` };
+    return { kind: 'path', path: found.path, name: found.name, size: Number(found.size) || 0 };
 }
 
 /** Look every entry up (and read the generated ones) before anything is uploaded. */
@@ -150,6 +200,12 @@ async function collect(items: AttachmentItem[], ctx: MailAttachmentCtx, deps: Ma
             if (!entry) return { error: `Attachment not found in Nextcloud Files: ${item.path}` };
             if (entry.type === 'folder') return { error: `${item.path} is a folder; attach the files in it one by one.` };
             wanted.push({ kind: 'path', path: entry.path || item.path, name: entry.name, size: Number(entry.size) || 0 });
+            continue;
+        }
+        if ('fileId' in item) {
+            const found = await byFileId(item.fileId, ctx, deps);
+            if ('error' in found) return found;
+            wanted.push(found);
             continue;
         }
         let file: GeneratedFile;
