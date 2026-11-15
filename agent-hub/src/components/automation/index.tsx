@@ -18,6 +18,7 @@ import { useEntitlements } from '../licensing/EntitlementsContext';
 import useConfirm from '../shared/useConfirm';
 import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
 import LibraryLoadFailed from './LibraryLoadFailed';
+import useWindmillImportEntry from './windmillImport/useWindmillImportEntry';
 import type { BuilderTab } from './Builder/useBuilderTabUrl';
 import type { AutomationRouting } from './useAutomationRouting';
 import type { AppUserLike } from '../projects/workspace/types';
@@ -286,6 +287,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
     });
 
     const { seedMetadata, initialWorkMode } = useDescribedBrief(initialTaskId, automationsAllowed, designer);
+    const windmill = useWindmillImportEntry(designer, library.fetchAutomations);
 
     const { quickSwitcherOpen, setQuickSwitcherOpen, quickSwitcherItems, onPickFromSwitcher } = useQuickSwitcher({
         embedded, automations, setBuilderInitialTab, setBuilderStepId, setBuilderAutomationId,
@@ -319,6 +321,7 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                     onOpenQuickSwitcher={() => setQuickSwitcherOpen(true)}
                     onPlus={onPlus}
                     onNewBlock={onNewBlockIfAllowed}
+                    onImportWindmill={automationsAllowed ? windmill.openDialog : null}
                 >
                     <AutomationListSection
                         {...listSectionProps}
@@ -388,6 +391,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                 onCancel={() => library.setPendingDeleteAutomation(null)}
             />
             {confirmDialog}
+            {windmill.dialog}
         </div>
     );
 }
+
