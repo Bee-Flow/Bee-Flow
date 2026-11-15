@@ -277,7 +277,6 @@ module.exports = {
     'knowledge.knowledge_left': 'left)',
     'knowledge.system_knowledge_bases_loading_system_knowledge_bases': 'Loading system knowledge bases…',
     'knowledge.system_knowledge_bases_retry': 'Retry',
-    'knowledge.system_knowledge_bases_no_system_knowledge_bases_have_been': 'No system knowledge bases have been provisioned yet.',
     'knowledge.system_knowledge_bases_system_knowledge_bases': 'System knowledge bases',
     'knowledge.system_knowledge_bases_read_only_collections_maintained_by': 'Read-only collections maintained by Bee Flow. Toggle a collection on to make it available to your agents and chat — same picker as your own KBs.',
     'knowledge.system_knowledge_bases_refresh_status': 'Refresh status',

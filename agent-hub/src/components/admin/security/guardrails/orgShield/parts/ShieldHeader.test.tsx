@@ -74,14 +74,17 @@ describe('DetectionStatusPill', () => {
 });
 
 describe('ShieldHeader', () => {
-    it('shows the title, the organisation, and the strip inside the same block', () => {
+    it('names the organisation, not the page again, with the strip inside the same block', () => {
         render(
             <ShieldHeader orgName="Alpha BV" guard={null} strip={<div data-testid="strip" />} t={t}>
                 <button type="button">How this works</button>
             </ShieldHeader>,
         );
-        const title = screen.getByRole('heading', { name: 'Organization Privacy Shield' });
-        expect(screen.getByText('Alpha BV')).toBeInTheDocument();
+        // The dashboard frame says "Privacy Shield"; no second heading repeats it.
+        expect(screen.queryByRole('heading')).toBeNull();
+        expect(screen.queryByText(/Privacy Shield/)).toBeNull();
+        const title = screen.getByTestId('shield-org-name');
+        expect(title).toHaveTextContent('Alpha BV');
         expect(screen.getByRole('button', { name: 'How this works' })).toBeInTheDocument();
         // One surface, one bottom border: the strip is a child of the header block.
         const block = title.closest('div.border-b');

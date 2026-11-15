@@ -4,7 +4,7 @@ import DataTable, { TableCell, TableRow, type TableColumn } from '@/components/s
 import { CHIP_ERROR, CHIP_WARNING } from '@/components/mcpLibrary/ui';
 import { TYPE_ORDER, isLargeInput } from '@/utils/terminationsModel';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { fmt, fmtDuration, fmtTime, shortModel, Empty, TablePanel } from '../shared';
+import { fmt, fmtDuration, RelativeTime, shortModel, Empty, TablePanel } from '../shared';
 import { FilterRow, SearchField, SelectField } from '../shared/FilterControls';
 import { TYPE_META, typeLabel, fmtBytes } from '../TerminationsPage.helpers';
 import type { TerminationRow } from '../TerminationsPage.types';
@@ -50,7 +50,7 @@ function EventRow({ r, columns, open, onToggle }: { r: TerminationRow; columns: 
     const quiet = 'tabular-nums text-[var(--text-secondary)]';
     return (
         <TableRow columns={columns} expanded={open} ariaExpanded={open} onClick={onToggle}>
-            <TableCell column={columns[0]} className="text-[11px] text-[var(--text-tertiary)]">{fmtTime(r.timestamp)}</TableCell>
+            <TableCell column={columns[0]} className="text-[11px] text-[var(--text-tertiary)]"><RelativeTime value={r.timestamp} /></TableCell>
             <TableCell column={columns[1]} className="truncate text-[var(--text-primary)]">{r.agent_name || r.agent_id || <span className="text-[var(--text-tertiary)]">—</span>}</TableCell>
             <TableCell column={columns[2]} className="truncate text-[var(--text-secondary)]">{shortModel(r.model)}</TableCell>
             <TableCell column={columns[3]}>

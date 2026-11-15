@@ -150,7 +150,7 @@ have told the assistant about yourself, your preferences and your contacts. The 
 this step's prompt are added before the model answers. Good for steps that write in your name or
 decide on your behalf."* (flag `useMemory`, default off).
 
-### 2.8 Admin → AI Config → Chat Models → Memory Extraction Model
+### 2.8 Admin → Admin dashboard → Whole server → AI configuration → Models → Memory Extraction Model
 Card **Memory Extraction Model**: *"Model that reads each finished exchange for facts worth
 remembering — a small background call after every reply, thinking off. On a self-hosted single-slot
 server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the
@@ -185,7 +185,7 @@ Fast tier model when unset."* Selector label **Memory extraction model**, empty 
 - **Scrubbing** — before a memory block reaches the model, the privacy detector replaces recognised
   personal data with generic labels like `[User's email address]` or `[IBAN]`
   (`scrubMemoryContext.js`). The model learns *that* you have an IBAN, not the number.
-- **Conversation Memory (org setting)** — a **different** feature: compaction of a long chat
+- **Conversations (org setting)** — a **different** feature: compaction of a long chat
   (`admin.ai_context.*`). It has nothing to do with stored memories. Do not conflate them in lessons.
 
 ---
@@ -382,7 +382,7 @@ Retention & deletion
 
 ## 9. Common mistakes
 
-1. **Confusing "Memory" with "Conversation Memory".** The org setting *Conversation Memory*
+1. **Confusing "Memory" with "Conversations".** The org setting *Conversations*
    (`/api/org-ai-context`) is about compacting a long chat. It neither writes nor reads stored memories.
 2. **Expecting instant appearance.** Extraction is fire-and-forget after the reply; refresh the panel
    a few seconds later.

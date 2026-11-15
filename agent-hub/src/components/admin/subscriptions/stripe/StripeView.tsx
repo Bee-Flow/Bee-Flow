@@ -9,7 +9,7 @@ import { apiJson } from '../hooks/useApi';
 import { Dot } from '../ui/Badge';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Select, Input } from '../ui/Input';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 import { Toggle } from '../ui/Toggle';
 import { logger } from '@/utils/logger';
@@ -105,8 +105,8 @@ export function StripeView() {
 
     return (
         <div className="max-w-2xl p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.stripe_title', 'Stripe Payment Integration')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.stripe_title', 'Stripe payment integration')}
                 description={t('admin_subscriptions.stripe_desc', 'Connect Stripe to enable subscription billing for your plans.')}
             />
 

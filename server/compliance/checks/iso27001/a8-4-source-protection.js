@@ -29,7 +29,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
+        const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under Compliance → Evidence connectors.');
         if (read.result) return read.result;
         const { snaps } = read;
         if (!snaps.length) return noSnapshotYet('github', 'Connector enabled but no snapshot yet — run a sweep or check the configured repositories.');

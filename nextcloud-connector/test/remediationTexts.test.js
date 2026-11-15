@@ -49,7 +49,7 @@ test('every pairing text names the place in Bee Flow where the code is generated
     const path = require('node:path');
     const { remediationFor } = require('../src/bootstrap');
     const { CONNECT_ERRORS } = require('../src/setupTexts');
-    const place = 'Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud';
+    const place = 'Admin dashboard → Connections → Nextcloud → Pair a new Nextcloud';
     const texts = {
         tenant_already_provisioned: remediationFor('tenant_already_provisioned'),
         pairing_required: remediationFor('pairing_required'),

@@ -61,14 +61,14 @@ describe('OrgAuthSection', () => {
         expect(await screen.findByText(/Not set up on this server yet/)).toBeInTheDocument();
         expect(radio(/Sign in with Google/)).toBeDisabled();
         expect(radio(/Sign in with Microsoft/)).toBeEnabled();
-        expect(radio(/Username & Password/)).toBeEnabled();
+        expect(radio(/Username and password/)).toBeEnabled();
     });
 
     it('with password sign-in turned off, the password card says so', async () => {
         serveSetupStatus({ isGoogleConfigured: true, isMicrosoftConfigured: true, allowPasswordLogin: false });
         renderSection();
         expect(await screen.findByText('Password sign-in is turned off on this server.')).toBeInTheDocument();
-        expect(radio(/Username & Password/)).toBeDisabled();
+        expect(radio(/Username and password/)).toBeDisabled();
     });
 
     it('on a self-hosted server, Google and Microsoft also need the SSO licence', async () => {
@@ -83,7 +83,7 @@ describe('OrgAuthSection', () => {
         const user = userEvent.setup();
         renderSection({ isSelfHosted: true, features: ['sso_saml'] });
         await screen.findByRole('radiogroup', { name: 'Preferred sign-in method' });
-        expect(radio(/Username & Password/)).toHaveAttribute('aria-checked', 'true');
+        expect(radio(/Username and password/)).toHaveAttribute('aria-checked', 'true');
         await user.click(radio(/Sign in with Google/));
         expect(await screen.findByRole('radio', { name: /Sign in with Google/, checked: true })).toBeInTheDocument();
         expect(screen.queryByText(/locked|cannot be changed|Choose carefully/i)).toBeNull();

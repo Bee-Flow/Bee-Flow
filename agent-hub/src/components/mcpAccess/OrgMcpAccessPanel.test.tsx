@@ -46,7 +46,7 @@ it('shows the stored policy and keeps Save off until something changes', async (
     expect(screen.getByRole('switch', { name: 'Allow MCP access' })).toBeChecked();
     expect(networks()).toHaveValue('203.0.113.0/24\n2001:db8::/32');
     expect(screen.getByRole('radio', { name: 'Specific roles' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Organisation Admin' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Organisation admin' })).toBeChecked();
     expect(screen.getByRole('switch', { name: 'Refuse legacy tokens' })).toBeChecked();
     expect(save()).toBeDisabled();
 });
@@ -107,7 +107,7 @@ it('saves the policy and goes back to a clean form', async () => {
     const user = await renderLoaded();
     await user.type(networks(), `${CALLER}\n203.0.113.0/24`);
     await user.click(screen.getByRole('radio', { name: 'Specific roles' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Organisation Admin' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Organisation admin' }));
     await user.click(screen.getByRole('switch', { name: 'Refuse legacy tokens' }));
     await user.click(save());
 
@@ -177,6 +177,26 @@ it('shows how any MCP client connects, with the token as a placeholder, and the 
     expect(screen.getByRole('heading', { level: 3, name: 'Connect an MCP client' })).toBeInTheDocument();
     expect(screen.getByText('Authorization: Bearer <token>')).toBeInTheDocument();
     expect(screen.getByText(/\/mcp\/automations$/)).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Connect Claude Code' }));
+    await user.click(screen.getByRole('tab', { name: 'Command-line client' }));
     expect(screen.getByText(/^claude mcp add --transport http beeflow-automations .*"Authorization: Bearer <token>"$/)).toBeInTheDocument();
+});
+
+it('lists in the connection snippet only the servers the viewer can use', async () => {
+    serve();
+    const no = { available: false, reason: 'no_access' };
+    const yes = { available: true };
+    api.on('GET', '/api/mcp-tokens', { body: { tokens: [], legacy: { exists: false }, eligibility: { policy: { allowed: true }, integrations: yes, automations: yes, studio: yes, cms: no } } });
+    await renderLoaded();
+    const block = screen.getByTestId('mcp-connect-block');
+    expect(await within(block).findByText('Integrations')).toBeInTheDocument();
+    await waitFor(() => expect(within(block).queryByText('Website (CMS)')).not.toBeInTheDocument());
+    expect(within(block).getByText('Studio')).toBeInTheDocument();
+});
+
+it('names the second tab after the kind of client, not a vendor', async () => {
+    serve();
+    await renderLoaded();
+    const block = screen.getByTestId('mcp-connect-block');
+    expect(within(block).getByRole('tab', { name: 'Command-line client' })).toBeInTheDocument();
+    expect(within(block).queryByRole('tab', { name: /Claude/ })).not.toBeInTheDocument();
 });

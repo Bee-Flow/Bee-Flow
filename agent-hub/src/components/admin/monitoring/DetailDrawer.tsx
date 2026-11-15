@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import SideDrawer from '@/components/shared/SideDrawer';
 import { useViewport } from '@/hooks/useViewport';
+import { useTranslation } from '@/hooks/useTranslation';
+import { callName } from './shared/callLabels';
 import { DrawerBreakdown, DrawerStats, RelatedCalls } from './drawer/DrawerSections';
 import type { DrawerDetail, ModelRate, UsageRow } from './drawer/drawerTypes';
 
@@ -21,8 +23,9 @@ interface DetailDrawerProps {
  */
 export function DetailDrawer({ detail, modelCosts, costPerModel, recent, mode = 'overlay', onClose }: DetailDrawerProps) {
     const { type, data } = detail;
+    const { t } = useTranslation();
     const { isMobile } = useViewport();
-    const eyebrow = type === 'model' ? 'Model Details' : 'Agent Details';
+    const eyebrow = type === 'model' ? t('admin_polish.drawer_model_details', 'Model details') : t('admin_polish.drawer_agent_details', 'Agent details');
 
     // Get recent calls related to this item
     const relatedCalls = useMemo(() => {
@@ -43,7 +46,7 @@ export function DetailDrawer({ detail, modelCosts, costPerModel, recent, mode = 
                 <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{eyebrow}</div>
                     <div className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                        {type === 'model' ? data.model : data.agent_name || 'Unknown'}
+                        {type === 'model' ? data.model : callName(data, t)}
                     </div>
                 </div>
             )}

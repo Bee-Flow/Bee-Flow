@@ -1,0 +1,10 @@
+{
+  "reworded": {
+    "compliance.checks.aia_art13.fix": {
+      "nl": "Vul voor elke agent onder Beheerdashboard → AI en agents → Agents een betekenisvolle beschrijving in (minstens 30 tekens).",
+      "was": [
+        "Vul voor elke agent onder Beheer → Agents een betekenisvolle beschrijving in (minstens 30 tekens)."
+      ]
+    }
+  }
+}

@@ -122,9 +122,15 @@ const SystemKnowledgeBasesPanel = () => {
 
     if (items.length === 0) {
         return (
-            <div className="p-6 rounded-lg border text-center border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]">
-                <BookOpen className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <div className="text-sm">{t('knowledge.system_knowledge_bases_no_system_knowledge_bases_have_been', 'No system knowledge bases have been provisioned yet.')}</div>
+            <div className="p-6 rounded-lg border text-center border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="system-kb-empty">
+                <BookOpen className="w-6 h-6 mx-auto mb-2 text-[var(--text-tertiary)]" aria-hidden="true" />
+                <p className="m-0 text-sm font-medium text-[var(--text-primary)]">{t('admin_polish.kb_empty_title', 'No built-in knowledge bases on this server yet')}</p>
+                <p className="m-0 mx-auto mt-1 max-w-xl text-xs text-[var(--text-secondary)]">
+                    {t('admin_polish.kb_empty_body', 'A knowledge base is a set of documents that agents and chats can look things up in. Built-in ones are ready-made collections that the platform administrator of this server installs; once one is there, you switch it on here for your organisation.')}
+                </p>
+                <p className="m-0 mx-auto mt-2 max-w-xl text-xs text-[var(--text-secondary)]">
+                    {t('admin_polish.kb_empty_next', 'Want one? Ask your platform administrator. Your own documents do not need this: anyone allowed to manage knowledge can create a knowledge base for them.')}
+                </p>
             </div>
         );
     }

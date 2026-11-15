@@ -28,7 +28,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'youtrack', 'YouTrack connector not enabled — link a permanent token and set the operations project under ISO 27001 → Connectors.');
+        const read = await readConnectorSnapshots(orgId, 'youtrack', 'YouTrack connector not enabled — link a permanent token and set the operations project under Compliance → Evidence connectors.');
         if (read.result) return read.result;
         const { config, snaps } = read;
         // The project as the connector trims it into the subject; a project

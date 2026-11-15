@@ -30,7 +30,7 @@ are optional.
 | `LICENSE_REFRESH_URL` | _(empty, refresh is opt-in)_ | Where keys are re-checked for revocation, periodically. Unset means no pings at all; the JWT signature and `exp` stay authoritative either way. |
 | `LICENSE_ISSUE_URL` | `https://license.beeflow.nl/v1/issue` | Where the Stripe webhook asks for a key after a paid checkout. Only used by an install that sells subscriptions itself (Bee Flow's cloud). |
 | `LICENSE_ISSUE_API_KEY` | _(empty)_ | The shared secret for `LICENSE_ISSUE_URL`; it must match an API key configured on the license server. |
-| `BEEFLOW_HUB_URL` | `https://hub.beeflow.nl` | The module hub behind **Admin → Modules → Marketplace**. HTTPS is required in production. |
+| `BEEFLOW_HUB_URL` | `https://hub.beeflow.nl` | The module hub behind **Admin dashboard → Whole server → Modules → Marketplace**. HTTPS is required in production. |
 
 A server that issues keys itself, as Bee Flow's cloud does, sets:
 

@@ -5,7 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
 import { ACCESS_KIND_SECTIONS, notSetUpOnServer } from './accessTypes';
 import type { AccessCapability, AccessData, AccessMessage } from './accessTypes';
-import { AccessStatus, CapabilityGroup, CapabilityRow } from './AccessParts';
+import { AccessStatus, CapabilityGroup, CapabilityRow, CategorisedRows } from './AccessParts';
 import { ApiError } from '@/api/mutate';
 import { apiRequest, apiUrl } from '@/api/typedRequest';
 import { useAccessRead } from '@/api/queries/accessEditorRead';
@@ -130,20 +130,22 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                 const caps = capsByKind[section.kind] || [];
                 if (caps.length === 0) return null;
                 const SectionIcon = section.icon;
+                const row = (cap: AccessCapability) => (
+                    <CapabilityRow
+                        key={cap.id}
+                        cap={cap}
+                        icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />}
+                        notSetUp={notSetUpOnServer(data, cap.id)}
+                        onActivate={unrestricted ? undefined : () => toggle(cap.id)}
+                        trailing={unrestricted
+                            ? <Lock className="h-4 w-4 text-[var(--text-tertiary)]" aria-hidden="true" />
+                            : <Toggle size="sm" checked={available.has(cap.id)} ariaLabel={cap.name} onChange={() => toggle(cap.id)} />}
+                    />
+                );
+                const integrations = section.kind === 'integration';
                 return (
-                    <CapabilityGroup key={section.kind} section={section} dimmed={unrestricted}>
-                        {caps.map(cap => (
-                            <CapabilityRow
-                                key={cap.id}
-                                cap={cap}
-                                icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />}
-                                notSetUp={notSetUpOnServer(data, cap.id)}
-                                onActivate={unrestricted ? undefined : () => toggle(cap.id)}
-                                trailing={unrestricted
-                                    ? <Lock className="h-4 w-4 text-[var(--text-tertiary)]" aria-hidden="true" />
-                                    : <Toggle size="sm" checked={available.has(cap.id)} ariaLabel={cap.name} onChange={() => toggle(cap.id)} />}
-                            />
-                        ))}
+                    <CapabilityGroup key={section.kind} section={section} dimmed={unrestricted} listed={!integrations}>
+                        {integrations ? <CategorisedRows caps={caps} renderRow={row} /> : caps.map(row)}
                     </CapabilityGroup>
                 );
             })}

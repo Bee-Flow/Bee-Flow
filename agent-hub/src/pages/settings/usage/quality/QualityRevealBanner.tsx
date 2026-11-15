@@ -1,5 +1,6 @@
 import { Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { localeFormat } from '@/hooks/useLocaleFormat';
 import { AlertBanner } from '../kit';
 
 const BOX = 'flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3';
@@ -20,9 +21,10 @@ export interface QualityRevealBannerProps {
     onHide: () => void;
 }
 
-function fTime(ms: number | null): string {
+/** The reveal's moment in the app's language (`locale`: resolvedLocale), not the browser's. */
+function fTime(ms: number | null, locale: string | null | undefined): string {
     if (!ms) return '';
-    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return localeFormat(locale).dateTime(ms);
 }
 
 /**
@@ -32,7 +34,7 @@ function fTime(ms: number | null): string {
  * audit log could not record it.
  */
 export function QualityRevealBanner({ revealed, shown, auditFailed, revealedAt, scopeLabel, loading, onReveal, onHide }: QualityRevealBannerProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     if (auditFailed) {
         return (
             <AlertBanner severity="red" icon={ShieldAlert}
@@ -48,7 +50,7 @@ export function QualityRevealBanner({ revealed, shown, auditFailed, revealedAt, 
                 <div className="min-w-0 flex-1">
                     <p className="m-0 text-[12px] font-semibold text-[var(--text-primary)]">{t('org.quality_people_revealed_title', 'Names shown · recorded in the access audit log')}</p>
                     <p className="m-0 text-[11px] text-[var(--text-muted)]">
-                        {t('org.quality_people_revealed_detail', 'Entry “usage_quality_people_revealed” · you · {time} · {scope}. Names stay visible until you leave this page.', { time: fTime(revealedAt), scope: scopeLabel })}
+                        {t('org.quality_people_revealed_detail', 'Entry “usage_quality_people_revealed” · you · {time} · {scope}. Names stay visible until you leave this page.', { time: fTime(revealedAt, resolvedLocale), scope: scopeLabel })}
                     </p>
                 </div>
                 <button type="button" onClick={onHide} className={BUTTON}><EyeOff className="h-3.5 w-3.5" aria-hidden="true" />{t('org.quality_people_hide', 'Hide names')}</button>

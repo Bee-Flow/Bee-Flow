@@ -19,21 +19,23 @@ import { useShellProps } from '@/authedApp/useShellProps';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
- * RIGHTS. In the admin dashboard two tabs above the page (elsewhere a
- * StudioShell with a SectionNav sidebar) switch between:
+ * RIGHTS: the admin dashboard's Access row (Security & access > Access). Two
+ * tabs above the page (`tabs`; without it the same two are a section column)
+ * switch between:
  *   - Grants  : distribute capabilities to All members + per group (the matrix)
  *   - Ceiling : what the subscription plan (cloud) / licence (self-hosted)
  *               permits, and per organisation which part of it the organisation
- *               may use — editable by super-admins, read-only for org-admins
+ *               may use — editable by a platform admin, read-only for an
+ *               organisation admin
  *
  * MCP servers are installed under Admin dashboard > Connections > MCP servers
  * (the organisation's) and Whole server > MCP servers; installed servers are
  * ordinary integrations, granted through the matrix here.
  *
- * A super-admin works on the organisation chosen in the admin dashboard's scope
- * bar (useAdminOrg); with "All organisations" chosen there is no organisation to
- * manage, so the organisation's parts ask for a choice instead of picking one.
- * An org-admin manages their own org via the /me endpoints. Mode comes from the
+ * A platform admin works on the organisation chosen in the admin dashboard's
+ * scope bar (useAdminOrg); with "All organisations" chosen there is no
+ * organisation to manage, so the organisation's parts ask for a choice instead
+ * of picking one. An organisation admin manages their own org via the /me endpoints. Mode comes from the
  * unified entitlements snapshot.
  */
 
@@ -115,6 +117,10 @@ export default function AccessPermissionsPanel({ user: userProp, activeSection =
                 <GroupAccessMatrix
                     key={`grants:${orgId || 'me'}`}
                     orgId={isSuperAdmin ? orgId : undefined}
+                    platformAdmin={isSuperAdmin}
+                    // The dashboard's page frame titles the page ("Access") and the tab says
+                    // "Grants": the matrix keeps its intro line, not a second heading.
+                    hideHeading={tabs}
                 />
             );
         }

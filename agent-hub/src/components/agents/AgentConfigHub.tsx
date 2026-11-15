@@ -81,18 +81,21 @@ interface AgentSectionBodyProps {
     showOrgNames: boolean;
 }
 
-/** The open section's designer: the organisation's chat agents, or the server's system agents. */
+/**
+ * The open section's designer: the organisation's chat agents, or the server's system agents.
+ * `embedded`: the page frame names the page, so the designer repeats no heading of its own.
+ */
 function AgentSectionBody({ active, hasPermission, orgId, showOrgNames }: AgentSectionBodyProps) {
     return (
         <div className="relative h-full">
             {active === 'chat' && (
                 <div className="absolute inset-0">
-                    <AgentDesigner key={`chat:${orgId ?? 'all'}`} onBack={null} hasPermission={hasPermission} orgId={orgId} showOrgNames={showOrgNames} />
+                    <AgentDesigner key={`chat:${orgId ?? 'all'}`} embedded onBack={null} hasPermission={hasPermission} orgId={orgId} showOrgNames={showOrgNames} />
                 </div>
             )}
             {active === 'system' && (
                 <div className="absolute inset-0">
-                    <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
+                    <AgentDesigner key="system-agents" embedded onBack={null} systemMode={true} hasPermission={hasPermission} />
                 </div>
             )}
         </div>

@@ -1,5 +1,4 @@
 import { Search, Send, UserPlus, Users } from 'lucide-react';
-import AutoApproveCard from './AutoApproveCard';
 import InviteForm from './InviteForm';
 import OrgMemberRow from './OrgMemberRow';
 import PendingInvitations from './PendingInvitations';
@@ -48,12 +47,12 @@ function NoMembersYet({ onManageGroups }: { onManageGroups: () => void }) {
 }
 
 /**
- * The Users tab: connector health, the auto-approve switch, the invite form,
+ * The Users tab: connector health, the invite form,
  * the filtered member list and the pending invitations.
  */
 export default function UsersSection({ directory, orgUsers, orgGroups, groupsState, invites, memberRoles, userFilters, onGoToGroups, canManageMember }: UsersSectionProps) {
     const { t } = useTranslation();
-    const { usageByUser, orgAuthMethod, autoApprove, savingAutoApprove, handleToggleAutoApprove } = directory;
+    const { usageByUser } = directory;
     // The hook filters its input without mapping it, so every row is a member.
     const filteredOrgUsers = userFilters.filtered as OrgMember[];
     const pendingInvitations = invites.invitations.filter(i => i.status === 'pending');
@@ -65,11 +64,7 @@ export default function UsersSection({ directory, orgUsers, orgGroups, groupsSta
         {/* Connector-health blockers (pending approvals / org-level
             blocks). Renders null for healthy or non-connector orgs. */}
         <OrgHealthBanner />
-        {/* Auto-approve toggle — only meaningful when the org's sign-in
-            method is an external provider (Google/Microsoft). */}
-        {orgAuthMethod && orgAuthMethod !== 'password' && (
-            <AutoApproveCard autoApprove={autoApprove} saving={savingAutoApprove} onToggle={handleToggleAutoApprove} />
-        )}
+        {/* No auto-approve switch: its one home is Preferred sign-in method. */}
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)]">
             <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] rounded-t-xl flex items-center justify-between">
                 <div>

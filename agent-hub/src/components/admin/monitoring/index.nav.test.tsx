@@ -31,7 +31,7 @@ describe('MonitoringPanel pages', () => {
         const nav = screen.getByRole('navigation', { name: 'Usage & monitoring' });
         expect(within(nav).getByRole('button', { name: 'Overview' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
-        expect(await screen.findByLabelText('Total Calls: 3')).toBeTruthy();
+        expect(await screen.findByLabelText('Total calls: 3')).toBeTruthy();
     });
 
     it('shows the page the URL names and navigates to another one by its URL', async () => {
@@ -132,7 +132,7 @@ describe('MonitoringPanel model prices link', () => {
         const onNavigate = vi.fn();
         const user = userEvent.setup();
         render(withAdvanced(<MonitoringPanel activeSection="overview" onNavigate={onNavigate} user={{ isAdmin: true, role: 'admin' }} />));
-        await user.click(await screen.findByRole('button', { name: /Model Costs/ }));
+        await user.click(await screen.findByRole('button', { name: /Model costs/ }));
         expect(onNavigate).toHaveBeenCalledWith('admin/ai-config');
     });
 
@@ -140,6 +140,6 @@ describe('MonitoringPanel model prices link', () => {
         stub();
         render(withAdvanced(<MonitoringPanel activeSection="overview" onNavigate={vi.fn()} user={{ isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-a', isHomeOrgAdmin: true }} />));
         expect(await screen.findByText(/ask your platform administrator to set the model prices/)).toBeTruthy();
-        expect(screen.queryByRole('button', { name: /Model Costs/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Model costs/ })).toBeNull();
     });
 });

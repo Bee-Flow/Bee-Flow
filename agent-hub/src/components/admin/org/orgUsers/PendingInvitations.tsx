@@ -1,6 +1,6 @@
 import { X, Mail, Clock } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
 import type { Invitation } from '../useOrgInvitations';
 import { CHIP_WARNING } from '@/components/shared/adminUi';
 
@@ -30,7 +30,7 @@ export default function PendingInvitations({ pending, onRevoke }: PendingInvitat
                                     <Clock className="w-2.5 h-2.5" />
                                     {t('admin_org.users_invited', 'Invited')}
                                 </span>
-                                {inv.role && inv.role !== 'user' && <RoleBadge role={inv.role} />}
+                                {inv.role && inv.role !== 'user' && <OrgRoleChip role={inv.role} />}
                             </div>
                             <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
                                 {t('admin_org.users_invited_by', 'Invited by {name} · Expires {date}', { name: inv.inviterName || t('admin_org.users_unknown', 'Unknown'), date: new Date(inv.expires_at as string).toLocaleDateString() })}

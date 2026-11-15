@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useLocaleFormat } from '@/hooks/useLocaleFormat';
 import { usageSourceDetails } from '@/components/shared/usageAreaMeta';
 import DashCard from '@/components/shared/dashboard/DashCard';
 import StatTile from '@/components/shared/dashboard/StatTile';
-import { CHIP, CHIP_INFO } from '@/components/mcpLibrary/ui';
+import { CHIP } from '@/components/mcpLibrary/ui';
 import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
 import type { UsageRecord, CardProps, MetricTileProps } from '../shared.types';
 import { fmt } from './SvgAreaChart';
 import { fmtCost } from './ModelRow';
+import { agentTypeName, callName } from './callLabels';
 
 export { fmtCost, shortModel, SeriesDot } from './ModelRow';
 export { fmt, Empty, SvgAreaChart } from './SvgAreaChart';
@@ -42,15 +44,15 @@ export function fmtDuration(ms: number | undefined) {
     return `${(ms / 1000).toFixed(1)}s`;
 }
 
-export function fmtTime(ts: string | number | undefined) {
-    if (!ts) return '—';
-    const d = new Date(ts);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    if (diff < 60_000) return 'just now';
-    if (diff < 3600_000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400_000) return `${Math.floor(diff / 3600000)}h ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+/**
+ * When something happened, in the language on screen: "just now", "5 min ago",
+ * "3 hr ago" within a day, then the day ("11 Nov"); the full date and time on hover.
+ */
+export function RelativeTime({ value }: { value: string | number | Date | null | undefined }) {
+    const lf = useLocaleFormat();
+    const text = lf.relative(value);
+    if (!text) return <>—</>;
+    return <time title={lf.dateTime(value)}>{text}</time>;
 }
 
 function fmtPct(n: number) {
@@ -59,10 +61,6 @@ function fmtPct(n: number) {
     return `${sign}${n.toFixed(1)}%`;
 }
 
-/** The chip an agent's type wears: chat on the info tone, everything else neutral. */
-export function agentChipClass(type: string | undefined) {
-    return type === 'chat' || !type ? CHIP_INFO : CHIP;
-}
 
 // A ledger `source` named by the area it rolls up to (the shared vocabulary in
 // shared/usageAreas.generated.mjs, the same meta the Settings usage pages
@@ -128,8 +126,9 @@ export function AgentRow({ agent: a, onClick }: { agent: UsageRecord; onClick?: 
             className="flex w-full items-center justify-between gap-3 border-b border-[var(--border-default)] py-2.5 text-left last:border-b-0 hover:bg-[var(--bg-secondary)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
         >
             <span className="flex min-w-0 items-center gap-2">
-                <span className={agentChipClass(a.agent_type)}>{a.agent_type || 'chat'}</span>
-                <span className="truncate text-xs font-semibold text-[var(--text-primary)]">{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
+                {/* A type is a label, not a status: the neutral chip for every type. */}
+                <span className={CHIP}>{agentTypeName(a.agent_type || 'chat', t)}</span>
+                <span className="truncate text-xs font-semibold text-[var(--text-primary)]">{callName(a, t)}</span>
             </span>
             <span className="flex shrink-0 items-center gap-4 text-xs tabular-nums">
                 <span className="font-semibold text-[var(--text-primary)]">{t('admin_monitoring.shared_n_tok', '{n} tok', { n: fmt(a.total_tokens) })}</span>

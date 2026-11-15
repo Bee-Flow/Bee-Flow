@@ -2,15 +2,16 @@ import { Lock, Sparkles } from 'lucide-react';
 import React, { useMemo, useState, useCallback } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ACCESS_KIND_SECTIONS } from './access/accessTypes';
-import type { AccessCapability } from './access/accessTypes';
-import { AccessStatus, CapabilityGroup, CapabilityRow } from './access/AccessParts';
+import { ACCESS_KIND_SECTIONS, notSetUpOnServer } from './access/accessTypes';
+import type { AccessCapability, AccessData } from './access/accessTypes';
+import { AccessStatus, CapabilityGroup, CapabilityRow, CategorisedRows } from './access/AccessParts';
 import GrantScopeList from './access/GrantScopeList';
 import { EVERYONE, useGroupAccess } from './access/useGroupAccess';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import Toggle from '@/components/shared/Toggle';
-import { ALERT_INFO } from '@/components/mcpLibrary/ui';
+import { ALERT_INFO } from '@/components/shared/adminUi';
+import { availabilityUnknownText } from '@/utils/integrationAvailability';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.
@@ -24,6 +25,14 @@ import { ALERT_INFO } from '@/components/mcpLibrary/ui';
  *
  * `orgId` prop (optional): super-admin Beheerdashboard view → org-scoped
  * endpoints; without it → the caller's own org via the /me endpoints.
+ *
+ * Integrations come under a sub-heading per category (the provider for Google
+ * and Microsoft). Whether the server can serve an integration comes with the
+ * payload (`serverConfigured`); when that read failed, the list follows the
+ * fail policy of utils/integrationAvailability.ts, as Integration status does:
+ * a note says availability could not be checked, a platform admin keeps the
+ * integration toggles (fails open), an organisation admin does not (fails
+ * closed) until the answer is there.
  */
 
 interface GroupAccessMatrixProps {
@@ -33,12 +42,19 @@ interface GroupAccessMatrixProps {
     heading?: string;
     subtitle?: React.ReactNode;
     hideHeading?: boolean;
+    /** The viewer operates the whole server: an unknown availability fails open for them, closed otherwise. */
+    platformAdmin?: boolean;
+}
+
+/** The server could not say which integrations it can serve, while the list has integrations to grant. */
+function availabilityUnknown(data: AccessData): boolean {
+    return !data.serverConfigured && (data.capabilities || []).some(c => c.kind === 'integration');
 }
 
 // `hideHeading`: for a caller whose page already titles the matrix (Settings →
 // Organisation → Integrations, whose h2 and selected tab name it). The intro
 // line and the save status stay.
-export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false }: GroupAccessMatrixProps) {
+export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false, platformAdmin = false }: GroupAccessMatrixProps) {
     const { t } = useTranslation();
     const { loading, data, message, everyone, groupGrants, ceiling, groups, betaReadOnly, toggle: toggleIn } = useGroupAccess(orgIdProp);
     const [scope, setScope] = useState(EVERYONE);
@@ -71,6 +87,9 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     }
 
     const activeGroup = isEveryoneScope ? null : groups.find(g => g.id === scope);
+    const unknown = availabilityUnknown(data);
+    // Unknown availability: an organisation admin's integration toggles fail closed.
+    const closedByPolicy = (cap: AccessCapability) => unknown && !platformAdmin && cap.kind === 'integration';
 
     // One capability in the current scope: on, inherited from All members, or outside the ceiling.
     const renderCapability = (cap: AccessCapability) => {
@@ -79,7 +98,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         const inherited = !isEveryoneScope && (everyone.has(cap.id) || !!ro);
         const checked = isEveryoneScope ? (ro ? true : everyone.has(cap.id)) : (inherited || (groupGrants[scope] || new Set()).has(cap.id));
         // Granted to all → a group inherits it and cannot un-inherit it here.
-        const readOnly = isEveryoneScope ? !!ro : inherited;
+        const readOnly = (isEveryoneScope ? !!ro : inherited) || closedByPolicy(cap);
         const icon = cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <Sparkles className="h-4 w-4" />;
         return (
             <CapabilityRow
@@ -87,6 +106,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 cap={cap}
                 icon={icon}
                 locked={locked}
+                notSetUp={cap.kind === 'integration' && notSetUpOnServer(data, cap.id)}
                 onActivate={locked || readOnly ? undefined : () => toggle(cap)}
                 note={inherited ? <p className="m-0 text-xs text-[var(--info-ink)]">{t('admin_org.access_matrix_granted_all', 'Granted to all members')}</p> : undefined}
                 trailing={locked
@@ -147,7 +167,12 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                                 : t('admin_org.access_matrix_nothing', 'Nothing to grant here yet.')}
                         </p>
                     ) : sections.map(({ section, caps }) => (
-                        <CapabilityGroup key={section.kind} section={section}>{caps.map(renderCapability)}</CapabilityGroup>
+                        section.kind === 'integration' ? (
+                            <CapabilityGroup key={section.kind} section={section} listed={false}>
+                                {unknown ? <p className={`${ALERT_INFO} m-0`} role="note" data-testid="access-availability-unknown">{availabilityUnknownText(t)}</p> : null}
+                                <CategorisedRows caps={caps} renderRow={renderCapability} />
+                            </CapabilityGroup>
+                        ) : <CapabilityGroup key={section.kind} section={section}>{caps.map(renderCapability)}</CapabilityGroup>
                     ))}
                 </div>
             </div>

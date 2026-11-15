@@ -4,13 +4,13 @@ title: Limits & Self-host
 
 # Limits & Self-host
 
-Admin → AI Config → **Limits & Self-host** is the home for runtime caps and self-hosting routing decisions. Use it to:
+The runtime caps and self-hosting routing decisions of the whole server. Each is set where it belongs in **Admin dashboard → Whole server → AI configuration**:
 
-- Cap how many tool-call rounds a chat turn may consume.
-- Choose between in-process (local) and remote (search-service) knowledge-base storage.
-- Toggle the in-process CPU cross-encoder reranker.
+- How many tool-call rounds a chat turn may consume: **Direct chat**.
+- In-process (local) or remote (search-service) knowledge-base storage: **Search & retrieval**.
+- The in-process CPU cross-encoder reranker: **Search & retrieval**.
 
-A **Setup status** card at the top of the page shows what's currently configured — embedding model, web-search provider, KB provider, CPU reranker — and offers one-click links to the tabs that control each.
+The **Setup status** row of AI configuration is read-only: it shows what the server runs with now (embedding model, web-search provider, KB provider, CPU reranker, the tool-round cap) and links each line to the row that sets it.
 
 ## Tool calls per chat turn
 
@@ -68,14 +68,14 @@ Order of preference inside KB search:
 
 Disabling this toggle skips step 2 entirely; useful when you have a faster external reranker or when CPU pressure on the host is a concern.
 
-## Setup status card
+## Setup status
 
-The status block at the top of the page rolls up four indicators:
+**Admin dashboard → Whole server → AI configuration → Setup status** rolls up these indicators:
 
 | Row | Source | Click target |
 |---|---|---|
-| **Embedding model (global)** | `ai.embeddingProviderId` / `ai.embeddingModel` | → Embeddings tab |
-| **Web search provider** | `search_provider` | → Web Search Inference tab. Warns in amber when the chosen provider's prerequisites are missing (e.g. Serper key for cloud-only). |
+| **Embedding model (global)** | `ai.embeddingProviderId` / `ai.embeddingModel` | → Search & retrieval |
+| **Web search provider** | `search_provider` | → Search & retrieval. Warns in amber when the chosen provider's prerequisites are missing (e.g. Serper key for cloud-only). |
 | **KB provider** | `kb_provider` | (display only) |
 | **CPU cross-encoder reranker** | `cpu_reranker_enabled` | (display only) |
 

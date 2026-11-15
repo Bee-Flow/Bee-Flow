@@ -333,7 +333,7 @@ describe('AllowedDomainsEditor', () => {
     it('names its buttons and its input, and announces a refused domain', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<Harness />));
-        const input = screen.getByRole('textbox', { name: 'Allowed Domains' });
+        const input = screen.getByRole('textbox', { name: 'Allowed domains' });
 
         await user.type(input, 'acme.nl{Enter}');
         expect(screen.getByRole('alert')).toHaveTextContent('Domain "acme.nl" is already added');

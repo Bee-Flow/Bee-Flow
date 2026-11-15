@@ -151,7 +151,7 @@ export default function McpTokensPanel() {
                 <div className="min-w-0 flex-1">
                     <h3 id="mcp-tokens-title" className="m-0 text-sm font-semibold text-[var(--text-primary)]">{t('mcp_access.tokens.title', 'MCP tokens')}</h3>
                     <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">
-                        {t('mcp_access.tokens.intro', 'Give Claude Code, Cursor or another MCP client its own token, limited to the servers and tools you choose. Each token can be revoked on its own.')}
+                        {t('mcp_access.tokens.intro', 'Give each MCP client, such as a desktop assistant, a code editor or a command-line agent, its own token, limited to the servers and tools you choose. Each token can be revoked on its own.')}
                     </p>
                 </div>
                 <button type="button" className={PRIMARY_BTN} disabled={policyBlocked} onClick={() => setCreating(true)}>

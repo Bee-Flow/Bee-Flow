@@ -15,7 +15,7 @@
    "id": "why",
    "icon": "🧭",
    "title": "The one register a check cannot fill in",
-   "bodyMd": "Van Dijk Groep installs and maintains climate systems: sixty people, field engineers with laptops, a sickness-absence table in Bee Flow and a quote assistant that sales uses every day. An enterprise buyer's security questionnaire lands, and question nine reads: *send us your risk register*.\n\nThe Compliance Hub's checks are measured for you, against your live configuration. A register is not: it is written by hand, and this one starts empty. Open **Settings → Compliance**, and under the **Registers** group in the rail you find **Risk register**, its meta reading `{n} · {high} high`. On a fresh workspace the page says: *\"No risks in the register yet. Seed the suggested scenarios or add your first risk — clause 6.1.2 expects a maintained register.\"*\n\nThis chapter is the hour Marieke spends turning that empty page into rows with names and dates on them."
+   "bodyMd": "Van Dijk Groep installs and maintains climate systems: sixty people, field engineers with laptops, a sickness-absence table in Bee Flow and a quote assistant that sales uses every day. An enterprise buyer's security questionnaire lands, and question nine reads: *send us your risk register*.\n\nThe Compliance Hub's checks are measured for you, against your live configuration. A register is not: it is written by hand, and this one starts empty. Open **Admin dashboard → Security & access → Compliance**, and under the **Registers** group in the rail you find **Risk register**, its meta reading `{n} · {high} high`. On a fresh workspace the page says: *\"No risks in the register yet. Seed the suggested scenarios or add your first risk — clause 6.1.2 expects a maintained register.\"*\n\nThis chapter is the hour Marieke spends turning that empty page into rows with names and dates on them."
   },
   {
    "type": "slide",
@@ -217,7 +217,7 @@
    "icon": "🏗️",
    "checkId": "risk-owned",
    "title": "Put one real risk on the board, with your name on it",
-   "instruction": "In Settings → Compliance → Risk register, press Seed suggested risks or Add risk to get a row. Then open it, set the Owner to yourself, give it a Next review date and press Save changes. We check the register for a row you put there yourself; the owner and the date are yours to set.",
+   "instruction": "In Admin dashboard → Security & access → Compliance → Risk register, press Seed suggested risks or Add risk to get a row. Then open it, set the Owner to yourself, give it a Next review date and press Save changes. We check the register for a row you put there yourself; the owner and the date are yours to set.",
    "launch": {
     "navigateTo": "admin/compliance",
     "label": "Open Compliance"
@@ -263,7 +263,7 @@
       "checkId": "risk-owned",
       "existing": false,
       "label": "Own a risk in the register",
-      "hint": "Settings → Compliance → Risk register: seed or add a risk, open it, choose yourself as Owner, set Next review and press Save changes.",
+      "hint": "Admin dashboard → Security & access → Compliance → Risk register: seed or add a risk, open it, choose yourself as Owner, set Next review and press Save changes.",
       "endpoints": [
         {
           "method": "GET",

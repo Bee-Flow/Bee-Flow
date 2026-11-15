@@ -49,7 +49,7 @@ PROFILES="core local-llm" ./selfhost.sh
 ```
 
 Then set `OLLAMA_URL=http://ollama:11434` in `.env`, restart, and download a model
-from **Admin → AI Config → API Keys** (the Local group). Full guide:
+from **Admin dashboard → Whole server → AI configuration → Providers** (the Local group). Full guide:
 [Local models](../admin/local-models.md).
 
 This runs in `DEPLOYMENT_MODE=self-hosted`: no billing, and paid features unlock when you activate a
@@ -90,7 +90,7 @@ community is a fully usable floor (chat, knowledge bases, skills, the automation
 Nextcloud connector). You only need a licence to unlock premium features (sharing automations, voice,
 meeting notes, guardrails, and more; see [Tiers](../licensing/tiers.md)).
 
-To unlock enterprise features for the whole install, sign in as a super-admin → **Admin → Server licence** →
+To unlock enterprise features for the whole install, sign in as a super-admin → **Admin dashboard → Whole server → Licence & features → Server licence** →
 paste your **server-wide** licence key (a JWT issued by Bee Flow, or an admin-issued blob). Pricing and
 keys are at [beeflow.nl](https://beeflow.nl); see [Applying a licence key](../licensing/apply.md). A
 JWT is only accepted when the server has Bee Flow's licence public key: set `LICENSE_PUBLIC_KEY`,
@@ -123,7 +123,7 @@ server in the Bee Flow connector (the Nextcloud ExApp):
    only offer on secure (HTTPS) pages. On a Nextcloud served over plain HTTP the embedded sign-in
    fails; put Nextcloud behind TLS.
    :::
-4. Generate a pairing code in Bee Flow (**Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**) and
+4. Generate a pairing code in Bee Flow (**Admin dashboard → Connections → Nextcloud → Pair a new Nextcloud**) and
    enter it on the same page. A self-hosted server links a Nextcloud by pairing code by default: it
    does not create an organisation for a Nextcloud it does not know.
 5. Press **Connect**. The connector first asks your server for `/api/health`; when it does not
@@ -380,6 +380,6 @@ The download limits are also listed under [Environment variables](./env.md#downl
 - [ ] HTTPS in front of the stack (`COOKIE_SECURE=true` once behind TLS)
 - [ ] `LICENSE_PUBLIC_KEY` set if you activate production licence keys
 - [ ] Daily `pg_dump` running and tested-restored at least once
-- [ ] At least one model provider key set (in-app, Admin → AI Config → API Keys)
+- [ ] At least one model provider key set (in-app, Admin dashboard → Whole server → AI configuration → Providers)
 - [ ] Rate limit at the reverse proxy (e.g. Caddy `request_body max_size 10MB`, Nginx `limit_req_zone`)
 - [ ] Audit log shipped off-host (Loki / ELK / Splunk) — see [Reference → Telemetry](../reference/telemetry.md)

@@ -23,8 +23,9 @@ export const SECTIONS: readonly PlatformSection[] = [
 
 /**
  * Sections a host may still mount by name although they are not Platform
- * services any more: the web search provider, shown inside AI configuration >
- * Search & retrieval until that page renders it itself.
+ * services any more: the web search provider. AI configuration > Search &
+ * retrieval renders its form itself (ai-config/RetrievalPage); the panel only
+ * keeps the name mountable.
  */
 export const MOUNT_ONLY_SECTIONS: readonly PlatformSection[] = [
     { id: 'search', labelKey: 'admin.integ_search', fallback: 'Search', icon: SearchIcon },

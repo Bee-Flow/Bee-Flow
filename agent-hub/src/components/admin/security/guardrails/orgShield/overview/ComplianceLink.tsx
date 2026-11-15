@@ -1,6 +1,7 @@
 import { ArrowUpRight, CircleCheck, Scale, TriangleAlert } from 'lucide-react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
+import { useLocaleFormat, localeFormat } from '@/hooks/useLocaleFormat';
 
 /**
  * "Linked to Compliance" — the two framework checks this document drives.
@@ -17,13 +18,13 @@ import type { TranslateFn } from '@/hooks/useTranslation';
  * input those checks read.
  */
 
-/** "28 Sep 2026, 15:48" in the reader's own locale; the raw value if it does not parse. */
-export function formatChanged(updatedAt: string | number): string {
-    const date = new Date(updatedAt);
-    if (Number.isNaN(date.getTime())) return String(updatedAt);
-    return new Intl.DateTimeFormat(undefined, {
-        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    }).format(date);
+/**
+ * "28 Sep 2026, 15:48" in the language on screen (useLocaleFormat: British
+ * English or Dutch, never the browser's US default); the raw value if it does
+ * not parse.
+ */
+export function formatChanged(updatedAt: string | number, appLocale: string | null = null): string {
+    return localeFormat(appLocale).dateTime(updatedAt) || String(updatedAt);
 }
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export default function ComplianceLink({ f, updatedAt, updatedBy, onOpen, t }: Props) {
+    const fmt = useLocaleFormat();
     // Mirrors what the Art. 32 "Data Loss Prevention active" check asks: is
     // the shield on, and is it actually looking for anything?
     const dlpFullyActive = !!f.enabled && (f.piiCategories?.length || 0) > 0;
@@ -98,7 +100,7 @@ export default function ComplianceLink({ f, updatedAt, updatedBy, onOpen, t }: P
                 is what we show rather than inventing one. */}
             {updatedAt && (
                 <p className="m-0 pt-2 text-[11px] leading-4 text-[var(--text-tertiary)] border-t border-[var(--border-subtle)]">
-                    {t('admin.shield_last_changed', 'Last changed {when}', { when: formatChanged(updatedAt) })}
+                    {t('admin.shield_last_changed', 'Last changed {when}', { when: formatChanged(updatedAt, fmt.locale) })}
                     {updatedBy ? ` · ${updatedBy}` : ''}
                 </p>
             )}

@@ -6,6 +6,7 @@ import RolePermissionEditor from '../RolePermissionEditor';
 import { CHIP } from '@/components/shared/adminUi';
 import { nOf } from '@/utils/plural';
 import type { OrgMember, OrgRolePermissions } from '../useOrgDirectory';
+import { orgRoleLabel } from '../people/orgRoleLabel';
 
 type OrgRole = (typeof ORG_ROLES)[number];
 
@@ -42,7 +43,7 @@ function RoleRow({ role, assignedCount, isExpanded, onToggle, orgRolePerms, edit
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-[var(--text-primary)]">{role.name}</span>
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">{orgRoleLabel(t, role.id)}</span>
                         <span className={CHIP}>{role.id}</span>
                         {assignedCount > 0 && (
                             <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">

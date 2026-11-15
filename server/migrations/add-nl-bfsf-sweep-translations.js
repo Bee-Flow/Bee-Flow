@@ -100,7 +100,7 @@ const NL_TRANSLATIONS = {
     'integ.google_connect': 'Google Workspace verbinden',
     'integ.google_reconnect': 'Opnieuw verbinden',
     'integ.google_opening': 'Google openen…',
-    'integ.google_not_configured': 'Google Workspace is niet geconfigureerd. Vraag je platformbeheerder om de Google-client-ID en het secret in te stellen bij Beheer → Aanmelden en SSO.',
+    'integ.google_not_configured': 'Google Workspace is niet geconfigureerd. Vraag je platformbeheerder om de Google-client-ID en het secret in te stellen bij Beheerdashboard → Hele server → Aanmelden en SSO.',
     'integ.google_disconnect_note': 'Bij het verbreken worden automatiseringen die Gmail, Agenda of Drive gebruiken gepauzeerd totdat je opnieuw verbindt. Je blijft ingelogd.',
     'integ.google_error': 'De Google-verbinding kon niet worden gestart. Probeer het opnieuw.',
 

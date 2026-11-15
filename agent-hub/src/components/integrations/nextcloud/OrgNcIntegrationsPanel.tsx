@@ -129,7 +129,7 @@ function GroupExceptions({ t, groups, catalog, config, toggleGroupDisable }: Gro
             description={t('admin_connections.nc_group_rule', 'Block a tool for a Nextcloud group. A person loses the tool only when every group they belong to blocks it: membership of any other group keeps it on.')}
         >
             {groups.length === 0 ? (
-                <p className="m-0 text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" in Nextcloud Sync.')}</p>
+                <p className="m-0 text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" under Nextcloud.')}</p>
             ) : (
                 <SettingsList>
                     {groups.map((g: NcGroup) => (

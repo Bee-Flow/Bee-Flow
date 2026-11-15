@@ -197,6 +197,8 @@ export default function MonitoringPanel({ activeSection = '', onNavigate: onNavi
     const scopeLine = useScopeLine(data.summary?.scope);
     const pageDescription = t(meta.descriptionKey, meta.description);
     const description = scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription;
+    // In the dashboard: one small line, the frame's description style ("… · Usage of <org>").
+    const frameLine = scopeLine ? `${pageDescription} · ${scopeLine}` : pageDescription;
     const rangeControls = <RangeControls {...period} loading={loading} onRefresh={reload} />;
     const content = (
         <MonitoringPage
@@ -217,7 +219,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate: onNavi
             <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto" data-testid="monitoring-page" data-page={page}>
                 {/* The onboarding tours' anchor for the usage report (onboarding/tourAnchors 'usage-summary'). */}
                 <div data-tour="usage-summary" className="flex flex-wrap items-end justify-between gap-3">
-                    <p className="m-0 min-w-0 text-sm text-[var(--text-secondary)]">{description}</p>
+                    <p className="m-0 min-w-0 text-xs text-[var(--text-secondary)]" data-testid="monitoring-description">{frameLine}</p>
                     {rangeControls}
                 </div>
                 {content}

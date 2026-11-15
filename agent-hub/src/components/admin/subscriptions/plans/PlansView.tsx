@@ -14,7 +14,7 @@ import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import { ConfirmModal } from '../ui/Modal';
 import { SearchInput } from '../ui/SearchInput';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 
@@ -152,8 +152,8 @@ export function PlansView() {
 
     return (
         <div className="p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin.sub_title', 'Subscription Plans')}
+            <ViewHeader className="mb-5"
+                title={t('admin.sub_title', 'Subscription plans')}
                 description={t('admin.sub_desc', 'Create reusable plan templates with limits and feature access.')}
                 status={
                     <div className="flex items-center gap-2">

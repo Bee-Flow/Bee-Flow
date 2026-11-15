@@ -1,9 +1,11 @@
-import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, Globe, X, Plus } from 'lucide-react';
+import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, X, Plus } from 'lucide-react';
 import { cloneElement, isValidElement, useId, useState, useRef } from 'react';
 import type { ComponentType, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { AuthMethodId } from './signInAvailability';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import { SettingsGroup } from '@/components/shared/SettingsList';
+import { CHIP, HINT, INPUT, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 // Map a 3-letter currency code to its glyph for inline display.
 const currencySym = (c: string | null | undefined): string => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));
@@ -91,7 +93,7 @@ interface AuthMethodOption {
 
 /** The methods an organisation can prefer, in the order the cards show them. */
 const AUTH_METHODS: readonly AuthMethodOption[] = [
-    { id: 'password', nameKey: 'org.password_auth', descKey: 'org.password_auth_desc', Icon: PasswordIcon },
+    { id: 'password', nameKey: 'org_signin.method_password', descKey: 'org.password_auth_desc', Icon: PasswordIcon },
     { id: 'google', nameKey: 'org.google_auth', descKey: 'org.google_auth_desc', Icon: GoogleIcon },
     { id: 'microsoft', nameKey: 'org.microsoft_auth', descKey: 'org.microsoft_auth_desc', Icon: MicrosoftIcon },
 ];
@@ -166,39 +168,12 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }: AllowedDomainsEdito
     };
 
     return (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 space-y-3">
-            <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[var(--accent-primary)]" aria-hidden="true" />
-                <span id={`${ids}-title`} className="text-sm font-semibold text-[var(--text-primary)]">
-                    {t('org.allowed_domains', 'Allowed Domains')}
-                </span>
-            </div>
-            <p className="text-xs text-[var(--text-muted)] ml-6">
-                {t('org_signin.allowed_domains_desc')}
-            </p>
-
-            {/* Domain tags */}
-            <div
-                className="flex flex-wrap gap-2 min-h-[38px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-3 py-2 cursor-text transition-colors focus-within:border-[var(--accent-primary)]"
-                onClick={() => inputRef.current?.focus()}
-            >
-                {domains.map(domain => (
-                    <span
-                        key={domain}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                    >
-                        {domain}
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeDomain(domain); }}
-                            aria-label={t('org.remove_domain', 'Remove {domain}', { domain })}
-                            className="ml-0.5 rounded-full p-0.5 opacity-80 hover:opacity-100 transition-opacity"
-                        >
-                            <X className="w-3 h-3" aria-hidden="true" />
-                        </button>
-                    </span>
-                ))}
-                <div className="flex items-center gap-1 flex-1 min-w-[120px]">
+        <SettingsGroup
+            title={<span id={`${ids}-title`}>{t('org_signin.allowed_domains', 'Allowed domains')}</span>}
+            description={t('org_signin.allowed_domains_desc')}
+        >
+            <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <input
                         ref={inputRef}
                         type="text"
@@ -207,27 +182,40 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }: AllowedDomainsEdito
                         onKeyDown={handleKeyDown}
                         aria-labelledby={`${ids}-title`}
                         aria-invalid={error ? true : undefined}
-                        aria-describedby={error ? `${ids}-error` : undefined}
-                        placeholder={domains.length === 0 ? 'company.com' : t('org.add_domain_placeholder', 'Add domain...')}
-                        className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none min-w-0"
+                        aria-describedby={error ? `${ids}-error` : `${ids}-hint`}
+                        placeholder={t('org_signin.allowed_domains_placeholder', 'company.com')}
+                        className={`${INPUT} min-w-[12rem] flex-1`}
                     />
-                    {inputValue && (
-                        <button
-                            type="button"
-                            onClick={addDomain}
-                            aria-label={t('org.add_domain', 'Add domain')}
-                            className="p-1 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
-                        >
-                            <Plus className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                    )}
+                    <button type="button" onClick={addDomain} disabled={!inputValue.trim()} className={SECONDARY_BTN}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('org.add_domain', 'Add domain')}
+                    </button>
                 </div>
+                {error && (
+                    <p id={`${ids}-error`} role="alert" className="m-0 text-xs text-[var(--error-ink)]">{error}</p>
+                )}
+                {domains.length > 0 ? (
+                    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label={t('org_signin.allowed_domains', 'Allowed domains')}>
+                        {domains.map(domain => (
+                            <li key={domain} className={CHIP}>
+                                {domain}
+                                <button
+                                    type="button"
+                                    onClick={() => removeDomain(domain)}
+                                    aria-label={t('org.remove_domain', 'Remove {domain}', { domain })}
+                                    className="-mr-1 rounded-full p-0.5 text-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)]"
+                                >
+                                    <X className="h-3 w-3" aria-hidden="true" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
+                <p id={`${ids}-hint`} className={`${HINT} mt-0`}>
+                    {t('org_signin.allowed_domains_save_hint', 'Add a domain, then save the page with Save changes.')}
+                </p>
             </div>
-
-            {error && (
-                <p id={`${ids}-error`} role="alert" className="text-xs text-[var(--error-ink)] ml-6">{error}</p>
-            )}
-        </div>
+        </SettingsGroup>
     );
 };
 

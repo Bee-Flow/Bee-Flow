@@ -6,12 +6,6 @@
         "Claude-instellingen"
       ]
     },
-    "admin_ai_config.claude_subtitle": {
-      "nl": "Aanbevolen instellingen per tier voor de Claude-modellen op deze server, plus een vangnet voor lege antwoorden.",
-      "was": [
-        "De aanbevolen Claude-standaarden van Bee Flow per tier, plus Claude-specifieke robuustheidsinstellingen."
-      ]
-    },
     "admin_ai_config.tier_bootstrap_hint": {
       "nl": "Eén keer per direct chat gebruikt om de Flow-fasen van het gesprek te plannen. Kies een klein, snel model om de planningskosten te verlagen. Laat leeg om het hoofdmodel te hergebruiken.",
       "was": [
@@ -28,12 +22,6 @@
       "nl": "Het model-id zoals je provider het noemt",
       "was": [
         "bijv. text-embedding-3-small"
-      ]
-    },
-    "admin_ai_config.ws_embed_none": {
-      "nl": "Geen embedding-modellen gevonden bij je geconfigureerde providers: voeg een provider toe die embedding-modellen aanbiedt, of stel er globaal een in op het tabblad Embeddings.",
-      "was": [
-        "Geen embedding-modellen gevonden bij je geconfigureerde providers: voeg een provider met embeddings toe (bijv. OpenAI, Mistral) of stel er globaal een in op het tabblad Embeddings."
       ]
     },
     "admin_ai_config.limits_cpu_hint": {
@@ -64,12 +52,6 @@
       "nl": "Nodig voor Gemini-modellen, inclusief beeldgeneratie",
       "was": [
         "Nodig voor Gemini-modellen en beeldgeneratie"
-      ]
-    },
-    "admin_ai_config.tier_adaptive_only_rest": {
-      "nl": "De API weigert handmatige denkbudgetten en de temperatuurinstelling: de Inspanning-keuzelijst hierboven bepaalt hoe diep het model denkt. Gebruik Automatisch opnieuw proberen bij lege uitvoer (onderdeel Claude-modellen) als vangnet voor zware redeneerruns.",
-      "was": [
-        "De API weigert handmatige denkbudgetten en de temperatuurinstelling: de Inspanning-keuzelijst hierboven bepaalt hoe diep het model denkt. Gebruik Automatisch opnieuw proberen bij lege uitvoer (paneel Claude-instellingen) als vangnet voor zware redeneerruns."
       ]
     }
   }

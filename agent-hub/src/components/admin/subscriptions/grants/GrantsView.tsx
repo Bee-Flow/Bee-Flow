@@ -10,7 +10,7 @@ import { useResource, apiJson } from '../hooks/useApi';
 import { GrantsTable, type Grant } from './GrantsTable';
 import { ConfirmModal } from '../ui/Modal';
 import { CopyBlobDialog, ExtendDialog, ImportDialog } from './GrantDialogs';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 
 /** What the wizard offers as an organization. */
@@ -113,8 +113,8 @@ export function GrantsView() {
 
     return (
         <div className="p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.grants_title', 'Admin License Grants')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.grants_title', 'Admin licence grants')}
                 description={t('admin_subscriptions.grants_desc', 'Mint licenses directly without Stripe. Org members pick up the new tier on next request.')}
                 status={
                     <div className="flex items-center gap-2">

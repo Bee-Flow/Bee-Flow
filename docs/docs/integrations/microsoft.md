@@ -13,7 +13,7 @@ Bee Flow connects to Microsoft 365 via OAuth 2.0 against Microsoft Graph.
    - Signing in with Entra ID: `https://your-host/auth/callback/microsoft`
    - Connecting Outlook / Teams / OneDrive, and the Teams admin consent link: `https://your-host/api/integrations/microsoft/callback`
 3. Under **API permissions**, add the Microsoft Graph delegated permissions in the [scope table](#scopes) below, and grant admin consent for the ones that need it.
-4. As a platform administrator, open **Admin → Security → SSO → Microsoft** and fill in the **Application (client) ID**, the client secret **Value** (not the Secret ID) and the **Directory (tenant) ID**. Leave the tenant empty, or use `common`, for a multi-tenant app; `organizations` and `consumers` are accepted too (`consumers` does not work for Teams meeting notes, which need work or school accounts). Bee Flow keeps these values in its database; there are no environment variables for them. The SSO settings need the `sso_saml` licence feature.
+4. As a platform administrator, open **Admin dashboard → Whole server → Sign-in & SSO → Microsoft** and fill in the **Application (client) ID**, the client secret **Value** (not the Secret ID) and the **Directory (tenant) ID**. Leave the tenant empty, or use `common`, for a multi-tenant app; `organizations` and `consumers` are accepted too (`consumers` does not work for Teams meeting notes, which need work or school accounts). Bee Flow keeps these values in its database; there are no environment variables for them. The SSO settings need the `sso_saml` licence feature.
 5. Press the test button on the same tab to check the client ID and secret against Microsoft.
 
 For Teams meeting notes, the full setup (admin consent, Teams settings, the built-in tests) is on [Teams meeting notes setup](./teams-meeting-notes.md).
@@ -125,7 +125,7 @@ Connections made before this feature have only the old `OnlineMeetings.Read` sco
 
 - Each Teams meeting you organise has a **record / skip** toggle, per occurrence, or for the whole series.
 - With **Also switch on Teams recording** enabled, turning a meeting on sets `recordAutomatically` on it (`OnlineMeetings.ReadWrite`). Teams shows everyone in the call that it is being recorded. Without it the row says **Record in Teams**.
-- Auto-import (off by default) and the default language live in **Settings → Preferences**; org admins set them for everyone under **Admin → Organisation → Meeting Templates**.
+- Auto-import (off by default) and the default language live in **Settings → Preferences**; org admins set them for everyone under **Admin dashboard → AI & agents → Meeting notes**.
 - Manual import: **New transcription → Microsoft Teams** lists the meetings you organised in the last week.
 - Invited colleagues in your own organisation get read access to the note. Bee Flow does not notify them.
 
@@ -162,6 +162,6 @@ in the [troubleshooting tables](./teams-meeting-notes.md#app-registration-and-mi
 
 ## Restricting sign-in to one tenant
 
-Fill in your **Directory (tenant) ID** under Admin → Security → SSO → Microsoft instead of `common`
+Fill in your **Directory (tenant) ID** under Admin dashboard → Whole server → Sign-in & SSO → Microsoft instead of `common`
 to restrict the OAuth flow to that tenant. Bee Flow talks to the global Microsoft endpoints
 (`login.microsoftonline.com`, `graph.microsoft.com`).

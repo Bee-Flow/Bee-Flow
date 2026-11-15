@@ -16,4 +16,8 @@ export default {
     "org_signin.auto_approve": "Let people from your domains in straight away",
     "org_signin.auto_approve_desc": "Someone who signs in through single sign-on with an e-mail address on this organisation's domain joins at once, in the default groups. When this is off, they wait as pending until an administrator lets them in.",
     "org_signin.auto_approve_failed": "The setting could not be saved. Try again.",
+    "org_signin.allowed_domains": "Allowed domains",
+    "org_signin.allowed_domains_placeholder": "company.com",
+    "org_signin.allowed_domains_save_hint": "Add a domain, then save the page with Save changes.",
+    "org_signin.method_password": "Username and password",
 };

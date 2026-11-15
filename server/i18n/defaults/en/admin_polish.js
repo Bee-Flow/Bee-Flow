@@ -1,0 +1,40 @@
+// @typecheck strict
+// English GUI defaults — namespace "admin_polish": every key whose part before the first "." is "admin_polish".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+// The admin dashboard polish round (Nov 2026): plain-language empty states, human names for
+// ledger identifiers, the server tiers next to an organisation's own, one-point charts.
+module.exports = {
+    "admin_polish.adoption_members_rule": "People with an account in this organisation or one of its groups. Pending invitations, guests and the server's platform administrator are not counted.",
+    "admin_polish.agent_type_automation": "Automation",
+    "admin_polish.agent_type_chat": "Chat",
+    "admin_polish.agent_type_system": "System",
+    "admin_polish.call_direct_chat": "Direct chat",
+    "admin_polish.chart_no_data": "No data to display",
+    "admin_polish.drawer_agent_details": "Agent details",
+    "admin_polish.drawer_billed_raw": "Billed (raw {cost})",
+    "admin_polish.drawer_model_details": "Model details",
+    "admin_polish.feedback_no_ratings": "No ratings yet",
+    "admin_polish.feedback_none_yet": "No feedback in this period. People give it with the thumbs up or down under an answer.",
+    "admin_polish.kb_empty_body": "A knowledge base is a set of documents that agents and chats can look things up in. Built-in ones are ready-made collections that the platform administrator of this server installs; once one is there, you switch it on here for your organisation.",
+    "admin_polish.kb_empty_next": "Want one? Ask your platform administrator. Your own documents do not need this: anyone allowed to manage knowledge can create a knowledge base for them.",
+    "admin_polish.kb_empty_title": "No built-in knowledge bases on this server yet",
+    "admin_polish.source_agent_chat": "answer",
+    "admin_polish.source_agent_stream": "answer",
+    "admin_polish.source_agent_test_chat": "test chat",
+    "admin_polish.source_automation_builder": "building with AI",
+    "admin_polish.source_chat_title": "naming the conversation",
+    "admin_polish.source_kb_summary": "summarising documents",
+    "admin_polish.source_knowledge_embedding": "indexing documents",
+    "admin_polish.source_meeting_actions": "action items",
+    "admin_polish.source_meeting_summary": "summary",
+    "admin_polish.source_with_purpose": "{area}: {purpose}",
+    "admin_polish.tiers_add": "Add tier",
+    "admin_polish.tiers_none": "This organisation has no custom tiers yet. Add one to give your members a tier with a model you choose.",
+    "admin_polish.tiers_org_title": "Organisation custom tiers",
+    "admin_polish.tiers_server_desc": "These tiers come with the server. The platform administrator chooses their models: you can read them here, not change them. A group can still limit which tiers its members get.",
+    "admin_polish.tiers_server_model_eu": "{model} · in EU mode: {eu}",
+    "admin_polish.tiers_server_title": "Tiers of the whole server",
+    "admin_polish.trend_one_day": "One day of data in this period. The trend appears from two days on.",
+    "admin_polish.trend_one_hour": "One hour of data in this period. The trend appears from two hours on.",
+};

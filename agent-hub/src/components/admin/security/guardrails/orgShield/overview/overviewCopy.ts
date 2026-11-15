@@ -324,8 +324,10 @@ const REVIEWS: Record<string, ReviewFn> = {
     }),
     transparency: (_row, t) => ({
         title: t('shield_overview.review_reveal_title', 'Anyone in a conversation can reveal the real values'),
-        body: t('shield_overview.review_reveal_body',
-            '“Show what was sent” is on. That is useful for trust, but it also means shared conversations expose the originals.'),
+        // The setting's own label, translated, inside the sentence: never an English name in a Dutch line.
+        body: t('security_access.shield_review_reveal_body',
+            '“{setting}” is on. That is useful for trust, but it also means shared conversations expose the originals.',
+            { setting: t('admin.shield_posture_transparency', 'Show what was sent') }),
     }),
     allowlist: (row, t) => ({
         title: row.value.terms === 1

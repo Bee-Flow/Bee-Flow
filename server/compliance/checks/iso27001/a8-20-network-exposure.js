@@ -27,7 +27,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'scaleway', 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect firewall evidence.');
+        const read = await readConnectorSnapshots(orgId, 'scaleway', 'Scaleway connector not enabled — link a read-only API key under Compliance → Evidence connectors to collect firewall evidence.');
         if (read.result) return read.result;
         const { snaps } = read;
         if (!snaps.length) return noSnapshotYet('scaleway', 'Connector enabled but no snapshot yet — run a sweep or check the API key and region.');

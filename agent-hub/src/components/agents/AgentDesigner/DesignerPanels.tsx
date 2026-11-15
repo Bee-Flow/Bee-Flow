@@ -107,7 +107,7 @@ export function DesignerEmptyState({ systemMode, onCreate }: { systemMode: boole
                 : t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
             action={systemMode ? undefined : (
                 <button type="button" onClick={onCreate} className={PRIMARY_BTN}>
-                    {t('agent_studio.agent_designer_create_new_agent', 'Create New Agent')}
+                    {t('agent_studio.agent_designer_create_new_agent', 'Create new agent')}
                 </button>
             )}
         />

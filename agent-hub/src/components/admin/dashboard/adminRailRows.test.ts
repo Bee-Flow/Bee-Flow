@@ -97,6 +97,11 @@ describe('adminRailView: the whole-server block', () => {
         ]);
         expect(rows.find(r => r.id === 'appearance')?.children?.map(c => c.id)).toEqual(['appearance/look', 'appearance/icon-packs']);
         expect(rows.find(r => r.id === 'licenses')?.children?.map(c => c.id)).toEqual(['licenses/server', 'licenses/features']);
+        // Changed on purpose (wave 4): Subscriptions was the last hub with a second column; its sections are child rows.
+        expect(rows.find(r => r.id === 'subscriptions')?.children?.map(c => c.id)).toEqual([
+            'subscriptions/plans', 'subscriptions/organizations', 'subscriptions/grants', 'subscriptions/access',
+            'subscriptions/promos', 'subscriptions/settings', 'subscriptions/audit',
+        ]);
         // Changed on purpose (wave 3): the Usage explorer is part of Spend (alias monitoring/usage).
         expect(rows.find(r => r.id === 'monitoring')?.children?.map(c => c.id)).toEqual([
             'monitoring/overview', 'monitoring/adoption', 'monitoring/spend', 'monitoring/feedback', 'monitoring/activity', 'monitoring/terminations',
@@ -178,6 +183,10 @@ describe('activeRailRow and railRowLabel', () => {
         expect(activeRailRow('organisation', 'mcp_access', rows)).toBe('organisation/mcp-access');
         expect(activeRailRow('organisation', 'ai-context', rows)).toBe('organisation/conversations');
         expect(activeRailRow('organisation', 'meeting-templates', rows)).toBe('organisation/meeting-notes');
+        // Subscriptions: its old addresses are its child rows; the bare address opens Plans.
+        expect(activeRailRow('subscriptions', undefined, rows)).toBe('subscriptions/plans');
+        expect(activeRailRow('subscriptions', 'audit', rows)).toBe('subscriptions/audit');
+        expect(activeRailRow('subscriptions', 'settings', rows)).toBe('subscriptions/settings');
     });
 
     it('names the current row for the narrow top bar', () => {

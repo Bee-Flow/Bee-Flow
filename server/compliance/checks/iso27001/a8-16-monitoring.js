@@ -30,7 +30,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'openobserve', 'OpenObserve connector not enabled — link your monitoring instance under ISO 27001 → Connectors.');
+        const read = await readConnectorSnapshots(orgId, 'openobserve', 'OpenObserve connector not enabled — link your monitoring instance under Compliance → Evidence connectors.');
         if (read.result) return read.result;
         const { snaps } = read;
         if (!snaps.length) return noSnapshotYet('openobserve', 'Connector enabled but no snapshot yet — run a sweep or check the base URL and credentials.');

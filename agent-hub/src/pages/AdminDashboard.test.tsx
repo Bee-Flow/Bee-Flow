@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,7 @@ import EntitlementsContext, { type EntitlementsValue } from '@/components/licens
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { withQueryClient } from '@/test/queryWrapper';
 import { availabilityAnswer, availabilityOrgOf } from '@/test/organisationHubKit';
+import { setCurrentUser } from '@/utils/scopedStorage';
 
 type LicenseValue = React.ComponentProps<typeof LicenseContext.Provider>['value'];
 
@@ -21,6 +22,9 @@ let serverOrgs: object[] = [];
 
 beforeEach(() => {
     serverOrgs = [];
+    // The dashboard remembers the last licence answer of this tab (useSteadyLicenceTier), per signed-in person.
+    window.sessionStorage.clear();
+    setCurrentUser(null);
     // Every panel the tests open reads from the server; an empty answer is enough here,
     // except the chosen organisation's integration availability, which the rail's rows
     // read: this organisation has no Learning Center, meeting notes or GitHub.
@@ -151,6 +155,17 @@ describe('AdminDashboard navigation', () => {
         expect(children.getByRole('link', { name: 'Server licence' })).toHaveAttribute('aria-current', 'page');
         expect(children.getByRole('link', { name: 'Feature switches' })).toHaveAttribute('href', expect.stringContaining('/admin/licenses/features'));
         expect(screen.queryByTestId('admin-rail-children-ai-config')).not.toBeInTheDocument();
+    });
+
+    // Changed on purpose (wave 4): Subscriptions had its own section column; its sections are child rows now.
+    it('lists the Subscriptions sections as child rows, with no second column in the pane', () => {
+        renderDashboard({ seg1: 'subscriptions', seg2: 'audit', license: { deploymentMode: 'cloud' } });
+        const children = within(screen.getByTestId('admin-rail-children-subscriptions'));
+        expect(children.getByRole('link', { name: 'Audit' })).toHaveAttribute('aria-current', 'page');
+        expect(children.getByRole('link', { name: 'Plans' })).toHaveAttribute('href', expect.stringContaining('/admin/subscriptions/plans'));
+        const pane = within(screen.getByTestId('admin-tab-subscriptions'));
+        expect(pane.queryByRole('navigation')).not.toBeInTheDocument();
+        expect(within(pane.getByTestId('admin-page-header')).getByRole('heading', { level: 2, name: 'Audit' })).toBeInTheDocument();
     });
 
     it('navigates to admin/<tab> when a rail row is clicked', async () => {
@@ -293,6 +308,18 @@ describe('AdminDashboard scope groups', () => {
         renderDashboard({ seg1: 'agents', license: { loading: true } });
         expect(screen.getByTestId('admin-gates-pending')).toBeInTheDocument();
         expect(screen.queryByTestId('admin-access-denied-section')).not.toBeInTheDocument();
+    });
+
+    it('keeps the Agents row when a re-read of the licence fails (a 429 on a fast reload)', () => {
+        // Sign-in names the person (AuthedApp), whose memory this is.
+        setCurrentUser(orgAdmin.id);
+        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise });
+        expect(within(rail()).getByRole('link', { name: 'Agents' })).toBeInTheDocument();
+        cleanup();
+        // A full reload in the same tab: the read answers 429, so the context's tier is its Community default.
+        renderDashboard({ user: orgAdmin, seg1: 'agents', license: { error: 'HTTP 429' } });
+        expect(within(rail()).getByRole('link', { name: 'Agents' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByTestId('admin-tab-agents')).toBeInTheDocument();
     });
 });
 

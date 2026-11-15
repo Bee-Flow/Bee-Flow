@@ -6,6 +6,7 @@ import {
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { reviewCopy, reviewHeading, settingName } from './overviewCopy';
 import type { GoTo, PostureRow, Tone } from './types';
+import { QUIET_BTN } from '@/components/shared/adminUi';
 
 /**
  * "3 things to review": the posture rows worth a second look, most urgent
@@ -33,7 +34,8 @@ const TILE: Record<Tone, string> = {
     ok: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]',
 };
 
-const LINK = 'text-xs font-semibold text-[var(--info-ink)] inline-flex items-center gap-1 hover:underline whitespace-nowrap';
+/** The quiet action of the kit: a text button in ink, not a blue link. */
+const LINK = `${QUIET_BTN} whitespace-nowrap`;
 const DARK_BUTTON = 'inline-flex items-center gap-[5px] px-[11px] py-1.5 rounded-lg bg-[var(--text-primary)] text-[rgb(from_var(--bg-card)_r_g_b_/_1)] text-xs font-semibold whitespace-nowrap hover:opacity-90';
 
 interface ActionProps {

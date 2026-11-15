@@ -40,7 +40,7 @@ export function AzureSyncSettings({ orgId, settings }: { orgId: string | null; s
                 <ToggleRow
                     testID="azure-sync-auto-activate"
                     label={t('azure.sync_auto_activate', 'Auto-activate synced users')}
-                    description={t('azure.sync_auto_activate_desc', 'When enabled, new users from Azure groups are immediately active. When disabled, they require admin approval.')}
+                    description={t('azure.sync_auto_activate_desc', 'When enabled, new users from Entra ID groups are immediately active. When disabled, they require admin approval.')}
                     value={settings.autoActivateUsers}
                     disabled={save.isPending}
                     onValueChange={(v) => set('autoActivateUsers', v)}
@@ -56,7 +56,7 @@ export function AzureSyncSettings({ orgId, settings }: { orgId: string | null; s
                 <ToggleRow
                     testID="azure-sync-periodic"
                     label={t('azure.sync_periodic', 'Automatic periodic sync')}
-                    description={t('azure.sync_periodic_desc', 'Automatically sync groups from Azure AD at a regular interval.')}
+                    description={t('azure.sync_periodic_desc', 'Automatically sync groups from Microsoft Entra ID at a regular interval.')}
                     value={settings.periodicSync}
                     disabled={save.isPending}
                     onValueChange={(v) => set('periodicSync', v)}

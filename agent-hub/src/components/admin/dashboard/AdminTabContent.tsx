@@ -6,7 +6,25 @@
 //           section body only, without padding of their own);
 //   fill    the panel owns its scrolling (a list beside a detail, an editor with
 //           its own columns, a report with a drawer): it fills the pane under
-//           the header.
+//           the header. A panel that pads itself fills it edge to edge (FILL);
+//           one that draws no padding of its own is inset by the header's
+//           padding (FILL_INSET), so its list starts where the header starts.
+// The widths per row (which kind each row is):
+//   settings  the forms: Organisation info, Licence & usage, Projects, Models,
+//             Conversations, Memory, Meeting notes, Preferred sign-in method,
+//             Encryption, MCP client access, the Connections forms
+//             (organisation/OrgSectionBody); AI configuration's Search &
+//             retrieval, Direct chat and Setup status; Sign-in & SSO; Platform
+//             services' Defaults and Email; Licence & features; Release notes;
+//   wide      the lists, grids, tables and reports: Usage & monitoring, Access,
+//             Knowledge bases, Learning Center, the organisation's MCP servers,
+//             AI providers and models, Privacy Shield, Guardrail library,
+//             Transcription, Connected apps, Modules, the server's MCP servers;
+//   fill      the tools with a list beside a detail or their own columns:
+//             Agents, Support inbox, Languages and Appearance (inset); People,
+//             Organisations, Roles & permissions, Compliance (ComplianceDesktop),
+//             Nextcloud instances, Website analytics and Subscriptions (they pad
+//             themselves).
 // The Organisation tab frames its own sections (OrganisationHub, OrgSectionBody)
 // with the same header, because the width follows the section it opens.
 // Either way edge to edge: no tab sits in an extra framed inset.
@@ -50,6 +68,8 @@ interface PageFrame {
     width: AdminPageWidth;
     /** false: the header names the page only (the panel shows the page's description itself). */
     description?: boolean;
+    /** A fill page: the frame insets the panel by the header's padding (AdminPage `inset`). */
+    inset?: boolean;
 }
 
 /** A tab's frame, or a function of its section (the hubs whose sections differ in width). */
@@ -59,8 +79,14 @@ type Panel = { render: (p: AdminTabContentProps) => ReactNode; frame: FrameOf | 
 
 const SETTINGS: PageFrame = { width: 'settings' };
 const WIDE: PageFrame = { width: 'wide' };
+/** A fill panel that pads itself. */
 const FILL: PageFrame = { width: 'fill' };
-/** Usage & monitoring: the panel opens on the page's description and scope, beside the period. */
+/** A fill panel with no padding of its own: the frame insets it by the header's padding. */
+const FILL_INSET: PageFrame = { width: 'fill', inset: true };
+/**
+ * Usage & monitoring: the header names the page; the panel draws the description in the
+ * header's one small line, joined with the scope ("… · Usage of <org>") beside the period.
+ */
 const WIDE_NAME_ONLY: PageFrame = { width: 'wide', description: false };
 
 /** A frame by section: `settings` for the sections listed, the rest `wide`. */
@@ -74,7 +100,7 @@ function Frame({ tab, frame, section, title, description, children }: { tab: str
     return (
         <div className={`absolute inset-0 ${scrolls ? 'overflow-auto' : 'overflow-hidden'}`} data-testid={`admin-tab-${tab}`}>
             {page
-                ? <AdminPage title={title} description={page.description === false ? undefined : description} width={page.width}>{children}</AdminPage>
+                ? <AdminPage title={title} description={page.description === false ? undefined : description} width={page.width} inset={!!page.inset}>{children}</AdminPage>
                 : children}
         </div>
     );
@@ -100,7 +126,7 @@ const seg = (value: string | undefined): string | undefined => value || undefine
  * keep theirs and fill the pane.
  */
 const PANELS: Record<string, Panel> = {
-    agents: { render: (p) => <AgentConfigHub nav={false} hasPermission={p.hasPermission} activeSection={p.agentSection} />, frame: FILL },
+    agents: { render: (p) => <AgentConfigHub nav={false} hasPermission={p.hasPermission} activeSection={p.agentSection} />, frame: FILL_INSET },
     organisation: {
         render: (p) => <OrganisationHub activeSection={p.adminPath.seg2} title={p.title} description={p.description} />,
         frame: 'own',
@@ -119,16 +145,18 @@ const PANELS: Record<string, Panel> = {
         frame: bySection(['defaults', 'email'], 'defaults'),
     },
     access: { render: (p) => <AccessPermissionsPanel tabs activeSection={p.adminPath.seg2} />, frame: WIDE },
-    // nav={false}: the panel neither pads nor scrolls itself; the frame does both.
+    // nav={false}: the panel neither pads nor scrolls itself; the frame does both. The panel's first line is the
+    // description in the header's small style plus the scope, so the header names the page only (no second copy).
     monitoring: { render: (p) => <MonitoringPanel nav={false} activeSection={p.adminPath.seg2} />, frame: WIDE_NAME_ONLY },
     compliance: { render: (p) => <ComplianceHub activeSection={p.adminPath.seg2} focusCheckId={p.adminPath.seg3} />, frame: FILL },
-    subscriptions: { render: (p) => <SubscriptionsPanel activeSection={p.adminPath.seg2} />, frame: FILL },
+    // nav={false}: its sections are child rows of the rail; each page pads and scrolls itself.
+    subscriptions: { render: (p) => <SubscriptionsPanel nav={false} activeSection={p.adminPath.seg2} />, frame: FILL },
     // admin/support/<view>/<item>; the server's ticket link admin/support/<threadId> is a view the panel resolves.
-    support: { render: (p) => <SupportInboxPanel view={p.adminPath.seg2 ?? ''} item={seg(p.adminPath.seg3)} />, frame: FILL },
+    support: { render: (p) => <SupportInboxPanel view={p.adminPath.seg2 ?? ''} item={seg(p.adminPath.seg3)} />, frame: FILL_INSET },
     licenses: { render: (p) => <LicensePage section={p.adminPath.seg2} />, frame: SETTINGS },
     modules: { render: () => <ModulesPanel />, frame: WIDE },
-    appearance: { render: (p) => <AppearancePanel section={p.adminPath.seg2 === 'icon-packs' ? 'icon-packs' : 'look'} />, frame: FILL },
-    languages: { render: (p) => <LanguagesPanel locale={seg(p.adminPath.seg2)} section={seg(p.adminPath.seg3)} />, frame: FILL },
+    appearance: { render: (p) => <AppearancePanel section={p.adminPath.seg2 === 'icon-packs' ? 'icon-packs' : 'look'} />, frame: FILL_INSET },
+    languages: { render: (p) => <LanguagesPanel locale={seg(p.adminPath.seg2)} section={seg(p.adminPath.seg3)} />, frame: FILL_INSET },
     organisations: { render: () => <UserManagement sections={['organizations']} activeSection="organizations" />, frame: FILL },
     roles: { render: (p) => <UserManagement sections={['roles', 'permissions']} activeSection={p.adminPath.seg2 || 'roles'} />, frame: FILL },
     'mcp-servers': { render: () => <ServerMcpPanel />, frame: WIDE },

@@ -56,7 +56,7 @@ const NL_TRANSLATIONS = {
     'integ.linkedin_connected': 'AI kan posten op LinkedIn',
     'integ.linkedin_connected_as': 'Verbonden als {name} — AI kan posten op LinkedIn',
     'integ.linkedin_desc': 'Verbind om via AI op LinkedIn te posten',
-    'integ.linkedin_not_configured': 'LinkedIn is niet geconfigureerd. Vraag je platformbeheerder om het in te stellen bij Beheer → Platformdiensten → Gekoppelde apps.',
+    'integ.linkedin_not_configured': 'LinkedIn is niet geconfigureerd. Vraag je platformbeheerder om de client-ID en het secret in te stellen bij Beheerdashboard → Hele server → Platformdiensten → Gekoppelde apps.',
     'integ.linkedin_connect': 'LinkedIn verbinden',
     'integ.linkedin_opening': 'Openen…',
     'integ.github_connected': 'Verbonden als {username} — AI kan repo\'s beheren en code bekijken',

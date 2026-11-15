@@ -26,11 +26,11 @@ module.exports = {
     'nc_onboarding.nc_onboarding_wizard_detects_pii_emails_phone_numbers_ibans': 'Detects PII (emails, phone numbers, IBANs, etc.) before messages reach the AI. Runs locally, in-process — no third-party services.',
     'nc_onboarding.nc_onboarding_wizard_action_on_detection': 'Action on detection',
     'nc_onboarding.nc_onboarding_wizard_categories_to_detect_count_count_2': 'Categories to detect ({count}/{count_2})',
-    'nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup': 'Review your choices and finish setup. You can change any of this later under Settings → Organisation.',
+    'nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup': 'Review your choices and finish setup. You can change any of this later in the admin dashboard.',
     'nc_onboarding.nc_onboarding_wizard_sync_mode': 'Sync mode:',
     'nc_onboarding.nc_onboarding_wizard_privacy_shield': 'Privacy Shield:',
     'nc_onboarding.nc_onboarding_wizard_your_subscription_is_managed': 'Your subscription is managed separately under',
-    'nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage': 'Settings → Organisation → License & Usage',
+    'nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage': 'Admin dashboard → Workspace → Licence & usage',
     'nc_onboarding.nc_onboarding_wizard_back': 'Back',
     'nc_onboarding.nc_onboarding_wizard_next': 'Next',
 };

@@ -299,7 +299,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {step === 'shield' && renderShield()}
                     {step === 'done' && (
                         <div className="flex flex-col gap-4">
-                            <p className={BODY_TEXT}>{t('nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup', 'Review your choices and finish setup. You can change any of this later under Settings → Organisation.')}</p>
+                            <p className={BODY_TEXT}>{t('nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup', 'Review your choices and finish setup. You can change any of this later in the admin dashboard.')}</p>
                             <div className={`${BOX} flex flex-col gap-1.5`}>
                                 <p className={FACT}><span className="font-semibold">Organisation:</span> {org.name || '—'}</p>
                                 <p className={FACT}><span className="font-semibold">Deployment:</span> {deploymentMode === 'cloud' ? 'Bee Flow Cloud' : 'Self-hosted'}</p>
@@ -307,7 +307,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                                 <p className={FACT}><span className="font-semibold">{t('nc_onboarding.nc_onboarding_wizard_privacy_shield', 'Privacy Shield:')}</span> {shieldEnabled ? `${shieldAction} • ${shieldCategories.length} categories` : 'disabled'}</p>
                             </div>
                             <p className="m-0 text-xs text-[var(--text-secondary)]">
-                                {t('nc_onboarding.nc_onboarding_wizard_your_subscription_is_managed', 'Your subscription is managed separately under')} <span className="font-semibold">{t('nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage', 'Settings → Organisation → License & Usage')}</span>.
+                                {t('nc_onboarding.nc_onboarding_wizard_your_subscription_is_managed', 'Your subscription is managed separately under')} <span className="font-semibold">{t('nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage', 'Admin dashboard → Workspace → Licence & usage')}</span>.
                             </p>
                             {error && <div role="alert" className={ALERT_ERROR}>{error}</div>}
                         </div>

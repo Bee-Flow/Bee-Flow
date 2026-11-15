@@ -98,7 +98,7 @@ describe('OrgMemoryEditor', () => {
         const cap = screen.getByLabelText('Memories per person');
         await user.clear(cap);
         await user.type(cap, '20');
-        expect(screen.getByText('Enter a whole number between 50 and 10000.')).toBeInTheDocument();
+        expect(screen.getByText('Enter a whole number between 50 and 10,000.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         await user.clear(cap);
         await user.type(cap, '20000');

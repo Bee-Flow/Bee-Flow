@@ -18,15 +18,17 @@ function FeedbackKpis({ feedback, summary }: FeedbackPageProps) {
     const { t } = useTranslation();
     const posCount = summary?.thumbs_up || 0;
     const total = summary?.total || 0;
-    const posRate = total > 0 ? ((posCount / total) * 100).toFixed(0) : '—';
+    const posRate = total > 0 ? ((posCount / total) * 100).toFixed(0) : null;
     // Count items with conversation snapshots
     const withConvoCount = useMemo(() => feedback.filter(f => f.conversation_snapshot).length, [feedback]);
     return (
         <StatGrid>
-            <MetricTile label={t('admin_monitoring.feedback_positive', 'Positive')} value={posCount} subtitle={t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
+            <MetricTile label={t('admin_monitoring.feedback_positive', 'Positive')} value={posCount} subtitle={posRate === null
+                ? t('admin_polish.feedback_no_ratings', 'No ratings yet')
+                : t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
             <MetricTile label={t('admin_monitoring.feedback_negative', 'Negative')} value={summary?.thumbs_down || 0} />
-            <MetricTile label={t('admin_monitoring.feedback_with_comments', 'With Comments')} value={summary?.with_comments || 0} />
-            <MetricTile label={t('admin_monitoring.feedback_with_convo', 'With Conversation')} value={withConvoCount} subtitle={t('admin_monitoring.feedback_shared_context', 'Shared context')} />
+            <MetricTile label={t('admin_monitoring.feedback_with_comments', 'With comments')} value={summary?.with_comments || 0} />
+            <MetricTile label={t('admin_monitoring.feedback_with_convo', 'With conversation')} value={withConvoCount} subtitle={t('admin_monitoring.feedback_shared_context', 'Shared context')} />
         </StatGrid>
     );
 }
@@ -45,7 +47,7 @@ function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProp
         { value: 'positive', label: t('admin_monitoring.feedback_positive', 'Positive') },
         { value: 'negative', label: t('admin_monitoring.feedback_negative', 'Negative') },
         { value: 'comments', label: t('admin_monitoring.feedback_f_comments', 'Comments') },
-        { value: 'with_convo', label: t('admin_monitoring.feedback_with_convo', 'With Conversation') },
+        { value: 'with_convo', label: t('admin_monitoring.feedback_with_convo', 'With conversation') },
     ];
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -78,7 +80,11 @@ export function FeedbackPage({ feedback, summary }: FeedbackPageProps) {
                 search={search}
                 onSearch={(q) => { setSearch(q); setOffset(0); }}
             />
-            {paged.length === 0 ? <Empty text={t('admin_monitoring.feedback_empty', 'No feedback entries')} /> : (
+            {paged.length === 0 ? (
+                <Empty text={feedback.length === 0
+                    ? t('admin_polish.feedback_none_yet', 'No feedback in this period. People give it with the thumbs up or down under an answer.')
+                    : t('admin_monitoring.feedback_empty', 'No feedback entries')} />
+            ) : (
                 <section aria-label={t('admin.mon_feedback')} className="overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-[var(--shadow-sm)]">
                     {paged.map((item, i) => (
                         <FeedbackRow

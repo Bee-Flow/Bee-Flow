@@ -175,7 +175,7 @@ describe('the addresses the client writes', () => {
 
     it('every admin screen a Learning Center lesson opens lands', () => {
         const lessons = adminLiteralsIn(path.join(REPO, 'agent-hub/src/components/onboarding/generated/lessons.js'));
-        expect(lessons).toEqual(expect.arrayContaining(['admin/security/users', 'admin/organisation/meeting-templates']));
+        expect(lessons).toEqual(expect.arrayContaining(['admin/people', 'admin/organisation/meeting-notes', 'admin/access']));
         expect(problemsOf(lessons)).toEqual([]);
     });
 
@@ -197,7 +197,7 @@ describe('the addresses the server writes', () => {
 
     it('finds them (the scan is not looking at nothing)', () => {
         const all = files.flatMap(adminLiteralsIn);
-        expect(all).toEqual(expect.arrayContaining(['admin/security/users', 'admin/monitoring/activity', '/app/admin/support/*', '/app/admin/security/users/custom-tiers']));
+        expect(all).toEqual(expect.arrayContaining(['admin/security/users', 'admin/monitoring/activity', '/app/admin/support/*', '/app/admin/organisation/models']));
     });
 
     it('every one lands on a tab or row of the dashboard', () => {

@@ -1,0 +1,16 @@
+{
+  "reworded": {
+    "admin_ai_config.tier_adaptive_hint": {
+      "nl": "Het model bepaalt de diepte op basis van Inspanning. Deelt Max tokens met de uitvoer.",
+      "was": [
+        "Claude bepaalt de diepte op basis van Inspanning. Deelt Max tokens met de uitvoer."
+      ]
+    },
+    "admin_ai_config.tier_adaptive_hint2": {
+      "nl": "Het model bepaalt de denkdiepte op basis van Inspanning. Deelt het uitvoerbudget: zware beurten kunnen geen ruimte voor het antwoord overlaten.",
+      "was": [
+        "Claude bepaalt de denkdiepte op basis van Inspanning. Deelt het uitvoerbudget: zware beurten kunnen geen ruimte voor het antwoord overlaten."
+      ]
+    }
+  }
+}

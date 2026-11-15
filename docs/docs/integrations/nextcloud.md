@@ -101,4 +101,4 @@ File contents pulled via `nextcloud_read_file` are scanned by the Privacy Shield
 
 ## Group-level disable
 
-Org admins can switch Files & WebDAV (`nextcloud`) off for the whole organisation, or disable it for a Nextcloud group, under **Admin → Organisation → Integrations → Integration settings**. A group exception removes the file tools from a user only when every group they belong to disables it (enable wins). See [Nextcloud integrations](../admin/nc-integrations.md).
+Org admins can switch Files & WebDAV (`nextcloud`) off for the whole organisation, or disable it for a Nextcloud group, under **Admin dashboard → Connections → Integration status**. A group exception removes the file tools from a user only when every group they belong to disables it (enable wins). See [Nextcloud integrations](../admin/nc-integrations.md).

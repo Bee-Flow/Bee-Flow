@@ -34,6 +34,8 @@ vi.mock('../../utils/scopedStorage', () => ({
         getItem: (k) => storeMock.data[k] ?? null,
         setItem: (k, v) => { storeMock.data[k] = v; },
     },
+    // Nobody signed in as far as per-person memory goes (the admin licence tier memory reads it).
+    getCurrentUser: () => null,
 }));
 vi.mock('./NotificationCenter', () => ({ default: () => null }));
 vi.mock('./NavLink', () => ({ default: ({ children, ...p }) => <a {...p}>{children}</a> }));

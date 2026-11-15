@@ -25,6 +25,8 @@ export interface AgentListSidebarProps {
     systemMode: boolean;
     /** The list spans organisations (all organisations in the admin dashboard): each row names its organisation. */
     showOrgNames?: boolean;
+    /** Name the list above it ("Agents"); off where the page frame already does. Default true. */
+    showTitle?: boolean;
     canManage: boolean;
     user: DesignerUser | null;
     onSelect: (agent: DesignerAgent) => void;
@@ -42,6 +44,7 @@ function openWizard() {
 export default function AgentListSidebar(p: AgentListSidebarProps) {
     const { t } = useTranslation();
     const canCreate = !p.systemMode && p.canManage;
+    const showTitle = p.showTitle ?? true;
     let body;
     if (p.loading) {
         body = (
@@ -56,7 +59,7 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
                 <p className="m-0 mb-3">{t('agent_studio.agent_designer_no_agents_found', 'No agents found')}</p>
                 {canCreate && (
                     <button type="button" onClick={p.onCreate} className={SECONDARY_BTN}>
-                        {t('agent_studio.agent_designer_create_first_agent', 'Create First Agent')}
+                        {t('agent_studio.agent_designer_create_first_agent', 'Create first agent')}
                     </button>
                 )}
             </div>
@@ -66,10 +69,13 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
     }
     return (
         <div className="flex max-h-56 w-full flex-shrink-0 flex-col border-b border-[var(--border-default)] bg-[var(--bg-primary)] md:max-h-none md:w-64 md:border-b-0 md:border-r">
-            <div className="flex h-[45px] items-center justify-between border-b border-[var(--border-default)] px-4">
-                <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                    {p.systemMode ? 'System Agents' : 'Agents'}
-                </span>
+            {(showTitle || canCreate) && (
+            <div className={`flex h-[45px] items-center border-b border-[var(--border-default)] px-4 ${showTitle ? 'justify-between' : 'justify-end'}`}>
+                {showTitle && (
+                    <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {p.systemMode ? t('admin.agents_system', 'System agents') : t('admin.tab_agents', 'Agents')}
+                    </span>
+                )}
                 {canCreate && (
                     <div className="flex items-center gap-1">
                         <button
@@ -85,15 +91,17 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
                             type="button"
                             onClick={p.onCreate}
                             className={QUIET_BTN}
-                            title={t('agent_studio.agent_designer_create_new_agent_empty', 'Create New Agent (empty)')}
+                            title={t('agent_studio.agent_designer_create_new_agent_empty', 'Create new agent (empty)')}
+                            aria-label={t('agent_studio.agent_designer_create_new_agent_empty', 'Create new agent (empty)')}
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                         </button>
                     </div>
                 )}
             </div>
+            )}
 
             <div className="custom-scrollbar flex-1 overflow-y-auto p-2">
                 {body}

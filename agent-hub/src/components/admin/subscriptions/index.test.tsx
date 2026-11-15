@@ -31,7 +31,13 @@ describe('SubscriptionsPanel sections', () => {
     it('shows the section the URL names', async () => {
         renderWithClient(<SubscriptionsPanel activeSection="audit" />);
         expect(screen.getByRole('button', { name: 'Audit' })).toHaveAttribute('aria-current', 'page');
-        expect(await screen.findByRole('heading', { level: 2, name: 'Subscription Audit Log' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { level: 2, name: 'Subscription audit log' })).toBeInTheDocument();
+    });
+
+    it('leaves the heading to the dashboard frame when mounted without its nav', async () => {
+        renderWithClient(<SubscriptionsPanel nav={false} activeSection="audit" />);
+        expect(await screen.findByText('Track all subscription plan and organization changes.')).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
     });
 
     it('navigates to admin/subscriptions/<section> from the nav', async () => {

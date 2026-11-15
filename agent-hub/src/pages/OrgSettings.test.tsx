@@ -192,6 +192,14 @@ describe('OrgSettings — tab bar', () => {
         expect(screen.getByRole('button', { name: 'Organisation' })).not.toHaveAttribute('aria-current');
         expect(screen.getByTestId('mock-org-users')).toBeTruthy();
     });
+
+    it('opens the old Users > Sync address on the Nextcloud Sync tab: the sync panel has one home', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1: 'users', seg2: 'sync' }} />);
+        expect(screen.getAllByTestId('mock-nextcloud-sync')).toHaveLength(1);
+        expect(screen.queryByTestId('mock-org-users')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Nextcloud Sync' })).toHaveAttribute('aria-current', 'page');
+    });
 });
 
 // Changed on purpose (wave 2): every tab is a dashboard row now (Knowledge bases and Agents too, and the bare

@@ -66,7 +66,7 @@ export function GrantsTable({ grants, onCopy, onExtend, onRevoke }: GrantsTableP
         <DataTable<Grant>
             columns={columns}
             rows={sorted}
-            ariaLabel={t('admin_subscriptions.grants_title', 'Admin License Grants')}
+            ariaLabel={t('admin_subscriptions.grants_title', 'Admin licence grants')}
             cardsBelow={640}
             renderCard={(g) => (
                 <div className="flex w-full min-w-0 items-center gap-3">

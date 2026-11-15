@@ -125,7 +125,7 @@ module.exports = {
             return {
                 status: 'not_applicable',
                 evidence: { connectors: SOURCES, enabled: [] },
-                details: 'No directory connector enabled — link Google Workspace or Microsoft Entra under ISO 27001 → Connectors to assess the account population.',
+                details: 'No directory connector enabled — link Google Workspace or Microsoft Entra under Compliance → Evidence connectors to assess the account population.',
             };
         }
 
@@ -170,7 +170,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence: { enabled: enabledSources, snapshots: 0 },
-                details: 'Directory connector enabled but no snapshot yet — run a sweep under ISO 27001 → Connectors.',
+                details: 'Directory connector enabled but no snapshot yet — run a sweep under Compliance → Evidence connectors.',
             };
         }
 

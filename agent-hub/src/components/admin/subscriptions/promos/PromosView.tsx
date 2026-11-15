@@ -9,7 +9,7 @@ import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 
 /** One promotion code in `GET /api/stripe/promo-codes`. */
@@ -53,8 +53,8 @@ export function PromosView() {
 
     return (
         <div className="p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.promos_title', 'Promotion Codes')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.promos_title', 'Promotion codes')}
                 description={t('admin_subscriptions.promos_desc', 'Create and manage discount codes that customers can apply at Stripe checkout.')}
                 status={<Button icon={Plus} onClick={() => setCreating(true)}>{t('admin_subscriptions.promos_new_code', 'New code')}</Button>}
             />

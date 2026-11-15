@@ -23,6 +23,7 @@ import { useOrgSettingRead } from './useOrgSettingRead';
 import OrgEditorLoad from './OrgEditorLoad';
 
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useLocaleFormat } from '@/hooks/useLocaleFormat';
 import { messageOf } from '@/utils/caughtError';
 import ChoiceCards from '@/components/shared/ChoiceCards';
 import SaveFooter from '@/components/shared/SaveFooter';
@@ -31,9 +32,6 @@ import Slider from '@/components/shared/Slider';
 import { toast } from '@/components/shared/Toast';
 import { errorBody, RefusedError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
-
-// "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
-const formatTokens = (n: number) => Math.round(n).toLocaleString();
 
 /** The message count the server summarises from when it sends none (contextPolicy.js). */
 const DEFAULT_THRESHOLD = 16;
@@ -68,7 +66,7 @@ interface ContextWindowExample {
  * own label, and a tier name the catalogue does not have keeps the server's
  * English line.
  */
-function exampleLabel(ex: ContextWindowExample, t: TranslateFn): string {
+function exampleLabel(ex: ContextWindowExample, t: TranslateFn, formatTokens: (n: number) => string): string {
     const tier = ex.kind === 'tier' && ex.tierKey ? t(`tier.${ex.tierKey}`, '') : '';
     if (tier && ex.model) {
         return t('admin_ai_context.example_tier', '{tier} ({model})', { tier, model: ex.model });
@@ -191,6 +189,10 @@ function ContextChoice({ form, server, t }: { form: AiContextForm; server: AiCon
 
 /** The safety limit applies in BOTH modes, so it sits outside the choice above. */
 function SafetyLimit({ form, server, t }: { form: AiContextForm; server: AiContextSettings; t: TranslateFn }) {
+    // Token counts in the language on screen, not the browser's: "750,000" reads better
+    // than "750000" and than "0.75M" at these magnitudes.
+    const fmt = useLocaleFormat();
+    const formatTokens = (n: number) => fmt.number(Math.round(n));
     // The server owns the context-window table and the allowed range; the SPA
     // only multiplies. Falling back keeps the screen usable against an older
     // API that doesn't send these yet.
@@ -219,7 +221,7 @@ function SafetyLimit({ form, server, t }: { form: AiContextForm; server: AiConte
                 {examples.length > 0 && (
                     <p className="m-0 text-xs text-[var(--text-muted)]">
                         {examples.map(ex => t('admin_ai_context.example_line', '{label}: about {tokens} tokens', {
-                            label: exampleLabel(ex, t),
+                            label: exampleLabel(ex, t, formatTokens),
                             tokens: formatTokens(ex.contextWindow * form.budgetPercent / 100),
                         })).join('   ·   ')}
                     </p>

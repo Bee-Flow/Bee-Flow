@@ -91,7 +91,7 @@ function SpendView({ sub, extra, view, filters }: { sub: string; extra: SpendExt
 }
 
 function SpendBody(props: SpendTabProps & { deltaPct: number | null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { data, subscription, showTokens, azureServices, compare = true, hasFilters = false, rangeParams, deltaPct, initialSubTab } = props;
     const extraViews = props.extraViews ?? NO_EXTRAS;
     const [sub, setSub] = useState<string>(isSubTab(initialSubTab, extraViews) ? initialSubTab : 'models');
@@ -127,7 +127,7 @@ function SpendBody(props: SpendTabProps & { deltaPct: number | null }) {
             )}
             <SpendHero
                 data={data} subscription={subscription} showTokens={showTokens} currency={currency}
-                rangeLabel={formatDateRange(rangeParams.startDate, rangeParams.endDate)}
+                rangeLabel={formatDateRange(rangeParams.startDate, rangeParams.endDate, resolvedLocale)}
                 deltaPct={deltaPct} showDelta={compare && !hasFilters} days={rangeParams.days}
             />
             <SubTabs

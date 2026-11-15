@@ -23,7 +23,7 @@ runs in the last 24 hours.
 ## "Log" means automation runs
 
 Worth saying plainly, because the word promises more than the screen delivers. Bee Flow
-has several logs — the audit trail (Admin → Compliance), agent conversations, app
+has several logs — the audit trail (Admin dashboard → Security & access → Compliance), agent conversations, app
 action history, knowledge-base ingestion — and **none of them is here**. This section
 holds automation runs and nothing else.
 

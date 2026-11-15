@@ -29,7 +29,7 @@ afterEach(cleanup);
 describe('AccessView', () => {
     it('loads the settings, the geo list and the waitlist', async () => {
         render(<AccessView />);
-        expect(await screen.findByText('Access Control')).toBeTruthy();
+        expect(await screen.findByText('Access control')).toBeTruthy();
         expect(screen.getByText('Netherlands')).toBeTruthy();
         expect(screen.getByText('Ada')).toBeTruthy();
         expect(screen.getByText('visible on the login page')).toBeTruthy();

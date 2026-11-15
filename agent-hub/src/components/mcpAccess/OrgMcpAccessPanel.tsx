@@ -1,9 +1,10 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useMcpAccessQuery, useMcpMembersQuery, useSaveMcpAccess } from '../../api/queries/mcpAccess';
-import type { McpAccessPolicy, McpUserMode } from '../../api/queries/mcpAccess';
+import { useMcpAccessQuery, useMcpMembersQuery, useMcpTokensQuery, useSaveMcpAccess } from '../../api/queries/mcpAccess';
+import type { McpAccessPolicy, McpEligibility, McpUserMode } from '../../api/queries/mcpAccess';
 import { ORG_ROLES } from '../../config/orgRoles';
 import { useTranslation } from '../../hooks/useTranslation';
+import ChoiceCards from '../shared/ChoiceCards';
 import SaveFooter from '../shared/SaveFooter';
 import { SettingsGroup } from '../shared/SettingsList';
 import Toggle from '../shared/Toggle';
@@ -11,6 +12,18 @@ import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, QUIET_BTN, SECONDARY_BT
 import McpConnectBlock from './McpConnectBlock';
 import { MCP_SERVERS, invalidEntries, ipInList, parseList } from './mcpAccessLib';
 import { TOKEN_PLACEHOLDER, mcpOrigin } from './mcpConnect';
+import { orgRoleLabel } from '../admin/org/people/orgRoleLabel';
+
+/**
+ * The servers the connection snippet lists: the ones the viewer can use. The
+ * eligibility comes with the viewer's own token list; a server switched off on
+ * this server, or one the viewer has no right to (the website CMS for an
+ * organisation admin), is left out. Without an answer (an older server) every
+ * server is listed, as the token form does.
+ */
+function connectableServers(eligibility: McpEligibility | undefined) {
+    return MCP_SERVERS.filter(s => eligibility?.[s.id]?.available !== false);
+}
 
 /** The form's own shape: the address list is text while it is being typed. */
 interface Draft {
@@ -42,7 +55,7 @@ function RolePicker({ value, onChange }: { value: string[]; onChange: (next: str
                 {ORG_ROLES.map(r => (
                     <label key={r.id} className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
                         <input type="checkbox" className="accent-[var(--accent-primary)]" checked={value.includes(r.id)} onChange={() => onChange(toggled(value, r.id))} />
-                        {r.label}
+                        {orgRoleLabel(t, r.id)}
                     </label>
                 ))}
             </div>
@@ -139,14 +152,14 @@ function UsersField({ form, onPatch }: { form: Draft; onPatch: (p: Partial<Draft
     return (
         <fieldset className="m-0 p-0 border-0 flex flex-col gap-3">
             <legend className={LABEL}>{t('mcp_access.org.users', 'Who may use MCP')}</legend>
-            <div className="flex flex-wrap gap-4">
-                {modes.map(m => (
-                    <label key={m.value} className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
-                        <input type="radio" className="accent-[var(--accent-primary)]" name="mcp-access-mode" checked={form.mode === m.value} onChange={() => onPatch({ mode: m.value })} />
-                        {m.label}
-                    </label>
-                ))}
-            </div>
+            <ChoiceCards
+                value={form.mode}
+                onChange={mode => onPatch({ mode })}
+                options={modes}
+                columns={3}
+                appearance="radio"
+                ariaLabel={t('mcp_access.org.users', 'Who may use MCP')}
+            />
             {form.mode === 'roles' && <RolePicker value={form.roles} onChange={roles => onPatch({ roles })} />}
             {form.mode === 'users' && <MemberPicker value={form.userIds} onChange={userIds => onPatch({ userIds })} />}
             {nobody && <p className="m-0 text-[11.5px] text-[var(--warning-ink)]">{t('mcp_access.org.nobody', 'Nobody is selected, so nobody could use MCP.')}</p>}
@@ -232,6 +245,7 @@ function PolicyForm({ base, callerIp, lastSavedAt, onSaved }: PolicyFormProps) {
 export default function OrgMcpAccessPanel() {
     const { t } = useTranslation();
     const query = useMcpAccessQuery();
+    const tokens = useMcpTokensQuery();
     // The form re-seeds from the server's policy after a save (its cache entry is replaced).
     const base = useMemo(() => (query.data ? toDraft(query.data.policy) : null), [query.data]);
     const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -239,7 +253,7 @@ export default function OrgMcpAccessPanel() {
     // The page header is the admin dashboard frame's; the intro says what the rules are for.
     return (
         <section aria-label={t('mcp_access.org.title', 'MCP Access')} className="flex flex-col gap-5">
-            <p className="m-0 text-sm text-[var(--text-secondary)]">
+            <p className="m-0 text-xs text-[var(--text-secondary)]">
                 {t('mcp_access.org.intro', 'Control how external MCP clients (desktop assistants, code editors, command-line agents) reach this organisation. These rules apply to MCP only, not to the web app.')}
             </p>
             {query.isPending && (
@@ -260,7 +274,7 @@ export default function OrgMcpAccessPanel() {
                     title={t('admin_connections.mcp_connect_title', 'Connect an MCP client')}
                     description={t('admin_connections.mcp_connect_org_desc', 'Each member creates their own token in Settings › MCP tokens and puts it where this shows <token>.')}
                 >
-                    <McpConnectBlock servers={MCP_SERVERS} origin={mcpOrigin()} token={TOKEN_PLACEHOLDER} heading={false} />
+                    <McpConnectBlock servers={connectableServers(tokens.data?.eligibility)} origin={mcpOrigin()} token={TOKEN_PLACEHOLDER} heading={false} />
                 </SettingsGroup>
             )}
         </section>

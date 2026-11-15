@@ -1,6 +1,6 @@
 import { Mail, Plus, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
 import type { OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 
@@ -106,7 +106,7 @@ export function GroupMembersList({ group, groupsState }: Omit<GroupMembersProps,
                         )}
                     </div>
                     <div className="shrink-0">
-                        <RoleBadge role={group.orgRole || m.role || m.orgRole} />
+                        <OrgRoleChip role={group.orgRole || m.orgRole || m.role} />
                     </div>
                     <button
                         disabled={memberBusy}

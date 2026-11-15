@@ -14,7 +14,7 @@
       "id": "intro",
       "icon": "🧭",
       "title": "Proof, not a feeling",
-      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a sixty-person Dutch installation firm. Every quarter someone asks her the same question: *did the training land?*\n\nThe answer lives in one screen. Admin dashboard → **Organisation** → **Academy**, subtitle **\"Course progress, badges and certificates across your team.\"**\n\nTwo things to know before she opens it:\n\n- It is a **desktop screen**.\n- It reports on **members**: everyone whose organisation is Van Dijk Groep, plus everyone in one of its groups. System accounts and people who have not accepted their invite yet are left out."
+      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a sixty-person Dutch installation firm. Every quarter someone asks her the same question: *did the training land?*\n\nThe answer lives in one screen. Admin dashboard → **Workspace** → **Learning Center**, subtitle **\"Course progress, badges and certificates across your team.\"**\n\nTwo things to know before she opens it:\n\n- It is a **desktop screen**.\n- It reports on **members**: everyone whose organisation is Van Dijk Groep, plus everyone in one of its groups. System accounts and people who have not accepted their invite yet are left out."
     },
     {
       "type": "slide",
@@ -142,7 +142,7 @@
           {
             "id": "p4",
             "left": "Invoices and exports carry no company details for Van Dijk Groep.",
-            "right": "Organisation Info",
+            "right": "Organisation info",
             "note": "Company Name, Street, Chamber of Commerce (KVK) and VAT Number live in the organisation profile, not in a course."
           }
         ]
@@ -153,7 +153,7 @@
       "id": "orginfo",
       "icon": "🏢",
       "title": "Three fields, three different moments",
-      "bodyMd": "A month in, two things go wrong on one day. The bookkeeper bounces the plan invoice — no Chamber of Commerce number, no VAT number — and the new colleague Marieke invited to take the course signs in to an English workspace nobody asked for.\n\nBoth live in **Organisation → Organisation Info**, where the three blocks fail in three different ways.\n\n**Branding** — **Logo** (*\"Displayed in the UI header and exports. PNG or SVG, max 500×200px.\"*), **Company Name**, **Tagline**, **Description**, **Email**, **Phone**, **Website**. Left empty, the header and every export go out nameless.\n\n**Legal & Invoicing** — **Street** (*\"Used on invoices and to calculate tax at checkout.\"*), **Address line 2**, **Postal code**, **City**, **Country**, **Chamber of Commerce (KVK)**, **VAT Number**. The address is not decoration; it is read when the tax at checkout is worked out.\n\n**New User Language** — *\"Set the default interface language for new users in your organisation.\"* Read once, at account creation. So it is worth setting **before** the invites go out.\n\nAnd nothing is stored until you click **Save changes** on the **Unsaved changes** bar."
+      "bodyMd": "A month in, two things go wrong on one day. The bookkeeper bounces the plan invoice — no Chamber of Commerce number, no VAT number — and the new colleague Marieke invited to take the course signs in to an English workspace nobody asked for.\n\nBoth live in **Admin dashboard → Workspace → Organisation info**, where the three blocks fail in three different ways.\n\n**Branding** — **Logo** (*\"Displayed in the UI header and exports. PNG or SVG, max 500×200px.\"*), **Company Name**, **Tagline**, **Description**, **Email**, **Phone**, **Website**. Left empty, the header and every export go out nameless.\n\n**Legal & Invoicing** — **Street** (*\"Used on invoices and to calculate tax at checkout.\"*), **Address line 2**, **Postal code**, **City**, **Country**, **Chamber of Commerce (KVK)**, **VAT Number**. The address is not decoration; it is read when the tax at checkout is worked out.\n\n**New User Language** — *\"Set the default interface language for new users in your organisation.\"* Read once, at account creation. So it is worth setting **before** the invites go out.\n\nAnd nothing is stored until you click **Save changes** on the **Unsaved changes** bar."
     },
     {
       "type": "quiz",
@@ -185,7 +185,7 @@
           "feedback": "One Save changes bar covers the screen, but the fields are not all-or-nothing: each is read by whatever needs it, whenever that happens. A saved VAT Number counts even with the Logo still empty."
         }
       ],
-      "explanation": "Organisation Info holds three kinds of setting with three different moments of effect. Branding is read whenever the header or an export is drawn. Legal & Invoicing is read when an invoice is produced or tax is calculated at checkout. New User Language is read once, at account creation — so it changes the next colleague's workspace, never the current one's. All three share one save: nothing at all is stored until Save changes on the Unsaved changes bar."
+      "explanation": "Organisation info holds three kinds of setting with three different moments of effect. Branding is read whenever the header or an export is drawn. Legal & Invoicing is read when an invoice is produced or tax is calculated at checkout. New User Language is read once, at account creation — so it changes the next colleague's workspace, never the current one's. All three share one save: nothing at all is stored until Save changes on the Unsaved changes bar."
     },
     {
       "type": "action",
@@ -193,10 +193,10 @@
       "icon": "🏗️",
       "checkId": "org-info",
       "title": "Finish the organisation profile",
-      "instruction": "Open Organisation Info and complete the Legal & Invoicing block the way an invoice to your organisation would have to carry it: fill in Street and the VAT Number, and add Postal code, City, Country and the Chamber of Commerce (KVK) number while you are there. Then set New User Language to the language your next colleague should land in, because it is read at account creation and not afterwards. Click Save changes when the Unsaved changes bar appears — we then check the saved profile for a street address and a VAT number.",
+      "instruction": "Open Organisation info and complete the Legal & Invoicing block the way an invoice to your organisation would have to carry it: fill in Street and the VAT Number, and add Postal code, City, Country and the Chamber of Commerce (KVK) number while you are there. Then set New User Language to the language your next colleague should land in, because it is read at account creation and not afterwards. Click Save changes when the Unsaved changes bar appears — we then check the saved profile for a street address and a VAT number.",
       "launch": {
         "navigateTo": "admin/organisation/info",
-        "label": "Open Organisation Info"
+        "label": "Open Organisation info"
       }
     },
     {
@@ -231,7 +231,7 @@
       "The server caches the Academy aggregation for 60 seconds per organisation, so Refresh inside that window returns the same snapshot.",
       "Org authors can add Slide, Quiz and Exercise steps only; the limits are 50 courses per organisation, 20 lessons per course and 30 steps per lesson.",
       "Publish copies the draft course and all its lessons into a published snapshot; Unpublish removes only that snapshot and leaves the drafts.",
-      "Organisation Info's Legal & Invoicing block (Street, Country, KVK, VAT Number) is what invoices and the tax calculation at checkout read; Street's own hint says so.",
+      "Organisation info's Legal & Invoicing block (Street, Country, KVK, VAT Number) is what invoices and the tax calculation at checkout read; Street's own hint says so.",
       "New User Language sets the default interface language for new users only: it is read at account creation, so changing it leaves existing members on the language they already have. Nothing on the screen is stored until Save changes on the Unsaved changes bar."
     ]
   },
@@ -240,7 +240,7 @@
       "checkId": "org-info",
       "existing": false,
       "label": "Fill in the invoicing details on the organisation profile",
-      "hint": "Admin dashboard → Organisation → Organisation Info → Legal & Invoicing: fill in Street and VAT Number, then Save changes.",
+      "hint": "Admin dashboard → Workspace → Organisation info → Legal & Invoicing: fill in Street and VAT Number, then Save changes.",
       "endpoints": [
         {
           "method": "GET",
@@ -257,7 +257,7 @@
             "field": "address"
           },
           "label": "A street address is saved on the profile",
-          "hint": "Street, under Legal & Invoicing on Organisation Info — it is read when the tax at checkout is worked out.",
+          "hint": "Street, under Legal & Invoicing on Organisation info — it is read when the tax at checkout is worked out.",
           "rule": "GET /auth/organizations/<your org id> → the object's `address` is a non-empty string"
         },
         {

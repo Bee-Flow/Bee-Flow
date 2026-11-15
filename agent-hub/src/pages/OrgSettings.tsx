@@ -64,9 +64,14 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
     ];
 
     const allowedTabs = tabs.filter(tab => tab.allowed);
-    const activeTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
+    const requestedTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
         ? orgSettingsPath.seg1
         : (allowedTabs[0]?.id || null);
+    // The old Users > Sync address (bookmarks, the phone app, a lesson) opens
+    // the Nextcloud Sync tab: the sync panel has that one home on this page.
+    const activeTab = requestedTab === 'users' && orgSettingsPath.seg2 === 'sync' && allowedTabs.some(tab => tab.id === 'nextcloud-sync')
+        ? 'nextcloud-sync'
+        : requestedTab;
 
     // A desktop opens every tab of this page in the admin dashboard, where each
     // one is a row (ORG_SETTINGS_ADMIN_TARGETS), when the dashboard opens that

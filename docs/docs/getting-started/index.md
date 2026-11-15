@@ -78,7 +78,7 @@ The full list of tested configurations is in [Connector → Compatibility](../co
 
 You need at least one configured. They are optional layered — the same agent can call any of them.
 
-A provider and its API key are added in the app, under **Admin → AI Config**, and
+A provider and its API key are added in the app, under **Admin dashboard → Whole server → AI configuration → Providers**, and
 stored encrypted in the database. The variable names earlier versions of this page
 listed (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_KEY`, `VOXTRAL_API_KEY`,
 `ELEVENLABS_API_KEY`, `OLLAMA_BASE_URL`) are not read by the server.

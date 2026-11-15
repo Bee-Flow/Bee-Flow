@@ -8,7 +8,7 @@ import { claudeAddCommand, type McpServerInfo } from './mcpAccessLib';
 import { authHeader, clientConfigJson, serverUrl } from './mcpConnect';
 import { useServerName } from './serverNames';
 
-type ConnectTab = 'any' | 'claude-code';
+type ConnectTab = 'any' | 'cli';
 
 const CODE = 'm-0 mt-1 px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[11.5px] font-mono whitespace-pre-wrap break-all text-[var(--text-primary)]';
 
@@ -49,8 +49,8 @@ interface McpConnectBlockProps {
 /**
  * How to connect an MCP client to this server. The first tab works for any
  * client (the address of each server, the Authorization header, the JSON
- * block of a configuration file); the second is the ready-made command of
- * one command-line client.
+ * block of a configuration file); the second, "Command-line client", the
+ * ready-made command of one such client, named in its hint as an example.
  */
 export default function McpConnectBlock({ servers, origin, token, heading = true }: McpConnectBlockProps) {
     const { t } = useTranslation();
@@ -77,7 +77,7 @@ export default function McpConnectBlock({ servers, origin, token, heading = true
                 ariaLabel={t('admin_connections.mcp_connect_title', 'Connect an MCP client')}
                 items={[
                     { id: 'any' as const, label: t('admin_connections.mcp_tab_any', 'Any MCP client') },
-                    { id: 'claude-code' as const, label: t('mcp_access.reveal.commands', 'Connect Claude Code') },
+                    { id: 'cli' as const, label: t('mcp_access.reveal.commands', 'Command-line client') },
                 ]}
             />
             {tab === 'any' ? (
@@ -93,6 +93,9 @@ export default function McpConnectBlock({ servers, origin, token, heading = true
                 </div>
             ) : (
                 <div className="flex flex-col gap-2">
+                    <p className="m-0 text-[12px] text-[var(--text-secondary)]">
+                        {t('security_access.mcp_cli_hint', 'A ready-made command per server for a command-line client. The format is that of Claude Code; another client takes the same address and header.')}
+                    </p>
                     {servers.map(s => (
                         <CopyRow key={s.id} id={`cmd-${s.id}`} label={serverName(s.id)} text={claudeAddCommand(s, origin, token)} copied={copied} onCopy={copy} />
                     ))}

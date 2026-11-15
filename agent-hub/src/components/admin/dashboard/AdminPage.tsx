@@ -7,10 +7,12 @@
 //   fill      a tool that owns its scrolling (a list beside a detail, an editor
 //             with its own columns, a report with a drawer): the header on top
 //             and the panel filling the rest of the pane at its full width.
-// A fill panel pads itself (p-6 md:p-8): the frame pads only its header, which
-// then lines up with the panel's content; on the other widths the frame pads
-// the page. Rendered by AdminTabContent for every tab, and by the Organisation
-// tab's OrganisationHub / OrgSectionBody for its sections.
+// On a fill page the frame pads its header; the panel either pads itself
+// (p-6 md:p-8, its own scrolling list), or (`inset`) the frame insets it by the
+// header's padding, so a list beside a detail starts where the header starts and
+// a save bar ends 32px from the edge like every other page. On the other widths
+// the frame pads the page. Rendered by AdminTabContent for every tab, and by the
+// Organisation tab's OrganisationHub / OrgSectionBody for its sections.
 
 import type { ComponentType, ReactNode } from 'react';
 import SectionHeader from '@/components/shared/SectionHeader';
@@ -23,6 +25,8 @@ interface AdminPageProps {
     description?: ReactNode;
     icon?: ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
     width?: AdminPageWidth;
+    /** A fill page whose panel draws no padding of its own: the frame insets it like the header. */
+    inset?: boolean;
     children: ReactNode;
     testId?: string;
 }
@@ -34,19 +38,21 @@ const WIDTH: Readonly<Record<Exclude<AdminPageWidth, 'fill'>, string>> = {
 
 /** The header's own padding on a fill page, whose panel pads itself. */
 const HEADER_INSET = 'px-6 pt-6 md:px-8 md:pt-8';
+/** The panel's box on an inset fill page: the header's sides, the gap a padded page has under it, and the page's bottom. */
+const PANEL_INSET = 'inset-x-6 top-6 bottom-6 md:inset-x-8 md:bottom-8';
 
 function Header({ title, description, icon }: Pick<AdminPageProps, 'title' | 'description' | 'icon'>) {
     return <SectionHeader title={title} description={description} icon={icon} />;
 }
 
-export default function AdminPage({ title, description, icon, width = 'settings', children, testId }: AdminPageProps) {
+export default function AdminPage({ title, description, icon, width = 'settings', inset = false, children, testId }: AdminPageProps) {
     const header = title != null ? <Header title={title} description={description} icon={icon} /> : null;
     if (width === 'fill') {
         return (
-            <div className="flex h-full min-h-0 flex-col" data-testid={testId} data-admin-page-width={width}>
+            <div className="flex h-full min-h-0 flex-col" data-testid={testId} data-admin-page-width={width} data-admin-page-inset={inset ? 'true' : undefined}>
                 {header && <div className={`shrink-0 ${HEADER_INSET}`} data-testid="admin-page-header">{header}</div>}
                 <div className="relative min-h-0 flex-1">
-                    <div className="absolute inset-0">{children}</div>
+                    <div className={`absolute ${inset ? PANEL_INSET : 'inset-0'}`}>{children}</div>
                 </div>
             </div>
         );

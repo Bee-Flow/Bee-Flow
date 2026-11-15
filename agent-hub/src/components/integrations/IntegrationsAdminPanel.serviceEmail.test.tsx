@@ -82,7 +82,7 @@ describe('IntegrationsAdminPanel — section navigation', () => {
         expect(screen.getByRole('button', { name: 'Email' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'Defaults for new organisations' })).not.toHaveAttribute('aria-current');
         // The feature switches moved to Licence & features, the search provider to AI configuration.
-        expect(screen.queryByRole('button', { name: 'admin.integ_features' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Features' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument();
     });
 

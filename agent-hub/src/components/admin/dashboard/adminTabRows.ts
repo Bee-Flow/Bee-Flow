@@ -8,6 +8,7 @@ import {
     Package, Palette, Settings, Shield, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, ToggleLeft, Users,
 } from 'lucide-react';
 import { ADVANCED_PAGES_FEATURE, isPageAllowedFor } from '@/components/admin/monitoring/monitoring.constants';
+import { SUBSCRIPTIONS_SECTIONS } from '@/components/admin/subscriptions/subscriptionsSections';
 import type { AdminRailGateContext, AdminRailRowDef } from './adminRailRowDef';
 
 type ChildDef = Pick<AdminRailRowDef, 'section' | 'labelKey' | 'labelFallback' | 'descriptionKey' | 'descriptionFallback' | 'icon' | 'gate'>;
@@ -85,7 +86,8 @@ const advancedPage = (id: string) => (c: AdminRailGateContext) => isPageAllowedF
 
 /**
  * Usage & monitoring (the descriptions are the monitoring pages' own; the frame
- * leaves them out, the panel shows them beside the period). The Usage explorer
+ * names the page only, the panel shows the description in the header's one small
+ * line, joined with the scope, beside the period). The Usage explorer
  * is part of Spend now (alias monitoring/usage). Overview for every admin of the tab, the other pages
  * with the advanced-monitoring capability; Feedback also for a platform admin
  * or an organisation admin of the home organisation only (the `/org` route).
@@ -114,3 +116,15 @@ export const APPEARANCE_RAIL_ROWS: readonly AdminRailRowDef[] = children({ group
     { section: 'look', labelKey: 'admin_nav.look', labelFallback: 'Look', descriptionKey: 'admin_nav.look_desc', descriptionFallback: 'Colours, fonts, logo and name of this server.', icon: Palette },
     { section: 'icon-packs', labelKey: 'admin_nav.icon_packs', labelFallback: 'Icon packs', descriptionKey: 'admin_nav.icon_packs_desc', descriptionFallback: 'The icon sets people can choose from.', icon: Package },
 ]);
+
+/**
+ * Subscriptions (Bee Flow Cloud, the whole server): its sections, once a second
+ * column inside the pane (SubscriptionsPanel nav={false} now). The ids are the
+ * addresses it always had (admin/subscriptions/<section>), so old links land;
+ * admin/subscriptions alone opens Plans, the first child. No description: each
+ * page opens on its own.
+ */
+export const SUBSCRIPTIONS_RAIL_ROWS: readonly AdminRailRowDef[] = children(
+    { group: 'operations', block: 'instance' },
+    SUBSCRIPTIONS_SECTIONS.map(({ id, icon, labelKey, label }) => ({ section: id, labelKey, labelFallback: label, icon })),
+);

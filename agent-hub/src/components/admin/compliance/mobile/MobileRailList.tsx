@@ -19,7 +19,7 @@ import type { TimeInput } from '@/components/shared/deadlineMath';
 import { toneDotClass, toneInkClass } from '../shared/toneClasses';
 import { visibleSections } from '../ComplianceRail';
 import railMeta, { railHint, railRowTitle } from '../railMeta';
-import { GROUPS, sectionsInGroup } from '../sections';
+import { GROUPS, sectionById, sectionsInGroup } from '../sections';
 
 interface SectionLike {
     id: string;
@@ -131,6 +131,8 @@ function MobileSectionRow({ section, meta, hint = null, active, onClick, t }: Mo
  *   active     current section id (marks the row)
  *   onSelect   (sectionId) → void
  *   showHeads  print the group heading above each card (registers view)
+ *   withOverview  put the Overview row first, in a card of its own (the desktop
+ *              section drawer, which stands in for the whole rail)
  */
 interface MobileRailListProps {
     groups: string[];
@@ -139,13 +141,21 @@ interface MobileRailListProps {
     onSelect: (sectionId: string) => void;
     active: string;
     showHeads?: boolean;
+    withOverview?: boolean;
     testId?: string;
 }
 
-export default function MobileRailList({ groups, counts, frameworks, active, onSelect, showHeads = false, testId = 'mobile-rail-list' }: MobileRailListProps) {
+export default function MobileRailList({ groups, counts, frameworks, active, onSelect, showHeads = false, withOverview = false, testId = 'mobile-rail-list' }: MobileRailListProps) {
     const { t } = useTranslation();
+    const overview = withOverview ? sectionById('overview') : null;
     return (
         <div data-testid={testId} className="flex flex-col gap-3">
+            {overview && (
+                <MobileCard testId={`${testId}-overview`}>
+                    <MobileSectionRow section={overview} meta={railMeta(overview, counts, t)} hint={railHint(overview, counts, t)}
+                        active={active === overview.id} onClick={() => onSelect(overview.id)} t={t} />
+                </MobileCard>
+            )}
             {groups.map((groupId) => {
                 const group = GROUPS.find(g => g.id === groupId);
                 const rows = visibleSections(sectionsInGroup(groupId), { counts, frameworks });

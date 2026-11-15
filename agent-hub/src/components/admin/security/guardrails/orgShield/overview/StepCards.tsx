@@ -2,6 +2,7 @@ import { ListChecks } from 'lucide-react';
 
 import { STEPS, factsForStep, stepLink, type CopyContext, type Fact, type StepDef } from './overviewCopy';
 import type { GoTo, Posture } from './types';
+import { QUIET_BTN } from '@/components/shared/adminUi';
 
 /**
  * "How things stand": every posture row, grouped into the four steps a
@@ -56,7 +57,7 @@ function StepCard({ step, posture, ctx, onGoTo }: CardProps) {
                     type="button"
                     onClick={() => onGoTo(step.tab)}
                     aria-label={link.ariaLabel}
-                    className="ml-auto text-xs font-semibold text-[var(--info-ink)] hover:underline shrink-0"
+                    className={`${QUIET_BTN} ml-auto -my-1 shrink-0`}
                 >
                     {link.text}
                 </button>

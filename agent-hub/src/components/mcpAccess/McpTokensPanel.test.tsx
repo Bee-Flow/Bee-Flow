@@ -205,7 +205,7 @@ it('shows the secret once, with a ready command for exactly the servers granted,
     expect(within(reveal).getByText('Authorization: Bearer bfmcp_abc_secret123')).toBeInTheDocument();
     expect(within(reveal).queryByText(/claude mcp add/)).not.toBeInTheDocument();
     // The command-line client's ready commands are one tab next to it.
-    await user.click(within(reveal).getByRole('tab', { name: 'Connect Claude Code' }));
+    await user.click(within(reveal).getByRole('tab', { name: 'Command-line client' }));
     expect(within(reveal).getAllByText(/^claude mcp add --transport http /)).toHaveLength(2);
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms .*\/mcp\/cms --header "Authorization: Bearer bfmcp_abc_secret123"/)).toBeInTheDocument();
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow .*\/mcp --header/)).toBeInTheDocument();
@@ -363,7 +363,7 @@ it('builds the server address and the claude mcp add line from the base URL the 
     await user.click(form.getByRole('button', { name: 'Create token' }));
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
     expect(within(reveal).getByText('https://flow.example.org/mcp/cms')).toBeInTheDocument();
-    await user.click(within(reveal).getByRole('tab', { name: 'Connect Claude Code' }));
+    await user.click(within(reveal).getByRole('tab', { name: 'Command-line client' }));
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms https:\/\/flow\.example\.org\/mcp\/cms /)).toBeInTheDocument();
 });
 

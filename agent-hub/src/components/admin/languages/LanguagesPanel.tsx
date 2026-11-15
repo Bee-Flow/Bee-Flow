@@ -15,6 +15,7 @@ import Spinner from '@/components/shared/Spinner';
 import StudioShell from '@/components/shared/StudioShell';
 import Tabs from '@/components/shared/Tabs';
 import { ALERT_ERROR, CHIP, QUIET_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
+import { SECTION_NAV_LIST, SECTION_NAV_ROW_ACTIVE, SECTION_NAV_ROW_BOX, SECTION_NAV_ROW_IDLE, SECTION_NAV_ROW_LABEL } from '@/components/shared/sectionNavRecipe';
 
 type LanguagesSection = 'gui' | 'prompts' | 'emails';
 
@@ -36,30 +37,30 @@ type LocaleListProps = Pick<LanguagesState,
 const ROW_ACTION = 'rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]';
 
 /**
- * The sidebar: the installed locales, in SectionNav's row recipe (the current
- * one on the tertiary surface, medium weight), with Set default and Delete on
- * hover and on the current row. Export and Import sit in the editor's header,
+ * The sidebar: the installed locales, in SectionNav's row recipe
+ * (shared/sectionNavRecipe, the rail's look: the current row a raised card),
+ * with Set default and Delete on hover and on the current row. Export and Import sit in the editor's header,
  * once, for the locale that is open.
  */
 function LocaleList({ locales, selectedLocale, setSelectedLocale, handleSetDefault, handleDeleteLocale }: LocaleListProps) {
     const { t } = useTranslation();
     return (
-        <nav aria-label={t('admin_languages.title', 'Languages')} className="flex flex-row gap-0.5 overflow-x-auto p-2 md:flex-col md:overflow-x-visible">
+        <nav aria-label={t('admin_languages.title', 'Languages')} className={SECTION_NAV_LIST}>
             {locales.map(locale => {
                 const active = selectedLocale === locale.code;
                 return (
                     <div
                         key={locale.code}
-                        className={`group flex shrink-0 items-center gap-1 rounded-md pr-1 md:shrink ${active ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
+                        className={`group flex shrink-0 items-center gap-1 pr-1 md:shrink ${SECTION_NAV_ROW_BOX} ${active ? SECTION_NAV_ROW_ACTIVE : SECTION_NAV_ROW_IDLE}`}
                     >
                         <button
                             type="button"
                             onClick={() => setSelectedLocale(locale.code)}
                             aria-current={active ? 'page' : undefined}
-                            className={`flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm ${active ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            className={`flex min-w-0 flex-1 ${SECTION_NAV_ROW_LABEL}`}
                         >
                             <span className="truncate">{locale.name}</span>
-                            <span className="text-xs text-[var(--text-tertiary)]">{locale.code}</span>
+                            <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{locale.code}</span>
                             {locale.isDefault && <span className={CHIP}>{t('admin_languages.default', 'Default')}</span>}
                         </button>
                         {locale.code !== 'en' && (

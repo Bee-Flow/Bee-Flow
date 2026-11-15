@@ -1,11 +1,16 @@
 {
   "translations": {
+    "admin_platform.access_category_custom": "Eigen integraties",
+    "admin_platform.access_category_mcp": "MCP-servers",
     "admin_platform.access_granted_count": "{count} toegekend",
     "admin_platform.api_key_ph": "API-sleutel",
     "admin_platform.ceiling_edit_plan_all": "Abonnement wijzigen voor al zijn organisaties",
     "admin_platform.ceiling_licence_expires": "Verloopt op {date}",
     "admin_platform.ceiling_manage_licence": "Licentie beheren",
+    "admin_platform.ceiling_no_plan": "Geen abonnement",
+    "admin_platform.ceiling_open_subscriptions": "Beheren onder Abonnementen",
     "admin_platform.ceiling_open_switches": "Functieschakelaars openen",
+    "admin_platform.ceiling_plan_readonly_intro": "Het abonnement van {org} is het plafond van wat deze organisatie kan gebruiken. Abonnementen worden toegewezen en gewijzigd onder Abonnementen; wat het abonnement bevat, verdeel je onder Toekenningen over leden en groepen.",
     "admin_platform.ceiling_plan_shared": "Als je {plan} wijzigt, verandert het plafond voor alle {count} organisaties met dit abonnement, niet alleen voor {org}.",
     "admin_platform.ceiling_plan_shared_one": "Als je {plan} wijzigt, verander je het abonnement zelf: elke organisatie die het later krijgt, krijgt hetzelfde plafond als {org}.",
     "admin_platform.ceiling_switches_hint": "Platformfuncties die voor iedereen op deze server uit staan, vallen buiten elk plafond.",

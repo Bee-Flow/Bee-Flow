@@ -70,6 +70,8 @@ export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'admin/organisation/memory':            { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
     'admin/organisation/models':            { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
     'admin/organisation/projects':          { feat: ['projects'], permView: ['org_admin'], permWrite: ['org_admin'] },
+    // Access: the grants per group (the Integration access tab of the old Integrations page).
+    'admin/access':                         { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
     'settings/preferences':                    { feat: [], permView: [], permWrite: [] },
     'settings/security':                       { feat: [], permView: [], permWrite: [] },
     'studio/agents':                           { feat: [], permView: [], permWrite: ['manage_agents'] },

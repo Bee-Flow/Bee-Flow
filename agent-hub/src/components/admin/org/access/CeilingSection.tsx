@@ -20,7 +20,9 @@ interface CeilingSectionProps {
 /**
  * CeilingSection — routes the ceiling surface by role + deployment mode:
  *   - org-admin (any mode)        → read-only view of the org's access
- *   - super-admin + cloud         → assign plan + edit plan allow-lists
+ *   - super-admin + cloud         → the plan, read-only, with a link to
+ *                                   Whole server > Subscriptions, where plans
+ *                                   are assigned and edited
  *   - super-admin + self-hosted   → the licence tier, read-only, with links to
  *                                   where the licence and the feature switches
  *                                   are changed (Whole server > Licence & features)
@@ -44,7 +46,7 @@ export default function CeilingSection({ mode, isSuperAdmin, orgId, orgName, onC
                         <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                         {t('admin.scope_org_named', 'Organisation: {name}', { name: orgName || orgId })}
                     </h3>
-                    {selfHosted ? null : <CloudCeilingEditor orgId={orgId} orgName={orgName} onCeilingChanged={onCeilingChanged} />}
+                    {selfHosted ? null : <CloudCeilingEditor orgId={orgId} orgName={orgName} />}
                     <OrgAccessEditor orgId={orgId} onChanged={onCeilingChanged} />
                 </section>
             ) : chooseOrg}

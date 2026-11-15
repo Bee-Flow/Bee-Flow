@@ -1,0 +1,46 @@
+{
+  "reworded": {
+    "compliance.checks.iso_backups.fix": {
+      "nl": "Schakel in de Scaleway-console (of via de API) een snapshotschema in voor elk Instance-volume, mik op minstens één snapshot per 3 dagen per server en voer daarna de controle opnieuw uit bij Compliance → Bewijsconnectors.",
+      "was": [
+        "Schakel in de Scaleway-console (of via de API) een snapshotschema in voor elk Instance-volume, mik op minstens één snapshot per 3 dagen per server en voer daarna de controle opnieuw uit bij ISO 27001 › Connectors."
+      ]
+    },
+    "compliance.checks.iso_deletion.fix": {
+      "nl": "Open Compliance → Instellingen en controleer de heartbeat van de bewaartaak. Start de server opnieuw als de afdwinger niet draait. Handel achterstallige verwijderverzoeken af bij Compliance → Verzoeken (DSR).",
+      "was": [
+        "Open Compliance › Instellingen en controleer de heartbeat van de bewaartaak. Start de server opnieuw als de afdwinger niet draait. Handel achterstallige verwijderverzoeken af in de DSR-inbox."
+      ]
+    },
+    "compliance.checks.iso_logging.fix": {
+      "nl": "Open Beheerdashboard → Werkruimte → Gebruik en monitoring → Activiteit en controleer of er nieuwe gebeurtenissen blijven verschijnen. Als de grootboeken leeg blijven terwijl mensen werken, controleer dan of de logging van Privacy Shield en integraties aanstaat. Inlogpogingen worden automatisch vastgelegd; een leeg inloggrootboek in een werkruimte die wordt gebruikt, betekent dat de authenticatiegebeurtenissen de database niet bereiken.",
+      "was": [
+        "Open Monitoring › Activiteit en controleer of er nieuwe gebeurtenissen blijven verschijnen. Als de grootboeken leeg blijven terwijl mensen werken, controleer dan of de logging van Privacy Shield en integraties aanstaat. Inlogpogingen worden automatisch vastgelegd; een leeg inloggrootboek in een werkruimte die wordt gebruikt, betekent dat de authenticatiegebeurtenissen de database niet bereiken."
+      ]
+    },
+    "compliance.checks.iso_mail_security.fix": {
+      "nl": "Schakel de mailbeveiligingsconnector in bij Compliance → Bewijsconnectors, stel je domein in en voeg de ontbrekende DNS-records toe bij je DNS-provider.",
+      "was": [
+        "Schakel de mailbeveiligingsconnector in bij ISO 27001 › Connectors, stel je domein in en voeg de ontbrekende DNS-records toe bij je DNS-provider."
+      ]
+    },
+    "compliance.checks.iso_network_exposure.fix": {
+      "nl": "Bewerk de gemarkeerde beveiligingsgroepen in de Scaleway-console: beperk beheerpoorten tot de adressen van je VPN of kantoor, stel het standaard inkomende beleid in op drop en voer daarna de controle opnieuw uit bij Compliance → Bewijsconnectors.",
+      "was": [
+        "Bewerk de gemarkeerde beveiligingsgroepen in de Scaleway-console: beperk beheerpoorten tot de adressen van je VPN of kantoor, stel het standaard inkomende beleid in op drop en voer daarna de controle opnieuw uit bij ISO 27001 › Connectors."
+      ]
+    },
+    "compliance.checks.iso_secure_auth.fix": {
+      "nl": "Schakel een single sign-on-provider (Google, Microsoft of Nextcloud) in bij Beheerdashboard → Hele server → Aanmelden en SSO en laat de ingebouwde modules voor blokkade, sessies en wachtwoordbeleid ongewijzigd.",
+      "was": [
+        "Schakel een single sign-on-provider (Google, Microsoft of Nextcloud) in bij Beveiliging › SSO en laat de ingebouwde modules voor blokkade, sessies en wachtwoordbeleid ongewijzigd."
+      ]
+    },
+    "compliance.checks.iso_tls_endpoints.fix": {
+      "nl": "Schakel de TLS-connector in bij Compliance → Bewijsconnectors, geef je openbare endpoints op en vernieuw elk certificaat dat de controle markeert.",
+      "was": [
+        "Schakel de TLS-connector in bij ISO 27001 › Connectors, geef je openbare endpoints op en vernieuw elk certificaat dat de controle markeert."
+      ]
+    }
+  }
+}

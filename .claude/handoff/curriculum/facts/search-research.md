@@ -183,12 +183,12 @@ Three columns: **Sources** (left drawer) · document editor · **AI Chat** (righ
 - **Cowork** (sidebar **"Cowork"**, `/api/cowork`): scheduled unattended work. Composer placeholder
   **"Describe the work — Bee Flow runs it and reports back"**, buttons **"Run"** / **"Schedule"**.
   A cowork item's `toolsEnabled` defaults to `['agent_search']` — i.e. **scheduled work has web search on by default**.
-- **Admin → Integrations → Search** (super-admin only, `IntegrationsAdminPanel/SearchSection.jsx`):
+- **Admin dashboard → Whole server → AI configuration → Search & retrieval** (super-admin only, `IntegrationsAdminPanel/SearchSection.jsx`):
   provider dropdown **Disabled** / **Azure Bing Search** / **Cloud-only (Serper + provider APIs)** /
   **Self-hosted (Agent Search + Serper)**, plus **"Agent Search Service URL"** and
   **"Agent Search Default Options"** (Default Mode, Include citations, per-mode Max Results / Fetch Top N /
   Max Tokens / Detail Level).
-- **Admin → Security → Guardrails → Organisations**, an organisation's shield, tab **"Leaving your org"**: **"Protect web searches"** —
+- **Admin dashboard → Whole server → Guardrail library → Organisations**, an organisation's shield, tab **"Leaving your org"**: **"Protect web searches"** —
   *"Stop search terms that contain personal data from being sent to an outside search engine."*
   (locked note: **"Protecting web searches is an Enterprise feature."**) and
   **"No web search while a file is attached"** — *"When someone attaches a document, do not let the AI search

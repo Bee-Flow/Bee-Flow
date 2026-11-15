@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import type { CustomTierMeta, OrgGroupRow } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
+import { orgRoleLabel } from '../people/orgRoleLabel';
 
 interface GroupSettingsProps {
     group: OrgGroupRow;
@@ -60,7 +61,7 @@ export function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onCha
             >
                 <option value="">{t('admin_org.users_user_default', 'User (default)')}</option>
                 {ORG_ROLES.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
+                    <option key={r.id} value={r.id}>{orgRoleLabel(t, r.id)}</option>
                 ))}
             </select>
             {group.orgRole && (

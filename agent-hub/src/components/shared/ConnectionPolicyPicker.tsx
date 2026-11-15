@@ -68,15 +68,15 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: Connect
     const rows = lendable.filter((p) => (connsByProvider[p] || []).length > 0);
     if (loading || !resourceId || rows.length === 0) {
         if (!resourceId && lendable.length > 0) {
-            return <p className="text-[11px] text-muted mt-2">{t('connections.lending_save_first', 'Save the agent to configure connection lending.')}</p>;
+            return <p className="text-[11px] text-[var(--text-muted)] mt-2">{t('connections.lending_save_first', 'Save the agent to configure connection lending.')}</p>;
         }
         return null;
     }
 
     return (
-        <div className="mt-4 rounded-xl p-3 [border:1px_solid_var(--border-subtle)] [background:rgba(16,185,129,0.04)]">
-            <p className="text-xs font-medium text-primary">{t('connections.lending_title', 'Connection lending')}</p>
-            <p className="text-[11px] text-muted mt-0.5 mb-2">
+        <div className="mt-4 rounded-xl p-3 border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+            <p className="text-xs font-medium text-[var(--text-primary)]">{t('connections.lending_title', 'Connection lending')}</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 mb-2">
                 {t('connections.lending_hint', 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).')}
             </p>
             <div className="space-y-2">
@@ -85,7 +85,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: Connect
                     const current = grantByProvider[provider]?.connectionId || '';
                     return (
                         <div key={provider} className="flex items-center gap-2">
-                            <span className="text-[12px] text-primary flex-1">{PROVIDER_NAME[provider] || provider}</span>
+                            <span className="text-[12px] text-[var(--text-primary)] flex-1">{PROVIDER_NAME[provider] || provider}</span>
                             <select
                                 value={current}
                                 disabled={busy === provider}

@@ -1,27 +1,28 @@
 #!/usr/bin/env node
 // @typecheck strict
 /**
- * Dutch for the admin dashboard clean-up, wave 0 (Nov 2026). The English of
+ * Dutch for the admin dashboard round (Nov 2026, waves 0-3). The English of
  * the AI configuration screens became provider-neutral (no example vendor or
  * model names in hints and placeholders, "Claude models" for the Claude
- * section, the reranker chain described as a chain), and the context lesson
- * computes its examples from the workspace's own models instead of naming two.
+ * section, the reranker chain described as a chain), the context lesson
+ * computes its examples from the workspace's own models instead of naming two,
+ * and the admin panels that moved into the dashboard rail got new labels.
  *
- * The data is one manifest per work package in data/admin-dashboard-w0/*.json:
+ * The data is one manifest per work package in data/admin-dashboard-2026-11/*.json:
  * `{ "reworded": { "<key>": { "nl": "<new Dutch>", "was": ["<old shipped Dutch>"] } } }`.
  * A new manifest needs no code here, only a new DATA_SHA256 (the test names it).
  *
  * NL_REWORDED: replaced only while a workspace still has the OLD shipped Dutch
  * (`was`), or has no Dutch for the key at all, so an admin's own wording stays.
  * Idempotent. Auto-runs from server boot (boot/bootMigrations.js). Manual:
- *   node server/migrations/update-nl-admin-dashboard-w0-2026-11.js
+ *   node server/migrations/update-nl-admin-dashboard-2026-11.js
  */
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DATA_DIR = path.join(__dirname, 'data', 'admin-dashboard-w0');
+const DATA_DIR = path.join(__dirname, 'data', 'admin-dashboard-2026-11');
 
 /**
  * sha256 over the manifests (sorted file names and their bytes). The boot ledger
@@ -29,7 +30,7 @@ const DATA_DIR = path.join(__dirname, 'data', 'admin-dashboard-w0');
  * the data files, so pinning their hash here makes every manifest change a change
  * to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '995cfeb5b6966edcfc80ad8a926458b930b6d16599145f306e723bfdbc2e6707';
+const DATA_SHA256 = 'afff565485157ed46460ccb9eb8bffc67d7149237893c1a44f5d397b6fafa838';
 
 /** @returns {string[]} the manifest file names, sorted */
 function manifestFiles() {
@@ -51,7 +52,7 @@ function loadReworded() {
         /** @type {{ reworded?: Record<string, { nl: string, was: string[] }> }} */
         const manifest = JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8'));
         for (const [key, { nl, was }] of Object.entries(manifest.reworded || {})) {
-            if (key in table) throw new Error(`update-nl-admin-dashboard-w0-2026-11: ${key} is in two manifests (${f})`);
+            if (key in table) throw new Error(`update-nl-admin-dashboard-2026-11: ${key} is in two manifests (${f})`);
             table[key] = Object.freeze({ was: Object.freeze([...was]), now: nl });
         }
     }
@@ -86,7 +87,7 @@ async function up() {
         return result.merged;
     });
     if (reworded > 0) {
-        console.log(`[Migration] update-nl-admin-dashboard-w0-2026-11 applied (${reworded} reworded)`);
+        console.log(`[Migration] update-nl-admin-dashboard-2026-11 applied (${reworded} reworded)`);
     }
     return { reworded };
 }

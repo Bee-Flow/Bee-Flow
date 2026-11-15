@@ -2,7 +2,8 @@
  * ComplianceHub — the Compliance Center shell (redesign, Sep 2026;
  * artboards Compliance.dc.html 1a–1h + 'Compliance Rail.dc.html').
  *
- * One rail, one header, one page. The rail (ComplianceRail) lists frameworks,
+ * One rail, one header, one page, framed by ComplianceDesktop (or
+ * ComplianceMobile on a phone). The rail (ComplianceRail) lists frameworks,
  * registers and admin as grouped rows with live counts; the header
  * (ComplianceHeader) is the shared StudioSectionHeader with a per-section
  * spec; the page comes from data/pages.jsx, which hands every page ONE props
@@ -34,9 +35,7 @@
  * never blank.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import { useViewport } from '@/hooks/useViewport';
-import StudioShell from '../../shared/StudioShell';
 import { movedTab, resolveSection, sectionById, SECTIONS_WITH_PICKERS, type Section } from './sections';
 import { API, downloadUrl } from '@/api/complianceApi';
 import { compliancePath, useUrlQueryParam } from './data/actions';
@@ -49,14 +48,12 @@ import { useDpia, useIncidents, useSoa, usePolicies, useConnectors, useRisks, us
 import { useDsr } from './data/useDsr';
 import { useRopa } from './data/useRopa';
 import { pageFor } from './data/pages';
-import ComplianceRail from './ComplianceRail';
-import ComplianceHeader from './ComplianceHeader';
+import ComplianceDesktop from './ComplianceDesktop';
 import AiActLadderModal from './ladder/AiActLadderModal';
 import { ladderTarget, type LadderTarget } from './ladder/ladderTarget';
 import './compliance.css';
 import type { HeaderCtx } from './header/registerSpecs';
 import type { HubHeaderCtx } from './ComplianceHeader';
-import type { CheckRecord } from './pages/framework/checkSort';
 import type ComplianceMobile from './ComplianceMobile';
 import { useShellProps } from '@/authedApp/useShellProps';
 
@@ -66,7 +63,6 @@ type NavigateTo = (sectionId: string, subId?: string | null, nextTab?: string | 
 type HeaderActions = Pick<HeaderCtx, 'onCaptureRequest' | 'onRecordIncident' | 'onRecordVulnerability' | 'onAddRisk' | 'onSeedRisks'
     | 'onMarkRopaReviewed' | 'onRegenerateRopa' | 'ropaBusy' | 'portabilityCoverage' | 'onRefreshPortability'
     | 'onAddFramework' | 'onRefreshMachinery' | 'primaryAction'>;
-type FrameworksHook = ReturnType<typeof useFrameworks>;
 type MobileProps = React.ComponentProps<typeof ComplianceMobile>;
 
 interface ComplianceHubProps {
@@ -84,10 +80,7 @@ function HubLadder({ ladder, onClose }: { ladder: LadderState; onClose: () => vo
     return <AiActLadderModal open kind={ladder.kind} target={ladder.target} onClose={onClose} />;
 }
 
-const orgNameOf = (overview: ReturnType<typeof useComplianceCore>['overview']) => overview?.settings?.org_name || overview?.organization_name || null;
-
 export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate: onNavigateProp, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
-    const { t } = useTranslation();
     // Inside the app shell the navigation comes from context; a host outside
     // it (a test, a kit) still hands it as a prop.
     const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
@@ -155,15 +148,13 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
         onAddFramework: headerActions.onAddFramework || (active === 'frameworks' ? () => navigate('custom') : null),
     };
 
-    const orgName = orgNameOf(core.overview);
-
-
+    const desktop = <ComplianceDesktop {...{ active, section, currentTab, setTab, navigate, onBack, counts, frameworks, core, exportsEnabled, page, headerCtx }} />;
 
     if (isMobile) {
         return (
             <div className="h-full flex flex-col" data-testid="compliance-hub" data-layout="mobile">
                 <ComplianceMobileGate
-                    fallback={<DesktopLayout {...{ active, section, currentTab, setTab, navigate, onBack, counts, frameworks, core, orgName, exportsEnabled, page, headerCtx, t }} />}
+                    fallback={desktop}
                     props={{ active, navigate, onBack, data, tab: currentTab, onTab: setTab, exportsEnabled, dl, page, section, headerCtx }} />
                 {/* The ladder (artboard 1f) is opened from Frameworks › Per automation,
                     which a phone reaches too — without this the button was a dead control. */}
@@ -174,55 +165,9 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
 
     return (
         <div className="h-full flex flex-col" data-testid="compliance-hub" data-layout="desktop">
-            <DesktopLayout {...{ active, section, currentTab, setTab, navigate, onBack, counts, frameworks, core, orgName, exportsEnabled, page, headerCtx, t }} />
+            {desktop}
             <HubLadder ladder={ladder} onClose={() => setLadder(null)} />
         </div>
-    );
-}
-
-interface DesktopLayoutProps {
-    active: string;
-    section: Section;
-    currentTab: string | null;
-    setTab: (next: string) => void;
-    navigate: NavigateTo;
-    onBack: (() => void) | null;
-    counts: { counts: unknown };
-    frameworks: FrameworksHook;
-    core: { overview: unknown; checks: CheckRecord[] };
-    orgName: string | null;
-    exportsEnabled: boolean;
-    page: React.JSX.Element;
-    headerCtx: Partial<HubHeaderCtx>;
-    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
-}
-
-function DesktopLayout({ active, section, currentTab, setTab, navigate, onBack, counts, frameworks, core, orgName, exportsEnabled, page, headerCtx, t }: DesktopLayoutProps) {
-    return (
-        <StudioShell
-            sidebarWidthClass="w-[300px]"
-            className="flex-1 min-h-0"
-            sidebar={(
-                <ComplianceRail
-                    active={active}
-                    onSelect={(id: string, sub?: string | null) => navigate(id, sub)}
-                    onOpenReports={() => navigate('overview', undefined, 'reports')}
-                    counts={counts.counts}
-                    frameworks={frameworks}
-                    // null while the first read is out: the attention filter
-                    // then falls back to the score instead of "no open checks".
-                    checks={core.overview ? core.checks : null}
-                    orgName={orgName}
-                    exportsEnabled={exportsEnabled}
-                />
-            )}
-        >
-            <div className="h-full flex flex-col min-h-0">
-                <ComplianceHeader section={section} tab={currentTab} onTab={setTab} ctx={headerCtx}
-                    onBack={onBack || undefined} backLabel={onBack ? t('compliance.back_to_settings', 'Back to settings') : undefined} />
-                <div className="@container/cpage flex-1 min-h-0 overflow-y-auto">{page}</div>
-            </div>
-        </StudioShell>
     );
 }
 

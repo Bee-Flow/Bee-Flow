@@ -121,7 +121,7 @@
       "id": "other-names",
       "icon": "🏷️",
       "title": "The same four stops, spelled differently elsewhere",
-      "bodyMd": "One thing will trip you up later: the depths are not spelled the same on every screen.\n\n- **In the chat composer** — the labels you have just learned: Auto, Fast, **Think**, Deep Thinking.\n- **In Organisation → Users → Groups**, under *Allowed tiers*, an admin sees pills reading **⚡ Fast**, **🧠 Thinking**, **✍️ Writer** and **✨ Deep Thinking** — the stored names for the same settings. Think appears as *Thinking*, Write as *Writer*, and Auto is not in that list at all, because a group restricts what may be picked, not whether you may ask Bee Flow to pick.\n\nSame control set, two vocabularies. When Marieke tells Pieter she has \"allowed Thinking\", she means the stop his slider calls **Think**.\n\nAnd there is no third menu: the actions under an answer are **Retry response** and **Retry with different model** — neither of them offers a list of depths. The depth is set before you send, in the gauge."
+      "bodyMd": "One thing will trip you up later: the depths are not spelled the same on every screen.\n\n- **In the chat composer** — the labels you have just learned: Auto, Fast, **Think**, Deep Thinking.\n- **In Admin dashboard → Workspace → People → Groups**, under *Allowed tiers*, an admin sees pills reading **⚡ Fast**, **🧠 Thinking**, **✍️ Writer** and **✨ Deep Thinking** — the stored names for the same settings. Think appears as *Thinking*, Write as *Writer*, and Auto is not in that list at all, because a group restricts what may be picked, not whether you may ask Bee Flow to pick.\n\nSame control set, two vocabularies. When Marieke tells Pieter she has \"allowed Thinking\", she means the stop his slider calls **Think**.\n\nAnd there is no third menu: the actions under an answer are **Retry response** and **Retry with different model** — neither of them offers a list of depths. The depth is set before you send, in the gauge."
     },
     {
       "type": "quiz",
@@ -226,7 +226,7 @@
       "Auto classifies your message server-side before answering; the chosen depth is reported afterwards in \"How I got this answer\" as a pill reading \"Auto → Think\".",
       "Flow, Swarm and Write are kinds of work rather than depths, so they render as pills under the slider and never as a stop on it; Flow and Swarm carry a beta badge and are enabled per organisation.",
       "In agent chat the gauge is replaced by a read-only pill hinted \"The depth this agent runs at\" — the agent's depth is fixed by whoever built it.",
-      "An administrator limits depths per user group under Organisation → Users → Groups → Allowed tiers, where the pills read Fast, Thinking, Writer and Deep Thinking — the stored names for the composer's Fast, Think, Write and Deep Thinking. No restriction set means every configured depth is visible.",
+      "An administrator limits depths per user group under Admin dashboard → People → Groups → Allowed tiers, where the pills read Fast, Thinking, Writer and Deep Thinking — the stored names for the composer's Fast, Think, Write and Deep Thinking. No restriction set means every configured depth is visible.",
       "The slider remembers your last-used depth per user in the browser (it starts at \"auto\"); separately, the server records on each conversation which depth its last finished turn ran on."
     ]
   },

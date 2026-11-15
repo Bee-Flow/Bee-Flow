@@ -1,0 +1,52 @@
+{
+  "reworded": {
+    "support.support_inbox_check_admin_integrations_email_and": {
+      "nl": "Controleer Beheerdashboard → Hele server → Platformdiensten → E-mail en bevestig dat de SMTP-inloggegevens kloppen.",
+      "was": [
+        "Controleer Admin → Integraties → E-mail en bevestig dat de SMTP-inloggegevens kloppen."
+      ]
+    },
+    "integ.email_admin_languages_email_templates": {
+      "nl": "Beheerdashboard → Hele server → Talen → E-mailsjablonen",
+      "was": [
+        "Admin → Talen → E-mailsjablonen"
+      ]
+    },
+    "nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup": {
+      "nl": "Controleer je keuzes en rond de setup af. Je kunt dit later nog wijzigen in het beheerdashboard.",
+      "was": [
+        "Controleer je keuzes en rond de setup af. Je kunt dit later nog wijzigen onder Instellingen → Organisatie."
+      ]
+    },
+    "nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage": {
+      "nl": "Beheerdashboard → Werkruimte → Licentie en gebruik",
+      "was": [
+        "Instellingen → Organisatie → Licentie en gebruik"
+      ]
+    },
+    "compliance.checks.iso_access_control.fix": {
+      "nl": "Herstel het toegangsregister, de drifttest en de rolomschrijvingen die met de server worden meegeleverd, en bekijk bij Beheerdashboard → Werkruimte → Mensen wie beheerdersrollen heeft.",
+      "was": [
+        "Herstel het toegangsregister, de drifttest en de rolomschrijvingen die met de server worden meegeleverd, en bekijk bij Beveiliging › Gebruikers wie beheerdersrollen heeft."
+      ]
+    },
+    "compliance.checks.iso_dlp.fix": {
+      "nl": "Open Beheerdashboard → Hele server → Guardrailbibliotheek en schakel zowel regex-collecties als PII-detectie in. Controleer zodra er verkeer is of guardrail-gebeurtenissen (verbergingen/blokkades) in het log verschijnen.",
+      "was": [
+        "Open Beveiliging › Guardrails en schakel zowel regex-collecties als PII-detectie in. Controleer zodra er verkeer is of guardrail-gebeurtenissen (verbergingen/blokkades) in het log verschijnen."
+      ]
+    },
+    "compliance.checks.gdpr_art32_dlp.fix": {
+      "nl": "Open Beheerdashboard → Hele server → Guardrailbibliotheek en schakel regexcollecties, PII-detectie en moderatie in.",
+      "was": [
+        "Open Beveiliging → Guardrails en schakel regexcollecties, PII-detectie en moderatie in."
+      ]
+    },
+    "compliance.checks.gdpr_art32_eff.fix": {
+      "nl": "Open Beheerdashboard → Beveiliging en toegang → Privacy Shield en controleer de reikwijdte en diensten van de shield; stuur een testbericht met nep-PII en bevestig dat er een gebeurtenis wordt gelogd.",
+      "was": [
+        "Open Beveiliging → Guardrails en controleer de reikwijdte en diensten van de shield; stuur een testbericht met nep-PII en bevestig dat er een gebeurtenis wordt gelogd."
+      ]
+    }
+  }
+}

@@ -24,14 +24,14 @@ inside the EU.
 
 1. Create an API key in the [Scaleway console](https://console.scaleway.com/iam/api-keys)
    — Generative APIs uses your **secret key**.
-2. Go to **Admin → AI Config → API Keys** and paste it into the **Scaleway** card.
+2. Go to **Admin dashboard → Whole server → AI configuration → Providers** and paste it into the **Scaleway** card.
 
 That is the whole setup. The provider is created automatically, the live model list is
 read from Scaleway on the next request, and the models become selectable in the chat
 model tiers, in agents, and as a knowledge-base embedding provider.
 
 :::tip One key, two features
-This is the same key as **Admin → Integrations → Transcription → Scaleway (hybrid)**. A Scaleway
+This is the same key as **Admin dashboard → Whole server → Platform services → Transcription → Scaleway (hybrid)**. A Scaleway
 secret key opens every Scaleway API, so configuring it in either place enables both the
 chat models and Whisper transcription.
 :::
@@ -89,12 +89,12 @@ part of its vector is an embedding on its own. So when you choose it as the embe
 Bee Flow keeps the first 1536 values of every vector (normalised again). A configuration
 that already used it before this existed keeps its full-length vectors, and nothing is
 re-indexed. `bge-multilingual-gemma2` always returns 3584 dimensions: it works, but
-searches cannot use the fast index, and **Admin → AI Config → Embeddings** says so.
+searches cannot use the fast index, and **Admin dashboard → Whole server → AI configuration → Search & retrieval** says so.
 
 ## Costs
 
 Usage is billed at Scaleway's published per-token rates and shows up in
-**Admin → Monitoring** like any other provider. Because these are open weights that other
+**Admin dashboard → Workspace → Usage & monitoring** like any other provider. Because these are open weights that other
 hosts also sell, Bee Flow prices them from Scaleway's own tariff specifically — never
 from another host's rate for a model with the same name.
 

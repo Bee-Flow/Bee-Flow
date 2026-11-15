@@ -2,7 +2,6 @@ import { Ban, Eye, OctagonAlert, ShieldCheck, UserCheck, Users } from 'lucide-re
 import { Fragment } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { OUTCOME_TEXT } from '../shieldPalette';
 import { isGuardDown, type GuardStatus, type OverviewFields } from './types';
 
 /**
@@ -19,24 +18,42 @@ import { isGuardDown, type GuardStatus, type OverviewFields } from './types';
  * real messages are not shown to people who should not see them.
  */
 
-/** The fictional sentence, split so each placeholder can be drawn as one. */
-const SAMPLE: ReadonlyArray<{ text: string } | { token: string }> = [
-    { text: 'Send the policy to ' },
-    { token: '[email_1]' },
-    { text: ' for ' },
-    { token: '[name_1]' },
-    { text: ', IBAN ' },
-    { token: '[iban_1]' },
-    { text: '.' },
-];
+/** The placeholders of the fictional sentence, in the slots the translated sentence names. */
+const SAMPLE_TOKENS_BY_SLOT: Readonly<Record<string, string>> = {
+    '{email}': '[email_1]',
+    '{name}': '[name_1]',
+    '{iban}': '[iban_1]',
+};
 
 /** How many details the sample replaces — counted, so the heading cannot drift from the sentence. */
-const SAMPLE_TOKENS = SAMPLE.filter(part => 'token' in part).length;
+const SAMPLE_TOKENS = Object.keys(SAMPLE_TOKENS_BY_SLOT).length;
 
-/** Placeholders read in the "replaced" outcome colour, as on What happened. */
+/**
+ * The fictional sentence in the reader's language, split so each placeholder
+ * can be drawn as one. The translation keeps the slots ({email}, {name},
+ * {iban}) wherever its grammar puts them.
+ */
+function sampleParts(t: TranslateFn): ReadonlyArray<{ text: string } | { token: string }> {
+    const sentence = t('security_access.shield_preview_sample', 'Send the policy to {email} for {name}, IBAN {iban}.');
+    const parts: Array<{ text: string } | { token: string }> = [];
+    let rest = sentence;
+    while (rest) {
+        const next = Object.keys(SAMPLE_TOKENS_BY_SLOT)
+            .map(slot => ({ slot, at: rest.indexOf(slot) }))
+            .filter(hit => hit.at >= 0)
+            .sort((x, y) => x.at - y.at)[0];
+        if (!next) { parts.push({ text: rest }); break; }
+        if (next.at > 0) parts.push({ text: rest.slice(0, next.at) });
+        parts.push({ token: SAMPLE_TOKENS_BY_SLOT[next.slot] });
+        rest = rest.slice(next.at + next.slot.length);
+    }
+    return parts;
+}
+
+/** A placeholder as the chat draws it: a quiet theme chip. */
 function Placeholder({ children }: { children: string }) {
     return (
-        <span className={`px-[5px] py-px rounded bg-[color-mix(in_srgb,var(--type-loop)_14%,transparent)] ${OUTCOME_TEXT.replaced} font-semibold text-xs whitespace-nowrap`}>
+        <span className="px-[5px] py-px rounded border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-semibold text-xs whitespace-nowrap" data-testid="shield-preview-placeholder">
             {children}
         </span>
     );
@@ -61,7 +78,7 @@ function ChatPreview({ tokenising, transparency, t }: { tokenising: boolean; tra
             )}
             <p className="m-0 px-3 py-2.5 rounded-[10px] bg-[var(--bg-card)] text-[13px] leading-[22px] text-[var(--text-primary)]">
                 {tokenising
-                    ? SAMPLE.map((part, i) => ('token' in part
+                    ? sampleParts(t).map((part, i) => ('token' in part
                         ? <Placeholder key={i}>{part.token}</Placeholder>
                         : <Fragment key={i}>{part.text}</Fragment>))
                     : t('admin.shield_preview_blocked_body',

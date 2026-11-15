@@ -1,6 +1,6 @@
 import { Building2, Search, UserPlus, Users as UsersIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { ORG_NONE, useUserFilters } from '@/hooks/useUserFilters';
 import EmptyState from '@/components/shared/EmptyState';
 import SegmentedControl from '@/components/shared/SegmentedControl';
@@ -11,7 +11,8 @@ import { membershipFor } from './orgMembership';
 import PeopleGroupSection from './PeopleGroupSection';
 import type { PeopleUser } from './PeopleRow';
 import { GROUP_BY, useUserDirectory } from './useUserDirectory';
-import { AddButton, EntitySectionHeader } from '../userManagement/EntityRows';
+import { AddButton, EntitySectionIntro } from '../userManagement/EntityRows';
+import { nOf } from '@/utils/plural';
 
 interface PeopleDirectoryProps {
     users?: PeopleUser[];
@@ -38,19 +39,23 @@ interface PeopleDirectoryProps {
     onRejectUser?: (user: PeopleUser) => void;
 }
 
-/** The directory's heading: the counts (one organisation when the dashboard chose one) and "Add user". */
-function PeopleHeader({ people, orgs, groups, scoped, canManageUsers, onAddUser }: {
-    people: number; orgs: number; groups: number; scoped: boolean; canManageUsers: boolean; onAddUser: () => void;
+/**
+ * The directory's top line: the counts and "Add user". No heading: the admin
+ * dashboard's page header and the Users tab already name it. The organisations
+ * are counted only when there is more than one to tell apart.
+ */
+function PeopleHeader({ people, orgs, groups, singleOrg, canManageUsers, onAddUser }: {
+    people: number; orgs: number; groups: number; singleOrg: boolean; canManageUsers: boolean; onAddUser: () => void;
 }) {
     const { t } = useTranslation();
+    const parts = [
+        nOf(t, 'admin_people.summary_people', people, '{count} person', '{count} people'),
+        singleOrg ? null : nOf(t, 'admin_people.summary_orgs', orgs, '{count} organisation', '{count} organisations'),
+        nOf(t, 'admin_people.summary_groups', groups, '{count} group', '{count} groups'),
+    ].filter(Boolean);
     return (
-        <EntitySectionHeader
-            title={t('admin.sec_people_title', 'People')}
-            description={t('admin.sec_people_summary', '{people} people · {orgs} organisations · {groups} groups', {
-                people,
-                orgs: scoped ? 1 : orgs,
-                groups,
-            })}
+        <EntitySectionIntro
+            description={<span data-testid="people-summary">{parts.join(' · ')}</span>}
             action={canManageUsers ? (
                 <AddButton onClick={onAddUser} icon={<UserPlus className="h-3.5 w-3.5" aria-hidden="true" />}>
                     {t('admin.sec_people_add', 'Add user')}
@@ -58,6 +63,41 @@ function PeopleHeader({ people, orgs, groups, scoped, canManageUsers, onAddUser 
             ) : undefined}
         />
     );
+}
+
+/**
+ * How the list is grouped. One organisation to show (the dashboard chose it, or
+ * the viewer has one): no grouping by organisation, which would only repeat
+ * its name; the list then opens by group.
+ */
+function useGroupBy(scopeOrgId: string | null | undefined, orgCount: number) {
+    const { t } = useTranslation();
+    const [choice, setGroupBy] = useState<string>(GROUP_BY.ORG);
+    const singleOrg = !!scopeOrgId || orgCount <= 1;
+    const groupBy = singleOrg && choice === GROUP_BY.ORG ? GROUP_BY.GROUP : choice;
+    const groupByOptions = [
+        ...(singleOrg ? [] : [{ value: GROUP_BY.ORG, label: t('admin.sec_people_by_org', 'By organisation') }]),
+        { value: GROUP_BY.GROUP, label: t('admin.sec_people_by_group', 'By group') },
+        { value: GROUP_BY.FLAT, label: t('admin.sec_people_flat', 'Flat') },
+    ];
+    return { singleOrg, groupBy, setGroupBy, groupByOptions };
+}
+
+/**
+ * The organisation chips of a row: only worth one when the person is in more
+ * than one organisation (the section header already says which this is), the
+ * names in the flat list, none when there is one organisation to show.
+ */
+function orgChipsOf({ singleOrg, groupBy, groups, orgNameById, t }: {
+    singleOrg: boolean; groupBy: string; groups: AdminGroup[]; orgNameById: ReadonlyMap<string, string | undefined>; t: TranslateFn;
+}): (u: PeopleUser) => string[] {
+    if (singleOrg) return () => [];
+    const orgIdsOf = (u: PeopleUser) => [...new Set(membershipFor(u, groups).map((m) => m.orgId))];
+    if (groupBy === GROUP_BY.FLAT) return (u) => orgIdsOf(u).map((id) => orgNameById.get(id) || id);
+    return (u) => {
+        const count = orgIdsOf(u).length;
+        return count < 2 ? [] : [t('admin.sec_people_in_n_orgs', 'in {count} orgs', { count })];
+    };
 }
 
 /**
@@ -90,7 +130,7 @@ export default function PeopleDirectory({
     onRejectUser,
 }: PeopleDirectoryProps) {
     const { t } = useTranslation();
-    const [groupBy, setGroupBy] = useState<string>(GROUP_BY.ORG);
+    const { singleOrg, groupBy, setGroupBy, groupByOptions } = useGroupBy(scopeOrgId, organizations.length);
 
     // The synthetic 'admin' row (adminRoutes.js:133-139) is a system account, not
     // a person in an organisation — it has no org and would sit alone in the
@@ -115,19 +155,7 @@ export default function PeopleDirectory({
         [organizations],
     );
 
-    // Only worth a chip when the person is in more than one org — otherwise the
-    // section header already says which org this is.
-    const orgChipsFor = useMemo(() => {
-        if (groupBy === GROUP_BY.FLAT) {
-            return (u: PeopleUser) => [...new Set(membershipFor(u, groups).map((m) => m.orgId))]
-                .map((id) => orgNameById.get(id) || id);
-        }
-        return (u: PeopleUser) => {
-            const orgIds = [...new Set(membershipFor(u, groups).map((m) => m.orgId))];
-            if (orgIds.length < 2) return [];
-            return [t('admin.sec_people_in_n_orgs', 'in {count} orgs', { count: orgIds.length })];
-        };
-    }, [groupBy, groups, orgNameById, t]);
+    const orgChipsFor = orgChipsOf({ singleOrg, groupBy, groups, orgNameById, t });
 
     const rowProps = {
         canManage: canManageUsers,
@@ -140,19 +168,13 @@ export default function PeopleDirectory({
         onReject: onRejectUser,
     };
 
-    const groupByOptions = [
-        { value: GROUP_BY.ORG, label: t('admin.sec_people_by_org', 'By organisation') },
-        { value: GROUP_BY.GROUP, label: t('admin.sec_people_by_group', 'By group') },
-        { value: GROUP_BY.FLAT, label: t('admin.sec_people_flat', 'Flat') },
-    ];
-
     return (
         <div>
             <PeopleHeader
                 people={people.length}
                 orgs={organizations.length}
                 groups={groups.length}
-                scoped={!!scopeOrgId}
+                singleOrg={singleOrg}
                 canManageUsers={canManageUsers}
                 onAddUser={onAddUser}
             />
@@ -184,7 +206,7 @@ export default function PeopleDirectory({
                             shownCount={directory.distinctCount}
                             totalCount={people.length}
                             groups={groups}
-                            organizations={scopeOrgId ? null : organizations}
+                            organizations={singleOrg ? null : organizations}
                             showVia
                             countLabel={(shown: number, total: number) =>
                                 t('admin.sec_people_showing', '{count} of {total} people', { count: shown, total })
@@ -225,10 +247,12 @@ export default function PeopleDirectory({
                             <div className="px-5 py-2.5 border-t border-[var(--border-default)] flex items-start gap-2 text-xs text-[var(--text-muted)]">
                                 <Building2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
                                 <p>
-                                    {t(
-                                        'admin.sec_people_multiorg_note',
+                                    {nOf(
+                                        t,
+                                        'admin_people.multiorg_note',
+                                        directory.multiOrgCount,
+                                        '{count} person belongs to more than one organisation and is listed under each. The totals above count each person once.',
                                         '{count} people belong to more than one organisation and are listed under each. The totals above count each person once.',
-                                        { count: directory.multiOrgCount },
                                     )}
                                 </p>
                             </div>

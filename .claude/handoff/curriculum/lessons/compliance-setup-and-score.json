@@ -15,7 +15,7 @@
       "id": "three-things",
       "icon": "🧭",
       "title": "Frameworks, registers, checks",
-      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a Dutch installation firm of sixty people; Anne, the office manager, is its DPO. A large customer has just sent a security questionnaire. She opens **Settings → Compliance** and finds one rail with three groups.\n\n**Frameworks** — the rules being scored. GDPR, AI Act and ISO 27001 are core and always on; the rest of the catalogue sits under **More frameworks** until the organisation enables it.\n\n**Registers** — the lists a DPO or CISO keeps, ten rows by default, from **Requests (DSR)** and **Incidents & breaches** to **SoA (Annex A)** and the **Access log**.\n\n**Admin** — **Settings** and **Evidence connectors**.\n\nThe **checks** live inside a framework: automated tests, each naming an article and carrying a severity, returning Passing, Needs attention, Failing or Not applicable. GDPR ships fifteen, ISO 27001 twenty-three. They read your live configuration — they are not a questionnaire you fill in."
+      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a Dutch installation firm of sixty people; Anne, the office manager, is its DPO. A large customer has just sent a security questionnaire. She opens **Admin dashboard → Security & access → Compliance** and finds one rail with three groups.\n\n**Frameworks** — the rules being scored. GDPR, AI Act and ISO 27001 are core and always on; the rest of the catalogue sits under **More frameworks** until the organisation enables it.\n\n**Registers** — the lists a DPO or CISO keeps, ten rows by default, from **Requests (DSR)** and **Incidents & breaches** to **SoA (Annex A)** and the **Access log**.\n\n**Admin** — **Settings** and **Evidence connectors**.\n\nThe **checks** live inside a framework: automated tests, each naming an article and carrying a severity, returning Passing, Needs attention, Failing or Not applicable. GDPR ships fifteen, ISO 27001 twenty-three. They read your live configuration — they are not a questionnaire you fill in."
     },
     {
       "type": "slide",
@@ -297,7 +297,7 @@
       "checkId": "compliance-onboarded",
       "existing": false,
       "label": "Finish compliance setup and run the checks",
-      "hint": "Settings → Compliance. Answer the four steps on the Setup card, then press \"Finish setup and run the first scan\"; \"Run now\" on the Overview re-runs the checks.",
+      "hint": "Admin dashboard → Security & access → Compliance. Answer the four steps on the Setup card, then press \"Finish setup and run the first scan\"; \"Run now\" on the Overview re-runs the checks.",
       "endpoints": [
         {
           "method": "GET",

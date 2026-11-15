@@ -23,7 +23,7 @@ Primary code:
 ## 1. What the feature is for
 
 Bee Flow is multi-tenant: every account belongs to an **organisation** (or to none, which is what a
-"consumer" account is). *Users & Groups* is the screen where the organisation's own administrator —
+"consumer" account is). *People* is the screen where the organisation's own administrator —
 not Bee Flow staff — decides three separate things:
 
 1. **Who is in the organisation** — invite people, approve or reject people who signed in via SSO,
@@ -33,7 +33,7 @@ not Bee Flow staff — decides three separate things:
    expands into a permission set via `server/config/orgRoles.json`.
 3. **Which teams exist** — *groups*, which carry members, can grant a role to everyone in them, can
    restrict which AI model tiers their members may use, and are the unit that integrations and beta
-   features are granted to (Settings → Organisation → Integrations → *Access*).
+   features are granted to (Admin dashboard → Connections → Integration status → *Access*).
 
 Everything on this screen is scoped to the caller's own tenant on the server. `GET /auth/users` and
 `GET /auth/groups` filter by the caller's resolved org ids, and the panel deliberately does *not*
@@ -51,21 +51,21 @@ Two deliberate boundaries a learner must accept:
 
 ### 2.1 Getting there
 
-Sidebar/settings path: **Settings → Organisation → Users & Groups**.
+Sidebar/settings path: **Admin dashboard → Workspace → People**.
 URL: `/app/settings/organisation/users` (segment table: `SETTINGS_ORG_ID_TO_URL.org_users = 'users'`
 in `agent-hub/src/authedApp/settingsRoutes.js`).
 
 The **Organisation** group in the settings nav (`settings.organisation`) contains, in order:
-*License & Usage* (`settings.license_usage`), *Sign-in Method* (`settings.signin_method`),
+*Licence & usage* (`settings.license_usage`), *Sign-in Method* (`settings.signin_method`),
 *Privacy Shield*, *Encryption*, *AI Context*, *Integration Cache*, *Organisation info*,
-*Usage & Monitoring* (`settings.usage_monitoring`), *Compliance*, **Users & Groups**
-(`settings.users_groups` = `"Users & Groups"`), *Academy*, *Integrations*, *GitHub Sync*,
-*Nextcloud Sync*, *Meeting Templates*, and on self-hosted *Azure Configuration*
+*Usage & Monitoring* (`settings.usage_monitoring`), *Compliance*, **People**
+(`settings.users_groups` = `"People"`), *Academy*, *Integrations*, *GitHub Sync*,
+*Nextcloud Sync*, *Meeting notes*, and on self-hosted *Azure Configuration*
 (`settings.azure_config` = `"Azure Configuration"`).
 
 The whole Organisation accordion is **hidden on phones** (only `org_compliance` is let through).
 
-### 2.2 Users & Groups — tab bar
+### 2.2 People — tab bar
 
 Rendered by `OrgUsersPanel.jsx:527-531`. Each tab shows a **count badge**.
 
@@ -167,7 +167,7 @@ organisation. Assign roles in the Users tab."* It is a **read-only catalogue** �
 edit / delete here. Each row: role name, its id as a coloured chip, *"N user/users"*, the description,
 and permission chips; expanding shows a **PERMISSIONS** list with a one-line explanation per item.
 
-### 2.6 Sign-in Method (Settings → Organisation → Sign-in Method)
+### 2.6 Sign-in Method (Admin dashboard → Security & access → Preferred sign-in method)
 
 Heading **"Sign-in Method"**, subtitle *"Choose how users will sign into your organisation"*.
 Three cards: **Username & Password** (*"Users sign in with a username and password."*),
@@ -194,10 +194,10 @@ a **Sync Now** button, *Last synced* / *Never synced*, and **Sync Settings**:
 **Sync every** 1 / 3 / 6 / 12 / 24 / 48 hours or Weekly. Required Azure application permissions are
 listed on-screen: `GroupMember.Read.All`, `User.Read.All`, `Application.Read.All`.
 
-### 2.8 Second surface — Admin → Security → Users
+### 2.8 Second surface — Admin dashboard → Workspace → People
 
 `/app/admin/security/users` (`SecurityHub` → `UserManagement.jsx`). Sections for a non-super-admin:
-**Users**, **Groups**, and **My Organization**. It has the modals Users & Groups lacks:
+**Users**, **Groups**, and **My Organization**. It has the modals People lacks:
 **"Add new user"** / **"Edit user"**, **"Reset two-factor authentication?"**,
 **"Delete this user?"** (*"The account is removed and cannot be restored."*),
 **"Delete this group?"** (*"Members keep their accounts but lose whatever this group granted them."*).
@@ -228,7 +228,7 @@ An `org_admin` reaches it because `orgRoles.json` grants them `admin_security`.
   Only active accounts can sign in, and only active members count as an organisation's administrator.
 - **Capability / entitlement** — the *feature* layer, separate from permissions: what the
   subscription allows (the "ceiling"), what the org has switched on, and what each group is granted.
-  Edited in Settings → Organisation → Integrations → **Access** (`GroupAccessMatrix`).
+  Edited in Admin dashboard → Connections → Integration status → **Access** (`GroupAccessMatrix`).
 - **Seat** — one active user in the org. The plan's `max_users` caps it; `-1` means unlimited.
 - **Auto-approve** — per-organisation flag (`organizations.autoApproveSSO`). Off ⇒ SSO newcomers land
   as `pending` with no groups and must be approved on this screen.
@@ -241,7 +241,7 @@ An `org_admin` reaches it because `orgRoles.json` grants them `admin_security`.
 
 ### W1 — Invite a colleague and give them a role
 1. Sidebar → **Settings**.
-2. Expand **Organisation** → click **Users & Groups**.
+2. Expand **Organisation** → click **People**.
 3. Stay on the **Users** tab → click **Invite User**.
 4. Type the address in **EMAIL ADDRESS**.
 5. Pick the role in **ROLE** (leave `User` for an ordinary member).
@@ -252,7 +252,7 @@ An `org_admin` reaches it because `orgRoles.json` grants them `admin_security`.
 8. After they sign up, the row moves into the member list; adjust the role with the pencil if needed.
 
 ### W2 — Approve someone who signed in with Google/Microsoft
-1. Settings → Organisation → **Users & Groups** → **Users**.
+1. Settings → Organisation → **People** → **Users**.
 2. (Optional) set the status filter to **Pending**, or click **Show pending** in the banner.
 3. Find the row with the amber **Pending** chip.
 4. Click **Approve** — the account becomes `active` with role `user`. Or click **Reject**, confirm
@@ -262,7 +262,7 @@ An `org_admin` reaches it because `orgRoles.json` grants them `admin_security`.
    the tab (only visible for Google/Microsoft orgs).
 
 ### W3 — Create a team group and staff it
-1. Users & Groups → tab **Groups**.
+1. People → tab **Groups**.
 2. Click **Create New Group**.
 3. Fill **Group name** (e.g. `Inkoop`) and **Description (optional)**.
 4. Click **Create**. The card appears with `0 members`.
@@ -288,7 +288,7 @@ An `org_admin` reaches it because `orgRoles.json` grants them `admin_security`.
    (*"Give an integration to your whole organisation or to a specific group. These are the
    integrations your subscription includes."*).
 3. Left column: pick **All members** (blue) or a group (green). Groups with no entries show
-   *"No groups yet. Create groups under **Users & Groups** to grant capabilities per team."*
+   *"No groups yet. Create groups under **People** to grant capabilities per team."*
 4. Flip the toggle on the integration card. Saving is immediate. A padlock means the capability is
    outside the organisation's ceiling (plan/licence), not something you can grant.
 5. Rule to teach: *a user gets a capability if it is granted to All members **or** to any group they
@@ -376,7 +376,7 @@ Password reset by an admin (no `oldPassword`) is **destructive** in the zero-kno
   `user.isAdmin` or a `permissions` array containing `'all'` always wins. (There is **no** `useCan`
   hook in this repo; `useCan(...)` in `AdvancedSettings.jsx` comes from the licensing context and
   answers *entitlement*, not permission.)
-- Nav row **Users & Groups** is shown when
+- Nav row **People** is shown when
   `canManageUsers = perms.includes('all') || perms.includes('manage_users') || user.orgRole === 'admin' || user.orgRole === 'org_admin'`
   (`AdvancedSettings.jsx:246, 344`).
 - The rest of the Organisation group needs
@@ -438,7 +438,7 @@ anywhere on `/auth/users`, `/auth/groups`, `/auth/roles` or `/auth/invitations`,
 - **Datatables / Studio apps / automations** — `use_datatables` vs `manage_datatables` come straight
   from the org role, so "who may create a table" is decided here.
 - **Nextcloud-bound orgs** — identity is delegated to Nextcloud: the Sign-in Method row disappears
-  and an extra **Nextcloud Sync** tab appears inside Users & Groups.
+  and an extra **Nextcloud Sync** tab appears inside People.
 - **Azure AD** — group sync creates Bee Flow groups marked `source: 'azure'`.
 - **Audit** — every mutation writes an `access_audit` row: `user.create`, `user.update`,
   `user.delete`, `group.create`, `group.delete`, `group.member.add`, `group.member.remove`,
@@ -484,7 +484,7 @@ anywhere on `/auth/users`, `/auth/groups`, `/auth/roles` or `/auth/invitations`,
 
 **A. Procurement — a supplier-quote team with restricted models.**
 Van Dijk Groep's inkoop team (Sanne, Joost, Bilal) processes supplier quotations. The office manager
-opens Settings → Organisation → Users & Groups → **Groups**, clicks **Create New Group**, names it
+opens Admin dashboard → Workspace → People → **Groups**, clicks **Create New Group**, names it
 `Inkoop`, description *"Offertes en leveranciersdossiers"*, and clicks **Create**. She expands the
 card, clicks **Add member**, and adds all three. Because quote comparison is cheap bulk work she
 clicks the **⚡ Fast** pill under **Allowed tiers** so the team cannot burn budget on Deep Thinking;
@@ -506,8 +506,8 @@ exactly the separation the AVG/GDPR role is meant to have.
 
 **C. Sales — a departing account manager and the anti-orphan guard.**
 Account manager Ruben leaves. He is the second `org_admin` (the first is the director). The director
-opens Users & Groups, clicks the pencil on Ruben's row and sets him to **Member**, then deletes the
-account from Admin → Security → Users (**"Delete this user?" / "The account is removed and cannot be
+opens People, clicks the pencil on Ruben's row and sets him to **Member**, then deletes the
+account from Admin dashboard → Workspace → People (**"Delete this user?" / "The account is removed and cannot be
 restored."**). Later the director tries to hand the tenant to the new commercial manager but sets
 *himself* to **Member** first — Bee Flow answers with *"That change would leave this organisation
 without an administrator…"*. He promotes the new manager to **Organisation Admin** first, then

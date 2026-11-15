@@ -2,7 +2,7 @@ import { ChevronDown, ChevronRight, Edit2, Trash2, Users } from 'lucide-react';
 import { GroupMemberAdd, GroupMembersList } from './GroupMembers';
 import GroupSettings from './GroupSettings';
 import { ORG_ROLES } from '@/config/orgRoles';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
 import { CHIP } from '@/components/shared/adminUi';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CustomTierMeta, OrgGroupRow, OrgMember } from '../useOrgDirectory';
@@ -22,7 +22,7 @@ function GroupSummary({ group }: { group: OrgGroupRow }) {
         <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {group.description || t('admin_org.users_no_description', 'No description')}
             {role && (
-                <span className="ml-2"><RoleBadge role={role.id} tone="neutral" /></span>
+                <span className="ml-2"><OrgRoleChip role={role.id} /></span>
             )}
             {group.source === 'azure' && group.lastSyncedAt && (
                 <span className="ml-2 text-[10px] text-[var(--text-tertiary)]">{t('admin_org.users_last_synced', 'Last synced: {date}', { date: new Date(group.lastSyncedAt).toLocaleString() })}</span>

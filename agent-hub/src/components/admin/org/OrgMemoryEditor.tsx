@@ -14,6 +14,7 @@ import {
     useClearOrgMemory, useOrgMemory, useSaveOrgMemory, type OrgMemoryState,
 } from '@/api/queries/orgMemory';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useLocaleFormat } from '@/hooks/useLocaleFormat';
 import { nOf } from '@/utils/plural';
 import Button from '@/components/shared/Button';
 import FormField from '@/components/shared/FormField';
@@ -135,7 +136,9 @@ function draftOf(server: OrgMemoryState): Draft {
 
 /** The two switches and the cap per person. */
 function SettingsFields({ draft, set, max, busy, t }: { draft: Draft; set: (patch: Partial<Draft>) => void; max: number | null; busy: boolean; t: TranslateFn }) {
-    const range = { min: ORG_MEMORY_MIN_PER_USER, max: ORG_MEMORY_MAX_PER_USER };
+    // The bounds in the language on screen: "10,000" / "10.000", not "10000".
+    const fmt = useLocaleFormat();
+    const range = { min: fmt.number(ORG_MEMORY_MIN_PER_USER), max: fmt.number(ORG_MEMORY_MAX_PER_USER) };
     return (
         <>
             <SettingsList>

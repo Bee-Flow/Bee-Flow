@@ -40,7 +40,7 @@ export function AzureSsoGuide() {
                 </Group>
                 <Group title={t('azure.sync_permissions_title', 'Required Azure Permissions')}>
                     <NoteRow>
-                        {t('azure.sync_permissions_desc', 'The following Application permissions must be granted in Azure Portal → App registrations → API permissions, with admin consent:')}
+                        {t('azure.sync_permissions_desc', 'Microsoft Entra ID group sync needs these Application permissions in Azure Portal → App registrations → API permissions, with admin consent. Without group sync, leave them off the app registration:')}
                     </NoteRow>
                     <NoteRow>{PERMISSIONS.join('\n')}</NoteRow>
                 </Group>

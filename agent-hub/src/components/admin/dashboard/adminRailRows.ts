@@ -24,6 +24,7 @@ import { ADMIN_TABS, buildAdminRailSections, type AdminRailSection, type AdminTa
 import type { AdminOrgChoice } from './useAdminOrg';
 import { effectiveAdminOrgOf } from './useEffectiveAdminOrgId';
 import { useHasNextcloudInstances } from './useServerNextcloudFacts';
+import { useSteadyLicenceTier } from './useSteadyLicenceTier';
 
 const ORG_TAB = 'organisation';
 
@@ -256,7 +257,9 @@ interface AdminRailState {
 /** The rail of the dashboard for this viewer and address: its blocks, the current row and its label. */
 export function useAdminRail({ user, choice, tabs, isPlatformAdmin, activeTab, section, t }: AdminRailInput): AdminRailState {
     const org = useOrgRailSections(user, choice, tabs.some(tab => tab.id === ORG_TAB));
-    const { hasFeature, hasTier } = useLicenseContext();
+    const { hasFeature } = useLicenseContext();
+    // The tier as the tab gates read it: a failed licence read keeps the last answer's rows.
+    const { hasTier } = useSteadyLicenceTier();
     const hasNextcloudInstances = useHasNextcloudInstances(isPlatformAdmin && tabs.some(tab => tab.id === 'nextcloud-instances'));
     const viewer: RailGateViewer = {
         isPlatformAdmin,

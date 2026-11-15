@@ -1,6 +1,45 @@
 import { useId, useState } from 'react';
 import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
-import type { EmptyProps, SvgAreaChartProps } from '../shared.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useLocaleFormat, type LocaleFormat } from '@/hooks/useLocaleFormat';
+import type { ChartPoint, EmptyProps, SvgAreaChartProps } from '../shared.types';
+
+const DAY_PERIOD = /^(\d{4})-(\d{2})-(\d{2})$/;
+const HOUR_PERIOD = /^\d{4}-\d{2}-\d{2}[ T](\d{2}:\d{2})/;
+
+/**
+ * A timeline period ('YYYY-MM-DD' per day, 'YYYY-MM-DD HH:00' per hour) for an
+ * axis: "11 Nov" in the language on screen, or the hour. Anything else keeps
+ * the old month-day cut.
+ */
+export function periodLabel(period: string | undefined, lf: LocaleFormat): string {
+    if (!period) return '';
+    const hour = HOUR_PERIOD.exec(period);
+    if (hour) return hour[1];
+    const day = DAY_PERIOD.exec(period);
+    // A bare day is a calendar day, not UTC midnight: built from its parts so no time zone moves it.
+    if (day) return lf.day(new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])), { year: false });
+    return period.slice(5);
+}
+
+/** One point is no trend: its value and the period, said plainly instead of a line from one corner to the other. */
+function SinglePoint({ point, yKey, formatY, color }: { point: ChartPoint; yKey: NonNullable<SvgAreaChartProps['yKey']>; formatY: NonNullable<SvgAreaChartProps['formatY']>; color: string }) {
+    const { t } = useTranslation();
+    const lf = useLocaleFormat();
+    const hourly = HOUR_PERIOD.test(point.period || '');
+    return (
+        <div className="flex min-h-[140px] flex-col items-center justify-center gap-1 text-center" data-testid="chart-single-point">
+            <svg aria-hidden="true" viewBox="0 0 10 10" className="h-2.5 w-2.5"><circle cx="5" cy="5" r="5" fill={color} /></svg>
+            <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">{formatY(point[yKey] || 0)}</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{periodLabel(point.period, lf)}</span>
+            <span className="mt-1 max-w-xs text-[11px] text-[var(--text-secondary)]">
+                {hourly
+                    ? t('admin_polish.trend_one_hour', 'One hour of data in this period. The trend appears from two hours on.')
+                    : t('admin_polish.trend_one_day', 'One day of data in this period. The trend appears from two days on.')}
+            </span>
+        </div>
+    );
+}
 
 export function fmt(n: number | null | undefined) {
     if (n == null) return '0';
@@ -34,9 +73,12 @@ export function Empty({ text }: EmptyProps) {
 }
 
 export function SvgAreaChart({ data, yKey = 'total_tokens', color = SERIES.tokens, height = 140, formatY = fmt, formatLabel }: SvgAreaChartProps) {
+    const { t } = useTranslation();
+    const lf = useLocaleFormat();
     const [hover, setHover] = useState<number | null>(null);
     const gradientId = `area-${useId().replace(/:/g, '')}`;
-    if (!data || data.length === 0) return <Empty text="No data to display" />;
+    if (!data || data.length === 0) return <Empty text={t('admin_polish.chart_no_data', 'No data to display')} />;
+    if (data.length === 1) return <SinglePoint point={data[0]} yKey={yKey} formatY={formatY} color={color} />;
     const maxY = Math.max(...data.map(d => d[yKey] || 0), 1);
     const points = data.map((d, i) => {
         const x = (i / Math.max(data.length - 1, 1)) * 100;
@@ -86,8 +128,8 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', color = SERIES.token
                 </div>
             )}
             <div className="mt-1.5 flex justify-between text-[10px] text-[var(--text-tertiary)]">
-                <span>{data[0]?.period?.slice(5) || ''}</span>
-                <span>{data[data.length - 1]?.period?.slice(5) || ''}</span>
+                <span>{periodLabel(data[0]?.period, lf)}</span>
+                <span>{periodLabel(data[data.length - 1]?.period, lf)}</span>
             </div>
         </div>
     );

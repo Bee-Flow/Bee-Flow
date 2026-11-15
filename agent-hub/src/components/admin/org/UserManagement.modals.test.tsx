@@ -276,7 +276,7 @@ describe('UserManagement: platform administrator', () => {
         render(<UserManagement user={platformAdmin} />);
         await screen.findByText('Ann Smit');
         expect(within(rowOf('Ann Smit')).getByText('Platform admin')).toBeInTheDocument();
-        expect(within(rowOf('Ann Smit')).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within(rowOf('Ann Smit')).getByText('Organisation admin')).toBeInTheDocument();
         expect(within(rowOf('Jan de Vries')).queryByText('Platform admin')).not.toBeInTheDocument();
     });
 

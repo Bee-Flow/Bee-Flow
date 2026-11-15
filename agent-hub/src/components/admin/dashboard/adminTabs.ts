@@ -13,7 +13,7 @@ import { BARE_TAB_FALLBACKS, resolveAdminPath, type AdminPath, type ResolvedAdmi
 import type { AdminRailBlock, AdminRailGateContext, AdminRailRowDef } from './adminRailRowDef';
 import {
     AGENT_RAIL_ROWS, AI_CONFIG_RAIL_ROWS, APPEARANCE_RAIL_ROWS, LICENSE_RAIL_ROWS, MONITORING_RAIL_ROWS,
-    PLATFORM_SERVICES_RAIL_ROWS, SECURITY_RAIL_ROWS,
+    PLATFORM_SERVICES_RAIL_ROWS, SECURITY_RAIL_ROWS, SUBSCRIPTIONS_RAIL_ROWS,
 } from './adminTabRows';
 
 export type AdminTabGroupId = 'organisation' | 'ai' | 'identity' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
@@ -193,8 +193,8 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'compliance', labelKey: 'admin.tab_compliance', descriptionKey: 'admin_nav.compliance_desc', descriptionFallback: "The organisation's privacy and security checks, records and reports.", icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, capability: 'compliance_hub_gdpr' },
     // The customer-support inbox, for every super-admin (or `admin_support`), cloud and self-hosted.
     { id: 'support', labelKey: 'admin_nav.support_inbox', labelFallback: 'Support inbox', descriptionKey: 'admin_nav.support_desc', descriptionFallback: 'Questions and requests from customers, in one inbox.', icon: LifeBuoy, group: 'operations', perm: ['admin_support'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise' },
-    // Subscriptions are a Bee Flow Cloud feature; self-hosted installs use licence keys.
-    { id: 'subscriptions', labelKey: 'admin.tab_subscriptions', descriptionKey: 'admin_nav.subscriptions_desc', descriptionFallback: 'The plans organisations can subscribe to, and their subscriptions.', icon: CreditCard, group: 'operations', perm: ['admin_subscriptions'], scope: 'instance', superAdminOnly: true, cloudOnly: true },
+    // Subscriptions are a Bee Flow Cloud feature; self-hosted installs use licence keys. Its sections are child rows.
+    { id: 'subscriptions', labelKey: 'admin.tab_subscriptions', descriptionKey: 'admin_nav.subscriptions_desc', descriptionFallback: 'The plans organisations can subscribe to, and their subscriptions.', icon: CreditCard, group: 'operations', perm: ['admin_subscriptions'], scope: 'instance', superAdminOnly: true, cloudOnly: true, railRows: SUBSCRIPTIONS_RAIL_ROWS },
     // The server-wide licence and the global feature switches, on any deployment mode.
     { id: 'licenses', labelKey: 'admin_nav.licence_features', labelFallback: 'Licence & features', icon: BadgeCheck, group: 'platform', perm: ['all'], scope: 'instance', superAdminOnly: true, railRows: LICENSE_RAIL_ROWS },
     // Optional server modules, install-wide; gated like the server licence.

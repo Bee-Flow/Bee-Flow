@@ -24,12 +24,12 @@ import HomeOrgOnlyNotice from './HomeOrgOnlyNotice';
 
 /**
  * The sections at the settings width: the forms and the cards that read as one
- * (Meeting notes, Microsoft 365, Integration status). The rest are lists, grids
- * and tables at the whole pane: Knowledge bases, Models (the tiers table),
- * Learning Center and MCP servers.
+ * (Models: the organisation's tiers and image limits, Meeting notes, Microsoft
+ * 365, Integration status). The rest are lists, grids and tables at the whole
+ * pane: Knowledge bases, Learning Center and MCP servers.
  */
 const SETTINGS_WIDTH_SECTIONS: ReadonlySet<string> = new Set([
-    'info', 'auth', 'license', 'encryption', 'conversations', 'memory', 'projects', 'integration-cache', 'mcp-access',
+    'info', 'auth', 'license', 'encryption', 'conversations', 'memory', 'projects', 'models', 'integration-cache', 'mcp-access',
     'github-sync', 'nextcloud-sync', 'meeting-notes', 'azure', 'integrations',
 ]);
 

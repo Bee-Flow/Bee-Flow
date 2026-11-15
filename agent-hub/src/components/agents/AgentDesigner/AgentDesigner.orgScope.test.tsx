@@ -53,7 +53,7 @@ describe('AgentDesigner and the dashboard organisation', () => {
         const user = userEvent.setup();
         agentsAnswer = { status: 200, body: [] };
         render(withQueryClient(<AgentDesigner orgId="org-b" />));
-        await user.click(await screen.findByRole('button', { name: 'Create First Agent' }));
+        await user.click(await screen.findByRole('button', { name: 'Create first agent' }));
         await user.type(screen.getByLabelText('Name'), 'Helper');
         await user.click(screen.getByRole('button', { name: 'Add to category' }));
         await user.type(screen.getByPlaceholderText('Category name...'), 'Sales');
@@ -69,7 +69,7 @@ describe('AgentDesigner and the dashboard organisation', () => {
         const user = userEvent.setup();
         agentsAnswer = { status: 200, body: [] };
         render(withQueryClient(<AgentDesigner showOrgNames />));
-        await user.click(await screen.findByRole('button', { name: 'Create First Agent' }));
+        await user.click(await screen.findByRole('button', { name: 'Create first agent' }));
         await user.type(screen.getByLabelText('Name'), 'Helper');
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(sent.some(s => /\/agents$/.test(s.url))).toBe(true));

@@ -21,7 +21,6 @@ module.exports = {
     // ── Azure Configuration ─────────────────────────────────────
     'azure.title': 'Azure Configuration',
     'azure.subtitle': 'Manage Azure services for your platform. Changes here apply to the same configuration used in the admin dashboard.',
-    'azure.panel_header': 'Azure Configuration',
     'azure.panel_subheader': 'Manage Azure services for your platform. Changes here apply to the same configuration used in the admin dashboard.',
     'azure.no_org': 'You are not a member of an organisation. Azure configuration is available per organisation.',
     'azure.no_org_message': 'You are not a member of an organisation. Azure configuration is available per organisation.',
@@ -61,16 +60,12 @@ module.exports = {
 
     // Azure → Model Selector
     'azure.select_model': 'Select Model',
-    'azure.search_models': 'Search by name or ID...',
     'azure.not_configured_option': '— Not configured —',
-    'azure.no_models_found': 'No models found',
-    'azure.try_different_search': 'Try a different search term',
 
     // Azure → OpenAI Section
     'azure.openai_title': 'Azure OpenAI Service',
     'azure.openai_section_desc': 'Configure your Azure OpenAI deployment endpoint, API key, and available models. These are the same settings visible in the admin dashboard.',
     'azure.openai_status': 'Azure AI',
-    'azure.openai_fully_configured': 'Fully configured',
     'azure.endpoint_badge': 'Endpoint',
     'azure.key_badge': 'Key',
     'azure.endpoint_url': 'Endpoint URL',
@@ -80,7 +75,6 @@ module.exports = {
     'azure.api_key_help_empty': 'Found in Azure Portal → your OpenAI resource → Keys and Endpoint',
     'azure.deployed_models': 'Deployed Model Names',
     'azure.deployed_models_help': 'Comma-separated list of your Azure deployment names. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra)',
-    'azure.get_from_portal': 'Get from',
 
     // Azure → Chat Model Tiers Section
     'azure.chat_tiers_title': 'Chat Model Tiers',
@@ -97,11 +91,7 @@ module.exports = {
     'azure.reasoning_medium': 'Medium',
     'azure.reasoning_high': 'High',
     'azure.reasoning_xhigh': 'xHigh (deepest)',
-    'azure.reasoning_effort_help': 'Controls how much the model reasons before responding.',
     'azure.reasoning_summary': 'Reasoning Summary',
-    'azure.reasoning_summary_help': "Show the model's thinking process. Requires Azure API version 2025+.",
-    'azure.settings_expand': '▼ Settings',
-    'azure.settings_collapse': '▲ Settings',
 
     // Azure → SSO Section
     'azure.sso_title': 'Microsoft / Azure AD SSO',
@@ -121,7 +111,6 @@ module.exports = {
     'azure.sso_tenant_id': 'Directory (Tenant) ID',
     'azure.sso_tenant_help': 'Your Azure AD tenant GUID, or use {code} to allow all Microsoft accounts.',
     'azure.sso_tenant_common_title': 'Tenant ID is set to "common"',
-    'azure.sso_tenant_common_desc': "This allows any Microsoft account (personal and work) to attempt sign-in. For production use, set this to your organisation's specific tenant GUID to restrict access to only your Azure AD directory.",
     'azure.sso_auto_approve': 'Auto-approve new SSO users',
     'azure.sso_auto_approve_desc': 'Automatically approve users who sign in via Microsoft SSO with a matching email domain, without requiring admin approval.',
     'azure.sso_auto_approve_warning': 'Security notice: When enabled, any user with a matching email domain will be granted immediate access without admin review. Only enable this if you trust all users in your Azure AD directory.',
@@ -190,7 +179,6 @@ module.exports = {
     'azure.cs_severity_strict': '0 (Block All)',
     'azure.cs_severity_permissive': '6 (Most Permissive)',
     'azure.cs_severity_help': 'Content with severity at or above this threshold will be flagged. Lower values are more strict.',
-    'azure.enabled_categories': 'Enabled Categories',
     'azure.cs_categories': 'Enabled Categories',
     'azure.safety_hate': 'Hate & Discrimination',
     'azure.safety_selfharm': 'Self-Harm',
@@ -266,14 +254,6 @@ module.exports = {
     "azure.embed_model_help": "Select the deployment name for your Azure OpenAI embedding model. Used for KB document embeddings when Azure processing is enabled.",
     "azure.key_configured": "Key is configured. Enter a new value to replace it.",
     // ── Hard-coded literals converted 2026-10 (integrations, agents, appearance, support, knowledge, wizards) ──
-    'azure.doc_processing_text_embedding_3_small_1536_dims': 'text-embedding-3-small (1536 dims)',
-    'azure.doc_processing_text_embedding_3_large_3072_dims': 'text-embedding-3-large (3072 dims)',
-    'azure.doc_processing_text_embedding_ada_002_1536_dims': 'text-embedding-ada-002 (1536 dims)',
-    'azure.open_ai_model_one': '{count} model',
-    'azure.open_ai_model_other': '{count} models',
-    'azure.open_ai_gpt_4_1_gpt_5_mini_gpt_5_4': 'gpt-4.1, gpt-5-mini, gpt-5.4',
-    'azure.sso_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-    'azure.sso_your_tenant_guid_or_common': 'your-tenant-guid or common',
     'azure.sso_group_s': 'group(s),',
     'azure.sso_user_s_synced': 'user(s) synced',
     'azure.sso_new_user_s': 'new user(s)',
@@ -284,10 +264,4 @@ module.exports = {
     'azure.sso_24_hours': '24 hours',
     'azure.sso_48_hours': '48 hours',
     'azure.sso_weekly': 'Weekly',
-    'azure.sso_azure_portal_app_registrations': 'Azure Portal → App registrations',
-    'azure.sso_under': 'Under',
-    'azure.sso_authentication': 'Authentication',
-    'azure.sso_add_a_redirect_uri': ', add a redirect URI:',
-    'azure.components_model_one': '{count} model',
-    'azure.components_model_other': '{count} models',
 };

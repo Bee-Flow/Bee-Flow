@@ -12,6 +12,7 @@ import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useShellProps } from '@/authedApp/useShellProps';
+import { SubscriptionsTitledContext } from './ui/titledContext';
 
 interface SubscriptionsPanelProps {
     /** The section from the URL (admin/subscriptions/<section>); Plans when missing or unknown. */
@@ -19,8 +20,9 @@ interface SubscriptionsPanelProps {
     onNavigate?: (path: string) => void;
     /**
      * false: no section column (a host whose own navigation lists the
-     * sections, SUBSCRIPTIONS_SECTIONS, as rows). The section still comes from
-     * `activeSection`.
+     * sections, SUBSCRIPTIONS_SECTIONS, as rows, and draws the page heading).
+     * The section still comes from `activeSection`; the views then show their
+     * description and actions without a title of their own.
      */
     nav?: boolean;
 }
@@ -58,7 +60,9 @@ function SubscriptionsPanel({ activeSection, onNavigate: onNavigateProp, nav = t
     const body = (
         <div className="relative h-full">
             <div className="absolute inset-0 overflow-y-auto">
-                <View />
+                <SubscriptionsTitledContext.Provider value={nav}>
+                    <View />
+                </SubscriptionsTitledContext.Provider>
             </div>
         </div>
     );

@@ -2,10 +2,26 @@ import { useState, useMemo } from 'react';
 import { ChevronRight, Cpu, Activity } from 'lucide-react';
 import DataTable, { TableCell, TableRow, TABLE_FOLDED_ONLY, type TableColumn } from '@/components/shared/DataTable';
 import Pager from '@/components/shared/Pager';
-import { CHIP, CHIP_INFO } from '@/components/mcpLibrary/ui';
+import { CHIP } from '@/components/mcpLibrary/ui';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { fmt, fmtCost, fmtDuration, fmtTime, shortModel, Empty, getSourceDetails, type UsageRecord } from './shared';
+import { useLocaleFormat } from '@/hooks/useLocaleFormat';
+import { fmt, fmtCost, fmtDuration, shortModel, Empty, getSourceDetails, type UsageRecord } from './shared';
+import { agentTypeName, callName, sourceName } from './shared/callLabels';
 import { FilterRow, SearchField, SelectField } from './shared/FilterControls';
+
+/**
+ * When the call was made. The ledger row (GET /api/usage/recent, `SELECT *` on
+ * ai_usage_log) carries `timestamp`; this page read `created_at`, which that
+ * table does not have, so every row showed "—".
+ */
+function callTime(r: UsageRecord): string | number | undefined {
+    return r.timestamp ?? r.created_at;
+}
+
+/** The call's agent type: the ledger's `agent_type` (`type` from older answers). */
+function callType(r: UsageRecord): string | undefined {
+    return r.agent_type ?? r.type;
+}
 
 const PAGE_SIZE = 25;
 
@@ -25,16 +41,15 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 /** One call opened: tokens and cost split by input/output, and where it came from. */
 function CallDetail({ r }: { r: UsageRecord }) {
     const { t } = useTranslation();
-    const src = getSourceDetails(r.source, t);
     return (
         <div role="row" className="grid grid-cols-2 gap-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] py-3 pl-8 pr-4 sm:grid-cols-3">
-            <DetailItem label={t('admin_monitoring.activity_detail_prompt_tokens', 'Prompt Tokens')} value={fmt(r.prompt_tokens)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_completion_tokens', 'Completion Tokens')} value={fmt(r.completion_tokens)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_total_tokens', 'Total Tokens')} value={fmt(r.total_tokens)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_input_cost', 'Input Cost')} value={fmtCost(r.input_cost || 0)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_output_cost', 'Output Cost')} value={fmtCost(r.output_cost || 0)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_total_cost', 'Total Cost')} value={fmtCost(r.estimated_cost || 0)} />
-            <DetailItem label={t('admin_monitoring.activity_detail_source', 'Source')} value={src.label} />
+            <DetailItem label={t('admin_monitoring.activity_detail_prompt_tokens', 'Prompt tokens')} value={fmt(r.prompt_tokens)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_completion_tokens', 'Completion tokens')} value={fmt(r.completion_tokens)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_total_tokens', 'Total tokens')} value={fmt(r.total_tokens)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_input_cost', 'Input cost')} value={fmtCost(r.input_cost || 0)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_output_cost', 'Output cost')} value={fmtCost(r.output_cost || 0)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_total_cost', 'Total cost')} value={fmtCost(r.estimated_cost || 0)} />
+            <DetailItem label={t('admin_monitoring.activity_detail_source', 'Source')} value={sourceName(r.source, t)} />
             <DetailItem label={t('admin_monitoring.col_model', 'Model')} value={r.model || 'Unknown'} />
             {r.conversation_id && <DetailItem label={t('admin_monitoring.activity_detail_conversation', 'Conversation')} value={r.conversation_id.slice(0, 12) + '…'} />}
             {r.user_id && <DetailItem label={t('admin_monitoring.activity_detail_user', 'User')} value={r.display_name || r.user_id} />}
@@ -45,7 +60,7 @@ function CallDetail({ r }: { r: UsageRecord }) {
 function activityColumns(t: TranslateFn): TableColumn[] {
     return [
         { id: 'time', label: t('admin_monitoring.col_time', 'Time'), width: '90px' },
-        { id: 'source', label: t('admin_monitoring.col_source_agent', 'Source / Agent'), width: 'minmax(0,1fr)' },
+        { id: 'source', label: t('admin_monitoring.col_source_agent', 'Source / agent'), width: 'minmax(0,1fr)' },
         { id: 'model', label: t('admin_monitoring.col_model', 'Model'), width: 'minmax(0,1fr)', foldBelow: 900 },
         { id: 'tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '70px', align: 'right' },
         { id: 'latency', label: t('admin_monitoring.col_latency', 'Latency'), width: '70px', align: 'right' },
@@ -57,23 +72,28 @@ function activityColumns(t: TranslateFn): TableColumn[] {
 
 function CallRow({ r, columns, open, onToggle }: { r: UsageRecord; columns: TableColumn[]; open: boolean; onToggle: () => void }) {
     const { t } = useTranslation();
+    const lf = useLocaleFormat();
     const src = getSourceDetails(r.source, t);
     const SourceIcon = src.icon;
+    const at = callTime(r);
+    const type = callType(r);
     return (
         <TableRow columns={columns} expanded={open} ariaExpanded={open} onClick={onToggle}>
-            <TableCell column={columns[0]} className="text-[11px] text-[var(--text-tertiary)]">{fmtTime(r.created_at)}</TableCell>
+            <TableCell column={columns[0]} className="text-[11px] text-[var(--text-tertiary)]">
+                {at && lf.relative(at) ? <time title={lf.dateTime(at)}>{lf.relative(at)}</time> : '—'}
+            </TableCell>
             <TableCell column={columns[1]}>
                 <span className="flex min-w-0 items-center gap-1.5">
                     <SourceIcon className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
-                    <span className="truncate font-semibold text-[var(--text-primary)]">{r.agent_name || src.label}</span>
+                    <span className="truncate font-semibold text-[var(--text-primary)]">{callName(r, t)}</span>
                 </span>
-                <span className={`${TABLE_FOLDED_ONLY[900]} truncate text-[10px] text-[var(--text-tertiary)]`}>{shortModel(r.model)}{r.type ? ` · ${r.type}` : ''}</span>
+                <span className={`${TABLE_FOLDED_ONLY[900]} truncate text-[10px] text-[var(--text-tertiary)]`}>{shortModel(r.model)}{type ? ` · ${agentTypeName(type, t)}` : ''}</span>
             </TableCell>
             <TableCell column={columns[2]} className="truncate text-[11px] text-[var(--text-secondary)]">{shortModel(r.model)}</TableCell>
             <TableCell column={columns[3]} className="font-semibold tabular-nums text-[var(--text-primary)]">{fmt(r.total_tokens)}</TableCell>
             <TableCell column={columns[4]} className="text-[11px] tabular-nums text-[var(--text-tertiary)]">{fmtDuration(r.duration_ms)}</TableCell>
             <TableCell column={columns[5]} className="tabular-nums text-[var(--text-secondary)]">{fmtCost(r.estimated_cost || 0)}</TableCell>
-            <TableCell column={columns[6]}><span className={r.type === 'chat' ? CHIP_INFO : CHIP}>{r.type || '—'}</span></TableCell>
+            <TableCell column={columns[6]}>{type ? <span className={CHIP}>{agentTypeName(type, t)}</span> : <span className="text-[var(--text-tertiary)]">—</span>}</TableCell>
             <TableCell column={columns[7]}>
                 <ChevronRight className={`h-3.5 w-3.5 text-[var(--text-tertiary)] transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
             </TableCell>
@@ -98,8 +118,8 @@ export function ActivityPage({ recent }: ActivityPageProps) {
         return recent
             .filter(r => !filterSource || r.source === filterSource)
             .filter(r => !filterModel || r.model === filterModel)
-            .filter(r => !q || [r.source, r.model, r.agent_name, r.type].some(v => v?.toLowerCase().includes(q)));
-    }, [recent, filterSource, filterModel, search]);
+            .filter(r => !q || [r.source, r.model, r.agent_name, callType(r), callName(r, t), sourceName(r.source, t)].some(v => v?.toLowerCase().includes(q)));
+    }, [recent, filterSource, filterModel, search, t]);
 
     const paged = filtered.slice(offset, offset + PAGE_SIZE);
     const sourceOptions = useMemo(() => sortedSet(recent.map(r => r.source)), [recent]);
@@ -111,12 +131,12 @@ export function ActivityPage({ recent }: ActivityPageProps) {
         <div className="flex flex-col gap-3">
             <FilterRow count={filtered.length === 1 ? t('admin_monitoring.activity_count_one', '{n} call', { n: filtered.length }) : t('admin_monitoring.activity_count_other', '{n} calls', { n: filtered.length })}>
                 <SearchField value={search} onChange={resetting(setSearch)} placeholder={t('admin_monitoring.activity_search', 'Search calls...')} className="w-full sm:w-56" />
-                <SelectField icon={Activity} value={filterSource} onChange={resetting(setFilterSource)} label={t('admin_monitoring.all_sources', 'All Sources')}>
-                    <option value="">{t('admin_monitoring.all_sources', 'All Sources')}</option>
-                    {sourceOptions.map(s => <option key={s} value={s}>{getSourceDetails(s, t).label}</option>)}
+                <SelectField icon={Activity} value={filterSource} onChange={resetting(setFilterSource)} label={t('admin_monitoring.all_sources', 'All sources')}>
+                    <option value="">{t('admin_monitoring.all_sources', 'All sources')}</option>
+                    {sourceOptions.map(s => <option key={s} value={s}>{sourceName(s, t)}</option>)}
                 </SelectField>
-                <SelectField icon={Cpu} value={filterModel} onChange={resetting(setFilterModel)} label={t('admin_monitoring.all_models', 'All Models')}>
-                    <option value="">{t('admin_monitoring.all_models', 'All Models')}</option>
+                <SelectField icon={Cpu} value={filterModel} onChange={resetting(setFilterModel)} label={t('admin_monitoring.all_models', 'All models')}>
+                    <option value="">{t('admin_monitoring.all_models', 'All models')}</option>
                     {modelOptions.map(m => <option key={m} value={m}>{shortModel(m)}</option>)}
                 </SelectField>
             </FilterRow>

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within, cleanup } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,7 +82,7 @@ describe('OrgUsersPanel — member list rendering', () => {
         await renderPanel();
         const jan = row('Jan de Vries');
         expect(within(jan).getByText('jan@acme.nl')).toBeInTheDocument();
-        expect(within(jan).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within(jan).getByText('Organisation admin')).toBeInTheDocument();
         expect(within(row('Eva Bakker')).getByText('Member')).toBeInTheDocument();
     });
 
@@ -127,23 +127,22 @@ describe('OrgUsersPanel — member list rendering', () => {
 describe('OrgUsersPanel — how a role is displayed (rights-sensitive)', () => {
     const only = (u: Record<string, unknown>) => ({ users: [u] });
 
-    it('a user with NO role at all renders as a full member chip reading "user" (fail-open)', async () => {
+    it('a user with NO role at all reads as a member, as every other plain account does', async () => {
         await renderPanel(only({ id: 'u_none', displayName: 'Noor Zonder', groups: [], status: 'active' }));
-        expect(within(row('Noor Zonder')).getByText('user')).toBeInTheDocument();
+        expect(within(row('Noor Zonder')).getByText('Member')).toBeInTheDocument();
     });
 
-    it('an UNKNOWN role is printed verbatim in a neutral grey chip (fail-open)', async () => {
+    it('an UNKNOWN role is printed verbatim in the same neutral chip as every role (fail-open)', async () => {
         await renderPanel(only({ id: 'u_x', displayName: 'Xander Onbekend', orgRole: 'superuser', groups: [], status: 'active' }));
         const chip = within(row('Xander Onbekend')).getByText('superuser');
         expect(chip).toBeInTheDocument();
-        // Not the coloured chip a known role gets.
-        expect(chip.className).toContain('bg-[var(--bg-tertiary)]');
+        expect(chip).toHaveAttribute('data-testid', 'people-role');
     });
 
-    it('legacy orgRole "admin" renders as an ordinary grey chip, not as Organisation Admin (fail-open)', async () => {
+    it('legacy orgRole "admin" renders verbatim, not as Organisation admin (fail-open)', async () => {
         await renderPanel(only({ id: 'u_legacy', displayName: 'Lea Legacy', orgRole: 'admin', role: 'admin', groups: [], status: 'active' }));
         expect(within(row('Lea Legacy')).getByText('admin')).toBeInTheDocument();
-        expect(within(row('Lea Legacy')).queryByText('Organisation Admin')).not.toBeInTheDocument();
+        expect(within(row('Lea Legacy')).queryByText('Organisation admin')).not.toBeInTheDocument();
     });
 
     it('never shows a role inherited from a group — the chip is the personal role only (fail-open)', async () => {
@@ -152,7 +151,7 @@ describe('OrgUsersPanel — how a role is displayed (rights-sensitive)', () => {
         await renderPanel();
         const eva = row('Eva Bakker');
         expect(within(eva).getByText('Member')).toBeInTheDocument();
-        expect(within(eva).queryByText('Agent Admin')).not.toBeInTheDocument();
+        expect(within(eva).queryByText('Agent admin')).not.toBeInTheDocument();
     });
 
     it('prefers orgRole over the system role when a user has both (orgRole || role)', async () => {
@@ -164,7 +163,7 @@ describe('OrgUsersPanel — how a role is displayed (rights-sensitive)', () => {
 
     it('falls back to users.role when orgRole is missing (orgRole || role)', async () => {
         await renderPanel(only({ id: 'u_r', displayName: 'Rob Rol', role: 'agent_editor', groups: [], status: 'active' }));
-        expect(within(row('Rob Rol')).getByText('Agent Editor')).toBeInTheDocument();
+        expect(within(row('Rob Rol')).getByText('Agent editor')).toBeInTheDocument();
     });
 });
 
@@ -180,7 +179,7 @@ describe('OrgUsersPanel — changing a role', () => {
         await renderPanel();
         const select = openRoleEditor('Jan de Vries');
         const labels = within(select).getAllByRole('option').map(o => o.textContent);
-        expect(labels).toEqual(['User', 'Organisation Admin', 'Data Protection Officer', 'ISMS Internal Auditor', 'Agent Admin', 'Agent Editor', 'Member']);
+        expect(labels).toEqual(['User', 'Organisation admin', 'Data protection officer', 'ISMS internal auditor', 'Agent admin', 'Agent editor', 'Member']);
     });
 
     it('preselects the current role', async () => {
@@ -288,7 +287,7 @@ describe('OrgUsersPanel — pending members', () => {
         await renderPanel({ users: [PENDING] });
         const r = row('Piet Jansen');
         expect(within(r).getByText('Pending')).toBeInTheDocument();
-        expect(within(r).queryByText('Organisation Admin')).not.toBeInTheDocument();
+        expect(within(r).queryByText('Organisation admin')).not.toBeInTheDocument();
     });
 
     it('replaces role editing and group assignment with Approve / Reject', async () => {
@@ -356,60 +355,12 @@ describe('OrgUsersPanel — who may see the controls', () => {
 
 // ═══════════════════════════════════════════════════════════ auto-approve ═══
 
-describe('OrgUsersPanel — SSO auto-approve toggle', () => {
-    const ssoOrg = (extra = {}) => ({
-        organizations: [{ id: 'orgA', name: 'Acme B.V.', authMethod: 'google', ...extra }],
-    });
-
-    it('is hidden for a password org', async () => {
-        await renderPanel({ organizations: [{ id: 'orgA', name: 'Acme B.V.', authMethod: 'password' }] });
+describe('OrgUsersPanel — SSO auto-approve', () => {
+    // Its one home is Preferred sign-in method (orgInfo/AutoApproveSetting): no second writer here.
+    it('offers no auto-approve switch, also for an SSO organisation', async () => {
+        await renderPanel({ organizations: [{ id: 'orgA', name: 'Acme B.V.', authMethod: 'google' }] });
         expect(screen.queryByText('org.auto_approve_sso')).not.toBeInTheDocument();
-    });
-
-    it('is hidden when the org has no authMethod at all', async () => {
-        await renderPanel();
-        expect(screen.queryByText('org.auto_approve_sso')).not.toBeInTheDocument();
-    });
-
-    it('appears for an SSO org and PUTs the flipped value', async () => {
-        await renderPanel(ssoOrg());
-        expect(screen.getByText('org.auto_approve_sso')).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('switch', { name: 'org.auto_approve_sso' }));
-        await waitFor(() => expect(writes()).toContainEqual({
-            url: '/auth/organizations/orgA', method: 'PUT', body: { autoApproveSSO: true },
-        }));
-    });
-
-    it('flips optimistically and rolls back when the server refuses', async () => {
-        await renderPanel({ ...ssoOrg({ autoApproveSSO: false }), write: () => jsonRes({ error: 'nope' }, 403) });
-        const toggle = screen.getByRole('switch', { name: 'org.auto_approve_sso' });
-        expect(toggle).not.toBeChecked();
-        // Sync on purpose (an awaited click lets the refusal land first): flipped before the server answered…
-        fireEvent.click(toggle);
-        expect(toggle).toBeChecked();
-        // …and taken back once the PUT came back refused.
-        await waitFor(() => expect(toggle).not.toBeChecked());
-    });
-
-    it('targets organizations[0] when the viewer has no organizationId — an arbitrary org (fail-open)', async () => {
-        await renderPanel({
-            organizations: [
-                { id: 'orgZ', name: 'Someone Else BV', authMethod: 'google' },
-                { id: 'orgA', name: 'Acme B.V.', authMethod: 'password' },
-            ],
-        }, NOBODY);
-        await userEvent.click(screen.getByRole('switch', { name: 'org.auto_approve_sso' }));
-        await waitFor(() => expect(writes()).toContainEqual({
-            url: '/auth/organizations/orgZ', method: 'PUT', body: { autoApproveSSO: true },
-        }));
-    });
-
-    it('hides the toggle when the viewer\'s organizationId is not in the returned list (fails closed)', async () => {
-        await renderPanel(
-            { organizations: [{ id: 'orgZ', name: 'Other', authMethod: 'google' }] },
-            { id: 'u_admin', organizationId: 'orgA', groups: [] },
-        );
-        expect(screen.queryByText('org.auto_approve_sso')).not.toBeInTheDocument();
+        expect(writes()).toEqual([]);
     });
 });
 
@@ -486,7 +437,7 @@ describe('OrgUsersPanel — invitations', () => {
         });
         expect(screen.getByText('Pending Invitations')).toBeInTheDocument();
         const first = row('a@acme.nl');
-        expect(within(first).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within(first).getByText('Organisation admin')).toBeInTheDocument();
         expect(within(first).getByText(/Invited by Jan · Expires/)).toBeInTheDocument();
         // role 'user' gets no chip at all
         const second = row('b@acme.nl');
@@ -573,14 +524,10 @@ describe('OrgUsersPanel — sections', () => {
         expect(tab.basePath).toBe('/app/settings/organisation/users');
     });
 
-    it('renders the Nextcloud panel only when the viewer is an ncOrg — otherwise nothing (fails closed)', async () => {
+    it('has no Nextcloud sync of its own: the Nextcloud Sync tab of the page is its one home', async () => {
         tab.section = 'sync';
-        await renderPanel();
-        expect(screen.queryByTestId('nc-sync-panel')).not.toBeInTheDocument();
-
-        cleanup();
         await renderPanel({}, { ...ADMIN, ncOrg: { instanceId: 'nc1' } });
-        expect(screen.getByTestId('nc-sync-panel')).toBeInTheDocument();
+        expect(screen.queryByTestId('nc-sync-panel')).not.toBeInTheDocument();
     });
 
     it('renders the custom-tiers panel for a section that has no tab to reach it (wrat)', async () => {

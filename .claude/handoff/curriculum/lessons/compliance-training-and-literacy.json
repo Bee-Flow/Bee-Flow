@@ -209,7 +209,7 @@
       "checkId": "training-obligation-planned",
       "existing": false,
       "label": "Put a recurring obligation on the clock",
-      "hint": "In Settings → Compliance → Training & competence, press Add obligation, set Kind to Training and Repeat (months) to 12, then Create obligation.",
+      "hint": "In Admin dashboard → Security & access → Compliance → Training & competence, press Add obligation, set Kind to Training and Repeat (months) to 12, then Create obligation.",
       "endpoints": [
         {
           "method": "GET",

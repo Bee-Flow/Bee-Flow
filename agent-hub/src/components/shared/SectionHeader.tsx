@@ -4,7 +4,8 @@ import type { ComponentType, ReactNode } from 'react';
 type IconComponent = ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
 
 interface SectionHeaderProps {
-    title: ReactNode;
+    /** Left out under a frame that already draws the page heading: then only the description and the actions show. */
+    title?: ReactNode;
     description?: ReactNode;
     /** What to say about the last save, or the section's actions, on the right. */
     status?: ReactNode;
@@ -35,8 +36,8 @@ export default function SectionHeader({ title, description, status, icon, classN
             <div className="flex min-w-[12rem] flex-1 items-start gap-2.5">
                 {icon != null && icon !== false ? <HeaderIcon icon={icon} /> : null}
                 <div className="min-w-0 flex-1">
-                    <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">{title}</h2>
-                    {description ? <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">{description}</p> : null}
+                    {title ? <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">{title}</h2> : null}
+                    {description ? <p className={`m-0 text-xs text-[var(--text-secondary)] ${title ? 'mt-1' : ''}`}>{description}</p> : null}
                 </div>
             </div>
             {status ? <div className="max-w-full">{status}</div> : null}

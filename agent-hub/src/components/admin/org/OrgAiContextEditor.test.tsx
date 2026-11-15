@@ -93,4 +93,13 @@ describe('OrgAiContextEditor examples', () => {
         render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
         expect(await screen.findByText(`Some model: about ${(300_000).toLocaleString()} tokens`)).toBeInTheDocument();
     });
+
+    // The server is the source: a tier this client has no name for keeps the server's label as is,
+    // never a fixed list of vendor models.
+    it('a tier the catalogue does not name keeps the server\'s label', async () => {
+        stubServer([{ label: 'Turbo (Some Model)', contextWindow: 400_000, kind: 'tier', tierKey: 'turbo', model: 'Some Model' }]);
+        render(withQueryClient(<OrgAiContextEditor orgId="org1" />));
+        expect(await screen.findByText(`Turbo (Some Model): about ${(300_000).toLocaleString()} tokens`)).toBeInTheDocument();
+    });
 });
+

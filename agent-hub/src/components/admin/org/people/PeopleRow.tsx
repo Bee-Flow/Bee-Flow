@@ -1,10 +1,10 @@
 import { Check, Clock, Edit2, ServerCog, Shield, Trash2, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import RoleBadge from '@/components/shared/RoleBadge';
 import { mayManageAccount } from '@/utils/adminAccess';
 import { PLATFORM_ADMIN_ROLE } from '../userManagement/PlatformAdminField';
 import type { AdminUser } from '../userManagement/types';
 import { CHIP, CHIP_WARNING } from '@/components/shared/adminUi';
+import OrgRoleChip from './OrgRoleChip';
 
 export type PeopleUser = AdminUser;
 
@@ -99,7 +99,7 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
 
     return (
         <div
-            className="px-5 py-2.5 flex items-center gap-3 hover:bg-[var(--item-hover-bg)] transition-colors"
+            className="px-5 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 hover:bg-[var(--item-hover-bg)] transition-colors"
             data-testid="people-row"
         >
             <div
@@ -109,15 +109,15 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                 {initial}
             </div>
 
-            <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+            <div className="min-w-[12rem] flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">
                         {user.displayName || user.username}
                     </span>
                     {/* The organisation role (its organisation is the section
                         header, or a chip in the flat view) and, apart from it,
                         the platform role: two kinds of admin, told apart. */}
-                    {(user.orgRole || !isPlatformAdmin) && <RoleBadge role={user.orgRole || user.role} tone="neutral" />}
+                    {(user.orgRole || !isPlatformAdmin) && <OrgRoleChip role={user.orgRole || user.role} />}
                     {isPlatformAdmin && (
                         <span className={PLATFORM_CHIP}>
                             <ServerCog className="h-3 w-3" aria-hidden="true" />
@@ -138,7 +138,8 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
             </div>
 
             {showActions && (
-                <div className="flex items-center gap-1 flex-shrink-0">
+                // Wraps under the name when the row is narrow, so Approve and Reject never crowd the name.
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-1" data-testid="people-row-actions">
                     {isPending && <PendingButtons user={user} onApprove={onApprove} onReject={onReject} />}
                     <button
                         onClick={() => onEdit?.(user)}

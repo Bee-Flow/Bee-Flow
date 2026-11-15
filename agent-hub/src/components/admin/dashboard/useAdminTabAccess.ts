@@ -8,6 +8,7 @@ import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { resolveAgentSection } from '@/components/agents/agentSections';
 import { isOrgAdminRole, isPlatformAdmin } from '@/utils/adminAccess';
 import { ADMIN_TABS, canOpenAdminTab, type AdminTab } from './adminTabs';
+import { useSteadyLicenceTier } from './useSteadyLicenceTier';
 
 /** The user fields the tab gates read. */
 export interface AdminTabUser {
@@ -40,9 +41,11 @@ export interface AdminTabAccessResult {
     /** At least one tab opens (or the viewer is a platform admin / holds 'all'). */
     canOpenDashboard: boolean;
     /**
-     * The licence status is still being read: until it is, the tier reads as
-     * Community, so a refused tier-gated tab may still open (the dashboard waits
-     * instead of saying "access denied" for a moment).
+     * A first read of the licence status is still out and this tab remembers no
+     * answer: until it answers, the tier reads as Community, so a refused
+     * tier-gated tab may still open (the dashboard waits instead of saying
+     * "access denied" for a moment). A failed read keeps the last answer
+     * (useSteadyLicenceTier), so a transient failure never takes rows away.
      */
     gatesPending: boolean;
 }
@@ -50,7 +53,8 @@ export interface AdminTabAccessResult {
 /** The tab gates for this viewer on this install (deployment mode, licence tier). */
 export function useAdminTabAccess(user: AdminTabUser | null | undefined): AdminTabAccessResult {
     const { isCloud, isSelfHosted } = useDeploymentMode();
-    const { serverOverride, tier, loading: licenseLoading } = useLicenseContext();
+    const { serverOverride } = useLicenseContext();
+    const { tier, pending: licencePending } = useSteadyLicenceTier();
     const isSuperAdmin = isPlatformAdmin(user);
     const hasPermission = adminPermissionCheck(user);
     const entitlements = useEntitlements();
@@ -62,5 +66,5 @@ export function useAdminTabAccess(user: AdminTabUser | null | undefined): AdminT
         isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission, hasCapability,
     }) && !(tab?.id === 'agents' && !hasAgentSection);
     const canOpenDashboard = isSuperAdmin || hasPermission('all') || ADMIN_TABS.some(tab => checkTabAccess(tab));
-    return { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard, gatesPending: !!licenseLoading };
+    return { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard, gatesPending: licencePending };
 }

@@ -19,7 +19,7 @@ export default function VoxtralCard() {
                     hint={<>
                         {t('integ.transcription_voxtral_uses_your_existing_mistral_api', 'Voxtral uses your existing Mistral API key configured in')}{' '}
                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
-                        <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin → AI Config → API Keys → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
+                        <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin dashboard → Whole server → AI configuration → Providers → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
                     </>}
                 >
                     <div className="flex @[40rem]/srow:justify-end">

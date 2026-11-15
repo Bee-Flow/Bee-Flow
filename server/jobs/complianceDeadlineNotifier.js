@@ -417,7 +417,7 @@ async function _sweepObligations(d) {
             await _notifyAdmins(d,
                 obligation.organization_id,
                 overdue ? `ISMS obligation overdue: ${obligation.title}` : `ISMS obligation due in ${offset} day(s): ${obligation.title}`,
-                `${obligation.kind.replace(/_/g, ' ')}${obligation.subject ? ` — ${obligation.subject}` : ''} is ${overdue ? 'past' : 'approaching'} its due date (${new Date(obligation.due_at).toLocaleDateString()}). Complete it under ISO 27001 → Training & obligations.`,
+                `${obligation.kind.replace(/_/g, ' ')}${obligation.subject ? ` — ${obligation.subject}` : ''} is ${overdue ? 'past' : 'approaching'} its due date (${new Date(obligation.due_at).toLocaleDateString()}). Complete it under Compliance → Training & competence.`,
                 complianceSectionPath('iso_training'),
             );
             await obligationStore.markNotified(obligation.id, offset).catch((e) => bestEffort('jobs/complianceDeadlineNotifier:_sweepObligations', e));

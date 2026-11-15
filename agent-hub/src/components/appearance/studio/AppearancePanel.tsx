@@ -38,7 +38,8 @@ export default function AppearancePanel({ section }: AppearancePanelProps = {}) 
     const [lookNavSlot, setLookNavSlot] = useState<HTMLDivElement | null>(null);
 
     if (section) {
-        return <div className="h-full">{active === 'look' ? <LookEditor /> : <IconsEditor />}</div>;
+        // The dashboard frame draws the heading, so Look shows no title of its own.
+        return <div className="h-full">{active === 'look' ? <LookEditor titled={false} /> : <IconsEditor />}</div>;
     }
 
     const sidebar = (

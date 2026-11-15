@@ -105,7 +105,9 @@ export function useUserFilters(
 
             if (filters.role !== 'all') {
                 // Carried over from OrgUsersPanel: this conflates users.orgRole
-                // with users.role. See the note in shared/RoleBadge.jsx.
+                // with users.role (the system role), so a super-admin without
+                // an org role filters as 'admin'. Separating the two columns at
+                // the call site is the fix; mapping 'admin' here is not.
                 const role = u.orgRole || u.role || 'user';
                 if (filters.role === 'user') {
                     if (role !== 'user' && role !== 'member') return false;

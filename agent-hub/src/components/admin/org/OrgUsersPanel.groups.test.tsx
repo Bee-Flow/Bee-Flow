@@ -252,7 +252,7 @@ describe('OrgUsersPanel — groups section', () => {
         await renderPanel();
         await userEvent.click(screen.getByText('Support'));
         const card = groupCard('Support');
-        expect(within(card).getByDisplayValue('Agent Admin')).toBeInTheDocument();
+        expect(within(card).getByDisplayValue('Agent admin')).toBeInTheDocument();
         expect(within(card).getByText('All members inherit this role')).toBeInTheDocument();
     });
 });
@@ -335,17 +335,17 @@ describe('OrgUsersPanel — group members', () => {
         await userEvent.click(screen.getByText('Support'));
         const evaRow = memberRow('Support', 'Eva Bakker');
         // Eva is orgRole 'member', but Support carries agent_admin.
-        expect(within(evaRow).getByText('Agent Admin')).toBeInTheDocument();
+        expect(within(evaRow).getByText('Agent admin')).toBeInTheDocument();
     });
 
-    it('prefers users.role over users.orgRole here — the reverse of the member list (wrat)', async () => {
+    it('reads the organisation role before the system role, as the member list does', async () => {
         await renderPanel({
             users: [{ id: 'u_admin', displayName: 'Jan de Vries', role: 'user', orgRole: 'org_admin', groups: ['g_fin'], organizationId: 'orgA', status: 'active' }],
         });
         await userEvent.click(screen.getByText('Finance'));
         const janRow = memberRow('Finance', 'Jan de Vries');
-        expect(within(janRow).getByText('user')).toBeInTheDocument();
-        expect(within(janRow).queryByText('Organisation Admin')).not.toBeInTheDocument();
+        expect(within(janRow).getByText('Organisation admin')).toBeInTheDocument();
+        expect(within(janRow).queryByText('user')).not.toBeInTheDocument();
     });
 
     it('removes a member from the group immediately, with no confirmation (fail-open)', async () => {
@@ -410,10 +410,10 @@ describe('OrgUsersPanel — roles section', () => {
 
     it('always renders the six hard-coded ORG_ROLES, even when /auth/org-roles is missing', async () => {
         await renderPanel({ getOverrides: { '/auth/org-roles': { status: 404, body: {} } } });
-        for (const name of ['Organisation Admin', 'Data Protection Officer', 'ISMS Internal Auditor', 'Agent Admin', 'Agent Editor', 'Member']) {
+        for (const name of ['Organisation admin', 'Data protection officer', 'ISMS internal auditor', 'Agent admin', 'Agent editor', 'Member']) {
             expect(screen.getByText(name)).toBeInTheDocument();
         }
-        await userEvent.click(buttonOf('Agent Editor'));
+        await userEvent.click(buttonOf('Agent editor'));
         expect(screen.getByText('No permissions could be read for this role.')).toBeInTheDocument();
     });
 
@@ -432,7 +432,7 @@ describe('OrgUsersPanel — roles section', () => {
                 { id: 'u3', displayName: 'Bas', role: 'org_admin', groups: [] },
             ],
         });
-        const adminRow = buttonOf('Organisation Admin');
+        const adminRow = buttonOf('Organisation admin');
         expect(within(adminRow).getByText('2 people')).toBeInTheDocument();
     });
 
@@ -440,7 +440,7 @@ describe('OrgUsersPanel — roles section', () => {
         await renderPanel();
         // No role colour: every role's chips are the theme's neutral chip (dpo,
         // isms_auditor and member included).
-        const dpoRow = buttonOf('Data Protection Officer');
+        const dpoRow = buttonOf('Data protection officer');
         const chip = within(dpoRow).getByText('Compliance Center');
         expect(chip.style.color).toBe('');
         expect(chip.className).toContain('border-[var(--border-default)]');
@@ -448,7 +448,7 @@ describe('OrgUsersPanel — roles section', () => {
         // capability to show a person.
         expect(within(dpoRow).queryByText('Dpo')).not.toBeInTheDocument();
 
-        const adminRow = buttonOf('Organisation Admin');
+        const adminRow = buttonOf('Organisation admin');
         expect(within(adminRow).getByText('Manage Users').className).toBe(chip.className);
     });
 
@@ -456,7 +456,7 @@ describe('OrgUsersPanel — roles section', () => {
         // ADMIN carries the org_admin PERMISSION but no orgRole, so the panel
         // offers no toggles: the whole grant is listed under "Permissions".
         await renderPanel();
-        await userEvent.click(buttonOf('Agent Editor'));
+        await userEvent.click(buttonOf('Agent editor'));
         expect(screen.getByText('Permissions')).toBeInTheDocument();
         expect(screen.getByText('Create, edit, delete and publish agents')).toBeInTheDocument();
         expect(screen.queryByTestId('role-perm-agent_editor-use_forms')).not.toBeInTheDocument();
@@ -464,7 +464,7 @@ describe('OrgUsersPanel — roles section', () => {
 
     it('lets an org admin switch the editable half and keeps the rest fixed', async () => {
         await renderPanel({}, ORG_ADMIN);
-        await userEvent.click(buttonOf('Agent Editor'));
+        await userEvent.click(buttonOf('Agent editor'));
         expect(screen.getByText('What this role may use')).toBeInTheDocument();
         expect(screen.getByTestId('role-perm-agent_editor-use_forms')).toBeChecked();
         expect(screen.getByTestId('role-perm-agent_editor-use_webpages')).not.toBeChecked();
@@ -477,7 +477,7 @@ describe('OrgUsersPanel — roles section', () => {
 
     it('saves the full editable choice per role and splices it into the chips without a refetch', async () => {
         await renderPanel({}, ORG_ADMIN);
-        const editorRow = buttonOf('Agent Editor');
+        const editorRow = buttonOf('Agent editor');
         expect(within(editorRow).getByText('Forms')).toBeInTheDocument();
         await userEvent.click(editorRow);
         await userEvent.click(screen.getByTestId('role-perm-agent_editor-use_forms'));

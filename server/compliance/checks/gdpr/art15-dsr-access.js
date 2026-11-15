@@ -31,7 +31,7 @@ module.exports = {
                 // The SQLSTATE only: a driver message can quote the row it
                 // failed on, and evidence is append-only.
                 evidence: { error: 'dsr_ledger_unreadable', sqlstate: e?.code || null },
-                details: 'Could not read DSR ledger — open Compliance → DSR Inbox to verify.',
+                details: 'Could not read DSR ledger — open Compliance → Requests (DSR) to verify.',
             };
         }
         if (!stats.total) {

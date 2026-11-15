@@ -49,7 +49,24 @@ const NAV_SECTIONS: NavSection[] = [
  * Active section highlight uses an IntersectionObserver — the section whose
  * top is closest to the scroll container's top wins.
  */
-export default function LookEditor({ navSlot = null }: { navSlot?: HTMLElement | null }) {
+interface LookEditorProps {
+    navSlot?: HTMLElement | null;
+    /** false under a frame that already draws the page heading (the admin dashboard): the description stays, the "Look" title goes. */
+    titled?: boolean;
+}
+
+/** The section's header: the description always, the "Look" title only where no frame above draws the heading. */
+function LookHeader({ titled }: { titled?: boolean }) {
+    const { t } = useTranslation();
+    return (
+        <SectionHeader
+            title={titled === false ? undefined : t('appearance.look_editor_look', 'Look')}
+            description={t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone on this server sees by default. Changes preview live in the pane on the right.')}
+        />
+    );
+}
+
+export default function LookEditor({ navSlot = null, titled }: LookEditorProps) {
     const { t } = useTranslation();
     const { form, setForm, dirty, saving, loading, error, save, discard, reload, draftPayload } = useLookForm();
 
@@ -112,10 +129,7 @@ export default function LookEditor({ navSlot = null }: { navSlot?: HTMLElement |
 
     const sectionPanel = (
         <div className="max-w-3xl space-y-10 p-6 md:p-8">
-            <SectionHeader
-                title={t('appearance.look_editor_look', 'Look')}
-                description={t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone on this server sees by default. Changes preview live in the pane on the right.')}
-            />
+            <LookHeader titled={titled} />
 
             <PresetSection form={form} setForm={setForm} saving={saving} />
             <AccentSection form={form} setForm={setForm} saving={saving} />

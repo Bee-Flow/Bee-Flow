@@ -192,10 +192,11 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
         <div className="space-y-5">
             {/* The page title is the dashboard frame's (AdminPage); this is the tier block's own heading. */}
             <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                {/* The section heading and description sizes of the other dashboard pages (SettingsGroup). */}
+                <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)]">
                     {t('admin.encryption.choose_tier', 'Encryption level')}
                 </h3>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                <p className="m-0 mt-0.5 text-xs text-[var(--text-secondary)]">
                     {t(
                         'admin.encryption.intro',
                         'Choose how your organisation’s conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.',

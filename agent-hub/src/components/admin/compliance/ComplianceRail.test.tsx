@@ -20,10 +20,12 @@ const COUNTS = {
 };
 
 describe('ComplianceRail', () => {
-    it('renders head, groups, every non-optional row with a title, and the chain footer', () => {
-        render(<ComplianceRail active="overview" onSelect={vi.fn()} onOpenReports={vi.fn()} counts={COUNTS} orgName="Van Dijk Groep" />);
-        expect(screen.getByText('Compliance')).toBeInTheDocument();
-        expect(screen.getByText('Van Dijk Groep · Compliance Hub')).toBeInTheDocument();
+    it('renders groups, every non-optional row with a title, and the chain footer, without a title of its own', () => {
+        render(<ComplianceRail active="overview" onSelect={vi.fn()} onOpenReports={vi.fn()} counts={COUNTS} />);
+        // The dashboard frame names the page and the section header the section: the rail repeats neither.
+        expect(screen.queryByText('Compliance')).toBeNull();
+        expect(screen.queryByText(/Compliance Hub/)).toBeNull();
+        expect(screen.getByTestId('compliance-rail-download')).toHaveAccessibleName('Reports and downloads');
         // The title is the label, plus the row's hint on a second line when it has one.
         for (const s of SECTIONS.filter(x => !x.optional)) {
             expect(screen.getByTestId(`rail-row-${s.id}`).getAttribute('title')!.split('\n')[0]).toBe(s.labelFallback);
@@ -54,6 +56,10 @@ describe('ComplianceRail', () => {
         expect(row).toHaveAttribute('aria-current', 'page');
         expect(row.className).toMatch(/bg-\[var\(--bg-card\)\]/);
         expect(row.className).not.toMatch(/border-l/);
+        // The dashboard rail's recipe: rounded, 13px, a hover surface on the rows that are not current.
+        expect(row.className).toMatch(/rounded-lg/);
+        expect(row.className).toMatch(/text-\[13px\]/);
+        expect(screen.getByTestId('rail-row-dsr').className).toMatch(/hover:bg-\[var\(--item-hover-bg\)\]/);
         expect(row.getAttribute('style') || '').not.toMatch(/inset 3px/);
         await user.click(screen.getByTestId('rail-row-dsr'));
         expect(onSelect).toHaveBeenCalledWith('dsr');

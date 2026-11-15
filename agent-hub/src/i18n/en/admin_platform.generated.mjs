@@ -79,4 +79,9 @@ export default {
     "admin_platform.title": "Platform services",
     "admin_platform.withings_save_failed": "Could not save the Withings credentials",
     "admin_platform.withings_saved": "Withings credentials saved",
+    "admin_platform.ceiling_no_plan": "No plan",
+    "admin_platform.ceiling_plan_readonly_intro": "The plan of {org} is its capability ceiling. Plans are assigned and changed under Subscriptions; distribute what the plan includes to members and groups under Grants.",
+    "admin_platform.ceiling_open_subscriptions": "Manage in Subscriptions",
+    "admin_platform.access_category_mcp": "MCP servers",
+    "admin_platform.access_category_custom": "Custom integrations",
 };

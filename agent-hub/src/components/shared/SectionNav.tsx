@@ -8,6 +8,7 @@
 // that a `StudioShell responsive` gives the sidebar on a phone.
 
 import type { ComponentType, ReactNode } from 'react';
+import { SECTION_NAV_LIST, SECTION_NAV_ROW_ACTIVE, SECTION_NAV_ROW_BOX, SECTION_NAV_ROW_IDLE, SECTION_NAV_ROW_LABEL } from './sectionNavRecipe';
 
 interface SectionNavItem {
     id: string;
@@ -34,17 +35,21 @@ interface SectionNavProps {
     className?: string;
 }
 
-const ROW = 'flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm md:w-full md:shrink';
-const ROW_ACTIVE = 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]';
-const ROW_IDLE = 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]';
-const EYEBROW = 'hidden px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] md:block';
+// The rows take the admin rail's recipe (sectionNavRecipe), so an inner list
+// beside a page (Support settings, Languages, Compliance, Studio) reads like
+// the rail.
+const ROW = `flex shrink-0 ${SECTION_NAV_ROW_LABEL} ${SECTION_NAV_ROW_BOX} md:w-full md:shrink`;
+const ROW_ACTIVE = SECTION_NAV_ROW_ACTIVE;
+const ROW_IDLE = SECTION_NAV_ROW_IDLE;
+const ICON = 'h-4 w-4 shrink-0 text-[var(--text-secondary)]';
+const EYEBROW = 'hidden px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] md:block';
 const DIVIDER = 'mt-2 border-t border-[var(--border-subtle)]';
 
 export default function SectionNav({ items, activeId, onSelect, label, className = '' }: SectionNavProps) {
     return (
         <nav
             aria-label={label}
-            className={`flex flex-row gap-0.5 overflow-x-auto p-2 md:flex-col md:overflow-x-visible ${className}`}
+            className={`${SECTION_NAV_LIST} ${className}`}
         >
             {items.map((item, i) => {
                 const Icon = item.icon;
@@ -61,7 +66,7 @@ export default function SectionNav({ items, activeId, onSelect, label, className
                             data-testid={item.testId}
                             className={`${ROW} ${active ? ROW_ACTIVE : ROW_IDLE}`}
                         >
-                            {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+                            {Icon ? <Icon className={ICON} aria-hidden="true" /> : null}
                             <span className="truncate">{item.label}</span>
                             {item.mark}
                         </button>

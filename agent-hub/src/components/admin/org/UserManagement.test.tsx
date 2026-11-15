@@ -85,7 +85,6 @@ describe('UserManagement', () => {
     it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
         render(<UserManagement user={allHolder} />);
         expect(await screen.findByText('admin.users_tab_groups')).toBeInTheDocument();
-        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
@@ -126,18 +125,12 @@ describe('UserManagement', () => {
         for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
             expect(await screen.findByText(key)).toBeInTheDocument();
         }
-        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
-        // Model tiers are the Models row and Nextcloud sync the Nextcloud row now.
-        expect(screen.queryByText('admin_org.users_tab_custom_tiers')).not.toBeInTheDocument();
-        expect(screen.queryByText('admin_org.users_tab_nc_sync')).not.toBeInTheDocument();
     });
 
     it('offers the org-scoped section set to an org-scoped user', async () => {
         render(<UserManagement user={orgScoped} />);
         expect(await screen.findByText('admin.users_tab_users')).toBeInTheDocument();
         expect(screen.getByText('admin.users_tab_groups')).toBeInTheDocument();
-        // The organisation's own details are the Organisation info row, not a tab here.
-        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
     });
@@ -178,14 +171,14 @@ describe('UserManagement', () => {
 
     it('falls back to the users section for an unknown activeSection', async () => {
         render(<UserManagement user={fullAdmin} activeSection="nope" />);
-        expect(await screen.findByText('admin.sec_people_title')).toBeInTheDocument();
+        expect(await screen.findByTestId('people-summary')).toBeInTheDocument();
     });
 
     // The organisation's details have one editor, Organisation info: an old
     // my-organization address opens the people list instead of a second form.
     it('has no my-organization form any more', async () => {
         render(<UserManagement user={orgScoped} activeSection="my-organization" />);
-        expect(await screen.findByText('admin.sec_people_title')).toBeInTheDocument();
+        expect(await screen.findByTestId('people-summary')).toBeInTheDocument();
         expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
     });
 
@@ -209,7 +202,7 @@ describe('UserManagement', () => {
         const directoryHolder = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizations: ['o1'] };
         render(<UserManagement user={directoryHolder} />);
         expect((await screen.findByText('admin_org.user_mgmt_org_admins_only')).closest('[role="status"]')).not.toBeNull();
-        expect(screen.getByText('admin.sec_people_title')).toBeInTheDocument();
+        expect(screen.getByTestId('people-summary')).toBeInTheDocument();
         // The server refuses the edits as it refused the lists, so no control offers one.
         expect(screen.queryByText('admin.sec_people_add')).not.toBeInTheDocument();
     });

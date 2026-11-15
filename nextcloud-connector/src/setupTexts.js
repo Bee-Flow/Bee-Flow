@@ -40,9 +40,9 @@ const CONNECT_ERRORS = {
     version_mismatch: 'This Bee Flow server and this connector do not work together in these versions. '
         + 'Update both to their latest release, then try again.',
     pairing_code_required: 'This Bee Flow server asks for a pairing code. Generate one in Bee Flow '
-        + '(Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud), enter it here and connect again.',
+        + '(Admin dashboard → Connections → Nextcloud → Pair a new Nextcloud), enter it here and connect again.',
     pairing_code_invalid: 'This Bee Flow server does not accept this pairing code: it is mistyped, expired or already used. '
-        + 'Generate a new one in Bee Flow (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud), enter it here and connect again.',
+        + 'Generate a new one in Bee Flow (Admin dashboard → Connections → Nextcloud → Pair a new Nextcloud), enter it here and connect again.',
 };
 /** @typedef {keyof typeof CONNECT_ERRORS} ConnectErrorCode */
 

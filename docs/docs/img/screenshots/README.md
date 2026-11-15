@@ -51,11 +51,11 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 | `studio/templates-marketplace/` | Template marketplace browse view |
 | `studio/knowledge-bases-list/` | KB library |
 | `studio/skills-marketplace/` | Skills marketplace |
-| `admin/users-and-groups/` | Admin → Security → Users (the People directory) |
-| `admin/nc-integrations-org/` | Admin → Organisation → Integrations → Integration settings, the Nextcloud integrations panel (Org-wide) |
+| `admin/users-and-groups/` | Admin dashboard → Workspace → People (the People directory) |
+| `admin/nc-integrations-org/` | Admin dashboard → Connections → Integration status, the Nextcloud integrations panel (Org-wide) |
 | `admin/nc-integrations-per-group/` | The same panel, Per-group exceptions with one group opened |
 | `admin/organisation-settings/` | Org settings overview |
-| `admin/beta-features/` | Admin → Access → Grants, the Beta capabilities |
+| `admin/beta-features/` | Admin dashboard → Security & access → Access → Grants, the Beta capabilities |
 | `admin/audit-log/` | Guardrail event browser |
 | `admin/license-apply/` | License & usage panel |
 | `api/api-keys-panel/` | Settings → API keys (creation flow) |

@@ -6,12 +6,13 @@ import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import { API_BASE } from '@/utils/helpers';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
 import { Button } from '@/components/shared/Button';
 import { CHIP_WARNING } from '@/components/shared/adminUi';
 import type { MemberUsage, OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 import type { OrgMemberRoles } from '../useOrgMemberRoles';
+import { orgRoleLabel } from '../people/orgRoleLabel';
 
 interface OrgMemberRowProps {
     member: OrgMember;
@@ -102,7 +103,7 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
                     >
                         <option value="user">{t('admin_org.users_user', 'User')}</option>
                         {ORG_ROLES.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
+                            <option key={r.id} value={r.id}>{orgRoleLabel(t, r.id)}</option>
                         ))}
                     </select>
                     <button onClick={() => setEditingUserRole(null)} className="p-1 rounded hover:bg-[var(--item-hover-bg)] text-[var(--text-muted)]" aria-label={t('common.cancel', 'Cancel')}>
@@ -141,7 +142,7 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
                             {t('admin_org.users_pending', 'Pending')}
                         </span>
                     ) : (
-                        <RoleBadge role={u.orgRole || u.role} />
+                        <OrgRoleChip role={u.orgRole || u.role} />
                     )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">

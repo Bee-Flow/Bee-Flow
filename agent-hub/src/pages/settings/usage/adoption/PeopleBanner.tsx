@@ -1,5 +1,6 @@
 import { Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { localeFormat } from '@/hooks/useLocaleFormat';
 import { AlertBanner } from '../kit';
 import type { PeopleTableProps } from './PeopleTable';
 
@@ -8,9 +9,10 @@ const BUTTON = 'inline-flex items-center gap-1.5 rounded-lg border border-[var(-
 
 type BannerProps = Pick<PeopleTableProps, 'view' | 'revealed' | 'auditFailed' | 'revealedAt' | 'scopeLabel' | 'onReveal' | 'onHide' | 'loading'>;
 
-function fTime(ms: number | null): string {
+/** The reveal's moment in the app's language (`locale`: resolvedLocale), not the browser's. */
+function fTime(ms: number | null, locale: string | null | undefined): string {
     if (!ms) return '';
-    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return localeFormat(locale).dateTime(ms);
 }
 
 /**
@@ -19,7 +21,7 @@ function fTime(ms: number | null): string {
  * back), or the reveal refused because the audit log could not record it.
  */
 export function PeopleBanner({ view, revealed, auditFailed, revealedAt, scopeLabel, onReveal, onHide, loading }: BannerProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     if (auditFailed) {
         return (
             <div className="mb-2">
@@ -37,7 +39,7 @@ export function PeopleBanner({ view, revealed, auditFailed, revealedAt, scopeLab
                 <div className="min-w-0 flex-1">
                     <p className="text-[12px] font-semibold text-[var(--text-primary)]">{t('adoption.people_revealed_title', 'Names shown · recorded in the access audit log')}</p>
                     <p className="text-[11px] text-[var(--text-muted)]">
-                        {t('adoption.people_revealed_detail', 'Entry “usage_adoption_people_revealed” · you · {time} · {scope}. Names stay visible until you leave this page.', { time: fTime(revealedAt), scope: scopeLabel })}
+                        {t('adoption.people_revealed_detail', 'Entry “usage_adoption_people_revealed” · you · {time} · {scope}. Names stay visible until you leave this page.', { time: fTime(revealedAt, resolvedLocale), scope: scopeLabel })}
                     </p>
                 </div>
                 <button type="button" onClick={onHide} className={BUTTON}><EyeOff className="h-3.5 w-3.5" aria-hidden="true" />{t('adoption.people_hide', 'Hide names')}</button>

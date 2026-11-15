@@ -17,7 +17,6 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlTab } from '@/hooks/useUrlTab';
 import { useUserFilters } from '@/hooks/useUserFilters';
 import { isPlatformAdmin } from '@/utils/adminAccess';
-import NextcloudSyncPanel from '../../integrations/nextcloud/NextcloudSyncPanel';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Tabs from '../../shared/Tabs';
 import useConfirm from '../../shared/useConfirm';
@@ -31,11 +30,11 @@ import UserListSkeleton from '../../shared/UserListSkeleton';
 // opened the legacy page instead of Settings.
 // The 'list' URL corresponds to the 'users' internal id so the URL segment
 // doesn't collide with the parent path (`.../users`).
-// 'customTiers' and 'sync' have no tab but keep their address: bookmarks, the
-// phone app and a Learning Center lesson open them directly. Nextcloud Sync's
-// tab went because Settings → Organisation → Nextcloud Sync (and the legacy
-// page's own Nextcloud Sync tab) shows the same panel to everyone who saw it.
-const ORG_USERS_SECTIONS = ['users', 'groups', 'roles', 'customTiers', 'sync'];
+// 'customTiers' has no tab but keeps its address: bookmarks and the phone app
+// open it directly. Nextcloud Sync is not a section here: its one home is the
+// page's own Nextcloud Sync tab, and pages/OrgSettings.tsx opens that tab for
+// the old .../users/sync address (bookmarks, the phone app, a lesson).
+const ORG_USERS_SECTIONS = ['users', 'groups', 'roles', 'customTiers'];
 const ORG_USERS_URL_ALIASES = { users: 'list' };
 const LEGACY_BASE_PATH = '/app/org-settings/users';
 
@@ -182,7 +181,6 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
 
     if (loading) return <PanelSkeleton />;
 
-    const isNcOrg = !!user?.ncOrg?.instanceId;
     const sections = [
         { id: 'users', label: t('admin.users_tab_users', 'Users'), icon: <Users className="w-4 h-4" />, badge: orgUsers.length },
         { id: 'groups', label: t('admin.users_tab_groups', 'Groups'), icon: <UserPlus className="w-4 h-4" />, badge: orgGroups.length },
@@ -196,8 +194,8 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
     return (
         <div className="max-w-4xl space-y-6">
             {/* Section tabs. The shared tab bar, as on Organisation →
-                Integrations: tab semantics and arrow keys. 'customTiers' and
-                'sync' have no tab, so no tab is selected while they show. */}
+                Integrations: tab semantics and arrow keys. 'customTiers'
+                has no tab, so no tab is selected while it shows. */}
             <Tabs
                 value={activeSection}
                 onChange={setActiveSection}
@@ -251,10 +249,6 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
 
             {activeSection === 'customTiers' && (
                 <OrgCustomTiersPanel />
-            )}
-
-            {activeSection === 'sync' && isNcOrg && (
-                <NextcloudSyncPanel user={user} />
             )}
 
             {roleChangeError && (

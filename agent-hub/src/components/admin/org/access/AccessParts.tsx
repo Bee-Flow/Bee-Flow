@@ -8,7 +8,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { SettingsList } from '@/components/shared/SettingsList';
 import { CHIP, EYEBROW } from '@/components/shared/adminUi';
 import { availabilityReasonText } from '@/utils/integrationAvailability';
-import type { AccessCapability, AccessKindSection } from './accessTypes';
+import { byCategory, integrationCategoryLabel, type AccessCapability, type AccessKindSection } from './accessTypes';
 
 /** "Saved" or the error of the last save, quiet and inline. */
 export function AccessStatus({ message }: { message: { type: string; text: string } | null }) {
@@ -22,8 +22,12 @@ export function AccessStatus({ message }: { message: { type: string; text: strin
     );
 }
 
-/** An eyebrow with the kind's icon and label (and a count), then its rows in one list. */
-export function CapabilityGroup({ section, count, dimmed = false, children }: { section: AccessKindSection; count?: number; dimmed?: boolean; children: ReactNode }) {
+/**
+ * An eyebrow with the kind's icon and label (and a count), then its rows in one
+ * list. `listed={false}`: the children bring their own lists (integrations, one
+ * list per category).
+ */
+export function CapabilityGroup({ section, count, dimmed = false, listed = true, children }: { section: AccessKindSection; count?: number; dimmed?: boolean; listed?: boolean; children: ReactNode }) {
     const { t } = useTranslation();
     const Icon = section.icon;
     return (
@@ -33,7 +37,26 @@ export function CapabilityGroup({ section, count, dimmed = false, children }: { 
                 {t(section.labelKey, section.label)}
                 {count != null ? <span className="font-normal">({count})</span> : null}
             </p>
-            <SettingsList>{children}</SettingsList>
+            {listed ? <SettingsList>{children}</SettingsList> : children}
+        </div>
+    );
+}
+
+/**
+ * Integration rows under a sub-heading per category: the provider for Google
+ * Workspace and Microsoft 365, so their two "Calendar" and "Contacts" rows are
+ * told apart by more than their icon. `caps` comes sorted by category.
+ */
+export function CategorisedRows({ caps, renderRow }: { caps: readonly AccessCapability[]; renderRow: (cap: AccessCapability) => ReactNode }) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex flex-col gap-3">
+            {byCategory(caps).map(run => (
+                <div key={run.category || '-'} className="flex flex-col gap-1.5" role="group" aria-label={run.category ? integrationCategoryLabel(t, run.category) : undefined}>
+                    {run.category ? <p className="m-0 text-xs font-medium text-[var(--text-secondary)]">{integrationCategoryLabel(t, run.category)}</p> : null}
+                    <SettingsList>{run.caps.map(renderRow)}</SettingsList>
+                </div>
+            ))}
         </div>
     );
 }

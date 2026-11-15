@@ -4,6 +4,9 @@ import useConfirm from '../../shared/useConfirm';
 import { RefusedError, errorBody } from '@/api/mutate';
 import { useAdminOrgScope } from '@/api/adminOrgScope';
 import OrgGlobalTiersList from './OrgGlobalTiersList';
+import OrgServerTiersList from './OrgServerTiersList';
+import SaveStatus from '@/components/shared/SaveStatus';
+import { Plus } from 'lucide-react';
 import { apiRequest } from '@/api/typedRequest';
 import { useCustomTiersRead, type AvailableModel, type OrgTier } from './useCustomTiersRead';
 import { Button } from '@/components/shared/Button';
@@ -156,7 +159,9 @@ const OrgCustomTiersPanel = () => {
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_org.custom_tiers_loading', 'Loading custom tiers...')}</div>;
 
     const dirty = JSON.stringify(orgTiers) !== JSON.stringify(baseline);
-    const footer = (
+    // Save appears once there is something to save (or a save to retry): never a disabled
+    // button under an empty list. After a save the status line says so.
+    const footer = dirty || saving || saveFailed ? (
         <SaveFooter
             onSave={() => void save()}
             onCancel={dirty ? () => setOrgTiers(baseline) : undefined}
@@ -165,32 +170,37 @@ const OrgCustomTiersPanel = () => {
             saveState={saving ? 'saving' : saveFailed ? 'error' : savedAt ? 'saved' : 'idle'}
             onRetry={() => void save()}
             lastSavedAt={savedAt}
-            saveLabel={t('admin_org.custom_tiers_save', 'Save Organisation Tiers')}
         />
-    );
+    ) : savedAt ? (
+        <SaveStatus saveState="saved" lastSavedAt={savedAt} />
+    ) : null;
 
     return (
-        <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_org.custom_tiers_title', 'Organisation Custom Tiers')}</h3>
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {t('admin_org.custom_tiers_subtitle', 'Create tiers scoped to this organisation. They appear alongside global tiers for your members.')}
-                    </p>
+        <div className="space-y-6">
+            <OrgServerTiersList models={availableModels} />
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_polish.tiers_org_title', 'Organisation custom tiers')}</h3>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            {t('admin_org.custom_tiers_subtitle', 'Create tiers scoped to this organisation. They appear alongside global tiers for your members.')}
+                        </p>
+                    </div>
+                    <Button variant="primary" size="sm" onClick={addTier}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('admin_polish.tiers_add', 'Add tier')}
+                    </Button>
                 </div>
-                <Button variant="primary" size="sm" onClick={addTier}>
-                    {t('admin_org.custom_tiers_add', '+ Add Tier')}
-                </Button>
+
+                {message && message.type !== 'success' && (
+                    <div className={`mx-5 mt-4 ${ALERT_OF[message.type]}`} role={message.type === 'error' ? 'alert' : 'status'}>
+                        {message.text}
+                    </div>
+                )}
+
+                <OrgCustomTiersPanelSection orgTiers={orgTiers} t={t} expandedId={expandedId} availableModels={availableModels} patch={patch} rename={rename} setExpandedId={setExpandedId} remove={remove} toggleTaskType={toggleTaskType} footer={footer} globalTiers={globalTiers} />
+                {confirmDialog}
             </div>
-
-            {message && message.type !== 'success' && (
-                <div className={`mx-5 mt-4 ${ALERT_OF[message.type]}`} role={message.type === 'error' ? 'alert' : 'status'}>
-                    {message.text}
-                </div>
-            )}
-
-            <OrgCustomTiersPanelSection orgTiers={orgTiers} t={t} expandedId={expandedId} availableModels={availableModels} patch={patch} rename={rename} setExpandedId={setExpandedId} remove={remove} toggleTaskType={toggleTaskType} footer={footer} globalTiers={globalTiers} />
-            {confirmDialog}
         </div>
     );
 };
@@ -201,7 +211,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
     return <div className="p-5 space-y-4">
         {orgTiers.length === 0 ? (
             <div className="p-4 rounded-lg border border-dashed text-center text-xs border-[var(--border-default)] text-[var(--text-muted)]">
-                {t('admin_org.custom_tiers_none_a', 'No organisation-scoped tiers yet. Click')} <strong>{t('admin_org.custom_tiers_none_b', 'Add Tier')}</strong> {t('admin_org.custom_tiers_none_c', 'to create one.')}
+                {t('admin_polish.tiers_none', 'This organisation has no custom tiers yet. Add one to give your members a tier with a model you choose.')}
             </div>
         ) : (
             orgTiers.map((tier, position) => {

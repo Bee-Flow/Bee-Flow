@@ -6,7 +6,7 @@ import { apiUrl } from '@/api/typedRequest';
 import { useGroupAccessRead } from '@/api/queries/orgAdminReads';
 import { ACCESS_KIND_SECTIONS, notSetUpOnServer } from './accessTypes';
 import type { AccessCapability, AccessData } from './accessTypes';
-import { CapabilityGroup, CapabilityRow } from './AccessParts';
+import { CapabilityGroup, CapabilityRow, CategorisedRows } from './AccessParts';
 import Spinner from '@/components/shared/Spinner';
 import { ALERT_ERROR, ALERT_INFO } from '@/components/shared/adminUi';
 
@@ -37,7 +37,7 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
             if (!ceiling.has(c.id)) continue;
             (map[c.kind] || (map[c.kind] = [])).push(c);
         }
-        for (const k of Object.keys(map)) map[k].sort((a: AccessCapability, b: AccessCapability) => a.name.localeCompare(b.name));
+        for (const k of Object.keys(map)) map[k].sort((a: AccessCapability, b: AccessCapability) => (a.category || '').localeCompare(b.category || '') || a.name.localeCompare(b.name));
         return map;
     }, [data]);
 
@@ -58,15 +58,17 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
             {ACCESS_KIND_SECTIONS.map(section => {
                 const caps = byKind[section.kind] || [];
                 const SectionIcon = section.icon;
+                const row = (cap: AccessCapability) => (
+                    <CapabilityRow key={cap.id} cap={cap} icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />} notSetUp={notSetUpOnServer(data, cap.id)} />
+                );
+                const categorised = section.kind === 'integration' && caps.length > 0;
                 return (
-                    <CapabilityGroup key={section.kind} section={section} count={caps.length}>
-                        {caps.length === 0 ? (
+                    <CapabilityGroup key={section.kind} section={section} count={caps.length} listed={!categorised}>
+                        {categorised ? <CategorisedRows caps={caps} renderRow={row} /> : caps.length === 0 ? (
                             <p className="m-0 flex items-center gap-1.5 px-4 py-2.5 text-xs text-[var(--text-tertiary)]">
                                 <Lock className="h-3 w-3" aria-hidden="true" /> {t('admin_org.ceiling_ro_none', 'Your organisation has no access in this category.')}
                             </p>
-                        ) : caps.map(cap => (
-                            <CapabilityRow key={cap.id} cap={cap} icon={cap.kind === 'integration' ? getIntegrationIcon(cap.id) : <SectionIcon className="h-4 w-4" />} notSetUp={notSetUpOnServer(data, cap.id)} />
-                        ))}
+                        ) : caps.map(row)}
                     </CapabilityGroup>
                 );
             })}

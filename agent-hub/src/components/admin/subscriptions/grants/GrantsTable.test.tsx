@@ -15,7 +15,7 @@ describe('GrantsTable', () => {
     it('lists the grants as a table, with the actions a grant still has', async () => {
         const onRevoke = vi.fn();
         render(<GrantsTable grants={grants} onCopy={vi.fn()} onExtend={vi.fn()} onRevoke={onRevoke} />);
-        expect(screen.getByRole('table', { name: 'Admin License Grants' })).toBeInTheDocument();
+        expect(screen.getByRole('table', { name: 'Admin licence grants' })).toBeInTheDocument();
         expect(screen.getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Organization', 'Tier', 'Status', 'Issued', 'Expires', 'Notes', 'Actions']);
         expect(screen.getByText('Server license')).toBeInTheDocument();
         // A revoked grant can still be copied, not extended or revoked again.

@@ -106,7 +106,27 @@ describe('AgentDesigner', () => {
         seed = { agents: [] };
         renderWithClient(<AgentDesigner />);
         expect(await screen.findByText('No agents found')).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: 'Create New Agent' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create new agent' }));
         expect(api.createNewAgent).toHaveBeenCalled();
+    });
+
+    // In the admin dashboard the page frame says "Agents": the list and the open
+    // agent repeat no heading, and keep their actions.
+    it('embedded: no list title and no "Edit agent" heading, the actions stay', async () => {
+        seed = { agents: AGENTS, selectedAgent: AGENTS[0], name: 'Alpha' };
+        renderWithClient(<AgentDesigner embedded />);
+        expect(await screen.findByTestId('agent-workspace-actions')).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Edit agent' })).toBeNull();
+        expect(screen.queryByText('Configure identity, logic, and safeguards.')).toBeNull();
+        expect(screen.queryByText('Agents')).toBeNull();
+        expect(screen.getByTitle('Create new agent (empty)')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        expect(api.saveAgent).toHaveBeenCalled();
+    });
+
+    it('on its own the list keeps its title', async () => {
+        seed = { agents: AGENTS };
+        renderWithClient(<AgentDesigner />);
+        expect(await screen.findByText('Agents')).toBeInTheDocument();
     });
 });

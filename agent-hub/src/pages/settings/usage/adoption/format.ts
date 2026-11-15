@@ -2,6 +2,7 @@
 // subscription's currency (through fCur, so the rounding is the Overview's),
 // whole counts with group separators, and "how long ago" in days.
 import { fCur } from '../format';
+import { localeFormat } from '@/hooks/useLocaleFormat';
 
 type Translate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 
@@ -11,9 +12,10 @@ export function fMoney(cost: number | null | undefined, sym = '€'): string {
 }
 
 /** A whole count with the locale's group separator; null reads "—". */
-export function fInt(n: number | null | undefined): string {
+export function fInt(n: number | null | undefined, locale?: string | null): string {
     if (n == null || !Number.isFinite(Number(n))) return '—';
-    return new Intl.NumberFormat().format(Math.round(Number(n)));
+    const whole = Math.round(Number(n));
+    return locale ? localeFormat(locale).number(whole) : new Intl.NumberFormat().format(whole);
 }
 
 /** A share of a total as a whole percentage (0 when the total is 0). */
@@ -42,10 +44,8 @@ export function daysSince(ts: string | null | undefined): number | null {
     return Number.isFinite(then) ? Math.floor((Date.now() - then) / DAY) : null;
 }
 
-/** A short locale date ("5 Nov 2026"); empty for a missing value. */
-export function fDate(ts: string | null | undefined): string {
-    if (!ts) return '—';
-    const d = new Date(ts);
-    return Number.isFinite(d.getTime()) ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+/** A short date ("5 Nov 2026") in the app's language (`locale`: resolvedLocale); "—" for a missing value. */
+export function fDate(ts: string | null | undefined, locale?: string | null): string {
+    return localeFormat(locale).day(ts) || '—';
 }
 

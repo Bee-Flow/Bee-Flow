@@ -109,4 +109,14 @@ describe('AccessPermissionsPanel in the admin dashboard', () => {
         await user.click(screen.getByRole('tab', { name: /Ceiling/ }));
         expect(onNavigate).toHaveBeenCalledWith('admin/access/ceiling');
     });
+
+    it('does not repeat the page title: the frame says "Access", the tab "Grants"', async () => {
+        render(withQueryClient(
+            <AdminOrgProvider value={choiceOf('org-a')}>
+                <AccessPermissionsPanel tabs user={platformAdmin} activeSection="grants" />
+            </AdminOrgProvider>,
+        ));
+        expect(await screen.findByRole('switch', { name: 'Webpages' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Access & Permissions' })).not.toBeInTheDocument();
+    });
 });

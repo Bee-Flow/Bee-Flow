@@ -3927,11 +3927,6 @@
       "count": 2
     }
   },
-  "src/components/admin/org/access/CloudCeilingEditor.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/org/access/OrgAccessEditor.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -3949,12 +3944,6 @@
   },
   "src/components/admin/org/orgInfo/orgInfoShared.tsx": {
     "complexity": {
-      "count": 1
-    },
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
-    "jsx-a11y/no-static-element-interactions": {
       "count": 1
     },
     "max-lines-per-function": {

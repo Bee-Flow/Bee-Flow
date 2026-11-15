@@ -159,7 +159,7 @@ function AdoptionBody(body: BodyProps) {
  * export of what is on screen.
  */
 export default function AdoptionTab(props: AdoptionTabProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const [group, setGroup] = useState('');
     const [reveal, setReveal] = useState(false);
     // The shell remounts this tab when a tile elsewhere opens a sub-tab, so the seed is read once. The state
@@ -170,7 +170,7 @@ export default function AdoptionTab(props: AdoptionTabProps) {
     const d = useAdoptionData(baseQs, qs, reveal);
     const summary = d.summary.data ?? null;
     const groupName = d.groupOptions.data?.groups.find(g => g.id === group)?.name;
-    const range = summary ? formatDateRange(summary.range.startDate, summary.range.endDate) : '';
+    const range = summary ? formatDateRange(summary.range.startDate, summary.range.endDate, resolvedLocale) : '';
     const scopeLabel = [range, groupName || t('adoption.group_all_lower', 'all groups')].filter(Boolean).join(' · ');
     return (
         <div className="flex flex-col gap-5">

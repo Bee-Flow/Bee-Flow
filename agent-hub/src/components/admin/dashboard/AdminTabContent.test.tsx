@@ -54,7 +54,9 @@ describe('AdminTabContent: the support inbox at its address', () => {
 });
 
 describe('AdminTabContent: the frames', () => {
-    it('Usage & monitoring: a wide page that scrolls in the frame, headed by the name only (the panel shows the description)', () => {
+    // The panel draws the description once, in the header's small one-line style beside the period
+    // (monitoring/index.tsx, monitoring-description), so the header names the page only.
+    it('Usage & monitoring: a wide page that scrolls in the frame, headed by the name only (the panel shows the description once)', () => {
         render(withQueryClient(<AdminTabContent {...props({ activeTab: 'monitoring', adminPath: { seg1: 'monitoring', seg2: 'overview', seg3: '' } })} />));
         const tab = screen.getByTestId('admin-tab-monitoring');
         const header = within(tab).getByTestId('admin-page-header');
@@ -62,6 +64,22 @@ describe('AdminTabContent: the frames', () => {
         expect(header).not.toHaveTextContent('What the page is for.');
         expect(tab.querySelector('[data-admin-page-width]')).toHaveAttribute('data-admin-page-width', 'wide');
         expect(tab).toHaveClass('overflow-auto');
+    });
+
+    it.each([
+        ['agents', 'chat', 'true'],
+        // ComplianceDesktop pads itself (px-6 / md:px-8): an inset would double it.
+        ['compliance', '', undefined],
+        ['support', '', 'true'],
+        ['languages', '', 'true'],
+        ['people', 'users', undefined],
+        ['subscriptions', 'plans', undefined],
+    ])('%s: a fill page; a panel without padding of its own is inset like the header (%s, inset %s)', (tab, section, inset) => {
+        render(withQueryClient(<AdminTabContent {...props({ activeTab: tab, adminPath: { seg1: tab, seg2: section, seg3: '' } })} />));
+        const page = screen.getByTestId(`admin-tab-${tab}`).querySelector('[data-admin-page-width]');
+        expect(page).toHaveAttribute('data-admin-page-width', 'fill');
+        if (inset) expect(page).toHaveAttribute('data-admin-page-inset', inset);
+        else expect(page).not.toHaveAttribute('data-admin-page-inset');
     });
 
     it('Feature switches: the frame names the page once, the panel draws the list only', () => {
