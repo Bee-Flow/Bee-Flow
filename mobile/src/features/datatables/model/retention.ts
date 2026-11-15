@@ -21,7 +21,7 @@ import type { Column, Datatable, RetentionPatch } from './types';
 
 /** The windows offered as one tap (the web's PRESETS). */
 export const RETENTION_PRESETS = [7, 30, 90] as const;
-/** The server's own cap (routes/datatables/engine MAX_RETENTION_DAYS); past it is a 400. */
+/** The server's own cap (usecases/datatables/engine MAX_RETENTION_DAYS); past it is a 400. */
 export const MAX_RETENTION_DAYS = 3650;
 /** How far ahead "about to expire" looks (the web's SOON_DAYS). */
 export const EXPIRING_WITHIN_DAYS = 7;

@@ -19,7 +19,7 @@ const { normalizeFields } = require('../../core/dataEngine/dataModel/datatableFi
 const {
     managedFieldsError, isSourceManagedKind, isSchemaLockedKind,
 } = require('../../core/dataEngine/dataModel/managedTables');
-const { PG, DATA_LIMITS } = require('./engine');
+const { PG, DATA_LIMITS } = require('../../usecases/datatables/engine');
 const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { quota, answerDatatableError, confirmedBreaking, breakingColumnUsage } = require('./refusals');
 const { validate } = require('../../core/http/validate');

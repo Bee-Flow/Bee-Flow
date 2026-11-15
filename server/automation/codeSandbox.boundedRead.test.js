@@ -13,7 +13,7 @@ const assert = require('node:assert');
 let nextResponse = null;
 const fetchImpl = async () => nextResponse;
 const { defaultFetchHttp } = require('./codeSandbox');
-const { MAX_BYTES_PER_CHAR } = require('./httpResponseLimits');
+const { MAX_BYTES_PER_CHAR } = require('../core/http/httpResponseLimits');
 
 function endlessStream() {
     const state = { pulled: 0, cancelled: false };

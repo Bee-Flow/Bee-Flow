@@ -7,7 +7,7 @@
  * replica owned it (isoEvidenceCollector and the Meet import discovery once
  * shared 0xBEEF10A this way). This test collects every export named
  * `*LOCK_KEY` (a number for `pg_try_advisory_lock($1)`) or `*LOCK_NAME` (a
- * string for `hashtext($1)`, see ./namedLock.js) from every module in jobs/
+ * string for `hashtext($1)`, see core/scheduling/namedLock.js) from every module in jobs/
  * plus the lock holders outside it, and fails on a repeat.
  *
  * Module-private keys are NOT covered (they are not reachable without a

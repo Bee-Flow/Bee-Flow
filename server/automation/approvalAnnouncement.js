@@ -19,7 +19,7 @@
 
 'use strict';
 
-const { shortMessage } = require('./notificationMessages');
+const { shortMessage } = require('../core/automationModel/notificationMessages');
 
 /** Emoji the card asks for. Kept next to the ingest's allowlist by tests. */
 const APPROVE_EMOJI = '👍';

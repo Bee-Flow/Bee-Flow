@@ -31,7 +31,7 @@ const {
     gradeForPrincipal, gradeAtLeast, synthesizeAccess, resolveDatatablePrincipal,
     datatableScopesFor,
 } = require('../../auth/datatableAccess');
-const { PG, keyOf } = require('./engine');
+const { PG, keyOf } = require('../../usecases/datatables/engine');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 

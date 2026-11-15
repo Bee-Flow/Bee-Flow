@@ -25,6 +25,60 @@
 
 'use strict';
 
+/**
+ * Every module that can be asked for: its name (the path relative to server/)
+ * and what that name returns. featureModule() takes one of these names and
+ * returns the module that goes with it, so a misspelt name is a type error
+ * where it is written, and the caller sees the module's own types.
+ * boot/featureModules.js registers a getter under each name;
+ * boot/featureModules.test.js holds the registrations and the names the tree
+ * asks for against each other.
+ *
+ * Types only: an `import()` inside a comment loads nothing, so core still
+ * requires no feature.
+ *
+ * Three names still return `any`, as every name did before this map: with the
+ * module's own types a caller of each shows type errors that are that
+ * caller's to settle, not this file's. Give the name its `typeof import(...)`
+ * once that caller is clean:
+ *   integrations/customIntegrationRunner   integrations/customIntegrationSteps.js,
+ *                                          through core/customIntegrations/customMcpClient.js
+ *   services/presentationRenderer          integrations/presentationTools.js
+ *   services/documentCompose               core/documents/renderFilledDocument.js
+ *
+ * @typedef {{
+ *   'integrations/workspaceTools': typeof import('../integrations/workspaceTools'),
+ *   'integrations/agentSearchTools': typeof import('../integrations/agentSearchTools'),
+ *   'integrations/customIntegrationRunner': any,
+ *   'integrations/coreToolsets': typeof import('../integrations/coreToolsets'),
+ *   'services/browserProvider': typeof import('../services/browserProvider'),
+ *   'services/email/draft': typeof import('../services/email/draft.mts'),
+ *   'services/presentationRenderer': any,
+ *   'services/documentCompose': any,
+ *   'services/webpageSnapshot': typeof import('../services/webpageSnapshot'),
+ *   'services/pwtRunner': typeof import('../services/pwtRunner'),
+ *   'automation/toolRegistry': typeof import('../automation/toolRegistry'),
+ *   'automation/agentCallableTools': typeof import('../automation/agentCallableTools'),
+ *   'automation/datatableUsageSync': typeof import('../automation/datatableUsageSync'),
+ *   'automation/formTriggerContract': typeof import('../automation/formTriggerContract'),
+ *   'automation/goLive': typeof import('../automation/goLive'),
+ *   'automation/aiActCheck': typeof import('../automation/aiActCheck'),
+ *   'automation/subscriptionSync': typeof import('../automation/subscriptionSync'),
+ *   'automation/approvalEvents': typeof import('../automation/approvalEvents'),
+ *   'automation/approvalNotify': typeof import('../automation/approvalNotify'),
+ *   'automation/portability': typeof import('../automation/portability'),
+ *   'automation/datatableUsage': typeof import('../automation/datatableUsage'),
+ *   'automation/validate': typeof import('../automation/validate'),
+ *   'appStudio/definitionGate': typeof import('../appStudio/definitionGate.mts'),
+ *   'appStudio/appAssets': typeof import('../appStudio/appAssets.mts'),
+ *   'appStudio/portabilityReport': typeof import('../appStudio/portabilityReport.mts'),
+ *   'appStudio/automationUsageSync': typeof import('../appStudio/automationUsageSync'),
+ *   'appStudio/triggers/deploySync': typeof import('../appStudio/triggers/deploySync.mts'),
+ *   'agents/memory/extractor': typeof import('../agents/memory/extractor'),
+ *   'projects/chatModel': typeof import('../projects/chatModel'),
+ * }} FeatureModuleMap
+ */
+
 /** name -> () => module */
 const getters = new Map();
 
@@ -38,7 +92,9 @@ function registerFeatureModules(map) {
 
 /**
  * The module, or a thrown Error naming what was not loaded.
- * @param {string} name
+ * @template {keyof FeatureModuleMap} K
+ * @param {K} name
+ * @returns {FeatureModuleMap[K]}
  */
 function featureModule(name) {
     const get = getters.get(name);
@@ -60,10 +116,18 @@ function hasFeatureModule(name) {
     return getters.has(name);
 }
 
+/**
+ * Every registered name (boot/featureModules.test.js holds them against the names the tree asks for).
+ * @returns {string[]}
+ */
+function featureModuleNames() {
+    return [...getters.keys()];
+}
+
 /** Test seam: drop one module, or all of them. */
 function _clearFeatureModulesForTests(name) {
     if (name) getters.delete(name);
     else getters.clear();
 }
 
-module.exports = { registerFeatureModules, featureModule, hasFeatureModule, _featureModuleGetter, _clearFeatureModulesForTests };
+module.exports = { registerFeatureModules, featureModule, hasFeatureModule, featureModuleNames, _featureModuleGetter, _clearFeatureModulesForTests };

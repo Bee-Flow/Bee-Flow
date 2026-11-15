@@ -1,7 +1,7 @@
 // @typecheck strict
 'use strict';
 /**
- * The datatable row tools as an MCP client sees them (routes/mcpDatatableTools.js):
+ * The datatable row tools as an MCP client sees them (usecases/mcpDatatableTools.js):
  * the five descriptors, the name sets the dispatcher routes on, and the caps
  * read from the environment (0 = unlimited).
  */

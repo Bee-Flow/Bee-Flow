@@ -17,6 +17,10 @@
 
 const datatableStore = require('../../stores/datatableStore');
 const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
+// The 400 a handler can throw from anywhere in its validation. It lives below
+// the routes because the list descriptor (usecases/datatables/rowDescriptor.js)
+// throws it too.
+const { bad } = require('../../usecases/datatables/badRequest');
 
 /** The frozen quota body, copied from routes/studioAppData.js. */
 function quota(res, limit, used) {
@@ -103,14 +107,6 @@ function answerDatatableError(res, e, scope = null) {
 const CONFIRMED = new Set([true, 'true', '1']);
 function confirmedBreaking(req) {
     return CONFIRMED.has(req.body?.confirmBreaking) || CONFIRMED.has(req.query?.confirmBreaking);
-}
-
-/** A 400 the handler below can throw from anywhere in its validation. */
-function bad(message, code) {
-    const e = new Error(message);
-    e.status = 400;
-    if (code) e.code = code;
-    throw e;
 }
 
 /**

@@ -101,7 +101,7 @@ const {
     MAX_MAILBOX_QUERY_LEN,
     MAX_MAILBOX_RETENTION_DAYS,
 } = require('./dataModel/vocabulary');
-const { newTableId, newFieldId, newConnectorId, newRecordId } = require('./dataModel/ids');
+const { newTableId, newFieldId, newConnectorId, newRecordId } = require('../core/dataEngine/dataModel/ids');
 const {
     sqliteType,
     pgType,
@@ -110,10 +110,10 @@ const {
     isAlterPhysical,
     ddlForTable,
     addColumnDdl,
-} = require('./dataModel/ddl');
-const { migrationPlan, planMigration } = require('./dataModel/migrationPlan');
+} = require('../core/dataEngine/dataModel/ddl');
+const { migrationPlan, planMigration } = require('../core/dataEngine/dataModel/migrationPlan');
 const { fieldConversion, logicalType, SAFE_CONVERSIONS, unconvertibleWhere } = require('../core/dataEngine/dataModel/fieldConversion.mts');
-const { applyPlanTolerantly } = require('./dataModel/tolerantDdl');
+const { applyPlanTolerantly } = require('../core/dataEngine/dataModel/tolerantDdl');
 const { validateDataModel } = require('./dataModel/modelValidate');
 const { canonicalizeDataModel, emptyDataModel } = require('./dataModel/canonicalize');
 

@@ -106,7 +106,7 @@ async function inspect(name, args, wrap, { store, pii }) {
         sources: steps.slice(0, at).map(s => ({
             id: s.id, label: s.label || s.type || s.kind, type: s.type, outputSchema: s.outputSchema || s.responseSchema || null,
             // A code step's outputSchema describes what its code RETURNS, and
-            // that sits under output.result (automation/codeOutput.js). Without
+            // that sits under output.result (core/automationModel/codeOutput.js). Without
             // saying so the schema read as the step's output itself, and the
             // model bound steps.<code>.output.<field>, which is empty at run time.
             ...(s.type === 'code' ? { readAt: `steps.${s.id}.output.result` } : {}),

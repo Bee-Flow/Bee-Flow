@@ -20,7 +20,7 @@
  */
 // @typecheck
 const crypto = require('crypto');
-const { mapWithConcurrency } = require('../concurrencyUtil');
+const { mapWithConcurrency } = require('../../utils/concurrencyUtil');
 const { resolveModelForTier } = require('../llm/modelResolver');
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');

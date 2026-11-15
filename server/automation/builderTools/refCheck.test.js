@@ -255,7 +255,7 @@ test('a refusal whose only candidate is a spelling guess carries no suggested pa
 });
 
 // REGRESSION (flowlet "Get ticketlist", 2026-10-09): a code step's output is
-// execCode's envelope { result, logs, httpCalls } (automation/codeOutput.js),
+// execCode's envelope { result, logs, httpCalls } (core/automationModel/codeOutput.js),
 // but refCheck called it unknown, so `steps.<code>.output.count` was saved for
 // a returned `{ count }` and read nothing at run time.
 test('a code step: a field of what the code returned is read under output.result', () => {

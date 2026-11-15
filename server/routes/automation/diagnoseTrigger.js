@@ -127,7 +127,7 @@ router.post('/:id/diagnose-trigger', validate({ body: bodyOf({}, 'Diagnosing a t
                     ? { name: 'recent_match', status: 'ok', message: 'Found a recent matching item — the trigger has data to fire on.', detail: match }
                     : { name: 'recent_match', status: 'warn', message: 'No recent matching activity — the trigger fires when a match arrives.' });
             } catch (e) {
-                const { classifyNextcloudError } = require('../../core/integrations/nextcloudErrorClassifier');
+                const { classifyNextcloudError } = require('../../utils/nextcloudErrorClassifier');
                 const c = classifyNextcloudError(e);
                 checks.push({ name: 'recent_match', status: 'warn', message: c.message, detail: { remediation: c.remediation } });
             }

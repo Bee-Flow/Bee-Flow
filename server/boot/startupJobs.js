@@ -139,7 +139,7 @@ function startRunnersAndFeeds() {
     // reconnect-by-cursor, which projectEventBus already solved. No-ops for every
     // automation that is not in a project, which is most of them.
     if (isModuleAvailable('projects')) try {
-        require('../core/projectFeed.runs').start();
+        require('../core/projectContent/projectFeed.runs').start();
     } catch (err) {
         log.warn('[Server] Project run feed bridge load failed:', err.message);
     }

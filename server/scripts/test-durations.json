@@ -2237,7 +2237,7 @@
   "routes/maintenance.validation.test.js": 382,
   "routes/mcpAutomations.test.js": 746,
   "routes/mcpCms.test.js": 1128,
-  "routes/mcpDatatableTools.test.js": 599,
+  "usecases/mcpDatatableTools.test.js": 599,
   "routes/mcpScopes.test.js": 1298,
   "routes/mcpServer.test.js": 492,
   "routes/mcpServer.validation.test.js": 420,

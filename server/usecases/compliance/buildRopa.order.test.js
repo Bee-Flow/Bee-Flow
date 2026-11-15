@@ -5,14 +5,14 @@
  * stamps come from the database as Date objects; ordering their text put
  * "Wed" before "Mon" whatever the dates were.
  *
- * Run: cd server && node --test routes/compliance/ropa.order.test.js
+ * Run: cd server && node --test usecases/compliance/buildRopa.order.test.js
  */
 
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { _test_byAttestedDesc: byAttestedDesc } = require('./ropa');
+const { byAttestedDesc } = require('./buildRopa');
 
 test('attestations sort by instant, newest first, as Dates and as ISO text', () => {
     const rows = [

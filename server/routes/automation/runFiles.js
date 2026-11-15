@@ -40,7 +40,7 @@ const { HttpError } = require('../../core/http/errors');
 const { sendStream } = require('../../core/http/sendStream');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { makeAutomationAccess } = require('../../automation/access');
-const { makeJourneyReader } = require('../../usecases/automation/runJourney');
+const { makeJourneyReader } = require('../../automation/journeyReader');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 
 /**
@@ -137,7 +137,7 @@ function makeRunFilesRouter(overrides = {}) {
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });
 
-    // The run, plus the journey legs the caller may read (usecases/automation/runJourney.js).
+    // The run, plus the journey legs the caller may read (automation/journeyReader.js).
     const journeyReader = makeJourneyReader({ store, access });
     const readableJourney = /** @param {import('express').Request<{ runId: string }>} req @param {import('express').Response} res */ (req, res) => journeyReader(req, res, req.params.runId);
 

@@ -5,8 +5,7 @@
  * files that prove a refused request never reaches the store — without
  * reaching into the module system (`count-ratchet.mjs module-mock`).
  *
- * Test-only code, so it lives in testUtils/ (it used to sit in core/http/;
- * core/http/routeHarness.js is a re-export kept for old imports). It serves a
+ * Test-only code, so it lives in testUtils/, not in core/http/. It serves a
  * router the way index.js does, through core/http/terminalErrorHandler, which
  * is why testUtils/ is test support rather than platform in layering.test.js.
  *

@@ -37,7 +37,7 @@ const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, choice, typeError } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
 const { friendlyError } = require('../core/kb/friendlyError');
-const { mapWithConcurrency } = require('../core/concurrencyUtil');
+const { mapWithConcurrency } = require('../utils/concurrencyUtil');
 const { asViewer, asEditor, notebookOf, seams, upload, text, ids } = require('./notebooksShared');
 const { sessionUser } = require('../core/http/sessionUser');
 // requireAuth is the canonical gate from auth/permissions (see routes/notebooks.js).

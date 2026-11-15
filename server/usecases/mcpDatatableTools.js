@@ -16,7 +16,7 @@
  * query compiler and access filter as the web routes (routes/datatables/), the
  * column types through the same cell normaliser as an automation step, the
  * storage envelope through the same quota check, and the list descriptor
- * (filters, sort, search) through routes/datatables/rowDescriptor. There is no
+ * (filters, sort, search) through usecases/datatables/rowDescriptor. There is no
  * SQL in here. Delete is not offered.
  *
  * ── PER-ROW RESULTS ─────────────────────────────────────────────────────────
@@ -46,10 +46,10 @@ const log = require('../telemetry/log');
 const {
     DATATABLE_TOOLS, DATATABLE_TOOL_NAMES, WRITE_TOOL_NAMES, caps, envCount,
     DEFAULT_QUERY_PAGE, LIST_MAX_TABLES, MAX_ID_CHARS,
-} = require('../usecases/mcpDatatableToolDefs');
+} = require('./mcpDatatableToolDefs');
 const {
     ToolRefusal, isPlainObject, jsonBytes, rowFailure, tableIdOf, asRefusal, checkValues,
-} = require('../usecases/mcpDatatableRows');
+} = require('./mcpDatatableRows');
 
 /** The caller's identity in the shape the datatable resolver reads. */
 async function ctxFor(deps, userId) {

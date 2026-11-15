@@ -7665,7 +7665,7 @@
       "count": 1
     }
   },
-  "routes/compliance/ropa.js": {
+  "usecases/compliance/buildRopa.js": {
     "complexity": {
       "count": 1
     },
@@ -7848,7 +7848,7 @@
       "count": 2
     }
   },
-  "routes/mcpDatatableTools.js": {
+  "usecases/mcpDatatableTools.js": {
     "complexity": {
       "count": 2
     }

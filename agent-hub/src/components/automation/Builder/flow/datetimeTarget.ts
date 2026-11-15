@@ -80,7 +80,7 @@ export function splitWildcardPath(path: unknown): WildcardSplit | null {
  * The list mode a step implies when it carries a whole column in "Input date"
  * but no `arrayRef` — saved before `dateInputPatch` existed, imported, or
  * AI-written. The runner reads such a step as list mode (server
- * automation/datetimeListMode.js `impliedListMode`, which this mirrors), so the
+ * core/automationModel/datetimeListMode.js `impliedListMode`, which this mirrors), so the
  * editor and the variable picker must too. `input2` moves along only when it
  * is a column of the SAME list. Null when nothing is implied.
  */

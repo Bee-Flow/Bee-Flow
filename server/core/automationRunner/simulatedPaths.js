@@ -22,7 +22,7 @@
  * (runContext.js) and shared by reference with every ctx copy (loop bodies,
  * parallel branches, layers); this module never creates it.
  */
-const { classifyNextcloudError } = require('../integrations/nextcloudErrorClassifier');
+const { classifyNextcloudError } = require('../../utils/nextcloudErrorClassifier');
 
 
 /** Tool name -> the argument naming the path it would have created. */

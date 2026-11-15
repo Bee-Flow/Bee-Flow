@@ -23,9 +23,9 @@ const { provisionManagedTable } = require('../../core/dataEngine/provisionManage
 const {
     gradeForPrincipal, resolveDatatablePrincipal, datatableScopesFor, defaultCreateScope,
 } = require('../../auth/datatableAccess');
-const { PG, DATA_LIMITS, keyOf, MAX_RETENTION_DAYS } = require('./engine');
+const { PG, DATA_LIMITS, keyOf, MAX_RETENTION_DAYS } = require('../../usecases/datatables/engine');
 const { quota, answerDatatableError } = require('./refusals');
-const { publicTable, scopeDescriptor } = require('./projection');
+const { publicTable, scopeDescriptor } = require('../../usecases/datatables/projection');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const {

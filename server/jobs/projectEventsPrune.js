@@ -24,7 +24,7 @@
 
 'use strict';
 
-const { withNamedLock } = require('./lib/namedLock');
+const { withNamedLock } = require('../core/scheduling/namedLock');
 const { periodicJob } = require('./lib/periodicTimer');
 
 const LOCK_NAME = 'beeflow:job:projectEventsPrune';

@@ -22,7 +22,7 @@ const SRC = RAW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$
 // sibling modules, and a scan of index.js alone would assert neither.
 const PARENT_DIR = path.join(__dirname, 'datatables');
 const PARENT_ENTRY = fs.readFileSync(path.join(PARENT_DIR, 'index.js'), 'utf8');
-const PARENT_FILES = ['index.js', ...[...PARENT_ENTRY.matchAll(/^ \* {3}(\w+\.js)\b/gm)].map(m => m[1])];
+const PARENT_FILES = ['index.js', ...[...PARENT_ENTRY.matchAll(/^ \* {3}((?:\.\.\/)*[\w/]+\.js)\b/gm)].map(m => m[1])];
 const PARENT = PARENT_FILES.map(f => fs.readFileSync(path.join(PARENT_DIR, f), 'utf8')).join('\n')
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 

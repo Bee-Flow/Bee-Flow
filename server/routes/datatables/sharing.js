@@ -17,7 +17,7 @@ const datatableStore = require('../../stores/datatableStore');
 const {
     requireDatatableGrade, requireManageForOrgScope, refuseWhenPersonal,
 } = require('./grade');
-const { publicTable } = require('./projection');
+const { publicTable } = require('../../usecases/datatables/projection');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { bodyOf, choice, idText, worded } = require('./schemas');

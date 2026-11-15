@@ -40,7 +40,7 @@
  *
  * ── What never travels ────────────────────────────────────────────────────
  *
- * The scrub list is shared (projects/packaging/scrub.js), so what a Blueprint
+ * The scrub list is shared (core/packaging/scrub.js), so what a Blueprint
  * refuses to carry an app template refuses to carry too: automation ids, approver
  * seats, knowledge-base references. On top of that this module drops the two
  * key classes manifest.js calls never-installable — an integration call's

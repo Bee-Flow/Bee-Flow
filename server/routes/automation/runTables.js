@@ -8,7 +8,7 @@
  *
  * They read the table ledger (stores/automationStore/runTables.js) and nothing
  * else: no new bearer path, no signed URL. The credential is the one every other
- * run read uses (usecases/automation/runJourney.js), and a table is only looked up
+ * run read uses (automation/journeyReader.js), and a table is only looked up
  * THROUGH the runs of the journey the caller may read, so an id from another
  * run, another automation or another organisation resolves to nothing.
  *

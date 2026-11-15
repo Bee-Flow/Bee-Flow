@@ -71,7 +71,7 @@ function checkFileIntake(step, path, ctx) {
         if (compiled.ok === false && 'reason' in compiled && compiled.reason === 'does_not_compile') {
             pushE({ code: 'action.file_intake_pattern_invalid', severity: 'error', path: `${path}.poPattern`, message: 'poPattern is not a valid regular expression.', hint: 'Fix the pattern or remove it to use the default.' });
         }
-        const { hasNestedQuantifier } = require('../safePattern');
+        const { hasNestedQuantifier } = require('../../core/text/safePattern');
         if (hasNestedQuantifier(step.poPattern)) {
             pushE({
                 code: 'action.file_intake_pattern_unsafe', severity: 'error', path: `${path}.poPattern`,

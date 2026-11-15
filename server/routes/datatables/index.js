@@ -72,16 +72,22 @@
  * own: each group validates what it reads (schemas.js), and the one route
  * registered here, POST /ai/draft, is validated in routes/datatablesAi.js.
  *
- *   engine.js         Postgres, the scope key, and every cap this surface holds
+ * A module spelled with a path below knows nothing of a request (no req, no
+ * res, no route), so it lives in the application layer, usecases/datatables/.
+ * It is in this map because it is read with the folder: the tests that read
+ * this router's source take their file list, and its order, from here.
+ *
+ *   ../../usecases/datatables/engine.js         Postgres, the scope key, and every cap this surface holds
  *   grade.js          the door: the grade ladder, the org-scope gate, the filter
  *   refusals.js       every way this router says no
+ *   ../../usecases/datatables/badRequest.js     the 400 a refusal is thrown as
  *   schemas.js        the zod vocabulary every request schema below is built from
- *   projection.js     what a client is allowed to see of a table
+ *   ../../usecases/datatables/projection.js     what a client is allowed to see of a table
  *   tables.js         the collection: GET / · POST / · POST /managed
  *   metadata.js       GET /:id · PATCH /:id — label, purpose, retention
  *   schema.js         the column list and its optimistic lock
  *   drift.js          model-versus-Postgres, and the repair button
- *   rowDescriptor.js  the closed `?filters/?sort/?q` descriptor
+ *   ../../usecases/datatables/rowDescriptor.js  the closed `?filters/?sort/?q` descriptor
  *   rowHandlers.js    the row handlers: a page, one row, a write, a delete
  *   rowTransfer.js    the rows in bulk: the spreadsheet import, the CSV export
  *   rows.js           the rows' route table: read, write, import, export, delete
@@ -100,7 +106,7 @@ const { requireActiveOrgForMutations } = require('../../auth');
 const { requireBetaFeature } = require('../../core/entitlements/betaFeatures');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { rejectSqlKeys } = require('./refusals');
-const { publicTable } = require('./projection');
+const { publicTable } = require('../../usecases/datatables/projection');
 const { validate } = require('../../core/http/validate');
 const { DraftBody } = require('../datatableDraftBody.mts');
 

@@ -10,7 +10,7 @@ interface RenderedLink {
 
 /** An element as the renderer reads it: the migrated shape plus the optional per-kind fields. */
 export interface RenderElement extends Omit<ContentElementData, 'link' | 'height'> {
-    /* Published blocks carry the intrinsic size (server/core/cms/mediaDims.js);
+    /* Published blocks carry the intrinsic size (server/utils/mediaDims.js);
        older ones have neither, and `undefined > 0` is false, which is how the
        renderer reads them. Typed as numbers for that comparison. */
     width: number;

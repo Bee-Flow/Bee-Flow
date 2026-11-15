@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
 
 process.env.NODE_ENV = 'test';
 
-const { translateComputedExpr, computedExprFor } = require('./computedDialect');
+const { translateComputedExpr, computedExprFor } = require('../core/dataEngine/computedDialect');
 
 // ── The pure translation ────────────────────────────────────────────
 test('char(n) becomes chr(n), and a char TYPE is left alone', () => {

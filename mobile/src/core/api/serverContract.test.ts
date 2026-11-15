@@ -1373,7 +1373,7 @@ describe('the webpage builder (features/webpages)', () => {
 describe('datatables (server/routes/datatables/**)', () => {
     // Mirrored by the readers in src/features/datatables/api/readers.ts.
     it('publicTable still projects every field the phone reads', () => {
-        const slice = functionSlice(read('routes/datatables/projection.js'), 'publicTable');
+        const slice = functionSlice(read('usecases/datatables/projection.js'), 'publicTable');
         expect(
             missingFrom(slice, [
                 'id', 'name', 'key', 'description', 'rowCount', 'rowScope', 'isPublished',

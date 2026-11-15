@@ -19,7 +19,7 @@ const {
     PARSE_JSON_FIELD_NAME_RE, MAX_PARSE_JSON_FIELDS,
     DATETIME_OPS, DATETIME_PARTS, DATETIME_DIFF_UNITS,
 } = require('../constants');
-const { impliedListMode } = require('../../datetimeListMode');
+const { impliedListMode } = require('../../../core/automationModel/datetimeListMode');
 const { checkDatetimeOptions } = require('./datetimeOptionRules');
 
 /**
@@ -366,7 +366,7 @@ function checkDatetime(ctx, step, at) {
         }
         // A whole column in `input` with no `arrayRef`: saved before the
         // builder converted it, imported, or AI-written. The runner reads it
-        // as the list mode it implies (automation/datetimeListMode.js), so
+        // as the list mode it implies (core/automationModel/datetimeListMode.js), so
         // this is a warning that says what will happen and how to store it
         // that way — except for a list of lists, which no mode can read.
         if (op !== 'now' && step.arrayRef == null && typeof step.input === 'string' && step.input.includes('[*]')) {

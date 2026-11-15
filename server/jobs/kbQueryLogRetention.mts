@@ -9,7 +9,7 @@
  * the retention promise would break exactly when nobody is paying attention.
  *
  * MULTI-POD SAFE: one pass at a time across replicas, under a session advisory lock keyed by
- * name (jobs/lib/namedLock). Kill switch: KB_QUERY_LOG_RETENTION_DISABLED=1.
+ * name (core/scheduling/namedLock). Kill switch: KB_QUERY_LOG_RETENTION_DISABLED=1.
  *
  * Started from boot (boot/startupJobs.js):
  *   require('../jobs/kbQueryLogRetention.mts').start();
@@ -37,7 +37,7 @@ export interface RetentionDeps {
 function defaultDeps(): RetentionDeps {
     return {
         pool: nodeRequire('../db.js').pool,
-        withNamedLock: nodeRequire('./lib/namedLock.js').withNamedLock,
+        withNamedLock: nodeRequire('../core/scheduling/namedLock.js').withNamedLock,
         deleteExpired: (limit) => nodeRequire('../stores/kb/queryLog/index.mts').deleteExpired(limit),
         log: nodeRequire('../telemetry/log.js'),
         env: process.env,

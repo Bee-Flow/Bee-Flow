@@ -35,7 +35,7 @@ export interface ColumnDraft {
     unique?: boolean;
 }
 
-/** routes/datatables/projection.publicTable, as far as the phone reads it. */
+/** usecases/datatables/projection.publicTable, as far as the phone reads it. */
 export interface Datatable {
     id: string;
     name: string;

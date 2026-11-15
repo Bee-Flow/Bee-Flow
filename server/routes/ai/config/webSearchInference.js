@@ -3,7 +3,7 @@
  * AI Config — web-search inference routing: which backends the
  * search-service uses for its embed/rerank/cleanup tasks.
  *
- * The resolver's sanitiser (core/webSearchInferenceResolver.js) turns any
+ * The resolver's sanitiser (core/llm/webSearchInferenceResolver.js) turns any
  * body into SOME config, and it was the only gate. So `method: 'disable'`
  * kept reranking ON (cosine), a misspelled `reranker` section reset the
  * saved rerank choice to the default, and a body carrying only `cleanup`

@@ -13,7 +13,7 @@
 
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
 const dataModel = require('../../core/dataEngine/dataModel/vocabulary');
-const { bad } = require('./refusals');
+const { bad } = require('./badRequest');
 
 /**
  * THE LIST DESCRIPTOR — the one place caller-supplied query shape is accepted.

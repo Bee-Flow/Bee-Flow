@@ -47,7 +47,7 @@ const SPOT_CHECK_ROWS = 20;
 // translator does not know is attempted as-is and, if Postgres refuses it, the
 // column is materialized as a plain column carrying the values SQLite already
 // computed (frozen, but never wrong) and flagged in the report.
-const { translateComputedExpr } = require('../appStudio/computedDialect');
+const { translateComputedExpr } = require('../core/dataEngine/computedDialect');
 const telemetryLog = require('../telemetry/log');
 const { bestEffort, ignoreGone } = require('../utils/bestEffort');
 

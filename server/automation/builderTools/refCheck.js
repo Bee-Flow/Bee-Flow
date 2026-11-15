@@ -50,7 +50,7 @@ const { formatPath, appendKey, flattenShape } = require('../expr');
 const S = require('./shapeTree');
 const { splice, indexFixes, firstIterationAdvice, pairIndexAdvice } = require('./pathAdvice.mts');
 const { normalizeAiPath } = require('./aiPaths');
-const { CODE_PAYLOAD_KEY, CODE_DIAGNOSTIC_KEYS } = require('../codeOutput');
+const { CODE_PAYLOAD_KEY, CODE_DIAGNOSTIC_KEYS } = require('../../core/automationModel/codeOutput');
 const { unsetVarProblem, describeUnsetVar } = require('../validate/varsWriters.mts');
 
 const { ANY } = S;
@@ -182,7 +182,7 @@ function blockOutputShape(step, draftWrap) {
 }
 
 /**
- * A code step's envelope (execOutbound.execCode, automation/codeOutput.js):
+ * A code step's envelope (execOutbound.execCode, core/automationModel/codeOutput.js):
  * what the code returned sits under `result`, beside the run's diagnostics.
  * The envelope is fixed, so it is complete; `result` is whatever the code
  * returns: the step's declared outputSchema when it has one (a hint, never

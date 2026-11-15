@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * Datatable rows over the Bee Flow MCP server (routes/mcpDatatableTools.js and
+ * Datatable rows over the Bee Flow MCP server (usecases/mcpDatatableTools.js and
  * its wiring in routes/mcpServer.js): per-row validation, the access decision
  * at the moment of the write, a table of another organisation, the caps and
  * the per-row rate charge, the token's scope, and that no cell is logged.
@@ -11,7 +11,7 @@
  * limiter are handed in. The query compiler, the access filter and the cell
  * normaliser are the real ones, so the SQL that WOULD run is what is asserted.
  *
- * Run: cd server && node --test routes/mcpDatatableTools.test.js
+ * Run: cd server && node --test usecases/mcpDatatableTools.test.js
  */
 
 process.env.NODE_ENV = 'test';
@@ -20,7 +20,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const tools = require('./mcpDatatableTools');
-const mcp = require('./mcpServer');
+const mcp = require('../routes/mcpServer');
 const log = require('../telemetry/log');
 const { synthesizeAccess } = require('../auth/datatableAccess');
 const { pgDatatableEngine } = require('../testUtils/pgDatatableEngine.testkit');
