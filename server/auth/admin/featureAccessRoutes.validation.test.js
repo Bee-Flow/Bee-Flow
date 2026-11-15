@@ -92,6 +92,12 @@ const MOCKS = {
     '../../core/integrations/ncIntegrationCatalog': { NC_INTEGRATION_IDS: [], NC_INTEGRATION_ID_SET: new Set() },
     '../../stores/orgCustomIntegrationStore': { listForOrg: async () => [] },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
+    // The server-configured flags of the matrix payloads read the auth config
+    // and the instance secrets; none of that is what this file is about.
+    '../../usecases/integrations/orgIntegrationAvailability.mts': {
+        withServerConfigured: async (payload) => payload,
+        resolveOrgIntegrationAvailability: async () => ({}),
+    },
 };
 
 const MOCK_IDS = {};

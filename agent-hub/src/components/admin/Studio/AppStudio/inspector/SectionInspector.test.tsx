@@ -61,9 +61,9 @@ describe('SectionInspector', () => {
     it('folding needs a title; the width cap writes maxWidth and Screen removes it', async () => {
         const user = userEvent.setup();
         const { last } = await renderSection('sec_dash01');
-        expect(screen.getByRole('checkbox', { name: 'Can be folded' })).toBeDisabled();
+        expect(screen.getByRole('switch', { name: 'Can be folded' })).toBeDisabled();
         await user.type(screen.getByPlaceholderText('e.g. Open orders'), 'H');
-        await user.click(screen.getByRole('checkbox', { name: 'Can be folded' }));
+        await user.click(screen.getByRole('switch', { name: 'Can be folded' }));
         expect(findSection(last(), 'sec_dash01')!.section.collapsible).toBe(true);
         await user.click(within(screen.getByRole('radiogroup', { name: 'Width' })).getByRole('radio', { name: 'S' }));
         expect(findSection(last(), 'sec_dash01')!.section.maxWidth).toBe('narrow');

@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1912 operations. */
+/** 1913 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -7605,6 +7605,7 @@ export interface ApiOperations {
         features: Array<string>;
     }>;
     'GET /auth/organizations/{orgId}/group-access': Op<{ orgId: string | number }>;
+    'GET /auth/organizations/{orgId}/integration-availability': Op<{ orgId: string | number }>;
     'PUT /auth/organizations/{orgId}/org-access': Op<{ orgId: string | number }, UndeclaredQuery, {
         granted: Array<string>;
     }>;

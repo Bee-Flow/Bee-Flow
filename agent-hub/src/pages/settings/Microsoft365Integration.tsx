@@ -8,6 +8,7 @@ import {
     useMicrosoft365Status,
 } from '../../api/queries/microsoft365';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { MICROSOFT_APP_IDS } from '@/utils/integrationFamilies';
 // Circular on purpose, like SimpleApiKeyIntegration: the shared row
 // primitives are only read at render time.
 import { IntegrationRow, DisconnectButton } from './IntegrationPrimitives';
@@ -162,7 +163,6 @@ export default function Microsoft365Integration({ onSaved, last = false }: { onS
     );
 }
 
-const MICROSOFT_APP_IDS = ['outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts'];
 
 /**
  * The Microsoft 365 group on the Connections page: shown whenever at least

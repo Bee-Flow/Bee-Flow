@@ -43,7 +43,7 @@ function renderEditor(orgId: string | null = 'org1', enabled?: boolean) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     return render(<QueryClientProvider client={client}><OrgCollabEditor orgId={orgId} enabled={enabled} /></QueryClientProvider>);
 }
-const toggle = () => screen.findByRole('checkbox', { name: /edit project notebooks and pages together/ });
+const toggle = () => screen.findByRole('switch', { name: /edit project notebooks and pages together/ });
 
 it('renders nothing without an organisation, and asks nothing', () => {
     const { container } = renderEditor(null);
@@ -55,7 +55,7 @@ it('a failed load says so instead of showing the default as saved', async () => 
     getStatus = 503;
     renderEditor();
     expect(await screen.findByText('Could not load this setting.')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
 });
 
 it('switching on saves at once', async () => {

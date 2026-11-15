@@ -32,7 +32,7 @@ describe('the Shell section of the theme panel', () => {
 
     it('hides the top bar, writes a footer line and adds a link to a web address', async () => {
         render(<Harness />);
-        await userEvent.click(screen.getByRole('checkbox', { name: /Hide the top bar/ }));
+        await userEvent.click(screen.getByRole('switch', { name: /Hide the top bar/ }));
         expect(nav().header).toBe('hidden');
         await userEvent.type(screen.getByLabelText('Footer line'), 'Desk');
         expect(nav().footerText).toBe('Desk');

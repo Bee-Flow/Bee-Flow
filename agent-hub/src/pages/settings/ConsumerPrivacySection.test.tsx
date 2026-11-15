@@ -48,16 +48,16 @@ describe('ConsumerPrivacySection', () => {
         await screen.findByText('On by default');
         expect(screen.getByText(/already in force with the secure defaults/i)).toBeInTheDocument();
 
-        expect(screen.getByRole('checkbox', { name: 'Enable Privacy Shield' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Enable Privacy Shield' })).toBeChecked();
     });
 
     it('names every switch after the row it controls', async () => {
         mockApi({ config: { ...IMPLICIT_DEFAULTS, euModeEnabled: true } });
         render(<ConsumerPrivacySection />);
 
-        expect(await screen.findByRole('checkbox', { name: 'EU Data Residency' })).toBeChecked();
-        expect(screen.getByRole('checkbox', { name: 'Disable Search on File Upload' })).not.toBeChecked();
-        expect(screen.getByRole('checkbox', { name: 'Look for personal data' })).toBeChecked();
+        expect(await screen.findByRole('switch', { name: 'EU Data Residency' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Disable Search on File Upload' })).not.toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Look for personal data' })).toBeChecked();
     });
 
     it('a switch changes what Save sends', async () => {
@@ -65,7 +65,7 @@ describe('ConsumerPrivacySection', () => {
         const user = userEvent.setup();
         render(<ConsumerPrivacySection />);
 
-        await user.click(await screen.findByRole('checkbox', { name: 'EU Data Residency' }));
+        await user.click(await screen.findByRole('switch', { name: 'EU Data Residency' }));
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/api/org-privacy-shield/user/me', expect.objectContaining({ method: 'PUT' })));

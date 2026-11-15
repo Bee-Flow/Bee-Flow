@@ -84,7 +84,7 @@ describe('LogicSection', () => {
         const node = { id: 'cmp_b1', type: 'button', props: { label: 'Go' }, style: {} };
         const { lastDef, getAllByRole } = renderLogic(node);
         // The Visible toggle is the section's first (and only) checkbox.
-        await user.click(getAllByRole('checkbox')[0]);
+        await user.click(getAllByRole('switch')[0]);
         expect(findNode(lastDef(), 'cmp_b1').node.visible).toBe(false);
     });
 });

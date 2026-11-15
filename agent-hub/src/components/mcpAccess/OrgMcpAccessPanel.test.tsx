@@ -33,7 +33,7 @@ beforeEach(() => { api = fakeBackend(fetchMock); });
 async function renderLoaded() {
     const user = userEvent.setup();
     render(withQueryClient(<OrgMcpAccessPanel />));
-    await screen.findByRole('checkbox', { name: 'Allow MCP access' });
+    await screen.findByRole('switch', { name: 'Allow MCP access' });
     return user;
 }
 
@@ -43,11 +43,11 @@ const save = () => screen.getByRole('button', { name: 'Save' });
 it('shows the stored policy and keeps Save off until something changes', async () => {
     serve({ ipAllowlist: ['203.0.113.0/24', '2001:db8::/32'], allowedUsers: { mode: 'roles', roles: ['org_admin'], userIds: [] }, rejectLegacyTokens: true });
     await renderLoaded();
-    expect(screen.getByRole('checkbox', { name: 'Allow MCP access' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Allow MCP access' })).toBeChecked();
     expect(networks()).toHaveValue('203.0.113.0/24\n2001:db8::/32');
     expect(screen.getByRole('radio', { name: 'Specific roles' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Organisation Admin' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Refuse legacy tokens' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Refuse legacy tokens' })).toBeChecked();
     expect(save()).toBeDisabled();
 });
 
@@ -78,10 +78,10 @@ it('does not warn when the address is inside a range, or when MCP is off, or whe
     await user.clear(networks());
     await user.type(networks(), '203.0.113.0/24');
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: 'Allow MCP access' }));
+    await user.click(screen.getByRole('switch', { name: 'Allow MCP access' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('checkbox', { name: 'Allow MCP access' }));
+    await user.click(screen.getByRole('switch', { name: 'Allow MCP access' }));
     await user.clear(networks());
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
@@ -108,7 +108,7 @@ it('saves the policy and goes back to a clean form', async () => {
     await user.type(networks(), `${CALLER}\n203.0.113.0/24`);
     await user.click(screen.getByRole('radio', { name: 'Specific roles' }));
     await user.click(screen.getByRole('checkbox', { name: 'Organisation Admin' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Refuse legacy tokens' }));
+    await user.click(screen.getByRole('switch', { name: 'Refuse legacy tokens' }));
     await user.click(save());
 
     await waitFor(() => expect(api.bodies('PUT', PATH)).toHaveLength(1));
@@ -147,10 +147,10 @@ it('shows the server\'s reason when saving fails and keeps the edits', async () 
     serve();
     api.on('PUT', PATH, { status: 403, body: { error: 'forbidden', code: 'not_org_admin', message: 'Only an organisation admin can change MCP access.' } });
     const user = await renderLoaded();
-    await user.click(screen.getByRole('checkbox', { name: 'Refuse legacy tokens' }));
+    await user.click(screen.getByRole('switch', { name: 'Refuse legacy tokens' }));
     await user.click(save());
     expect(await screen.findByRole('alert')).toHaveTextContent('Only an organisation admin can change MCP access.');
-    expect(screen.getByRole('checkbox', { name: 'Refuse legacy tokens' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Refuse legacy tokens' })).toBeChecked();
     expect(save()).toBeEnabled();
 });
 

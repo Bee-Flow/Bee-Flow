@@ -132,19 +132,19 @@ describe('ChecksTab — step 3', () => {
 
     it('offers "Let people see what was sent" only with placeholders, with its warning', () => {
         setup();
-        expect(screen.getByRole('checkbox', { name: 'Let people see what was sent to the AI' })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Let people see what was sent to the AI' })).toBeInTheDocument();
         expect(screen.getByText('Anyone who can open the conversation can reveal the real values.')).toBeInTheDocument();
     });
 
     it('drops "Let people see what was sent" when messages are stopped', () => {
         setup({ f: { piiAction: 'block' } });
-        expect(screen.queryByRole('checkbox', { name: 'Let people see what was sent to the AI' })).toBeNull();
+        expect(screen.queryByRole('switch', { name: 'Let people see what was sent to the AI' })).toBeNull();
     });
 
     it('names every switch and writes through the setter', async () => {
         const { user, f } = setup();
-        for (const box of screen.getAllByRole('checkbox')) expect(box).toHaveAccessibleName();
-        await user.click(screen.getByRole('checkbox', { name: 'Also protect automations' }));
+        for (const box of screen.getAllByRole('switch')) expect(box).toHaveAccessibleName();
+        await user.click(screen.getByRole('switch', { name: 'Also protect automations' }));
         expect(f.setApplyToAutomations).toHaveBeenCalledWith(false);
     });
 });
@@ -152,7 +152,7 @@ describe('ChecksTab — step 3', () => {
 describe('ChecksTab — step 4', () => {
     it('locks "Protect web searches" without its licence instead of offering a switch', () => {
         setup({ step: 'outbound', licence: { canUseWebSearchGuard: false } });
-        expect(screen.queryByRole('checkbox', { name: 'Protect web searches' })).toBeNull();
+        expect(screen.queryByRole('switch', { name: 'Protect web searches' })).toBeNull();
         expect(screen.getByText('Protect web searches')).toBeInTheDocument();
         expect(screen.getByText('Protecting web searches is an Enterprise feature.')).toBeInTheDocument();
     });
@@ -162,7 +162,7 @@ describe('ChecksTab — step 4', () => {
         expect(screen.queryByText('Use only AI hosted in the EU')).toBeNull();
         expect(screen.queryByText('Protect web searches')).toBeNull();
         expect(screen.queryByText('No web search while a file is attached')).toBeNull();
-        expect(screen.getByRole('checkbox', { name: 'Check connected-app traffic for personal data' })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Check connected-app traffic for personal data' })).toBeInTheDocument();
     });
 
     it('reveals the last check\'s modes only while it is on', () => {
@@ -179,6 +179,6 @@ describe('ChecksTab — step 4', () => {
 
     it('names every switch', () => {
         setup({ step: 'outbound', f: { dlpEnabled: true } });
-        for (const box of screen.getAllByRole('checkbox')) expect(box).toHaveAccessibleName();
+        for (const box of screen.getAllByRole('switch')) expect(box).toHaveAccessibleName();
     });
 });

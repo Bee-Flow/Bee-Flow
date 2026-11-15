@@ -46,7 +46,7 @@ beforeEach(() => {
     });
 });
 
-const toggleOf = (name: string) => screen.getByRole('checkbox', { name });
+const toggleOf = (name: string) => screen.getByRole('switch', { name });
 
 it('on a group, a group-scoped beta can be granted while an ordinary beta stays inherited', async () => {
     const user = userEvent.setup();

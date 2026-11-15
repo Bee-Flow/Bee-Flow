@@ -227,7 +227,7 @@ describe('with the shield off', () => {
         const { user, f } = setup({ f: { enabled: false } });
         expect(screen.getByText(/Protection is off/)).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'How things stand' })).toBeNull();
-        await user.click(screen.getByRole('checkbox', { name: 'admin.shield_enable' }));
+        await user.click(screen.getByRole('switch', { name: 'admin.shield_enable' }));
         expect(f.setEnabled).toHaveBeenCalledWith(true);
     });
 });

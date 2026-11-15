@@ -6,12 +6,14 @@ import React from 'react';
  *
  *   <div className="rounded border p-4 bg-white/5">
  *     <h3 className="text-sm font-semibold mb-2">Title</h3>
- *     <p className="text-xs text-muted mb-3">Description</p>
+ *     <p className="text-xs mb-3">Description</p>
  *     {children}
  *   </div>
  *
  * Used to give settings panels and admin sections a consistent shell so
- * the spacing/border style only lives in one place.
+ * the spacing/border style only lives in one place. The surface is the one
+ * of SettingsList (bg-primary, default border, rounded-lg), so a Section and
+ * a settings card next to it read as the same kind of box in every theme.
  */
 
 export interface SectionProps {
@@ -37,7 +39,7 @@ export default function Section({
     return (
         <section
             className={
-                'rounded-xl border border-[var(--border-subtle)] bg-white/5 ' +
+                'rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] ' +
                 (padded ? 'p-4 ' : '') +
                 className
             }
@@ -49,7 +51,7 @@ export default function Section({
                             <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
                         )}
                         {description != null && (
-                            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{description}</p>
+                            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{description}</p>
                         )}
                     </div>
                     {actions != null && <div className="flex-shrink-0">{actions}</div>}

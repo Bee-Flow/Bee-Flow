@@ -24,36 +24,36 @@ const STEPS = [
 describe('ActionRunOptions', () => {
     it('turning background on commits only background: true; off removes every option', async () => {
         const commit = renderOptions({ kind: 'sequence', steps: STEPS });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Keep running when the page is closed' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Keep running when the page is closed' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS, background: true });
     });
 
     it('off removes background, lockKey and progressVar', async () => {
         const commit = renderOptions({ kind: 'sequence', steps: STEPS, background: true, lockKey: { kind: 'formula', expr: 'item.id' }, progressVar: 'status' });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Keep running when the page is closed' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Keep running when the page is closed' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS });
     });
 
     it('running on the server commits only runOn: "server" and offers the lock and the progress text; off removes them', async () => {
         const commit = renderOptions({ kind: 'sequence', steps: STEPS });
         expect(screen.queryByRole('combobox', { name: 'Progress text' })).toBeNull();
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Run the whole action on the server' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Run the whole action on the server' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS, runOn: 'server' });
     });
 
     it('with runOn on, the lock and progress fields show; turning it off removes them unless the action also runs in the background', async () => {
         const commit = renderOptions({ kind: 'sequence', steps: STEPS, runOn: 'server', progressVar: 'status' });
         expect(screen.getByRole('combobox', { name: 'Progress text' })).toBeTruthy();
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Run the whole action on the server' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Run the whole action on the server' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS });
     });
 
     it('background and runOn are independent: switching one off keeps the options the other still uses', async () => {
         const both = { kind: 'sequence', steps: STEPS, background: true, runOn: 'server' as const, progressVar: 'status' };
         const commit = renderOptions(both);
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Keep running when the page is closed' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Keep running when the page is closed' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS, runOn: 'server', progressVar: 'status' });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Run the whole action on the server' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Run the whole action on the server' }));
         expect(commit).toHaveBeenLastCalledWith({ kind: 'sequence', steps: STEPS, background: true, progressVar: 'status' });
     });
 

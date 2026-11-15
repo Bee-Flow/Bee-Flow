@@ -73,10 +73,10 @@ describe('the Custom CSS section of the theme panel', () => {
         render(<Harness initial={{ design: { customCss: '.a{color:red}' } }} />);
         expect(sheet()).not.toBeNull();
         const before = screen.getByTestId('definition').textContent;
-        await userEvent.click(screen.getByRole('checkbox', { name: 'CSS off' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'CSS off' }));
         expect(sheet()).toBeNull();
         expect(screen.getByTestId('definition').textContent).toBe(before);
-        await userEvent.click(screen.getByRole('checkbox', { name: 'CSS off' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'CSS off' }));
         expect(sheet()).not.toBeNull();
     });
 

@@ -307,6 +307,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `playbook-live-run.sh` | Run one REAL playbook case inside the server container — the whole film: table → automation builder → fill → app builder → app turns — and judge it against the case's expectation. |
 | `port-jsdoc-branch.mjs` | Port the server changes of a paused JSDoc-conversion branch onto the working tree. |
 | `prefetch-node-headers.sh` | Download the Node headers into node-gyp's cache BEFORE `npm ci` runs. |
+| `ratchet-budget.mjs` | The budget step shared by scripts/theme-ratchet.mjs and scripts/vendor-name-ratchet.mjs: compare a measured count with the committed budget file, refuse a rise, and with --update record a lower count (never a higher … |
 | `release-manifest.mjs` | The release candidate manifest: which image digests one build produced, that its security checks passed, and that staging accepted exactly those digests. |
 | `release-tag.sh` | Tag a downstream repo with the version found in its source-of-truth file. |
 | `release-workflow-evidence.mjs` | Verify that release evidence comes from a successful, manually started run of the named workflow on main, and hand its commit and attempt to the next step. |
@@ -323,6 +324,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `stage-installer-context.sh` | Stage the build context of the installer image (installer/Dockerfile): the four files of this checkout that the image carries, in installer/bundle. release-latest.yml runs it on the release tag before building the image. |
 | `stage-server-context.sh` | Stage what the server image takes from gitignored folders of its build context (./server), so a local image carries the same extras as the one CI pushes. |
 | `store-write-tx.mjs` | Store functions that write two or more tables without a transaction. |
+| `theme-ratchet.mjs` | Theme ratchets for agent-hub: colours and theme variables that bypass the theme, counted so they can only go down. |
 | `ts-behaviour-diff.mjs` | The behaviour diff of a conversion round, over EVERY changed source file: not only the files a tool converted (scripts/ts-equivalence.mjs checks those renames), but every modified or renamed .js/.jsx/.ts/.tsx/.mjs/.cjs … |
 | `ts-callsite-types.mjs` | Call-site type inference for scripts/ts-convert-codefix.mjs. |
 | `ts-cast-loop.mjs` | Remove type casts one by one and keep every removal the type check accepts. |
@@ -343,5 +345,6 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `ts-type-at.mjs` | Ask the checker for a type, or for the best replacement of an explicit `any`, without reading the files around it. |
 | `tsc-error-ratchet.mjs` | tsc error ratchet: the number of errors `tsc -p <package>/tsconfig.strict.json` reports may only go DOWN. |
 | `typecheck-settle.mjs` | Make a mechanical round clean again by undoing what broke it. |
+| `vendor-name-ratchet.mjs` | Vendor-name ratchet: English UI strings in the admin namespaces that name an AI vendor or model may only go down. |
 | `vuln-watch-gate.mjs` | vuln-watch gate — turns the OSV-Scanner report and the runtime-watch report into one verdict, one SARIF file for the Security tab and one summary. |
 <!-- scripts-index:end -->

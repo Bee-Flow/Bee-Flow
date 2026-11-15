@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/auth`
 
-172 routes, 91 with a request schema. Back to the [endpoint reference](../reference.md).
+173 routes, 91 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `admin-login`
 
@@ -1205,6 +1205,12 @@ No request schema.
 | `features` | array of string | yes |  |
 
 ### `GET /auth/organizations/:orgId/group-access`
+
+**Access:** Admin of the organisation in `:orgId`
+
+No request schema.
+
+### `GET /auth/organizations/:orgId/integration-availability`
 
 **Access:** Admin of the organisation in `:orgId`
 

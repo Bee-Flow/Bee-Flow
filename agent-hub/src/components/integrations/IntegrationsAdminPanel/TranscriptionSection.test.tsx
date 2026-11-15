@@ -343,7 +343,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
         const user = userEvent.setup();
         renderSection();
         const box = within(await open('pyannoteAI'));
-        const toggle = box.getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        const toggle = box.getByRole('switch', { name: 'Recognise speakers by voice' });
         expect(toggle).not.toBeChecked();
         expect(box.queryByRole('spinbutton')).toBeNull();
         await user.click(toggle);
@@ -353,7 +353,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('shows the switch as on, and a click turns it off', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const toggle = within(await open('pyannoteAI')).getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        const toggle = within(await open('pyannoteAI')).getByRole('switch', { name: 'Recognise speakers by voice' });
         expect(toggle).toBeChecked();
         await user.click(toggle);
         expect(saveVoiceprintSettings).toHaveBeenCalledWith({ voiceprintMatchingEnabled: false });

@@ -9,7 +9,7 @@ const renderField = (props: Partial<Parameters<typeof PlatformAdminField>[0]> = 
     render(
         <PlatformAdminField role="admin" storedRole="admin" personName="Jan" isSelf={false} onChange={onChange} t={tParams} {...props} />,
     );
-    return { onChange, toggle: screen.getByRole('checkbox', { name: 'Platform administrator' }) };
+    return { onChange, toggle: screen.getByRole('switch', { name: 'Platform administrator' }) };
 };
 
 describe('PlatformAdminField', () => {

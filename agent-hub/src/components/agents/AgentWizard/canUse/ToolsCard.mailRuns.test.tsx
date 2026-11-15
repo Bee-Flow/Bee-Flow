@@ -38,7 +38,7 @@ describe('ToolsCard: runs started by an e-mail', () => {
         renderCard(null, { onChangeMailRunOption });
         const switches = screen.getAllByTestId('agent-tool-mail-runs');
         expect(switches).toHaveLength(1);
-        const box = within(switches[0]).getByRole('checkbox');
+        const box = within(switches[0]).getByRole('switch');
         expect((box as HTMLInputElement).checked).toBe(false);
         await user.click(box);
         expect(onChangeMailRunOption).toHaveBeenCalledWith('google-drive', MAIL_RUN_OPTIONS.MAIL_RUNS, true);
@@ -48,7 +48,7 @@ describe('ToolsCard: runs started by an e-mail', () => {
     it('shows reply-all and the draft note only with "Send replies"', () => {
         renderCard({ gmail: { actions: ['gmail_search'], mailAccess: 'send_reply', replyAll: true } });
         const replyAll = screen.getByTestId('agent-tool-reply-all');
-        expect((within(replyAll).getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
+        expect((within(replyAll).getByRole('switch') as HTMLInputElement).checked).toBe(true);
         expect(screen.getByText('If the agent used information from outside the thread, the reply is saved as a draft for you.')).toBeTruthy();
         cleanup();
         renderCard({ gmail: { actions: ['gmail_search'], mailAccess: 'draft' } });

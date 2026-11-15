@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of Tailwind palette colour classes and colour literals in the admin-dashboard directories of agent-hub/src may still carry. Lower it with `node scripts/theme-ratchet.mjs admin-palette agent-hub --update` after a fix; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-15",
+  "count": 1443
+}

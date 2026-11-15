@@ -19,17 +19,17 @@ describe('ToolsSection', () => {
     it('lists what this person can attach, with the count of selected ones', () => {
         renderWithClient(<ToolsSection {...props({ enabledIntegrations: ['github'] })} />);
         expect(screen.getByText('Agent Integrations (1/2)')).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', { name: 'GitHub' })).toBeChecked();
-        expect(screen.getByRole('checkbox', { name: 'n8n' })).not.toBeChecked();
+        expect(screen.getByRole('switch', { name: 'GitHub' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'n8n' })).not.toBeChecked();
         // Fireflies needs a key this person does not have.
-        expect(screen.queryByRole('checkbox', { name: 'Fireflies' })).toBeNull();
+        expect(screen.queryByRole('switch', { name: 'Fireflies' })).toBeNull();
     });
 
     it('a click on the tile or on the switch toggles the integration once', async () => {
         const p = props();
         renderWithClient(<ToolsSection {...p} />);
         await userEvent.click(screen.getByText('n8n'));
-        await userEvent.click(screen.getByRole('checkbox', { name: 'GitHub' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'GitHub' }));
         const updates = vi.mocked(p.setEnabledIntegrations).mock.calls.map(([fn]) => (fn as (prev: string[] | null) => string[])(null));
         expect(updates).toEqual([['github'], ['n8n']]);
     });

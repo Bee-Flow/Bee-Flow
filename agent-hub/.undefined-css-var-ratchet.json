@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of var(--x) uses of a variable that no CSS file declares and no code sets under agent-hub/src may still carry. Lower it with `node scripts/theme-ratchet.mjs undefined-css-var agent-hub --update` after a fix; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-15",
+  "count": 4
+}

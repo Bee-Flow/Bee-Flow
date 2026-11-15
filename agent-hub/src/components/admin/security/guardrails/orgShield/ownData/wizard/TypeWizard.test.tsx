@@ -170,10 +170,10 @@ async function tuneStep(user: User) {
 /** Step 3, then "Add to the list": only now does the form change. */
 async function applyStep(user: User, form: Form) {
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByRole('checkbox', { name: 'Hide from AI' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Outside tools' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Own server' })).not.toBeChecked();
-    await user.click(screen.getByRole('checkbox', { name: 'Own server' }));
+    expect(screen.getByRole('switch', { name: 'Hide from AI' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Outside tools' })).toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Own server' })).not.toBeChecked();
+    await user.click(screen.getByRole('switch', { name: 'Own server' }));
     expect(screen.getByText(/In short: The AI sees \[customer_number_1\] instead\./)).toBeInTheDocument();
     expect(form.current?.customDataTypes).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Add to the list' }));

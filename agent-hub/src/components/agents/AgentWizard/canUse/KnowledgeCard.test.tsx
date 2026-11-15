@@ -156,7 +156,7 @@ describe('KnowledgeCard — de knoppen', () => {
         // Dicht: de schakelaar staat er niet.
         expect(screen.queryByLabelText(/Include source references/i)).toBeNull();
         await user.click(screen.getByTestId('agent-knowledge-menu'));
-        const toggle = screen.getByRole('checkbox');
+        const toggle = screen.getByRole('switch');
         await user.click(toggle);
         expect(onIncludeSourceReferencesChange).toHaveBeenCalledWith(true);
     });

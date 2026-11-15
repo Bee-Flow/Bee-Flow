@@ -194,9 +194,18 @@ describe('ChoiceCards appearance="radio"', () => {
         }
     });
 
-    it('leaves the default look alone', () => {
+    it('draws the default tint look from theme tokens, never a status colour', () => {
         setup();
-        expect(screen.getByRole('radio', { name: /Block the message/ }).className).toContain('border-[#10B981]');
+        const chosen = screen.getByRole('radio', { name: /Block the message/ });
+        expect(chosen).toHaveAttribute('aria-checked', 'true');
+        expect(chosen.className).toContain('bg-[var(--item-active-bg)]');
+        expect(chosen.className).toContain('border-[var(--text-primary)]');
+        for (const radio of screen.getAllByRole('radio')) {
+            expect(radio.className).not.toMatch(/#10B981|rgba\(16,185,129|emerald/i);
+        }
+        const other = screen.getByRole('radio', { name: /Ask each time/ });
+        expect(other.className).toContain('border-[var(--border-default)]');
+        expect(other.className).not.toContain('bg-[var(--item-active-bg)]');
     });
 
     it('puts a locked notice under the card, not inside it', () => {

@@ -46,7 +46,7 @@ describe('Settings › Start', () => {
         const previewBody = JSON.parse(authFetch.mock.calls.find(([u]) => String(u).endsWith('/_schedule/preview'))![1].body);
         expect(previewBody).toEqual({ cron: '0 7 * * 1,2,3,4,5', tz: 'Europe/Amsterdam', count: 3 });
 
-        await user.click(within(dialog).getByRole('checkbox', { name: 'Skip public holidays' }));
+        await user.click(within(dialog).getByRole('switch', { name: 'Skip public holidays' }));
         await user.click(within(dialog).getByRole('button', { name: 'Show cron notation' }));
         expect(within(dialog).getByRole('textbox', { name: 'Cron notation' })).toHaveProperty('value', '0 7 * * 1,2,3,4,5');
         expect(within(dialog).getByText('The start card on the canvas changes too')).toBeTruthy();

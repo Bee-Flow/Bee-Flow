@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "admin_ui.discard": "Verwerpen",
+    "admin_ui.leave_desc": "De wijzigingen die je hier hebt gemaakt, zijn niet opgeslagen.",
+    "admin_ui.leave_discard": "Wijzigingen verwerpen",
+    "admin_ui.leave_title": "Niet-opgeslagen wijzigingen verwerpen?",
+    "admin_ui.range_from": "Van",
+    "admin_ui.range_to": "Tot",
+    "admin_ui.save_changes": "Wijzigingen opslaan",
+    "admin_ui.unsaved": "Niet-opgeslagen wijzigingen"
+  },
+  "sameAsEnglish": []
+}

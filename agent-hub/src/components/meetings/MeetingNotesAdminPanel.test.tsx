@@ -31,7 +31,7 @@ it('names every control by its row title', async () => {
     expect(await screen.findByRole('combobox', { name: 'Auto-record Talk meetings' })).toHaveValue('on');
     expect(screen.getByRole('combobox', { name: 'Auto-transcribe Talk recordings' })).toHaveValue('off');
     expect(screen.getByRole('combobox', { name: 'Post summary back into Talk' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Per-person meeting insights' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Per-person meeting insights' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Which calls' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Recording quality' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Default language' })).toHaveValue('en');
