@@ -1,0 +1,154 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/ts-pure-shim.flow",
+      "automation": {
+        "title": "Price with VAT",
+        "description": "",
+        "triggerType": "form",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "form",
+          "label": "Form",
+          "form": {
+            "title": "Price with VAT",
+            "fields": [
+              {
+                "name": "net",
+                "label": "net",
+                "type": "number"
+              },
+              {
+                "name": "rate",
+                "label": "rate",
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "steps": [
+          {
+            "id": "vat",
+            "type": "code",
+            "label": "Add VAT",
+            "code": "/**\n * Add VAT\n * @param {*} inputs.net - net\n * @param {*} inputs.rate - rate\n */\nasync function main(inputs, ctx) {\n    const console = { log: (...a) => ctx.log(...a), info: (...a) => ctx.log(...a), warn: (...a) => ctx.log(...a), error: (...a) => ctx.log(...a), debug: (...a) => ctx.log(...a) };\n    const fetch = async (url, opts) => {\n        const r = await ctx.http(url, opts || {});\n        if (r && r.error) throw new Error(r.error);\n        return { ok: r.status >= 200 && r.status < 300, status: r.status, headers: r.headers, text: async () => r.body, json: async () => JSON.parse(r.body) };\n    };\n    function round(n) {\n      return Math.round(n * 100) / 100;\n    }\n    async function __wm_main(net, rate = 21) {\n      console.log(\"computing\", net);\n      const res = await fetch(\"https://rates.example.com/v1/round\", { method: \"POST\", body: JSON.stringify({ net }) });\n      const extra = res.ok ? 0 : 0;\n      return { net, gross: round(net * (1 + rate / 100)) + extra };\n    }\n    return __wm_main(inputs.net, inputs.rate);\n}\n",
+            "inputs": {
+              "net": {
+                "kind": "ref",
+                "path": "trigger.output.net"
+              },
+              "rate": {
+                "kind": "ref",
+                "path": "trigger.output.rate"
+              }
+            },
+            "allowedHosts": [
+              "rates.example.com"
+            ]
+          },
+          {
+            "id": "label",
+            "type": "code",
+            "label": "Label",
+            "code": "/**\n * Label\n * @param {*} inputs.gross - gross\n */\nasync function main(inputs, ctx) {\n    function __wm_main(gross) {\n      return `Total: ${gross}`;\n    }\n    return __wm_main(inputs.gross);\n}\n",
+            "inputs": {
+              "gross": {
+                "kind": "ref",
+                "path": "steps.vat.output.result.gross"
+              }
+            },
+            "allowedHosts": [],
+            "pinnedOutput": "Total: 0",
+            "pinnedSource": "edited"
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "vat"
+          },
+          {
+            "from": "vat",
+            "to": "label"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/ts-pure-shim.flow",
+        "modules": [
+          {
+            "wmId": "vat",
+            "summary": "Add VAT",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "vat"
+            ]
+          },
+          {
+            "wmId": "pass",
+            "source": "identity",
+            "status": "dropped",
+            "confidence": "high",
+            "reason": "A pass-through step has nothing to do in Bee Flow.",
+            "stepIds": []
+          },
+          {
+            "wmId": "label",
+            "summary": "Label",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "label"
+            ]
+          }
+        ],
+        "aiChecklist": [],
+        "warnings": [
+          {
+            "code": "outbound_host",
+            "message": "The code of \"Add VAT\" sends data to rates.example.com.",
+            "wmId": "vat"
+          },
+          {
+            "code": "mock_pinned",
+            "message": "\"Label\" was mocked in Windmill; it now answers that fixed value until you remove the pinned output.",
+            "wmId": "label"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [
+          "rates.example.com"
+        ],
+        "counts": {
+          "mapped": 0,
+          "pattern": 0,
+          "shim": 2,
+          "ai": 0,
+          "unsupported": 0,
+          "dropped": 1
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

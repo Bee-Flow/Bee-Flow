@@ -1,0 +1,429 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/expense-claim.flow",
+      "automation": {
+        "title": "Expense claim",
+        "description": "A claim form with receipts: file them, read them, share the folder.",
+        "triggerType": "app_event",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "app_event",
+          "label": "Nextcloud: forms.submitted",
+          "appEvent": {
+            "provider": "nextcloud",
+            "event": "forms.submitted",
+            "filter": {}
+          }
+        },
+        "steps": [
+          {
+            "id": "submission",
+            "type": "integration_action",
+            "label": "Get the form submission",
+            "tool": "nextcloud_forms_get_submissions",
+            "inputs": {
+              "formId": {
+                "kind": "ref",
+                "path": "trigger.output.formId"
+              },
+              "submissionId": {
+                "kind": "ref",
+                "path": "trigger.output.submissionId"
+              }
+            }
+          },
+          {
+            "id": "folder_name",
+            "type": "code",
+            "label": "Folder name",
+            "code": "/**\n * Folder name\n * @param {*} inputs.userId - userId\n */\nasync function main(inputs, ctx) {\n    async function __wm_main(userId) {\n      return `/Expenses/Claim of ${userId} ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;\n    }\n    return __wm_main(inputs.userId);\n}\n",
+            "inputs": {
+              "userId": {
+                "kind": "ref",
+                "path": "trigger.output.actor"
+              }
+            },
+            "allowedHosts": []
+          },
+          {
+            "id": "folder",
+            "type": "integration_action",
+            "label": "Create folder",
+            "tool": "nextcloud_create_folder",
+            "inputs": {
+              "path": {
+                "kind": "ref",
+                "path": "steps.folder_name.output.result"
+              }
+            }
+          },
+          {
+            "id": "receipts",
+            "type": "parallel",
+            "label": "In parallel",
+            "branches": [
+              [
+                {
+                  "id": "each_receipt",
+                  "type": "stop_error",
+                  "label": "Windmill: each_receipt (still to convert)",
+                  "message": "This Windmill step has not been converted yet: The result of \"submission\" has a different shape in Bee Flow; submission.answers cannot be found in it."
+                }
+              ],
+              [
+                {
+                  "id": "dates",
+                  "type": "stop_error",
+                  "label": "Windmill: Analyze image (still to convert)",
+                  "message": "This Windmill step has not been converted yet: Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that."
+                }
+              ]
+            ],
+            "failOnAnyBranchError": true
+          },
+          {
+            "id": "requester",
+            "type": "integration_action",
+            "label": "About the requester",
+            "tool": "nextcloud_get_user",
+            "inputs": {
+              "userId": {
+                "kind": "ref",
+                "path": "steps.submission.output.submissions[0].userId"
+              }
+            }
+          },
+          {
+            "id": "tag",
+            "type": "integration_action",
+            "label": "Tag the folder",
+            "tool": "nextcloud_tag_file",
+            "inputs": {
+              "fileId": {
+                "kind": "literal",
+                "value": 4242
+              },
+              "tagId": {
+                "kind": "literal",
+                "value": 5
+              }
+            }
+          },
+          {
+            "id": "people",
+            "type": "code",
+            "label": "Who gets the folder",
+            "code": "/**\n * Who gets the folder\n * @param {*} inputs.requester - requester\n * @param {*} inputs.manager - manager\n */\nasync function main(inputs, ctx) {\n    async function __wm_main(requester, manager) {\n      const out = [requester];\n      if (manager) out.push(manager);\n      return out;\n    }\n    return __wm_main(inputs.requester, inputs.manager);\n}\n",
+            "inputs": {
+              "requester": {
+                "kind": "ref",
+                "path": "trigger.output.actor"
+              },
+              "manager": {
+                "kind": "ref",
+                "path": "steps.requester.output.manager"
+              }
+            },
+            "allowedHosts": []
+          },
+          {
+            "id": "share",
+            "type": "integration_action",
+            "label": "Share the folder",
+            "tool": "nextcloud_share_with_user",
+            "inputs": {
+              "path": {
+                "kind": "ref",
+                "path": "steps.folder_name.output.result"
+              },
+              "shareWith": {
+                "kind": "ref",
+                "path": "loop.item"
+              }
+            },
+            "forEach": {
+              "overRef": "steps.people.output.result",
+              "itemVar": "item",
+              "maxIterations": 1000
+            }
+          },
+          {
+            "id": "notify",
+            "type": "integration_action",
+            "label": "Tell the requester",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "ref",
+                "path": "trigger.output.actor"
+              },
+              "shortMessage": {
+                "kind": "literal",
+                "value": "Expense claim filed"
+              },
+              "longMessage": {
+                "kind": "literal",
+                "value": "Your claim and receipts are in the shared folder."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "submission"
+          },
+          {
+            "from": "submission",
+            "to": "folder_name"
+          },
+          {
+            "from": "folder_name",
+            "to": "folder"
+          },
+          {
+            "from": "folder",
+            "to": "receipts"
+          },
+          {
+            "from": "receipts",
+            "to": "requester"
+          },
+          {
+            "from": "requester",
+            "to": "tag"
+          },
+          {
+            "from": "tag",
+            "to": "people"
+          },
+          {
+            "from": "people",
+            "to": "share"
+          },
+          {
+            "from": "share",
+            "to": "notify"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/expense-claim.flow",
+        "modules": [
+          {
+            "wmId": "submission",
+            "summary": "Get the form submission",
+            "source": "script:hub/28147/nextcloud/get_a_form_submission_from_nextcloud_forms",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "submission"
+            ]
+          },
+          {
+            "wmId": "folder_name",
+            "summary": "Folder name",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "folder_name"
+            ]
+          },
+          {
+            "wmId": "folder",
+            "summary": "Create folder",
+            "source": "rawscript:bun",
+            "status": "pattern",
+            "confidence": "medium",
+            "reason": "The script makes one Nextcloud call (MKCOL /remote.php/dav/files/{user}/{} in the script.)",
+            "stepIds": [
+              "folder"
+            ]
+          },
+          {
+            "wmId": "each_receipt",
+            "source": "forloopflow",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "The result of \"submission\" has a different shape in Bee Flow; submission.answers cannot be found in it.",
+            "stepIds": [
+              "each_receipt"
+            ]
+          },
+          {
+            "wmId": "dates",
+            "summary": "Analyze image",
+            "source": "script:hub/28171/nextcloud/analyze_image",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that.",
+            "stepIds": [
+              "dates"
+            ]
+          },
+          {
+            "wmId": "receipts",
+            "source": "branchall",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "All branches run: a parallel step.",
+            "stepIds": [
+              "receipts"
+            ]
+          },
+          {
+            "wmId": "requester",
+            "summary": "About the requester",
+            "source": "rawscript:bun",
+            "status": "pattern",
+            "confidence": "medium",
+            "reason": "The script makes one Nextcloud call (GET /ocs/v2.php/cloud/users/{} in the script.)",
+            "stepIds": [
+              "requester"
+            ]
+          },
+          {
+            "wmId": "tag",
+            "summary": "Tag the folder",
+            "source": "rawscript:bun",
+            "status": "pattern",
+            "confidence": "medium",
+            "reason": "The script makes one Nextcloud call (PUT /remote.php/dav/systemtags-relations/files/{}/{} in the script.)",
+            "stepIds": [
+              "tag"
+            ]
+          },
+          {
+            "wmId": "people",
+            "summary": "Who gets the folder",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "people"
+            ]
+          },
+          {
+            "wmId": "share",
+            "summary": "Share the folder",
+            "source": "script:hub/28173/nextcloud/create_share",
+            "status": "pattern",
+            "confidence": "medium",
+            "reason": "Share type 0 selects this share action.",
+            "stepIds": [
+              "share"
+            ]
+          },
+          {
+            "wmId": "shares",
+            "source": "forloopflow",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "A loop around one step becomes that step with \"for each\".",
+            "stepIds": [
+              "share"
+            ]
+          },
+          {
+            "wmId": "notify",
+            "summary": "Tell the requester",
+            "source": "script:hub/28136/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "notify"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "each_receipt",
+            "stepId": "each_receipt",
+            "title": "Convert \"each_receipt\"",
+            "why": "The result of \"submission\" has a different shape in Bee Flow; submission.answers cannot be found in it.",
+            "inputs": {}
+          },
+          {
+            "wmId": "dates",
+            "stepId": "dates",
+            "title": "Analyse the images",
+            "why": "Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that.",
+            "inputs": {
+              "ncResource": {
+                "expr": "flow_input.authentication.owner"
+              },
+              "prompt": {
+                "value": "When were these receipts issued?"
+              },
+              "imageFileIds": {
+                "expr": "results.submission.submission.answers.filter((e) => e.questionName === \"receipts\").map((e) => e.fileId)"
+              }
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "trigger_switch_off",
+            "message": "Switch the Windmill trigger off (or delete the flow there) once this automation is active, or every event runs twice."
+          },
+          {
+            "code": "trigger_approximated",
+            "message": "The export has no trigger file; the flow reads a forms.submitted event, so it starts on that event. Add a filter (which form) on the trigger."
+          },
+          {
+            "code": "option_approximated",
+            "message": "Bee Flow returns the answers keyed by question text (answers[\"Question\"]), not as a list with questionName.",
+            "wmId": "submission"
+          },
+          {
+            "code": "repick_id",
+            "message": "Pick the tag (and a fixed file id) again for \"Tag the folder\": ids differ between installations.",
+            "wmId": "tag"
+          },
+          {
+            "code": "option_approximated",
+            "message": "The share settings (note, label, password) were not carried over; set them on the step.",
+            "wmId": "share"
+          },
+          {
+            "code": "parallel_serial",
+            "message": "\"Loop\" ran its items at the same time; this kind of step runs them one by one.",
+            "wmId": "shares"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow as the Nextcloud user who caused the event; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 4,
+          "pattern": 4,
+          "shim": 2,
+          "ai": 2,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

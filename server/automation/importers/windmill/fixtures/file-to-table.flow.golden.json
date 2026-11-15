@@ -1,0 +1,572 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/file-to-table.flow",
+      "automation": {
+        "title": "Room booking from a PDF form",
+        "description": "",
+        "triggerType": "manual",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "manual",
+          "label": "Manual"
+        },
+        "steps": [
+          {
+            "id": "form",
+            "type": "stop_error",
+            "label": "Windmill: Read the PDF form (still to convert)",
+            "message": "This Windmill step has not been converted yet: The script imports a package."
+          },
+          {
+            "id": "check_condition",
+            "type": "stop_error",
+            "label": "Windmill: Branch: condition (still to convert)",
+            "message": "This Windmill step has not been converted yet: A branch condition has no Bee Flow expression yet; the branches below are kept, behind a condition that is always false."
+          },
+          {
+            "id": "check",
+            "type": "condition",
+            "label": "Filled out",
+            "expr": "false"
+          },
+          {
+            "id": "columns",
+            "type": "integration_action",
+            "label": "Get the columns",
+            "tool": "nextcloud_tables_list_columns",
+            "inputs": {
+              "tableId": {
+                "kind": "literal",
+                "value": 12
+              }
+            }
+          },
+          {
+            "id": "row",
+            "type": "code",
+            "label": "Map the fields",
+            "code": "/**\n * Map the fields\n * @param {*} inputs.columns - columns\n * @param {*} inputs.values - values\n */\nasync function main(inputs, ctx) {\n    async function __wm_main(columns, values) {\n      const out = {};\n      for (const col of columns) if (values[col.title]) out[col.id] = values[col.title];\n      return out;\n    }\n    return __wm_main(inputs.columns, inputs.values);\n}\n",
+            "inputs": {
+              "columns": {
+                "kind": "ref",
+                "path": "steps.columns.output.columns"
+              }
+            },
+            "allowedHosts": []
+          },
+          {
+            "id": "row_output_body",
+            "type": "set",
+            "label": "Add the row: body",
+            "fields": {
+              "data": {
+                "kind": "ref",
+                "path": "steps.row.output.result"
+              }
+            }
+          },
+          {
+            "id": "row_output",
+            "type": "integration_action",
+            "label": "Add the row",
+            "tool": "nextcloud_request",
+            "inputs": {
+              "method": {
+                "kind": "literal",
+                "value": "POST"
+              },
+              "path": {
+                "kind": "template",
+                "value": "/index.php/apps/tables/api/1/tables/12/rows"
+              },
+              "body": {
+                "kind": "ref",
+                "path": "steps.row_output_body.output"
+              }
+            }
+          },
+          {
+            "id": "file_cell_values",
+            "type": "set",
+            "label": "Link the file: values",
+            "fields": {
+              "File": {
+                "kind": "ref",
+                "path": "trigger.output.path"
+              }
+            }
+          },
+          {
+            "id": "file_cell",
+            "type": "integration_action",
+            "label": "Link the file",
+            "tool": "nextcloud_tables_update_row",
+            "inputs": {
+              "values": {
+                "kind": "ref",
+                "path": "steps.file_cell_values.output"
+              },
+              "tableId": {
+                "kind": "literal",
+                "value": 12
+              }
+            }
+          },
+          {
+            "id": "approval",
+            "type": "approval",
+            "label": "Ask for approval",
+            "prompt": "Approve this room booking",
+            "approval": {
+              "expiresInHours": 1
+            }
+          },
+          {
+            "id": "calendar",
+            "type": "stop_error",
+            "label": "Windmill: Add calendar entry (still to convert)",
+            "message": "This Windmill step has not been converted yet: python3 code is never run by Bee Flow; the builder rebuilds what it does."
+          },
+          {
+            "id": "tell",
+            "type": "integration_action",
+            "label": "Ask to fill it in again",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "ref",
+                "path": "trigger.output.actor"
+              },
+              "shortMessage": {
+                "kind": "literal",
+                "value": "Your booking form is incomplete"
+              },
+              "longMessage": {
+                "kind": "literal",
+                "value": "Please fill in every field and upload it again."
+              }
+            }
+          },
+          {
+            "id": "status_values",
+            "type": "set",
+            "label": "Record the decision: values",
+            "fields": {
+              "Status": {
+                "kind": "expr",
+                "value": "(steps.approval.output.approved == false) ? 2 : 1"
+              }
+            }
+          },
+          {
+            "id": "status",
+            "type": "integration_action",
+            "label": "Record the decision",
+            "tool": "nextcloud_tables_update_row",
+            "inputs": {
+              "values": {
+                "kind": "ref",
+                "path": "steps.status_values.output"
+              },
+              "tableId": {
+                "kind": "literal",
+                "value": 12
+              }
+            }
+          },
+          {
+            "id": "note_form",
+            "type": "note",
+            "text": "Windmill source of \"Read the PDF form\" (read-only):\n\nimport { PDFDocument } from \"pdf-lib\";\n\nexport async function main(nextcloud: RT.Nextcloud, pdfPath: string) {\n  const doc = await PDFDocument.load(new Uint8Array());\n  return { filled_out: doc.getPageCount() > 0, values: {} };\n}\n"
+          },
+          {
+            "id": "note_calendar",
+            "type": "note",
+            "text": "Windmill source of \"Add calendar entry\" (read-only):\n\nimport caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n"
+          },
+          {
+            "id": "windmill_note_1",
+            "type": "note",
+            "text": "Bookings arrive as a filled-in PDF in the Bookings folder."
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "form"
+          },
+          {
+            "from": "form",
+            "to": "check_condition"
+          },
+          {
+            "from": "check_condition",
+            "to": "check"
+          },
+          {
+            "from": "check",
+            "to": "columns",
+            "label": "then"
+          },
+          {
+            "from": "columns",
+            "to": "row"
+          },
+          {
+            "from": "row",
+            "to": "row_output_body"
+          },
+          {
+            "from": "row_output_body",
+            "to": "row_output"
+          },
+          {
+            "from": "row_output",
+            "to": "file_cell_values"
+          },
+          {
+            "from": "file_cell_values",
+            "to": "file_cell"
+          },
+          {
+            "from": "file_cell",
+            "to": "approval"
+          },
+          {
+            "from": "approval",
+            "to": "calendar"
+          },
+          {
+            "from": "check",
+            "to": "tell",
+            "label": "else"
+          },
+          {
+            "from": "approval",
+            "to": "status_values",
+            "label": "on_rejected"
+          },
+          {
+            "from": "approval",
+            "to": "status_values",
+            "label": "on_expired"
+          },
+          {
+            "from": "calendar",
+            "to": "status_values"
+          },
+          {
+            "from": "tell",
+            "to": "status_values"
+          },
+          {
+            "from": "status_values",
+            "to": "status"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/file-to-table.flow",
+        "modules": [
+          {
+            "wmId": "filepath",
+            "summary": "Path from file id",
+            "source": "script:hub/28172/nextcloud/path_from_fileid",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "The file is the one that started the run: its path is in the trigger.",
+            "stepIds": []
+          },
+          {
+            "wmId": "form",
+            "summary": "Read the PDF form",
+            "source": "rawscript:bun",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "The script imports a package.",
+            "stepIds": [
+              "form"
+            ]
+          },
+          {
+            "wmId": "check_condition",
+            "summary": "Branch: condition",
+            "source": "branchone",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "A branch condition has no Bee Flow expression yet; the branches below are kept, behind a condition that is always false.",
+            "stepIds": [
+              "check_condition"
+            ]
+          },
+          {
+            "wmId": "check",
+            "source": "branchone",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "One branch and a default become a condition.",
+            "stepIds": [
+              "check"
+            ]
+          },
+          {
+            "wmId": "columns",
+            "summary": "Get the columns",
+            "source": "script:hub/28145/nextcloud/nextcloud_tables:_get_all_columns_of_a_table",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "columns"
+            ]
+          },
+          {
+            "wmId": "row",
+            "summary": "Map the fields",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "low",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "row"
+            ]
+          },
+          {
+            "wmId": "row_output",
+            "summary": "Add the row",
+            "source": "rawscript:bun",
+            "status": "pattern",
+            "confidence": "medium",
+            "reason": "The script makes one Nextcloud call (POST /index.php/apps/tables/api/1/tables/{{tableId}}/rows); the generic Nextcloud request makes the same call.",
+            "stepIds": [
+              "row_output"
+            ]
+          },
+          {
+            "wmId": "file_cell",
+            "summary": "Link the file",
+            "source": "script:hub/28155/nextcloud/edit_a_row_in_a_table_in_nextcloud_tables",
+            "status": "pattern",
+            "confidence": "low",
+            "reason": "The column \"File\" is found by its title.",
+            "stepIds": [
+              "file_cell"
+            ]
+          },
+          {
+            "wmId": "approval",
+            "summary": "Ask for approval",
+            "source": "rawscript:bun",
+            "status": "pattern",
+            "confidence": "high",
+            "reason": "The step made an approval link and waited for it: a Bee Flow approval.",
+            "stepIds": [
+              "approval"
+            ]
+          },
+          {
+            "wmId": "calendar",
+            "summary": "Add calendar entry",
+            "source": "rawscript:python3",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "stepIds": [
+              "calendar"
+            ]
+          },
+          {
+            "wmId": "outcome",
+            "source": "branchone",
+            "status": "pattern",
+            "confidence": "high",
+            "reason": "The branch on the approval outcome becomes the approval's \"rejected\" path.",
+            "stepIds": []
+          },
+          {
+            "wmId": "tell",
+            "summary": "Ask to fill it in again",
+            "source": "script:hub/28136/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "tell"
+            ]
+          },
+          {
+            "wmId": "status",
+            "summary": "Record the decision",
+            "source": "script:hub/28155/nextcloud/edit_a_row_in_a_table_in_nextcloud_tables",
+            "status": "pattern",
+            "confidence": "low",
+            "reason": "The column \"Status\" is found by its title.",
+            "stepIds": [
+              "status"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "trigger",
+            "stepId": null,
+            "title": "Pick the Nextcloud event that starts this flow",
+            "why": "The export has no trigger file; the flow reads a Nextcloud event (it looks like file.new). The trigger is \"manual\" until you pick the event."
+          },
+          {
+            "wmId": "form",
+            "stepId": "form",
+            "title": "Convert \"Read the PDF form\"",
+            "why": "The script imports a package.",
+            "language": "bun",
+            "source": "import { PDFDocument } from \"pdf-lib\";\n\nexport async function main(nextcloud: RT.Nextcloud, pdfPath: string) {\n  const doc = await PDFDocument.load(new Uint8Array());\n  return { filled_out: doc.getPageCount() > 0, values: {} };\n}\n",
+            "inputs": {
+              "nextcloud": {
+                "expr": "flow_input.authentication.owner"
+              },
+              "pdfPath": {
+                "expr": "results.filepath"
+              }
+            }
+          },
+          {
+            "wmId": "check_condition",
+            "stepId": "check_condition",
+            "title": "Convert \"Branch: condition\"",
+            "why": "A branch condition has no Bee Flow expression yet; the branches below are kept, behind a condition that is always false.",
+            "inputs": {
+              "Filled out": {
+                "expr": "results.form.filled_out"
+              }
+            }
+          },
+          {
+            "wmId": "row",
+            "stepId": "row",
+            "title": "Fill in \"values\" of \"Map the fields\"",
+            "why": "values: The result of \"form\" has a different shape in Bee Flow; values cannot be found in it.",
+            "inputs": {
+              "values": {
+                "expr": "results.form.values"
+              }
+            }
+          },
+          {
+            "wmId": "file_cell",
+            "stepId": "file_cell",
+            "title": "Fill in \"rowId\" of \"Link the file\"",
+            "why": "rowId: The result of \"row_output\" has a different shape in Bee Flow; data.id cannot be found in it.",
+            "inputs": {
+              "rowId": {
+                "expr": "results.row_output.data.id"
+              }
+            }
+          },
+          {
+            "wmId": "calendar",
+            "stepId": "calendar",
+            "title": "Convert \"Add calendar entry\"",
+            "why": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "language": "python3",
+            "source": "import caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n",
+            "inputs": {
+              "Nextcloud": {
+                "expr": "flow_input.authentication.owner"
+              },
+              "title": {
+                "expr": "\"Booking \" + results.form.values.Name"
+              },
+              "start": {
+                "expr": "results.form.values[\"Start\"]"
+              },
+              "end": {
+                "expr": "results.form.values[\"End\"]"
+              }
+            }
+          },
+          {
+            "wmId": "status",
+            "stepId": "status",
+            "title": "Fill in \"rowId\" of \"Record the decision\"",
+            "why": "rowId: The result of \"row_output\" has a different shape in Bee Flow; data.id cannot be found in it.",
+            "inputs": {
+              "rowId": {
+                "expr": "results.row_output.data.id"
+              }
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "trigger_switch_off",
+            "message": "Switch the Windmill trigger off (or delete the flow there) once this automation is active, or every event runs twice."
+          },
+          {
+            "code": "repick_id",
+            "message": "Pick the table again for \"Get the columns\": ids differ between installations.",
+            "wmId": "columns"
+          },
+          {
+            "code": "option_approximated",
+            "message": "The generic Nextcloud request only writes to the paths Bee Flow allows; a dry run shows whether this one is among them.",
+            "wmId": "row_output"
+          },
+          {
+            "code": "repick_id",
+            "message": "Pick the table again for \"Link the file\": ids differ between installations.",
+            "wmId": "file_cell"
+          },
+          {
+            "code": "approval_people",
+            "message": "Choose who approves \"Ask for approval\": Windmill sent a link, Bee Flow asks a person or group in this organisation (deciding for a colleague needs Enterprise).",
+            "wmId": "approval"
+          },
+          {
+            "code": "approval_expiry",
+            "message": "In Windmill a rejection or a timeout went on to the next step; in Bee Flow only the \"rejected\" path does, wired from the approval.",
+            "wmId": "approval"
+          },
+          {
+            "code": "repick_id",
+            "message": "Pick the table again for \"Record the decision\": ids differ between installations.",
+            "wmId": "status"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow as the Nextcloud user who caused the event; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          },
+          {
+            "code": "trigger_approximated",
+            "message": "File paths in Bee Flow start inside the user's files (\"/Uploads/x.pdf\"); Windmill read \"/<user>/files/Uploads/x.pdf\"."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 3,
+          "pattern": 5,
+          "shim": 1,
+          "ai": 4,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": [
+            "edge.after_stop_error",
+            "edge.label_unknown"
+          ]
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

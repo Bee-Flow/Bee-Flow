@@ -1,0 +1,369 @@
+{
+  "flow": {
+    "summary": "Expense claim",
+    "description": "A claim form with receipts: file them, read them, share the folder.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "uid": {
+              "type": "string"
+            }
+          }
+        },
+        "event": {
+          "type": "object",
+          "properties": {
+            "class": {
+              "type": "string"
+            },
+            "form": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "hash": {
+                  "type": "string"
+                }
+              }
+            },
+            "submission": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "formId": {
+                  "type": "integer"
+                },
+                "userId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "authentication": {
+          "type": "object",
+          "properties": {
+            "owner": {
+              "type": "object",
+              "format": "resource-nextcloud"
+            },
+            "trigger": {
+              "type": "object",
+              "format": "resource-nextcloud"
+            }
+          }
+        }
+      }
+    },
+    "value": {
+      "modules": [
+        {
+          "id": "submission",
+          "summary": "Get the form submission",
+          "value": {
+            "type": "script",
+            "path": "hub/28147/nextcloud/get_a_form_submission_from_nextcloud_forms",
+            "input_transforms": {
+              "nextcloud": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.trigger"
+              },
+              "formId": {
+                "type": "javascript",
+                "expr": "flow_input.event.form.id"
+              },
+              "submissionId": {
+                "type": "javascript",
+                "expr": "flow_input.event.submission.id"
+              }
+            }
+          }
+        },
+        {
+          "id": "folder_name",
+          "summary": "Folder name",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "export async function main(userId: string) {\n  return `/Expenses/Claim of ${userId} ${new Date().toISOString().slice(0, 10)}`;\n}\n",
+            "input_transforms": {
+              "userId": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.trigger.userId"
+              }
+            }
+          }
+        },
+        {
+          "id": "folder",
+          "summary": "Create folder",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "import axios from \"axios\";\n\nexport async function main(nextcloud: RT.Nextcloud, path: string) {\n  const res = await axios.request({\n    method: \"MKCOL\",\n    url: `/remote.php/dav/files/${nextcloud.userId}/${path}`,\n    baseURL: nextcloud.baseUrl,\n    headers: { Authorization: `Basic ${btoa(`${nextcloud.userId}:${nextcloud.token}`)}` },\n  });\n  return res.data;\n}\n",
+            "input_transforms": {
+              "nextcloud": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "path": {
+                "type": "javascript",
+                "expr": "results.folder_name"
+              }
+            }
+          }
+        },
+        {
+          "id": "receipts",
+          "value": {
+            "type": "branchall",
+            "parallel": true,
+            "branches": [
+              {
+                "summary": "Copy receipts",
+                "skip_failure": false,
+                "modules": [
+                  {
+                    "id": "each_receipt",
+                    "value": {
+                      "type": "forloopflow",
+                      "parallel": true,
+                      "parallelism": 4,
+                      "skip_failures": true,
+                      "iterator": {
+                        "type": "javascript",
+                        "expr": "results.submission.submission.answers.filter((e) => e.questionName === \"receipts\")"
+                      },
+                      "modules": [
+                        {
+                          "id": "receipt_path",
+                          "summary": "Path from file id",
+                          "value": {
+                            "type": "script",
+                            "path": "hub/28172/nextcloud/path_from_fileid",
+                            "input_transforms": {
+                              "fileid": {
+                                "type": "javascript",
+                                "expr": "flow_input.iter.value.fileId"
+                              },
+                              "ncResource": {
+                                "type": "javascript",
+                                "expr": "flow_input.authentication.owner"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "id": "copy",
+                          "summary": "Copy receipt",
+                          "value": {
+                            "type": "rawscript",
+                            "language": "bun",
+                            "content": "import axios from \"axios\";\n\nexport async function main(nextcloud: RT.Nextcloud, sourcePath: string, destinationPath: string) {\n  const res = await axios.request({\n    method: \"COPY\",\n    url: `/remote.php/dav/files/${nextcloud.userId}/${sourcePath}`,\n    baseURL: nextcloud.baseUrl,\n    headers: {\n      Destination: `${nextcloud.baseUrl}/remote.php/dav/files/${nextcloud.userId}/${destinationPath}`,\n    },\n  });\n  return res.data;\n}\n",
+                            "input_transforms": {
+                              "nextcloud": {
+                                "type": "javascript",
+                                "expr": "flow_input.authentication.owner"
+                              },
+                              "sourcePath": {
+                                "type": "javascript",
+                                "expr": "results.receipt_path"
+                              },
+                              "destinationPath": {
+                                "type": "javascript",
+                                "expr": "`${results.folder_name}/${results.receipt_path.split(\"/\")[results.receipt_path.split(\"/\").length - 1]}`"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "summary": "Read dates",
+                "skip_failure": false,
+                "modules": [
+                  {
+                    "id": "dates",
+                    "summary": "Analyze image",
+                    "value": {
+                      "type": "script",
+                      "path": "hub/28171/nextcloud/analyze_image",
+                      "input_transforms": {
+                        "ncResource": {
+                          "type": "javascript",
+                          "expr": "flow_input.authentication.owner"
+                        },
+                        "prompt": {
+                          "type": "static",
+                          "value": "When were these receipts issued?"
+                        },
+                        "imageFileIds": {
+                          "type": "javascript",
+                          "expr": "results.submission.submission.answers.filter((e) => e.questionName === \"receipts\").map((e) => e.fileId)"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "requester",
+          "summary": "About the requester",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "export async function main(ncResource: RT.Nextcloud, userId: string): Promise<any> {\n  const baseUrl = ncResource.baseUrl.replace(/\\/$/, \"\");\n  const response = await fetch(`${baseUrl}/ocs/v2.php/cloud/users/${userId}?format=json`, {\n    method: \"GET\",\n    headers: { \"OCS-APIRequest\": \"true\", Accept: \"application/json\" },\n  });\n  if (!response.ok) throw new Error(`Lookup failed: ${response.status}`);\n  return (await response.json()).ocs.data;\n}\n",
+            "input_transforms": {
+              "ncResource": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "userId": {
+                "type": "javascript",
+                "expr": "results.submission.submission.userId"
+              }
+            }
+          }
+        },
+        {
+          "id": "tag",
+          "summary": "Tag the folder",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "import axios from \"axios\";\n\nexport async function main(ncResource: RT.Nextcloud, fileId: string | number, tagId: string | number) {\n  const base = ncResource.baseUrl.replace(/\\/$/, \"\");\n  const response = await axios.put(`${base}/remote.php/dav/systemtags-relations/files/${fileId}/${tagId}`, \"\", {\n    validateStatus: () => true,\n  });\n  return { fileId, tagId, ok: response.status === 201 };\n}\n",
+            "input_transforms": {
+              "ncResource": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "fileId": {
+                "type": "static",
+                "value": 4242
+              },
+              "tagId": {
+                "type": "static",
+                "value": 5
+              }
+            }
+          }
+        },
+        {
+          "id": "people",
+          "summary": "Who gets the folder",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "export async function main(requester: string, manager: string) {\n  const out = [requester];\n  if (manager) out.push(manager);\n  return out;\n}\n",
+            "input_transforms": {
+              "requester": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.trigger.userId"
+              },
+              "manager": {
+                "type": "javascript",
+                "expr": "results.requester.manager"
+              }
+            }
+          }
+        },
+        {
+          "id": "shares",
+          "value": {
+            "type": "forloopflow",
+            "parallel": true,
+            "skip_failures": true,
+            "iterator": {
+              "type": "javascript",
+              "expr": "results.people"
+            },
+            "modules": [
+              {
+                "id": "share",
+                "summary": "Share the folder",
+                "value": {
+                  "type": "script",
+                  "path": "hub/28173/nextcloud/create_share",
+                  "input_transforms": {
+                    "ncResource": {
+                      "type": "javascript",
+                      "expr": "flow_input.authentication.owner"
+                    },
+                    "path": {
+                      "type": "javascript",
+                      "expr": "results.folder_name"
+                    },
+                    "shareType": {
+                      "type": "static",
+                      "value": 0
+                    },
+                    "shareWith": {
+                      "type": "javascript",
+                      "expr": "flow_input.iter.value"
+                    },
+                    "settings": {
+                      "type": "static",
+                      "value": {
+                        "note": "",
+                        "label": ""
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "notify",
+          "summary": "Tell the requester",
+          "value": {
+            "type": "script",
+            "path": "hub/28136/nextcloud/send_a_notification_to_a_user",
+            "input_transforms": {
+              "nextcloud": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "notificationUserId": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.trigger.userId"
+              },
+              "subject": {
+                "type": "static",
+                "value": "Expense claim filed"
+              },
+              "message": {
+                "type": "static",
+                "value": "Your claim and receipts are in the shared folder."
+              },
+              "subjectParameters": {
+                "type": "static",
+                "value": null
+              },
+              "messageParameters": {
+                "type": "static",
+                "value": null
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

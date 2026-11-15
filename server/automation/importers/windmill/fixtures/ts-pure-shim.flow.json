@@ -1,0 +1,62 @@
+{
+  "summary": "Price with VAT",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "net": {
+        "type": "number"
+      },
+      "rate": {
+        "type": "number"
+      }
+    }
+  },
+  "value": {
+    "modules": [
+      {
+        "id": "vat",
+        "summary": "Add VAT",
+        "value": {
+          "type": "rawscript",
+          "language": "bun",
+          "content": "type Line = { net: number; gross: number };\n\nfunction round(n: number): number {\n  return Math.round(n * 100) / 100;\n}\n\nexport async function main(net: number, rate: number = 21): Promise<Line> {\n  console.log(\"computing\", net);\n  const res = await fetch(\"https://rates.example.com/v1/round\", { method: \"POST\", body: JSON.stringify({ net }) });\n  const extra = res.ok ? 0 : 0;\n  return { net, gross: round(net * (1 + rate / 100)) + extra };\n}\n",
+          "input_transforms": {
+            "net": {
+              "type": "javascript",
+              "expr": "flow_input.net"
+            },
+            "rate": {
+              "type": "javascript",
+              "expr": "flow_input.rate"
+            }
+          }
+        }
+      },
+      {
+        "id": "pass",
+        "value": {
+          "type": "identity"
+        }
+      },
+      {
+        "id": "label",
+        "summary": "Label",
+        "value": {
+          "type": "rawscript",
+          "language": "bun",
+          "content": "export function main(gross: number) { return `Total: ${gross}`; }",
+          "input_transforms": {
+            "gross": {
+              "type": "javascript",
+              "expr": "results.vat.gross"
+            }
+          }
+        },
+        "mock": {
+          "enabled": true,
+          "return_value": "Total: 0"
+        }
+      }
+    ]
+  }
+}

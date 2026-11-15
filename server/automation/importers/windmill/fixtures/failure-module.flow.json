@@ -1,0 +1,80 @@
+{
+  "summary": "Nightly export with an error handler",
+  "value": {
+    "modules": [
+      {
+        "id": "list",
+        "summary": "List the reports",
+        "value": {
+          "type": "script",
+          "path": "hub/22224/nextcloud/list_files",
+          "input_transforms": {
+            "nextcloud": {
+              "type": "static",
+              "value": "$res:f/team/nextcloud"
+            },
+            "path": {
+              "type": "static",
+              "value": "/Reports"
+            }
+          }
+        },
+        "retry": {
+          "exponential": {
+            "attempts": 4,
+            "multiplier": 2,
+            "seconds": 3
+          }
+        }
+      },
+      {
+        "id": "notify",
+        "summary": "Report the count",
+        "value": {
+          "type": "script",
+          "path": "hub/28136/nextcloud/send_a_notification_to_a_user",
+          "input_transforms": {
+            "nextcloud": {
+              "type": "static",
+              "value": "$res:f/team/nextcloud"
+            },
+            "notificationUserId": {
+              "type": "static",
+              "value": "office"
+            },
+            "subject": {
+              "type": "static",
+              "value": "Export done"
+            },
+            "message": {
+              "type": "static",
+              "value": "The nightly export finished."
+            }
+          }
+        },
+        "continue_on_error": true,
+        "sleep": {
+          "type": "static",
+          "value": 30
+        }
+      }
+    ],
+    "failure_module": {
+      "id": "failure",
+      "value": {
+        "type": "rawscript",
+        "language": "python3",
+        "content": "def main(message: str):\n    return {\"failed\": message}\n",
+        "input_transforms": {
+          "message": {
+            "type": "javascript",
+            "expr": "error.message"
+          }
+        }
+      }
+    },
+    "concurrent_limit": 1,
+    "timeout": 5400,
+    "delete_after_secs": 3600
+  }
+}

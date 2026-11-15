@@ -1,0 +1,108 @@
+{
+  "summary": "Purchase approval",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "item": {
+        "type": "string"
+      },
+      "amount": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "item",
+      "amount"
+    ]
+  },
+  "value": {
+    "modules": [
+      {
+        "id": "ask",
+        "summary": "Create an approval link",
+        "value": {
+          "type": "script",
+          "path": "hub/28160/nextcloud/create_an_approval_link_with_approve_links",
+          "input_transforms": {
+            "nextcloud": {
+              "type": "static",
+              "value": "$res:f/team/nextcloud"
+            },
+            "description": {
+              "type": "javascript",
+              "expr": "`Buy ${flow_input.item} for ${flow_input.amount}`"
+            }
+          }
+        },
+        "suspend": {
+          "timeout": 172800,
+          "required_events": 2,
+          "continue_on_disapprove_timeout": true,
+          "resume_form": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "comment": {
+                  "type": "string",
+                  "description": "Comment"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "decision",
+        "value": {
+          "type": "branchone",
+          "branches": [
+            {
+              "summary": "Rejected",
+              "expr": "resume?.error",
+              "modules": [
+                {
+                  "id": "sorry",
+                  "summary": "Tell no",
+                  "value": {
+                    "type": "script",
+                    "path": "hub/2/nextcloud/send_a_notification_to_a_user",
+                    "input_transforms": {
+                      "notificationUserId": {
+                        "type": "static",
+                        "value": "buyer"
+                      },
+                      "subject": {
+                        "type": "static",
+                        "value": "Purchase rejected"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "default": [
+            {
+              "id": "yes",
+              "summary": "Tell yes",
+              "value": {
+                "type": "script",
+                "path": "hub/2/nextcloud/send_a_notification_to_a_user",
+                "input_transforms": {
+                  "notificationUserId": {
+                    "type": "static",
+                    "value": "buyer"
+                  },
+                  "subject": {
+                    "type": "javascript",
+                    "expr": "`Approved: ${resume.comment}`"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

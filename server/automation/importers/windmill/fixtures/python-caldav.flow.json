@@ -1,0 +1,54 @@
+{
+  "summary": "Meeting from a form",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Meeting title"
+      },
+      "day": {
+        "type": "string",
+        "format": "date"
+      },
+      "people": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "title",
+      "day"
+    ]
+  },
+  "value": {
+    "modules": [
+      {
+        "id": "create",
+        "summary": "Create the meeting",
+        "value": {
+          "type": "rawscript",
+          "language": "python3",
+          "content": "import caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n",
+          "input_transforms": {
+            "Nextcloud": {
+              "type": "static",
+              "value": "$res:f/team/nextcloud"
+            },
+            "title": {
+              "type": "javascript",
+              "expr": "flow_input.title"
+            },
+            "start": {
+              "type": "javascript",
+              "expr": "flow_input.day"
+            },
+            "end": {
+              "type": "javascript",
+              "expr": "flow_input.day"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/whileloop.flow",
+      "automation": {
+        "title": "Poll until done",
+        "description": "",
+        "triggerType": "manual",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "manual",
+          "label": "Manual"
+        },
+        "steps": [
+          {
+            "id": "poll",
+            "type": "stop_error",
+            "label": "Windmill: poll (still to convert)",
+            "message": "This Windmill step has not been converted yet: Bee Flow has no loop that repeats until a condition (\"result.done\"); the builder can use a loop with a fixed maximum, or a schedule."
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "poll"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/whileloop.flow",
+        "modules": [
+          {
+            "wmId": "poll",
+            "source": "whileloopflow",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "Bee Flow has no loop that repeats until a condition (\"result.done\"); the builder can use a loop with a fixed maximum, or a schedule.",
+            "stepIds": [
+              "poll"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "poll",
+            "stepId": "poll",
+            "title": "Convert \"poll\"",
+            "why": "Bee Flow has no loop that repeats until a condition (\"result.done\"); the builder can use a loop with a fixed maximum, or a schedule.",
+            "inputs": {}
+          }
+        ],
+        "warnings": [
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 0,
+          "pattern": 0,
+          "shim": 0,
+          "ai": 1,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}
