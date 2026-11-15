@@ -93,7 +93,7 @@ const NEXTCLOUD_FORMS_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_forms_get_submissions',
-            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in an automation.',
+            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in an automation. Uploaded files (a file question) also come back as files.<question text> = a list of { fileId, name }, one entry per file.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -193,11 +193,22 @@ function mapQuestion(q) {
  * emitted as null, so `Object.keys(answers)` means "what they actually filled
  * in". A question whose text is reused twice in one form would collide, so the
  * numeric-keyed original is preserved alongside as `answersByQuestionId`.
+ *
+ * Uploaded files (a question of type "file"): Forms stores one answer row per
+ * file, its `text` the file name and its `fileId` the Nextcloud file id.
+ * `answers` keeps the names as before; `files` / `filesByQuestionId` add a
+ * list of `{ fileId, name }` per question, a list even for one file, so a
+ * loop or `[0].fileId` binding has one shape. Forms returns no path.
  */
 function mapSubmission(sub, questions) {
     const textById = new Map(questions.map(q => [String(q.id), q.text]));
+    const fileQuestionIds = new Set(questions.filter(q => q.type === 'file').map(q => String(q.id)));
     const answers = {};
     const answersByQuestionId = {};
+    /** @type {Record<string, Array<{ fileId: number | string, name: string | null }>>} */
+    const files = {};
+    /** @type {Record<string, Array<{ fileId: number | string, name: string | null }>>} */
+    const filesByQuestionId = {};
     for (const a of Array.isArray(sub.answers) ? sub.answers : []) {
         const qid = String(a.questionId);
         const text = textById.get(qid);
@@ -212,6 +223,11 @@ function mapSubmission(sub, questions) {
         };
         push(answersByQuestionId, qid);
         if (text !== undefined) push(answers, text);
+        if (fileQuestionIds.has(qid) && a.fileId !== null && a.fileId !== undefined && a.fileId !== '') {
+            const file = { fileId: a.fileId, name: typeof a.text === 'string' && a.text !== '' ? a.text : null };
+            (filesByQuestionId[qid] ||= []).push(file);
+            if (text !== undefined) (files[text] ||= []).push({ ...file });
+        }
     }
     return {
         id: sub.id,
@@ -221,6 +237,8 @@ function mapSubmission(sub, questions) {
         submittedAt: sub.timestamp ? new Date(sub.timestamp * 1000).toISOString() : null,
         answers,
         answersByQuestionId,
+        files,
+        filesByQuestionId,
     };
 }
 

@@ -99,3 +99,34 @@ test('a submission with no answers array does not throw', () => {
     assert.deepEqual(sub.answers, {});
     assert.equal(sub.submittedAt, null);
 });
+
+test('a file question keeps the fileId and name of every uploaded file (G-03)', () => {
+    // Forms stores one answer row per uploaded file: `text` is the file name,
+    // `fileId` the Nextcloud file id (Forms' Answer::read()).
+    const questions = [...QUESTIONS, { id: 4, text: 'Receipts', type: 'file' }];
+    const sub = mapSubmission({
+        id: 226,
+        answers: [
+            { id: 900, submissionId: 226, questionId: 1, fileId: null, text: 'Sales' },
+            { id: 901, submissionId: 226, questionId: 4, fileId: 5521, text: 'receipt-taxi.pdf' },
+            { id: 902, submissionId: 226, questionId: 4, fileId: 5522, text: 'receipt-hotel.jpg' },
+        ],
+    }, questions);
+    assert.deepEqual(sub.files, {
+        Receipts: [{ fileId: 5521, name: 'receipt-taxi.pdf' }, { fileId: 5522, name: 'receipt-hotel.jpg' }],
+    });
+    assert.deepEqual(sub.filesByQuestionId, {
+        4: [{ fileId: 5521, name: 'receipt-taxi.pdf' }, { fileId: 5522, name: 'receipt-hotel.jpg' }],
+    });
+    // `answers` is unchanged: existing automations keep binding the names.
+    assert.deepEqual(sub.answers, { Department: 'Sales', Receipts: ['receipt-taxi.pdf', 'receipt-hotel.jpg'] });
+});
+
+test('one uploaded file is still a list, and a form without file questions has empty file maps', () => {
+    const questions = [...QUESTIONS, { id: 4, text: 'Receipts', type: 'file' }];
+    const one = mapSubmission({ id: 227, answers: [{ questionId: 4, fileId: 77, text: 'a.pdf' }] }, questions);
+    assert.deepEqual(one.files, { Receipts: [{ fileId: 77, name: 'a.pdf' }] });
+    const none = mapSubmission({ id: 228, answers: [{ questionId: 1, text: 'Sales' }] }, QUESTIONS);
+    assert.deepEqual(none.files, {});
+    assert.deepEqual(none.filesByQuestionId, {});
+});
