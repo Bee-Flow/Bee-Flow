@@ -18,6 +18,7 @@ import { bindInputs, flagUntranslated, labelOf, placeholder, reportModule } from
 import { planHub, parseHubPath } from '../hubScripts.mts';
 import { planOcs } from '../ocsMatcher.mts';
 import { shimScript } from '../codeShim.mts';
+import { scrubSource } from '../scrub.mts';
 
 const TS_LANGUAGES = new Set(['bun', 'deno', 'nativets', 'bunnative', 'javascript', 'typescript']);
 const SQL_LANGUAGES = new Set(['postgresql', 'mysql', 'mssql', 'oracledb', 'bigquery', 'snowflake', 'duckdb']);
@@ -52,6 +53,9 @@ function planForCode(ctx: MapCtx, node: WmNode, language: string, source: string
         const ocs = planOcs(source, node.inputs, ctx.caps);
         if (ocs) return ocs;
         if (!ctx.caps.codeStep) return { kind: 'ai', reason: 'Code steps are not available on this installation.' };
+        // A script that held a value that looks like a secret is never shimmed: the code
+        // step would carry it. The AI builder gets the cleaned source and a connection replaces it.
+        if (scrubSource(source).removed > 0) return { kind: 'ai', reason: 'The script holds a value that looks like a secret; rebuild it with a connection instead of the hard-coded value.' };
         const shim = shimScript(source, node.summary);
         if ('reason' in shim) return { kind: 'ai', reason: shim.reason };
         const inputs: Record<string, WmInput> = {};

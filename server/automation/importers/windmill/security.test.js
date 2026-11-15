@@ -43,6 +43,34 @@ test('a hard-coded key in a script is removed from the note, the checklist and t
     assert.ok(result.flows[0].report.warnings.some((w) => w.code === 'secret_removed'));
 });
 
+test('flow_env values, condition sources and a script with a hard-coded key carry no secret', async () => {
+    const random = crypto.randomBytes(32).toString('base64url');
+    const named = 'y'.repeat(24);
+    const tsSource = `export async function main(x: string) {\n  const apiKey = "${named}";\n  return x + apiKey;\n}\n`;
+    const flow = {
+        summary: 'Env',
+        value: {
+            flow_env: { API_TOKEN: named, PLAIN: 'hello', BLOB: random },
+            skip_expr: `flow_input.code === "${random}"`,
+            modules: [
+                { id: 'a', summary: 'Shimmed', value: { type: 'rawscript', language: 'bun', content: tsSource, input_transforms: { x: { type: 'static', value: 'v' } } },
+                    retry: { constant: { attempts: 2, seconds: 1 }, retry_if: { expr: `result.code !== "${random}"` } },
+                    skip_if: { expr: `flow_input.check === "${random}" && results.zz.code(1)` },
+                    sleep: { type: 'javascript', expr: `wait("${random}")` } },
+            ],
+        },
+    };
+    const result = toBeeFlow(await toIntermediate({ kind: 'object', value: flow }));
+    const text = asText(result);
+    for (const secret of [named, random]) assert.ok(!text.includes(secret), 'secret removed from vars, report and code');
+    const f = result.flows[0];
+    assert.strictEqual(f.definition.vars.PLAIN, 'hello', 'an ordinary value stays');
+    assert.strictEqual(f.definition.vars.API_TOKEN, SECRET_REMOVED);
+    assert.ok(!f.definition.steps.some((st) => st.type === 'code'), 'a script that had a key removed is not shimmed');
+    assert.ok(f.report.aiChecklist.some((i) => i.wmId === 'a'), 'it goes to the AI builder instead');
+    assert.ok(f.report.warnings.some((w) => w.code === 'secret_removed'));
+});
+
 test('scrubSource keeps ordinary text', () => {
     const src = 'const url = "https://cloud.example.org/remote.php/dav/files";\nconst name = "Monthly report";\nconst password = "";\n';
     assert.deepStrictEqual(scrubSource(src), { text: src, removed: 0 });

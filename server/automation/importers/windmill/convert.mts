@@ -24,7 +24,7 @@ import { mapTriggers } from './mapTrigger.mts';
 import { mapSequence } from './mapModules.mts';
 import { translateRule } from './mapExpr.mts';
 import { refOf, allNodes } from './refs.mts';
-import { scrubSource } from './scrub.mts';
+import { scrubSource, scrubValue } from './scrub.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { triggerColumnsFromDefinition } = nodeRequire('../../triggerColumns') as {
@@ -182,7 +182,10 @@ function assemble(ctx: MapCtx, flow: WmFlow, trigger: TriggerResult): Record<str
         edges: ctx.sink.edges,
     };
     if (trigger.triggers.length) definition.triggers = trigger.triggers;
-    const vars = { ...trigger.vars, ...plainFlowEnv(flow) };
+    // flow_env values and schedule args are plain values in Windmill: scrubbed like a static input.
+    const counter = { removed: 0 };
+    const vars = scrubValue({ ...trigger.vars, ...plainFlowEnv(flow) }, counter) as Record<string, unknown>;
+    if (counter.removed) ctx.report.warn('secret_removed', `${counter.removed} flow variable value(s) that looked like a secret were left out; fill them in through a connection or a variable.`);
     if (Object.keys(vars).length) definition.vars = vars;
     if (Object.keys(ctx.layers).length) {
         definition.layers = ctx.layers;

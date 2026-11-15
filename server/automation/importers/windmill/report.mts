@@ -6,6 +6,8 @@
  * Plain data, so it serialises straight into a golden file and a route answer.
  */
 
+import { scrubSource } from './scrub.mts';
+
 export type ModuleStatus = 'mapped' | 'pattern' | 'shim' | 'ai' | 'unsupported' | 'dropped';
 export type Confidence = 'high' | 'medium' | 'low';
 
@@ -81,8 +83,12 @@ export class ReportBuilder {
         this.modules.push(entry);
     }
 
+    /** Every checklist source is scrubbed here, whoever adds the item (a condition, a script, a trigger). */
     ai(item: AiChecklistItem): void {
-        this.aiChecklist.push(item);
+        if (typeof item.source !== 'string') { this.aiChecklist.push(item); return; }
+        const r = scrubSource(item.source);
+        if (r.removed) this.warn('secret_removed', `${r.removed} value(s) that looked like a secret were removed from "${item.title}".`, item.wmId);
+        this.aiChecklist.push({ ...item, source: r.text });
     }
 
     warn(code: WarningCode, message: string, wmId?: string): void {

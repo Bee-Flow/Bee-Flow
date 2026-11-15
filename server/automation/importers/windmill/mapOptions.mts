@@ -20,6 +20,7 @@ import type { MapCtx, Port, Step } from './context.mts';
 import { addStep, newId, scopeFor } from './context.mts';
 import { labelOf, placeholder, reportModule } from './emit.mts';
 import { translateInput, translateRule } from './mapExpr.mts';
+import { scrubValue } from './scrub.mts';
 import { formFields } from './mapTrigger.mts';
 import { isApprovalCarrier } from './modules/script.mts';
 
@@ -88,7 +89,9 @@ function applyStepOptions(ctx: MapCtx, node: WmNode, step: Step): void {
         else step.retry = retryOf(ctx, node);
     }
     if (o.mock?.enabled) {
-        step.pinnedOutput = o.mock.returnValue ?? null;
+        const counter = { removed: 0 };
+        step.pinnedOutput = scrubValue(o.mock.returnValue ?? null, counter);
+        if (counter.removed) ctx.report.warn('secret_removed', `A value that looked like a secret was left out of the mocked answer of "${labelOf(node, node.wmId)}".`, node.wmId);
         step.pinnedSource = 'edited';
         ctx.report.warn('mock_pinned', `"${labelOf(node, node.wmId)}" was mocked in Windmill; it now answers that fixed value until you remove the pinned output.`, node.wmId);
     }
