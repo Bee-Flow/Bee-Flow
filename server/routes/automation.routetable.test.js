@@ -133,6 +133,8 @@ const EXPECTED = [
     // The code editor: analysis and "Try it" for unsaved code (codeTools.js).
     'POST /code/analyze',
     'POST /code/test',
+    // routes/automation/windmillInventory.mts: a literal first segment, before crud's /:id.
+    'GET /import/windmill/inventory',
     'GET /',
     'POST /',
     // Folders sit before `/:id` for the same reason templates do: the param

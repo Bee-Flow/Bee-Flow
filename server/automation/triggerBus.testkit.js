@@ -12,7 +12,8 @@
  *
  * SUBS is the live array getSubscriptionsForProvider answers (tests may splice
  * it); dispatchedRuns collects the automation ids executeAutomation was called
- * with, dispatchedPayloads the trigger payload each run received.
+ * with, dispatchedPayloads the trigger payload each run received,
+ * subscriptionUpdates every updateSubscription call.
  * @param {string} resolved
  */
 
@@ -26,9 +27,18 @@ function installDispatchStubs() {
         { id: 'sub-orgA', automationId: 'auto-orgA', userId: 'user-orgA', filter: null },
         { id: 'sub-orgB', automationId: 'auto-orgB', userId: 'user-orgB', filter: null },
     ];
+    /** @type {{ id: string, patch: Record<string, unknown> }[]} */
+    const subscriptionUpdates = [];
     cacheStub(storePath, {
         getSubscriptionsForProvider: async () => SUBS,
         getAutomation: async (id) => ({ id, isActive: true, isDraft: false }),
+        getSubscription: async (/** @type {string} */ id) => SUBS.find((s) => s.id === id) || null,
+        // Recorded, and a new cursor kept on the synthetic row (the mail.new cursor).
+        updateSubscription: async (/** @type {string} */ id, /** @type {Record<string, unknown>} */ patch) => {
+            subscriptionUpdates.push({ id, patch });
+            const sub = /** @type {Record<string, unknown> | undefined} */ (SUBS.find((s) => s.id === id));
+            if (sub && typeof patch.lastCursor === 'string') sub.lastCursor = patch.lastCursor;
+        },
     });
 
     /** @type {Record<string, { id: string; organizationId: string; }>} */
@@ -49,7 +59,7 @@ function installDispatchStubs() {
         },
     });
 
-    return { SUBS, USERS, dispatchedRuns, dispatchedPayloads, storePath };
+    return { SUBS, USERS, dispatchedRuns, dispatchedPayloads, subscriptionUpdates, storePath };
 }
 
 /** dispatch.js runs executeAutomation fire-and-forget (setImmediate): give it a turn. */

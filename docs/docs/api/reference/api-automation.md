@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/automation`
 
-166 routes, 98 with a request schema. Back to the [endpoint reference](../reference.md).
+167 routes, 99 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -1446,6 +1446,16 @@ No request schema.
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
 No request schema.
+
+### `GET /api/automation/import/windmill/inventory`
+
+**Access:** Signed-in user · Admin of their own organisation · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `orgId` | string |  |  |
 
 ### `POST /api/automation/import/windmill/remote`
 

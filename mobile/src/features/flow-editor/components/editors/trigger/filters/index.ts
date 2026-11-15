@@ -12,6 +12,7 @@ import {
     NEXTCLOUD_CALENDAR,
     NEXTCLOUD_FILE,
     NEXTCLOUD_FORMS_SUBMITTED,
+    NEXTCLOUD_MAIL,
     NEXTCLOUD_NOTIFICATION,
     NEXTCLOUD_SHARE,
     NEXTCLOUD_TABLES_ROW,
@@ -45,6 +46,7 @@ export const FILTER_FORMS: Readonly<Record<string, FilterForm>> = {
     'nextcloud.share.received': NEXTCLOUD_SHARE,
     'nextcloud.activity.new': NEXTCLOUD_ACTIVITY,
     'nextcloud.notification.new': NEXTCLOUD_NOTIFICATION,
+    'nextcloud.mail.new': NEXTCLOUD_MAIL,
     'support.ticket.resolved': SUPPORT_TICKET_RESOLVED,
     'meeting-notes.meeting.processed': MEETING_NOTES_PROCESSED,
 };

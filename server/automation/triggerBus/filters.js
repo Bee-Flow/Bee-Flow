@@ -537,10 +537,10 @@ function pickMatcher(provider, event) {
         // Tasks
         if (event === 'task.created' || event === 'task.completed' || event === 'task.due')
             return matchNextcloudTaskFilter;
-        // Generic
         if (event === 'activity.new')      return matchNextcloudActivityFilter;
         if (event === 'notification.new')  return matchNextcloudNotificationFilter;
         if (event === 'user.status.changed') return matchNextcloudUserStatusFilter;
+        if (event === 'mail.new') return require('./filtersNcMail.mts').matchNextcloudMailFilter;
     }
     return provider === 'msgraph' && event === 'mail.new' ? require('./filtersMsGraph').matchMsGraphMailFilter : matchFilter;
 }

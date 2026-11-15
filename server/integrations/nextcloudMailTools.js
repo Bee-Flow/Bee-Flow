@@ -132,7 +132,7 @@ const NEXTCLOUD_MAIL_TOOLS = [
                     subject: { type: 'string', description: 'Subject line.' },
                     body: { type: 'string', description: 'Plain-text body.' },
                     isHtml: { type: 'boolean', description: 'If true, body is interpreted as HTML.' },
-                    replyTo: { type: 'integer', description: 'Optional: messageId being replied to — sets In-Reply-To / References headers and threads the conversation.' },
+                    replyTo: { type: 'integer', description: 'Optional: the messageId (from nextcloud_mail_search or the mail trigger) being replied to. The reply threads on that message\'s Message-ID header (In-Reply-To / References); a message that cannot be read stops the send.' },
                     attachments: ATTACHMENTS_PARAMETER,
                 },
                 required: ['accountId', 'to', 'subject', 'body']

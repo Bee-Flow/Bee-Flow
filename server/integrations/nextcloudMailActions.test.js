@@ -35,7 +35,7 @@ function fakeCtx(replies) {
     return { ctx, calls };
 }
 
-const SEND = { accountId: 1, to: 'a@example.test, , b@example.test', cc: 'c@example.test', subject: 'Hi', body: 'Text', replyTo: 9 };
+const SEND = { accountId: 1, to: 'a@example.test, , b@example.test', cc: 'c@example.test', subject: 'Hi', body: 'Text' };
 
 test('sendMail creates the draft, then dispatches it', async () => {
     const { ctx, calls } = fakeCtx([{ status: 200, body: { id: 42 } }, { status: 202, body: '' }]);
@@ -44,9 +44,41 @@ test('sendMail creates the draft, then dispatches it', async () => {
     assert.deepEqual(draft.to.map((r) => r.email), ['a@example.test', 'b@example.test']);
     assert.deepEqual(draft.cc.map((r) => r.email), ['c@example.test']);
     assert.deepEqual(draft.bcc, []);
-    assert.equal(draft.inReplyToMessageId, 9);
+    assert.equal('inReplyToMessageId' in draft, false, 'not a reply');
     assert.match(calls[1].url, /\/index\.php\/apps\/mail\/api\/outbox\/42$/);
     assert.deepEqual(draft.attachments, []);
+});
+
+test('a reply threads on the original\'s Message-ID header, looked up by its Mail id', async () => {
+    // Mail's OutboxController takes `inReplyToMessageId` as a string and the
+    // IMAP transmission writes it verbatim into In-Reply-To and References
+    // (lib/IMAP/ImapTransmissionConnector.php); FlagRepliedMessageHandler finds
+    // the original with findByMessageId. So it is the RFC Message-ID, not the
+    // database id the Mail tools hand out.
+    const { ctx, calls } = fakeCtx([
+        { status: 200, body: { databaseId: 9, messageId: '<original@mail.example>', subject: 'Question' } },
+        { status: 200, body: { id: 42 } },
+        { status: 202, body: '' },
+    ]);
+    assert.equal((await sendMail({ ...SEND, replyTo: 9 }, ctx)).success, true);
+    assert.equal(calls[0].method, 'GET');
+    assert.match(calls[0].url, /\/index\.php\/apps\/mail\/api\/messages\/9$/);
+    assert.equal(JSON.parse(calls[1].body).inReplyToMessageId, '<original@mail.example>');
+});
+
+test('a Message-ID given as replyTo is used as it is; an original that cannot be read stops the send', async () => {
+    const direct = fakeCtx([{ status: 200, body: { id: 43 } }, { status: 202, body: '' }]);
+    await sendMail({ ...SEND, replyTo: '<original@mail.example>' }, direct.ctx);
+    assert.equal(JSON.parse(direct.calls[0].body).inReplyToMessageId, '<original@mail.example>');
+
+    const gone = fakeCtx([{ status: 403, body: [] }]);
+    assert.match((await sendMail({ ...SEND, replyTo: 9 }, gone.ctx)).error, /message to reply to/);
+    assert.equal(gone.calls.length, 1, 'no draft was created');
+
+    const noHeader = fakeCtx([{ status: 200, body: { databaseId: 9, messageId: null } }]);
+    assert.match((await sendMail({ ...SEND, replyTo: 9 }, noHeader.ctx)).error, /message to reply to/);
+
+    assert.match((await sendMail({ ...SEND, replyTo: 'nine' }, fakeCtx([]).ctx)).error, /replyTo/);
 });
 
 test('the draft carries the body and S/MIME flags under the names every Mail version requires', async () => {
@@ -92,6 +124,20 @@ test('a file from Nextcloud Files goes into the draft as a cloud attachment, aft
     assert.equal(calls[0].method, 'PROPFIND');
     assert.match(calls[0].url, /\/remote\.php\/dav\/files\/alice\/Documents\/offer%202026\.pdf$/);
     assert.deepEqual(JSON.parse(calls[1].body).attachments, [{ type: 'cloud', fileName: '/Documents/offer 2026.pdf' }]);
+});
+
+test('a file given by its Files id is found as the sender (WebDAV SEARCH) and attached by its path', async () => {
+    const { ctx, calls } = fakeCtx([
+        davEntry('/Forms/upload 1.pdf'),
+        { status: 201, body: { data: { id: 12, attachments: [{ id: 1 }] } } },
+        { status: 202, body: '' },
+    ]);
+    const out = await sendMail({ ...SEND, attachments: [{ fileId: 77 }] }, ctx);
+    assert.deepEqual(out, { success: true, outboxId: 12, to: SEND.to, subject: 'Hi', attachments: ['upload 1.pdf'] });
+    assert.equal(calls[0].method, 'SEARCH');
+    assert.match(calls[0].body, /<d:literal>77<\/d:literal>/);
+    assert.match(calls[0].body, /<d:href>\/files\/alice<\/d:href>/, 'in the sender\'s own Files tree');
+    assert.deepEqual(JSON.parse(calls[1].body).attachments, [{ type: 'cloud', fileName: '/Forms/upload 1.pdf' }]);
 });
 
 test('a missing file, a folder or a malformed entry stops the send before any draft exists', async () => {

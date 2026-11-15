@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1916 operations. */
+/** 1917 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -1424,6 +1424,9 @@ export interface ApiOperations {
         sharedUserIds?: Array<string>;
     }>;
     'POST /api/automation/import': Op;
+    'GET /api/automation/import/windmill/inventory': Op<NoParams, {
+        orgId?: string;
+    }>;
     'POST /api/automation/import/windmill/remote': Op<NoParams, UndeclaredQuery, {
         baseUrl: string;
         mode: 'preview' | 'commit';

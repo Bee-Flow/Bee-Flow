@@ -48,8 +48,6 @@
  *   unreachable   network error, timeout, 5xx, or the connector said ok:false
  */
 
-const userStore = require('../stores/userStore');
-const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../auth/connector/ncSigning');
 const { nextcloudFetch } = require('../utils/nextcloudTarget');
 const log = require('../telemetry/log');
@@ -91,20 +89,11 @@ function orgState(orgId) {
 
 /**
  * Where and how to reach the org's connector, or null when the org has no
- * paired Nextcloud. Reads the raw column names: `getOrganization` spreads the
- * row without camelCase aliases for these (the camelCase forms are accepted
- * for callers that hand in an already-normalised org, e.g. tests).
+ * paired Nextcloud (auth/connector/connectorTarget.mts).
  * @param {string} orgId
  */
-async function resolveTarget(orgId) {
-    const org = await userStore.getOrganization(orgId);
-    if (!org) return null;
-    const callbackUrl = org.connector_callback_url || org.connectorCallbackUrl || null;
-    const ncInstanceId = org.nc_instance_id || org.ncInstanceId || null;
-    if (!callbackUrl || !ncInstanceId) return null;
-    const tenantKey = await configStore.getSecret(`connector_tenant_key_${orgId}`);
-    if (!tenantKey) return null;
-    return { callbackUrl: String(callbackUrl).replace(/\/+$/, ''), tenantKey };
+function resolveTarget(orgId) {
+    return require('../auth/connector/connectorTarget.mts').resolveConnectorTarget(orgId);
 }
 
 /**

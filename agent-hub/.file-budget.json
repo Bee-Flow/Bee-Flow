@@ -60,7 +60,7 @@
     "src/components/automation/Builder/flow/settings/datatableEditors.tsx": 428,
     "src/components/automation/Builder/flow/settings/FormBuilderFields.jsx": 753,
     "src/components/automation/Builder/flow/settings/ParseJsonFields.tsx": 401,
-    "src/components/automation/Builder/flow/settings/triggerFilters.tsx": 614,
+    "src/components/automation/Builder/flow/settings/triggerFilters.tsx": 573,
     "src/components/automation/Builder/flow/SettingsForm.tsx": 573,
     "src/components/automation/Builder/flow/stepPalette.ts": 903,
     "src/components/automation/Builder/flow/useBuildChoreography.ts": 527,

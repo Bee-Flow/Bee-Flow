@@ -107,13 +107,14 @@ function recipientsOf(list) {
  * does not know is ignored.
  * @param {MailArgs} args  checked: accountId, to, subject and body are present
  * @param {DraftAttachment[]} [attachments]
+ * @param {string | null} [inReplyTo]  the Message-ID header of the message answered (replyHeader)
  */
-function mailDraftBody(args, attachments = []) {
+function mailDraftBody(args, attachments = [], inReplyTo = null) {
     const isHtml = !!args.isHtml;
     const body = String(args.body);
     /** @type {{ accountId: unknown, subject: unknown, body: string, bodyPlain: string, bodyHtml: string | null, editorBody: string,
      *   isHtml: boolean, smimeSign: boolean, smimeEncrypt: boolean, to: Array<{ email: string, label: string }>,
-     *   cc: Array<{ email: string, label: string }>, bcc: Array<{ email: string, label: string }>, attachments: DraftAttachment[], inReplyToMessageId?: unknown }} */
+     *   cc: Array<{ email: string, label: string }>, bcc: Array<{ email: string, label: string }>, attachments: DraftAttachment[], inReplyToMessageId?: string }} */
     const draftBody = {
         accountId: args.accountId,
         subject: args.subject,
@@ -129,8 +130,50 @@ function mailDraftBody(args, attachments = []) {
         bcc: args.bcc ? recipientsOf(args.bcc) : [],
         attachments,
     };
-    if (args.replyTo) draftBody.inReplyToMessageId = args.replyTo;
+    if (inReplyTo) draftBody.inReplyToMessageId = inReplyTo;
     return draftBody;
+}
+
+/** The text of a Message-ID header (`<...>`, one line), or null. @param {unknown} v */
+function messageIdHeader(v) {
+    if (typeof v !== 'string') return null;
+    const t = v.trim();
+    if (t.length < 3 || t.length > 998 || !t.startsWith('<') || !t.endsWith('>')) return null;
+    return t.includes('\r') || t.includes('\n') ? null : t;
+}
+
+/** A Mail database id from a number or a string of digits, or null. @param {unknown} v */
+function mailDbId(v) {
+    const digits = typeof v === 'string' ? v.trim() : '';
+    const n = typeof v === 'number' ? v : (digits !== '' && [...digits].every((c) => c >= '0' && c <= '9') ? Number(digits) : NaN);
+    return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * The Message-ID header a reply threads on. Mail's outbox takes
+ * `inReplyToMessageId` as that header string and writes it verbatim into
+ * In-Reply-To and References (nextcloud/mail ImapTransmissionConnector), so
+ * the database id the Mail tools hand out is looked up first
+ * (`GET /api/messages/{id}`, the message's metadata). A header given as is
+ * (`<...>`) is used as it is. No reply: `{ header: null }`.
+ * @param {unknown} replyTo
+ * @param {NcAuth} ctx
+ * @returns {Promise<{ header: string | null } | { error: string }>}
+ */
+async function replyHeader(replyTo, ctx) {
+    if (replyTo === undefined || replyTo === null || replyTo === '' || replyTo === 0) return { header: null };
+    const given = messageIdHeader(replyTo);
+    if (given) return { header: given };
+    const id = mailDbId(replyTo);
+    if (id === null) {
+        return { error: 'replyTo must be the messageId of the mail being answered (from nextcloud_mail_search or the trigger), or its Message-ID header.' };
+    }
+    const res = await ctx.fetch(api(ctx.baseUrl, `/messages/${id}`), { headers: baseHeaders });
+    if (res.status === 401) return { error: ctx.authError };
+    if (!res.ok) return { error: `Could not read the message to reply to (${res.status}), so nothing was sent.` };
+    const original = /** @type {{ messageId?: unknown } | null} */ (await readJsonSafe(res));
+    const header = messageIdHeader(original && typeof original === 'object' ? original.messageId : null);
+    return header ? { header } : { error: 'The message to reply to has no Message-ID header, so nothing was sent.' };
 }
 
 /**
@@ -171,9 +214,11 @@ async function sendMail(args, ctx) {
     if (args.accountId == null || !args.to || !args.subject || !args.body) {
         return { error: 'accountId, to, subject, and body are required' };
     }
+    const reply = await replyHeader(args.replyTo, ctx);
+    if ('error' in reply) return { error: reply.error };
     const resolved = await resolveMailAttachments(args.attachments, ctx);
     if ('error' in resolved) return { error: resolved.error };
-    const draft = await createOutboxDraft(mailDraftBody(args, resolved.attachments), ctx);
+    const draft = await createOutboxDraft(mailDraftBody(args, resolved.attachments, reply.header), ctx);
     if (!('outboxId' in draft)) return draft;
     const { outboxId } = draft;
 

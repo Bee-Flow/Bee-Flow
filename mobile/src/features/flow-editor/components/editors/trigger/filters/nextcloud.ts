@@ -1,7 +1,7 @@
 /**
  * The Nextcloud filters — the web's NextcloudFileFilterFields,
  * NextcloudShareFilterFields, NextcloudActivityFilterFields,
- * NextcloudNotificationFilterFields, NextcloudFormsSubmittedFilterFields,
+ * NextcloudNotificationFilterFields, NextcloudMailFilterFields, NextcloudFormsSubmittedFilterFields,
  * NextcloudTablesRowFilterFields, NextcloudTagFilterFields and
  * NextcloudCalendarMutationFilterFields.
  */
@@ -79,6 +79,23 @@ export const NEXTCLOUD_NOTIFICATION: FilterForm = {
             hint: msg('automations.trigger_filters.source_app_id_e_g_spreed', 'Source app id (e.g. spreed, files_sharing, dav, updatenotification).'),
         }),
         textFilter('subjectContains', msg('automations.trigger_filters.subject_contains', 'Subject contains')),
+    ],
+};
+
+export const NEXTCLOUD_MAIL: FilterForm = {
+    title: msg('automations.trigger_filters.nextcloud_mail_filter_all_optional', 'Nextcloud Mail filter (all optional)'),
+    fields: [
+        numberFilter('accountId', msg('automations.trigger_filters.mail_account_id', 'Mail account ID'), {
+            example: '3',
+            hint: msg('automations.trigger_filters.mail_account_id_hint', 'Numeric id from the “List mail accounts” action. Leave empty for every account.'),
+        }),
+        numberFilter('mailboxId', msg('automations.trigger_filters.mailbox_id', 'Mailbox ID'), {
+            example: '12',
+            hint: msg('automations.trigger_filters.mailbox_id_hint', 'Numeric id from the “List mailboxes” action. Leave empty for the inbox.'),
+        }),
+        textFilter('fromContains', msg('automations.trigger_filters.from_contains', 'From contains'), { example: 'boss@example.com' }),
+        textFilter('subjectContains', msg('automations.trigger_filters.subject_contains', 'Subject contains')),
+        tickFilter('hasAttachment', msg('automations.trigger_filters.has_attachment', 'Has attachment'), msg('automations.trigger_filters.only_emails_with_attachments', 'Only emails with attachments')),
     ],
 };
 

@@ -25,6 +25,7 @@
  */
 const { FILE_EVENTS } = require('../nextcloudFileEvents');
 const { CALENDAR_EVENTS } = require('../nextcloudCalendarEvents.mts');
+const { MAIL_EVENTS } = require('../nextcloudMailEvents.mts');
 const { withColleagues } = require('../../triggerBus/ncVisibility.mts');
 
 module.exports = { TRIGGER_SOURCES: [{
@@ -386,5 +387,6 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'push',
                 },
             },
+            ...MAIL_EVENTS,
         ].map(withColleagues),
     }] };

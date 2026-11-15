@@ -3,7 +3,7 @@
  * Nextcloud pollers, extracted verbatim from ../../triggerBus.js: the
  * activity-feed channels (file.new / file.changed / share.received /
  * activity.new) on one short-lived per-user feed cache, plus
- * notification.new and calendar.event.upcoming.
+ * notification.new, calendar.event.upcoming and mail.new (nextcloudMail.mts).
  *
  * `ctx` is the object triggerBus.js builds: `store()` returns the current
  * automationStore (swappable through triggerBus._setDepsForTests), the other
@@ -197,6 +197,8 @@ function createNextcloudPollers(ctx) {
             resolve: (payloads) => confirmReceivedShares(ctx, sub.userId, session, payloads),
         }),
         'activity.new':   (sub, session) => _ncPollChannel(ctx, { sub, session, predicate: () => true }),
+        // Nextcloud Mail: its own API, not the activity feed (nextcloudMail.mts).
+        'mail.new': (sub, session) => require('./nextcloudMail.mts').pollNextcloudMail(ctx, sub, session),
 
         /**
          * notification.new — separate Notifications API, not the activity

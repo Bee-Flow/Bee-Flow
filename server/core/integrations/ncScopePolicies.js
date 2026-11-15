@@ -304,7 +304,10 @@ const MAIL_ARG_POLICIES = {
 const CROSS_FAMILY_ARGS = {
     nextcloud_talk_share_file: { path: 'nextcloud' },
     nextcloud_mail_save_attachment: { targetPath: 'nextcloud' },
-    nextcloud_mail_send: { 'attachments[].path': 'nextcloud' },
+    // A file id cannot be placed in a folder without the lookup itself, so
+    // under a narrowed Files scope it is refused (ncScopeGuard: an id-like key),
+    // as nextcloud_file_info by id is.
+    nextcloud_mail_send: { 'attachments[].path': 'nextcloud', 'attachments[].fileId': 'nextcloud' },
 };
 
 // Result-filter item candidates: which fields identify an entry, per family.

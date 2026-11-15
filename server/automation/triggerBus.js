@@ -316,7 +316,7 @@ const ctx = {
     gmailTools: () => integrationClient('gmail'),
     nextcloudActivityTools: () => integrationClient('nextcloudActivity'),
     nextcloudNotificationsTools: () => integrationClient('nextcloudNotifications'),
-    nextcloudCalendarTools: () => integrationClient('nextcloudCalendar'),
+    nextcloudCalendarTools: () => integrationClient('nextcloudCalendar'), nextcloudMailTools: () => integrationClient('nextcloudMail'),
     ncScopeGuard: () => require('../core/integrations/ncScopeGuard'),
     notificationStore: () => require('../stores/notificationStore'),
     loadSession: (userId) => loadSession(userId),

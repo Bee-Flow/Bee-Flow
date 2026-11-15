@@ -91,7 +91,10 @@ mock(path.join(SERVER, 'integrations/googleClient'), {
     },
 });
 
-const { runPollingPass } = require('./triggerBus');
+const { runPollingPass, _setDepsForTests } = require('./triggerBus');
+// The poller reaches Google through the integration client registry, which
+// boot fills; hand it the double above instead.
+_setDepsForTests({ googleClient: () => require(path.join(SERVER, 'integrations/googleClient')) });
 
 function sub(id, userId, { failing = false } = {}) {
     return {
