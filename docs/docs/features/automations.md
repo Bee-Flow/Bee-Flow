@@ -526,6 +526,10 @@ install lacks — a missing integration, a reusable Step it calls — comes back
 a warning rather than a refusal, so you can connect what is missing and then
 activate.
 
+**Import from Windmill** (the wind icon beside the import button, Enterprise)
+converts Windmill flows into inactive drafts with a migration report. See
+[Import from Windmill](automations-import-windmill.md).
+
 ## Three worked examples
 
 ### 1. Inbox triage every 10 minutes
