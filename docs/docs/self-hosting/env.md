@@ -120,7 +120,8 @@ Optional; empty means the default.
 | `AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS` | `30` | Days a delivery stays in that log. `0` = keep. |
 | `AUTOMATION_WEBHOOK_REJECT_LOG_PER_MINUTE` | `20` | Deliveries that started no run written to that log per webhook per minute; the rest are not written. `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_MAX_BYTES` | `26214400` | Bytes of one Windmill export upload (25 MB), and of one answer read from a standalone Windmill. `0` = unlimited. |
-| `AUTOMATION_IMPORT_WINDMILL_MAX_UNZIPPED_BYTES` | `209715200` | Bytes a Windmill export may unpack to (200 MB), counted per file before it is read. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_UNZIPPED_BYTES` | `209715200` | Bytes a Windmill export may unpack to (200 MB), counted per file before it is read; also the total of all answers read from a standalone Windmill in one import. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_FILE_BYTES` | `8388608` | Bytes one file of a Windmill export may unpack to (8 MB). `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_MAX_ENTRIES` | `5000` | Files in one Windmill export. `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_MAX_FLOWS` | `200` | Flows imported in one batch, and flows read one by one from a standalone Windmill. `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_RPM` | `20` | Windmill import requests (preview or import) one user may send per minute. `0` = unlimited. |

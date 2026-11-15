@@ -17,7 +17,8 @@
  *     it is never stored, never logged and never part of an error or a note;
  *   - every request goes through the guarded fetch (core/http/ssrfGuard
  *     safeFetch: HTTPS, public addresses only, no redirects) with the outbound
- *     time-out, and every body is read with a byte cap;
+ *     time-out, and every body is read with a byte cap; all answers of one
+ *     read share one total budget (`maxTotalBytes`);
  *   - an error is one of a few fixed sentences (WindmillRemoteError.code); the
  *     upstream body, status text or parse error never reaches the caller, so
  *     this cannot be used to read another server's answers;
@@ -42,6 +43,8 @@ export interface RemoteLimits {
     maxBytes: number;
     /** Flows read one by one (0 = unlimited). */
     maxFlows: number;
+    /** Bytes of all answers of one read together (0 = unlimited; the route passes the unpacked-export cap). */
+    maxTotalBytes?: number;
 }
 
 export type RemoteInput =
@@ -140,11 +143,26 @@ interface Client {
     get(path: string): Promise<{ status: number; bytes: Uint8Array | null }>;
 }
 
+/**
+ * The cap of the next answer: the per-answer cap, lowered to what is left of
+ * the total budget. 0 = unlimited. Throws too_large once the budget is spent.
+ */
+function nextCap(limits: RemoteLimits, spent: number): number {
+    const total = limits.maxTotalBytes ?? 0;
+    if (total <= 0) return limits.maxBytes;
+    const left = total - spent;
+    if (left <= 0) throw new WindmillRemoteError('too_large');
+    return limits.maxBytes > 0 ? Math.min(limits.maxBytes, left) : left;
+}
+
 function clientFor(src: RemoteSource, limits: RemoteLimits, fetchImpl: FetchLike): Client {
     const base = normaliseBaseUrl(src.baseUrl);
     const ws = checkWorkspace(src.workspace);
+    // Every answer of this read counts against one budget (the flow-by-flow fallback included).
+    let spent = 0;
     return {
         async get(path: string) {
+            const cap = nextCap(limits, spent);
             let res;
             try {
                 res = await fetchImpl(`${base}/api/w/${ws}/${path}`, {
@@ -164,7 +182,9 @@ function clientFor(src: RemoteSource, limits: RemoteLimits, fetchImpl: FetchLike
                 try { await res.body?.cancel(); } catch { /* nothing to read */ }
                 return { status: res.status, bytes: null };
             }
-            return { status: res.status, bytes: await readCapped(res.body, res.headers.get('content-length'), limits.maxBytes) };
+            const bytes = await readCapped(res.body, res.headers.get('content-length'), cap);
+            spent += bytes.length;
+            return { status: res.status, bytes };
         },
     };
 }

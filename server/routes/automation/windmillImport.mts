@@ -150,7 +150,7 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
         const l = limits();
         let fetched;
         try {
-            fetched = await fetchWindmillExport({ baseUrl, workspace, token }, { maxBytes: l.maxBytes, maxFlows: l.maxFlows }, deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {});
+            fetched = await fetchWindmillExport({ baseUrl, workspace, token }, { maxBytes: l.maxBytes, maxFlows: l.maxFlows, maxTotalBytes: l.maxUnzippedBytes }, deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {});
         } catch (e) {
             if (e instanceof WindmillRemoteError) throw new HttpError(REMOTE_STATUS[e.code] ?? 502, `import.windmill.${e.code}`, e.message);
             throw new HttpError(502, 'import.windmill.unreachable', new WindmillRemoteError('unreachable').message);

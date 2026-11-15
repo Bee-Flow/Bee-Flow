@@ -38,6 +38,8 @@ type Json = Record<string, any>;
 export interface WindmillLimits {
     maxBytes: number;
     maxUnzippedBytes: number;
+    /** Bytes of one file of an export, unpacked (0 = unlimited). */
+    maxFileBytes?: number;
     maxEntries: number;
     maxFlows: number;
     rpm: number;
@@ -52,6 +54,7 @@ export function windmillLimits(): WindmillLimits {
     return {
         maxBytes: envInt('AUTOMATION_IMPORT_WINDMILL_MAX_BYTES', 25 * MB, { min: 0 }),
         maxUnzippedBytes: envInt('AUTOMATION_IMPORT_WINDMILL_MAX_UNZIPPED_BYTES', 200 * MB, { min: 0 }),
+        maxFileBytes: envInt('AUTOMATION_IMPORT_WINDMILL_MAX_FILE_BYTES', 8 * MB, { min: 0 }),
         maxEntries: envInt('AUTOMATION_IMPORT_WINDMILL_MAX_ENTRIES', 5000, { min: 0 }),
         maxFlows: envInt('AUTOMATION_IMPORT_WINDMILL_MAX_FLOWS', 200, { min: 0 }),
         rpm: envInt('AUTOMATION_IMPORT_WINDMILL_RPM', 20, { min: 0 }),
@@ -81,6 +84,9 @@ export interface Conversion {
     notes: string[];
 }
 
+/** One file of an export, unpacked, when the caller's limits do not name it (the converter's own default). */
+const DEFAULT_FILE_BYTES = 8 * 1024 * 1024;
+
 /** Whether code steps can run here (isolated-vm installed). Without, scripts become checklist items. */
 function codeStepAvailable(): boolean {
     try { return !!(nodeRequire('../../automation/codeSandbox') as { isAvailable: () => boolean }).isAvailable(); } catch { return false; }
@@ -91,7 +97,7 @@ export async function convertWindmill(input: unknown, limits: WindmillLimits, no
     const c = converter();
     let bundle: Json;
     try {
-        bundle = await c.toIntermediate(input, { maxEntries: limits.maxEntries, maxTotalBytes: limits.maxUnzippedBytes, maxFileBytes: limits.maxUnzippedBytes });
+        bundle = await c.toIntermediate(input, { maxEntries: limits.maxEntries, maxTotalBytes: limits.maxUnzippedBytes, maxFileBytes: limits.maxFileBytes ?? DEFAULT_FILE_BYTES });
     } catch (e) {
         if (e instanceof c.BundleError || e instanceof c.PathRefused || e instanceof c.YamlError) {
             const { HttpError } = nodeRequire('../../core/http/errors');
