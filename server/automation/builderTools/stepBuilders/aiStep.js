@@ -6,6 +6,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
+const { sanitizeImageBindings } = require('../imageBindings.mts');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, checkTextPlaceholders, checkLoopBindings } = require('../bindings');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
 const { sanitizeAiStepReliabilityArgs } = require('../../../core/automationModel/aiStepReliability');
@@ -240,6 +241,9 @@ function applyAddAi(draft, args, draftWrap) {
     const inputs = loopInputs.value;
     const reliability = buildReliability(args, draft, draftWrap, forEach);
     if ('error' in reliability) return reliability;
+    // The pictures the step may show its model (validate/stepRules/imageRules.mts).
+    const imageBindings = sanitizeImageBindings(args.images);
+    if (imageBindings.error !== undefined) return { error: imageBindings.error };
     // "Reuse the answer": rebuilt through the same normaliser a patch uses.
     const askOnce = args.askOnce !== undefined ? normalizeAskOnce(args.askOnce) : undefined;
     const warnings = [...(bound.notes || []), ...(feNotes || []), ...prompt.notes, ...loopInputs.notes, ...loopPrompt.notes, ...reliability.notes];
@@ -293,6 +297,7 @@ function applyAddAi(draft, args, draftWrap) {
         ...(permBlock.permissions !== undefined ? { agentPermissions: permBlock.permissions } : {}),
         ...reliability.value,
         ...(askOnce !== undefined ? { askOnce } : {}),
+        ...(imageBindings.images.length ? { images: imageBindings.images } : {}),
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });

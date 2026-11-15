@@ -18,7 +18,7 @@ const {
 } = require('./outputFields');
 
 const NC_ITEM = ['name', 'path', 'type', 'size', 'contentType', 'modified', 'fileId'];
-const NC_READ = ['path', 'size', 'contentType', 'extractedVia', 'truncated', 'content', 'meta', 'formFields'];
+const NC_READ = ['path', 'size', 'contentType', 'extractedVia', 'truncated', 'content', 'meta', 'sourceHandle', 'formFields'];
 
 const A1 = { id: 'a1', type: 'integration_action', tool: 'nextcloud_list_files' };
 const A2 = { id: 'a2', type: 'integration_action', tool: 'nextcloud_read_file', forEach: { overRef: 'steps.a1.output.items', itemVar: 'f' } };
@@ -315,7 +315,7 @@ test('describeItem phrases a plain item and a fan-out entry', () => {
     );
     assert.strictEqual(
         describeItem(fieldsAtRef(g, 'steps.a2.output.results')),
-        'the forEach item (an entry of steps.a2.output.results from nextcloud_read_file) is {index, item, output, status}; output has: path, size, contentType, extractedVia, truncated, content, meta, formFields',
+        'the forEach item (an entry of steps.a2.output.results from nextcloud_read_file) is {index, item, output, status}; output has: path, size, contentType, extractedVia, truncated, content, meta, sourceHandle, formFields',
     );
 });
 

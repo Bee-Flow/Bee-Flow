@@ -40,7 +40,7 @@ const PATCHABLE_FIELDS = {
     // patches — they narrow or widen what the step hands the agent it is
     // already bound to, and both are rebuilt wholesale below rather than
     // merged.
-    ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds', 'temperature', 'enumFrom', 'checks', 'fallback', 'askOnce'],
+    ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds', 'temperature', 'enumFrom', 'checks', 'fallback', 'askOnce', 'images'],
     condition: ['expr', 'label'],
     // A switch that works through a list (A2): its list, whether one item may
     // go down several outputs, and the input cap — all three the add path keeps.
@@ -70,7 +70,7 @@ const PATCHABLE_FIELDS = {
     // the output shape — replaced wholesale through the add path's sanitizer
     // (see the data_extraction block in applyUpdateStep), never merged. There
     // is no model to patch: the step runs on the admin's extraction model.
-    data_extraction: ['source', 'fields', 'instructions', 'label', 'forEach'],
+    data_extraction: ['source', 'fields', 'instructions', 'label', 'forEach', 'images'],
     set: ['fields', 'label', 'forEach', 'arrayRef', 'operations', 'maxItems'],
     parse_json: ['sourceRef', 'itemsRef', 'mode', 'fields', 'label'],
     datetime: ['op', 'input', 'input2', 'amount', 'format', 'part', 'unit', 'arrayRef', 'target', 'timezone', 'epochUnit', 'label'],

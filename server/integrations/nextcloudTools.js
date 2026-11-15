@@ -105,6 +105,23 @@ async function executeNextcloudTool(toolName, args, userId, session, extra = {})
     return { error: `Unknown Nextcloud tool: ${toolName}` };
 }
 
+/**
+ * The bytes of one image in this user's Nextcloud, for an automation step that
+ * shows the picture to a model (core/automationRunner/aiStepImages.mts). Not a
+ * tool: the same auth as executeNextcloudTool, then ./nextcloudFiles/readImage.mts.
+ * @param {string} path
+ * @param {string} userId
+ * @param {Partial<Express.Session> | null | undefined} session
+ * @param {{ maxBytes?: number }} [opts]
+ * @returns {Promise<import('./nextcloudFiles/readImage.mts').ImageRead>}
+ */
+async function loadNextcloudImage(path, userId, session, opts = {}) {
+    const auth = await ncClient.resolveAuth(session, userId);
+    const root = ncClient.webdavRoot(auth.baseUrl, auth.uid);
+    const { readNextcloudImage } = require('./nextcloudFiles/readImage.mts');
+    return readNextcloudImage(path, { ncFetch: auth.fetch, root, authError: auth.authError }, opts);
+}
+
 /** @param {unknown} toolName */
 function isNextcloudTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_');
@@ -123,5 +140,6 @@ module.exports = {
     NEXTCLOUD_REQUEST_TOOLS,
     NEXTCLOUD_CATALOG_TOOLS,
     executeNextcloudTool,
+    loadNextcloudImage,
     isNextcloudTool,
 };

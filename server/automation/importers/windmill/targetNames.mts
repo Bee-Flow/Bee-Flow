@@ -27,6 +27,12 @@ export const TOOL = Object.freeze({
 /** A9: the input of `nextcloud_read_file` that asks for the PDF form fields. */
 export const READ_FILE_FORM_FIELDS_PARAM = 'formFields';
 
+/** A10: the output field of `nextcloud_read_file` that names an image it read. */
+export const READ_FILE_IMAGE_HANDLE_FIELD = 'sourceHandle';
+
+/** A10: the field of an `ai_step` that lists the images it shows the model. */
+export const AI_STEP_IMAGES_FIELD = 'images';
+
 /** A4: the input of `nextcloud_mail_send` that carries attachments. */
 export const MAIL_ATTACHMENTS_PARAM = 'attachments';
 

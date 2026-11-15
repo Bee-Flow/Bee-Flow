@@ -225,21 +225,21 @@ function applyAddDataExtraction(draft, rawArgs, draftWrap) {
     const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
     if (feNotes) notes.push(...feNotes);
+    const { images, error: imagesErr } = require('../imageBindings.mts').sanitizeImageBindings(args.images);
+    if (imagesErr !== undefined) return { error: imagesErr };
     let raw = args.source;
     if (raw === undefined || raw === null || raw === '') {
-        const derived = deriveDataExtractionSource({ promptRefs, forEach });
+        const derived = images.length ? null : deriveDataExtractionSource({ promptRefs, forEach });
         if (derived && derived.error) return derived;
         if (derived) { raw = derived.source; notes.push(derived.note); }
     }
-    const src = sanitizeDataExtractionSource(raw, draft, draftWrap);
+    const src = images.length && (raw === undefined || raw === null || raw === '') ? { source: null, notes: [] } : sanitizeDataExtractionSource(raw, draft, draftWrap); // images alone are a document
     if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
     notes.push(...src.notes);
     let source = src.source;
-    // The one binding this step has, checked against what its forEach item
-    // actually looks like — repaired when the model skipped a fan-out's
-    // envelope, refused when the item has no such field at all (the
-    // 2026-09-12 extraction that read a listing entry's `content`).
-    if (forEach && source.kind === 'ref' && typeof source.path === 'string' && source.path.startsWith(`loop.${forEach.itemVar}.`)) {
+    // The source, checked against what its forEach item looks like: repaired when the model skipped a fan-out's
+    // envelope, refused when the item has no such field (the 2026-09-12 extraction that read a listing's `content`).
+    if (forEach && source && source.kind === 'ref' && typeof source.path === 'string' && source.path.startsWith(`loop.${forEach.itemVar}.`)) {
         const chk = checkLoopRef(draft, source.path, forEach, draftWrap);
         if (chk.ok && chk.path) {
             source = { ...source, path: chk.path };
@@ -250,7 +250,7 @@ function applyAddDataExtraction(draft, rawArgs, draftWrap) {
     }
     const { fields, error: fieldErr } = sanitizeDataExtractionFields(args.fields);
     if (fieldErr) return { error: fieldErr };
-    const loopErr = unboundLoopVarError({ source }, forEach, { what: 'source' });
+    const loopErr = unboundLoopVarError(source ? { source } : {}, forEach, { what: 'source' });
     if (loopErr) return loopErr;
     if (args.instructions !== undefined && args.instructions !== null && typeof args.instructions !== 'string') {
         return { error: 'instructions must be a short string, e.g. "Amounts are in euros."' };
@@ -259,8 +259,8 @@ function applyAddDataExtraction(draft, rawArgs, draftWrap) {
     const step = {
         id: newId('ex'),
         type: 'data_extraction',
-        source,
-        fields,
+        ...(source ? { source } : {}),
+        fields, ...(images.length ? { images } : {}),
         ...(instructions ? { instructions } : {}),
         label: args.label || 'Extract data',
         ...(forEach ? { forEach } : {}),
@@ -279,7 +279,7 @@ function applyAddDataExtraction(draft, rawArgs, draftWrap) {
 // counter told it to give up. The error was true and useless: the binding
 // existed, it was one level too deep. Unwrapping it here is what ends the
 // loop; the note tells the model where the field belongs.
-const DATA_EXTRACTION_INPUT_KEYS = ['source', 'fields', 'instructions', 'prompt', 'outputSchema'];
+const DATA_EXTRACTION_INPUT_KEYS = ['source', 'fields', 'instructions', 'images', 'prompt', 'outputSchema'];
 
 /**
  * Lift the data_extraction fields out of an `inputs` map the model wrapped

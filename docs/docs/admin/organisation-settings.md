@@ -122,6 +122,23 @@ The panel also shows how many active memories exist and for how many people (cou
 
 How long memories are kept is not set here: retention lives in the compliance settings.
 
+## Images to AI in automations
+
+**Admin → Organisation → AI context → Images to AI in automations.** One switch, **off by default**, that only an admin of the organisation can change.
+
+| Setting | What it does |
+|---------|--------------|
+| Off (default) | An AI step or a data extraction step in an automation gets the text read from an image (OCR), never the picture itself. |
+| On | Such a step may show the picture itself to the AI model, when the step lists the image under **Images** and the conditions below hold. |
+
+Switching it on asks for a confirmation, because the pictures then reach the AI model provider your organisation uses. Bee Flow keeps no copy: a run's output and log hold only a reference to the file in Nextcloud. Even with the switch on, a picture is never sent:
+
+- when the [Privacy Shield](../features/privacy-shield.md) applies to the automation: the shield checks text for personal data and cannot check pixels, so the step uses the text read from the image;
+- to a model that does not read images;
+- in a dry run.
+
+Each step that falls back to the text says so in its run output. Server operators set the per-step limits with `AUTOMATION_AI_IMAGES_MAX` and `AUTOMATION_AI_IMAGES_MAX_MB` ([environment variables](../self-hosting/env.md#ai-steps-and-automation-concurrency)). See [Automations → Images to AI](../features/automations.md#images-to-ai).
+
 ## Danger zone
 
 | Action | Effect |

@@ -81,7 +81,7 @@
                   "id": "dates",
                   "type": "stop_error",
                   "label": "Windmill: Analyze image (still to convert)",
-                  "message": "This Windmill step has not been converted yet: Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that."
+                  "message": "This Windmill step has not been converted yet: Images to AI is off for this organisation, so the builder reads the text of the images (OCR) and works from that."
                 }
               ]
             ],
@@ -265,7 +265,7 @@
             "source": "script:hub/28171/nextcloud/analyze_image",
             "status": "ai",
             "confidence": "low",
-            "reason": "Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that.",
+            "reason": "Images to AI is off for this organisation, so the builder reads the text of the images (OCR) and works from that.",
             "stepIds": [
               "dates"
             ]
@@ -358,7 +358,7 @@
             "wmId": "dates",
             "stepId": "dates",
             "title": "Analyse the images",
-            "why": "Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that.",
+            "why": "Images to AI is off for this organisation, so the builder reads the text of the images (OCR) and works from that.",
             "inputs": {
               "ncResource": {
                 "expr": "flow_input.authentication.owner"

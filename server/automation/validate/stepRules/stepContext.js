@@ -18,7 +18,7 @@ const { inferAiStepOutputSchema, collectAiStepOutputReads } = require('../../../
  */
 function createStepContext({
     graph, trigger, ids, seenSoFar, pushE, pushW,
-    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars = null, availableAgents, topicClassifier, isContractScope,
+    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars = null, availableAgents, topicClassifier, imageModels = null, isContractScope,
 }) {
     // Branch labels actually wired OUT of a node, for the pinned-brancher rule.
     // Mirrors the runtime's EFFECTIVE label (`label`, else `case:<caseName>` —
@@ -114,7 +114,7 @@ function createStepContext({
 
     return {
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels, isContractScope,
         stepsById, loopVarsAbove, fieldsReadFromStep, inferredOutputOf, outgoingLabelsFor,
     };
 }
@@ -130,7 +130,7 @@ module.exports = { createStepContext };
  *   availableTools?: Set<string> | null, toolRequiredParams?: Record<string, string[]> | null,
  *   knownConnectionIds?: Set<string> | null, knownVarNames?: Set<string> | null, writtenVars?: Set<string> | null,
  *   availableAgents?: Set<string> | null,
- *   topicClassifier?: boolean | null, isContractScope?: boolean,
+ *   topicClassifier?: boolean | null, imageModels?: import('../helpers').ImageModelsFact | null, isContractScope?: boolean,
  * }} StepContextInput
  * @typedef {ReturnType<typeof createStepContext> & { nested?: boolean, refIds?: Set<string>, refSeen?: Set<string>,
  *   isInsideLoop?: (step: StepDef) => boolean }} StepCtx  the context every per-step rule receives

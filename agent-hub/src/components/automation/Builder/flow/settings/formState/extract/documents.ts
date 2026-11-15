@@ -3,6 +3,7 @@
  * documents, slides, presentations, filled templates and data extraction.
  */
 import { isEmptyExtractionSource, readExtractionFields } from '../extractionFields';
+import { readImageBindings } from '../imageBindings';
 import type { TypeExtractor } from '../types';
 
 /** `value || ''`: the editor wants a string for anything unset. */
@@ -111,6 +112,8 @@ export const documentExtractors: Record<string, TypeExtractor> = {
         // re-seeds it from here the moment the list comes back empty.
         fields: readExtractionFields(step.fields),
         instructions: typeof step.instructions === 'string' ? step.instructions : '',
+        // The pictures to read the fields from (always a list in the form).
+        images: readImageBindings(step.images),
         forEach: step.forEach || null,
     }),
 };

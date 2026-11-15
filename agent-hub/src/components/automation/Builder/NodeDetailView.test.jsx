@@ -161,12 +161,12 @@ describe('NodeDetailView', () => {
             render(<NodeDetailView {...quickProps({ onExecuteStep, onModeChange })} />);
             await user.click(screen.getAllByRole('button', { name: /Test step/ })[0]);
             expect(onExecuteStep).toHaveBeenCalledWith('s1');
-            // ai_step hides 3 sections in Simple (Advanced, Structured
-            // output and Answer checks). The counted control now reveals them IN THIS dialog by
+            // ai_step hides 4 sections in Simple (Images, Advanced,
+            // Structured output and Answer checks). The counted control now reveals them IN THIS dialog by
             // switching the MODE — it must not swap the window for the
             // three-column workspace (the old "More options" did, and still
             // left the sections hidden).
-            await user.click(await screen.findByText(/Show advanced options \(3\)/));
+            await user.click(await screen.findByText(/Show advanced options \(4\)/));
             expect(onModeChange).toHaveBeenCalledWith('advanced');
         });
 
@@ -174,7 +174,7 @@ describe('NodeDetailView', () => {
             const user = userEvent.setup();
             const onDensityChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onDensityChange })} />);
-            await user.click(await screen.findByText(/More options \(3\)/));
+            await user.click(await screen.findByText(/More options \(4\)/));
             expect(onDensityChange).toHaveBeenCalledWith('full');
         });
 
@@ -382,7 +382,7 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
             'automations.ndv.more_options_n': 'Nog {n} opties',
         });
         render(<NodeDetailView {...baseProps({ density: 'quick', onDensityChange: vi.fn() })} />);
-        expect(await screen.findByText(/Nog 3 opties/)).toBeTruthy();
+        expect(await screen.findByText(/Nog 4 opties/)).toBeTruthy();
         expect(screen.queryByText(/More options/)).toBeNull();
     });
 

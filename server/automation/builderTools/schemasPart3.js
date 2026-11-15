@@ -51,7 +51,8 @@ const TOOL_SCHEMAS_PART_3 = [
                 properties: {
                     afterStepId: { type: 'string' },
                     splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
-                    source: { type: 'object', description: 'The text to read, as ONE binding: {kind:"ref", path:"steps.<id>.output.<field>"} or {kind:"template", value:"…{{steps.x.output.y}}…"}. Inside a forEach: {kind:"ref", path:"loop.<itemVar>.output.content"}. Never a literal.' },
+                    source: { type: 'object', description: 'The text to read, as ONE binding: {kind:"ref", path:"steps.<id>.output.<field>"} or {kind:"template", value:"…{{steps.x.output.y}}…"}. Inside a forEach: {kind:"ref", path:"loop.<itemVar>.output.content"}. Never a literal. May be left out when `images` is set.' },
+                    images: { type: 'array', items: { type: 'object' }, description: 'Optional. Images to SHOW the model, not just their OCR text: bindings to the sourceHandle that nextcloud_read_file returns for an image ({kind:"ref", path:"steps.<read>.output.sourceHandle"}), or the whole output of a read that ran once per file ({kind:"ref", path:"steps.<read>.output"}). The image is shown only when the organisation switched "images to AI" on, the Privacy Shield does not apply to this automation and the step\'s model reads images; otherwise the step gets the text read from the images (OCR) and says so in its run. Leave it out when the text of the image is enough.' },
                     fields: {
                         type: 'array',
                         minItems: 1,

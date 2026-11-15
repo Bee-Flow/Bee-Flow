@@ -174,6 +174,12 @@ async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runSt
         && recordedOutput && typeof recordedOutput === 'object' && !Array.isArray(recordedOutput)) {
         recordedOutput = { ...recordedOutput, _dryRunSynthesised: true, _dryRunFallback: dispatched.dryRunFallback || null };
     }
+    // Which images an AI step showed the model, and why the others went as
+    // their OCR text (aiStepImages.mts). Like the dry-run keys above it rides
+    // on the RECORDED output only; the binding source stays as it was.
+    if (dispatched.imageInput && recordedOutput && typeof recordedOutput === 'object' && !Array.isArray(recordedOutput)) {
+        recordedOutput = { ...recordedOutput, _imageInput: dispatched.imageInput };
+    }
     const piiSummary = await piiSummaryFor(step, dispatched, recordedStatus, ctx);
     // When dispatchStep returns from a retry-success path, it
     // tags the result with `attempt` + `attemptStartedAt` so
@@ -307,7 +313,7 @@ module.exports = { dispatchLiveStep };
 /**
  * What dispatchStep returns for a step that ran.
  * @typedef {{ output?: StepOutput | null, skippedReason?: string, dryRunSynthesised?: boolean, dryRunFallback?: unknown,
- *   attempt?: number, attemptStartedAt?: string, startedAt?: string, inputSnapshot?: unknown, piiSummary?: unknown,
+ *   attempt?: number, attemptStartedAt?: string, startedAt?: string, inputSnapshot?: unknown, piiSummary?: unknown, imageInput?: unknown,
  *   bindingWarnings?: unknown[], toolsWithheld?: string[], toolsWithheldReasons?: Record<string, string> }} Dispatched
  */
 

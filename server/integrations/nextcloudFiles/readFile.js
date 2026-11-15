@@ -3,7 +3,8 @@
  * nextcloud_read_file — one file's content for the model: rich documents (PDF,
  * DOCX, PPTX, XLSX/CSV) through the shared extraction pipeline, images through
  * the same OCR providers as a scanned PDF (text only: no picture is handed to
- * a model here), text as UTF-8 cut on a character boundary, binary refused.
+ * a model here; the answer carries a `sourceHandle` naming the image, which an
+ * automation step can bind to show the picture itself), text as UTF-8 cut on a character boundary, binary refused.
  * `formFields: true` adds the filled-in AcroForm fields of a PDF. The download
  * is bounded by the tool file cap.
  */
@@ -66,7 +67,21 @@ async function contentResult(path, filename, contentType, buf) {
     const result = (pdf || isDocx(att) || isSpreadsheet(att) || isPptx(att) || image)
         ? await extractedFileResult(path, filename, contentType, buf, { image })
         : plainTextFileResult(path, contentType, buf);
-    return { result, pdf };
+    // An image also names itself, so a later automation step can show the
+    // picture to a model that sees (`images` on ai_step / data_extraction,
+    // core/automationRunner/aiStepImages.mts). A reference, never the bytes:
+    // the run output and its log hold the path, the step loads the file again.
+    return { result: image ? { ...result, sourceHandle: imageSourceHandle(path, contentType) } : result, pdf };
+}
+
+/**
+ * The handle of an image file in the caller's Nextcloud.
+ * @param {string} path
+ * @param {string} contentType
+ * @returns {{ kind: 'nextcloud_image', path: string, contentType: string }}
+ */
+function imageSourceHandle(path, contentType) {
+    return { kind: 'nextcloud_image', path, contentType: contentType.split(';')[0].trim().toLowerCase() };
 }
 
 /**

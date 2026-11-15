@@ -6,6 +6,7 @@ import { AgentStepFields } from './agentStepFields';
 import { AiStepAdvancedRows, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass, textareaClass } from './formPrimitives';
+import ImageInputsSection from './ImageInputsSection';
 import { ProblemRing, runStepProblem } from './runProblem';
 import { StructuredOutputFields } from './structuredOutputFields';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -67,6 +68,8 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     </ProblemRing>
                 )}
             />
+            <ImageInputsSection stepType="ai_step" images={draft.images || []} onChange={(next) => set('images', next)}
+                onFocusField={onFocusField} previewSample={previewSample} forceOpen={errorSections.has('images')} />
             {/* AccordionSection, not a bare CollapsibleSection: only the former
                 honours the quick/full density, and this block (system prompt,
                 model tier, tool allowlist) is the definition of "advanced".

@@ -133,6 +133,15 @@ function defaultLoad(req: Request, res: Response, need: 'view' | 'edit') {
 
 const passThrough: Handler = (_req, _res, next) => next();
 
+/** The caller's organisation (whether it allows images to AI decides how Analyze Image converts); null when unknown. */
+async function importOrgOf(req: Request): Promise<string | null> {
+    try {
+        return (await (nodeRequire('./crudContext') as { orgOf: (r: Request) => Promise<string | null> }).orgOf(req)) || null;
+    } catch {
+        return null;
+    }
+}
+
 export function registerWindmillImportRoutes(router: Router, deps: WindmillRouteDeps = {}): void {
     const limits = deps.limits ?? windmillLimits;
     const store = (): ReportStore => deps.store ?? (nodeRequire('../../stores/automationStore') as ReportStore);
@@ -150,7 +159,7 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
     type Answer = { input: unknown; mode: 'preview' | 'commit'; select: string[] | null; sourceKind: 'windmill_upload' | 'windmill_api'; notes: string[]; compareRuns?: number; compare?: Compare | null };
     async function answer(req: Request, res: Response, { input, mode, select, sourceKind, notes, compareRuns, compare }: Answer) {
         const l = limits();
-        const conv = await convertWindmill(input, l, notes);
+        const conv = await convertWindmill(input, l, notes, await importOrgOf(req));
         // The dialog offers the comparison only when this server has it on.
         const preview = { ...previewOf(conv), ...(compareRuns ? { compare: { runs: compareRuns } } : {}) };
         if (mode === 'preview') return res.json({ mode, ...preview });

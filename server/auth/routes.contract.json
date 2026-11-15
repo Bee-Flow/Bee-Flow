@@ -2360,6 +2360,9 @@
     "GET /api/org-ai-context/:orgId": {
       "gate": "auth"
     },
+    "GET /api/org-automation-image-ai/:orgId": {
+      "gate": "auth"
+    },
     "GET /api/org-azure-config/:orgId": {
       "gate": "platform",
       "via": "superAdmin"
@@ -7344,6 +7347,9 @@
       ]
     },
     "PUT /api/org-ai-context/:orgId": {
+      "gate": "auth"
+    },
+    "PUT /api/org-automation-image-ai/:orgId": {
       "gate": "auth"
     },
     "PUT /api/org-azure-config/:orgId": {
