@@ -37,7 +37,7 @@ const { isNextcloudStatusTool, executeNextcloudStatusTool } = require('./nextclo
  * Sub-apps first: the generic executor (last) matches the whole broad
  * "nextcloud_*" prefix, so it must only see what no sub-app owns.
  */
-/** @type {Array<[(toolName: string) => boolean, (toolName: string, args: Record<string, unknown>, userId: string, session: NcSession) => Promise<unknown>]>} */
+/** @type {Array<[(toolName: string) => boolean, (toolName: string, args: Record<string, unknown>, userId: string, session: NcSession, extra?: { runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }) => Promise<unknown>]>} */
 const SUB_APPS = [
     [isNextcloudCalendarTool, executeNextcloudCalendarTool],
     [isNextcloudContactsTool, executeNextcloudContactsTool],
@@ -66,7 +66,7 @@ const SUB_APPS = [
  */
 async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, extra = {}) {
     for (const [isTool, execute] of SUB_APPS) {
-        if (isTool(toolName)) return await execute(toolName, toolArgs, userId, session);
+        if (isTool(toolName)) return await execute(toolName, toolArgs, userId, session, extra);
     }
     if (isNextcloudTool(toolName)) {
         return await executeNextcloudTool(toolName, toolArgs, userId, session, extra);

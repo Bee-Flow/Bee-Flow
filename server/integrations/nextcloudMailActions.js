@@ -10,12 +10,18 @@
 
 const { mailError, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody } = require('./nextcloudMailShapes');
 const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../core/http/httpResponseLimits');
+const { stripHtmlToText } = require('../core/text/emailTextUtils');
+const { resolveMailAttachments } = require('./nextcloudMailAttachments.mts');
 
 /**
  * @typedef {import('./nextcloudClient.types').NcAuth} NcAuth
+ * @typedef {NcAuth & { runScope?: { runId: string, rootRunId?: string } | null }} MailCtx  the auth, plus the
+ *   automation run a send happens in (a generated_file attachment belongs to it)
+ * @typedef {import('./nextcloudMailAttachments.mts').DraftAttachment} DraftAttachment
  * @typedef {{
  *   messageId?: string | number, attachmentId?: string, filename?: string, accountId?: number | string,
  *   to?: unknown, cc?: unknown, bcc?: unknown, subject?: string, body?: string, isHtml?: unknown, replyTo?: unknown,
+ *   attachments?: unknown,
  * }} MailArgs  the arguments of these tools, as the model sent them
  * @typedef {{ kind: string, text: string, source?: string | null, meta?: unknown }} ExtractedText  what this tool reads of an
  *   extractAttachment result (a 'text' result always carries its text)
@@ -93,21 +99,34 @@ function recipientsOf(list) {
 }
 
 /**
- * The outbox draft a send creates.
+ * The outbox draft a send creates. The body goes under every name a Mail
+ * version reads: `body` (Mail 4), `bodyPlain` / `bodyHtml` (Mail 5 and later),
+ * `editorBody` (required by Mail 4). `smimeSign` / `smimeEncrypt` are
+ * required booleans of OutboxController::create in both; a parameter Mail
+ * does not know is ignored.
  * @param {MailArgs} args  checked: accountId, to, subject and body are present
+ * @param {DraftAttachment[]} [attachments]
  */
-function mailDraftBody(args) {
-    /** @type {{ accountId: unknown, subject: unknown, body: unknown, isHtml: boolean, to: Array<{ email: string, label: string }>,
-     *   cc: Array<{ email: string, label: string }>, bcc: Array<{ email: string, label: string }>, attachments: never[], inReplyToMessageId?: unknown }} */
+function mailDraftBody(args, attachments = []) {
+    const isHtml = !!args.isHtml;
+    const body = String(args.body);
+    /** @type {{ accountId: unknown, subject: unknown, body: string, bodyPlain: string, bodyHtml: string | null, editorBody: string,
+     *   isHtml: boolean, smimeSign: boolean, smimeEncrypt: boolean, to: Array<{ email: string, label: string }>,
+     *   cc: Array<{ email: string, label: string }>, bcc: Array<{ email: string, label: string }>, attachments: DraftAttachment[], inReplyToMessageId?: unknown }} */
     const draftBody = {
         accountId: args.accountId,
         subject: args.subject,
-        body: args.body,
-        isHtml: !!args.isHtml,
+        body,
+        bodyPlain: isHtml ? stripHtmlToText(body) : body,
+        bodyHtml: isHtml ? body : null,
+        editorBody: body,
+        isHtml,
+        smimeSign: false,
+        smimeEncrypt: false,
         to: recipientsOf(args.to),
         cc: args.cc ? recipientsOf(args.cc) : [],
         bcc: args.bcc ? recipientsOf(args.bcc) : [],
-        attachments: [],
+        attachments,
     };
     if (args.replyTo) draftBody.inReplyToMessageId = args.replyTo;
     return draftBody;
@@ -118,7 +137,8 @@ function mailDraftBody(args) {
  * draft id, so a send always goes via this two-step path.
  * @param {ReturnType<typeof mailDraftBody>} draftBody
  * @param {NcAuth} ctx
- * @returns {Promise<{ outboxId: string | number } | { error: string, detail?: unknown }>}
+ * @returns {Promise<{ outboxId: string | number, attached: number | null } | { error: string, detail?: unknown }>}
+ *   `attached`: how many attachments the draft came back with (null when the answer does not say)
  */
 async function createOutboxDraft(draftBody, ctx) {
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -133,24 +153,35 @@ async function createOutboxDraft(draftBody, ctx) {
         return { error: `Mail draft failed (${draftRes.status})`, detail };
     }
     const draft = await readJsonSafe(draftRes);
+    const message = draft?.data && typeof draft.data === 'object' ? draft.data : draft;
     const outboxId = draft?.id ?? draft?.data?.id;
     if (!outboxId) return { error: 'Mail draft created but no outbox id returned', detail: draft };
-    return { outboxId };
+    return { outboxId, attached: Array.isArray(message?.attachments) ? message.attachments.length : null };
 }
 
 /**
- * Send a message from a Mail account: create the outbox draft, then dispatch it.
+ * Send a message from a Mail account: resolve the attachments, create the
+ * outbox draft, then dispatch it.
  * @param {MailArgs} args
- * @param {NcAuth} ctx
+ * @param {MailCtx} ctx
  */
 async function sendMail(args, ctx) {
     const { baseUrl, fetch: ncFetch } = ctx;
     if (args.accountId == null || !args.to || !args.subject || !args.body) {
         return { error: 'accountId, to, subject, and body are required' };
     }
-    const draft = await createOutboxDraft(mailDraftBody(args), ctx);
+    const resolved = await resolveMailAttachments(args.attachments, ctx);
+    if ('error' in resolved) return { error: resolved.error };
+    const draft = await createOutboxDraft(mailDraftBody(args, resolved.attachments), ctx);
     if (!('outboxId' in draft)) return draft;
     const { outboxId } = draft;
+
+    // Mail drops an attachment it cannot read (a share without download
+    // permission) and would send the rest: never send a message short of one.
+    if (draft.attached !== null && draft.attached < resolved.attachments.length) {
+        await ncFetch(api(baseUrl, `/outbox/${encodeURIComponent(outboxId)}`), { method: 'DELETE', headers: baseHeaders }).catch(() => null);
+        return { error: `Nextcloud Mail took ${draft.attached} of the ${resolved.attachments.length} attachments (a file it may not download is skipped), so the message was not sent.` };
+    }
 
     // Step 2: dispatch the outbox message immediately. The send route
     // is `POST /api/outbox/{id}` (named outbox#send) — no /send suffix.
@@ -162,7 +193,7 @@ async function sendMail(args, ctx) {
         const detail = await readJsonSafe(sendRes);
         return { error: `Mail send failed (${sendRes.status})`, detail, outboxId };
     }
-    return { success: true, outboxId, to: args.to, subject: args.subject };
+    return { success: true, outboxId, to: args.to, subject: args.subject, attachments: resolved.names };
 }
 
 module.exports = { readMailAttachment, sendMail };

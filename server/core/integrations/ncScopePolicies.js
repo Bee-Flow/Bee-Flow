@@ -290,9 +290,12 @@ const MAIL_ARG_POLICIES = {
 // So these arguments get a SECOND check against the family that actually owns
 // them, after the tool's own family policy has passed. Narrowing only: this
 // can add a denial, never remove one.
+// A key ending in `[].path` names a list argument: the `path` of every entry
+// is checked (a mail attachment from Files).
 const CROSS_FAMILY_ARGS = {
     nextcloud_talk_share_file: { path: 'nextcloud' },
     nextcloud_mail_save_attachment: { targetPath: 'nextcloud' },
+    nextcloud_mail_send: { 'attachments[].path': 'nextcloud' },
 };
 
 // Result-filter item candidates: which fields identify an entry, per family.

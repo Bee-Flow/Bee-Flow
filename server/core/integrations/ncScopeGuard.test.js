@@ -508,6 +508,25 @@ test('saving a mail attachment is judged against the FILES scope too', async () 
     assert.ok(denied?.nc_scope_denied);
 });
 
+test('a mail attachment from Files is judged against the FILES scope, every entry of the list', async () => {
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Invoice2'] } });
+    const send = (attachments) => guard.checkToolCall({
+        toolName: 'nextcloud_mail_send',
+        toolArgs: { accountId: 1, to: 'a@example.test', subject: 'S', body: 'B', attachments },
+        userId: USER,
+    });
+    assert.ok((await send([{ path: '/Invoice2/inv-1.pdf' }, { path: '/Private/salaries.xlsx' }]))?.nc_scope_denied,
+        'one file outside the selection stops the send');
+    assert.equal(await send([{ path: '/Invoice2/inv-1.pdf' }]), null);
+    // A generated file of the run is Bee Flow's own, not a Nextcloud file.
+    assert.equal(await send([{ sourceHandle: { kind: 'generated_file', fileId: 'g1' } }]), null);
+    assert.equal(await send(undefined), null);
+
+    setUserScope({ nextcloud: { mode: 'off' } });
+    assert.ok((await send([{ path: '/Invoice2/inv-1.pdf' }]))?.nc_scope_denied, 'Files off: no file attached from it');
+    assert.equal(await send([]), null, 'no attachment, no Files access needed');
+});
+
 test('Files turned off blocks the borrowed argument even when the owning family is on', async () => {
     setUserScope({ nextcloud: { mode: 'off' } });
     const denied = await guard.checkToolCall({
