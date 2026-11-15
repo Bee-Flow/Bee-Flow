@@ -24,7 +24,8 @@ same inbox, and is answered the same way.
 
 - **Automations** — add an **Approval** step. The run *pauses* at that step and
   resumes the moment someone approves. On reject the run ends, unless the step has an
-  [On rejected branch](#when-the-approver-rejects).
+  [On rejected branch](#when-the-approver-rejects); when nobody decides in time it ends
+  as expired, unless the step has an [On expired branch](#when-nobody-decides-in-time).
 - **Apps** — add a **Request approval** step to any action. There is no run behind
   it: the decision *is* the outcome. The app reacts through the `onDecided` hook
   (which writes straight back to a record) and through the `approval.decided`
@@ -95,6 +96,28 @@ The validator checks the branch on every save:
 The decision is recorded before the run continues. If the continuation cannot start,
 the run ends with the error code `resume_failed` and its run history says so; the
 decision itself stays.
+
+## When nobody decides in time
+
+Without anything wired for it, an approval that passes its [deadline](#reminders-deadlines-and-escalation)
+ends the run as *expired* (error class `ApprovalExpired`).
+
+To go on instead (send a reminder to someone else, escalate, close the request
+politely), give the approval an **On expired branch**: the third port, under
+**Approved** and **On rejected**. When the deadline passes, the run continues along
+that branch with `approved: false` and `expired: true` in the step's output (`by` and
+`reason` are empty: nobody decided). A reject never takes it, and an approve never
+does either. The paused run then shows *Expired — continued on the expired branch*,
+and the bell everyone who was asked gets says the run went on. The AI builder and the
+MCP tools wire it with `branch: "expired"`.
+
+The validator checks it the same way: `edge.expired_label_invalid` (an on-expired
+branch that starts from a step that is not an approval) and
+`edge.expired_label_duplicate` (more than one on an approval) are errors.
+
+The deadline is checked by the server's background sweep, so the branch starts within
+a minute or so after the deadline, not on the second. Dry runs and scenarios do not
+simulate an expiry.
 
 ## One approver, a panel, or a chain
 

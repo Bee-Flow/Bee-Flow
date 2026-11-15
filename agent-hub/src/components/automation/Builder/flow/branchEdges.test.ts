@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     branchFromHandle as branchFromHandleDirect,
     copyExtraEdgeKeys, edgeKey, edgeIdentity, matchesEdgeIdentity, spliceStepIntoEdge, removeEdgesByIdentity,
+    approvalEdgeRouting, isApprovalBranchLabel,
 } from './branchEdges';
 import { buildLayout } from './layout';
 import { branchFromHandle, applyAddNode } from '../DiagramPane';
@@ -421,5 +422,20 @@ describe('buildLayout — colour + parallel-lane forwarding', () => {
         const ids = e2.map(e => e.id);
         expect(new Set(ids).size).toBe(ids.length);
         expect(ids).toContain('trg->sw||#dup1');
+    });
+});
+
+describe('an approval\'s ports (approvalEdgeRouting)', () => {
+    it('sends the rejected and expired branches out of their own ports, everything else out of Approved', () => {
+        expect(approvalEdgeRouting({ label: 'on_rejected' })).toEqual({ kind: 'on_rejected', sourceHandle: 'on_rejected' });
+        expect(approvalEdgeRouting({ label: 'on_expired' })).toEqual({ kind: 'on_expired', sourceHandle: 'on_expired' });
+        expect(approvalEdgeRouting({})).toEqual({ kind: null, sourceHandle: 'approved' });
+        expect(approvalEdgeRouting({ label: 'on_success' })).toEqual({ kind: 'on_success', sourceHandle: 'approved' });
+    });
+
+    it('knows which labels only an approval has', () => {
+        expect(['on_rejected', 'on_expired', 'on_error', 'then', null, undefined].map(isApprovalBranchLabel))
+            .toEqual([true, true, false, false, false, false]);
+        expect(branchFromHandleDirect('on_expired')).toEqual({ label: 'on_expired' });
     });
 });

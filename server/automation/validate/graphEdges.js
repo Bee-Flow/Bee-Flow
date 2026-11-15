@@ -10,7 +10,7 @@ const {
     ON_ERROR_SOURCE_TYPES, ON_ERROR_FORBIDDEN_SOURCE_TYPES, BRANCHER_TYPES,
     TERMINAL_STEP_TYPES,
 } = require('./constants');
-const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
+const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES, ON_EXPIRED_LABEL, ON_EXPIRED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
 const { isObject } = require('./helpers');
 
 /**
@@ -61,7 +61,7 @@ function checkEdge({ trigger, pushE, pushW }, e, at, ids, stepById) {
         // names by the switch-step block below; everything else must be
         // one of the runner's routed labels or it never fires.
         if (!KNOWN_EDGE_LABELS.has(e.label) && !e.label.startsWith('case:')) {
-            pushW({ code: 'edge.label_unknown', severity: 'warning', path: at + '.label', message: `Edge ${e.from} → ${e.to} has unknown label "${e.label}" — it will never fire.`, hint: 'Use one of: then, else, on_success, on_error, on_rejected (from an approval), case:<switch-case-name>, or remove the label so the edge fires on success.' });
+            pushW({ code: 'edge.label_unknown', severity: 'warning', path: at + '.label', message: `Edge ${e.from} → ${e.to} has unknown label "${e.label}" — it will never fire.`, hint: 'Use one of: then, else, on_success, on_error, on_rejected or on_expired (from an approval), case:<switch-case-name>, or remove the label so the edge fires on success.' });
         }
         // An approval's rejected branch (constants.js ON_REJECTED_LABEL): from
         // any other step it would never fire.
@@ -69,6 +69,13 @@ function checkEdge({ trigger, pushE, pushW }, e, at, ids, stepById) {
             const srcType = e.from === trigger.id ? 'trigger' : stepById.get(e.from)?.type;
             if (!ON_REJECTED_SOURCE_TYPES.has(srcType)) {
                 pushE({ code: 'edge.rejected_label_invalid', severity: 'error', path: at + '.label', message: `Edge ${e.from} → ${e.to}: only an approval has a rejected branch — this edge would never fire.`, hint: 'Remove the on_rejected label (the edge then fires on success), or start the branch from an approval step.' });
+            }
+        }
+        // An approval's expired branch (ON_EXPIRED_LABEL): the same rule.
+        if (e.label === ON_EXPIRED_LABEL && ids.has(e.from)) {
+            const srcType = e.from === trigger.id ? 'trigger' : stepById.get(e.from)?.type;
+            if (!ON_EXPIRED_SOURCE_TYPES.has(srcType)) {
+                pushE({ code: 'edge.expired_label_invalid', severity: 'error', path: at + '.label', message: `Edge ${e.from} → ${e.to}: only an approval has an expired branch — this edge would never fire.`, hint: 'Remove the on_expired label (the edge then fires on success), or start the branch from an approval step.' });
             }
         }
         if (e.label === 'on_error' && ids.has(e.from)) {
@@ -143,21 +150,27 @@ function checkPiiLineColors({ graph, p, pushW }) {
 /**
  * Per approval with a rejected branch: at most one 'on_rejected' edge (the
  * decision picks one path), and a warning when it has no plain edge — then
- * an approve ends the run with nothing after it.
+ * an approve ends the run with nothing after it. The same "at most one" for
+ * its expired branch ('on_expired'); an expired branch alone needs no plain
+ * edge warning of its own (an approve still ends the run, as it always did).
  */
 function checkRejectedBranches({ graph, p, pushE, pushW }, stepById) {
-    /** @type {Map<string, { rejected: number[], plain: number }>} */
+    /** @type {Map<string, { rejected: number[], expired: number[], plain: number }>} */
     const bySource = new Map();
     graph.edges.forEach((e, i) => {
         if (!isObject(e) || typeof e.from !== 'string' || stepById.get(e.from)?.type !== 'approval') return;
-        const entry = bySource.get(e.from) || { rejected: [], plain: 0 };
+        const entry = bySource.get(e.from) || { rejected: [], expired: [], plain: 0 };
         if (e.label === ON_REJECTED_LABEL) entry.rejected.push(i);
+        else if (e.label === ON_EXPIRED_LABEL) entry.expired.push(i);
         else if (!e.label || e.label === 'on_success') entry.plain++;
         bySource.set(e.from, entry);
     });
-    for (const [from, { rejected, plain }] of bySource) {
+    for (const [from, { rejected, expired, plain }] of bySource) {
         if (rejected.length > 1) {
             pushE({ code: 'edge.rejected_label_duplicate', severity: 'error', path: p(`edges[${rejected[1]}]`), message: `Approval ${from} has ${rejected.length} rejected branches — it may have only one.`, hint: 'Keep one on_rejected edge and chain the other steps after its first step.' });
+        }
+        if (expired.length > 1) {
+            pushE({ code: 'edge.expired_label_duplicate', severity: 'error', path: p(`edges[${expired[1]}]`), message: `Approval ${from} has ${expired.length} expired branches — it may have only one.`, hint: 'Keep one on_expired edge and chain the other steps after its first step.' });
         }
         if (rejected.length && !plain) {
             pushW({ code: 'approval.rejected_only', severity: 'warning', path: p(`edges[${rejected[0]}]`), message: `Approval ${from} continues only when it is rejected — an approve ends the run here.`, hint: 'Connect the step that should run after an approve from the approval\'s plain port, or ignore this if approving should end the run.' });

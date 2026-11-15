@@ -20,4 +20,9 @@ describe("a line's chip", () => {
         expect(showsChip({ kind: 'on_error', labelledAtPort: false })).toBe(true);
         expect(showsChip({ kind: null, labelledAtPort: false })).toBe(false);
     });
+
+    it("names an approval's rejected and expired branches in the web ports' words", () => {
+        expect(['on_rejected', 'on_expired'].map((k) => chipWords(k, t))).toEqual(['On rejected', 'On expired']);
+        expect(['on_rejected', 'on_expired'].map(chipTone)).toEqual(['error', 'default']);
+    });
 });

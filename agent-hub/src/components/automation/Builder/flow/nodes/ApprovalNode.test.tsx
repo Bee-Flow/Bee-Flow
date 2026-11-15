@@ -47,12 +47,13 @@ const DEF = {
 describe('ApprovalNode — the rejected branch', () => {
     beforeEach(() => { cleanup(); });
 
-    it('draws an Approved and an On rejected port', () => {
+    it('draws an Approved, an On rejected and an On expired port', () => {
         const { container, getByText } = renderApproval();
         const ids = [...container.querySelectorAll('.react-flow__handle-right')].map(h => h.getAttribute('data-handleid'));
-        expect(ids).toEqual(['approved', 'on_rejected']);
+        expect(ids).toEqual(['approved', 'on_rejected', 'on_expired']);
         expect(getByText('Approved')).toBeTruthy();
         expect(getByText('On rejected')).toBeTruthy();
+        expect(getByText('On expired')).toBeTruthy();
     });
 
     it('a line from the rejected port is an on_rejected edge; from the approved port a plain one', () => {
@@ -82,5 +83,21 @@ describe('ApprovalNode — the rejected branch', () => {
         const next = reconcileRouteEdges(def, 'ap', stub<FlowStep>(STEP), stub<FlowStep>(swapped));
         expect(next.edges?.some(e => e.label === 'on_rejected')).toBe(false);
         expect(next.edges?.some(e => e.from === 'ap' && e.to === 'yes')).toBe(true);
+    });
+
+    it('a line from the expired port is an on_expired edge, laid out from that port; it goes with the type too', () => {
+        expect(branchFromHandle('on_expired')).toEqual({ label: 'on_expired' });
+        const def = { ...DEF, steps: [...DEF.steps, { id: 'late', type: 'set' }], edges: [...DEF.edges, { from: 'ap', to: 'late', label: 'on_expired' }] };
+        const late = layoutOf(def).edges.find(e => e.target === 'late')!;
+        expect(late.sourceHandle).toBe('on_expired');
+        expect(late.data.kind).toBe('on_expired');
+        expect(late.data.labelledAtPort).toBe(true);
+        // The rejected and approved lines leave by their ports exactly as before.
+        expect(layoutOf(def).edges.find(e => e.target === 'no')!.sourceHandle).toBe('on_rejected');
+        expect(layoutOf(def).edges.find(e => e.target === 'yes')!.sourceHandle).toBe('approved');
+
+        const swapped = { ...STEP, type: 'notification' };
+        const next = reconcileRouteEdges(stub<FlowDefinition>({ ...def, steps: [swapped, ...def.steps.slice(1)] }), 'ap', stub<FlowStep>(STEP), stub<FlowStep>(swapped));
+        expect(next.edges?.some(e => e.label === 'on_expired')).toBe(false);
     });
 });
