@@ -80,7 +80,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         more: ['formHash', 'titleContains', 'submittedByEquals'],
         fields: ['formId', 'submissionId'],
         note: 'the answers are NOT in the payload: follow with nextcloud_forms_get_submissions.',
-        fullNote: 'Bind it to trigger.output.formId and trigger.output.submissionId; it returns the answers keyed by question text (steps.<id>.output.submissions[0].answers.<Question>).',
+        fullNote: 'Bind it to trigger.output.formId and trigger.output.submissionId; it returns the answers keyed by question text (steps.<id>.output.submissions[0].answers.<Question>). Uploaded files: steps.<id>.output.submissions[0].files.<Question>, a list of { fileId, name }.',
     },
     'nextcloud.tables.row.added': {
         group: 'nc-tables',

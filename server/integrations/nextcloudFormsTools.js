@@ -188,6 +188,17 @@ function mapQuestion(q) {
 }
 
 /**
+ * The uploaded file an answer row of a file question names, or null when it
+ * names none.
+ * @param {{ fileId?: number | string | null, text?: unknown }} a
+ * @returns {{ fileId: number | string, name: string | null } | null}
+ */
+function uploadedFileOf(a) {
+    if (a.fileId === null || a.fileId === undefined || a.fileId === '') return null;
+    return { fileId: a.fileId, name: typeof a.text === 'string' && a.text !== '' ? a.text : null };
+}
+
+/**
  * Join a raw submission against the form's questions so answers come back
  * keyed by question text. Questions with no answer are omitted rather than
  * emitted as null, so `Object.keys(answers)` means "what they actually filled
@@ -223,8 +234,8 @@ function mapSubmission(sub, questions) {
         };
         push(answersByQuestionId, qid);
         if (text !== undefined) push(answers, text);
-        if (fileQuestionIds.has(qid) && a.fileId !== null && a.fileId !== undefined && a.fileId !== '') {
-            const file = { fileId: a.fileId, name: typeof a.text === 'string' && a.text !== '' ? a.text : null };
+        const file = fileQuestionIds.has(qid) ? uploadedFileOf(a) : null;
+        if (file) {
             (filesByQuestionId[qid] ||= []).push(file);
             if (text !== undefined) (files[text] ||= []).push({ ...file });
         }
