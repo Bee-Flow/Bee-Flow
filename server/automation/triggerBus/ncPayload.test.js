@@ -49,11 +49,15 @@ test('webhook and poller deliver the same canonical keys for a file event', () =
     assert.strictEqual(fromWebhook.link, null);
 });
 
+// The keys a two-node event adds after `path`: the connector sends the source
+// node of a rename (oldPath) and of a copy (oldPath + sourceId, the original's id).
+/** @type {Record<string, string[]>} */
+const EXTRA_AFTER_PATH = { 'file.renamed': ['oldPath'], 'file.copied': ['oldPath', 'sourceId'] };
+
 test('the catalog declares exactly the canonical keys for every file event', () => {
     for (const ev of FILE_EVENTS) {
-        const expected = ev.id === 'file.renamed'
-            ? [...FILE_FIELDS.slice(0, 3), 'oldPath', ...FILE_FIELDS.slice(3)]
-            : [...FILE_FIELDS];
+        const extra = EXTRA_AFTER_PATH[ev.id] || [];
+        const expected = [...FILE_FIELDS.slice(0, 3), ...extra, ...FILE_FIELDS.slice(3)];
         assert.deepStrictEqual(ev.fields, expected, ev.id);
         assert.deepStrictEqual(Object.keys(ev.sample).sort(), [...expected].sort(), `${ev.id} sample`);
     }

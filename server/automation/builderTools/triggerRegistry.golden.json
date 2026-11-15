@@ -207,6 +207,11 @@
           "label": "Talk reaction added",
           "deliverability": "ok",
           "colleagues": true
+        },
+        {
+          "id": "mail.new",
+          "label": "New email (Nextcloud Mail)",
+          "deliverability": "ok"
         }
       ]
     },
@@ -3468,6 +3473,108 @@
         "actor": "carol",
         "datetime": "2026-05-13T09:25:00Z"
       }
+    },
+    "nextcloud.mail.new": {
+      "fields": [
+        {
+          "key": "accountId",
+          "sample": 3
+        },
+        {
+          "key": "mailboxId",
+          "sample": 12
+        },
+        {
+          "key": "messageId",
+          "sample": 4711
+        },
+        {
+          "key": "from",
+          "sample": "alice@example.com"
+        },
+        {
+          "key": "subject",
+          "sample": "Invoice 2026-114"
+        },
+        {
+          "key": "hasAttachments",
+          "sample": true
+        },
+        {
+          "key": "receivedAt",
+          "sample": "2026-05-13T09:15:00Z"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:15:00Z"
+        }
+      ],
+      "sample": {
+        "accountId": 3,
+        "mailboxId": 12,
+        "messageId": 4711,
+        "from": "alice@example.com",
+        "subject": "Invoice 2026-114",
+        "hasAttachments": true,
+        "receivedAt": "2026-05-13T09:15:00Z",
+        "datetime": "2026-05-13T09:15:00Z"
+      }
+    },
+    "scaleway-billing.invoice.new": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b"
+        },
+        {
+          "key": "number",
+          "sample": 1234567
+        },
+        {
+          "key": "billingPeriod",
+          "sample": "2026-09"
+        },
+        {
+          "key": "issuedDate",
+          "sample": "2026-10-01"
+        },
+        {
+          "key": "dueDate",
+          "sample": "2026-10-31"
+        },
+        {
+          "key": "type",
+          "sample": "periodic"
+        },
+        {
+          "key": "currency",
+          "sample": "EUR"
+        },
+        {
+          "key": "totalInclVat",
+          "sample": 121.37
+        },
+        {
+          "key": "fileName",
+          "sample": "Scaleway-2026-09-1234567.pdf"
+        }
+      ],
+      "sample": {
+        "id": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+        "number": 1234567,
+        "billingPeriod": "2026-09",
+        "issuedDate": "2026-10-01",
+        "dueDate": "2026-10-31",
+        "type": "periodic",
+        "currency": "EUR",
+        "totalInclVat": 121.37,
+        "fileName": "Scaleway-2026-09-1234567.pdf"
+      }
+    },
+    "__agent_call": {
+      "fields": [],
+      "sample": {},
+      "note": "trigger.output holds the arguments the calling agent passes — bind trigger.output.<argumentName>. There is no trigger.payload."
     }
   }
 }

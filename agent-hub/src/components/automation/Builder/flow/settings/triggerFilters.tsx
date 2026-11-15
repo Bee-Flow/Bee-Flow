@@ -321,6 +321,35 @@ export function NextcloudNotificationFilterFields({ filter, setFilter }: FilterF
     );
 }
 
+export function NextcloudMailFilterFields({ filter, setFilter }: FilterFieldsProps) {
+    const { t } = useTranslation();
+    return (
+        <FilterShell title={t('automations.trigger_filters.nextcloud_mail_filter_all_optional', 'Nextcloud Mail filter (all optional)')}>
+            <FormRow label={t('automations.trigger_filters.mail_account_id', 'Mail account ID')} hint={t('automations.trigger_filters.mail_account_id_hint', 'Numeric id from the “List mail accounts” action. Leave empty for every account.')}>
+                <input type="number" value={filter.accountId ?? ''} onChange={(e) => setFilter('accountId', e.target.value === '' ? undefined : Number(e.target.value))}
+                    placeholder="3" className={inputClass() + ' font-mono'} />
+            </FormRow>
+            <FormRow label={t('automations.trigger_filters.mailbox_id', 'Mailbox ID')} hint={t('automations.trigger_filters.mailbox_id_hint', 'Numeric id from the “List mailboxes” action. Leave empty for the inbox.')}>
+                <input type="number" value={filter.mailboxId ?? ''} onChange={(e) => setFilter('mailboxId', e.target.value === '' ? undefined : Number(e.target.value))}
+                    placeholder="12" className={inputClass() + ' font-mono'} />
+            </FormRow>
+            <FormRow label={t('automations.trigger_filters.from_contains', 'From contains')}>
+                <input type="text" value={filter.fromContains || ''} onChange={(e) => setFilter('fromContains', e.target.value || undefined)}
+                    placeholder="boss@example.com" className={inputClass()} />
+            </FormRow>
+            <FormRow label={t('automations.trigger_filters.subject_contains', 'Subject contains')}>
+                <input type="text" value={filter.subjectContains || ''} onChange={(e) => setFilter('subjectContains', e.target.value || undefined)} className={inputClass()} />
+            </FormRow>
+            <FormRow label={t('automations.trigger_filters.has_attachment', 'Has attachment')}>
+                <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={filter.hasAttachment === true} onChange={(e) => setFilter('hasAttachment', e.target.checked || undefined)} />
+                    {t('automations.trigger_filters.only_emails_with_attachments', 'Only emails with attachments')}
+                </label>
+            </FormRow>
+        </FilterShell>
+    );
+}
+
 export function SupportTicketResolvedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
@@ -609,6 +638,7 @@ export const FILTER_FORM_BY_KEY: Record<string, React.ComponentType<FilterFields
     'nextcloud.share.received': NextcloudShareFilterFields,
     'nextcloud.activity.new': NextcloudActivityFilterFields,
     'nextcloud.notification.new': NextcloudNotificationFilterFields,
+    'nextcloud.mail.new': NextcloudMailFilterFields,
     'support.ticket.resolved': SupportTicketResolvedFilterFields,
     'meeting-notes.meeting.processed': MeetingNotesProcessedFilterFields,
 };

@@ -317,6 +317,7 @@ const ctx = {
     nextcloudActivityTools: () => integrationClient('nextcloudActivity'),
     nextcloudNotificationsTools: () => integrationClient('nextcloudNotifications'),
     nextcloudCalendarTools: () => integrationClient('nextcloudCalendar'),
+    nextcloudMailTools: () => integrationClient('nextcloudMail'),
     ncScopeGuard: () => require('../core/integrations/ncScopeGuard'),
     notificationStore: () => require('../stores/notificationStore'),
     loadSession: (userId) => loadSession(userId),

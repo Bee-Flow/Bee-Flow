@@ -55,6 +55,7 @@ const NEXTCLOUD_FILTER_KEYS = {
     'share.deleted': [...SHARE_KEYS, 'shareType'],
     'activity.new': ['type', 'objectNameContains', 'actorEquals'],
     'notification.new': ['app', 'subjectContains'],
+    'mail.new': ['accountId', 'mailboxId', 'fromContains', 'subjectContains', 'hasAttachment'],
     'deck.card.created': DECK_KEYS,
     'deck.card.changed': DECK_KEYS,
     'deck.card.deleted': DECK_KEYS,

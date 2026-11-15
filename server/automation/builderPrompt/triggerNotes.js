@@ -139,6 +139,12 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     'nextcloud.share.received': { filters: ['actorEquals', 'nameContains'], more: ['kindEquals ("file" | "folder")'], fields: ['path', 'name', 'actor'] },
     'nextcloud.activity.new': { filters: ['type', 'actorEquals'], more: ['objectNameContains'], fields: ['type', 'subject', 'objectName', 'actor'] },
     'nextcloud.notification.new': { filters: ['app', 'subjectContains'], fields: ['app', 'subject', 'message'] },
+    'nextcloud.mail.new': {
+        filters: ['accountId', 'mailboxId', 'fromContains', 'subjectContains', 'hasAttachment'],
+        fields: ['messageId', 'from', 'subject', 'hasAttachments'],
+        note: 'no body: read it with nextcloud_mail_read.',
+        fullNote: 'Without mailboxId only the inbox fires. Reply with nextcloud_mail_send replyTo: trigger.output.messageId. Only the mailbox owner\'s automations fire.',
+    },
     'meeting-notes.meeting.processed': {
         filters: ['tags (empty = EVERY meeting)', 'reprocessed'],
         fields: ['transcriptionId', 'tags'],
@@ -193,7 +199,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
 /** @type {Readonly<Record<string, string>>} */
 const PROVIDER_PROMPT_NOTES = Object.freeze({
     nextcloud: [
-        'Delivery: Files, system tags, Calendar, Forms, Tables and Deck are pushed by the Bee Flow connector within seconds (webhook); file.new / file.changed, share.received, activity.new, notification.new and calendar.event.upcoming are read on a ~60 s poll and need no connector; Talk events come from the Bee Flow bot, which only sees conversations a moderator added it to.',
+        'Delivery: Files, system tags, Calendar, Forms, Tables and Deck are pushed by the Bee Flow connector within seconds (webhook); file.new / file.changed, share.received, activity.new, notification.new and calendar.event.upcoming are read on a ~60 s poll and need no connector; Talk events come from the Bee Flow bot, which only sees conversations a moderator added it to; mail.new (Nextcloud Mail) is pushed when Mail synchronises, or read on the poll.',
         'Whose events: a pushed event reaches the automations of the person who caused it; filter.includeColleagues:true also reacts to colleagues\' events, and only fires when the automation\'s owner can see the resource. file.tagged / file.untagged and file.copied / file.restored stay with the person who caused them; file.new / file.changed read the owner\'s activity feed and need no switch.',
         'Nextcloud cannot tell us that something was shared (share.created has no producer): for "when a file is shared" offer a schedule + nextcloud_list_shares instead.',
     ].join(' '),

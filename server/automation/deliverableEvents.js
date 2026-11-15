@@ -60,6 +60,9 @@ const POLLER_BACKED = {
         'activity.new',
         'notification.new',
         'calendar.event.upcoming',
+        // Nextcloud Mail: read by pollers/nextcloudMail.mts for a user without
+        // the connector (or with an older one), and pushed by connector 2.1.0+.
+        'mail.new',
     ]),
 };
 
@@ -94,6 +97,9 @@ const WEBHOOK_BACKED = {
         // yields `changed` alone — a false negative, never a false positive.
         'deck.card.completed',
         'deck.card.moved',
+        // OCA\Mail\Events\NewMessageReceivedEvent (connector 2.1.0+, optional:
+        // a Mail without the webhook interface leaves it to the poller).
+        'mail.new',
     ]),
 };
 
