@@ -381,9 +381,9 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // Here, not in the route, so every way of switching on holds it (the
     // activate route, a Solution stage deploy, the stage settings, a rollback).
     const importGate = require('./importGate.mts');
-    const importRefusal = await importGate.importGateRefusal(a, store);
+    const importRefusal = await importGate.importGateRefusal(/** @type {{ id: string }} */ (a), store);
     if (importRefusal) {
-        const e = /** @type {Error & { status: number, code: string, details?: unknown }} */ (importRefusal);
+        const e = /** @type {Error & { status: number, code: string, details?: object }} */ (importRefusal);
         return { ok: false, raise: true, status: e.status, code: e.code, message: e.message, details: e.details, body: { error: e.message, code: e.code } };
     }
 

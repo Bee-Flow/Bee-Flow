@@ -151,11 +151,11 @@ test('nextcloud_request runs only when the app its path reaches is switched on',
     catalog = () => ({ tools: families.map((name) => ({ function: { name } })) });
     await assert.rejects(
         assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/index.php/apps/mail/api/messages' }),
-        (e) => /Nextcloud Mail/.test(e.message) && e.stepErrorCode === 'tool_not_permitted',
+        (/** @type {any} */ e) => /Nextcloud Mail/.test(e.message) && e.stepErrorCode === 'tool_not_permitted',
     );
     await assert.rejects(
         assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/ocs/v2.php/cloud/user' }),
-        (e) => e.stepErrorCode === 'tool_not_permitted',
+        (/** @type {any} */ e) => e.stepErrorCode === 'tool_not_permitted',
         'a path of no known app needs every Nextcloud app switched on',
     );
     await assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'PROPFIND', path: '/remote.php/dav/files/alice/x' });

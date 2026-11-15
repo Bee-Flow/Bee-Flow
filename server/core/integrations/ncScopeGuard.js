@@ -201,7 +201,7 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
  * known family runs only while no family is narrowed at all.
  * @param {Record<string, { mode: string } | undefined>} scope
  * @param {Record<string, any>} toolArgs
- * @returns {{ error: string, nc_scope_denied: true } | null}
+ * @returns {{ error: string, nc_scope_denied: boolean } | null}
  */
 function requestScopeDenial(scope, toolArgs) {
     const { requestFamilies, NC_FAMILY_IDS, familyLabel: familyName } = require('./ncRequestFamily.mts');
