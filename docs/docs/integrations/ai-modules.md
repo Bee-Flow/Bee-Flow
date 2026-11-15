@@ -63,7 +63,7 @@ Sora-class generation is Pro+. Lower-tier plans get static "video stub" previews
 |------|---------|-------|
 | `music_gen` | ElevenLabs Music | Royalty-free instrumental tracks up to 4 min. |
 
-Requires `ELEVENLABS_API_KEY`.
+Requires an ElevenLabs API key, entered in **Admin → AI Config** and stored encrypted in the database. There is no environment variable for it.
 
 ## Text-to-speech
 

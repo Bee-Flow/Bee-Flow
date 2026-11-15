@@ -53,7 +53,7 @@ The server is configured entirely through environment variables. Mirror the `ser
 - `PII_SERVICE_URL` (+ `PII_SERVICE_API_KEY`) — points the server at the guard, if you deploy it.
 - `PORT` — the server's listen port (`3001` in the compose setup).
 - **`STUDIO_APP_ENGINE`** — set it to `pg` before you run more than one server replica; the
-  default (`sqlite`) supports one. See [the warning below](#more-than-one-replica).
+  default (`sqlite`) supports one. See [the warning below](#server-replicas).
 
 The full variable reference is [Environment variables](env.md). Do not carry over folklore from
 generic Node deployments: the server reads no `JWT_SECRET`, `DB_HOST` or `DB_NAME` — database
@@ -68,7 +68,7 @@ kind: Deployment
 metadata:
   name: beeflow-server
 spec:
-  replicas: 2   # only with STUDIO_APP_ENGINE=pg, see "More than one replica" below
+  replicas: 1   # raise only with STUDIO_APP_ENGINE=pg, see "More than one server replica" below
   selector:
     matchLabels: { app: beeflow-server }
   template:
@@ -110,7 +110,7 @@ takes up to about 40 seconds, which is more than the Kubernetes default of 30: k
 `terminationGracePeriodSeconds` at 60, and keep the image's own command (`node index.js`), so
 the signal reaches the server instead of a wrapper.
 
-### More than one replica
+### More than one server replica {#server-replicas}
 
 :::warning[Two replicas need `STUDIO_APP_ENGINE=pg`]
 
@@ -131,8 +131,9 @@ Run more than one replica only on the Postgres engine, which keeps each app in i
   kubectl exec deploy/beeflow-server -- node scripts/migrateStudioAppsToPg.js --all
   ```
 
-  A moved app is not served by a pod that still runs the default engine, so do the move and the
-  roll in one maintenance window.
+  The script moves each app into its own schema, checks the row counts before it commits and
+  leaves the old file in object storage as a backup. A moved app is not served by a pod that
+  still runs the default engine, so do the move and the roll in one maintenance window.
 
 Until then keep `replicas: 1`. A server that starts in a cluster on the default engine logs a
 warning about this; with one replica that line can be ignored.
@@ -146,7 +147,7 @@ refused on the second pod in the same way.
 Sessions are stored in Postgres, so multiple server replicas work without sticky sessions or
 Redis. The guard needs a generous readiness window (it loads its model before `/ready` goes
 green) — and note it [fails closed](env.md#service-to-service-sidecars): chat is blocked while no guard replica
-is ready, so run two replicas if a restart must not interrupt service.
+is ready, so run two guard replicas if a restart must not interrupt service.
 
 ### Token-signing secrets: leave these to the server
 

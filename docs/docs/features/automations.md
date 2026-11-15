@@ -4,9 +4,9 @@ title: Automations
 
 # Automations
 
-:::warning[Pro tier feature]
+:::info[Free in Community]
 
-Requires a Pro or higher licence key. See [Tiers](../getting-started/tiers.md).
+Building and running automations for yourself needs no licence key. Sharing an automation with a team and routing a step past a colleague for approval need Enterprise. See [Tiers](../licensing/tiers.md).
 
 :::
 
@@ -31,14 +31,14 @@ Every step has a stable `id`, a `type`, an optional `label`, and a set of `input
 |------|---------------|--------|
 | `schedule` | A cron expression in the org timezone. | `schedule_cron`, `schedule_tz` |
 | `webhook` | A signed POST to `/api/automation/webhook/{slug}` lands. | Create the URL and its signing secret in the trigger's Webhook panel; see [Webhook trigger format](#webhook-trigger-format). |
-| `event` | A subscribed app event happens (Nextcloud event poller every 30 s, Microsoft Graph subscription, integration webhooks). | Pick the event in the builder. |
+| `event` | A subscribed app event happens (Nextcloud event poller every 30 s, Microsoft Graph subscription, integration webhooks). | Pick the event in the builder. GitHub events arrive on their own webhook and are scoped to an organisation by the secret that signs them: see [GitHub → GitHub events](../integrations/github.md#webhook). |
 | `manual` | A user clicks "Run now" in the UI, or calls `POST /api/automation/{id}/run`. | None. |
 
-The next-run time for cron triggers is computed by [`server/automation/cron.js`](https://github.com/Bee-Flow/beeflow). Due jobs are claimed atomically by the runner with `SELECT … FOR UPDATE SKIP LOCKED` so multiple server replicas can share the load without double-firing.
+The next-run time for cron triggers is computed by [`server/automation/cron.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/automation/cron.js). Due jobs are claimed atomically by the runner with `SELECT … FOR UPDATE SKIP LOCKED` so multiple server replicas can share the load without double-firing.
 
 ## Step types
 
-The runner ([`server/core/automationRunner.js`](https://github.com/Bee-Flow/beeflow)) supports the following step types. Validation lives in [`server/automation/validate.js`](https://github.com/Bee-Flow/beeflow) and is the source of truth for the up-to-date list.
+The runner ([`server/core/automationRunner.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/core/automationRunner.js)) supports the following step types. Validation lives in [`server/automation/validate.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/automation/validate.js) and is the source of truth for the up-to-date list.
 
 ### Action steps
 
@@ -136,7 +136,7 @@ Step inputs are not free strings — they're typed bindings so the runner knows 
 | `literal` | `{ kind: 'literal', value: <any> }` | Hard-coded value (`"Hello"`, `42`, `true`). |
 | `ref` | `{ kind: 'ref', path: 'steps.<id>.output.foo' }` | Single dotted reference to an upstream value. |
 | `template` | `{ kind: 'template', value: 'Hi {{steps.x.output.name}}!' }` | String with `{{…}}` interpolation. |
-| `expr` | `{ kind: 'expr', value: 'a > 5 && b == "x"' }` | A safe expression evaluated by [`server/automation/expr.js`](https://github.com/Bee-Flow/beeflow). |
+| `expr` | `{ kind: 'expr', value: 'a > 5 && b == "x"' }` | A safe expression evaluated by [`server/automation/expr.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/automation/expr.js). |
 
 The visual builder shows refs as `‹Step Label›.foo` on the canvas instead of the raw `steps.<id>.output.foo` so non-developers can read the diagram at a glance. The raw value stays available in the inspector + on hover.
 
@@ -187,12 +187,12 @@ Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `s
 
 Every automation has two run modes:
 
-- **Dry-run** — invoked from the builder's `Dry run` button, the AI builder, MCP, mobile or the API. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real. The builder's dry run pauses at approvals and form pages for you to answer; a dry run nobody watches (AI builder, MCP, mobile, API) auto-approves approvals and answers form pages with blanks, and marks both as simulated.
+- **Dry-run** — invoked from the builder's `Dry run` button, the AI builder, MCP, mobile or the API. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/automation/outputSchemas.js)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real. The builder's dry run pauses at approvals and form pages for you to answer; a dry run nobody watches (AI builder, MCP, mobile, API) auto-approves approvals and answers form pages with blanks, and marks both as simulated.
 - **Live** — the trigger fires the automation and every step runs end-to-end. In the builder, **Run for real (sends and writes)** runs the working copy for real after a confirmation on every run; its approvals go to you, never to the configured approvers.
 
 [Testing automations → Run modes](automation-testing.md#run-modes) lists every way to start a run and how each one treats approvals, form pages and answers.
 
-The side-effect map ([`server/core/automationModel/sideEffectMap.js`](https://github.com/Bee-Flow/beeflow)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
+The side-effect map ([`server/core/automationModel/sideEffectMap.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/core/automationModel/sideEffectMap.js)) is **fail-closed**: any tool that isn't on the read-only allow-list is treated as a write. New write integrations get conservative handling automatically.
 
 ## Validation flow
 
@@ -226,7 +226,7 @@ Click a node → the right-hand inspector shows its config. Inputs render as the
 
 ### Variable tree
 
-The inspector's variable picker shows a tree of every output produced by every preceding step. Tools advertise their shape via [`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow), so even before a first run you can pick `steps.gmail_search.output.messages[0].subject` from a typed picker rather than typing the path by hand.
+The inspector's variable picker shows a tree of every output produced by every preceding step. Tools advertise their shape via [`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/automation/outputSchemas.js), so even before a first run you can pick `steps.gmail_search.output.messages[0].subject` from a typed picker rather than typing the path by hand.
 
 ### AI builder assistant
 
@@ -682,9 +682,11 @@ on.
 
 ## Tier limits
 
-- **Pro** — up to 100 active automations per org. Min cron interval: 5 min.
-- **Enterprise** — unlimited active automations. Min cron interval: 1 min. Approval steps. Webhook IP-allowlist.
-- **Full** — same as Enterprise plus white-labelled webhook URLs.
+- **Community** — the automation builder and scheduled agent runs, private to the person who makes them. No tier sets a cap on the number of automations.
+- **Enterprise** — adds the collaboration layer: sharing automations across a team, approvals and projects.
+- **Full** — same as Enterprise for automations.
+
+The feature flags behind this are in [Licensing → Tiers](../licensing/tiers.md#feature-flag-names).
 
 ## Where to next
 

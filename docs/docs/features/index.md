@@ -16,11 +16,11 @@ Bee Flow ships a layered feature set. Some are free at the Community tier; other
 
 -    [Knowledge bases](knowledge.md)
 
-    **Community+** local · **Pro+** vector — Drop documents in, ask questions across them. Local KB at Community; vector / hybrid / reranked KBs at Pro.
+    **Community+** — Drop documents in, ask questions across them. Local, vector, hybrid and reranked knowledge bases are all part of Community.
 
 -    [Automations](automations.md)
 
-    **Pro+** — Trigger-based workflows. When an email tagged urgent arrives, summarise and post in Talk. Cron / webhook / NC event / manual triggers.
+    **Community+** (sharing with a team and approvals: **Enterprise+**) — Trigger-based workflows. When an email tagged urgent arrives, summarise and post in Talk. Cron / webhook / NC event / manual triggers.
 
 -    [Privacy shield](privacy-shield.md)
 
@@ -28,7 +28,7 @@ Bee Flow ships a layered feature set. Some are free at the Community tier; other
 
 -    [Voice](voice.md)
 
-    **Pro+** — Full-duplex voice calls with the assistant. Voxtral STT/TTS, energy-VAD, barge-in.
+    **Enterprise+** — Full-duplex voice calls with the assistant. Voxtral STT/TTS, energy-VAD, barge-in.
 
 </div>
 
@@ -52,4 +52,4 @@ Premium features are blocked at two layers:
 1. **UI** — gated nav entries are hidden at lower tiers (`<RequireTier>` wrapper).
 2. **API** — the `requireLicenseFeature()` middleware on the server returns 403 if the feature isn't allowed for the org's tier.
 
-If you reach a 403, your tier doesn't include that feature. Upgrade or contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/tiers.js).
+If you reach a 403, your tier doesn't include that feature. Upgrade or contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/license/tiers.js).

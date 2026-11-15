@@ -40,14 +40,71 @@ Scopes: read access to the repositories you want, plus `read:org` when you use t
 
 ## Use cases
 
-- "Find all open issues mentioning `regression` in `Bee-Flow/beeflow`."
+- "Find all open issues mentioning `regression` in `Bee-Flow/Bee-Flow`."
 - "Summarise the last 5 PRs merged to `main`."
 - "Open an issue titled 'Docs: clarify license refresh' with a description from this conversation."
 - (Automation) On a Talk message containing `bug:`, open a GitHub issue.
 
+## GitHub events (webhook) {#webhook}
+
+:::info[Not offered in the builder]
+
+GitHub is hidden as an event source in the automation builder. The webhook
+below serves automations that were saved with a GitHub event trigger before it
+was withdrawn, and an administrator who operates one of those is who this
+section is for.
+
+:::
+
+The server accepts GitHub webhook deliveries at
+`POST /api/automation/events/github`: no sign-in, a JSON body of at most
+256 kB, and the shared rate limit of the provider event routes
+(`AUTOMATION_EVENTS_RPM_PER_IP`, see [Environment variables](../self-hosting/env.md#inbound-and-integration-limits)).
+The event name is taken from the `X-GitHub-Event` header.
+
+A delivery names no organisation. It only carries a signature
+(`X-Hub-Signature-256`, an HMAC-SHA256 over the raw body), so **the secret that
+signed it decides which organisation receives the event**:
+
+| Config entry | Reaches |
+|--------------|---------|
+| `org_<orgId>_github_webhook_secret` | One organisation. A delivery signed with this secret starts only the automations of that organisation's members. `<orgId>` is the organisation's id. |
+| `automation_github_webhook_secret` | The whole installation. It names no organisation, so it is honoured only while the installation has **at most one** organisation. With two or more, a delivery signed with it is refused: it would reach every organisation's automations, and whoever knows the secret could forge events for all of them. |
+
+The organisations' own entries are tried first, then the installation-wide one.
+Give every organisation its own secret, and its own webhook in GitHub, as soon
+as the installation has more than one.
+
+| Answer | Meaning |
+|--------|---------|
+| `202` | Accepted and handed to the automations that subscribe to the event. |
+| `401` `Bad signature` | The signature matches no configured secret. |
+| `409` `github_webhook_needs_org_secret` | Signed with the installation-wide secret on an installation with several organisations. The server log says so too. Set a secret per organisation. |
+| `503` `github_webhooks_unconfigured` | No entry exists at all, or the request is unsigned and there is no installation-wide entry. |
+
+### Setting it up
+
+1. In GitHub, add a webhook to the repository or organisation: payload URL
+   `https://<your-host>/api/automation/events/github`, content type
+   `application/json`, and a long random **Secret**.
+2. Store the same secret in Bee Flow. There is no screen for it: each entry is a
+   row in the `config` table of the server's database (`beeflow_core`), with
+   the entry's name as `key` and the secret as `value`. The server picks a new
+   row up within a minute.
+
+:::warning[A row written by hand stops working at the next server restart]
+
+At start-up the server encrypts every plain `config` row whose name ends in
+`secret`. The webhook route reads these two entries without decrypting them,
+so after a restart a correctly signed delivery is answered `401 Bad signature`
+until the row is written again as plain text. Check this first when GitHub
+reports failed deliveries after an upgrade or a restart.
+
+:::
+
 ## Rate limits
 
-GitHub's standard 5000 requests/hour applies to the whole org's traffic through the OAuth app. For high-volume automations, use a GitHub App instead of OAuth — the limits are per-installation.
+GitHub's rate limit (5,000 requests an hour for a personal access token) counts per token, so per user who connected one.
 
 ## Privacy
 

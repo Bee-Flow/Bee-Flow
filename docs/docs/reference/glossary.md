@@ -16,25 +16,25 @@ title: Glossary
 | **Bootstrap** | The first-install flow on the connector that provisions a tenant key against the Bee Flow service. |
 | **BSN** | Burgerservicenummer — the Dutch national ID number. Built-in PII category. |
 | **Citation** | A reference to a KB source in a model's reply, rendered either inline or as a card. |
-| **Community tier** | Free tier. Single user, 2 agents, 1 000 messages / month. |
+| **Community tier** | Free tier, no licence key. Chat, knowledge bases, skills, personal automations, multi-user, the Nextcloud connector and all built-in integrations; no caps on users, agents or messages. |
 | **Component** | An AI-built sandboxed UI fragment that an agent can emit instead of plain Markdown. |
 | **Connector** | The Bee Flow Nextcloud ExApp. Container at `ghcr.io/bee-flow/connector`, AGPL-3.0. |
 | **Conversation** | A chat thread between a user and an agent, persisted in Postgres. |
 | **DSR** | Data Subject Request — GDPR term for a user requesting access, portability, or erasure of their data. |
 | **Embedding** | A high-dimensional vector representation of text used for similarity search. |
-| **Enterprise tier** | Includes GDPR compliance hub, SAML SSO, audit log export, unlimited users / agents / messages. |
+| **Enterprise tier** | Paid tier. Adds sharing automations, approvals, projects, voice, meeting notes, webpages, notebooks, App Studio, Google / Microsoft sign-in, the compliance hub and audit log export. |
 | **ExApp** | Nextcloud "External App" — a Docker container that integrates with NC via AppAPI. |
 | **Fair-code** | Source-available licensing that permits self-hosting + modification but restricts third-party SaaS resale. SUL is fair-code. |
 | **Full tier** | Top tier: Enterprise + white-label + sub-licence issuance. |
 | **Guardrail** | A check the server performs on prompts / tool results — PII, custom term, moderation, unicode-smuggling. |
 | **HaRP** | Nextcloud's "Hostname/Reverse Proxy" deployment daemon for ExApps. |
-| **Hive** | The frontend repo (`Bee-Flow/hive`). React + Vite SPA. |
+| **Hive** | The frontend: a React + Vite SPA, also called Agent Hub. Its source is `agent-hub/` in the repository. |
 | **HMAC** | Keyed hash used to sign requests between connector and Bee Flow service (SHA-256). |
 | **Idempotency key** | A client-supplied UUID on POST that lets the server cache the first response and replay it on duplicates. |
 | **Integration** | A connector to an external service (Gmail, Outlook, GitHub, …). Each exposes one or more tools. |
 | **JWT** | JSON Web Token. Used for sessions, NC handshakes, and licence keys. |
 | **Knowledge Base (KB)** | A document collection the agent can search. Local (Postgres) or vector (pgvector / Qdrant). |
-| **Licence key** | A signed JWT that unlocks premium tiers. Verified against `bundled-public-key.pem`. |
+| **Licence key** | A signed JWT (`RS256`) that unlocks premium tiers. Verified against Bee Flow's public key, which the operator sets with `LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL`. |
 | **Memory** | Per-user (or per-agent) facts the **Memory Extractor** system agent populates over time. |
 | **Moderation** | Post-generation safety check via Azure Content Safety. |
 | **NC** | Nextcloud. |
@@ -42,12 +42,12 @@ title: Glossary
 | **Org / Organisation / Tenant** | A self-contained Bee Flow workspace. Has users, groups, agents, settings, licence. |
 | **PGVector** | Postgres extension providing native vector similarity search. Used for KBs in default deploys. |
 | **PII** | Personally Identifiable Information — what the Privacy Shield detects + redacts. |
-| **Pro tier** | 25 users, 20 agents, 50k msg/mo. Includes automations, voice, web pages, meeting notes, skills. |
+| **Pro tier** | Retired. A licence key that still says `pro` is accepted and counts as Enterprise. |
 | **Privacy Shield** | The in-tenant PII filter that redacts sensitive content before it reaches the model. Always-on; level configurable. |
 | **Reranker** | A cross-encoder that re-orders top-K KB search results for better quality. Optional. |
 | **Automation** | The end-user name for an automation in the SPA (`/app/automations`). |
 | **RRF** | Reciprocal Rank Fusion — combines vector + BM25 search results into a single ranked list. |
-| **Skill** | A reusable bundle (prompt extension + tools + KB) attachable to any agent. Pro+ feature. |
+| **Skill** | A reusable bundle (prompt extension + tools + KB) attachable to any agent. Included in Community. |
 | **SSE** | Server-Sent Events. The streaming protocol for chat replies. |
 | **SUL** | Sustainable Use Licence — Bee Flow's fair-code licence for the server + frontend. |
 | **System agent** | One of 10 built-in agents seeded by the system (Title Generator, Memory Extractor, etc.). |

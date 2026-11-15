@@ -68,9 +68,9 @@ The detection backend is configurable independently of the level (Azure AI Text 
 
 ## Step 4 — License key (optional)
 
-Stay on the free **Community** tier or paste a JWT licence key from [https://beeflow.nl/pricing](https://beeflow.nl/pricing) to unlock automations, multi-user, voice, compliance hub and other premium features.
+Stay on the free **Community** tier or paste a JWT licence key from [https://beeflow.nl/pricing](https://beeflow.nl/pricing) to unlock voice, meeting notes, sharing automations with a team, the compliance hub and other premium features. Automations for personal use and multi-user are part of Community.
 
-The server verifies the JWT signature against a bundled public key (`license/bundled-public-key.pem`). If valid, the active tier updates immediately — no restart needed. Premium navigation entries appear, and gated endpoints become reachable.
+The server verifies the JWT signature against Bee Flow's licence public key, which a self-hosted server gets from `LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL` in `.env` (see [Applying a licence key](../licensing/apply.md#public-key)). If valid, the active tier updates immediately — no restart needed. Premium navigation entries appear, and gated endpoints become reachable.
 
 You can paste, rotate, or remove a key any time later under **Admin → Organisation → License & Usage**. See [Applying a licence key](../licensing/apply.md).
 
@@ -83,7 +83,7 @@ The wizard closes and Bee Flow opens with:
 - A pre-seeded **Assistant** agent wired to all enabled integrations
 - The 9 system **starter agents** (Title Generator, Memory Extractor, PDF Extractor, etc.) available org-wide
 - An empty **Knowledge Bases** list
-- An empty **Automations** list (Pro+ only)
+- An empty **Automations** list
 
 Other users in the chosen sync scope log in with their NC account and land directly on chat — the wizard never runs for non-admins.
 

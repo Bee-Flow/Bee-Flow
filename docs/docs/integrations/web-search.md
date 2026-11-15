@@ -52,7 +52,7 @@ The `agent_search` tool accepts a `mode` argument that controls how much work th
 
 ## How "Cloud-only" works under the hood
 
-The cloud-only path is implemented entirely in the Node.js server ([`server/integrations/nodeSearchTools.js`](https://github.com/Bee-Flow/beeflow/blob/main/server/integrations/nodeSearchTools.js)) — no Python, no GPU, no external orchestrator:
+The cloud-only path is implemented entirely in the Node.js server ([`server/integrations/nodeSearchTools.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/integrations/nodeSearchTools.js)) — no Python, no GPU, no external orchestrator:
 
 1. Serper returns the top-N organic results (URLs + titles + snippets).
 2. Top pages are fetched in parallel via `fetch()` with size and content-type guards.

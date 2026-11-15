@@ -12,15 +12,19 @@ this repository only **verifies** keys, and, when configured, asks the license
 server to issue, refresh or revoke them over HTTPS.
 
 This page covers that product side: the environment variables on the Bee Flow
-server that point at the license server. A self-hosted install needs none of
-them to activate a key; the bundled public key is enough (see
-[Applying a licence key](./apply.md)).
+server that point at the license server. To activate a key, a self-hosted
+install needs exactly one of them: the public key the key is verified against
+(`LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL`). A
+release image carries no public key, so without one of the three a pasted key
+is refused (see [Applying a licence key](./apply.md#public-key)). The others
+are optional.
 
 ## Environment variables
 
 | Variable | Default | What it does |
 |---|---|---|
-| `LICENSE_PUBLIC_KEY` / `LICENSE_PUBLIC_KEY_FILE` | `server/license/bundled-public-key.pem` | The public key licence JWTs are verified against: an inline PEM, or a path to one. Override only to verify keys from a different issuer. |
+| `LICENSE_PUBLIC_KEY` / `LICENSE_PUBLIC_KEY_FILE` | _(empty)_ | The public key licence JWTs are verified against (`RS256`): an inline PEM, or a path to one. Unset, the server looks for `server/license/bundled-public-key.pem`. That file is not in the repository or in a release image; a development checkout may have one, and a production server refuses it unless `LICENSE_ALLOW_BUNDLED_KEY=true`. |
+| `LICENSE_ALLOW_BUNDLED_KEY` | off | `true` lets a production server (`NODE_ENV=production`) verify against `server/license/bundled-public-key.pem`. Off by default, so that a deploy that forgot the public key cannot end up accepting development-signed keys. |
 | `LICENSE_JWKS_URL` | _(empty)_ | A JWKS endpoint (`/v1/jwks.json` on the license server). Verification picks the key whose `kid` matches the JWT, which is what makes key rotation possible without a release. Unset, the public key above is used alone. It must be an `https://` URL: a production server refuses to start with a plain-http one, because the key set is the trust root. |
 | `MODULES_PUBLIC_KEY` / `MODULES_PUBLIC_KEY_FILE` | _(empty)_ | A separate key family for Hub module (`.bfmod`) signatures: an inline PEM, or a path to one. Set, it is the only key a module is verified against (the licence key and the JWKS play no part). Unset, modules verify against the licence chain above. |
 | `LICENSE_REFRESH_URL` | _(empty, refresh is opt-in)_ | Where keys are re-checked for revocation, periodically. Unset means no pings at all; the JWT signature and `exp` stay authoritative either way. |

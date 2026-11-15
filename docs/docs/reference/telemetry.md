@@ -10,7 +10,7 @@ What Bee Flow logs, how to ship it elsewhere, and what guarantees we make about 
 
 Current reality:
 
-- **Logs**: plain `console.*` JSON (no structured Pino logger wired yet). Captured by `docker logs` or the container runtime.
+- **Logs**: in production one JSON object per line on stdout, written by a structured logger (pino, `server/telemetry/log.js`) and stamped with the id of the request that produced it (`reqId`). In development and under test the same calls go to the console as readable text. Captured by `docker logs` or the container runtime.
 - **Metrics**: implemented and **off by default** (env-gated, no-op unless configured). Two surfaces: an admin-gated `GET /api/admin/metrics` (Prometheus text or JSON) from in-memory counters, and an OpenTelemetry meter exported over OTLP when `OTEL_ENABLED` / `OTEL_EXPORTER_OTLP_ENDPOINT` are set.
 - **Tracing**: implemented — OTLP/HTTP trace exporter + auto-instrumentation, same env gate as metrics.
 - **Usage / ops push**: optional periodic JSON push of usage-cost and ops snapshots to an OpenObserve-style store (`USAGE_PUSH_ENABLED` / `OPS_PUSH_ENABLED`).
@@ -143,9 +143,10 @@ never distinguish phone from web. They are not usage evidence.
 
 | Mode | How |
 |------|-----|
-| `LOG_FORMAT=json` (default) | Stdout — pipe to your log collector. |
-| `LOG_FORMAT=pretty` | Human-readable — for local dev only. |
-| Sentry | Set `SENTRY_DSN`. Errors go to Sentry; the rest stays in stdout. |
+| `LOG_FORMAT=json` (the default when `NODE_ENV=production`) | One JSON object per line on stdout — pipe to your log collector. `LOG_LEVEL` (`debug`, `info`, `warn`, `error`; default `info`) applies in this mode. |
+| `LOG_FORMAT=console` (the default elsewhere) | Human-readable — for local dev only. |
+
+There is no Sentry integration: an earlier version of this page named a `SENTRY_DSN` variable, which the server does not read. Ship errors with the logs, or as traces over OTLP (below).
 
 ## Shipping to a SIEM / log store
 
@@ -192,9 +193,9 @@ What exists today is pull, not push: the sign-in and access-control trail can be
 
 There is no **public** `/metrics` endpoint. Metrics are exposed on two admin/optional surfaces:
 
-**1. `GET /api/admin/metrics`** (admin-gated) — in-memory counters maintained by [server/telemetry/httpMetrics.js](https://github.com/Bee-Flow/beeflow/blob/main/server/telemetry/httpMetrics.js): HTTP request totals + duration buckets, DB query counts, cache hit/miss, event-loop delay. Add `?format=prometheus` for Prometheus text exposition; the default is JSON.
+**1. `GET /api/admin/metrics`** (admin-gated) — in-memory counters maintained by [server/telemetry/httpMetrics.js](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/telemetry/httpMetrics.js): HTTP request totals + duration buckets, DB query counts, cache hit/miss, event-loop delay. Add `?format=prometheus` for Prometheus text exposition; the default is JSON.
 
-**2. OpenTelemetry meter** ([server/telemetry/metrics.js](https://github.com/Bee-Flow/beeflow/blob/main/server/telemetry/metrics.js), meter `beeflow-server`) — domain metrics recorded across the app and exported over OTLP when telemetry is enabled (see below). No-op when the OTEL SDK isn't started. Covers, among others:
+**2. OpenTelemetry meter** ([server/telemetry/metrics.js](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/telemetry/metrics.js), meter `beeflow-server`) — domain metrics recorded across the app and exported over OTLP when telemetry is enabled (see below). No-op when the OTEL SDK isn't started. Covers, among others:
 
 | Instrument | Kind | Notes |
 |------------|------|-------|
@@ -207,7 +208,7 @@ Because the meter is exported via OTLP, you consume these in whatever OTLP-compa
 
 ## Tracing & OTLP export (OpenTelemetry)
 
-Bee Flow ships an OpenTelemetry bootstrap ([server/telemetry/otel.js](https://github.com/Bee-Flow/beeflow/blob/main/server/telemetry/otel.js), required first in `server/index.js` so it can patch the runtime). When enabled it starts a `NodeSDK` with OTLP/HTTP exporters for **both traces and metrics**, plus auto-instrumentation for HTTP, Express, Postgres, Redis/ioredis, and undici. `GET /api/health` reports whether it came up (`otel: true|false`).
+Bee Flow ships an OpenTelemetry bootstrap ([server/telemetry/otel.js](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/telemetry/otel.js), required first in `server/index.js` so it can patch the runtime). When enabled it starts a `NodeSDK` with OTLP/HTTP exporters for **both traces and metrics**, plus auto-instrumentation for HTTP, Express, Postgres, Redis/ioredis, and undici. `GET /api/health` reports whether it came up (`otel: true|false`).
 
 It is **off by default** and turns on when either `OTEL_ENABLED=true` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set:
 
@@ -225,10 +226,10 @@ Point the endpoint at your own OTel Collector or any OTLP/HTTP-compatible store.
 
 Two optional periodic jobs push aggregated data straight to OpenObserve-style streams over HTTP JSON (reusing the OTLP endpoint + headers above), independent of the OTLP metric exporter:
 
-- **Usage/cost** ([server/jobs/usageOpenObservePush.js](https://github.com/Bee-Flow/beeflow/blob/main/server/jobs/usageOpenObservePush.js)) — token/cost rollups from `ai_usage_log` to the `ai_usage` stream. Enable with `USAGE_PUSH_ENABLED=true`; requires `USAGE_HASH_SALT` (HMAC-pseudonymises user ids). Tunable via `USAGE_PUSH_*`.
-- **Ops/product/security/billing** ([server/jobs/opsMetricsPush.js](https://github.com/Bee-Flow/beeflow/blob/main/server/jobs/opsMetricsPush.js)) — gauge snapshots to the `bee_ops` / `bee_product` / `bee_security` / `bee_billing` streams. Enable with `OPS_PUSH_ENABLED=true`. Tunable via `OPS_PUSH_*`.
+- **Usage/cost** ([server/jobs/usageOpenObservePush.js](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/jobs/usageOpenObservePush.js)) — token/cost rollups from `ai_usage_log` to the `ai_usage` stream. Enable with `USAGE_PUSH_ENABLED=true`; requires `USAGE_HASH_SALT` (HMAC-pseudonymises user ids). Tunable via `USAGE_PUSH_*`.
+- **Ops/product/security/billing** ([server/jobs/opsMetricsPush.js](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/jobs/opsMetricsPush.js)) — gauge snapshots to the `bee_ops` / `bee_product` / `bee_security` / `bee_billing` streams. Enable with `OPS_PUSH_ENABLED=true`. Tunable via `OPS_PUSH_*`.
 
-See [server/.env.example](https://github.com/Bee-Flow/beeflow/blob/main/server/.env.example) for the full, commented variable list.
+See [server/.env.example](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/.env.example) for the full, commented variable list.
 
 ## Health checks
 

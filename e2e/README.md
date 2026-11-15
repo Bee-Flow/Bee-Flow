@@ -11,9 +11,13 @@ scenarios** and executed in two Claude-assisted modes:
   **fallback** when a generated spec fails, to distinguish *spec rot* (app
   fine, spec stale) from a *real regression*.
 
-In CI this suite gates production releases: `.github/workflows/e2e-smoke.yml`
-boots a fresh stack from the freshly built images and runs `npm run smoke`;
-`build-push-ghcr.yml` only promotes `:latest`/`:prod` tags after green.
+In CI this suite is built to gate production releases:
+`.github/workflows/e2e-smoke.yml` boots a fresh stack from the freshly built
+images and runs `npm run smoke`, and the `release-candidate` job of
+`build-push-ghcr.yml` waits for it. That call is **switched off at the moment**
+(`false &&` in the `e2e-smoke` job's `if`, since 2026-10-09): the job is
+skipped and a release candidate accepts the skipped run, so the suite does not
+gate releases today. It still runs on demand (`workflow_dispatch`).
 
 ## Setup (local)
 
