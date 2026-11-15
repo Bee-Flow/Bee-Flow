@@ -92,15 +92,9 @@ as the installation has more than one.
    the entry's name as `key` and the secret as `value`. The server picks a new
    row up within a minute.
 
-:::warning[A row written by hand stops working at the next server restart]
-
 At start-up the server encrypts every plain `config` row whose name ends in
-`secret`. The webhook route reads these two entries without decrypting them,
-so after a restart a correctly signed delivery is answered `401 Bad signature`
-until the row is written again as plain text. Check this first when GitHub
-reports failed deliveries after an upgrade or a restart.
-
-:::
+`secret`, these two included. The webhook route reads them decrypted, so a row
+written by hand keeps working after a restart.
 
 ## Rate limits
 

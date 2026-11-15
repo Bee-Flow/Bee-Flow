@@ -361,7 +361,8 @@ router.post('/events/github', eventsLimiter, captureRawJson('256kb'), async (req
     const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
     const scope = await scopeOfGithubDelivery({
         signature: sig, raw,
-        getConfig: (key) => configStore.getConfig(key),
+        // getSecret, not getConfig: the server encrypts these rows at start-up.
+        getConfig: (key) => configStore.getSecret(key),
         listOrganizations: () => require('../../stores/userStore').getAllOrganizations(),
     });
     if (scope.outcome === 'unconfigured') throw new HttpError(503, 'github_webhooks_unconfigured', 'GitHub webhooks not configured');
