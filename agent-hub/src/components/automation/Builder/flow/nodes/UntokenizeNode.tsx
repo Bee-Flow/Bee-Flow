@@ -1,4 +1,3 @@
-import React from 'react';
 import { Eye } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';

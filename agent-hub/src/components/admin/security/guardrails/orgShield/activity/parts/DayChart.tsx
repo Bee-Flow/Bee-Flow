@@ -9,7 +9,7 @@
  */
 
 import { ChartColumnStacked } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { OUTCOME_SHORT_WORDS, wordFor } from '../activityLabels';

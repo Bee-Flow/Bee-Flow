@@ -1,4 +1,3 @@
-import React from 'react';
 import { MailCheck, CheckCircle } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { LoginBackdrop } from './LoginChrome';

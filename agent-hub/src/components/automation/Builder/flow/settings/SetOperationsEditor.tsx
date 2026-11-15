@@ -1,6 +1,6 @@
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
-import { cardClass, inputClass, FormRow } from './formPrimitives';
+import { cardClass, inputClass } from './formPrimitives';
 import { SET_OP_DEFS, SET_OP_TITLES, columnsAfterOps } from '../setOperations';
 import type { SetOpDef, SetOperation } from '../setOperations';
 import { humanizeFieldKey } from '../displayHelpers';

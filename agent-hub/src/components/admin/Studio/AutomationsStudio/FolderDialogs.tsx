@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import type { AutomationListRow, AutomationFolder } from '@/components/automation/useAutomationLibrary';

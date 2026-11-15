@@ -5,7 +5,7 @@ import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import { RULE_TRIGGER_PROVIDER, composerSeed, facetsReadable, newRuleDefinition, ruleHref } from '../lib/meetingRules';
-import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RulesPanelProps } from './RulesPanel.types';
+import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RulesPanelProps } from './RulesPanel.types';
 import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 import { list, RuleCard } from './RuleCard';

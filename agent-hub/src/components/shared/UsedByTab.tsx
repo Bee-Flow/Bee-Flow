@@ -46,7 +46,7 @@
  * blue here and teal on the rail.
  */
 import { ArrowUpRight, Loader2 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { kindColorVar, kindIcon, kindOf, kindTint } from './kindColors';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import type { TranslateFn } from '../../hooks/useTranslation';

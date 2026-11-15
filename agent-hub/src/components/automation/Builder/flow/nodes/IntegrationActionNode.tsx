@@ -1,4 +1,3 @@
-import React from 'react';
 import { Wrench, Zap, Repeat } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';

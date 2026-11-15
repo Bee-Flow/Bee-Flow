@@ -3,7 +3,6 @@
  * (a hero--align-left class drives the CSS); the cta block must not render a
  * secondary button whose label is blank, except in the editor preview.
  */
-import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import Hero from './Hero';

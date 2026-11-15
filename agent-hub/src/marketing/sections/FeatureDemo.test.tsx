@@ -11,7 +11,6 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/FeatureDemo.test.jsx
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';

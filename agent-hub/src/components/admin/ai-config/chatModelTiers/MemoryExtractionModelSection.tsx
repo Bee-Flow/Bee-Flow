@@ -7,7 +7,6 @@
 // a self-hosted single-slot server is the model the chat itself just used —
 // each extraction then queues a full prompt evaluation in front of the next
 // turn. A tiny dedicated model keeps the slot free.
-import React from 'react';
 import ModelSettingRow from './ModelSettingRow';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';

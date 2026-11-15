@@ -1,4 +1,3 @@
-import React from 'react';
 import NodeContextMenu from './NodeContextMenu';
 import { canDeleteNode, canDuplicateNode, canDetachNode } from './nodeOps';
 import type { DiagramDefinition, StepId } from './diagramPaneTypes';

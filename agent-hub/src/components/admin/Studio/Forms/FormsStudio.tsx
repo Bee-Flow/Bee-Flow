@@ -9,7 +9,6 @@ import EmptyState from '@/components/shared/EmptyState';
 import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import { toast } from '@/components/shared/Toast';
 import { nOf } from '../KnowledgeStudio/plural';
-import type { FormAnswers, FormDetail } from './form/useFormDetail';
 import type { FormListRow, FormAudienceLike, StudioError, StatusPillProps, CopyLinkButtonProps, FormRowProps, FormsBodyProps, FormsHeaderProps, FormsStudioProps } from './FormsStudio.types';
 export type { FormListRow } from './FormsStudio.types';
 

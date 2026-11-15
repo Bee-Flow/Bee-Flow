@@ -1,5 +1,5 @@
 import { Webhook, Plus } from 'lucide-react';
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import useWebhooks from './useWebhooks';
 import type { AutomationLike } from './useWebhooks';
 import { WebhookRow } from '../WebhookPanel';

@@ -18,7 +18,6 @@
  * changed shape in the meantime.
  */
 import { ArrowUp, Loader2, Mic, ShieldAlert, ShieldCheck, Square, StopCircle } from 'lucide-react';
-import React from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 import TierSlider from '../../licensing/TierSlider';

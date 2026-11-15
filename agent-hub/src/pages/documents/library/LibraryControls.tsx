@@ -4,7 +4,7 @@
 // that acts on the selected documents (move to a folder, categorise).
 
 import { Archive, Search } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import FilterPillsJs from '@/components/shared/FilterPills';
 import useTranslation from '@/hooks/useTranslation';
 import type { Folder } from '../documentQueries';

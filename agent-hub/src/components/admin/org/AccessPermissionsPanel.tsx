@@ -1,5 +1,5 @@
 import { ShieldCheck, Crown } from 'lucide-react';
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '@/hooks/useTranslation';

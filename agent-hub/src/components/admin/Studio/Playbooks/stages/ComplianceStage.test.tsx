@@ -1,7 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
-import { act, cleanup as _c, fireEvent, waitFor } from '@testing-library/react';
+import { act, cleanup as _c, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ComplianceStage from './ComplianceStage';
 import { playbooksApi } from '../playbooksApi';

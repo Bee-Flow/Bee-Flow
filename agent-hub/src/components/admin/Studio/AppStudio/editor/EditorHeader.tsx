@@ -11,7 +11,7 @@ import type { HeaderApp, HeaderView, RevealTarget } from './header/headerModel';
 import { MoreMenu, ViewAsMenu } from './header/HeaderMenus';
 import { HeaderViewRows, LeaveRolesDialog, PreviewRoleBanner } from './header/HeaderRows';
 import { useCommandActions } from './header/useCommandActions';
-import type { CommandAction, DefinitionRole } from './header/useCommandActions';
+import type { DefinitionRole } from './header/useCommandActions';
 import { useFlushGuards } from './header/useFlushGuards';
 import type { FlushResult } from './header/useFlushGuards';
 import { useHeaderView } from './header/useHeaderView';

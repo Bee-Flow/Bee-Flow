@@ -1,5 +1,4 @@
 import { Check, Lock } from 'lucide-react';
-import React from 'react';
 
 /**
  * One cell of the kinds matrix: a real checkbox, named by row AND column

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));

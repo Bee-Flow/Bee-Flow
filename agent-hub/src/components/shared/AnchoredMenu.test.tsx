@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AnchoredMenu from './AnchoredMenu';
 

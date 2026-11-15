@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useCreateFormScenario } from '@/api/queries/automation/runChecks';
 import { scenarioErrorText } from './runs/runChecksErrors';

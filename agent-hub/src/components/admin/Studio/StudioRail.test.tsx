@@ -1,7 +1,6 @@
 import { screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Bot, Sparkles, Table2 } from 'lucide-react';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**

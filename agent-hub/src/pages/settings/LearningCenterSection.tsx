@@ -56,7 +56,6 @@ import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProgressMap, Course, PracticeItem, ServerCatalog, ServerLessonDoc } from '../../api/lessons.types';
 import type { LocaleCoverage } from '../../components/admin/product-website/shell/LocaleMenu';
-import type { SettingsUser } from './shell/settingsShellTypes';
 import type { LearningNavTarget } from './learning/learning.types';
 import type { StudioSectionHeaderTab } from '../../components/projects/workspace/studioParts';
 import type { CertificateRecord, LearningCenterSectionProps } from './LearningCenterSection.types';

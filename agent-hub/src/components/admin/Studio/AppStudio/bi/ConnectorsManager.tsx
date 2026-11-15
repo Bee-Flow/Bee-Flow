@@ -1,6 +1,5 @@
 import { AppWindow } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { ComponentType } from 'react';
 import ConnectorPickerJs from './ConnectorPicker';
 import ConnectorEditor from './connectors/ConnectorEditor';
 import type { CreateTables } from './connectors/ConnectorEditor';

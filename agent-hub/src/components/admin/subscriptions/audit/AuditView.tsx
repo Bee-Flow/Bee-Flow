@@ -1,5 +1,5 @@
 import { ScrollText, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';

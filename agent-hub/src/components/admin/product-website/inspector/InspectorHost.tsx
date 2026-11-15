@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ComponentProps, ReactNode } from 'react';
 import TranslationPanel from '../TranslationPanel';
 import AnalyticsInspector from './AnalyticsInspector';

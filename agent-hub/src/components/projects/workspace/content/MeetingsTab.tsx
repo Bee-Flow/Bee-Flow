@@ -5,7 +5,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckSquare, Loader2, Mic, Plus } from 'lucide-react';
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useProjectSection, type ProjectMeeting } from '@/api/queries/projectContent';
 import { projectKeys } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';

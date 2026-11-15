@@ -4,7 +4,6 @@
 // ones when the chat has them.
 
 import { ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { ChatSearch } from './useChatSearch';
 

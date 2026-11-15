@@ -1,5 +1,5 @@
 import { Workflow } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import CanUseCard, { EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';

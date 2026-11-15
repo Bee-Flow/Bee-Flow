@@ -6,7 +6,7 @@ import DataTable, { TableRow, TableCell, type TableColumn } from '@/components/s
 import Pager from '@/components/shared/Pager';
 import EmptyState from '@/components/shared/EmptyState';
 import { TONES } from '@/components/shared/statusTone';
-import { API, fetchJson, asArray, asObject } from '@/api/complianceApi';
+import { API, asArray, asObject } from '@/api/complianceApi';
 import { rowKeyOf, shortHash, subjectLabel, toMs, type CheckRecord } from './checkSort';
 import type { RowCheck } from './CheckRow';
 

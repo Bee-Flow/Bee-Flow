@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
 import DatatablesStudio from './DatatablesStudio';

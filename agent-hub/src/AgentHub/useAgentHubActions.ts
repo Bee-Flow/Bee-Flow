@@ -1,12 +1,9 @@
 import { normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
-import type { Dispatch, SetStateAction } from 'react';
-import type { ChatMessage } from '../hooks/useChatEngine/types';
-import type { ConfirmOptions } from '../components/shared/useConfirm';
-import type { SessionSkill } from '../components/skills/sessionSkillState';
+import type { SetStateAction } from 'react';
 import type { ConversationRow } from './useConversationMeta';
-import type { AgentLike, IdRef } from './useAgentHubData';
+import type { AgentLike } from './useAgentHubData';
 import type { UseAgentHubActionsArgs } from './useAgentHubActions.types';
 import { ApiError, RefusedError } from '../api/mutate';
 import { apiFetch, apiRequest, apiUrl } from '@/api/typedRequest';

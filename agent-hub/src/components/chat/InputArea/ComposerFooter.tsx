@@ -13,7 +13,6 @@
  * person's own switch. They render only when the host passes a notice, and
  * the host passes one only for the endpoint the turn really goes to.
  */
-import React from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 import KbQueryLogNotice from '../KbQueryLogNotice';

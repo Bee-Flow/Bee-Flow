@@ -4,7 +4,6 @@
 // comment on the whole item says that.
 
 import { FileText, TextQuote, Unlink } from 'lucide-react';
-import React from 'react';
 import type { CommentAnchor, CommentTargetType } from '../../api/queries/comments';
 import { useTranslation } from '../../hooks/useTranslation';
 import { quoteExcerpt, type AnchorState } from './commentAnchors';

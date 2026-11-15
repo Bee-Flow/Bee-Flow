@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { registerInspector } from '../registry';

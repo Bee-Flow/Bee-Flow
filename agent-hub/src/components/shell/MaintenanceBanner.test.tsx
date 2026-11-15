@@ -12,7 +12,6 @@
 
 import { screen, act } from '@testing-library/react';
 import { renderWithClient } from '@/test/render';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Controllable poll payload. vi.mock is hoisted above the imports, so the

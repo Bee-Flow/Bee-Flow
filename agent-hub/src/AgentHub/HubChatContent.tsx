@@ -1,4 +1,3 @@
-import React from 'react';
 import beeFlowIcon from '../assets/BeeFlow-logo-Icon-2026.svg';
 import AgentChatView from './AgentChatView';
 import DirectChatView from './DirectChatView';

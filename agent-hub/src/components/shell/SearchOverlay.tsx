@@ -1,4 +1,4 @@
-import { Search, X, Clock, type LucideIcon } from 'lucide-react';
+import { Search, X, Clock } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { loadRecent, saveRecent } from './searchRecents';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';

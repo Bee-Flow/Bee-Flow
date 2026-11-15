@@ -4,7 +4,7 @@ import { InstructionsCard } from '../OverviewCards';
 // project's chats can draw on. Three parts: files uploaded into the project,
 // knowledge bases linked to it, and the project memory.
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useProjectFilesQuery } from '@/api/queries/projectContent';
 import useTranslation from '@/hooks/useTranslation';
 import { Card, ViewerNote, WorkspaceColumn } from '../workspaceUi';

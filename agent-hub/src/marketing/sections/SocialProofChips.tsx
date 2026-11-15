@@ -1,4 +1,3 @@
-import React from 'react';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 

@@ -5,7 +5,7 @@ import type { EmailThreadDoc } from './EmailThreadExplorer';
 import KBIngestPanel from './KBIngestPanel';
 import useKnowledgeBases from '../../hooks/useKnowledgeBases';
 import type { KbDocument, KbDocFilters, KnowledgeBase, KbSource, DriveFile } from '../../hooks/useKnowledgeBases';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { authFetch } from '../../utils/helpers';
 import GoogleDrivePicker from '../chat/GoogleDrivePicker';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 

@@ -4,7 +4,7 @@
  * the Studio header's action slot (NotebookWorkspace). Closes on an outside
  * press and on Escape.
  */
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Download, FileDown, Loader2, ChevronDown, PenTool, FileType2 } from 'lucide-react';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import useTranslation from '@/hooks/useTranslation';

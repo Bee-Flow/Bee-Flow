@@ -21,7 +21,6 @@
  * number, so the number is not shown: the bar is scaled against the best hit
  * in the SAME answer, which is the only comparison the score supports.
  */
-import React from 'react';
 
 /** A floor, so the weakest hit is still visibly a hit rather than an empty rail. */
 const MIN_WIDTH = 0.08;

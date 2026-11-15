@@ -1,5 +1,5 @@
 import { AlertTriangle, HelpCircle, Info, Loader2 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { readInstalls } from './releaseModel';
 import type { InstallsBody } from './releaseModel';
 import { Strip } from './solutionNotices';

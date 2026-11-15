@@ -1,5 +1,4 @@
 import { Check, Save, Loader2, AlertCircle } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 

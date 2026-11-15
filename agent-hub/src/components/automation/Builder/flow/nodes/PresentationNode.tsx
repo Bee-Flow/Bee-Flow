@@ -1,4 +1,3 @@
-import React from 'react';
 import { Presentation } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { presentationSummary } from '../nodeSummaries';

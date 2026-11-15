@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, IconAssetField, ImageField, RepeatableList, FieldRow, Toggle } from '../fields';
 import { InlineHint, ColorSwatch, BackgroundCard, SegmentedControl } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

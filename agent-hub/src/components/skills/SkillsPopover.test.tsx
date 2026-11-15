@@ -1,6 +1,5 @@
 import { screen, cleanup, waitFor } from '@testing-library/react';
 import { renderWithClient as render } from '@/test/render';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';
 import type { UseSkillsReturn } from '../../hooks/useSkills';

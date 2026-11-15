@@ -1,5 +1,5 @@
 import { AppWindow, BookOpen, ChevronDown, Plus, Workflow } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import useTranslation from '@/hooks/useTranslation';
 import { useIntegrationStatus } from '@/hooks/useIntegrationStatus';

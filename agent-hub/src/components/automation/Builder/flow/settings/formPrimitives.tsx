@@ -5,7 +5,7 @@
 // CollapsibleSection — which App Studio's inspector also renders — can share
 // them without importing FieldHint. Everything is re-exported here so existing
 // importers keep working unchanged.
-import React, { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import FieldHint from '../FieldHint';
 import type { StepIssue } from '../nodes/nodeProps';

@@ -1,5 +1,4 @@
 import { CircleCheck } from 'lucide-react';
-import React from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DirtyChip } from '../orgShieldStrip';

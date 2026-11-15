@@ -7,7 +7,7 @@
  */
 
 import { X } from 'lucide-react';
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { TranslateFn } from '@/hooks/useTranslation';

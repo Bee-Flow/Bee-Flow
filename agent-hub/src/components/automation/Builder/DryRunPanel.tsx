@@ -1,5 +1,5 @@
 import { Eye, ChevronDown, ChevronUp, X } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import OutputView from './OutputView';
 import { humanizeToolName } from './flow/displayHelpers';
 import type { PreviewStep } from './FlowletsPanel.types';

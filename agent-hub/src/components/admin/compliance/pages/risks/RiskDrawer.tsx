@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { SideDrawerMode } from '@/components/shared/SideDrawer';
 import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';

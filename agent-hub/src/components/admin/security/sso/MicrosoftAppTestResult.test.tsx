@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import MicrosoftAppTestResult from './MicrosoftAppTestResult';
 import type { TeamsDiagnosticsReport } from '@/components/meetings/teamsSetup/types';
 

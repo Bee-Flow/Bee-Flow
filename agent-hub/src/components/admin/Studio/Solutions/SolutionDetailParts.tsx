@@ -1,5 +1,4 @@
 import { Package, Upload, Users } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { OBJHEAD_FOLD } from '@/components/shared/StudioSectionHeader';
 

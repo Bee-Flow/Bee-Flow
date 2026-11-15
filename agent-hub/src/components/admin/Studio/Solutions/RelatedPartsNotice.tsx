@@ -1,5 +1,4 @@
 import { Link2, Loader2 } from 'lucide-react';
-import React from 'react';
 import {
     cannotComeAlong, comingAlong, type RelatedPart, type RelatedState,
 } from './relatedParts';

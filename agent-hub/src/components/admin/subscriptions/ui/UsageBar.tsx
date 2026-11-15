@@ -1,4 +1,3 @@
-import React from 'react';
 import { Infinity as InfIcon } from 'lucide-react';
 
 interface UsageBarProps {

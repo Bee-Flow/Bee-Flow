@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ReactNode } from 'react';
 import { CARD_COPY, KIND_OPTIONS, PRIMARY_KINDS, kindLabel } from './actionKindCatalog';
 import { INPUT_CLS } from './panels/kit';

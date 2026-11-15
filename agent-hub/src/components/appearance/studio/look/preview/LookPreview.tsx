@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import LookPreviewIframe from './LookPreviewIframe';
 import LookPreviewToolbar from './LookPreviewToolbar';
 import { PREVIEW_SURFACES } from './previewSurfaces';

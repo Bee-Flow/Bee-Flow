@@ -1,5 +1,4 @@
 import { Bot, Trash2 } from 'lucide-react';
-import React from 'react';
 import AgentCardFooter from './AgentCardFooter';
 import { CATEGORY, EDIT, categoryOf, countsOf, editVerdict } from './agentCardFacts';
 import type { AgentListRow, CategoryLike } from './agentCardFacts';

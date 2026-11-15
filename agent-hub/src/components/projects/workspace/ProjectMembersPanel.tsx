@@ -7,7 +7,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { Crown, LogOut, Trash2, Users } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     useChangeMemberRole, useProjectMembersQuery, useRemoveMember, useSetMemberColor,
     type ProjectMembers, type ProjectRole, type ProjectShare,

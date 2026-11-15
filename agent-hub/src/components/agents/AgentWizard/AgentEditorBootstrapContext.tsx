@@ -7,7 +7,7 @@
 // hook falls back to its own fetch when no provider is present (so the
 // wizard landing path keeps working).
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { READ } from './canUse/canUseFacts';
 import { readSkills } from '@/api/queries/skills';

@@ -4,7 +4,6 @@
 // Controlled: owns no state — parent holds `range` and re-fetches on change.
 
 import { Calendar } from 'lucide-react';
-import React from 'react';
 import { toLocalInput } from './format';
 import type { TranslateFn } from '@/hooks/useTranslation';
 

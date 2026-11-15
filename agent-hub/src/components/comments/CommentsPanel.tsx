@@ -17,7 +17,7 @@
 // the item or interrupts typing in it.
 
 import { MessageSquarePlus, MessagesSquare, RefreshCw, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { CommentAiResult, CommentAnchor, CommentTargetType, CommentThread as Thread } from '../../api/queries/comments';
 import { useTranslation } from '../../hooks/useTranslation';
 import SegmentedControl from '../shared/SegmentedControl';

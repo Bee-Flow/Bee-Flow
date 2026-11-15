@@ -1,5 +1,4 @@
 import { Plus, TriangleAlert } from 'lucide-react';
-import React from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import OwnDataIntro from './OwnDataIntro';

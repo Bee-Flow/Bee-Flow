@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import Dropdown from './Dropdown';
 import { useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';

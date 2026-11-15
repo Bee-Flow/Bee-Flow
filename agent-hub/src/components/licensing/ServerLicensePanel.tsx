@@ -1,5 +1,5 @@
 import { ShieldCheck, Key, AlertCircle, Loader2, X } from 'lucide-react';
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useLicenseContext } from './LicenseContext';
 import { ServerLicenseFacts, ServerLicenseToken, ServerLicenseWarning } from './ServerLicenseParts';
 import { useTranslation } from '../../hooks/useTranslation';

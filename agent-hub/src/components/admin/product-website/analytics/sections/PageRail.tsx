@@ -2,7 +2,6 @@ import { Flame, MousePointerClick, MoveVertical, ExternalLink } from 'lucide-rea
 import { useTranslation } from '@/hooks/useTranslation';
 import { Empty, fmt, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT } from '../BarList';
 import type { PageRailProps, FigureProps } from './HeatmapSection.types';
 import { EYEBROW, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 

@@ -2,7 +2,6 @@
 // the status glyph, and a compact stack of faces. Kept here so the backlog and the
 // timeline draw a task the same way.
 
-import React from 'react';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';

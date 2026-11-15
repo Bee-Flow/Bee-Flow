@@ -1,4 +1,3 @@
-import React from 'react';
 import SolutionAccessDialog, { type SolutionRole } from './SolutionAccessDialog';
 import SolutionExportDialog, { type ExportCompleteness } from './SolutionExportDialog';
 import UpgradeDialog from './upgradeClient';

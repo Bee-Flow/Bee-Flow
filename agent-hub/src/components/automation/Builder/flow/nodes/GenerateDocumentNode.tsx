@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileText } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { generateDocumentSummary } from '../nodeSummaries';

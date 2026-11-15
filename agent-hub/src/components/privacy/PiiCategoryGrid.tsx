@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import React, { useId } from 'react';
+import { useId } from 'react';
 
 interface PiiCategory {
     id: string;

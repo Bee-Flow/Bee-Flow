@@ -5,7 +5,7 @@
 // down each open branch so deep trees stay readable.
 
 import { ChevronDown, ChevronRight, ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
-import React, { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';

@@ -12,7 +12,6 @@
  */
 import { Handshake, MessageCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // The mode id matches the caption. It briefly didn't — the button said

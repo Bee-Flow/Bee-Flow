@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ICON_CATALOGUE } from './iconCatalogue';
 import { useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';

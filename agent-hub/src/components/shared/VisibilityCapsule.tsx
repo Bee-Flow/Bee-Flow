@@ -1,5 +1,5 @@
 import { ChevronDown, Globe, Lock, Building2, Users, Check } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';

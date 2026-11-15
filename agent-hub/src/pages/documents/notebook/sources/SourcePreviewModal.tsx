@@ -4,7 +4,7 @@
  * above the editor's floating toolbars; a press inside the panel stops there
  * so the editor's outside-press handlers never see it.
  */
-import React, { useId } from 'react';
+import { useId } from 'react';
 import { Loader2, X } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import useTranslation from '@/hooks/useTranslation';

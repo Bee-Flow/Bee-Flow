@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import scopedStorage from '@/utils/scopedStorage';
 import type { DescribedColumn } from '@/api/queries/automation/tablePreview';
 import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
-import { opHelp, type Translate } from '../opHelp';
+import { opHelp } from '../opHelp';
 import { COLUMNS, GROUPS, SAMPLE, col, op } from '../testKit';
 import type { TableOp } from '../tableOpModel';
 import BucketForm from './BucketForm';

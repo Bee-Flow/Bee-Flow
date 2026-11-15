@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, Lock, LogIn, Loader2, Zap, UserPlus, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import type { ChangeEventHandler, FormEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';

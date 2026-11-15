@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Loader2, Check, Download, BookOpen, Copy, FileText, FileDown, Globe, type LucideIcon } from 'lucide-react';
 import { resultFilename, saveBlob } from './resultFile';
 import useTranslation from '../../hooks/useTranslation';

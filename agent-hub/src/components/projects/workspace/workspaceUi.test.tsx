@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Plus } from 'lucide-react';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { Card, LoadingRow, Notice, PrimaryButton, RemoveButton, SecondaryButton, SelectField, Skeleton, WorkspaceColumn } from './workspaceUi';
 

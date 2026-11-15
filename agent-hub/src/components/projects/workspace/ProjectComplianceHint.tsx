@@ -11,7 +11,6 @@
 // target is that same section gets no Review, which would go nowhere.
 
 import { Info, X } from 'lucide-react';
-import React from 'react';
 import {
     useDecideProjectComplianceHint, useProjectComplianceHint, type HintDecision,
 } from '@/api/queries/projectComplianceHints';

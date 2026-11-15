@@ -13,7 +13,7 @@
  * via onTurnComplete and appear as regular MessageItem bubbles.
  */
 
-import React, { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import {
     Mic, PhoneOff, Loader2, Volume2, AlertTriangle,
     Info, Wrench, Check, X,

@@ -1,5 +1,5 @@
 import { Plus, X, Settings2, Pencil, Trash2, Check, ChevronDown, Loader2 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import type { CategoryResult, CategoryRow } from './agentEditor.types';

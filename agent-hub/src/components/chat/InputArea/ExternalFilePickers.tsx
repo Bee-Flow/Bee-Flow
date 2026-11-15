@@ -10,7 +10,6 @@
  * Each records WHERE the file came from (`source`), which is the one thing the
  * composer cannot re-derive later from a name and a mime type.
  */
-import React from 'react';
 
 import { API_BASE } from '@/utils/helpers';
 import GmailPicker from '../GmailPicker';

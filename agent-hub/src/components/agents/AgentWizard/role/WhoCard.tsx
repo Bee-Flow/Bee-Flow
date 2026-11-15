@@ -1,5 +1,4 @@
 import { UserRound } from 'lucide-react';
-import React from 'react';
 import { PERSONA_LIMITS } from './personaFacts';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import RoleCard, { RoleCounter, RoleEmpty, RoleTextArea } from './RoleCard';

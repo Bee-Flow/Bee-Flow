@@ -1,4 +1,3 @@
-import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, NumberField, TextField , usePatch } from './kit';
 import type { FieldKeyFieldProps } from './kit';

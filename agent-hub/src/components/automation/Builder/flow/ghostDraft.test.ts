@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 import { appForTool, projectGhostDraft, spotlightKeysFor } from './ghostDraft';
-import { stub, partial } from '@/test/mocks';
+import { stub } from '@/test/mocks';
 
 /**
  * toolDraft → what the ghost slot shows. A table: the step being typed (its

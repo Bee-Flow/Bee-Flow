@@ -1,5 +1,4 @@
 import { AlertTriangle } from 'lucide-react';
-import React from 'react';
 import ProjectBlueprintTab from './ProjectBlueprintTab';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';

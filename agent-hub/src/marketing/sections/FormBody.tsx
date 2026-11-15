@@ -1,4 +1,3 @@
-import React from 'react';
 import FormFieldRow from './FormFieldRow';
 import { HONEYPOT_FIELD } from './formBlockModel';
 import type { FormField } from './formBlockModel';

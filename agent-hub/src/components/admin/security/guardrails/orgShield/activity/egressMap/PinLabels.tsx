@@ -6,7 +6,7 @@
  * the same facts, so the text is hidden from assistive technology.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_TEXT_FILL } from '../../shieldPalette';

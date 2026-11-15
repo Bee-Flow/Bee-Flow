@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clock } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { dateTimeSummary } from '../nodeSummaries';

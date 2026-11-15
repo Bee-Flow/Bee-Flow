@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { OAuthIntegrationCard } from './OAuthIntegrationCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getIntegrationIcon } from '../../config/integrationIcons';

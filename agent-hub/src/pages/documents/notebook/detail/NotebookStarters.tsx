@@ -7,7 +7,6 @@
  * Privacy Shield, and the draft is written into the document like any other
  * AI edit), so there is one AI path, not two. Only editors see this.
  */
-import React from 'react';
 import { FileText, FileUp, ListChecks, NotebookPen, Sparkles, Table2 } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTicketEventsQuery } from '@/api/queries/supportPanels';
 import useTranslation from '@/hooks/useTranslation';
 import { metaFor } from './auditMeta';

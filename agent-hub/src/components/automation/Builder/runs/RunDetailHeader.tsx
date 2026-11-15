@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Link as LinkIcon, PenLine, RotateCcw } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { RunRowData } from '@/api/queries/automation/runs';

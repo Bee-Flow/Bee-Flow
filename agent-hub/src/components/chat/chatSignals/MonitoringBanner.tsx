@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';
 import { formatNoticeDate, type NoticeModel } from './chatSignalsModel';

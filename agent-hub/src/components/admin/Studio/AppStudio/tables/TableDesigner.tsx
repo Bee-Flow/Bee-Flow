@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';

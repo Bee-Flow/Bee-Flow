@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck, Clock } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import StepNodeBase, { NodeChip } from './StepNodeBase';

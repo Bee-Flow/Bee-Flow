@@ -2,7 +2,6 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { LogOut } from 'lucide-react';
-import React from 'react';
 import {
     useDeleteProject, useProjectMembersQuery, useRemoveMember, type Project, type ProjectRole,
 } from '@/api/queries/projects';

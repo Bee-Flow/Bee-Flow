@@ -1,9 +1,9 @@
-import React, { type ComponentProps, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { runPhase } from './runs/runPhase';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
-import { FormDensityContext, resolveMode, type FormDensity, type FormMode } from './flow/settings/formDensity';
+import { FormDensityContext, resolveMode } from './flow/settings/formDensity';
 import FormModeToggle from './flow/settings/FormModeToggle';
 import SettingsHost from './flow/settings/SettingsHost';
 import InputDataPanel from './mapping/InputDataPanel';

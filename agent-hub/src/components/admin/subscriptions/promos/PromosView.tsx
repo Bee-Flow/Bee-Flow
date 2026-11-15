@@ -1,5 +1,5 @@
 import { Tag, Plus, Percent, Euro, Hash, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PromoEditor } from './PromoEditor';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';

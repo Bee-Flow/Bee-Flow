@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { Pencil } from 'lucide-react';
 import { formatSpeakerLabel } from '../lib/format';

@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import { useId } from 'react';
 import { AlertCircle, Globe, CheckCircle } from 'lucide-react';
 import beeFlowIcon from '../../assets/BeeFlow-logo-Icon-2026.svg';
 import { useTranslation } from '../../hooks/useTranslation';

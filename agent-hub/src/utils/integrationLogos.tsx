@@ -1,6 +1,5 @@
 import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
 import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.types';
 import { FirebirdLogo, FrappeCrmLogo } from './integrationLogos.database';
 /**

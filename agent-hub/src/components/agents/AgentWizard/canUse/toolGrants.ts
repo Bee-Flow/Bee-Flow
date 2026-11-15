@@ -33,7 +33,6 @@
 import { isAgentCallable } from '@/components/admin/Studio/SkillsStudio/skillModel';
 import { READ } from './canUseFacts';
 import type { ToolApp } from './toolCatalogTypes';
-import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 import type { AutomationLike, ToolsConfig, ToolsConfigIn, SelectionMap, ToolRowsArgs, AutomationRowsArgs } from './toolGrants.types';
 import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, MAIL_ACCESS, MAIL_ACCESS_APPS, MAIL_RUN_OPTIONS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
 export type { AutomationLike, ToolsConfig, SelectionMap } from './toolGrants.types';

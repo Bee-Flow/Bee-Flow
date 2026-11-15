@@ -5,7 +5,7 @@
 // delete. Viewers see the settings, not the controls.
 
 import { Building2, MoreHorizontal, PauseCircle, Search, Users } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import useNow from '@/hooks/useNow';
 import type { ProjectRole } from '@/api/queries/projects';
 import {

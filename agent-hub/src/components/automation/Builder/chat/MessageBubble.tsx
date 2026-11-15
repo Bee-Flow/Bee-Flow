@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';

@@ -1,6 +1,6 @@
 import { Code, Palette, Cpu, FileText, FilePlus, FolderPlus, Upload, Check, type LucideIcon } from 'lucide-react';
 import React, { useState, useMemo, useRef } from 'react';
-import { buildTree, type TreeFolder, type TreeFile, type TreeEntry } from './fileExplorerTree';
+import { buildTree } from './fileExplorerTree';
 import { PRIMARY_SLOTS, PRIMARY_SLOT_NAMES } from './webpageCodeFiles';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';

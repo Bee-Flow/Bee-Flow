@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import OrgInfoPanel, { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
 import OrgAcademyPanel from './OrgAcademyPanel';
 import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';

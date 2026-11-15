@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ArrowLeftRight, Check, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DataTableContext, RowLike, TableColumn } from '@/components/shared/DataTable';

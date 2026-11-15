@@ -2,7 +2,7 @@
 // Average and Count of its numbers. Instant and local; a click on a figure
 // copies it.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { formatValue, type Computed } from './sheetEngine';
 import { selectionLabel } from './sheetAskText';

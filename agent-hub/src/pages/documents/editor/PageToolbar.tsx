@@ -2,7 +2,6 @@
 // page saved by revision), and the side panels, print and download.
 
 import { ArrowLeft, Download, History, ListTree, Loader2, Maximize2, MessageSquare, Printer, Search, Sparkles, X } from 'lucide-react';
-import React from 'react';
 import CollabPresence from '@/editor/react/CollabPresence';
 import type { CollabHandle } from '@/editor/collab/useCollab';
 import useTranslation from '@/hooks/useTranslation';

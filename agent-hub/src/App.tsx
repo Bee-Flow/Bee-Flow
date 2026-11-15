@@ -13,7 +13,6 @@ if (typeof window !== 'undefined' && shouldWarmAuthedApp(window.location.pathnam
 }
 
 import { ensureI18nDefaults } from './hooks/useTranslation';
-import type { AnalyticsConfig, SiteContent } from './marketing/ProductWebsite.types';
 
 /* Matches the shell background painted by index.html, so a chunk fetch never
    shows through as white. AuthedApp.jsx carries its own copy — importing

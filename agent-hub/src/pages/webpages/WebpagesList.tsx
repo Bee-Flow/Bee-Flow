@@ -8,7 +8,6 @@ import useTranslation from '../../hooks/useTranslation';
 import type { WebpageCardData } from './WebpageCard';
 import type { BuildSource } from './SourcePicker';
 import type { PromptPreset } from './promptPresets';
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { WebpagesListProps, SearchFieldProps, AllOptionsProps, ExampleCardProps, EmptySearchProps } from './WebpagesList.types';
 
 export default function WebpagesList({

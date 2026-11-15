@@ -3,7 +3,7 @@
 // says its documents move up, not away).
 
 import { ChevronRight, Folder, Plus, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import useTranslation from '@/hooks/useTranslation';
 import type { Folder as FolderRow } from '../documentQueries';

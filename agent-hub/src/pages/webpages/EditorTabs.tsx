@@ -1,4 +1,3 @@
-import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Code, Palette, Cpu, FileText, Image as ImageIcon, FileType, Braces, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';

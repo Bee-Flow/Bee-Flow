@@ -1,4 +1,3 @@
-import React from 'react';
 import { STAGE_DOT, STAGE_INK, STAGE_TINT, useStageLabel } from './StageSwitcher';
 import type { StageName } from '@/api/stagesApi';
 

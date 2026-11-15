@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { statusLabel, tokenFor, tokenForStep } from '@/components/shared/statusTokens';
 import type { RunStepLike } from '@/components/shared/statusTokens';

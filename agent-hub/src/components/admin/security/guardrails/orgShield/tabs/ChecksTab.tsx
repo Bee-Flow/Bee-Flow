@@ -1,5 +1,3 @@
-import React from 'react';
-
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import type { ChecksEnv, ChecksFields, ChecksLicence, GoTo, TranslateFn } from './checks/checksTypes';
 import { EveryMessageCard } from './checks/EveryMessageCard';

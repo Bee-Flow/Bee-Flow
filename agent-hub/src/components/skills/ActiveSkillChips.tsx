@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { X, Lock } from 'lucide-react';
 import { useSkills } from '../../hooks/useSkills';
 import type { SkillRecord, SkillRecordsHook } from './SkillCard';

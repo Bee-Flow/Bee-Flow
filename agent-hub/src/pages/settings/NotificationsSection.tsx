@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     NOTIFICATION_EVENTS, useNotificationPrefs, useSetNotificationPrefs,
     type NotificationChannel, type NotificationEvent,

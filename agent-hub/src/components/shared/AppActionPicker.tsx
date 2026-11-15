@@ -3,7 +3,6 @@ import React, { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { getIntegrationIcon } from '../../config/integrationIcons';
 import useTranslation from '../../hooks/useTranslation';
-import type { ToolApp } from '../agents/AgentWizard/canUse/toolCatalogTypes';
 import type { PickerAction, PickerApp, PickerText, EffectBadgeProps, EffectFiltersProps, ActionRowProps, AppActionPickerProps } from './AppActionPicker.types';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 

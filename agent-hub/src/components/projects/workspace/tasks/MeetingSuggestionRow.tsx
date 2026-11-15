@@ -3,7 +3,7 @@
 // how urgent, plus state chips. What the AI added folds out under "Details".
 
 import { ChevronRight, Sparkles } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { TASK_PRIORITIES, type ChecklistItem, type MeetingTaskSuggestion, type TaskPriority } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Avatar, SelectField } from '../workspaceUi';

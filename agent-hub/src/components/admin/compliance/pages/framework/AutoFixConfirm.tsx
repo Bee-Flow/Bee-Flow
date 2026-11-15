@@ -4,7 +4,7 @@
 // this block (it used to call the fix directly while the row's button asked).
 
 import { Wrench } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 
 interface AffectedItem { id?: string; name?: string }

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 
 vi.mock('./CaptureControls', () => ({ default: () => null }));
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));

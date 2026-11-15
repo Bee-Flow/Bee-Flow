@@ -1,5 +1,4 @@
 import { Sparkles } from 'lucide-react';
-import React from 'react';
 import { createPortal } from 'react-dom';
 import useTranslation from '@/hooks/useTranslation';
 import type { ComponentEntry } from './dnd';

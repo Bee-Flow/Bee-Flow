@@ -5,7 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { API, asArray, asObject, fetchJson, jsonInit, json } from '@/api/complianceApi';
 import useResource from '../data/useResource';
 import AttestDrawer from './custom/AttestDrawer';
-import CustomChecksTable, { indexResults, type BuiltinCheck, type CustomCheckDef, type CustomResult, type JoinedCheck } from './custom/CustomChecksTable';
+import CustomChecksTable, { indexResults, type BuiltinCheck, type CustomResult, type JoinedCheck } from './custom/CustomChecksTable';
 import FrameworkEditorDrawer from './custom/FrameworkEditorDrawer';
 import { FrameworkCard, FrameworkDetailHeader, SECONDARY_BUTTON } from './custom/FrameworkParts';
 import type { EditorFramework, toBody } from './custom/FrameworkEditorDrawer';

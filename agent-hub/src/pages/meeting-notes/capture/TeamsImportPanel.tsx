@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';

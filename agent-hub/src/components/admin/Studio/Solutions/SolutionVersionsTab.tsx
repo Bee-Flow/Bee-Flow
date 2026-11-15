@@ -1,5 +1,5 @@
 import { AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { kindBarClass, kindInkClass } from './kindBar';
 import { groupNoteRows, noteRowsOf, readReleases } from './releaseModel';
 import type { NoteRow as NoteRowData, ReleaseRemote, ReleaseRow, ReleasesBody } from './releaseModel';

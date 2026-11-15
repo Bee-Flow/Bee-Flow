@@ -5,7 +5,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '@/api/client';
 import { discardPendingMessage, newClientMsgId, useLoadOlderMessages, useProjectChatQuery, useSendTeamChatMessage, useTeamChatAgents, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat, type TeamChatAiResult, type TeamChatMessage, type TeamChatRef } from '@/api/queries/projectChats';
 import { useTeamChatMessages } from '@/api/queries/useTeamChatMessages';

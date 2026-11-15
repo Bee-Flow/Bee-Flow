@@ -12,7 +12,6 @@
 // tab says why once, above the grid.
 
 import { BookOpen, Clock, FileText, User } from 'lucide-react';
-import React from 'react';
 import type { ProjectNotebook } from '@/api/queries/projectContent';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';

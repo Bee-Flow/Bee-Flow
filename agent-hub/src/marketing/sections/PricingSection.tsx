@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePublicPlansQuery } from '../../api/queries/publicSite';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';

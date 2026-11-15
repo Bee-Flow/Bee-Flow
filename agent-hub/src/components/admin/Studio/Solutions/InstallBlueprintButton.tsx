@@ -1,5 +1,5 @@
 import { AlertTriangle, Loader2, Upload } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import InstallBlueprintModal from './InstallBlueprintModal';
 import useRemote from './useRemote';

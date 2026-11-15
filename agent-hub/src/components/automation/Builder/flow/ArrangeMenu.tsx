@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, ChevronDown, Rows3, Shrink, Expand } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 

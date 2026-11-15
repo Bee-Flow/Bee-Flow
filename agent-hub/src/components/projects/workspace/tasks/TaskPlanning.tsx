@@ -4,7 +4,7 @@
 // poker") into that right side. The sprint builder takes over the whole area
 // while it is open and draws its own compact header.
 
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';

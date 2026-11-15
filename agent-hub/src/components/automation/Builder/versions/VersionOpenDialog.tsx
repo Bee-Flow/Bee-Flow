@@ -1,4 +1,3 @@
-import type React from 'react';
 import Modal from '@/components/shared/Modal';
 import DiagramPaneJs from '../DiagramPane';
 import useTranslation from '@/hooks/useTranslation';

@@ -5,7 +5,6 @@
 // wording for the badge in the chat list. A mode the organisation does not allow is shown but cannot be
 // picked (the chat's current mode always can, so nothing changes under you).
 
-import React from 'react';
 import type { TeamChat, TeamChatAiMode, TeamChatAiPolicy } from '@/api/queries/projectChats';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import SegmentedControl from '@/components/shared/SegmentedControl';

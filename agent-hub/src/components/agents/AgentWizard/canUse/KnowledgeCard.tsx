@@ -1,5 +1,5 @@
 import { BookOpen, Lightbulb, Table } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import CanUseCard, { CanUseRow, CardMenu, EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';

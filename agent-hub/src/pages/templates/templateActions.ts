@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { toast } from '../../components/shared/Toast';
-import { API_BASE, mutate } from '../../api/mutate';
 import { templatesApi } from '../../api/templatesApi';
 import { errorMessage } from '../../utils/caughtError';
 import { startUploadPoll } from './templatePolling';

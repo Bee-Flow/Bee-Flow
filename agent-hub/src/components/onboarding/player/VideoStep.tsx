@@ -1,5 +1,5 @@
 import { CircleCheck, ChevronDown } from 'lucide-react';
-import React, { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { isCrossOrigin, mediaUrl, useLearnManifest, videoEntry, videoForLocale } from '../learnMedia';
 

@@ -1,5 +1,4 @@
 import { Activity, Loader2, PlayCircle } from 'lucide-react';
-import React from 'react';
 import { kindBarClass, kindInkClass } from './kindBar';
 import { SECTIONS, type SolutionItem } from './solutionSections';
 import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';

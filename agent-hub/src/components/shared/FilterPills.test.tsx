@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FilterPills, { FilterPill, PILL_TONES, pillStyle } from './FilterPills';
 import { FilterChip } from '../../pages/meeting-notes/library/LibraryFilters';

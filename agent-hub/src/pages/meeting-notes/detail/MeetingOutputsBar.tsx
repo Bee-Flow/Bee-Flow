@@ -30,7 +30,7 @@
  * do.
  */
 import { AlertTriangle, ArrowUpRight, Loader2 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
 import { isForeignRow, kindLabelFor, usageHref, usageKind } from '@/components/shared/UsedByTab';
 import useTranslation from '@/hooks/useTranslation';

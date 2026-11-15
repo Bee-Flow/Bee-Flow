@@ -1,5 +1,4 @@
 import type { QueryClient } from '@tanstack/react-query';
-import React from 'react';
 import type { AppUserLike } from '../components/projects/workspace/types';
 import { renderHubChat, type HubChatContentProps } from './HubChatContent';
 import {

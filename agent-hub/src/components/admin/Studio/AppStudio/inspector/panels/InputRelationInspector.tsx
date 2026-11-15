@@ -1,4 +1,3 @@
-import React from 'react';
 import { FieldKeyField, TextField, usePatch, INPUT_CLS } from './kit';
 import useTranslation from '@/hooks/useTranslation';
 import ExpressionInput from '../logic/ExpressionInput';

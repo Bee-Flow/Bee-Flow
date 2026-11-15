@@ -1,5 +1,4 @@
 import { act, render, waitFor } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryWrapper } from '@/test/queryWrapper';
 

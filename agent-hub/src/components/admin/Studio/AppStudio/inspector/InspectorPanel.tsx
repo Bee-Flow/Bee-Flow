@@ -1,5 +1,5 @@
 import { Copy, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import ActionsSection from './ActionsSection';
 import LogicSection from './logic/LogicSection';

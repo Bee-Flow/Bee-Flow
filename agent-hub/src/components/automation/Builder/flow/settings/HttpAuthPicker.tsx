@@ -1,5 +1,5 @@
 import { Loader2, Plus } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { inputClass, FormRow } from './formPrimitives';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import type { HttpConnection } from '@/hooks/useAutomationApi.types';

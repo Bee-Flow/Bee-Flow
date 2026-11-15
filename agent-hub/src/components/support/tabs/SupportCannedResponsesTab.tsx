@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSupportCannedResponsesQuery } from '@/api/queries/supportPanels';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
 import { errorMessage } from '@/utils/caughtError';

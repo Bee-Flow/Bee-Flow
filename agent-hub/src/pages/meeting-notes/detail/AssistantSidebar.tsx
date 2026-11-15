@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { MessageSquare, Send, X, Square, Loader2 } from 'lucide-react';
 import IconButton from '@/components/shared/IconButton';

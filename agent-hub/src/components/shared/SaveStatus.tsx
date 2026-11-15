@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Check } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 

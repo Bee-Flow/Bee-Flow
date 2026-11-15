@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import MeetingRow, { actionsPhrase } from './MeetingRow';
 import type { TranslateParams } from '@/hooks/useTranslation';

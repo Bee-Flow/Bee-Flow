@@ -1,5 +1,4 @@
 import { Wrench } from 'lucide-react';
-import React from 'react';
 
 import type { GoTo, TranslateFn } from './checksTypes';
 

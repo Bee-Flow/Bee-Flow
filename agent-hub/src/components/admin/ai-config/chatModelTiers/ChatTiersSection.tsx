@@ -1,7 +1,6 @@
 // "Chat Model Tiers" section of ChatModelTiersConfig: the standard tiers and
 // the custom tiers as rows of a settings list, plus the save button. All
 // bindings are threaded in as props.
-import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { TierConfig, CustomTier, StatusMessage } from './tierTypes';
 import type { ClaudeSettingsState } from './useClaudeSettings';

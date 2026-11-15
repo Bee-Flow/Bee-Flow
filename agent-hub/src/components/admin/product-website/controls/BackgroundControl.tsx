@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FieldRow, ImageField } from '../fields';
 import ColorControl from './ColorControl';
 import { useTranslation } from '@/hooks/useTranslation';

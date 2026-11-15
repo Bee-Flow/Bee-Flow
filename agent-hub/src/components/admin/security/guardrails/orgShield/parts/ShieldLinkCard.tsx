@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 import { ArrowRight } from 'lucide-react';
-import React from 'react';
 
 /**
  * A card that is one big button to another pane: icon, title, one line of

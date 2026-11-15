@@ -14,7 +14,7 @@
  * to the same destination.
  */
 
-import React, { memo } from 'react';
+import { memo } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_FILL } from '../../shieldPalette';

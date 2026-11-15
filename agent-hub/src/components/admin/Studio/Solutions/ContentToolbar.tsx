@@ -1,5 +1,4 @@
 import { Plus, Search, X } from 'lucide-react';
-import React from 'react';
 import type { SolutionSection } from './solutionSections';
 import { kindInkClass } from './kindBar';
 import { useTranslation } from '@/hooks/useTranslation';

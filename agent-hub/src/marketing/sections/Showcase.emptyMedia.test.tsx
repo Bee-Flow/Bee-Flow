@@ -2,7 +2,6 @@
  * A showcase with no image renders no skeleton pane on the published site;
  * the editor preview keeps the placeholder frame so an image can be added.
  */
-import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import Showcase from './Showcase';

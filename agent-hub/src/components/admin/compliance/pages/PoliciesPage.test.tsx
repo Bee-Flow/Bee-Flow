@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PoliciesPage, { isReviewOverdue } from './PoliciesPage';
 import { partial, stub } from '@/test/mocks';

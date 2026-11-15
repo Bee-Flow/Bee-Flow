@@ -1,6 +1,6 @@
 import { appendKey, appendWildcard } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { joinKeyPath, keyPickable } from './keyPath';
 import { mergeElements } from './upstream/fieldTree';
 import { previewValue } from '../../../../utils/bindingHelpers';

@@ -8,7 +8,6 @@
 // key it would inherit the Fast tier, which on a self-hosted box is often the
 // 26B chat model. Unset falls back to the Fast tier's model; the ai_step
 // override next to it is a separate lever and stays as it is.
-import React from 'react';
 import ModelSettingRow from './ModelSettingRow';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';

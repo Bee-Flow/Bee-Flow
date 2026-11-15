@@ -11,7 +11,6 @@
  * Run: cd agent-hub && npx vitest run src/marketing/sections/PricingSection.test.tsx
  */
 import { screen } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import Pricing from './PricingSection';
 import { renderWithClient } from '../../test/render';

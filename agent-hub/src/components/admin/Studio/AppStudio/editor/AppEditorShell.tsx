@@ -1,6 +1,6 @@
 import { DndContext, DragOverlay } from '@dnd-kit/core';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import CanvasJs from './Canvas';
 import canvasCollision from './collision';
 import { DropHintContext as DropHintContextJs } from './dropHint';
@@ -23,7 +23,6 @@ import { readPresenter, writePresenter } from '@/components/shared/builder/prese
 import useDraftHistory from '@/hooks/useDraftHistory';
 import type { UseDraftHistoryReturn } from '@/hooks/useDraftHistory';
 import useTranslation from '@/hooks/useTranslation';
-import scopedStorage from '@/utils/scopedStorage';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { AppEditorProvider } from '../state/AppEditorContext';
 import { useAppEditorState } from '../state/appEditorState';

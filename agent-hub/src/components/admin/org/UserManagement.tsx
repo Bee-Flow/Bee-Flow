@@ -1,5 +1,5 @@
 import { Building, Cloud, Key, Layers, RefreshCw, Send, Shield, Tag, Users, UserCog } from 'lucide-react';
-import React, { useState, type ComponentType } from 'react';
+import { useState, type ComponentType } from 'react';
 import PeopleDirectory from './people/PeopleDirectory';
 
 import GroupModal from './userManagement/GroupModal';

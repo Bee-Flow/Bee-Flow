@@ -24,7 +24,6 @@
  * even after that split, telling two greys apart is not decoding anyone should
  * have to do to learn that their work is switched off.
  */
-import React from 'react';
 import { relativeTime } from './coworkFormat';
 import { describeMoment, repeatLabel } from './coworkSchedule';
 import { coworkStatus } from './coworkStatus';

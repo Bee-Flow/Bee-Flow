@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import TemplateFieldJs from '@/components/automation/Builder/mapping/TemplateField';
 import { textareaClass } from '../formPrimitives';

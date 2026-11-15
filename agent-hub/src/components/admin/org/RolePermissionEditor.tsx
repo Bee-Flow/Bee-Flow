@@ -1,11 +1,11 @@
 import { AlertCircle, Check, Loader2, Lock } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { editablePermissionsForRole, permissionsForRole } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
 import { errorBody, RefusedError } from '@/api/mutate';
-import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
+import { useAdminOrgScope } from '@/api/adminOrgScope';
 import { apiRequest } from '@/api/typedRequest';
 
 interface RolePermissionEditorProps {

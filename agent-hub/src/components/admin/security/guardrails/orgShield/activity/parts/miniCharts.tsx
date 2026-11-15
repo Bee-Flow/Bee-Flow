@@ -7,8 +7,6 @@
  * viewBox stretch to whatever width the card gives it.
  */
 
-import React from 'react';
-
 export interface Segment {
     key: string;
     value: number;

@@ -1,5 +1,5 @@
 import { Plus, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorBody, RefusedError } from '../../api/mutate';
 import { apiRequest } from '../../api/typedRequest';

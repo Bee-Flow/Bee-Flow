@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Loader2, FileAudio, Video, RefreshCw, Download } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';

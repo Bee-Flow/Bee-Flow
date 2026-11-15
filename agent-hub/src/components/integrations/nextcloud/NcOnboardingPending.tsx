@@ -1,4 +1,3 @@
-import React from 'react';
 import { RefreshCw, Clock } from 'lucide-react';
 import beeFlowLogo from '@/assets/bee-flow-logo.svg';
 import { useTranslation } from '@/hooks/useTranslation';

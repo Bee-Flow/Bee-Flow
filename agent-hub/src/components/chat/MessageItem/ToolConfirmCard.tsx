@@ -36,7 +36,6 @@
  * and not the tool name.
  */
 
-import React from 'react';
 import { AlertTriangle, Check, HelpCircle, ShieldQuestion, X } from 'lucide-react';
 
 import { confirmDecisionOf, type ConfirmBook, type ConfirmCall } from './toolConfirmStatus';

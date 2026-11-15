@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** One placeholder card while the overview loads; same footprint as SolutionCard. */
 export default function SolutionCardSkeleton() {
     return (

@@ -1,5 +1,4 @@
 import { Info } from 'lucide-react';
-import React from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { presetFor } from '@/components/privacy/PiiSensitivityPicker';

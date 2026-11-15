@@ -1,4 +1,3 @@
-import React from 'react';
 import Dropdown from './Dropdown';
 import SaveBadge from './SaveBadge';
 import { useTranslation } from '@/hooks/useTranslation';

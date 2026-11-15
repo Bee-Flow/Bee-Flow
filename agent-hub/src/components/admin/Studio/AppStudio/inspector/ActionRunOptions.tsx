@@ -1,4 +1,3 @@
-import React from 'react';
 import Toggle from '@/components/shared/Toggle';
 import FormField from '@/components/shared/FormField';
 import useTranslation from '@/hooks/useTranslation';

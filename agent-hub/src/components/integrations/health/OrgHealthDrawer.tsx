@@ -1,5 +1,4 @@
 import { X, Wrench, ExternalLink } from 'lucide-react';
-import React from 'react';
 import { HealthChip } from './ConnectorHealthPanel';
 import { sevMeta } from './healthMeta';
 import OrgEventTimeline from './OrgEventTimeline';

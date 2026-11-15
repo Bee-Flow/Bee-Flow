@@ -1,14 +1,13 @@
 import { Building2, Eye, Lock, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { audienceOf, describeAccess, joinNames, GROUPS, ORG, PRIVATE } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import { readGrants, type DatatableGrant } from './grants';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import { useOrgDirectory, type DirectoryEntry } from '../AppStudio/rbac/useAppRoles';
-import type { DtTable } from './rowBrowser/rowBrowserModel';
+import { useOrgDirectory } from '../AppStudio/rbac/useAppRoles';
 import type { Body } from './datatablesApi.types';
-import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SharedTable, Principal, RequestError, DatatableSharingProps, OrgSharingProps, AudienceRowProps, ConsequenceLineProps } from './DatatableSharing.types';
 import { CARD, GrantList } from './GrantList';
 

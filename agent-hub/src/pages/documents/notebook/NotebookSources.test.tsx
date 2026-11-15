@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import NotebookSources from './NotebookSources';
 
 // Stub the meeting picker + capture context (not under test here).

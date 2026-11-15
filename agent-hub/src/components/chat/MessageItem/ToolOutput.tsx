@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Terminal, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';

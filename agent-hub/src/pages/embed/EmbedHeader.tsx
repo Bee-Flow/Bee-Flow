@@ -1,5 +1,4 @@
 import { Sun, Moon } from 'lucide-react';
-import React from 'react';
 import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/agentAvatar';
 
 /** The agent the embed shows: the embed payload mapped to the shape WelcomeScreen and MessageItem expect. */

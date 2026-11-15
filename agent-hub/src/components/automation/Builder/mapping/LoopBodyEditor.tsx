@@ -6,7 +6,7 @@ import {
     ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3,
     type LucideIcon,
 } from 'lucide-react';
-import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
+import { useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';
 import { VariablePickerProvider } from './VariablePickerContext';

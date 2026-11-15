@@ -1,6 +1,5 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import StepNodeBase from './StepNodeBase';
 import DiagramPane from '../../DiagramPane';

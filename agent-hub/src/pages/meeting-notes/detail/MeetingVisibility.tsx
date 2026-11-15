@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useOrgGroupsQuery } from '@/api/queries/orgGroups';
 import VisibilityCapsule from '@/components/shared/VisibilityCapsule';
 import { toast } from '@/components/shared/Toast';

@@ -3,7 +3,7 @@
 // ItemPickerDialog; filing goes through PUT /api/projects/:id/resources, whose
 // refusal (not yours, not readable, other organisation) lands on the row.
 
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
     useMyDocumentsQuery, useMyMeetingsQuery, useMyNotebooksQuery, useReadableKnowledgeBasesQuery,
 } from '@/api/queries/projectContent';

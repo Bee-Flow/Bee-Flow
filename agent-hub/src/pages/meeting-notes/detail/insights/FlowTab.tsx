@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { EmptyState, MetricRow, Sparkline, StackedAirtime, TabHeading } from './primitives';
 import type { TranslateFn } from '@/hooks/useTranslation';

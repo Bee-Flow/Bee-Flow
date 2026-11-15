@@ -11,7 +11,6 @@ import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateA
 import DesignPresetGallery from './DesignPresetGallery';
 import ScreenTriggers from './ScreenTriggers';
 import type { DesignPreset } from './DesignPresetGallery';
-import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';

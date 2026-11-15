@@ -1,5 +1,5 @@
 import { Package, Plus, Building2, Users, LayoutTemplate } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PlanCard } from './PlanCard';
 import { PlanEditor } from './PlanEditor';
 import { PlanTemplateGallery } from './PlanTemplateGallery';

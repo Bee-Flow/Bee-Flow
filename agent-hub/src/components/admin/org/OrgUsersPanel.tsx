@@ -5,7 +5,7 @@ import GroupsSection from './orgUsers/GroupsSection';
 import RolesSection from './orgUsers/RolesSection';
 import UsersSection from './orgUsers/UsersSection';
 import useOrgDirectory from './useOrgDirectory';
-import type { OrgGroupRow, OrgMember, OrgRolePermissions } from './useOrgDirectory';
+import type { OrgGroupRow, OrgMember } from './useOrgDirectory';
 import useOrgGroups from './useOrgGroups';
 import useOrgInvitations from './useOrgInvitations';
 import useOrgMemberRoles from './useOrgMemberRoles';

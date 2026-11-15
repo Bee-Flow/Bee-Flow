@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction, type RefObject, type JSX } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useEditorChrome } from './EditorChromeContext';
 import { useScreenValues } from './ScreenValuesContext';
 import AppDataScope from '../runtime/AppDataScope';
@@ -10,10 +10,6 @@ import useConfirmDialog from '../runtime/useConfirmDialog';
 import { useAppEditor } from '../state/AppEditorContext';
 import './editor.css';
 import type { DataState } from '../runtime/DataContext';
-import type { AppDefinition } from '../inspector/appDefinition';
-import type { HeaderApp } from './header/headerModel';
-import type { ActionState, RunOpts, Vars } from '../runtime/actionRunner/core';
-import type { NavigateFn } from '../runtime/actionRunner/runnerContext';
 import type { CanvasBodyProps, CanvasProps } from './Canvas.types';
 import { CanvasBody } from './CanvasBody';
 import BackgroundRunTray from '../runtime/BackgroundRunTray';

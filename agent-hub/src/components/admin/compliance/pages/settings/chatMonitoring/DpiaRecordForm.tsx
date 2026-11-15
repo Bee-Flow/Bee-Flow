@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useRecordChatMonitoringDpia } from '@/components/admin/compliance/data/useChatMonitoring';
 import { ActionButton, DateInput, Field, Select, TextArea } from './formAtoms';

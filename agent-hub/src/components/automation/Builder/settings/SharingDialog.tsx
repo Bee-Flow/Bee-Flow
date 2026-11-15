@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KeyRound, X } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import { useTranslation } from '@/hooks/useTranslation';

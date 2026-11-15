@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { EVIDENCE_DAYS, type ShieldEvidence } from '../../activity/useShieldEvidence';
 import LicenceLock from '../../parts/LicenceLock';
 import ToggleCard, { ROW_CLASS, ROW_COLS, ROW_DESC, ROW_TITLE } from '../../parts/ToggleCard';

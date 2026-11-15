@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { COLOR_ROLES, HEX_RE } from './styleKnobMeta';

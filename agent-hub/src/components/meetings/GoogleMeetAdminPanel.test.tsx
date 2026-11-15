@@ -5,7 +5,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithClient as render } from '../../test/render';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import GoogleMeetAdminPanel from './GoogleMeetAdminPanel';
 

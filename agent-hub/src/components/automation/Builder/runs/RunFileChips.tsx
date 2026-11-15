@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Download, Eye, FileImage, FileText } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { formatBytes } from '@/utils/dateFormatters';

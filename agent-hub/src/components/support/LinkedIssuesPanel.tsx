@@ -1,5 +1,5 @@
 import { AlertTriangle, ExternalLink, Link2, Plus, RefreshCw, Users, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AttachIssuePanel from './AttachIssuePanel';
 import StateChip from './IssueStateChip';
 import { linkedIssuesKey, useLinkedIssuesQuery, useYouTrackStatusQuery } from '../../api/queries/supportPanels';

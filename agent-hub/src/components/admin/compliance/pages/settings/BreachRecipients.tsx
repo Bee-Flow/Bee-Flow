@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { INPUT_CLASS, LABEL_CLASS } from '../audits/auditForms';

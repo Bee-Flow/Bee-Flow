@@ -9,7 +9,7 @@ import { itemTab } from './ProjectDiscovery';
 // per editing session, with the item's title as the reader may see it now.
 
 import { Activity, Sparkles } from 'lucide-react';
-import React, { useEffect, useMemo, useState, useEffectEvent } from 'react';
+import { useEffect, useMemo, useState, useEffectEvent } from 'react';
 import { useProjectChangeLogQuery } from '@/api/queries/projectChanges';
 import {
     useProjectActivityQuery, useProjectMembersQuery, type ProjectMembers,

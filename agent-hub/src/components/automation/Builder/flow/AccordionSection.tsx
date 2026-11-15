@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { hiddenInSimple, resolveMode, useFormDensity } from './settings/formDensity';

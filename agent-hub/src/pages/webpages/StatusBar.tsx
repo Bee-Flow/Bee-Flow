@@ -1,4 +1,3 @@
-import React from 'react';
 import { Download, History } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import SaveStatus from './SaveStatus';

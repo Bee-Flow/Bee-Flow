@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { FORM_ALIGNS, FORM_FONTS, FORM_WIDTHS } from '@/components/forms/formStyleVars';
 import { OptionRow } from './controls';

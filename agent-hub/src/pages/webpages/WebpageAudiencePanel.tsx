@@ -1,14 +1,11 @@
 import { Loader2, Lock, RefreshCw } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from './WebpageDataCards';
 import AudienceRows from '../../components/shared/AudienceRows';
 import useTranslation from '../../hooks/useTranslation';
 import { useWebpageAudienceQuery } from '../../api/queries/webpagesPanels';
 import { RefusedError, errorBody } from '../../api/mutate';
 import { apiRequest } from '../../api/typedRequest';
-import type { TranslateParams } from '../../hooks/useTranslation';
-import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
-import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 import type { ColumnGateTable, ColumnGate, ColumnChoice, AddressOptions, AudienceModel, ColumnGateFormProps, WebpageAudiencePanelProps } from './WebpageAudiencePanel.types';
 import { AddressCard } from './AddressCard';
 import { PublicRow } from './PublicRow';

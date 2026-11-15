@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Small visual swatch shown inside theme-preset radio cards. Each preset has
  * its own palette + composition; glass uses a tinted card with backdrop-blur

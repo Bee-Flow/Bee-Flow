@@ -10,7 +10,7 @@
 
 import { Plus, Stamp } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import React, { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import PagerJs from '../../components/shared/Pager';
 import useTranslation, { readingLocale } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';

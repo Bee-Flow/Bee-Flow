@@ -53,7 +53,7 @@ import ToolsUsedTimeline from './MessageItem/ToolsUsedTimeline';
 import { DurationPill, StepBadge, TimelineRail } from './MessageItem/timelineParts';
 import { nOf } from '../admin/Studio/KnowledgeStudio/plural';
 import useTranslation from '../../hooks/useTranslation';
-import type { HeldAction, HeldActionRow, OmittedFact, QuestionRow, RuleRow, SourcesRow, AnswerRow, TraceMessage, TraceRow as TraceRowData } from './answerTrace.types';
+import type { HeldAction, QuestionRow, SourcesRow } from './answerTrace.types';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OmittedNoteProps, RowFactsProps, JudgedFactsProps, TraceRowProps, AnswerTracePanelProps } from './AnswerTracePanel.types';
 

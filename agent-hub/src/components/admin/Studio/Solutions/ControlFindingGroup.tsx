@@ -1,5 +1,4 @@
 import { AlertCircle, AlertTriangle, ArrowUpRight } from 'lucide-react';
-import React from 'react';
 
 export interface ControlFinding {
     code?: string;

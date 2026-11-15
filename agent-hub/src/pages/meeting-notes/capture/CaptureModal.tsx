@@ -1,4 +1,3 @@
-import React from 'react';
 import { Mic, Upload, MessageSquare, Video, Users, ArrowLeft, X } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import IconButton from '@/components/shared/IconButton';

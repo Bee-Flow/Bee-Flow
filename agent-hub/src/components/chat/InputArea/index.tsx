@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AppDef, seedTextForApp } from '../../apps/appCatalog';
 import CoworkComposer from '../../cowork/CoworkComposer';
 import ActiveSkillChips from '../../skills/ActiveSkillChips';
-import { usableInChat } from '../knowledgeBaseClaim';
 import useDictation from '../useDictation';
 
 import AttachmentTray from './AttachmentTray';
@@ -28,13 +27,6 @@ import scopedStorage from '@/utils/scopedStorage';
 import useVoiceChatReady from '../Voice/useVoiceChatReady';
 import VoiceInlinePanel from '../Voice/VoiceInlinePanel';
 import type { ComposerAttachment } from './useFileIntake';
-import type { CoworkMode } from '../../cowork/CoworkModeSwitch';
-import type { UseCoworkComposerReturn } from '../../cowork/useCoworkComposer';
-import type { ModelTierMap } from '@/hooks/useModelTierSelection';
-import type { KnowledgeBase } from '@/hooks/useKnowledgeBases';
-import type { ChatMessage } from '@/hooks/useChatEngine/types';
-import type { NoticeModel } from '../chatSignals/chatSignalsModel';
-import type { SkillsPopoverProps } from '../../skills/SkillsPopover';
 import type { VoiceTurn } from '../Voice/useVoiceSession.types';
 import type { InputAreaProps } from './index.types';
 

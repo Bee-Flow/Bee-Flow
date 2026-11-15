@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
 import SourceDetail, { isPending, statusOfDoc } from './SourceDetail';

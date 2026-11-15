@@ -1,4 +1,3 @@
-import React from 'react';
 import Slider from '@/components/shared/Slider';
 import RadiusChip from '../../shared/RadiusChip';
 import { SECTION_IDS } from '../useLookForm';

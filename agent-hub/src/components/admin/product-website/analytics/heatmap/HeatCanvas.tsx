@@ -16,7 +16,7 @@
  * intensity through a colour ramp in one pass. Painting coloured blobs directly
  * would make overlaps muddy instead of hot.
  */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Teal → green → amber → red. No purple/violet/indigo (house rule), and the
 // ramp is monotonic in lightness so it survives greyscale printing.

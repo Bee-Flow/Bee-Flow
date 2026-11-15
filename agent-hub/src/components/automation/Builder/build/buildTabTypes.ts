@@ -12,7 +12,6 @@ import type { BuilderSendOptions } from '../builderSend';
 import type { AssistantField } from '../useBuilderShellState';
 import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
-import type { FormDef } from '@/components/forms/PublicFormRenderer.types';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 import type { FormRunClose, FormRunFollow, FormRunStart, FormTestSession } from '../formRunContract';
 

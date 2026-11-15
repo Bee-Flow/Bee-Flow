@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import useConfirm from '../../shared/useConfirm';
 import { RefusedError, errorBody } from '@/api/mutate';
-import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
+import { useAdminOrgScope } from '@/api/adminOrgScope';
 import OrgGlobalTiersList from './OrgGlobalTiersList';
 import { apiRequest } from '@/api/typedRequest';
 import { useCustomTiersRead, type AvailableModel, type OrgTier } from './useCustomTiersRead';

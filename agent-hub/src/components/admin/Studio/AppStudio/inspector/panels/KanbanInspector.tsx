@@ -1,4 +1,3 @@
-import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, SelectField, usePatch } from './kit';
 import useTranslation from '@/hooks/useTranslation';

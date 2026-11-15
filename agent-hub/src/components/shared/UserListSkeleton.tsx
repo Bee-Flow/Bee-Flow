@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface UserListSkeletonProps {
     rows?: number;
     showHeader?: boolean;

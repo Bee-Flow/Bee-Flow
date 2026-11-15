@@ -5,7 +5,6 @@ import Toggle from '@/components/shared/Toggle';
 import { RepeatableList } from '@/components/admin/product-website/fields';
 import ExpressionInput from '../inspector/logic/ExpressionInput';
 import { INPUT_CLS } from '../inspector/panels/kit';
-import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps, FilterEntry } from './FilterRowsEditor.types';
 import { AddGroupButtons, FilterTreeGroup, addableGroupKinds, groupKindOf, newGroup, useGroupLabel } from './FilterTreeGroup';
 import { CompareWithFieldButton, FieldCompareRow, isCompareOp, isFieldCompareRow } from './FilterFieldCompare';

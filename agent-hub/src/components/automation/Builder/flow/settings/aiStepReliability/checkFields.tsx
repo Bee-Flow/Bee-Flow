@@ -2,7 +2,7 @@
 // from an earlier step (with the part of each item that holds the value), and
 // a number box. Controlled and free of step logic.
 import { getList } from '@shared/expr/path.mjs';
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import PathFieldJs from '@/components/automation/Builder/mapping/PathField';

@@ -3,7 +3,7 @@
  * with one category chip per distinct category found — category + color,
  * same rule as everywhere else in this review UI (never a raw score).
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DlpSpan } from './dlpFindingsState';

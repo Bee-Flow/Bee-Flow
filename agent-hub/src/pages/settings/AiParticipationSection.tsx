@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ApiError } from '../../api/client';
 import { useMyAiParticipation, useSaveMyAiParticipation } from '../../api/queries/aiParticipation';
 import { useTranslation } from '../../hooks/useTranslation';

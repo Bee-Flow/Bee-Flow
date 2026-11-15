@@ -1,5 +1,4 @@
 import { Scale } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import { SECTION_LBL } from '@/components/shell/sidebar/sidebarTokens';
 import { useTranslation } from '@/hooks/useTranslation';

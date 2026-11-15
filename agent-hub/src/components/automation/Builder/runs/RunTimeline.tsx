@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Check, Hourglass, Loader2, Minus, RotateCcw, SearchX, Workflow, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { RunRowData, RunStepRecord } from '@/api/queries/automation/runs';

@@ -6,8 +6,6 @@
  * filter bar's count and the log's columns already say.
  */
 
-import React from 'react';
-
 import type { TranslateFn } from '@/hooks/useTranslation';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 

@@ -3,7 +3,6 @@
 // requests, so the button would only ever fail there.
 
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { expect, it, vi } from 'vitest';
 import EmailDraftCard from './EmailDraftCard';
 

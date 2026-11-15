@@ -4,8 +4,8 @@
 
 import type {
     Change, ChangeKind, CompareResult, CompareSide, CompareSummary, FileCompare, FilePart, FileSummary,
-    GoldenItem, GoldenList, GoldenReplay, ReplayStatus, ScenarioDetail, ScenarioItem, ScenarioList,
-    StepCompare, StepVerdict,
+    GoldenItem, GoldenList, GoldenReplay, ScenarioDetail, ScenarioItem, ScenarioList,
+    StepCompare,
 } from './runChecksTypes';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);

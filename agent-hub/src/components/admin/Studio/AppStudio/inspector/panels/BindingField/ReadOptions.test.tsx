@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MatchMode, SearchOption } from './ReadOptions';
 import { searchableFields, searchExpr, withSearchFields } from './readOptions.helpers';

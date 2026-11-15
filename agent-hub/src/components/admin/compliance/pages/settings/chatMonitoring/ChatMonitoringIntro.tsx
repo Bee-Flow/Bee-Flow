@@ -1,5 +1,4 @@
 import { Scale } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /**

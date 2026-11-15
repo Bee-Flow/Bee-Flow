@@ -1,5 +1,4 @@
 import { ArrowLeft, Download, Loader2, MessageSquare, Settings } from 'lucide-react';
-import React from 'react';
 import MeetingPicker from '../../components/meeting-picker/MeetingPicker';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getParam } from './templateTypes';

@@ -1,17 +1,16 @@
 import { ChevronDown, GraduationCap, CheckCircle2, Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import BreachRecipients from './BreachRecipients';
 import { RELEVANCE_OPTIONS } from './settingsFields.helpers';
-import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf, type SettingsForm, type SettingsSection } from './settingsLayout';
-import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf } from './settingsLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FilterPill } from '@/components/shared/FilterPills';
 import { formatDay } from '../../shared/formatDates';
 import {
     Field, TextInput, DateInput, Select, UserSelect, Toggle, ActionButton, INPUT_CLASS, LABEL_CLASS,
 } from '../audits/auditForms';
-import type { OrgUser } from '../accessAuditLabels';
-import type { SettingsFieldDef, SettingsGroupDef, Contact } from './settingsFields.types';
-import type { Translate, MemberValue, SettingsValue, SettingsChange, RelevanceSetter, FieldProps, SettingsGroupProps, GroupSectionProps, MemberFillProps, GroupFieldProps, RemoveButtonProps, ListEntry, StringListProps, ContactRow, ContactListProps, RelevanceFieldProps } from './SettingsGroup.types';
+import type { SettingsFieldDef, Contact } from './settingsFields.types';
+import type { Translate, SettingsChange, RelevanceSetter, FieldProps, SettingsGroupProps, GroupSectionProps, MemberFillProps, GroupFieldProps, RemoveButtonProps, ListEntry, StringListProps, ContactRow, ContactListProps, RelevanceFieldProps } from './SettingsGroup.types';
 export type { MemberValue, SettingsValue,  } from './SettingsGroup.types';
 
 export default function SettingsGroup({

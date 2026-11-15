@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileDown, FileArchive, ShieldCheck, Scale } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { refusalOf, useChatMonitoringRopa, useSaveChatMonitoring, type ChatMonitoringConfig } from '@/components/admin/compliance/data/useChatMonitoring';
 import { ActionButton } from './formAtoms';

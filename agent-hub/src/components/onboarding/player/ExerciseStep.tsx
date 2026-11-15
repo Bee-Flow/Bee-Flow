@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, ArrowUpRight, Sparkles, Loader2, RotateCcw, Lightbulb } from 'lucide-react';
+import { Check, ArrowUpRight, Sparkles, Loader2, Lightbulb } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { gradeExercise, getHint } from '@/api/exerciseCoach';
 import type { ExerciseGrade } from '@/api/exerciseCoach';

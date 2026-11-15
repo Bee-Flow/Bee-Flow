@@ -1,4 +1,3 @@
-import React from 'react';
 import { Copy } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { dedupeSummary } from '../nodeSummaries';

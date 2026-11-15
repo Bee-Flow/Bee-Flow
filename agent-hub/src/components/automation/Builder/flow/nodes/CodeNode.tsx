@@ -1,4 +1,3 @@
-import React from 'react';
 import { Code2, Lock } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';

@@ -1,6 +1,6 @@
 import { AlertTriangle, Ban, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, FlaskConical, Play, Plus, XCircle, type LucideIcon } from 'lucide-react';
-import React, { useState } from 'react';
-import { RUN_STATE, firstProblem, justRanScore, problemFor, summariseRun, type RunProgress, type RunSummary, type TestItem, type TestRun } from '../testSetFacts';
+import { useState } from 'react';
+import { RUN_STATE, firstProblem, justRanScore, problemFor, summariseRun, type TestRun } from '../testSetFacts';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { EmptyRow, UnreadableNotice } from '../../canUse/CanUseCard';
 import { READ } from '../../canUse/canUseFacts';

@@ -1,5 +1,4 @@
 import { Check } from 'lucide-react';
-import React from 'react';
 import PresetSwatch from '../../PresetSwatch';
 import type { LucideIcon } from 'lucide-react';
 

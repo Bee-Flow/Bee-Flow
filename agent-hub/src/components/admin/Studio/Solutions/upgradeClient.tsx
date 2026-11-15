@@ -1,5 +1,5 @@
 import { ArrowUpCircle, HelpCircle } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '@/hooks/useTranslation';

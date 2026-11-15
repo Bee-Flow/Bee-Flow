@@ -7,7 +7,7 @@
 // `FindingStateChip` is the small label the row shows while a decision exists.
 
 import { BellOff, CheckCheck, ChevronDown, RotateCcw, ShieldQuestion } from 'lucide-react';
-import React, { useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 

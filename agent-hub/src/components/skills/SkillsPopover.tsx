@@ -1,6 +1,6 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Sparkles, Plus, Lock, Users, Link2, Puzzle, RefreshCw, Trash2, ChevronDown, Check } from 'lucide-react';
-import { deriveCompletedSkillIds, classifySessionSkill, type SessionSkill } from './sessionSkillState';
+import { deriveCompletedSkillIds, classifySessionSkill } from './sessionSkillState';
 import SkillFormModal from './SkillFormModal';
 import { useSkills, type SkillForm } from '../../hooks/useSkills';
 import useTranslation from '../../hooks/useTranslation';

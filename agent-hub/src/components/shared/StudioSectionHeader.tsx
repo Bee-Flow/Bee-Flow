@@ -1,10 +1,9 @@
 import { ArrowLeft, Check, ChevronDown, type LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
-import { kindIcon, kindOf, kindTileStyle, type KindSource } from './kindColors';
+import { kindIcon, kindOf, kindTileStyle } from './kindColors';
 import SegmentedControl, { resolveSegmentedBadge } from './SegmentedControl';
 import useTranslation from '../../hooks/useTranslation';
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { StudioSectionHeaderTab } from '../projects/workspace/studioParts';
 import type { KindTileProps, TitleProps, StatusChipProps, TabMenuProps, BackButtonProps, TabsSlotProps, ActionClusterProps, StudioSectionHeaderProps } from './StudioSectionHeader.types';
 

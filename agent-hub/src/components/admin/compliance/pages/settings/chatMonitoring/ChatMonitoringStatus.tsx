@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import useConfirm from '@/components/shared/useConfirm';
 import {

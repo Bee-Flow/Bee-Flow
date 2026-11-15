@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { TextField, LinkField, FieldRow } from '../fields';
 import type { CmsLink, CmsPageOption } from '../fields';

@@ -4,7 +4,7 @@
 // "sending" or "not sent" with retry and discard.
 
 import { BookOpen, CheckSquare, Copy, CornerUpLeft, FileText, MessageSquareReply, Mic, Pencil, RotateCcw, Trash2, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { isAutomaticAnswer, type PendingTeamChatMessage, type TeamChatMessage, type TeamChatRef } from '@/api/queries/projectChats';
 import { useTranslation } from '@/hooks/useTranslation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';

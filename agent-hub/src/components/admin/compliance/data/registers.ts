@@ -15,8 +15,6 @@ import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import { API, fetchJson, json, jsonInit, asArray } from '@/api/complianceApi';
 import useResource from './useResource';
-import type { SoaControl } from '../pages/soa/SoaTable';
-import type { AccessAuditRow } from '../pages/accessAuditLabels';
 import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
 import type { Id, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
 import { noop } from './useRopa';

@@ -1,4 +1,3 @@
-import React from 'react';
 import DocumentEditor from '../../pages/documents/DocumentEditor';
 
 /**

@@ -1,7 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { testQueryClient, withQueryClient } from '../../test/queryWrapper';
 import { makeFakeApi, reply } from '../projects/workspace/workspaceTestApi';

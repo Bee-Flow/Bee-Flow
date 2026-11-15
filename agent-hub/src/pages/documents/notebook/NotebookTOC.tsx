@@ -1,4 +1,3 @@
-import React from 'react';
 import { BookMarked, X } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TocItem } from '@/editor/react/toc';

@@ -1,5 +1,5 @@
 import { ScrollText, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useModuleLogs } from '@/api/queries/modules';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';

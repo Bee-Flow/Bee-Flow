@@ -1,4 +1,3 @@
-import React from 'react';
 import { RectangleHorizontal } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { slideSummary } from '../nodeSummaries';

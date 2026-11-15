@@ -7,7 +7,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ChevronDown, Pilcrow, Heading1, Heading2, Heading3, List, ListOrdered, Quote,
+  Pilcrow, Heading1, Heading2, Heading3, List, ListOrdered, Quote,
   CheckSquare, AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react';
 import type { TranslateFn, TranslateParams } from '../../hooks/useTranslation';

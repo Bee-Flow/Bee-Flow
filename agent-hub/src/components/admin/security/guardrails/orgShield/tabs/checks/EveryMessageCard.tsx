@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ChoiceCards, { type ChoiceCardOption } from '@/components/shared/ChoiceCards';
 import ToggleCard from '../../parts/ToggleCard';
 import { CheckCard } from './CheckCard';

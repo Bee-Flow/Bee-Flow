@@ -5,7 +5,6 @@ import {
 } from './testSetFacts';
 import { readEventStream } from '@/utils/sseStream';
 import { READ, type ReadState } from '../canUse/canUseFacts';
-import { logger } from '@/utils/logger';
 import { RefusedError } from '@/api/mutate';
 import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { useAgentTestsQuery } from '@/api/queries/agentTestsRead';

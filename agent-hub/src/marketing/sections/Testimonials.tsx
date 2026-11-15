@@ -1,4 +1,3 @@
-import React from 'react';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import SectionFrame from '../components/SectionFrame';

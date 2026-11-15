@@ -15,7 +15,6 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
 
 import { RankBar } from './miniCharts';
 import { Panel, PanelHead } from './Panel';

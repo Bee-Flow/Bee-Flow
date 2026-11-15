@@ -1,4 +1,3 @@
-import React from 'react';
 import { CircleCheck, CircleSlash, CircleX, Hourglass, Loader2 } from 'lucide-react';
 import type { RunTone } from './runOutcome';
 

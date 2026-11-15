@@ -3,7 +3,7 @@
 // person from the save status or the notice, never on its own: a conflict
 // waits calmly until they are ready for it.
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Modal from '@/components/shared/Modal';
 import useTranslation from '@/hooks/useTranslation';
 import type { Conflict } from '../useDocumentAutosave';

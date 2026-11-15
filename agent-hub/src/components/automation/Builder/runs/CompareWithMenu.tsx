@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GitCompare } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { RunListFilters, RunRowData } from '@/api/queries/automation/runs';

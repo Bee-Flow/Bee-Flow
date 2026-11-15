@@ -1,4 +1,3 @@
-import React from 'react';
 import { Lock, ArrowRight, ExternalLink } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { BILLING_ACTION } from './billingTheme';

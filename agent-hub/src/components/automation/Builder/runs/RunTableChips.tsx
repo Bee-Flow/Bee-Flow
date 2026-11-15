@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Table2 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { tableHandlesIn } from '@/api/queries/automation/runTables';

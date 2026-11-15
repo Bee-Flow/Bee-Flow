@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, MessageSquare, Pencil, RotateCcw, Square, SkipForward, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { CLIENT_RUN, kindOf } from './phaseMachine';

@@ -1,5 +1,5 @@
 import { Check, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import { PlanView, ROW } from './DeployPlanView';

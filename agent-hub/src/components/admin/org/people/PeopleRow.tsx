@@ -1,5 +1,4 @@
 import { Check, Clock, Edit2, ServerCog, Shield, Trash2, X } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import RoleBadge from '@/components/shared/RoleBadge';
 import { mayManageAccount } from '@/utils/adminAccess';

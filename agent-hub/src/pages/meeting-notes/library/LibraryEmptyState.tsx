@@ -1,4 +1,3 @@
-import React from 'react';
 import { Mic } from 'lucide-react';
 import EmptyState from '@/components/shared/EmptyState';
 import useTranslation from '@/hooks/useTranslation';

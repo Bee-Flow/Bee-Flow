@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDateFormat } from '@/components/admin/compliance/shared/formatDates';
 import { ActionButton, DateInput, Field, Select, TextInput, Toggle } from './formAtoms';

@@ -1,7 +1,6 @@
 // "Delete this …?" asked in place, with Delete and Keep: nothing pops over
 // the item being read.
 
-import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { GhostButton, SecondaryButton } from '../projects/workspace/workspaceUi';
 

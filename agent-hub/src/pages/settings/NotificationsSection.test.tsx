@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NOTIFICATION_EVENTS } from '../../api/queries/notificationPrefs';
 import { makeFakeApi, reply } from '../../components/projects/workspace/workspaceTestApi';

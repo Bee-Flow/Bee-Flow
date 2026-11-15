@@ -1,4 +1,3 @@
-import React from 'react';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { LessonStep } from '@/api/lessons.types';

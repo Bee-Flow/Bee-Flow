@@ -1,5 +1,4 @@
 import { TriangleAlert } from 'lucide-react';
-import React from 'react';
 
 import Toggle from '@/components/shared/Toggle';
 import type { TranslateFn } from '@/hooks/useTranslation';

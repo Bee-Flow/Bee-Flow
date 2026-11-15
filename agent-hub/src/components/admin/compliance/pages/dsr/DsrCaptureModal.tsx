@@ -3,7 +3,7 @@
  * letter (artboard 1c header primary). POST /api/dsr/requests/manual with an
  * explicit allow-list of fields: type, e-mail, channel, received-at, notes.
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';

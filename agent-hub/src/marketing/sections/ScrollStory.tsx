@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SectionHeader from '../components/SectionHeader';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';

@@ -1,5 +1,4 @@
 import { AlertTriangle, ArrowUpCircle, CheckCircle2, HelpCircle, Info } from 'lucide-react';
-import React from 'react';
 import { STAGE_DOT } from './pipeline/StageSwitcher';
 import { stripOf } from '@/api/stagesApi';
 import { countPhrase } from './solutionCounts';

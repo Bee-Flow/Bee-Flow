@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 import type { ConfirmDialogProps } from './ConfirmDialog';
 

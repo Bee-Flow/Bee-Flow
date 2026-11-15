@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { useCanvasWheel } from './useCanvasWheel';
 import type { CanvasCamera, CanvasStore } from './useCanvasWheel';
 import type { Viewport } from './wheelInput';

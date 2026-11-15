@@ -8,7 +8,7 @@
  * open, keeping the API fetch lazy.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link2 } from 'lucide-react';
 import ExternalShareSection from './ExternalShareSection';
 import { useTranslation } from '@/hooks/useTranslation';

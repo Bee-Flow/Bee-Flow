@@ -1,5 +1,5 @@
 import { FileDown, RotateCcw } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import SideDrawerJs, { DrawerSection as DrawerSectionJs } from '@/components/shared/SideDrawer';

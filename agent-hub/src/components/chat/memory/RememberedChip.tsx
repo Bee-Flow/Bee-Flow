@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useRememberedMemories from '@/hooks/useRememberedMemories';
 import { useTranslation } from '@/hooks/useTranslation';
 import { openMemoryPanel } from '@/utils/memoryMode';

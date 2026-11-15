@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField } from '../fields';
 import { InlineHint, FieldSelect } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
 import { BookOpen } from 'lucide-react';
-import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SectionToolbar from './SectionToolbar';
 

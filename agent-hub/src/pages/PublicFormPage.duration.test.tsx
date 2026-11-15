@@ -1,7 +1,6 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import React from 'react';
 
 /**
  * While the automation works, the poll may say how long runs of this form

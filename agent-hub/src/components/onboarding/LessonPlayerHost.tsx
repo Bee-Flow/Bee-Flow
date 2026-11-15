@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { activeCourses, courseLessons, earnedBadgesFromProgress, isCourseComplete, xpFromProgress, getCourse, XP_PER_MASTERY } from './courses';
 import { readCompletedMap, readMasteredMap } from './learningProgress';
 import { LESSON_PLAYER_OPEN_EVENT, TOUR_START_EVENT, lessonIdIsPureTour } from './lessons';

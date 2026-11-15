@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Shield, Key, Copy, Check, Eye, EyeOff, AlertTriangle, Lock, ArrowLeft } from 'lucide-react';
 import { opaquePinLogin } from '../lib/opaque';
 import { useTranslation } from '../hooks/useTranslation';

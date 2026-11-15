@@ -11,7 +11,7 @@
  * `/query/event-data` returns them. Nothing in the product read them.
  */
 import { Zap, MousePointerClick, Layers, ExternalLink } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { blockLabel } from '../heatmap/model';

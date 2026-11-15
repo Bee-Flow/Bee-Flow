@@ -14,7 +14,7 @@ import TeamsMeetingNotesSection from './TeamsMeetingNotesSection';
 import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
-import type { PreferencesUser, PreferencesAgent, PreferencesSectionProps, RowProps, DropdownOption, DropdownProps, ToggleProps, UiLocale } from './PreferencesSection.types';
+import type { PreferencesAgent, PreferencesSectionProps, RowProps, DropdownOption, DropdownProps, ToggleProps, UiLocale } from './PreferencesSection.types';
 import { apiRequest } from '@/api/typedRequest';
 
 const NO_LOCALES: UiLocale[] = [];

@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { EmptyState, FLAG_AMBER, TabHeading } from './primitives';
 import type { TranslateFn } from '@/hooks/useTranslation';

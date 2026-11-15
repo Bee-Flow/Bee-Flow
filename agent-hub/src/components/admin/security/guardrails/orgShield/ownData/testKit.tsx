@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { withQueryClient } from '@/test/queryWrapper';

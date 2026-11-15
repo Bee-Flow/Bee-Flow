@@ -10,9 +10,9 @@ import {
     coerceVariableDefault,
 } from '../runtime/appVariables';
 import { listVariables, removeVariable, renameVariable, setVariable } from '../state/definitionOps';
-import { collectVariableUsage, declarableUnknowns, describeSite, VariableUsage, type UsageSite } from '../state/variableUsage';
+import { collectVariableUsage, declarableUnknowns, describeSite, VariableUsage } from '../state/variableUsage';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import type { AppDefinition, DefinitionVariable } from '../inspector/appDefinition';
+import type { DefinitionVariable } from '../inspector/appDefinition';
 import type { RevealTarget, VariablesManagerProps, UsageListProps } from './VariablesManager.types';
 import { DefaultField } from './DefaultField';
 import { VariableBehaviour } from './VariableBehaviour';

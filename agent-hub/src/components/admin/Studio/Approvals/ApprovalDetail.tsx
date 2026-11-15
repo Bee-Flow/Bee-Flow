@@ -1,13 +1,12 @@
 import { ArrowLeft, Clock, Download, ExternalLink, FileText, User } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import ApprovalDecisionControls, { type ApprovalField } from './ApprovalDecisionControls';
+import { useEffect, useState } from 'react';
+import ApprovalDecisionControls from './ApprovalDecisionControls';
 import { approvalSourceInfo, approvalStatusChip, formatWhen, stageChainInfo } from './approvalDisplay';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import useTranslation from '@/hooks/useTranslation';
 import { FormRichText } from '@/components/forms/PublicFormRenderer';
 import { toast } from '@/components/shared/Toast';
 import useConfirm from '@/components/shared/useConfirm';
-import type { ApprovalListRow } from './useApprovals';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ApprovalVote, ApprovalStage, PanelProgressData, ApprovalProgress, ApprovalAttachment, ApprovalRecord, ApprovalDetailData, ApprovalDecisionResponse, ApprovalApi, ApprovalDetailProps, StatusLabelProps, PanelProgressProps, BackButtonProps } from './ApprovalDetail.types';
 import { waitingStageLine, auditLine, formatSize } from './ApprovalDetail.helpers';

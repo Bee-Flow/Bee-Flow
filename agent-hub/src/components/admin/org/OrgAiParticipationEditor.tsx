@@ -5,7 +5,7 @@
 // number again, this screen only offers the ranges it was sent.
 
 import { AlertTriangle, Loader2, MessagesSquare } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     useOrgAiParticipation, useSaveOrgAiParticipation,
     type AiSensitivity, type OrgAiParticipationPolicy, type OrgAiParticipationSettings,

@@ -26,7 +26,7 @@
  * endpoint stated — no "0 open" invented.
  */
 import { ChevronLeft, Play, Scale } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ComplianceHeader, { type HubHeaderCtx } from './ComplianceHeader';
 import { countFor } from './data/useComplianceCounts';
 import MobileHomeOverview, { type HomeData } from './mobile/MobileHomeOverview';

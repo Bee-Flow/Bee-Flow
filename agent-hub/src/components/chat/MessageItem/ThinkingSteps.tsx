@@ -1,4 +1,3 @@
-import React from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import type { ChatMessage } from './messageTypes';
 import useTranslation from '@/hooks/useTranslation';

@@ -1,6 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 import { expect, vi } from 'vitest';
 import AppRoot from '../App';
 import { queryClient } from '../api/queryClient';

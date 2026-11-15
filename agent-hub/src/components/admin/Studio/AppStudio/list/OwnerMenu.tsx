@@ -1,5 +1,5 @@
 import { FolderOpen, MoreVertical, Pencil, Trash2, type LucideIcon } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { StudioApp } from './types';
 import useTranslation from '@/hooks/useTranslation';
 import IconButton from '@/components/shared/IconButton';

@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowUpCircle, Download, Loader2, RefreshCw, ScrollText, ShoppingCart, X } from 'lucide-react';
-import React, { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { ModuleIcon, priceLabel } from './MarketplaceModuleCard';
 import MediaGallery from './MediaGallery';
 import PermissionList from './PermissionList';

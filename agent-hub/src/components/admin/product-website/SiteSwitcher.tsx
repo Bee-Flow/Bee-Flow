@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import AppIcon from '../../icons/AppIcon';

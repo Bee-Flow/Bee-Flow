@@ -1,5 +1,5 @@
 import { X, Search, Upload } from 'lucide-react';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import CreateMenuButton from '../admin/Studio/AutomationsStudio/CreateMenuButton';
 import Modal from '../shared/Modal';

@@ -10,7 +10,6 @@
  * Run: cd agent-hub && npx vitest run src/marketing/sections/CompareTable.test.jsx
  */
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import CompareTable from './CompareTable';
 

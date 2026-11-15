@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { PRIMARY_BUTTON_CLASS } from './loginShared';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
 import { useTranslation } from '@/hooks/useTranslation';

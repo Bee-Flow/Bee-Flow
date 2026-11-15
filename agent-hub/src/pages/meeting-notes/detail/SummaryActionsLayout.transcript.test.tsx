@@ -12,7 +12,6 @@
  * Running: cd agent-hub && npx vitest run src/pages/meeting-notes/detail/SummaryActionsLayout.transcript.test.jsx
  */
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));

@@ -6,7 +6,6 @@
  * again, and a new chat always starts in normal mode.
  */
 import { Ghost } from 'lucide-react';
-import React from 'react';
 import Tooltip from '@/components/shared/Tooltip';
 import { useTranslation } from '@/hooks/useTranslation';
 

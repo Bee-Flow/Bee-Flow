@@ -1,6 +1,5 @@
 import { render, screen, within, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import CoworkOptionsBar from './CoworkOptionsBar';
 import MailTriggerPanel from './MailTriggerPanel';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { useConsumerBetaFeatures } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';

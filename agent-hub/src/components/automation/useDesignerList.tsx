@@ -1,4 +1,3 @@
-import React from 'react';
 import BuildingBlocksGroup from '../admin/Studio/AutomationsStudio/BuildingBlocksGroup';
 import type { DesignerState } from './useDesignerShell';
 import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';

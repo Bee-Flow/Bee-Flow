@@ -36,7 +36,7 @@ import { searchChecks, type SearchableCheck } from './data/checkSearch';
 import { openChecksFor, type CheckLike } from './data/openChecks';
 import { countFor } from './data/useComplianceCounts';
 import railMeta, { railHint, railRowTitle } from './railMeta';
-import { GROUPS, SECTIONS, sectionsInGroup, frameworkOf, sectionForRegulation, type Section } from './sections';
+import { GROUPS, SECTIONS, frameworkOf, sectionForRegulation, type Section } from './sections';
 import ArticleRef from './shared/ArticleRef';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import DeadlineClock from '../../shared/DeadlineClock';

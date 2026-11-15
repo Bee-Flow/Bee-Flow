@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { clockTone, incidentPillText, REGISTER_SPECS, ropaPill, soaExportItems } from './registerSpecs';

@@ -6,7 +6,7 @@ import type { PdfDocHandle } from '../pdfCompare/pdfTypes';
 import { useElementSize, useIsFullscreen, useScrolledPage } from './hooks';
 import ViewerPage from './ViewerPage';
 import ViewerToolbar from './ViewerToolbar';
-import { FALLBACK_ASPECT, nextRotation, pageAtOffset, turnedAspect, viewerPageWidth, type FitMode } from './viewerMath';
+import { FALLBACK_ASPECT, nextRotation, turnedAspect, viewerPageWidth, type FitMode } from './viewerMath';
 
 const PAD = 12;
 

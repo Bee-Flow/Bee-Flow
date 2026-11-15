@@ -1,4 +1,3 @@
-import React from 'react';
 import ComputedPropsEditor from './ComputedPropsEditor';
 import StudioScopeProvider from './StudioScopeProvider';
 import ValidationRuleEditor from './ValidationRuleEditor';

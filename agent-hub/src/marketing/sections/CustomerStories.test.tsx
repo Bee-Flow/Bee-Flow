@@ -4,7 +4,6 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/CustomerStories.test.tsx
  */
-import React from 'react';
 import { screen } from '@testing-library/react';
 import { renderWithClient } from '../../test/render';
 import userEvent from '@testing-library/user-event';

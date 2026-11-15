@@ -1,4 +1,3 @@
-import React from 'react';
 import OutlookMailboxPicker from './OutlookMailboxPicker';
 import type { FilterFieldsProps } from '../triggerFilters.types';
 

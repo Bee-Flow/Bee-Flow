@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ProviderPaneProps } from './providers/types';
 import DeleteConfirmButtons from './ProviderCards/shared/DeleteConfirmButtons';
 import SecretInput from './ProviderCards/shared/SecretInput';

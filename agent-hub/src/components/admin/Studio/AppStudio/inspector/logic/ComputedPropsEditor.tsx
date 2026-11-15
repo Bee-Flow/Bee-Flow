@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import FormulaField from './FormulaField';
 import { useCatalogComponents } from '../panels/SpecPanel';
 import IconButton from '@/components/shared/IconButton';

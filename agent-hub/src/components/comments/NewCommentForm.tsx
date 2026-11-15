@@ -3,7 +3,7 @@
 // the AI takes part. A refused send keeps the text and the passage; a resend
 // uses the same client id, so a thread that did land is not created twice.
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     newCommentClientId, useCreateCommentThread,
     type CommentAiMode, type CommentAiPolicy, type CommentAiResult, type CommentAnchor, type CommentTarget, type CommentThread,

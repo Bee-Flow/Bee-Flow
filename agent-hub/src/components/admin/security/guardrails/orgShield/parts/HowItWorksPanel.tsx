@@ -3,7 +3,6 @@ import {
     ShieldCheck, Tags, TriangleAlert, UserCheck, Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';

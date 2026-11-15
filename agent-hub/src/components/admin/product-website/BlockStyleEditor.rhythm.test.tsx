@@ -1,6 +1,5 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import BlockStyleEditor from './BlockStyleEditor';
 

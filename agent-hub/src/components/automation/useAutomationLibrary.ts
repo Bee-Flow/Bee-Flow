@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import useAutomationApi from '../../hooks/useAutomationApi';
-import type { AutomationApiError } from '../../hooks/useAutomationApi';
 import { toast } from '../shared/Toast';
 import useAutomationFolders from './useAutomationFolders';
 import {

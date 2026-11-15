@@ -1,5 +1,4 @@
 import { Users, Lock } from 'lucide-react';
-import React from 'react';
 import Toggle from '@/components/shared/Toggle';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';

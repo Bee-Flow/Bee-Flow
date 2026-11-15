@@ -1,5 +1,4 @@
 import { Zap } from 'lucide-react';
-import React from 'react';
 import CanUseCard, { CanUseRow, EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';

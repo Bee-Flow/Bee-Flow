@@ -1,5 +1,4 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 

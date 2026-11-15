@@ -20,7 +20,7 @@ import { toChannels, channelLabel, referrerHost, pivot, type BreakdownRow, type 
 import { rich } from '../rich';
 import { SERIES, Empty, SplitBar, fmt, fmtDurationSec, rateClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT, ShareBar, maxOf } from '../BarList';
+import { ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';

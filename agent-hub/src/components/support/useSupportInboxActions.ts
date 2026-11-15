@@ -3,7 +3,6 @@ import { useSupportCannedQuery } from '../../api/queries/supportInbox';
 import { supportInboxApi } from '../../api/supportInboxApi';
 import { errorMessage } from '../../utils/caughtError';
 import type { CannedResponse, SupportThread, ThreadPatch } from './SupportInboxPanel.types';
-import { logger } from '../../utils/logger';
 
 const NO_CANNED: CannedResponse[] = [];
 

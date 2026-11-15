@@ -7,8 +7,7 @@ import { kindBarClass, kindInkClass } from './kindBar';
 import { SOLUTION_BANDS } from './solutionSectionData';
 import { SECTIONS, itemLabel, mayRemove, type SolutionItem, type SolutionSection } from './solutionSections';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import type { ControlFinding } from './ControlFindingGroup';
-import type { GraphNode, GraphData, ContentResources, TargetedFinding, StatusCellProps, DependsOnProps, RowProps, EmptyIntroProps, SolutionContentTableProps } from './SolutionContentTable.types';
+import type { GraphNode, GraphData, TargetedFinding, StatusCellProps, DependsOnProps, RowProps, EmptyIntroProps, SolutionContentTableProps } from './SolutionContentTable.types';
 export type { ContentResources, TargetedFinding } from './SolutionContentTable.types';
 
 /** The three bands, and which membership sections land in each. */

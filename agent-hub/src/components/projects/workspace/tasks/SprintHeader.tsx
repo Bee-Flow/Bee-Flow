@@ -6,7 +6,7 @@
 // a later sprint of the old name. A failed rewrite is reported in one toast.
 
 import { CheckCheck, MoreHorizontal, Pencil, Play, Target, Trash2 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useUpdateTask, type ProjectTask } from '@/api/queries/projectTasks';
 import { useCompleteSprint, useDeleteSprint, useStartSprint, useUpdateSprint, type Sprint } from '@/api/queries/projectSprints';
 import { useTranslation } from '@/hooks/useTranslation';

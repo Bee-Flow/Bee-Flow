@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import CoworkModeSwitch from './CoworkModeSwitch';
 import CoworkModeToggle from './CoworkModeToggle';

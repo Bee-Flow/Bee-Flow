@@ -1,5 +1,5 @@
 import { Plus, Trash2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 // The kind words the variable tree shows for the same data one column
 // over — the hand-written-output sheet names a field's kind with them so

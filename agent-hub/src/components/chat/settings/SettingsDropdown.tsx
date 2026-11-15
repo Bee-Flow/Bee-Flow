@@ -13,7 +13,7 @@
 // to the first entry when `value` matches nothing.
 
 import { Check, ChevronDown } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 
 interface SettingsDropdownOption {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, RefreshCw, X } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';

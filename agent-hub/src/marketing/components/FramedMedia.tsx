@@ -1,4 +1,3 @@
-import React from 'react';
 import { resolveAssetUrl, assetSrcSet, ASSET_IMG_SIZES } from '../assetUrl';
 import ClipVideo from './ClipVideo';
 import LazyLoopVideo from './LazyLoopVideo';

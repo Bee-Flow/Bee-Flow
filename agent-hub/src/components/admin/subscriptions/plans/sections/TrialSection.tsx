@@ -1,5 +1,4 @@
 import { CalendarPlus, AlertTriangle } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { LIMIT_FIELDS, CURRENCY_SYMBOL } from '../../constants';
 import { Banner } from '../../ui/Banner';

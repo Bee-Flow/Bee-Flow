@@ -8,8 +8,6 @@
  * Which rows, which groups and how long each bar is: destinationGroups.ts.
  */
 
-import React from 'react';
-
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { fNum } from '@/pages/settings/usage/format';
 import { REGION_BG, type Region } from '../../shieldPalette';

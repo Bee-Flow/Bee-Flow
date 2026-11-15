@@ -1,12 +1,11 @@
 import { Plus, Workflow } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS, type OverviewLane, type RunIdSet, countFolders, countStates, countTriggers, filterRows, folderLabel, groupRows, sortRows, statusLabelOf, triggerLabelOf } from '../overviewModel';
+import { GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS, countFolders, countStates, countTriggers, filterRows, folderLabel, groupRows, sortRows, statusLabelOf, triggerLabelOf } from '../overviewModel';
 import OverviewToolbar, { type PillOption } from '../OverviewToolbar';
 import { useTranslation } from '@/hooks/useTranslation';
 import EmptyState from '@/components/shared/EmptyState';
 import Modal from '@/components/shared/Modal';
-import type { ProjectContextPillProject } from '@/components/chat/ProjectContextPill';
-import type { RowPropsFn, AutomationsOverviewProps, NewFolderDialogProps } from '../AutomationsOverview.types';
+import type { AutomationsOverviewProps, NewFolderDialogProps } from '../AutomationsOverview.types';
 import { VIEW_KEY, SORT_KEY, GROUP_KEY, COLUMN, readStored, store } from './AutomationsOverview.helpers';
 import { ListView } from './ListView';
 import { BoardView } from './BoardView';

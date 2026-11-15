@@ -2,7 +2,7 @@
 // project, and archiving it (the reversible alternative to deleting).
 
 import { Archive, ArchiveRestore, ArrowRightLeft } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSetProjectMute } from '@/api/queries/notificationPrefs';
 import { useArchiveProject, useRestoreProject, type Project } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';

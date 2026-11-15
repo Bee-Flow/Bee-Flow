@@ -1,5 +1,5 @@
 import { getList } from '@shared/expr/path.mjs';
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import PathFieldJs from '@/components/automation/Builder/mapping/PathField';
 import { collectArrayPaths } from '@/components/automation/Builder/mapping/upstream';

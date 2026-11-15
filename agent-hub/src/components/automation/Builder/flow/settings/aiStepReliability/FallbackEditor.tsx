@@ -1,4 +1,4 @@
-import { useId, useState, type ComponentType } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import TemplateFieldJs from '@/components/automation/Builder/mapping/TemplateField';

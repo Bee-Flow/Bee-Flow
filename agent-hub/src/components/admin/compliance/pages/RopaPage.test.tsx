@@ -1,6 +1,5 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import RopaPage, { sccConfirmedSet, hasDoraColumns } from './RopaPage';
 import { TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';

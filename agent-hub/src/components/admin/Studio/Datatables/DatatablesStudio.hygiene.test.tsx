@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MANAGED_COLUMNS } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';

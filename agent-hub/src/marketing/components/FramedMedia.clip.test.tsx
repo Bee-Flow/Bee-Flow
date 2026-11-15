@@ -3,7 +3,6 @@
  * (controls, poster, captions), the silent loop is untouched.
  */
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 import FramedMedia from './FramedMedia';
 

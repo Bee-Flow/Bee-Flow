@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Toggle, ImageField, FieldRow } from './fields';
 import { GOOGLE_FONTS, buildFontsHrefs, fontStack } from './googleFonts';
 import { SectionDivider, FontRow, SegmentedControl, FieldSelect } from './primitives';

@@ -6,7 +6,7 @@ vi.mock('@/utils/helpers', () => ({
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
 }));
 
-import SolutionExportDialog, { ExportCompleteness } from './SolutionExportDialog';
+import SolutionExportDialog from './SolutionExportDialog';
 import type { ComponentProps } from 'react';
 
 /**

@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Sparkles, TriangleAlert, Zap } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';

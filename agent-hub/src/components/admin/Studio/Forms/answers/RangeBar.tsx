@@ -1,4 +1,3 @@
-import React from 'react';
 import { PRESETS } from './answersRange';
 import type { AnswersRange, RangePreset } from './answersRange';
 import { useTranslation } from '@/hooks/useTranslation';

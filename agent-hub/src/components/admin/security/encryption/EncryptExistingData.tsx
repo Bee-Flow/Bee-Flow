@@ -5,7 +5,7 @@
  * encrypts what was stored before the tier was switched on.
  */
 import { DatabaseZap } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useBackfillJobQuery, useStartBackfill, type BackfillSurfaceStats } from '@/api/queries/encryptionBackfill';
 import { useTranslation } from '@/hooks/useTranslation';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';
 import type { CmsSiteDoc } from '../panel/cmsPanelTypes';

@@ -1,5 +1,5 @@
 import { Gauge } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import {

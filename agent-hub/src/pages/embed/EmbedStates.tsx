@@ -1,5 +1,3 @@
-import React from 'react';
-
 /** The full-screen placeholder while the agent loads. */
 export function EmbedLoading() {
     return (

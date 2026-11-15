@@ -5,7 +5,7 @@
 // session this shows the items still to estimate as one pickable list.
 
 import { Check, Sparkles } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { usePokerSessionQuery, useStartPokerSession, type ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';

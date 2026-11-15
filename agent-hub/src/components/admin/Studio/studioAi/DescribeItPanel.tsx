@@ -1,8 +1,8 @@
 import { Copy, Loader2, Lock, Sparkles } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { destinationForKind, kindLabel, parkSeed, type NavRow } from './handoff';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { destinationForKind, kindLabel, parkSeed } from './handoff';
 import { routeDescription, type RouteResult } from './routeApi';
-import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { KIND_ICON, kindColorVar, kindTint } from '@/components/shared/kindColors';
 import Modal from '@/components/shared/Modal';
 import type { RoutePlan, Destination, BlockRowProps, PlanCaveatsProps, PlanCardProps, PanelBodyProps, DescribeItPanelProps } from './DescribeItPanel.types';

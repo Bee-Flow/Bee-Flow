@@ -4,7 +4,7 @@
  * identity link in the acknowledgement e-mail. Read-only; the DPO contact
  * and auto-acknowledge live in the settings section.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Check, Copy, Globe, Settings2, ShieldCheck, Timer } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';

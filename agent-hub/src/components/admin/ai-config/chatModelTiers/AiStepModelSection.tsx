@@ -8,7 +8,6 @@
 // builder's prompt cache and queues full prompt evaluations before the next
 // round. Pointing the default tier at a tiny model keeps a demo build warm.
 // Explicit heavier tiers are untouched (core/automationRunner/aiStepModel.js).
-import React from 'react';
 import ModelSettingRow from './ModelSettingRow';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ComponentType } from 'react';
 import ExperimentMark from './ExperimentMark';
 import { experimentAttrs, resolveBlock } from './experiment';

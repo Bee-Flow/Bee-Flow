@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronRight, FileCode2, Palette, Cpu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 

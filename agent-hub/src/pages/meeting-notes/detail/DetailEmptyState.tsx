@@ -1,4 +1,3 @@
-import React from 'react';
 import { Mic, Upload, FileAudio, Video, Users } from 'lucide-react';
 import { useTeamsNotesUserSettings } from '@/api/queries/teamsMeetingNotes';
 import { kindColorVar, kindTint } from '@/components/shared/kindColors';

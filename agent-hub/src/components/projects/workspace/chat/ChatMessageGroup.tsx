@@ -3,7 +3,6 @@
 // reader never mistakes an answer for a colleague's words.
 
 import { Bot, Sparkles } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Avatar } from '../workspaceUi';
 import ChatMessageBubble, { type MessageContext } from './ChatMessageBubble';

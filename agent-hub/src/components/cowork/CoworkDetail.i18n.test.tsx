@@ -14,7 +14,6 @@
  * reachable from the Languages panel, in a namespace this track owns".
  */
 import { act, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const echoT = (key: string) => `«${key}»`;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import FormScenarioPicker from './FormScenarioPicker';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';

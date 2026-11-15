@@ -1,7 +1,6 @@
 // The shared composer shell, and the old chat import path that must keep working.
 
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { describe, expect, it } from 'vitest';
 import LegacyComposerBox from '../chat/InputArea/ComposerBox';
 import ComposerBox, { ComposerShell } from './ComposerBox';

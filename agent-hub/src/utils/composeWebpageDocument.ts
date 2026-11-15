@@ -20,7 +20,6 @@ import {
     buildBeeflowAuthScript,
     buildBeeflowBridgesScript,
     buildBeeflowDbScript,
-    buildBridgeHeadScripts,
 } from '@shared/webpage/previewBridges.mjs';
 import {
     buildSelectionBridgeScript,

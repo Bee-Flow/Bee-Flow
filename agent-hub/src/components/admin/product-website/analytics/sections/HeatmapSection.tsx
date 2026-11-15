@@ -18,7 +18,7 @@
  * link to the toggle rather than rendering a convincing empty canvas.
  */
 import { Flame, ShieldAlert, MoveVertical, AlertTriangle } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import {
     toPoints, groupByWidth, attributeToBlocks, blockLabel, toScrollReach, reachAt,
@@ -28,9 +28,8 @@ import { usePreviewBackdrop } from '../heatmap/usePreviewBackdrop';
 import { rich } from '../rich';
 import { Empty, fmt } from '../ui';
 import { Card, Skeleton } from '../AsyncCard';
-import { ACCENT, ShareBar } from '../BarList';
+import { ShareBar } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
-import type { AnalyticsScope, AnalyticsSite } from '../../analyticsApi';
 import type { XYRow } from '../ui.types';
 import type { SiteSettings, PageIndexRow, PreviewBlock, HeatmapPayload, HeatmapSectionProps, StaleNoticeProps, BlockRankingProps, ReachMilestonesProps, RecordingOffProps } from './HeatmapSection.types';
 import { PageRail } from './PageRail';

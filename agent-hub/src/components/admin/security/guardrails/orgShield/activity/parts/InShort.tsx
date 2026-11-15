@@ -9,12 +9,10 @@
  * them.
  */
 
-import React from 'react';
-
 import { OUTCOME_WORDS, wordFor } from '../activityLabels';
 import { OUTCOME_ORDER, type Outcome } from '../outcomes';
 import type { Totals } from '../shieldTotals';
-import { OUTCOME_FILL, OUTCOME_TEXT } from '../../shieldPalette';
+import { OUTCOME_FILL } from '../../shieldPalette';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { SegmentBar } from './miniCharts';
 import { needsOutline, outcomeDot } from './outcomeDot';

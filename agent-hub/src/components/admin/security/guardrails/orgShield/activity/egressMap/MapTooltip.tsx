@@ -13,7 +13,7 @@
  * than held in state: nothing about it is styling.
  */
 
-import React, { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { fNum } from '@/pages/settings/usage/format';

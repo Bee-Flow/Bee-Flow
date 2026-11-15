@@ -13,7 +13,6 @@
  * sensible way to convert one into the other halfway through, so the first
  * message settles it. Starting a new chat is how you pick again.
  */
-import React from 'react';
 import CoworkModeSwitch from './CoworkModeSwitch';
 import type { CoworkMode } from './CoworkModeSwitch';
 

@@ -2,7 +2,7 @@
 // an organisation admin rescuing a project whose owner is gone leaves no seat
 // for that owner (the server decides), so the choice is not offered to them.
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useProjectMembersQuery, useTransferOwner } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';

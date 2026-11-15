@@ -1,4 +1,3 @@
-import React from 'react';
 import type { LogoProps } from './integrationLogos.types';
 
 // Neutral database cylinder (no brand mark) for the Firebird database integration.

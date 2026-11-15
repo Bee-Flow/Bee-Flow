@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDuration } from '../../lib/format';
 import { EmptyState, MetricRow } from './primitives';
 import type { TranslateFn } from '@/hooks/useTranslation';

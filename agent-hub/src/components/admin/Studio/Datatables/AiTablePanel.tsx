@@ -1,5 +1,5 @@
 import { Loader2, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { datatablesApi } from './datatablesApi';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';

@@ -29,6 +29,25 @@ const sizeComplexityRules = {
 // count ratchets (scripts/count-ratchet.mjs): api/typedRequest.ts.
 const RAW_FETCH_MESSAGE = 'Call the API through api/typedRequest.ts (apiJson, apiRequest, apiFetch) or a React Query hook built on it instead of raw fetch().';
 
+// typescript-eslint's no-unused-vars with every report dropped except an
+// import binding (see the block that turns it on). The rule has no option for
+// "imports only", and an unused local or parameter is not this gate's business.
+const IMPORT_BINDINGS = new Set(['ImportSpecifier', 'ImportDefaultSpecifier', 'ImportNamespaceSpecifier']);
+const unusedVars = tseslint.plugin.rules['no-unused-vars'];
+const unusedImports = {
+    meta: unusedVars.meta,
+    create(context) {
+        const importsOnly = Object.create(context, {
+            report: {
+                value(descriptor) {
+                    if (IMPORT_BINDINGS.has(descriptor.node?.parent?.type)) context.report(descriptor);
+                },
+            },
+        });
+        return unusedVars.create(importsOnly);
+    },
+};
+
 export default [
     {
         // dist-embed is the Nextcloud embed build (see the Dockerfile's embed
@@ -205,10 +224,40 @@ export default [
         },
     },
     {
+        // An import nobody reads, in TypeScript, tests included. tsc runs with
+        // noUnusedLocals and noUnusedParameters off (some 300 unused locals and
+        // parameters still stand) and no-unused-vars is JS-only, so until this
+        // block nothing looked at the imports of a .ts/.tsx file. On the day it
+        // landed the rule named the same import bindings as
+        // `tsc --noUnusedLocals`, one for one.
+        //   - A name that starts with `_` is unused on purpose, as tsc reads it.
+        //   - jsxPragma null: with the automatic runtime (tsconfig `jsx:
+        //     react-jsx`) JSX does not read `React`, so that import is unused.
+        //   - No autofix, on purpose: the post-edit hook runs `eslint --fix`
+        //     after every edit and would delete an import written one edit
+        //     before its first use. `node scripts/ts-remove-unused-imports.mjs
+        //     <files>` removes them with TypeScript's own quick fix.
+        // What eslint-suppressions.json still holds for this rule, and why:
+        //   - files mobile's jest executes (scripts/deep-imports.exclude.json):
+        //     clean them together with the mobile suite;
+        //   - editor/collab/ySync.ts, an input of the server's generated
+        //     editorCollab.cjs: clean it with the next rebuild of that bundle;
+        //   - an import that is the last reader of an export (mostly a type in
+        //     a `*.types.ts` file). Removing it leaves the export dead and knip
+        //     (`npm run lint:dead`) fails: delete the export and the import
+        //     together, or use the import.
+        files: ['**/*.{ts,tsx}'],
+        languageOptions: { parserOptions: { jsxPragma: null } },
+        plugins: { 'bee-flow': { rules: { 'no-unused-imports': unusedImports } } },
+        rules: {
+            'bee-flow/no-unused-imports': ['error', { varsIgnorePattern: '^_' }],
+        },
+    },
+    {
         // The JS block's policy rules, for TS source too: files converted from
         // .jsx kept their alert/confirm errors, raw-fetch and react-hooks
         // warnings only while they were .jsx. Syntax rules that tsc already
-        // covers (no-undef, react/jsx-no-undef, no-unused-vars) stay JS-only.
+        // covers (no-undef, react/jsx-no-undef) and no-unused-vars stay JS-only.
         // Test harnesses call hooks from helper functions and reference
         // window.confirm to assert it is never called, so tests stay out.
         files: ['**/*.{ts,tsx}'],

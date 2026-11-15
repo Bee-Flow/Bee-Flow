@@ -6,7 +6,6 @@
  * claim that leaves that out promises more than the product keeps.
  */
 import { Ghost } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function IncognitoBanner() {

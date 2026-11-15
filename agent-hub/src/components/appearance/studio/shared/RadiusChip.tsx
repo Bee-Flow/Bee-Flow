@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * RadiusChip — small visual preview of the global `--radius-scale` applied to
  * a base radius. The three chips next to the Radius slider give the admin an

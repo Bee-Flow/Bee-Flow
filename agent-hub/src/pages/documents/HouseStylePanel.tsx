@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Loader2, AlertTriangle, Upload, Trash2 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { getHouseStyle, saveHouseStyle, fileToDataUrl, previewDeckTheme } from './documentsApi';
 import DeckPreview from './DeckPreview';

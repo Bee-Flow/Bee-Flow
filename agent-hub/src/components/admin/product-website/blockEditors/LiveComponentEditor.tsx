@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, Toggle, LinkField, FieldRow } from '../fields';
 import {
     InlineHint,

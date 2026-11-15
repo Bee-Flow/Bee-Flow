@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import * as aiStepEditors from '@/components/automation/Builder/flow/settings/aiStepEditors';
 import { fieldsToSchema, schemaToFields } from '@/components/automation/Builder/flow/settings/formState';

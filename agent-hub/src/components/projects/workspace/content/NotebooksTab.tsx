@@ -10,7 +10,7 @@ import { useNotebookDetail } from '@/pages/documents/notebook/notebookQueries';
 
 import { AlertTriangle, BookOpen, BookPlus, Lock, NotebookPen, Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import React, { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectNotebook, useProjectSection, type ProjectNotebook,
 } from '@/api/queries/projectContent';

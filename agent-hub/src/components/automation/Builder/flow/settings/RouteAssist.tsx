@@ -1,19 +1,16 @@
 import { Lightbulb, Loader2, Sparkles } from 'lucide-react';
-import { useLayoutEffect, useMemo, useRef, useState, type SetStateAction, type Dispatch, type MouseEventHandler } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { cardClass, rowInputClass } from './formPrimitives';
 import {
     FilesInsideNote, PRIMARY_BUTTON_CLASS, SuggestProblem, UnmatchedLine, useRuleLine,
 } from './RouteAssistParts';
-import { parseCategories, planRouteHandoff, type PlacedStep } from './routeHandoff';
+import { parseCategories, planRouteHandoff } from './routeHandoff';
 import { suggestOutputs } from './routeIntents';
 import { askFailureMessage, askModelForRules } from './routeRulesRequest';
 import TopicCheckRow from './TopicCheckRow';
 import useTopicPreview from './useTopicPreview';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
-import type { IntentField, IntentResult } from './routeIntents.types';
-import type { TopicsCapability } from '../../mapping/TopicNotice';
-import type { SuggestedRule, RouteConfig } from './routeTypes';
 import type { Suggestion, HandoffPlan, HandoffPlanWithStep, UseRouteSuggestionArgs, UseRouteHandoffArgs, InsertUpstreamStep, RouteAssistProps, AskAiRowProps, SuggestionPreviewProps } from './RouteAssist.types';
 import { HandoffOffer } from './HandoffOffer';
 
