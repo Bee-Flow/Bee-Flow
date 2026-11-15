@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import { acknowledgeImportItems, fetchImportReport } from '@/api/windmillImport';
 import type { ImportReportView } from '@/api/windmillImport';
 import { PRIMARY_BTN, SECONDARY_BTN } from '../Builder/settings/settingsUi';
 import { sortedWarnings } from './FlowPreviewCard';
+import useWindmillInventory from './useWindmillInventory';
 
 const importReportKey = (automationId: string) => ['automation', automationId, 'import-report'] as const;
 
@@ -48,6 +49,7 @@ export default function ImportReportPanel({ automationId, onCompleteWithAi, onOp
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const report = useQuery({ queryKey: importReportKey(automationId), queryFn: () => fetchImportReport(automationId) });
+    const inventory = useWindmillInventory();
     const ack = useMutation({
         mutationFn: (wmIds: string[]) => acknowledgeImportItems(automationId, wmIds),
         onSuccess: (view: ImportReportView) => queryClient.setQueryData(importReportKey(automationId), view),
@@ -59,8 +61,16 @@ export default function ImportReportPanel({ automationId, onCompleteWithAi, onOp
     const view = report.data;
     const open = view.gate.open;
     const warnings = sortedWarnings(view.report.warnings ?? []);
+    // The same flow still listens to this Nextcloud in Windmill: both would run on every event.
+    const stillActive = !!view.windmillPath && !!inventory.data?.flows.some((f) => f.active && f.path === view.windmillPath);
     return (
         <section aria-label={t('automation_import.report_title', 'Import report')} className="space-y-2 text-[12px]">
+            {stillActive && (
+                <p role="status" className="flex items-start gap-1.5 rounded-md border border-[var(--warning-ink)] px-2 py-1 text-[var(--warning-ink)]">
+                    <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                    <span>{t('automation_import.windmill_still_active', 'This flow is still active in Windmill on this Nextcloud. Switch its trigger off in Windmill before you switch this automation on, or every event runs twice.')}</span>
+                </p>
+            )}
             <GateStatus gate={view.gate} />
             {open.length > 0 && (
                 <ul className="space-y-1">

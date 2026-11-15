@@ -6,6 +6,7 @@ import { jsonAnswer } from '@/test/http';
 import EntitlementsContext from '@/components/licensing/EntitlementsContext';
 import type { EntitlementsValue } from '@/components/licensing/EntitlementsContext';
 import WindmillImportDialog from './WindmillImportDialog';
+import ImportReportPanel from './ImportReportPanel';
 
 /**
  * The Windmill import dialog against the routes' shapes (a stubbed fetch):
@@ -145,6 +146,39 @@ describe('WindmillImportDialog', () => {
         await screen.findByRole('tab', { name: 'Upload an export' });
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
         expect(screen.queryByText('Found in this Nextcloud')).not.toBeInTheDocument();
+    });
+
+    it('a connector that did not answer gets a short line and a retry', async () => {
+        let answered = false;
+        route = (method, path) => {
+            if (!(method === 'GET' && path.endsWith('/import/windmill/inventory'))) return null;
+            if (!answered) return { status: 502, body: { error: 'The Bee Flow app in Nextcloud did not answer.', code: 'nextcloud_connector_unreachable' } };
+            return { status: 200, body: { available: true, flows: [{ path: 'f/a/b', summary: 'File to table', events: ['file.new'], active: true }] } };
+        };
+        const user = userEvent.setup();
+        renderWithClient(<Dialog />);
+        expect(await screen.findByText(/did not answer, so the Windmill flows there could not be listed/)).toBeInTheDocument();
+        answered = true;
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('File to table')).toBeInTheDocument();
+    });
+
+    it('the report warns when the imported flow still listens to this Nextcloud in Windmill', async () => {
+        let listed = [{ path: FLOW.path, summary: 'Expense', events: ['form.submitted'], active: true }];
+        route = (method, path) => {
+            if (method === 'GET' && path.endsWith('/a-new/import-report')) return { status: 200, body: REPORT };
+            if (method === 'GET' && path.endsWith('/import/windmill/inventory')) return { status: 200, body: { available: true, flows: listed } };
+            return null;
+        };
+        const first = renderWithClient(<ImportReportPanel automationId="a-new" />);
+        expect(await screen.findByText(/This flow is still active in Windmill on this Nextcloud/)).toBeInTheDocument();
+        first.unmount();
+
+        listed = [{ path: 'f/other/flow', summary: 'Other', events: ['file.new'], active: true }];
+        renderWithClient(<ImportReportPanel automationId="a-new" />);
+        await screen.findByText(/A dry run of this version without errors is needed/);
+        await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => rel(u).endsWith('/import/windmill/inventory'))).toBe(true));
+        expect(screen.queryByText(/This flow is still active in Windmill/)).not.toBeInTheDocument();
     });
 
     it('a plan without the feature gets the upgrade hint and no form', () => {

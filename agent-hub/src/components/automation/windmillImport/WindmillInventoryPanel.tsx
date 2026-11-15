@@ -1,19 +1,28 @@
-import { useQuery } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
-import { fetchWindmillInventory } from '@/api/windmillImport';
-
-const windmillInventoryKey = ['automation', 'import', 'windmill', 'inventory'] as const;
+import { SECONDARY_BTN } from '../Builder/settings/settingsUi';
+import useWindmillInventory from './useWindmillInventory';
 
 /**
  * "Found in this Nextcloud": the Windmill flows that listen to this Nextcloud,
  * read by the connector without any Windmill credential. Shown only when the
  * server answers `available: true` with flows; a server without the route, a
- * caller who may not see it, or nothing found shows nothing at all.
+ * caller who may not see it, or nothing found shows nothing at all. A
+ * connector that did not answer gets one short line and a retry.
  */
 export default function WindmillInventoryPanel() {
     const { t } = useTranslation();
-    const inventory = useQuery({ queryKey: windmillInventoryKey, queryFn: fetchWindmillInventory, staleTime: 60_000 });
+    const inventory = useWindmillInventory();
     const data = inventory.data;
+    if (data?.unreachable) {
+        return (
+            <p className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-secondary)]">
+                <span>{t('automation_import.inventory_unreachable', 'The Bee Flow app in Nextcloud did not answer, so the Windmill flows there could not be listed.')}</span>
+                <button type="button" className={SECONDARY_BTN} disabled={inventory.isFetching} onClick={() => { void inventory.refetch(); }}>
+                    {t('automation_import.inventory_retry', 'Try again')}
+                </button>
+            </p>
+        );
+    }
     if (!data?.available || data.flows.length === 0) return null;
     return (
         <section aria-label={t('automation_import.inventory_title', 'Found in this Nextcloud')} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-[12px]">

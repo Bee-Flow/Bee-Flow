@@ -7,10 +7,11 @@
 //   fetchImportReport(id)                 the stored report of one imported draft
 //   acknowledgeImportItems(id, wmIds)     checklist items the person handles by hand
 //   fetchWindmillInventory()              the Windmill flows that listen to this Nextcloud
-//                                         (null when the server has no such route or nothing to show)
+//                                         (available: false when there is nothing to show,
+//                                         unreachable: true when the connector did not answer)
 
 import { apiJson } from './typedRequest';
-import { API_BASE, mutate, RefusedError } from './mutate';
+import { errorBody, RefusedError } from './mutate';
 import type { ApiBody } from './typedRequest';
 
 export type ImportMode = 'preview' | 'commit';
@@ -120,6 +121,8 @@ export interface WindmillInventory {
     available: boolean;
     generation?: 'flow_exapp' | 'standalone';
     flows: WindmillInventoryFlow[];
+    /** The Bee Flow app in Nextcloud did not answer (502 nextcloud_connector_unreachable): worth a retry. */
+    unreachable?: boolean;
 }
 
 /** The type the upload guard checks the bytes against, from the file's extension. */
@@ -156,20 +159,25 @@ export function acknowledgeImportItems(automationId: string, wmIds: string[]): P
 }
 
 const NO_INVENTORY: WindmillInventory = { available: false, flows: [] };
+const UNREACHABLE: WindmillInventory = { available: false, flows: [], unreachable: true };
 
 /**
- * The inventory panel's data. The route is optional on a server (it comes with
- * the Nextcloud connector work): a 404, a 403 or any refusal means "nothing to
- * show", never an error on screen.
+ * The inventory panel's data (GET /api/automation/import/windmill/inventory).
+ * `available: false` (no Nextcloud, no paired or too old a connector), a 404
+ * (a server without the route) and a 403 (not an organisation admin, or no
+ * licence) and any other refusal all mean "nothing to show", never an error
+ * on screen. A connector that did not answer is the one case worth a retry.
  */
 export async function fetchWindmillInventory(): Promise<WindmillInventory> {
     try {
-        const res = await mutate(`${API_BASE}/api/automation/import/windmill/inventory`);
-        const body = (await res.json()) as Partial<WindmillInventory> | null;
+        const body = await apiJson<'GET /api/automation/import/windmill/inventory', Partial<WindmillInventory> | null>('GET /api/automation/import/windmill/inventory');
         if (!body || body.available !== true || !Array.isArray(body.flows)) return NO_INVENTORY;
         return { available: true, ...(body.generation ? { generation: body.generation } : {}), flows: body.flows };
     } catch (e) {
-        if (e instanceof RefusedError) return NO_INVENTORY;
-        throw e;
+        if (!(e instanceof RefusedError)) throw e;
+        const code = (errorBody(e) as { code?: unknown } | null)?.code;
+        if (e.status === 502 && code === 'nextcloud_connector_unreachable') return UNREACHABLE;
+        // 404, 403 and any other refusal: the upload works without the panel.
+        return NO_INVENTORY;
     }
 }
