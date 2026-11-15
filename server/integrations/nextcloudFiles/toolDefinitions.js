@@ -43,7 +43,7 @@ const NEXTCLOUD_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_read_file',
-            description: 'Read the contents of a file from Nextcloud. Handles plain text, PDFs (text layer plus Azure / Mistral OCR fallback), DOCX, PPTX (slide text + speaker notes, one section per slide), XLSX/CSV and images (PNG, JPEG, TIFF, ...: their text through the same OCR as a scanned PDF) — the same extraction pipeline used when a user uploads a file directly to chat. Extracted text larger than ~200 KB is truncated. With formFields: true a PDF form also returns its filled-in fields.',
+            description: 'Read the contents of a file from Nextcloud. Handles plain text, PDFs (text layer plus Azure / Mistral OCR fallback), DOCX, PPTX (slide text + speaker notes, one section per slide), XLSX/CSV and images (PNG, JPEG, TIFF, ...: their text through the same OCR as a scanned PDF, plus a sourceHandle naming the image) — the same extraction pipeline used when a user uploads a file directly to chat. Extracted text larger than ~200 KB is truncated. With formFields: true a PDF form also returns its filled-in fields.',
             parameters: {
                 type: 'object',
                 properties: {

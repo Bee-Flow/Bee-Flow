@@ -93,7 +93,7 @@ function codeStepAvailable(): boolean {
 }
 
 /** The export → converter output. An unreadable or oversized input is a 400 with the converter's own sentence. */
-export async function convertWindmill(input: unknown, limits: WindmillLimits, notes: string[] = []): Promise<Conversion> {
+export async function convertWindmill(input: unknown, limits: WindmillLimits, notes: string[] = [], orgId: string | null = null): Promise<Conversion> {
     const c = converter();
     let bundle: Json;
     try {
@@ -105,7 +105,9 @@ export async function convertWindmill(input: unknown, limits: WindmillLimits, no
         }
         throw e;
     }
-    const result = c.toBeeFlow(bundle, { capabilities: { codeStep: codeStepAvailable() } });
+    // `imageAi`: the organisation's own switch "images to AI in automations" (off by default).
+    const imageAi = await (nodeRequire('../../core/automationRunner/imageAiSetting.mts') as { imageAiEnabled: (o: string | null) => Promise<boolean> }).imageAiEnabled(orgId);
+    const result = c.toBeeFlow(bundle, { capabilities: { codeStep: codeStepAvailable(), imageAi } });
     const generations = new Map<string, string | null>();
     for (const f of bundle.flows as Array<{ path: string; dialect?: string }>) {
         generations.set(f.path, f.dialect === 'exapp' ? 'flow_exapp' : f.dialect === 'native' ? 'standalone' : null);

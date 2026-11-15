@@ -183,6 +183,20 @@ Run row fields (`automation_runs` table):
 
 Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `status`, `started_at`, `finished_at`, `input_json`, `output_json`, `error`.
 
+### Images to AI
+
+A `nextcloud_read_file` step that reads an image (PNG, JPEG, GIF, WebP and the other types OCR reads) returns the text in the image as `content`, and also a `sourceHandle`: `{ kind: "nextcloud_image", path, contentType }`, a reference to the file, never its bytes. An `ai_step` or a `data_extraction` step can bind that handle in its **Images** list (`images: [{ kind: "ref", path: "steps.<read>.output.sourceHandle" }]`, or the whole output of a read that ran once per file) to show the picture itself to the model, for questions the text alone cannot answer: a handwritten amount, a photo, a chart. A `data_extraction` step with images needs no text `source`.
+
+Whether a picture really goes is decided at run time, in this order. When one of these holds, the step gets the text read from the image instead, and its run output says which images went and why the others did not (`_imageInput`):
+
+1. **A dry run** never sends an image.
+2. **The organisation setting** "Images to AI in automations" is off, which is the default ([Organisation settings](../admin/organisation-settings.md#images-to-ai-in-automations)). Only an organisation admin changes it.
+3. **The Privacy Shield applies** to the automation. The shield finds personal data in text; it cannot do that in pixels, so a shielded run never sends a picture. The text read from it goes through the shield like any other input.
+4. **The model cannot read images.** Bee Flow asks the provider's model list; a model it cannot vouch for counts as "cannot". The validator already refuses images on a step whose model tier (or, for data extraction, the extraction model) cannot read them, with the tiers that can as the fix; on `auto` it warns.
+5. **The image was not read by an earlier step of the same run**, is not a PNG, JPEG, GIF or WebP, or goes over the per-step limits (`AUTOMATION_AI_IMAGES_MAX` images, `AUTOMATION_AI_IMAGES_MAX_MB` in total; see [environment variables](../self-hosting/env.md#ai-steps-and-automation-concurrency)).
+
+The picture is loaded again as the automation's owner, through the same Nextcloud connection the read step used, and goes only into the model request. Its cost is counted like the rest of the request: providers count image tokens as input tokens, and the step files them in the usage log as it does text.
+
 ### Dry-run vs live
 
 Every automation has two run modes:

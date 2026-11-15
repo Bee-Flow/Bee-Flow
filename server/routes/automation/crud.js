@@ -8,7 +8,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 // The caller's organisation (see crudContext.js for why it is async and read
 // fresh), the knowledge-base findings and the one access answer.
-const { orgOf, kbFindingsFor, automationAccess, worded } = require('./crudContext');
+const { orgOf, kbFindingsFor, imageModelsOf, automationAccess, worded } = require('./crudContext');
 const { registerFolderRoutes, folderIdForUpdate } = require('./folders');
 const { registerFormRoutes } = require('./forms');
 const { registerTemplateAndImportRoutes, registerExportRoute } = require('./importExport');
@@ -282,7 +282,7 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     // The agent rule is a COMPLETENESS code, so at draft stage it comes
     // back as a warning rather than blocking a half-built flow — but it
     // does come back, which is what the editor needs to draw the marker.
-    const v = validateDefinition(definition, { stage: 'draft', availableAgents: await agentsFor(definition, userId), topicClassifier: await topicClassifierFor(definition) });
+    const v = validateDefinition(definition, { stage: 'draft', availableAgents: await agentsFor(definition, userId), topicClassifier: await topicClassifierFor(definition), imageModels: await imageModelsOf(definition, req, userId) });
     if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: v.errors });
     // Assignee ORG membership — validate.js is pure, so the DB half of the
     // approval-assignee rule lives here: naming someone outside your org
@@ -495,7 +495,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         // Same as the create route: a warning at draft stage, an error at
         // activate. Without it, rewriting an ALREADY ACTIVE automation was the
         // one path that could point an ai_step at an agent nobody checked.
-        const v = validateDefinition(updates.definition, { stage: 'draft', availableAgents: await agentsFor(updates.definition, ownerId), knownVarNames: await knownVarNamesFor(updates.definition, existing), topicClassifier: await topicClassifierFor(updates.definition) });
+        const v = validateDefinition(updates.definition, { stage: 'draft', availableAgents: await agentsFor(updates.definition, ownerId), knownVarNames: await knownVarNamesFor(updates.definition, existing), topicClassifier: await topicClassifierFor(updates.definition), imageModels: await imageModelsOf(updates.definition, req, ownerId) });
         if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: v.errors });
         const assigneeErrors = await require('../../automation/approvalService').validateApprovalAssignees(updates.definition, ownerId);
         if (assigneeErrors.length) return res.status(400).json({ error: 'Invalid definition', details: assigneeErrors });

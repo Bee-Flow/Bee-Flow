@@ -1,0 +1,28 @@
+{
+  "translations": {
+    "automation_image_ai.cancel": "Annuleren",
+    "automation_image_ai.forbidden": "Alleen een beheerder van deze organisatie kan dit wijzigen.",
+    "automation_image_ai.intro": "Of automatiseringen afbeeldingen aan een AI-model mogen laten zien, of alleen de tekst die eruit is gelezen.",
+    "automation_image_ai.load_failed": "Deze instelling kon niet worden geladen.",
+    "automation_image_ai.loading": "Laden…",
+    "automation_image_ai.on_confirm": "Aanzetten",
+    "automation_image_ai.on_desc": "Afbeeldingen die automatiseringen lezen (bonnetjes, foto's, scans) gaan dan naar de aanbieder van het AI-model dat je organisatie gebruikt. Bee Flow bewaart ze niet, maar ze kunnen vooraf niet op persoonsgegevens worden gecontroleerd.",
+    "automation_image_ai.on_title": "Afbeeldingen naar AI sturen in automatiseringen?",
+    "automation_image_ai.retry": "Opnieuw proberen",
+    "automation_image_ai.row_add": "Afbeelding toevoegen",
+    "automation_image_ai.row_remove": "Deze afbeelding verwijderen",
+    "automation_image_ai.rule_dry_run": "Een testrun verstuurt nooit afbeeldingen.",
+    "automation_image_ai.rule_model": "Alleen modellen die afbeeldingen lezen krijgen ze; andere modellen krijgen de tekst.",
+    "automation_image_ai.rule_shield": "Geldt het Privacy Shield voor een automatisering, dan worden de afbeeldingen nooit verstuurd: het schild kan afbeeldingen niet op persoonsgegevens controleren, dus de stap gebruikt de tekst die eruit is gelezen.",
+    "automation_image_ai.save_failed": "Deze instelling kon niet worden opgeslagen. Probeer het opnieuw.",
+    "automation_image_ai.saved": "Opgeslagen.",
+    "automation_image_ai.section_hint": "Afbeeldingen om aan het AI-model te laten zien: sleep de afbeeldingsverwijzing (sourceHandle) van een stap \"bestand lezen\" die een afbeelding las hierheen. Die wordt alleen verstuurd als je organisatie afbeeldingen naar AI toestaat, het Privacy Shield niet geldt en het model afbeeldingen leest; anders gebruikt de stap de tekst die uit de afbeelding is gelezen.",
+    "automation_image_ai.section_title": "Afbeeldingen",
+    "automation_image_ai.title": "Afbeeldingen naar AI in automatiseringen",
+    "automation_image_ai.toggle": "Automatiseringen mogen afbeeldingen aan AI laten zien",
+    "automation_image_ai.toggle_desc": "Een AI-stap of een gegevensextractie mag een afbeelding (een bonnetje, een foto van een document) laten zien aan een model dat afbeeldingen leest. Staat dit uit, dan krijgt de stap de tekst die uit de afbeelding is gelezen."
+  },
+  "sameAsEnglish": [
+    "automation_image_ai.row_placeholder"
+  ]
+}

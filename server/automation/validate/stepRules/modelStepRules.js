@@ -35,8 +35,10 @@ function checkDataExtraction(ctx, step, at) {
             || (src.kind !== 'ref' && !(typeof src.value === 'string' ? src.value.trim() : src.value !== undefined && src.value !== null))
         );
         const emptyScaffold = (isObject(src) && !isBinding && Object.keys(src).length === 0) || (typeof src === 'string' && !src.trim());
+        // With `images` the pictures are the document: no text source needed.
+        const hasImages = Array.isArray(step.images) && step.images.length > 0;
         if (src === undefined || src === null || bindingBlank || emptyScaffold) {
-            pushE({ code: 'data_extraction.source_missing', severity: 'error', path: at + '.source', message: `Step ${step.id}: there is no text to read yet.`, hint: 'Bind `source` to the text an earlier step produced, e.g. {kind:"ref", path:"steps.read.output.content"} — or loop.<item>.output.content inside a fan-out.' });
+            if (!hasImages) pushE({ code: 'data_extraction.source_missing', severity: 'error', path: at + '.source', message: `Step ${step.id}: there is no text to read yet.`, hint: 'Bind `source` to the text an earlier step produced, e.g. {kind:"ref", path:"steps.read.output.content"} — or loop.<item>.output.content inside a fan-out.' });
         } else if (typeof src === 'string') {
             pushW({ code: 'data_extraction.source_bare_string', severity: 'warning', path: at + '.source', message: `Step ${step.id}: source is a bare string; it is read as a ${hasPlaceholder(src) ? 'template' : (isBareRefString(src) ? 'reference path' : 'LITERAL text, not a reference')}.`, hint: 'Prefer a binding: {kind:"ref", path:"steps.<id>.output.<field>"}.' });
         } else if (!isBinding) {

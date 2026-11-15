@@ -214,6 +214,8 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `AUTOMATION_AI_ENUM_MAX_VALUES` | `500` | The longest list of allowed values that one "Allowed values from a list" setting shows to the model. A longer list is not shown to the model at all (the server log says so); the answer is still checked against the whole list. `0` = unlimited. |
 | `AUTOMATION_AI_CHECK_MAX_ERRORS` | `100` | The most problems collected while checking one AI answer. `0` = unlimited. |
 | `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
+| `AUTOMATION_AI_IMAGES_MAX` | `10` | The most images one AI step or data extraction step shows the model in one run (see [Images to AI](../features/automations.md#images-to-ai)). The images over the limit go as the text read from them. `0` = unlimited. |
+| `AUTOMATION_AI_IMAGES_MAX_MB` | `20` | The most megabytes of images one AI step or data extraction step shows the model in one run, all images together. An image that does not fit goes as the text read from it. `0` = unlimited. |
 
 ## Per-user spend budgets
 

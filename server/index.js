@@ -297,9 +297,9 @@ app.use('/api/org-memory', require('./routes/orgMemory'));
 // the org policy (members read, admins write) and each person's own opt-out.
 // requireAuth sits on every route of the router.
 app.use('/api/ai-participation', require('./routes/aiParticipation'));
-// The org switch for real-time co-editing of project notebooks and pages
-// (members read, admins write; requireAuth on every route).
+// The org switches for co-editing notebooks and pages, and for showing images to AI in automations.
 app.use('/api/org-collab', require('./routes/orgCollab'));
+app.use('/api/org-automation-image-ai', require('./routes/orgAutomationImageAi.mts').orgAutomationImageAiRouter);
 app.use('/api/org-integration-cache', require('./routes/orgIntegrationCache'));
 app.use('/api/org-azure-config', require('./routes/orgAzureConfig'));
 app.use('/api/house-styles', require('./routes/houseStyles'));

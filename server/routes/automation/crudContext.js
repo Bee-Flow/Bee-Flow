@@ -34,6 +34,18 @@ async function kbFindingsFor(definition, /** @type {import('express').Request} *
     return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });
 }
 
+/**
+ * Which models of the owner can read an image, for a definition with `images`
+ * (automation/imageModelsFact.mts); null when no step has images. The
+ * organisation is the caller's (orgOf), asked only when there are images.
+ * @param {string} userId
+ */
+async function imageModelsOf(definition, /** @type {import('express').Request} */ req, userId) {
+    const { imageModelsFor, imageStepTypes } = require('../../automation/imageModelsFact.mts');
+    if (!imageStepTypes(definition).size) return null;
+    return imageModelsFor(definition, { userId, orgId: await orgOf(req) });
+}
+
 const automationStore = require('../../stores/automationStore');
 // Handoff 5, sharing and roles: one answer to "may this caller do that with
 // this automation" (automation/access.js). Owner first and free; org admins with
@@ -45,7 +57,7 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 // (the schemas themselves live with the routes that read them)
 const { worded } = require('../../core/http/schemaParts');
 
-module.exports = { orgOf, kbFindingsFor, automationAccess, worded };
+module.exports = { orgOf, kbFindingsFor, imageModelsOf, automationAccess, worded };
 
 /**
  * One automation as the store hands it out (what getAutomation resolves with).

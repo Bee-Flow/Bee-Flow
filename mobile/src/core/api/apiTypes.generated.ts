@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1917 operations. */
+/** 1919 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -3700,6 +3700,10 @@ export interface ApiOperations {
         compactionThreshold?: number;
         contextBudgetPercent?: number;
         recentWindow?: number;
+    }>;
+    'GET /api/org-automation-image-ai/{orgId}': Op<{ orgId: string | number }>;
+    'PUT /api/org-automation-image-ai/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
+        enabled: boolean;
     }>;
     'GET /api/org-azure-config/{orgId}': Op<{ orgId: string | number }>;
     'PUT /api/org-azure-config/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {

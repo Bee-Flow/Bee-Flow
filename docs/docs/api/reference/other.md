@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-231 routes, 119 with a request schema. Back to the [endpoint reference](../reference.md).
+233 routes, 120 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -782,6 +782,24 @@ No request schema.
 | `compactionThreshold` | number |  |  |
 | `recentWindow` | number |  |  |
 | `contextBudgetPercent` | number |  |  |
+
+## `api/org-automation-image-ai`
+
+### `GET /api/org-automation-image-ai/:orgId`
+
+**Access:** Signed-in user · the handler also checks who the caller is
+
+No request schema.
+
+### `PUT /api/org-automation-image-ai/:orgId`
+
+**Access:** Signed-in user · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
 
 ## `api/org-azure-config`
 

@@ -55,6 +55,7 @@ const { logExtractionUsage } = require('./execDataExtractionUsage');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
 const { synthesiseDryRunExtraction } = require('./dataExtractionDryRun');
+const stepImages = require('./aiStepImages.mts');
 
 // The contract's system prompt, verbatim. The field list, the optional
 // instructions and the type rules follow it in the same message; the document
@@ -429,7 +430,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     }
 
     const sourceText = resolveSourceText(step.source, runState);
-    if (!sourceText.trim()) {
+    if (!sourceText.trim() && !stepImages.hasStepImages(step)) { // with `images`, the pictures are the document
         const path = step.source && typeof step.source === 'object' && typeof step.source.path === 'string'
             ? step.source.path : (typeof step.source === 'string' ? step.source : '');
         const err = /** @type {Error & { errorClass?: string }} */ (new Error(`data_extraction ${step.id}: there is no text to read${path ? ` — \`${path}\` resolved to nothing` : ''}. Point \`source\` at the text an earlier step produced.`));
@@ -445,7 +446,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     const adapter = getAdapter(cfg.providerType, cfg.url);
     if (!adapter || typeof adapter.chat !== 'function') throw new Error('Provider adapter does not support chat');
 
-    const { messages, truncated, omitted } = buildExtractionPrompt({ fields, instructions: step.instructions, sourceText });
+    const { messages, truncated, omitted } = buildExtractionPrompt({ fields, instructions: step.instructions, sourceText: sourceText.trim() ? sourceText : stepImages.IMAGES_ONLY_TEXT });
     if (truncated) {
         log.warn(`[data_extraction] ${step.id}: source text is ${sourceText.length} characters; ${omitted} were cut from the middle before the model saw it.`);
     }
@@ -457,12 +458,15 @@ async function execDataExtraction(step, ctx, runState, mode) {
     const policy = await safety.resolveAutomationPolicy(ctx);
     const auditBase = safety.buildAuditBase(ctx, step);
     auditBase.model = modelId;
+    // `images`: the text read from any image that does not go joins the document BEFORE the guard, the pictures after it.
+    const imagePrep = await stepImages.prepareExtractionImages({ step, ctx, runState, mode, modelId, policy, sourceText, messages });
     const aiGuard = await safety.guardAiInput(messages, policy, auditBase, mode, ctx);
     if (aiGuard.blocked) {
         const err = /** @type {Error & { errorClass?: string }} */ (new Error('data_extraction: the Privacy Shield blocked this text from reaching the model.'));
         err.errorClass = 'guardrail_blocked';
         throw err;
     }
+    stepImages.addImageBlocks(messages, imagePrep);
 
     const options = extractionRequestOptions(fields.length);
     const response = await callExtractionModel({ adapter, cfg, modelId, messages, options, signal: ctx.cancelSignal });
@@ -491,6 +495,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
         _model: modelId,
         _modelSource: modelSource,
         ...(piiSummary ? { piiSummary } : {}),
+        ...stepImages.imageResultFields(imagePrep), // recorded as `_imageInput`
     };
 }
 

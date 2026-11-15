@@ -343,6 +343,7 @@ Prefer \`{kind:"ref"}\` over \`{{templates}}\` wherever a binding object is acce
 Beside \`trigger.output.*\`, every run knows WHICH trigger fired: ${triggerKinds}
 
 Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`gmail_read_attachment\` to \`drive_upload_file\` (\`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`). NEVER bind raw base64 or the OCR'd \`content\` as the file body.
+An image read with \`nextcloud_read_file\` gives its text as \`content\` (OCR) AND a \`sourceHandle\`; when the answer is in the picture itself (a photo, a chart, a handwritten receipt), bind \`images: [{ kind: "ref", path: "steps.<read>.output.sourceHandle" }]\` on the ai_step or data_extraction. It reaches the model only when the organisation allows images to AI, the Privacy Shield does not apply and the model reads images; otherwise the step uses the OCR text and says so.
 
 ## Placing steps
 

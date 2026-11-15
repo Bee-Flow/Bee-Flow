@@ -55,6 +55,9 @@ test('an image is read through OCR and returns its text', async () => {
     assert.strictEqual(res.extractedVia, 'mistral');
     assert.strictEqual(res.path, '/Receipts/receipt.jpg');
     assert.deepStrictEqual(seen, [[PNG_BYTES.toString('base64'), 'image/jpeg', 'receipt.jpg']]);
+    // The image names itself for a later step; the bytes never ride in the answer.
+    assert.deepStrictEqual(res.sourceHandle, { kind: 'nextcloud_image', path: '/Receipts/receipt.jpg', contentType: 'image/jpeg' });
+    assert.ok(!JSON.stringify(res).includes(PNG_BYTES.toString('base64')), 'no image bytes in the tool answer');
 });
 
 test('an image without an OCR provider is a plain error, not "binary"', async () => {
@@ -70,6 +73,7 @@ test('an SVG stays on the text path (markup, not pixels)', async () => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Hi</text></svg>';
     const res = await executeFileOperationTool('nextcloud_read_file', { path: '/logo.svg' }, ctxServing(Buffer.from(svg), 'image/svg+xml'));
     assert.strictEqual(res.content, svg);
+    assert.strictEqual(res.sourceHandle, undefined, 'an SVG is no picture handle');
 });
 
 /** A small neutral filled-in form, built here so the repository carries no PDF. */

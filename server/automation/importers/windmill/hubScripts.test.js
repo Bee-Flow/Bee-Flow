@@ -95,3 +95,17 @@ test('other apps and paths that are not Hub paths go to the AI builder', () => {
     const plan = planHub({ wmId: 'g', kind: 'script', scriptPath: 'hub/1/github/create_issue', inputs: {}, options: { reportOnly: [] } }, ALL_CAPABILITIES);
     assert.strictEqual(plan.kind, 'ai');
 });
+
+test('Analyze Image: with images to AI on, the checklist names read file + an AI step shown the images; off, the OCR text', () => {
+    const node = { wmId: 'img', kind: 'script', scriptPath: 'hub/28171/nextcloud/analyze_image', options: { reportOnly: [] }, inputs: { prompt: { type: 'static', value: 'When?' } } };
+    const off = planHub(node, ALL_CAPABILITIES);
+    assert.strictEqual(ALL_CAPABILITIES.imageAi, false, 'off by default, like the organisation setting');
+    assert.strictEqual(off.kind, 'ai');
+    assert.match(off.reason, /OCR/);
+    assert.doesNotMatch(off.reason, /sourceHandle/);
+    const on = planHub(node, capabilitiesFrom({ imageAi: true }));
+    assert.strictEqual(on.kind, 'ai');
+    assert.match(on.reason, /nextcloud_read_file/);
+    assert.match(on.reason, /`images`/);
+    assert.match(on.reason, /`sourceHandle`/);
+});

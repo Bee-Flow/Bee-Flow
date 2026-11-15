@@ -22,7 +22,7 @@ import type { WmInput, WmNode } from './ir.mts';
 import type { Reshape, ScriptPlan } from './plan.mts';
 import { asField, under } from './plan.mts';
 import { findTitleLiteral, rawPath } from './jsShapes.mts';
-import { READ_FILE_FORM_FIELDS_PARAM, TOOL } from './targetNames.mts';
+import { AI_STEP_IMAGES_FIELD, READ_FILE_FORM_FIELDS_PARAM, READ_FILE_IMAGE_HANDLE_FIELD, TOOL } from './targetNames.mts';
 import type { Capabilities } from './capabilities.mts';
 
 const CONNECTION_INPUTS = new Set(['nextcloud', 'ncresource', 'nextcloudresource', 'useappapiauth', 'resource', 'auth']);
@@ -172,7 +172,7 @@ const SPECIALS: Record<string, Special> = {
     aiTask: (node) => aiStep(node, 'Do the task described in the input.', 'A Nextcloud AI task becomes a Bee Flow AI step.'),
     summarize: (node) => aiStep(node, 'Summarise the text in the input.', 'Summarising becomes a Bee Flow AI step.'),
     translate: (node) => aiStep(node, 'Translate the text in the input into the requested language.', 'Translating becomes a Bee Flow AI step.'),
-    analyzeImage: () => ({ kind: 'ai', reason: 'Bee Flow AI steps do not take images yet; the builder can read the text of the files (OCR) and work from that.', title: 'Analyse the images' }),
+    analyzeImage: planAnalyzeImage,
     readPdfForm: planReadPdfForm,
     fillForms: () => ({ kind: 'ai', reason: 'Filling the user\'s own PDF or ODT form is not possible; the builder can rebuild the template as a Bee Flow document.', title: 'Fill the document' }),
 };
@@ -186,6 +186,23 @@ function aiStep(node: WmNode, prompt: string, reason: string): ScriptPlan {
     const inputs: Record<string, WmInput> = {};
     for (const [k, v] of Object.entries(node.inputs)) if (!CONNECTION_INPUTS.has(k.toLowerCase()) && !isEmptyInput(v)) inputs[k] = v;
     return { kind: 'ai_step', prompt, inputs, reason, confidence: 'medium', notes: ['This ran on the Nextcloud AI provider; it now runs on the AI model this organisation set up.'] };
+}
+
+/**
+ * Analyze Image: the images are named by file id and come from a list, so the
+ * steps (file info per id, read file per path, one AI step) are wired by the
+ * builder from a checklist item that names the target. With images to AI on,
+ * the AI step is shown the pictures (`images` bound to each read's
+ * `sourceHandle`); with it off, it works from the text read from them (OCR).
+ */
+function planAnalyzeImage(_node: WmNode, caps: Capabilities): ScriptPlan {
+    if (caps.imageAi) {
+        return {
+            kind: 'ai', title: 'Analyse the images',
+            reason: `Analyze Image becomes "${TOOL.readFile}" for each image and one AI step that is shown the pictures: bind its \`${AI_STEP_IMAGES_FIELD}\` to the \`${READ_FILE_IMAGE_HANDLE_FIELD}\` of each read, and use a model that reads images.`,
+        };
+    }
+    return { kind: 'ai', reason: 'Images to AI is off for this organisation, so the builder reads the text of the images (OCR) and works from that.', title: 'Analyse the images' };
 }
 
 function planPathFromFileid(node: WmNode, caps: Capabilities): ScriptPlan {

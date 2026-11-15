@@ -50,8 +50,12 @@ const { varsWrittenBy } = require('./varsWriters.mts');
  * configured, `true` when it is, `null` (the default) when the caller did not
  * ask or could not reach it. Only `false` produces a finding, so a short
  * outage never blocks saving or activating (stepRules/topicRules.js).
+ *
+ * `imageModels` (optional) says which models can see an image, for steps with
+ * `images`: `{ tiers: { <tier>: boolean }, dataExtraction: boolean | null }`
+ * (automation/imageModelsFact.mts). Only a `false` produces a finding.
  */
-function validateDefinitionStrict(def, { availableTools = null, toolRequiredParams = null, deliverableEvents = null, scope = 'root', availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null } = {}) {
+function validateDefinitionStrict(def, { availableTools = null, toolRequiredParams = null, deliverableEvents = null, scope = 'root', availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null, imageModels = null } = {}) {
     /** @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]} */
     const errors = [];
     /** @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]} */
@@ -188,7 +192,7 @@ function validateDefinitionStrict(def, { availableTools = null, toolRequiredPara
     // The `vars.<name>` the document itself sets, for the root and every layer
     // alike (a flowlet reads the root's vars at run time).
     const writtenVars = varsWrittenBy(def);
-    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier };
+    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels };
 
     // Root graph. Preserve the original early-return semantics: a root
     // whose basic shape is broken returns immediately (the layer graphs
