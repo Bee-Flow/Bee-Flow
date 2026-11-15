@@ -36,7 +36,8 @@ export type SourceKind = 'windmill_upload' | 'windmill_api';
 export interface ImportRow {
     id: string;
     orgId: string | null;
-    userId: string;
+    /** Null once the importer's account was erased (stores/user/erasureCoverage.js). */
+    userId: string | null;
     automationId: string;
     sourceKind: SourceKind;
     windmillPath: string | null;
@@ -73,7 +74,7 @@ export function rowToImport(r: Record<string, any> | null | undefined): ImportRo
     return {
         id: r.id,
         orgId: r.org_id ?? null,
-        userId: r.user_id,
+        userId: r.user_id ?? null,
         automationId: r.automation_id,
         sourceKind: r.source_kind,
         windmillPath: r.windmill_path ?? null,

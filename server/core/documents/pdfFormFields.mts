@@ -39,9 +39,17 @@ const ANSWER_TYPES: ReadonlySet<string> = new Set(['text', 'checkbox', 'radiobut
 /** The value pdf.js reports for an unticked checkbox or a radio group with nothing chosen. */
 const OFF = 'Off';
 
+/**
+ * A specifier in a `string` const, not a literal: TypeScript then leaves it
+ * unresolved, so a program that reaches this file without the server's
+ * node_modules (agent-hub's typecheck, through shared server modules) does not
+ * need pdfjs-dist installed. The module's shape is PdfjsModule above.
+ */
+const PDFJS_SPECIFIER: string = 'pdfjs-dist/legacy/build/pdf.mjs';
+
 let pdfjsPromise: Promise<PdfjsModule> | null = null;
 function loadPdfjs(): Promise<PdfjsModule> {
-    pdfjsPromise ||= import('pdfjs-dist/legacy/build/pdf.mjs') as unknown as Promise<PdfjsModule>;
+    pdfjsPromise ||= import(PDFJS_SPECIFIER) as Promise<PdfjsModule>;
     return pdfjsPromise;
 }
 

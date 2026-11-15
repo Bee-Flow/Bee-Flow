@@ -70,45 +70,42 @@ async function automationToResume(original) {
     };
 }
 
-/**
- * `continuesJourney`: the continuation belongs to the paused run's journey even
- * though that run is no longer in a paused status — the reaper closes an
- * expired approval before it learns the approval has an expired branch to
- * continue on (approvalExpiry.mts).
- * @param {string | null} runId
- * @param {string} fromStepId
- * @param {{ decision?: Record<string, unknown> | null, userId?: string | null, rootStepId?: string | null,
- *   triggerHeaders?: Record<string, string> | null, onRunCreated?: ((run: { id?: string }) => unknown) | null,
- *   onRunFinished?: ((run: unknown) => unknown) | null, continuesJourney?: boolean }} [options]
- */
-async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null, continuesJourney = false } = {}) {
-    const original = await automationStore.getRun(runId);
-    if (!original) throw new Error(`Run ${runId} not found`);
-    const automation = await automationToResume(original);
+/** @typedef {NonNullable<Awaited<ReturnType<typeof automationStore.getRun>>>} RunRow */
+/** @typedef {Awaited<ReturnType<typeof automationStore.getRunSteps>>[number]} StepRow */
+/** @typedef {{ output: unknown, status: string }} ReplayEntry  what runDag replays for one step */
 
-    // Replay state from previously-recorded step rows so binding
-    // expressions like {{steps.stepX.output.field}} resolve to what they
-    // resolved to in the original run.
-    //
-    // Walk the WHOLE ancestor chain, oldest first. runDag does not re-record
-    // the steps it replays, so a run that was itself resumed only has rows for
-    // the steps it dispatched live. Reading just this run would silently drop
-    // everything produced before the previous pause — which is the normal case
-    // for a three-page form (page 1's answers live on the first run's rows).
-    // Later runs are merged last so a step re-executed live wins over its
-    // cached ancestor.
+/**
+ * The run and its ancestors, oldest first.
+ *
+ * Walk the WHOLE ancestor chain, oldest first. runDag does not re-record
+ * the steps it replays, so a run that was itself resumed only has rows for
+ * the steps it dispatched live. Reading just this run would silently drop
+ * everything produced before the previous pause — which is the normal case
+ * for a three-page form (page 1's answers live on the first run's rows).
+ * @param {RunRow} original  the paused run row
+ * @returns {Promise<RunRow[]>}
+ */
+async function runChainOldestFirst(original) {
     const chain = [];
     for (let cur = original, guard = 0; cur && guard < 50; guard++) {
         chain.unshift(cur);
         cur = cur.parentRunId ? await automationStore.getRun(cur.parentRunId).catch((e) => fallbackSwallowed('core/automationRunner/resume:resumeFromStep#2', e, null)) : null;
     }
-    const previousSteps = [];
-    for (const r of chain) {
-        previousSteps.push(...await automationStore.getRunSteps(r.id));
-    }
+    return chain;
+}
+
+/**
+ * Replay entries from recorded step rows, plus the steps whose only row is a
+ * truncation sentinel with no full copy kept (BFSF-435): stepId → original
+ * size. See replayGaps.js. Later runs are merged last so a step re-executed
+ * live wins over its cached ancestor.
+ * @param {StepRow[]} previousSteps
+ * @returns {Promise<{ replayedStepState: Record<string, ReplayEntry>, gaps: Map<string, number | null> }>}
+ */
+async function replayFromRows(previousSteps) {
+    /** @type {Record<string, ReplayEntry>} */
     const replayedStepState = {};
-    // Steps whose only row is the truncation sentinel with no full copy kept
-    // (BFSF-435): stepId → original size. See replayGaps.js.
+    /** @type {Map<string, number | null>} */
     const gaps = new Map();
     for (const row of previousSteps) {
         if (!row.stepId || row.status === 'awaiting_approval' || row.status === 'awaiting_form') continue;
@@ -136,6 +133,24 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
             gaps.set(s.stepId, Number(s.output.originalBytes) || null);
         }
     }
+    return { replayedStepState, gaps };
+}
+
+/**
+ * Replay state from previously-recorded step rows, so binding expressions
+ * like {{steps.stepX.output.field}} resolve to what they resolved to in the
+ * original run; then the definition's pins and the decision at the boundary.
+ * @param {RunRow} original  the paused run row
+ * @param {Awaited<ReturnType<typeof automationToResume>>} automation  the automation the run continues on
+ * @param {string} fromStepId
+ * @param {{ decision: Record<string, unknown> | null, userId: string | null }} answer
+ */
+async function replayStateForResume(original, automation, fromStepId, { decision, userId }) {
+    const previousSteps = [];
+    for (const r of await runChainOldestFirst(original)) {
+        previousSteps.push(...await automationStore.getRunSteps(r.id));
+    }
+    const { replayedStepState, gaps } = await replayFromRows(previousSteps);
     // Definition-level pins win over history, exactly as they do for a partial
     // run — a step pinned since the pause must serve its pin on the resume too,
     // and a pinned step that never got as far as recording a row would
@@ -152,6 +167,26 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
             status: 'success',
         };
     }
+    return { replayedStepState, gaps };
+}
+
+/**
+ * `continuesJourney`: the continuation belongs to the paused run's journey even
+ * though that run is no longer in a paused status — the reaper closes an
+ * expired approval before it learns the approval has an expired branch to
+ * continue on (approvalExpiry.mts).
+ * @param {string | null} runId
+ * @param {string} fromStepId
+ * @param {{ decision?: Record<string, unknown> | null, userId?: string | null, rootStepId?: string | null,
+ *   triggerHeaders?: Record<string, string> | null, onRunCreated?: ((run: { id?: string }) => unknown) | null,
+ *   onRunFinished?: ((run: unknown) => unknown) | null, continuesJourney?: boolean }} [options]
+ */
+async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null, continuesJourney = false } = {}) {
+    const original = await automationStore.getRun(runId);
+    if (!original) throw new Error(`Run ${runId} not found`);
+    const automation = await automationToResume(original);
+
+    const { replayedStepState, gaps } = await replayStateForResume(original, automation, fromStepId, { decision, userId });
 
     // The continuation is the SAME kind of run as the one that paused (a resume
     // never changes kind): a dry run stays a dry run, so the writes after the

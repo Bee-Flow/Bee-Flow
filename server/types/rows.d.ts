@@ -543,7 +543,7 @@ declare namespace DbRow {
         org_id: string | null;
         report: Json;
         source_kind: string;
-        user_id: string;
+        user_id: string | null;
         windmill_generation: string | null;
         windmill_path: string | null;
     }

@@ -3,7 +3,8 @@
  * Migration: the import report of an automation that came from another workflow tool (2026-11).
  *
  * One table, `automation_imports`, one row per imported draft:
- *   id, org_id, user_id, automation_id   who imported what, into which organisation
+ *   id, org_id, user_id, automation_id   who imported what, into which organisation (user_id is
+ *                                        cleared when that account is erased; the report stays)
  *   source_kind                          'windmill_upload' | 'windmill_api'
  *   windmill_path, windmill_generation   where it came from (a path, never an address or a token)
  *   report                               the migration report (stores/automationImportStore.mts)
@@ -23,7 +24,7 @@ async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
         CREATE TABLE IF NOT EXISTS automation_imports (
             id TEXT PRIMARY KEY,
             org_id TEXT NULL,
-            user_id TEXT NOT NULL,
+            user_id TEXT NULL,
             automation_id TEXT NOT NULL REFERENCES automations(id) ON DELETE CASCADE,
             source_kind TEXT NOT NULL,
             windmill_path TEXT NULL,
@@ -37,6 +38,7 @@ async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
         );
         CREATE UNIQUE INDEX IF NOT EXISTS automation_imports_automation_idx ON automation_imports (automation_id);
         CREATE INDEX IF NOT EXISTS automation_imports_org_idx ON automation_imports (org_id, created_at DESC);
+        ALTER TABLE automation_imports ALTER COLUMN user_id DROP NOT NULL;
     `);
 }
 
