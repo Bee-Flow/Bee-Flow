@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { checkWebhookSignature, hmacHeader } = require('./webhookSignature');
+const { checkWebhookSignature, hmacHeader, hashWebhookToken, checkHeaderToken, tokenFromHeaders } = require('./webhookSignature');
 
 const secret = 's3cret';
 const nonce = 'n-1';
@@ -44,4 +44,27 @@ test('a signature header with non-ASCII characters of the same length is a bad s
     const forged = good.slice(0, -1) + 'é';
     assert.equal(forged.length, good.length);
     assert.deepEqual(checkWebhookSignature({ secret, sigHeader: forged, nonce, rawBody: compact, body }), { ok: false, reason: 'bad_signature' });
+});
+
+test('a header token is compared as its sha256, in constant time; empty or unreadable verifies nothing', () => {
+    const token = 'tk'.repeat(32);
+    const tokenHash = hashWebhookToken(token);
+    assert.match(tokenHash, /^[0-9a-f]{64}$/);
+    assert.notEqual(tokenHash, token, 'the stored form is not the token');
+    assert.deepEqual(checkHeaderToken({ tokenHash, token }), { ok: true });
+    assert.deepEqual(checkHeaderToken({ tokenHash, token: token + 'x' }), { ok: false, reason: 'bad_signature' });
+    assert.deepEqual(checkHeaderToken({ tokenHash, token: '' }), { ok: false, reason: 'missing' });
+    assert.deepEqual(checkHeaderToken({ tokenHash: null, token }), { ok: false, reason: 'bad_signature' });
+    assert.deepEqual(checkHeaderToken({ tokenHash: '', token }), { ok: false, reason: 'bad_signature' });
+    // A caller who sends the stored hash itself does not get in.
+    assert.deepEqual(checkHeaderToken({ tokenHash, token: tokenHash }), { ok: false, reason: 'bad_signature' });
+});
+
+test('the token comes from Authorization: Bearer, else X-BeeFlow-Token', () => {
+    assert.equal(tokenFromHeaders('Bearer abc', 'other'), 'abc');
+    assert.equal(tokenFromHeaders('bearer  abc ', ''), 'abc');
+    assert.equal(tokenFromHeaders('Basic abc', 'xyz'), 'xyz');
+    assert.equal(tokenFromHeaders('Bearer ', 'xyz'), 'xyz');
+    assert.equal(tokenFromHeaders(undefined, undefined), '');
+    assert.equal(tokenFromHeaders('', ' xyz '), 'xyz');
 });

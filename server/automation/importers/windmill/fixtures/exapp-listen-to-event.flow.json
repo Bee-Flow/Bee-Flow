@@ -1,0 +1,75 @@
+{
+  "summary": "Scan uploads",
+  "value": {
+    "modules": [
+      {
+        "id": "a",
+        "summary": "CORE:LISTEN_TO_EVENT",
+        "value": {
+          "type": "rawscript",
+          "language": "deno",
+          "content": "export async function main(events: string[], filters: object) {}",
+          "input_transforms": {
+            "events": {
+              "type": "static",
+              "value": [
+                "OCP\\Files\\Events\\Node\\NodeCreatedEvent",
+                "OCP\\Files\\Events\\Node\\NodeWrittenEvent"
+              ]
+            },
+            "filters": {
+              "type": "static",
+              "value": {
+                "event.node.path": "/^\\/.*\\/files\\/Scans\\/.*$/"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "b",
+        "summary": "Read the scan",
+        "value": {
+          "type": "script",
+          "path": "hub/9001/nextcloud/nextcloud_webdav:_get_file_content",
+          "input_transforms": {
+            "nextcloudResource": {
+              "type": "static",
+              "value": "$res:u/admin/exapp_resource"
+            },
+            "userId": {
+              "type": "javascript",
+              "expr": "flow_input.user.uid"
+            },
+            "useAppApiAuth": {
+              "type": "static",
+              "value": true
+            },
+            "path": {
+              "type": "javascript",
+              "expr": "flow_input.event.node.path"
+            }
+          }
+        }
+      },
+      {
+        "id": "c",
+        "summary": "Summarise",
+        "value": {
+          "type": "script",
+          "path": "hub/9002/nextcloud/summarize",
+          "input_transforms": {
+            "nextcloudResource": {
+              "type": "static",
+              "value": "$res:u/admin/exapp_resource"
+            },
+            "input": {
+              "type": "javascript",
+              "expr": "results.b"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

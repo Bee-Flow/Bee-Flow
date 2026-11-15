@@ -17,7 +17,7 @@
 const { resolveInputs } = require('../automationModel/bind');
 const { failOnBlankInputs, missesThatFail } = require('./blankInputs');
 const { captureBindingMisses } = require('../automationModel/bindCapture');
-const { isSideEffect } = require('../automationModel/sideEffectMap');
+const { isSideEffectCall } = require('../automationModel/sideEffectCall.mts');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort, hasRunnerPort } = require('./featurePorts');
 
@@ -100,7 +100,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
  */
 async function dryRunWritePermission(step, ctx, inputs, deps) {
     try {
-        await assertStepToolPermitted(step, ctx, true, deps);
+        await assertStepToolPermitted(step, ctx, true, deps, inputs);
         return null;
     } catch (err) {
         if (hasRunnerPort('stepTypes') && runnerPort('stepTypes').isBuiltinStepType(step.tool)) throw err;
@@ -238,9 +238,11 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // the agent/direct-chat pipeline so automations stop bypassing those controls.
     const { safety, stepInputsSynthetic } = deps;
     // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    const sideEffect = isSideEffect(step.tool);
     const resolved = captureBindingMisses(() => resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' }));
     let inputs = resolved.value;
+    // Per call, not per name: a tool whose effect follows its method
+    // (nextcloud_request) is a read for a GET and dispatches for real in a dry run.
+    const sideEffect = isSideEffectCall(step.tool, inputs);
     // A dry run fails a write on the same holes a live run does, except a
     // hole in data the dry run made up (./blankInputs, ./execCode.js header).
     if (sideEffect) failOnBlankInputs(step, missesThatFail(resolved.misses, runState, ctx, mode));
@@ -265,7 +267,8 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     });
 
     // Defense-in-depth permission check (integrationActionGates.js).
-    await assertStepToolPermitted(step, ctx, sideEffect, deps);
+    // nextcloud_request is held to the app its path reaches (resolved path, before masking).
+    await assertStepToolPermitted(step, ctx, sideEffect, deps, resolvedInputs);
     const { executeTool } = deps.toolDispatcher();
     // Connection lending (GATED, default off): see integrationActionGates.js.
     const identity = await resolveLendingIdentity(step, ctx, deps);

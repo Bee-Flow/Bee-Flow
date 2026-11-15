@@ -110,7 +110,12 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // failed extraction it returns { error, size, contentType } instead,
         // with no path and no content — bind defensively or wire an on-error
         // branch.
-        shape: { path: 'string', size: 'integer', contentType: 'string', extractedVia: 'string|undefined', truncated: 'boolean', content: 'string', meta: 'object|undefined' },
+        // An image is read through OCR (extractedVia azure|mistral). With
+        // formFields: true the answer also carries formFields (a PDF's
+        // AcroForm fields; [] for anything else). An image also carries
+        // sourceHandle {kind:"nextcloud_image", path, contentType}: bind it in
+        // `images` of an ai_step / data_extraction to show the picture itself.
+        shape: { path: 'string', size: 'integer', contentType: 'string', extractedVia: 'string|undefined', truncated: 'boolean', content: 'string', meta: 'object|undefined', sourceHandle: '{ kind: "nextcloud_image", path, contentType }|undefined (images only)', formFields: 'array of { name, value (string|boolean|array|null), type (text|checkbox|radiobutton|combobox|listbox) }|undefined (only with formFields: true)' },
         sample: { path: '/Invoices/Invoice-2026-001.pdf', size: 51200, contentType: 'application/pdf', extractedVia: 'pdf-text-layer', truncated: false, content: 'INVOICE\nVendor: Acme BV\nAmount: EUR 1.240,00\nDue: 2026-10-01', meta: { pages: 2 } },
         echo: { path: 'path' },
     },

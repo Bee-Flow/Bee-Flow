@@ -77,7 +77,7 @@ function invoiceTableExample() {
             content: JSON.stringify({
                 results: {
                     nextcloud_list_files: { tool: 'nextcloud_list_files', inputs: { path: { type: 'string', required: true } }, requiredInputs: ['path'], shape: 'path: string; count: integer; items: array of { name, path, type ("file"|"folder"), size, contentType, modified, fileId }', source: 'curated', sample: null, iterableFields: ['items'] },
-                    nextcloud_read_file: { tool: 'nextcloud_read_file', inputs: { path: { type: 'string', required: true } }, requiredInputs: ['path'], shape: 'path: string; size: integer; contentType: string; extractedVia: string|undefined; truncated: boolean; content: string; meta: object|undefined', source: 'curated', sample: null },
+                    nextcloud_read_file: { tool: 'nextcloud_read_file', inputs: { path: { type: 'string', required: true } }, requiredInputs: ['path'], shape: 'path: string; size: integer; contentType: string; extractedVia: string|undefined; truncated: boolean; content: string; meta: object|undefined; sourceHandle: { kind: "nextcloud_image", path, contentType }|undefined (images only); formFields: array of { name, value (string|boolean|array|null), type (text|checkbox|radiobutton|combobox|listbox) }|undefined (only with formFields: true)', source: 'curated', sample: null, iterableFields: ['formFields'] },
                 },
             }),
         },

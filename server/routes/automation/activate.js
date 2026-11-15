@@ -97,6 +97,8 @@ async function activateAutomation(/** @type {import('express').Request} */ req, 
     const access = await editAccess(req, res, a, deps);
     if (!access) return;
 
+    // activateCore holds the Windmill import gate (automation/importGate.mts):
+    // its refusal comes back with `raise: true` and is thrown as the HttpError.
     const r = await activateCore({
         automation: a,
         actorId: req.session.user.id,

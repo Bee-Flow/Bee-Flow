@@ -5,6 +5,7 @@
 import { readReliability } from '../../aiStepReliability/reliabilityModel';
 import { readAgentPermissions, readSkillIds } from '../aiStepAgent';
 import { schemaToFields } from '../outputSchema';
+import { readImageBindings } from '../imageBindings';
 import { normalizeAskOnce, normalizeCacheInto } from '../stepOptions';
 import type { TypeExtractor } from '../types';
 
@@ -40,6 +41,8 @@ export const actionExtractors: Record<string, TypeExtractor> = {
             forEach: step.forEach || null,
             // Answer checks, the fallback, the temperature and "reuse the answer".
             ...readReliability(step),
+            // The pictures the step may show its model (always a list in the form).
+            images: readImageBindings(step.images),
         };
     },
     integration_action: (step, base) => {

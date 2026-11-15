@@ -18,6 +18,10 @@ registerRunnerPorts({
     knowledgeBase: {
         executeKbIngestTool: (/** @type {Parameters<typeof import('./kbIngestTools').executeKbIngestTool>} */ ...args) => require('./kbIngestTools').executeKbIngestTool(...args),
     },
+    // The image an ai_step / data_extraction step shows a model (core/automationRunner/aiStepImages.mts).
+    nextcloudFiles: {
+        loadNextcloudImage: (/** @type {Parameters<typeof import('./nextcloudTools').loadNextcloudImage>} */ ...args) => require('./nextcloudTools').loadNextcloudImage(...args),
+    },
     // http_request credentials of a custom integration.
     customIntegrations: {
         renderAuthValue: (/** @type {Parameters<typeof import('./customIntegrationRunner').renderAuthValue>} */ ...args) => require('./customIntegrationRunner').renderAuthValue(...args),

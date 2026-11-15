@@ -5,49 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
 import type { FilterFieldsProps } from './triggerFilters.types';
-export function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {
-    const { t } = useTranslation();
-    return (
-        <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-3">
-            <div className={sectionHeaderClass()}>{t('automations.trigger_filters.gmail_filter_all_optional_and_across', 'Gmail filter (all optional, AND across keys)')}</div>
-            <FormRow label={t('automations.trigger_filters.from_contains', 'From contains')}>
-                <input type="text" value={filter.from || ''} onChange={(e) => setFilter('from', e.target.value || undefined)}
-                    placeholder="boss@example.com" className={inputClass()} />
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.to_contains', 'To contains')}>
-                <input type="text" value={filter.to || ''} onChange={(e) => setFilter('to', e.target.value || undefined)} className={inputClass()} />
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.subject_contains', 'Subject contains')}>
-                <input type="text" value={filter.subjectContains || ''} onChange={(e) => setFilter('subjectContains', e.target.value || undefined)} className={inputClass()} />
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.subject_regex', 'Subject regex')} hint={t('automations.trigger_filters.js_regex_capped_at_200_chars', 'JS regex. Capped at 200 chars; invalid patterns fail closed.')}>
-                <input type="text" value={filter.subjectRegex || ''} onChange={(e) => setFilter('subjectRegex', e.target.value || undefined)} className={inputClass() + ' font-mono'} />
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.has_attachment', 'Has attachment')}>
-                <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={filter.hasAttachment === true} onChange={(e) => setFilter('hasAttachment', e.target.checked || undefined)} />
-                    {t('automations.trigger_filters.only_emails_with_attachments', 'Only emails with attachments')}
-                </label>
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.exclude_self_sent', 'Exclude self-sent')}>
-                <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={filter.excludeFromSelf === true} onChange={(e) => setFilter('excludeFromSelf', e.target.checked || undefined)} />
-                    {t('automations.trigger_filters.skip_emails_i_sent', 'Skip emails I sent')}
-                </label>
-            </FormRow>
-            <FormRow label={t('automations.trigger_filters.max_age_minutes', 'Max age (minutes)')} hint={t('automations.trigger_filters.drop_messages_older_than_this_useful', 'Drop messages older than this. Useful so a long-paused poller doesn\'t flood with backlog on resume.')}>
-                <input
-                    type="number"
-                    value={filter.maxAgeMinutes ?? ''}
-                    min={1}
-                    onChange={(e) => setFilter('maxAgeMinutes', e.target.value === '' ? undefined : Number(e.target.value))}
-                    className={inputClass()}
-                />
-            </FormRow>
-        </div>
-    );
-}
-
+import { GmailFilterFields, NextcloudMailFilterFields } from './mailTriggerFilters';
 // ── Trigger filter sub-forms (one per (provider, event)) ───────────────
 //
 // All filters reuse FilterShell as chrome and the standard input/textarea
@@ -597,17 +555,19 @@ export const FILTER_FORM_BY_KEY: Record<string, React.ComponentType<FilterFields
     'nextcloud.file.new': NextcloudFileFilterFields,
     'nextcloud.file.changed': NextcloudFileFilterFields,
     'nextcloud.file.deleted': NextcloudFileFilterFields,
-    'nextcloud.file.renamed': NextcloudFileFilterFields,
+    'nextcloud.file.renamed': NextcloudFileFilterFields, 'nextcloud.file.copied': NextcloudFileFilterFields, 'nextcloud.file.restored': NextcloudFileFilterFields,
     'nextcloud.file.tagged': NextcloudTagFilterFields,
     'nextcloud.file.untagged': NextcloudTagFilterFields,
     'nextcloud.forms.submitted': NextcloudFormsSubmittedFilterFields,
     'nextcloud.tables.row.added': NextcloudTablesRowFilterFields,
-    'nextcloud.tables.row.updated': NextcloudTablesRowFilterFields,
+    'nextcloud.tables.row.updated': NextcloudTablesRowFilterFields, 'nextcloud.tables.row.deleted': NextcloudTablesRowFilterFields,
     'nextcloud.calendar.event.created': NextcloudCalendarMutationFilterFields,
     'nextcloud.calendar.event.changed': NextcloudCalendarMutationFilterFields,
+    'nextcloud.calendar.event.deleted': NextcloudCalendarMutationFilterFields, 'nextcloud.calendar.event.moved': NextcloudCalendarMutationFilterFields,
     'nextcloud.share.received': NextcloudShareFilterFields,
     'nextcloud.activity.new': NextcloudActivityFilterFields,
     'nextcloud.notification.new': NextcloudNotificationFilterFields,
+    'nextcloud.mail.new': NextcloudMailFilterFields,
     'support.ticket.resolved': SupportTicketResolvedFilterFields,
     'meeting-notes.meeting.processed': MeetingNotesProcessedFilterFields,
 };

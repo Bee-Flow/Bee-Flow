@@ -184,6 +184,9 @@ const ERASURE_COVERAGE = Object.freeze({
     automation_golden_runs: { mode: 'detached', column: 'created_by' },
     automation_shares: { mode: 'detached', column: 'created_by' },
     automation_test_cases: { mode: 'detached', column: 'created_by' },
+    // The import report of an automation goes with its automation (FK cascade); on an automation
+    // that changed hands it stays, so its activation gate still holds, without naming the importer.
+    automation_imports: { mode: 'detached', column: 'user_id' },
 
     // NOT NULL author columns on organisation records: to the oldest remaining org admin.
     apps: { mode: 'reassigned', column: 'created_by', org: 'organization_id' },

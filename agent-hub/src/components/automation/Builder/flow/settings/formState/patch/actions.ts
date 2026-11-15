@@ -6,6 +6,7 @@ import { buildReliabilityPatch } from '../../aiStepReliability/reliabilityModel'
 import { MAX_AI_STEP_SKILL_IDS, readAgentPermissions, readSkillIds } from '../aiStepAgent';
 import { sanitizeInputs } from '../bindings';
 import { fieldsToSchema } from '../outputSchema';
+import { sanitizeImageBindings } from '../imageBindings';
 import { clamp } from '../primitives';
 import { applyAskOncePatch, applyCacheIntoPatch, applyForEachPatch } from '../stepOptions';
 import type { TypePatcher } from '../types';
@@ -45,6 +46,8 @@ export const actionPatchers: Record<string, TypePatcher> = {
         applyForEachPatch(patch, step, draft); // C12 — was dropped both ways
         Object.assign(patch, buildReliabilityPatch(draft, step));
         applyAskOncePatch(patch, step, draft);
+        // Absent, not [], when there are none: a step nobody gave images keeps no key.
+        patch.images = sanitizeImageBindings(draft.images);
     },
     integration_action: (patch, step, draft) => {
         patch.inputs = sanitizeInputs(draft.inputs || {});

@@ -28,7 +28,8 @@ const BUILDER = path.resolve(__dirname, '../../../../../../../agent-hub/src/comp
 const read = (rel: string) => webSourceText(path.join(BUILDER, rel));
 const client = readDict(CLIENT_DICT);
 const editors = read('flow/settings/triggerEditors.tsx') + read('flow/settings/AppEventFields.tsx');
-const filters = read('flow/settings/triggerFilters.tsx');
+// The web's filter forms: triggerFilters.tsx, and the mail forms it imports.
+const filters = `${read('flow/settings/triggerFilters.tsx')}\n${read('flow/settings/mailTriggerFilters.tsx')}`;
 
 /** `t('key', 'English')` as the web writes it: the pair, with the English unescaped. */
 const T = String.raw`t\(\s*'([a-z0-9_.]+)'\s*,\s*'((?:[^'\\]|\\.)*)'`;
@@ -78,7 +79,7 @@ describe('the app-event filters', () => {
     const webMap = [...map.matchAll(/'([^']+)': (\w+),/g)].map((m) => [m[1] as string, m[2] as string] as [string, string]);
 
     it('maps the same events, in the same order', () => {
-        expect(webMap.length).toBe(22);
+        expect(webMap.length).toBe(28);
         expect(Object.keys(FILTER_FORMS)).toEqual(webMap.map(([k]) => k));
     });
 
@@ -89,7 +90,7 @@ describe('the app-event filters', () => {
             const forms = new Set(keys.map((k) => FILTER_FORMS[k]));
             expect(forms.size).toBe(1);
         }
-        expect(byFn.size).toBe(16);
+        expect(byFn.size).toBe(17);
     });
 
     it.each(webMap.filter(([, fn], i) => webMap.findIndex(([, f]) => f === fn) === i))('%s writes the web’s keys in the web’s order', (key, fn) => {

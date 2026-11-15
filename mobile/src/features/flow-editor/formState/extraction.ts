@@ -86,12 +86,27 @@ export function sanitizeExtractionFields(fields: unknown): Record<string, unknow
     return out;
 }
 
+/** `images` of an ai_step / data_extraction (the web's formState/imageBindings.ts): the cap the server holds. */
+export const MAX_IMAGE_BINDINGS = 20;
+
+/** The stored list as the editor's rows (always an array). */
+export function readImageBindings(raw: unknown): unknown[] {
+    return Array.isArray(raw) ? raw.slice(0, MAX_IMAGE_BINDINGS) : [];
+}
+
+/** The rows as the step stores them: blank rows dropped; none left = undefined (no key). */
+export function sanitizeImageBindings(rows: unknown): unknown[] | undefined {
+    const kept = readImageBindings(rows).filter((b) => !isEmptyExtractionSource(b));
+    return kept.length ? kept : undefined;
+}
+
 export const extractDataExtraction: Extractor = (step, base) => ({
     ...base,
     // An absent source opens as an EMPTY REF, so a dragged value lands as a bare ref.
     source: isEmptyExtractionSource(step.source) ? { kind: 'ref', path: '' } : step.source,
     fields: readExtractionFields(step.fields),
     instructions: typeof step.instructions === 'string' ? step.instructions : '',
+    images: readImageBindings(step.images),
     forEach: step.forEach || null,
 });
 
@@ -107,6 +122,7 @@ export const patchDataExtraction: Patcher = (patch, step, draft) => {
     patch.source = isEmptyExtractionSource(draft.source) ? undefined : draft.source;
     patch.fields = sanitizeExtractionFields(draft.fields);
     patch.instructions = clipped(draft.instructions);
+    patch.images = sanitizeImageBindings(draft.images);
     applyForEachPatch(patch, step, draft);
 };
 

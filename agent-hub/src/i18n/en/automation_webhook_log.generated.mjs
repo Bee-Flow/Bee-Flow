@@ -6,6 +6,13 @@
  */
 
 export default {
+    "automation_webhook_log.auth.badge": "Header token",
+    "automation_webhook_log.auth.badge_title": "Callers send a token in the Authorization header instead of signing",
+    "automation_webhook_log.auth.header_token": "A token in a header",
+    "automation_webhook_log.auth.hmac": "Signing each request (recommended)",
+    "automation_webhook_log.auth.label": "Callers prove themselves by",
+    "automation_webhook_log.auth.token_once": "You only see the token now. Requests without it in the Authorization header are refused.",
+    "automation_webhook_log.auth.warning": "A header token is weaker than signing: anyone who sees the token can send requests, and a captured request can be sent again. Use it only for a system that cannot sign, and send it as Authorization: Bearer, never in the address.",
     "automation_webhook_log.empty": "No deliveries yet.",
     "automation_webhook_log.hash_title": "Start of the SHA-256 of the body",
     "automation_webhook_log.note": "The body of a delivery is never kept here: only its size and a fingerprint.",
@@ -13,6 +20,7 @@ export default {
     "automation_webhook_log.size": "{bytes} bytes",
     "automation_webhook_log.status.accepted": "Accepted",
     "automation_webhook_log.status.bad_signature": "Signature not accepted",
+    "automation_webhook_log.status.bad_token": "Token not accepted",
     "automation_webhook_log.status.inactive": "Automation not active",
     "automation_webhook_log.status.replay": "Nonce used before",
     "automation_webhook_log.status.stale_timestamp": "Timestamp outside the window",

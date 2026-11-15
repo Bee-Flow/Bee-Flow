@@ -107,9 +107,33 @@ export function normaliseCalendarPayload(raw: Payload | null | undefined): Paylo
     return { ...src, calendarId: id ?? uri, calendarUri: uri };
 }
 
+/**
+ * `mail.new` (the fields of triggerSources/nextcloudMailEvents.mts, plus
+ * `mailboxRole`): the connector knows ids and the subject, the poller and the
+ * owner's read also the sender, the attachment flag and the mailbox's role.
+ * A key nobody knew is null; `hasAttachments` stays null rather than false
+ * when nobody asked Mail.
+ */
+export function normaliseMailPayload(raw: Payload | null | undefined): Payload {
+    const src: Payload = raw && typeof raw === 'object' ? raw : {};
+    return {
+        ...src,
+        accountId: idOrNull(src.accountId),
+        mailboxId: idOrNull(src.mailboxId),
+        messageId: idOrNull(src.messageId),
+        from: str(src.from),
+        subject: typeof src.subject === 'string' ? src.subject : '',
+        hasAttachments: typeof src.hasAttachments === 'boolean' ? src.hasAttachments : null,
+        receivedAt: str(src.receivedAt) ?? str(src.datetime),
+        datetime: str(src.datetime) ?? str(src.receivedAt),
+        mailboxRole: str(src.mailboxRole),
+    };
+}
+
 /** Canonical payload for any Nextcloud trigger event (unknown events pass through). */
 export function normaliseNextcloudPayload(event: string, raw: Payload | null | undefined, opts: { viewerUid?: string | null } = {}): Payload {
     if (FILE_EVENT_IDS.has(event)) return normaliseFilePayload(raw, opts);
     if (event.startsWith('calendar.event.')) return normaliseCalendarPayload(raw);
+    if (event === 'mail.new') return normaliseMailPayload(raw);
     return raw && typeof raw === 'object' ? raw : {};
 }

@@ -30,14 +30,14 @@ const { isNextcloudStatusTool, executeNextcloudStatusTool } = require('./nextclo
 
 /**
  * @typedef {Partial<Express.Session> | null | undefined} NcSession
- * @typedef {{ userId?: string, orgId?: string|null, session?: NcSession, runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} NcToolContext
+ * @typedef {{ userId?: string, orgId?: string|null, session?: NcSession, runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'], automationId?: string|null }} NcToolContext
  */
 
 /**
  * Sub-apps first: the generic executor (last) matches the whole broad
  * "nextcloud_*" prefix, so it must only see what no sub-app owns.
  */
-/** @type {Array<[(toolName: string) => boolean, (toolName: string, args: Record<string, unknown>, userId: string, session: NcSession) => Promise<unknown>]>} */
+/** @type {Array<[(toolName: string) => boolean, (toolName: string, args: Record<string, unknown>, userId: string, session: NcSession, extra?: { runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }) => Promise<unknown>]>} */
 const SUB_APPS = [
     [isNextcloudCalendarTool, executeNextcloudCalendarTool],
     [isNextcloudContactsTool, executeNextcloudContactsTool],
@@ -62,11 +62,11 @@ const SUB_APPS = [
  * @param {Record<string, unknown>} toolArgs
  * @param {string} userId
  * @param {NcSession} session
- * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} [extra]
+ * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'], automationId?: string | null }} [extra]
  */
 async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, extra = {}) {
     for (const [isTool, execute] of SUB_APPS) {
-        if (isTool(toolName)) return await execute(toolName, toolArgs, userId, session);
+        if (isTool(toolName)) return await execute(toolName, toolArgs, userId, session, extra);
     }
     if (isNextcloudTool(toolName)) {
         return await executeNextcloudTool(toolName, toolArgs, userId, session, extra);
@@ -81,11 +81,11 @@ async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, e
  * @param {NcToolContext} context
  */
 async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
-    const { userId, orgId, session, runScope } = context;
+    const { userId, orgId, session, runScope, automationId } = context;
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
     const denial = await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId, session });
     if (denial) return denial;
-    const raw = await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null });
+    const raw = await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null, automationId: automationId || null });
     // No family matched (a nextcloud_-prefixed tool owned elsewhere) — the
     // dispatcher falls through to the families and fallbacks after this one.
     if (raw === undefined) return NOT_HANDLED;
@@ -100,10 +100,10 @@ async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
  * @param {Record<string, unknown>} toolArgs
  * @param {NcToolContext} context
  */
-async function executeCheckedNextcloudTool(toolName, toolArgs, { userId, orgId, session, runScope }) {
+async function executeCheckedNextcloudTool(toolName, toolArgs, { userId, orgId, session, runScope, automationId }) {
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
     return (await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId, session }))
-        || await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null });
+        || await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null, automationId: automationId || null });
 }
 
 /** @param {string} toolName */

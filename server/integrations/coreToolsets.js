@@ -45,7 +45,7 @@ const { MS_CALENDAR_TOOLS } = require('./msCalendarTools');
 const { ONEDRIVE_TOOLS } = require('./oneDriveTools');
 const { MS_CONTACTS_TOOLS } = require('./msContactsTools');
 const { TRANSCRIPTION_TOOLS } = require('./transcriptionTools');
-const { NEXTCLOUD_TOOLS } = require('./nextcloudTools');
+const { NEXTCLOUD_TOOLS, NEXTCLOUD_REQUEST_TOOLS } = require('./nextcloudTools');
 const { NEXTCLOUD_CALENDAR_TOOLS } = require('./nextcloudCalendarTools');
 const { NEXTCLOUD_CONTACTS_TOOLS } = require('./nextcloudContactsTools');
 const { NEXTCLOUD_DECK_TOOLS } = require('./nextcloudDeckTools');
@@ -99,6 +99,8 @@ const TOOLSETS = {
     MS_CONTACTS_TOOLS,
     TRANSCRIPTION_TOOLS,
     NEXTCLOUD_TOOLS,
+    // Automation steps only (core/integrations/integrationToolFeatures.js addNextcloudTools).
+    NEXTCLOUD_REQUEST_TOOLS,
     NEXTCLOUD_CALENDAR_TOOLS,
     NEXTCLOUD_CONTACTS_TOOLS,
     NEXTCLOUD_DECK_TOOLS,

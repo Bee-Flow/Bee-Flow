@@ -287,6 +287,7 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
     // holds its webhook open until this returns.
     const payloads = await Promise.all(eligible.map(async (sub) => {
         let subPayload = payload;
+        if (ncFanOut && event === 'mail.new') return require('./ncMailDelivery.mts').ncMailDeliveryFor({ sub, payload, ncVisibility, memo, store: automationStore, log });
         if (ncFanOut) {
             const own = !!actorUserId && sub.userId === actorUserId;
             if (!own) {

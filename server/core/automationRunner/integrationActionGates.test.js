@@ -141,3 +141,25 @@ test('a failed lookup lets a read-only tool through and skips later checks', asy
     await assertStepToolPermitted({ id: 's2', tool: 'other' }, ctx, false, DEPS);
     assert.strictEqual(lookups.length, 2, 'null sentinel is falsy, so the lookup is retried');
 });
+
+test('nextcloud_request runs only when the app its path reaches is switched on', async () => {
+    const families = ['nextcloud_list_files', 'nextcloud_request', 'nextcloud_calendar_list', 'nextcloud_contacts_list', 'nextcloud_deck_list_boards',
+        'nextcloud_notifications_list', 'nextcloud_talk_list_rooms', 'nextcloud_tasks_list', 'nextcloud_notes_list', 'nextcloud_activity_list',
+        'nextcloud_teams_list', 'nextcloud_tables_list', 'nextcloud_forms_list', 'nextcloud_status_get'];
+    const step = { id: 's1', tool: 'nextcloud_request' };
+    // Mail switched off: no Mail tool in the owner's catalog, Files on.
+    catalog = () => ({ tools: families.map((name) => ({ function: { name } })) });
+    await assert.rejects(
+        assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/index.php/apps/mail/api/messages' }),
+        (/** @type {any} */ e) => /Nextcloud Mail/.test(e.message) && e.stepErrorCode === 'tool_not_permitted',
+    );
+    await assert.rejects(
+        assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/ocs/v2.php/cloud/user' }),
+        (/** @type {any} */ e) => e.stepErrorCode === 'tool_not_permitted',
+        'a path of no known app needs every Nextcloud app switched on',
+    );
+    await assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'PROPFIND', path: '/remote.php/dav/files/alice/x' });
+    catalog = () => ({ tools: [...families, 'nextcloud_mail_list_accounts'].map((name) => ({ function: { name } })) });
+    await assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/index.php/apps/mail/api/messages' });
+    await assertStepToolPermitted(step, { userId: 'u1' }, false, DEPS, { method: 'GET', path: '/ocs/v2.php/cloud/user' });
+});

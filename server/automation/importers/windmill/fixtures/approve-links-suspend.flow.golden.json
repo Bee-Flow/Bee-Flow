@@ -1,0 +1,197 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/approve-links-suspend.flow",
+      "automation": {
+        "title": "Purchase approval",
+        "description": "",
+        "triggerType": "form",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "form",
+          "label": "Form",
+          "form": {
+            "title": "Purchase approval",
+            "fields": [
+              {
+                "name": "item",
+                "label": "item",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "amount",
+                "label": "amount",
+                "type": "number",
+                "required": true
+              }
+            ]
+          }
+        },
+        "steps": [
+          {
+            "id": "ask",
+            "type": "approval",
+            "label": "Create an approval link",
+            "prompt": "Buy {{trigger.output.item}} for {{trigger.output.amount}}",
+            "approval": {
+              "expiresInHours": 48,
+              "fields": [
+                {
+                  "name": "comment",
+                  "label": "Comment",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          {
+            "id": "sorry",
+            "type": "integration_action",
+            "label": "Tell no",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "literal",
+                "value": "buyer"
+              },
+              "shortMessage": {
+                "kind": "literal",
+                "value": "Purchase rejected"
+              }
+            }
+          },
+          {
+            "id": "yes",
+            "type": "integration_action",
+            "label": "Tell yes",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "literal",
+                "value": "buyer"
+              },
+              "shortMessage": {
+                "kind": "template",
+                "value": "Approved: {{steps.ask.output.answers.comment}}"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "ask"
+          },
+          {
+            "from": "ask",
+            "to": "sorry",
+            "label": "on_rejected"
+          },
+          {
+            "from": "ask",
+            "to": "sorry",
+            "label": "on_expired"
+          },
+          {
+            "from": "ask",
+            "to": "yes"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/approve-links-suspend.flow",
+        "modules": [
+          {
+            "wmId": "ask",
+            "summary": "Create an approval link",
+            "source": "script:hub/28160/nextcloud/create_an_approval_link_with_approve_links",
+            "status": "pattern",
+            "confidence": "high",
+            "reason": "The step made an approval link and waited for it: a Bee Flow approval.",
+            "stepIds": [
+              "ask"
+            ]
+          },
+          {
+            "wmId": "sorry",
+            "summary": "Tell no",
+            "source": "script:hub/2/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "sorry"
+            ]
+          },
+          {
+            "wmId": "yes",
+            "summary": "Tell yes",
+            "source": "script:hub/2/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "yes"
+            ]
+          },
+          {
+            "wmId": "decision",
+            "source": "branchone",
+            "status": "pattern",
+            "confidence": "high",
+            "reason": "The branch on the approval outcome becomes the approval's \"rejected\" path.",
+            "stepIds": []
+          }
+        ],
+        "aiChecklist": [],
+        "warnings": [
+          {
+            "code": "approval_people",
+            "message": "Choose who approves \"Create an approval link\": Windmill sent a link, Bee Flow asks a person or group in this organisation (deciding for a colleague needs Enterprise). Windmill waited for 2 approvals: add that many approvers and a quorum.",
+            "wmId": "ask"
+          },
+          {
+            "code": "approval_expiry",
+            "message": "In Windmill a rejection or a timeout went on to the next step; in Bee Flow only the \"rejected\" path does, wired from the approval.",
+            "wmId": "ask"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [
+          {
+            "kind": "resource",
+            "path": "f/team/nextcloud",
+            "where": [
+              "ask.nextcloud"
+            ]
+          }
+        ],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 2,
+          "pattern": 2,
+          "shim": 0,
+          "ai": 0,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

@@ -19,6 +19,8 @@ module.exports = {
     ...require('./automationStore/evolutions'),
     ...require('./automationStore/steps'),
     ...require('./automationStore/runs'),
+    // A dry run whose data may not be kept (the Windmill comparison), removed once summarised.
+    ...require('./automationStore/dryRunCleanup'),
     // Full copies of step outputs the run history truncated.
     ...require('./automationStore/runFullOutputs'),
     // Durations of recent legs (the public form poll's typical-duration hint).
@@ -33,6 +35,8 @@ module.exports = {
     ...require('./automationStore/approvals'),
     ...require('./automationStore/approvalDeliveries'),
     ...require('./automationStore/folders'),
+    // The migration report of an imported automation and its activation-gate facts.
+    ...require('./automationStore/imports'),
     ...require('./automationStore/subscriptions'),
     // Additional schedule triggers (automation_schedules, 2026-09).
     ...require('./automationStore/schedules'),

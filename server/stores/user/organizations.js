@@ -424,6 +424,7 @@ function orgConfigKeys(orgId) {
         // if it stayed, an org re-created under the same id would come back with a course requirement
         // that nobody there set.
         `${TRAINING_GATES}${orgId}`,
+        `${require('../lib/orgConfigKeyPrefixes').AUTOMATION_IMAGE_AI_CONFIG_KEY_PREFIX}${orgId}`, // images to AI in automations: chosen here, dies here
         // Whether members may edit project notebooks and pages together, and
         // how the AI may join conversations by itself: both chosen for THIS
         // organisation, so both die with it.

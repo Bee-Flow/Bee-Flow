@@ -38,10 +38,11 @@ const LOOP_PORTS: readonly Unplaced[] = [
     { id: 'on_error', wire: 'on_error', text: { key: 'automations.canvas.loop_port_on_error', fallback: 'On error' }, tone: 'error' },
 ];
 
-/** An approval's ports (web ApprovalNode): the plain way on, and its rejected branch. */
+/** An approval's ports (web ApprovalNode): the plain way on, its rejected branch and its expired branch. */
 const APPROVAL_PORTS: readonly Unplaced[] = [
     { id: 'approved', wire: null, text: { key: 'automation_editor.approval_port_approved', fallback: 'Approved' }, tone: 'then' },
     { id: 'on_rejected', wire: 'on_rejected', text: { key: 'automation_editor.approval_port_rejected', fallback: 'On rejected' }, tone: 'error' },
+    { id: 'on_expired', wire: 'on_expired', text: { key: 'automation_approval_expiry.port', fallback: 'On expired' }, tone: 'default' },
 ];
 
 function unplacedPorts(node: AnyNode): Unplaced[] {

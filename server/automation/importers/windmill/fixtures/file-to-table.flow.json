@@ -1,0 +1,326 @@
+{
+  "flow": {
+    "summary": "Room booking from a PDF form",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "uid": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            }
+          }
+        },
+        "event": {
+          "type": "object",
+          "properties": {
+            "class": {
+              "type": "string"
+            },
+            "node": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "authentication": {
+          "type": "object",
+          "properties": {
+            "owner": {
+              "type": "object",
+              "format": "resource-nextcloud"
+            },
+            "trigger": {
+              "type": "object",
+              "format": "resource-nextcloud"
+            }
+          }
+        }
+      }
+    },
+    "value": {
+      "notes": [
+        {
+          "text": "Bookings arrive as a filled-in PDF in the Bookings folder."
+        }
+      ],
+      "modules": [
+        {
+          "id": "filepath",
+          "summary": "Path from file id",
+          "value": {
+            "type": "script",
+            "path": "hub/28172/nextcloud/path_from_fileid",
+            "input_transforms": {
+              "fileid": {
+                "type": "javascript",
+                "expr": "flow_input.event.node.id"
+              },
+              "ncResource": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              }
+            }
+          }
+        },
+        {
+          "id": "form",
+          "summary": "Read the PDF form",
+          "value": {
+            "type": "rawscript",
+            "language": "bun",
+            "content": "import { PDFDocument } from \"pdf-lib\";\n\nexport async function main(nextcloud: RT.Nextcloud, pdfPath: string) {\n  const doc = await PDFDocument.load(new Uint8Array());\n  return { filled_out: doc.getPageCount() > 0, values: {} };\n}\n",
+            "input_transforms": {
+              "nextcloud": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "pdfPath": {
+                "type": "javascript",
+                "expr": "results.filepath"
+              }
+            }
+          }
+        },
+        {
+          "id": "check",
+          "value": {
+            "type": "branchone",
+            "branches": [
+              {
+                "summary": "Filled out",
+                "expr": "results.form.filled_out",
+                "modules": [
+                  {
+                    "id": "columns",
+                    "summary": "Get the columns",
+                    "value": {
+                      "type": "script",
+                      "path": "hub/28145/nextcloud/nextcloud_tables:_get_all_columns_of_a_table",
+                      "input_transforms": {
+                        "nextcloud": {
+                          "type": "javascript",
+                          "expr": "flow_input.authentication.owner"
+                        },
+                        "tableId": {
+                          "type": "static",
+                          "value": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "row",
+                    "summary": "Map the fields",
+                    "value": {
+                      "type": "rawscript",
+                      "language": "bun",
+                      "content": "export async function main(columns: Array<{ id: number; title: string }>, values: Record<string, string>) {\n  const out: Record<number, string> = {};\n  for (const col of columns) if (values[col.title]) out[col.id] = values[col.title];\n  return out;\n}\n",
+                      "input_transforms": {
+                        "columns": {
+                          "type": "javascript",
+                          "expr": "results.columns"
+                        },
+                        "values": {
+                          "type": "javascript",
+                          "expr": "results.form.values"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "row_output",
+                    "summary": "Add the row",
+                    "value": {
+                      "type": "rawscript",
+                      "language": "bun",
+                      "content": "import createClient from \"openapi-fetch\";\n\nexport async function main(nextcloud: RT.Nextcloud, tableId: number, data: Record<number, string>) {\n  const client = createClient({ baseUrl: nextcloud.baseUrl });\n  const resp = await client.POST(\"/index.php/apps/tables/api/1/tables/{tableId}/rows\", {\n    params: { path: { tableId: tableId } },\n    body: { data: data },\n  });\n  return resp;\n}\n",
+                      "input_transforms": {
+                        "nextcloud": {
+                          "type": "javascript",
+                          "expr": "flow_input.authentication.owner"
+                        },
+                        "tableId": {
+                          "type": "static",
+                          "value": 12
+                        },
+                        "data": {
+                          "type": "javascript",
+                          "expr": "results.row"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "file_cell",
+                    "summary": "Link the file",
+                    "value": {
+                      "type": "script",
+                      "path": "hub/28155/nextcloud/edit_a_row_in_a_table_in_nextcloud_tables",
+                      "input_transforms": {
+                        "nextcloud": {
+                          "type": "javascript",
+                          "expr": "flow_input.authentication.owner"
+                        },
+                        "rowId": {
+                          "type": "javascript",
+                          "expr": "results.row_output.data.id"
+                        },
+                        "columnId": {
+                          "type": "javascript",
+                          "expr": "results.columns.find(c => c.title === \"File\")?.id"
+                        },
+                        "value": {
+                          "type": "javascript",
+                          "expr": "flow_input.event.node.path"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "approval",
+                    "summary": "Ask for approval",
+                    "value": {
+                      "type": "rawscript",
+                      "language": "bun",
+                      "content": "import * as wmill from \"windmill-client\";\n\nexport async function main(nextcloud: RT.Nextcloud, rowId: number, description: string) {\n  const { approvalPage, resume, cancel } = await wmill.getResumeUrls(\"approver\");\n  return { approvalPage, rowId, description };\n}\n",
+                      "input_transforms": {
+                        "nextcloud": {
+                          "type": "javascript",
+                          "expr": "flow_input.authentication.owner"
+                        },
+                        "rowId": {
+                          "type": "javascript",
+                          "expr": "results.row_output.data.id"
+                        },
+                        "description": {
+                          "type": "static",
+                          "value": "Approve this room booking"
+                        }
+                      }
+                    },
+                    "suspend": {
+                      "timeout": 1800,
+                      "required_events": 1,
+                      "continue_on_disapprove_timeout": true
+                    }
+                  },
+                  {
+                    "id": "outcome",
+                    "value": {
+                      "type": "branchone",
+                      "branches": [
+                        {
+                          "summary": "Rejected",
+                          "expr": "resume?.error",
+                          "modules": []
+                        }
+                      ],
+                      "default": [
+                        {
+                          "id": "calendar",
+                          "summary": "Add calendar entry",
+                          "value": {
+                            "type": "rawscript",
+                            "language": "python3",
+                            "content": "import caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n",
+                            "input_transforms": {
+                              "Nextcloud": {
+                                "type": "javascript",
+                                "expr": "flow_input.authentication.owner"
+                              },
+                              "title": {
+                                "type": "javascript",
+                                "expr": "\"Booking \" + results.form.values.Name"
+                              },
+                              "start": {
+                                "type": "javascript",
+                                "expr": "results.form.values[\"Start\"]"
+                              },
+                              "end": {
+                                "type": "javascript",
+                                "expr": "results.form.values[\"End\"]"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "default": [
+              {
+                "id": "tell",
+                "summary": "Ask to fill it in again",
+                "value": {
+                  "type": "script",
+                  "path": "hub/28136/nextcloud/send_a_notification_to_a_user",
+                  "input_transforms": {
+                    "nextcloud": {
+                      "type": "javascript",
+                      "expr": "flow_input.authentication.owner"
+                    },
+                    "notificationUserId": {
+                      "type": "javascript",
+                      "expr": "flow_input.authentication.trigger.userId"
+                    },
+                    "subject": {
+                      "type": "static",
+                      "value": "Your booking form is incomplete"
+                    },
+                    "message": {
+                      "type": "static",
+                      "value": "Please fill in every field and upload it again."
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "status",
+          "summary": "Record the decision",
+          "value": {
+            "type": "script",
+            "path": "hub/28155/nextcloud/edit_a_row_in_a_table_in_nextcloud_tables",
+            "input_transforms": {
+              "nextcloud": {
+                "type": "javascript",
+                "expr": "flow_input.authentication.owner"
+              },
+              "rowId": {
+                "type": "javascript",
+                "expr": "results.row_output.data.id"
+              },
+              "columnId": {
+                "type": "javascript",
+                "expr": "results.columns.find(c => c.title === \"Status\")?.id"
+              },
+              "value": {
+                "type": "javascript",
+                "expr": "resume?.error ? 2 : 1"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

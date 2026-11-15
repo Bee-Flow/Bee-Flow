@@ -94,6 +94,15 @@ const run = async () => {
     assert.ok(hasNcFiles(res), 'connector session shape must keep its zero-lookup fast path');
     console.log('✓ connector-session fast path intact');
 
+    // (c2) the generic nextcloud_request: an automation step only. Chat, agents,
+    // MCP and AI steps ask without automationStep and never see it.
+    const hasRequest = (r) => r.tools.some(t => t.function.name === 'nextcloud_request');
+    assert.ok(!hasRequest(res), 'chat / agent toolset must not carry nextcloud_request');
+    res = await getIntegrationTools({ userId: 'u1', session: connectorSession, isAdmin: false, automationStep: true });
+    assert.ok(hasRequest(res), 'an automation step is offered nextcloud_request');
+    assert.ok(hasNcFiles(res));
+    console.log('✓ nextcloud_request is offered to automation steps only');
+
     // (d) BFSF-490: the HEADLESS session an automation run builds for an owner
     // who signed up with Google (provider stays 'google') but whose row carries
     // the nc_uid the ExApp login filled in. The real resolveNcBinding reads the

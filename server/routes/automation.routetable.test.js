@@ -133,6 +133,8 @@ const EXPECTED = [
     // The code editor: analysis and "Try it" for unsaved code (codeTools.js).
     'POST /code/analyze',
     'POST /code/test',
+    // routes/automation/windmillInventory.mts: a literal first segment, before crud's /:id.
+    'GET /import/windmill/inventory',
     'GET /',
     'POST /',
     // Folders sit before `/:id` for the same reason templates do: the param
@@ -162,6 +164,12 @@ const EXPECTED = [
     'GET /templates',
     'GET /templates/:id',
     'POST /import',
+    // Import from Windmill (routes/automation/windmillImport.mts): the literals
+    // precede GET /:id; the report routes ride along in the same block.
+    'POST /import/windmill/upload',
+    'POST /import/windmill/remote',
+    'GET /:id/import-report',
+    'POST /:id/import-report/acknowledge',
     // Handoff 5: the caller's trash. A literal, so it must precede GET /:id.
     'GET /_trash',
     'GET /:id',

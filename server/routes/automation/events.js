@@ -11,7 +11,7 @@
 // the HMAC that proves the delivery is genuine. The narrowing that belongs
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
-const { checkWebhookSignature, sameSignature } = require('../../usecases/automation/webhookSignature');
+const { checkWebhookSignature, checkHeaderToken, tokenFromHeaders, sameSignature } = require('../../usecases/automation/webhookSignature');
 const { scopeOfGithubDelivery } = require('../../usecases/automation/githubWebhookScope');
 const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('../../usecases/automation/webhookReceive.mts');
 const log = require('../../telemetry/log');
@@ -56,8 +56,9 @@ const eventsLimiter = limiterUnlessZero({
  * Allowlisted, size-capped copy of an inbound webhook's request headers,
  * exposed to the run as `trigger.headers.<name>` (A14).
  *
- * - Allowlist: content-type, user-agent, and x-* EXCEPT the BeeFlow auth pair
- *   (signature/nonce must never leak into run state or run history).
+ * - Allowlist: content-type, user-agent, and x-* EXCEPT the BeeFlow auth
+ *   headers (signature, nonce and header token must never leak into run state
+ *   or run history; Authorization is not on the list at all).
  * - Keys are normalised to lowercase snake_case (`content-type` →
  *   `content_type`): bind.js's dotted-path grammar rejects `-`, so the
  *   canonical binding is `trigger.headers.content_type`.
@@ -72,7 +73,7 @@ function pickWebhookHeaders(req) {
     let total = 0;
     for (const [rawKey, rawVal] of Object.entries(req.headers || {})) {
         const key = String(rawKey).toLowerCase();
-        if (key === 'x-beeflow-signature' || key === 'x-beeflow-nonce') continue;
+        if (key === 'x-beeflow-signature' || key === 'x-beeflow-nonce' || key === 'x-beeflow-token') continue;
         if (key !== 'content-type' && key !== 'user-agent' && !key.startsWith('x-')) continue;
         const val = Array.isArray(rawVal) ? rawVal.join(', ') : String(rawVal ?? '');
         total += key.length + val.length;
@@ -94,6 +95,7 @@ const webhookJson = express.json({ limit: '256kb', verify: (req, _res, buf) => {
 const webhookDeps = {
     store: automationStore,
     check: checkWebhookSignature,
+    checkToken: checkHeaderToken,
     liveHasTrigger: (automation, stepId) => require('../../core/automationRunner/definitionForRun').liveHasTrigger(automation, stepId),
     execute: (automation, options) => require('../../core/automationRunner').executeAutomation(automation, options),
     logDelivery: (d) => automationStore.logWebhookDelivery(d),
@@ -110,6 +112,8 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson,
         signature: req.get('X-BeeFlow-Signature') || '',
         nonce: req.get('X-BeeFlow-Nonce') || '',
         timestamp: req.get('X-BeeFlow-Timestamp') || null,
+        // A webhook in 'header_token' mode: from a header only, never from the query string.
+        token: tokenFromHeaders(req.get('Authorization'), req.get('X-BeeFlow-Token')),
         rawBody: /** @type {string | undefined} */ (req.rawBody) ?? null, // webhookJson keeps the body text
         body: req.body,
         headers: pickWebhookHeaders(req),

@@ -183,6 +183,20 @@ Run row fields (`automation_runs` table):
 
 Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `status`, `started_at`, `finished_at`, `input_json`, `output_json`, `error`.
 
+### Images to AI
+
+A `nextcloud_read_file` step that reads an image (PNG, JPEG, GIF, WebP and the other types OCR reads) returns the text in the image as `content`, and also a `sourceHandle`: `{ kind: "nextcloud_image", path, contentType }`, a reference to the file, never its bytes. An `ai_step` or a `data_extraction` step can bind that handle in its **Images** list (`images: [{ kind: "ref", path: "steps.<read>.output.sourceHandle" }]`, or the whole output of a read that ran once per file) to show the picture itself to the model, for questions the text alone cannot answer: a handwritten amount, a photo, a chart. A `data_extraction` step with images needs no text `source`.
+
+Whether a picture really goes is decided at run time, in this order. When one of these holds, the step gets the text read from the image instead, and its run output says which images went and why the others did not (`_imageInput`):
+
+1. **A dry run** never sends an image.
+2. **The organisation setting** "Images to AI in automations" is off, which is the default ([Organisation settings](../admin/organisation-settings.md#images-to-ai-in-automations)). Only an organisation admin changes it.
+3. **The Privacy Shield applies** to the automation. The shield finds personal data in text; it cannot do that in pixels, so a shielded run never sends a picture. The text read from it goes through the shield like any other input.
+4. **The model cannot read images.** Bee Flow asks the provider's model list; a model it cannot vouch for counts as "cannot". The validator already refuses images on a step whose model tier (or, for data extraction, the extraction model) cannot read them, with the tiers that can as the fix; on `auto` it warns.
+5. **The image was not read by an earlier step of the same run**, is not a PNG, JPEG, GIF or WebP, or goes over the per-step limits (`AUTOMATION_AI_IMAGES_MAX` images, `AUTOMATION_AI_IMAGES_MAX_MB` in total; see [environment variables](../self-hosting/env.md#ai-steps-and-automation-concurrency)).
+
+The picture is loaded again as the automation's owner, through the same Nextcloud connection the read step used, and goes only into the model request. Its cost is counted like the rest of the request: providers count image tokens as input tokens, and the step files them in the usage log as it does text.
+
 ### Dry-run vs live
 
 Every automation has two run modes:
@@ -526,6 +540,10 @@ install lacks — a missing integration, a reusable Step it calls — comes back
 a warning rather than a refusal, so you can connect what is missing and then
 activate.
 
+**Import from Windmill** (the wind icon beside the import button, Enterprise)
+converts Windmill flows into inactive drafts with a migration report. See
+[Import from Windmill](automations-import-windmill.md).
+
 ## Three worked examples
 
 ### 1. Inbox triage every 10 minutes
@@ -578,8 +596,9 @@ A webhook trigger gets its own URL and signing secret. Create them in the
 trigger's **Webhook** panel in the builder, or with
 `POST /api/automation/{automationId}/webhook` (see the
 [REST reference](../api/rest.md#automations)). The URL ends in a random slug,
-not in the automation's id, and there is no bearer token: every request is
-signed.
+not in the automation's id. By default every request is signed; a caller that
+cannot sign can use a [header token](#callers-that-cannot-sign-a-header-token)
+instead.
 
 ```http
 POST /api/automation/webhook/{slug}
@@ -677,8 +696,43 @@ In the run, the JSON body is `trigger.output`, so a step reads the example's
 order number as `{{trigger.output.order}}`. A few request headers ride along
 at `trigger.headers.<name>`, lowercased with dashes turned into underscores:
 `content-type` (as `trigger.headers.content_type`), `user-agent` and every
-`x-*` header. `X-BeeFlow-Signature` and `X-BeeFlow-Nonce` are never passed
-on.
+`x-*` header. `X-BeeFlow-Signature`, `X-BeeFlow-Nonce`, `X-BeeFlow-Token`
+and `Authorization` are never passed on.
+
+### Callers that cannot sign: a header token
+
+Some systems can only send a fixed secret in a header (monitoring tools, some
+CRMs). For those, create the webhook with **Callers prove themselves by → A
+token in a header** in the Settings panel's Webhooks, or with
+`{"authMode": "header_token"}` in the body of
+`POST /api/automation/{automationId}/webhook`. The answer holds the token once,
+as `secret`; the server keeps only its SHA-256. The caller sends it in a
+header, never in the address:
+
+```http
+POST /api/automation/webhook/{slug}
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{"order":"1042","status":"paid"}
+```
+
+`X-BeeFlow-Token: <token>` works as well when the caller cannot set
+`Authorization`. A token in the query string is ignored, so such a request is
+refused.
+
+A header token is weaker than signing, which is why signing stays the default:
+
+- whoever sees the token (in a log, a proxy, a screenshot of the sender's
+  settings) can send deliveries of their own, with any body;
+- a captured request can be sent again. Send an `X-BeeFlow-Nonce` with a fresh
+  value per request when the caller can: a nonce that was used before is then
+  refused, as for a signed request.
+
+The mode is fixed per webhook. A signature does not open a header-token
+webhook and a token does not open a signed one. Rotating, the changeover
+period, the rate limits, the answers and **Recent deliveries** work the same;
+a wrong or missing token shows there as *Token not accepted*.
 
 ## Tier limits
 

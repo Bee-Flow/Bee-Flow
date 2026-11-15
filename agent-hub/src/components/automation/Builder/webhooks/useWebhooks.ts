@@ -5,11 +5,16 @@ import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { errorMessage, messageOf } from '@/utils/caughtError';
 import type { WebhookDelivery } from './WebhookDeliveries';
 
+/** How a caller proves itself: it signs (the default), or sends a fixed token in a header. */
+export type WebhookAuthMode = 'hmac' | 'header_token';
+
 /** One inbound webhook row, as the server lists it. */
 export interface Webhook {
     id: string;
     url?: string;
     secret?: string;
+    /** Absent on rows from an older server: those are signed. */
+    authMode?: WebhookAuthMode;
     triggerStepId?: string | null;
     /** While the secret from before the last rotation is still accepted: until when. */
     previousValidUntil?: string | null;
@@ -42,6 +47,9 @@ export interface AutomationLike {
  *     nonce.
  *   - Rotate replaces the secret. The one before keeps verifying for the
  *     operator's overlap (`previousValidUntil` on the row), then stops.
+ *   - A webhook with `authMode: 'header_token'` is for a caller that cannot
+ *     sign: it sends the token as `Authorization: Bearer <token>`. Weaker than
+ *     signing, so it is never the default; the secret box then holds the token.
  *
  * @param {object|null} automation
  * @param {object}  [options]
@@ -134,12 +142,15 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
         scheduleAutoMask(id);
     }, [scheduleAutoMask]);
 
-    const create = useCallback(async () => {
+    const create = useCallback(async (authMode: WebhookAuthMode = 'hmac') => {
         if (!automation?.id) return null;
+        // Signed unless a header token is asked for by name (a click event handed
+        // straight to create() must never become a mode).
+        const mode: WebhookAuthMode = authMode === 'header_token' ? 'header_token' : 'hmac';
         setCreating(true);
         setErrorMsg(null);
         try {
-            const r = await api.createWebhook(automation.id, triggerStepId);
+            const r = await api.createWebhook(automation.id, triggerStepId, mode);
             const wh = (r as { webhook?: Webhook } | null)?.webhook;
             if (wh) rememberSecret(wh.id, wh.secret);
             await reload();
@@ -215,7 +226,8 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
             setErrorMsg('Secret is only available right after Create or Rotate. Rotate the webhook first to reveal a fresh secret.');
             return;
         }
-        copyToClipboard(buildCurlSnippet(webhookUrl(wh), secret), `curl-${wh.id}`);
+        const snippet = isHeaderToken(wh) ? buildTokenCurlSnippet(webhookUrl(wh), secret) : buildCurlSnippet(webhookUrl(wh), secret);
+        copyToClipboard(snippet, `curl-${wh.id}`);
     }, [revealedSecrets, copyToClipboard]);
 
     return {
@@ -272,6 +284,25 @@ export function buildCurlSnippet(url: string, secret: string): string {
         `  -H "X-BeeFlow-Signature: $SIG" \\`,
         `  -H "X-BeeFlow-Nonce: $NONCE" \\`,
         `  --data "$BODY"`,
+    ].join('\n');
+}
+
+/** Does this webhook take a header token instead of a signature? */
+export function isHeaderToken(wh: Pick<Webhook, 'authMode'> | null | undefined): boolean {
+    return wh?.authMode === 'header_token';
+}
+
+/**
+ * A runnable request for a webhook in header-token mode: the token in
+ * `Authorization: Bearer`, never in the URL (the server ignores a query-string
+ * token). A nonce is optional; when sent, the same one is refused a second time.
+ */
+export function buildTokenCurlSnippet(url: string, token: string): string {
+    return [
+        `curl -X POST '${url}' \\`,
+        `  -H 'Content-Type: application/json' \\`,
+        `  -H 'Authorization: Bearer ${token}' \\`,
+        `  --data '{}'`,
     ].join('\n');
 }
 

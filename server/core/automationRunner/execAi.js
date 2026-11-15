@@ -45,6 +45,7 @@ const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 const { resolveAiStepTools } = require('./aiStepTools');
 const { buildAiStepMessages } = require('./aiStepMessages');
 const { answerAiStep, prepareAiAnswer } = require('./aiStepAnswer');
+const stepImages = require('./aiStepImages.mts');
 
 // What ./execIntegrationAction, ./integrationActionGates and ./aiStepGrounding
 // use from the server's large import cycle. They are required HERE and handed
@@ -323,6 +324,11 @@ async function execAiStep(step, ctx, runState, mode) {
     const policy = await safety.resolveAutomationPolicy(ctx);
     const auditBase = safety.buildAuditBase(ctx, step);
     auditBase.model = modelId;
+    // `images`: the pictures this step may show the model (./aiStepImages.mts).
+    // The text read from any image that does not go joins the prompt BEFORE
+    // the guard; the image blocks themselves only after it.
+    const imagePrep = await stepImages.prepareStepImages({ step, ctx, runState, mode, modelId, policy });
+    stepImages.addImageText(messages, imagePrep);
     const aiGuard = await safety.guardAiInput(messages, policy, auditBase, mode, ctx);
     if (aiGuard.blocked) {
         // Only reachable in dry-run (live throws inside the guard). This return
@@ -333,6 +339,9 @@ async function execAiStep(step, ctx, runState, mode) {
             dryRunSynthesised: true, dryRunFallback: 'guardrail_block',
         };
     }
+
+    // The content becomes a list of blocks (text, then images); every adapter takes that shape.
+    stepImages.addImageBlocks(messages, imagePrep);
 
     // The model call, the parse, the output guard + restore (the model saw
     // placeholders, downstream steps see real values), the step's checks with
@@ -363,6 +372,8 @@ async function execAiStep(step, ctx, runState, mode) {
         ...(toolsWithheld.length ? { toolsWithheld, toolsWithheldReasons } : {}),
         // Where the answer's shape came from: 'step' | 'skill' | 'inferred'.
         ...(outputContract.source ? { outputSchemaSource: outputContract.source } : {}),
+        // Which images went to the model and why the others did not (recorded as `_imageInput`).
+        ...stepImages.imageResultFields(imagePrep),
     };
     return mode === 'dry_run' && grounding.kbUnavailable ? markNoKnowledge(result, step, runState) : result;
 }

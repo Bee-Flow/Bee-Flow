@@ -1,0 +1,103 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/ts-imports.flow",
+      "automation": {
+        "title": "Sheet update",
+        "description": "",
+        "triggerType": "manual",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "manual",
+          "label": "Manual"
+        },
+        "steps": [
+          {
+            "id": "sheet",
+            "type": "stop_error",
+            "label": "Windmill: Update the sheet (still to convert)",
+            "message": "This Windmill step has not been converted yet: The script imports a package."
+          },
+          {
+            "id": "note_sheet",
+            "type": "note",
+            "text": "Windmill source of \"Update the sheet\" (read-only):\n\nimport * as wmill from \"windmill-client\";\nimport ExcelJS from \"exceljs\";\n\nexport async function main(path: string) {\n  const token = await wmill.getVariable(\"f/team/sheet_token\");\n  const book = new ExcelJS.Workbook();\n  return { path, sheets: book.worksheets.length, token: token.length };\n}\n"
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "sheet"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/ts-imports.flow",
+        "modules": [
+          {
+            "wmId": "sheet",
+            "summary": "Update the sheet",
+            "source": "rawscript:bun",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "The script imports a package.",
+            "stepIds": [
+              "sheet"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "sheet",
+            "stepId": "sheet",
+            "title": "Convert \"Update the sheet\"",
+            "why": "The script imports a package.",
+            "language": "bun",
+            "source": "import * as wmill from \"windmill-client\";\nimport ExcelJS from \"exceljs\";\n\nexport async function main(path: string) {\n  const token = await wmill.getVariable(\"f/team/sheet_token\");\n  const book = new ExcelJS.Workbook();\n  return { path, sheets: book.worksheets.length, token: token.length };\n}\n",
+            "inputs": {
+              "path": {
+                "value": "/Reports/Q3.xlsx"
+              }
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [
+          {
+            "kind": "variable",
+            "path": "f/team/sheet_token",
+            "where": [
+              "sheet"
+            ]
+          }
+        ],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 0,
+          "pattern": 0,
+          "shim": 0,
+          "ai": 1,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

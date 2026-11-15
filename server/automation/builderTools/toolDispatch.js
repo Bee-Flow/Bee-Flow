@@ -139,7 +139,11 @@ const HANDLERS = {
     builder_set_metadata: ({ draftWrap, args }) => applySetMetadata(draftWrap, args),
     builder_summarise: ({ draft }) => applySummarise(draft),
     builder_inspect_tool: ({ args, draftWrap }) => applyInspectTool(args, draftWrap),
-    builder_request_dry_run: ({ draftWrap, args, persistDraft }) => applyRequestDryRun(/** @type {Parameters<typeof applyRequestDryRun>[0]} */ (draftWrap), args, { persistDraft, annotate: dryRunHint }),
+    builder_request_dry_run: ({ draftWrap, args, persistDraft }) => applyRequestDryRun(/** @type {Parameters<typeof applyRequestDryRun>[0]} */ (draftWrap), args, {
+        persistDraft, annotate: dryRunHint,
+        // An imported draft remembers a clean dry run of its saved version (automation/importGate.mts).
+        noteDryRun: (/** @type {{ id: string, version?: number | null }} */ automation, /** @type {{ status?: string, mode?: string, version?: number | null }} */ run) => require('../importGate.mts').noteDryRun(automation, run),
+    }),
     builder_finalize: ({ draftWrap, persistDraft }) => applyFinalize(draftWrap, persistDraft),
 };
 

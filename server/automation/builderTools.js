@@ -144,8 +144,8 @@ for (const t of /** @type {SchemaEntry[]} */ (TOOL_SCHEMAS)) {
 for (const t of /** @type {SchemaEntry[]} */ (TOOL_SCHEMAS)) {
     const b = t.function?.parameters?.properties?.branch;
     if (!b || !Array.isArray(b.enum)) continue;
-    for (const v of ['error', 'rejected']) if (!b.enum.includes(v)) b.enum.push(v);   // 'rejected': an approval's branch (edgeLabels.mts)
-    b.description = `${b.description || ''} Pass "error" to wire this step onto afterStepId's on_error branch instead (runs only when that step fails after retries; bind the failure via steps.<afterStepId>.error.message). Pass "rejected" when afterStepId is an approval to start its rejected branch (runs only when the approver rejects; steps.<afterStepId>.output.approved is false there).`.trim();
+    for (const v of ['error', 'rejected', 'expired']) if (!b.enum.includes(v)) b.enum.push(v);   // 'rejected' / 'expired': an approval's branches (edgeLabels.mts)
+    b.description = `${b.description || ''} Pass "error" to wire this step onto afterStepId's on_error branch instead (runs only when that step fails after retries; bind the failure via steps.<afterStepId>.error.message). Pass "rejected" when afterStepId is an approval to start its rejected branch (runs only when the approver rejects; steps.<afterStepId>.output.approved is false there). Pass "expired" when afterStepId is an approval to start its expired branch (runs only when nobody decided before the deadline; steps.<afterStepId>.output.expired is true there).`.trim();
 }
 
 // Mutators where id confusion actually happens: they change the topology

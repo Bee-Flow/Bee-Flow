@@ -1,0 +1,334 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/branchall-forloop-parallel.flow",
+      "automation": {
+        "title": "Parallel review",
+        "description": "",
+        "triggerType": "manual",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "manual",
+          "label": "Manual"
+        },
+        "steps": [
+          {
+            "id": "items",
+            "type": "code",
+            "label": "Items",
+            "code": "/**\n * Items\n */\nasync function main(inputs, ctx) {\n    async function __wm_main() {\n      return [{ id: 1, path: \"/A.pdf\" }, { id: 2, path: \"/B.pdf\" }];\n    }\n    return __wm_main();\n}\n",
+            "inputs": {},
+            "allowedHosts": []
+          },
+          {
+            "id": "both",
+            "type": "parallel",
+            "label": "In parallel",
+            "branches": [
+              [
+                {
+                  "id": "per_item",
+                  "type": "loop",
+                  "label": "Repeat for each",
+                  "overRef": "steps.items.output.result",
+                  "itemVar": "item",
+                  "maxIterations": 1000,
+                  "body": [
+                    {
+                      "id": "per_item_each",
+                      "type": "call_layer",
+                      "label": "Loop: each item",
+                      "layerKey": "per_item_each",
+                      "inputs": {
+                        "item": {
+                          "kind": "ref",
+                          "path": "loop.item"
+                        },
+                        "index": {
+                          "kind": "ref",
+                          "path": "loop._index"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
+              [
+                {
+                  "id": "count",
+                  "type": "code",
+                  "label": "Count",
+                  "code": "/**\n * Count\n * @param {*} inputs.items - items\n */\nasync function main(inputs, ctx) {\n    async function __wm_main(items) {\n      return items.length;\n    }\n    return __wm_main(inputs.items);\n}\n",
+                  "inputs": {
+                    "items": {
+                      "kind": "ref",
+                      "path": "steps.items.output.result"
+                    }
+                  },
+                  "allowedHosts": []
+                }
+              ]
+            ],
+            "failOnAnyBranchError": true
+          },
+          {
+            "id": "done",
+            "type": "integration_action",
+            "label": "Report",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "literal",
+                "value": "office"
+              },
+              "shortMessage": {
+                "kind": "template",
+                "value": "Checked {{steps.both.output.branches[1].output.result}} files"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "items"
+          },
+          {
+            "from": "items",
+            "to": "both"
+          },
+          {
+            "from": "both",
+            "to": "done"
+          }
+        ],
+        "layers": {
+          "per_item_each": {
+            "title": "Loop: each item",
+            "trigger": {
+              "id": "trg",
+              "type": "trigger",
+              "kind": "layer_input",
+              "params": [
+                {
+                  "name": "item",
+                  "type": "object"
+                },
+                {
+                  "name": "index",
+                  "type": "number"
+                }
+              ]
+            },
+            "steps": [
+              {
+                "id": "read",
+                "type": "integration_action",
+                "label": "Read",
+                "tool": "nextcloud_read_file",
+                "inputs": {
+                  "path": {
+                    "kind": "ref",
+                    "path": "trigger.output.item.path"
+                  }
+                }
+              },
+              {
+                "id": "kind",
+                "type": "condition",
+                "label": "Long",
+                "expr": "len(steps.read.output.content) > 1000"
+              },
+              {
+                "id": "long_note",
+                "type": "integration_action",
+                "label": "Note long file",
+                "tool": "nextcloud_notifications_send",
+                "inputs": {
+                  "userId": {
+                    "kind": "literal",
+                    "value": "office"
+                  },
+                  "shortMessage": {
+                    "kind": "template",
+                    "value": "Long file {{trigger.output.item.path}}"
+                  }
+                }
+              },
+              {
+                "id": "out",
+                "type": "layer_output",
+                "label": "Return",
+                "fields": {
+                  "result": {
+                    "kind": "ref",
+                    "path": "steps.kind.output"
+                  }
+                }
+              }
+            ],
+            "edges": [
+              {
+                "from": "trg",
+                "to": "read"
+              },
+              {
+                "from": "read",
+                "to": "kind"
+              },
+              {
+                "from": "kind",
+                "to": "long_note",
+                "label": "then"
+              },
+              {
+                "from": "long_note",
+                "to": "out"
+              },
+              {
+                "from": "kind",
+                "to": "out",
+                "label": "else"
+              }
+            ]
+          }
+        },
+        "schemaVersion": 2
+      },
+      "report": {
+        "flowPath": "f/fixtures/branchall-forloop-parallel.flow",
+        "modules": [
+          {
+            "wmId": "items",
+            "summary": "Items",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "items"
+            ]
+          },
+          {
+            "wmId": "read",
+            "summary": "Read",
+            "source": "script:hub/1/nextcloud/nextcloud_webdav:_get_file_content",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "read"
+            ]
+          },
+          {
+            "wmId": "kind",
+            "source": "branchone",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "One branch and a default become a condition.",
+            "stepIds": [
+              "kind"
+            ]
+          },
+          {
+            "wmId": "long_note",
+            "summary": "Note long file",
+            "source": "script:hub/2/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "long_note"
+            ]
+          },
+          {
+            "wmId": "per_item",
+            "source": "forloopflow",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "A loop over several steps.",
+            "stepIds": [
+              "per_item"
+            ]
+          },
+          {
+            "wmId": "count",
+            "summary": "Count",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "count"
+            ]
+          },
+          {
+            "wmId": "both",
+            "source": "branchall",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "All branches run: a parallel step.",
+            "stepIds": [
+              "both"
+            ]
+          },
+          {
+            "wmId": "done",
+            "summary": "Report",
+            "source": "script:hub/2/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "done"
+            ]
+          }
+        ],
+        "aiChecklist": [],
+        "warnings": [
+          {
+            "code": "option_approximated",
+            "message": "Bee Flow reads the TEXT of the file (a PDF, a document, a sheet), not its bytes.",
+            "wmId": "read"
+          },
+          {
+            "code": "parallel_serial",
+            "message": "\"Loop\" ran its items at the same time; a Bee Flow loop runs them one by one.",
+            "wmId": "per_item"
+          },
+          {
+            "code": "option_approximated",
+            "message": "\"Loop\" carried on past failed items; a Bee Flow loop stops at the first failure.",
+            "wmId": "per_item"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 6,
+          "pattern": 0,
+          "shim": 2,
+          "ai": 0,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}

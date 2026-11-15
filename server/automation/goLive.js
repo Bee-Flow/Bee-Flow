@@ -265,7 +265,7 @@ async function checkBeforeLiveCore({ automation, definition, ownerId, organizati
     // "Is about" rules need the topic classifier; `false` (none configured)
     // blocks activation, an unknown state never does (topicRules.js).
     const topicClassifier = await topicClassifierFor(def);
-    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, knownConnectionIds, knownVarNames: await (deps.knownVarNamesFor || sideEffects.knownVarNamesFor)(def, a), availableAgents, topicClassifier });
+    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, knownConnectionIds, knownVarNames: await (deps.knownVarNamesFor || sideEffects.knownVarNamesFor)(def, a), availableAgents, topicClassifier, imageModels: await require('./imageModelsFact.mts').imageModelsForAutomation(def, a, owner) });
     if (!v.ok) return refuse(400, 'invalid_definition', 'Invalid definition', { error: 'Invalid definition', details: v.errors });
 
     // Knowledge-base links, checked against the database (validate.js is the
@@ -301,38 +301,6 @@ async function checkBeforeLiveCore({ automation, definition, ownerId, organizati
 
     summariseDefinition(def);
     return { ok: true, warnings: [...(v.warnings || []), ...pinWarnings] };
-}
-
-/**
- * Immediate Gmail check after an activation: for every gmail/mail.new
- * subscription of THIS automation, pull the most recent matching email and
- * dispatch it once to that subscription (never the broad dispatchEvent, which
- * fanned out to every gmail automation of the user — A13). Fire-and-forget: the
- * caller never waits for it and it never throws.
- */
-function gmailCatchUp(store, automationId, ownerId, deps = {}) {
-    return (async () => {
-        try {
-            const dispatch = deps.dispatch || require('./triggerBus/dispatch');
-            const triggerBus = deps.triggerBus || require('./triggerBus');
-            const subs = await store.getSubscriptionsForAutomation(automationId);
-            const gmailSubs = (subs || []).filter((/** @type {{ provider: string; eventType: string; }} */ s) => s.provider === 'gmail' && s.eventType === 'mail.new');
-            for (const sub of gmailSubs) {
-                try {
-                    // sub.filter is the normalized copy of the trigger's filter,
-                    // so fetch and dispatch agree on what "matching" means.
-                    const latest = await triggerBus.fetchLatestGmailMatch(ownerId, sub.filter || null);
-                    if (latest) {
-                        dispatch.dispatchToSubscription(sub, { provider: 'gmail', event: 'mail.new', payload: latest });
-                    }
-                } catch (e) {
-                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
-                }
-            }
-        } catch (e) {
-            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
-        }
-    })();
 }
 
 /**
@@ -376,6 +344,17 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // Subscriptions and the Gmail catch-up use the OWNER's connected account.
     const ownerId = a.userId || actorId;
 
+    // An automation imported from Windmill goes live only after its checklist
+    // is done and a dry run of this version passed (automation/importGate.mts).
+    // Here, not in the route, so every way of switching on holds it (the
+    // activate route, a Solution stage deploy, the stage settings, a rollback).
+    const importGate = require('./importGate.mts');
+    const importRefusal = await importGate.importGateRefusal(/** @type {{ id: string }} */ (a), store);
+    if (importRefusal) {
+        const e = /** @type {Error & { status: number, code: string, details?: object }} */ (importRefusal);
+        return { ok: false, raise: true, status: e.status, code: e.code, message: e.message, details: e.details, body: { error: e.message, code: e.code } };
+    }
+
     const neverLive = a.liveVersion == null;
     // An automation in a Solution stage reads its settings from the live copy too (D17).
     const managed = neverLive ? false : await (deps.isManagedAutomation || require('../core/automationRunner/stageVars').isManagedAutomation)(a);
@@ -406,7 +385,10 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // slot rather than catching up on the first tick.
     await syncScheds(a.id, def, { rearm: true });
 
-    gmailCatchUp(store, a.id, ownerId, deps);
+    // Live once: the import gate is done for good (best-effort, never throws).
+    await importGate.noteActivated(a.id, store);
+
+    require('./gmailCatchUp.mts').gmailCatchUp(store, a.id, ownerId, deps);
 
     // Live from here on — so is whatever it does with personal data. Never
     // awaited, never able to fail the activation.

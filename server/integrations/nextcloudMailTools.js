@@ -29,7 +29,7 @@ const ncClient = require('./nextcloudClient');
 const {
     mailError, normaliseRole, mailBodyText, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody,
 } = require('./nextcloudMailShapes');
-const { readMailAttachment, sendMail } = require('./nextcloudMailActions');
+const { readMailAttachment, sendMail, ATTACHMENTS_PARAMETER } = require('./nextcloudMailActions');
 
 
 const NEXTCLOUD_MAIL_TOOLS = [
@@ -132,7 +132,8 @@ const NEXTCLOUD_MAIL_TOOLS = [
                     subject: { type: 'string', description: 'Subject line.' },
                     body: { type: 'string', description: 'Plain-text body.' },
                     isHtml: { type: 'boolean', description: 'If true, body is interpreted as HTML.' },
-                    replyTo: { type: 'integer', description: 'Optional: messageId being replied to — sets In-Reply-To / References headers and threads the conversation.' }
+                    replyTo: { type: 'integer', description: 'Optional: the messageId (from nextcloud_mail_search or the mail trigger) being replied to. The reply threads on that message\'s Message-ID header (In-Reply-To / References); a message that cannot be read stops the send.' },
+                    attachments: ATTACHMENTS_PARAMETER,
                 },
                 required: ['accountId', 'to', 'subject', 'body']
             }
@@ -371,9 +372,10 @@ const HANDLERS = {
 /**
  * @param {string} toolName
  * @param {string} userId
+ * @param {{ runScope?: { runId: string, rootRunId?: string } | null }} [extra]  the run (a generated_file attachment)
  */
-async function executeNextcloudMailTool(toolName, args, userId, session) {
-    const ctx = await ncClient.resolveAuth(session, userId);
+async function executeNextcloudMailTool(toolName, args, userId, session, extra = {}) {
+    const ctx = { ...(await ncClient.resolveAuth(session, userId)), runScope: (extra && extra.runScope) || null };
     const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
     if (!handler) return { error: `Unknown Nextcloud Mail tool: ${toolName}` };
     return handler(args, ctx);

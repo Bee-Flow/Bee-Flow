@@ -27,6 +27,17 @@ const TriggerStepBody = bodyOf({
     triggerStepId: worded(STEP_ID_TEXT).trim().min(1, STEP_ID_TEXT).nullish(),
 });
 
+const AUTH_MODE_TEXT = 'authMode is "hmac" (the caller signs; the default) or "header_token" (a fixed token in a header).';
+/**
+ * Creating a webhook URL: which trigger it fires, and how its caller proves
+ * itself. Omitted authMode → 'hmac', as before: signing stays the default and
+ * 'header_token' is for callers that cannot sign.
+ */
+const WebhookCreateBody = bodyOf({
+    triggerStepId: worded(STEP_ID_TEXT).trim().min(1, STEP_ID_TEXT).nullish(),
+    authMode: z.enum(['hmac', 'header_token'], { error: () => AUTH_MODE_TEXT }).optional(),
+});
+
 const DECISION_TEXT = 'decision is "approve" or "reject".';
 /**
  * Absent, blank or null all mean approve: the builder's bar has one button and
@@ -83,5 +94,5 @@ const RunFormBody = bodyOf({
 });
 
 module.exports = {
-    TriggerStepBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
+    TriggerStepBody, WebhookCreateBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
 };

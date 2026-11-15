@@ -152,6 +152,14 @@ const MIGRATIONS = [
     // automation_webhook_deliveries: what arrived at a webhook address (status,
     // size, a hash, time; never a body). Starts empty.
     'automation-webhook-deliveries-2026-11',
+    // auth_mode on automation_webhooks: 'hmac' (signed, the default) or
+    // 'header_token' (a fixed token in a header; secret holds its sealed
+    // sha256). Additive, defaulted.
+    'automation-webhook-auth-mode-2026-11',
+    // automation_imports: the migration report of a draft imported from
+    // another workflow tool (Windmill), with the dry-run mark and the
+    // acknowledged checklist items the activation gate reads. Starts empty.
+    'automation-imports-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

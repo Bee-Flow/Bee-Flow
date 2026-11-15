@@ -1029,6 +1029,9 @@
     "GET /api/automation/:id/goldens": {
       "gate": "auth"
     },
+    "GET /api/automation/:id/import-report": {
+      "gate": "auth"
+    },
     "GET /api/automation/:id/notifications": {
       "gate": "auth"
     },
@@ -1166,6 +1169,10 @@
     },
     "GET /api/automation/forms/:automationId/test-link": {
       "gate": "auth"
+    },
+    "GET /api/automation/import/windmill/inventory": {
+      "gate": "scope",
+      "via": "orgAdminOfOwnOrg"
     },
     "GET /api/automation/runs/:id": {
       "gate": "auth"
@@ -2351,6 +2358,9 @@
       "via": "requireUser"
     },
     "GET /api/org-ai-context/:orgId": {
+      "gate": "auth"
+    },
+    "GET /api/org-automation-image-ai/:orgId": {
       "gate": "auth"
     },
     "GET /api/org-azure-config/:orgId": {
@@ -4580,6 +4590,9 @@
     "POST /api/automation/:id/goldens/replay": {
       "gate": "auth"
     },
+    "POST /api/automation/:id/import-report/acknowledge": {
+      "gate": "auth"
+    },
     "POST /api/automation/:id/publish": {
       "gate": "auth"
     },
@@ -4730,6 +4743,12 @@
       "gate": "auth"
     },
     "POST /api/automation/import": {
+      "gate": "auth"
+    },
+    "POST /api/automation/import/windmill/remote": {
+      "gate": "auth"
+    },
+    "POST /api/automation/import/windmill/upload": {
       "gate": "auth"
     },
     "POST /api/automation/runs/:id/approve": {
@@ -7328,6 +7347,9 @@
       ]
     },
     "PUT /api/org-ai-context/:orgId": {
+      "gate": "auth"
+    },
+    "PUT /api/org-automation-image-ai/:orgId": {
       "gate": "auth"
     },
     "PUT /api/org-azure-config/:orgId": {

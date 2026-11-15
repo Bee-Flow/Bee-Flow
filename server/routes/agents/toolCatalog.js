@@ -110,6 +110,13 @@ const { sessionUser } = require('../../core/http/sessionUser');
 // response is a response.
 const MAX_ACTIONS_PER_APP = 500;
 
+/**
+ * False for a tool definition that names its contexts and leaves the agent
+ * out (`availableTo: ['automation_step']`, like the registry field).
+ * @param {{ availableTo?: unknown } | null | undefined} tool
+ */
+const isAgentTool = (tool) => !(Array.isArray(tool?.availableTo) && !tool.availableTo.includes('agent'));
+
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
 router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -162,7 +169,9 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/*
         // NOT `res` — that is the express response of this handler.
         let loaded;
         try { loaded = loadToolsResult(entry); } catch (_) { loaded = null; }
-        const tools = loaded && loaded.ok === true && Array.isArray(loaded.tools) ? loaded.tools : null;
+        // A tool that declares itself for automations only (nextcloud_request)
+        // is never offered to an agent, so the picker does not show it.
+        const tools = loaded && loaded.ok === true && Array.isArray(loaded.tools) ? loaded.tools.filter(isAgentTool) : null;
         /** @type {string[]} */
         const names = [];
         for (const t of tools || []) {

@@ -162,3 +162,12 @@ test('a given triggerPayload is used as is, and a non-app_event dry run is untou
     assert.equal(out._warnings, undefined);
     assert.equal(out.triggerPayloadSource, undefined);
 });
+
+test('a dry run of the saved draft is reported to noteDryRun (the import gate); a staged preview is not', async () => {
+    const noted = [];
+    const withNote = { ...deps(), noteDryRun: async (automation, run) => { noted.push([automation.id, run.status]); } };
+    await applyRequestDryRun(wrapOf(), {}, withNote);
+    assert.deepEqual(noted, [['a1', 'success']]);
+    await applyRequestDryRun(wrapOf({ _stagedDryRun: true }), {}, withNote);
+    assert.deepEqual(noted, [['a1', 'success']], 'a proposal that is not saved never counts as the dry run of a version');
+});

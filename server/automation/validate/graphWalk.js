@@ -11,18 +11,18 @@ const { checkBindableStepId } = require('./fieldChecks');
 
 /**
  * @param {import('./helpers').GraphCtx} ctx   validateGraph's context
- * @param {{ ids: Set<string>, stepById: Map<string, Record<string, any>>, order: string[] | null, availableTools?: unknown, toolRequiredParams?: unknown, knownConnectionIds?: unknown, knownVarNames?: unknown, writtenVars?: unknown, availableAgents?: unknown, topicClassifier?: boolean | null }} walk
+ * @param {{ ids: Set<string>, stepById: Map<string, Record<string, any>>, order: string[] | null, availableTools?: unknown, toolRequiredParams?: unknown, knownConnectionIds?: unknown, knownVarNames?: unknown, writtenVars?: unknown, availableAgents?: unknown, topicClassifier?: boolean | null, imageModels?: import('./helpers').ImageModelsFact | null }} walk
  *                      { ids, stepById, order } plus the step-rule catalogues
  *                      (availableTools, toolRequiredParams, knownConnectionIds,
  *                      availableAgents, topicClassifier).
  */
 function walkGraphSteps(ctx, walk) {
     const { graph, trigger, p, pushE, pushW, isContractScope, createStepChecker } = ctx;
-    const { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier } = walk;
+    const { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels } = walk;
     const seenSoFar = new Set([trigger.id]); // outputs available
     const checkStep = createStepChecker({
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels, isContractScope,
     });
 
     // Nested walker — validates every step inside a loop body / parallel

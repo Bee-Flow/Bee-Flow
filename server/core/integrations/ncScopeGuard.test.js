@@ -508,6 +508,41 @@ test('saving a mail attachment is judged against the FILES scope too', async () 
     assert.ok(denied?.nc_scope_denied);
 });
 
+test('a mail attachment from Files is judged against the FILES scope, every entry of the list', async () => {
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Invoice2'] } });
+    const send = (attachments) => guard.checkToolCall({
+        toolName: 'nextcloud_mail_send',
+        toolArgs: { accountId: 1, to: 'a@example.test', subject: 'S', body: 'B', attachments },
+        userId: USER,
+    });
+    assert.ok((await send([{ path: '/Invoice2/inv-1.pdf' }, { path: '/Private/salaries.xlsx' }]))?.nc_scope_denied,
+        'one file outside the selection stops the send');
+    assert.equal(await send([{ path: '/Invoice2/inv-1.pdf' }]), null);
+    // A generated file of the run is Bee Flow's own, not a Nextcloud file.
+    assert.equal(await send([{ sourceHandle: { kind: 'generated_file', fileId: 'g1' } }]), null);
+    assert.equal(await send(undefined), null);
+
+    setUserScope({ nextcloud: { mode: 'off' } });
+    assert.ok((await send([{ path: '/Invoice2/inv-1.pdf' }]))?.nc_scope_denied, 'Files off: no file attached from it');
+    assert.equal(await send([]), null, 'no attachment, no Files access needed');
+});
+
+test('a mail attachment by Files id: refused under a folder selection and with Files off, allowed with all Files', async () => {
+    const send = (attachments) => guard.checkToolCall({
+        toolName: 'nextcloud_mail_send',
+        toolArgs: { accountId: 1, to: 'a@example.test', subject: 'S', body: 'B', attachments },
+        userId: USER,
+    });
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Invoice2'] } });
+    const selected = await send([{ fileId: 77 }]);
+    assert.ok(selected?.nc_scope_denied, 'an id cannot be placed in the selection without the lookup');
+    assert.match(selected.error, /by its path/);
+    setUserScope({ nextcloud: { mode: 'off' } });
+    assert.ok((await send([{ fileId: 77 }]))?.nc_scope_denied);
+    setUserScope({ nextcloud: { mode: 'all' } });
+    assert.equal(await send([{ fileId: 77 }]), null);
+});
+
 test('Files turned off blocks the borrowed argument even when the owning family is on', async () => {
     setUserScope({ nextcloud: { mode: 'off' } });
     const denied = await guard.checkToolCall({
@@ -867,4 +902,53 @@ test('the checked entry applies the org ceiling from the session', async () => {
     const denial = await executeCheckedNextcloudTool('nextcloud_upload_file', { path: '/Other/x.txt' },
         { userId: USER, session: { user: { id: USER, organizationId: ORG } } });
     assert.ok(denial && denial.nc_scope_denied);
+});
+
+// ── nextcloud_request: judged by the app its path reaches ───────────────────
+
+test('nextcloud_request: a Mail path follows the Mail scope, not the Files scope', async () => {
+    setUserScope({ nextcloud: { mode: 'all' }, 'nextcloud-mail': { mode: 'off' } });
+    const mail = await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: '/index.php/apps/mail/api/messages' }, userId: USER });
+    assert.ok(mail && mail.nc_scope_denied, 'Mail off refuses a mail path');
+    const files = await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'PROPFIND', path: '/remote.php/dav/files/alice/Reports' }, userId: USER });
+    assert.equal(files, null, 'a Files path still runs');
+});
+
+test('nextcloud_request: every family maps by its path, and a selection is not enough', async () => {
+    const cases = [
+        ['/ocs/v2.php/apps/spreed/api/v1/chat/abc', 'nextcloud-talk'],
+        ['/remote.php/dav/calendars/alice/personal', 'nextcloud-calendar'],
+        ['/remote.php/dav/addressbooks/users/alice/contacts', 'nextcloud-contacts'],
+        ['/index.php/apps/deck/api/v1.0/boards', 'nextcloud-deck'],
+        ['/ocs/v2.php/apps/tables/api/2/tables', 'nextcloud-tables'],
+        ['/ocs/v2.php/apps/forms/api/v3/forms', 'nextcloud-forms'],
+        ['/index.php/apps/notes/api/v1/notes', 'nextcloud-notes'],
+        ['/ocs/v2.php/apps/user_status/api/v1/user_status', 'nextcloud-status'],
+        ['/remote.php/dav/comments/files/12', 'nextcloud'],
+        ['/remote.php/dav/systemtags/', 'nextcloud'],
+        ['/ocs/v2.php/apps/MAIL/api/x', 'nextcloud-mail'],
+    ];
+    for (const [p, family] of cases) {
+        setUserScope({ [family]: { mode: 'off' } });
+        const off = await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: p }, userId: USER });
+        assert.ok(off && off.nc_scope_denied, `${p}: ${family} off refuses`);
+        if (family in require('./ncScope').RESOURCE_KINDS) {
+            setUserScope({ [family]: { mode: 'selected', selected: ['x'] } });
+            const sel = await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: p }, userId: USER });
+            assert.ok(sel && sel.nc_scope_denied, `${p}: a selection on ${family} refuses (a raw request cannot be narrowed)`);
+        }
+        setUserScope({ [family]: { mode: 'all' } });
+        assert.equal(await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: p }, userId: USER }), null, `${p}: ${family} all runs`);
+    }
+});
+
+test('nextcloud_request: a path of no known app runs only while every family is all', async () => {
+    const call = () => guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: '/ocs/v2.php/cloud/user' }, userId: USER });
+    assert.equal(await call(), null, 'nothing narrowed: runs');
+    setUserScope({ 'nextcloud-deck': { mode: 'off' } });
+    const denial = await call();
+    assert.ok(denial && denial.nc_scope_denied, 'one family off: an unmapped path is refused');
+    setUserScope({ 'nextcloud-mail': { mode: 'off' } });
+    const odd = await guard.checkToolCall({ toolName: 'nextcloud_request', toolArgs: { method: 'GET', path: '/index.php/apps/%6Dail/api' }, userId: USER });
+    assert.ok(odd && odd.nc_scope_denied, 'an encoded app name is read decoded');
 });

@@ -143,6 +143,15 @@ const TIER_FEATURES = {
         // (automation/approvalService.js, appStudio/actionExecutor.js), so a
         // Community automation cannot park rows nobody may list.
         'approvals',
+        // Automation import from other workflow tools (today: Windmill). The
+        // importer converts an export (or a standalone instance read with a
+        // read-only token) into INACTIVE draft automations with a migration
+        // report and an activation gate. Enterprise for now (product decision
+        // 2026-11-15); building by hand stays Community. Enforced PER ROUTE in
+        // routes/automation/windmillImport.mts (the /api/automation mount is
+        // Community, so the gate cannot live at the mount); the report and its
+        // acknowledgement are the drain exemption (license/featureMap.js).
+        'automation_import',
         'voice_chat',
         'webpages',
         'meeting_notes',

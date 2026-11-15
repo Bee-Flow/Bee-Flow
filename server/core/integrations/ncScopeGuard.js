@@ -101,18 +101,24 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
     const borrowed = CROSS_FAMILY_ARGS[toolName];
     if (borrowed) {
         for (const [argKey, ownerId] of Object.entries(borrowed)) {
-            const value = toolArgs?.[argKey];
-            if (value === undefined || value === null || value === '') continue;
             const owner = scope[ownerId] || { mode: 'all', selected: null };
             const ownerLabel = (RESOURCE_KINDS[ownerId] && RESOURCE_KINDS[ownerId].label) || ownerId;
-            if (owner.mode === 'off') {
-                return deniedError(ownerLabel, `This call would reach a Nextcloud file, and Files is turned off for this user.`);
-            }
-            if (owner.mode === 'selected' && !pathAllowed(owner.selected || new Set(), value)) {
-                return deniedError(ownerLabel, `"${String(value).slice(0, 120)}" is outside the ${ownerLabel} this user has shared with Bee Flow.`);
+            for (const value of borrowedValues(toolArgs, argKey)) {
+                if (owner.mode === 'off') {
+                    return deniedError(ownerLabel, `This call would reach a Nextcloud file, and Files is turned off for this user.`);
+                }
+                if (owner.mode === 'selected' && argKey.endsWith('fileId')) {
+                    return deniedError(ownerLabel, `A file named by its id (${String(value).slice(0, 20)}) cannot be checked against the ${ownerLabel} this user has shared with Bee Flow; name it by its path instead.`);
+                }
+                if (owner.mode === 'selected' && !pathAllowed(owner.selected || new Set(), value)) {
+                    return deniedError(ownerLabel, `"${String(value).slice(0, 120)}" is outside the ${ownerLabel} this user has shared with Bee Flow.`);
+                }
             }
         }
     }
+
+    // One tool for every OCS / WebDAV path: judged by the app its path reaches.
+    if (toolName === 'nextcloud_request') return requestScopeDenial(scope, toolArgs);
 
     const entry = scope[integrationId] || { mode: 'all', selected: null };
     const label = (RESOURCE_KINDS[integrationId] && RESOURCE_KINDS[integrationId].label) || integrationId;
@@ -186,6 +192,57 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
         return deniedError(label, `This call must name one of the shared ${label} explicitly (argument: ${policy.args.join(' or ')}).`);
     }
     return null;
+}
+
+/**
+ * nextcloud_request under the scope: the families its path reaches
+ * (./ncRequestFamily.mts) must each be `all`. A raw request cannot be
+ * narrowed to a selection, so `selected` refuses like `off`. A path of no
+ * known family runs only while no family is narrowed at all.
+ * @param {Record<string, { mode: string } | undefined>} scope
+ * @param {Record<string, any>} toolArgs
+ * @returns {{ error: string, nc_scope_denied: boolean } | null}
+ */
+function requestScopeDenial(scope, toolArgs) {
+    const { requestFamilies, NC_FAMILY_IDS, familyLabel: familyName } = require('./ncRequestFamily.mts');
+    const modeOf = (/** @type {string} */ id) => (scope[id] && scope[id].mode) || 'all';
+    const families = requestFamilies(toolArgs?.path);
+    if (!families) {
+        const narrowed = NC_FAMILY_IDS.find(id => modeOf(id) !== 'all');
+        if (!narrowed) return null;
+        return deniedError('Nextcloud', `This request does not go to a Nextcloud app Bee Flow can place, and ${familyName(narrowed)} is limited for this user, so it was not sent.`);
+    }
+    for (const id of families) {
+        const mode = modeOf(id);
+        if (mode === 'all') continue;
+        const label = (RESOURCE_KINDS[id] && RESOURCE_KINDS[id].label) || familyName(id);
+        return deniedError(label, mode === 'off'
+            ? `This request goes to ${familyName(id)}, which is turned off for this user.`
+            : `This request goes to ${familyName(id)}, which is limited to a selection for this user; a direct request cannot be limited that way. Use the ${familyName(id)} actions instead, or widen the scope.`);
+    }
+    return null;
+}
+
+/**
+ * The values a CROSS_FAMILY_ARGS key names: the argument itself, or for a
+ * `list[].field` key the field of every entry. Blank values are skipped; a
+ * list entry that is not an object, or a field that is not a string, is
+ * checked as given (a non-path never passes pathAllowed).
+ * @param {Record<string, any>} toolArgs
+ * @param {string} argKey
+ * @returns {unknown[]}
+ */
+function borrowedValues(toolArgs, argKey) {
+    const blank = (/** @type {unknown} */ v) => v === undefined || v === null || v === '';
+    const marker = argKey.indexOf('[].');
+    if (marker === -1) {
+        const value = toolArgs?.[argKey];
+        return blank(value) ? [] : [value];
+    }
+    const list = toolArgs?.[argKey.slice(0, marker)];
+    const field = argKey.slice(marker + 3);
+    if (!Array.isArray(list)) return [];
+    return list.map(entry => (entry && typeof entry === 'object' ? entry[field] : undefined)).filter(v => !blank(v));
 }
 
 /**

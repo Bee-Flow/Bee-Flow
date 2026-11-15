@@ -234,6 +234,35 @@ test('activateCore dispatches the Gmail catch-up to this automation\'s own subsc
     assert.deepStrictEqual(calls.dispatched, ['sub-g']);
 });
 
+test('activateCore holds the Windmill import gate for every caller (a Solution stage deploy included)', async () => {
+    // A store with an import row whose placeholder step is still there: the gate refuses,
+    // whoever calls the core, and nothing is written. Once done, the gate is marked cleared.
+    const a = automation();
+    const row = { automationId: 'a1', acknowledged: [], dryRunVersion: null, clearedAt: null,
+        report: { aiChecklist: [{ wmId: 'p1', stepId: 's1', placeholder: true, title: 'Convert p1' }] } };
+    const { deps, calls, store } = harness(a);
+    const cleared = [];
+    store.getImportForAutomation = async () => row;
+    store.markImportCleared = async (id) => { cleared.push(id); };
+    a.definition = { ...MANUAL, steps: [{ id: 's1', type: 'stop_error', label: 'Windmill: x', message: 'to convert' }] };
+    deps.validate = { validateDefinition: () => ({ ok: true, errors: [], warnings: [] }) };
+
+    const refused = await activateCore({ automation: a, actorId: 'u1', deps });
+    assert.strictEqual(refused.ok, false);
+    assert.strictEqual(refused.raise, true, 'the route throws it as an HttpError');
+    assert.strictEqual(refused.status, 409);
+    assert.strictEqual(refused.code, 'import.windmill.placeholders_left');
+    assert.strictEqual(refusalError(refused).details.open[0].wmId, 'p1');
+    assert.strictEqual(calls.publish.length + calls.update.length + calls.subs.length, 0);
+    assert.deepStrictEqual(cleared, []);
+
+    row.acknowledged = ['p1'];
+    row.dryRunVersion = a.version;
+    const ok = await activateCore({ automation: a, actorId: 'u1', deps });
+    assert.strictEqual(ok.ok, true, JSON.stringify(ok));
+    assert.deepStrictEqual(cleared, ['a1']);
+});
+
 // ── deactivateCore ──────────────────────────────────────────────────
 
 test('deactivateCore revokes (as the owner) before it deletes, then switches off', async () => {

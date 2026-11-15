@@ -100,6 +100,10 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_CLOUD_MAX_FILE_MB` | `50` | Largest file (MB) a cloud-folder knowledge source reads. A bigger file is skipped and logged. `0` = unlimited. |
 | `KB_QUERY_LOG_READS_PER_HOUR` | `600` | Pages of a knowledge base's query log (question and answer text) one person reads per hour. Each page is recorded in the access audit. `0` = unlimited. |
 | `KB_CLOUD_CHANGE_POLL_SECONDS` | `300` | How often a cloud-folder source set to "on change" checks its folder (a cheap change check; the folder is read only when it moved). |
+| `NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB` | `25` | All attachments of one message sent with the Nextcloud Mail tool (`nextcloud_mail_send`) together, in MB: files from Nextcloud Files and files a document step made. A bigger set is refused before anything is sent. `0` = unlimited. |
+| `NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT` | `20` | Attachments one message sent with the Nextcloud Mail tool may carry. `0` = unlimited. |
+| `AUTOMATION_NC_MAIL_MAX_ACCOUNTS` | `10` | Mail accounts the Nextcloud Mail trigger (`mail.new`) reads per automation on each poll, when Nextcloud does not push the event (no connector, an older connector or Mail, or no push for 15 minutes). `0` = every account. |
+| `AUTOMATION_NC_MAIL_POLL_LIMIT` | `25` | Newest messages that poll reads per mailbox (at most 100). More new mail than this between two polls starts the automation for the newest ones only. |
 | `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
 
 ## Inbound and integration limits
@@ -115,6 +119,16 @@ Optional; empty means the default.
 | `AUTOMATION_WEBHOOK_DELIVERY_LOG_MAX` | `100` | Deliveries kept in the log of one automation webhook (status, size, hash and time; never a body). `0` = unlimited. |
 | `AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS` | `30` | Days a delivery stays in that log. `0` = keep. |
 | `AUTOMATION_WEBHOOK_REJECT_LOG_PER_MINUTE` | `20` | Deliveries that started no run written to that log per webhook per minute; the rest are not written. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_BYTES` | `26214400` | Bytes of one Windmill export upload (25 MB), and of one answer read from a standalone Windmill. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_UNZIPPED_BYTES` | `209715200` | Bytes a Windmill export may unpack to (200 MB), counted per file before it is read; also the total of all answers read from a standalone Windmill in one import. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_FILE_BYTES` | `8388608` | Bytes one file of a Windmill export may unpack to (8 MB). `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_ENTRIES` | `5000` | Files in one Windmill export. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_FLOWS` | `200` | Flows imported in one batch, and flows read one by one from a standalone Windmill. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_RPM` | `20` | Windmill import requests (preview or import) one user may send per minute. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_PER_ITEM` | `6000` | Characters of source per open item in the "Complete with AI" briefing; the rest stays in the note step on the canvas. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_TOTAL` | `40000` | Characters of the whole "Complete with AI" briefing. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS` | `5` | Windmill runs per flow that an import from a standalone Windmill replays as dry runs of the new draft ("Compare with the last N Windmill runs"; at most 100). Their reads count in the import's total read budget. `0` = the comparison is off. |
+| `AUTOMATION_IMPORT_WINDMILL_COMPARE_FLOWS` | `20` | Imported flows compared in one import; the rest say they were not compared. `0` = unlimited. |
 | `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |
@@ -203,6 +217,8 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `AUTOMATION_AI_ENUM_MAX_VALUES` | `500` | The longest list of allowed values that one "Allowed values from a list" setting shows to the model. A longer list is not shown to the model at all (the server log says so); the answer is still checked against the whole list. `0` = unlimited. |
 | `AUTOMATION_AI_CHECK_MAX_ERRORS` | `100` | The most problems collected while checking one AI answer. `0` = unlimited. |
 | `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
+| `AUTOMATION_AI_IMAGES_MAX` | `10` | The most images one AI step or data extraction step shows the model in one run (see [Images to AI](../features/automations.md#images-to-ai)). The images over the limit go as the text read from them. `0` = unlimited. |
+| `AUTOMATION_AI_IMAGES_MAX_MB` | `20` | The most megabytes of images one AI step or data extraction step shows the model in one run, all images together. An image that does not fit goes as the text read from it. `0` = unlimited. |
 
 ## Per-user spend budgets
 

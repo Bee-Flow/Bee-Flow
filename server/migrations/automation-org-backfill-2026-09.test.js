@@ -116,20 +116,37 @@ test('both create routes now stamp the organisation', () => {
     const crud = readCrudRoutes();
     const parts = crud.split('automationStore.createAutomation({');
     const calls = parts.slice(1);
-    assert.strictEqual(calls.length, 2, 'expected exactly two create call sites');
+    // POST / writes its row here; POST /import (and the Windmill import) write
+    // theirs through the shared importer below.
+    assert.strictEqual(calls.length, 1, 'expected exactly one create call site in the routes');
     for (const [i, call] of calls.entries()) {
         const body = call.slice(0, call.indexOf('});'));
         assert.match(body, /\borganizationId\b/,
             `create call site ${i + 1} does not stamp organization_id — the backfill would be undone by the next new routine`);
         if (/organizationId:\s*await orgOf\(req\)/.test(body)) continue;
-        // Both sites now HOIST the resolved org, because the datatable usage
-        // index has to be written against the same one the row was stamped
-        // with. Shorthand is fine; a shorthand over some OTHER organizationId
-        // is not, so check what the handler bound it to.
+        // The site HOISTS the resolved org, because the datatable usage index
+        // has to be written against the same one the row was stamped with.
+        // Shorthand is fine; a shorthand over some OTHER organizationId is
+        // not, so check what the handler bound it to.
         const handler = parts[i].slice(parts[i].lastIndexOf('router.'));
         assert.match(handler, /const organizationId = await orgOf\(req\)/,
             `create call site ${i + 1} uses shorthand for an organizationId that did not come from orgOf(req)`);
     }
+});
+
+test('the shared importer stamps the organisation the import route resolved', () => {
+    // usecases/automation/importEnvelope.mts is the one write of POST /import
+    // and of the Windmill import: it stamps the context's organisation, and
+    // the context is built from orgOf(req) in importExport.js.
+    const envelope = fs.readFileSync(path.join(__dirname, '..', 'usecases', 'automation', 'importEnvelope.mts'), 'utf8');
+    const calls = envelope.split('automationStore.createAutomation({').slice(1);
+    assert.strictEqual(calls.length, 1, 'expected exactly one create call site in the shared importer');
+    assert.match(calls[0].slice(0, calls[0].indexOf('}')), /organizationId:\s*ctx\.organizationId\b/,
+        'the shared importer does not stamp organization_id');
+    const importExport = fs.readFileSync(path.join(__dirname, '..', 'routes', 'automation', 'importExport.js'), 'utf8');
+    const contextFor = importExport.slice(importExport.indexOf('async function importContextFor('));
+    assert.match(contextFor.slice(0, contextFor.indexOf('\n}\n')), /organizationId:\s*await orgOf\(req\)/,
+        'the import context must take its organisation from orgOf(req)');
 });
 
 test('orgOf is defined before the first handler that uses it', () => {

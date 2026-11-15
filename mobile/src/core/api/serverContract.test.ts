@@ -1074,7 +1074,9 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(activation).toContain('res.json({ automation: forViewer(r.automation, access), warnings: r.warnings });');
         expect(routeSlice(versions, "router.post('/:id/versions/:versionId/restore'")).toContain('res.json({ automation: projectForViewer(updated, access), restoredFromVersion: version.version');
         expect(routeSlice(importExport, "router.get('/:id/export'")).toContain('res.json({ envelope, warnings })');
-        expect(routeSlice(importExport, "router.post('/import'")).toContain('res.json({ automation: a, warnings:');
+        // The gates and the write live in usecases/automation/importEnvelope.mts;
+        // the route still answers { automation, warnings }.
+        expect(routeSlice(importExport, "router.post('/import'")).toContain('res.json({ automation: r.automation, warnings: r.warnings });');
     });
 
     it('Make vN live still takes the version on screen and answers like activation (handoff 5)', () => {

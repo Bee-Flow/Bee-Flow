@@ -89,6 +89,11 @@ const COMPLETENESS_CODES = new Set([
     // (aiStepAgent's resolveStepAgent) is what actually stops a step running
     // without the agent it names — see the R2 block in stepRules.js.
     'ai_step.agent_unavailable',
+    // A step with `images` whose model cannot read them (stepRules/imageRules.mts):
+    // the model is the workspace's setting, not the flow's shape, and the run
+    // falls back to the text read from the images. It still blocks go-live.
+    'ai_step.images_model_no_vision',
+    'data_extraction.images_model_no_vision',
     // Only a raw PUT or an import can store an unreadable permissions object
     // (the builders rebuild it from three known booleans), so such an automation
     // must stay saveable rather than stranded. It cannot activate: an

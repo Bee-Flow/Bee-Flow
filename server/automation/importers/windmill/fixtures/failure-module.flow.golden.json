@@ -1,0 +1,202 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/failure-module.flow",
+      "automation": {
+        "title": "Nightly export with an error handler",
+        "description": "",
+        "triggerType": "manual",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "manual",
+          "label": "Manual"
+        },
+        "steps": [
+          {
+            "id": "list",
+            "type": "integration_action",
+            "label": "List the reports",
+            "tool": "nextcloud_list_files",
+            "inputs": {
+              "path": {
+                "kind": "literal",
+                "value": "/Reports"
+              }
+            },
+            "retry": {
+              "max": 4,
+              "backoffMs": 6000
+            }
+          },
+          {
+            "id": "notify",
+            "type": "integration_action",
+            "label": "Report the count",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "literal",
+                "value": "office"
+              },
+              "shortMessage": {
+                "kind": "literal",
+                "value": "Export done"
+              },
+              "longMessage": {
+                "kind": "literal",
+                "value": "The nightly export finished."
+              }
+            }
+          },
+          {
+            "id": "notify_wait",
+            "type": "wait",
+            "label": "Wait",
+            "seconds": 30
+          },
+          {
+            "id": "failure",
+            "type": "stop_error",
+            "label": "Windmill: failure (still to convert)",
+            "message": "This Windmill step has not been converted yet: python3 code is never run by Bee Flow; the builder rebuilds what it does."
+          },
+          {
+            "id": "note_failure",
+            "type": "note",
+            "text": "Windmill source of \"failure\" (read-only):\n\ndef main(message: str):\n    return {\"failed\": message}\n"
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "list"
+          },
+          {
+            "from": "list",
+            "to": "notify"
+          },
+          {
+            "from": "notify",
+            "to": "notify_wait"
+          },
+          {
+            "from": "notify",
+            "to": "notify_wait",
+            "label": "on_error"
+          },
+          {
+            "from": "list",
+            "to": "failure",
+            "label": "on_error"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/failure-module.flow",
+        "modules": [
+          {
+            "wmId": "list",
+            "summary": "List the reports",
+            "source": "script:hub/22224/nextcloud/list_files",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "list"
+            ]
+          },
+          {
+            "wmId": "notify",
+            "summary": "Report the count",
+            "source": "script:hub/28136/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "notify"
+            ]
+          },
+          {
+            "wmId": "failure",
+            "source": "rawscript:python3",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "stepIds": [
+              "failure"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "failure",
+            "stepId": "failure",
+            "title": "Convert \"failure\"",
+            "why": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "language": "python3",
+            "source": "def main(message: str):\n    return {\"failed\": message}\n",
+            "inputs": {
+              "message": {
+                "expr": "error.message"
+              }
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "option_approximated",
+            "message": "\"List the reports\" waited longer before each retry in Windmill; Bee Flow waits the same time every try.",
+            "wmId": "list"
+          },
+          {
+            "code": "option_approximated",
+            "message": "The flow's failure handler now runs from an error branch of every step that can fail, and the run still ends as failed."
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          },
+          {
+            "code": "privacy_retention",
+            "message": "Windmill deleted the run data after 3600 s; Bee Flow keeps it at least 7 days. The shortest retention is suggested."
+          }
+        ],
+        "connections": [
+          {
+            "kind": "resource",
+            "path": "f/team/nextcloud",
+            "where": [
+              "list.nextcloud",
+              "notify.nextcloud"
+            ]
+          }
+        ],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 2,
+          "pattern": 0,
+          "shim": 0,
+          "ai": 1,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {
+          "concurrency": "serial",
+          "maxDurationMin": 60,
+          "retentionDays": 7
+        },
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}
