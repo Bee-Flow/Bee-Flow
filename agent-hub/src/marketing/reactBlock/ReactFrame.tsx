@@ -42,7 +42,7 @@ function postProps(frame: HTMLIFrameElement | null, props: BlockProps): void {
 }
 
 /** The frame's height from a resize message, or null when the message carries none. */
-export function reportedHeight(data: FrameMessage): number | null {
+function reportedHeight(data: FrameMessage): number | null {
     const h = Number(data.height);
     if (!Number.isFinite(h) || h < 0) return null;
     return Math.min(Math.ceil(h), MAX_FRAME_HEIGHT);

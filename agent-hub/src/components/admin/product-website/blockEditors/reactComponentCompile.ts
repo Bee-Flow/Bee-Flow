@@ -20,7 +20,7 @@ export const compileInBrowser: CompileFn = async (source) => {
 };
 
 /** Quiet time after the last keystroke before the source is compiled (ms). */
-export const COMPILE_DEBOUNCE_MS = 400;
+const COMPILE_DEBOUNCE_MS = 400;
 
 export interface LiveCompileState {
     diagnostics: CompileDiagnostic[];

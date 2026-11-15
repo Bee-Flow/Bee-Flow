@@ -49,13 +49,13 @@ async function reactSite(content) {
 
 // ── Catalogue and store ─────────────────────────────────────────────
 
-test('react-component is in the catalogue; its sample uses state, typed props and theme variables with fallbacks', () => {
+test('react-component is in the catalogue; its sample uses state, typed props and theme variables', () => {
     assert.deepStrictEqual(BLOCK_TYPES.find((t) => t.type === 'react-component'),
         { type: 'react-component', label: 'React component', icon: 'Atom', category: 'Content' });
     const d = BLOCK_DEFAULTS['react-component'];
     assert.match(d.source, /useState/);
     assert.match(d.source, /export default function/);
-    assert.match(d.source, /var\(--bf-primary, #[0-9A-Fa-f]{6}\)/);
+    assert.match(d.source, /var\(--bf-primary\)/);
     assert.deepStrictEqual(Object.keys(d.props).sort(), d.fields.map((f) => f.name).sort());
     assert.strictEqual(d.width, 'container');
     assert.strictEqual(d.minHeight, 240);

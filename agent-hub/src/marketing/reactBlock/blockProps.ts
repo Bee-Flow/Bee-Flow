@@ -11,7 +11,7 @@
  */
 import { resolveAssetUrl } from '../assetUrl';
 
-export interface ReactBlockField {
+interface ReactBlockField {
     name: string;
     label?: string;
     type: string;
@@ -64,7 +64,7 @@ function resolveField(field: ReactBlockField, props: BlockProps): unknown {
 }
 
 /** The fields of a block, keeping only well-formed entries. */
-export function blockFields(value: unknown): ReactBlockField[] {
+function blockFields(value: unknown): ReactBlockField[] {
     if (!Array.isArray(value)) return [];
     return value.filter((f): f is ReactBlockField =>
         !!f && typeof f === 'object' && typeof (f as ReactBlockField).name === 'string' && typeof (f as ReactBlockField).type === 'string');
