@@ -97,6 +97,13 @@ async function activateAutomation(/** @type {import('express').Request} */ req, 
     const access = await editAccess(req, res, a, deps);
     if (!access) return;
 
+    // An automation imported from Windmill goes live only after its checklist
+    // is done and a dry run of this version passed (automation/importGate.mts).
+    // An automation that was not imported is never gated here.
+    const importGate = require('../../automation/importGate.mts');
+    const importRefusal = await importGate.importGateRefusal(a, store);
+    if (importRefusal) throw importRefusal;
+
     const r = await activateCore({
         automation: a,
         actorId: req.session.user.id,
@@ -109,6 +116,7 @@ async function activateAutomation(/** @type {import('express').Request} */ req, 
         },
     });
     if (!r.ok) return answerRefusal(res, r);
+    await importGate.noteActivated(a.id, store);
     res.json({ automation: forViewer(r.automation, access), warnings: r.warnings });
 }
 

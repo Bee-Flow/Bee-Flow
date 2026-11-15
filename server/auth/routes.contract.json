@@ -1029,6 +1029,9 @@
     "GET /api/automation/:id/goldens": {
       "gate": "auth"
     },
+    "GET /api/automation/:id/import-report": {
+      "gate": "auth"
+    },
     "GET /api/automation/:id/notifications": {
       "gate": "auth"
     },
@@ -4580,6 +4583,9 @@
     "POST /api/automation/:id/goldens/replay": {
       "gate": "auth"
     },
+    "POST /api/automation/:id/import-report/acknowledge": {
+      "gate": "auth"
+    },
     "POST /api/automation/:id/publish": {
       "gate": "auth"
     },
@@ -4730,6 +4736,12 @@
       "gate": "auth"
     },
     "POST /api/automation/import": {
+      "gate": "auth"
+    },
+    "POST /api/automation/import/windmill/remote": {
+      "gate": "auth"
+    },
+    "POST /api/automation/import/windmill/upload": {
       "gate": "auth"
     },
     "POST /api/automation/runs/:id/approve": {

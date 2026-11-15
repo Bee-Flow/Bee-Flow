@@ -33,6 +33,8 @@ module.exports = {
     ...require('./automationStore/approvals'),
     ...require('./automationStore/approvalDeliveries'),
     ...require('./automationStore/folders'),
+    // The migration report of an imported automation and its activation-gate facts.
+    ...require('./automationStore/imports'),
     ...require('./automationStore/subscriptions'),
     // Additional schedule triggers (automation_schedules, 2026-09).
     ...require('./automationStore/schedules'),

@@ -1,4 +1,4 @@
-import { X, Search, Upload } from 'lucide-react';
+import { X, Search, Upload, Wind } from 'lucide-react';
 import { useRef } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import CreateMenuButton from '../admin/Studio/AutomationsStudio/CreateMenuButton';
@@ -13,13 +13,31 @@ interface SidebarProps {
     onOpenQuickSwitcher: () => void;
     onPlus: () => void;
     onNewBlock: (() => void) | null;
+    /** Opens "Import from Windmill"; absent where automations cannot be made. */
+    onImportWindmill?: (() => void) | null;
     /** The list itself (automations, folders, building blocks), drawn by the host. */
     children: ReactNode;
 }
 
+/** Opens "Import from Windmill" (an Enterprise feature; the dialog says so when the plan lacks it). */
+function WindmillImportButton({ onClick }: { onClick: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            title={t('automation_import.menu_entry', 'Import from Windmill')}
+            aria-label={t('automation_import.menu_entry', 'Import from Windmill')}
+            className="p-1 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
+        >
+            <Wind size={15} />
+        </button>
+    );
+}
+
 /** The persistent left column: title, import, the split +, the filter and the list. */
 export function AutomationSidebar({
-    importAutomationFile, searchQuery, setSearchQuery, onOpenQuickSwitcher, onPlus, onNewBlock, children,
+    importAutomationFile, searchQuery, setSearchQuery, onOpenQuickSwitcher, onPlus, onNewBlock, onImportWindmill = null, children,
 }: SidebarProps) {
     const { t } = useTranslation();
     const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -55,6 +73,7 @@ export function AutomationSidebar({
                     >
                         <Upload size={15} />
                     </button>
+                    {onImportWindmill && <WindmillImportButton onClick={onImportWindmill} />}
                     {/* A split +: the main part makes an automation (the
                         default, and the Learning Center's anchor), the
                         chevron beside it also offers a building block. */}

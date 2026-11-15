@@ -117,6 +117,13 @@ Optional; empty means the default.
 | `AUTOMATION_WEBHOOK_DELIVERY_LOG_MAX` | `100` | Deliveries kept in the log of one automation webhook (status, size, hash and time; never a body). `0` = unlimited. |
 | `AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS` | `30` | Days a delivery stays in that log. `0` = keep. |
 | `AUTOMATION_WEBHOOK_REJECT_LOG_PER_MINUTE` | `20` | Deliveries that started no run written to that log per webhook per minute; the rest are not written. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_BYTES` | `26214400` | Bytes of one Windmill export upload (25 MB), and of one answer read from a standalone Windmill. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_UNZIPPED_BYTES` | `209715200` | Bytes a Windmill export may unpack to (200 MB), counted per file before it is read. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_ENTRIES` | `5000` | Files in one Windmill export. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_MAX_FLOWS` | `200` | Flows imported in one batch, and flows read one by one from a standalone Windmill. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_RPM` | `20` | Windmill import requests (preview or import) one user may send per minute. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_PER_ITEM` | `6000` | Characters of source per open item in the "Complete with AI" briefing; the rest stays in the note step on the canvas. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_TOTAL` | `40000` | Characters of the whole "Complete with AI" briefing. `0` = unlimited. |
 | `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |

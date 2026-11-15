@@ -49,13 +49,22 @@ function suppliedOf(updates) {
     return out;
 }
 
-/** @param {{ userId: string, organizationId?: string | null, title: string, description?: string, definition: Record<string, unknown>, triggerType: string, scheduleCron?: string | null, scheduleTz?: string, nextRunAt?: string | null, createdFromChatId?: string | null, versionMeta?: VersionMeta | null }} automation */
-async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }) {
+/**
+ * A new automation (always an inactive draft) and its v1 version, in one transaction.
+ *
+ * `client`: a caller's open transaction (an import writes its report row in the
+ * same one). The two inserts then run on it, nothing is committed here, and the
+ * row is read back through it; without one the store opens its own.
+ * @param {{ userId: string, organizationId?: string | null, title: string, description?: string, definition: Record<string, unknown>, triggerType: string, scheduleCron?: string | null, scheduleTz?: string, nextRunAt?: string | null, createdFromChatId?: string | null, versionMeta?: VersionMeta | null }} automation
+ * @param {{ client?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> } | null }} [opts]
+ */
+async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }, { client: callerClient = null } = {}) {
     await initDB();
     const id = crypto.randomUUID();
     // The row and its v1 version commit together: a row without v1 would show
     // runs that fire before the first edit with no flow to render.
-    await withTransaction(async (client) => {
+    /** @param {{ query: (sql: string, params?: unknown[]) => Promise<unknown> }} client */
+    const insertBoth = async (client) => {
         // Layers are inline (definition.layers): every new row is a plain
         // automation; the `kind` column's default covers it.
         await client.query(
@@ -80,7 +89,13 @@ async function createAutomation({ userId, organizationId = null, title, descript
                 typeof v1.name === 'string' && v1.name.trim() ? v1.name.trim() : null,
                 v1.description || 'Created', JSON.stringify(v1Json)],
         );
-    });
+    };
+    if (callerClient) {
+        await insertBoth(callerClient);
+        const { rows } = await callerClient.query(`${AUTOMATION_SELECT} WHERE a.id = $1`, [id]);
+        return rowToAutomation(rows[0]);
+    }
+    await withTransaction(insertBoth);
     return getAutomation(id);
 }
 
