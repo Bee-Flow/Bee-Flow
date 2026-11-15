@@ -16,7 +16,7 @@ import { apiRequest } from '@/api/typedRequest';
  * Data source: GET /auth/admin/connector-health/fleet (one aggregated call).
  *
  * Row click opens OrgHealthDrawer (problems + event timeline) and pushes
- * admin/security/connector-health/<orgId> so the drill-in is deep-linkable.
+ * admin/nextcloud-instances/health/<orgId> so the drill-in is deep-linkable.
  * No export button (project rule for audit/health dashboards).
  */
 
@@ -106,7 +106,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
     const { orgs, loading, loadFailed, load } = useFleet();
 
-    // Deep-link drill-in: admin/security/connector-health/<orgId> opens the
+    // Deep-link drill-in: admin/nextcloud-instances/health/<orgId> opens the
     // drawer once the fleet has loaded (applied once, so closing stays closed).
     useDeepLinkedOrg(initialOrgId, orgs, setSelectedId);
 
@@ -133,12 +133,12 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
     const openOrg = (org: FleetOrg) => {
         setSelectedId(org.id);
-        if (onNavigate) onNavigate(`admin/security/connector-health/${org.id}`);
+        if (onNavigate) onNavigate(`admin/nextcloud-instances/health/${org.id}`);
     };
 
     const closeDrawer = () => {
         setSelectedId(null);
-        if (onNavigate) onNavigate('admin/security/connector-health');
+        if (onNavigate) onNavigate('admin/nextcloud-instances/health');
     };
 
     if (loading && orgs.length === 0 && !loadFailed) {

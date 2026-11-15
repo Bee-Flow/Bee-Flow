@@ -29,6 +29,7 @@ vi.mock('./guardrails/OrgGuardrails', () => ({
     ),
 }));
 vi.mock('./SSOConfigPanel', () => ({ default: () => <div data-testid="sso-panel" /> }));
+vi.mock('../org/FreeEmailDomainsPanel', () => ({ default: () => <div data-testid="email-domains-panel" /> }));
 vi.mock('../org/UserManagement', () => ({ default: () => <div data-testid="user-management" /> }));
 vi.mock('../../integrations/health/ConnectorHealthPanel', () => ({
     default: ({ initialOrgId }: { initialOrgId?: string }) => <div data-testid="connector-health-panel" data-org={initialOrgId || ''} />,
@@ -242,6 +243,67 @@ describe('SecurityHub', () => {
             render(<SecurityHub user={{ permissions: ['all'], isAdmin: false }} activeSection="email-domains" />);
             expect(screen.getByTestId('user-management')).toBeInTheDocument();
             expect(screen.queryByText('admin.sec_email_domains')).not.toBeInTheDocument();
+        });
+    });
+
+    // The admin dashboard: its rail rows are the sections, so the hub draws no section column (D5).
+    describe('as dashboard rows (nav={false})', () => {
+        const homeOrgAdmin = { permissions: ['admin_security'], isAdmin: false, organizationId: 'org-1', isHomeOrgAdmin: true };
+        const renderRow = (props: React.ComponentProps<typeof SecurityHub>, orgId: string | null = null) => render(
+            <AdminOrgProvider value={choiceOf(orgId)}><SecurityHub nav={false} {...props} /></AdminOrgProvider>,
+        );
+
+        it('draws no section column', () => {
+            renderRow({ user: fullAdmin, activeSection: 'sso' });
+            expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+            expect(screen.getByTestId('sso-panel')).toBeInTheDocument();
+        });
+
+        it('Privacy Shield: the chosen organisation\'s shield, a choice asked for under All organisations', () => {
+            renderRow({ user: fullAdmin, activeSection: 'guardrails' }, 'org-b');
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-b');
+            cleanup();
+            renderRow({ user: fullAdmin, activeSection: 'guardrails' });
+            expect(screen.getByTestId('admin-choose-org')).toBeInTheDocument();
+            expect(screen.queryByTestId('org-guardrails-panel')).not.toBeInTheDocument();
+        });
+
+        it('Privacy Shield: an organisation admin of the home organisation gets their own', () => {
+            renderRow({ user: homeOrgAdmin, activeSection: 'guardrails' });
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+        });
+
+        it('Sign-in & SSO: the providers, and the e-mail domains as its second tab', async () => {
+            const user = userEvent.setup();
+            const onNavigate = vi.fn();
+            renderRow({ user: fullAdmin, activeSection: 'sso', userSection: 'email-domains', onNavigate });
+            expect(screen.getByTestId('email-domains-panel')).toBeInTheDocument();
+            await user.click(screen.getByRole('tab', { name: 'admin_nav.sso_providers' }));
+            expect(onNavigate).toHaveBeenCalledWith('admin/security/sso');
+        });
+
+        it('Guardrail library: the server console with its section, for the platform admin only', () => {
+            renderRow({ user: fullAdmin, activeSection: 'guardrail-library', userSection: 'patterns' });
+            expect(screen.getByTestId('guardrails-panel').getAttribute('data-section')).toBe('patterns');
+            cleanup();
+            renderRow({ user: homeOrgAdmin, activeSection: 'guardrail-library' });
+            expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+            renderRow({ user: homeOrgAdmin, activeSection: 'sso' });
+            expect(screen.queryByTestId('sso-panel')).not.toBeInTheDocument();
+        });
+
+        it('a section this viewer does not get opens the first one they do (the row the rail marks), not an empty pane', () => {
+            renderRow({ user: homeOrgAdmin, activeSection: 'sso' });
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+            cleanup();
+            renderRow({ user: fullAdmin, activeSection: '' }, 'org-b');
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-b');
+        });
+
+        it('no security row at all is the denied page', () => {
+            renderRow({ user: orgAdmin, activeSection: 'guardrails' });
+            expect(screen.getByTestId('admin-access-denied-section')).toBeInTheDocument();
+            expect(screen.queryByTestId('org-guardrails-panel')).not.toBeInTheDocument();
         });
     });
 });

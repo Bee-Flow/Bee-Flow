@@ -133,7 +133,8 @@ describe('ConnectorHealthPanel', () => {
         const onNavigate = vi.fn();
         renderWithClient(<ConnectorHealthPanel onNavigate={onNavigate} />);
         await user.click(await screen.findByText('Blokkade BV'));
-        expect(onNavigate).toHaveBeenCalledWith('admin/security/connector-health/org-b');
+        // Changed on purpose (wave 2): connector health is the Nextcloud instances row's Health tab.
+        expect(onNavigate).toHaveBeenCalledWith('admin/nextcloud-instances/health/org-b');
         expect(screen.getByTestId('org-drawer').getAttribute('data-org')).toBe('org-b');
     });
 

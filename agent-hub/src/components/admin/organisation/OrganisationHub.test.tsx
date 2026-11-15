@@ -50,21 +50,25 @@ describe('the Organisation tab for a platform admin', () => {
         expect(screen.queryByTestId('admin-home-org-only')).not.toBeInTheDocument();
     });
 
+    it('opens Conversations, Memory and Projects as pages of their own, and the old AI context address as Conversations', async () => {
+        renderOrgTab({ section: 'ai-context', search: '?org=org-a' });
+        expect(await screen.findByTestId('org-section-body-conversations')).toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'Conversations' })).toHaveAttribute('aria-current', 'page');
+    });
+
     it('offers a part the server ties to the own organisation only for that one', async () => {
         renderOrgTab({ section: 'meeting-templates', search: '?org=org-b', plan: entitlements([], ['meeting_notes']) });
         // Two such parts on this page: the summary templates and the Teams setup.
         expect(await screen.findAllByTestId('admin-home-org-only')).toHaveLength(2);
     });
 
-    it('on a self-hosted install: no License & Usage, and the Azure setup last in Connections, marked server-wide', async () => {
+    // Changed on purpose (wave 2): the instance-wide Azure form is no longer a row; Microsoft 365 is the organisation's own.
+    it('on a self-hosted install: no Licence & usage, and Microsoft 365 in Connections, unmarked', async () => {
         renderOrgTab({ section: 'info', search: '?org=org-a', deploymentMode: 'self-hosted' });
         await screen.findByDisplayValue('Org A');
-        expect(nav().queryByRole('link', { name: 'License & Usage' })).not.toBeInTheDocument();
-        const rows = groupRows('Connections');
-        const azure = rows[rows.length - 1];
-        expect(azure).toHaveAccessibleName('Azure Configuration Whole server');
-        expect(within(azure).getByTestId('server-wide-mark')).toBeInTheDocument();
-        expect(nav().getAllByTestId('server-wide-mark')).toHaveLength(1);
+        expect(nav().queryByRole('link', { name: 'Licence & usage' })).not.toBeInTheDocument();
+        await waitFor(() => expect(groupRows('Connections').map(a => a.textContent)).toContain('Microsoft 365'));
+        expect(nav().queryAllByTestId('server-wide-mark')).toHaveLength(0);
     });
 
     it('puts the sections in the rail groups, links each to its address, and draws no menu of its own', async () => {
@@ -72,18 +76,33 @@ describe('the Organisation tab for a platform admin', () => {
         const { onNavigate } = renderOrgTab({ section: 'info', search: '?org=org-a', plan: entitlements(['learning_center'], ['meeting_notes']) });
         await screen.findByDisplayValue('Org A');
         const group = (eyebrow: string) => groupRows(eyebrow).map(a => a.textContent);
-        expect(group('Workspace')).toEqual(['Organisation Info', 'Preferred sign-in method', 'License & Usage', 'Academy']);
-        expect(group('AI & agents')).toEqual(['Agents', 'AI & Collaboration', 'Answer Reuse', 'Meeting Templates']);
-        expect(group('Security & access')).toEqual(['Security', 'Access', 'Encryption']);
-        expect(group('Connections')).toEqual(['Integrations', 'MCP Library', 'MCP Access', 'Nextcloud Sync']);
-        expect(group('Operations')).toEqual(['Monitoring']);
+        // Changed on purpose (wave 2): the target tree's rows, labels and groups.
+        expect(group('Workspace')).toEqual(['Organisation info', 'Licence & usage', 'People', 'Projects', 'Learning Center', 'Usage & monitoring']);
+        expect(group('AI & agents')).toEqual(['Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes']);
+        expect(group('Security & access')).toEqual(['Preferred sign-in method', 'Access', 'Privacy Shield', 'Encryption', 'MCP client access']);
+        // Org A has GitHub (the kit's availability): the row follows the organisation, not the viewer's own link.
+        expect(group('Connections')).toEqual(['Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automation answer cache']);
+        expect(nav().queryByText('Operations')).not.toBeInTheDocument();
         expect(nav().queryByRole('link', { name: 'Organisation' })).not.toBeInTheDocument();
-        expect(nav().getByRole('link', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
+        expect(nav().getByRole('link', { name: 'Organisation info' })).toHaveAttribute('aria-current', 'page');
         expect(nav().getByRole('link', { name: 'Encryption' })).toHaveAttribute('href', expect.stringContaining('/admin/organisation/encryption'));
         expect(screen.queryByRole('navigation', { name: 'Organisation' })).not.toBeInTheDocument();
         expect(screen.getAllByRole('navigation')).toHaveLength(1);
-        await user.click(nav().getByRole('link', { name: 'Academy' }));
+        await user.click(nav().getByRole('link', { name: 'Learning Center' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/organisation/academy');
+    });
+
+    it('reads the rows from the chosen organisation\'s availability, not from the viewer\'s session', async () => {
+        asked = stubOrgApi({ availability: { off: ['mcp', 'automations'], ncBound: true } });
+        renderOrgTab({ section: 'info', search: '?org=org-b' });
+        await screen.findByDisplayValue('Org B');
+        await waitFor(() => expect(nav().queryByRole('link', { name: 'MCP servers' })).not.toBeInTheDocument());
+        expect(asked.some(u => u.includes('/auth/organizations/org-b/integration-availability'))).toBe(true);
+        expect(nav().queryByRole('link', { name: 'Automation answer cache' })).not.toBeInTheDocument();
+        // Org B is bound to a Nextcloud (the viewer's own session is not): sign-in is Nextcloud's, the sync row is there.
+        expect(nav().queryByRole('link', { name: 'Preferred sign-in method' })).not.toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'Nextcloud' })).toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'MCP client access' })).toBeInTheDocument();
     });
 
     it('marks the row of the open section', async () => {
@@ -95,8 +114,8 @@ describe('the Organisation tab for a platform admin', () => {
     it('admin/organisation without a section opens the first visible section, named in the narrow top bar', async () => {
         renderOrgTab({ section: '', search: '?org=org-a' });
         expect(await screen.findByTestId('org-section-body-info')).toBeInTheDocument();
-        expect(nav().getByRole('link', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('button', { name: 'Admin sections: Organisation Info' })).toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'Organisation info' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Admin sections: Organisation info' })).toBeInTheDocument();
     });
 });
 
@@ -110,9 +129,10 @@ describe('the Organisation tab for an organisation admin by role', () => {
         expect(screen.queryByTestId('admin-choose-org')).not.toBeInTheDocument();
     });
 
-    it('gets the organisation\'s own group sync instead of the Azure setup on self-hosted, unmarked', async () => {
+    // Changed on purpose (wave 2): the row is Microsoft 365 (the organisation's own group sync) for everyone.
+    it('gets the organisation\'s own Microsoft 365 on self-hosted, unmarked', async () => {
         renderOrgTab({ user: ORG_ADMIN_BY_ROLE, section: 'info', deploymentMode: 'self-hosted' });
-        expect(await nav().findByRole('link', { name: 'Group sync' })).toBeInTheDocument();
+        expect(await nav().findByRole('link', { name: 'Microsoft 365' })).toBeInTheDocument();
         expect(nav().queryByRole('link', { name: /Azure Configuration/ })).not.toBeInTheDocument();
         expect(nav().queryByTestId('server-wide-mark')).not.toBeInTheDocument();
         expect(screen.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();

@@ -69,7 +69,6 @@ export const ORG_INTEGRATION_AVAILABILITY_PREFIX = ['org-integration-availabilit
  * The integration availability of `orgId`. Off while `enabled` is false or
  * there is no organisation; a refusal or failure is the query's error (the
  * helpers in utils/integrationAvailability.ts decide what that means).
- * @public consumed by the admin rail from wave 2 of the admin dashboard round; drop this tag there.
  */
 export function useOrgIntegrationAvailability(orgId: string | null | undefined, enabled = true) {
     return useQuery<OrgIntegrationAvailability, Error>({

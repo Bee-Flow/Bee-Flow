@@ -16,12 +16,26 @@ type AppearanceSection = 'look' | 'icons';
  * Look is open, its table of contents sits in the sidebar under the "Look"
  * row: the editor renders it into the slot below the section list.
  */
-export default function AppearancePanel() {
+interface AppearancePanelProps {
+    /**
+     * The section to show without the section column (the admin dashboard's
+     * child rows: admin/appearance/look, admin/appearance/icon-packs). Left out:
+     * both, with the column, Look first.
+     */
+    section?: 'look' | 'icon-packs';
+}
+
+export default function AppearancePanel({ section }: AppearancePanelProps = {}) {
     const { t } = useTranslation();
-    const [active, setActive] = useState<AppearanceSection>('look');
+    const [activeState, setActive] = useState<AppearanceSection>('look');
+    const active: AppearanceSection = section ? (section === 'icon-packs' ? 'icons' : 'look') : activeState;
     // Look is server-wide; the icon packs a person picks are their own.
     useAdminScopeOverride(active === 'icons' ? 'user' : null);
     const [lookNavSlot, setLookNavSlot] = useState<HTMLDivElement | null>(null);
+
+    if (section) {
+        return <div className="h-full">{active === 'look' ? <LookEditor /> : <IconsEditor />}</div>;
+    }
 
     const sidebar = (
         <>

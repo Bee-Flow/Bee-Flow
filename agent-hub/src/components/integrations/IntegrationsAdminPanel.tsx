@@ -22,9 +22,15 @@ import { useShellProps } from '@/authedApp/useShellProps';
 interface IntegrationsAdminPanelProps {
     activeSection?: string;
     onNavigate?: (page: string) => void;
+    /**
+     * The sections this mount offers, without a section column (the admin
+     * dashboard's Platform services child rows, the search provider inside AI
+     * configuration > Search & retrieval). Left out: every section, with the column.
+     */
+    sections?: readonly string[];
 }
 
-export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate: onNavigateProp }: IntegrationsAdminPanelProps) {
+export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate: onNavigateProp, sections: offered }: IntegrationsAdminPanelProps) {
     const { t } = useTranslation();
     // Inside the app shell the navigation comes from context; a host outside
     // it (a test, a kit) still hands it as a prop.
@@ -37,13 +43,15 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     const visibleSections = SECTIONS.filter(
         s => (!SECTION_FEATURE_GATE[s.id] || hasFeature(SECTION_FEATURE_GATE[s.id]))
             && (!ENTERPRISE_ONLY_SECTIONS.has(s.id) || isEnterprise)
+            && (!offered || offered.includes(s.id))
     );
-    const active = visibleSections.map(s => s.id).includes(activeProp) ? activeProp : 'features';
-    // The MCP marketplace moved to Admin dashboard → Organisation → MCP library
-    // (its "Server-wide" tab for server administrators). An old link or
+    const visibleIds = visibleSections.map(s => s.id);
+    const active = visibleIds.includes(activeProp) ? activeProp : (offered ? visibleIds[0] ?? '' : 'features');
+    // The MCP marketplace moved to the whole-server MCP servers row (the
+    // organisation's own servers are Organisation > MCP servers). An old link or
     // bookmark to admin/integrations/mcp lands there instead of on Features.
     React.useEffect(() => {
-        if (activeProp === 'mcp' && onNavigate) onNavigate('admin/organisation/mcp');
+        if (activeProp === 'mcp' && onNavigate) onNavigate('admin/mcp-servers');
     }, [activeProp, onNavigate]);
     const handleSectionClick = (id: string) => {
         if (onNavigate) onNavigate(`admin/integrations/${id}`);
@@ -149,20 +157,8 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
         );
     }
 
-    return (
-        <StudioShell
-            responsive
-            sidebarTitle={t('admin.tab_integrations')}
-            sidebar={(
-                <SectionNav
-                    label={t('admin.tab_integrations')}
-                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
-                    activeId={active}
-                    onSelect={handleSectionClick}
-                />
-            )}
-        >
-            <div className="p-6 md:p-8">
+    const body = (
+            <>
             {active === 'features' && (
                 <div className="flex max-w-4xl flex-col gap-6">
                     <SectionHeader title={t('admin.integ_features')} description={t('integ.features_section_hint', 'Switch platform features on or off for everyone on this server.')} />
@@ -170,7 +166,7 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                 </div>
             )}
 
-            {active === 'integrations' && (
+            {active === 'defaults' && (
                 <GlobalDefaultsSection
                     enableAllDefaults={enableAllDefaults}
                     disableAllDefaults={disableAllDefaults}
@@ -202,7 +198,7 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                 />
             )}
 
-            {active === 'services' && (
+            {active === 'connected-apps' && (
                 <ServicesSection
                     linkedinClientId={linkedinClientId}
                     setLinkedinClientId={setLinkedinClientId}
@@ -325,8 +321,24 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
                     setMessage={setMessage}
                 />
             )}
+            </>
+    );
+    if (offered) return body;
 
-            </div>
+    return (
+        <StudioShell
+            responsive
+            sidebarTitle={t('admin.tab_integrations')}
+            sidebar={(
+                <SectionNav
+                    label={t('admin.tab_integrations')}
+                    items={visibleSections.map(sec => ({ id: sec.id, icon: sec.icon, label: t(sec.labelKey) }))}
+                    activeId={active}
+                    onSelect={handleSectionClick}
+                />
+            )}
+        >
+            <div className="p-6 md:p-8">{body}</div>
         </StudioShell>
     );
 }

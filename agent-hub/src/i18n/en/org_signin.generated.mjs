@@ -10,7 +10,7 @@ export default {
     "org_signin.title": "Preferred sign-in method",
     "org_signin.subtitle": "How you would like members of this organisation to sign in. It is a preference: the other sign-in methods of this server keep working, and you can change it at any time.",
     "org_signin.unavailable_password": "Password sign-in is turned off on this server.",
-    "org_signin.unavailable_not_set_up": "Not set up on this server yet. A platform administrator sets it up under Security & access › SSO.",
+    "org_signin.unavailable_not_set_up": "Not set up on this server yet. A platform administrator sets it up under Whole server › Identity & access › Sign-in & SSO.",
     "org_signin.unavailable_unlicensed": "Not included in this server's licence.",
     "org_signin.allowed_domains_desc": "E-mail domains that belong to this organisation. Someone who signs in through single sign-on with an address on one of these domains is linked to this organisation, and no new organisation can be created with them.",
 };

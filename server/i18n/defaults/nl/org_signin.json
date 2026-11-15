@@ -4,7 +4,7 @@
     "org_signin.nav": "Voorkeursmethode voor inloggen",
     "org_signin.subtitle": "Hoe je wilt dat leden van deze organisatie inloggen. Het is een voorkeur: de andere inlogmethoden van deze server blijven werken, en je kunt het altijd aanpassen.",
     "org_signin.title": "Voorkeursmethode voor inloggen",
-    "org_signin.unavailable_not_set_up": "Nog niet ingesteld op deze server. Een platformbeheerder stelt dit in onder Beveiliging en toegang › SSO.",
+    "org_signin.unavailable_not_set_up": "Nog niet ingesteld op deze server. Een platformbeheerder stelt dit in onder Hele server › Identiteit en toegang › Aanmelden en SSO.",
     "org_signin.unavailable_password": "Inloggen met een wachtwoord staat uit op deze server.",
     "org_signin.unavailable_unlicensed": "Valt niet onder de licentie van deze server."
   },

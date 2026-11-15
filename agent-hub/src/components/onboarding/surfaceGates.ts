@@ -61,6 +61,15 @@ export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'admin/security/guardrails':           { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
     'admin/monitoring':             { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
     'admin/security/users':             { feat: [], permView: ['manage_users'], permWrite: ['manage_users'] },
+    // The admin dashboard's current rows for the addresses above (wave 2 of the admin
+    // round renamed them; the old ones stay while lessons still name them, the
+    // dashboard aliases both): People, Meeting notes and the split AI context.
+    'admin/people':                         { feat: [], permView: ['manage_users'], permWrite: ['manage_users'] },
+    'admin/organisation/meeting-notes':     { feat: ['meeting_notes'], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/conversations':     { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/memory':            { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/models':            { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/projects':          { feat: ['projects'], permView: ['org_admin'], permWrite: ['org_admin'] },
     'settings/preferences':                    { feat: [], permView: [], permWrite: [] },
     'settings/security':                       { feat: [], permView: [], permWrite: [] },
     'studio/agents':                           { feat: [], permView: [], permWrite: ['manage_agents'] },

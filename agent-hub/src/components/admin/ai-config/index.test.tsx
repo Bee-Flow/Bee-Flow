@@ -28,13 +28,17 @@ describe('section and provider paths', () => {
     it('builds the URL of a section and of a provider', () => {
         expect(aiConfigPath('providers')).toBe('admin/ai-config/providers');
         expect(aiConfigPath('providers', 'claude')).toBe('admin/ai-config/providers/claude');
-        expect(aiConfigPath('web-search')).toBe('admin/ai-config/web-search');
+        expect(aiConfigPath('retrieval')).toBe('admin/ai-config/retrieval');
     });
 
-    it('reads a section from a URL id or from an old tab name', () => {
+    // Changed on purpose (wave 2): the chat models are Models, the embeddings and web search Search & retrieval.
+    it('reads a section from a URL id or from an old id or tab name', () => {
         expect(sectionIdOf('limits')).toBe('limits');
-        expect(sectionIdOf('webSearchInference')).toBe('web-search');
-        expect(sectionIdOf('chatModels')).toBe('chat-models');
+        expect(sectionIdOf('webSearchInference')).toBe('retrieval');
+        expect(sectionIdOf('web-search')).toBe('retrieval');
+        expect(sectionIdOf('embeddings')).toBe('retrieval');
+        expect(sectionIdOf('chatModels')).toBe('models');
+        expect(sectionIdOf('chat-models')).toBe('models');
         expect(sectionIdOf('nope')).toBeNull();
         expect(sectionIdOf(undefined)).toBeNull();
     });
@@ -60,7 +64,13 @@ describe('AIConfigPanel', () => {
         await screen.findByRole('heading', { name: 'Claude' });
         await user.click(screen.getByRole('button', { name: /OpenAI/ }));
         expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/providers/openai');
-        await user.click(screen.getByRole('button', { name: /Embeddings/ }));
-        expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/embeddings');
+        await user.click(screen.getByRole('button', { name: /Search & retrieval/ }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/retrieval');
+    });
+
+    it('draws no section column in the dashboard, whose rail rows are the sections', async () => {
+        renderPanel({ activeSection: 'providers', activeProvider: 'mistral', nav: false });
+        expect(await screen.findByRole('heading', { name: 'Mistral' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /API Keys/ })).toBeNull();
     });
 });

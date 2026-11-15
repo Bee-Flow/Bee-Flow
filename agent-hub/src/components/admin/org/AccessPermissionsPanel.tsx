@@ -1,5 +1,5 @@
 import { ShieldCheck, Crown } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ComponentType, type ReactNode } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -7,6 +7,7 @@ import { RefusedError } from '@/api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
+import Tabs from '@/components/shared/Tabs';
 import Spinner from '@/components/shared/Spinner';
 import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import type { AdminCurrentUser } from './userManagement/types';
@@ -37,6 +38,8 @@ interface AccessPermissionsPanelProps {
     user?: AdminCurrentUser | null;
     activeSection?: string;
     onNavigate?: (path: string) => void;
+    /** true: Grants and Ceiling as tabs above the page (the admin dashboard, whose rail is the navigation). Left out: a section column. */
+    tabs?: boolean;
 }
 
 /**
@@ -66,16 +69,21 @@ function useSelectedOrgOnChange(orgId: string | null, enabled: boolean, reloadEn
     }, [orgId, enabled, reloadEntitlements, selectOrg]);
 }
 
-export default function AccessPermissionsPanel({ user: userProp, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
+/** The organisation the panel works on: a platform admin's dashboard choice (none: "All organisations"); an organisation admin's own (null: the /me routes). */
+function useAccessOrg(isSuperAdmin: boolean) {
+    const choice = useAdminOrgChoice();
+    const orgId = isSuperAdmin ? choice?.orgId ?? null : null;
+    return { choice, orgId, orgName: choice?.orgName ?? orgId };
+}
+
+export default function AccessPermissionsPanel({ user: userProp, activeSection = 'grants', onNavigate, tabs = false }: AccessPermissionsPanelProps) {
     const { t } = useTranslation();
     // Inside the app shell the signed-in person and the navigation come from
     // context; a host outside it (a test, a kit) still hands them as props.
     const { user, onNavigate: go } = useShellProps({ user: userProp, onNavigate });
     const isSuperAdmin = isPlatformAdmin(user);
     const { mode, reload: reloadEntitlements } = useEntitlements();
-    const choice = useAdminOrgChoice();
-    const orgId = isSuperAdmin ? choice?.orgId ?? null : null;
-    const orgName = choice?.orgName ?? orgId;
+    const { choice, orgId, orgName } = useAccessOrg(isSuperAdmin);
     useSelectedOrgOnChange(orgId, isSuperAdmin, reloadEntitlements);
 
     const sections = useMemo(() => ([
@@ -123,6 +131,8 @@ export default function AccessPermissionsPanel({ user: userProp, activeSection =
         return null;
     };
 
+    if (tabs) return <AccessTabsPage sections={sections} active={active} onSelect={handleSectionClick}>{renderBody()}</AccessTabsPage>;
+
     return (
         <div className="flex h-full flex-col overflow-hidden">
             <div className="min-h-0 flex-1">
@@ -135,6 +145,31 @@ export default function AccessPermissionsPanel({ user: userProp, activeSection =
                         {renderBody()}
                     </div>
                 </StudioShell>
+            </div>
+        </div>
+    );
+}
+
+interface AccessTabsPageProps {
+    sections: readonly { id: string; label: string; icon: ComponentType<{ className?: string }> }[];
+    active: string;
+    onSelect: (id: string) => void;
+    children: ReactNode;
+}
+
+/** Grants and Ceiling as tabs above the page (the admin dashboard, whose rail is the navigation). */
+function AccessTabsPage({ sections, active, onSelect, children }: AccessTabsPageProps) {
+    const { t } = useTranslation();
+    return (
+        <div className="h-full overflow-auto">
+            <div className="flex flex-col gap-5 p-6 md:p-8">
+                <Tabs
+                    ariaLabel={t('admin.tab_access', 'Access')}
+                    value={active}
+                    onChange={onSelect}
+                    items={sections.map(({ id, label, icon: Icon }) => ({ id, label, icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
+                />
+                {children}
             </div>
         </div>
     );

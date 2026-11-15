@@ -1,5 +1,4 @@
-import { Building, Cloud, Key, Layers, RefreshCw, Send, Shield, Tag, Users, UserCog } from 'lucide-react';
-import { useState, type ComponentType } from 'react';
+import { useState } from 'react';
 import PeopleDirectory from './people/PeopleDirectory';
 
 import GroupModal from './userManagement/GroupModal';
@@ -28,63 +27,33 @@ import Spinner from '@/components/shared/Spinner';
 import Tabs from '@/components/shared/Tabs';
 import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
 import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
-import { OrgIcon } from './userManagement/EntityRows';
+import { TAB_HOMES, isServerWideTab, sectionsFor, tabScope } from './userManagement/userManagementTabs';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
-import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
 import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
 import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
-
-/** Is this tab of the screen about the whole server (adminTabs: security `users/<tab>`)? */
-const isServerWideTab = (key: string) => adminSectionScope('security', 'users', key) === 'instance';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface UserManagementProps {
     activeSection?: string;
     onNavigate?: (path: string) => void;
     user?: AdminCurrentUser | null;
+    /**
+     * The tabs this mount offers (the dashboard's People, Organisations, Roles
+     * and Nextcloud instances rows each show their own); the strip is left out
+     * when one is left. Left out: every tab the viewer may open.
+     */
+    sections?: readonly string[];
 }
 
-/**
- * The section tabs this person may open: everything for a platform admin,
- * users/groups (and their own organisation) otherwise. The 'all' permission
- * is not enough: its holder's lists cover their own organisation only, and
- * the server-wide role table is not read for them.
- */
-interface SectionDef {
-    key: string;
-    labelKey: string;
-    /** English text for a label whose key is not in the generated dictionary yet. */
-    fallback?: string;
-    icon: ComponentType<{ className?: string }>;
-}
-
-function sectionsFor(isPlatformAdmin: boolean | undefined, hasOrg: boolean, mayManage: boolean, hasNcSync: boolean): SectionDef[] {
-    // The organisation-only tabs, in the order Settings > Organisation > Users & Groups had them.
-    const orgTabs = [
-        ...(mayManage ? [{ key: 'invitations', labelKey: 'admin_org.users_tab_invitations', fallback: 'Invitations', icon: Send }] : []),
-        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
-        { key: 'org-roles', labelKey: 'admin_org.users_tab_org_roles', fallback: 'Organisation roles', icon: UserCog },
-        ...(mayManage ? [{ key: 'custom-tiers', labelKey: 'admin_org.users_tab_custom_tiers', fallback: 'Model tiers', icon: Layers }] : []),
-        ...(hasNcSync ? [{ key: 'sync', labelKey: 'admin_org.users_tab_nc_sync', fallback: 'Nextcloud sync', icon: RefreshCw }] : []),
-    ];
-    return isPlatformAdmin ? [
-        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: OrgIcon },
-        { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
-        ...orgTabs,
-        { key: 'roles', labelKey: 'admin_org.users_tab_server_roles', fallback: 'Server roles', icon: Tag },
-        { key: 'permissions', labelKey: 'admin.users_tab_permissions', icon: Key },
-    ] : [
-        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        ...orgTabs,
-        ...(hasOrg ? [{ key: 'my-organization', labelKey: 'admin.users_tab_my_org', icon: Building }] : []),
-    ];
-}
-
-const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }: UserManagementProps) => {
+const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate: onNavigateProp, user: userProp, sections: offered }: UserManagementProps) => {
     const { t } = useTranslation();
-    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization', ...ORG_ONLY_SECTIONS];
-    const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : 'users';
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test, a kit) still hands them as props.
+    const { user: currentUser, onNavigate } = useShellProps({ user: userProp, onNavigate: onNavigateProp });
+    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization', ...ORG_ONLY_SECTIONS]
+        .filter(key => !offered || offered.includes(key));
+    const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : (VALID_SECTIONS[0] ?? 'users');
 
     // Permission check: full admin can do everything, org-scoped users are limited
     const isFullAdmin = currentUser?.permissions?.includes('all') || currentUser?.isAdmin;
@@ -102,7 +71,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const orgId = useAdminOrgIdParam();
     const { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData } = useUserManagementData({ currentUser, orgId });
     // The dashboard's scope bar follows the open tab: the organisations, Nextcloud, roles and permissions are server-wide.
-    useAdminScopeOverride(isPlatformAdmin ? adminSectionScope('security', 'users', activeSection) : 'org');
+    useAdminScopeOverride(isPlatformAdmin ? tabScope(activeSection) : 'org');
     // The controls follow the lists: when the server refused them, it refuses the edits too.
     const mayManageListed = !!canManageUsers && !notOrgAdmin;
     // The organisation-only tabs follow the dashboard's organisation; the requests name it for a platform admin only.
@@ -131,16 +100,20 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
     // The server-wide tabs go last, behind a "Whole server" divider, each with the server icon.
-    const sections = serverWideLast(sectionsFor(isPlatformAdmin, userOrgIds.length > 0, mayManageListed, !!(currentUser?.ncOrg as { instanceId?: string | null } | null | undefined)?.instanceId), s => isPlatformAdmin && isServerWideTab(s.key));
+    const sections = serverWideLast(
+        sectionsFor(isPlatformAdmin, userOrgIds.length > 0, mayManageListed, !!(currentUser?.ncOrg as { instanceId?: string | null } | null | undefined)?.instanceId)
+            .filter(s => !offered || offered.includes(s.key)),
+        s => isPlatformAdmin && isServerWideTab(s.key),
+    );
 
     return (
         <div className="h-full flex flex-col">
-            {/* Section tabs: the section is the URL (admin/security/users/<key>). */}
+            {/* Section tabs: the section is the URL (TAB_HOMES). */}
             <div className="flex flex-col gap-3 px-6 pt-4 md:px-8 md:pt-6">
-                <Tabs
+                {sections.length > 1 && <Tabs
                     ariaLabel={t('admin.sec_users')}
                     value={activeSection}
-                    onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
+                    onChange={(key) => { if (onNavigate) onNavigate((TAB_HOMES[key] ?? TAB_HOMES.users).path); }}
                     items={sections.map(({ key, labelKey, fallback, icon: Icon, serverWide, startsServerGroup }) => ({
                         id: key,
                         label: t(labelKey, fallback),
@@ -148,7 +121,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                         mark: serverWide ? <ServerWideMark /> : undefined,
                         dividerBefore: startsServerGroup ? t('admin.scope_instance', 'Whole server') : undefined,
                     }))}
-                />
+                />}
                 {notOrgAdmin && (
                     <div role="status" className={ALERT_INFO}>
                         {t('admin_org.user_mgmt_org_admins_only', 'This page is for administrators of the organisation, so ask a platform administrator if you need access.')}

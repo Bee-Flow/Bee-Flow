@@ -137,12 +137,25 @@ describe('UserManagement', () => {
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
     });
 
+    // Changed on purpose (wave 2): each tab opens its own dashboard row (People, Roles & permissions, ...).
     it('navigates on section switch instead of holding local tab state', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UserManagement user={fullAdmin} onNavigate={onNavigate} />);
         await user.click(await screen.findByRole('tab', { name: 'admin.users_tab_groups' }));
-        expect(onNavigate).toHaveBeenCalledWith('admin/security/users/groups');
+        expect(onNavigate).toHaveBeenCalledWith('admin/people/groups');
+        await user.click(screen.getByRole('tab', { name: /admin.users_tab_permissions/ }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/roles/permissions');
+    });
+
+    it('offers only the tabs a mount names, and no strip for one', async () => {
+        const { unmount } = render(<UserManagement user={fullAdmin} sections={['users', 'invitations', 'groups', 'org-roles']} />);
+        const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
+        expect(within(tabs).queryByRole('tab', { name: /admin.users_tab_organizations/ })).not.toBeInTheDocument();
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_groups' })).toBeInTheDocument();
+        unmount();
+        render(<UserManagement user={fullAdmin} sections={['organizations']} activeSection="organizations" />);
+        await waitFor(() => expect(screen.queryByRole('tablist')).not.toBeInTheDocument());
     });
 
     it('marks the section from the URL as the selected tab', async () => {

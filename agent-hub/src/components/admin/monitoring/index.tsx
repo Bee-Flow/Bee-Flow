@@ -123,7 +123,7 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
  * per URL (admin/monitoring/<page>; bare admin/monitoring is Overview), with
  * the period chosen once for all of them in the page header.
  */
-export default function MonitoringPanel({ activeSection = '', onNavigate: onNavigateProp, user: userProp }: MonitoringPanelProps) {
+export default function MonitoringPanel({ activeSection = '', onNavigate: onNavigateProp, user: userProp, nav = true }: MonitoringPanelProps) {
     const { t } = useTranslation();
     // Inside the app shell the signed-in person and the navigation come from
     // context; a host outside it (a test, a kit) still hands them as props.
@@ -158,8 +158,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate: onNavi
         />
     );
 
-    return (
-        <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
+    const body = (
             <div className="relative h-full">
                 <div className="absolute inset-0 overflow-y-auto">
                     <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
@@ -187,6 +186,12 @@ export default function MonitoringPanel({ activeSection = '', onNavigate: onNavi
                         recent={data.recent} onClose={() => setDetail(null)} />
                 )}
             </div>
+    );
+    if (!nav) return body;
+
+    return (
+        <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
+            {body}
         </StudioShell>
     );
 }

@@ -2,6 +2,7 @@
 // no longer saves an organisation on mount; only a change of the picker while
 // the panel is open writes the session's selected organisation.
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessPermissionsPanel from './AccessPermissionsPanel';
 import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
@@ -89,5 +90,21 @@ describe('AccessPermissionsPanel and the dashboard organisation', () => {
         expect(await screen.findByRole('switch', { name: 'Slack' })).toBeInTheDocument();
         expect(screen.getByRole('switch', { name: 'Webpages' })).toBeInTheDocument();
         expect(calls.some(c => c.url.includes('/auth/me/group-access'))).toBe(true);
+    });
+});
+
+describe('AccessPermissionsPanel in the admin dashboard', () => {
+    it('switches Grants and Ceiling with tabs above the page instead of a section column', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        render(withQueryClient(
+            <AdminOrgProvider value={choiceOf('org-a')}>
+                <AccessPermissionsPanel tabs user={platformAdmin} activeSection="grants" onNavigate={onNavigate} />
+            </AdminOrgProvider>,
+        ));
+        expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Grants/ })).toHaveAttribute('aria-selected', 'true');
+        await user.click(screen.getByRole('tab', { name: /Ceiling/ }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/access/ceiling');
     });
 });

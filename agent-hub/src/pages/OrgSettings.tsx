@@ -10,6 +10,8 @@ import { AGENT_MANAGEMENT_ROLES, USER_MANAGEMENT_ROLES } from '../config/orgRole
 import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
 import { orgSettingsAdminTarget } from '../authedApp/settingsRoutes';
+import { resolveAdminTab } from '@/components/admin/dashboard/adminTabs';
+import { useAdminTabAccess } from '@/components/admin/dashboard/useAdminTabAccess';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 
 interface OrgSettingsProps {
@@ -21,13 +23,8 @@ interface OrgSettingsProps {
 
 const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSettingsProps) => {
     const { t } = useTranslation();
-    // A desktop opens the moved tabs (Organisation, GitHub and Nextcloud Sync,
-    // Users) in the admin dashboard; Agents and Knowledge Bases stay here.
     const { isMobile } = useViewport();
-    const movedTo = isMobile ? null : orgSettingsAdminTarget(orgSettingsPath.seg1, orgSettingsPath.seg2);
-    useEffect(() => {
-        if (movedTo && onNavigate) onNavigate(movedTo, { replace: true });
-    }, [movedTo, onNavigate]);
+    const { checkTabAccess } = useAdminTabAccess(user);
     // Permission helper — derives from the actual user permission set
     const hasPermission = (perm: string) => {
         const perms = user?.permissions || [];
@@ -68,6 +65,16 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
     const activeTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
         ? orgSettingsPath.seg1
         : (allowedTabs[0]?.id || null);
+
+    // A desktop opens every tab of this page in the admin dashboard, where each
+    // one is a row (ORG_SETTINGS_ADMIN_TARGETS), when the dashboard opens that
+    // row for this viewer; a phone, and a viewer the dashboard would refuse it
+    // (an agent editor without an admin tab), keep this page.
+    const target = isMobile || !activeTab ? null : orgSettingsAdminTarget(activeTab, orgSettingsPath.seg2);
+    const movedTo = target && dashboardOpens(target, checkTabAccess) ? target : null;
+    useEffect(() => {
+        if (movedTo && onNavigate) onNavigate(movedTo, { replace: true });
+    }, [movedTo, onNavigate]);
 
     const handleTabClick = (tabId: string) => {
         if (onNavigate) {
@@ -177,5 +184,11 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
         </div>
     );
 };
+
+/** Does the admin dashboard open this page ('admin/<tab>[/<section>]') for the viewer? */
+function dashboardOpens(target: string, allowed: Parameters<typeof resolveAdminTab>[1]): boolean {
+    const [, seg1, seg2] = target.split('/');
+    return resolveAdminTab({ seg1, seg2 }, allowed).isTabAllowed;
+}
 
 export default OrgSettings;

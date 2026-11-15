@@ -6,4 +6,6 @@ export interface MonitoringPanelProps {
      * organisation admin of their home organisation (`isHomeOrgAdmin`, the server's answer).
      */
     user?: { isAdmin?: boolean | null; role?: string | null; [key: string]: unknown } | null;
+    /** false: no page column (the admin dashboard, whose child rows are the pages). */
+    nav?: boolean;
 }

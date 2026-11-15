@@ -46,7 +46,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
  * see them can only do harm. Each line must appear somewhere today. See the rot
  * check at the bottom.
  */
-const BRAND_LITERALS = new Set(['Gmail', 'Google Drive', 'ElevenLabs', 'Nano Banana', 'BPM']);
+const BRAND_LITERALS = new Set(['Gmail', 'Google Drive', 'ElevenLabs', 'BPM']);
 
 /** Attributes whose value lands as text on the screen or in a screen reader. */
 const TEXT_ATTRS = ['title', 'aria-label', 'placeholder', 'alt', 'label', 'tooltip', 'aria-description'];

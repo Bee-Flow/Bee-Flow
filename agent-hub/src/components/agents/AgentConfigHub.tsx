@@ -18,6 +18,8 @@ interface AgentConfigHubProps {
     user?: (AgentSectionUser & { organizations?: readonly unknown[] }) | null;
     activeSection?: string;
     onNavigate?: (path: string) => void;
+    /** false: no section column (the admin dashboard, whose rail rows are Agents and System agents). */
+    nav?: boolean;
 }
 
 /**
@@ -30,7 +32,7 @@ const SECTIONS = [
     { id: 'system', labelKey: 'admin.agents_system', icon: Settings },
 ];
 
-const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', onNavigate }: AgentConfigHubProps) => {
+const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', onNavigate, nav = true }: AgentConfigHubProps) => {
     const { t } = useTranslation();
     // Inside the app shell the signed-in person and the navigation come from
     // context; a host outside it (a test, a kit) still hands them as props.
@@ -45,6 +47,9 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
     const orgChoice = useAdminOrgChoice();
     const orgId = orgChoice?.orgId ?? null;
     const showOrgNames = orgId === null && (!!orgChoice?.isPlatformAdmin || (viewer?.organizations?.length ?? 0) > 1);
+
+    const body = <AgentSectionBody active={active} hasPermission={hasPermission} orgId={orgId} showOrgNames={showOrgNames} />;
+    if (!nav) return body;
 
     return (
         <StudioShell
@@ -64,20 +69,34 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
                 />
             )}
         >
-            <div className="relative h-full">
-                {active === 'chat' && (
-                    <div className="absolute inset-0">
-                        <AgentDesigner key={`chat:${orgId ?? 'all'}`} onBack={null} hasPermission={hasPermission} orgId={orgId} showOrgNames={showOrgNames} />
-                    </div>
-                )}
-                {active === 'system' && (
-                    <div className="absolute inset-0">
-                        <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
-                    </div>
-                )}
-            </div>
+            {body}
         </StudioShell>
     );
 };
+
+interface AgentSectionBodyProps {
+    active: string;
+    hasPermission: NonNullable<AgentConfigHubProps['hasPermission']>;
+    orgId: string | null;
+    showOrgNames: boolean;
+}
+
+/** The open section's designer: the organisation's chat agents, or the server's system agents. */
+function AgentSectionBody({ active, hasPermission, orgId, showOrgNames }: AgentSectionBodyProps) {
+    return (
+        <div className="relative h-full">
+            {active === 'chat' && (
+                <div className="absolute inset-0">
+                    <AgentDesigner key={`chat:${orgId ?? 'all'}`} onBack={null} hasPermission={hasPermission} orgId={orgId} showOrgNames={showOrgNames} />
+                </div>
+            )}
+            {active === 'system' && (
+                <div className="absolute inset-0">
+                    <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default AgentConfigHub;

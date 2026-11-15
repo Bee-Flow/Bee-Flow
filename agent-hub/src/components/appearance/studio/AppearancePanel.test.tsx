@@ -28,4 +28,10 @@ describe('AppearancePanel', () => {
         expect(screen.getByRole('button', { name: 'Icons' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByText('Loading icon packs...')).toBeInTheDocument();
     });
+
+    it('shows one section without the nav in the admin dashboard, whose child rows are the sections', () => {
+        renderWithClient(<AppearancePanel section="icon-packs" />);
+        expect(screen.queryByRole('navigation', { name: 'Appearance sections' })).not.toBeInTheDocument();
+        expect(screen.getByText('Loading icon packs...')).toBeInTheDocument();
+    });
 });

@@ -89,4 +89,12 @@ describe('IntegrationsAdminPanel — section navigation', () => {
         await userEvent.click(await screen.findByRole('button', { name: 'admin.integ_email' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/integrations/email');
     });
+
+    it('offers only the sections a mount names, without the section column (the dashboard\'s Platform services)', async () => {
+        render(<IntegrationsAdminPanel sections={['defaults', 'email']} activeSection="features" />);
+        // A section it does not offer (Features moved to Licence & features) opens its first one.
+        expect(await screen.findByRole('button', { name: 'Enable All' })).toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: 'admin.tab_integrations' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'admin.integ_features' })).not.toBeInTheDocument();
+    });
 });

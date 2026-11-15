@@ -5,11 +5,11 @@ import { INTEGRATION_CATALOG } from '@/config/integrationCatalog';
 
 export const SECTIONS = [
     { id: 'features', labelKey: 'admin.integ_features', icon: Layers },
-    { id: 'integrations', labelKey: 'admin.integ_integrations', icon: Settings },
+    { id: 'defaults', labelKey: 'admin.integ_integrations', icon: Settings },
     { id: 'email', labelKey: 'admin.integ_email', icon: Mail },
     { id: 'search', labelKey: 'admin.integ_search', icon: SearchIcon },
     { id: 'transcription', labelKey: 'admin.integ_transcription', icon: Cloud },
-    { id: 'services', labelKey: 'admin.integ_services', icon: ExternalLink },
+    { id: 'connected-apps', labelKey: 'admin.integ_services', icon: ExternalLink },
 ];
 
 // Sidebar sections gated by an Enterprise licence feature — hidden on Community
@@ -26,7 +26,7 @@ export const SECTION_FEATURE_GATE: Record<string, string> = {
 // the Service Email (Gmail SMTP) config and the external Services panel
 // (LinkedIn API + Azure Document Processing) are Enterprise admin surfaces with
 // no dedicated licence feature of their own.
-export const ENTERPRISE_ONLY_SECTIONS = new Set(['email', 'services']);
+export const ENTERPRISE_ONLY_SECTIONS = new Set(['email', 'connected-apps']);
 
 // All known integration IDs + labels live in src/config/integrationCatalog.js
 // so the super-admin panel and the org-admin OrgFeatureTogglesPanel use the

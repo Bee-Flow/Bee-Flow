@@ -39,12 +39,18 @@ export interface AdminTabAccessResult {
     checkTabAccess: (tab: AdminTab | undefined) => boolean;
     /** At least one tab opens (or the viewer is a platform admin / holds 'all'). */
     canOpenDashboard: boolean;
+    /**
+     * The licence status is still being read: until it is, the tier reads as
+     * Community, so a refused tier-gated tab may still open (the dashboard waits
+     * instead of saying "access denied" for a moment).
+     */
+    gatesPending: boolean;
 }
 
 /** The tab gates for this viewer on this install (deployment mode, licence tier). */
 export function useAdminTabAccess(user: AdminTabUser | null | undefined): AdminTabAccessResult {
     const { isCloud, isSelfHosted } = useDeploymentMode();
-    const { serverOverride, tier } = useLicenseContext();
+    const { serverOverride, tier, loading: licenseLoading } = useLicenseContext();
     const isSuperAdmin = isPlatformAdmin(user);
     const hasPermission = adminPermissionCheck(user);
     const entitlements = useEntitlements();
@@ -56,5 +62,5 @@ export function useAdminTabAccess(user: AdminTabUser | null | undefined): AdminT
         isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission, hasCapability,
     }) && !(tab?.id === 'agents' && !hasAgentSection);
     const canOpenDashboard = isSuperAdmin || hasPermission('all') || ADMIN_TABS.some(tab => checkTabAccess(tab));
-    return { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard };
+    return { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard, gatesPending: !!licenseLoading };
 }

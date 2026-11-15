@@ -45,6 +45,13 @@ describe('MonitoringPanel pages', () => {
         expect(onNavigate).toHaveBeenCalledWith('admin/monitoring/terminations');
     });
 
+    it('draws no page column in the admin dashboard, whose child rows are the pages', () => {
+        stub();
+        render(withAdvanced(<MonitoringPanel activeSection="activity" nav={false} />));
+        expect(screen.queryByRole('navigation', { name: 'AI Monitor' })).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Activity Log' })).toBeTruthy();
+    });
+
     it('falls back to Overview for an unknown page', () => {
         stub();
         render(withAdvanced(<MonitoringPanel activeSection="nope" />));

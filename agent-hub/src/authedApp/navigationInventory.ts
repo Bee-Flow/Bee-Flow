@@ -56,11 +56,14 @@ export const INVENTORY: Row[] = [
     { page: 'settings', flags: 'showSettings', url: '/app/settings', shows: { current: 'settings-nav-preferences' }, nav: 'settings' },
     { page: 'settings', flags: 'showSettings', url: '/app/settings/memory', shows: { current: 'settings-nav-memory' }, nav: 'settings/memory' },
     { page: 'admin', flags: 'adminPath', url: '/app/admin', shows: { nav: 'Admin Dashboard' }, nav: 'admin' },
-    { page: 'admin', flags: 'adminPath', url: '/app/admin/ai-config', shows: { nav: 'AI Configuration' }, nav: 'admin/ai-config' },
+    // The hub's sections are rows of the dashboard rail (no section column of its own).
+    { page: 'admin', flags: 'adminPath', url: '/app/admin/ai-config', shows: { testId: 'admin-tab-ai-config' }, nav: 'admin/ai-config' },
     { page: 'admin', flags: 'adminPath (legacy bare path)', url: '/admin', shows: { nav: 'Admin Dashboard' } },
-    { page: 'orgSettings', flags: 'orgSettingsPath', url: '/app/org-settings', shows: { heading: 'Organisation Settings' }, nav: 'orgSettings' },
-    { page: 'orgSettings', flags: 'orgSettingsPath', url: '/app/org-settings/agents', shows: { heading: 'Organisation Settings' }, nav: 'org-settings/agents' },
-    { page: 'orgSettings', flags: 'orgSettingsPath (legacy bare path)', url: '/org-settings', shows: { heading: 'Organisation Settings' } },
+    // A desktop opens each tab of the old organisation settings page in the dashboard when the
+    // dashboard opens that row for the viewer (pages/OrgSettings); a phone keeps the page.
+    { page: 'orgSettings', flags: 'orgSettingsPath', url: '/app/org-settings', lands: '/app/admin/organisation/info', shows: { testId: 'admin-tab-organisation' }, nav: 'orgSettings' },
+    { page: 'orgSettings', flags: 'orgSettingsPath', url: '/app/org-settings/agents', lands: '/app/admin/agents', shows: { testId: 'admin-tab-agents' }, nav: 'org-settings/agents' },
+    { page: 'orgSettings', flags: 'orgSettingsPath (legacy bare path)', url: '/org-settings', lands: '/app/admin/organisation/info', shows: { testId: 'admin-tab-organisation' } },
     { page: 'billing', flags: '→ the organisation licence page (replace)', url: '/app/billing', lands: '/app/admin/organisation/license', shows: { nav: 'Admin Dashboard' }, nav: 'billing' },
     // ── Agent editors ─────────────────────────────────────────────────────
     // Without an agent the editor is Studio's agents section (replace, so Back skips it).

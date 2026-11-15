@@ -156,16 +156,17 @@ describe('the bar follows the open section', () => {
 });
 
 describe('the rail', () => {
-    it('shows a platform admin two different blocks: the organisations with their sub-headings, the whole server as one flat list', () => {
+    // Changed on purpose (wave 2): the whole-server block has the group headings too, none over a group of one row.
+    it('shows a platform admin two different blocks: the organisations and the whole server, each with its sub-headings', () => {
         renderDashboard({ seg1: 'modules', seg2: '', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
         const org = within(rail().getByTestId('admin-rail-section-org'));
         const server = within(rail().getByTestId('admin-rail-section-instance'));
         expect(org.getByRole('heading', { name: 'Organisations' })).toBeInTheDocument();
         expect(org.getByText('Security & access')).toBeInTheDocument();
         expect(server.getByRole('heading', { name: 'Whole server' })).toBeInTheDocument();
-        // No sub-heading repeats in the server block.
-        for (const eyebrow of ['AI & agents', 'Operations', 'Platform', 'Website']) expect(server.queryByText(eyebrow)).not.toBeInTheDocument();
-        expect(server.getAllByRole('link').map(a => a.textContent)).toEqual(expect.arrayContaining(['AI Config', 'Modules', 'Support', 'Release Notes']));
+        // Changed on purpose (wave 2): System agents joins AI configuration, so AI & agents has its heading too.
+        for (const eyebrow of ['AI & agents', 'Identity & access', 'Connections', 'Operations', 'Platform', 'Website']) expect(server.getByText(eyebrow)).toBeInTheDocument();
+        expect(server.getAllByRole('link').map(a => a.textContent)).toEqual(expect.arrayContaining(['AI configuration', 'Modules', 'Support inbox', 'Release Notes']));
     });
 
     it('keeps the two blocks in the phone drawer', async () => {
@@ -183,7 +184,7 @@ describe('the rail', () => {
         await user.click(screen.getByRole('button', { name: 'Admin sections: Encryption' }));
         const drawer = within(await screen.findByRole('dialog', { name: 'Admin sections' }));
         expect(drawer.getByRole('link', { name: 'Encryption' })).toHaveAttribute('aria-current', 'page');
-        await user.click(drawer.getByRole('link', { name: 'MCP Access' }));
+        await user.click(drawer.getByRole('link', { name: 'MCP client access' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/organisation/mcp-access');
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
