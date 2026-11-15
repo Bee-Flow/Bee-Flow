@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { describe, it, expect } from 'vitest';
-import { buildCurlSnippet, webhookUrl, maskSecret } from './useWebhooks';
+import { buildCurlSnippet, buildTokenCurlSnippet, isHeaderToken, webhookUrl, maskSecret } from './useWebhooks';
 
 /**
  * BFSF-320 — "Copy as cURL" produced a command the server ALWAYS rejected.
@@ -59,6 +59,24 @@ describe('buildCurlSnippet', () => {
 
     it('generates a fresh nonce per invocation (replay guard)', () => {
         expect(snippet).toContain('NONCE=$(openssl rand -hex 16)');
+    });
+});
+
+describe('buildTokenCurlSnippet (a webhook in header_token mode)', () => {
+    const snippet = buildTokenCurlSnippet('https://app.example.com/api/automation/webhook/abc', SECRET);
+
+    it('sends the token as Authorization: Bearer and never puts it in the address', () => {
+        expect(snippet).toContain(`-H 'Authorization: Bearer ${SECRET}'`);
+        expect(snippet).toContain("curl -X POST 'https://app.example.com/api/automation/webhook/abc'");
+        expect(snippet).not.toContain('?');
+        expect(snippet).not.toContain('X-BeeFlow-Signature');
+    });
+
+    it('tells the two modes apart; a row without a mode is signed', () => {
+        expect(isHeaderToken({ authMode: 'header_token' })).toBe(true);
+        expect(isHeaderToken({ authMode: 'hmac' })).toBe(false);
+        expect(isHeaderToken({})).toBe(false);
+        expect(isHeaderToken(null)).toBe(false);
     });
 });
 

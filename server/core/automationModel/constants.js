@@ -275,9 +275,9 @@ const DATA_EXTRACTION_MAX_SOURCE_CHARS = 60000;
 // §WS4 — edge-label rules. The runner routes labelled edges (nextEdgesFor):
 // unlabelled/'on_success' fire on success, 'then'/'else' on conditions,
 // 'case:<name>' on switches, 'on_error' when the step exhausts its retries
-// and fails, 'on_rejected' on a rejected approval (edgeLabels.mts). Anything
+// and fails, 'on_rejected' / 'on_expired' on a rejected / expired approval (edgeLabels.mts). Anything
 // else never fires — warn so a typo ("onerror") doesn't dead-end a branch.
-const KNOWN_EDGE_LABELS = new Set(['then', 'else', 'on_success', 'on_error', 'on_rejected']);
+const KNOWN_EDGE_LABELS = new Set(['then', 'else', 'on_success', 'on_error', 'on_rejected', 'on_expired']);
 // Legal values for the cosmetic edge `color` key — the canvas's swatch
 // palette (agent-hub .../Builder/flow/edgeColors.js draws from
 // constants/palette.js STATUS_COLORS; no shared module crosses the

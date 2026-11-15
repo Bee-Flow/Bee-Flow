@@ -227,7 +227,10 @@ export default function useAutomationApi() {
         // The server has always validated and stored this; the client just
         // never sent it, so every webhook was primary-trigger-scoped (BFSF-320).
         // Omitted → the primary trigger, the pre-existing behaviour.
-        createWebhook: (id: string, triggerStepId: string | null = null) => send('POST', `/${id}/webhook`, triggerStepId ? { triggerStepId } : {}),
+        // `authMode`: 'hmac' (signed, the server's default) or 'header_token'
+        // for a caller that cannot sign. Omitted → the server's default.
+        createWebhook: (id: string, triggerStepId: string | null = null, authMode: 'hmac' | 'header_token' | null = null) =>
+            send('POST', `/${id}/webhook`, { ...(triggerStepId ? { triggerStepId } : {}), ...(authMode && authMode !== 'hmac' ? { authMode } : {}) }),
         listWebhooks: (id: string) => get(`/${id}/webhooks`),
         // Webhook secret rotation invalidates the previous secret
         // immediately. The new secret is returned ONCE — surface it in the

@@ -71,10 +71,17 @@ async function automationToResume(original) {
 }
 
 /**
+ * `continuesJourney`: the continuation belongs to the paused run's journey even
+ * though that run is no longer in a paused status — the reaper closes an
+ * expired approval before it learns the approval has an expired branch to
+ * continue on (approvalExpiry.mts).
  * @param {string | null} runId
  * @param {string} fromStepId
+ * @param {{ decision?: Record<string, unknown> | null, userId?: string | null, rootStepId?: string | null,
+ *   triggerHeaders?: Record<string, string> | null, onRunCreated?: ((run: { id?: string }) => unknown) | null,
+ *   onRunFinished?: ((run: unknown) => unknown) | null, continuesJourney?: boolean }} [options]
  */
-async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
+async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null, continuesJourney = false } = {}) {
     const original = await automationStore.getRun(runId);
     if (!original) throw new Error(`Run ${runId} not found`);
     const automation = await automationToResume(original);
@@ -168,7 +175,7 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         // Continuing a pause keeps the journey the visitor started, so the
         // history shows their three-question form as ONE run instead of one row
         // per answer. A retry of a run that already ended is a new journey.
-        rootRunId: PAUSED_STATUSES.has(original.status) ? (original.rootRunId || original.id) : null,
+        rootRunId: (continuesJourney || PAUSED_STATUSES.has(original.status)) ? (original.rootRunId || original.id) : null,
         onRunCreated,
         onRunFinished,
         replayState: replayedStepState,

@@ -18,7 +18,7 @@
  * Pure; inputs are never mutated.
  */
 
-import { APPROVAL_PORT_REJECTED, copyExtraEdgeKeys, edgeKey } from './branchEdges';
+import { copyExtraEdgeKeys, edgeKey, isApprovalBranchLabel } from './branchEdges';
 import { routePorts, slotForEdge } from './routeModel';
 import type { FlowDefinition, FlowEdge, FlowStep } from './types';
 
@@ -50,9 +50,10 @@ export function reconcileRouteEdges(definition: FlowDefinition, stepId: string, 
             else touched = true;
             continue;
         }
-        // An approval's rejected branch: it only exists on an approval, and
-        // unlabelled it would run on every success, so it goes with the type.
-        if (e.label === APPROVAL_PORT_REJECTED) {
+        // An approval's rejected or expired branch: it only exists on an
+        // approval, and unlabelled it would run on every success, so it goes
+        // with the type.
+        if (isApprovalBranchLabel(e.label)) {
             if (nextStep.type === 'approval') edges.push(e);
             else touched = true;
             continue;

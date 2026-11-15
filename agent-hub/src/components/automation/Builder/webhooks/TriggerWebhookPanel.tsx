@@ -92,7 +92,7 @@ export default function TriggerWebhookPanel({ automation, stepId }: Props) {
                 </div>
                 {ctl.webhooks.length > 0 && (
                     <button
-                        onClick={ctl.create}
+                        onClick={() => ctl.create()}
                         disabled={ctl.creating}
                         title={t('automations.trigger_webhook_panel.add_a_second_url_for_this', 'Add a second URL for this trigger (e.g. to rotate callers independently)')}
                         className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
@@ -111,7 +111,7 @@ export default function TriggerWebhookPanel({ automation, stepId }: Props) {
             {ctl.webhooks.length === 0 ? (
                 <div className="text-[11px] text-[var(--text-tertiary)]">
                     {ctl.loading || ctl.creating ? 'Generating URL…' : (
-                        <button onClick={ctl.create} className="underline hover:text-[var(--text-primary)]">
+                        <button onClick={() => ctl.create()} className="underline hover:text-[var(--text-primary)]">
                             {t('automations.trigger_webhook_panel.generate_a_webhook_url', 'Generate a webhook URL')}
                         </button>
                     )}

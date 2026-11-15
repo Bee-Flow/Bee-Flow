@@ -19,6 +19,15 @@
  * every address does the same work. Steps 2 and 3 are reached only by a delivery that was signed with
  * the webhook's secret; their answers are the documented ones a sender may act on.
  *
+ * A WEBHOOK IN 'header_token' MODE (for a caller that cannot sign) is passed in step 1 by the
+ * token it sends in `Authorization: Bearer <token>` or `X-BeeFlow-Token` (never the query
+ * string: the route reads only headers), compared as a sha256 with the stored one and, during
+ * a rotation's overlap, the one before. A signature does not open such a webhook, and a token
+ * does not open a signed one. Every delivery runs both checks, against keys nobody holds where
+ * the webhook has none, so the mode does not change the work either. The nonce is optional in
+ * this mode: when the caller sends one, step 2 refuses it the second time; without one, a
+ * captured delivery can be sent again, which is why signing stays the default.
+ *
  * WHAT IS KEPT (stores/automationStore/webhookDeliveries.js), for the owner, who reads it on the
  * webhook row in the builder: per delivery to an address that names a webhook, what became of
  * it, the size of the body and when; for a delivery that was signed with the webhook's secret
@@ -34,13 +43,21 @@ type Obj = Record<string, unknown>;
 export type Delivery = {
     slug: string;
     signature: string; nonce: string; timestamp: string | null;
+    /** The header token (Authorization: Bearer, else X-BeeFlow-Token); '' when none was sent. */
+    token?: string;
     /** The body as sent (when the parser kept it) and as parsed. */
     rawBody: string | null; body: unknown;
     /** The request headers a run may read (events.js pickWebhookHeaders). */
     headers: Record<string, string>;
 };
 
-export type Webhook = { id: string; automationId: string; secret: string | null; previousSecret?: string | null; triggerStepId?: string | null };
+export type Webhook = {
+    id: string; automationId: string; secret: string | null; previousSecret?: string | null; triggerStepId?: string | null;
+    /** 'hmac' (signed; the default, also when absent) or 'header_token'. */
+    authMode?: 'hmac' | 'header_token';
+    /** For 'header_token': the sha256 of the token, and the one before while a rotation's overlap lasts. */
+    tokenHash?: string | null; previousTokenHash?: string | null;
+};
 type Automation = Obj & { id: string; isActive?: boolean; isDraft?: boolean; liveVersion?: number | null };
 type Check = { ok: boolean; reason?: 'missing' | 'stale_timestamp' | 'bad_signature' };
 
@@ -53,6 +70,8 @@ export type ReceiveDeps = {
     };
     /** webhookSignature.js checkWebhookSignature. */
     check: (input: { secret: string | null; sigHeader: string; nonce: string; timestamp: string | null; rawBody: string | null; body: unknown }) => Check;
+    /** webhookSignature.js checkHeaderToken. */
+    checkToken: (input: { tokenHash: string | null; token: string }) => Check;
     liveHasTrigger: (automation: Automation, triggerStepId: string) => boolean;
     execute: (automation: Automation, options: Obj) => Promise<unknown>;
     /** Write one delivery to the log (the store's logWebhookDelivery). */
@@ -63,7 +82,7 @@ export type ReceiveDeps = {
     log: { error: (...a: unknown[]) => void; warn: (...a: unknown[]) => void };
 };
 
-export type DeliveryStatus = 'accepted' | 'bad_signature' | 'stale_timestamp' | 'replay' | 'inactive' | 'trigger_not_live';
+export type DeliveryStatus = 'accepted' | 'bad_signature' | 'bad_token' | 'stale_timestamp' | 'replay' | 'inactive' | 'trigger_not_live';
 
 const refusedLog = new Map<string, { minute: number; count: number }>();
 /** Test-only: forget how many deliveries were written this minute. */
@@ -101,6 +120,10 @@ export const NOT_ACCEPTED: Answer = Object.freeze({ status: 401, body: Object.fr
 
 /** A key nobody holds: it stands in wherever a delivery has no secret to be checked against. */
 const DECOY_SECRET = randomBytes(32).toString('hex');
+/** The same for a token hash. */
+const DECOY_TOKEN_HASH = randomBytes(32).toString('hex');
+
+const usesHeaderToken = (webhook: Webhook | null | undefined): boolean => webhook?.authMode === 'header_token';
 
 export type Verified = { ok: true; webhook: Webhook } | { ok: false; webhook: Webhook | null; reason: NonNullable<Check['reason']> | 'unknown' };
 
@@ -114,28 +137,42 @@ export async function verifyDeliverySignature(d: Delivery, deps: ReceiveDeps): P
         });
         return secret ? check : { ok: false, reason: check.reason || 'bad_signature' };
     };
-    // Both are always checked: the secret, and the one before it while its overlap lasts.
+    const sentWith = (tokenHash: string | null | undefined): Check => {
+        const check = deps.checkToken({ tokenHash: tokenHash || DECOY_TOKEN_HASH, token: d.token || '' });
+        return tokenHash ? check : { ok: false, reason: check.reason || 'bad_signature' };
+    };
+    // All are always checked: the secret, and the one before it while its overlap lasts, for a
+    // signature and for a token alike. Which pair counts is the webhook's mode.
     const current = signedWith(webhook?.secret);
     const previous = signedWith(webhook?.previousSecret);
+    const currentToken = sentWith(webhook?.tokenHash);
+    const previousToken = sentWith(webhook?.previousTokenHash);
     if (!webhook) return { ok: false, webhook: null, reason: 'unknown' };
-    if (!current.ok && !previous.ok) {
-        const reason = current.reason || 'bad_signature';
+    const tokenMode = usesHeaderToken(webhook);
+    const passed = tokenMode ? currentToken.ok || previousToken.ok : current.ok || previous.ok;
+    if (!passed) {
+        const reason = (tokenMode ? currentToken.reason : current.reason) || 'bad_signature';
+        const status: DeliveryStatus = tokenMode ? 'bad_token' : (reason === 'stale_timestamp' ? 'stale_timestamp' : 'bad_signature');
         // Not awaited: the answer of an address with a webhook takes no longer than that of one without.
-        void record(webhook, reason === 'stale_timestamp' ? 'stale_timestamp' : 'bad_signature', d, deps, { signed: false });
+        void record(webhook, status, d, deps, { signed: false });
         return { ok: false, webhook, reason };
     }
     return { ok: true, webhook };
 }
 
-/** Steps 2 to 4, for a delivery that passed step 1. */
+/** Steps 2 to 4, for a delivery that passed step 1 (signed, or with the webhook's header token). */
 export async function startSignedDelivery(webhook: Webhook, d: Delivery, deps: ReceiveDeps): Promise<Answer> {
-    // A delivery without a timestamp never expires on its own: its nonce is kept beyond the
-    // 24 h sweep so the same request cannot be sent again.
-    const fresh = await deps.store.checkAndStoreNonce(`${d.slug}:${d.nonce}`, { retain: !d.timestamp });
     const signed = { signed: true };
-    if (!fresh) {
-        await record(webhook, 'replay', d, deps, signed);
-        return { status: 401, body: { error: 'Replayed nonce' } };
+    // A signed delivery always carries a nonce (step 1 refuses one without). A header-token
+    // delivery may: then it is refused the second time, as a signed one is.
+    if (!usesHeaderToken(webhook) || d.nonce) {
+        // A delivery without a timestamp never expires on its own: its nonce is kept beyond the
+        // 24 h sweep so the same request cannot be sent again.
+        const fresh = await deps.store.checkAndStoreNonce(`${d.slug}:${d.nonce}`, { retain: !d.timestamp });
+        if (!fresh) {
+            await record(webhook, 'replay', d, deps, signed);
+            return { status: 401, body: { error: 'Replayed nonce' } };
+        }
     }
 
     await deps.store.touchWebhook(d.slug);

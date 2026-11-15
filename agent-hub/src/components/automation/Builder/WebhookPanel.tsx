@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Webhook, Copy, Check, Eye, EyeOff, Plus } from 'lucide-react';
-import useWebhooks, { webhookUrl, maskSecret } from './webhooks/useWebhooks';
+import useWebhooks, { webhookUrl, maskSecret, isHeaderToken } from './webhooks/useWebhooks';
+import type { WebhookAuthMode } from './webhooks/useWebhooks';
 import WebhookDeliveries from './webhooks/WebhookDeliveries';
+import WebhookAuthModeChoice from './webhooks/WebhookAuthModeChoice';
 import type { WebhookDelivery } from './webhooks/WebhookDeliveries';
 import useTranslation from '@/hooks/useTranslation';
 
@@ -11,6 +14,7 @@ interface WebhookRowData {
     url?: string;
     lastSeenAt?: string | number | null;
     previousValidUntil?: string | null;
+    authMode?: WebhookAuthMode;
     deliveries?: WebhookDelivery[];
 }
 
@@ -32,10 +36,13 @@ interface RowProps {
  * The compact per-trigger-node view lives in
  * `webhooks/TriggerWebhookPanel.jsx`; both share all their behaviour via
  * `webhooks/useWebhooks.js`, which also documents the HMAC signing contract.
+ * A new webhook is signed unless the author picks a header token for a caller
+ * that cannot sign (WebhookAuthModeChoice says why that is weaker).
  */
 export default function WebhookPanel({ automation }: PanelProps) {
     const { t } = useTranslation();
     const wh = useWebhooks(automation);
+    const [authMode, setAuthMode] = useState<WebhookAuthMode>('hmac');
 
     if (!automation?.id) return null;
 
@@ -46,13 +53,14 @@ export default function WebhookPanel({ automation }: PanelProps) {
                 <span className="text-[var(--text-tertiary)]">{t('automations.settings.webhooks_hint', 'let another system start this automation')}</span>
                 <button
                     type="button"
-                    onClick={wh.create}
+                    onClick={() => wh.create(authMode)}
                     disabled={wh.creating}
                     className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-60"
                 >
                     <Plus size={12} /> {wh.creating ? t('automations.settings.webhook_creating', 'Creating…') : t('automations.settings.webhook_create', 'Create webhook')}
                 </button>
             </div>
+            <WebhookAuthModeChoice value={authMode} onChange={setAuthMode} disabled={wh.creating} />
             {wh.errorMsg && <div role="alert" className="text-[var(--error)]">{wh.errorMsg}</div>}
             {wh.loading && wh.webhooks.length === 0 ? (
                 <div className="text-[var(--text-tertiary)]">{t('common.loading', 'Loading…')}</div>
@@ -83,12 +91,18 @@ export function WebhookRow({ row, ctl }: RowProps) {
     const secret = (ctl.revealedSecrets as Record<string, string>)[row.id];
     const hasSecret = !!secret;
     const revealed = (ctl.visibleSecretIds as Record<string, boolean>)[row.id];
+    const headerToken = isHeaderToken(row);
 
     return (
         <li className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] p-3 flex flex-col gap-2 text-[12px]">
             <div className="flex items-center gap-2 flex-wrap">
                 <Webhook size={14} className="text-[var(--type-trigger)]" />
                 <span className="font-semibold text-[var(--text-primary)]">{row.name || t('automations.settings.webhook', 'Webhook')}</span>
+                {headerToken && (
+                    <span data-testid="webhook-header-token-badge" title={t('automation_webhook_log.auth.badge_title', 'Callers send a token in the Authorization header instead of signing')} className="px-1.5 rounded-full text-[11px] bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning)]">
+                        {t('automation_webhook_log.auth.badge', 'Header token')}
+                    </span>
+                )}
                 {hasSecret && (
                     <span className="px-1.5 rounded-full text-[11px] bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success)]">
                         {t('automations.settings.webhook_new', 'new · copy now')}
@@ -137,35 +151,43 @@ export function WebhookRow({ row, ctl }: RowProps) {
                 </div>
             )}
             {row.deliveries && <WebhookDeliveries deliveries={row.deliveries} />}
-            {secret && (
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <code className="flex-1 min-w-0 truncate px-2 py-1 rounded-md bg-[var(--bg-secondary)] font-mono text-[11px] text-[var(--text-primary)]">
-                            {revealed ? secret : maskSecret(secret)}
-                        </code>
-                        <button
-                            type="button"
-                            onClick={() => ctl.toggleReveal(row.id)}
-                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ revealed ? t('automations.settings.webhook_hide_secret', 'Hide secret') : t('automations.settings.webhook_show_secret', 'Show secret')}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
-                        >
-                            {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => ctl.copySecret(row.id, secret)}
-                            aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ t('automations.settings.webhook_copy_secret', 'Copy secret')}
-                            className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
-                        >
-                            {ctl.copied === `secret-${row.id}` ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
-                    </div>
-                    <div className="text-[var(--text-tertiary)]">
-                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key that names the secret, not a secret */}
-                        {t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
-                    </div>
-                </div>
-            )}
+            {secret && <WebhookSecretBox rowId={row.id} secret={secret} revealed={!!revealed} headerToken={headerToken} ctl={ctl} />}
         </li>
+    );
+}
+
+/** The secret (or header token) of a webhook while it is still in memory: right after Create or Renew. */
+function WebhookSecretBox({ rowId, secret, revealed, headerToken, ctl }: { rowId: string; secret: string; revealed: boolean; headerToken: boolean; ctl: RowProps['ctl'] }) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+                <code className="flex-1 min-w-0 truncate px-2 py-1 rounded-md bg-[var(--bg-secondary)] font-mono text-[11px] text-[var(--text-primary)]">
+                    {revealed ? secret : maskSecret(secret)}
+                </code>
+                <button
+                    type="button"
+                    onClick={() => ctl.toggleReveal(rowId)}
+                    aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ revealed ? t('automations.settings.webhook_hide_secret', 'Hide secret') : t('automations.settings.webhook_show_secret', 'Show secret')}
+                    className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
+                >
+                    {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => ctl.copySecret(rowId, secret)}
+                    aria-label={/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key / label that names the secret, not a secret */ t('automations.settings.webhook_copy_secret', 'Copy secret')}
+                    className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
+                >
+                    {ctl.copied === `secret-${rowId}` ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+            </div>
+            <div className="text-[var(--text-tertiary)]">
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key that names the secret, not a secret */}
+                {headerToken
+                    ? t('automation_webhook_log.auth.token_once', 'You only see the token now. Requests without it in the Authorization header are refused.')
+                    : t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
+            </div>
+        </div>
     );
 }

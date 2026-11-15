@@ -384,12 +384,15 @@ async function reapStuckAutomations({ staleAfterMs = 10 * 60_000, maxAttempts = 
  * awaiting_step_expires_at deadline. This flips any run past its deadline to a
  * terminal error so paused runs can't accumulate forever and can no longer be
  * approved after the window. Returns the reaped runs so the caller can emit
- * run.failed lifecycle events.
+ * run.failed lifecycle events, each with the approval step it was waiting on
+ * (`awaitingStepId`, as it was before this write cleared it): an approval with
+ * an expired branch continues from there (core/automationRunner/approvalExpiry.mts).
+ * The UPDATE is the one claim: of two reapers, one flips a run.
  */
 async function reapExpiredApprovals() {
     await initDB();
     const { rows } = await pool.query(
-        `UPDATE automation_runs
+        `UPDATE automation_runs r
             SET status = 'error',
                 error_class = 'ApprovalExpired',
                 error = COALESCE(error, 'Approval was not granted before the deadline'),
@@ -398,12 +401,17 @@ async function reapExpiredApprovals() {
                 duration_ms = COALESCE(duration_ms, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int),
                 awaiting_step_id = NULL,
                 approval_token = NULL
-          WHERE status = 'awaiting_approval'
-            AND awaiting_step_expires_at IS NOT NULL
-            AND awaiting_step_expires_at < NOW()
-          RETURNING id, automation_id, user_id`,
+           FROM (SELECT id AS due_id, awaiting_step_id AS due_step_id FROM automation_runs
+                  WHERE status = 'awaiting_approval'
+                    AND awaiting_step_expires_at IS NOT NULL
+                    AND awaiting_step_expires_at < NOW()) due
+          WHERE r.id = due.due_id
+            AND r.status = 'awaiting_approval'
+            AND r.awaiting_step_expires_at IS NOT NULL
+            AND r.awaiting_step_expires_at < NOW()
+          RETURNING r.id, r.automation_id, r.user_id, due.due_step_id`,
     );
-    return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id }));
+    return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id, awaitingStepId: r.due_step_id ?? null }));
 }
 
 /**

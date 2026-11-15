@@ -22,6 +22,24 @@ const { makeGiveUp } = require('./giveUp');
 const giveUpOn = makeGiveUp({ automationStore, notificationStore });
 
 /**
+ * What an expired approval with an expired branch continues with
+ * (../approvalExpiry.mts). Resolved at call time: resume.js is the runner.
+ * @returns {import('../approvalExpiry.mts').ExpiryDeps}
+ */
+function expiryDeps() {
+    const resume = require('../resume');
+    return {
+        getRun: (id) => automationStore.getRun(id),
+        automationToResume: (run) => resume.automationToResume(run),
+        resumeFromStep: (runId, stepId, options) => resume.resumeFromStep(runId, stepId, options),
+        updateRun: (id, patch) => automationStore.updateRun(id, patch),
+        closeAwaitingStepRow: (runId, stepId, from, to) => automationStore.closeAwaitingStepRow(runId, stepId, from, to),
+        expireApprovalsOf: (runId) => require('../approvalLifecycle').expireApprovalsForContinuedRun(runId),
+        log,
+    };
+}
+
+/**
  * Reaper — finds rows stuck in `running` longer than REAPER_STALE_AFTER_MS
  * (a runner crash / OOM / pod kill leaves them this way) and resets them
  * so the next tick can re-claim. After REAPER_MAX_ATTEMPTS the row is
@@ -49,7 +67,12 @@ async function reapStuckAutomations() {
     // stuck-row reaper never sees them. Own try block so a failure here doesn't
     // mask the stuck-row pass and vice-versa.
     try {
-        const expired = await automationStore.reapExpiredApprovals();
+        const reaped = await automationStore.reapExpiredApprovals();
+        // An approval with an expired branch ('on_expired') continues along it;
+        // every other run stays closed and is handled below exactly as before.
+        const expired = reaped.length
+            ? await require('../approvalExpiry.mts').continueOnExpiredBranches(reaped, expiryDeps())
+            : reaped;
         for (const r of expired) {
             log.warn(`[AutomationRunner] Reaper expired approval run ${r.id} (automation ${r.automationId})`);
             try {

@@ -194,7 +194,7 @@ Community feature — building automations is in the free core. Sharing them acr
 | DELETE | `/api/automation/:id/webhook/:slug` | U | Delete a webhook URL |
 | POST | `/api/automation/webhook/:slug` | S¹ | Webhook trigger entry |
 
-¹ HMAC-SHA256 signature in `X-BeeFlow-Signature` plus a single-use `X-BeeFlow-Nonce`, no token. See [Automations → Webhook trigger format](../features/automations.md#webhook-trigger-format).
+¹ HMAC-SHA256 signature in `X-BeeFlow-Signature` plus a single-use `X-BeeFlow-Nonce`; a webhook created with `authMode: "header_token"` takes a fixed token in `Authorization: Bearer` instead. See [Automations → Webhook trigger format](../features/automations.md#webhook-trigger-format).
 
 ## Webpages (Enterprise)
 

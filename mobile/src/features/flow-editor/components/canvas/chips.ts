@@ -23,6 +23,7 @@ const TONE: Readonly<Record<string, ChipTone>> = {
     default: 'default',
     on_error: 'error',
     on_rejected: 'error',
+    on_expired: 'default',
     unrouted: 'unrouted',
 };
 
@@ -47,6 +48,8 @@ export function chipWords(kind: string, t: TranslateFn): string {
             return t('automations.canvas.loop_port_on_error', 'On error');
         case 'on_rejected':
             return t('automation_editor.approval_port_rejected', 'On rejected');
+        case 'on_expired':
+            return t('automation_approval_expiry.port', 'On expired');
         case 'unrouted':
             return t('mobile.flow.canvas.never_runs', 'never runs');
         default:

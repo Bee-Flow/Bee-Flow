@@ -578,8 +578,9 @@ A webhook trigger gets its own URL and signing secret. Create them in the
 trigger's **Webhook** panel in the builder, or with
 `POST /api/automation/{automationId}/webhook` (see the
 [REST reference](../api/rest.md#automations)). The URL ends in a random slug,
-not in the automation's id, and there is no bearer token: every request is
-signed.
+not in the automation's id. By default every request is signed; a caller that
+cannot sign can use a [header token](#callers-that-cannot-sign-a-header-token)
+instead.
 
 ```http
 POST /api/automation/webhook/{slug}
@@ -677,8 +678,43 @@ In the run, the JSON body is `trigger.output`, so a step reads the example's
 order number as `{{trigger.output.order}}`. A few request headers ride along
 at `trigger.headers.<name>`, lowercased with dashes turned into underscores:
 `content-type` (as `trigger.headers.content_type`), `user-agent` and every
-`x-*` header. `X-BeeFlow-Signature` and `X-BeeFlow-Nonce` are never passed
-on.
+`x-*` header. `X-BeeFlow-Signature`, `X-BeeFlow-Nonce`, `X-BeeFlow-Token`
+and `Authorization` are never passed on.
+
+### Callers that cannot sign: a header token
+
+Some systems can only send a fixed secret in a header (monitoring tools, some
+CRMs). For those, create the webhook with **Callers prove themselves by → A
+token in a header** in the Settings panel's Webhooks, or with
+`{"authMode": "header_token"}` in the body of
+`POST /api/automation/{automationId}/webhook`. The answer holds the token once,
+as `secret`; the server keeps only its SHA-256. The caller sends it in a
+header, never in the address:
+
+```http
+POST /api/automation/webhook/{slug}
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{"order":"1042","status":"paid"}
+```
+
+`X-BeeFlow-Token: <token>` works as well when the caller cannot set
+`Authorization`. A token in the query string is ignored, so such a request is
+refused.
+
+A header token is weaker than signing, which is why signing stays the default:
+
+- whoever sees the token (in a log, a proxy, a screenshot of the sender's
+  settings) can send deliveries of their own, with any body;
+- a captured request can be sent again. Send an `X-BeeFlow-Nonce` with a fresh
+  value per request when the caller can: a nonce that was used before is then
+  refused, as for a signed request.
+
+The mode is fixed per webhook. A signature does not open a header-token
+webhook and a token does not open a signed one. Rotating, the changeover
+period, the rate limits, the answers and **Recent deliveries** work the same;
+a wrong or missing token shows there as *Token not accepted*.
 
 ## Tier limits
 
