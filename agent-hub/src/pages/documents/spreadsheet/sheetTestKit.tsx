@@ -3,7 +3,6 @@
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { withQueryClient } from '@/test/queryWrapper';
 import scopedStorage from '@/utils/scopedStorage';
 import type { StudioDocument } from '../documentQueries';

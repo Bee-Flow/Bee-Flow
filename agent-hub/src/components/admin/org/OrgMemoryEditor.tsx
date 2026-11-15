@@ -4,7 +4,7 @@
 // person's memories say is theirs and is never shown here.
 
 import { AlertTriangle, Brain, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ORG_MEMORY_MAX_PER_USER, ORG_MEMORY_MIN_PER_USER,
     useClearOrgMemory, useOrgMemory, useSaveOrgMemory, type OrgMemoryState,

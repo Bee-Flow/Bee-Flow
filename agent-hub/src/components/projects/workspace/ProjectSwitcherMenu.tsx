@@ -2,7 +2,7 @@
 // updated projects and "All projects", so switching project is one click
 // instead of a trip through the list.
 import { Bell, BellOff, ChevronDown, FolderOpen } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSetProjectMute } from '@/api/queries/notificationPrefs';
 import type { Project } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';

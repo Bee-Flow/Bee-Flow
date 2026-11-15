@@ -8,7 +8,6 @@ import SkillsList from './SkillsList';
 import SkillsOverview from './SkillsOverview';
 import { filterSkills } from './skillModel';
 import { skillsApi } from '@/api/skillsApi';
-import type { Skill, UsageSummaryMap } from './skillModel.types';
 
 /**
  * Studio → Skills (Bee Flow Builder redesign, Sep 2026; Skills.dc.html).

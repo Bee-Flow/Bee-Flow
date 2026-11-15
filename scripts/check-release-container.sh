@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Check that a built service image still meets the runtime prerequisites its reachability
+# reviews rest on: the user it runs as, the binaries and packages removed for their
+# advisories, and the pinned runtime versions.
+#
+# Usage: check-release-container.sh <service> <image@sha256:...>
+# Run by the release workflows and image-scan.yml, before container-release-gate.mjs
+# reads its verdict.
 set -euo pipefail
 service="${1:?service is required}"
 image="${2:?immutable image is required}"

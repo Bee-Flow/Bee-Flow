@@ -1,5 +1,4 @@
 import { Star, Eye, EyeOff, Cloud } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Toggle } from '../../ui/Toggle';
 import type { PlanSectionProps } from '../usePlanForm';

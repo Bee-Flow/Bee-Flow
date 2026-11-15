@@ -10,7 +10,6 @@
  */
 import { screen, waitFor, cleanup } from '@testing-library/react';
 import { renderWithClient as render } from '@/test/render';
-import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 type Res = { ok: boolean; json: () => Promise<unknown> };

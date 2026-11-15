@@ -132,7 +132,7 @@ test('the exported policy constants equal the old literals, order included', { s
     const hook = require('../mailboxHookPolicy.mts');
     const background = require('../backgroundRunPolicy.mts');
     const mcp = require('../mcpRunActionPolicy.mts');
-    const budget = require('../../routes/studioAppStepBudget.mts');
+    const budget = require('../stepBudget.mts');
     assert.deepEqual([...hook.HOOK_STEP_KINDS], OLD.HOOK_STEP_KINDS);
     assert.deepEqual([...hook.HOOK_CONTROL_KINDS], OLD.HOOK_CONTROL_KINDS);
     assert.deepEqual([...background.BACKGROUND_REFUSED_KINDS], OLD.BACKGROUND_REFUSED_KINDS);

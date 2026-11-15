@@ -2,7 +2,6 @@
 // description on the left, the model picker, a settings toggle and delete on
 // the right; the per-tier settings open under the row (CustomTierSettings).
 // All bindings are threaded in as props from the panel.
-import React from 'react';
 import { ChevronDown, Trash2 } from 'lucide-react';
 import CustomTierSettings from './CustomTierSettings';
 import type { ModelPickerSource } from './modelPicker.types';

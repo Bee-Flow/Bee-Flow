@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createBodyOf, localInputValue } from './incidentClocks';
 import { useTranslation } from '@/hooks/useTranslation';

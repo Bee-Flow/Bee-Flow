@@ -1,4 +1,4 @@
-import React, { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 
 /**
  * The builder's one confirmation dialog, reachable from anywhere in the tree.

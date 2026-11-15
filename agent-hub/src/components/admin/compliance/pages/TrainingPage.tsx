@@ -1,7 +1,7 @@
 import { GraduationCap, Plus, CheckCircle2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { fmtDate, Field, TextInput, DateInput, Select, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
-import useHeaderPrimary, { type SetHeaderActions } from './audits/useHeaderPrimary';
+import useHeaderPrimary from './audits/useHeaderPrimary';
 import { attestationDueAt, needsAttestation, QUIET_UNTIL_MS } from './trainingAttestation';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';

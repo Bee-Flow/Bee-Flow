@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import { useId } from 'react';
 import type { EmbedComplianceNotice } from '../../api/queries/chatSignals';
 import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
 import { formatNoticeDate } from '../chat/chatSignals/chatSignalsModel';

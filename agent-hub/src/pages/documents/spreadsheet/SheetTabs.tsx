@@ -2,7 +2,7 @@
 // double-click to rename, a small × on hover to delete, and a + to add.
 
 import { Plus, X } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { SheetTab } from '@/api/sheetApi';
 

@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import scopedStorage from '@/utils/scopedStorage';
 import {

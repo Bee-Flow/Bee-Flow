@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { approvalWaitLine } from '../runtime/approvalWaitLine';
 import type { RunWaiting } from './runsApi';

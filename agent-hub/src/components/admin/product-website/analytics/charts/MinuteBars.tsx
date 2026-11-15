@@ -6,7 +6,6 @@
  * happened" where a smoothed area chart would imply a continuous rate that
  * isn't there.
  */
-import React from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';

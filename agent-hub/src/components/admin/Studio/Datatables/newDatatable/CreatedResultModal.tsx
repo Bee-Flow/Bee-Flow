@@ -1,5 +1,4 @@
 import { ShieldAlert } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';

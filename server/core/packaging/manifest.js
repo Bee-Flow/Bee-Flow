@@ -228,7 +228,7 @@ function withSource(manifest, source) {
  * Entities arrive already captured and already scrubbed — this function
  * assembles and never inspects payloads for secrets, because a format module
  * that also decided what was safe would be a second scrub list, and the whole
- * point of projects/packaging/scrub.js is that there is only one.
+ * point of core/packaging/scrub.js is that there is only one.
  *
  * `exportedAt` is passed in rather than read from the clock so the result is a
  * pure function of its inputs and can be asserted whole.
@@ -345,7 +345,7 @@ function stripNeverInstallable(value, parentKey = null) {
  *
  * The rule this file kept was that a format module must not decide what is
  * safe, because that would be a second scrub list beside
- * projects/packaging/scrub.js. That rule still holds for JUDGEMENT — what a
+ * core/packaging/scrub.js. That rule still holds for JUDGEMENT — what a
  * table's columns may say, which agent config keys travel, whether a seat is a
  * person — and all of that still lives in scrub.js alone.
  *

@@ -1,5 +1,5 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { stageHistoryKey, useStageHistoryQuery } from '@/api/queries/stageReads';
 import { useTranslation } from '@/hooks/useTranslation';

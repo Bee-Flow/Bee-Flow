@@ -1,5 +1,5 @@
 import { Search, X, Check } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import Modal from '@/components/shared/Modal';
 import { useTranslation } from '@/hooks/useTranslation';

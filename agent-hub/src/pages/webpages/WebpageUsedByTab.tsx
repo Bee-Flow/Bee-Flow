@@ -1,5 +1,4 @@
 import { HelpCircle, Layers } from 'lucide-react';
-import React from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import type { WebpageRow } from '../../api/webpageEditorTypes';
 

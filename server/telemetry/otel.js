@@ -15,6 +15,7 @@ const log = require('./log');
  * Exports:
  *   isEnabled() — for /api/health
  *   shutdown()  — flush spans/metrics on SIGTERM/SIGINT before exit
+ *   isUntracedRequest(url) — the probes and the scrape that get no span
  */
 
 const ENABLED = (() => {
@@ -61,10 +62,21 @@ function parseHeaders(raw) {
     return out;
 }
 
+/**
+ * The incoming requests that get no span: the probes of Kubernetes and Docker
+ * (liveness on /api/health, the schema probe below it, readiness on /api/ready)
+ * and the metrics scrape. They arrive every few seconds per replica and would
+ * swamp the trace stream.
+ * @param {string} [url] the request target as Node gives it (path and query)
+ */
+function isUntracedRequest(url = '') {
+    return url.startsWith('/api/health') || url.startsWith('/api/ready') || url.startsWith('/api/admin/metrics');
+}
+
 if (!ENABLED) {
     log.info('[otel] disabled (OTEL_ENABLED!=true and no OTEL_EXPORTER_OTLP_ENDPOINT) — no-op');
     // @ts-ignore TS2323: module.exports is assigned once per branch; tsc reads both as declarations
-    module.exports = { isEnabled, shutdown };
+    module.exports = { isEnabled, shutdown, isUntracedRequest };
 } else {
     try {
         const { NodeSDK } = require('@opentelemetry/sdk-node');
@@ -148,12 +160,8 @@ if (!ENABLED) {
                 '@opentelemetry/instrumentation-express': { enabled: true },
                 '@opentelemetry/instrumentation-http': {
                     enabled: true,
-                    // Don't span the k8s/Docker health probe or the metrics
-                    // scrape — they would swamp the trace stream.
-                    ignoreIncomingRequestHook: (req) => {
-                        const url = (req && req.url) || '';
-                        return url.startsWith('/api/health') || url.startsWith('/api/admin/metrics');
-                    },
+                    // No span for the k8s/Docker probes or the metrics scrape.
+                    ignoreIncomingRequestHook: (req) => isUntracedRequest((req && req.url) || ''),
                     // No query string or token-like path segment in a span (spanUrl.mts).
                     requestHook: (span) => scrubSpanUrls(span),
                 },
@@ -181,5 +189,5 @@ if (!ENABLED) {
     }
 
     // @ts-ignore TS2323: module.exports is assigned once per branch; tsc reads both as declarations
-    module.exports = { isEnabled, shutdown };
+    module.exports = { isEnabled, shutdown, isUntracedRequest };
 }

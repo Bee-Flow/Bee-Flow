@@ -10,7 +10,6 @@
 // the same number the rail's "Needs attention" filter uses.
 
 import { ChevronRight } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { HEADLINE_FALLBACK, TONES, headlineKeyOfScore, toneOfScore } from '@/components/shared/statusTone';
 import { visibleSections } from '../../ComplianceRail';

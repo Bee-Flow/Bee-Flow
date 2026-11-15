@@ -1,5 +1,4 @@
 import { History, Loader2, RotateCcw } from 'lucide-react';
-import React from 'react';
 import type { CSSProperties } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { LedgerVersion, MarketplaceHubVersion } from '@/api/queries/modules.types';

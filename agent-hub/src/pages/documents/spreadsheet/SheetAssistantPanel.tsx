@@ -3,7 +3,6 @@
 // so closing the panel does not lose it).
 
 import { Sparkles, X } from 'lucide-react';
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { ICON_BUTTON } from '../editor/ui';
 import SheetAssistantComposer from './SheetAssistantComposer';

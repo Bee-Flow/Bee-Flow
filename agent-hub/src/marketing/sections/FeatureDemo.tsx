@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
 import FeatureDemoPoster from './FeatureDemoPoster';
 import SectionFrame from '../components/SectionFrame';

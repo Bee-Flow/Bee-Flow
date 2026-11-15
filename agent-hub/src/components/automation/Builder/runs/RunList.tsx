@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { RunRowData } from '@/api/queries/automation/runs';

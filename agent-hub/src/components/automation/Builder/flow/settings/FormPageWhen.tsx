@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import ConditionBuilder from '../../mapping/ConditionBuilder';

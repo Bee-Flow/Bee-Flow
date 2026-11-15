@@ -1,4 +1,3 @@
-import React from 'react';
 import { RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useMaintenanceWindow, coarseEta } from '../../hooks/useMaintenanceWindow';
 import { useTranslation } from '../../hooks/useTranslation';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { GitFork } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';

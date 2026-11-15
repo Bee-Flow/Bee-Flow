@@ -1,7 +1,6 @@
 import { render, screen, cleanup, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import React from 'react';
 import FormEditorModal from './FormEditorModal';
 import type { FormPageEntry } from './formPages';
 

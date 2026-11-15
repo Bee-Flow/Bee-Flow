@@ -1,3 +1,12 @@
+/**
+ * Container release gate: fail when the scan of an immutable image reports a high or critical
+ * finding that no valid exception with a dated reachability review covers.
+ *
+ *   node scripts/container-release-gate.mjs <container-scan.json> <image@sha256:...>
+ *
+ * The exceptions are .github/security/container-exceptions.json and the accepted entries of
+ * audit-baseline.json. Run by the release workflows and image-scan.yml.
+ */
 import fs from 'node:fs';
 import { isEntryPoint } from './entry-point.mjs';
 const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)

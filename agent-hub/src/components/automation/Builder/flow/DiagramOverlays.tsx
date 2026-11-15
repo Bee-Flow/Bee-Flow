@@ -1,7 +1,7 @@
 import { MiniMap, Panel } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
 import { Layers } from 'lucide-react';
-import React, { type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 import FloatingValidationPill from '../FloatingValidationPill';

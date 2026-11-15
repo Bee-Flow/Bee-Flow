@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, cleanup } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ValidationLine } from './formPrimitives';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';

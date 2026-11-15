@@ -1,5 +1,4 @@
 import { Check, ChevronRight, FlaskConical, Hammer, Layers, Loader2, TriangleAlert, Wrench } from 'lucide-react';
-import React from 'react';
 import type { CSSProperties } from 'react';
 import { describeLiveRun, describeToolCall, detailPayload } from './toolCallDisplay';
 import type { StepLabels } from './plainVocabulary';

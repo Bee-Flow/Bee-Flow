@@ -63,7 +63,7 @@ const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scope
 const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
 const { fallback } = require('../utils/bestEffort');
 // The datatable row tools live in their own module; this file only lists and dispatches them.
-const datatableTools = require('./mcpDatatableTools');
+const datatableTools = require('../usecases/mcpDatatableTools');
 
 const router = express.Router();
 

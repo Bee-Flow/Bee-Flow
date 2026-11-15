@@ -1,5 +1,4 @@
 import { Split } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { describeRuleExpr } from '../displayHelpers';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';

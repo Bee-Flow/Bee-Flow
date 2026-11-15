@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EMBED_NOTICE_OFF, type EmbedComplianceNotice } from '../../api/queries/chatSignals';
 import EmbedMonitoringNotice from './EmbedMonitoringNotice';

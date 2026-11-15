@@ -1,4 +1,3 @@
-import React from 'react';
 import BackgroundControl from './controls/BackgroundControl';
 import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
 import MotifControl from './controls/MotifControl';

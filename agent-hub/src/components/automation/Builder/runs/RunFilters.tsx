@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, ChevronDown, FlaskConical, Search } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { RunFacetCounts, RunListFilters, RunPeriod, RunStatusFilter } from '@/api/queries/automation/runs';

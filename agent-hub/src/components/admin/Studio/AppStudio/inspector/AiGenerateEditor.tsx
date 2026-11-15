@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { INPUT_CLS } from './panels/kit';
 import ExpressionInput from './logic/ExpressionInput';
 import FormField from '@/components/shared/FormField';

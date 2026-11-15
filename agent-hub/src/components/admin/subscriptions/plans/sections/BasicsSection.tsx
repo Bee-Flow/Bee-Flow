@@ -1,5 +1,4 @@
 import { Building2, Users } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import ChoiceCards from '@/components/shared/ChoiceCards';
 import { Field, Input, Textarea } from '../../ui/Input';

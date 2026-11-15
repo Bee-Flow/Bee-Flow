@@ -8,15 +8,18 @@
  *   startServer                  auth-schema migrations, then listen, then the
  *                                startup checks, the webpage runtime reaper (and
  *                                its gated proxy) and the startup tasks
- *   installGracefulShutdown      SIGTERM / SIGINT: drain the automation runner, stop
- *                                the pushers, flush, close Redis, the blob engines
- *                                and OTEL, exit 0
+ *   installGracefulShutdown      SIGTERM / SIGINT: stop accepting connections, drain
+ *                                the automation runner, stop the pushers, flush,
+ *                                close Redis, the blob engines and OTEL, exit 0
  *
  * `deps` is the test seam (boot/bootChain.characterisation.test.js): each
  * collaborator falls back to the module the inline code required, at the moment
  * it required it — lazy stays lazy.
  */
 const defaultLog = require('../telemetry/log');
+const runtimeState = require('../utils/runtimeState.mts');
+const { envInt } = require('../utils/envNumber.mts');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** @param {{ log?: Log, proc?: NodeJS.Process }} [opts] */
 function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) {
@@ -54,6 +57,12 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
     // Express app entirely and can only be intercepted on the underlying
     // http.Server.
     const server = (deps.createServer || require('node:http').createServer)(app);
+    // An idle keep-alive connection must outlive the idle time-out of the proxy in
+    // front of it (60 s for nginx and most load balancers). Node's own default is
+    // 5 s: the proxy then reuses a connection the server has just closed and the
+    // user gets a 502. The headers time-out stays above the keep-alive time-out.
+    server.keepAliveTimeout = envInt('HTTP_KEEP_ALIVE_TIMEOUT_MS', 65_000, { min: 1000 });
+    server.headersTimeout = Math.max(envInt('HTTP_HEADERS_TIMEOUT_MS', 66_000, { min: 1000 }), server.keepAliveTimeout + 1000);
     async function listen() {
         // Existing deployments must finish additive auth schema and transactional
         // secret migration before accepting requests. Any failure stops startup.
@@ -61,6 +70,9 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
         await (deps.authConfigStore || require('../stores/authConfigStore')).migrate();
         server.listen(/** @type {number} */ (/** @type {unknown} */ (port)), '0.0.0.0', () => {
             log.info(`Server running on http://0.0.0.0:${port}`);
+            // The listener answers from here on (liveness); "ready" waits for the boot
+            // steps that the checks and tasks below register in this same tick.
+            runtimeState.beginBoot();
             // Refuse-to-boot / NODE_ENV posture checks, the INIT_* first-boot wizard and
             // the durable HMAC secrets — see boot/startupTasks.js.
             runStartupChecks();
@@ -100,15 +112,33 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
 }
 
 /**
- * Register the SIGTERM / SIGINT handlers. Returns the shutdown function.
- * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
+ * The three calls the shutdown makes on the HTTP server.
+ * @typedef {Pick<import('node:http').Server, 'close' | 'closeIdleConnections' | 'closeAllConnections'>} ClosableServer
  */
-function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc = process, deps = {} }) {
+/**
+ * Register the SIGTERM / SIGINT handlers. Returns the shutdown function.
+ * `server` is the one startServer returned; without it (a test) the connection steps are skipped.
+ * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, server?: ClosableServer, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
+ */
+function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultLog, proc = process, deps = {} }) {
     let _shuttingDown = false;
+    /** @param {(server: ClosableServer) => void} step a connection step; one that throws must not stop the shutdown */
+    const onServer = (step) => {
+        if (!server) return;
+        try { step(server); } catch (err) { bestEffort('boot/lifecycle:closeConnections', err); }
+    };
     const shutdown = async (signal) => {
         if (_shuttingDown) return; // ignore a second signal while draining
         _shuttingDown = true;
+        // The readiness probe answers "shutting down" from here on (routes/ready.js).
+        runtimeState.beginShutdown();
         log.info(`[Server] ${signal} received, cleaning up...`);
+        // Stop accepting connections and close the idle ones, so the proxy in front
+        // sends new requests elsewhere instead of to a process that is about to exit.
+        // Requests in flight keep their connection. NOT awaited: the callback of
+        // close() waits for every connection, and one streaming chat (SSE) or
+        // WebSocket would hold the shutdown for as long as it stays open.
+        onServer((s) => s.close());
         // Drain in-flight automation runs FIRST: stop claiming new scheduled work
         // and wait (bounded) for running executions to finish, so a deploy doesn't
         // abandon a run mid-step and re-fire its side effects after restart. Bound
@@ -134,6 +164,8 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
                 } catch (e) { log.warn('[Server] background action drain failed:', /** @type {Error} */ (e).message); }
             })(),
         ]);
+        // Connections whose request ended during the drain are idle now.
+        onServer((s) => s.closeIdleConnections());
         try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         try { (deps.opsMetricsPush || require('../jobs/opsMetricsPush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
@@ -156,6 +188,8 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
         } catch (e) { log.warn('[Server] Blob-engine shutdown flush failed:', /** @type {Error} */ (e).message); }
         // Flush any buffered spans/metrics so a deploy doesn't drop the last batch.
         await otel.shutdown();
+        // What is still open now (a streaming chat that outlasted the drain) ends here.
+        onServer((s) => s.closeAllConnections());
         proc.exit(0);
     };
     proc.on('SIGTERM', () => shutdown('SIGTERM'));

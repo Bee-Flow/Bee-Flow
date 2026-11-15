@@ -1,8 +1,9 @@
 // @typecheck strict
 'use strict';
 /**
- * hasNestedQuantifier: the catastrophic-backtracking shape is refused, safe
- * patterns pass, and the App Studio path still reaches the same function.
+ * hasNestedQuantifier: the catastrophic-backtracking shape is refused and safe
+ * patterns pass. App Studio's use of it (file_intake's poPattern) is pinned in
+ * appStudio/validate/actions.validateStep.test.js.
  *
  * Run: node --test core/text/safePattern.test.js
  */
@@ -22,8 +23,4 @@ test('flat and bounded patterns pass', () => {
     for (const p of ['KL-\\d{5}', '\\bKL-[0-9]{5}\\b', '(ab)+', '[A-Z]{2}\\d+', '(?:foo|bar)', 'a+b*c?', '[(+)]+', '\\(a+\\)+']) {
         assert.equal(hasNestedQuantifier(p), false, p);
     }
-});
-
-test('the old App Studio path re-exports the same function', () => {
-    assert.equal(require('../../appStudio/safePattern').hasNestedQuantifier, hasNestedQuantifier);
 });

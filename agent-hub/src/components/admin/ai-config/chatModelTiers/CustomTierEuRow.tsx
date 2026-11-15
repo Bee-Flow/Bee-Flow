@@ -1,6 +1,5 @@
 // Compact EU model picker for a custom tier, a row of the EU section's
 // override list. All bindings are threaded in as props.
-import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';

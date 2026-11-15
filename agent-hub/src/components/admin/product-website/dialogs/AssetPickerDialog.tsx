@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useCmsAssetLibrary, type CmsAsset } from '@/api/queries/cmsAssets';
 import ModalShell from './ModalShell';
 import { useTranslation } from '@/hooks/useTranslation';

@@ -71,9 +71,12 @@ This documentation site is **CC-BY-4.0** (prose) + **MIT** (code samples). Reuse
 
 ## Where can I see the licence text?
 
-- Frontend: [github.com/Bee-Flow/hive/blob/main/LICENSE.md](https://github.com/Bee-Flow/hive/blob/main/LICENSE.md)
-- Server: [github.com/Bee-Flow/beeflow/blob/main/LICENSE.md](https://github.com/Bee-Flow/beeflow/blob/main/LICENSE.md)
-- Connector: [github.com/Bee-Flow/connector/blob/main/LICENSE.md](https://github.com/Bee-Flow/connector/blob/main/LICENSE.md)
+All in the one repository, [`Bee-Flow/Bee-Flow`](https://github.com/Bee-Flow/Bee-Flow):
+
+- Overview per component: [LICENSE.md](https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md)
+- Server: [server/LICENSE.md](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/LICENSE.md)
+- Frontend: [agent-hub/LICENSE.md](https://github.com/Bee-Flow/Bee-Flow/blob/main/agent-hub/LICENSE.md) (an identical copy)
+- Connector: [nextcloud-connector/LICENSE](https://github.com/Bee-Flow/Bee-Flow/blob/main/nextcloud-connector/LICENSE)
 
 ## Can I deploy a fork under a different name?
 
@@ -85,4 +88,4 @@ Yes — you must rename it (drop "Bee Flow" and the bee mark) and remove our tra
 
 ## What happens if Bee Flow B.V. goes away?
 
-The code is already public on GitHub. Existing self-hosted deployments keep running. Existing licence keys keep working through their `exp` (refresh check is non-fatal — see [Apply](apply.md)). The trademark would need a new owner; the source can be forked under a different name.
+The code is already public on GitHub. Existing self-hosted deployments keep running. Existing licence keys keep working through their `exp` (the refresh check is opt-in and off by default — see [Apply](apply.md)). The trademark would need a new owner; the source can be forked under a different name.

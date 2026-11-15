@@ -7,7 +7,7 @@
 // below is defensive: a field the server leaves out reads as "nothing", never
 // as a crash, so an older server simply shows less.
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { readEventStream } from '@/utils/sseStream';
 import { apiClient, ApiError } from '../../client';

@@ -1,5 +1,5 @@
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import FieldKindIcon from './FieldKindIcon';
 import { describeListPath } from './listShape';
 import { mismatchSentence, remediesFor } from './mismatch';

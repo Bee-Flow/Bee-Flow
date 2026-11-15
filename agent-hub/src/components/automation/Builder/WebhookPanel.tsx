@@ -1,5 +1,4 @@
 import { Webhook, Copy, Check, Eye, EyeOff, Plus } from 'lucide-react';
-import React from 'react';
 import useWebhooks, { webhookUrl, maskSecret } from './webhooks/useWebhooks';
 import WebhookDeliveries from './webhooks/WebhookDeliveries';
 import type { WebhookDelivery } from './webhooks/WebhookDeliveries';

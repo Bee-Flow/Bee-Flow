@@ -8,11 +8,13 @@
  * applied lazily by automationStore.initDB() so the test is self-bootstrap.
  * Skips with a non-zero exit only when assertions fail; if Postgres is
  * unreachable it skips with exit 0 so CI on machines without a local DB
- * doesn't false-fail.
+ * doesn't false-fail. Under REQUIRE_POSTGRES=1 (ci.yml's server-postgres job,
+ * `npm run test:postgres`) an unreachable Postgres is a failure instead.
  */
 
 const assert = require('assert');
 const crypto = require('crypto');
+const { postgresSkipReason } = require('../testUtils/requirePostgres');
 
 (async () => {
     let store;
@@ -21,7 +23,7 @@ const crypto = require('crypto');
         // Force init early so we surface connection errors before the assertions.
         await store.initDB();
     } catch (e) {
-        console.warn(`[claim.test] Postgres unavailable, skipping: ${e.message}`);
+        console.warn(`[claim.test] ${postgresSkipReason('claim.test', e)}`);
         process.exit(0);
     }
 

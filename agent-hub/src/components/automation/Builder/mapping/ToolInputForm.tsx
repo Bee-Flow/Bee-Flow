@@ -12,11 +12,6 @@ import { canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { useFormMode } from '../flow/settings/formDensity';
 import { actionButtonClass, subLabelClass } from '../flow/settings/formStyles';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import type { OnFocusField } from './focusField.types';
-import type { ParamSuggestion } from './toolInput/ParamExtras';
-import type { SchemaProp } from './toolInput/toolInputHelpers';
-import type { DeepenHandle } from './deepPick';
-import type { ForEachConfig } from './itemRefs';
 import type { PendingRow, ToolInputFormProps } from './ToolInputForm.types';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 

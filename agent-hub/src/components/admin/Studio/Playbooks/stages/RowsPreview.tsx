@@ -1,5 +1,5 @@
 import { ExternalLink, Loader2, Table2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ArtifactField } from '../phaseMachine';

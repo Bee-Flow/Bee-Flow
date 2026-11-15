@@ -10,7 +10,7 @@
 
 const { makeAutomationAccess } = require('../../automation/access');
 const { tableLimits } = require('../../core/automationRunner/tables/limits');
-const { makeJourneyReader } = require('./runJourney');
+const { makeJourneyReader } = require('../../automation/journeyReader');
 
 /**
  * @param {any} [overrides]

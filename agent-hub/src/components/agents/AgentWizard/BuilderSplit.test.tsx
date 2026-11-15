@@ -9,7 +9,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.test.jsx
  */
-import { screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
+import { screen, cleanup, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 

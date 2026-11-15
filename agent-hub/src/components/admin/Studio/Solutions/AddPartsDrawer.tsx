@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import React from 'react';
 import AddPartsPanel, { type AddPartsPanelProps } from './AddPartsPanel';
 import Modal from '@/components/shared/Modal';
 import { useTranslation } from '@/hooks/useTranslation';

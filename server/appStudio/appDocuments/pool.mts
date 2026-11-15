@@ -17,7 +17,7 @@
  * (settings.createdByApp). Screens and nodes the role cannot see add nothing,
  * so a document behind an admin-only screen stays behind it.
  *
- * The role checks are injected (routes/studioAppRunGate: roleAllows,
+ * The role checks are injected (runGateRules.js: roleAllows,
  * actionRoleAccess) so the routes' one copy of the rule is the one used here.
  * Pure: no I/O.
  */

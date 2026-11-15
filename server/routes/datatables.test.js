@@ -37,10 +37,14 @@ const path = require('node:path');
 // which is the order the groups are registered in: several assertions below
 // slice between two definitions, so that order is what makes such a slice
 // mean what it says. Taken from the map rather than repeated here, and the
-// test right below asserts the map covers every file in the folder.
+// test right below asserts the map covers every file in the folder. The
+// modules of this surface that know nothing of a request live in the
+// application layer (usecases/datatables/); the map spells those with their
+// path, and they are read in their place in the order like the rest.
 const DIR = path.join(__dirname, 'datatables');
+const USECASES = '../../usecases/datatables/';
 const ENTRY = fs.readFileSync(path.join(DIR, 'index.js'), 'utf8');
-const MODULES = ['index.js', ...[...ENTRY.matchAll(/^ \* {3}(\w+\.js)\b/gm)].map(m => m[1])];
+const MODULES = ['index.js', ...[...ENTRY.matchAll(/^ \* {3}((?:\.\.\/)*[\w/]+\.js)\b/gm)].map(m => m[1])];
 const RAW = MODULES.map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n');
 const SRC = RAW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 const INDEX = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
@@ -49,9 +53,10 @@ test("index.js's folder map names every module, and this file reads them all", (
     // The fail-open this guards: a module added to the folder and left out of
     // the map drops out of SRC silently, and every assertion about it goes on
     // passing while asserting nothing.
-    const onDisk = fs.readdirSync(DIR).filter(f => f.endsWith('.js') && !f.endsWith('.test.js')).sort();
+    const sources = (dir, prefix) => fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.endsWith('.test.js')).map(f => prefix + f);
+    const onDisk = [...sources(DIR, ''), ...sources(path.join(DIR, USECASES), USECASES)].sort();
     assert.deepStrictEqual([...MODULES].sort(), onDisk,
-        'the folder map in routes/datatables/index.js and the folder itself disagree — add the module to the map, in the order index.js registers it');
+        'the folder map in routes/datatables/index.js and the two folders (routes/datatables, usecases/datatables) disagree — add the module to the map, in the order index.js registers it');
 });
 
 // The body of one route handler, from its router.<verb>( to the next one.

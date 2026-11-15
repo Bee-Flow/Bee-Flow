@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { Check, Pipette } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Toggle, TextField, FieldRow } from './fields';
 import { CollapsibleCard, SegmentedControl } from './primitives';
 import type { TranslateFn } from '@/hooks/useTranslation';

@@ -68,7 +68,7 @@ for the cost.
 | Folder | What lives there |
 |---|---|
 | `core/llm/` | Model orchestration: `llmClient`, `modelResolver`, `modelCosts`, `pricingService`, `tokenBudget`, prompt shaping and cache stability. |
-| `core/providers/` | One adapter per LLM vendor (`claude`, `openai`, `google`, `azure`, `mistral`, `scaleway`, `local`) behind the factory in `providers/index.js`. **Add a provider here, never ad hoc elsewhere.** |
+| `core/providers/` | One adapter per LLM vendor (`claude`, `openai`, `google`, `googleVertex`, `azure`, `mistral`, `scaleway`, `ionos`, `eugpt`, `local`) behind the factory in `providers/index.js`. **Add a provider here, never ad hoc elsewhere.** A provider with its own tariff, region or embeddings request also touches the files outside this folder that compare the stored provider type; decision record 0027 (`docs/docs/contributing/decisions/provider-type-outside-the-adapters.md`) lists them. |
 | `core/agentRuntime/` | The streaming chat turn: context building, history hydration, tool dispatch, SSE lifecycle, attachment processing. |
 | `core/automationRunner/` | Execution engine for automations — steps, loops, approvals, pause/resume. |
 | `core/automationModel/` | The automation definition model, pure (no stores, db or network): `bind.js` (the binding resolver), `codeOutput.js` (the Code step's envelope), `sideEffectMap.js` (which tools read, write or send), `approvalStages.js` (the stage chain's rulebook) and `constants.js` (the validator's vocabulary and ceilings). The runner, agentRuntime, App Studio and the builder all read it, so it lives below them; `automation/{bind,codeOutput,sideEffectMap,approvalStages}.js` and `automation/validate/constants.js` are re-export shims. |
@@ -279,20 +279,35 @@ folder that is not in its `LAYERS` table. It then counts every require that
 points UP a layer, or sideways from one feature to another, per pair of units
 (`stores -> core`, `core -> automation`, …), lazy requires inside function
 bodies included, and compares each pair with `server/.layering-ratchet.json`:
-a pair may shrink, never grow, and a pair that is not listed has budget 0. It
+a pair may shrink, never grow, and a pair that is not listed has budget 0. A
+TypeScript file (`.mts`) is an ES module without a `require`; it loads
+CommonJS through `createRequire(import.meta.url)`, called directly or under the
+name `nodeRequire`, and that call is counted like any other require. It
 runs with the server suite and in `npm run check:fast` (`npm run
 lint:layering-ratchet`); `node server/layering.test.js --list` shows each pair's
 count against its budget, and `node server/layering.test.js --update` lowers
 the budget after you remove edges (it never raises one). The baseline was
 measured when every folder got its layer (66 pairs, 599 requires; the biggest
 are `core -> integrations` and `core -> automation`), so the debt is visible per
-pair instead of hidden in one total.
+pair instead of hidden in one total. The budget now holds 41 pairs and 110
+requires.
 
 Cycles are budgeted separately: `npm run lint:scc-ratchet` (`scripts/scc-ratchet.mjs`)
 measures the largest strongly connected component of the import graph, lazy
-requires included, against `server/.scc-ratchet.json`, and fails when a new
-require makes it bigger; `node scripts/scc-ratchet.mjs server --list` prints its
-files.
+requires and `nodeRequire` calls included, `.mts` files included, against
+`server/.scc-ratchet.json`, and fails when a new require makes it bigger or
+adds a cycle; `node scripts/scc-ratchet.mjs server --list` prints the files.
+The largest cycle is 32 files (`appStudio/validate/*` with
+`appStudio/actionExecutor/shared.js`), the next one 15 (`auth/encryption.js`
+with `stores/user*`), and there are 25 cycles in all.
+
+Both budgets carry a `_note` about one correction. Until both gates read
+`.mts` files and the `nodeRequire` call, 15 upward requires in eight pairs and
+the three largest cycles existed without being counted (the budgets said 95
+requires, a largest cycle of 5 and 22 cycles). The numbers were raised once to
+what is measured, without slack; no require was added. A `createRequire` kept
+under any name other than `require` or `nodeRequire` is still not read, so name
+it `nodeRequire`.
 
 Two checks stay hard rather than budgeted:
 
@@ -300,6 +315,11 @@ Two checks stay hard rather than budgeted:
   were the support feature reaching into `routes/support` for helpers that were
   never HTTP, and the MCP token CLI loading `routes/mcpServer` for its signer;
   both sets of functions now live below the route that used to hold them.
+  The same holds for what an App Studio background run shares with a request:
+  the role rules (`appStudio/runGateRules.js`) and the step budgets with their
+  limiters (`appStudio/stepBudget.mts`, `codeStepLimit.mts`, `rateLimits.js`)
+  live in the feature, and `routes/studioAppRunGate.js` answers requests with
+  them.
   The `entry` and `tooling` layers sit above `api` and are exempt — mounting
   routers is a composition root's job.
 - **9 edges in a `license/` ↔ `modules/` cycle.** Legal within one layer, still

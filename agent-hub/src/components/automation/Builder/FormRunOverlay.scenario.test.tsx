@@ -3,7 +3,6 @@
  * page, and keep the answers of a finished run as a new one. The journey itself
  * (pages, polling, where answers go) is FormRunOverlay.test.jsx.
  */
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

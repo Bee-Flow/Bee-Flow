@@ -1,4 +1,3 @@
-import React from 'react';
 import { Globe, ShieldAlert } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';

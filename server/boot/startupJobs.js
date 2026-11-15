@@ -98,7 +98,46 @@ function startRetentionAndComplianceJobs() {
     }
 }
 
-/** MCP, the cowork and automation runners, the project feeds and the OpenObserve pushes. */
+/**
+ * The config cache's cross-replica invalidation listener: a Postgres connection
+ * of its own that LISTENs. Started here and not when stores/configStore is
+ * required, so a script or a generator that loads the store opens no connection.
+ * @param {{ configStore?: { startInvalidationListener: () => unknown } }} [deps] test seam
+ */
+function startConfigInvalidationListener(deps = {}) {
+    try {
+        (deps.configStore || require('../stores/configStore')).startInvalidationListener();
+    } catch (err) {
+        log.warn('[Server] Config invalidation listener start failed:', err.message);
+    }
+}
+
+/**
+ * The schedulers that live inside a store or a runner module: the reminder
+ * checker, the cowork tick (the one scheduler of cowork runs) with its retention
+ * sweep, and the coverage prune of aiTaskRunner, its execution engine. Each is
+ * armed here and not when its module is required: a script, a generator or a test
+ * that loads the app runs no job against the database it happens to point at.
+ * A scheduler that is not started here does not run at all.
+ * @param {{ reminderStore?: Startable, coworkRunner?: Startable, aiTaskRunner?: Startable }} [deps] test seam
+ */
+function startModuleSchedulers(deps = {}) {
+    /** @type {Array<[string, () => unknown]>} */
+    const starts = [
+        ['Reminder checker', () => (deps.reminderStore || require('../stores/reminderStore')).start()],
+        ['Cowork runner', () => (deps.coworkRunner || require('../core/cowork/coworkRunner')).start()],
+        ['Cowork coverage prune', () => (deps.aiTaskRunner || require('../core/aiTaskRunner')).start()],
+    ];
+    for (const [name, start] of starts) {
+        try {
+            start();
+        } catch (err) {
+            log.warn(`[Server] ${name} start failed:`, /** @type {Error} */ (err).message);
+        }
+    }
+}
+
+/** MCP, the automation runner, the project feeds and the OpenObserve pushes. */
 function startRunnersAndFeeds() {
     // Initialize MCP server connections (non-blocking)
     try {
@@ -108,13 +147,6 @@ function startRunnersAndFeeds() {
         );
     } catch (err) {
         log.warn('[Server] MCP manager load failed:', err.message);
-    }
-    // Cowork runner — the one scheduler tick; aiTaskRunner is its execution
-    // engine (and arms the coverage prune when it loads).
-    try {
-        require('../core/cowork/coworkRunner');
-    } catch (err) {
-        log.warn('[Server] Cowork runner load failed:', err.message);
     }
     // Initialize Automation Runner — gated per-org by the 'automations' beta feature
     if (isModuleAvailable('automation')) try {
@@ -139,7 +171,7 @@ function startRunnersAndFeeds() {
     // reconnect-by-cursor, which projectEventBus already solved. No-ops for every
     // automation that is not in a project, which is most of them.
     if (isModuleAvailable('projects')) try {
-        require('../core/projectFeed.runs').start();
+        require('../core/projectContent/projectFeed.runs').start();
     } catch (err) {
         log.warn('[Server] Project run feed bridge load failed:', err.message);
     }
@@ -281,4 +313,9 @@ function startSupportAndSyncJobs() {
     }
 }
 
-module.exports = { startRetentionAndComplianceJobs, startRunnersAndFeeds, startSupportAndSyncJobs };
+module.exports = {
+    startRetentionAndComplianceJobs, startConfigInvalidationListener, startModuleSchedulers,
+    startRunnersAndFeeds, startSupportAndSyncJobs,
+};
+
+/** A module whose background work boot starts by name. @typedef {{ start: () => unknown }} Startable */

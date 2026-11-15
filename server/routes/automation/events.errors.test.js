@@ -22,8 +22,13 @@ const configStore = require('../../stores/configStore');
 const { api } = h.routeUnderTest(test, '/api/automation', () => require('./events'));
 
 const realDispatch = triggerBus.dispatchEvent;
+const realGetSecret = configStore.getSecret;
 const realGetConfig = configStore.getConfig;
-test.afterEach(() => { triggerBus.dispatchEvent = realDispatch; configStore.getConfig = realGetConfig; });
+test.afterEach(() => {
+    triggerBus.dispatchEvent = realDispatch;
+    configStore.getSecret = realGetSecret;
+    configStore.getConfig = realGetConfig;
+});
 
 function assertGeneric500(res) {
     assert.strictEqual(res.status, 500, res.text);
@@ -40,7 +45,7 @@ test('a failing dispatch is the generic 500 on the gmail hook', async () => {
 });
 
 test('the github hook without a secret is a 503 with a code', async () => {
-    configStore.getConfig = async () => null;
+    configStore.getSecret = async () => null;
     const res = await api.call('POST', '/api/automation/events/github', { body: { zen: 'x' } });
     assert.strictEqual(res.status, 503, res.text);
     assert.strictEqual(res.body.code, 'github_webhooks_unconfigured');
@@ -49,7 +54,7 @@ test('the github hook without a secret is a 503 with a code', async () => {
 
 test('the github hook: a failing dispatch is the generic 500', async () => {
     const crypto = require('crypto');
-    configStore.getConfig = async () => 'secret';
+    configStore.getSecret = async () => 'secret';
     triggerBus.dispatchEvent = async () => { throw new Error('bus down'); };
     const body = { zen: 'x' };
     const sig = 'sha256=' + crypto.createHmac('sha256', 'secret').update(JSON.stringify(body)).digest('hex');
@@ -58,7 +63,7 @@ test('the github hook: a failing dispatch is the generic 500', async () => {
 
 test('the github hook: a signature with non-ASCII characters of the right length is a 401, not a 500', async () => {
     const crypto = require('crypto');
-    configStore.getConfig = async () => 'secret';
+    configStore.getSecret = async () => 'secret';
     let dispatched = 0;
     triggerBus.dispatchEvent = async () => { dispatched += 1; return []; };
     const body = { zen: 'x' };
@@ -90,4 +95,19 @@ test('the msgraph hook: only a notification carrying the subscription\'s own cli
     } finally {
         automationStore.getSubscriptionByExternalRef = realLookup;
     }
+});
+
+test('the github hook reads its secret decrypted: a row the server encrypted at start-up still verifies', async () => {
+    const crypto = require('crypto');
+    // What the config table holds after a restart, and what getSecret makes of it.
+    configStore.getConfig = async () => ({ v: 1, iv: 'x', tag: 'y', data: 'z' });
+    configStore.getSecret = async () => 'secret';
+    let dispatched = 0;
+    triggerBus.dispatchEvent = async () => { dispatched += 1; return []; };
+    const body = { zen: 'x' };
+    const sig = 'sha256=' + crypto.createHmac('sha256', 'secret').update(JSON.stringify(body)).digest('hex');
+    const res = await api.call('POST', '/api/automation/events/github', { body, headers: { 'X-Hub-Signature-256': sig, 'X-GitHub-Event': 'ping' } });
+    assert.notStrictEqual(res.status, 401, res.text);
+    assert.ok(res.status < 300, res.text);
+    assert.strictEqual(dispatched, 1);
 });

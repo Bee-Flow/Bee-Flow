@@ -1,5 +1,5 @@
 import { FlaskConical, Hourglass } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ApprovalDecisionControls from '../../admin/Studio/Approvals/ApprovalDecisionControls';
 import { FormRichText } from '../../forms/PublicFormRenderer';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';

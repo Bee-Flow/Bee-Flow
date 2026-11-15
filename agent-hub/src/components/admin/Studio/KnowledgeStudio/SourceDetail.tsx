@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Ellipsis, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refreshModeKey } from './freshness';
 import { knowledgeApi, type KbDocument, type KbSource } from './knowledgeApi';
 import { nOf } from './plural';
@@ -12,8 +12,6 @@ import useTranslation from '@/hooks/useTranslation';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { ScheduleChange } from './ScheduleMenu';
-import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type { SourceDetailProps, LoadArgs, FilterChipsProps, DocRowProps, PagerProps } from './SourceDetail.types';
 
 const PAGE_SIZE = 50;

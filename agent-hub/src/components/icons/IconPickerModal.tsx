@@ -1,5 +1,5 @@
 import EmojiPicker from 'emoji-picker-react';
-import { Camera, Upload, X, Loader2, Image as ImageIcon, Smile } from 'lucide-react';
+import { Upload, X, Loader2, Image as ImageIcon, Smile } from 'lucide-react';
 import React, { useId, useState, useRef } from 'react';
 import Modal from '../shared/Modal';
 import { toast } from '../shared/Toast';

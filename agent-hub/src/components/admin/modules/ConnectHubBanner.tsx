@@ -1,4 +1,3 @@
-import React from 'react';
 import { Loader2, Plug } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';

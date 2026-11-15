@@ -1,9 +1,10 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Sparkles, Plus, Lock, Users, Link2, Puzzle, RefreshCw, Trash2, ChevronDown, Check } from 'lucide-react';
-import { deriveCompletedSkillIds, classifySessionSkill, type SessionSkill } from './sessionSkillState';
+import { deriveCompletedSkillIds, classifySessionSkill } from './sessionSkillState';
 import SkillFormModal from './SkillFormModal';
 import { useSkills, type SkillForm } from '../../hooks/useSkills';
 import useTranslation from '../../hooks/useTranslation';
+import { dialogIsOpen } from '../shared/dialogStack';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { SessionSkillView, SkillsPopoverProps } from './SkillsPopover.types';
@@ -50,6 +51,7 @@ export default function SkillsPopover({
     const [regenerating, setRegenerating] = useState(false);
     const [deletingSessionSkillId, setDeletingSessionSkillId] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         setSessionSkills(Array.isArray(directSessionSkills) ? directSessionSkills : []);
@@ -66,10 +68,12 @@ export default function SkillsPopover({
             if (clickedInside) return;
             closePopover();
         };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented && !dialogIsOpen()) { closePopover(); triggerRef.current?.focus(); } };
         // Capture phase + composedPath support prevents false "outside click"
         // closes when events originate from/through shadow DOM.
         document.addEventListener('pointerdown', close, true);
-        return () => document.removeEventListener('pointerdown', close, true);
+        document.addEventListener('keydown', onKey); // Escape closes too and hands focus back to the button; a dialog on top (the create form, a confirmation) keeps its own Escape
+        return () => { document.removeEventListener('pointerdown', close, true); document.removeEventListener('keydown', onKey); };
     }, [open]);
 
     const attachedSet = useMemo(() => new Set(attachedSkillIds), [attachedSkillIds]);
@@ -235,13 +239,14 @@ export default function SkillsPopover({
         <div className="relative" ref={popoverRef}>
             {!hideTrigger && (
             <button
+                ref={triggerRef}
                 onClick={() => {
                     setOpen(v => !v);
                     setSearch('');
                     if (!skills.length) refresh();
                     if (directMode && directConversationId) refreshSessionSkills();
                 }}
-                title={t('skills.title', 'Skills')}
+                title={t('skills.title', 'Skills')} aria-label={t('skills.title', 'Skills')} aria-expanded={open}
                 className={
                     buttonClassName ||
                     `p-2 rounded-lg transition-colors flex items-center gap-1 ${open ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`
@@ -276,7 +281,7 @@ export default function SkillsPopover({
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder={t('agent_skills.search', 'Search skills…')}
+                            placeholder={t('agent_skills.search', 'Search skills…')} aria-label={t('agent_skills.search', 'Search skills…')}
                             autoFocus
                             className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]!"
                         />
@@ -339,10 +344,10 @@ export default function SkillsPopover({
                                             type="checkbox"
                                             checked={isActive}
                                             onChange={() => { if (!isAttached && (isActive || canActivateMore)) onToggleSkill?.(skill.id); }}
-                                            disabled={isAttached}
+                                            disabled={isAttached} aria-label={skill.name}
                                             className="sr-only peer"
                                         />
-                                        <div className={`w-9 h-5 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:bg-emerald-500 ${isAttached ? 'bg-emerald-500/60' : 'bg-gray-300'}`} />
+                                        <div className={`w-9 h-5 rounded-full peer peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent-primary)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white peer-checked:bg-emerald-500 ${isAttached ? 'bg-emerald-500/60' : 'bg-gray-300'}`} />
                                     </label>
                                 </div>
                             );

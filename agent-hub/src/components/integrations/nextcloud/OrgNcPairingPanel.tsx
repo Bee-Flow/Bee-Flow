@@ -1,5 +1,5 @@
 import { Copy, Check, RefreshCw, Trash2, ServerCog } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '@/hooks/useTranslation';

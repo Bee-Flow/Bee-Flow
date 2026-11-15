@@ -3,7 +3,7 @@
 // can never disagree about a limit or a choice.
 
 import { Check } from 'lucide-react';
-import React, { useId } from 'react';
+import { useId } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import FormField from '../../shared/FormField';
 import { safeProjectColor, swatchStyle } from './projectVisuals';

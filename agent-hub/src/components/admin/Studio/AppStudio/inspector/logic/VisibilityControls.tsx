@@ -1,5 +1,4 @@
 import { Eye } from 'lucide-react';
-import React from 'react';
 import FormulaField from './FormulaField';
 import StudioScopeProvider from './StudioScopeProvider';
 import Toggle from '@/components/shared/Toggle';

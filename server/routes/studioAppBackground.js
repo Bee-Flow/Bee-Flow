@@ -30,7 +30,7 @@ const { sessionUser } = require('../core/http/sessionUser');
 const R = require('./studio/appRuntimeSchemas');
 const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, pickDefinition, resolveViewerRole } = require('./studioAppRunGate');
 const { sanitizeBag, flattenSteps, normalizeSequence } = require('../appStudio/actionSequence');
-const { HEAVY_STEP_KINDS } = require('./studioAppStepBudget.mts');
+const { HEAVY_STEP_KINDS } = require('../appStudio/stepBudget.mts');
 const { HttpError } = require('../core/http/errors');
 
 /** @typedef {{ kind?: unknown, background?: unknown, runOn?: unknown, lockKey?: unknown, steps?: unknown }} RunAction  an action of the definition, as far as these routes read it */

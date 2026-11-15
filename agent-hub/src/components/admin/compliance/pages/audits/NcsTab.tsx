@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Plus, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
-import React, { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
     NC_STATUS, NC_SEVERITY, NC_SOURCE, labelOf, toneOf, userName, fmtDate, dateInputValue, isOverdue,
     Field, TextInput, TextArea, DateInput, Select, UserSelect, ActionButton, Intro, RegisterLayout,

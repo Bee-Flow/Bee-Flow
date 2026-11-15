@@ -1,6 +1,5 @@
 import { screen } from '@testing-library/react';
 import { renderWithClient } from '@/test/render';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/api/transcriptionsApi', () => ({

@@ -21,7 +21,7 @@
 'use strict';
 
 const { analyzeCode, blockingFindings } = require('../codeSafety');
-const { applyParamValues } = require('../codeSafety/paramValues');
+const { applyParamValues } = require('../../core/automationModel/codeSafety/paramValues');
 
 /**
  * @param {{

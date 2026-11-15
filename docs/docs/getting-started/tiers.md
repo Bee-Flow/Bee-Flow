@@ -12,38 +12,47 @@ update this page as it settles.
 
 :::
 
-Bee Flow ships in three tiers. The **Community** tier is fully functional
-with no licence key — every product feature (chat, automations, voice,
-meeting notes, vector knowledge bases, web crawl, skills, scheduled agent runs,
-multi-user, the Nextcloud connector and every integration) is enabled out of
-the box, with no caps on users, agents, messages or knowledge sources.
+Bee Flow ships in three tiers. The **Community** tier needs no licence key
+and is the free self-hosted core: chat with agents, knowledge bases, skills,
+the automation builder and scheduled agent runs for personal use, multi-user
+with groups, the Nextcloud connector and every built-in integration, with no
+caps on users, agents, messages or knowledge sources.
 
-Paid tiers add compliance, branding, and resale capabilities — not headroom.
+Paid tiers add capabilities, not headroom: **Enterprise** adds working
+together (sharing automations, approvals, projects), the Studio-class features
+(voice, meeting notes, webpage creation, notebooks, App Studio), single
+sign-on with Google or Microsoft, the advanced Privacy Shield modes and the
+compliance hub. **Full** adds white-label branding and sub-licence issuance.
 
 ## At a glance
 
-| Tier         | Users  | Agents | Messages/mo | What it adds over Community |
-|--------------|:------:|:------:|:-----------:|------------------------------|
-| `community`  | unl.   | unl.   | unl.        | (the full product) |
-| `enterprise` | unl.   | unl.   | unl.        | + Compliance Hub (GDPR + AI Act), guardrail DLP, SAML SSO |
+| Tier         | Users  | Agents | Messages/mo | What it adds |
+|--------------|:------:|:------:|:-----------:|--------------|
+| `community`  | unl.   | unl.   | unl.        | Chat, knowledge bases, skills, personal automations, multi-user, the Nextcloud connector, all built-in integrations |
+| `enterprise` | unl.   | unl.   | unl.        | + Sharing automations, approvals, projects, voice, meeting notes, webpages, notebooks, App Studio, Google / Microsoft sign-in, compliance hub (GDPR + AI Act), guardrail DLP |
 | `full`       | unl.   | unl.   | unl.        | + White-label (logo, colours, domain), sub-licence issuance |
 
-The full feature × tier matrix lives in [Licensing → Tiers](../licensing/tiers.md). Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/tiers.js).
+The full feature × tier matrix lives in [Licensing → Tiers](../licensing/tiers.md). Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/license/tiers.js).
 
-## Why Community is enough for most teams
+## What Community includes
 
-Community installs get the whole product:
+- **Chat** — agents with their own prompts and tools.
+- **Workflows** — the automation builder and scheduled agent runs, private to the person who makes them; the Skills marketplace.
+- **Knowledge** — Knowledge Bases.
+- **Integrations** — the Nextcloud connector (including signing in with Nextcloud) and all built-in integrations.
+- **Privacy** — Privacy Shield blocks personal data on every tier.
+- **Admin** — user and group management, organisation settings.
 
-- **Workflows** — Automations, scheduled agent runs, the Skills marketplace.
-- **Conversation** — Push-to-talk voice, voice call, meeting-notes transcription.
-- **Knowledge** — Knowledge Bases and Webpage creation.
-- **Integrations** — Every Nextcloud-bridge feature, all 30+ tool integrations, OAuth-write Nextcloud access.
-- **Privacy** — Privacy Shield (Standard, Strict, Custom) is enabled on every tier.
-- **Admin** — User & group management, beta-feature opt-in, org settings.
+## What needs Enterprise
 
-A team only needs **Enterprise** if it has a hard regulatory or
-identity-management requirement (SAML SSO, GDPR/AI-Act compliance hub, DLP
-rules). **Full** is for partners shipping Bee Flow under their own brand or
+- **Working together** — sharing automations across a team, approvals, projects.
+- **Studio-class features** — voice, meeting notes, webpage creation, notebooks, App Studio.
+- **Identity** — sign-in with Google or Microsoft. (Signing in with Nextcloud is Community; there is no SAML sign-in.)
+- **Privacy** — tokenizing personal data instead of blocking it, the web-search guard, your own data types.
+- **Compliance** — the compliance hub, guardrail DLP rules, audit log export.
+- **Beta features** — features in beta, the MCP server marketplace among them.
+
+**Full** is for partners shipping Bee Flow under their own brand or
 issuing sub-licences to downstream customers.
 
 ## Where the limits fire
@@ -65,22 +74,28 @@ Counter state is in Postgres; nothing is sent off-machine.
 
 The server uses a `requireLicenseFeature(name)` middleware that returns 403
 to any user/org without the feature. Community-tier features (`skills`,
-`kb_unlimited`, `custom_themes`, etc.) pass through silently. The gates
-that actually fire are the paid ones:
+`kb_unlimited`, `automations`, etc.) pass through silently. The gates
+that actually fire are the paid ones, for example:
 
 | Feature flag | Tier | What it unlocks |
 |--------------|------|-----------------|
+| `voice_chat` | Enterprise+ | Voice chat |
+| `meeting_notes` | Enterprise+ | Transcription and summaries of meetings |
+| `webpages` | Enterprise+ | AI-built webpages |
+| `approvals` | Enterprise+ | Browsing approvals; deciding one that is already pending is never blocked |
 | `compliance_hub_gdpr` | Enterprise+ | `/api/compliance`, guardrail audit log export, DSR flows |
-| `compliance_hub_aia` | Enterprise+ | AI Act compliance hub |
-| `sso_saml` | Enterprise+ | SAML 2.0 identity-provider config |
+| `sso_saml` | Enterprise+ | Sign-in with Google or Microsoft. The flag's name is historical: there is no SAML sign-in |
 | `guardrails_dlp` | Enterprise+ | DLP rule editor and enforcement |
 | `white_label` | Full | Replace branding, custom theme assets |
 | `license_issuance` | Full | Mint sub-licences for downstream tenants |
 
+The complete list is in [Licensing → Tiers](../licensing/tiers.md#feature-flag-names).
+
 ## Legacy Pro keys
 
-Bee Flow previously offered a paid **Pro** tier. It has been retired — every
-Pro feature now ships in Community. Existing licence keys carrying
+Bee Flow previously offered a paid **Pro** tier. It has been retired: its
+features now ship in Enterprise, except the automation builder, skills and
+unlimited knowledge bases, which are in Community. Existing licence keys carrying
 `tier: "pro"` continue to validate and silently resolve to `enterprise`, so
 paying customers retain access (and gain the compliance features) without
 needing to reactivate.

@@ -1,5 +1,4 @@
 import { AlertTriangle, ShieldOff } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface HealthBannerProps {

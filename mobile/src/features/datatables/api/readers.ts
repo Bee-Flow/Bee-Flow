@@ -2,7 +2,7 @@
  * Contract readers for /api/datatables, each verified against the server
  * source it reads:
  *
- *   table      routes/datatables/projection.publicTable (+ usageCount on the list)
+ *   table      usecases/datatables/projection.publicTable (+ usageCount on the list)
  *   list       routes/datatables/tables.js GET / — `{datatables, scope}`
  *   schema     routes/datatables/schema.js — `{fields, modelVersion}`, fields as
  *              dataModel/datatableFields.normalizeFields writes them

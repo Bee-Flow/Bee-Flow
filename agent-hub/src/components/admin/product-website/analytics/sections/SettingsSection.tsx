@@ -8,17 +8,15 @@
  * public origin while every server→Umami call quietly fails).
  */
 import { ArrowLeft, ExternalLink, Globe, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { analyticsApi, analyticsFetch, type AnalyticsResponse } from '../../analyticsApi';
+import { analyticsApi, analyticsFetch } from '../../analyticsApi';
 import { rich } from '../rich';
 import { Card, ErrorNote } from '../AsyncCard';
-import { ACCENT } from '../BarList';
 import type { TrackerSettings, RecorderSettings, CheckItem, DiagnoseResponse, StatusResponse, SettingsSectionProps, RecorderCardProps, ConnectionCardProps, RowProps, ModeChipProps } from './SettingsSection.types';
 import { SitesCard } from './SitesCard';
 import { TrackerCard, Field, Toggle, inputClass, labelClass } from './TrackerCard';
 import { EYEBROW, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
-import { pillClass } from '../ui';
 
 export default function SettingsSection({ settings, sites = [], onSaved, onSitesChanged, onClose }: SettingsSectionProps) {
     const { t } = useTranslation();

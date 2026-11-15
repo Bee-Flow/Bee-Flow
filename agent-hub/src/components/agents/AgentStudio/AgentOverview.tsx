@@ -1,5 +1,5 @@
 import { Bot, Loader2, Plus, Search } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import AgentCard from './AgentCard';
 import { NO_CATEGORY, categoryChipsOf, filterAgents } from './agentCardFacts';
 import type { AgentListRow, CategoryLike } from './agentCardFacts';

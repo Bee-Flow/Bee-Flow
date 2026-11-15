@@ -1,5 +1,4 @@
 import { Download, Loader2, Sparkles, Trash2, Users } from 'lucide-react';
-import React from 'react';
 import AppIcon from './appIcon';
 import { accentTile, CARD_STYLE } from './cardStyle';
 import { templateTexts } from './templateText';

@@ -1,6 +1,5 @@
 import { render, screen, cleanup, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach, type Mock } from 'vitest';
 import { attestationDueAt, needsAttestation } from './trainingAttestation';
 import TrainingPage from './TrainingPage';

@@ -1,10 +1,9 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
-import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import GhostStepNode from './GhostStepNode';
 import type { ComponentProps } from 'react';
-import { partial, stub } from '@/test/mocks';
+import { stub } from '@/test/mocks';
 
 /**
  * The ghost slot ahead of the build frontier.

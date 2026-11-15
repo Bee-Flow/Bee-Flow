@@ -1,4 +1,3 @@
-import React from 'react';
 import beeFlowLogo from '../assets/bee-flow-logo.svg';
 import beeFlowIcon from '../assets/BeeFlow-logo-Icon-2026.svg';
 import { useTranslation } from '../hooks/useTranslation';

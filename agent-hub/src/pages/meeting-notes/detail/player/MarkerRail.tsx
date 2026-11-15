@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
 import { formatDuration } from '../../lib/format';
 import type { TimelineMarker } from './player.types';

@@ -7,7 +7,6 @@
 
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import DatatableSharing from './DatatableSharing';
 import { datatablesApi } from './datatablesApi';

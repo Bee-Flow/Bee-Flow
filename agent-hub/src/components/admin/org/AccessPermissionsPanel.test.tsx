@@ -2,7 +2,6 @@
 // no longer saves an organisation on mount; only a change of the picker while
 // the panel is open writes the session's selected organisation.
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessPermissionsPanel from './AccessPermissionsPanel';
 import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';

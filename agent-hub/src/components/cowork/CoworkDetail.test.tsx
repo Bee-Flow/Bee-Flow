@@ -1,6 +1,5 @@
 import { render as rtlRender, screen, cleanup, waitFor, act, within, RenderOptions } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkDetail from './CoworkDetail';
 import { queryWrapper } from '../../test/queryWrapper';

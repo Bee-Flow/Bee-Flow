@@ -6,7 +6,6 @@
 
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ProjectTeamChat from './ProjectTeamChat';
 import { installServer, MEMBERS, message, PROJECT, renderLive, reply, teamChat, type StreamHolder, type TestServer } from './teamChatTestKit';

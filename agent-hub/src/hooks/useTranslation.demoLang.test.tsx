@@ -3,7 +3,6 @@
  * the marketing page around it. It must never write the visitor's stored
  * choice, and must not ask the server for an org default locale.
  */
-import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TranslationProvider, useTranslation } from './useTranslation';

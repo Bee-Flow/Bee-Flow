@@ -1,4 +1,3 @@
-import React from 'react';
 import DesignEditor from '../DesignEditor';
 import ShareImageSettings from './ShareImageSettings';
 import type { EditableDesign } from '@/marketing/ProductWebsite.types';

@@ -1,5 +1,5 @@
 import { Copy, Check, X } from 'lucide-react';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorBody, RefusedError } from '@/api/mutate';

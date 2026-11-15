@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ClipboardPaste, Upload } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';

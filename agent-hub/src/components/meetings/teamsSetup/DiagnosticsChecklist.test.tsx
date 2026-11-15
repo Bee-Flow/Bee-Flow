@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import DiagnosticsChecklist from './DiagnosticsChecklist';
 import type { TeamsCheck } from './types';
 

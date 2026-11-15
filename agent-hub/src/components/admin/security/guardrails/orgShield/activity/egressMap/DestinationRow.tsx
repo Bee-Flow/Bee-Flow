@@ -7,7 +7,7 @@
  */
 
 import { Info } from 'lucide-react';
-import React, { useId } from 'react';
+import { useId } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { fNum } from '@/pages/settings/usage/format';

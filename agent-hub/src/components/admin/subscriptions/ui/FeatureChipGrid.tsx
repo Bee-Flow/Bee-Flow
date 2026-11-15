@@ -1,4 +1,3 @@
-import React from 'react';
 import { Check } from 'lucide-react';
 import { FEATURE_OPTIONS } from '../constants';
 

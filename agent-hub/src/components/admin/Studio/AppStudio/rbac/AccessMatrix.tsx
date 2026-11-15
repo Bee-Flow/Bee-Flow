@@ -1,5 +1,5 @@
 import { Check, LayoutGrid } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import useAppRoles from './useAppRoles';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import useTranslation from '@/hooks/useTranslation';

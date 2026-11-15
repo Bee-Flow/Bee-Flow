@@ -1,4 +1,4 @@
-import React, { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import { Send, Loader, X } from 'lucide-react';
 import type { DraftStatusMap } from '@/hooks/useDraftAction';
 import useTranslation from '@/hooks/useTranslation';

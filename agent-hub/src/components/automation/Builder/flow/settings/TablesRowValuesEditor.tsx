@@ -24,7 +24,7 @@
 // Auto-map candidates) is ./tablesRowValues.js; title matching is
 // ./columnMatch.js, which the server mirrors.
 import { RefreshCw, Trash2 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import { EmptySlotNote } from '../../mapping/fieldChrome';
 import FieldKindIcon from '../../mapping/FieldKindIcon';
@@ -37,11 +37,8 @@ import {
     actionButtonClass, cardClass, denseInputClass, fieldLabelClass, hintTextClass,
     INLINE_LINK, listBadgeClass, requiredChipClass, subLabelClass,
 } from './formStyles';
-import { columnKind, literalTableId, loadTableColumns, normaliseColumn, parseTitleList, placeKeys, readValuesMap, TYPE_LABEL, TYPE_LABEL_UNKNOWN, type TableColumn, type FeedGroup, type JsonValue } from './tablesRowValues';
+import { columnKind, literalTableId, loadTableColumns, normaliseColumn, parseTitleList, placeKeys, readValuesMap, TYPE_LABEL, TYPE_LABEL_UNKNOWN, type TableColumn } from './tablesRowValues';
 import type { Binding } from '../../mapping/itemRefs';
-import type { OnFocusField } from '../../mapping/focusField.types';
-import type { UpstreamNode } from '../../mapping/upstream/upstream.types';
-import type { UpstreamGroup } from '../../mapping/deepFields';
 import type { TablesRowValuesEditorProps, TypeBadgeProps, ColumnRowProps, ManualTitlesProps, StrayKeysProps, WholeRowSlotProps } from './TablesRowValuesEditor.types';
 import { AutoMap } from './AutoMap';
 

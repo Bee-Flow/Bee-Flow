@@ -52,6 +52,8 @@ The server is configured entirely through environment variables. Mirror the `ser
 - `SERVICES_API_KEY` — shared secret between the server and the sidecars. Required: the guard and classify pods refuse to start without it.
 - `PII_SERVICE_URL` (+ `PII_SERVICE_API_KEY`) — points the server at the guard, if you deploy it.
 - `PORT` — the server's listen port (`3001` in the compose setup).
+- **`STUDIO_APP_ENGINE`** — set it to `pg` before you run more than one server replica; the
+  default (`sqlite`) supports one. See [the warning below](#server-replicas).
 
 The full variable reference is [Environment variables](env.md). Do not carry over folklore from
 generic Node deployments: the server reads no `JWT_SECRET`, `DB_HOST` or `DB_NAME` — database
@@ -66,13 +68,14 @@ kind: Deployment
 metadata:
   name: beeflow-server
 spec:
-  replicas: 2
+  replicas: 1   # raise only with STUDIO_APP_ENGINE=pg, see "More than one server replica" below
   selector:
     matchLabels: { app: beeflow-server }
   template:
     metadata:
       labels: { app: beeflow-server }
     spec:
+      terminationGracePeriodSeconds: 60   # the graceful shutdown takes up to ~40 s
       containers:
         - name: server
           image: ghcr.io/bee-flow/server:sha-<commit from the release notes>
@@ -81,19 +84,70 @@ spec:
             - configMapRef: { name: beeflow-config }   # non-secret vars
             - secretRef: { name: beeflow-secrets }     # SESSION_SECRET, MASTER_ENCRYPTION_KEY, …
           readinessProbe:
-            httpGet: { path: /api/health, port: 3001 }
+            httpGet: { path: /api/ready, port: 3001 }    # 503 until the pod can serve
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
-            httpGet: { path: /api/health, port: 3001 }
+            httpGet: { path: /api/health, port: 3001 }   # 200 while the process runs
             initialDelaySeconds: 30
             periodSeconds: 30
 ```
 
+The two probes ask different questions, so point them at different paths:
+
+- **`/api/health`** is liveness: `200` for as long as the process runs. It does not touch the
+  database, so a database outage never makes Kubernetes restart healthy pods.
+- **`/api/ready`** is readiness: `200 {"ready":true}` when the pod can serve, otherwise `503`
+  with a `reason`: `starting` (the schema and the boot migrations are still running; after
+  `BOOT_READY_TIMEOUT_MS`, 5 minutes by default, a step that is still running no longer holds
+  the pod back), `database` (unreachable), `schema` (the core tables are missing) or
+  `shutting_down`. A rolling update therefore only sends traffic to a new pod once its
+  migrations have run, and stops sending it to a pod that received `SIGTERM`.
+
+On `SIGTERM` the server stops accepting connections, lets running automations finish (25 s at
+most, `AUTOMATION_DRAIN_TIMEOUT_MS`), flushes what it still holds in memory and exits `0`. That
+takes up to about 40 seconds, which is more than the Kubernetes default of 30: keep
+`terminationGracePeriodSeconds` at 60, and keep the image's own command (`node index.js`), so
+the signal reaches the server instead of a wrapper.
+
+### More than one server replica {#server-replicas}
+
+:::warning[Two replicas need `STUDIO_APP_ENGINE=pg`]
+
+The default App Studio engine (`STUDIO_APP_ENGINE=sqlite`) keeps the records of each app in one
+SQLite file in object storage, written by a single server process. With two replicas, two pods
+end up writing the same app: the pod that saves second has its save refused, loses the changes
+it had not saved yet (up to a few seconds of work) and refuses every further write to that app.
+Run more than one replica only on the Postgres engine, which keeps each app in its own schema in
+`beeflow_core`:
+
+- **New install:** put `STUDIO_APP_ENGINE: "pg"` in the `beeflow-config` ConfigMap before anyone
+  makes an app.
+- **Apps already exist:** with one replica running, move them (the first command is a rehearsal
+  that changes nothing), then set the variable, let the Deployment roll and scale out:
+
+  ```bash
+  kubectl exec deploy/beeflow-server -- node scripts/migrateStudioAppsToPg.js --all --dry-run
+  kubectl exec deploy/beeflow-server -- node scripts/migrateStudioAppsToPg.js --all
+  ```
+
+  The script moves each app into its own schema, checks the row counts before it commits and
+  leaves the old file in object storage as a backup. A moved app is not served by a pod that
+  still runs the default engine, so do the move and the roll in one maintenance window.
+
+Until then keep `replicas: 1`. A server that starts in a cluster on the default engine logs a
+warning about this; with one replica that line can be ignored.
+
+The database a page of the Webpages feature can have is the same kind of single-writer file
+and has no Postgres engine: with several replicas, a page database that two pods write is
+refused on the second pod in the same way.
+
+:::
+
 Sessions are stored in Postgres, so multiple server replicas work without sticky sessions or
 Redis. The guard needs a generous readiness window (it loads its model before `/ready` goes
 green) — and note it [fails closed](env.md#service-to-service-sidecars): chat is blocked while no guard replica
-is ready, so run two replicas if a restart must not interrupt service.
+is ready, so run two guard replicas if a restart must not interrupt service.
 
 ### Token-signing secrets: leave these to the server
 

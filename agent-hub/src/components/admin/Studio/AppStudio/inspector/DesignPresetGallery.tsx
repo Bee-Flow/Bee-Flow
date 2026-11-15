@@ -1,4 +1,3 @@
-import React from 'react';
 import { APP_DESIGN_PRESETS } from '../runtime/appDesignPresets';
 import { FONT_STACKS } from '../runtime/appDesign';
 

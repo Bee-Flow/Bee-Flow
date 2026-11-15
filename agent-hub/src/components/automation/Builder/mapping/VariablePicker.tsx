@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { filterFields } from './filterFields';
-import { type ListShape } from './listShape';
 import type { GroupField } from './deepFields';
 import type { VariablePickerProps } from './VariablePicker.types';
 import { groupForPath, resolveLeafPreview } from './VariablePicker.helpers';

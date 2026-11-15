@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePublicLocalesQuery } from '../../api/queries/publicSite';
 import { API_BASE } from '../../utils/helpers';
 import AppIcon from '../../components/icons/AppIcon';

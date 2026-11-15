@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { GoldenItem } from '@/api/queries/automation/runChecks';

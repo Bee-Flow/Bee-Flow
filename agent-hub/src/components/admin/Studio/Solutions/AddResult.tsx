@@ -1,4 +1,3 @@
-import React from 'react';
 import Notice from './Notice';
 import type { AddOutcome } from './useAddFiling';
 import { useTranslation } from '@/hooks/useTranslation';

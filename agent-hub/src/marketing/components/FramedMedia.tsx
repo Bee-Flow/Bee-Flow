@@ -1,4 +1,3 @@
-import React from 'react';
 import { resolveAssetUrl, assetSrcSet, ASSET_IMG_SIZES } from '../assetUrl';
 import ClipVideo from './ClipVideo';
 import LazyLoopVideo from './LazyLoopVideo';
@@ -40,7 +39,7 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
     const srcDark = typeof m.srcDark === 'string' ? m.srcDark.trim() : '';
 
     // Intrinsic dimensions, when publish-time enrichment stored them
-    // (server/core/cms/mediaDims.js). As ATTRIBUTES they give the browser the
+    // (server/utils/mediaDims.js). As ATTRIBUTES they give the browser the
     // aspect ratio to reserve before a single image byte arrives — CSS keeps
     // the rendered size responsive (width:100%; height:auto), so these never
     // fix the display size, only the shape of the reserved box.

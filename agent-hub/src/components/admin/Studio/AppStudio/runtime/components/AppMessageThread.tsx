@@ -4,7 +4,7 @@ import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import type { BindingInput, StaticBinding } from '../resolveBinding.types';
+import type { StaticBinding } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { MessageThreadProps } from './AppMessageThread.types';

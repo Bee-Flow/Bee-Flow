@@ -1,5 +1,4 @@
 import { ShieldCheck } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 
 import { DetectionStatusPill } from './DetectionStatusPill';

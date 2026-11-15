@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Users } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { Toggle, Row, languageOptions } from '@/components/settings/shared/settingsPrimitives';

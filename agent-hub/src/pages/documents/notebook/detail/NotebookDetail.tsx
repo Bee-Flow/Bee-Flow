@@ -4,7 +4,7 @@
  * why (gone or no longer shared, versus a failure worth retrying) instead of
  * bouncing back to the grid with a toast.
  */
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { notebookKeys, useNotebookDetail } from '../notebookQueries';
 import { NotebookLoadError, NotebookSkeleton } from './NotebookSkeleton';

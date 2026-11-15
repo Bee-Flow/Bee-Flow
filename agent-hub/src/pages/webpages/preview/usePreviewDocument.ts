@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import composeWebpageDocument, { type PreviewExtraFile } from '@/utils/composeWebpageDocument';
 import type { ExtraContents, ExtraFileMeta, PrimaryContent } from '@/api/webpageEditorTypes';
-import { errorMessage, describeError } from '@/utils/caughtError';
+import { describeError } from '@/utils/caughtError';
 
 /** Friendly placeholder for a React project stranded in vanilla (plain-HTML) mode. */
 function strandedReactDoc(): string {

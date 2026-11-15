@@ -1,5 +1,5 @@
 import { ChevronDown, Globe, Lock, Building2, Users, Check } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -209,7 +209,8 @@ export default function VisibilityCapsule({
             disabled={disabled}
             aria-haspopup="dialog"
             aria-expanded={open}
-            aria-label={t('visibility.aria_label', 'Visibility')}
+            // The name holds the words on the button: "Visibility: Personal".
+            aria-label={`${t('visibility.aria_label', 'Visibility')}: ${label}`}
             data-testid="visibility-capsule"
             data-variant="capsule"
             data-mode={mode}

@@ -1,5 +1,5 @@
 import { Lock, TriangleAlert } from 'lucide-react';
-import React, { useId, useMemo } from 'react';
+import { useId, useMemo } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MatrixColumn, MatrixKind, MatrixToolPolicy } from './categoryMatrixModel';

@@ -60,7 +60,6 @@ const restoreStubs = installResolveStub({
     './pricingService': {
         getModelPricing: (name) => PRICING[name] || null,
         getPricingByKey: () => null,
-        initPricing: () => { },
         getAllModelPricing: () => PRICING,
         listKnownPricing: () => [
             { id: 'claude-sonnet-4-5', vendor: 'claude', input: 3, output: 15, cacheRead: 0.3, currency: 'USD', source: 'litellm' },

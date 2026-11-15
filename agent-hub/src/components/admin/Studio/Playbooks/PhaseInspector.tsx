@@ -1,5 +1,4 @@
 import { AlertTriangle, ExternalLink, RotateCcw, SkipForward, X } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { canRetry, canSkip, kindOf } from './phaseMachine';

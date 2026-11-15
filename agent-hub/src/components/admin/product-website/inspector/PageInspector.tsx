@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { slugIssues } from '@/utils/cmsPublicRouting';
 import AppIcon from '@/components/icons/AppIcon';

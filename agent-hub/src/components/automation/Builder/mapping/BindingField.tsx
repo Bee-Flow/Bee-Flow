@@ -23,10 +23,9 @@ import { bindingFromInput, canonicalRefPath, detectTemplate, isCleanPath, refPat
 import { useAssistantField } from '../chat/AssistantFieldContext';
 import { useFormMode } from '../flow/settings/formDensity';
 import { denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING_INSET } from '../flow/settings/formStyles';
-import type { OnFocusField } from './focusField.types';
 import type { Binding, ForEachConfig } from './itemRefs';
 import type { Remedy } from './mismatch.types';
-import type { BindingInput, BindingLike } from '../../../../utils/bindingHelpers.types';
+import type { BindingLike } from '../../../../utils/bindingHelpers.types';
 import type { Position } from '../build/addStepModel';
 import type { FieldValue, ResolverState, BindingFieldProps, OnPillClickArgs } from './BindingField.types';
 

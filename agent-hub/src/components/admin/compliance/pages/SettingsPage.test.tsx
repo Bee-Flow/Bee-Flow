@@ -1,6 +1,5 @@
 import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent, { UserEvent } from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { SETTINGS_GROUPS, SETTINGS_FIELD_NAMES, buildSettingsBody, normaliseSettings } from './settings/settingsFields';
 import SettingsPage from './SettingsPage';

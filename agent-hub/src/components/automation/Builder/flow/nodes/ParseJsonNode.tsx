@@ -1,4 +1,3 @@
-import React from 'react';
 import { Braces, Sparkles } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { ForEachBadge, NodeChip } from './StepNodeBase';

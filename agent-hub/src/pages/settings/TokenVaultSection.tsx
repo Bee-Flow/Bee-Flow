@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useConfirm from '../../components/shared/useConfirm';
 
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { ApiError, RefusedError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 import { useTokenVaultPageRead } from '@/api/queries/tokenVault';
 

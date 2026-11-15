@@ -406,7 +406,7 @@
     "stores/automationUsageStore.js": 424,
     "stores/cms/posts.js": 525,
     "stores/cms/projects.js": 586,
-    "stores/configStore.js": 707,
+    "stores/configStore.js": 699,
     "stores/coworkStore.js": 632,
     "stores/customFrameworkStore.js": 514,
     "stores/datatableStore/datatables.js": 728,

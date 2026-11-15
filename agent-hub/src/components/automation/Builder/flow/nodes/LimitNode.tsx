@@ -1,4 +1,3 @@
-import React from 'react';
 import { ChevronsDown } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { limitSummary } from '../nodeSummaries';

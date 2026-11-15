@@ -1,4 +1,3 @@
-import React from 'react';
 import { AudioLines, Loader2, Share2, TriangleAlert } from 'lucide-react';
 import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import useTranslation from '@/hooks/useTranslation';

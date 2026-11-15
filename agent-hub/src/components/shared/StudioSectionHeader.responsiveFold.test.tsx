@@ -45,9 +45,12 @@ describe('StudioSectionHeader — the responsive fold stays wired', () => {
     it('stage 1 (< 1440px) squeezes the name and folds tab labels to icons', async () => {
         const src = await readSource();
         expect(src).toMatch(/max-w-\[22rem\] @max-\[1440px\]\/objhead:max-w-\[12rem\]/);
-        // The label fold is a literal the tabs use AND callers can import.
+        // The label fold is a literal callers can import for their own words.
         expect(src).toMatch(/label: '@max-\[1440px\]\/objhead:hidden'/);
-        expect(src).toMatch(/className=\{OBJHEAD_FOLD\.label\}/);
+        // A tab's word leaves the screen at the same width but stays its
+        // accessible name: an icon-only radio must still say which tab it is.
+        expect(src).toMatch(/<span className="@max-\[1440px\]\/objhead:sr-only">\{tab\.label\}<\/span>/);
+        expect(src).not.toMatch(/className=\{OBJHEAD_FOLD\.label\}/);
     });
 
     it('stage 2 (< 1180px) swaps the segment strip for the tab menu', async () => {

@@ -1,5 +1,5 @@
 import { PlugZap } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { MS_PER_MINUTE } from '@/constants/units';
 import useRelativeTime from '@/hooks/useRelativeTime';

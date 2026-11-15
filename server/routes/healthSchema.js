@@ -49,12 +49,21 @@ async function _probe() {
 }
 
 /**
- * Cachende, nooit-werpende schema-check. Exported voor hergebruik (bv. een
- * toekomstige readiness-gate) en voor de colocated test.
+ * Caching schema check that never throws. Exported for the readiness probe
+ * (routes/ready.js) and for the colocated test.
+ *
+ * `failureTtlMs` is how long an unhealthy outcome may be served from the cache
+ * (default: as long as a healthy one). The readiness probe passes a short one:
+ * a pod whose first look came a moment too early must not stay out of rotation
+ * for the full 30 s.
+ * @param {{ failureTtlMs?: number }} [opts]
  * @returns {Promise<{ok: boolean, schemaReady: boolean}>}
  */
-function getSchemaHealth() {
-    if (_cache && (Date.now() - _cache.at) < CACHE_TTL_MS) return Promise.resolve(_cache);
+function getSchemaHealth({ failureTtlMs = CACHE_TTL_MS } = {}) {
+    if (_cache) {
+        const ttl = (_cache.ok && _cache.schemaReady) ? CACHE_TTL_MS : Math.min(CACHE_TTL_MS, failureTtlMs);
+        if ((Date.now() - _cache.at) < ttl) return Promise.resolve(_cache);
+    }
     if (!_inflight) {
         _inflight = _probe()
             .catch((err) => {
@@ -78,7 +87,8 @@ router.get('/', async (/** @type {import('express').Request} */ req, /** @type {
     res.json({ ok, schemaReady });
 });
 
-module.exports = router;
-/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).getSchemaHealth = getSchemaHealth;
-// Alleen voor tests: de 30s-cache tussen cases legen.
-/** @type {import('express').Router & Record<string, unknown>} */ (module.exports)._resetCache = () => { _cache = null; _inflight = null; };
+module.exports = Object.assign(router, {
+    getSchemaHealth,
+    // Test-only: empty the cache between cases.
+    _resetCache: () => { _cache = null; _inflight = null; },
+});

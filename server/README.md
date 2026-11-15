@@ -56,7 +56,7 @@ inherits everything below it. `license/tiers.js` is the single source of truth.
 | Tier         | Who | Adds |
 |--------------|-----|------|
 | `community`  | Every install, no key required | Chat + agents, knowledge bases (vector/hybrid/reranked), multi-user with groups, all built-in integrations, Nextcloud connector incl. OAuth login, skills, automation builder + scheduled agent runs, learning center |
-| `enterprise` | Paid self-hosted tier | Automation sharing + approvals, voice chat, webpages, meeting notes, notebooks, projects, App Studio, MCP server marketplace, advanced Privacy Shield modes (PII tokenize, web-search guard), compliance hub, SAML/Google/Microsoft SSO, audit log export, custom themes, swarm agents, advanced analytics, content encryption at rest |
+| `enterprise` | Paid self-hosted tier | Automation sharing + approvals, voice chat, webpages, meeting notes, notebooks, projects, App Studio, MCP server marketplace, advanced Privacy Shield modes (PII tokenize, web-search guard), compliance hub, Google/Microsoft SSO (the `sso_saml` flag; there is no SAML sign-in), audit log export, custom themes, swarm agents, advanced analytics, zero-knowledge content encryption (managed encryption is on every tier) |
 | `full`       | Internal/operator tier | White-label branding, license issuance |
 
 The legacy `pro` tier is still accepted on input and resolves to `enterprise`
@@ -66,8 +66,11 @@ The legacy `pro` tier is still accepted on input and resolves to `enterprise`
 
 License keys are signed JWTs minted by Bee Flow's private license server.
 This server verifies them in [`license/verify.js`](./license/verify.js)
-against a public key (`license/bundled-public-key.pem`, provided at
-build/deploy time — not committed) or a JWKS endpoint (`LICENSE_JWKS_URL`).
+(`RS256`) against a public key the operator provides (`LICENSE_PUBLIC_KEY`,
+`LICENSE_PUBLIC_KEY_FILE`) or a JWKS endpoint (`LICENSE_JWKS_URL`). A
+`license/bundled-public-key.pem` next to the module is a development
+fallback: it is not committed, and production refuses it unless
+`LICENSE_ALLOW_BUNDLED_KEY=true`.
 Premium routes are gated with `requireFeature(...)` from
 [`license/middleware.js`](./license/middleware.js). Without a key, every
 install runs at the free `community` tier.

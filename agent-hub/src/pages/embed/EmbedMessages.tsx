@@ -1,4 +1,3 @@
-import React from 'react';
 import type { RefObject } from 'react';
 import MessageItem from '../../components/chat/MessageItem';
 import EmbedAiDisclosure from '../../components/embed/EmbedAiDisclosure';

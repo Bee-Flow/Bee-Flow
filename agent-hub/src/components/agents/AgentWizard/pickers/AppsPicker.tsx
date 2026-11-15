@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import Modal from '@/components/shared/Modal';
 import type { TranslateFn } from '@/hooks/useTranslation';

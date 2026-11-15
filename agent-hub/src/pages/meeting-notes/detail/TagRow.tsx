@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2, Tag, X } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 

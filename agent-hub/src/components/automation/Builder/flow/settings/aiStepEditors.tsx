@@ -18,14 +18,6 @@ import AccordionSection from '../AccordionSection';
 import { humanizeToolName } from '../displayHelpers';
 import FieldHint from '../FieldHint';
 import ToolPicker from '../ToolPicker';
-import type { FormRecord } from './formState/types';
-import type { SetField } from './agentStep/useAgentStepState';
-import type { ModelTierConfig } from '@/hooks/useModelTierSelection';
-import type { Group } from '../../mapping/upstream/upstream.types';
-import type { OnFocusField } from '../../mapping/focusField.types';
-import type { TimelineStep } from '@/components/admin/Studio/Executions/RunStepTimeline';
-import type { StepIssues } from './../nodes/nodeProps';
-import type { ActionCatalog } from './actionEditors/integrationActionFields';
 import type { ToolApp } from '@/components/agents/AgentWizard/canUse/toolCatalogTypes';
 import type { AiStepFieldsProps, AiStepToolSelectProps, KnowledgeBaseRow, AiStepKbSelectProps } from './aiStepEditors.types';
 

@@ -38,26 +38,12 @@ mock('../aiAgent', { getProviderForModel: async () => null });
 mock('../providers', { getAdapter: () => ({}) });
 mock('../../automation/codeSandbox', { run: async () => ({}) });
 
-// Requiring the runner drags in the pricing service, which fires a REAL fetch
-// to GitHub at load. Under --test-force-exit that TLS socket is still in flight
-// when the process is torn down, and libuv aborts on it
-// ("!(handle->flags & UV_HANDLE_CLOSING)") — reported as a file-level failure
-// with every subtest green. A unit test has no business on the network anyway.
-// Two module-load side effects that a unit test has no business carrying, and
-// that BOTH abort libuv on teardown under --test-force-exit
-// ("Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)") — which surfaces as
-// a file-level failure with every subtest green:
-//   decryptAudit arms a never-unref'd cleanup interval at require time;
-//   pricingService fires a REAL fetch to GitHub at require time.
+// A module-load side effect that a unit test has no business carrying, and that
+// aborts libuv on teardown under --test-force-exit
+// ("Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)"), which surfaces as
+// a file-level failure with every subtest green: decryptAudit arms a
+// never-unref'd cleanup interval at require time.
 mock('../../auth/decryptAudit', { trackDecrypt: () => {}, getDecryptStats: () => null });
-mock('../llm/pricingService', {
-    ...require('../llm/pricingService'),
-    // modelCosts.js:28 calls initPricing() at REQUIRE time, which opens a real
-    // HTTPS connection to GitHub. Same no-op the modelCosts.*.test.js siblings
-    // already install; everything else stays real so modelCosts still finds the
-    // API it expects.
-    initPricing: () => {},
-});
 
 // The org's cache policy row, steerable per test.
 const configBlobs = {};

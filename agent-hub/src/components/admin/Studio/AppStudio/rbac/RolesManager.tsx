@@ -1,5 +1,5 @@
 import { Loader2, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useAppRoles, { useOrgDirectory } from './useAppRoles';
 import { resolveAccessEntry } from './rowRuleModel';
 import useTranslation from '@/hooks/useTranslation';
@@ -10,7 +10,6 @@ import type { RuleTable, AccessPerm } from './rowRuleModel.types';
 import type { Filed } from '../../Solutions/useAddFiling';
 import type { DataModelTable } from './useAppRoles';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import type { AppDefinition } from '../inspector/appDefinition';
 import type { RolesManagerProps, SectionHeaderProps } from './RolesManager.types';
 
 /**

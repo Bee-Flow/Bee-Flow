@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Fixed full-bleed backdrop + the singleton SVG <filter> used by
  * `backdrop-filter: url(#glass-lens)` when admin's [data-lens="on"] is set.

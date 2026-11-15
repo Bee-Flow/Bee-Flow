@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { currentThought, renderThinking } from './thinkingMarkdown';
 import type { ReactNode } from 'react';

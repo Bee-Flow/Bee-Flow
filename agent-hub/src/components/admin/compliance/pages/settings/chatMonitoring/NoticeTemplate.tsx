@@ -1,5 +1,4 @@
 import { Check, Copy } from 'lucide-react';
-import React from 'react';
 import useCopyToClipboard from '@/hooks/useCopyToClipboard';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { ChatMonitoringConfig } from '@/components/admin/compliance/data/useChatMonitoring';

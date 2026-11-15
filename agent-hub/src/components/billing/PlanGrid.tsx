@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import PlanCard from './PlanCard';
 import type { NormalizedPlan } from './planModel';

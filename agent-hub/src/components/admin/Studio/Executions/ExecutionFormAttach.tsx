@@ -1,5 +1,5 @@
 import { ClipboardPen, Gavel } from 'lucide-react';
-import React, { Suspense, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { useTranslation } from '@/hooks/useTranslation';
 import { runPhase } from '@/components/automation/Builder/runs/runPhase';

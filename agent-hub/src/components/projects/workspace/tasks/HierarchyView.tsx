@@ -4,7 +4,7 @@
 // "…" menu) start a new child or sibling of the right type in the task dialog.
 
 import { ChevronsDownUp, ChevronsUpDown, ListTree, Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';

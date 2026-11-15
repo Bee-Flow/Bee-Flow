@@ -1,4 +1,3 @@
-/** @typedef {import('pg').PoolClient} PoolClient */
 // @typecheck strict
 /**
  * The runner's lock-guarded background passes (extracted from ./ticks.js,
@@ -14,38 +13,27 @@
 
 'use strict';
 
-const { pool } = require('../../../db');
 // What the passes drive in automation/, jobs/ and meeting notes: see ../featurePorts.js.
 const { runnerPort } = require('../featurePorts');
 const { reapOrphanFormUploads, reapExpiredTestFormPages, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
 const log = require('../../../telemetry/log');
-const { bestEffort } = require('../../../utils/bestEffort');
+const { withSessionLock } = require('../../scheduling/lockSession');
 
 /**
  * Run `run` only when this pod takes the advisory lock `key`; another pod
- * owning it means this tick is theirs. The lock is released (best-effort) and
- * the client returned whatever happens; an error is logged under `label`.
+ * owning it means this tick is theirs. The passes share one pooled connection
+ * for their locks (../../scheduling/lockSession.js) instead of each holding one
+ * for as long as it runs. The lock is released whatever happens; an error is
+ * logged under `label`.
  * @param {number} key
  * @param {string} label
  * @param {() => Promise<unknown>} run
  */
 async function underAdvisoryLock(key, label, run) {
-    let acquired = false;
-    /** @type {PoolClient | undefined} */
-    let client;
     try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [key]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another pod owns this tick
-        await run();
+        await withSessionLock(key, run); // { ran: false }: another pod owns this tick
     } catch (e) {
         log.error(`[AutomationRunner] ${label} error:`, /** @type {Error} */ (e).message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { bestEffort('core/automationRunner/scheduler/passes:underAdvisoryLock', err); /* lock release is best-effort */ }
-            client.release();
-        }
     }
 }
 

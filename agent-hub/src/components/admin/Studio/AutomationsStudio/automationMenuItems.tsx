@@ -1,4 +1,3 @@
-import React from 'react';
 import { Trash2, Copy, Code2, Hash, Pause, Play, History, FolderInput } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ContextMenuItem } from './ContextMenu';

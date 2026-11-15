@@ -1,4 +1,3 @@
-import React from 'react';
 import AiStepModelSection from './chatModelTiers/AiStepModelSection';
 import ChatTiersSection from './chatModelTiers/ChatTiersSection';
 import ClassifierModelSection from './chatModelTiers/ClassifierModelSection';

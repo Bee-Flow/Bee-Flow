@@ -10,7 +10,7 @@
 
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 
 const get = vi.fn();

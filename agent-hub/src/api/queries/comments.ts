@@ -7,7 +7,7 @@
 // for a refetch to show the reader's own action; live feed events (or the
 // polling fallback outside the workspace) invalidate it for everyone else's.
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 import { projectRequest as write } from './projectErrors';
 import { projectKeys, type ProjectRole } from './projects';

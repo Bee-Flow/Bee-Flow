@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AppList from './AppList';
 import BuilderChatPane from './chat/BuilderChatPane';
 import type { AppMetaUpdate } from './chat/useBuilderTurn';

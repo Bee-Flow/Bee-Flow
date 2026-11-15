@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FolderedAutomationList, { MoveToFolderDialog } from './FolderedAutomationList';
 import type { ComponentProps } from 'react';

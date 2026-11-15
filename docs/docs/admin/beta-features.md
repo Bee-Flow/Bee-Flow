@@ -66,4 +66,4 @@ On cloud you change which betas an organisation gets by changing its plan, or th
 When a beta feature misbehaves:
 
 1. Reproduce and capture the server logs (`docker logs` of the server container).
-2. File at [https://github.com/Bee-Flow/beeflow/issues](https://github.com/Bee-Flow/beeflow/issues) with the feature flag in the title.
+2. File at [https://github.com/Bee-Flow/Bee-Flow/issues](https://github.com/Bee-Flow/Bee-Flow/issues) with the feature flag in the title.

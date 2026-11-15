@@ -2,7 +2,6 @@
  * The kind-specific parts of a connector's editor: an app action (its params,
  * its chain, whose connection) and a web address (URL, auth, paging).
  */
-import type { ComponentType } from 'react';
 import { JsonObjectField, TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { CatalogAction, ChainSuggestion, Connector } from './connectorModel';

@@ -54,7 +54,7 @@ const MOCKS = {
     },
     '../auth/audience': { resolveAudienceContext: async () => ({ orgIds: new Set(['org1']), userGroups: [] }) },
     '../auth/permissions': { requireAuth: pass },
-    './studioAppRateLimits': { browseStepLimiter: Object.assign(pass, { check: async () => true }), aiStepLimiter: Object.assign(pass, { check: async () => true }) },
+    '../appStudio/rateLimits': { browseStepLimiter: Object.assign(pass, { check: async () => true }), aiStepLimiter: Object.assign(pass, { check: async () => true }) },
 };
 
 const MOCK_IDS = {};

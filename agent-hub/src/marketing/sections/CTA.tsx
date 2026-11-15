@@ -1,4 +1,3 @@
-import React from 'react';
 import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';

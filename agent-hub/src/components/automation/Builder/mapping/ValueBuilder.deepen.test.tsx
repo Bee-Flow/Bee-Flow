@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ValueBuilder from './ValueBuilder';
 import type { OnFocusField } from './focusField.types';

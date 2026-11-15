@@ -1,5 +1,4 @@
 import { AlertTriangle, CheckCircle2, Clock, Loader2, OctagonX } from 'lucide-react';
-import React from 'react';
 import FormSaveScenario from './FormSaveScenario';
 import { FormEndingView } from '../../forms/PublicFormRenderer';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';

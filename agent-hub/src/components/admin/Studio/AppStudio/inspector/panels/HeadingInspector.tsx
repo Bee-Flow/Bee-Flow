@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import FormField from '@/components/shared/FormField';
 import SegmentedControl from '@/components/shared/SegmentedControl';

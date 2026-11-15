@@ -2,7 +2,7 @@
 'use strict';
 /**
  * What one datatable row tool call is allowed to carry, and how a failure is
- * worded (routes/mcpDatatableTools.js): the refusal of a whole call, the check
+ * worded (usecases/mcpDatatableTools.js): the refusal of a whole call, the check
  * of one row's values against the table's columns, the sentence for a row the
  * database refused. Nothing here touches a store.
  */

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Braces, Hash, Table2, ToggleLeft, Type, Circle } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { RunStepRecord } from '@/api/queries/automation/runs';

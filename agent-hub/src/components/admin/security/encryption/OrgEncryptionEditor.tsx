@@ -18,7 +18,7 @@
  * save that 403s.
  */
 import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useOrgSettingRead } from '@/components/admin/org/useOrgSettingRead';
 

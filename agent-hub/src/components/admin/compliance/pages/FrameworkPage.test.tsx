@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkPage from './FrameworkPage';
 import { renderWithClient } from '@/test/render';

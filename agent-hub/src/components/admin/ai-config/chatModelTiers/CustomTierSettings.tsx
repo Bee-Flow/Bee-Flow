@@ -1,6 +1,5 @@
 // The expanded settings of one custom tier: where it is offered, token limit,
 // temperature and the reasoning controls. Same state and handlers as before.
-import React from 'react';
 import { CUSTOM_TIER_DEFAULTS, TASK_TYPES } from './constants';
 import { clampToEfforts, getModelMeta, isClaudeAdaptiveOnly, isClaudeReasoning, isGpt5, isGpt5Pro, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
 import TierThinkingFields from './TierThinkingFields';

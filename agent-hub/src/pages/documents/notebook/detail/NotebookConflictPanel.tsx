@@ -10,7 +10,7 @@
  *
  * It sits below the header, not in a modal: the editor stays usable.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import VersionCompare from '@/components/versions/VersionCompare';

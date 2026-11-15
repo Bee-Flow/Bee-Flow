@@ -3,7 +3,7 @@
 // unlinking only takes it off the project's list and never touches the base.
 
 import { AlertTriangle, BookOpen, Link2 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useProjectSection, type ProjectKnowledgeBase } from '@/api/queries/projectContent';
 import useTranslation from '@/hooks/useTranslation';
 import { Card, GhostButton, Notice, RemoveButton, SecondaryButton } from '../workspaceUi';

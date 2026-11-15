@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';

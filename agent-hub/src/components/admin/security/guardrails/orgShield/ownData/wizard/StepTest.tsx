@@ -1,5 +1,4 @@
 import { FlaskConical, TriangleAlert, Wand2 } from 'lucide-react';
-import React from 'react';
 
 import Button from '@/components/shared/Button';
 import type { TestResult } from '@/api/queries/customData';

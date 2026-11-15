@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import TokenisedBadge from './TokenisedBadge';

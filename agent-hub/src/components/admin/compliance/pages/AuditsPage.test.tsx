@@ -1,6 +1,5 @@
 import { render, screen, cleanup, within, act, Matcher } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { editPatch, mrInputLabel, mrInputValue, notRaisedCount } from './audits/isoProcessHelpers';
 import AuditsPage, { AUDIT_TABS, resolveTab } from './AuditsPage';

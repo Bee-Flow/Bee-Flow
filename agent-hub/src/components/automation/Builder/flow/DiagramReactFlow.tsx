@@ -1,5 +1,4 @@
-import { ReactFlow, Background, MarkerType } from '@xyflow/react';
-import React from 'react';
+import { ReactFlow, MarkerType } from '@xyflow/react';
 import type { ReactFlowProps } from '@xyflow/react';
 import type { ReactNode } from 'react';
 

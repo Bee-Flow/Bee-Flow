@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Bot, Settings } from 'lucide-react';
 import AgentDesigner from './AgentDesigner/index';

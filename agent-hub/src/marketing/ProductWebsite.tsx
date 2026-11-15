@@ -56,7 +56,6 @@ import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSect
 import { designStyleClasses, designStyleVars } from './blockWrap';
 import { buildBlockOverrideCss } from './blockOverrideCss';
 import { blockFlowOptions } from './blockFlow';
-import { applyTileVars, TILE_VAR_PROPS } from './designTiles';
 import { applyBrandVars, BRAND_VAR_PROPS, roleColor } from './designBrand';
 import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';

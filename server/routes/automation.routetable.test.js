@@ -331,7 +331,6 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/versions.js',
         'routes/automation/webhooksAndRunOps.js',
         'routes/automation/runFiles.js',
-        'usecases/automation/runJourney.js',
         'routes/automation/runTables.js',
         'routes/automation/tablePreview.js',
         'routes/automation/sharing.js',

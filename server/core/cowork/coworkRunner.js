@@ -98,25 +98,48 @@ async function pruneOldRuns() {
     return { deleted, cutoff, ts: new Date().toISOString() };
 }
 
-// Same start-up shape as aiTaskRunner: first sweep after 10s so the stores and
-// the migration have settled, then every minute.
-const _interval = setInterval(processDueCowork, RUNNER_INTERVAL_MS);
-if (_interval.unref) _interval.unref();
-setTimeout(processDueCowork, 10_000).unref?.();
+// ── Background timers ────────────────────────────────────
+// Armed by start(), which boot calls (boot/startupJobs.js), never by requiring this
+// module: the routes require it for executeCowork, and so does every script,
+// generator and test that loads the app. All handles are unref'd.
 
-// Retention runs hourly with a boot kickoff, all unref'd — the
-// _coveragePruneInterval shape from aiTaskRunner. Kickoff a little after the
-// due-sweep's 10s so boot isn't doing both at once.
-const _retentionInterval = setInterval(pruneOldRuns, RETENTION_INTERVAL_MS);
-if (_retentionInterval.unref) _retentionInterval.unref();
-setTimeout(pruneOldRuns, 30_000).unref?.();
+/** @type {NodeJS.Timeout[] | null} */
+let _timers = null;
 
-log.info('[CoworkRunner] Background runner started (60s interval)');
+/**
+ * Start the scheduler tick and the retention sweep. Idempotent.
+ * @returns {boolean} whether this call started them
+ */
+function start() {
+    if (_timers) return false;
+    _timers = [
+        // First sweep after 10s so the stores and the migration have settled,
+        // then every minute.
+        setInterval(processDueCowork, RUNNER_INTERVAL_MS),
+        setTimeout(processDueCowork, 10_000),
+        // Retention runs hourly with a boot kickoff, a little after the
+        // due-sweep's 10s so boot isn't doing both at once.
+        setInterval(pruneOldRuns, RETENTION_INTERVAL_MS),
+        setTimeout(pruneOldRuns, 30_000),
+    ];
+    for (const timer of _timers) timer.unref?.();
+    log.info('[CoworkRunner] Background runner started (60s interval)');
+    return true;
+}
+
+/** Stop the timers start() armed (shutdown, tests). */
+function stop() {
+    // clearTimeout cancels an interval as well: both are the same kind of handle.
+    for (const timer of _timers || []) clearTimeout(timer);
+    _timers = null;
+}
 
 module.exports = {
     processDueCowork,
     executeCowork,
     pruneOldRuns,
+    start,
+    stop,
     // Exposed so a settings/UI surface can state the real window instead of
     // hard-coding "90 days" (mirrors jobs/runRetention.js exporting its own).
     RETENTION_DAYS,

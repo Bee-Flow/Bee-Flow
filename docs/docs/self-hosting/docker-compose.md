@@ -86,13 +86,16 @@ missing) creates the two auxiliary databases and enables the `pgvector` extensio
 ## Activate a licence (unlock paid features) {#activate-a-licence}
 
 Self-hosted installs run on the free **community** tier by default — **no licence key is required**, and
-community is a fully usable floor (chat, knowledge bases, multi-user, the Nextcloud connector). You only
-need a licence to unlock premium features (automations, meeting notes, guardrails, and more).
+community is a fully usable floor (chat, knowledge bases, skills, the automation builder, multi-user, the
+Nextcloud connector). You only need a licence to unlock premium features (sharing automations, voice,
+meeting notes, guardrails, and more; see [Tiers](../licensing/tiers.md)).
 
 To unlock enterprise features for the whole install, sign in as a super-admin → **Admin → Server licence** →
 paste your **server-wide** licence key (a JWT issued by Bee Flow, or an admin-issued blob). Pricing and
-keys are at [beeflow.nl](https://beeflow.nl); see [Applying a licence key](../licensing/apply.md). To
-verify production keys, set `LICENSE_PUBLIC_KEY` (or `LICENSE_PUBLIC_KEY_FILE`) in `.env`.
+keys are at [beeflow.nl](https://beeflow.nl); see [Applying a licence key](../licensing/apply.md). A
+JWT is only accepted when the server has Bee Flow's licence public key: set `LICENSE_PUBLIC_KEY`,
+`LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL` in `.env` first
+([details](../licensing/apply.md#public-key)).
 
 ## Connect your Nextcloud {#connect-nextcloud}
 

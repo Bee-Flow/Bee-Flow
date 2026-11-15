@@ -20,7 +20,6 @@
  */
 
 import { FileText, HelpCircle, Send } from 'lucide-react';
-import React from 'react';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 export interface TestChatInfo {

@@ -10,7 +10,6 @@
  * Run: cd agent-hub && npx vitest run src/marketing/sections/Content.iframe.test.tsx
  */
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 import Content from './Content';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { lazy } from '../utils/lazyWithReload';
 
 // ── Lazy: admin / studio / notebooks / marketplaces ──────────────────

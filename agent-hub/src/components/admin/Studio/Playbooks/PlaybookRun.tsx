@@ -21,8 +21,6 @@ import useTranslation from '@/hooks/useTranslation';
 import { setItem } from '@/utils/scopedStorage';
 import { formatElapsed } from '@/components/shared/builder/formatElapsed';
 import useConfirm from '@/components/shared/useConfirm';
-import type { TranslateFn } from '@/hooks/useTranslation';
-import type { AppUserLike } from '@/components/projects/workspace/types';
 import type { PlaybookOptions, StageProps, PlaybookRunProps } from './PlaybookRun.types';
 import { logger } from '@/utils/logger';
 

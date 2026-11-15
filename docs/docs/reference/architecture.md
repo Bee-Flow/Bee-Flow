@@ -24,7 +24,7 @@ A 30 000 ft view of the Bee Flow stack.
                               ▼     ▼     ▼
                           ┌──────┐ ┌────┐ ┌─────────┐
                           │Postgres│ │Redis│ │SMTP / │
-                          │  16  │ │  7 │ │OAuth/ │
+                          │  15  │ │  7 │ │OAuth/ │
                           └──────┘ └────┘ │license/ │
                                           │..       │
                                           └─────────┘
@@ -47,7 +47,7 @@ Optional sidecars (used when configured):
 
 | Sidecar | Image | Purpose |
 |---------|-------|---------|
-| Guard service | `ghcr.io/bee-flow/guard-service` | Local CPU PII detection (GLiNER multi-PII). Probed at `GUARD_SERVICE_URL`. |
+| Guard service | `ghcr.io/bee-flow/guard` | Local CPU PII detection (GLiNER multi-PII). Probed at `GUARD_SERVICE_URL`. |
 | Classify service | `ghcr.io/bee-flow/classify` | Zero-shot topic classifier for the Condition node's "is about" rule (CPU). Opt-in via `CLASSIFY_SERVICE_URL`. |
 
 The server itself runs fine with none of these. Each sidecar plugs in at a single env var.
@@ -65,7 +65,7 @@ The default knowledge-base pipeline, web search and reranking all run in-process
 
 | Layer | Tech |
 |-------|------|
-| Durable state | Postgres 16+ — users, orgs, agents, conversations, KB chunks (or pointers), automation runs, audit log |
+| Durable state | Postgres 15+ with the `pgvector` extension (the Compose files run `pgvector/pgvector:pg15`) — users, orgs, agents, conversations, KB chunks (or pointers), automation runs, audit log |
 | Cache + sessions | Redis 7 (optional but recommended) |
 | Message bus | Postgres `LISTEN/NOTIFY` for in-process events; Redis pub/sub for cross-replica |
 | Vector index | pgvector (default) or external (via a remote search service) |
@@ -76,11 +76,11 @@ The default knowledge-base pipeline, web search and reranking all run in-process
 
 | Layer | Tech |
 |-------|------|
-| Auth | JWT (ECDSA P-256 for licence, HMAC-SHA256 for sessions); OAuth 2.0; SAML 2.0 |
-| Migrations | Forward-only, applied at server startup; `automatic_migrations` flag governs auto-apply |
+| Auth | A signed session cookie for the browser; licence keys are `RS256` JWTs; the connector presents an `HS256` JWT signed with its tenant key; sign-in with OAuth 2.0 / OpenID Connect (there is no SAML sign-in) |
+| Migrations | Forward-only, applied at server startup (`server/boot/bootMigrations.js`); `cd server && npm run db:migrate` runs the same list by hand |
 | Background jobs | In-process scheduler; cron at the OS level for the connector |
 | Health checks | `/api/health`, `/api/guard/health` |
-| Telemetry | `console`-based logging today; ticket-assistant exposes Prometheus metrics. Global OTel/Prometheus is on the roadmap — see [Telemetry](telemetry.md). |
+| Telemetry | Structured JSON logs in production. OpenTelemetry traces and metrics over OTLP and an admin-gated `GET /api/admin/metrics` are implemented and off by default — see [Telemetry](telemetry.md). |
 
 ## Trust boundaries
 
@@ -115,16 +115,20 @@ The default knowledge-base pipeline, web search and reranking all run in-process
 └──────────────────────────────────────────────────────────┘
 ```
 
-## Repositories
+## Where the code lives
 
-| Repo | Contents | Licence |
+One repository, [`Bee-Flow/Bee-Flow`](https://github.com/Bee-Flow/Bee-Flow), holds every component. The licence
+per directory is in [`LICENSE.md`](https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md).
+
+| Directory | Contents | Licence |
 |------|----------|---------|
-| `Bee-Flow/beeflow` | Server (Node.js + Express) | SUL |
-| `Bee-Flow/hive` | Frontend (React + Vite) | SUL |
-| `Bee-Flow/connector` | NC ExApp (Node.js + Express, Docker) | AGPL-3.0 |
-| `Bee-Flow/docs` | This site | CC-BY-4.0 + MIT |
-| `Bee-Flow/guard-service` | PII guard sidecar (Python + FastAPI) | Apache-2.0 |
-| License server (private repository) | Licence-key minting service and module hub | **PRIVATE** (Bee Flow B.V.) |
+| `server/` | Server (Node.js + Express) | SUL |
+| `agent-hub/` | Frontend (React + Vite) | SUL |
+| `desktop/`, `mobile/` | Desktop client (Electron) and Android client (Expo) | SUL |
+| `nextcloud-connector/` | NC ExApp (Node.js + Express, Docker); mirrored to `Bee-Flow/connector` for the App Store release | AGPL-3.0-or-later |
+| `guard-service/`, `classify-service/` | PII guard and topic classifier sidecars (Python + FastAPI) | SUL |
+| `docs/` | This site | CC-BY-4.0 + MIT |
+| License server (private repository, not in this one) | Licence-key minting service and module hub | **PRIVATE** (Bee Flow B.V.) |
 
 ## Key request flow — a chat turn
 
@@ -178,7 +182,8 @@ The default knowledge-base pipeline, web search and reranking all run in-process
 6. AppAPI marks app as enabled → bee icon appears
    │
    ▼
-7. User clicks bee → SPA loads → /auth/nc-handshake → JWT minted → chat opens
+7. User clicks bee → SPA loads → the connector signs each request to the server
+   (there is no handshake endpoint, see API → Authentication) → chat opens
 ```
 
 ## Where to next

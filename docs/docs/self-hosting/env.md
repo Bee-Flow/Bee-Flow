@@ -8,11 +8,20 @@ The Bee Flow server is configured through environment variables. This page
 covers the operationally important ones, grouped by area; defaults are quoted
 from the example files and the server code, not invented.
 
-The **source of truth** is the pair of annotated example files in the
-repository — every supported variable is listed there with its rationale:
+The annotated example files in the repository list the variables an operator
+normally sets, each with its rationale:
 
+- [`.env.selfhost.example`](https://github.com/Bee-Flow/Bee-Flow/blob/main/.env.selfhost.example) — what `./selfhost.sh` copies to `.env` for a self-hosted server.
 - [`.env.example`](https://github.com/Bee-Flow/Bee-Flow/blob/main/.env.example) — repository root; what the Compose stack and a dev checkout read.
 - [`server/.env.example`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/.env.example) — the server's own template.
+
+Neither this page nor those files are complete. The server reads several
+hundred variables, and most of the ones documented nowhere are tuning knobs
+with a safe default (time-outs, intervals, batch sizes). For a variable you do
+not find here, the code is the reference: search `server/` for its name. The
+switches that relax a safety default are listed under
+[Switches that relax a safety default](#switches-that-relax-a-safety-default)
+below, whether or not an example file names them.
 
 :::warning No silent fallbacks for secrets
 The server **refuses to boot** when a required secret is missing or too weak.
@@ -37,6 +46,7 @@ get effectively published.
 | **`CORE_DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_core` | Connection string for the primary (`beeflow_core`) database — the server's runtime pool. |
 | **`DATABASE_URL`** | `postgresql://beeflow:beeflow@localhost:5432/beeflow_tasks` | Connection string for the productivity-tasks database. |
 | `DB_POOL_MAX` | `40` | Maximum Postgres connections of the core pool, per server process. A query holds a connection only while it runs, so this limits parallel queries, not users. With several replicas keep replicas × `DB_POOL_MAX` below Postgres' `max_connections` (100 in the Compose stack), or put PgBouncer in front. |
+| `CONFIG_CACHE_MAX` | `5000` | Most settings a server process keeps in memory (each for 60 seconds) in front of the `config` table. Above it the expired and then the oldest entries are dropped; a dropped entry costs one extra read. At least `100`. |
 | `MONITORING_DATABASE_URL` | derived by Compose | Monitoring database. The Compose files build all three from `DB_USER` / `DB_PASSWORD` / `DB_NAME` — see [Docker Compose → Three databases](docker-compose.md#three-databases-not-one). |
 
 The Compose stack also creates `beeflow_tasks` and `monitoring_db` on the same
@@ -50,6 +60,9 @@ Postgres instance.
 | `SERVER_BIND_HOST` | `127.0.0.1` | Interface that publishes `SERVER_PORT`. Loopback on purpose: the API is meant to be reached through the agent-hub nginx, where the rate limits and security headers live. Set to `0.0.0.0` only when something off-machine must talk to the API port itself. |
 | `CLIENT_BIND_HOST` | `0.0.0.0` | Interface that publishes `CLIENT_PORT` (the web UI) in the compose stacks. All interfaces by default so a first install is reachable from the LAN. Docker publishes a port ahead of ufw/firewalld — a rule there does not close it — so behind a reverse proxy, and for any stack that must not be reachable from outside the machine, set `127.0.0.1`. A named stack (`STACK_NAME=…`, see [several stacks on one machine](multi-stack.md)) gets that default from `selfhost.sh`. |
 | `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server (a whole number; `0` means none). Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. A value that is not a number refuses to boot. |
+| `HTTP_KEEP_ALIVE_TIMEOUT_MS` | `65000` (65 s) | How long the server keeps an idle connection open. It must be longer than the idle time-out of the proxy or load balancer in front (60 s for nginx and most cloud load balancers), or the proxy now and then reuses a connection the server has just closed and answers 502. Raise it when your proxy keeps idle connections longer than a minute. |
+| `HTTP_HEADERS_TIMEOUT_MS` | `66000` (66 s) | How long a client may take to send its request headers. Always kept at least one second above `HTTP_KEEP_ALIVE_TIMEOUT_MS`. |
+| `BOOT_READY_TIMEOUT_MS` | `300000` (5 min) | How long the readiness probe (`GET /api/ready`) answers `503 starting` while the schema and the boot migrations are still running. After that the server reports ready anyway and logs which step is still running, so a migration that hangs cannot keep a rollout waiting for good. The liveness answer (`/api/health`) never waits for any of this. |
 | `PUBLIC_BASE_URL` | (none) | Public base URL of the API (`https://api.example.com`). Used for outgoing webhooks and callback URLs — and it is the switch that decides whether MS-Graph subscriptions get provisioned at all. |
 | `SERVER_PUBLIC_HOST` / `SERVER_PROTOCOL` | `localhost:3001` / `http` | How the API is addressed externally. |
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |
@@ -72,6 +85,7 @@ Postgres instance.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DEPLOYMENT_MODE` | `cloud` | `cloud` (Bee Flow SaaS — Stripe subscriptions, consumer accounts) or `self-hosted` (customer-run — licence keys, no billing, Community tier by default, organisation domain allow-lists). These are the only two valid values; the retired `private-cloud` is treated as `self-hosted`. |
+| `STUDIO_APP_ENGINE` | `sqlite` | Where App Studio keeps the records of an app. `sqlite`: one SQLite file per app in object storage, written by **one** server process, so it fits a single server container (the compose install). `pg`: a Postgres schema per app in `beeflow_core`, required as soon as more than one server replica runs. Apps made under `sqlite` have to be moved before the switch (`node scripts/migrateStudioAppsToPg.js --all`, with `--dry-run` first); an app is only served by the engine it is marked for. See [Kubernetes](kubernetes.md#server-replicas). |
 
 ## Download size limits
 
@@ -109,6 +123,56 @@ Optional; empty means the default.
 | `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |
 | `OUTBOUND_HTTP_TIMEOUT_MS` | `30000` (30 s) | How long an outbound HTTP call of the server (an integration, an OAuth token exchange, a sidecar such as the guard or search service) may take when the code sets no time-out of its own. Streams and downloads count only the wait for the answer, not the body. `0` = no time-out. |
 | `LEGACY_MCP_TOKEN_MAX_AGE_DAYS` | `365` | MCP access tokens that carry no expiry of their own stop working this many days after they were created. `0` = no limit. |
+
+## Workflow components and internal addresses
+
+A workflow component (the n8n webhook, YouTrack, AFAS, the e-mail sender and the others) runs
+as a process in the server's network and connects where its inputs tell it to. By default a
+component may not reach a private, loopback, link-local or cloud-metadata address. That is
+checked twice:
+
+- before the run, an input that is an `http(s)` URL on such a host is refused:
+  `Input "<name>" points at a private or internal address, which a component may not call.`
+- inside the component's process, every connection it opens is checked again, so an SMTP
+  host, a host name that resolves to an internal address and a name that changes its answer
+  after the first check are refused as well:
+  `Refusing to connect to a private or internal address (<host>)`.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `COMPONENT_ALLOW_PRIVATE_HOSTS` | empty (refuse) | Hosts a component may reach although they are private: a comma-separated list, each host written exactly as the component is given it (`n8n.lan,smtp.lan`; an address when the component is given an address). `1`, `true` or `*` allows every private address. |
+
+Set it when your n8n, YouTrack or mail relay is on a private network. Two hosts need no
+entry: the caller's own Nextcloud (which follows `NEXTCLOUD_ALLOW_PRIVATE_HOSTS`) and the
+host of an outbound proxy set with `HTTP_PROXY` / `HTTPS_PROXY`.
+
+:::warning Whole deployment, every user
+The setting is not per organisation. With `1`, any signed-in user can make a component call
+an internal address of your network. Prefer the list.
+:::
+
+The Compose files pass the variable through to the server; restart the server after a change.
+
+## Switches that relax a safety default
+
+Each of these turns a protection off for the whole deployment, not for one organisation or
+one user. Leave them unset unless the row describes your situation.
+
+A variable must reach the server process to count, and the Compose files pass through only
+what is in the server's `environment:` list. That list has `NEXTCLOUD_ALLOW_PRIVATE_HOSTS`,
+`COMPONENT_ALLOW_PRIVATE_HOSTS` and `FIREBIRD_ALLOW_PRIVATE_HOSTS`. It does not have
+`KB_ALLOW_PRIVATE_HOSTS`, `N8N_ALLOW_INSECURE_TLS` or `LICENSE_ALLOW_BUNDLED_KEY`: for those,
+add a line such as `- KB_ALLOW_PRIVATE_HOSTS=${KB_ALLOW_PRIVATE_HOSTS:-}` to the server service
+in a Compose override file, next to the value in `.env`.
+
+| Variable | Default | What it relaxes |
+|----------|---------|-----------------|
+| `NEXTCLOUD_ALLOW_PRIVATE_HOSTS` | empty (refuse) | Lets the server call a Nextcloud on a private or loopback address. A comma-separated list of hosts allows exactly those; `1` allows every private address, for every Nextcloud address anyone on the server enters. Cloud-metadata addresses stay refused. |
+| `COMPONENT_ALLOW_PRIVATE_HOSTS` | empty (refuse) | Lets workflow components reach private addresses; see [above](#workflow-components-and-internal-addresses). |
+| `KB_ALLOW_PRIVATE_HOSTS` | off | `1` lets knowledge-base web sources fetch private addresses, for an intranet wiki. Only the exact value `1` counts. Cloud-metadata addresses and non-http(s) schemes stay refused. |
+| `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`; see [Inbound and integration limits](#inbound-and-integration-limits). |
+| `N8N_ALLOW_INSECURE_TLS` | off | `1` stops certificate verification for `https` calls to n8n, for a self-signed or internal n8n. Only the exact value `1` counts, and it is read once at start-up. The n8n API key travels over that connection. |
+| `LICENSE_ALLOW_BUNDLED_KEY` | off | `true` lets a production server verify licence keys against a development public key file; see [Connecting to the license server](../licensing/server-deploy.md). |
 
 ## Datatable storage limits
 
@@ -190,7 +254,7 @@ tests and organisation-wide import do.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `LOG_LEVEL` | `info` | `error` / `warn` / `info` / `http` / `debug`. An unrecognised value falls back to `info`. |
+| `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error`. An unrecognised value falls back to `info`. Applies to the JSON logs (`LOG_FORMAT=json`, the default in production). |
 | `OTEL_ENABLED` | off | Set to `true` (or set an endpoint) to start the OpenTelemetry SDK. Fully off by default — zero overhead. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` | (none) | Where traces and metrics go: directly to OpenObserve, or — recommended for production — to an in-cluster OTel collector so the app never holds the OpenObserve secret. |
 | `OTEL_SERVICE_NAME` | `beeflow-server` | Service name in the exported telemetry. |
@@ -240,8 +304,15 @@ at boot; an install that never transcribes never loads Whisper.
 
 ## Everything else
 
-Model-provider keys, OAuth client credentials, SMTP, licensing, retention
-windows, rate limits, edition/module switches and the automation kill switches
-are all documented where they are set: in the two example files linked above.
-Integration API keys entered in the admin UI are stored encrypted in the
-database, not in `.env`.
+OAuth client credentials, SMTP, licensing, retention windows, rate limits,
+edition/module switches and the automation kill switches are documented where
+they are set, in the example files linked above, as far as those files go (see
+the note at the top of this page). Model-provider keys and integration API
+keys entered in the admin UI are stored encrypted in the database, not in
+`.env`.
+
+The server also reads tunables that neither this page nor the example files
+list yet (time-outs, batch sizes, limits of a single route), each with a
+default in the code. From a checkout, `node scripts/env-inventory.mjs --list`
+prints every variable the server reads, the default where the code states one,
+the files that read it, and whether one of these documents mentions it.

@@ -19,7 +19,7 @@
  */
 import { ChevronDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';

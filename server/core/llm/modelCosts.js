@@ -36,7 +36,7 @@
  * Nothing here re-prices history.
  */
 
-const { getModelPricing, getPricingByKey, initPricing } = require('./pricingService');
+const { getModelPricing, getPricingByKey } = require('./pricingService');
 const pricingService = require('./pricingService');
 const priceCatalog = require('../../stores/lib/priceCatalog');
 const { prepareCandidates, estimateRate } = require('./unknownModelRate');
@@ -72,9 +72,10 @@ const {
 // canonical "free" answer for a model the customer runs on their own hardware.
 const LOCAL_MODEL_RATES = Object.freeze({ input: 0, output: 0, cacheRead: 0 });
 
-// Initialize pricing data on startup (non-blocking)
-initPricing();
-
+// The community pricing feed is NOT fetched here: requiring this module from a
+// script, a generator or a test must not open a connection to GitHub. The server
+// starts the fetch in boot/startupProbes.js (startLateWarmups); until it lands,
+// and in any process that never asks for it, rating uses the repo snapshots.
 
 // ─── Unknown models ──────────────────────────────────────────────────────────
 //

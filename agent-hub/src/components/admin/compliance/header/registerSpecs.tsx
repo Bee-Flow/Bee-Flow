@@ -25,7 +25,6 @@ import {
     Sprout, Timer, TriangleAlert,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import { countFor } from '../data/useComplianceCounts';
 import { dpiaRows } from '../pages/DpiaPage';

@@ -38,6 +38,7 @@ module.exports = {
     reportPaygUsage: planSync.reportPaygUsage,
     listLiveSubscriptions: subscriptions.listLiveSubscriptions,
     LIVE_SUBSCRIPTION_STATUSES: subscriptions.LIVE_SUBSCRIPTION_STATUSES,
+    findOrgCustomerIds: checkout.findOrgCustomerIds,
     createCheckoutSession: checkout.createCheckoutSession,
     createTrialSubscription: trial.createTrialSubscription,
     enableAutomaticTaxForExistingSubscriptions: trial.enableAutomaticTaxForExistingSubscriptions,

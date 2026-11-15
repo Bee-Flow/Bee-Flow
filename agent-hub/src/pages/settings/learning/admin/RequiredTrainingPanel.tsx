@@ -1,5 +1,5 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
 import { useAdminOrgScope } from '@/api/adminOrgScope';

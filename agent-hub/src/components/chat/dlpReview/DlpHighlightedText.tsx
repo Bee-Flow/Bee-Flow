@@ -19,7 +19,7 @@
  * the whole document's — regardless of how a renderer chops it up visually.
  */
 import { Plus } from 'lucide-react';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
 import { customLabel } from './DlpFindingsSummaryBar';
 import { buildRuns } from './dlpFindingsState';

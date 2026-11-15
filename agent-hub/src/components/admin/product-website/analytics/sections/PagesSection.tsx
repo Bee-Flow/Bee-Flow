@@ -17,7 +17,7 @@ import { pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
 import { SERIES, Empty, SortableTable, BreakdownTable, fmt, fmtDurationSec, pillClass, rateClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT, ShareBar, maxOf } from '../BarList';
+import { ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler } from '../ui.types';

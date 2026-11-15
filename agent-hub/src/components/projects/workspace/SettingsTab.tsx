@@ -7,7 +7,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check, Save, Settings } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ProjectConflictError, projectKeys, useUpdateProject, type Project, type ProjectRole,
 } from '@/api/queries/projects';

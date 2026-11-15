@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import Toggle from '@/components/shared/Toggle';

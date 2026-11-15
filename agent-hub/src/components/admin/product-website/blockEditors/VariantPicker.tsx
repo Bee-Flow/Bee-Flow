@@ -1,4 +1,3 @@
-import React from 'react';
 import { BLOCK_VARIANTS } from './blockData.generated.mjs';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';

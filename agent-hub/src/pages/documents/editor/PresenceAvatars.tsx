@@ -2,7 +2,6 @@
 // co-editing colour, a pencil dot when they are typing, the names and
 // sections in the tooltip. Nothing when nobody else is here.
 
-import React from 'react';
 import '@/editor/editor.css';
 import { peerClass } from '@/editor/collab/colors';
 import useTranslation from '@/hooks/useTranslation';

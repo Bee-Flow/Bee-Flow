@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { requestsForBindings, subscribeBatchAvailability } from '@/api/dataBatchClient';
 import { DataProvider, useDataState } from './DataContext';

@@ -1,6 +1,5 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ApprovalActionBar from './ApprovalActionBar';
 import { installRunTransport, json, type RunRoute } from '@/test/runTransport';

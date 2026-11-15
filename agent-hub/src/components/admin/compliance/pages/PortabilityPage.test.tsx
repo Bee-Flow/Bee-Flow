@@ -1,5 +1,4 @@
 import { screen, cleanup, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import PortabilityPage, { rowTone, isPortable, coverageSummary, routeLines } from './PortabilityPage';

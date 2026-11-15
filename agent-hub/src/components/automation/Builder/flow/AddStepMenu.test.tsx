@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AddStepMenu from './AddStepMenu';
 import { partial, stub } from '@/test/mocks';

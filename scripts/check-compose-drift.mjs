@@ -11,7 +11,9 @@
  *   1. images: the same third-party image (pgvector, redis, rustfs, umami,
  *      ollama, ...) carries the same tag in every file that names it. Bee Flow's
  *      own images (`${REGISTRY}/x:${TAG}`, `ghcr.io/bee-flow/*`, `beeflow-*`)
- *      take their tag from the environment and are out of scope.
+ *      take their tag from the environment and are out of scope. The service
+ *      containers of ci.yml count as well (IMAGE_ONLY_FILES): the Postgres the
+ *      store tests run against is the one the stack runs.
  *   2. profiles: every profile a compose file declares is in ALL_PROFILES of
  *      selfhost.sh (which --stop / --down / --uninstall use to reach every
  *      sidecar), and every ALL_PROFILES entry is declared in
@@ -45,6 +47,13 @@ export const FILES = [
     'docker-compose.sidecars.yml',
     'docker-compose.shared-sidecars.override.yml',
 ];
+
+/**
+ * Not compose files, but they start the same third-party images: the service
+ * containers of ci.yml. Only their images are compared (check 1), so a bump in
+ * the compose files cannot leave CI testing against the old one.
+ */
+export const IMAGE_ONLY_FILES = ['.github/workflows/ci.yml'];
 
 /** The file selfhost.sh runs, and so the one ALL_PROFILES describes. */
 export const SELFHOST_FILE = 'docker-compose.from-registry.yml';
@@ -199,12 +208,21 @@ export function profileProblems(parsed, all, other = OTHER_PROFILES) {
 }
 
 /** @returns {string[]} one message per problem; empty when the files agree */
-export function check(root = ROOT, files = FILES) {
+export function check(root = ROOT, files = FILES, imageOnly = IMAGE_ONLY_FILES) {
     const problems = [];
     const parsed = {};
     for (const file of files) {
         try {
             parsed[file] = parseCompose(fs.readFileSync(path.join(root, file), 'utf8'));
+        } catch {
+            problems.push(`${file}: cannot read`);
+        }
+    }
+    /** What check 1 compares: the compose files plus the image-only files. */
+    const withImages = { ...parsed };
+    for (const file of imageOnly) {
+        try {
+            withImages[file] = { images: parseCompose(fs.readFileSync(path.join(root, file), 'utf8')).images };
         } catch {
             problems.push(`${file}: cannot read`);
         }
@@ -225,7 +243,7 @@ export function check(root = ROOT, files = FILES) {
             problems.push(`${ENV_TEMPLATE}: cannot read`);
         }
     }
-    problems.push(...imageProblems(parsed));
+    problems.push(...imageProblems(withImages));
     if (all) problems.push(...profileProblems(parsed, all));
     return problems;
 }

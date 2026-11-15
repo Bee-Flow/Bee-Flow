@@ -5,7 +5,7 @@
 // chat id) the tab shows that chat instead.
 
 import { Archive, MessageSquare, Plus, Search, RotateCcw } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useShareThread } from '@/api/queries/projects';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import EmptyState from '@/components/shared/EmptyState';

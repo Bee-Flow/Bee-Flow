@@ -110,27 +110,279 @@
       "count": 1
     }
   },
+  "src/api/achievements.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/actionHttp.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/agentEditor.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/agentSaveApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/agentStudio.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/aiConfig.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/catalogClient.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/cloudFetch.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/complianceApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/connectorHttp.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/conversationKbApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/coworkApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/api/dataBatchClient.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
     "max-statements": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/api/dryRun.ts": {
     "complexity": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/editorHttp.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/embedApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/exerciseCoach.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/formTestLink.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/githubSyncApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/kbOriginal.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/languages.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/learningPath.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/localRuntimeApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/loginRequests.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/modelMeta.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/notebookApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/oauthPopupLaunchers.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/practiceClient.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/agentDesignerPanel.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/agentVersions.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/agentWizardFacts.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/apps.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/agentBindings.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/agents.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/callerNotice.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/codeStep.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/createDraft.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/http.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/library.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/meta.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/pendingApproval.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/people.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/repeating.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/rerun.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
   "src/api/queries/automation/runChecks.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 7
+    },
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/runFiles.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/runTables.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/runChecksParse.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
     }
   },
   "src/api/queries/automation/runs.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
+    },
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/settings.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/tablePreview.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/automation/templates.ts": {
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/api/queries/automation/versions.ts": {
@@ -138,9 +390,112 @@
       "count": 1
     }
   },
+  "src/api/queries/automationBuilderReads.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/builderLookups.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/chatSignals.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/composerSettings.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/configModels.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/coreAppsCatalog.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/coreAuthSession.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/coreIconPack.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/coreKnowledgeBases.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/coreUsage.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/customData.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/encryptionBackfill.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/hubDataFetches.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/integrationStatus.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/integrationsAdmin.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/knowledgeBases.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/meetingNotesConnections.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/meetingNotesSettings.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/modelTiers.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/api/queries/modules.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 14
+    },
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/notebook.ts": {
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/api/queries/notificationPrefs.ts": {
@@ -150,6 +505,24 @@
   },
   "src/api/queries/oauthIntegration.ts": {
     "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/orgAdminReads.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/orgGroups.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/orgReports.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -161,6 +534,9 @@
   "src/api/queries/projectContent.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 8
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/api/queries/projectSprints.ts": {
@@ -183,9 +559,114 @@
       "count": 3
     }
   },
+  "src/api/queries/serverLicense.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/api/queries/serverMcp.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 4
+    }
+  },
+  "src/api/queries/settingsConnections.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/settingsConsumer.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/settingsLocales.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/settingsNcOnboarding.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/settingsOptionalRead.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/settingsUsage.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/shellReads.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/shellSearch.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/shellSidebar.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/shieldStatus.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/skillDetail.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/skills.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/studioApps.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/studioCounts.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/studioRemote.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/studioSupport.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/supportPanels.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/systemKnowledgeBases.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/trainingGates.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/usageAdoption.ts": {
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/api/queries/useSetMemberColor.ts": {
@@ -196,6 +677,101 @@
   "src/api/queries/versions.ts": {
     "@typescript-eslint/no-floating-promises": {
       "count": 3
+    }
+  },
+  "src/api/queries/voiceChat.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/webpageShares.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/queries/webpagesPanels.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/recentWork.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/settingsShellApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/sheetApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/skillsApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/stagesApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/studioFilesApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/supportInboxApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/templatesApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/transcriptionConfigApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/transcriptionsApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/transcriptionsListApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/turn.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/userSettingsApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/webpagesApi.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/webpagesRequest.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/api/workspaceNotebook.ts": {
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/authedApp/shellScreens.tsx": {
@@ -289,6 +865,11 @@
   },
   "src/components/admin/Studio/AppStudio/bi/sync/SyncSettings.tsx": {
     "jsx-a11y/label-has-associated-control": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/bi/useDatasets.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -551,6 +1132,11 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor/index.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/AppStudio/flow/StepSettings/KeyedBindingsField.tsx": {
     "complexity": {
       "count": 1
@@ -564,6 +1150,11 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/flow/StepSettings/index.tsx": {
+    "bee-flow/no-unused-imports": {
       "count": 1
     }
   },
@@ -583,6 +1174,9 @@
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/AutomationPicker.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -631,6 +1225,9 @@
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/ThemePanel.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -826,6 +1423,9 @@
   },
   "src/components/admin/Studio/AppStudio/rbac/useAppRoles.ts": {
     "max-lines-per-function": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -1291,6 +1891,9 @@
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/resolveBinding.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 2
     }
@@ -1504,6 +2107,9 @@
     }
   },
   "src/components/admin/Studio/Approvals/ApprovalDetail.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 6
+    },
     "complexity": {
       "count": 1
     },
@@ -1665,6 +2271,9 @@
     }
   },
   "src/components/admin/Studio/Datatables/DatatableSharing.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    },
     "jsx-a11y/label-has-associated-control": {
       "count": 1
     },
@@ -1697,6 +2306,9 @@
     }
   },
   "src/components/admin/Studio/Datatables/LinkNextcloudTablesDialog.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 3
+    },
     "complexity": {
       "count": 1
     },
@@ -1790,6 +2402,9 @@
   "src/components/admin/Studio/Datatables/datatablesApi.ts": {
     "complexity": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/components/admin/Studio/Datatables/linkWizardShared.tsx": {
@@ -1829,6 +2444,9 @@
     }
   },
   "src/components/admin/Studio/Datatables/sourceMirrors.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    },
     "complexity": {
       "count": 2
     }
@@ -2091,6 +2709,11 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/KnowledgeStudio/knowledgeApi.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -2424,7 +3047,15 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/Solutions/addPartsSources.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/Solutions/installRequirements.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 2
     }
@@ -2478,6 +3109,11 @@
   },
   "src/components/admin/Studio/Solutions/pipeline/settings/seatShapes.ts": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Solutions/pipeline/settings/stageSettingsApi.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -2570,6 +3206,9 @@
     }
   },
   "src/components/admin/Studio/studioAi/DescribeItPanel.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -2708,6 +3347,9 @@
     }
   },
   "src/components/admin/compliance/pages/ConnectorsPage.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -2959,6 +3601,9 @@
     }
   },
   "src/components/admin/compliance/pages/dsr/DsrDrawer.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 2
     },
@@ -3097,6 +3742,9 @@
     }
   },
   "src/components/admin/compliance/pages/settings/SettingsGroup.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 4
+    },
     "complexity": {
       "count": 1
     },
@@ -3617,6 +4265,9 @@
     }
   },
   "src/components/admin/product-website/analytics/sections/HeatmapSection.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    },
     "complexity": {
       "count": 1
     },
@@ -3684,6 +4335,11 @@
   },
   "src/components/admin/product-website/blockEditors/CardCarouselEditor.tsx": {
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/product-website/blockEditors/ContentEditor.tsx": {
+    "bee-flow/no-unused-imports": {
       "count": 1
     }
   },
@@ -3902,6 +4558,9 @@
     },
     "max-statements": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/components/admin/product-website/panel/panelView.ts": {
@@ -3996,6 +4655,9 @@
     },
     "max-lines-per-function": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/components/admin/product-website/preview/PreviewStage.tsx": {
@@ -4071,6 +4733,9 @@
     },
     "max-lines-per-function": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/components/admin/product-website/sitemap/SitemapParts.tsx": {
@@ -4115,6 +4780,11 @@
   },
   "src/components/admin/security/guardrails/GuardrailsHub.tsx": {
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/security/guardrails/api/guardrailsApi.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -4388,6 +5058,11 @@
       "count": 1
     }
   },
+  "src/components/agents/AgentDesigner/index.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/components/agents/AgentDesigner/sections/IdentitySection.tsx": {
     "jsx-a11y/no-autofocus": {
       "count": 1
@@ -4401,6 +5076,11 @@
       "count": 2
     }
   },
+  "src/components/agents/AgentDesigner/sections/sectionProps.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/components/agents/AgentDesignerPanel.tsx": {
     "complexity": {
       "count": 2
@@ -4410,6 +5090,9 @@
     }
   },
   "src/components/agents/AgentEditorUI.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -4778,6 +5461,9 @@
     }
   },
   "src/components/agents/VersionHistory.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -4971,6 +5657,9 @@
     }
   },
   "src/components/automation/Builder/NodeDetailView.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 8
+    },
     "complexity": {
       "count": 1
     },
@@ -5189,9 +5878,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -5262,12 +5948,20 @@
       "count": 1
     }
   },
+  "src/components/automation/Builder/flow/flowletScope.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    }
+  },
   "src/components/automation/Builder/flow/ghostDraft.ts": {
     "complexity": {
       "count": 2
     }
   },
   "src/components/automation/Builder/flow/inlineFlowlets.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 3
     },
@@ -5279,6 +5973,9 @@
     }
   },
   "src/components/automation/Builder/flow/layout.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 6
+    },
     "complexity": {
       "count": 3
     },
@@ -5304,6 +6001,11 @@
       "count": 2
     },
     "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/flow/nodeOps.ts": {
+    "bee-flow/no-unused-imports": {
       "count": 1
     }
   },
@@ -5521,6 +6223,11 @@
     },
     "max-statements": {
       "count": 1
+    }
+  },
+  "src/components/automation/Builder/flow/settings/RouteAssist.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
     }
   },
   "src/components/automation/Builder/flow/settings/SetOperationsEditor.tsx": {
@@ -5808,6 +6515,11 @@
       "count": 1
     }
   },
+  "src/components/automation/Builder/flow/settings/tableEditor/ReadTableFields.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    }
+  },
   "src/components/automation/Builder/flow/settings/tablesRowValues.ts": {
     "complexity": {
       "count": 1
@@ -5837,6 +6549,9 @@
     }
   },
   "src/components/automation/Builder/flow/stepPalette.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 3
+    },
     "complexity": {
       "count": 4
     },
@@ -5991,6 +6706,9 @@
     }
   },
   "src/components/automation/Builder/mapping/BindingField.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 2
     },
@@ -6178,6 +6896,9 @@
     }
   },
   "src/components/automation/Builder/mapping/mismatch.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 3
+    },
     "complexity": {
       "count": 2
     }
@@ -6846,6 +7567,11 @@
       "count": 1
     }
   },
+  "src/components/chat/Voice/voiceTestKit.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/components/chat/WorkspaceNotebook.helpers.ts": {
     "no-restricted-syntax": {
       "count": 1
@@ -7121,6 +7847,9 @@
     },
     "max-statements": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/components/integrations/github/GitHubSyncPanel.tsx": {
@@ -7224,6 +7953,9 @@
       "count": 2
     },
     "max-lines-per-function": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -7523,6 +8255,9 @@
     }
   },
   "src/components/onboarding/player/LessonPlayer.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    },
     "complexity": {
       "count": 2
     },
@@ -7843,6 +8578,9 @@
     }
   },
   "src/components/renderers/ResearchRenderer.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -7970,6 +8708,9 @@
     }
   },
   "src/components/shared/UsedByTab.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -8023,6 +8764,9 @@
     }
   },
   "src/components/shell/Sidebar.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "jsx-a11y/click-events-have-key-events": {
       "count": 2
     },
@@ -8175,9 +8919,6 @@
     },
     "jsx-a11y/click-events-have-key-events": {
       "count": 3
-    },
-    "jsx-a11y/label-has-associated-control": {
-      "count": 1
     },
     "jsx-a11y/no-autofocus": {
       "count": 1
@@ -8352,6 +9093,11 @@
       "count": 1
     },
     "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/editor/collab/ySync.ts": {
+    "bee-flow/no-unused-imports": {
       "count": 1
     }
   },
@@ -8641,6 +9387,9 @@
   "src/hooks/useAutomationApi.ts": {
     "max-lines-per-function": {
       "count": 2
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/hooks/useAutomationBuilderStream.ts": {
@@ -8648,6 +9397,9 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -8660,6 +9412,9 @@
     },
     "max-statements": {
       "count": 2
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/hooks/useChatEngine/sse/gammaPreview.ts": {
@@ -8683,6 +9438,11 @@
       "count": 1
     }
   },
+  "src/hooks/useDraftAction.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/hooks/useFlowletAgentStream.ts": {
     "complexity": {
       "count": 1
@@ -8690,6 +9450,9 @@
   },
   "src/hooks/useGoogleWorkspacePicker.ts": {
     "max-lines-per-function": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     },
     "no-restricted-syntax": {
@@ -8721,6 +9484,9 @@
     },
     "max-statements": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/hooks/useProviderConfig.ts": {
@@ -8733,11 +9499,19 @@
       "count": 1
     }
   },
+  "src/hooks/useTrainingGates.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    }
+  },
   "src/hooks/useTranslation.tsx": {
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     },
     "no-restricted-syntax": {
@@ -8749,6 +9523,11 @@
   },
   "src/hooks/useUserFilters.ts": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "src/hooks/useUserSettingSave.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -9127,6 +9906,9 @@
     }
   },
   "src/pages/apps/AppRunPage.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -9178,6 +9960,9 @@
     }
   },
   "src/pages/documents/HouseStylePanel.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "jsx-a11y/label-has-associated-control": {
       "count": 1
     },
@@ -9190,6 +9975,11 @@
       "count": 1
     },
     "jsx-a11y/no-static-element-interactions": {
+      "count": 1
+    }
+  },
+  "src/pages/documents/documentsApi.ts": {
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -9251,6 +10041,9 @@
     }
   },
   "src/pages/documents/notebook/NotebookSources.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -9613,6 +10406,9 @@
     },
     "max-lines-per-function": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/pages/meeting-notes/capture/UploadPanel.tsx": {
@@ -9882,6 +10678,11 @@
       "count": 1
     }
   },
+  "src/pages/meeting-notes/library/UpcomingMeetings.types.ts": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    }
+  },
   "src/pages/publicFormSession.ts": {
     "no-restricted-syntax": {
       "count": 1
@@ -9907,6 +10708,9 @@
     }
   },
   "src/pages/settings/ConnectionsManager.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -9945,6 +10749,9 @@
   "src/pages/settings/GoogleMeetNotesSection.tsx": {
     "max-lines-per-function": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/pages/settings/HelpSupportSection.tsx": {
@@ -9953,6 +10760,9 @@
     }
   },
   "src/pages/settings/IntegrationsSection.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -9987,8 +10797,16 @@
       "count": 1
     }
   },
+  "src/pages/settings/Microsoft365Integration.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
   "src/pages/settings/OAuthIntegrations.tsx": {
     "complexity": {
+      "count": 1
+    },
+    "no-restricted-imports": {
       "count": 1
     }
   },
@@ -10054,6 +10872,9 @@
     },
     "max-lines-per-function": {
       "count": 1
+    },
+    "no-restricted-imports": {
+      "count": 1
     }
   },
   "src/pages/settings/TokenVaultSection.tsx": {
@@ -10117,6 +10938,9 @@
     }
   },
   "src/pages/settings/learning/admin/AcademyContentEditor.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 5
+    },
     "complexity": {
       "count": 1
     },
@@ -10245,6 +11069,9 @@
     }
   },
   "src/pages/webpages/FileExplorer.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    },
     "complexity": {
       "count": 1
     },
@@ -10282,6 +11109,11 @@
       "count": 1
     }
   },
+  "src/pages/webpages/WebpageActionsPanel.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 2
+    }
+  },
   "src/pages/webpages/WebpageAppsPanel.tsx": {
     "complexity": {
       "count": 1
@@ -10291,6 +11123,9 @@
     }
   },
   "src/pages/webpages/WebpageAudiencePanel.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 1
+    },
     "complexity": {
       "count": 1
     },
@@ -10309,6 +11144,11 @@
   "src/pages/webpages/WebpageChat.tsx": {
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/pages/webpages/WebpageDataCards.tsx": {
+    "bee-flow/no-unused-imports": {
+      "count": 3
     }
   },
   "src/pages/webpages/WebpageDataTab.tsx": {
@@ -10433,9 +11273,6 @@
   },
   "src/utils/helpers.ts": {
     "complexity": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     },
     "no-restricted-syntax": {

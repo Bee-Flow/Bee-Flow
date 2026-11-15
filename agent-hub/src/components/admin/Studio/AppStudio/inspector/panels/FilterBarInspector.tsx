@@ -1,4 +1,3 @@
-import React from 'react';
 import { usePatch } from './kit';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';

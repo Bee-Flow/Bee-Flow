@@ -1,4 +1,3 @@
-import React from 'react';
 import { InlineHint, BackgroundVariantSelect } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';

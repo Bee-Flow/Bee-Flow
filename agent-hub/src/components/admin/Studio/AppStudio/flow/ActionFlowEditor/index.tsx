@@ -2,7 +2,6 @@ import { ReactFlowProvider } from '@xyflow/react';
 import React from 'react';
 import '@xyflow/react/dist/style.css';
 
-import type { AppDefinition, AppNode, FormFieldRef } from '../../inspector/appDefinition';
 import type { FlowBodyProps, StepFlowNodeData } from '../ActionFlowEditor.types';
 import { FlowBody } from './FlowBody';
 

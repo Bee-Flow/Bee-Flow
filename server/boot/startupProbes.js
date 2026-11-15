@@ -102,7 +102,7 @@ function startLicenseAndModuleRuntime() {
     }
 }
 
-/** Optional browser warmup and the Privacy Shield self-check. */
+/** Optional browser warmup, the fetch of the community pricing feed and the Privacy Shield self-check. */
 function startLateWarmups() {
     // Optionally pre-warm the shared browser singleton so the first PDF export /
     // thumbnail / SPA ingest doesn't pay the container cold-start. Off by default
@@ -119,6 +119,11 @@ function startLateWarmups() {
             log.warn('[Server] Browser warmup error:', e.message);
         }
     }
+
+    // Community pricing feed (LiteLLM, 24h in-memory cache): fetched here, once
+    // per process, instead of as a side effect of requiring core/llm/modelCosts.
+    // Non-blocking; a failure is logged and rating falls back to the repo snapshots.
+    require('../core/llm/pricingService').initPricing();
 
     // Security-scan drain moved out of core: Security Scan is now a downloadable
     // .bfmod (Hub marketplace). The module ships its own outbox drain + reaper,

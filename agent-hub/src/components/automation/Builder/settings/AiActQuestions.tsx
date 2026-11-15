@@ -1,4 +1,3 @@
-import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { AnnexDomainId, Tri } from '@/api/queries/automation/readiness';

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
-import React from 'react';
 import { renderWithClient } from '@/test/render';
 import TeamsSetupGuide from './TeamsSetupGuide';
 

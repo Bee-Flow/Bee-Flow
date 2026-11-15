@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Plus, Repeat, Workflow } from 'lucide-react';
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { cardRadius, kindColorVar, kindTileStyle } from '@/components/shared/kindColors';
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';

@@ -1,5 +1,4 @@
 import { AlertTriangle } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { PROGRESS_STEPS, phaseOf, type Phase } from './pipelineModel';
 import { Addresses, LastDeployment } from './StageStatusParts';

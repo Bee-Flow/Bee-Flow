@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { readinessStamp, useReadiness, type Readiness } from '@/api/queries/automation/readiness';
 import AiActAutoCard from './AiActAutoCard';

@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Check, ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { TONES } from '@/components/shared/statusTone';

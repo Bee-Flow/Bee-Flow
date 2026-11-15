@@ -1,5 +1,4 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import CoworkRow from './CoworkRow';
 import { STATUS_TOKENS } from '../shared/statusTokens';

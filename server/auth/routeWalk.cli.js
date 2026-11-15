@@ -3,10 +3,10 @@
 /**
  * Route walker — prints the app's real (method, path, gate-chain) table as JSON.
  *
- * WHY A CLI AND NOT A TEST HELPER: requiring server/index.js starts module-scope
- * timers (the AITaskRunner background runner logs "started (60s interval)" on
- * require, not inside listen). A `node --test` process that required it would
- * never exit. So the walk runs here, prints one JSON document, and exits; the
+ * WHY A CLI AND NOT A TEST HELPER: requiring server/index.js loads the whole
+ * app: the Postgres pool, the session store and whatever a module still starts
+ * on require rather than from boot. A `node --test` process that required it
+ * would not reliably exit. So the walk runs here, prints one JSON document, and exits; the
  * drift test execFileSync's it. That also confines the monkey-patching below to
  * a throwaway process instead of leaking into every other test in the run.
  *

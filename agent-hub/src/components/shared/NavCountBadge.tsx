@@ -13,7 +13,6 @@
  *   warning → border var(--warning), text var(--warning-ink)
  *   neutral → border var(--border-default), text var(--text-tertiary)
  */
-import React from 'react';
 
 interface ToneStyle {
     borderColor: string;

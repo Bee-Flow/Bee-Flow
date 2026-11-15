@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { moduleMediaUrl } from '@/api/queries/modules';
 import type { MarketplaceMediaEntry } from '@/api/queries/modules.types';
 import { useTranslation } from '@/hooks/useTranslation';

@@ -1,5 +1,5 @@
 import { LayoutTemplate, Loader2, PenTool, Wand2 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DesignElement, DesignScreen, DesignSection, Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';

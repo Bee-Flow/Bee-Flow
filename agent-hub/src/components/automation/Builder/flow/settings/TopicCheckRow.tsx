@@ -1,5 +1,4 @@
 import { Loader2, ScanSearch } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /**

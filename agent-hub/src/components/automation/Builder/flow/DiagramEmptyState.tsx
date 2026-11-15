@@ -1,5 +1,5 @@
 import { Zap, Sparkles } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { typeTint } from './nodeTypeColors';
 import { formatElapsed } from './runFocus';
 import { TRIGGERS } from './stepPalette';

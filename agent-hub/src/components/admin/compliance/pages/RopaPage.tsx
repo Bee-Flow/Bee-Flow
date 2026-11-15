@@ -1,5 +1,5 @@
 import { RefreshCw, CheckCircle2, ExternalLink, FileDown } from 'lucide-react';
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DataTableContext, TableColumn } from '@/components/shared/DataTable';

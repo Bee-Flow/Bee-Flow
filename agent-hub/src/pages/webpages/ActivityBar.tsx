@@ -1,4 +1,3 @@
-import React from 'react';
 import { Files, Database, BookOpen, History, AppWindow } from 'lucide-react';
 
 const ITEMS = [

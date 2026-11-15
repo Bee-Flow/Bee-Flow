@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Bot } from 'lucide-react';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkScoreCard from './FrameworkScoreCard';
 import type { TranslateParams } from '@/hooks/useTranslation';

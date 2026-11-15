@@ -215,16 +215,16 @@ test('spendLimiter: unset or junk in the environment means the fallback', async 
 });
 
 test('spendLimiter: a value in the environment is the budget, and 0 switches the limit off', async () => {
-    const one = spendLimiter({ env: 'X_RPM', fallback: 50, name: 'spend-test', _env: { X_RPM: '1' } });
+    const one = spendLimiter({ env: 'X_RPM', fallback: 50, name: 'spend-test-set', _env: { X_RPM: '1' } });
     assert.equal(one.max, 1);
     assert.equal(await invoke(one, req('b'), fakeRes()), 'next');
     const denied = fakeRes();
     assert.equal(await invoke(one, req('b'), denied), 'denied');
     assert.equal(denied.statusCode, 429);
 
-    const off = spendLimiter({ env: 'X_RPM', fallback: 1, name: 'spend-test', _env: { X_RPM: '0' } });
+    const off = spendLimiter({ env: 'X_RPM', fallback: 1, name: 'spend-test-off', _env: { X_RPM: '0' } });
     assert.equal(off.max, 0);
-    assert.equal(off.limiterName, 'spend-test');
+    assert.equal(off.limiterName, 'spend-test-off');
     for (let i = 0; i < 5; i++) assert.equal(await invoke(off, req('c'), fakeRes()), 'next');
 });
 
@@ -243,4 +243,44 @@ test('take(key) spends the same bucket without a request: in memory and on Redis
     assert.deepEqual(await fleet.take('k'), { ok: true });
     const full = await fleet.take('k');
     assert.equal(full.ok, false);
+});
+
+// ── A name is a Redis namespace: two call sites with one name share a counter ──
+
+const log = require('../telemetry/log');
+
+test('the same call site building its limiter again is silent (a route factory, a resized limiter)', (t) => {
+    const warn = t.mock.method(log, 'warn', () => {});
+    const build = (max) => perUserRateLimit({ windowMs: 60_000, max, name: 'name-same-site', _redis: null });
+    build(5);
+    build(10);
+    build(5);
+    assert.equal(warn.mock.callCount(), 0);
+});
+
+test('a second call site using a name is reported once, with both sites', (t) => {
+    const warn = t.mock.method(log, 'warn', () => {});
+    perUserRateLimit({ windowMs: 60_000, max: 5, name: 'name-two-sites', _redis: null });
+    perUserRateLimit({ windowMs: 60_000, max: 5, name: 'name-two-sites', _redis: null });
+    perUserRateLimit({ windowMs: 60_000, max: 5, name: 'name-two-sites', _redis: null });
+
+    assert.equal(warn.mock.callCount(), 1, 'once per name, however many sites follow');
+    const [message] = warn.mock.calls[0].arguments;
+    assert.match(message, /The limiter name "name-two-sites" is used twice/);
+    assert.equal(message.split('perUserRateLimit.test.js').length - 1, 2, 'both call sites are named');
+});
+
+test('a wrapper in the limiter module is not the call site: spendLimiter reports its callers', (t) => {
+    const warn = t.mock.method(log, 'warn', () => {});
+    spendLimiter({ env: 'X_RPM', fallback: 5, name: 'name-through-wrapper', _env: {} });
+    assert.equal(warn.mock.callCount(), 0);
+    spendLimiter({ env: 'X_RPM', fallback: 5, name: 'name-through-wrapper', _env: {} });
+    assert.equal(warn.mock.callCount(), 1);
+});
+
+test('unnamed limiters are never reported: they share nothing', (t) => {
+    const warn = t.mock.method(log, 'warn', () => {});
+    perUserRateLimit({ windowMs: 60_000, max: 5 });
+    perUserRateLimit({ windowMs: 60_000, max: 5 });
+    assert.equal(warn.mock.callCount(), 0);
 });

@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import Dropdown from './Dropdown';
 import { useTranslation } from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';

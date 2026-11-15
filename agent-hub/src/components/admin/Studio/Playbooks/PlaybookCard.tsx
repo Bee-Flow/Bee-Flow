@@ -1,5 +1,4 @@
 import { ChevronRight, Clapperboard } from 'lucide-react';
-import React from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase } from './phaseMachine';
 import { playbookStatusLabel } from './playbookView';

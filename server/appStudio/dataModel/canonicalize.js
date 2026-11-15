@@ -8,7 +8,7 @@
 'use strict';
 
 const { isPlainObject } = require('./shared');
-const { hex6, newTableId, newFieldId, newConnectorId } = require('./ids');
+const { hex6, newTableId, newFieldId, newConnectorId } = require('../../core/dataEngine/dataModel/ids');
 const {
     FIELD_TYPES,
     DATA_LIMITS,

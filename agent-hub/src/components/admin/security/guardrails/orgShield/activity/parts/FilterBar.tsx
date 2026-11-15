@@ -10,7 +10,6 @@
  */
 
 import { Info, ListFilter, X } from 'lucide-react';
-import React from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 

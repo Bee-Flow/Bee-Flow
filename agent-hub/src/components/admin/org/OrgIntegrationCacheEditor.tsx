@@ -13,7 +13,7 @@
  * rows behind would not be what anyone read it as.
  */
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useOrgSettingRead } from './useOrgSettingRead';
 

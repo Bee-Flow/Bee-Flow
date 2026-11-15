@@ -8,7 +8,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields, holdDunningCap, storeForTarget } = require('./webhookShared');
+const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields, holdDunningCap, storeForTarget, skippedAsSuperseded, unlessOlderThanRow, auditedAsStale } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -121,15 +121,28 @@ async function updateConsumerFromStripe(subscription, updateData, plan) {
     }
     if (await refusedAsMismatch(subscription, 'consumer', userId)) return;
     const target = /** @type {const} */ ({ targetType: 'consumer', id: userId, label: `scope=consumer user=${userId}` });
+    const current = await userStore.getConsumerSubscription(userId);
+    if (await skippedAsSuperseded(target, subscription, current, 'subscription.updated')) return;
     // The override decision and the write happen under one row lock, so two
     // concurrent webhooks for the same subscription serialise.
-    holdDunningCap(updateData, await userStore.getConsumerSubscription(userId));
+    holdDunningCap(updateData, current);
     const strippedUpdate = stripOverriddenFields(updateData);
-    const result = await userStore.setConsumerSubscriptionRespectingOverride(userId, updateData, strippedUpdate);
+    const result = await userStore.setConsumerSubscriptionRespectingOverride(userId, updateData, strippedUpdate, unlessOlderThanRow(subscription));
+    if (await auditedAsStale(target, subscription, result.skipped)) return;
     const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
     await auditUpdate(target, subscription, applied, result.overrideActive);
     await auditUnmatchedPlan(target, subscription, plan);
     log.info(`[Stripe Webhook] Consumer subscription updated for user ${userId}: ${subscription.status} → ${applied.status || '(unchanged)'}`);
+}
+
+/**
+ * The full payload: a scheduled downgrade that lands clears its bookkeeping in the same write.
+ * @param {import('./subscriptionFields.mts').MirroredFields} updateData
+ * @param {{ pending_plan_id?: string | null } | null} priorSub
+ */
+function withLandedDowngrade(updateData, priorSub) {
+    const landed = !!priorSub?.pending_plan_id && updateData.plan_id === priorSub.pending_plan_id;
+    return landed ? { ...updateData, .../** @type {Record<string, null>} */ ({ pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null }) } : updateData;
 }
 
 /**
@@ -151,12 +164,12 @@ async function updateOrgFromStripe(subscription, updateData, plan) {
     // The row before the write, to see a plan_id transition (a scheduled
     // downgrade reaching its period boundary).
     const priorSub = await userStore.getOrgSubscription(orgId);
+    if (await skippedAsSuperseded(target, subscription, priorSub, 'subscription.updated')) return;
     const priorPlanId = priorSub?.plan_id || null;
     holdDunningCap(updateData, priorSub);
     const strippedUpdate = stripOverriddenFields(updateData);
-    const landed = !!priorSub?.pending_plan_id && updateData.plan_id === priorSub.pending_plan_id;
-    const fullUpdate = landed ? { ...updateData, .../** @type {Record<string, null>} */ ({ pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null }) } : updateData;
-    const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, fullUpdate, strippedUpdate);
+    const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, withLandedDowngrade(updateData, priorSub), strippedUpdate, unlessOlderThanRow(subscription));
+    if (await auditedAsStale(target, subscription, result.skipped)) return;
     const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
     await auditUpdate(target, subscription, applied, result.overrideActive);
     // Under an override plan_id was not written, so there is nothing to apply.
@@ -416,15 +429,17 @@ async function handleSubscriptionDeleted(subscription) {
 
 /**
  * @param {string} orgId
- * @param {WebhookSubscription} _subscription
+ * @param {WebhookSubscription} subscription
  */
-async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
+async function handleSubscriptionDeletedForOrg(orgId, subscription) {
     // a no-card trial that ends without payment (or any never-paid
     // subscription) should drop the org back to the capped Free plan rather than
     // be left `cancelled` (locked-out / unlimited if the row is later cleared).
     // A previously-paid subscription that the customer actively cancelled keeps
     // the cancelled state. "Never paid" = local payment_status was never 'paid'.
     const existing = await userStore.getOrgSubscription(orgId);
+    // The subscription that ended is not the one this organisation holds now.
+    if (await skippedAsSuperseded({ targetType: 'organization', id: orgId, label: `scope=org org=${orgId}` }, subscription, existing, 'subscription.deleted')) return;
     const everPaid = existing?.payment_status === 'paid';
     if (!everPaid) {
         const downgraded = await userStore.downgradeOrgToFreePlan(orgId, { changedBy: 'stripe_webhook', reason: 'trial_ended_no_payment' });
@@ -441,9 +456,11 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
 
 /**
  * @param {string} userId
- * @param {WebhookSubscription} _subscription
+ * @param {WebhookSubscription} subscription
  */
-async function handleSubscriptionDeletedForConsumer(userId, _subscription) {
+async function handleSubscriptionDeletedForConsumer(userId, subscription) {
+    const existing = await userStore.getConsumerSubscription(userId);
+    if (await skippedAsSuperseded({ targetType: 'consumer', id: userId, label: `scope=consumer user=${userId}` }, subscription, existing, 'subscription.deleted')) return;
     await storeForTarget({ scope: 'consumer', id: userId }, { status: 'cancelled', payment_status: 'cancelled' });
     await userStore.logSubscriptionAudit('update_subscription', 'consumer', userId, 'stripe_webhook', null, { status: 'cancelled', reason: 'stripe_subscription_deleted' });
     log.info(`[Stripe Webhook] Consumer subscription cancelled for user ${userId}`);

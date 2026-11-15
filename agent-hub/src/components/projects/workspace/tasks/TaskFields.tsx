@@ -2,7 +2,7 @@
 // tasks view shares: status, type, priority and label, so a task looks the same everywhere.
 
 import { BookOpen, Check, CircleDot, Layers3, Plus, Signal, SignalHigh, User, X } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import type { ChecklistItem, TaskPriority, TaskStatus } from '@/api/queries/projectTasks';
 import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';

@@ -2,7 +2,6 @@
  * MermaidView — mermaid diagram atom node-view.
  * Reuses the existing, TipTap-free MermaidBlock component verbatim.
  */
-import React from 'react';
 import MermaidBlock from '../../pages/documents/notebook/MermaidBlock';
 import type { DocNode } from '../model/schema.js';
 import type { EditorView } from '../engine/view';

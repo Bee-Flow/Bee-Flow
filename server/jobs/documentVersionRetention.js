@@ -31,13 +31,13 @@
  * policy-driven prune to call.
  *
  * MULTI-POD SAFE: one pass at a time, under a session advisory lock keyed by
- * name (jobs/lib/namedLock.js). Not gated on a module: every edition has
+ * name (core/scheduling/namedLock.js). Not gated on a module: every edition has
  * documents. Started from boot like jobs/projectEventsPrune.js.
  */
 
 'use strict';
 
-const { withNamedLock } = require('./lib/namedLock');
+const { withNamedLock } = require('../core/scheduling/namedLock');
 const { periodicJob } = require('./lib/periodicTimer');
 
 const LOCK_NAME = 'beeflow:job:documentVersionRetention';

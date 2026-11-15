@@ -1,5 +1,5 @@
 import { lazy } from '@/utils/lazyWithReload';
-import { STUDIO_START_SECTION, isStudioStart, type StudioStartDescriptor } from './studioSections';
+import { STUDIO_START_SECTION, type StudioStartDescriptor } from './studioSections';
 
 /**
  * STUDIO_START: the Start section with its screen. The data half (and why Start

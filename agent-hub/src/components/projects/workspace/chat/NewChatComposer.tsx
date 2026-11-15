@@ -1,5 +1,5 @@
 import { CheckSquare, MessageSquare, X } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCreateProjectChat } from '@/api/queries/projectChats';
 import { useProjectTasksQuery } from '@/api/queries/projectTasks';
 import type { Project } from '@/api/queries/projects';

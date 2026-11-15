@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import LanguageSwitcher from '../components/LanguageSwitcher';

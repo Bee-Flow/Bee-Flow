@@ -10,10 +10,9 @@
 // no visual drift. No purple/violet/indigo anywhere.
 
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-import { useTranslation } from '@/hooks/useTranslation';
 import type {
     AlertBannerProps, CardProps, EmptyInlineProps, FilterChipBarProps, MetricCardProps, MetricGridProps,
-    SectionTitleProps, ShowMoreProps, SparklineProps, TrendChipProps, ChipValue,
+    SectionTitleProps, ShowMoreProps, SparklineProps, TrendChipProps,
 } from './kit.types';
 
 // ── Spacing tokens ───────────────────────────────────────────────────────────

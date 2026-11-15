@@ -1,5 +1,5 @@
 import { Shield, Globe, Search, Save, Check, ScanEye, Eye } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import PiiActionPicker from '../../components/privacy/PiiActionPicker';
 import PiiCategoryGrid from '../../components/privacy/PiiCategoryGrid';
 import PiiSensitivityPicker from '../../components/privacy/PiiSensitivityPicker';

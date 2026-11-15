@@ -6,8 +6,6 @@ import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import Spinner from '@/components/shared/Spinner';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import type { FormFieldRef } from './appDefinition';
-import type { WiredAutomation } from './useEventWiring';
 import type { PickerAutomation, AppRefProp, AutomationPickerProps, AutomationPickerBodyProps, CreateAutomationRowProps } from './AutomationPicker.types';
 
 /**

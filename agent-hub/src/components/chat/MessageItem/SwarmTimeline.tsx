@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Check, Loader2, AlertCircle, Lock, ChevronDown, ChevronRight, Wrench } from 'lucide-react';
 import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
 import type { SwarmWorker } from '@/hooks/useChatEngine/types';

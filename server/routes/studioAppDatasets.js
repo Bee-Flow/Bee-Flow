@@ -133,7 +133,7 @@ const { requireFeature } = require('../license/middleware');
 const { resolveAudienceContext } = require('../auth/audience');
 const {
     datasetInitLimiter, datasetPartLimiter, datasetCompleteLimiter, datasetStatusLimiter,
-} = require('./studioAppRateLimits');
+} = require('../appStudio/rateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
 const { bestEffort } = require('../utils/bestEffort');
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──

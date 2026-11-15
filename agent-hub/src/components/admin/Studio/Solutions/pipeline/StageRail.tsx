@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, ChevronRight, Loader2, Lock } from 'lucide-react';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import DeployDialog from './DeployDialog';
 import { actionLabel, usePipelineActions, type T } from './pipelineActions';

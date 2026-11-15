@@ -5,7 +5,6 @@
  * that says why, with a way back and a retry. Loading, failed and "not
  * found" are three different screens.
  */
-import React from 'react';
 import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 

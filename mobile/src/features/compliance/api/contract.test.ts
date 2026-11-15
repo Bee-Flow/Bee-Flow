@@ -44,7 +44,7 @@ describe('the routes the phone calls', () => {
         ['evidence.js', ["router.post('/iso/evidence/upload'", "evidenceUpload.single('file')", 'fileSize: 15 * 1024 * 1024', 'res.json({ uploaded: true, sha256: hash, filename: safeName })', "router.get('/evidence/:checkId'"]],
         ['orgUsers.js', ["router.get('/org-users'", 'displayName:']],
         ['settings.js', ["router.get('/settings'", "router.put('/settings'", 'sanitizeSettingsPatch(body)', "router.post('/settings/onboarded'", "router.post('/settings/scc'", 'const { operator, confirmed } = req.body']],
-        ['ropa.js', ["router.get('/ropa'", "router.get('/ropa.pdf'", "router.post('/ropa/review'", 'scc_confirmed: !!e', 'last_reviewed_at: settings.ropa_reviewed_at']],
+        ['ropa.js', ["router.get('/ropa'", "router.get('/ropa.pdf'", "router.post('/ropa/review'", 'res.json(await buildRopa(orgId))']],
         ['portability.js', ["router.get('/portability'"]],
         ['accessAudit.js', ["router.get('/access-audit'", "router.get('/access-audit/actions'", "router.get('/access-audit/export'", 'entries,', 'total,', 'res.json({ actions:']],
         ['overview.js', ["router.get('/report.pdf'"]],
@@ -61,6 +61,10 @@ describe('the routes the phone calls', () => {
     ];
 
     it.each(ROUTES)('%s', (file, needles) => expectAll(read(`${C}${file}`), needles));
+
+    it('usecases/compliance/buildRopa.js — the register the /ropa route answers with', () => {
+        expectAll(read('usecases/compliance/buildRopa.js'), ['scc_confirmed: !!e', 'last_reviewed_at: settings.ropa_reviewed_at']);
+    });
 
     it('routes/dsr.js — the admin routes and the masked row', () => {
         expectAll(read('routes/dsr.js'), [

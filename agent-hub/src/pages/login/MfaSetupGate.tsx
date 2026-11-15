@@ -1,5 +1,5 @@
 import { ShieldCheck, Loader2, AlertCircle, Usb } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { postMfa, useMfaSetupQuery } from '../../api/queries/mfaSetup';
 import useAdjustOnChange from '../../hooks/useAdjustOnChange';
 import { securityKeysSupported } from '../../api/queries/securityKeys';

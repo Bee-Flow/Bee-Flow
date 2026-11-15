@@ -1,5 +1,5 @@
 import { MoreHorizontal, ShieldAlert, ShieldCheck } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { ActionButton as ActionButtonJs } from '../audits/auditForms';

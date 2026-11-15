@@ -1,4 +1,4 @@
-import React, { type LazyExoticComponent, Suspense } from 'react';
+import { type LazyExoticComponent, Suspense } from 'react';
 import { useProjectsQuery, type Project } from '../api/queries/projects';
 import type ProjectsHomePage from '../components/projects/ProjectsHome';
 import type { AppUserLike, OpenThreadTarget, StartChat } from '../components/projects/workspace/types';

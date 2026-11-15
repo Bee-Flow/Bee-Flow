@@ -8,11 +8,26 @@
  */
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Cosine similarity floor — chunks below 0.35 are guaranteed noise.
 const MIN_VEC_SCORE = 0.35;
 // The RRF constant.
 const RRF_K = 60;
+// HNSW candidates examined per vector query (pgvector's default is 40): better recall for a little time.
+const HNSW_EF_SEARCH = 100;
+
+// Access boundary is kb_ids (authorized by every caller upstream);
+// knowledge_base_id scoping already restricts to those KBs. We do
+// NOT filter by the searcher's tenant_id — org-shared KBs are
+// ingested under the KB owner's tenant, so a tenant_id = searcher
+// filter wrongly hides every chunk for anyone but the ingester.
+const VECTOR_SQL = `SELECT id, title, content, source_uri, document_id, chunk_id, page_start,
+                    1 - (embedding <=> $1::vector) AS vec_score
+             FROM kb_chunks
+             WHERE knowledge_base_id = ANY($2::text[])
+             ORDER BY embedding <=> $1::vector
+             LIMIT $3`;
 
 const FTS_SQL = `SELECT id, title, content, source_uri, document_id, chunk_id, chunk_type, page_start,
                         GREATEST(
@@ -47,6 +62,30 @@ function ftsQueriesFor(query) {
 }
 
 /**
+ * The vector query, with hnsw.ef_search raised for this query alone.
+ *
+ * SET LOCAL lasts until the transaction ends, so the connection goes back to
+ * the pool as it came. A session-wide SET stays on the pooled connection and
+ * decides the recall of whichever vector query draws that connection next.
+ *
+ * The three statements are queued back to back on the one connection, before
+ * the caller queues anything else, so nothing else runs inside the
+ * transaction. COMMIT also ends a transaction that the SET or the query
+ * aborted (Postgres rolls it back), so a failure in here never reaches the
+ * queries after it: the search then carries on with the full-text results.
+ * @param {PoolClient} client
+ * @param {[string, string[], number]} params  the query vector, the knowledge base ids and the limit
+ */
+function vectorSearch(client, params) {
+    const begun = client.query(`BEGIN; SET LOCAL hnsw.ef_search = ${HNSW_EF_SEARCH}`);
+    const found = client.query(VECTOR_SQL, params);
+    const ended = client.query('COMMIT');
+    begun.catch((e) => bestEffort('core/kb/localSearchSteps:vectorSearch#begin', e));
+    ended.catch((e) => bestEffort('core/kb/localSearchSteps:vectorSearch#commit', e));
+    return found.catch((err) => { log.warn(`[LocalKBSearch] Vector search failed: ${err.message}`); return { rows: [] }; });
+}
+
+/**
  * Vector search, FTS and the orphan-filter data, in parallel on `client`;
  * then the FTS OR-join fallback when the AND-join found nothing.
  *
@@ -60,20 +99,7 @@ function ftsQueriesFor(query) {
 async function queryCandidates(client, { kbIds, topK, vectorStr, pgvector, fts }) {
     const { ftsAndQuery, ftsOrQuery, ftsQueryStr } = fts;
     const vectorSearchPromise = (pgvector && vectorStr)
-        ? client.query(
-            // Access boundary is kb_ids (authorized by every caller upstream);
-            // knowledge_base_id scoping already restricts to those KBs. We do
-            // NOT filter by the searcher's tenant_id — org-shared KBs are
-            // ingested under the KB owner's tenant, so a tenant_id = searcher
-            // filter wrongly hides every chunk for anyone but the ingester.
-            `SELECT id, title, content, source_uri, document_id, chunk_id, page_start,
-                    1 - (embedding <=> $1::vector) AS vec_score
-             FROM kb_chunks
-             WHERE knowledge_base_id = ANY($2::text[])
-             ORDER BY embedding <=> $1::vector
-             LIMIT $3`,
-            [vectorStr, kbIds, topK * 2]
-        ).catch(err => { log.warn(`[LocalKBSearch] Vector search failed: ${err.message}`); return { rows: [] }; })
+        ? vectorSearch(client, [vectorStr, kbIds, topK * 2])
         : Promise.resolve({ rows: [] });
 
     // Try AND-join first; if it returns 0 results, fall back to OR-join

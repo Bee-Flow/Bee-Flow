@@ -1,5 +1,5 @@
 import { StickyNote, Check, Trash2, Plus, ListChecks } from 'lucide-react';
-import React, { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import DraftCardShell from './DraftCardShell';
 import useDraftAction, { type DraftStatusMap } from '@/hooks/useDraftAction';
 import useTranslation from '@/hooks/useTranslation';

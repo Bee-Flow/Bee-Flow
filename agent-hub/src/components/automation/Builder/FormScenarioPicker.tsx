@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { ScenarioDetail, ScenarioItem } from '@/api/queries/automation/runChecks';
 import { useFormScenario, useFormScenarios } from '@/api/queries/automation/runChecks';

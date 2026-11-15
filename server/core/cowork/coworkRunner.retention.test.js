@@ -34,8 +34,8 @@ const restore = installResolveStub({
 const RUNNER_PATH = path.join(__dirname, 'coworkRunner.js');
 
 // RETENTION_DAYS is read from the env at load (just like runRetention.js), so per
-// scenario the module is loaded fresh. All timers in the module are unref'd, so
-// reloading leaks no live process.
+// scenario the module is loaded fresh. The module arms no timer when it loads
+// (start() does, and nothing here calls it), so reloading leaks nothing.
 function loadRunner(days) {
     evictModule(RUNNER_PATH);
     if (days === undefined) delete process.env.COWORK_RUN_RETENTION_DAYS;

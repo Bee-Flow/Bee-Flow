@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, ImageField, IconField, RepeatableList } from '../fields';
 import { InlineHint, CollapsibleCard } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

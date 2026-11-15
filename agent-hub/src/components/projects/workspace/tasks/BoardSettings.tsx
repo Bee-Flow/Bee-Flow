@@ -2,7 +2,7 @@
 // name, status, WIP limit, remove), add on the left of the footer, Cancel and
 // Save on the right. The rules live in the info tooltip, not in a paragraph.
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Info, Plus, Trash2, X } from 'lucide-react';
 import { useBoardActions, type ProjectBoard, type BoardColumn } from '@/api/queries/projectBoard';
 import { TASK_STATUSES } from '@/api/queries/projectTasks';

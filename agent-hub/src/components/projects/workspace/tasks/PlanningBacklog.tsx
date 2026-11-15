@@ -1,7 +1,7 @@
 // The Planning backlog: open work that is in no sprint yet, as one divided list,
 // plus its controls (New sprint, and Plan sprint with poker in an overflow menu).
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { MoreHorizontal, Plus, Target } from 'lucide-react';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';

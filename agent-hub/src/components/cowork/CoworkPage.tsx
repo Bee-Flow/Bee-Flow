@@ -13,7 +13,7 @@
  * the whole page. Deep-linkable at /app/cowork/:id.
  */
 import { CalendarClock, Plus, RefreshCw, X } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import useModelTierSelection from '../../hooks/useModelTierSelection';
 import useTranslation from '../../hooks/useTranslation';
@@ -26,7 +26,7 @@ import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } fr
 import { useCoworkAgents } from '../../api/queries/coworkReads';
 import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
-import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
+import type { CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
 import { errorMessage } from '../../utils/caughtError';
 import { createdFlash, saveErrorMessage } from './mailTrigger';
 

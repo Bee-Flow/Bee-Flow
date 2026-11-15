@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { EXPR_FUNCTIONS, EXPR_OPERATOR_GROUPS } from './exprFunctions';
 import { useTranslation } from '../../../../hooks/useTranslation';
 

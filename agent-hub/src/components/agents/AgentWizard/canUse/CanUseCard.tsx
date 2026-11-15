@@ -1,5 +1,5 @@
 import { AlertTriangle, MoreHorizontal, Plus } from 'lucide-react';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import { kindIcon, kindTileStyle } from '@/components/shared/kindColors';

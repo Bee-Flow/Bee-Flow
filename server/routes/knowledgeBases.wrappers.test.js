@@ -114,7 +114,7 @@ const MOCKS = {
         fetchWorkflowById: async () => ({ name: 'Tickets', nodes: [{ type: 'n8n-nodes-base.webhook', parameters: { path: 'hook', httpMethod: 'GET' } }] }),
         triggerWebhookWorkflow: async () => JSON.stringify([{ title: 'Article one', markdown: '# One\n\nbody' }]),
     },
-    '../core/n8nWorkflowConverter': { convertN8nWorkflowToMarkdown: () => '# Workflow\n\nnodes and things' },
+    '../core/kb/n8nWorkflowConverter': { convertN8nWorkflowToMarkdown: () => '# Workflow\n\nnodes and things' },
     'multer': multerMock,
 };
 

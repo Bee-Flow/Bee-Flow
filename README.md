@@ -117,9 +117,10 @@ cd Bee-Flow
 ./selfhost.sh
 ```
 
-**Free to start.** The Community tier needs no licence key: chat, knowledge bases, multiple users and the
-Nextcloud connector. Premium features such as automations, meeting notes and guardrails unlock with a
-licence under **Admin → Licence**. See [beeflow.nl](https://beeflow.nl).
+**Free to start.** The Community tier needs no licence key: chat, knowledge bases, multiple users, skills,
+the built-in integrations, the automation builder and the Nextcloud connector. Premium features such as
+sharing automations with a team, voice, meeting notes, App Studio, single sign-on and guardrails unlock
+with a licence under **Admin → Licence**. See [beeflow.nl](https://beeflow.nl).
 
 **Using Nextcloud?** Install the Bee Flow app from the Nextcloud App Store. It connects to nothing by
 itself: a Nextcloud administrator opens Bee Flow once and chooses where it runs. Choose *Self-hosted
@@ -229,14 +230,14 @@ The repository layout is described in [REPO-STRUCTURE.md](./REPO-STRUCTURE.md).
 
 - **Personal data stays inside.** Privacy Shield replaces personal data with placeholders before a
   prompt reaches a model and controls per tool what may leave. Detection runs on your own server.
-- **Encryption at rest, per organisation** (Enterprise licence): choose *managed* keys, which an
-  administrator can recover, or *zero-knowledge*, where only the user can decrypt their content. It is off
-  by default. Built on AES-256-GCM, Argon2id and OPAQUE.
+- **Encryption at rest, per organisation:** *managed* keys, which an administrator can recover, are on
+  every plan and are what a new organisation starts on. *Zero-knowledge*, where only the user can decrypt
+  their content, needs an Enterprise licence. Built on AES-256-GCM, Argon2id and OPAQUE.
   While a user is signed in, the server holds that user's content key, sealed in the session, to answer
   their requests: *zero-knowledge* describes content at rest between sessions, not a server that never
   sees it. Text sent to a model is readable by that model's provider.
-- **Sign-in:** passwords, Google, Microsoft and Nextcloud sign-in, SAML (Enterprise), and two-factor
-  authentication with an authenticator app or a security key.
+- **Sign-in:** passwords, Nextcloud sign-in, Google and Microsoft sign-in (Enterprise), and two-factor
+  authentication with an authenticator app or a security key. There is no SAML sign-in.
 - **Audit trail:** sign-in and access logs, and a hash-chained evidence log in the Compliance Center.
 
 Found a vulnerability? Please report it privately, as described in [SECURITY.md](./SECURITY.md).

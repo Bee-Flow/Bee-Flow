@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Ban, CheckCircle2, Hourglass, Loader2, X, XCircle } from 'lucide-react';
 import toast from '@/components/shared/Toast';
 import useTranslation from '@/hooks/useTranslation';

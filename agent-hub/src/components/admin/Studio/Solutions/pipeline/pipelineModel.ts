@@ -1,6 +1,6 @@
 import { isActive, isTerminal } from '@/api/stagesApi';
 import type {
-    ApiResult, DeploymentKind, DeploymentStatus, DeploymentSummary, Pipeline, PipelineRelease, PipelineStage,
+    ApiResult, DeploymentKind, DeploymentSummary, Pipeline, PipelineRelease, PipelineStage,
     Plan, PlanAck, StageKey, StageName,
 } from '@/api/stagesApi';
 

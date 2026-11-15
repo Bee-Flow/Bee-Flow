@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Three pulsing CheckCard-shaped skeletons. Used on first load.
  */

@@ -15,7 +15,7 @@
  * block, exactly as before.
  */
 import { FileText } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { spansInRange } from './dlpFindingsState';
 import type { AddSpanHandler, DlpSpan, RemoveSpanHandler } from './dlpFindingsState';
 import DlpHighlightedText from './DlpHighlightedText';

@@ -282,7 +282,7 @@ jobs:
               - 'server/routes/transcriptions/*'
               - 'server/routes/webpages/*'
               - 'server/usecases/*'
-              - 'server/usecases/{playbooks,webpages}/*'
+              - 'server/usecases/{compliance,datatables,playbooks,webpages}/*'
               - 'server/services/ncUserGroupSync.js'
               - 'server/shared/expr/*'
               - 'server/stores/*'
@@ -425,7 +425,7 @@ jobs:
               - 'agent-hub/src/hooks/demoLang.ts'
               - 'agent-hub/src/i18n/{loadEnglishDefaults,enNamespaces}.ts'
               - 'agent-hub/src/demo/demoNamespaces.ts'
-              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.ts,copyText.ts,helpers.ts,helpers.types.ts,sseStream.ts,storageMigrations.ts}'
+              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.ts,copyText.ts,helpers.ts,helpers.types.ts,sessionRecovery.ts,sseStream.ts,storageMigrations.ts}'
               # required by Builder/flow/stepPalette.ts, BindingField.tsx and dataSummary.ts (now TypeScript, so followed), and what those require in turn
               - 'agent-hub/src/utils/integrationIcons.ts'
               - 'agent-hub/src/config/integrationCatalog.ts'
@@ -921,6 +921,60 @@ jobs:
           SESSION_SECRET: ci-session-secret-value-at-least-32-chars-long
           MASTER_ENCRYPTION_KEY: ci-master-encryption-key-for-tests-only!!
         run: npm run test:journeys
+
+  # The tests that need a real Postgres (server/scripts/run-postgres-tests.mjs):
+  # the atomic claims (FOR UPDATE SKIP LOCKED), the reapers and a session
+  # advisory lock between two connections. PGlite, which the rest of the suite
+  # runs on, is ONE connection and cannot show those. In `npm test` these files
+  # skip themselves (no database there), so until this job nothing ran them.
+  # The service is the image and tag the compose files run
+  # (lint:compose-drift compares them). Trust auth: the container is reachable
+  # from this runner only and holds nothing, so there is no password to keep.
+  # The migration entry point runs twice on the empty database first: the tests
+  # need the whole schema, and the second run is the upgrade of an existing
+  # install, which must find its own work done. The runner sets
+  # REQUIRE_POSTGRES=1, which turns "database unreachable" from a skip into a
+  # failure. On drafts too: a couple of minutes, most of it the install.
+  server-postgres:
+    name: Server tests (Postgres)
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: beeflow
+          POSTGRES_DB: beeflow_core
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beeflow -d beeflow_core"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: server
+    env:
+      CORE_DATABASE_URL: postgresql://beeflow@127.0.0.1:5432/beeflow_core
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: server
+      - name: Schema on an empty database, then once more on what that left
+        env:
+          # A throwaway CI value, never a real secret: the support inbox store
+          # refuses to initialise without one.
+          SESSION_SECRET: ci-session-secret-value-at-least-32-chars-long
+        run: npm run db:migrate && npm run db:migrate
+      # The runner sets NODE_ENV=test, REQUIRE_POSTGRES=1 and the throwaway
+      # test values itself.
+      - name: Tests against Postgres
+        run: npm run test:postgres
 
   # The one job that emits "Server tests". It is not a matrix: it waits for the
   # checks, the three shards and the merged coverage, and fails on anything but
@@ -1878,7 +1932,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, server-journeys, frontend, frontend-typecheck, frontend-build, mobile, mobile-bundle, python-lint, python-tests, guard, guard-model-eval-shard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
+    needs: [changes, server, server-checks, server-shard, server-coverage, server-journeys, server-postgres, frontend, frontend-typecheck, frontend-build, mobile, mobile-bundle, python-lint, python-tests, guard, guard-model-eval-shard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

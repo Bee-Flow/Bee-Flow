@@ -17,7 +17,6 @@
  */
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import DemoHost from './DemoHost';
 import { DEMO_FEATURE_IDS, DEMO_FEATURES } from './registry';

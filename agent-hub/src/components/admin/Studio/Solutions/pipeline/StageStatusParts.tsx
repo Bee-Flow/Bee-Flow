@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, Copy, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStageSettingsQuery } from '@/api/queries/stageReads';
 import { useTranslation } from '@/hooks/useTranslation';
 import { pillStatusOf } from './pipelineModel';

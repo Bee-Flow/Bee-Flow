@@ -2,7 +2,6 @@
 // answering, colleagues typing. Nothing at all when nobody is.
 
 import { Loader2 } from 'lucide-react';
-import React from 'react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 function typingSentence(names: string[], t: TranslateFn): string {

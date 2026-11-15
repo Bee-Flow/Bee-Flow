@@ -59,35 +59,40 @@ The workspace runs in any browser. There are also two clients that connect to it
 | **RAM** | 2 GB (server) + 1 GB (Postgres) | 4 GB + 2 GB |
 | **Disk** | 5 GB | 20 GB + KB storage |
 | **OS** | Linux x86_64 / arm64 | Ubuntu 22.04 / Debian 12 |
-| **Postgres** | 16+ | 16 |
+| **Postgres** | 15+ with the `pgvector` extension | `pgvector/pgvector:pg15`, the image the Compose files run |
 | **Redis** | optional | 7+ for >1 server replica |
 
-The server is stateless when Redis is configured — scale by running more replicas behind a load balancer. Without Redis, sessions are server-local.
+Sessions live in Postgres, with or without Redis, so the server can run as several replicas behind a load balancer. Before you do, read [Kubernetes → More than one server replica](../self-hosting/kubernetes.md#server-replicas): the data of App Studio apps and of webpage projects is single-writer by default.
 
 ### Supported Nextcloud versions
 
 | Nextcloud | Supported | Notes |
 |-----------|:---------:|-------|
-| 31.x | ✅ | Stable. |
-| 32.x | ✅ | Stable. |
-| 33.0.0 | ⚠️ | AppAPI ships a broken `EventsListenerController`. Bee Flow detects this and continues without event subscriptions; user/group changes won't auto-sync until 33.0.1+. |
-| 33.0.1+ | ✅ | Stable. |
-| 34.x | ✅ | Stable. |
-| 30.x or older | ❌ | Not supported — AppAPI prerequisites are missing. |
+| 33, 34, 35 | ✅ | The range in the connector's manifest (`appinfo/info.xml`). |
+| 32 and older | ❌ | Nextcloud does not offer or install the app below version 33. Update Nextcloud first. |
+| 36 and newer | ❌ | Not yet: the manifest ends at 35. A later connector release raises the range. |
+
+The full list of tested configurations is in [Connector → Compatibility](../connector/index.md#compatibility).
 
 ### Supported model providers
 
 You need at least one configured. They are optional layered — the same agent can call any of them.
 
-| Provider | Env var | Notes |
-|----------|---------|-------|
-| Anthropic | `ANTHROPIC_API_KEY` | Recommended default. Claude 4.x family. |
-| OpenAI | `OPENAI_API_KEY` | GPT-4.x, GPT-5 once available. |
-| Mistral | `MISTRAL_API_KEY` | Open-weight + hosted. |
-| Azure OpenAI | `AZURE_OPENAI_ENDPOINT` + `AZURE_OPENAI_KEY` | EU-region deployments. |
-| Voxtral | `VOXTRAL_API_KEY` | Voice (STT + TTS). |
-| ElevenLabs | `ELEVENLABS_API_KEY` | TTS, music, sound effects. |
-| Ollama / local | `OLLAMA_BASE_URL` | Self-hosted; for fully offline mode. |
+A provider and its API key are added in the app, under **Admin → AI Config**, and
+stored encrypted in the database. The variable names earlier versions of this page
+listed (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_KEY`, `VOXTRAL_API_KEY`,
+`ELEVENLABS_API_KEY`, `OLLAMA_BASE_URL`) are not read by the server.
+
+| Provider | Notes |
+|----------|-------|
+| Anthropic | Claude models. |
+| OpenAI | GPT models. |
+| Google | Gemini, through Google AI or Vertex AI. |
+| Azure OpenAI | EU-region deployments. |
+| Mistral | Open-weight and hosted models; its key also runs voice (Voxtral speech-to-text and text-to-speech). |
+| Scaleway, IONOS, EU GPT | European hosting; see [Scaleway models](../admin/scaleway-models.md) and [IONOS models](../admin/ionos-models.md). A key saved in the app wins; `SCALEWAY_API_KEY`, `IONOS_API_KEY` and `EUGPT_API_KEY` are read when none is saved. |
+| ElevenLabs | Text-to-speech fallback, music, sound effects. |
+| Ollama, vLLM, llama.cpp, LM Studio, SGLang | Self-hosted, for fully offline mode. These can also be registered at start-up with `OLLAMA_URL`, `VLLM_URL`, `LLAMACPP_URL`, `LMSTUDIO_URL` or `SGLANG_URL`; see [Local models](../admin/local-models.md). |
 
 ### Network egress
 
@@ -96,7 +101,7 @@ The server reaches out to:
 - the model providers above (HTTPS 443)
 - `api.github.com` and `ghcr.io` (only at install + update time)
 - OAuth providers you enable (Google, Microsoft, GitHub, …)
-- Optional: `https://license.beeflow.nl` for licence validation refresh (Pro+)
+- Optional: `https://license.beeflow.nl` for licence validation refresh (opt-in, only with a licence key)
 
 There are no inbound webhooks required from the public internet — the server can sit behind a reverse proxy on a private network.
 

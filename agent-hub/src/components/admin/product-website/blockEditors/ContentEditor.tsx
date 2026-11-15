@@ -8,12 +8,9 @@ import {
     type ContentColumn,
     type ContentData,
     type ContentElement,
-    type LegacyContent,
 } from '@/marketing/sections/contentMigration';
-import type { BlockData } from './shared';
-import type { StyleBlob } from '../primitives.types';
 import useConfirm from '@/components/shared/useConfirm';
-import { RepeatableList, FieldRow, type CmsPageOption } from '../fields';
+import { RepeatableList, FieldRow } from '../fields';
 import {
     InlineHint,
     CollapsibleCard,
@@ -21,7 +18,7 @@ import {
     BackgroundVariantSelect,
     SegmentedControl,
 } from '../primitives';
-import type { ElementExtras, EditorElement, ContentEditorProps, ColumnPanelProps, ElementFieldsProps } from './ContentEditor.types';
+import type { ElementExtras, ContentEditorProps, ColumnPanelProps, ElementFieldsProps } from './ContentEditor.types';
 
 // ── Content (generic flexible block) ─────────────────────────────────
 

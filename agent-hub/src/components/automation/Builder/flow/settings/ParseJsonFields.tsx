@@ -8,9 +8,6 @@ import { appendFields } from './ParseJsonFields.helpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import type { OnFocusField } from '../../mapping/focusField.types';
-import type { SampleRootGroup } from '../../mapping/realOutputs';
-import type { FormRecord } from './formState/types';
 import type { ParseField, MapJsonFieldsResult, ParseJsonFieldsProps } from './ParseJsonFields.types';
 
 /**

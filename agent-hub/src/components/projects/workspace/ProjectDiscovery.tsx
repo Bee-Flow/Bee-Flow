@@ -1,4 +1,3 @@
-import React from 'react';
 import { CalendarDays, X } from 'lucide-react';
 import { useProjectFileContent, useProjectPins, useSetProjectPin, type ProjectItem } from '@/api/queries/projectDiscovery';
 import { useProjectTasksQuery } from '@/api/queries/projectTasks';

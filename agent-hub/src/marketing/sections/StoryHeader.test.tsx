@@ -4,7 +4,6 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/StoryHeader.test.tsx
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import StoryHeader from './StoryHeader';

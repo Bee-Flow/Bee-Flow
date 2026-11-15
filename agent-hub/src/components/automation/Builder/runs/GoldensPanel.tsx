@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AiAnswers, GoldenItem, ReplayStatus } from '@/api/queries/automation/runChecks';

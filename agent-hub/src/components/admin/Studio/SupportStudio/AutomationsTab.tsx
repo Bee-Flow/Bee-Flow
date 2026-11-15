@@ -1,5 +1,5 @@
 import { Plus, Save } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStudioSlaPoliciesQuery } from '@/api/queries/supportPanels';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import type { SupportInbox, SupportKb } from './supportStudio.types';

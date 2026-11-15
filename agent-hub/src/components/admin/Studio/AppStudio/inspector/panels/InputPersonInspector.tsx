@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, usePatch } from './kit';
 import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';

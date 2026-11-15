@@ -7,8 +7,6 @@
  * edge, not the service, and the map draws its line dotted for that reason.
  */
 
-import React from 'react';
-
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_BG } from '../../shieldPalette';
 

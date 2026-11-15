@@ -4,7 +4,7 @@
 // gives it to whoever may read the chat.
 
 import { Brain, ChevronDown, Copy, Lock } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTeamChatTrace, type TeamChatAiMeta, type TeamChatTrace } from '@/api/queries/projectChats';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';

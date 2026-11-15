@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { useOrgSummaryTemplatesQuery } from '../../api/queries/meetingLibrary';
 import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';

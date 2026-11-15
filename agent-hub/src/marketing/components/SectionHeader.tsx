@@ -1,4 +1,3 @@
-import React from 'react';
 import EditableText from './EditableText';
 import { inlineTextStyle } from '../sections/textStyle';
 import type { SectionHeaderFields } from '../sections/sectionData.types';

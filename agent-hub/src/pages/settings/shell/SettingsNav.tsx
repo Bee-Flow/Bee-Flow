@@ -1,6 +1,5 @@
 import { ROW_ACTIVE, ROW_IDLE } from '@/components/shell/sidebar/sidebarTokens';
 import { BarChart2, CreditCard, Link2, Shield, Sparkles } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 
 /** One top-level row of the settings nav (settingsNavItems.jsx hands these over). */

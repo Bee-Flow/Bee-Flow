@@ -8,7 +8,7 @@
 // source could not be read) says so rather than looking complete.
 
 import { ExternalLink } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';

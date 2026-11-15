@@ -808,17 +808,13 @@ test('MAX_ATTACHMENTS_PER_APP reads STUDIO_APP_MAX_ATTACHMENTS (default 5000)', 
     //
     // Six of those modules now LIVE in core/dataEngine/ (the engine moved down a
     // layer so automation datatables can share it; layering.test.js forbids one
-    // feature requiring another). The files under ./dataModel/ are re-export
-    // shims, and evicting a shim does NOT evict what it re-exports — so the core
-    // paths must be listed too or this test silently reads the stale cache.
+    // feature requiring another). ./dataModel/shared and ./dataModel/vocabulary
+    // re-export theirs, and evicting a re-export does NOT evict what it re-exports
+    // — so the core paths must be listed too or this test silently reads the stale cache.
     const paths = [
         path,
         require.resolve('./dataModel/shared'),
         require.resolve('./dataModel/vocabulary'),
-        require.resolve('./dataModel/ids'),
-        require.resolve('./dataModel/ddl'),
-        require.resolve('./dataModel/migrationPlan'),
-        require.resolve('./dataModel/tolerantDdl'),
         require.resolve('./dataModel/connectorValidate'),
         require.resolve('./dataModel/modelValidate'),
         require.resolve('./dataModel/canonicalize'),

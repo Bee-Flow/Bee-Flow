@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import { Loader2, X, Pencil, Globe } from 'lucide-react';
 import { useWebpageBundleQuery } from '../../api/queries/webpagesPanels';
 import WebpagePreview from '../../pages/webpages/WebpagePreview';

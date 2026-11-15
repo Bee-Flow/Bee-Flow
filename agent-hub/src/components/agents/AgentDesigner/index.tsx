@@ -1,5 +1,3 @@
-import type { ComponentType } from "react";
-
 import AgentListSidebar from "./AgentListSidebar";
 import type { DesignerAgent, DesignerUser } from "./AgentListSidebar";
 import { CAPABILITIES } from "./constants";

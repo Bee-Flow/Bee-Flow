@@ -5,7 +5,7 @@
 
 import { useDroppable } from '@dnd-kit/core';
 import { Gauge, MoreHorizontal, PencilLine, Plus, Settings2 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { BoardColumn as BoardColumnDef } from '@/api/queries/projectBoard';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';

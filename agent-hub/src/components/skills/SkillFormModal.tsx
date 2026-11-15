@@ -1,6 +1,6 @@
 import { useState, useRef, SetStateAction, RefObject, Dispatch } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
-import { useOrgGroupsQuery, type OrgGroup } from '../../api/queries/orgGroups';
+import { useOrgGroupsQuery } from '../../api/queries/orgGroups';
 import { useSkillDetail } from '../../api/queries/skillDetail';
 import useTranslation from '../../hooks/useTranslation';
 import { managedOf, managedRefusalOf, type ManagedBannerInfo, type ManagedPart } from '../shared/managedPart';

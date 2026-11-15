@@ -28,11 +28,10 @@
  * tick continues rather than starting over.
  */
 
-const { pool } = require('../db');
 const kbSourcesStore = require('../stores/kbSources');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const { withSessionLock } = require('../core/scheduling/lockSession');
 const { envInt } = require('../utils/envNumber.mts');
 
 /**
@@ -95,55 +94,53 @@ async function refreshOne(source, { sources = require('../core/kb/sources'), sto
 async function processDueSources() {
     if (_inFlight) return;
     _inFlight = true;
-    let client = null;
     let acquired = false;
     const t0 = Date.now();
     let ok = true;
     try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another replica owns this tick
+        // The lock sits on the connection the job locks share
+        // (core/scheduling/lockSession.js): a refresh waits on other hosts for
+        // minutes, and used to hold a pool connection of its own all that time.
+        // Not run: another replica owns this tick.
+        await withSessionLock(LOCK_KEY, async () => {
+            acquired = true;
 
-        // Before the claim: a row a dead worker left behind is invisible to
-        // claimDue until this releases it.
-        const reaped = await kbSourcesStore.timeoutStuck(STUCK_MINUTES);
-        if (reaped) log.warn(`[KBSourceRefresh] reaped ${reaped} stuck source(s)`);
+            // Before the claim: a row a dead worker left behind is invisible to
+            // claimDue until this releases it.
+            const reaped = await kbSourcesStore.timeoutStuck(STUCK_MINUTES);
+            if (reaped) log.warn(`[KBSourceRefresh] reaped ${reaped} stuck source(s)`);
 
-        // Also before the claim, so anything it arms is picked up by THIS tick
-        // rather than waiting a minute for the next one.
-        await armStaleLiveSources();
+            // Also before the claim, so anything it arms is picked up by THIS tick
+            // rather than waiting a minute for the next one.
+            await armStaleLiveSources();
 
-        const due = await kbSourcesStore.claimDue(MAX_PER_TICK);
-        let cursor = 0;
-        const workers = Array.from({ length: Math.min(REFRESH_CONCURRENCY, due.length) }, async () => {
-            for (;;) {
-                const i = cursor++;
-                if (i >= due.length) return;
-                const r = await refreshOne(due[i]);
-                if (!r.ok) ok = false;
+            const due = await kbSourcesStore.claimDue(MAX_PER_TICK);
+            let cursor = 0;
+            const workers = Array.from({ length: Math.min(REFRESH_CONCURRENCY, due.length) }, async () => {
+                for (;;) {
+                    const i = cursor++;
+                    if (i >= due.length) return;
+                    const r = await refreshOne(due[i]);
+                    if (!r.ok) ok = false;
+                }
+            });
+            await Promise.all(workers);
+
+            // Version history has no delete path of its own, so the tick is where
+            // it is bounded. Best-effort: a failed prune must not fail the tick.
+            try {
+                const kbStore = require('../stores/knowledgeBases');
+                if (typeof kbStore.pruneDocumentVersions === 'function') {
+                    await kbStore.pruneDocumentVersions(VERSION_KEEP_PER_DOC, VERSION_MAX_AGE_DAYS);
+                }
+            } catch (e) {
+                log.warn('[KBSourceRefresh] version prune failed:', e.message);
             }
         });
-        await Promise.all(workers);
-
-        // Version history has no delete path of its own, so the tick is where
-        // it is bounded. Best-effort: a failed prune must not fail the tick.
-        try {
-            const kbStore = require('../stores/knowledgeBases');
-            if (typeof kbStore.pruneDocumentVersions === 'function') {
-                await kbStore.pruneDocumentVersions(VERSION_KEEP_PER_DOC, VERSION_MAX_AGE_DAYS);
-            }
-        } catch (e) {
-            log.warn('[KBSourceRefresh] version prune failed:', e.message);
-        }
     } catch (e) {
         ok = false;
         log.warn('[KBSourceRefresh] tick error:', e.message);
     } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/kbSourceRefresh:processDueSources', err); /* best-effort */ }
-            client.release();
-        }
         if (acquired) recordJobRun({ job: 'kb_source_refresh', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
         _inFlight = false;
     }

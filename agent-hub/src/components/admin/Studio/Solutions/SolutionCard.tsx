@@ -1,4 +1,3 @@
-import React from 'react';
 import { CountChips, HealthChip, RunLine, StageTrack, SubLine, UpdateChip } from './SolutionCardParts';
 import { healthOf, updateOf, type OverviewRow } from './solutionOverviewModel';
 import { kindTileStyle } from '@/components/shared/kindColors';

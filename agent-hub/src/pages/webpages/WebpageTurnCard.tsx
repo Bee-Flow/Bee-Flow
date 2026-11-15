@@ -1,5 +1,4 @@
 import { Check, Code2, Link2, Undo2, Wrench } from 'lucide-react';
-import React from 'react';
 import type { ComponentType } from 'react';
 import { linksAddedIn, stepSummary } from './webpageTurnFacts';
 import type { TurnMessage } from './webpageTurnFacts';

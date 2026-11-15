@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { FormFieldRef, InputMapping, ParamMeta, ParamMetaByName } from './appDefinition';
 import { INPUT_CLS } from './panels/kit';
 import useTranslation from '@/hooks/useTranslation';

@@ -5,9 +5,7 @@ import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/ag
 import { ChevronDown, ChevronUp, X, Search, Heart, EyeOff, Pencil } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import scopedStorage from '../../utils/scopedStorage';
-import type { AgentListRow } from './AgentStudio/agentCardFacts';
-import type { AppUserLike } from '../projects/workspace/types';
-import type { MarketAgent, MarketCategory, AgentCardProps, AgentMarketplaceProps } from './AgentMarketplace.types';
+import type { MarketAgent, AgentCardProps, AgentMarketplaceProps } from './AgentMarketplace.types';
 
 const STATIC_CATEGORIES_BEFORE_KEYS = [
     { key: 'popular', tKey: 'store.tab_popular' },

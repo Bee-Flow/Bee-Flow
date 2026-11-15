@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import AddBlockDialogJs from '../dialogs/AddBlockDialog';
 import InspectorHostJs from '../inspector/InspectorHost';
 import NavigatorPanelJs from '../navigator/NavigatorPanel';

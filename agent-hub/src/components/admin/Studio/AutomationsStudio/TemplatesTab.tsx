@@ -1,4 +1,3 @@
-import React from 'react';
 import TemplateGallery from './TemplateGallery';
 import type { TemplateGalleryProps } from './TemplateGallery';
 

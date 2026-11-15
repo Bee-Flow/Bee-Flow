@@ -1,4 +1,3 @@
-import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { PenLine, ScanSearch } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';

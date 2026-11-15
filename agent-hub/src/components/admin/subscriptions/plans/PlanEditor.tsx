@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Save, Trash2, Settings, Sparkles, Euro, CalendarPlus, Eye } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { usePlanForm } from './usePlanForm';
 import type { PlanForm, PlanRecord, PlanSectionProps } from './usePlanForm';

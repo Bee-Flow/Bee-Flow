@@ -1,5 +1,4 @@
 import { Lock } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Button from '@/components/shared/Button';
 import { canEditValue, isSteering, valuePending, valueToInput, type VariableDecl, type VariableValue } from './stageSettingsModel';

@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { projectIcon, projectTileStyle } from '../projects/workspace/projectVisuals';
 

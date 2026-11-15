@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import {
-    ackKey, acksOf, isNoop, needsNameConfirm, settingsLinkFor, summarizeParts,
+    acksOf, isNoop, needsNameConfirm, settingsLinkFor, summarizeParts,
 } from './pipelineModel';
 import { findingText } from './StageStatus';
 import { useStageLabel } from './StageSwitcher';

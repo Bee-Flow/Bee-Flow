@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import AppIcon from '../../components/icons/AppIcon';
 
@@ -20,7 +20,7 @@ import {
     LEGACY_CONSENT_STORAGE_KEY as LEGACY_STORAGE_KEY,
 } from './consent';
 import {
-    cookieButtonStyle, cookieLayoutStyle, cookieReserve, normalizeCookieLayout,
+    cookieButtonStyle, cookieLayoutStyle, normalizeCookieLayout,
 } from './cookieBannerLayout';
 import type { CookieLayout } from './cookieBannerLayout';
 import { useCookieReserve } from './useCookieReserve';

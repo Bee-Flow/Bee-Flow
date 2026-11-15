@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 import AppInputHtml, { cleanPastedHtml } from './AppInputHtml';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';

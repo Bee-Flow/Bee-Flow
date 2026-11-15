@@ -24,7 +24,7 @@
 // shieldFindings.ts, which are pure and tested; this file holds the state.
 
 import { Lock } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { OUTCOME_WORDS, REGION_WORDS, surfaceLabel, useCategoryLabels, wordFor } from './activityLabels';
 import { buildView, type ActivityView, type ViewInput } from './activityView';

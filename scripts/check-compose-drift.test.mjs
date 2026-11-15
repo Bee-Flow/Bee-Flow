@@ -32,9 +32,13 @@ function sandbox(t, patch = {}) {
         'docker-compose.shared-sidecars.override.yml': 'services:\n  server:\n    networks:\n      - shared-sidecars\n',
         'selfhost.sh': '#!/bin/sh\nALL_PROFILES="core guard analytics"\n',
         '.env.selfhost.example': '# comment\nDB_PASSWORD=CHANGE_ME\n# UNSET_ONE=\nALLOW_SIGNUPS=false\n',
+        '.github/workflows/ci.yml': 'jobs:\n  server-postgres:\n    services:\n      postgres:\n        image: pgvector/pgvector:pg15\n',
         ...patch,
     };
-    for (const [rel, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, rel), text);
+    for (const [rel, text] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+        fs.writeFileSync(path.join(dir, rel), text);
+    }
     return dir;
 }
 
@@ -52,6 +56,16 @@ test('a third-party image bumped in one file only fails, naming both tags and fi
     assert.match(p, /image redis has different tags/);
     assert.match(p, /8-alpine in docker-compose\.yml/);
     assert.match(p, /7-alpine in docker-compose\.from-registry\.yml/);
+});
+
+test('a service container of ci.yml that the compose files have moved past fails', (t) => {
+    const dir = sandbox(t, { '.github/workflows/ci.yml': 'jobs:\n  server-postgres:\n    services:\n      postgres:\n        image: pgvector/pgvector:pg14\n' });
+    const [p] = check(dir);
+    assert.match(p, /image pgvector\/pgvector has different tags/);
+    assert.match(p, /pg14 in \.github\/workflows\/ci\.yml/);
+    assert.match(p, /pg15 in docker-compose\.yml/);
+    fs.rmSync(path.join(dir, '.github/workflows/ci.yml'));
+    assert.match(check(dir).join('\n'), /\.github\/workflows\/ci\.yml: cannot read/);
 });
 
 test('first-party images with their own tags are not compared', (t) => {

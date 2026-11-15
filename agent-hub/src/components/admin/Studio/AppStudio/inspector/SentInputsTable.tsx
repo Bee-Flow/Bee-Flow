@@ -1,5 +1,4 @@
 import { AlertTriangle, User } from 'lucide-react';
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { FormFieldRef, InputMapping, ParamMetaByName } from './appDefinition';

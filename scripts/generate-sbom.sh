@@ -11,6 +11,12 @@
 # Requires: node, npx (license-checker fetched on demand), jq.
 #
 # Idempotent. Run before each release or after dependency changes.
+#
+# Only the "## Workspaces" tables are generated. The sections below them in
+# THIRD-PARTY-LICENSES.md (data files, fonts, ML models, proprietary SDKs) are
+# maintained by hand in that file: this script keeps them exactly as they are.
+# The built-in sections at the bottom of this script are only the starting
+# point for a file that has none yet.
 
 set -euo pipefail
 
@@ -27,9 +33,20 @@ WORKSPACES=(
     "nextcloud-connector"
 )
 
-# Components are smaller npm packages; collect them dynamically.
-mapfile -t COMPONENTS < <(find "${REPO_ROOT}/components" -maxdepth 2 -name package.json -not -path "*/node_modules/*" 2>/dev/null | xargs -I{} dirname {} | sed "s|^${REPO_ROOT}/||" | sort)
+# Components are smaller npm packages; collect them dynamically. -mindepth 2
+# leaves out components/package.json itself: lint and test tooling for the
+# folder, with development dependencies only, which the server never loads.
+mapfile -t COMPONENTS < <(find "${REPO_ROOT}/components" -mindepth 2 -maxdepth 2 -name package.json -not -path "*/node_modules/*" 2>/dev/null | xargs -I{} dirname {} | sed "s|^${REPO_ROOT}/||" | sort)
 WORKSPACES+=("${COMPONENTS[@]}")
+
+# ─── Hand-maintained sections of the existing file ─────────────────────
+# Everything from the first "## " heading after "## Workspaces" to the end.
+# Saved before the file is rewritten, appended unchanged afterwards.
+KEPT_SECTIONS="${SBOM_DIR}/kept-sections.md"
+: > "${KEPT_SECTIONS}"
+if [[ -f "${OUT_MD}" ]]; then
+    awk 'kept { print; next } /^## / && $0 != "## Workspaces" { kept = 1; print }' "${OUT_MD}" > "${KEPT_SECTIONS}"
+fi
 
 # ─── Header ────────────────────────────────────────────────────────────
 {
@@ -86,7 +103,10 @@ for ws in "${WORKSPACES[@]}"; do
     } >> "${OUT_MD}"
 done
 
-# ─── Self-hosted ML models ─────────────────────────────────────────────
+# ─── Sections below the workspace tables ───────────────────────────────
+if [[ -s "${KEPT_SECTIONS}" ]]; then
+    cat "${KEPT_SECTIONS}" >> "${OUT_MD}"
+else
 {
     echo "## Self-hosted ML models"
     echo
@@ -109,6 +129,7 @@ done
     echo "Other cloud AI providers (Anthropic, OpenAI, Google AI, Mistral, Azure OpenAI, Google Vertex AI, ElevenLabs, Stripe) are reached over their public REST APIs via small open-source SDKs. Their terms of service apply when an API key is configured."
     echo
 } >> "${OUT_MD}"
+fi
 
 # ─── CycloneDX root SBOM (best-effort) ─────────────────────────────────
 echo "[sbom] Generating CycloneDX root SBOM ..."

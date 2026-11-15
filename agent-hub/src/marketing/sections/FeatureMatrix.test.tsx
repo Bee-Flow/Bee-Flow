@@ -5,7 +5,6 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/FeatureMatrix.test.tsx
  */
-import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';

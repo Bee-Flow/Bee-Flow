@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronRight, Newspaper } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAutomationShares } from '@/api/queries/automation/people';

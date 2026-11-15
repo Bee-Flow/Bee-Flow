@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import AddKindTiles from './AddKindTiles';
 import AddPartsDrawer from './AddPartsDrawer';
 import ContentToolbar, { type ContentToolbarProps } from './ContentToolbar';

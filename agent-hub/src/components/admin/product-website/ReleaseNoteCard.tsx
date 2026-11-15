@@ -3,7 +3,6 @@
 // the drafted items grouped by kind. ReleaseNotesPanel owns the data.
 
 import { Check, Eye, EyeOff, Trash2 } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { CARD, CHIP, CHIP_SUCCESS, CHIP_WARNING, INPUT, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 

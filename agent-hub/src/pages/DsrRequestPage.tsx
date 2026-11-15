@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { ShieldCheck, CheckCircle2, Search, BadgeCheck, CircleAlert } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';

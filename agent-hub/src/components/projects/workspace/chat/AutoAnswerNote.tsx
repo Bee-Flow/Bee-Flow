@@ -4,7 +4,7 @@
 // them in a day make the AI hold back in this chat for a day.
 
 import { ThumbsDown } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { TeamChatMessage } from '@/api/queries/projectChats';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 

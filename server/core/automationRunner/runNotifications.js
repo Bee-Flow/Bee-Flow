@@ -13,7 +13,7 @@
  *                 from the store for a live run, as a defence for a caller
  *                 that swapped in a definition of its own.
  *   2. recipients owner / approver / users / groups, resolved inside the
- *                 automation's organisation (automation/notificationRecipients.js).
+ *                 automation's organisation (core/automationModel/notificationRecipients.js).
  *   3. digest     an event in summary mode (delivery 'digest', digest on) is
  *                 recorded for the daily summary and sent nowhere now.
  *   4. throttle   at most maxPerHour messages per automation, event and recipient
@@ -31,7 +31,7 @@
  *                 automation_notification_events.
  *
  * Nextcloud and Talk carry the automation name, the event and a link only
- * (automation/notificationMessages.js); the Bee Flow bell and e-mail keep the
+ * (core/automationModel/notificationMessages.js); the Bee Flow bell and e-mail keep the
  * runner's detailed title and message.
  *
  * Never throws into the run: a notification that cannot be sent is logged

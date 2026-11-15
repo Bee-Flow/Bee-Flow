@@ -100,14 +100,11 @@ When SSO is enabled, the username/password form is hidden by default. Set `ALLOW
 
 See [Audit & compliance](audit-and-compliance.md) for the data model.
 
-## Voice (Pro+)
+## Voice (Enterprise+)
 
-| Field | Notes |
-|-------|-------|
-| STT provider | Voxtral / Deepgram / Mistral / Whisper local. |
-| TTS provider | Voxtral / ElevenLabs. |
-| Default voice | Picker from your provider's voices. |
-| Allow voice calls | Master toggle. |
+Voice chat has no provider picker of its own. Speech-to-text and text-to-speech run on
+Voxtral with the Mistral API key from **Admin → AI Config**; an ElevenLabs key entered
+there is the text-to-speech fallback. See [Voice](../features/voice.md#provider-routing).
 
 ## Integrations (other than NC)
 

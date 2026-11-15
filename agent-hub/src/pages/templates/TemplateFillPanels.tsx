@@ -1,5 +1,4 @@
 import { Bot } from 'lucide-react';
-import React from 'react';
 import type { ReactNode, RefObject } from 'react';
 import MessageItem from '../../components/chat/MessageItem';
 import KnowledgePanel from '../../components/knowledge/KnowledgePanel';

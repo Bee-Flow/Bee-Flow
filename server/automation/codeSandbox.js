@@ -45,7 +45,7 @@
  * a clear error rather than crashing on require().
  */
 const { isPrivateHostname, safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
-const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../core/http/httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
 const log = require('../telemetry/log');
 const telemetryLog = require('../telemetry/log');

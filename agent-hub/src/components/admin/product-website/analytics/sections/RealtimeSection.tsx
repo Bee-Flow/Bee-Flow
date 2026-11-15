@@ -18,7 +18,7 @@
  * that ignores it is just a lie with a dropdown.
  */
 import { Activity, Eye, Globe, FileText, Share2, Zap, Radio } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import type { SVGProps } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import MinuteBars from '../charts/MinuteBars';

@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react';
 import { Table2 } from 'lucide-react';
-import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { heroCard, isBusy, panelCard, stagePadding, stageType, STAGE_BUTTON, WIDTH } from './stageChrome';
 import StageShell, { StageHeader } from './StageShell';

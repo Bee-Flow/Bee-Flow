@@ -1,6 +1,5 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import VariablePicker from './VariablePicker';
 import type { ComponentProps } from 'react';

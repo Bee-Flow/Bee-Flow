@@ -1,7 +1,7 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent, type UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { moveItem, newLocalId } from './skillModel';
 import type { SkillStepEditorProps, Step, StepRef } from './SkillStepEditor.types';

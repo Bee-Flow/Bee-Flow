@@ -16,10 +16,10 @@ const datatableDbStore = require('../../stores/datatableDbStore');
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
 const accessFilter = require('../../core/dataEngine/accessFilter');
 const sources = require('../../core/dataEngine/sources');
-const { PG, ROWS_PAGE_MAX, BULK_DELETE_MAX_IDS } = require('./engine');
+const { PG, ROWS_PAGE_MAX, BULK_DELETE_MAX_IDS } = require('../../usecases/datatables/engine');
 const { metaAndFilter, metaFor } = require('./grade');
 const { assertQuota, answerDatatableError } = require('./refusals');
-const { readListDescriptor } = require('./rowDescriptor');
+const { readListDescriptor } = require('../../usecases/datatables/rowDescriptor');
 const { mirrorCtx, mirrorWrites } = require('./source');
 
 /** @typedef {import('./grade').DatatableRequest} DatatableRequest */

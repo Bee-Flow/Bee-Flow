@@ -4,7 +4,6 @@
 // box is actually serving, because that is what will (or won't) appear in the
 // tier picker. So a successful probe lists the model ids it found.
 
-import React from 'react';
 import type { ProbeData } from '@/api/runtimeTypes';
 import { CAT_COLORS } from '@/api/modelMeta';
 import { useTranslation } from '@/hooks/useTranslation';

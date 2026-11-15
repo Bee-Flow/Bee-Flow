@@ -5,7 +5,7 @@
  * Demo data is invented (Fabrikam / Contoso).
  */
 import { render } from '@testing-library/react';
-import { useState, type ComponentType } from 'react';
+import { useState } from 'react';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import { writeRoute } from '../routeModel';
 import { RouteFields as RouteFieldsJs } from './routeEditors';

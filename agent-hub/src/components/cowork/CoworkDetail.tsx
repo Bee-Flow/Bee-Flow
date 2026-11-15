@@ -25,7 +25,6 @@
  * Every pill that IS here states something the item actually carries.
  */
 import { CalendarClock, Clock, LayoutGrid, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
-import React from 'react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import CoworkEditForm from './CoworkEditForm';
 import CoworkRunHistory from './CoworkRunHistory';

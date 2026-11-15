@@ -34,7 +34,7 @@
 // approval editor turned "Invoice number" into four different bindings on the
 // way to "Invoice number (from the PO)".
 import { Plus } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { denseInputClass } from './formPrimitives';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { BindingNameFieldProps, DesignedField, FieldDesignerProps } from './fieldDesigner.types';

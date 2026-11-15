@@ -1,6 +1,5 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ChartConfigModal, { type ChartSpec } from './ChartConfigModal.jsx';
 

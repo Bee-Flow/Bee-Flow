@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ActionEffect, AppAction, AppScreen, NavigateParam } from './appDefinition';
 import { mergeDrafts, splitNamed } from './keyedRows';
 import ExpressionInput from './logic/ExpressionInput';

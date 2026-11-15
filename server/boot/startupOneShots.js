@@ -7,6 +7,32 @@
  */
 
 const log = require('../telemetry/log');
+const { trackBootStep } = require('../utils/runtimeState.mts');
+
+/**
+ * Start one of the migration ladders of bootMigrations.js after the current
+ * tick (boot does not wait for it) and make it a boot step: the readiness
+ * probe answers "starting" until the ladder has ended. A ladder that ends with
+ * failed migrations is one error line with their names, not a line per
+ * migration somewhere in the warnings; it does not stop boot, and a failed
+ * migration runs again at the next start (only a success is recorded).
+ *
+ * @param {string} step what the log line and the boot state call it
+ * @param {() => Promise<{ failed: { name: string }[] }>} run
+ */
+function startLadder(step, run) {
+    // Tracked in this tick, so no request can see "ready" between listen and the ladder's start.
+    trackBootStep(step, new Promise((resolve) => { setImmediate(resolve); }).then(run).then((out) => {
+        if (out.failed.length === 0) return;
+        const names = out.failed.map((f) => f.name).join(', ');
+        log.error(`[Server] ${step}: ${out.failed.length} failed, the rest ran. They run again at the next start: ${names}`);
+        throw new Error(`${step} failed: ${names}`);
+    }, (e) => {
+        // The ladder catches each migration's own error, so this is the ladder itself not running.
+        log.error(`[Server] ${step} did not run:`, e.message);
+        throw e;
+    }));
+}
 
 /** One-shot checks, backfills and data migrations, each non-blocking. */
 function runOneShotTasks() {
@@ -65,12 +91,8 @@ function runOneShotTasks() {
 
     // Loose data migrations: the list, and the reason for each entry, live in
     // bootMigrations.js, which `npm run db:migrate` runs too (there it exits 1
-    // on a failure; here it warns and carries on, boot comes first).
-    setImmediate(() => {
-        require('./bootMigrations').runLooseMigrations().catch(e =>
-            log.warn('[Server] losse-migratieladder faalde:', e.message));
-    });
-
+    // on a failure; here it logs the failed names and carries on, boot comes first).
+    startLadder('data migrations', () => require('./bootMigrations').runLooseMigrations());
 
     // Warm the module-capability filter before the first entitlement resolve —
     // after a restart a still-valid session snapshot skips buildCeiling, so a
@@ -84,10 +106,7 @@ function runOneShotTasks() {
     // ── Dutch translation catalogues: the list AND the reason for its order
     // live in bootMigrations.js (sequential: each is a read-modify-write of the
     // same row; run in parallel, the second writer erased the first's keys).
-    setImmediate(() => {
-        require('./bootMigrations').runNlTranslations().catch(e =>
-            log.warn('[Server] NL-catalogusladder faalde:', e.message));
-    });
+    startLadder('Dutch translation catalogues', () => require('./bootMigrations').runNlTranslations());
 
     // Resized AVIF/WebP copies of CMS images uploaded before they existed:
     // at most 50 per boot, one at a time through the upload queue, a minute
@@ -100,4 +119,4 @@ function runOneShotTasks() {
     }, 60 * 1000).unref();
 }
 
-module.exports = { runOneShotTasks };
+module.exports = { runOneShotTasks, startLadder };

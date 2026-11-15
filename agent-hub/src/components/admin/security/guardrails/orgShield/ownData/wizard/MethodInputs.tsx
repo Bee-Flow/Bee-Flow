@@ -1,5 +1,5 @@
 import { Lock } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import Button from '@/components/shared/Button';
 import Disclosure from '@/components/shared/Disclosure';

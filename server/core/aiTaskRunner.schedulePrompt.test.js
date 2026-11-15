@@ -23,8 +23,7 @@ const path = require('path');
 
 const SRC = fs.readFileSync(path.join(__dirname, 'aiTaskRunner.js'), 'utf8');
 
-// buildTaskSystemPrompt/describeTaskSchedule are module-private (the module
-// starts background timers on require, which a unit test should not do).
+// buildTaskSystemPrompt/describeTaskSchedule are module-private.
 // Evaluate just the two pure functions in isolation.
 function loadPromptBuilders() {
     const grab = (/** @type {string} */ name) => {

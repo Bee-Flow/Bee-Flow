@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ComponentType, CSSProperties } from 'react';
 
 interface CaptureTileProps {

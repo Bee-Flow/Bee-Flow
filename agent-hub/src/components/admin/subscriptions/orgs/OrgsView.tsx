@@ -1,5 +1,5 @@
 import { Building2, Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { OrgEditor } from './OrgEditor';
 import { QuickAssignDialog } from './QuickAssignDialog';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';

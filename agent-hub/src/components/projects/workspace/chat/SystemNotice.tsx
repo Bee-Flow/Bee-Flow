@@ -4,7 +4,6 @@
 // to one's own opt-out right next to it.
 
 import { Sparkles } from 'lucide-react';
-import React from 'react';
 import type { TeamChatMessage } from '@/api/queries/projectChats';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 

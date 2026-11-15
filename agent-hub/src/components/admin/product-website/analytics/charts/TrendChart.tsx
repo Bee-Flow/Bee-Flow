@@ -13,7 +13,7 @@
  *   - a dashed final segment for a bucket that is still filling up
  *   - reference lines, for the Core Web Vitals thresholds
  */
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';
 import { ACCENT } from '../BarList';

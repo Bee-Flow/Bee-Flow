@@ -1,4 +1,3 @@
-import React from 'react';
 import { useRequiredConnectionsQuery } from '../../api/queries/sharedReads';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import { AlertCircle } from 'lucide-react';

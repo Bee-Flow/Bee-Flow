@@ -1,4 +1,3 @@
-import React from 'react';
 import AppIcon from './appIcon';
 import { accentTile, CARD_CLASSES, CARD_STYLE } from './cardStyle';
 import type { StudioApp } from './types';

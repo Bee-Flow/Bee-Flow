@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { DirectoryOptions } from '@/components/automation/Builder/flow/settings/approvalStages';
 import { newStageKey } from '@/components/automation/Builder/flow/settings/formState';

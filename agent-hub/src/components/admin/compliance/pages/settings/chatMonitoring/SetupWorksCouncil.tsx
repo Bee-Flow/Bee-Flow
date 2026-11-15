@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { DateInput, Field, Select, TextInput, Toggle } from './formAtoms';
 import {

@@ -4,7 +4,7 @@
 // the reader opens or closes is remembered per project.
 
 import { ChevronRight, Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TASK_STATUSES, type ProjectTask, type TaskStatus } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';

@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import FormulaField from './FormulaField';
 import StudioScopeProvider, { valueGroup } from './StudioScopeProvider';
 import IconButton from '@/components/shared/IconButton';

@@ -4,7 +4,6 @@
  */
 import { AppWindow, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { ComponentType } from 'react';
 import { INPUT, LABEL, PARAM_TYPES, kinds } from './connectorModel';
 import type { Connector, ConnectorParam } from './connectorModel';
 import useAutomationApi from '@/hooks/useAutomationApi';

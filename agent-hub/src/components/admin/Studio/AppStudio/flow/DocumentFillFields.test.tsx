@@ -1,5 +1,4 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 const api=vi.hoisted(()=>({documentRequest:vi.fn(),listTemplates:vi.fn()}));

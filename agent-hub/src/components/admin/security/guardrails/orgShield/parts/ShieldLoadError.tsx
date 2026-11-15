@@ -1,5 +1,4 @@
 import { OctagonAlert } from 'lucide-react';
-import React from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 

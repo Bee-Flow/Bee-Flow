@@ -1,5 +1,4 @@
 import { Lock } from 'lucide-react';
-import React from 'react';
 
 import EmptyState from '@/components/shared/EmptyState';
 import type { TranslateFn } from '@/hooks/useTranslation';

@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
@@ -113,6 +113,13 @@ describe('what the screen asks the server before it draws anything', () => {
     it('asks /auth/setup-status which methods this deployment offers', async () => {
         await renderLogin();
         expect(callTo('/auth/setup-status')).toBeTruthy();
+    });
+
+    it('draws the card and its footer inside the one main landmark of the page', async () => {
+        await renderLogin();
+        const main = screen.getByRole('main');
+        expect(within(main).getByTestId('login-submit-button')).toBeInTheDocument();
+        expect(within(main).getByText('login.platform_name')).toBeInTheDocument();
     });
 
     // wrat: the anonymous login screen still fetches the public organisation

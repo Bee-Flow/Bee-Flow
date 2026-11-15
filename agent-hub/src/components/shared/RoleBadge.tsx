@@ -1,4 +1,3 @@
-import React from 'react';
 import { ORG_ROLES } from '../../config/orgRoles';
 
 interface RoleBadgeProps {

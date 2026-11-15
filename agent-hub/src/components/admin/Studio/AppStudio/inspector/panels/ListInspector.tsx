@@ -1,4 +1,3 @@
-import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, NumberField, IconField, SelectField, usePatch } from './kit';
 import { SpecListField } from './SpecListField';

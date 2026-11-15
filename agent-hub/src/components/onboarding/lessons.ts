@@ -26,9 +26,7 @@ import { checkPermission } from '../../hooks/usePermissionCheck';
 import {
     TOUR_STEPS,
     filterStepsForUser,
-    TOUR_SEEN_KEY,
     TOUR_START_EVENT,
-    TOUR_ENSURE_SIDEBAR_EVENT,
 } from './tourSteps';
 import { stepType, STEP_TYPES } from './stepTypes';
 import { GENERATED_LESSONS } from './generated/lessons';

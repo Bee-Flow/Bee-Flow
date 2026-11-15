@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { Loader2, Eye, FileText } from 'lucide-react';
 import InvoicePdfModal from './InvoicePdfModal';
 import { useTranslation } from '../../hooks/useTranslation';

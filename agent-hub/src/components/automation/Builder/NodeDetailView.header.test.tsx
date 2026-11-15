@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GMAIL_CATALOG as CATALOG, ndvProps, scheduledStepProps as props } from './ndv/ndvTestProps';
 import { omitted, malformed } from '@/test/mocks';

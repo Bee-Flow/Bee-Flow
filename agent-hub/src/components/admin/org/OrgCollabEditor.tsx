@@ -6,7 +6,7 @@
 // then the switch is shown locked with that reason, never as a lie.
 
 import { AlertTriangle, Loader2, UsersRound } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useOrgCollab, useSaveOrgCollab, type OrgCollabSettings } from '@/api/queries/orgCollab';
 import { useTranslation } from '@/hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';

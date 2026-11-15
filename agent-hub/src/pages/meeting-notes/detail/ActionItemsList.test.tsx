@@ -1,6 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ActionItemsList from './ActionItemsList';

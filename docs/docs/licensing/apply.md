@@ -6,13 +6,37 @@ title: Applying a licence key
 
 After purchase, you receive a JWT in your inbox. To apply it:
 
+## Before you paste a key: the public key {#public-key}
+
+A licence key is a signed JWT, and the server can only accept it when it has
+Bee Flow's licence **public key** to check the signature against. A self-hosted
+server does not ship with that key: set one of these in `.env` and restart.
+The self-host Compose file (`docker-compose.from-registry.yml`, what
+`./selfhost.sh` runs) passes all three through to the server; with another
+Compose file, add them to the server's `environment:` list yourself.
+
+| Variable | What it is |
+|---|---|
+| `LICENSE_PUBLIC_KEY` | The public key as inline PEM, with literal `\n` between the lines. |
+| `LICENSE_PUBLIC_KEY_FILE` | A path to the PEM file inside the container, for example `/app/data/license-public-key.pem` (that path is in the `beeflow-data` volume, so it survives upgrades). |
+| `LICENSE_JWKS_URL` | Bee Flow's key set (`https://license.beeflow.nl/v1/jwks.json`). It must be an `https://` URL. The server picks the key whose `kid` matches the licence key; a licence key without a `kid` is checked against the PEM above. |
+
+Without any of them, pasting a key fails with `no_public_key_configured`. A
+development checkout may carry a development key at
+`server/license/bundled-public-key.pem`; a production server refuses that file
+unless `LICENSE_ALLOW_BUNDLED_KEY=true`, so that a forgotten setting cannot
+make it accept development-signed keys.
+
+An admin blob (`beeflow-admin-v1.…`, see below) is not signed and needs no
+public key.
+
 ## In the UI
 
 1. Open Bee Flow as an organisation admin.
 2. Go to **Admin → Organisation → License & Usage**.
 3. Paste the JWT into the **Licence key** field and click **Apply**.
 
-The server verifies the signature against the bundled public key (`license/bundled-public-key.pem`) and updates the active tier immediately. Premium features become available without a restart.
+The server verifies the signature against the public key configured above and updates the active tier immediately. Premium features become available without a restart.
 
 ![Applying a licence key](../img/screenshots/admin/license-apply/)
 
@@ -49,123 +73,136 @@ While a server-wide licence is active:
 A server-wide licence overrides **every** organisation's tier at once, so
 on a genuinely multi-tenant install apply it deliberately.
 
-API reference:
+API reference. The login hands out no token: the calls carry the session
+cookie of a signed-in super-admin (see [Authentication](../api/auth.md)).
 
 ```bash
-# Apply
-curl -X POST https://beeflow.example.com/api/license/activate \
+# Sign in once and keep the session cookie
+curl -c cookies.txt -X POST https://beeflow.example.com/auth/admin-login \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <super_admin_jwt>" \
+  -d '{ "username": "admin@example.com", "password": "..." }'
+
+# Apply
+curl -b cookies.txt -X POST https://beeflow.example.com/api/license/activate \
+  -H "Content-Type: application/json" \
   -d '{ "token": "eyJhbG...", "scope": "server" }'
 
 # Remove
-curl -X DELETE 'https://beeflow.example.com/api/license/deactivate?scope=server' \
-  -H "Authorization: Bearer <super_admin_jwt>"
+curl -b cookies.txt -X DELETE 'https://beeflow.example.com/api/license/deactivate?scope=server'
 ```
 
-## Via env var (self-hosted)
+## There is no environment variable for the key itself
 
-Set `BEEFLOW_LICENSE_KEY` and restart the server. Useful for IaC / GitOps deploys where you don't want to paste keys through a UI.
-
-```bash
-echo 'BEEFLOW_LICENSE_KEY=eyJhbG...' >> .env
-docker compose up -d beeflow-server
-```
-
-The env var takes precedence over a key applied via UI, so removing it falls back to whatever was last entered in the UI (or Community tier if neither is set).
+A licence key is applied in the app (or through `POST /api/license/activate`
+above) and stored in the database. No environment variable carries the key:
+earlier versions of this page named `BEEFLOW_LICENSE_KEY`, which the server
+has never read. The only licence settings in `.env` are the public key above
+and the optional refresh settings in
+[Connecting to the license server](./server-deploy.md).
 
 ## Verifying the active tier
 
-```bash
-curl https://beeflow.example.com/api/license/status \
-  -H "Authorization: Bearer <admin_jwt>"
-```
-
-Returns:
+`GET /api/license/status`, as a signed-in user, returns the tier the caller
+resolves to:
 
 ```json
 {
-  "tier": "pro",
-  "expiresAt": "2027-05-09T00:00:00Z",
-  "features": [
-    "automations",
-    "webpages",
-    "meeting_notes",
-    "skills",
-    "voice"
-  ],
-  "limits": {
-    "users": 25,
-    "agents": 20,
-    "messages": 50000,
-    "knowledgeBases": 100
+  "tier": "enterprise",
+  "source": "license_key",
+  "scope": "server",
+  "license": {
+    "id": "…",
+    "tier": "enterprise",
+    "issuer": "license.beeflow.nl",
+    "issuedAt": "2026-05-09T00:00:00.000Z",
+    "expiresAt": "2027-05-09T00:00:00.000Z",
+    "billingInterval": "yearly",
+    "lastRefreshAt": null,
+    "refreshStatus": null,
+    "revokedAt": null,
+    "scope": "server",
+    "metadata": {}
   },
-  "tenantId": "org_abc",
-  "issuedAt": "2026-05-09T00:00:00Z",
-  "lastVerifiedAt": "2026-05-09T12:34:56Z"
+  "subscription": null,
+  "features": ["chat_basic", "automations", "voice_chat", "meeting_notes", "…"],
+  "limits": {
+    "max_users": -1,
+    "max_agents": -1,
+    "max_messages_per_month": -1,
+    "max_kb_sources": -1
+  },
+  "serverOverride": true,
+  "serverLicense": { "…": "…" }
 }
 ```
 
-`lastVerifiedAt` is updated when the server polls the licence-server for revocation (`LICENSE_REFRESH_URL`, default every 24 h).
+`-1` means unlimited. `license.lastRefreshAt` is set when the server re-checks
+the key with the licence server, which it does only when `LICENSE_REFRESH_URL`
+is set.
 
 ## JWT structure
 
-The licence is a standard JWT signed with the Bee Flow ECDSA P-256 private key. Header / claims:
+The licence is a standard JWT signed with Bee Flow's RSA private key
+(`RS256`); a key with any other `alg` is refused. Header / claims:
 
 ```json
 {
-  "alg": "ES256",
-  "typ": "JWT"
+  "alg": "RS256",
+  "typ": "JWT",
+  "kid": "…"
 }
 .
 {
   "iss": "license.beeflow.nl",
   "sub": "org_abc",
-  "tenantId": "org_abc",
-  "tier": "pro",
-  "limits": { "users": 25, "agents": 20, "messages": 50000 },
-  "features": ["automations", "..."],
+  "license_id": "…",
+  "tier": "enterprise",
   "iat": 1715212800,
   "exp": 1746748800
 }
 ```
 
-Verification logic lives in [`server/license/verify.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/verify.js).
+`iss`, `tier`, `license_id` and `exp` are required. A key for the `full` tier
+must come from the issuer `license.beeflow.nl/internal`.
+
+Verification logic lives in [`server/license/verify.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/license/verify.js).
 
 ## Rotating
 
 Paste a new key at any time — it overwrites the old one. Two situations:
 
 - **Renewal** — same tier, new `exp`. Replace and you're done.
-- **Upgrade** (Pro → Enterprise) — premium features that were 403 immediately become reachable. Routes that were UI-hidden appear in the nav.
+- **Upgrade** to a higher tier — premium features that were 403 immediately become reachable. Routes that were UI-hidden appear in the nav.
 
 ## Removing
 
-Clear the field and click **Apply**. The org reverts to the Community tier. Premium features become unavailable but **all data is preserved** — automations stop firing, but the definitions stay; vector KBs stay indexed but only local search is available; the guardrail audit log keeps its existing rows.
+Clear the field and click **Apply**. The org reverts to the Community tier. Premium features become unavailable but **all data is preserved**: what you built with them stays in the database, and the guardrail audit log keeps its existing rows.
 
 Re-applying a valid key restores everything.
 
 ## Troubleshooting
 
-| Error | Cause | Fix |
+Activation answers `400` with the reason in `code`:
+
+| Code (starts with) | Cause | Fix |
 |-------|-------|-----|
-| `Invalid signature` | Key was tampered with, or you pasted a key for a different deployment. | Verify the key matches what you received. |
-| `License expired` | `exp` is in the past. | Renew at [https://beeflow.nl/pricing](https://beeflow.nl/pricing) or contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). |
-| `Public key not found` | `BEEFLOW_LICENSE_PUBLIC_KEY_PATH` set incorrectly. | Unset, or point at `license/bundled-public-key.pem`. |
-| `Tier limit exceeded` (after applying) | The new tier is **lower** than what you had — usage already exceeds the new limits. | Either upgrade, or trim usage (delete agents, archive automations) until under the limit. |
-| `License revoked` | The licence-server marked your key as revoked. | Contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). |
-| `Refresh failed (network)` | `LICENSE_REFRESH_URL` unreachable. | Non-fatal — the key stays valid until `exp`. Whitelist the licence host. |
+| `no_public_key_configured` | The server has no licence public key. | Set `LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL` ([above](#public-key)) and restart. |
+| `invalid_signature` | The key was altered, or the server verifies against a different public key than the one that signed it. | Paste the key exactly as you received it; check the public key setting. |
+| `token_expired` | `exp` is in the past. | Renew at [https://beeflow.nl/pricing](https://beeflow.nl/pricing) or contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). |
+| `unexpected_alg` | The key is not signed with `RS256`. | Use the key Bee Flow issued. |
+| `untrusted_issuer` | The key's `iss` is not Bee Flow's licence server. | Use the key Bee Flow issued. |
+
+After activation:
+
+| What you see | Cause | Fix |
+|-------|-------|-----|
+| The tier falls back to Community and the licence shows as revoked | The licence server marked your key as revoked. | Contact [tomkooy@beeflow.nl](mailto:tomkooy@beeflow.nl). |
+| A monthly licence expires although `exp` is in the future | `LICENSE_REFRESH_URL` is set and has been unreachable for longer than the grace window (`LICENSE_GRACE_WINDOW_SECONDS`, 10 days by default). | Let the server reach the licence host, or leave `LICENSE_REFRESH_URL` unset. |
 
 ## Air-gapped deployments
 
-For air-gapped self-hosters:
-
-```bash
-# Disable the periodic refresh check
-echo 'LICENSE_REFRESH_URL=' >> .env
-
-# Or: serve a stub from your own host
-# echo 'LICENSE_REFRESH_URL=https://my-licence-stub.internal/refresh' >> .env
-```
-
-The licence is valid offline through `exp`. To rotate, ship a new JWT.
+The refresh check is opt-in: with `LICENSE_REFRESH_URL` unset, which is the
+default, the server never contacts the licence server and the licence is valid
+offline through `exp`. Give the server the public key as a PEM
+(`LICENSE_PUBLIC_KEY` or `LICENSE_PUBLIC_KEY_FILE`), since a JWKS URL cannot be
+reached. To rotate, ship a new JWT.

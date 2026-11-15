@@ -1,5 +1,5 @@
 import { ExternalLink, Loader2, Table2, Workflow } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';

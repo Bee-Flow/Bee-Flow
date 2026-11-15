@@ -1,4 +1,3 @@
-import React from 'react';
 import { DATE_FORMATS, NUMBER_STYLES } from './valueParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { controlSurfaceClass, denseInputClass } from '../flow/settings/formStyles';

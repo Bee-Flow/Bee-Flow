@@ -2,7 +2,6 @@
 // history (shared VersionHistoryPanel) and the comments (shared
 // CommentsPanel). One at a time, beside the document, never over it.
 
-import React from 'react';
 import type { CommentAnchor } from '@/api/queries/comments';
 import type { ProjectRole } from '@/api/queries/projects';
 import CommentsPanel from '@/components/comments/CommentsPanel';

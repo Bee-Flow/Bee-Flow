@@ -27,7 +27,7 @@ const { resolveTimezone, partsInZone, toDateStrict, addWallDays } = require('./d
 async function execDateTime(step, ctx, runState) {
     // A step saved with a whole column in "Input date" but no `arrayRef`
     // (before the builder converted it, or imported / AI-written) is list
-    // mode in all but name — see automation/datetimeListMode.js.
+    // mode in all but name — see core/automationModel/datetimeListMode.js.
     const implied = impliedListMode(step);
     if (implied) return execDateTimeList({ ...step, ...implied }, runState);
     if (typeof step.arrayRef !== 'string') return execDateTimeSingle(step, runState);

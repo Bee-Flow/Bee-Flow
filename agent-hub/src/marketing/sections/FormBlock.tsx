@@ -1,4 +1,4 @@
-import React, { useContext, useId } from 'react';
+import { useContext, useId } from 'react';
 import { BlockIdContext } from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';

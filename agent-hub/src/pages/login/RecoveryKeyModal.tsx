@@ -1,4 +1,3 @@
-import React from 'react';
 import Modal from '../../components/shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
 

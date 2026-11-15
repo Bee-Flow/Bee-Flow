@@ -1,5 +1,5 @@
 import { Bot, Lock, PenLine, Sparkles } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Button from '@/components/shared/Button';
 import type { AssistInput, CustomDataError, PersonalDataFinding } from '@/api/queries/customData';

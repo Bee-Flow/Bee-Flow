@@ -1,4 +1,3 @@
-import React from 'react';
 import { Pencil } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { ForEachBadge } from './StepNodeBase';

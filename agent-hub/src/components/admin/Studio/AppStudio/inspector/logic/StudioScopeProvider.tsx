@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { AppAction, AppDefinition, AppNode, AppScreen } from '../appDefinition';
 import type { StudioFieldGroup, StudioScopeField } from './studioFieldOptions';

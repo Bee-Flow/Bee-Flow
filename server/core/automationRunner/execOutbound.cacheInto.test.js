@@ -55,11 +55,10 @@ mock('../../db', { pool: {} });
 mock('../aiAgent', { getProviderForModel: async () => null });
 mock('../providers', { getAdapter: () => ({}) });
 mock('../../automation/codeSandbox', { run: async () => ({}) });
-// Two module-load side effects a unit test has no business carrying, and that
-// BOTH abort libuv on teardown under --test-force-exit — reported as a
-// file-level failure with every subtest green.
+// A module-load side effect a unit test has no business carrying (a never-unref'd
+// cleanup interval), which aborts libuv on teardown under --test-force-exit and
+// is reported as a file-level failure with every subtest green.
 mock('../../auth/decryptAudit', { trackDecrypt: () => {}, getDecryptStats: () => null });
-mock('../llm/pricingService', { ...require('../llm/pricingService'), initPricing: () => {} });
 mock('../../stores/configStore', { async getConfig() { return null; }, async setConfig() { return true; } });
 mock('./httpAuth', {
     MASK_VALUES: Symbol.for('beeflow.automation.maskValues'),

@@ -9,7 +9,7 @@
 import { FileText, Globe, Mail, MessageSquare, Phone } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
     articleOf, channelOf, clockPropsOf, identityOf, isClosed, receivedAtOf, stateOf, typeKeyOf,
 } from './dsrArticles';

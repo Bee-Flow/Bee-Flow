@@ -1,5 +1,3 @@
-import React from 'react';
-
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MatrixColumn } from './categoryMatrixModel';
 

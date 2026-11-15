@@ -1,6 +1,6 @@
 import { render, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
 import StudioScopeProvider from './logic/StudioScopeProvider';

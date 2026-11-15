@@ -1,5 +1,4 @@
 import { Undo2, Wand2 } from 'lucide-react';
-import React from 'react';
 
 import Button from '@/components/shared/Button';
 import type { TranslateFn } from '@/hooks/useTranslation';

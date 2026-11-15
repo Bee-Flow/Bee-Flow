@@ -1,5 +1,4 @@
 import { FileText } from 'lucide-react';
-import React from 'react';
 import { answerChipsFor, citationIsOpenable, GRADE_JUDGED, GRADE_RECORDED, type CitationChip, type RuleChip, type SkillChip } from './answerChips';
 import type { ChatMessage } from './messageTypes';
 import type { SkillSummary } from '@/hooks/useChatEngine/types';

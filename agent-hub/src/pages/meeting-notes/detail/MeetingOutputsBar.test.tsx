@@ -8,7 +8,6 @@
  */
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MeetingOutputsBar, { orderRows } from './MeetingOutputsBar';
 import { stub } from '@/test/mocks';

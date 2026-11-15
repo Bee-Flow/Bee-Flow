@@ -1,5 +1,5 @@
 import { GraduationCap, Search, RefreshCw, Award, ScrollText, Users as UsersIcon, Activity } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { useCan } from '../../components/licensing/Gate';
 import Tabs from '../../components/shared/Tabs';

@@ -1,5 +1,4 @@
-import React, { useCallback, useState } from 'react';
-import type { ComponentType } from 'react';
+import { useCallback, useState } from 'react';
 import type { RunListFilters } from '@/api/queries/automation/runs';
 import { useInvalidateRuns, useRunList } from '@/api/queries/automation/runs';
 import useRunStreamJs from '@/components/admin/Studio/Executions/useRunStream';

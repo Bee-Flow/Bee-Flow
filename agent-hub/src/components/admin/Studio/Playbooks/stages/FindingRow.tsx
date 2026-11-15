@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, Database, ExternalLink, Loader2, Sparkles, Workflow, X, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { TONES } from '@/components/shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';

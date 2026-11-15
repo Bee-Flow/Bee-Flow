@@ -1,5 +1,5 @@
 import { render as rtlRender, screen, waitFor, type RenderOptions } from '@testing-library/react';
-import React, { type ReactElement } from 'react';
+import { type ReactElement } from 'react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 import ConversationHeader from './ConversationHeader';

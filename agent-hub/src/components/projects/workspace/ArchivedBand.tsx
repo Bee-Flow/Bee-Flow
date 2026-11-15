@@ -2,7 +2,6 @@
 // and for the owner the way back. Everybody else just learns it is read-only.
 
 import { Archive } from 'lucide-react';
-import React from 'react';
 import { useProjectMembersQuery, useRestoreProject, type Project } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';
 import toast from '../../shared/Toast';

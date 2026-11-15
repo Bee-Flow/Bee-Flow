@@ -7,7 +7,7 @@
 
 const deps = require('./deps');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { assertStored } = require('../../stores/user/assertStored');
 const { getClient, escapeSearchValue } = require('./client');
 const { resolveStripeTaxId, buildStripeAddress } = require('./customer');
@@ -80,6 +80,26 @@ async function searchOrgCustomer(stripe, orgId) {
 }
 
 /**
+ * Every Stripe customer that carries the organisation's id: normally one, more
+ * when attempts inside the search index's delay each created one. For the
+ * checkout of an organisation without a subscription row, which has nowhere
+ * to keep the customer of a checkout it only started. Empty when there is
+ * none, and when the search fails (as searchOrgCustomer above).
+ * @param {string} orgId
+ * @returns {Promise<string[]>}
+ */
+async function findOrgCustomerIds(orgId) {
+    try {
+        const stripe = await getClient();
+        const found = await stripe.customers.search({
+            query: `metadata['beeflow_org_id']:'${escapeSearchValue(orgId)}'`,
+            limit: 10,
+        });
+        return (found?.data || []).map((/** @type {{ id: string }} */ customer) => customer.id).filter(Boolean);
+    } catch (e) { return fallback('stripe/checkout:orgCustomerSearch', e, []); }
+}
+
+/**
  * Attach the org's VAT id (idempotent) so Stripe Tax can apply EU reverse
  * charge without the admin re-entering it. Non-fatal: inline
  * tax_id_collection covers it.
@@ -128,9 +148,11 @@ async function syncOrgBillingAddress(stripe, customerId, org, orgId) {
 /**
  * ONE Stripe customer per org, so repeated checkout attempts (before the
  * first one activates) don't mint duplicates: the stored id, else a search
- * by metadata.beeflow_org_id, else a new one. It is stored at once, so the
- * next attempt reuses it without the search index or the activation
- * webhook. The org's VAT and billing address go onto it, so Stripe Tax can
+ * by metadata.beeflow_org_id, else a new one. It is stored at once on the
+ * subscription row the org has, so the next attempt reuses it without the
+ * search index or the activation webhook; an org without a row stores
+ * nothing, and the route finds its customers through findOrgCustomerIds.
+ * The org's VAT and billing address go onto it, so Stripe Tax can
  * apply reverse charge (EU B2B) without the admin re-entering the number.
  * Any failure here leaves the customer found so far (or none: Checkout then
  * collects the e-mail).
@@ -152,7 +174,9 @@ async function resolveOrgCustomer(stripe, { orgId, orgName, userEmail, stripeCus
             customerId = created.id;
         }
         if (customerId) {
-            try { assertStored(await userStore.setOrgSubscription(orgId, { stripe_customer_id: customerId }), `Stripe customer id of organization ${orgId}`); }
+            // On the row the organisation has. Without one nothing is stored: a
+            // checkout that is only started must not create a subscription.
+            try { assertStored(await userStore.setOrgSubscription(orgId, { stripe_customer_id: customerId }, { onlyExisting: true }), `Stripe customer id of organization ${orgId}`); }
             catch (e) { bestEffort('stripe/checkout:persistCustomerId', e); }
         }
         await attachOrgVat(stripe, customerId, org, orgId);
@@ -314,6 +338,7 @@ async function createPortalSession(stripeCustomerId, returnUrl) {
 module.exports = {
     computeBillingCycleAnchor,
     buildRecurringDisclosure,
+    findOrgCustomerIds,
     createCheckoutSession,
     retrieveCheckoutSession,
     createPortalSession,

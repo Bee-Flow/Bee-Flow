@@ -16,8 +16,6 @@
  * Colours: the kind tile in --kind-compliance, the AI sparkle in --type-ai,
  * verdicts through statusTone TONES (raw for hairlines/discs, ink for text).
  */
-import { type LucideIcon } from 'lucide-react';
-import type { LadderData, LadderSubject } from '../useAiActAssessment';
 import type { LadderModalViewProps } from '../AiActLadderModal.types';
 import { StandaloneLadder, LadderModalView } from './StandaloneLadder';
 export { LadderModalView, outcomeText } from './StandaloneLadder';

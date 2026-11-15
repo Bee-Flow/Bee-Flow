@@ -4,7 +4,7 @@ import useStepReferences from '../useStepReferences';
 import DocumentFillFields from '../DocumentFillFields';
 import useTranslation from '@/hooks/useTranslation';
 import { useCatalogStepSpecs } from '../../inspector/panels/SpecPanel';
-import type { AppAction, AppDefinition, AppNode, AppScreen, FormFieldRef } from '../../inspector/appDefinition';
+import type { AppAction, AppScreen } from '../../inspector/appDefinition';
 import type { StepSettingsProps, FieldSpec, StepReferences } from '../StepSettings.types';
 import { CANVAS_TYPES, AI_AUTHORED_TYPES, IGNORED_FIELDS } from './StepSettings.constants';
 import { StepField } from './StepField';

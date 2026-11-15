@@ -1,5 +1,5 @@
 import { act } from '@testing-library/react';
-import React, { type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stub } from '@/test/mocks';
 import GammaPreviewPanel from './GammaPreviewPanel';

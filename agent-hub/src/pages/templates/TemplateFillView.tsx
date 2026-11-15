@@ -1,5 +1,3 @@
-import React from 'react';
-import type { RefObject } from 'react';
 import { FillHeader, FillSidebar } from './TemplateFillChrome';
 import { FillChatPanel, FillSettingsPanel } from './TemplateFillPanels';
 import type { FillHeaderProps, FillSidebarProps } from './TemplateFillChrome';

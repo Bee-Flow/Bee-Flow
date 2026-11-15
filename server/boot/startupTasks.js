@@ -16,20 +16,45 @@
 
 const fs = require('fs');
 const log = require('../telemetry/log');
+const { trackBootStep } = require('../utils/runtimeState.mts');
 const { startBootProbes, startLicenseAndModuleRuntime, startLateWarmups } = require('./startupProbes');
 const { runOneShotTasks } = require('./startupOneShots');
 const { startDunningAndTrialSchedulers, startPlanCapDriftAudit, startSeatSync, startPaygDrain } = require('./startupBilling');
-const { startRetentionAndComplianceJobs, startRunnersAndFeeds, startSupportAndSyncJobs } = require('./startupJobs');
+const {
+    startRetentionAndComplianceJobs, startConfigInvalidationListener, startModuleSchedulers,
+    startRunnersAndFeeds, startSupportAndSyncJobs,
+} = require('./startupJobs');
 const { seedSystemAgentsAtBoot } = require('./startupSystemAgents');
 const { startPruneSchedulers } = require('./startupPrunes');
+
+/**
+ * The warning for a server that runs in Kubernetes on the default App Studio
+ * engine, or null. That engine keeps each app's records in one SQLite file that
+ * one process writes (stores/lib/sqliteBlobFlush.js): a second replica that
+ * writes the same app has its flush refused, loses what it had not flushed and
+ * refuses that app's writes from then on. A Deployment is where a second
+ * replica is one `kubectl scale` away, and the server cannot see the replica
+ * count, so the line says it may not apply.
+ * @param {{ inCluster: boolean, engine: string }} where
+ * @returns {string | null}
+ */
+function studioEngineReplicaWarning({ inCluster, engine }) {
+    if (!inCluster || engine !== 'sqlite') return null;
+    return '[Server] App Studio runs on its default engine (STUDIO_APP_ENGINE=sqlite), which supports ONE server replica. '
+        + 'With one replica this line does not apply. Before running more: move the apps with scripts/migrateStudioAppsToPg.js '
+        + 'and set STUDIO_APP_ENGINE=pg, or two replicas writing the same app lose data and refuse its writes.';
+}
 
 function runStartupChecks() {
     // First, because everything below this line reads or writes a store, and a
     // fresh install should have its tables before the first request rather
     // than during it. Not awaited and not a precondition — see
     // boot/storeSchemas.js: a store nobody started here creates its schema on
-    // its first query.
-    require('./storeSchemas').startStoreSchemas();
+    // its first query. The readiness probe does wait for them (utils/runtimeState.mts).
+    const schemas = require('./storeSchemas').startStoreSchemas();
+    trackBootStep('store schemas', schemas.settled.then(({ rejected }) => {
+        if (rejected.length > 0) throw new Error(`store schema init failed: ${rejected.join(', ')}`);
+    }));
 
     if (process.env.INSECURE_CONNECTOR_TRUST === '1') {
         log.error('[SECURITY] INSECURE_CONNECTOR_TRUST=1 was set in the environment but the insecure connector bypass has been retired (Phase 2). Remove the variable. Refusing to boot.');
@@ -63,6 +88,12 @@ function runStartupChecks() {
         }
     }
 
+    const replicaWarning = studioEngineReplicaWarning({
+        inCluster: !!process.env.KUBERNETES_SERVICE_HOST,
+        engine: require('../utils/engineFlag').getDialect(),
+    });
+    if (replicaWarning) log.warn(replicaWarning);
+
     // Run first-boot setup from INIT_* env vars (set by the installer or deployment env)
     const { runBootInit } = require('../boot-init');
     runBootInit().catch(err => log.error('[boot-init] Fatal:', err));
@@ -93,23 +124,34 @@ function runStartupChecks() {
     ensureNcLinkTicketSecret().catch(err => log.error('[NcLinkTicket] bootstrap failed:', err.message));
 }
 
+/**
+ * The phases of runStartupTasks(), in the order they run. Each lives in a sibling
+ * module (boot/startup*.js) and only schedules or fires work, never waits on it,
+ * so this is the order the timers and requests start. A list, so that a test can
+ * hold it: a phase that is missing here is background work that never starts.
+ */
+const STARTUP_PHASES = [
+    // First: the other phases read config, and the listener's first connect drops
+    // whatever this replica cached while it was not listening.
+    startConfigInvalidationListener,
+    startBootProbes,
+    startLicenseAndModuleRuntime,
+    runOneShotTasks,
+    startDunningAndTrialSchedulers,
+    startPlanCapDriftAudit,
+    startSeatSync,
+    startPaygDrain,
+    startLateWarmups,
+    startRetentionAndComplianceJobs,
+    seedSystemAgentsAtBoot,
+    startModuleSchedulers,
+    startRunnersAndFeeds,
+    startSupportAndSyncJobs,
+    startPruneSchedulers,
+];
+
 function runStartupTasks() {
-    // Each phase lives in a sibling module (boot/startup*.js); this is the
-    // order they run in. Every phase only schedules or fires work and never
-    // waits on it, so the order is the order the timers and requests start.
-    startBootProbes();
-    startLicenseAndModuleRuntime();
-    runOneShotTasks();
-    startDunningAndTrialSchedulers();
-    startPlanCapDriftAudit();
-    startSeatSync();
-    startPaygDrain();
-    startLateWarmups();
-    startRetentionAndComplianceJobs();
-    seedSystemAgentsAtBoot();
-    startRunnersAndFeeds();
-    startSupportAndSyncJobs();
-    startPruneSchedulers();
+    for (const phase of STARTUP_PHASES) phase();
 }
 
-module.exports = { runStartupChecks, runStartupTasks };
+module.exports = { runStartupChecks, runStartupTasks, STARTUP_PHASES, studioEngineReplicaWarning };

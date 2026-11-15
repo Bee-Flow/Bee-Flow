@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { countByFilter, matchesQuery, sortByDeadline } from './dsrArticles';
 import DsrTable, { formatReceived, shownEmailOf } from './DsrTable';

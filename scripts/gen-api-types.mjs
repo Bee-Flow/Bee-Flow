@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * gen-api-types — the request types of every server route, for agent-hub.
+ * gen-api-types — the request types of every server route, for agent-hub and mobile.
  *
- *   node scripts/gen-api-types.mjs           # (re)write the generated file
- *   node scripts/gen-api-types.mjs --check   # exit 1 if it is out of date
+ *   node scripts/gen-api-types.mjs           # (re)write the generated files
+ *   node scripts/gen-api-types.mjs --check   # exit 1 if one is out of date
  *
  * Source: docs/static/openapi.json, which scripts/gen-api-reference.mjs writes
  *         from the running server's router (the zod schemas of each route's
@@ -12,6 +12,9 @@
  *         operation, keyed `'<METHOD> <path template>'`, with its path params,
  *         query and request body as TypeScript types. agent-hub/src/api/
  *         typedRequest.ts builds the URL from that key and sends the request.
+ *         mobile/src/core/api/apiTypes.generated.ts is the same text, for the
+ *         Android client (it cannot import from agent-hub): mobile/src/core/
+ *         api/apiPath.ts builds the path its client sends from the same key.
  *
  * The spec describes no responses, so every `response` is `unknown`: a caller
  * states the type it reads. A route without a declared query or body schema
@@ -34,7 +37,8 @@ import { isEntryPoint } from './entry-point.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export const SPEC_REL = 'docs/static/openapi.json';
-export const OUT_REL = 'agent-hub/src/api/apiTypes.generated.ts';
+/** Every client that gets the types: the same text in each, so one render serves them all. */
+export const OUT_RELS = ['agent-hub/src/api/apiTypes.generated.ts', 'mobile/src/core/api/apiTypes.generated.ts'];
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 const IDENT = /^[A-Za-z_$][\w$]*$/;
 
@@ -181,19 +185,21 @@ export function render(spec) {
 export function run({ root = ROOT, check = false, log = console.log, error = console.error } = {}) {
     const spec = JSON.parse(fs.readFileSync(path.join(root, SPEC_REL), 'utf8'));
     const next = render(spec);
-    const out = path.join(root, OUT_REL);
-    const current = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : null;
-    if (check) {
-        if (current === next) {
-            log(`api types: ${OUT_REL} matches ${SPEC_REL}`);
-            return 0;
+    let stale = 0;
+    for (const rel of OUT_RELS) {
+        const out = path.join(root, rel);
+        const current = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : null;
+        if (!check) {
+            if (current !== next) fs.writeFileSync(out, next);
+            log(`api types: ${rel} ${current === next ? 'unchanged' : 'written'} (${operationsOf(spec).length} operations)`);
+        } else if (current === next) {
+            log(`api types: ${rel} matches ${SPEC_REL}`);
+        } else {
+            stale += 1;
+            error(`api types: ${rel} is out of date with ${SPEC_REL}. Run \`npm run gen:api-types\` and commit it (do not edit it by hand).`);
         }
-        error(`api types: ${OUT_REL} is out of date with ${SPEC_REL}. Run \`npm run gen:api-types\` and commit it (do not edit it by hand).`);
-        return 1;
     }
-    if (current !== next) fs.writeFileSync(out, next);
-    log(`api types: ${OUT_REL} ${current === next ? 'unchanged' : 'written'} (${operationsOf(spec).length} operations)`);
-    return 0;
+    return stale ? 1 : 0;
 }
 
 if (isEntryPoint(import.meta.url)) process.exit(run({ check: process.argv.includes('--check') }));

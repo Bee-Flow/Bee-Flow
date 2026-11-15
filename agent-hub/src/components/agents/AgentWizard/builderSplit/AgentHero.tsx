@@ -1,5 +1,4 @@
 import { FolderOpen, Gauge, Languages, Pencil } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { CategoryResult, CategoryRow, ReadState } from '../agentEditor.types';

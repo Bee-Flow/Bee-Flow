@@ -1,5 +1,5 @@
 import { Crosshair } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBuildCue } from './BuildCueContext';
 import type { BuildCueValue, BuildPhaseInfo } from './BuildCueContext';
 import useTranslation from '@/hooks/useTranslation';

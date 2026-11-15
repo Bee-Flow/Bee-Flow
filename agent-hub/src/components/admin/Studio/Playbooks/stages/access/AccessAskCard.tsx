@@ -1,5 +1,4 @@
 import { AlertTriangle, Check, Loader2, Send, Sparkles } from 'lucide-react';
-import React from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { TONES } from '@/components/shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';

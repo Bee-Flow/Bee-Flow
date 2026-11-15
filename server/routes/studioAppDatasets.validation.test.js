@@ -63,7 +63,7 @@ const MOCKS = {
             ? next()
             : res.status(403).json({ error: 'feature_locked', feature })),
     },
-    './studioAppRateLimits': {
+    '../appStudio/rateLimits': {
         datasetInitLimiter: pass, datasetPartLimiter: pass, datasetCompleteLimiter: pass, datasetStatusLimiter: pass,
     },
 };

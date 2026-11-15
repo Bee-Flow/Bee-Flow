@@ -7,7 +7,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, FilePlus2, FileText, Plus } from 'lucide-react';
-import React, { Suspense, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectDocument, useCreateProjectNotebook, useMyTemplatesQuery, useProjectSection, type NewDocumentVars, type ProjectDocument,
 } from '@/api/queries/projectContent';

@@ -1,10 +1,9 @@
 import { ArrowLeft, Check, ChevronDown, type LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
-import { kindIcon, kindOf, kindTileStyle, type KindSource } from './kindColors';
+import { kindIcon, kindOf, kindTileStyle } from './kindColors';
 import SegmentedControl, { resolveSegmentedBadge } from './SegmentedControl';
 import useTranslation from '../../hooks/useTranslation';
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { StudioSectionHeaderTab } from '../projects/workspace/studioParts';
 import type { KindTileProps, TitleProps, StatusChipProps, TabMenuProps, BackButtonProps, TabsSlotProps, ActionClusterProps, StudioSectionHeaderProps } from './StudioSectionHeader.types';
 
@@ -37,9 +36,9 @@ import type { KindTileProps, TitleProps, StatusChipProps, TabMenuProps, BackButt
  * automation/Builder/BuilderHeader.jsx:125-136 (`@container/bar`), which the
  * App Studio EditorHeader shares under `edhead` — and folds in two stages:
  *
- *   < 1440px   labels fold to icons: a tab that carries an `icon` keeps only
- *              the icon, the name gets less room (max-w 22rem → 12rem).
- *              Callers fold their own words with `OBJHEAD_FOLD.label`.
+ *   < 1440px   labels fold to icons: a tab that carries an `icon` shows only
+ *              the icon (its word turns `sr-only`: still the radio's name), the name gets
+ *              less room (22rem → 12rem). Callers fold their own words with `OBJHEAD_FOLD.label`.
  *   < 1180px   the segment strip folds into ONE menu button (the current
  *              tab's name + a chevron, a portalled `AnchoredMenu`), and
  *              action words fold with `OBJHEAD_FOLD.action`. A header beside
@@ -239,7 +238,7 @@ function toOptions(tabs: StudioSectionHeaderTab[]) {
     return tabs.map((tab) => ({
         value: tab.id,
         icon: tab.icon ? renderGlyph(tab.icon, { width: 14, height: 14, display: 'inline-flex' }) : undefined,
-        label: tab.icon ? <span className={OBJHEAD_FOLD.label}>{tab.label}</span> : tab.label,
+        label: tab.icon ? <span className="@max-[1440px]/objhead:sr-only">{tab.label}</span> : tab.label,
         badge: { count: tab.count, tone: tab.tone },
         disabled: tab.disabled,
     }));
@@ -258,7 +257,7 @@ function TabMenu({ tabs, activeTab, onTab, t }: TabMenuProps) {
                 onClick={() => setOpen((o) => !o)}
                 aria-haspopup="menu"
                 aria-expanded={open}
-                aria-label={t('studio.header.tabs', 'Sections')}
+                title={t('studio.header.tabs', 'Sections')} // the name is the tab it shows; this is its description
                 data-testid="studio-section-tab-menu"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] font-medium bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
             >

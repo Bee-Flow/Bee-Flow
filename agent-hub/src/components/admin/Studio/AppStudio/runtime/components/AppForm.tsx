@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FocusEvent, FormEvent } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { AppNode, NodeStyle, ValidationRule } from '../../inspector/appDefinition';
+import type { NodeStyle, ValidationRule } from '../../inspector/appDefinition';
 import { FormContext, registerFormReset, useFormFieldSetter } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';

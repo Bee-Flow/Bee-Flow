@@ -1,4 +1,3 @@
-import React from 'react';
 import CustomerSupport, { SUPPORT_DEFAULT_CONTENT } from './CustomerSupport';
 
 /**

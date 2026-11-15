@@ -5,7 +5,6 @@
  * component instead of a banner here, a toast there and a custom strip for
  * Nextcloud. Dismissible; never a modal.
  */
-import React from 'react';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import type { NotebookNotice as Notice } from './useNotebookExports';

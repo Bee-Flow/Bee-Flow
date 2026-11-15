@@ -6,7 +6,6 @@
  * asserts the chrome and the first step render.
  */
 import { render, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => ({}) })) }));
 vi.mock('../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ hasFeature: () => true }) }));

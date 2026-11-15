@@ -165,7 +165,7 @@ const SignupWizard = ({
         <div className={LOGIN_PAGE_CLASS}>
             <LoginBackdrop />
 
-            <div className="w-full max-w-2xl relative z-10">
+            <main className="w-full max-w-2xl relative z-10">
                 <div className={LOGIN_CARD_CLASS}>
                     <LanguagePicker availableLocales={availableLocales} locale={locale} setLocale={setLocale} />
 
@@ -313,7 +313,7 @@ const SignupWizard = ({
                 <p className="text-center text-xs text-[var(--text-tertiary)] mt-6">
                     {t('login.platform_name')}
                 </p>
-            </div>
+            </main>
         </div>
     );
 };

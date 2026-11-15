@@ -1,7 +1,6 @@
 // "Claude Settings" section of ChatModelTiersConfig (recommended defaults
 // table + robustness toggles). Subtree moved verbatim from
 // ChatModelTiersConfig.jsx; all bindings are threaded in as props.
-import React from 'react';
 import type { ClaudeSettingsState } from './useClaudeSettings';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER, TIERS } from './constants';
 import { getModelMeta } from './modelMeta';

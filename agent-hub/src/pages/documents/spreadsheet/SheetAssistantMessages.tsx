@@ -2,7 +2,7 @@
 // suggestions, the bubbles, the "Changed N cells · Undo" line, the busy line.
 
 import { Loader2, Sparkles, Undo2 } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ModelTierMap } from '@/api/queries/modelTiers';
 import { tierI18nKey, tierLabel } from '@/components/licensing/tierMeta';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';

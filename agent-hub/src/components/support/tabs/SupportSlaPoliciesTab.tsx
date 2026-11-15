@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useSupportSlaPoliciesQuery } from '@/api/queries/supportPanels';
 import { Save } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';

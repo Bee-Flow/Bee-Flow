@@ -1,4 +1,3 @@
-import React from 'react';
 import ColorPicker from '@/components/shared/ColorPicker';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';

@@ -1,4 +1,3 @@
-import React from 'react';
 import Dropdown from './Dropdown';
 import { useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';

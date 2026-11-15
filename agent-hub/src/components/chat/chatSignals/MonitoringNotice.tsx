@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { formatNoticeDate, lineKey, type NoticeModel } from './chatSignalsModel';
 

@@ -4,7 +4,6 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TeamChatMessage } from '@/api/queries/projectChats';
 import ChatMessageGroup from './ChatMessageGroup';

@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Save, X } from 'lucide-react';
 import type { MouseEventHandler, ReactNode } from 'react';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Modal from './Modal';
 import useTranslation from '../../hooks/useTranslation';
 

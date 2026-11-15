@@ -6,8 +6,8 @@ pull request is validated with.
 
 ## Dev setup
 
-Follow the "Run Locally Without Docker" section in the
-[README](./README.md#-run-locally-without-docker-core-services): a one-time
+Follow the "Develop locally" section in the
+[README](./README.md#develop-locally): a one-time
 installer (`install-local.py` / `install-local.ps1`) sets up npm dependencies,
 a pgvector Postgres container and `.env`, after which `npm run dev:all` starts
 the backend (`:3101`) and the frontend (`:5276`).
@@ -71,8 +71,10 @@ uvx ruff check guard-service classify-service
 
 The Playwright suite lives in **`e2e/`** — the CI smoke harness. Specs are
 *generated* from Markdown scenarios (`npm run gen`) and must not be hand-edited.
-It runs as a reusable workflow on demand (`workflow_dispatch`); it is not yet
-wired in as a release gate. See [e2e/README.md](./e2e/README.md).
+It runs on demand (`workflow_dispatch`). `build-push-ghcr.yml` also calls it
+as a gate on a production release candidate, but that call is switched off at
+the moment (`false &&` in the job's `if`, since 2026-10-09), so it does not
+gate releases today. See [e2e/README.md](./e2e/README.md).
 
 ## What CI runs on a pull request
 

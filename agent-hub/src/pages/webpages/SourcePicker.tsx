@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Loader2, Table } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { kindColorVar, kindIcon } from '../../components/shared/kindColors';
 import useTranslation from '../../hooks/useTranslation';

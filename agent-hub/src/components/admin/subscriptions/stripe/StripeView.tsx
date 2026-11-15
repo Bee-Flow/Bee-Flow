@@ -1,4 +1,4 @@
-import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle, Loader2 } from 'lucide-react';
+import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { StripeKeyField } from './StripeKeyField';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
@@ -6,8 +6,7 @@ import { messageOf } from '@/utils/caughtError';
 import { Button } from '@/components/shared/Button';
 import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
-import { Badge, Dot } from '../ui/Badge';
-import { Banner } from '../ui/Banner';
+import { Dot } from '../ui/Badge';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Select, Input } from '../ui/Input';
 import SectionHeader from '@/components/shared/SectionHeader';

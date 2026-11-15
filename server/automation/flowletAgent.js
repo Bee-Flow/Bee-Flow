@@ -25,7 +25,7 @@
 
 const llmClient = require('../core/llm/llmClient');
 const { resolveModelForTierName } = require('../core/llm/modelResolver');
-const { mapWithConcurrency } = require('../core/concurrencyUtil');
+const { mapWithConcurrency } = require('../utils/concurrencyUtil');
 const { validateDefinition } = require('./validate');
 const { getDeliverableEvents } = require('./deliverableEvents');
 const {

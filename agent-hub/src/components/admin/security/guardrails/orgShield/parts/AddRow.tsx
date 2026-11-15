@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 /**
  * Input + Add button + inline error, with Enter as a first-class submit.

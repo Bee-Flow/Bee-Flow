@@ -7,7 +7,6 @@ import { Card, Chip } from './WebpageDataCards';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import useTranslation from '../../hooks/useTranslation';
 import { useWebpageBindingsQuery } from '../../api/queries/webpagesPanels';
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { ScannedCall, CodeScan, BindingsPayload, NavigateFn, OwnCodeCardProps, OwnCodeSectionProps, FormsCardProps, AgentCardProps, WebpageActionsPanelProps } from './WebpageActionsPanel.types';
 
 /**

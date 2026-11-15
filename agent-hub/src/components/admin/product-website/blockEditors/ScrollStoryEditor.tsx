@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, TextArea, RepeatableList } from '../fields';
 import { InlineHint } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

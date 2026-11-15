@@ -1,16 +1,12 @@
 import { AlertTriangle, Cloud, Link2, Loader2, Lock, Search } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ColumnKindIcon } from './ColumnKind';
 import { columnTypeKind, keyFromName, ncErrorMessage } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import { AudienceLine, CARD, INPUT, INPUT_STYLE, LinkWizardFooter, RelationsStep, ReviewRelations, StepStrip, messageFor, relKeyOf, suggestRelations, type LockedRelation, type RelColumn, type RelTable, type Relation } from './linkWizardShared';
+import { AudienceLine, CARD, INPUT, INPUT_STYLE, LinkWizardFooter, RelationsStep, ReviewRelations, StepStrip, messageFor, relKeyOf, suggestRelations, type LockedRelation, type Relation } from './linkWizardShared';
 import { TitleRow } from './NewDatatableDialog';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
-import type { Linkable } from './newDatatable/useLinkSources';
-import type { TranslateFn } from '@/hooks/useTranslation';
-import type { SourceError } from './sourceMirrors';
-import type { WizardError } from './spreadsheet/wizardState';
 import type { NcId, NcView, NcTableEntry, NcColumn, NcSelection, NcDescribe, NcRelColumn, NcRelation, LinkError, LinkNextcloudTablesDialogProps, TablesStepProps, TableRowProps, NamesStepProps, ReviewStepProps } from './LinkNextcloudTablesDialog.types';
 
 export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onClose, onLinked }: LinkNextcloudTablesDialogProps) {

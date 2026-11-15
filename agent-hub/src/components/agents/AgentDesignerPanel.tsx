@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AgentEditorUI from './AgentEditorUI';
-import type { ToolParamConfig, AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
+import type { AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
 import type { HubUser } from '../../AgentHub/useAgentHubData';
 import { agentDesignerCategoriesKey, useDesignerCategories, useDesignerOrgsAndGroups, useDesignerVisibleModels } from '../../api/queries/agentDesignerPanel';
 import { API_BASE } from '../../utils/helpers';

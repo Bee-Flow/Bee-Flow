@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { RunRowData, RunStepRecord } from '@/api/queries/automation/runs';
 import { useRun, useRunSteps } from '@/api/queries/automation/runs';
 import { buildRunStepLabelMap, buildRunStepMap, runStepLabel } from '../flow/displayHelpers';

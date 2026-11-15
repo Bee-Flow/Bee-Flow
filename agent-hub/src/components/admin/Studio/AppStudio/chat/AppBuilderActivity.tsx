@@ -1,5 +1,4 @@
 import { Check, ChevronRight, Hammer, Layers, Loader2, Sparkles, TriangleAlert } from 'lucide-react';
-import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { appDetailPayload, describeAppToolCall, landedIcon } from './appToolCallDisplay';
 import type { AppToolCall, AppToolCallRow } from './appToolCallDisplay';

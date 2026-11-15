@@ -90,7 +90,7 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
 
         if (mode === 'definition') {
             // Convert Workflow Definition to Markdown
-            const { convertN8nWorkflowToMarkdown } = require('../../core/n8nWorkflowConverter');
+            const { convertN8nWorkflowToMarkdown } = require('../../core/kb/n8nWorkflowConverter');
             const markdown = convertN8nWorkflowToMarkdown(workflow);
             const title = `n8n Workflow Structure: ${workflow.name || 'Untitled'}`;
             const sourceUri = `n8n://workflow/${workflowId}/definition`;

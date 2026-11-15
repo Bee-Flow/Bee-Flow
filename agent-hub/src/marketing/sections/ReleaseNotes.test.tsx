@@ -3,7 +3,6 @@
  */
 
 import { screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { asMock, stub } from '@/test/mocks';
 import ReleaseNotes, { groupByKind, formatReleaseDate } from './ReleaseNotes';

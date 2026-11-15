@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import IconButton from '@/components/shared/IconButton';

@@ -1,7 +1,7 @@
 // The task dialog with its mutations, for the two places that make tasks: the
 // Tasks tab, and a chat or thread ("make a task from this").
 
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
     useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink, type TaskPatch,
 } from '@/api/queries/projectTasks';

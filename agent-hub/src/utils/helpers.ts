@@ -1,6 +1,7 @@
 import { isPublicMarketingPath } from './cmsPublicRouting';
 import type { AuthFetchOptions, FetchTransport, SaveErrorBody, SaveErrorInfo } from './helpers.types';
 import { logger } from './logger';
+import { createSessionRecovery, shouldRecoverFrom401 } from './sessionRecovery';
 export type { AuthFetchOptions } from './helpers.types';
 
 /** Anonymous marketing surface — a 401 there is the expected answer, not a
@@ -79,7 +80,7 @@ export const generateMessageId = (): string => {
 // OAuth popup out of the iframe's reach. As a fallback the OAuth flow deposits
 // a token here (see LoginPage popup pickup); we forward it as X-Session-Token
 // on every request, and server/index.js merges it into req.session.
-// Deploy-spanning by contract: this key (like bf_auth_reload_at below) must
+// Deploy-spanning by contract: this key (like bf_auth_reload_at in sessionRecovery.ts) must
 // never be build-stamped, renamed per release, or claimed by a storage
 // migration — see the key inventory in utils/storageMigrations.js.
 const SESSION_TOKEN_KEY = 'bf_session_token';
@@ -257,60 +258,33 @@ export const authFetch = async (url: string, options: AuthFetchOptions = {}): Pr
 
     const response = await fetch(url, finalOptions);
 
-    // If server returns 401 (user deleted / session invalid), force logout
-    // Skip for auth endpoints that handle their own auth flow or are called during login.
-    // Auto-reload on 401 ONLY for app-level API calls (user is logged in but session expired).
-    // Excluded paths (called unauthenticated and must fail silently):
-    //   /auth/          — login/setup flow
-    //   /api/health     — public health check
-    //   /api/languages/ — i18n fetches; safe to fail before login, falls back to EN defaults
+    // A 401 on an app-level API call may mean the session expired (or the user
+    // was deleted). Then, and only then, the page reloads into the login
+    // screen: sessionRecovery asks GET /auth/user first, so a 401 from one
+    // endpoint of a session that is still valid goes back to the caller and
+    // nothing on the page is lost. Which requests count is decided by their
+    // path there (shouldRecoverFrom401).
     //
     // …and never on a PUBLIC MARKETING page. There is no session to expire
     // there, so a 401 is the normal answer rather than a signal to recover
     // from — but this branch reloaded anyway, and the whole site was then
     // downloaded a second time: JS, CSS, fonts and every icon chunk. It was
-    // invisible in production because the 30s cooldown below stopped the
+    // invisible in production because the 30s cooldown stopped the
     // second pass from becoming a loop, so the page merely rendered twice.
     // On throttled mobile that doubling was most of the Lighthouse score
     // (FCP 4.6s / LCP 6.7s against a first paint measured at ~1.3s).
     // ThemeContext even documents the 401 as expected and falls back to
     // /api/branding/public — it just never got the chance to.
-    if (
-        response.status === 401 &&
-        !url.includes('/auth/') &&
-        !url.includes('/api/health') &&
-        !url.includes('/api/languages/') &&
-        // The connector's /setup/* routes are admin-gated: a 401 there means
-        // "this Nextcloud user isn't an admin", which no reload can change.
-        // Reloading would just re-ask on every mount of the not-yet-paired
-        // embedded view.
-        !url.includes('/setup/') &&
-        !onPublicMarketingPage()
-    ) {
-        // Loop breaker: if a 401 caused a reload within the last 30s, the
-        // reload didn't fix the underlying problem (bad JWT, wrong audience,
-        // unprovisioned user). A second reload would just spin forever and
-        // hide the actual broken endpoint. Suppress and let the caller see
-        // the 401.
-        const RELOAD_FLAG = 'bf_auth_reload_at';
-        const COOLDOWN_MS = 30_000;
-        let lastReload = 0;
-        try { lastReload = parseInt(sessionStorage.getItem(RELOAD_FLAG) || '0', 10) || 0; }
-        catch (err) { logger.debug('sessionStorage unavailable', err); }
-
-        if (Date.now() - lastReload < COOLDOWN_MS) {
-            console.warn(`[authFetch] 401 on ${url} — suppressing reload (cooldown active)`);
-            return response;
-        }
-
-        try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); }
-        catch (err) { logger.debug('sessionStorage unavailable', err); }
-        window.location.reload();
-        return response;
+    if (response.status === 401 && shouldRecoverFrom401(url, API_BASE) && !onPublicMarketingPage()) {
+        await recoverSession(url);
     }
 
     return response;
 };
+
+// The session check goes through authFetch itself, so inside the embed it
+// carries the same X-Session-Token as the call that got the 401.
+const recoverSession = createSessionRecovery((apiPath) => authFetch(`${API_BASE}${apiPath}`));
 
 // Parse a non-OK fetch Response into { message, code, resource }. Tolerates
 // both JSON ({error,code,resource}) and plain-text error bodies.

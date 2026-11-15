@@ -1,7 +1,7 @@
 import { CircleAlert, Loader2, Plus, Search } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { freshnessOf, TONE, type FreshnessKb } from './freshness';
-import { knowledgeApi, type KbSuggestion, type KbUsageSummary, type KnowledgeBase } from './knowledgeApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { freshnessOf, TONE } from './freshness';
+import { knowledgeApi, type KnowledgeBase } from './knowledgeApi';
 import { sharedGroupsOf } from './sharedGroups';
 import { nOf } from './plural';
 import useRelativeTime from '@/hooks/useRelativeTime';
@@ -9,7 +9,6 @@ import useTranslation from '@/hooks/useTranslation';
 import { KIND_ICON, kindColorVar, kindIcon, kindOf, kindTileStyle } from '@/components/shared/kindColors';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type { KnowledgeOverviewProps, CategoryChipsProps, SearchBoxProps, KbRowProps, UsagePillsProps, FreshnessCellProps, NoKnowledgeYetProps, SuggestionBannerProps } from './KnowledgeOverview.types';
 
 export default function KnowledgeOverview({

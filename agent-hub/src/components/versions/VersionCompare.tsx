@@ -6,7 +6,7 @@
 // shared version queries, so a compare opened twice costs nothing the second
 // time; the diff itself runs in the browser (versionDiff.ts).
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useVersionQuery, type VersionContent } from '../../api/queries/versions';
 import useTranslation from '../../hooks/useTranslation';
 import SegmentedControl from '../shared/SegmentedControl';

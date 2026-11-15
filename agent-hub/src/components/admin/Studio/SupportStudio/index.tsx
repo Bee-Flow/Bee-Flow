@@ -7,7 +7,7 @@ import SupportSettings from './SupportSettings';
 import useSupportInboxEvents from './useSupportInboxEvents';
 import useTranslation from '@/hooks/useTranslation';
 import StudioShell from '@/components/shared/StudioShell';
-import type { SupportInbox, SupportUser } from './supportStudio.types';
+import type { SupportInbox } from './supportStudio.types';
 import type { SupportThread, DotProps, SupportStudioProps, EmptyStateProps } from './index.types';
 import { logger } from '@/utils/logger';
 import { RefusedError } from '@/api/mutate';

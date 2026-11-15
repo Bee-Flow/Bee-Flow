@@ -69,6 +69,45 @@ const PAYMENT_STATUS: Record<string, string> = {
     unpaid: 'failed',
 };
 
+/** The Stripe statuses a subscription never leaves. */
+const ENDED_FOR_GOOD: ReadonlySet<string> = new Set(['canceled', 'incomplete_expired']);
+
+/**
+ * Whether an event reports the end of ANOTHER Stripe subscription than the one
+ * the local row holds: `deleted` (customer.subscription.deleted), or a status
+ * Stripe never leaves. Stripe does not order its events and redelivers a
+ * failed one for days, so the end of an earlier subscription (an abandoned
+ * checkout expiring after 23 hours, a cancelled one) can arrive after the
+ * checkout of its successor, and it says nothing about that one.
+ * A row without a Stripe subscription takes every event, and another
+ * subscription that is still live is adopted as before (one created in the
+ * Stripe dashboard, or one whose checkout event is still on its way).
+ */
+export function endOfAnotherSubscription(
+    row: { stripe_subscription_id?: string | null } | null | undefined,
+    subscription: { id: string; status?: string },
+    deleted = false,
+): boolean {
+    const held = row?.stripe_subscription_id;
+    if (!held || held === subscription.id) return false;
+    return deleted || ENDED_FOR_GOOD.has(subscription.status || '');
+}
+
+/**
+ * Whether the snapshot is older than the row. Stripe creates a subscription
+ * as `incomplete` and it never returns to that status, so `incomplete` for a
+ * subscription the row already holds as active is its first event arriving
+ * after its activation: created and updated are sent together at a checkout,
+ * and a delivery that failed is retried hours later. Written, it would make a
+ * paying subscriber `incomplete`, which the stale-incomplete sweep cancels.
+ */
+export function returnsToIncomplete(
+    row: { stripe_subscription_id?: string | null; status?: string | null } | null | undefined,
+    subscription: { id: string; status?: string },
+): boolean {
+    return subscription.status === 'incomplete' && row?.stripe_subscription_id === subscription.id && row.status === 'active';
+}
+
 const isoFromUnix = (seconds: number): string => new Date(seconds * 1000).toISOString();
 const isoOrNull = (seconds: number | null | undefined): string | null => (seconds ? isoFromUnix(seconds) : null);
 

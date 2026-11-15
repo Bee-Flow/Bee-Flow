@@ -1,6 +1,5 @@
-import { screen, cleanup } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import { renderWithClient as render } from '@/test/render';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';
 import type { UseSkillsReturn } from '../../hooks/useSkills';
@@ -297,5 +296,91 @@ describe('SkillsPopover — the expanded stage detail labels speak through t()',
       expect(screen.getByText(label)).toBeTruthy();
     }
     expect(screen.queryByText('Instructions')).toBeNull();
+  });
+});
+
+describe('SkillsPopover — keyboard and accessible names', () => {
+  beforeEach(reset);
+
+  const TWO = [
+    { id: 'a1', name: 'Summarise', description: 'Short and plain', isShared: false },
+    { id: 'a2', name: 'House style', description: 'How we write', isShared: true },
+  ];
+
+  it('names every switch after its skill, so the keyboard path through the list says what it toggles', async () => {
+    const user = userEvent.setup();
+    const onToggleSkill = vi.fn();
+    skillsState.current = { skills: TWO, loading: false };
+    renderPopover({ onToggleSkill, activeSkillIds: ['a2'] });
+
+    const summarise = screen.getByRole('checkbox', { name: 'Summarise' });
+    expect(summarise).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'House style' })).toBeChecked();
+
+    summarise.focus();
+    await user.keyboard(' ');
+    expect(onToggleSkill).toHaveBeenCalledWith('a1');
+  });
+
+  it('names the search box, which only had a placeholder', () => {
+    renderPopover();
+    expect(screen.getByRole('textbox', { name: 'Search skills…' })).toBeTruthy();
+  });
+
+  it('tells assistive technology whether its button has the popover open', () => {
+    const { unmount } = renderPopover({ open: true });
+    expect(screen.getByRole('button', { name: 'Skills' })).toHaveAttribute('aria-expanded', 'true');
+    unmount();
+    renderPopover({ open: false });
+    expect(screen.getByRole('button', { name: 'Skills' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes on Escape and hands focus back to its button', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderPopover({ onOpenChange });
+    expect(screen.getByRole('textbox', { name: 'Search skills…' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.getByRole('button', { name: 'Skills' })).toHaveFocus();
+  });
+
+  it('leaves Escape to the create form while that dialog is open', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderPopover({ onOpenChange });
+    await user.click(screen.getByText('Create new skill'));
+    onOpenChange.mockClear();
+
+    await user.keyboard('{Escape}');
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it('leaves Escape to a confirmation it asked for: the question closes, the popover stays', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderDirect({ onOpenChange });
+    await user.click(screen.getByRole('button', { name: /Regenerate/ }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    onOpenChange.mockClear();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(onOpenChange).not.toHaveBeenCalled();
+    // With the question gone, the next Escape is the popover's again.
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('does not listen for Escape while it is closed', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderPopover({ open: false, onOpenChange });
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });

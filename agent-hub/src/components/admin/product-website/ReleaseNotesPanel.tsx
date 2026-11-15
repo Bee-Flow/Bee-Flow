@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Newspaper, RefreshCw } from 'lucide-react';
 import { settled } from '@/api/settled';

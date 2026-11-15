@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AlertCircle, Copy, Check } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 

@@ -1,5 +1,5 @@
 import { Building2, Search, UserPlus, Users as UsersIcon } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ORG_NONE, useUserFilters } from '@/hooks/useUserFilters';
 import EmptyState from '@/components/shared/EmptyState';

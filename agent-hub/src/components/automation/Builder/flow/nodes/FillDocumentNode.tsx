@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileSignature } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';

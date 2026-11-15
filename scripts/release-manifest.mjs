@@ -1,3 +1,12 @@
+/**
+ * The release candidate manifest: which image digests one build produced, that its security
+ * checks passed, and that staging accepted exactly those digests.
+ *
+ *   node scripts/release-manifest.mjs build|finalize|staging|verify|validate <files>
+ *
+ * Run by build-push-ghcr.yml (build, finalize), staging-release-validation.yml (validate,
+ * staging) and the workflows that promote or publish a release (verify).
+ */
 import fs from 'node:fs';
 import { isEntryPoint } from './entry-point.mjs';
 

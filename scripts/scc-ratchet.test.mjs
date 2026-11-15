@@ -161,7 +161,46 @@ test('a `.js` specifier finds the TypeScript source, and a ?query is ignored', (
     assert.strictEqual(budgetOf(dir), 2);
 });
 
+test('the server\'s TypeScript is source: a cycle through .mts files and nodeRequire is measured', () => {
+    const dir = sandbox({
+        files: {
+            'a.mts': "import { createRequire } from 'node:module';\nconst nodeRequire = createRequire(import.meta.url);\nexport const a = () => nodeRequire('./b');\n",
+            'b.js': "module.exports = () => require('./c.mts');\n",
+            'c.mts': "import { a } from './a.mts';\nexport const c = a;\n",
+            // A test file is not part of the graph in TypeScript either: no second cycle here.
+            'c.test.mts': "import './outside.mts';\n",
+            'outside.mts': "import './c.test.mts';\n",
+            'types.d.mts': "export type T = import('./a.mts').A;\n",
+        },
+    });
+    run(dir);
+    assert.strictEqual(budgetOf(dir), 3);
+    assert.match(run(dir, ['--list']).stdout, /4 files, 1 import cycles, sizes 3\n/);
+});
+
+test('--update keeps a hand-written _note, so the reason for a raised budget outlives the next lowering', () => {
+    const dir = sandbox({ files: TRIANGLE });
+    const budget = path.join(dir, 'pkg/.scc-ratchet.json');
+    fs.writeFileSync(budget, JSON.stringify({ _note: 'why this was raised', size: 10 }));
+    assert.strictEqual(run(dir, ['--update']).code, 0);
+    const written = JSON.parse(fs.readFileSync(budget, 'utf8'));
+    assert.strictEqual(written.size, 3);
+    assert.strictEqual(written._note, 'why this was raised');
+});
+
 /* ---------------- scanner ---------------- */
+
+test('the require of an ES module is an edge: nodeRequire, and createRequire called directly', () => {
+    const src = [
+        'const nodeRequire = createRequire(import.meta.url);',
+        "const lazy = () => nodeRequire('./lazy.mts');",
+        "const { x } = createRequire(import.meta.url)('./direct.js') as { x: number };",
+        "const native = createRequire(import.meta.url)('re2');",
+        "deps.nodeRequire('./member');",
+        "const other = xnodeRequire('./otherName');",
+    ].join('\n');
+    assert.deepStrictEqual(importsOf(src).sort(), ['./direct.js', './lazy.mts', 're2']);
+});
 
 test('lazy requires, spreads and dynamic imports are edges', () => {
     const src = [

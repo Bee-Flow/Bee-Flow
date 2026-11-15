@@ -1,4 +1,3 @@
-import React from 'react';
 import { OctagonX } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';

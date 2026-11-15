@@ -20,7 +20,6 @@ import type { ReactNode } from 'react';
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import AgentHub from './AgentHub';

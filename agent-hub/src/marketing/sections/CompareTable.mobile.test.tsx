@@ -3,7 +3,6 @@
  * the stacked-card layout below 640 px can print "Bee Flow" / "Alternative" in
  * front of each value instead of hiding the second column behind a scroll.
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import CompareTable from './CompareTable';

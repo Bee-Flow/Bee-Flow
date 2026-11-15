@@ -71,16 +71,33 @@ describe('what the form offers on a first visit', () => {
         expect(screen.getByTestId('password')).toBeRequired();
     });
 
-    it('keeps the password masked until the eye is pressed', async () => {
+    it('keeps the password masked until the eye is pressed, and says which state it is in', async () => {
         const user = userEvent.setup();
         renderForm();
+        const toggle = screen.getByRole('button', { name: 'Show password' });
         expect(screen.getByTestId('password')).toHaveAttribute('type', 'password');
-        // wrat: the toggle's aria-label is the same hardcoded English string in
-        // both states ("Toggle password visibility"), so a screen reader never
-        // hears whether the password is currently visible, and a Dutch user
-        // never hears Dutch. Hoort in stage L12 te veranderen.
-        await user.click(screen.getByLabelText('Toggle password visibility'));
+        // One translatable name in both states plus aria-pressed: a screen
+        // reader hears "Show password, pressed" once the password is readable.
+        expect(toggle).toHaveAttribute('aria-pressed', 'false');
+        await user.click(toggle);
         expect(screen.getByTestId('password')).toHaveAttribute('type', 'text');
+        expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        await user.click(toggle);
+        expect(screen.getByTestId('password')).toHaveAttribute('type', 'password');
+        expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('lets the keyboard reach the eye: Tab from the password, Enter to show it', async () => {
+        const user = userEvent.setup();
+        renderForm();
+        screen.getByTestId('password').focus();
+        await user.tab();
+        const toggle = screen.getByRole('button', { name: 'Show password' });
+        expect(toggle).toHaveFocus();
+        await user.keyboard('{Enter}');
+        expect(screen.getByTestId('password')).toHaveAttribute('type', 'text');
+        // The eye never submits the form it sits in.
+        expect(toggle).toHaveAttribute('type', 'button');
     });
 
     it('offers the forgotten-password way out', async () => {

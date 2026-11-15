@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useOrgInvitationsQuery } from '@/api/queries/orgAdminReads';
-import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
+import { useAdminOrgScope } from '@/api/adminOrgScope';
 import type { Dispatch, SetStateAction } from 'react';
 import { ApiError, RefusedError, errorBody } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';

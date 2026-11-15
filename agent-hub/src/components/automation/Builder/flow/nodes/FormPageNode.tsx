@@ -1,4 +1,3 @@
-import React from 'react';
 import { ClipboardList, CheckCircle2, Clock } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';

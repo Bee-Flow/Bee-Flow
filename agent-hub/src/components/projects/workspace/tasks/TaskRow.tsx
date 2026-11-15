@@ -3,7 +3,6 @@
 // due date, priority) and the people on it. Delete only shows on hover, focus or touch.
 
 import { CalendarDays, Link2, ListChecks } from 'lucide-react';
-import React from 'react';
 import type { ProjectTask, TaskStatus } from '@/api/queries/projectTasks';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';

@@ -1,12 +1,9 @@
 import {
     AlertTriangle, Database, FileText, Loader2, RefreshCw, Table2, Workflow,
 } from 'lucide-react';
-import React from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import { useWebpageDataCardsQuery } from '../../api/queries/webpagesPanels';
-import type { Filed } from '../../components/admin/Studio/Solutions/useAddFiling';
-import type { TranslateParams } from '../../hooks/useTranslation';
 import type { TableRef, AutomationRef, WarningRef, DataCardsPayload, CardProps, ChipProps, ColumnChipsProps, TableCardProps, AutomationCardProps, WarningCardProps, KnowledgeCardProps, WebpageDataCardsProps } from './WebpageDataCards.types';
 
 export function Card({ children, tone = 'default' }: CardProps) {

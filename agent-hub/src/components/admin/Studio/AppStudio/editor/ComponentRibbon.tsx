@@ -1,9 +1,8 @@
 import { useDraggable } from '@dnd-kit/core';
 import {
     ChartColumn, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, LayoutGrid, LayoutPanelTop, Search, Sparkles,
-    type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type PointerEventHandler } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEventHandler } from 'react';
 import { PALETTE_PREFIX, buildNode } from './dnd';
 import { useCatalogComponents } from '../inspector/panels/SpecPanel';
 import { APP_COMPONENT_TYPES, PALETTE_CATEGORIES, PALETTE_STARTERS } from '../runtime/componentRegistry';

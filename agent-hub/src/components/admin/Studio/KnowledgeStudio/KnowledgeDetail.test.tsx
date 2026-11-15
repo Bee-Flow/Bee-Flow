@@ -1,7 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { renderWithClient as render } from '@/test/render';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
 import KnowledgeDetail from './KnowledgeDetail';

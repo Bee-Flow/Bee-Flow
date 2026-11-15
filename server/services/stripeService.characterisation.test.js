@@ -93,7 +93,7 @@ test('export surface is stable', () => {
     assert.deepStrictEqual(Object.keys(svc), [
         'getClient', 'isEnabled', 'isTestMode', 'escapeSearchValue', 'syncPlanToStripe',
         'ensurePaygMeter', 'syncPaygPlanToStripe', 'PAYG_UNIT_AMOUNT_DECIMAL', 'reportPaygUsage',
-        'listLiveSubscriptions', 'LIVE_SUBSCRIPTION_STATUSES', 'createCheckoutSession',
+        'listLiveSubscriptions', 'LIVE_SUBSCRIPTION_STATUSES', 'findOrgCustomerIds', 'createCheckoutSession',
         'createTrialSubscription', 'enableAutomaticTaxForExistingSubscriptions',
         'pushOrgBillingToStripe', 'createPortalSession', 'listInvoices', 'getInvoicePdf',
         'retrieveCheckoutSession', 'syncSeatQuantityForOrg', 'updateSubscriptionPlan',
@@ -272,6 +272,17 @@ test('createCheckoutSession: a failed search falls through to create; failed VAT
     assert.deepStrictEqual(calls.map(c => c[0]), ['customers.search', 'customers.create', 'customers.listTaxIds', 'customers.update', 'checkout.sessions.create']);
     assert.deepStrictEqual(calls[1][1], { name: 'Acme', email: 'billing@acme.nl', metadata: { beeflow_org_id: 'o3' } }, 'the org name and e-mail fill in');
     assert.equal(sessionParams().customer, 'cus_c');
+});
+
+test('findOrgCustomerIds: every customer that carries the organisation id, and none when the search fails', async () => {
+    responses['customers.search'] = () => ({ data: [{ id: 'cus_a' }, { id: 'cus_b' }] });
+    assert.deepStrictEqual(await svc.findOrgCustomerIds("o'1"), ['cus_a', 'cus_b']);
+    assert.deepStrictEqual(calls, [['customers.search', { query: "metadata['beeflow_org_id']:'o\\'1'", limit: 10 }]]);
+
+    responses['customers.search'] = () => ({ data: [] });
+    assert.deepStrictEqual(await svc.findOrgCustomerIds('o3'), []);
+    responses['customers.search'] = fail('search down');
+    assert.deepStrictEqual(await svc.findOrgCustomerIds('o3'), []);
 });
 
 test('createCheckoutSession: a customer that cannot be created leaves the e-mail to Checkout, and tax without a customer update', async () => {

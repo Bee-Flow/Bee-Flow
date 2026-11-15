@@ -1,7 +1,6 @@
 // "Auto-tier Classifier Model" section of ChatModelTiersConfig. Subtree moved
 // verbatim from ChatModelTiersConfig.jsx; all bindings are threaded in as
 // props.
-import React from 'react';
 import ModelSettingRow from './ModelSettingRow';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';

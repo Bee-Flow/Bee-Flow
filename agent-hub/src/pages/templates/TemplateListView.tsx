@@ -1,6 +1,6 @@
 import { ArrowLeft, FileText, Loader2, Plus, Search } from 'lucide-react';
 import React from 'react';
-import type { ChangeEvent, DragEvent, ReactNode, RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import TemplateCard from './TemplateCard';
 import type { TemplateCardProps as CardProps } from './TemplateCard';

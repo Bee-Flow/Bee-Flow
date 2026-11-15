@@ -11,6 +11,8 @@
 
 const userStore = require('../../stores/userStore');
 const { assertStored } = require('../../stores/user/assertStored');
+const { endOfAnotherSubscription, returnsToIncomplete } = require('./subscriptionFields.mts');
+const log = require('../../telemetry/log');
 
 // ═══════════════════════════════════════════
 //  Webhook Event Handlers
@@ -81,6 +83,63 @@ function holdDunningCap(updateData, current) {
     }
 }
 
+// ── Events that arrive out of order ──────────────────────────────────────────
+// Stripe does not order its events and redelivers a failed one for days.
+/** @typedef {{ targetType: 'consumer' | 'organization', id: string, label: string }} AuditTarget  `label` is the target in log lines */
+/** @typedef {{ id: string, status: string }} SubscriptionSnapshot */
+
+/**
+ * True (audited, nothing written) when the event reports the end of another
+ * Stripe subscription than the one the subscriber's row holds: the row belongs
+ * to the subscription that replaced it (see endOfAnotherSubscription).
+ * @param {AuditTarget} target
+ * @param {SubscriptionSnapshot} subscription
+ * @param {{ stripe_subscription_id?: string | null } | null | undefined} row  the subscriber's local row
+ * @param {'subscription.updated' | 'subscription.deleted'} event
+ */
+async function skippedAsSuperseded({ targetType, id, label }, subscription, row, event) {
+    if (!endOfAnotherSubscription(row, subscription, event === 'subscription.deleted')) return false;
+    const held = row?.stripe_subscription_id;
+    log.warn(`[Stripe Webhook] stripe.webhook.superseded_subscription event=${event} ${label} sub_id=${subscription.id} held_sub_id=${held} stripe_status=${subscription.status}`);
+    await userStore.logSubscriptionAudit('webhook_superseded_subscription', targetType, id, 'stripe_webhook', null, { event, sub_id: subscription.id, held_sub_id: held, stripe_status: subscription.status });
+    return true;
+}
+
+/**
+ * The write option that skips a snapshot older than the row; the row is the
+ * locked one, so two events of one subscription that arrive together are
+ * decided in the order they are written (see returnsToIncomplete).
+ * @param {SubscriptionSnapshot} subscription
+ */
+const unlessOlderThanRow = (subscription) => ({ skipIf: (/** @type {{ stripe_subscription_id?: string | null, status?: string | null } | null} */ row) => returnsToIncomplete(row, subscription) });
+
+/**
+ * True (audited) when the write was skipped because the snapshot is older than the row.
+ * @param {AuditTarget} target
+ * @param {SubscriptionSnapshot} subscription
+ * @param {boolean | undefined} skipped
+ */
+async function auditedAsStale({ targetType, id, label }, subscription, skipped) {
+    if (!skipped) return false;
+    log.warn(`[Stripe Webhook] stripe.webhook.stale_snapshot ${label} sub_id=${subscription.id} stripe_status=${subscription.status}`);
+    await userStore.logSubscriptionAudit('webhook_stale_snapshot', targetType, id, 'stripe_webhook', null, { sub_id: subscription.id, stripe_status: subscription.status });
+    return true;
+}
+
+/**
+ * A trial starts with a zero-amount invoice that Stripe marks paid at once.
+ * Nothing was paid, so invoice.paid does not make a trialing subscriber a
+ * paying one: `paid` on the row is what customer.subscription.deleted reads to
+ * tell a customer who cancelled from a trial that ended without payment (which
+ * falls back to the Free plan). The end of the trial itself arrives as
+ * customer.subscription.updated or .deleted.
+ * @param {{ amount_paid?: number }} invoice
+ * @param {{ status?: string }} target  the subscriber, with the status its row had when it was read
+ */
+function paysNothingOnTrial(invoice, target) {
+    return invoice.amount_paid === 0 && target.status === 'trialing';
+}
+
 /**
  * The plain (not override-aware) subscription write of a webhook handler. A
  * write the database refuses throws, so webhook.js releases the event and
@@ -97,15 +156,20 @@ async function storeForTarget(target, payload, opts) {
     assertStored(stored, `subscription of ${target.scope} ${target.id}`);
 }
 
-/** @param {string | null | undefined} stripeSubscriptionId */
+/**
+ * The subscriber whose row holds the Stripe subscription, with the status of
+ * that row as it was read.
+ * @param {string | null | undefined} stripeSubscriptionId
+ * @returns {Promise<{ scope: string, id: string, status?: string } | null>}
+ */
 async function findSubscriptionTargetBySubId(stripeSubscriptionId) {
     if (!stripeSubscriptionId) return null;
     const orgs = await userStore.getAllOrgSubscriptions();
     const orgMatch = orgs.find(s => s.stripe_subscription_id === stripeSubscriptionId);
-    if (orgMatch) return { scope: 'organization', id: orgMatch.organization_id };
+    if (orgMatch) return { scope: 'organization', id: orgMatch.organization_id, status: orgMatch.status };
     const consumers = await userStore.getAllConsumerSubscriptions();
     const consumerMatch = consumers.find(s => s.stripe_subscription_id === stripeSubscriptionId);
-    if (consumerMatch) return { scope: 'consumer', id: consumerMatch.user_id };
+    if (consumerMatch) return { scope: 'consumer', id: consumerMatch.user_id, status: consumerMatch.status };
     return null;
 }
 
@@ -126,6 +190,10 @@ module.exports = {
     verifyMetadataMatchesLocal,
     stripOverriddenFields,
     holdDunningCap,
+    skippedAsSuperseded,
+    unlessOlderThanRow,
+    auditedAsStale,
+    paysNothingOnTrial,
     storeForTarget,
     findSubscriptionTargetBySubId,
     findSubscriptionTargetByCustomerId,

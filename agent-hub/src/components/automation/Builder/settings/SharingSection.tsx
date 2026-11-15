@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAutomationShares, type AutomationShares, type Share, type ShareRole } from '@/api/queries/automation/people';

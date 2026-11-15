@@ -17,7 +17,6 @@
  * says which index the person clicked.
  */
 import { File as FileIcon, FileSpreadsheet, FileText, Image, X } from 'lucide-react';
-import React from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 

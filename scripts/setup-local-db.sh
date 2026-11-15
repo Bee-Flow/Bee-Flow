@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-time local PostgreSQL setup for Bee Flow (no Docker)
+# One-time local PostgreSQL setup for Bee Flow (no Docker).
 # Run once after: sudo apt-get install -y postgresql-16 postgresql-16-pgvector
 set -e
 

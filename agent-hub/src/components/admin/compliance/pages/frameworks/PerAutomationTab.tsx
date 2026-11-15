@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Bot, Workflow } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DataTableContext, RowLike, TableColumn } from '@/components/shared/DataTable';

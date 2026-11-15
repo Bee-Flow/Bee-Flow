@@ -203,7 +203,7 @@ function ImageElement({ el, pathBase, fullWidth }: ElementProps & { fullWidth: b
     ].filter(Boolean).join(' ');
     const figureStyle = (!bleed && fullWidth) ? { width: '100%', maxWidth: '100%' } : undefined;
 
-    // Publish-time enrichment (server/core/cms/mediaDims.js) stores the
+    // Publish-time enrichment (server/utils/mediaDims.js) stores the
     // intrinsic size; as attributes it reserves the box before the bytes
     // arrive, while the CSS display size stays responsive.
     const imgDims = el.width > 0 && el.height > 0

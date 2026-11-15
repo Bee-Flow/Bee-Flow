@@ -1,7 +1,6 @@
 // The expanded settings of one standard tier: token limit, temperature,
 // reasoning controls and (Flow) the bootstrap model. Same state and handlers
 // as before; only the markup is a grid of compact fields.
-import React from 'react';
 import { CLAUDE_RECOMMENDED, type TierDef, type TierDefaults } from './constants';
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
 import TierThinkingFields from './TierThinkingFields';

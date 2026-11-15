@@ -1,6 +1,5 @@
 import { screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { setDemoTransport } from '@/utils/helpers';

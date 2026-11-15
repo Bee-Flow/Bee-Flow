@@ -8,8 +8,6 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from '@/api/typedRequest';
 import Modal from '@/components/shared/Modal';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import type { Schedule } from '../builderSplit/useAgentSchedules';
-import type { EditorAgent } from '../builderSplit/editorTypes';
 import type { ScheduleModalProps } from './SchedulePickers.types';
 ;
 

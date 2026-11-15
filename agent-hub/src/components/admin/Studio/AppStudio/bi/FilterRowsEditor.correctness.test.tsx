@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FilterRowsEditor, { type FilterEntry, type FilterRow } from './FilterRowsEditor';
 import type { FilterRowsEditorProps } from './FilterRowsEditor.types';

@@ -76,7 +76,7 @@ describe('splitWildcardPath', () => {
 });
 
 describe('impliedListMode', () => {
-    // Mirrors server automation/datetimeListMode.js: a step saved with a whole
+    // Mirrors server core/automationModel/datetimeListMode.js: a step saved with a whole
     // column in "Input date" and no arrayRef runs as list mode (BFSF-375).
     it('reads a column without arrayRef as list mode over its list', () => {
         expect(impliedListMode({ op: 'extract', part: 'day', input: 'steps.s.output.results[*].updated' })).toEqual({

@@ -15,6 +15,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
+const { postgresSkipReason } = require('../testUtils/requirePostgres');
 
 process.env.NODE_ENV = 'test';
 
@@ -31,7 +32,7 @@ before(async () => {
         pool = require('../db').pool;
         ready = true;
     } catch (e) {
-        skipReason = `Postgres unavailable, skipping: ${e.message}`;
+        skipReason = postgresSkipReason('kbSources.test', e);
         console.warn(`[kbSources.test] ${skipReason}`);
     }
 });

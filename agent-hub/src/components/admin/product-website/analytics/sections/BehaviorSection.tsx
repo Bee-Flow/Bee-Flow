@@ -13,10 +13,9 @@ import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Empty, fmt, paletteAt, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
-import { ACCENT, tint } from '../BarList';
+import { tint } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
-import type { AnalyticsScope } from '../../analyticsApi';
-import type { DrillHandler, XYRow } from '../ui.types';
+import type { XYRow } from '../ui.types';
 import type { Listish, BehaviorSectionProps, FunnelRow, Step, FunnelPanelProps, JourneyRow, JourneyPanelProps, RetentionRow, RetentionPanelProps, GoalPayload, GoalsPanelProps } from './BehaviorSection.types';
 import { readFunnel, defaultSteps, readJourneys, readRetention } from './BehaviorSection.helpers';
 

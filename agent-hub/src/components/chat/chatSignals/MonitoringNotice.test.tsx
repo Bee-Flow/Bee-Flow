@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { queryWrapper } from '@/test/queryWrapper';
 import type { ChatSignalsTurnSurface } from '@/hooks/useChatEngine/turnEndpoint';

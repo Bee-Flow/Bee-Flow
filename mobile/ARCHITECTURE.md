@@ -90,6 +90,14 @@ written into a `style` or `…Style` prop, including one inside a style array.
   `api.get/post/…` from `core/api/client`; an upload a person watches
   declares an `UploadTarget` (path, multer field, cap, extra text parts) and
   hands it to `uploadFile` in `core/api/xhrUpload`.
+- A path can be written from the server's own contract:
+  `apiPath('GET /api/skills/{id}/usage', { id })` in `core/api/apiPath` takes
+  an operation key of `core/api/apiTypes.generated.ts`, so a route the server
+  does not mount or a missing path parameter fails the typecheck, and
+  `ApiBody<'<key>'>` is the request body of that route's schema. The file is
+  generated from `docs/static/openapi.json` (`npm run gen:api-types` at the
+  repository root, the same text agent-hub gets; `npm run lint:api-types`
+  fails when it is stale). It describes requests only.
 - One function per server call. When two features need the same call, one
   owns it and the other adapts its answer (the flow editor re-reads the
   automations feature's row into its strict definition).

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { outputShape } from './outputDrafts';
 import OutputFieldsEditor from './OutputFieldsEditor';
 import { useTranslation } from '@/hooks/useTranslation';

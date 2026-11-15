@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import McpLogoJs from '../../utils/mcpLogos';
 
 // A .jsx module; its inferred props do not know the server shape.

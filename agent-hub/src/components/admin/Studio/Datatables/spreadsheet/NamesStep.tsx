@@ -1,4 +1,3 @@
-import React from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { ColumnKindIcon } from '../ColumnKind';
 import { columnTypeKind, keyFromName } from '../datatableDisplay';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 import useTranslation from '@/hooks/useTranslation';

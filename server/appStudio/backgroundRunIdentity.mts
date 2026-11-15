@@ -12,7 +12,7 @@
  *      starter (an anonymous visitor, an erased account) is never continued.
  *   3. The starter may still open the app: they own it, or it is published and reaches them
  *      through their organisation, a shared group or its project, exactly as the app gate of a
- *      request decides (studioAppRunGate.loadVisibleApp).
+ *      request decides (routes/studioAppRunGate.js loadVisibleApp).
  *   4. The run belongs to a definition that is still there: a draft run only for the owner,
  *      with the current draft; any other run with the current PUBLISHED definition. An app that
  *      was unpublished continues nothing.
@@ -103,7 +103,7 @@ function defaultDeps(): IdentityDeps {
             const gateway = nodeRequire('./rlsGateway') as { resolveViewerRole: (a: unknown, u: string, m: unknown, au: unknown) => Promise<string | null> };
             return (await gateway.resolveViewerRole(app, userId, model, audience)) || null;
         },
-        roleAccess: (def, actionId, role) => (nodeRequire('../routes/studioAppRunGate') as { actionRoleAccess: IdentityDeps['roleAccess'] }).actionRoleAccess(def, actionId, role),
+        roleAccess: (def, actionId, role) => (nodeRequire('./runGateRules') as { actionRoleAccess: IdentityDeps['roleAccess'] }).actionRoleAccess(def, actionId, role),
     };
 }
 

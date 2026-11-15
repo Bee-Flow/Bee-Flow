@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { lazy } from '@/utils/lazyWithReload';
 import Modal from '@/components/shared/Modal';

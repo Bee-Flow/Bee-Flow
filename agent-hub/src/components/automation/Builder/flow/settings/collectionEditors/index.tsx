@@ -3,7 +3,7 @@
 // collection / datetime / wait step editors, extracted verbatim from
 // SettingsForm.jsx.
 import { Repeat } from 'lucide-react';
-import { useMemo, type JSX } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { walkPath } from '@/utils/bindingHelpers';
 import FieldKeyCombobox from '@/components/automation/Builder/mapping/FieldKeyCombobox';
@@ -16,10 +16,8 @@ import { useVariablePickerContext } from '@/components/automation/Builder/mappin
 import AccordionSection from '../../AccordionSection';
 import { datetimeTargetColumn, dateInputPatch } from '../../datetimeTarget';
 import { FormRow, inputClass } from '../formPrimitives';
-import type React from 'react';
 import type { FormRecord } from '../formState/types';
-import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
-import type { StepEditorProps, ForEachSectionProps, FieldsSectionProps, DateTimeFieldsProps, LimitFieldsProps, DedupeFieldsProps, AggregateFieldsProps, SummarizeFieldsProps } from '../collectionEditors.types';
+import type { ForEachSectionProps, FieldsSectionProps, DateTimeFieldsProps, LimitFieldsProps, DedupeFieldsProps, AggregateFieldsProps, SummarizeFieldsProps } from '../collectionEditors.types';
 import { SourceSummaryRow, CollectionArrayRefField } from './SourceSummaryRow';
 import { RetrySection } from './RetrySection';
 import { WaitFields } from './WaitFields';

@@ -1,5 +1,4 @@
 import { Code, Loader2, PenLine } from 'lucide-react';
-import React from 'react';
 import BulletsCard from './BulletsCard';
 import {
     READ, addBullet, editBullet, patchPersona, personaShape, removeBullet, toggleToneChip, type Persona,

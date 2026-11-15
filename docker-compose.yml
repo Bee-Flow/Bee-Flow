@@ -76,7 +76,9 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: beeflow-server
-    command: npm start
+    # node itself, not `npm start`, so that SIGTERM reaches the server and its
+    # graceful shutdown runs: see docker-compose.from-registry.yml.
+    command: [ "node", "index.js" ]
     # Loopback-only by default — see docker-compose.from-registry.yml for the
     # full rationale, including why this is surface reduction rather than
     # control enforcement (the rate limits live in Express, not in nginx).
@@ -220,17 +222,21 @@ services:
       - beeflow-network
       - beeflow-browser-network
     restart: unless-stopped
+    # Room for the graceful shutdown (up to about 40 s); Docker's default is 10 s.
+    stop_grace_period: 45s
     depends_on:
       postgres:
         condition: service_healthy
       guard-redis:
         condition: service_healthy
+    # Readiness (503 until the schema and boot migrations have run, while the
+    # database is unreachable, and during shutdown); /api/health stays liveness.
     healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/ready',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 120s
 
   # ── Shared headless browser (PDF export, thumbnails, SPA ingestion, browse_web)
   # The server image carries no Chromium. This sidecar is the Playwright server

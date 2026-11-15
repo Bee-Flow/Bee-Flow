@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, ImageField } from '../fields';
 import { useTranslation } from '@/hooks/useTranslation';
 

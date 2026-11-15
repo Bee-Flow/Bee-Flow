@@ -5,7 +5,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Microsoft365Integration, { Microsoft365Group } from './Microsoft365Integration';
 

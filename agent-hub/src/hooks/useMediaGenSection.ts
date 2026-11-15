@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { mediaGenSettingsStore } from '../utils/mediaGenSettingsStore';
 
 /** One panel's slice of the media-gen settings blob: free-form keys, values

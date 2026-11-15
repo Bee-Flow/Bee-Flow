@@ -1,5 +1,4 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import React from 'react';
 import { ADDABLE, type KindLoad } from './addPartsSources';
 import { kindInkClass } from './kindBar';
 import { useTranslation } from '@/hooks/useTranslation';

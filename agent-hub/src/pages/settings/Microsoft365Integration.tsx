@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { openMicrosoftOAuthPopup, type MicrosoftOAuthError } from '../../api/microsoftOAuthPopup';
 import {

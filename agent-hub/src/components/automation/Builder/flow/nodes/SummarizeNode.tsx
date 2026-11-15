@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sigma } from 'lucide-react';
 import StepNodeBase from './StepNodeBase';
 import { summarizeSummary } from '../nodeSummaries';

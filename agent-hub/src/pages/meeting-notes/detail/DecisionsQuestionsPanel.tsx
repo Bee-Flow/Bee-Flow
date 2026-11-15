@@ -1,5 +1,4 @@
 import { CircleHelp, Clock, Gavel } from 'lucide-react';
-import React from 'react';
 import type { ReactNode } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 // The strict parser (null for junk) — an unreadable model timestamp must lose

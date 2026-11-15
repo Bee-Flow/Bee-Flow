@@ -35,6 +35,11 @@
  * other by _ddl.js and db.exec, and a slow or failing schema must not stall
  * boot. `npm run db:migrate` (migrateDb.js) is the awaiting, exit-code-carrying
  * path over the same list in storeModules.js.
+ *
+ * The report does carry `settled`, a promise for the moment every started init
+ * has ended (it never rejects). Nothing in boot waits on it; the readiness
+ * probe does (utils/runtimeState.mts), so "ready" comes after the tables
+ * while the listener and the liveness answer stay as early as they were.
  */
 
 'use strict';
@@ -55,13 +60,17 @@ const loadStore = (file) => require(path.join(__dirname, '..', file));
  * @param {{log?: Pick<typeof log, 'info' | 'warn' | 'error'>, modules?: {name: string, file: string}[],
  *          load?: (file: string) => { initDB?: () => Promise<unknown>, ready?: Promise<unknown> } | null}} [opts] - `modules` and `load` are
  *   the injection seam the colocated test uses; boot passes neither.
- * @returns {{started: string[], unverified: string[], failed: string[]}}
+ * @returns {{started: string[], unverified: string[], failed: string[], settled: Promise<{rejected: string[]}>}}
  *   `unverified` = registered but exposing no awaitable init; `failed` = threw
  *   synchronously on require. A rejected init is logged by the memo, counted
- *   here, and retried by the next caller.
+ *   here, and retried by the next caller. `settled` resolves once every started
+ *   init has ended, with the names of the ones that rejected.
  */
 function startStoreSchemas({ log: logger = log, modules, load = loadStore } = {}) {
+    /** @type {{started: string[], unverified: string[], failed: string[]}} */
     const report = { started: [], unverified: [], failed: [] };
+    /** @type {Promise<string | null>[]} the name of a store whose init rejected, null for one that succeeded */
+    const outcomes = [];
     for (const store of (modules || STORE_MODULES)) {
         try {
             const mod = load(store.file);
@@ -70,7 +79,10 @@ function startStoreSchemas({ log: logger = log, modules, load = loadStore } = {}
                     : null;
             if (!handle) { report.unverified.push(store.name); continue; }
             report.started.push(store.name);
-            handle.catch((e) => bestEffort('boot/storeSchemas:startStoreSchemas', e));
+            outcomes.push(handle.then(() => null, (e) => {
+                bestEffort('boot/storeSchemas:startStoreSchemas', e);
+                return store.name;
+            }));
         } catch (err) {
             report.failed.push(store.name);
             logger.error(`[StoreSchemas] ${store.name} could not be loaded: ${/** @type {Error} */ (err).message}`);
@@ -80,7 +92,8 @@ function startStoreSchemas({ log: logger = log, modules, load = loadStore } = {}
         logger.warn(`[StoreSchemas] no awaitable init on: ${report.unverified.join(', ')} — their schema now waits for a first query`);
     }
     logger.info(`[StoreSchemas] ${report.started.length} store schemas started`);
-    return report;
+    const settled = Promise.all(outcomes).then((names) => ({ rejected: names.filter((name) => name !== null) }));
+    return { ...report, settled };
 }
 
 module.exports = { startStoreSchemas };

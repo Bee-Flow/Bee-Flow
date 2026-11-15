@@ -80,7 +80,7 @@ The `ghcr.io/bee-flow/*` images are also mirrored on [Docker Hub](docker-hub.md)
 | **Postgres** | 1 GB RAM | 2 GB | 4 GB |
 | **Network** | 100 Mbps | 1 Gbps | 1 Gbps + |
 
-The server is stateless when Redis is configured — scale horizontally. Postgres carries all durable state (users, agents, conversations, KB chunks, automation runs, audit log).
+Postgres carries the durable state (users, sessions, agents, conversations, KB chunks, automation runs, audit log), so the server can run as several replicas; Redis is an optional cache and makes the per-user request budgets count across replicas. One exception: the data of App Studio apps and of webpage projects is single-writer by default. Read [Kubernetes → More than one server replica](kubernetes.md#server-replicas) before you scale out.
 
 ## Pick your deploy target
 

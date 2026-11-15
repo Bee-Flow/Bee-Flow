@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ReactNode } from 'react';
 import { Building2 } from 'lucide-react';
 import CeilingReadOnly from './CeilingReadOnly';

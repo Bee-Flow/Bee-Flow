@@ -26,7 +26,8 @@ Auth column abbreviations:
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
-| GET | `/api/health` | P | `{status, version, tier}` |
+| GET | `/api/health` | P | `{status, timestamp, appVersion, otel}`: `appVersion` is the build's commit, `otel` whether OpenTelemetry started. It names no tier |
+| GET | `/api/ready` | P | Readiness: `200 {ready: true}`, or `503 {ready: false, reason}` while starting, without a database or schema, and during shutdown |
 | GET | `/api/guard/health` | P | Guard sidecar health probe |
 
 There is no public `/metrics` endpoint. Admins can read the in-memory counters at `GET /api/admin/metrics` (JSON, or Prometheus text with `?format=prometheus`) — see [Reference → Telemetry](../reference/telemetry.md).

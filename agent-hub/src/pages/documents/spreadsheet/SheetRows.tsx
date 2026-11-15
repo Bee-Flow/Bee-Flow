@@ -1,7 +1,6 @@
 // The body rows of the grid. Each cell is a memoised SheetCell given only
 // primitives, so a keystroke re-renders the edited cell and nothing else.
 
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import SheetCell from './SheetCell';
 import type { CellResult, Computed } from './sheetEngine';

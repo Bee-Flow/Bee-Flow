@@ -126,7 +126,7 @@ the Integrations tab in the rail, then the Transcription section.
 | Apply a licence key | [Organisation settings](organisation-settings.md) → Licence & usage |
 | Give a beta feature to one group | [Beta features](beta-features.md) |
 | Export the last 30 days of guardrail events | [Audit & compliance](audit-and-compliance.md) |
-| Set up SAML SSO | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
+| Set up single sign-on (Google or Microsoft) | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
 | See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |

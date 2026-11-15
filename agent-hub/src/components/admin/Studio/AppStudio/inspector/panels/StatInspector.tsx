@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';

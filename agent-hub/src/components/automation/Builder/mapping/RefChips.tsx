@@ -1,5 +1,4 @@
 import { Workflow, Zap, Repeat } from 'lucide-react';
-import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { fieldTailLabel, parseRefTokens, resolveChipLabel } from './refTokens';
 import type { LabelLookup, RefTextToken } from './refTokens';

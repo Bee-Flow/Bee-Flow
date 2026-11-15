@@ -1,4 +1,3 @@
-import React from 'react';
 import { QuestionBreakdown } from './QuestionBreakdowns';
 import DashCard from '@/components/shared/dashboard/DashCard';
 import type { TranslateFn } from '@/hooks/useTranslation';

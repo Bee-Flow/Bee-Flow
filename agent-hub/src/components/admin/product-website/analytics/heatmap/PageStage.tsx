@@ -14,7 +14,7 @@
  */
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import HeatCanvas from './HeatCanvas';
-import { blockLabel, type ScrollReach } from './model';
+import { type ScrollReach } from './model';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface PageStageProps {

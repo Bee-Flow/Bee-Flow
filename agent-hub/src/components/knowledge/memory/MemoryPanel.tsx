@@ -1,5 +1,5 @@
 import { Lightbulb, ChevronLeft, Plus, CheckSquare, Trash2, Download } from 'lucide-react';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '../../shared/Toast';

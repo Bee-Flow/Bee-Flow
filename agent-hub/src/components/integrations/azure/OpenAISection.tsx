@@ -1,6 +1,5 @@
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Input, SectionCard, StatusBadge } from './components';
+import { Input, SectionCard } from './components';
 
 interface OpenAISectionProps {
     azureEndpoint: string;

@@ -1,5 +1,4 @@
 import { Inbox, Mail } from 'lucide-react';
-import React from 'react';
 import GoogleWorkspacePickerModal from './GoogleWorkspacePickerModal';
 import useTranslation from '../../hooks/useTranslation';
 import { formatRelativeDate } from '../../utils/dateFormatters';

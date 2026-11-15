@@ -1,5 +1,4 @@
 import { Building2, User } from 'lucide-react';
-import React from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import ChoiceCard from '../ChoiceCard';
 import { ORG_SCOPE_PERMISSION } from './constants';

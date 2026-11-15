@@ -75,17 +75,39 @@ Set in the repo-root `.env` (see the root `.env.example`):
 
 ```
 src/
-├── App.jsx                    Root + auth-gating render-tree
-├── AuthedApp.jsx              Session hydration (/auth/user, /auth/my-permissions)
-├── AgentHub.jsx               Main app shell
-├── pages/                     Top-level routes (Settings, Studio, …)
+├── main.tsx                   Entry point
+├── App.tsx                    Root + auth-gating render-tree
+├── AppRoutes.tsx              Public router shell: marketing site, embeds, and the door to the signed-in app
+├── router/                    The route pattern matcher and history helpers under the route tables
+├── AuthedApp.tsx              Session hydration (/auth/user, /auth/my-permissions)
+├── authedApp/                 Session and navigation context, route guards, the signed-in route table
+├── AgentHub.tsx, AgentHub/    Main app shell and its chat views
+├── pages/                     Top-level routes (login, admin dashboard, settings, public forms, …)
 ├── components/
 │   ├── chat/                  Conversation UI + tool-result rendering
-│   ├── admin/                 Org-admin panels (NC sync, integrations, …)
-│   └── …
-├── i18n/                      Translation defaults (en-defaults.js)
-└── utils/                     API helpers (authFetch), scoped storage, …
+│   ├── admin/                 Admin panels and Studio (agents, apps, automations, …)
+│   └── …                      One folder per feature (automation, knowledge, projects, …)
+├── api/                       Every call to the server: typedRequest.ts (apiRequest, apiFetch, apiJson)
+│                              and apiTypes.generated.ts, the request types per operation
+├── hooks/                     Shared hooks and stream state
+├── editor/                    The document editor; the server's markdown bundles are built from it
+├── marketing/                 The public site (home, pricing, product website)
+├── moduleRuntime/             Loads the Studio apps that installed Hub modules bring
+├── shared/                    Code shared with the server and the mobile app (shared/expr is a
+│                              generated copy of server/shared/expr)
+├── i18n/                      English defaults; en-defaults.js is generated from server/i18n/defaults/en
+├── config/, constants/        Catalogues and constants
+├── lib/, utils/               Helpers (OAuth popups, OPAQUE, scoped storage, logging, …)
+├── demo/                      Demo hosts with their fixtures
+├── telemetry/                 Optional browser telemetry, off unless a production build has a token
+└── test/                      Shared test helpers
 ```
+
+New files are TypeScript. The layers point one way: `api/` and `hooks/` never
+import from `components/` or `pages/`, and `components/` never from `pages/`.
+Several files here are generated (`api/apiTypes.generated.ts`,
+`i18n/en-defaults.js`, `shared/expr/`): change their source and regenerate, as
+the root [`CLAUDE.md`](../CLAUDE.md) describes, instead of editing them.
 
 Tests are colocated with their source (vitest): `npm run test:run`, plus
 `npm run typecheck` and `npm run lint`.

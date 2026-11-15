@@ -22,6 +22,10 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
     ['GET /api', 'API-naamkaartje ({ name, status }) — geen data, geen sessie nodig'],
     ['GET /api/guard/health', 'statusprobe van de PII-guard-service, zelfde klasse als /api/health — meldt configured/available, geen gebruikersdata'],
     ['GET /api/health/schema', 'schema-gezondheidsprobe, per header "Ongeauthenticeerd, net als /api/health" (routes/healthSchema.js)'],
+    ['GET /api/ready', {
+        reden: 'readiness probe for orchestrators and the compose healthcheck, which run before any session exists: anonymous like /api/health. Answers { ready } plus one of four coarse reasons, never a table name, error text or build stamp.',
+        bewijs: { file: 'routes/ready.js', marker: 'readinessAnswer' },
+    }],
     ['file:routes/wellKnown.js', '/.well-known discovery-documenten (Azure publisher-domain, security.txt) — per definitie publiek'],
 
     // ── Anonieme telemetrie ──────────────────────────────────────────────

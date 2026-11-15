@@ -1,4 +1,3 @@
-import React from 'react';
 import type { FormField } from './formBlockModel';
 
 interface Props {

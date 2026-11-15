@@ -1,4 +1,4 @@
-import type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadOk, BlueprintReadNone, BlueprintRead, InstallAnswers, Obj, StepVisitor } from './installRequirements.types';
+import type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadNone, BlueprintRead, InstallAnswers, Obj, StepVisitor } from './installRequirements.types';
 export type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadOk,  BlueprintRead, InstallAnswers } from './installRequirements.types';
 const ENTITY_KINDS = ['automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases'];
 

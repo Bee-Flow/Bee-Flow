@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, Loader2, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
 import { LINK_BUTTON_CLASS, PRIMARY_BUTTON_CLASS } from './loginShared';
 import { useTranslation } from '../../hooks/useTranslation';

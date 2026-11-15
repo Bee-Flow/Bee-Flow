@@ -2,7 +2,6 @@
  * The demo iframe (created on click) carries the language of the page around
  * it as ?lang=, so a Dutch page does not frame an English UI.
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, afterEach } from 'vitest';

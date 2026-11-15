@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ChoiceCards from '@/components/shared/ChoiceCards';
 import ToggleCard from '../../parts/ToggleCard';
 import type { ChecksFields, TranslateFn } from './checksTypes';

@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import useCmsHead from './useCmsHead';
 import { partial } from '@/test/mocks';

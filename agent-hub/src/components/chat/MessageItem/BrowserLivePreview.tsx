@@ -1,4 +1,3 @@
-import React from 'react';
 import { Globe } from 'lucide-react';
 import type { BrowserPreview } from '@/hooks/useChatEngine/types';
 import useTranslation from '@/hooks/useTranslation';

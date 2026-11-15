@@ -1,5 +1,4 @@
 import { ChevronDown, FolderOpen, Plus } from 'lucide-react';
-import React from 'react';
 import { ACCENT_BAR, ROW, ROW_ACTIVE, ROW_IDLE, SECTION_HDR, SECTION_LBL, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 import type { Project } from '@/api/queries/projects';
 import type { TranslateFn } from '@/hooks/useTranslation';

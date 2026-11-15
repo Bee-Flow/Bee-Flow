@@ -4,9 +4,9 @@ title: Voice
 
 # Voice
 
-:::warning[Pro tier feature]
+:::warning[Enterprise feature]
 
-Requires a Pro or higher licence key.
+Requires an Enterprise or higher licence key (the `voice_chat` feature). See [Tiers](../licensing/tiers.md).
 
 :::
 
@@ -73,14 +73,13 @@ While the assistant speaks, the mic stays open. If the user starts speaking (ene
 
 | Direction | Provider | Notes |
 |-----------|----------|-------|
-| Speech → text (STT) | **Voxtral** (default) | Multilingual. Returns detected language with each turn. |
-| | Deepgram (`DEEPGRAM_API_KEY`) | Alternative if you don't want Voxtral. |
-| | Mistral Transcription (`MISTRAL_TRANSCRIPTION_KEY`) | EU-region option. |
+| Speech → text (STT) | **Voxtral** (Mistral) | Multilingual. Returns detected language with each turn. Voice chat has no other speech-to-text provider. |
 | Text → speech (TTS) | **Voxtral** (default) | Streams chunks for low first-byte latency. |
-| | ElevenLabs (`ELEVENLABS_API_KEY`) | Higher voice fidelity, more languages. |
-| Local STT | Whisper (`OLLAMA_BASE_URL` + a Whisper model) | Fully offline option. |
+| | ElevenLabs | The fallback when Voxtral text-to-speech fails or the Mistral account has no voice. |
 
-Switch provider in **Admin → Organisation → Voice**. Per-user voice (e.g. one Talk room uses a Dutch voice, another an English voice) is on the roadmap.
+Voice chat needs a Mistral API key, and ElevenLabs its own key. Both are entered in **Admin → AI Config** and stored encrypted in the database; there is no environment variable for either. Without a Mistral key the voice routes answer `mistral_not_configured`.
+
+There is no provider picker. Per-user voice (e.g. one Talk room uses a Dutch voice, another an English voice) is on the roadmap.
 
 ## Sticky language
 

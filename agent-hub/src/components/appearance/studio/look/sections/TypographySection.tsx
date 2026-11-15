@@ -1,4 +1,3 @@
-import React from 'react';
 import FormField from '@/components/shared/FormField';
 import { FONT_OPTIONS } from '@/components/appearance/ThemeContext';
 import type { ThemeOption } from '@/components/appearance/ThemeContext.types';

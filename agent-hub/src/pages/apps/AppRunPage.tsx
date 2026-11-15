@@ -1,6 +1,6 @@
 import { CircleSlash, RefreshCw, Users } from 'lucide-react';
 import { persistKeyFor } from '@/components/admin/Studio/AppStudio/runtime/variables/persistedVariables';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppDataScope from '../../components/admin/Studio/AppStudio/runtime/AppDataScope';
 import AppRenderer from '../../components/admin/Studio/AppStudio/runtime/AppRenderer';
 import AppShell from '../../components/admin/Studio/AppStudio/runtime/AppShell';
@@ -24,11 +24,7 @@ import RequiredConnectionsBanner from '../../components/shared/RequiredConnectio
 import useTranslation from '../../hooks/useTranslation';
 import { isNextcloudEmbed } from '../../utils/helpers';
 import { rememberAppOpened } from './AppsHomePage';
-import type { AppDefinition } from '../../components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { DataState } from '../../components/admin/Studio/AppStudio/runtime/DataContext';
-import type { UserMenuViewer } from '../../components/admin/Studio/AppStudio/runtime/shell/UserMenu';
-import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/runnerContext';
-import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { ShellDefinition, RuntimePayload, RuntimeLoadError, RunState, ConnectionsPreflightProps, RunBodyProps, RunSurfaceProps, AppRunPageProps } from './AppRunPage.types';
 import { useDataConnectors } from '../../api/queries/apps';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';

@@ -1,6 +1,5 @@
 import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**

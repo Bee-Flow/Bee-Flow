@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { RunsApi, RunStep, RunSummary } from './runsApi';
 import { useCancelRun, useRunDetail } from './runsApi';

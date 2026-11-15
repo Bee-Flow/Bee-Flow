@@ -27,7 +27,7 @@ import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { ActionState } from './actionRunner/core';
-import type { AppRendererProps, NodeWrapperProps, FlagInput, ThemeLike, UnknownTypeProps, FormulaErrorBadgeProps, DisabledWrapProps, RenderChildrenOpts, RenderNodeProps } from './AppRenderer.types';
+import type { AppRendererProps, NodeWrapperProps, ThemeLike, UnknownTypeProps, FormulaErrorBadgeProps, DisabledWrapProps, RenderChildrenOpts, RenderNodeProps } from './AppRenderer.types';
 import type { NodeProps } from './components/appNode.types';
 import type { DataState } from './DataContext';
 import type { AppNode } from '../inspector/appDefinition';

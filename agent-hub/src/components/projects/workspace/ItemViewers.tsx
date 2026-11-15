@@ -1,7 +1,6 @@
 // "Who is looking at this" on a document row, notebook card, task card or the
 // team chat header: the people the live feed saw with this item open.
 
-import React from 'react';
 import { useProjectMembersQuery } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';
 import { useProjectLive, viewKey, type ViewTarget } from './ProjectLiveContext';

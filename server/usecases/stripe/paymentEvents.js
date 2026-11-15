@@ -7,7 +7,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields, storeForTarget } = require('./webhookShared');
+const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields, storeForTarget, paysNothingOnTrial } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
@@ -114,6 +114,10 @@ async function handleInvoicePaid(invoice) {
             const early = await _resolveEarlyConfirmationTarget(invoice);
             if (early) await _sendSubscriptionConfirmationEmailOnce({ target: early, invoice, subId });
         }
+        return;
+    }
+    if (paysNothingOnTrial(invoice, target)) {
+        log.info(`[Stripe Webhook] stripe.invoice.paid ${scopeOf(target).tag}=${target.id} zero-amount invoice of a trial: status left as it is`);
         return;
     }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ReactNode } from 'react';
 import { filedCount, isClosedUnfiled, isVulnerability, lastDone, nextClock, startedAtOf, STATUS_LABEL } from './incidentClocks';
 import { useTranslation } from '@/hooks/useTranslation';

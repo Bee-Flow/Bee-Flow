@@ -1,5 +1,4 @@
 import { Ban, BookOpen, Brain } from 'lucide-react';
-import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { nextMemoryMode, type MemoryLock, type MemoryMode } from '@/utils/memoryMode';
 import { memoryHint, memoryStateLabel } from './memoryModeCopy';

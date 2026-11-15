@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, Toggle, RepeatableList } from '../fields';
 import { InlineHint, FieldSelect, SectionDivider } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

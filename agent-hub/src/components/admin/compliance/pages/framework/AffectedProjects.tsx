@@ -3,7 +3,6 @@
 // the evidence itself never holds a name) and a link into each project.
 
 import { ArrowUpRight } from 'lucide-react';
-import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { complianceActionPath } from '../../data/actions';
 

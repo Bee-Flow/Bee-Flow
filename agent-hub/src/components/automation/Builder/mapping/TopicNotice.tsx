@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { isTopicOp } from '../utils/conditionModel';
 

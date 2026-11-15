@@ -3,7 +3,6 @@
  * typed it into (MessageItem/index.jsx's user-bubble classes), so the
  * review reads as "your message, annotated" rather than an abstract report.
  */
-import React from 'react';
 import DlpHighlightedText from './DlpHighlightedText';
 import type { AddSpanHandler, DlpSpan, RemoveSpanHandler } from './dlpFindingsState';
 

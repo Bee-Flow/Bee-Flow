@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { renderWithClient } from '@/test/render';
 
 const state: { query: unknown; save: { mutateAsync: ReturnType<typeof vi.fn>; isPending: boolean }; orgIds: unknown[] } = {

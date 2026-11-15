@@ -2,12 +2,7 @@ import MyAgentsSection from './sidebar/MyAgentsSection';
 import ProjectsSection from './sidebar/ProjectsSection';
 import RecentChats from './sidebar/RecentChats';
 import { FavoriteAgentsRail, NewProjectRow, ScrolledAwayStrip, SidebarTopBar } from './sidebar/SidebarChrome';
-import { conversationActions, sidebarConversations, type ConversationHandlers, type ConversationSource, type SidebarConversation } from './sidebar/sidebarConversations';
-import type { ConvRowHandlers } from './sidebar/RecentChats';
-// The Studio rail replaces this sidebar on Studio pages. Main-chunk-safe by
-// design — see the import discipline note in studioApps.jsx.
-import { type StudioNavUser } from '../admin/Studio/studioNav';
-import type { Project } from '../../api/queries/projects';
+import { conversationActions, sidebarConversations } from './sidebar/sidebarConversations';
 import { withDefaults } from './sidebar/sidebarDefaults';
 import type { ProjectRailRoute, SidebarProps } from './Sidebar.types';
 import { useSidebarState, type SidebarPanelProps, type SidebarListsProps } from './Sidebar.types2';

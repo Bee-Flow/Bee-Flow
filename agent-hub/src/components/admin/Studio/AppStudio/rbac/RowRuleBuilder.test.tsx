@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import RowRuleBuilder from './RowRuleBuilder';
 import { buildRowRule } from './rowRuleModel';

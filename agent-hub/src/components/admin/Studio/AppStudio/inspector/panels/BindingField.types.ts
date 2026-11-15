@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react';
 import type { ChartMapping } from '../../bi/ChartDataPanel';
-import type { BindingInput, PickSpec } from '../../runtime/resolveBinding.types';
+import type { PickSpec } from '../../runtime/resolveBinding.types';
 import type { AppDefinition, AppNode, FormFieldRef } from '../appDefinition';
 import type { DatasetGroup, DatasetAggregate } from '../../bi/useDatasets';
 import type { LucideIcon } from 'lucide-react';

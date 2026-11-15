@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Info } from 'lucide-react';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';

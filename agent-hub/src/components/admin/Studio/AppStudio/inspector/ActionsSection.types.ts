@@ -1,5 +1,5 @@
 import type { AppDefinition, AppNode } from './appDefinition';
-import type { UseEventWiringOptions, WiredAutomation } from './useEventWiring';
+import type { WiredAutomation } from './useEventWiring';
 
 /** @param {import('./ActionsSection.types').ActionsSectionProps} props */
 export interface ActionsSectionProps {

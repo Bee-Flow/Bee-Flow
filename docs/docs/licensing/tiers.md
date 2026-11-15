@@ -34,7 +34,7 @@ builder themselves — those are free in Community. What Enterprise adds is the
 **collaboration** layer on top (sharing automations across a team,
 **Projects** team workspaces), the **MCP Server Marketplace** *(an Enterprise
 beta — a later implementation; see the [MCP library](../integrations/mcp-library.md))*,
-**SSO beyond Nextcloud** (Google / Microsoft / SAML — Nextcloud OAuth login stays
+**SSO beyond Nextcloud** (Google / Microsoft — Nextcloud OAuth login stays
 Community) together with the rest of the Studio-class capabilities (voice chat,
 webpage creation, meeting notes, notebooks), the
 advanced Privacy Shield modes, guardrail DLP, the compliance hub (GDPR + AI
@@ -45,7 +45,7 @@ Monitoring, Compliance, Support, Appearance/branding, Product Website) — see
 [Admin dashboard by tier](#admin-dashboard-by-tier) below. **Full** layers
 white-label branding and sub-licence issuance on top for resellers.
 
-Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/tiers.js).
+Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/license/tiers.js).
 
 ## Limits
 
@@ -77,7 +77,7 @@ may move at any time.
 | **Integrations** |
 | Built-in integrations — connect & use in chat (Google, Microsoft, AI generation, third-party, Nextcloud) | ✅ | ✅ | ✅ |
 | Nextcloud connector + sign-in to Bee Flow from the NC App Store app (Nextcloud OAuth) | ✅ | ✅ | ✅ |
-| SSO — Google / Microsoft / SAML | — | ✅ | ✅ |
+| SSO — Google / Microsoft (OpenID Connect; [there is no SAML sign-in](../api/auth.md#saml-not-implemented)) | — | ✅ | ✅ |
 | MCP Server Marketplace *(Enterprise beta — later implementation)* | — | ✅ | ✅ |
 | **Workflow** |
 | Automation builder (no-code, personal) | ✅ | ✅ | ✅ |
@@ -103,7 +103,7 @@ may move at any time.
 
 Legend: ✅ available · — not available
 
-The **MCP Server Marketplace** is a Community feature but a *later
+The **MCP Server Marketplace** is an Enterprise beta and a *later
 implementation* — treat it as on the roadmap rather than fully stabilised. It
 lives under **Admin → Organisation → MCP library**; a server administrator
 also gets its **Server-wide** tab there.
@@ -136,9 +136,9 @@ of the dashboard — not shown locked.
 never appears on a self-hosted install, so it carries no tier flag.
 
 Community keeps the **Integrations** tab on purpose: an operator needs it to
-wire up OAuth credentials and (later) install MCP servers — without it the free
-built-in integrations couldn't be configured. The gate lives in
-[`agent-hub/src/components/admin/dashboard/adminTabs.ts`](https://github.com/Bee-Flow/beeflow/blob/main/agent-hub/src/components/admin/dashboard/adminTabs.ts)
+wire up OAuth credentials — without it the free built-in integrations couldn't
+be configured. The gate lives in
+[`agent-hub/src/components/admin/dashboard/adminTabs.ts`](https://github.com/Bee-Flow/Bee-Flow/blob/main/agent-hub/src/components/admin/dashboard/adminTabs.ts)
 (`minTier` per tab, enforced in `canOpenAdminTab`).
 
 ## Feature-flag names
@@ -164,12 +164,12 @@ you'll see in 403 responses:
 | `kb_query_log` | Enterprise | Opt-in log of questions, retrieved passages and answers per knowledge base, for quality review by the KB managers. Gates the KB log routes, the Compliance Center views and the Studio/automation log steps; reading and deleting for GDPR and retention is not gated by it |
 | `compliance_hub_gdpr` | Enterprise | `/api/compliance`, guardrail audit log export, DSR flows |
 | `compliance_hub_aia` | Enterprise | AI Act compliance hub |
-| `sso_saml` | Enterprise | SAML 2.0 IdP config |
+| `sso_saml` | Enterprise | Sign-in with Google or Microsoft (OpenID Connect). The name is historical: [there is no SAML sign-in](../api/auth.md#saml-not-implemented) |
 | `guardrails_dlp` | Enterprise | DLP rule editor + enforcement |
-| `integrations` | Community | All built-in integrations (Google, Microsoft, AI generation, third-party, Nextcloud). **Capability marker, not a route gate** — integration tool usage in chat is ungated by design (`server/core/integrationTools.js` gates only on OAuth/credentials + org/user toggles) |
-| `mcp_marketplace` | Community | MCP Server Marketplace (later implementation). Marker — no tier check on MCP install or tool usage |
+| `integrations` | Community | All built-in integrations (Google, Microsoft, AI generation, third-party, Nextcloud). **Capability marker, not a route gate** — integration tool usage in chat is ungated by design (`server/core/integrations/integrationTools.js` gates only on OAuth/credentials + org/user toggles) |
+| `mcp_marketplace` | Enterprise | MCP Server Marketplace (an Enterprise beta, later implementation). Gates installing and managing MCP servers (the organisation's MCP library and the server-wide `/ai/mcp-servers` routes). Using the tools of a server that is already installed is not tier-gated: it is granted like any other integration |
 | `nextcloud_oauth` | Community | Sign-in to Bee Flow from the Nextcloud App Store app + Nextcloud OAuth |
-| `custom_themes` | Community | Theme overrides beyond branding basics |
+| `custom_themes` | Enterprise | Organisation-level custom branding and themes (a beta feature) |
 | `white_label` | Full | Branding overrides (logo, colours, domain) |
 | `license_issuance` | Full | Sub-licence minting |
 
@@ -235,5 +235,5 @@ still accepted and silently resolved to `enterprise`. Paying Pro
 customers therefore retain everything they had and pick up the additional
 Enterprise capabilities (compliance hub, SSO, etc.) at no extra step. The
 mapping lives in
-[`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/tiers.js)
+[`server/license/tiers.js`](https://github.com/Bee-Flow/Bee-Flow/blob/main/server/license/tiers.js)
 as `LEGACY_TIER_ALIAS`.

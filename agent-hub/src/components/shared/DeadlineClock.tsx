@@ -1,6 +1,6 @@
 import { Timer } from 'lucide-react';
 import type { ReactNode } from 'react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Clock, TimeInput } from './deadlineMath';
 import { clockState, isClockState, normalisePct } from './deadlineMath';
 import type { ToneTokens } from './statusTone';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, Download, Loader2 } from 'lucide-react';
 import { messageOf } from '@/utils/caughtError';
 import type { FormFieldDef } from '../PublicFormRenderer.types';

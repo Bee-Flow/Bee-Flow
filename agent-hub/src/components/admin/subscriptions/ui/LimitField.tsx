@@ -1,4 +1,3 @@
-import React from 'react';
 import type { LimitFieldDef } from '../constants';
 import { Field, NumberInput } from './Input';
 import { useTranslation } from '@/hooks/useTranslation';

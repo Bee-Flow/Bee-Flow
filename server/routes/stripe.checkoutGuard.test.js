@@ -28,7 +28,10 @@ const { test } = require('node:test');
 
 // ── Fixtures / spies ────────────────────────────────────────────────────────
 let liveSubs = [];              // what Stripe reports for the customer
+let liveSubsByCustomer = null;  // set to answer per customer: { cus_x: [...] }
 let liveSubsError = null;       // set to make the Stripe lookup fail
+let orgCustomers = [];          // the customers Stripe holds for the org (by its metadata)
+let orgCustomerLookups = 0;
 let orgSubRow = null;
 let consumerSubRow = null;
 let isAdmin = true;
@@ -45,10 +48,11 @@ function stub(path, exports) {
 
 stub('../services/stripeService', {
     isEnabled: async () => true,
-    listLiveSubscriptions: async () => {
+    listLiveSubscriptions: async (customerId) => {
         if (liveSubsError) throw liveSubsError;
-        return liveSubs;
+        return liveSubsByCustomer ? (liveSubsByCustomer[customerId] || []) : liveSubs;
     },
+    findOrgCustomerIds: async () => { orgCustomerLookups++; return orgCustomers; },
     createCheckoutSession: async (args) => {
         sessionsCreated.push(args);
         return { id: 'cs_new', url: 'https://checkout.stripe.test/cs_new' };
@@ -131,7 +135,10 @@ function dispatch(body) {
 
 test.beforeEach(() => {
     liveSubs = [];
+    liveSubsByCustomer = null;
     liveSubsError = null;
+    orgCustomers = [];
+    orgCustomerLookups = 0;
     isAdmin = true;
     isConsumerAccount = false;
     planIsNcOnly = false;
@@ -186,6 +193,68 @@ test('a first-ever checkout (no Stripe customer yet) never calls Stripe for this
 
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(sessionsCreated.length, 1);
+    assert.strictEqual(orgCustomerLookups, 0, 'the row is where the customer of a started checkout is kept');
+});
+
+// An organisation WITHOUT a subscription row keeps no customer id: a checkout
+// that is only started stores nothing for it. Its first checkout can be paid
+// while the webhook that creates the row is still on its way, and the customer
+// that subscription is on is then known to Stripe alone.
+test('an org without a subscription row is asked of Stripe: a paid first checkout refuses the second', async () => {
+    orgSubRow = null;
+    orgCustomers = ['cus_started'];
+    liveSubsByCustomer = { cus_started: [{ id: 'sub_paid', status: 'active' }] };
+
+    const res = await dispatch({ planId: 'plan_B' });
+
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.error, 'already_subscribed');
+    assert.strictEqual(sessionsCreated.length, 0, 'no second Stripe subscription is minted');
+});
+
+test('every customer Stripe holds for such an org is checked, not only the first', async () => {
+    orgSubRow = null;
+    orgCustomers = ['cus_retry', 'cus_paid'];   // two attempts inside the search index's delay
+    liveSubsByCustomer = { cus_paid: [{ id: 'sub_paid', status: 'trialing' }] };
+
+    const res = await dispatch({ planId: 'plan_B' });
+
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.subscription_status, 'trialing');
+    assert.strictEqual(sessionsCreated.length, 0);
+});
+
+// A subscription event carries no customer, so a row it created holds the
+// subscription without one until checkout.session.completed arrives.
+test('a row that holds a Stripe subscription but no customer yet is asked of Stripe as well', async () => {
+    orgSubRow = { organization_id: 'org_1', stripe_customer_id: null, stripe_subscription_id: 'sub_paid', status: 'active' };
+    orgCustomers = ['cus_started'];
+    liveSubsByCustomer = { cus_started: [{ id: 'sub_paid', status: 'active' }] };
+
+    const res = await dispatch({ planId: 'plan_B' });
+
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(sessionsCreated.length, 0);
+});
+
+test('an org without a row and without a live subscription checks out on the customer it already has', async () => {
+    orgSubRow = null;
+    orgCustomers = ['cus_started'];
+
+    const res = await dispatch({ planId: 'plan_B' });
+
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(sessionsCreated[0].stripeCustomerId, 'cus_started');
+});
+
+test('an org without a row that Stripe does not know either gets its first checkout', async () => {
+    orgSubRow = null;
+    liveSubsError = new Error('listLiveSubscriptions must not be called without a customer');
+
+    const res = await dispatch({ planId: 'plan_B' });
+
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(sessionsCreated[0].stripeCustomerId, null);
 });
 
 test('a failed Stripe lookup fails CLOSED, it does not wave the purchase through', async () => {

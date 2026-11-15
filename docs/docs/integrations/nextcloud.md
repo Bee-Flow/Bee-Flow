@@ -56,7 +56,7 @@ Clients registered before the provider-parameterised routes existed use `https:/
 
 ### Basic + app password (fallback)
 
-For users who didn't connect via OAuth. The user sets it in **Settings → Account → Integrations → Nextcloud → Add app password**. NC generates the password and stores it AES-encrypted in Postgres (`BEEFLOW_ENCRYPTION_KEY`).
+For users who didn't connect via OAuth. The user sets it in **Settings → Account → Integrations → Nextcloud → Add app password**. NC generates the password and stores it AES-encrypted in Postgres (`MASTER_ENCRYPTION_KEY`).
 
 ## No Docker on your Nextcloud host? {#no-docker}
 

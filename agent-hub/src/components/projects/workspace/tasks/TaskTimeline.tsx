@@ -2,7 +2,7 @@
 // strip and a 40px row per scheduled task, with relationship connectors drawn
 // over the rows. Tasks without dates follow underneath as a compact list.
 
-import React, { useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, Info } from 'lucide-react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 import type { ProjectTask } from '@/api/queries/projectTasks';

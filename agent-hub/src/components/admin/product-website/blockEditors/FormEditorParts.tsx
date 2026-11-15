@@ -1,4 +1,3 @@
-import React from 'react';
 import { TextField, TextArea, Toggle, RepeatableList } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
 import { useTranslation } from '@/hooks/useTranslation';

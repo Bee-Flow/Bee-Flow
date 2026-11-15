@@ -1,6 +1,5 @@
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
 import NewDatatableDialog from './NewDatatableDialog';

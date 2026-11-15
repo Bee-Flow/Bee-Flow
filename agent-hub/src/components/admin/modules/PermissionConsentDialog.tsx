@@ -1,5 +1,4 @@
 import { Loader2, ShieldCheck, X } from 'lucide-react';
-import React from 'react';
 import { normalizePermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
 import PermissionList from './PermissionList';

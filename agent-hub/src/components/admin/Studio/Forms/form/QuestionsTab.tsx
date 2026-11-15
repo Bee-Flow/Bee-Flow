@@ -1,5 +1,5 @@
 import { Info, Loader2, Workflow } from 'lucide-react';
-import React, { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import AiDraftPanel from './AiDraftPanel';
 import { useTranslation } from '@/hooks/useTranslation';
 import DashCard from '@/components/shared/dashboard/DashCard';

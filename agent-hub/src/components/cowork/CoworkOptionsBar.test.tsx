@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import CoworkOptionsBar from './CoworkOptionsBar';
 import { COWORK_REPEAT_OPTIONS, WHEN_PRESETS } from './coworkSchedule';

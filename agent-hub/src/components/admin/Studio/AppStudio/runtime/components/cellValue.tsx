@@ -9,7 +9,6 @@ import { TemplateCell } from './cellTemplate';
 import { EM_DASH, displayValue } from '../uiBits';
 import { cellLabel, labelForCell } from './cellLabel';
 import type { GridColumn } from './grid/useGridColumns';
-import type React from 'react';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { CellColumn, ToneForCellArgs, PillProps, CellFlagProps, MonogramProps, RenderMainValueArgs, CellValueProps } from './cellValue.types';
 import { logger } from '@/utils/logger';

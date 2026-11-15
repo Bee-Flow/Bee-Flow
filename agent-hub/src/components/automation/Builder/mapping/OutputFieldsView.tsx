@@ -1,4 +1,3 @@
-import React from 'react';
 import { sampleToFields } from './upstream';
 import { fieldFor } from './upstream/fieldTree';
 import type { Field } from './upstream/fieldTree';

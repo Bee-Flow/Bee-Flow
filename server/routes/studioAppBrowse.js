@@ -53,7 +53,7 @@ const { LIMITS } = require('../appStudio/componentSpecs/limits');
 const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
-const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
+const { browseStepLimiter, aiStepLimiter } = require('../appStudio/rateLimits');
 const { bestEffort } = require('../utils/bestEffort');
 const { sessionUser } = require('../core/http/sessionUser');
 // The run log of a browser run (package 8).

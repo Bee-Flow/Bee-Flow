@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, Download } from 'lucide-react';
 import Modal from '../shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
