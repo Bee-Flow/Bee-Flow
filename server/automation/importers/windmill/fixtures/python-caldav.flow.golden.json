@@ -1,0 +1,134 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/fixtures/python-caldav.flow",
+      "automation": {
+        "title": "Meeting from a form",
+        "description": "",
+        "triggerType": "form",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "form",
+          "label": "Form",
+          "form": {
+            "title": "Meeting from a form",
+            "fields": [
+              {
+                "name": "title",
+                "label": "Meeting title",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "day",
+                "label": "day",
+                "type": "date",
+                "required": true
+              },
+              {
+                "name": "people",
+                "label": "people",
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "steps": [
+          {
+            "id": "create",
+            "type": "stop_error",
+            "label": "Windmill: Create the meeting (still to convert)",
+            "message": "This Windmill step has not been converted yet: python3 code is never run by Bee Flow; the builder rebuilds what it does."
+          },
+          {
+            "id": "note_create",
+            "type": "note",
+            "text": "Windmill source of \"Create the meeting\" (read-only):\n\nimport caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n"
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "create"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/fixtures/python-caldav.flow",
+        "modules": [
+          {
+            "wmId": "create",
+            "summary": "Create the meeting",
+            "source": "rawscript:python3",
+            "status": "ai",
+            "confidence": "low",
+            "reason": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "stepIds": [
+              "create"
+            ]
+          }
+        ],
+        "aiChecklist": [
+          {
+            "wmId": "create",
+            "stepId": "create",
+            "title": "Convert \"Create the meeting\"",
+            "why": "python3 code is never run by Bee Flow; the builder rebuilds what it does.",
+            "language": "python3",
+            "source": "import caldav\n\ndef main(Nextcloud: dict, title: str, start: str, end: str):\n    client = caldav.DAVClient(url=Nextcloud[\"baseUrl\"], username=Nextcloud[\"userId\"], password=Nextcloud[\"token\"])\n    return {\"created\": title}\n",
+            "inputs": {
+              "Nextcloud": {
+                "value": "$res:f/team/nextcloud"
+              },
+              "title": {
+                "expr": "flow_input.title"
+              },
+              "start": {
+                "expr": "flow_input.day"
+              },
+              "end": {
+                "expr": "flow_input.day"
+              }
+            }
+          }
+        ],
+        "warnings": [
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [
+          {
+            "kind": "resource",
+            "path": "f/team/nextcloud",
+            "where": [
+              "create.Nextcloud"
+            ]
+          }
+        ],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 0,
+          "pattern": 0,
+          "shim": 0,
+          "ai": 1,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    }
+  ],
+  "notMigrated": [],
+  "readWarnings": []
+}
