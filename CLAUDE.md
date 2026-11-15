@@ -251,6 +251,9 @@ and `npm run lint:secrets`.
 - A draft PR runs the fast tier (lint, typecheck, build, ratchets, the small suites). Mark it
   ready when the work is done; the full run and the `checks-passed` aggregate then gate the merge.
 - Bundle fixes into one push: every push to an open PR starts `ci.yml` again.
+- No Claude session link on GitHub: no `https://claude.ai/code/session_…` line in a PR
+  description, a comment or a commit message, and no `Claude-Session:` trailer. A squash merge
+  copies every commit message onto `main`, so a trailer in a commit ends up in the history for good.
 - A red test is never a flake by default: read the log first, and re-run only the failed jobs.
 - Workflows from forks run only after a maintainer approves them.
 
