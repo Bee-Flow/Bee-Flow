@@ -363,7 +363,7 @@ const PREHYDRATE_CSS = `
 .cms-prehydrate h2 { font-size: 1.5rem; line-height: 1.25; margin: 32px 0 12px; }
 .cms-prehydrate h3, .cms-prehydrate h4 { font-size: 1.1rem; margin: 20px 0 8px; }
 .cms-prehydrate .h2 { font-size: 1.5rem; line-height: 1.25; margin: 32px 0 12px; }
-.cms-prehydrate .h3, .cms-prehydrate .h4 { font-size: 1.1rem; line-height: normal; margin: 20px 0 8px; }
+.cms-prehydrate .h3, .cms-prehydrate .h4 { font-size: 1.1rem; line-height: inherit; margin: 20px 0 8px; }
 .cms-prehydrate p { margin: 0 0 12px; max-width: 68ch; }
 .cms-prehydrate .label { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin: 0 0 8px; }
 `.trim();

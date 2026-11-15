@@ -8,7 +8,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildLlmsTxt, LLMS_GUIDES } = require('./sitemap');
+const { buildLlmsTxt, llmsGuides, LLMS_GUIDES } = require('./sitemap');
 
 const ORIGIN = 'https://beeflow.test';
 const PAGES = [
@@ -55,4 +55,14 @@ test('a translated page lists its other-language address after its own', () => {
     const txt = buildLlmsTxt(PAGES, { origin: ORIGIN, defaultLocale: 'en' });
     assert.ok(section(txt, 'Pages').includes(`- [Home](${ORIGIN}/) (nl: ${ORIGIN}/nl)`));
     assert.ok(section(txt, 'Pages').includes(`- [Pricing](${ORIGIN}/pricing): Plans.`));
+});
+
+test('Guides leave out a post marked noIndex and stop at LLMS_GUIDES', () => {
+    const posts = Array.from({ length: 20 }, (_, i) => ({ id: `p${i}`, slug: `post-${i}`, title: `Post ${i}` }));
+    const guides = llmsGuides(posts, {
+        origin: ORIGIN, defaultLocale: 'en', storedPosts: { p0: { seo: { noIndex: true } } },
+    });
+    assert.equal(guides.length, LLMS_GUIDES);
+    assert.deepEqual(guides[0], { title: 'Post 1', url: `${ORIGIN}/blog/post-1` });
+    assert.ok(!guides.some((g) => g.url.endsWith('/post-0')));
 });

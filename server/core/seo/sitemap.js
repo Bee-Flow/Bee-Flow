@@ -13,7 +13,7 @@
  */
 
 const { esc } = require('./html');
-const { buildPublicPath } = require('./publicPath');
+const { buildPublicPath, BLOG_BASE } = require('./publicPath');
 
 // Homepage first, then the pages a buyer moves through, then the rest.
 // Sitemap priority is a weak signal at best, but ordering costs nothing.
@@ -197,6 +197,26 @@ const LLMS_LINKS = Object.freeze([
 const LLMS_GUIDES = 15;
 
 /**
+ * The Guides of llms.txt: the newest published posts, newest first, without
+ * the ones the CMS marks noIndex (the sitemap leaves those out too), at most
+ * LLMS_GUIDES, as absolute addresses in the default language.
+ * @param {Array<{ id?: string, slug?: string, title?: string }>} posts   newest first
+ * @param {{ origin: string, defaultLocale: string, storedPosts?: Record<string, { seo?: { noIndex?: boolean } }> }} opts
+ *   `storedPosts`: the snapshot's posts by id, whose seo decides noIndex
+ * @returns {Array<{ title: string, url: string }>}
+ */
+function llmsGuides(posts, { origin, defaultLocale, storedPosts = {} }) {
+    return (posts || [])
+        .filter(p => p && p.slug && !(p.id && storedPosts?.[p.id]?.seo?.noIndex))
+        .map(p => ({
+            title: String(p.title || p.slug || '').trim(),
+            url: `${origin}${buildPublicPath(defaultLocale, `${BLOG_BASE}/${p.slug}`, defaultLocale)}`,
+        }))
+        .filter(g => g.title)
+        .slice(0, LLMS_GUIDES);
+}
+
+/**
  * llms.txt — the same page inventory, addressed to language models.
  *
  * Not a duplicate of the sitemap. An assistant answering "is there a European
@@ -263,4 +283,4 @@ function publicSiteName(site) {
     return brand || String(site?.name || '').trim() || 'Bee Flow';
 }
 
-module.exports = { buildSitemap, buildRobots, buildLlmsTxt, publicSiteName, LLMS_LINKS, LLMS_GUIDES };
+module.exports = { buildSitemap, buildRobots, buildLlmsTxt, llmsGuides, publicSiteName, LLMS_LINKS, LLMS_GUIDES };

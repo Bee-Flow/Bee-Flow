@@ -12,24 +12,22 @@
 
 const express = require('express');
 const cmsStore = require('../stores/cmsStore');
-const { buildLlmsTxt, publicSiteName, LLMS_GUIDES } = require('../core/seo/sitemap');
-const { postPath } = require('../core/seo/blog');
+const { buildLlmsTxt, llmsGuides, publicSiteName, LLMS_GUIDES } = require('../core/seo/sitemap');
 const { localesForPage } = require('../i18n/pageLocales');
 const log = require('../telemetry/log');
 
 /**
- * The newest published posts in the default language, as Guides.
+ * The newest published posts in the default language, as Guides. Asks for more
+ * than it lists, so a noIndex post does not shorten the list.
  * @param {string} siteId
+ * @param {{ posts?: Record<string, { seo?: { noIndex?: boolean } }> }} snapshot
  * @param {string} origin
  * @param {string} defaultLocale
  * @returns {Promise<Array<{ title: string, url: string }>>}
  */
-async function latestGuides(siteId, origin, defaultLocale) {
-    const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: LLMS_GUIDES });
-    return (latest.posts || []).map((/** @type {{ title?: string, slug?: string }} */ p) => ({
-        title: String(p.title || p.slug || ''),
-        url: `${origin}${postPath(defaultLocale, String(p.slug || ''), defaultLocale)}`,
-    })).filter((/** @type {{ title: string }} */ g) => g.title);
+async function latestGuides(siteId, snapshot, origin, defaultLocale) {
+    const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: LLMS_GUIDES * 2 });
+    return llmsGuides(latest.posts || [], { origin, defaultLocale, storedPosts: snapshot.posts || {} });
 }
 
 /**
@@ -55,7 +53,7 @@ function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost, siteL
                 locales: localesForPage(snapshot, entry.id, defaultLocale, locales),
             }));
             const home = pages.find((/** @type {{ isHomepage?: boolean }} */ p) => p.isHomepage);
-            const guides = await latestGuides(siteId, origin, defaultLocale);
+            const guides = await latestGuides(siteId, snapshot, origin, defaultLocale);
 
             res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
             return res.send(buildLlmsTxt(pages, {
