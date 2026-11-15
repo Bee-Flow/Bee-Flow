@@ -274,12 +274,13 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `effect-fetch.mjs` | Does a file make a network call inside a useEffect? |
 | `entry-budget.mjs` | Entry budget for a Vite build: what the public entry (dist/index.html) loads before it can paint. |
 | `entry-point.mjs` | isEntryPoint — is this module the script node was started with, rather than one a test (or another script) imported? |
+| `env-inventory.mjs` | Environment inventory: which environment variables the server reads, and a ratchet on the ones no document mentions. |
 | `eslint-budget.mjs` | ESLint warning budget — a ratchet, not a threshold. |
 | `eslint-service-config.cjs` | The ESLint flat config shared by the small Node services: nextcloud-connector and hub-module-sdk. |
 | `file-budget.mjs` | File budget — the largest files may not grow. |
 | `frontend-shards.mjs` | Which agent-hub test file runs where in CI, and the guard that proves every file runs exactly once. |
 | `gen-api-reference.mjs` | gen-api-reference — the REST reference, generated from the server's own router. |
-| `gen-api-types.mjs` | gen-api-types — the request types of every server route, for agent-hub. |
+| `gen-api-types.mjs` | gen-api-types — the request types of every server route, for agent-hub and mobile. |
 | `gen-app-catalog.mjs` | Generate the web's copies of the App Studio catalog from the server spec (server/appStudio/componentSpecs.js), so nothing in agent-hub mirrors it by hand |
 | `gen-i18n-defaults.mjs` | gen-i18n-defaults — write the frontend's English dictionary from the server's. |
 | `gen-routes-contract.mjs` | gen-routes-contract — server/auth/routes.contract.json from the server's own router. |

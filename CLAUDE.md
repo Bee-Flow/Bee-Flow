@@ -10,7 +10,7 @@ line says otherwise.
 | Directory | Stack | Role |
 |-----------|-------|------|
 | `server/` | Node 22 / Express 5 | Core API: agents, automations, RAG, auth, licence verification (the largest module) |
-| `agent-hub/` | React 19 / Vite 7 / Tailwind 4 | Frontend SPA ("Agent Hub") |
+| `agent-hub/` | React 19 / Vite 8 / Tailwind 4 | Frontend SPA ("Agent Hub") |
 | `desktop/` | Electron / TypeScript | Desktop client (Linux/macOS/Windows). Loads the SPA from the server, no bundled copy |
 | `mobile/` | Expo / React Native | Native Android client (APK). Not a WebView wrapper |
 | `guard-service/` | Python FastAPI (GLiNER) | PII detection (CPU) |
@@ -38,7 +38,9 @@ verifies keys (see "Licence gating" below).
   `--test-force-exit` is deliberately NOT used: it ended the process as soon as the runner
   thought it was done and silently dropped unreported results. Do not add it back; the
   reasoning is in the header of `run-tests.mjs`. A file that keeps the event loop open after
-  its tests is reported by name (`HUNG`).
+  its tests is reported by name (`HUNG`). `npm run test:postgres` runs the tests that need a real
+  Postgres (advisory locks, migrations) against `CORE_DATABASE_URL`; without `REQUIRE_POSTGRES=1`
+  they skip in `npm test`. ci.yml's `server-postgres` job runs them.
 - Frontend: `cd agent-hub && npm run test:run` (vitest), `npm run typecheck`, `npm run lint`.
 - Mobile: `cd mobile && npm test` (jest), `npm run typecheck`, `npm run lint`. Run jest via
   `./node_modules/.bin/jest` or `npm test`; a bare `npx jest` can fetch a different jest.
@@ -93,8 +95,10 @@ and `npm run lint:secrets`.
   `npm run gen:api-reference` and commit. It loads the server app, so it needs `server/node_modules`;
   `check:fast` leaves it out and ci.yml's `server-checks` job runs it. Do not hand-edit those files.
 - `npm run lint:api-types`: `agent-hub/src/api/apiTypes.generated.ts` (request types per operation)
-  is GENERATED from `docs/static/openapi.json` by `scripts/gen-api-types.mjs`; after
-  `gen:api-reference`, run `npm run gen:api-types` and commit both. Call the API from agent-hub
+  and its copy `mobile/src/core/api/apiTypes.generated.ts` are GENERATED from
+  `docs/static/openapi.json` by `scripts/gen-api-types.mjs`; after `gen:api-reference`, run
+  `npm run gen:api-types` and commit all of them. `authFetch` is frozen per file in agent-hub
+  (eslint): a new file calls the API through `typedRequest.ts`. Call the API from agent-hub
   through `src/api/typedRequest.ts` (`apiRequest`, `apiFetch`, `apiJson`); `lint:url-outside-api-ratchet`
   counts files outside `src/api` that still build an API URL by hand.
 - `npm run lint:body-schema-ratchet`: the number of POST/PUT/PATCH routes without a `validate({ body })`
@@ -102,7 +106,10 @@ and `npm run lint:secrets`.
   budget in `server/.body-schema-ratchet.json`, `--list`, `--update` only lowers). A handler after
   `validate()` reads `req.body` / `req.query` typed by the schema: write no `Request<…, z.infer<…>>` cast.
 - `npm run lint:compose-drift`: the same third-party image has the same tag in every
-  `docker-compose*.yml`, and the profiles used there match `ALL_PROFILES` in `selfhost.sh`.
+  `docker-compose*.yml` (and in the service containers of `ci.yml`), and the profiles used there
+  match `ALL_PROFILES` in `selfhost.sh`.
+- `npm run lint:scripts-index`: the table at the end of `scripts/README.md` is GENERATED from the
+  header comment of every script (`npm run gen:scripts-index`). A new script needs a header comment.
 - Local images = CI images: `scripts/stage-server-context.sh` stages the server image's
   App Studio runtime bundle and SBOM; `build-push-ghcr.yml`, `build-images.sh` and
   `build-images.ps1` all use it, and `build-images.test.mjs` asserts their service lists
@@ -117,7 +124,9 @@ and `npm run lint:secrets`.
   same in `server`) drops the stale entries (eslint fails on them until then). Never run
   `--suppress-all` to get green. `lint:eslint-disable-ratchet`
   counts the `eslint-disable` comments in agent-hub (may only go down), and unused disable
-  directives are errors.
+  directives are errors. An unused import in an agent-hub `.ts`/`.tsx` file is an error
+  (`bee-flow/no-unused-imports`, no autofix; `node scripts/ts-remove-unused-imports.mjs <files>`
+  removes them).
 - `npm run lint:ts-ratchet`: the number of `.js`/`.jsx` files under `agent-hub/src` may only
   go down. Write new files in TypeScript.
 - `scripts/jsdoc-round.sh`: JSDoc types for server JavaScript by tooling, one local commit per
@@ -180,7 +189,8 @@ and `npm run lint:secrets`.
   against request text (a path, a header, a body) is a blocking finding there: compare with plain
   string operations (`nextcloud-connector/src/requestText.js` is the pattern).
 - `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
-  internal import graph, lazy `require`s included, `import type` excluded) in `server`,
+  internal import graph, lazy `require`s, `.mts` files and `nodeRequire(...)` included,
+  `import type` excluded) in `server`,
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in
   `<package>/.scc-ratchet.json`, `--update` only lowers, `--list` prints the files of the
   largest cycle). A red gate means a new import closed a loop: move the shared piece down.
@@ -211,7 +221,10 @@ and `npm run lint:secrets`.
   `fetch` outside the guard modules; use `safeFetch` / `nextcloudFetch`), `lint:static-mount-ratchet`
   (`express.static` without `setHeaders`), `lint:multer-guard-ratchet` (`multer` without
   `middleware/uploadGuard`), `lint:env-parseint-ratchet` (`parseInt(process.env.X) || n`),
-  `lint:secret-equality-ratchet` (`===` on a secret, key or signature; use `timingSafeEqual`) and
+  `lint:secret-equality-ratchet` (`===` on a secret, key or signature; use `timingSafeEqual`),
+  `lint:unnamed-rate-limit-ratchet` (a `perUserRateLimit` without a `name`: with Redis its budget is
+  per replica), `lint:env-inventory-ratchet` (a `process.env` name the server reads that no example
+  file or `docs/docs/self-hosting/env.md` mentions; `node scripts/env-inventory.mjs --list`) and
   `lint:instance-config-gate-ratchet` (a request-facing file writing instance-wide config without a
   platform-admin gate). The same shapes are semgrep rules in `.semgrep/security-gates.yml`, run by
   `sast.yml` on pull requests (new findings only).
@@ -259,7 +272,7 @@ and `npm run lint:secrets`.
     router always picks the model (`eugpt-auto`), there are no client tools, the history goes
     as a transcript inside the user message (never in `instructions`), and the answer carries
     no token usage. It is in `NATIVE_TYPES` (`chatStream/roundRequest.js`).
-  - **Mistral** (`mistral.js` + `mistralModels.js`): official SDK v2, which silently drops
+  - **Mistral** (`mistral.js` + `mistralModels.js`): official SDK v3, which silently drops
     unknown request keys, so always use the SDK's camelCase names (`reasoningEffort`,
     `promptCacheKey`); `mistral.test.js` pushes our params through the SDK's real outbound
     schema. Tool-call ids must be exactly 9 alphanumeric characters and are hashed
@@ -280,6 +293,11 @@ and `npm run lint:secrets`.
 - **Orchestration**: `server/core/llm/` (`llmClient.js`, `modelResolver.js`,
   `modelCosts.js`, `pricingService.js`, `tokenBudget.js`, prompt helpers) and
   `server/core/aiAgent.js`. Provider adapters stay in `server/core/providers/`.
+- **Background work starts from boot, by name**: a module that owns a timer, a listener or a
+  fetch exports a `start()` that a phase in `server/boot/` calls (`STARTUP_PHASES` in
+  `boot/startupTasks.js`); requiring a module starts nothing. `/api/health` is liveness,
+  `/api/ready` is readiness (503 while starting, without a database or schema, and during
+  shutdown).
 - **Logging in the server**: `server/telemetry/log.js` (`log.info/warn/error/debug`). In
   production JSON lines with a `reqId`; under `NODE_ENV=test` and in dev everything goes to
   `console`. `no-console` is a lint error outside `scripts/`, `migrations/`, the runners,
