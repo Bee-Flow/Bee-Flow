@@ -11,7 +11,8 @@ that runs inside Nextcloud as the Flow app) into [automations](automations.md). 
 to check before you switch it on.
 
 This is an **Enterprise** feature (`automation_import`). Building automations yourself, and importing
-a Bee Flow JSON export, stay available on every plan.
+a Bee Flow JSON export, stay available on every plan. If the licence lapses, the drafts you already
+imported keep their report: you can still read what is open and mark items as handled.
 
 Open **Studio → Automations** and click the wind icon next to the import button.
 
@@ -77,6 +78,7 @@ An imported draft can only be switched on when:
 2. a **dry run of the current version** finished without errors. Any change after that dry run asks
    for a new one.
 
+These checks hold however the automation is switched on, including a deployment of a Solution stage.
 Once it has been switched on, these checks are done for good.
 
 **Switch the flow off in Windmill** once the automation runs in Bee Flow: otherwise every event runs

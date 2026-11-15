@@ -376,6 +376,17 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // Subscriptions and the Gmail catch-up use the OWNER's connected account.
     const ownerId = a.userId || actorId;
 
+    // An automation imported from Windmill goes live only after its checklist
+    // is done and a dry run of this version passed (automation/importGate.mts).
+    // Here, not in the route, so every way of switching on holds it (the
+    // activate route, a Solution stage deploy, the stage settings, a rollback).
+    const importGate = require('./importGate.mts');
+    const importRefusal = await importGate.importGateRefusal(a, store);
+    if (importRefusal) {
+        const e = /** @type {Error & { status: number, code: string, details?: unknown }} */ (importRefusal);
+        return { ok: false, raise: true, status: e.status, code: e.code, message: e.message, details: e.details, body: { error: e.message, code: e.code } };
+    }
+
     const neverLive = a.liveVersion == null;
     // An automation in a Solution stage reads its settings from the live copy too (D17).
     const managed = neverLive ? false : await (deps.isManagedAutomation || require('../core/automationRunner/stageVars').isManagedAutomation)(a);
@@ -405,6 +416,9 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // Extra schedule triggers, re-armed: a resumed automation fires at its NEXT
     // slot rather than catching up on the first tick.
     await syncScheds(a.id, def, { rearm: true });
+
+    // Live once: the import gate is done for good (best-effort, never throws).
+    await importGate.noteActivated(a.id, store);
 
     gmailCatchUp(store, a.id, ownerId, deps);
 
