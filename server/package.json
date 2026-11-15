@@ -14,6 +14,7 @@
     "build:editor-collab": "node ../scripts/build-editor-bundles.mjs collab",
     "test": "node scripts/run-tests.mjs",
     "test:journeys": "node scripts/run-journeys.mjs",
+    "test:postgres": "node scripts/run-postgres-tests.mjs",
     "lint": "eslint .",
     "lint:suppress:prune": "node ../scripts/eslint-budget.mjs server --update",
     "typecheck": "node scripts/typecheck.mjs",

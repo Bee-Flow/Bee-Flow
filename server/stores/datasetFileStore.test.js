@@ -13,6 +13,7 @@ const assert = require('node:assert');
 const crypto = require('crypto');
 
 const store = require('./datasetFileStore');
+const { postgresSkipReason } = require('../testUtils/requirePostgres');
 
 const OWNER = `tds_${crypto.randomBytes(4).toString('hex')}`;
 const APP = `app_${crypto.randomBytes(4).toString('hex')}`;
@@ -25,13 +26,16 @@ test.before(async () => {
         ({ pool } = require('../db'));
         dbUp = true;
     } catch (e) {
-        console.warn(`[datasetFileStore.test] Postgres unavailable, skipping: ${e.message}`);
+        console.warn(`[datasetFileStore.test] ${postgresSkipReason('datasetFileStore.test', e)}`);
     }
 });
 
 test.after(async () => {
     if (dbUp) {
         await pool.query(`DELETE FROM studio_app_dataset_files WHERE owner_id = $1`, [OWNER]).catch(() => {});
+        // Close the pool: its idle connections otherwise keep the process
+        // alive for the 30 s idle time-out after the last test.
+        await pool.end().catch(() => {});
     }
 });
 
@@ -127,10 +131,13 @@ test('markReady / markFailed drive the quota sum and the raw sweep', async (t) =
     assert.strictEqual(failed.status, 'failed');
     assert.match(failed.error, /not sorted/);
 
-    // Quota counts the READY row at its real (post-ingest) size and skips failed.
-    const uploadingRows = (await store.listDatasets(APP, OWNER)).filter((d) => d.status === 'uploading');
-    const uploadingBytes = uploadingRows.reduce((n, d) => n + d.declaredBytes, 0);
-    assert.strictEqual(await store.sumBytesForOwner(OWNER), 400 + uploadingBytes);
+    // Quota counts the READY row at its real (post-ingest) size, skips failed,
+    // and counts every row still on its way at its declared size. That is
+    // 'uploading' but also 'uploaded' and 'ingesting': the tests above leave
+    // one of each of those two behind for this owner.
+    const inFlightRows = (await store.listDatasets(APP, OWNER)).filter((d) => d.status !== 'ready' && d.status !== 'failed');
+    const inFlightBytes = inFlightRows.reduce((n, d) => n + d.declaredBytes, 0);
+    assert.strictEqual(await store.sumBytesForOwner(OWNER), 400 + inFlightBytes);
 
     // The failed row (still holding raw_key) shows up for the sweep once old.
     assert.strictEqual((await store.listFailedRawSweep(24)).filter((d) => d.id === bad.id).length, 0, 'too fresh to sweep');

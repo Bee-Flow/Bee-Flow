@@ -20,6 +20,7 @@ const crypto = require('crypto');
 
 const coworkStore = require('./coworkStore');
 const aiTaskStore = require('./aiTaskStore');
+const { postgresSkipReason } = require('../testUtils/requirePostgres');
 
 // ── 1. Structural: the injected-store contract ──────────────────────────
 
@@ -62,10 +63,16 @@ function pgUnavailable() {
         _probe = coworkStore
             .getScheduleCount(`probe_${crypto.randomBytes(3).toString('hex')}`)
             .then(() => null)
-            .catch(err => `Postgres unavailable: ${err.message}`);
+            .catch(err => postgresSkipReason('coworkStore.test', err));
     }
     return _probe;
 }
+
+// Close the pool once a Postgres answered: its idle connections otherwise keep
+// the process alive for the 30 s idle time-out after the last test.
+test.after(async () => {
+    if (_probe && (await _probe.catch(() => 'unavailable')) === null) await require('../db').pool.end().catch(() => {});
+});
 
 test('a successful attempt opens and closes exactly one run row', async (t) => {
     const skip = await pgUnavailable();

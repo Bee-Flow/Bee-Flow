@@ -10,6 +10,7 @@
 
 const assert = require('assert');
 const crypto = require('crypto');
+const { postgresSkipReason } = require('../testUtils/requirePostgres');
 
 (async () => {
     let store;
@@ -17,7 +18,7 @@ const crypto = require('crypto');
         store = require('./automationStore');
         await store.initDB();
     } catch (e) {
-        console.warn(`[schedules.test] Postgres unavailable, skipping: ${e.message}`);
+        console.warn(`[schedules.test] ${postgresSkipReason('schedules.test', e)}`);
         process.exit(0);
     }
     const { pool } = require('../db');
