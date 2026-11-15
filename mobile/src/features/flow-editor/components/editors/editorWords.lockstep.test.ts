@@ -27,6 +27,7 @@ const WEB: Record<string, string[]> = {
     trigger: [
         'flow/settings/triggerEditors.tsx',
         'flow/settings/triggerFilters.tsx',
+        'flow/settings/mailTriggerFilters.tsx',
         'flow/settings/FormTriggerFields.tsx',
         'flow/settings/AppEventFields.tsx',
         'flow/ScheduleBuilder.tsx',

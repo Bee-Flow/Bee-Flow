@@ -30,8 +30,6 @@ type Handler = (req: Request, res: Response, next: NextFunction) => unknown;
 
 const express = nodeRequire('express') as typeof import('express');
 const { HttpError } = nodeRequire('../../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
-const { requirePrimaryOrgAdmin } = nodeRequire('../../auth/permissions.js') as { requirePrimaryOrgAdmin: () => Handler };
-const { requireFeature } = nodeRequire('../../license/middleware.js') as { requireFeature: (feature: string) => Handler };
 const { validate } = nodeRequire('../../core/http/validate.js') as { validate: (schemas: Record<string, unknown>) => Handler };
 const { z, onUnknownKeys } = nodeRequire('../../utils/zod.js') as typeof import('../../utils/zod.js');
 const log = nodeRequire('../../telemetry/log.js') as { info: (...a: unknown[]) => void, warn: (...a: unknown[]) => void };
@@ -47,16 +45,30 @@ export interface InventoryRouteDeps {
     fetchInventory: (orgId: string) => Promise<InventoryOutcome>;
 }
 
+/** The two gates, built when the router is (a test hands its own in). */
+export interface InventoryGates {
+    /** auth/permissions requirePrimaryOrgAdmin: sets req.primaryOrgId. */
+    orgAdmin: () => Handler;
+    /** license/middleware requireFeature. */
+    licenseFeature: (feature: string) => Handler;
+}
+
 function defaultDeps(): InventoryRouteDeps {
     const { isNcOrg } = nodeRequire('../../auth/ncAudience.js') as { isNcOrg: (orgId: string) => Promise<boolean> };
     return { isNcOrg, fetchInventory: (orgId) => fetchWindmillInventory(orgId) };
 }
 
+function defaultGates(): InventoryGates {
+    const { requirePrimaryOrgAdmin } = nodeRequire('../../auth/permissions.js') as { requirePrimaryOrgAdmin: () => Handler };
+    const { requireFeature } = nodeRequire('../../license/middleware.js') as { requireFeature: (feature: string) => Handler };
+    return { orgAdmin: requirePrimaryOrgAdmin, licenseFeature: requireFeature };
+}
+
 const UNAVAILABLE = Object.freeze({ available: false, flows: [] });
 
-export function makeWindmillInventoryRouter(given: Partial<InventoryRouteDeps> = {}) {
+export function makeWindmillInventoryRouter(given: Partial<InventoryRouteDeps> = {}, gates: InventoryGates = defaultGates()) {
     const router = express.Router();
-    router.get('/import/windmill/inventory', requirePrimaryOrgAdmin(), requireFeature(LICENSE_FEATURE), validate({ query: ORG_QUERY }), async (req: Request, res: Response) => {
+    router.get('/import/windmill/inventory', gates.orgAdmin(), gates.licenseFeature(LICENSE_FEATURE), validate({ query: ORG_QUERY }), async (req: Request, res: Response) => {
         const deps = { ...defaultDeps(), ...given };
         const orgId = String((req as Request & { primaryOrgId?: string }).primaryOrgId || '');
         res.set('Cache-Control', 'no-store');

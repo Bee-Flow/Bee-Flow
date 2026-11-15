@@ -287,7 +287,7 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
     // holds its webhook open until this returns.
     const payloads = await Promise.all(eligible.map(async (sub) => {
         let subPayload = payload;
-        if (ncFanOut && event === 'mail.new') return ncMailDeliveryFor({ sub, payload, ncVisibility, memo });
+        if (ncFanOut && event === 'mail.new') return require('./ncMailDelivery.mts').ncMailDeliveryFor({ sub, payload, ncVisibility, memo, store: automationStore, log });
         if (ncFanOut) {
             const own = !!actorUserId && sub.userId === actorUserId;
             if (!own) {
@@ -334,37 +334,6 @@ async function ncDeliveryFor({ sub, event, payload, actorKnown, ncVisibility, me
         return null;
     }
     return decision.overrides || {};
-}
-
-/**
- * A pushed Nextcloud `mail.new` for one subscription: only when the Mail
- * account is the subscriber's own (ncMailVisibility.mts, asked as them,
- * whoever the actor was and whatever the filter says), never a message the
- * subscription was already handed (ncMailCursor.mts: the poller may have read
- * it first). A delivery moves the subscription's cursor and stamps
- * lastPushAt, so the poller backstop does not read the same message again.
- * Returns the subscriber's payload, or null for "do not deliver".
- * @param {{ sub: { id?: string, userId: string, lastCursor?: string | null }, payload: Record<string, any>,
- *   ncVisibility: import('./ncVisibility.mts').NcVisibility | null, memo: import('./ncVisibility.mts').VisibilityMemo }} args
- * @returns {Promise<Record<string, any> | null>}
- */
-async function ncMailDeliveryFor({ sub, payload, ncVisibility, memo }) {
-    if (!ncVisibility) return null;
-    const { alreadyHandedOut, advanceMailCursor } = require('./ncMailCursor.mts');
-    if (alreadyHandedOut(sub.lastCursor, payload.mailboxId, payload.messageId)) return null;
-    const decision = await ncVisibility.check(sub.userId, 'mail.new', payload, memo);
-    if (!decision?.visible) {
-        log.info(`[TriggerBus] sub ${sub.id} skipped nextcloud.mail.new: not a Mail account of its owner`);
-        return null;
-    }
-    if (sub.id) {
-        // Read again right before writing: a poll or another push may have moved it meanwhile.
-        const fresh = await automationStore.getSubscription(sub.id).catch((e) => fallback('automation/triggerBus/dispatch:mailCursor', e, null));
-        const lastCursor = advanceMailCursor(fresh ? fresh.lastCursor : sub.lastCursor, payload.mailboxId, payload.messageId);
-        await automationStore.updateSubscription(sub.id, { lastCursor, lastPushAt: new Date().toISOString() })
-            .catch((e) => fallback('automation/triggerBus/dispatch:mailCursorWrite', e));
-    }
-    return { ...payload, ...(decision.overrides || {}), isOwn: false, isOwnAction: false };
 }
 
 /**

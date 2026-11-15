@@ -28,7 +28,8 @@ const BUILDER = path.resolve(__dirname, '../../../../../../../agent-hub/src/comp
 const read = (rel: string) => webSourceText(path.join(BUILDER, rel));
 const client = readDict(CLIENT_DICT);
 const editors = read('flow/settings/triggerEditors.tsx') + read('flow/settings/AppEventFields.tsx');
-const filters = read('flow/settings/triggerFilters.tsx');
+// The web's filter forms: triggerFilters.tsx, and the mail forms it imports.
+const filters = `${read('flow/settings/triggerFilters.tsx')}\n${read('flow/settings/mailTriggerFilters.tsx')}`;
 
 /** `t('key', 'English')` as the web writes it: the pair, with the English unescaped. */
 const T = String.raw`t\(\s*'([a-z0-9_.]+)'\s*,\s*'((?:[^'\\]|\\.)*)'`;

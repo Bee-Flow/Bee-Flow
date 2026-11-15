@@ -6,34 +6,30 @@
  * Pins the answer contract the import dialog reads, the gates in their order
  * (org admin first, then the `automation_import` licence feature), and that a
  * non-Nextcloud org or an old connector is `available: false`. The org-admin
- * gate and the licence middleware are doubles here (their own suites cover
- * them); what matters is that this route carries both, admin first.
+ * gate and the licence middleware are handed in as doubles through the
+ * router's factory (their own suites cover them); what matters is that this
+ * route carries both, admin first. The real ones are pinned by
+ * auth/routes.contract.json (scope gate) and the generated API reference.
  *
  * Run: cd server && node --test routes/automation/windmillInventory.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
 const express = require('express');
-
-const SERVER = path.resolve(__dirname, '..', '..');
-const { mockModule } = require('../../testUtils/moduleMock');
 
 /** @type {string[]} */
 const gateLog = [];
-mockModule(path.join(SERVER, 'auth/permissions'), {
-    requirePrimaryOrgAdmin: () => (/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => {
+/** @type {string[]} */
+const featuresAsked = [];
+const GATES = {
+    orgAdmin: () => (/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => {
         gateLog.push('admin');
         if (req.get('x-test-admin') !== 'yes') return res.status(403).json({ error: 'Organization admin access required' });
         req.primaryOrgId = 'org-1';
         return next();
     },
-});
-/** @type {string[]} */
-const featuresAsked = [];
-mockModule(path.join(SERVER, 'license/middleware'), {
-    requireFeature: (/** @type {string} */ feature) => {
+    licenseFeature: (/** @type {string} */ feature) => {
         featuresAsked.push(feature);
         return (/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => {
             gateLog.push(`licence:${feature}`);
@@ -41,7 +37,7 @@ mockModule(path.join(SERVER, 'license/middleware'), {
             return next();
         };
     },
-});
+};
 
 const { makeWindmillInventoryRouter } = require('./windmillInventory.mts');
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
@@ -51,7 +47,7 @@ const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler')
  */
 async function serve(deps) {
     const app = express();
-    app.use(makeWindmillInventoryRouter(/** @type {any} */ (deps)));
+    app.use(makeWindmillInventoryRouter(/** @type {any} */ (deps), GATES));
     app.use(terminalErrorHandler);
     const server = app.listen(0);
     const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;

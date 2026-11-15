@@ -16,17 +16,7 @@ const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 const { installDispatchStubs, tick } = require('./triggerBus.testkit');
-const { SUBS, USERS, dispatchedPayloads, storePath } = installDispatchStubs();
-
-/** @type {{ id: string, patch: Record<string, unknown> }[]} */
-const updates = [];
-const store = /** @type {Record<string, any>} */ (require.cache[storePath]?.exports);
-store.getSubscription = async (/** @type {string} */ id) => SUBS.find((s) => s.id === id) || null;
-store.updateSubscription = async (/** @type {string} */ id, /** @type {Record<string, unknown>} */ patch) => {
-    updates.push({ id, patch });
-    const sub = /** @type {Record<string, unknown> | undefined} */ (SUBS.find((s) => s.id === id));
-    if (sub && typeof patch.lastCursor === 'string') sub.lastCursor = patch.lastCursor;
-};
+const { SUBS, USERS, dispatchedPayloads, subscriptionUpdates: updates } = installDispatchStubs();
 
 const { dispatchEvent } = require('./triggerBus/dispatch');
 
