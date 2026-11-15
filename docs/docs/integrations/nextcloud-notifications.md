@@ -19,7 +19,6 @@ Read and dismiss native NC notifications, and (with the right scope) send new on
 | Tool | Purpose |
 |------|---------|
 | `nextcloud_notifications_list` | List unread notifications. |
-| `nextcloud_notifications_get` | Read one. |
 | `nextcloud_notifications_dismiss` | Mark as read / dismiss. |
 | `nextcloud_notifications_dismiss_all` | Clear all. |
 | `nextcloud_notifications_send` | Send a notification (apps that own the namespace only). |

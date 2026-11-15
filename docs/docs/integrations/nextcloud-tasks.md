@@ -17,9 +17,10 @@ title: Nextcloud — Tasks
 
 | Tool | Purpose |
 |------|---------|
-| `nextcloud_tasks_list_calendars` | List task calendars (CalDAV containers). |
+| `nextcloud_tasks_list_lists` | List the user's Nextcloud task lists (CalDAV calendars). |
 | `nextcloud_tasks_list` | List todos in a calendar. |
 | `nextcloud_tasks_search` | Search by title / completion / due date. |
+| `nextcloud_tasks_get` | Fetch a single task by uid. |
 | `nextcloud_tasks_create` | Create a todo. |
 | `nextcloud_tasks_update` | Edit title / due / priority / notes. |
 | `nextcloud_tasks_complete` | Mark complete. |

@@ -19,7 +19,6 @@ title: Fireflies
 | Tool | Purpose |
 |------|---------|
 | `fireflies_list_transcripts` | Recent transcripts. |
-| `fireflies_search_transcripts` | Search across transcripts. |
 | `fireflies_get_transcript` | Read one transcript with speaker labels. |
 | `fireflies_get_summary` | Read AI summary + action items. |
 

@@ -18,8 +18,7 @@ The [Activity](https://apps.nextcloud.com/apps/activity) app surfaces a unified 
 | Tool | Purpose |
 |------|---------|
 | `nextcloud_activity_list` | List recent activity entries. |
-| `nextcloud_activity_search` | Filter by date range / type / user. |
-| `nextcloud_activity_get` | Fetch a single entry. |
+| `nextcloud_activity_list_for_file` | List activity events scoped to a specific file or folder (changes, comments, shares). |
 
 ## Activity types
 

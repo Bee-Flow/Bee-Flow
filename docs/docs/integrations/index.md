@@ -58,7 +58,7 @@ Available via the [Nextcloud connector](../connector/index.md). The 11 integrati
 
 | Integration | What it does |
 |-------------|--------------|
-| [LinkedIn](linkedin.md) | Profile lookup |
+| [LinkedIn](linkedin.md) | Posts, after approval |
 
 ### Search & content
 
