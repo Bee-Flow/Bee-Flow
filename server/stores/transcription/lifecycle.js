@@ -19,21 +19,20 @@ const UPLOADS_ROOT = path.resolve(__dirname, '../../data/uploads');
 
 /**
  * How long a note may sit in 'processing' without a sign of life before the
- * reaper calls it dead.
+ * reaper calls it dead, and before a Retry may take the claim over.
  *
- * It was 180 minutes, and that is shorter than a healthy run is allowed to
- * take: Azure Speech may run up to 4 h (computeAzureTimeouts), pyannote polls
- * up to 2 h, and five LLM passes follow either. A three-hour meeting was
- * marked failed while it was still being transcribed; the upload then flipped
- * it back to completed, and a Retry in between started a second paid run (on
- * the reprocess path the reaped run's result was thrown away for good). The
- * default sits above the largest engine cap plus the LLM passes. A running
- * pipeline also calls heartbeatProcessing() between its phases, so the
- * threshold measures silence, not the length of the meeting.
+ * A run reports life on a timer (core/meetingNotes/processingRuns.mts, every
+ * minute, also while pyannote or Azure is being waited on), so this measures
+ * silence, not the length of the meeting: a healthy three-hour meeting is
+ * never silent this long, even while one phase waits up to 4 h (Azure) or
+ * 2 h (pyannote). It must stay short: until it passes, a run that died with
+ * its pod keeps the note spinning and Retry is refused as "already being
+ * processed".
  *
- * MEETING_NOTES_STUCK_MINUTES overrides it; 0 switches the reaper off.
+ * MEETING_NOTES_STUCK_MINUTES overrides it; 0 switches the reaper (and the
+ * takeover of a silent claim) off.
  */
-const DEFAULT_STUCK_MINUTES = 360;
+const DEFAULT_STUCK_MINUTES = 10;
 
 /**
  * @param {Record<string, string | undefined>} [env]
@@ -71,12 +70,34 @@ async function timeoutStuckTranscriptions({ stuckMinutes = stuckMinutesFromEnv()
     if (!(Number(stuckMinutes) > 0)) return 0;
     await initDB();
     const { rowCount } = await run(
-        `UPDATE transcriptions
-            SET status = 'failed', updated_at = NOW(),
-                summary = CASE WHEN COALESCE(summary, '') = '' THEN $2 ELSE summary END
+        `UPDATE transcriptions SET ${REAP_SET_SQL}
           WHERE status = 'processing'
             AND updated_at < NOW() - ($1::int * INTERVAL '1 minute')`,
         [Math.floor(Number(stuckMinutes)), REAPED_REASON]
+    );
+    return rowCount || 0;
+}
+
+/** What reaping writes: failed, with the reason only where there is no summary to keep ($2). */
+const REAP_SET_SQL = `status = 'failed', updated_at = NOW(),
+                summary = CASE WHEN COALESCE(summary, '') = '' THEN $2 ELSE summary END`;
+
+/**
+ * Reap the runs THIS process is about to abandon (SIGTERM, see
+ * core/meetingNotes/processingRuns.mts) at once, instead of leaving them for
+ * the reaper: the user sees Retry right away, not a spinner. Same write as the
+ * reaper, so a note with content keeps it.
+ * @param {string[]} ids
+ * @returns {Promise<number>}
+ */
+async function failInterruptedRuns(ids) {
+    const list = (ids || []).filter((id) => typeof id === 'string' && id);
+    if (!list.length) return 0;
+    await initDB();
+    const { rowCount } = await run(
+        `UPDATE transcriptions SET ${REAP_SET_SQL}
+          WHERE id = ANY($1::text[]) AND status = 'processing'`,
+        [list, REAPED_REASON]
     );
     return rowCount || 0;
 }
@@ -233,7 +254,7 @@ async function deleteTranscription(id, userId) {
     return true;
 }
 
-module.exports = { timeoutStuckTranscriptions, heartbeatProcessing, stuckMinutesFromEnv, DEFAULT_STUCK_MINUTES, REAPED_REASON, setPublished, deleteTranscription };
+module.exports = { timeoutStuckTranscriptions, heartbeatProcessing, failInterruptedRuns, stuckMinutesFromEnv, DEFAULT_STUCK_MINUTES, REAPED_REASON, setPublished, deleteTranscription };
 
 /**
  * @typedef TimeoutStuckTranscriptionsArgs

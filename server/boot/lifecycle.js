@@ -8,7 +8,8 @@
  *   startServer                  auth-schema migrations, then listen, then the
  *                                startup checks, the webpage runtime reaper (and
  *                                its gated proxy) and the startup tasks
- *   installGracefulShutdown      SIGTERM / SIGINT: stop accepting connections, drain
+ *   installGracefulShutdown      SIGTERM / SIGINT: stop accepting connections, fail the
+ *                                meeting-notes runs of this process, drain
  *                                the automation runner, stop the pushers, flush,
  *                                close Redis, the blob engines and OTEL, exit 0
  *
@@ -118,7 +119,7 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
 /**
  * Register the SIGTERM / SIGINT handlers. Returns the shutdown function.
  * `server` is the one startServer returned; without it (a test) the connection steps are skipped.
- * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, server?: ClosableServer, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
+ * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, server?: ClosableServer, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, meetingRuns?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
  */
 function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultLog, proc = process, deps = {} }) {
     let _shuttingDown = false;
@@ -149,6 +150,16 @@ function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultL
         const drainEnv = Number(process.env.AUTOMATION_DRAIN_TIMEOUT_MS);
         const drainMs = Number.isFinite(drainEnv) && drainEnv > 0 ? Math.floor(drainEnv) : 25_000;
         await Promise.all([
+            // Meeting-notes runs live in this process and die with it: mark them
+            // failed now, so the user sees Retry instead of a spinner until the
+            // reaper comes round. First, while the database is surely there.
+            (async () => {
+                try {
+                    const meetingRuns = deps.meetingRuns || require('../core/meetingNotes/processingRuns.mts');
+                    const failed = await meetingRuns.failInFlight({ timeoutMs: 5000 });
+                    if (failed) log.info(`[Server] ${failed} meeting note run(s) interrupted by the shutdown, marked failed for a retry`);
+                } catch (e) { log.warn('[Server] marking interrupted meeting runs failed:', /** @type {Error} */ (e).message); }
+            })(),
             (async () => {
                 try {
                     const automationRunner = deps.automationRunner || require('../core/automationRunner');

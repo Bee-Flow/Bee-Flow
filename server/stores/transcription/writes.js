@@ -21,6 +21,7 @@ const log = require('../../telemetry/log');
 const { initDB } = require('./schema');
 const { parseJsonArray, toArray } = require('./jsonArrays');
 const { artifactColumnSql } = require('./artifactWindow');
+const { stuckMinutesFromEnv } = require('./lifecycle');
 
 /**
  * The generic UPDATE of a note, sealing content columns.
@@ -291,14 +292,22 @@ function makeCreateWrites({ transcriptCrypto }, updateTranscription) {
      * The claim is a single conditional UPDATE, so exactly one caller can win even
      * across replicas.
      *
+     * A claim that has been silent longer than the reaper's threshold is taken
+     * over: its run died with its pod (a live run beats every minute), and
+     * without this Retry answered "already being processed" until the reaper
+     * came round. The old run, should it wake, finds its claim gone at its
+     * next heartbeat and writes nothing.
+     *
      * @returns {Promise<boolean>} true when this caller now owns the run.
      */
-    async function claimForProcessing(id, userId) {
+    async function claimForProcessing(id, userId, { stuckMinutes = stuckMinutesFromEnv() } = {}) {
         await initDB();
         const { rowCount } = await run(
             `UPDATE transcriptions SET status = 'processing', updated_at = NOW()
-              WHERE id = $1 AND user_id = $2 AND status IS DISTINCT FROM 'processing'`,
-            [id, userId]
+              WHERE id = $1 AND user_id = $2
+                AND (status IS DISTINCT FROM 'processing'
+                     OR ($3::int > 0 AND updated_at < NOW() - ($3::int * INTERVAL '1 minute')))`,
+            [id, userId, Math.max(0, Math.floor(Number(stuckMinutes) || 0))]
         );
         return rowCount > 0;
     }
