@@ -114,6 +114,15 @@
        glass themes declare their own: their --bg-primary is transparent, so a
        knob in it would vanish. */
     --control-knob: var(--bg-primary);
+    /* The primary action. In the themes whose accent is a neutral grey (the
+       defaults, glass, obsidian) an accent-filled button reads as a grey blob,
+       so the main button is ink on the page colour, like a switch that is on;
+       themes with a real accent colour (high-contrast, paper, sepia) set these
+       back to the accent in themes.css. The knob colour is the solid page
+       colour (glass has a transparent --bg-primary). */
+    --button-primary-bg: var(--text-primary);
+    --button-primary-hover: color-mix(in srgb, var(--text-primary) 82%, var(--control-knob));
+    --button-primary-fg: var(--control-knob);
     --control-track-off: color-mix(in srgb, var(--text-primary) 50%, var(--bg-primary));
 
     /* Tooltip tile. shared/Tooltip.tsx has always painted one dark slate tile
