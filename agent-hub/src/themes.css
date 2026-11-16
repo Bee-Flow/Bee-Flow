@@ -716,3 +716,13 @@
     --surface-3: var(--bg-tertiary);
 }
 
+
+/* Themes with a real accent colour keep it on the primary action (index.css
+   gives the neutral-accent themes an ink button). */
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --button-primary-bg: var(--accent-primary);
+    --button-primary-hover: var(--accent-primary-hover);
+    --button-primary-fg: var(--accent-primary-fg);
+}

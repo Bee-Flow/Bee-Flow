@@ -4,12 +4,12 @@ import userEvent from '@testing-library/user-event';
 import SaveFooter from './SaveFooter';
 
 describe('SaveFooter', () => {
-    it('saves and cancels with the shared Button, Save in the accent', async () => {
+    it('saves and cancels with the shared Button, Save as the primary action', async () => {
         const onSave = vi.fn();
         const onCancel = vi.fn();
         render(<SaveFooter onSave={onSave} onCancel={onCancel} />);
         const save = screen.getByRole('button', { name: 'Save' });
-        expect(save.className).toContain('bg-[var(--accent-primary)]');
+        expect(save.className).toContain('bg-[var(--button-primary-bg)]');
         await userEvent.click(save);
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(onSave).toHaveBeenCalledTimes(1);

@@ -6,12 +6,12 @@ import { BUTTON_VARIANTS, PRIMARY_TONE } from './buttonClasses';
 import { TONES } from './statusTone';
 
 describe('Button', () => {
-    it('draws primary from the accent with its own foreground, never text-white or a palette blue', () => {
+    it('draws primary from the primary-action tokens (ink, or the accent in accent themes) with their own foreground, never text-white or a palette blue', () => {
         render(<Button>Save</Button>);
         const cls = screen.getByRole('button', { name: 'Save' }).className;
-        expect(cls).toContain('bg-[var(--accent-primary)]');
-        expect(cls).toContain('enabled:hover:bg-[var(--accent-primary-hover)]');
-        expect(cls).toContain('text-[var(--accent-primary-fg)]');
+        expect(cls).toContain('bg-[var(--button-primary-bg)]');
+        expect(cls).toContain('enabled:hover:bg-[var(--button-primary-hover)]');
+        expect(cls).toContain('text-[var(--button-primary-fg)]');
         expect(cls).toContain('focus-visible:ring-[var(--focus-ring)]');
         expect(cls).not.toMatch(/text-white|blue-|emerald-|rose-|amber-/);
     });
