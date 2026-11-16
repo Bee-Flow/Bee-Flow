@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import SectionFrame from '../components/SectionFrame';
 import ReactFrame from '../reactBlock/ReactFrame';
 import { readSiteTheme, themeCss, type FrameMode } from '../reactBlock/frameDoc';
 import { resolveBlockProps } from '../reactBlock/blockProps';
-import { loadReactRuntime, loadedReactRuntime } from '../reactBlock/loadRuntime';
-import { logger } from '../../utils/logger';
+import { useReactRuntime } from '../reactBlock/loadRuntime';
 
 /**
  * React component block: an author's TSX, compiled by the CMS on save
@@ -84,21 +83,6 @@ function useSiteTheme(el: HTMLElement | null): string {
     return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-/** The runtime text, once its chunk has arrived. */
-function useRuntime(): string | null {
-    const [runtime, setRuntime] = useState<string | null>(loadedReactRuntime);
-    useEffect(() => {
-        if (runtime !== null) return undefined;
-        let live = true;
-        loadReactRuntime().then(
-            (text) => { if (live) setRuntime(text); },
-            (err: unknown) => logger.warn('[ReactComponent] the React runtime could not be loaded', err),
-        );
-        return () => { live = false; };
-    }, [runtime]);
-    return runtime;
-}
-
 function CompilePlaceholder({ error }: { error: string }) {
     return (
         <div
@@ -116,7 +100,7 @@ function CompilePlaceholder({ error }: { error: string }) {
 export default function ReactComponent({ data }: { data?: ReactComponentData | null }) {
     const [el, setEl] = useState<HTMLElement | null>(null);
     const theme = useSiteTheme(el);
-    const runtime = useRuntime();
+    const runtime = useReactRuntime();
     if (!data || data.enabled === false) return null;
 
     const mode: FrameMode = isEditorPreview() ? 'editor' : 'public';

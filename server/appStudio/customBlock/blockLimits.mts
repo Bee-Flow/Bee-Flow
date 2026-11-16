@@ -33,3 +33,11 @@ export function blockSaveLimits(env: Record<string, string | undefined> = proces
         maxDepth: limitFromEnv(env.STUDIO_APP_BLOCK_DEPTH, BLOCK_LIMITS.MAX_DEPTH),
     };
 }
+
+/**
+ * The longest source a react_block may be saved with, in characters (STUDIO_APP_REACT_SOURCE_CHARS,
+ * 60000 by default, 0 = unlimited). The compiled code it stores may be at most four times as long.
+ */
+export function reactSourceMaxChars(env: Record<string, string | undefined> = process.env): number {
+    return limitFromEnv(env.STUDIO_APP_REACT_SOURCE_CHARS, 60000);
+}

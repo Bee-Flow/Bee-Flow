@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
-import { buildReactFrameDoc, type FrameMode } from './frameDoc';
+import { buildReactFrameDoc, SEALED_FRAME_SANDBOX, type FrameMode, type FramePolicy } from './frameDoc';
 import type { BlockProps } from './blockProps';
 
 /**
@@ -15,6 +15,12 @@ import type { BlockProps } from './blockProps';
  * mode change (that reloads the frame and resets the component's state). New
  * props are posted into the running frame instead (`bf-react-props`), so live
  * editing a prop keeps the component's state.
+ *
+ * policy 'sealed' (App Studio's react_block, frameDoc.ts SEALED_FRAME_CSP): the
+ * sandbox is scripts only, the document carries a policy that loads and connects
+ * nothing, the props (the app's data) go in by postMessage only, once the frame
+ * has loaded and on every change, and a `bf-react-event` from this frame is
+ * handed to onFrameEvent, which decides whether it does anything.
  */
 export const FRAME_SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
 
@@ -34,12 +40,18 @@ export interface ReactFrameProps {
     title: string;
     /** The page's language, for the frame's `<html lang>`. */
     lang?: string;
+    /** 'site' (default) or 'sealed'; see above. */
+    policy?: FramePolicy;
+    /** Sealed only: the data of a `bf-react-event` message from this frame (untrusted). */
+    onFrameEvent?: (data: Record<string, unknown>) => void;
+    /** Fill the parent's height instead of following the content (a fixed box). */
+    fill?: boolean;
 }
 
-type FrameMessage = { type?: unknown; height?: unknown };
+type FrameMessage = { type?: unknown; height?: unknown } & Record<string, unknown>;
 
 function postProps(frame: HTMLIFrameElement | null, props: BlockProps): void {
-    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- sandboxed srcDoc frame has an opaque origin; the props are the block's public content
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- sandboxed srcDoc frame has an opaque origin, so '*' is the only target that reaches it; the props are the block's public content, or a sealed app block's inputs the viewer may already read, sent to this element's own frame
     frame?.contentWindow?.postMessage({ type: 'bf-react-props', props }, '*');
 }
 
@@ -50,7 +62,8 @@ function reportedHeight(data: FrameMessage): number | null {
     return Math.min(Math.ceil(h), MAX_FRAME_HEIGHT);
 }
 
-export default function ReactFrame({ runtime, compiled, css, theme, props, mode, minHeight, title, lang = '' }: ReactFrameProps) {
+export default function ReactFrame({ runtime, compiled, css, theme, props, mode, minHeight, title, lang = '', policy = 'site', onFrameEvent, fill = false }: ReactFrameProps) {
+    const sealed = policy === 'sealed';
     const frameRef = useRef<HTMLIFrameElement>(null);
     const [height, setHeight] = useState(minHeight);
 
@@ -64,11 +77,13 @@ export default function ReactFrame({ runtime, compiled, css, theme, props, mode,
     // The props the document is built with: the ones current when the
     // document last had to be rebuilt, not every later edit.
     const [docProps, setDocProps] = useState(currentProps);
-    useAdjustOnChange([runtime, compiled, css, theme, mode, lang], () => setDocProps(currentProps));
+    useAdjustOnChange([runtime, compiled, css, theme, mode, lang, policy], () => setDocProps(currentProps));
     const srcDoc = useMemo(
-        () => (runtime === null ? undefined : buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode, lang })),
-        [runtime, compiled, css, theme, docProps, mode, lang],
+        () => (runtime === null ? undefined : buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode, lang, policy })),
+        [runtime, compiled, css, theme, docProps, mode, lang, policy],
     );
+    const onEvent = useRef(onFrameEvent);
+    useEffect(() => { onEvent.current = onFrameEvent; }, [onFrameEvent]);
 
     useEffect(() => {
         if (srcDoc === undefined || currentProps === docProps) return;
@@ -80,18 +95,23 @@ export default function ReactFrame({ runtime, compiled, css, theme, props, mode,
             const frame = frameRef.current;
             if (!frame || e.source !== frame.contentWindow) return;
             const data = (e.data && typeof e.data === 'object' ? e.data : {}) as FrameMessage;
+            if (data.type === 'bf-react-event') {
+                if (sealed) onEvent.current?.(data);
+                return;
+            }
             if (data.type !== 'bf-react-resize') return;
             const next = reportedHeight(data);
             if (next !== null) setHeight(next);
         };
         window.addEventListener('message', onMessage);
         return () => window.removeEventListener('message', onMessage);
-    }, []);
+    }, [sealed]);
 
     // Props edited while the new document was loading were posted to the old
-    // one; send the latest once the frame is up.
+    // one; send the latest once the frame is up. A sealed document holds no
+    // props at all: it always gets them here.
     const onLoad = () => {
-        if (latestProps.current !== docProps) postProps(frameRef.current, latestProps.current);
+        if (sealed || latestProps.current !== docProps) postProps(frameRef.current, latestProps.current);
     };
 
     return (
@@ -99,12 +119,14 @@ export default function ReactFrame({ runtime, compiled, css, theme, props, mode,
             ref={frameRef}
             srcDoc={srcDoc}
             title={title}
-            sandbox={FRAME_SANDBOX}
+            sandbox={sealed ? SEALED_FRAME_SANDBOX : FRAME_SANDBOX}
             data-cms-frame="react"
-            loading="lazy"
-            height={height}
+            loading={sealed ? undefined : 'lazy'}
+            height={fill ? undefined : height}
             onLoad={onLoad}
-            className="w-[100%] [border:none] [display:block] [overflow:hidden] [background:transparent]"
+            referrerPolicy={sealed ? 'no-referrer' : undefined}
+            allow={sealed ? '' : undefined}
+            className={`w-[100%] [border:none] [display:block] [overflow:hidden] [background:transparent]${fill ? ' h-full' : ''}`}
         />
     );
 }

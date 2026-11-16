@@ -48,6 +48,7 @@
     "app_read_document",
     "app_list_assets",
     "app_edit_block",
+    "app_edit_react_block",
     "app_get_run",
     "app_list_runs",
     "app_move_section",

@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { cmsReactRuntime } from './vite.cmsReactRuntime.mjs'
 
 /**
  * Headless App Studio runtime — a LIBRARY build, not another app build.
@@ -68,7 +69,9 @@ export default defineConfig(() => {
     const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'));
 
     return {
-        plugins: [react(), utilitiesWithIndexCss(), stubPdfEngine()],
+        // cmsReactRuntime: the React runtime an App Studio react_block's frame runs, as text
+        // (virtual:cms-react-runtime); inlined into the one file like every lazy import.
+        plugins: [react(), utilitiesWithIndexCss(), stubPdfEngine(), cmsReactRuntime()],
         // No public/ passthrough: the app's static assets (logos, fonts,
         // module shims) belong to the SPA build. The contract here is exactly
         // two files; anything else in dist-runtime is a bug.

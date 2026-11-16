@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { REACT_THEME_VARS } from '@shared/cmsReact/compile.mjs';
-import { buildReactFrameDoc, frameLang, readSiteTheme, scriptJson, themeCss, THEME_VARS } from './frameDoc';
+import { buildReactFrameDoc, frameLang, readSiteTheme, scriptJson, SEALED_FRAME_CSP, SEALED_FRAME_SANDBOX, themeCss, THEME_VARS } from './frameDoc';
 
 const RUNTIME = '(function(){window.__bfReactMount=function(){};})();';
 
@@ -89,5 +89,29 @@ describe('site theme', () => {
         const css = themeCss({ '--bf-primary': 'red;}</style><script>x()</script>' });
         expect(css).not.toMatch(/[<>]/);
         expect(css.startsWith(':root{--bf-primary:red/stylescriptx()/script;')).toBe(true);
+    });
+});
+
+describe('buildReactFrameDoc, sealed (App Studio react_block)', () => {
+    it('pins the policy and the sandbox: inline code runs, nothing loads or connects', () => {
+        expect(SEALED_FRAME_CSP).toBe("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'");
+        expect(SEALED_FRAME_CSP).not.toContain('connect-src');
+        expect(SEALED_FRAME_CSP).not.toContain('unsafe-eval');
+        expect(SEALED_FRAME_SANDBOX).toBe('allow-scripts');
+    });
+
+    it('carries the policy as the first element of its head, no <base>, and no data in the document', () => {
+        const html = doc({ policy: 'sealed', props: { secret: 'row data' } });
+        expect(html.startsWith(`<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="${SEALED_FRAME_CSP}">`)).toBe(true);
+        expect(html).not.toContain('<base');
+        expect(html).not.toContain('row data');
+        expect(html).toContain('<meta http-equiv="x-dns-prefetch-control" content="off">');
+        expect(html).toContain(',null,{"mode":"public","sealed":true});</script>');
+    });
+
+    it('leaves the website frame as it was', () => {
+        const html = doc({ props: { title: 'Hi' } });
+        expect(html).not.toContain('Content-Security-Policy');
+        expect(html).toContain('{"title":"Hi"},{"mode":"public"});</script>');
     });
 });

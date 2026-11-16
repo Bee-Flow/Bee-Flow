@@ -9,6 +9,7 @@ export const EXTENSION_TYPE_MOBILE_REASONS: Readonly<Record<string, string>> = {
     gauge: 'The phone draws the base display types only; a gauge stays in the browser.',
     radio: 'The phone draws the base inputs only; a radio group stays in the browser.',
     rating: 'The phone draws the base inputs only; a rating stays in the browser.',
+    react_block: 'A React block runs in a sealed browser frame; the phone has none.',
     slider: 'The phone draws the base inputs only; a slider stays in the browser.',
     switch: 'The phone draws the base inputs only; a switch stays in the browser.',
     tree: 'The phone draws the base list types only; a tree stays in the browser.',

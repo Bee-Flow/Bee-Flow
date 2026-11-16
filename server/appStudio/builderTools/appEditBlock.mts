@@ -8,24 +8,11 @@
  * template still asks for: a name that is no input, an event nobody wired, a broken formula.
  */
 
-import { createRequire } from 'node:module';
 import { canonicalTemplate, inspectTemplate } from '../../shared/blockTemplate/index.mjs';
-
-const nodeRequire = createRequire(import.meta.url);
-const ops = nodeRequire('../definitionOps.js') as {
-    findNode: (def: unknown, id: string) => { node: Record<string, unknown> } | null;
-    updateNodeProps: (def: unknown, id: string, patch: Record<string, unknown>) => unknown;
-};
-const { adoptCanonical } = nodeRequire('./shared.js') as { adoptCanonical: (wrap: DraftWrap, next: unknown, result: Record<string, unknown>) => Record<string, unknown> };
-
-type DraftWrap = { def: Record<string, unknown> };
+import { adoptCanonical, isObject, ops, unknownAction, UNKNOWN_ACTION_HINT, type DraftWrap } from './blockToolShared.mts';
 
 export const BLOCK_KEYS: readonly string[] = Object.freeze(['template', 'css', 'inputs', 'events']);
 const ECHO_MAX = 6000;
-
-function isObject(v: unknown): v is Record<string, unknown> {
-    return v !== null && typeof v === 'object' && !Array.isArray(v);
-}
 
 /** What the stored template still asks of its declarations, as sentences. */
 function openQuestions(block: Record<string, unknown>): string[] {
@@ -37,15 +24,6 @@ function openQuestions(block: Record<string, unknown>): string[] {
     for (const ref of used.refs) if (!inputs.includes(ref)) out.push(`The template reads "${ref}", which is not an input: add inputs.${ref} with a binding.`);
     for (const name of used.events) if (typeof events[name] !== 'string') out.push(`A control raises "${name}" but events.${name} names no action yet.`);
     return out;
-}
-
-function unknownAction(events: unknown, def: Record<string, unknown>): string | null {
-    if (!isObject(events)) return null;
-    const actions = isObject(def.actions) ? def.actions : {};
-    for (const [name, actionId] of Object.entries(events)) {
-        if (typeof actionId === 'string' && actionId && !Object.hasOwn(actions, actionId)) return `events.${name} names the action ${JSON.stringify(actionId)}, which does not exist.`;
-    }
-    return null;
 }
 
 export function apply(draftWrap: DraftWrap, args: Record<string, unknown> | null | undefined): Record<string, unknown> {
@@ -62,7 +40,7 @@ export function apply(draftWrap: DraftWrap, args: Record<string, unknown> | null
         if (args![key] === null) { if (key === 'template') next.template = ''; else delete next[key]; } else next[key] = args![key];
     }
     const missing = unknownAction(next.events, draftWrap.def);
-    if (missing) return { error: missing, _fixHint: 'Create the action first (app_set_action), then wire it; or set the event to null.' };
+    if (missing) return { error: missing, _fixHint: UNKNOWN_ACTION_HINT };
 
     const result = adoptCanonical(draftWrap, ops.updateNodeProps(draftWrap.def, id, { block: next }), {});
     if (result.error) return result;

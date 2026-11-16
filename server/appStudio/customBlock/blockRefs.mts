@@ -40,3 +40,17 @@ export function blockActionRefs(block: unknown): ActionRef[] {
     }
     return out;
 }
+
+/**
+ * The actions a react_block's `props.block` runs: one per wired event. Its component raises an
+ * event from code (`emit(name, value)`), which cannot be read from the source, so every wired
+ * event counts; the frame's host lets through only these names (agent-hub …/reactBlock/).
+ */
+export function reactBlockActionRefs(block: unknown): ActionRef[] {
+    if (!isObject(block) || !isObject(block.events)) return [];
+    const out: ActionRef[] = [];
+    for (const [name, actionId] of Object.entries(block.events)) {
+        if (typeof actionId === 'string' && actionId) out.push({ actionId, via: `block.events.${name}`, label: name });
+    }
+    return out;
+}

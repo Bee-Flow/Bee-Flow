@@ -147,7 +147,13 @@ function blockActionIds(block: unknown): string[] {
         .filter((id): id is string => typeof id === 'string' && id !== '');
 }
 
-/** The actions one node runs: its events, the four action lists, addRowActionId, columns[].actionId, a custom_block's wired events. */
+/** The actions a react_block runs: every wired event (its component raises them from code; server customBlock/blockRefs.mts). */
+function reactBlockActionIds(block: unknown): string[] {
+    if (!isObject(block) || !isObject(block.events)) return [];
+    return Object.values(block.events).filter((id): id is string => typeof id === 'string' && id !== '');
+}
+
+/** The actions one node runs: its events, the four action lists, addRowActionId, columns[].actionId, a custom_block's or react_block's wired events. */
 function nodeActionIds(node: Obj): string[] {
     const out: string[] = [];
     for (const ev of NODE_EVENTS) if (typeof node[ev] === 'string' && node[ev]) out.push(node[ev] as string);
@@ -157,6 +163,7 @@ function nodeActionIds(node: Obj): string[] {
     for (const e of entries) if (isObject(e) && typeof e.actionId === 'string' && e.actionId) out.push(e.actionId);
     if (typeof props.addRowActionId === 'string' && props.addRowActionId) out.push(props.addRowActionId);
     if (node.type === 'custom_block') out.push(...blockActionIds(props.block));
+    if (node.type === 'react_block') out.push(...reactBlockActionIds(props.block));
     return out;
 }
 

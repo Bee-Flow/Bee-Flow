@@ -3,6 +3,10 @@
         "key": "studio_apps_block.act_edit_block",
         "en": "Edited the custom block"
     },
+    "app_edit_react_block": {
+        "key": "studio_apps_react_block.act_edit_react_block",
+        "en": "Edited the React block"
+    },
     "app_get_run": {
         "key": "studio_apps_tab.act_get_run",
         "en": "Read a run"

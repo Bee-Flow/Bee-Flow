@@ -3,6 +3,9 @@
  * only by a page that has such a block: `virtual:cms-react-runtime` is a chunk
  * of its own (vite.cmsReactRuntime.mjs), never part of the public entry.
  */
+import { useEffect, useState } from 'react';
+import { logger } from '../../utils/logger';
+
 let runtimeText: string | null = null;
 let pending: Promise<string> | null = null;
 
@@ -25,4 +28,19 @@ export function loadReactRuntime(): Promise<string> {
             });
     }
     return pending;
+}
+
+/** The runtime text, once its chunk has arrived (null until then). */
+export function useReactRuntime(): string | null {
+    const [runtime, setRuntime] = useState<string | null>(loadedReactRuntime);
+    useEffect(() => {
+        if (runtime !== null) return undefined;
+        let live = true;
+        loadReactRuntime().then(
+            (text) => { if (live) setRuntime(text); },
+            (err: unknown) => logger.warn('[ReactBlock] the React runtime could not be loaded', err),
+        );
+        return () => { live = false; };
+    }, [runtime]);
+    return runtime;
 }

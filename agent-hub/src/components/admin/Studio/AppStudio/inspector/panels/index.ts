@@ -49,6 +49,7 @@ import './AiChatInspector';
 // The custom block: its template and stylesheet as text, what the sanitiser leaves out, a preview
 // (loaded when a block is selected).
 import './CustomBlockPanel';
+import './ReactBlockPanel';
 
 ;
 ;
