@@ -29,6 +29,20 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 const namesOf = (v: unknown): string[] => (isObject(v) ? Object.keys(v) : []);
 
+/** Every wired event names an action that exists. */
+function checkEventActions(events: unknown, path: string, ctx: Ctx): void {
+    for (const name of namesOf(events)) {
+        const ref = (events as Record<string, unknown>)[name];
+        if (ref === null || (typeof ref === 'string' && ctx.actionIds.has(ref))) continue;
+        const suggestion = pickClosestId(String(ref), Array.from(ctx.actionIds));
+        ctx.pushE({
+            code: 'event.action_unresolved', severity: 'error', path: `${path}.events.${name}`,
+            message: `The event "${name}" references unknown action ${JSON.stringify(ref)}.`,
+            hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first, or set the event to null.',
+        });
+    }
+}
+
 function checkEvents(events: unknown, raisedEvents: string[], path: string, ctx: Ctx): void {
     const declared = namesOf(events);
     for (const name of raisedEvents) {
@@ -39,16 +53,8 @@ function checkEvents(events: unknown, raisedEvents: string[], path: string, ctx:
             hint: `Add "${name}": "<actionId>" to events, or remove data-emit from the control.`,
         });
     }
+    checkEventActions(events, path, ctx);
     for (const name of declared) {
-        const ref = (events as Record<string, unknown>)[name];
-        if (ref !== null && !(typeof ref === 'string' && ctx.actionIds.has(ref))) {
-            const suggestion = pickClosestId(String(ref), Array.from(ctx.actionIds));
-            ctx.pushE({
-                code: 'event.action_unresolved', severity: 'error', path: `${path}.events.${name}`,
-                message: `The event "${name}" references unknown action ${JSON.stringify(ref)}.`,
-                hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first, or set the event to null.',
-            });
-        }
         if (!raisedEvents.includes(name)) {
             ctx.pushW({
                 code: 'custom_block.event_unused', severity: 'warning', path: `${path}.events.${name}`,
@@ -85,4 +91,34 @@ export function checkCustomBlock(props: Record<string, unknown>, path: string, c
     }
     for (const name of inputs) validateBinding(name, (block.inputs as Record<string, unknown>)[name], `${at}.inputs.${name}`, ctx);
     checkEvents(block.events, used.events, at, ctx);
+}
+
+/**
+ * A react_block: its source compiles (the outcome app_edit_react_block stored for this very
+ * source, customBlock/reactBlockShape.mts), its inputs are bindings, its events name actions.
+ * Which events the component raises cannot be read from code, so an unused event is not reported.
+ */
+export function checkReactBlock(props: Record<string, unknown>, path: string, ctx: Ctx): void {
+    const block = props.block;
+    const at = `${path}.props.block`;
+    if (!isObject(block) || typeof block.source !== 'string' || !block.source.trim()) {
+        ctx.pushW({ code: 'react_block.empty', severity: 'warning', path: at, message: 'This React block has no source, so it draws nothing.', hint: 'Write its component with app_edit_react_block, or remove the block.' });
+        return;
+    }
+    if (typeof block.compiled !== 'string' || !block.compiled) {
+        const why = typeof block.compileError === 'string' && block.compileError ? ` ${block.compileError.split('\n')[0]}` : '';
+        ctx.pushE({
+            code: 'react_block.not_compiled', severity: 'error', path: `${at}.source`,
+            message: `This React block has no compiled code for its source, so it draws nothing.${why}`,
+            hint: 'Save the source with app_edit_react_block and fix compileError until compiled is true.',
+        });
+    }
+    for (const name of namesOf(block.inputs)) validateBinding(name, (block.inputs as Record<string, unknown>)[name], `${at}.inputs.${name}`, ctx);
+    checkEventActions(block.events, at, ctx);
+}
+
+/** The checks of a custom_block or a react_block; nothing for any other type. */
+export function checkFramedBlock(type: unknown, props: Record<string, unknown>, path: string, ctx: Ctx): void {
+    if (type === 'custom_block') checkCustomBlock(props, path, ctx);
+    else if (type === 'react_block') checkReactBlock(props, path, ctx);
 }

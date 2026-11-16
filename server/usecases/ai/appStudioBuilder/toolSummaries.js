@@ -140,6 +140,7 @@ const SUMMARISERS = {
     app_list_templates: (_args, result) => `${countOf(result.templates)} template(s) available`,
     app_apply_template: (args, result) => `Applied template ${result.templateId || args.templateId || '?'}`,
     app_finalize: (_args, result) => (result.finalized ? `App "${result.name}" is valid and saved` : 'Finalize blocked by validation errors'),
+    app_edit_react_block: (_args, result) => (result.compiled ? 'React block saved and compiled' : 'React block saved; it does not compile yet'),
 };
 
 /**

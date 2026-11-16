@@ -19,6 +19,9 @@ import { FIELD_TYPES, isPropName, REACT_BLOCK_TYPE, utf8Bytes } from '../shared/
 import {
     compileReactSource, REACT_FIELDS_MAX, REACT_FRAME_TITLE_MAX, REACT_MIN_HEIGHT_MAX, REACT_PROPS_MAX, REACT_WIDTHS,
 } from '../stores/cms/reactBlock.mts';
+import {
+    applySourceEdits as applyEdits, SourceEditFailure, sourceEditsProblem, type SourceEdit,
+} from '../utils/sourceEdits.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -34,14 +37,11 @@ interface Shared {
 }
 const shared = nodeRequire('./builderToolsShared') as Shared;
 
-/** Most find/replace pairs in one call, and the longest `find` (the blog's limits). */
-export const SOURCE_EDITS_MAX = 20;
-export const FIND_MAX_CHARS = 5000;
+export { SOURCE_EDITS_MAX, FIND_MAX_CHARS } from '../utils/sourceEdits.mts';
 
 const EDIT_KEYS = ['source', 'sourceEdits', 'css', 'fields', 'props', 'width', 'minHeight', 'frameTitle'];
 
 type ToolError = { error: string, _fixHint?: string };
-type SourceEdit = { find: string, replace: string };
 interface Patch {
     source?: string;
     sourceEdits?: SourceEdit[];
@@ -64,15 +64,8 @@ function fail(error: string, fixHint?: string): ToolError {
 // ── Arguments ───────────────────────────────────────────────────────
 
 function editsProblem(edits: unknown): ToolError | null {
-    if (!Array.isArray(edits) || !edits.length) return fail('sourceEdits must be a non-empty list of {find, replace}.');
-    if (edits.length > SOURCE_EDITS_MAX) return fail(`At most ${SOURCE_EDITS_MAX} sourceEdits per call; split the work.`);
-    for (const [i, e] of edits.entries()) {
-        if (!isPlainObject(e) || typeof e.find !== 'string' || typeof e.replace !== 'string' || !e.find) {
-            return fail(`sourceEdits[${i}] must be {find: non-empty text, replace: text}.`);
-        }
-        if (e.find.length > FIND_MAX_CHARS) return fail(`sourceEdits[${i}].find is longer than ${FIND_MAX_CHARS} characters; send source whole instead.`);
-    }
-    return null;
+    const problem = sourceEditsProblem(edits);
+    return problem ? fail(problem) : null;
 }
 
 const FIELDS_HINT = `fields is the COMPLETE list (it replaces the old one): [{ name, label, type, options?, help? }], name a JS identifier (letters, digits, _ or $, max 40), each name once, type one of ${FIELD_TYPES.join(', ')}; a select field lists its options.`;
@@ -134,30 +127,9 @@ export function parseReactArgs(args: Json): { patch: Patch } | ToolError {
 
 // ── Applying ────────────────────────────────────────────────────────
 
-/** A failed edit: thrown inside the page change so nothing is saved, turned into a tool error outside. */
-class EditFailure extends Error {
-    fixHint: string;
-    constructor(message: string, fixHint: string) {
-        super(message);
-        this.fixHint = fixHint;
-    }
-}
-
-/** Apply find/replace edits in order; throws EditFailure when a find is missing or not unique. */
+/** Apply find/replace edits in order; throws a SourceEditFailure when a find is missing or not unique. */
 export function applySourceEdits(source: string, edits: SourceEdit[]): string {
-    let out = source;
-    for (const [i, e] of edits.entries()) {
-        const first = out.indexOf(e.find);
-        if (first < 0) {
-            throw new EditFailure(`sourceEdits[${i}].find was not found in the source (nothing was changed).`,
-                'Copy the exact text from cms_get_page (content.source), including whitespace and line breaks. Earlier edits in this call are applied first.');
-        }
-        if (out.indexOf(e.find, first + 1) >= 0) {
-            throw new EditFailure(`sourceEdits[${i}].find occurs more than once (nothing was changed).`, 'Include more surrounding text so it is unique.');
-        }
-        out = out.slice(0, first) + e.replace + out.slice(first + e.find.length);
-    }
-    return out;
+    return applyEdits(source, edits, 'cms_get_page (content.source)');
 }
 
 /** Merge props key by key; a key set to null is removed. */
@@ -232,17 +204,17 @@ export async function applyUpdateReactComponent(draftWrap: unknown, rawArgs: unk
     try {
         const { page } = await shared.persistPage(draftWrap, pageId, (d) => {
             const at = (d.blocks || []).findIndex((b) => b.id === blockId);
-            if (at < 0 || d.blocks?.[at]?.type !== REACT_BLOCK_TYPE) throw new EditFailure(`Block ${blockId} was removed from page ${pageId} by another edit.`, shared.blockIdsHint(d));
+            if (at < 0 || d.blocks?.[at]?.type !== REACT_BLOCK_TYPE) throw new SourceEditFailure(`Block ${blockId} was removed from page ${pageId} by another edit.`, shared.blockIdsHint(d));
             const blocks = [...(d.blocks || [])];
             const content = patchContent(blocks[at].content, parsed.patch);
             const tooMany = tooManyProps(content);
-            if (tooMany) throw new EditFailure(tooMany.error, '');
+            if (tooMany) throw new SourceEditFailure(tooMany.error, '');
             blocks[at] = { ...blocks[at], content };
             return { ...d, blocks };
         });
         saved = (page.blocks || []).find((b) => b.id === blockId);
     } catch (e) {
-        if (e instanceof EditFailure) return fail(e.message, e.fixHint || undefined);
+        if (e instanceof SourceEditFailure) return fail(e.message, e.fixHint || undefined);
         throw e;
     }
     return { pageId, blockId, type: REACT_BLOCK_TYPE, ...(await compileReport(saved)) };

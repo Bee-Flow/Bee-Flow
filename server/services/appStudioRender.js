@@ -291,7 +291,7 @@ function composeRenderDocument(payload, { hostTheme = null } = {}) {
     return `<!DOCTYPE html>
 ${html}
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${renderView.RENDER_FRAME_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/${BUNDLE_CSS}">
 <style>html,body{margin:0;padding:0;background:#fff}#root{min-height:100vh}${STILL_CSS}</style>

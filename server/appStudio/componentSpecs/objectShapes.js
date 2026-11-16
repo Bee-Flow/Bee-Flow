@@ -14,6 +14,8 @@
  *                   (componentSpecs/styleRuleShape.js)
  *   customBlock     the whole of a custom_block: template, stylesheet, inputs, events
  *                   (customBlock/blockShape.mts)
+ *   reactBlock      the whole of a react_block: source, stylesheet, inputs, events, compile outcome
+ *                   (customBlock/reactBlockShape.mts)
  */
 
 'use strict';
@@ -21,6 +23,7 @@
 const { cleanFormatOptions } = require('../../shared/format/formatClean.mjs');
 const { cleanCellStyle } = require('./styleRuleShape');
 const { cleanCustomBlock } = require('../customBlock/blockShape.mts');
+const { cleanReactBlock } = require('../customBlock/reactBlockShape.mts');
 
 /**
  * @typedef {(raw: unknown, push: (code: string, path: string, message: string) => void, path: string) => unknown} ObjectCleaner
@@ -32,6 +35,7 @@ const OBJECT_SHAPES = Object.freeze({
     formatOptions: Object.freeze({ clean: cleanFormatOptions }),
     cellStyle: Object.freeze({ clean: cleanCellStyle }),
     customBlock: Object.freeze({ clean: cleanCustomBlock }),
+    reactBlock: Object.freeze({ clean: cleanReactBlock }),
 });
 
 /**

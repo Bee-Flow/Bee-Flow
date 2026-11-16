@@ -18,7 +18,14 @@
  * Messages (the parent accepts only those from its own frame):
  *   frame -> parent  { type: 'bf-react-resize', height }
  *                    { type: 'bf-react-error', message, stack? }
+ *                    { type: 'bf-react-event', event, value }  sealed only: the component's emit()
  *   parent -> frame  { type: 'bf-react-props', props }  re-render, state kept
+ *
+ * Sealed (OPTS.sealed, App Studio's react_block): the document holds no props, so
+ * nothing renders until the first `bf-react-props` arrives, and the component gets
+ * one more prop, `emit(event, value)`, which posts a `bf-react-event`. The parent
+ * decides what an event may do (only the block's declared events, size-capped).
+ * Before the component's code runs, ./seal.ts takes away WebRTC and nested frames.
  *
  * Errors: render errors land in an error boundary; window errors and unhandled
  * rejections are reported too. In 'editor' mode the frame shows the message
@@ -29,10 +36,11 @@ import * as ReactDOM from 'react-dom';
 import * as ReactDOMClient from 'react-dom/client';
 import * as JsxRuntime from 'react/jsx-runtime';
 import { ALLOWED_IMPORTS } from '@shared/cmsReact/compile.mjs';
+import { sealWindow } from './seal';
 
 type Mode = 'public' | 'editor';
 type Props = Record<string, unknown>;
-interface MountOptions { mode?: string }
+interface MountOptions { mode?: string; sealed?: boolean }
 type ModuleRecord = { exports: Record<string, unknown> };
 type Factory = (module: ModuleRecord, exports: Record<string, unknown>, require: (name: string) => unknown) => void;
 
@@ -41,6 +49,7 @@ declare global {
 }
 
 const MAX_MESSAGE = 2000;
+const MAX_EVENT_NAME = 40;
 const MAX_STACK = 8000;
 
 /** react/jsx-dev-runtime has no jsxDEV in a production build; the compiler never emits it, an author may import it. */
@@ -183,8 +192,23 @@ function asProps(value: unknown): Props {
     return value && typeof value === 'object' && !Array.isArray(value) ? (value as Props) : {};
 }
 
+/** A sealed component's `emit(event, value)`: one message to the parent, which decides what it does. */
+function emit(event: unknown, value?: unknown): void {
+    if (typeof event !== 'string' || !event || event.length > MAX_EVENT_NAME) return;
+    try {
+        post({ type: 'bf-react-event', event, value: value === undefined ? null : value });
+    } catch (err) {
+        // A value that cannot be cloned (a function, a DOM node) never leaves the frame.
+        reportError(err);
+    }
+}
+
 function mount(factory: Factory, initialProps: unknown, opts: MountOptions = {}): void {
     const mode: Mode = opts && opts.mode === 'editor' ? 'editor' : 'public';
+    const sealed = Boolean(opts && opts.sealed);
+    const withEmit = (value: unknown): Props => (sealed ? { ...asProps(value), emit } : asProps(value));
+    // Before the component's code runs: what the frame's policy cannot cover (./seal.ts).
+    if (sealed) sealWindow(window);
     listenForErrors(mode);
     const measure = watchHeight();
     let Component: React.ElementType;
@@ -198,9 +222,12 @@ function mount(factory: Factory, initialProps: unknown, opts: MountOptions = {})
     }
     const container = document.getElementById('root') || document.body.appendChild(document.createElement('div'));
     const root = ReactDOMClient.createRoot(container, { onUncaughtError: reportError });
-    let props = asProps(initialProps);
+    let props = withEmit(initialProps);
     let resetKey = 0;
+    // A sealed frame has no data until the parent posts it: render nothing before that.
+    let ready = !sealed;
     const render = () => {
+        if (!ready) return;
         root.render(React.createElement(Boundary, { mode, resetKey }, React.createElement(Component, props)));
         if (typeof requestAnimationFrame === 'function') requestAnimationFrame(measure);
         else setTimeout(measure, 0);
@@ -209,7 +236,8 @@ function mount(factory: Factory, initialProps: unknown, opts: MountOptions = {})
         if (e.source !== window.parent) return;
         const data = e.data as { type?: unknown; props?: unknown } | null;
         if (!data || data.type !== 'bf-react-props') return;
-        props = asProps(data.props);
+        props = withEmit(data.props);
+        ready = true;
         resetKey += 1;
         render();
     });

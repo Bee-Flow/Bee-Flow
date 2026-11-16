@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "studio_apps_react_block.act_edit_react_block": "Het React-blok bewerkt",
+    "studio_apps_react_block.compiled": "Compileert.",
+    "studio_apps_react_block.empty": "Leeg React-blok. Vraag de bouwer om het component te schrijven.",
+    "studio_apps_react_block.events": "Gekoppelde gebeurtenissen",
+    "studio_apps_react_block.frame_title": "React-blok",
+    "studio_apps_react_block.inputs": "Invoer",
+    "studio_apps_react_block.none": "geen",
+    "studio_apps_react_block.not_compiled": "Dit React-blok compileert nog niet.",
+    "studio_apps_react_block.panel_hint": "De bouwer schrijft dit component en compileert het bij elke opslag. Vraag het in de chat om het blok te wijzigen.",
+    "studio_apps_react_block.source": "Broncode"
+  },
+  "sameAsEnglish": []
+}

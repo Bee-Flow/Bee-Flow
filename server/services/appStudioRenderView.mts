@@ -20,6 +20,15 @@ import { coerceVariableDefault, MAX_VARIABLE_DEFAULT_BYTES } from '../shared/app
 export const APPEARANCES = Object.freeze(['light', 'dark', 'auto']);
 /** Host themes as the SPA sets them on <html data-theme>; the page default (no attribute) is dark. */
 export const HOST_THEMES = Object.freeze(['light', 'dark', 'high-contrast']);
+
+/**
+ * The policy of the render page (appStudioRender.js): a frame loads only from the page's own
+ * origin (answered in-process) or a blob. A react_block's sealed frame may run code that
+ * navigates ITSELF elsewhere with the data it was handed; a frame's navigation is held to the
+ * embedding page's frame-src, so that request never leaves (the app's own pages get the same
+ * rule from nginx's policy).
+ */
+export const RENDER_FRAME_CSP = "frame-src 'self' blob:";
 /** Bounds of one request: what fits a picture, not a data import. */
 export const VIEW_LIMITS = Object.freeze({ MAX_STATE_BYTES: 20000, MAX_PARAMS: 20, MAX_KEY_LEN: 64, MAX_STRING: 500, MAX_LIST: 50, MAX_TABS: 10 });
 

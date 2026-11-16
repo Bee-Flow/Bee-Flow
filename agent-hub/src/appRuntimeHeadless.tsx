@@ -10,6 +10,7 @@ import { appDesignProps } from './components/admin/Studio/AppStudio/runtime/appD
 import AppCustomCss from './components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer';
 import { loadCustomBlock } from './components/admin/Studio/AppStudio/runtime/components/customBlock/CustomBlockLoader';
+import { loadReactRuntime } from './marketing/reactBlock/loadRuntime';
 import { initialVariableValues } from '@shared/appDefinition/variableScopes.mjs';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
 import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
@@ -184,7 +185,10 @@ export async function mount(container: Container, {
 }: Partial<HeadlessScreenProps> = {}) {
     // The custom block's renderer is its own chunk in the app (CustomBlockLoader.tsx); loaded
     // first, the block draws on this one synchronous render like every other component.
-    await loadCustomBlock();
+    // The same for the text of the React runtime a react_block's frame runs (loadRuntime.ts),
+    // fetched only for a definition that has one.
+    const hasReactBlock = JSON.stringify(definition ?? null).includes('"type":"react_block"');
+    await Promise.all([loadCustomBlock(), hasReactBlock ? loadReactRuntime() : null]);
     const root = createRoot(container);
     flushSync(() => {
         root.render(

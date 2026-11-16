@@ -80,7 +80,4 @@ export function buildBlockFrame(input: BlockFrameInput): BlockFrame {
     };
 }
 
-/** The entries of a `{ name: value }` map of a block, or none when it is not one. */
-export function blockEntries(map: unknown): Array<[string, unknown]> {
-    return map && typeof map === 'object' && !Array.isArray(map) ? Object.entries(map as Record<string, unknown>) : [];
-}
+export { blockEntries } from './blockHost';

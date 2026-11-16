@@ -2665,6 +2665,22 @@
                 "error"
             ]
         },
+        "react_block": {
+            "label": "React block",
+            "category": "Content",
+            "defaultProps": {},
+            "defaultStyle": {
+                "span": 12
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "A React block runs in a sealed browser frame; the phone has none."
+            },
+            "parts": [
+                "root",
+                "notice"
+            ]
+        },
         "slider": {
             "label": "Slider",
             "category": "Input",
@@ -3102,6 +3118,10 @@
         ],
         "rating": [
             "span"
+        ],
+        "react_block": [
+            "span",
+            "height"
         ],
         "slider": [
             "span"

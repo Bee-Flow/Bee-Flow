@@ -9,6 +9,7 @@
  */
 import { REACT_THEME_VARS } from '@shared/cmsReact/compile.mjs';
 import { defangScriptClose } from '@shared/webpage/previewInline.mjs';
+import { installRelay } from './sealedRelay';
 
 export type FrameMode = 'public' | 'editor';
 
@@ -99,6 +100,69 @@ export interface FrameDocInput {
     mode: FrameMode;
     /** The page's language, for `<html lang>` (a screen reader picks its voice by it). */
     lang?: string;
+    /** 'site' (the website, the default) or 'sealed' (App Studio react_block, see SEALED_FRAME_CSP). */
+    policy?: FramePolicy;
+}
+
+/**
+ * Who the frame is for. A website block shows public content and may link out. A sealed frame
+ * (App Studio's react_block) is handed app data, so it must not be able to send it anywhere.
+ */
+export type FramePolicy = 'site' | 'sealed';
+
+/**
+ * The policy a sealed frame's document carries, as the FIRST element of its head (a policy in a
+ * meta element covers only what comes after it). The inline React runtime and the compiled
+ * component run, inline styles apply, images and fonts come only as data: URLs, and nothing else
+ * is allowed: there is no connect-src, so fetch, XHR, WebSocket, EventSource and sendBeacon all
+ * fall under default-src 'none'. No 'unsafe-eval': neither the runtime nor the compiler output
+ * evaluates strings. A srcdoc document also inherits the embedding page's policy; both apply.
+ */
+export const SEALED_FRAME_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'";
+
+/**
+ * The sandbox of a sealed frame: scripts only. No allow-same-origin (an opaque origin: no access
+ * to the page, its cookies or storage), no popups, no top navigation, no forms, no modals.
+ */
+export const SEALED_FRAME_SANDBOX = 'allow-scripts';
+
+/**
+ * The policy of the OUTER frame of a sealed block (./sealedRelay.ts): its one inline script (the
+ * relay) runs, and no frame may load into it from anywhere (frame-src 'none', child-src 'none';
+ * a srcdoc document is not a load). The inner frame's navigations are held to this policy, so
+ * the component cannot navigate its own frame away, whatever policy the app page has.
+ */
+export const SEALED_OUTER_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'";
+
+/** Text for a double-quoted attribute. */
+function attr(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * The outer document of a sealed block: its policy, the relay, and the inner sandboxed frame that
+ * holds `inner` (buildReactFrameDoc with policy 'sealed'), filling it. The app page sizes the
+ * outer frame from the heights the relay passes on.
+ */
+export function buildSealedOuterDoc(inner: string, title = ''): string {
+    return [
+        `<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="${SEALED_OUTER_CSP}"><meta charset="utf-8">`,
+        '<style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:transparent}iframe{display:block;border:0;width:100%;height:100%;background:transparent}</style>',
+        `</head><body><iframe id="bf-inner" sandbox="${SEALED_FRAME_SANDBOX}" title="${attr(title)}" srcdoc="${attr(inner)}"></iframe>`,
+        `<script>(${defangScriptClose(String(installRelay))})(window,document.getElementById('bf-inner'));</script>`,
+        '</body></html>',
+    ].join('');
+}
+
+/** The head of a sealed frame: the policy first, then nothing that names an address. */
+function sealedHead(): string {
+    return [
+        `<meta http-equiv="Content-Security-Policy" content="${SEALED_FRAME_CSP}">`,
+        '<meta charset="utf-8">',
+        '<meta http-equiv="x-dns-prefetch-control" content="off">',
+        '<meta name="referrer" content="no-referrer">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    ].join('');
 }
 
 /** A BCP 47-shaped tag (`en`, `nl`, `pt-BR`), else ''. Checked by character, never echoed raw. */
@@ -116,19 +180,26 @@ export function frameLang(lang: unknown): string {
  * The frame document. Links open in the top window on the public site; in the
  * editor preview they open in a new tab, so a click never navigates the
  * editor away from unsaved work.
+ *
+ * A sealed frame gets no <base> (it may not navigate anything) and no props in
+ * the document: its data arrives by postMessage only (`bf-react-props`), and the
+ * runtime renders once the first set is there (`sealed: true`).
  */
-export function buildReactFrameDoc({ runtime, compiled, css = '', theme, props, mode, lang }: FrameDocInput): string {
+export function buildReactFrameDoc({ runtime, compiled, css = '', theme, props, mode, lang, policy = 'site' }: FrameDocInput): string {
+    const sealed = policy === 'sealed';
     const target = mode === 'editor' ? '_blank' : '_top';
     const tag = frameLang(lang);
+    const head = sealed
+        ? sealedHead()
+        : `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><base target="${target}">`;
+    const opts = sealed ? { mode, sealed: true } : { mode };
     return [
-        `<!DOCTYPE html><html${tag ? ` lang="${tag}"` : ''}><head><meta charset="utf-8">`,
-        '<meta name="viewport" content="width=device-width, initial-scale=1">',
-        `<base target="${target}">`,
+        `<!DOCTYPE html><html${tag ? ` lang="${tag}"` : ''}><head>${head}`,
         `<style>${defangStyleClose(theme)}\n${BASE_CSS}</style>`,
         css ? `<style>${defangStyleClose(css)}</style>` : '',
         '</head><body><div id="root"></div>',
         `<script>${defangScriptClose(runtime)}</script>`,
-        `<script>__bfReactMount(function(module,exports,require){\n${defangScriptClose(compiled)}\n},${scriptJson(props)},${scriptJson({ mode })});</script>`,
+        `<script>__bfReactMount(function(module,exports,require){\n${defangScriptClose(compiled)}\n},${scriptJson(sealed ? null : props)},${scriptJson(opts)});</script>`,
         '</body></html>',
     ].join('');
 }

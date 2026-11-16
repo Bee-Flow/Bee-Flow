@@ -98,13 +98,19 @@ function cleanCss(raw: unknown, path: string, push: Push): string {
     return css;
 }
 
-/** The value of `props.block` as it is stored; undefined when there is nothing usable. */
-export function cleanCustomBlock(raw: unknown, push: Push, path: string): BlockValue | undefined {
-    if (!isObject(raw)) { push('block.invalid', path, 'block is an object { template, css, inputs, events }; it was left out.'); return undefined; }
+/** The parts a custom_block and a react_block share: stylesheet, inputs and events. */
+export type BlockParts = Pick<BlockValue, 'css' | 'inputs' | 'events'>;
+
+/** Every key of `raw` that is not in `keys` is reported (and so left out). */
+export function reportUnknownKeys(raw: Record<string, unknown>, keys: readonly string[], path: string, push: Push): void {
     for (const key of Object.keys(raw)) {
-        if (!KEYS.includes(key)) push('block.key_unknown', `${path}.${key.slice(0, 40)}`, `A block has no key ${JSON.stringify(key.slice(0, 40))}; it was left out. The keys are ${KEYS.join(', ')}.`);
+        if (!keys.includes(key)) push('block.key_unknown', `${path}.${key.slice(0, 40)}`, `A block has no key ${JSON.stringify(key.slice(0, 40))}; it was left out. The keys are ${keys.join(', ')}.`);
     }
-    const out: BlockValue = { template: cleanTemplate(raw.template, `${path}.template`, push) };
+}
+
+/** `css`, `inputs` and `events` of a block, cleaned; a part with nothing usable is absent. */
+export function cleanBlockParts(raw: Record<string, unknown>, push: Push, path: string): BlockParts {
+    const out: BlockParts = {};
     const css = cleanCss(raw.css, `${path}.css`, push);
     if (css) out.css = css;
     const inputs = cleanMap(raw.inputs, 'inputs', BLOCK_LIMITS.MAX_INPUTS, `${path}.inputs`, push, asBinding);
@@ -112,4 +118,11 @@ export function cleanCustomBlock(raw: unknown, push: Push, path: string): BlockV
     const events = cleanMap(raw.events, 'events', BLOCK_LIMITS.MAX_EVENTS, `${path}.events`, push, asActionId);
     if (events) out.events = events;
     return out;
+}
+
+/** The value of `props.block` as it is stored; undefined when there is nothing usable. */
+export function cleanCustomBlock(raw: unknown, push: Push, path: string): BlockValue | undefined {
+    if (!isObject(raw)) { push('block.invalid', path, 'block is an object { template, css, inputs, events }; it was left out.'); return undefined; }
+    reportUnknownKeys(raw, KEYS, path, push);
+    return { template: cleanTemplate(raw.template, `${path}.template`, push), ...cleanBlockParts(raw, push, path) };
 }

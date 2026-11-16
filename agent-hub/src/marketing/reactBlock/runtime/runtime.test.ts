@@ -12,9 +12,9 @@ import * as esbuild from 'esbuild-wasm';
 import { describe, it, expect } from 'vitest';
 import runtime from 'virtual:cms-react-runtime';
 import { compileReactBlock } from '@shared/cmsReact/compile.mjs';
-import { buildReactFrameDoc, themeCss, readSiteTheme, type FrameMode } from '../frameDoc';
+import { buildReactFrameDoc, themeCss, readSiteTheme, type FrameMode, type FramePolicy } from '../frameDoc';
 
-type Posted = { type?: string; height?: number; message?: string; stack?: string };
+type Posted = { type?: string; height?: number; message?: string; stack?: string; event?: string; value?: unknown };
 
 // jsdom ships no types of its own; this is the part the test uses.
 interface JsdomOptions { runScripts: 'dangerously'; pretendToBeVisual: boolean; beforeParse: (w: Window) => void }
@@ -28,9 +28,9 @@ async function compile(source: string): Promise<string> {
 }
 
 /** Load a frame document; every message the frame posts to its parent (here: itself) is collected. */
-function loadFrame(compiled: string, props: Record<string, unknown>, mode: FrameMode = 'public') {
+function loadFrame(compiled: string, props: Record<string, unknown>, mode: FrameMode = 'public', policy: FramePolicy = 'site') {
     const posted: Posted[] = [];
-    const html = buildReactFrameDoc({ runtime, compiled, theme: themeCss(readSiteTheme(null)), props, mode });
+    const html = buildReactFrameDoc({ runtime, compiled, theme: themeCss(readSiteTheme(null)), props, mode, policy });
     const dom = new JSDOM(html, {
         runScripts: 'dangerously',
         pretendToBeVisual: true,
@@ -126,5 +126,27 @@ describe('cms react runtime (built bundle in jsdom)', () => {
         expect(pub.dom.window.document.getElementById('root')?.innerHTML).toBe('');
         expect(pub.dom.window.document.querySelector('.bf-react-error')).toBeNull();
         pub.dom.window.close();
+    });
+
+    it('sealed: renders nothing before the parent posts its data, then the data, and emit() posts an event', async () => {
+        const source = `
+export default function Picker({ rows, emit }: { rows: string[]; emit: (e: string, v: unknown) => void }) {
+  return <ul>{rows.map((r) => <li key={r}><button type="button" onClick={() => emit('pick', { name: r })}>{r}</button></li>)}</ul>;
+}`;
+        const { dom, posted } = loadFrame(await compile(source), { rows: ['in the document'] }, 'public', 'sealed');
+        const doc = dom.window.document;
+        await new Promise((r) => setTimeout(r, 50));
+        expect(doc.getElementById('root')?.innerHTML).toBe('');
+        expect(posted.some((m) => m.type === 'bf-react-error')).toBe(false);
+
+        dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+            data: { type: 'bf-react-props', props: { rows: ['Ada', 'Bob'] } },
+            source: dom.window,
+        }));
+        await until(() => doc.querySelectorAll('button').length === 2);
+        (doc.querySelectorAll('button')[1] as HTMLButtonElement).click();
+        await until(() => posted.some((m) => m.type === 'bf-react-event'));
+        expect(posted.find((m) => m.type === 'bf-react-event')).toEqual({ type: 'bf-react-event', event: 'pick', value: { name: 'Bob' } });
+        dom.window.close();
     });
 });
