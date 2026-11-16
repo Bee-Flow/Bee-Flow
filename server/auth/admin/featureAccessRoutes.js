@@ -664,8 +664,7 @@ router.get('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), a
     res.json(await orgAvailabilityPayload(req.params.orgId));
 });
 
-// GET /organizations/:orgId/integration-availability: org-availability's gate without its super-admin narrowing.
-// The .mts types its router structurally (no express types there, see its header): it is an express Router.
+// GET /organizations/:orgId/integration-availability: org-availability's gate without its super-admin narrowing (the .mts types its router structurally; it is an express Router).
 router.use(/** @type {import('express').Router} */ (require('./orgIntegrationAvailabilityRoutes.mts').createOrgIntegrationAvailabilityRouter({
     gate: requireOrgAdmin('orgId'),
     resolve: (/** @type {string} */ orgId, /** @type {{ organizationId: string | null }} */ viewer) => availability().resolveOrgIntegrationAvailability(orgId, viewer),
