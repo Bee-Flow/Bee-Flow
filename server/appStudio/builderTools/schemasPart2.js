@@ -347,7 +347,7 @@ const TOOL_SCHEMAS_PART_2 = [
         type: 'function',
         function: {
             name: 'app_get_draft',
-            description: 'Read the current draft as a compact ID-bearing tree (screens → sections → components, plus actions). Use when you need to re-check ids or structure; the latest draft state is also injected into the conversation each turn. On a large app read it in parts — `screenId` for one screen, or `section` for just the actions / tables / meta — instead of pulling the whole tree. Long texts are cut with "…" and props such as bindings, filters and computed are left out: read the full content of a component with app_get_node before you edit it.',
+            description: 'Read the current draft as a compact ID-bearing tree (screens → sections → components, plus actions). Use when you need to re-check ids or structure; the latest draft state is also injected into the conversation each turn. On a large app read it in parts — `screenId` for one screen, or `section` for just the actions / tables / meta — instead of pulling the whole tree. section "meta" also returns the whole stylesheet of the app as `customCss`. Long texts are cut with "…" and props such as bindings, filters and computed are left out: read the full content of a component with app_get_node before you edit it.',
             parameters: {
                 type: 'object',
                 properties: {

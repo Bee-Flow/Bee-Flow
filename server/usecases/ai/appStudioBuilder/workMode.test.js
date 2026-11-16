@@ -126,6 +126,18 @@ test('the directive: describe has the everyday-words rule, plan not; ask-first o
     assert.doesNotMatch(W.workModeDirective({ ...base, mode: 'plan', approved: true }), /everyday words/);
 });
 
+test('the plan directive on an existing app says to look first and to plan the regrouping as moves; a new app does not get it', () => {
+    const base = { approved: false, closed: false };
+    for (const mode of ['plan', 'describe']) {
+        const existing = W.workModeDirective({ ...base, mode, fresh: false });
+        assert.match(existing, /EXISTING app/);
+        assert.match(existing, /app_screenshot of the screen concerned plus its tree/);
+        assert.match(existing, /`moves`/);
+        assert.doesNotMatch(W.workModeDirective({ ...base, mode, fresh: true }), /EXISTING app/);
+    }
+    assert.doesNotMatch(W.workModeDirective({ ...base, mode: 'build', fresh: false }), /EXISTING app/);
+});
+
 const prior = [{ id: '1', prompt: 'Who uses it?', options: ['Staff', 'Customers'] }, { id: '2', prompt: 'Which data?', options: ['Orders', 'Invoices'] }];
 const note = (o) => W.questionStatusNote({ prior, answeredText: '', mode: 'plan', approved: false, ...o });
 

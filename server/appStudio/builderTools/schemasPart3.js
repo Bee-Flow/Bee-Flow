@@ -84,7 +84,7 @@ const TOOL_SCHEMAS_PART_3 = [
         type: 'function',
         function: {
             name: 'app_propose_plan',
-            description: 'Present an editable BUILD PLAN to the user and PAUSE for their approval — use this instead of building directly when the ask implies a NEW app with two or more screens OR any data model. The plan lists the tables, roles, screens, datasets, actions and the phases you will build in. The turn ends after you propose: the user reviews/edits the plan in the chat and approves it, and only THEN do you build. Do not call any other tool in the same turn as app_propose_plan. Small asks (a single screen, an edit, a fix) skip planning and build directly.',
+            description: 'Present an editable BUILD PLAN to the user and PAUSE for their approval — use this instead of building directly when the ask implies a NEW app with two or more screens OR any data model, or a redesign of existing screens (then list the regrouping as each screen\'s `moves`). The plan lists the tables, roles, screens, datasets, actions and the phases you will build in. The turn ends after you propose: the user reviews/edits the plan in the chat and approves it, and only THEN do you build. Do not call any other tool in the same turn as app_propose_plan. Small asks (a single screen, an edit, a fix) skip planning and build directly.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -137,6 +137,18 @@ const TOOL_SCHEMAS_PART_3 = [
                                 purpose: { type: 'string', description: 'What the screen is for (max 200 chars).' },
                                 contents: { type: 'array', items: { type: 'string' }, description: 'Bullet list of the key components/areas on the screen.' },
                                 forRoles: { type: 'array', items: { type: 'string' }, description: 'Role keys this screen is scoped to (omit for everyone).' },
+                                moves: {
+                                    type: 'array',
+                                    description: 'Redesign of an EXISTING screen only: how its parts regroup, one entry per move, in the user\'s words (what is where now → where it goes).',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            from: { type: 'string', description: 'What and where it is now, e.g. "Search field and three filters, loose at the top".' },
+                                            to: { type: 'string', description: 'Where it goes, e.g. "One Filters card above the list, full width".' },
+                                        },
+                                        required: ['from', 'to'],
+                                    },
+                                },
                             },
                             required: ['name', 'purpose', 'contents'],
                         },
@@ -180,6 +192,7 @@ const TOOL_SCHEMAS_PART_3 = [
                         },
                     },
                     openQuestions: { type: 'array', items: { type: 'string' }, description: 'Anything you need the user to confirm before building.' },
+                    imageNotes: { type: 'string', description: 'When the user attached a picture: what it shows (the example they want, or the problem they point at) and what in it the plan answers, in one or two sentences (max 400 chars). The picture is not sent again after approval; this is what the build reads instead.' },
                     baseTemplateId: { type: 'string', description: 'When a starter template matches the ask, its id — it will be applied first on approval (call app_list_templates to discover ids).' },
                     design: {
                         type: 'object',

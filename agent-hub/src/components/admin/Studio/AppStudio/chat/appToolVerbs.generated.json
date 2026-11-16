@@ -55,8 +55,16 @@
         "key": "studio_apps_schedule.act_set_trigger",
         "en": "Set a trigger"
     },
+    "app_unwrap_node": {
+        "key": "studio_apps_tab.act_unwrap_node",
+        "en": "Ungrouped components"
+    },
     "app_update_step": {
         "key": "studio_apps_tab.act_update_step",
         "en": "Changed a step"
+    },
+    "app_wrap_nodes": {
+        "key": "studio_apps_tab.act_wrap_nodes",
+        "en": "Grouped components"
     }
 }

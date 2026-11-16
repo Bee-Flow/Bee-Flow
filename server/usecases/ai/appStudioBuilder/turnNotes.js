@@ -26,7 +26,21 @@ function renderApprovedPlanNote(plan) {
     const design = plan && typeof plan === 'object' && /** @type {{ design?: unknown }} */ (plan).design
         ? ' Its `design` is the look the user approved: set it with app_set_theme before the first component and carry out every signature move.'
         : '';
-    return `${APPROVED_PLAN_PREFIX}\nThe user approved this plan — build exactly it (do not re-propose). Announce each phase with app_mark_phase as you start it.${design}\n${JSON.stringify(plan)}`;
+    return `${APPROVED_PLAN_PREFIX}\nThe user approved this plan — build exactly it (do not re-propose). Announce each phase with app_mark_phase as you start it.${design}${redesignClause(plan)}\n${JSON.stringify(plan)}`;
+}
+
+/**
+ * Said only for a plan that regroups existing screens (`moves`) or describes a picture the user
+ * attached (`imageNotes`); '' otherwise, so every other plan note keeps its bytes.
+ * @param {unknown} plan
+ */
+function redesignClause(plan) {
+    if (!plan || typeof plan !== 'object') return '';
+    const p = /** @type {{ screens?: unknown, imageNotes?: unknown }} */ (plan);
+    const moves = Array.isArray(p.screens) && p.screens.some((s) => s && typeof s === 'object' && Array.isArray(/** @type {{ moves?: unknown }} */ (s).moves));
+    const notes = typeof p.imageNotes === 'string' && p.imageNotes;
+    return `${moves ? ' The screens\' `moves` are the regrouping the user approved: shoot each screen first (app_screenshot), then carry them out with app_wrap_nodes / app_move_node, not with the stylesheet.' : ''}`
+        + `${notes ? ' Its `imageNotes` say what the picture the user attached showed; the picture itself is no longer here.' : ''}`;
 }
 
 /**

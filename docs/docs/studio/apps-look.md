@@ -173,6 +173,10 @@ Any other class name of the product can change without notice. For colours prefe
 - a `url()` that is not `data:image/…` or `asset:<id>` (an uploaded file of this app). No other
   address is accepted, so a stylesheet cannot load anything from outside.
 
+**Not for layout.** A rule that sets `grid-column`, `grid-row`, `display` or `position: absolute` on
+a component cell or a section works against the 12-column grid; the checks warn about it
+(`layout.css_overrides_grid`). Place components with sections, spans and cards instead.
+
 Under the high-contrast theme the stylesheet is not applied at all, so nothing may depend on it to
 be readable. A phone ignores the class name.
 

@@ -4,6 +4,7 @@
 
 const { themeDesignProps } = require('./themeDesignSchema.mts');
 const { navGroupItemProps } = require('./navGroupSchema.mts');
+const { MAX_CSS_EDITS } = require('./customCssEdits.mts');
 const { NAV_STYLES, MAX_NAV_GROUPS, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
 const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, BASE_STYLE_KNOBS, SECTION_HEIGHT_MODES, BASE_SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
 
@@ -42,6 +43,19 @@ const TOOL_SCHEMAS_PART_1 = [
                     ...themeDesignProps('setTheme', {
                         navStyle: { type: 'string', enum: [...NAV_STYLES], description: 'How screens are navigated. tabs = a top row; sidebar = grouped and labelled, right from ~6 screens; mega = a top bar whose groups open a panel with a description per screen (needs nav groups); rail = an icon-only sidebar.' },
                     }),
+                    customCssEdits: {
+                        type: 'array',
+                        maxItems: MAX_CSS_EDITS,
+                        description: 'Change the stored stylesheet (design.customCss) in place instead of resending it whole: each { find, replace } swaps one exact piece of text, in order. Every `find` must occur exactly once, or nothing changes. Read the stylesheet first with app_get_draft {section:"meta"}. Not together with customCss.',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                find: { type: 'string', description: 'Text copied exactly from the current stylesheet, occurring once.' },
+                                replace: { type: 'string', description: 'The new text; empty to delete.' },
+                            },
+                            required: ['find', 'replace'],
+                        },
+                    },
                 },
             },
         },

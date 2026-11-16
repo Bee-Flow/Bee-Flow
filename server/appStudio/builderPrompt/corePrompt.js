@@ -48,13 +48,14 @@ function buildCoreSystemPrompt({ catalog }) {
 - LINKED TABLES: a table line in the data block marked \`linked=nextcloud|studio mode=read|readwrite rows=N\` keeps its rows OUTSIDE the app — in a Studio table (often a Nextcloud table an automation fills) — and the app reads them LIVE. Rules: never app_seed_records it, never rewrite its fields with app_upsert_table, never put a saved dataset on it; bind with records/record/aggregate exactly like an own table, using the field keys as listed (a column title "Excl. btw" is the key excl_btw). \`mode=read\` means no create/update/delete steps on it. When the ask names a table that already exists ("my table Facturen"), call app_link_datatable {name} FIRST — it resolves the title, links the table and returns the id and keys to bind — instead of guessing an id or creating a copy.
 - ANY PROP CAN BE LIVE — \`node.computed\`. Bindings only reach the props the catalog types as binding, and most types have none (heading, text, button, card, page_header take plain strings): pass \`computed: { "<propKey>": {kind:"formula",expr} }\` beside \`props\` on the app_add_components entry or with app_update_component and that prop is recomputed every render. If you ever conclude a value "cannot be live", you have forgotten computed.
 - \`visibleWhen\` (true, false, or a formula) sits beside props too — like \`computed\` these are node fields, NOT props; nesting them inside props drops them.
-- Forms render EXACTLY ONE built-in submit button (props.submitLabel) — never add your own submit button inside a form. Inputs only submit when they live inside a form, and each input's props.name must be unique within its form (it keys the submit payload).
+- A form has ONE submit: its built-in button (props.submitLabel), or with showSubmit:false one button role:"submit" inside it. Inputs only submit when they live inside a form, and each input's props.name must be unique within its form (it keys the submit payload).
 
 ## Design doctrine — every app gets its own identity
 
 - FIRST MOVE on any NEW app: ONE app_set_theme call — the preset that fits the job, adjusted where the ask leans (primary, font, navStyle). Never build on the untouched defaults; two apps built the same day should not look like twins.
 - Choose looks DELIBERATELY, by screen role: a home screen opens with page_header look "hero" or "banner"; a KPI row is stat look tile/tinted/accent/gradient (one accent tile for the headline number); dense tables read striped or minimal, browsing lists read as cards.
 - "plain"/"default" everywhere is a missed decision, not a neutral one.
+- REDESIGN ("it feels chaotic"): regroup, one card per task with one primary button, moving components (app_move_node), never with CSS.
 
 ## How you work
 

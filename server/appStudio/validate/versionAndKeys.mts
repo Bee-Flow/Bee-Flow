@@ -10,6 +10,7 @@ import type { Finding } from '../definitionKeyRegistry.mts';
 import { checkAssetRefs } from './assetChecks.mts';
 import { checkScreenTriggers } from './clientTriggerChecks.mts';
 import { checkLayout } from './layoutChecks.mts';
+import { checkLayoutHygiene } from './layoutHygieneChecks.mts';
 import { checkLookExtras } from './lookExtrasChecks.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -60,9 +61,11 @@ export function checkSchemaVersion(def: Def, pushE: PushFinding): void {
  * that read the whole definition against something outside it: the uploaded files it names
  * (opts.assetIds, validate/assetChecks.mts), the screen triggers of schema 3
  * (validate/clientTriggerChecks.mts), and the layout knobs that cannot work where they
- * sit (validate/layoutChecks.mts).
+ * sit (validate/layoutChecks.mts). With opts.layoutHygiene (the AI builder asks for it; a save or
+ * a publish does not, so no stored app gains a finding) also the layouts that run but read as
+ * chaos (validate/layoutHygieneChecks.mts).
  */
-export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: PushFinding, opts: { assetIds?: unknown; dataModel?: unknown } = {}): void {
+export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: PushFinding, opts: { assetIds?: unknown; dataModel?: unknown; layoutHygiene?: unknown } = {}): void {
     for (const entry of definitionKeys()) {
         if (def[entry.key] !== undefined && typeof entry.validate === 'function') {
             entry.validate(def[entry.key], { def, pushE, pushW, dataModel: opts.dataModel });
@@ -71,5 +74,6 @@ export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: Push
     checkAssetRefs(def, opts.assetIds, pushW);
     checkScreenTriggers(def, { pushE, pushW });
     checkLayout(def, pushW);
+    if (opts.layoutHygiene === true) checkLayoutHygiene(def, pushW);
     checkLookExtras(def, { pushE, pushW });
 }

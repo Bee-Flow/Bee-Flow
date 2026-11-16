@@ -32,6 +32,8 @@ test('the tool schemas are the forms: base keys in the pinned order, then the ex
         'preset', 'primary', 'accent', 'canvas', 'radius', 'density', 'fontScale', 'appearance', 'navStyle',
         'font', 'surface', 'motion', 'chartPalette', 'accentEdge', 'logoUrl',
         ...Object.keys(S.extensionThemeDesignProps('setTheme')),
+        // Not a spec key: the edits to the stored stylesheet (customCssEdits.mts), last.
+        'customCssEdits',
     ]);
     const access = params('app_set_public_access').properties.publicAccess.properties;
     assert.deepEqual(Object.keys(access.theme.properties).slice(0, 7), ['primary', 'accent', 'canvas', 'radius', 'density', 'fontScale', 'appearance']);

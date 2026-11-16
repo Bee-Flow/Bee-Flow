@@ -193,16 +193,18 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
             {/* Screens */}
             <Section icon={Layers} title={t('studio_apps_edit.plan_card.screens', 'Screens')}>
                 {draft.screens.map((s: PlanRow, i: number) => (
-                    <Row
-                        key={rowKey(s, i)}
-                        value={labelOf(s, 'name', 'title')}
-                        placeholder={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
-                        ariaLabel={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
-                        subtitle={labelOf(s, 'purpose')}
-                        disabled={disabled}
-                        onChange={(v) => renameAt('screens', i, v, 'name')}
-                        onRemove={() => removeAt('screens', i)}
-                    />
+                    <div key={rowKey(s, i)} className="flex flex-col gap-0.5">
+                        <Row
+                            value={labelOf(s, 'name', 'title')}
+                            placeholder={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
+                            ariaLabel={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
+                            subtitle={labelOf(s, 'purpose')}
+                            disabled={disabled}
+                            onChange={(v) => renameAt('screens', i, v, 'name')}
+                            onRemove={() => removeAt('screens', i)}
+                        />
+                        <ScreenMoves row={s} />
+                    </div>
                 ))}
                 <AddRow label={t('studio_apps_edit.plan_card.add_screen', 'Add screen')} disabled={disabled} onAdd={(v) => addRow('screens', { name: v })} />
             </Section>
@@ -298,6 +300,20 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                 </button>
             </div>
         </div>
+    );
+}
+
+/** The regrouping a redesign plan proposes for one existing screen (`moves`), read-only. */
+function ScreenMoves({ row }: { row: PlanRow }) {
+    const raw = row && typeof row === 'object' ? row.moves : null;
+    const moves = (Array.isArray(raw) ? raw : []).filter(
+        (m): m is { from: string; to: string } => !!m && typeof m.from === 'string' && typeof m.to === 'string',
+    );
+    if (!moves.length) return null;
+    return (
+        <ul className="flex flex-col gap-0.5 pl-3 text-[10px] text-[var(--text-secondary)]" data-plan-moves="">
+            {moves.map((m, j) => <li key={j}>{m.from} → {m.to}</li>)}
+        </ul>
     );
 }
 

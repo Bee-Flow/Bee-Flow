@@ -14,6 +14,7 @@ const { THEME_SPEC, DESIGN_SPEC } = require('../../componentSpecs');
 const { ALL_APP_DESIGN_PRESETS: APP_DESIGN_PRESETS, getAppDesignPreset } = require('../../appDesignPresets');
 const ops = require('../../definitionOps');
 const { adoptCanonical } = require('../shared');
+const { applyCssEdits } = require('../customCssEdits.mts');
 
 function applySetMeta(draftWrap, args) {
     /** @type {Record<string, string>} */
@@ -70,6 +71,14 @@ function applySetTheme(draftWrap, args) {
     }
     if (args?.navStyle !== undefined) navPatch = { style: args.navStyle };
 
+    const previousCss = draftWrap.def?.design?.customCss;
+    const edited = stylesheetEdits(previousCss, args);
+    if (edited?.error) return edited;
+    if (edited) {
+        designPatch.customCss = edited.css;
+        if (!preset) designPatch.preset = 'custom';
+    }
+
     if (!Object.keys(themePatch).length && !Object.keys(designPatch).length && !navPatch) {
         return { error: `Pass a preset (${APP_DESIGN_PRESETS.map((p) => p.id).join(', ')}), a theme knob (${Object.keys(THEME_SPEC).join(', ')}), a design knob (${Object.keys(DESIGN_SPEC).filter((k) => k !== 'preset').join(', ')}) or navStyle.` };
     }
@@ -83,7 +92,30 @@ function applySetTheme(draftWrap, args) {
     result.theme = { ...draftWrap.def.theme };
     if (draftWrap.def.design) result.design = { ...draftWrap.def.design };
     if (draftWrap.def.nav) result.nav = { ...draftWrap.def.nav };
+    // A whole new stylesheet replaced one that was there: hand the old text back, so nothing the
+    // caller had not read is lost without a trace (it can restore or merge from this).
+    if (!result.error && args?.customCss !== undefined && replacedCss(previousCss, draftWrap.def.design?.customCss)) {
+        result.previousCustomCss = previousCss;
+    }
     return result;
+}
+
+/**
+ * The stylesheet after app_set_theme's customCssEdits ({ css }), a refusal ({ error, _fixHint }),
+ * or null when the call carries no edits.
+ */
+function stylesheetEdits(previousCss, args) {
+    if (args?.customCssEdits === undefined) return null;
+    if (args.customCss !== undefined) {
+        return { error: 'Pass customCss (the whole stylesheet) or customCssEdits (changes to the stored one), not both.' };
+    }
+    const edited = applyCssEdits(previousCss, args.customCssEdits);
+    return edited.error ? { error: edited.error, _fixHint: edited._fixHint } : { css: edited.css };
+}
+
+/** Did a stored stylesheet give way to a different text (or to none)? */
+function replacedCss(previousCss, storedCss) {
+    return typeof previousCss === 'string' && previousCss !== '' && storedCss !== previousCss;
 }
 
 /**
