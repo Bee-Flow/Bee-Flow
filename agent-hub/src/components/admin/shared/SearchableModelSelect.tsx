@@ -220,12 +220,7 @@ function SearchableModelSelectSection({ setOpen, setSearch, setActiveProvider, s
     return <button
         type="button"
         onClick={() => { setOpen(true); setSearch(''); setActiveProvider(null); setActiveFamily(null); } }
-        className="w-full px-3 py-2.5 rounded-lg border outline-none text-sm text-left flex items-center justify-between transition-colors hover:border-[var(--accent-primary)]"
-        style={{
-            background: 'var(--bg-secondary)',
-            borderColor: 'var(--border-default)',
-            color: selectedId ? 'var(--text-primary)' : 'var(--text-muted)',
-        }}
+        className={`w-full px-3 py-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] outline-none text-sm text-left flex items-center justify-between transition-colors hover:border-[var(--text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${selectedId ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
     >
         <span className="truncate">{label}</span>
         <svg className="w-4 h-4 shrink-0 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

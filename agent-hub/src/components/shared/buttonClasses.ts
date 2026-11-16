@@ -21,8 +21,8 @@
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger' | 'warning';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
-/** The accent fill of the primary action, without size or shape. */
-export const PRIMARY_TONE = 'bg-[var(--accent-primary)] enabled:hover:bg-[var(--accent-primary-hover)] text-[var(--accent-primary-fg)] border-transparent';
+/** The fill of the primary action, without size or shape: ink in the neutral-accent themes, the accent elsewhere (index.css --button-primary-*). */
+export const PRIMARY_TONE = 'bg-[var(--button-primary-bg)] enabled:hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-fg)] border-transparent';
 
 /** The keyboard focus ring of every button-like control. */
 export const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]';
