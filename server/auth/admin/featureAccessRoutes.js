@@ -665,10 +665,11 @@ router.get('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), a
 });
 
 // GET /organizations/:orgId/integration-availability: org-availability's gate without its super-admin narrowing.
-router.use(require('./orgIntegrationAvailabilityRoutes.mts').createOrgIntegrationAvailabilityRouter({
+// The .mts types its router structurally (no express types there, see its header): it is an express Router.
+router.use(/** @type {import('express').Router} */ (require('./orgIntegrationAvailabilityRoutes.mts').createOrgIntegrationAvailabilityRouter({
     gate: requireOrgAdmin('orgId'),
     resolve: (/** @type {string} */ orgId, /** @type {{ organizationId: string | null }} */ viewer) => availability().resolveOrgIntegrationAvailability(orgId, viewer),
-}));
+})));
 
 router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), validate({ body: OrgAvailabilityBody }), async (/** @type {OrgRequest} */ req, res) => {
     if (!assertSuperAdmin(req, res)) return;

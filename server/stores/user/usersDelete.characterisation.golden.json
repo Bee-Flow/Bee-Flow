@@ -2126,7 +2126,7 @@
    "[UserStore] erasure step 'notebook_conversations' failed for user 'fault-8' (57014)"
   ],
   "statements": 247,
-  "trace": "eaa8d2d725dd8cf73a3bb24f4fa4f5e30bdb6ed54e4ee3183e518ff9ef4e8599",
+  "trace": "51304506adc3790b36aa5c8cf9055f1a5ea12f959e3a4c73b3f227d2f6cec700",
   "accountKept": 1,
   "retry": {
    "outcome": {
@@ -2270,7 +2270,7 @@
    "[UserStore] erasure step 'execution_history' failed for user 'fault-13' (57014)"
   ],
   "statements": 247,
-  "trace": "4b5b2e094611fad1d83c6c89564467371bc77dc846275e30bad15472574b5cb6",
+  "trace": "bf940fcfe34f016880ed16436fdbf5a0fc90a361da5885a742ca72d118170c4a",
   "accountKept": 1,
   "retry": {
    "outcome": {

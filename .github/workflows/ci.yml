@@ -232,7 +232,8 @@ jobs:
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
               - 'server/auth/{adminRoutes.js,ncBindingRoutes.js,permissions.js,router.js,permissionsCatalog.js,permissionsOrgGates.js}'
-              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js,userSupportRoutes.js,userUpdateSupportRoutes.js}'
+              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgAuthMethod.mts,orgRoutes.js,userRoutes.js,userSupportRoutes.js,userUpdateSupportRoutes.js}'
+              - 'server/core/llm/contextWindowExamples.mts'
               - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
               - 'server/automation/validate/constants.js'
@@ -487,7 +488,7 @@ jobs:
               - 'agent-hub/src/components/chat/MessageItem/{MessageContentBody.tsx,ThinkingPanel.tsx,answerChips.ts,chatToolCallDisplay.ts,citationGroups.ts,privacyLine.ts,timelineParts.tsx,toolConfirmStatus.ts}'
               - 'agent-hub/src/components/chat/dlpReview/dlpFindingsState.ts'
               - 'agent-hub/src/components/icons/iconRegistry.ts'
-              - 'agent-hub/src/components/integrations/azure/{ChatModelsSection.tsx,SSOSection.tsx,SSOSection.types.ts,SSOSectionSection.tsx,constants.ts}'
+              - 'agent-hub/src/components/integrations/azure/{GroupSyncSection.tsx,SSOSectionSection.tsx}'
               - 'agent-hub/src/components/integrations/nextcloud/{NextcloudSyncPanel.tsx,OrgNcPairingPanel.tsx}'
               - 'agent-hub/src/components/licensing/{EntitlementsContext.tsx,LicenseContext.tsx,licenseTiers.ts}'
               - 'agent-hub/src/components/renderers/{CodeRenderer.tsx,CollapsibleCodeBlock.tsx,MarkdownRenderer.tsx}'
