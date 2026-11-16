@@ -54,6 +54,7 @@ module.exports = {
     finishProcessing: writes.finishProcessing,
     timeoutStuckTranscriptions: lifecycle.timeoutStuckTranscriptions,
     heartbeatProcessing: lifecycle.heartbeatProcessing,
+    failInterruptedRuns: lifecycle.failInterruptedRuns,
     setPublished: lifecycle.setPublished,
     deleteTranscription: lifecycle.deleteTranscription,
     setTranscriptionProject: projects.setTranscriptionProject,

@@ -236,6 +236,14 @@ test('unavailable audio storage is a 503 audio_storage_unavailable', async () =>
     assert.strictEqual(calls.claim.length, 0);
 });
 
+test('a local disk that cannot take the audio is a 503 audio_local_write_failed, not a storage outage or a lost recording', async () => {
+    audio = { path: null, reason: 'local_write_failed' };
+    const res = await dispatch();
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.code, 'audio_local_write_failed');
+    assert.strictEqual(calls.claim.length, 0);
+});
+
 test('a lost claim is a 409 already_processing and runs nothing', async () => {
     claimResult = false;
     const res = await dispatch();

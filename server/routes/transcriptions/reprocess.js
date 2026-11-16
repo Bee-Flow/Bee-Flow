@@ -26,6 +26,7 @@ const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 const { failureSummary } = require('../../usecases/transcriptions/noteText.mts');
 const { artifactColumnSql } = require('../../stores/transcription/artifactWindow');
 const { parseJsonArray } = require('../../stores/transcription/jsonArrays');
+const { trackProcessing } = require('../../core/meetingNotes/processingRuns.mts');
 
 // Where an imported note's audio came from, for the 410 below.
 const IMPORT_SOURCES = {
@@ -65,6 +66,32 @@ function audioGoneAnswer(transcription) {
     };
 }
 
+/**
+ * Answer a reprocess whose saved audio could not be made a local file: 503
+ * when trying again can work (storage or this server's disk), 410 when the
+ * recording is gone.
+ * @param {{ reason?: string }} audioSource
+ * @param {{ source?: string | null }} transcription
+ * @param {import('express').Response} res
+ */
+function refuseWithoutAudio(audioSource, transcription, res) {
+    // One 400 for every cause would not do: its advice ("please upload
+    // again") is impossible to follow for a meeting recorded in the
+    // browser: those bytes never existed anywhere else. Say what is
+    // actually true, and let the client branch on `code` not on prose.
+    if (audioSource.reason === 'storage_unavailable') {
+        throw new HttpError(503, 'audio_storage_unavailable',
+            'Audio storage is temporarily unavailable. Try again in a minute.');
+    }
+    // This server's disk would not take the restored file: not an
+    // outage of storage, and not a lost recording either.
+    if (audioSource.reason === 'local_write_failed') {
+        throw new HttpError(503, 'audio_local_write_failed',
+            'The server could not prepare the recording for processing. Try again; if it keeps failing, contact your administrator.');
+    }
+    return res.status(410).json(audioGoneAnswer(transcription));
+}
+
 // ── Reprocess failed transcription ───────────────────────
 //
 // Async-202, mirroring the upload route: a long re-transcription (the recovery
@@ -87,6 +114,8 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
     let userId = null;
     /** @type {{ path: string | null; cleanup?: () => void; fromStorage?: boolean; cached?: boolean; reason?: string; } | null} */
     let audioSource = null; // { path, cleanup } — may be a temp file streamed from object storage
+    // The heartbeat on a timer and the shutdown list, once the claim is ours.
+    let stopTracking = () => {};
     try {
         userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id; // behind requireAuth
         const userOrgId = await resolveUserOrgFromReq(req);
@@ -99,17 +128,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         // restart / a different replica where the local file is gone.
         const { resolveSavedAudio, repairSavedAudio } = require('../../core/meetingNotes/savedAudioStore');
         audioSource = await resolveSavedAudio(transcription);
-        if (!audioSource.path) {
-            // One 400 for every cause would not do: its advice ("please upload
-            // again") is impossible to follow for a meeting recorded in the
-            // browser: those bytes never existed anywhere else. Say what is
-            // actually true, and let the client branch on `code` not on prose.
-            if (audioSource.reason === 'storage_unavailable') {
-                throw new HttpError(503, 'audio_storage_unavailable',
-                    'Audio storage is temporarily unavailable. Try again in a minute.');
-            }
-            return res.status(410).json(audioGoneAnswer(transcription));
-        }
+        if (!audioSource.path) return refuseWithoutAudio(audioSource, transcription, res);
         // Opportunistic repair: this pod can read the file and the note has no
         // durable copy. On a multi-replica deploy the owning pod is the ONLY one
         // that can fix this, so every reprocess is a chance we should not waste.
@@ -144,6 +163,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
             });
         }
         transcriptionId = transcription.id;
+        stopTracking = trackProcessing(transcriptionId);
         res.status(202).json({ id: transcriptionId, status: 'processing' });
 
         log.info(`[Transcriptions] Reprocessing "${log.nameForLog(fileName)}" via ${provider}`);
@@ -265,6 +285,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         }
         if (failure) throw failure;
     } finally {
+        stopTracking();
         // Remove the temp file if the audio was streamed from object storage.
         try { audioSource?.cleanup?.(); } catch (_) { ignoreGone('routes/transcriptions/reprocess:cleanupAudio', _); }
     }

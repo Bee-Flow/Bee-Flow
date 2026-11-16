@@ -4951,11 +4951,6 @@
       "count": 2
     }
   },
-  "core/meetingNotes/savedAudioStore.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "core/meetingNotes/speakerEvidence.js": {
     "complexity": {
       "count": 1

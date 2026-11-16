@@ -85,7 +85,7 @@ test('the exported surface is exactly this', () => {
         'canReadTranscription', 'getTranscriptionsByAudioPaths', 'getTranscriptionBySourceUri',
         'getTranscriptionByTalkRoomToken', 'getTranscriptionByMeetMeetingCode', 'getSeriesPrevious',
         'updateTranscription', 'claimForProcessing', 'finishProcessing', 'timeoutStuckTranscriptions',
-        'heartbeatProcessing', 'setPublished', 'deleteTranscription', 'setTranscriptionProject', 'detachTranscriptionFromProject',
+        'heartbeatProcessing', 'failInterruptedRuns', 'setPublished', 'deleteTranscription', 'setTranscriptionProject', 'detachTranscriptionFromProject',
         'listProjectMeetings', 'countProjectMeetings', 'clearProjectFromTranscriptions', 'initDB',
     ]);
     for (const k of Object.keys(store)) assert.strictEqual(typeof store[k], 'function', k);

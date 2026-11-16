@@ -47,10 +47,10 @@ function start(initDB = async () => {}) {
 
 /**
  * The shutdown with every collaborator replaced; `order` records the calls.
- * @param {{ closeThrows?: boolean, server?: import('node:http').Server, drain?: Promise<unknown> }} [opts]
+ * @param {{ closeThrows?: boolean, server?: import('node:http').Server, drain?: Promise<unknown>, meetingRuns?: { failInFlight(o: { timeoutMs: number }): Promise<number> } }} [opts]
  *   `server`: a real one in place of the recording double; `drain`: what the automation drain waits for
  */
-function shutdownWith({ closeThrows = false, server: realServer, drain } = {}) {
+function shutdownWith({ closeThrows = false, server: realServer, drain, meetingRuns = { failInFlight: async () => 0 } } = {}) {
     /** @type {string[]} */
     const order = [];
     /** @type {string[]} */
@@ -72,6 +72,7 @@ function shutdownWith({ closeThrows = false, server: realServer, drain } = {}) {
                 await drain;
             } },
             backgroundRun: { stop: async () => {} },
+            meetingRuns,
             usageOpenObservePush: { stop() {} },
             opsMetricsPush: { stop() {} },
             chatSignals: { flush: async () => {} },
@@ -147,6 +148,19 @@ test('graceful shutdown: stop accepting first, close idle connections after the 
     assert.deepStrictEqual(f.exits, [0]);
     assert.deepStrictEqual(f.readinessDuringDrain, ['shutting_down'], 'not ready from the first moment of the shutdown');
     assert.deepStrictEqual(state.readiness(), { ready: false, reason: 'shutting_down' });
+});
+
+test('graceful shutdown: the meeting-notes runs of this process are failed, and a failure there does not stop the shutdown', async () => {
+    /** @type {number[]} */
+    const asked = [];
+    const f = shutdownWith({ meetingRuns: { failInFlight: async ({ timeoutMs }) => { asked.push(timeoutMs); return 2; } } });
+    await f.shutdown('SIGTERM');
+    assert.strictEqual(asked.length, 1, 'failInFlight is called once');
+    assert.ok(asked[0] > 0 && asked[0] < 60_000, 'bounded well under the termination grace');
+
+    const g = shutdownWith({ meetingRuns: { failInFlight: async () => { throw new Error('db gone'); } } });
+    await g.shutdown('SIGTERM');
+    assert.deepStrictEqual(g.exits, [0]);
 });
 
 test('graceful shutdown: a server that cannot be closed does not stop the shutdown', async (t) => {

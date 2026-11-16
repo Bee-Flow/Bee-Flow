@@ -45,13 +45,43 @@ const ageBy = (id, minutes) => pg.exec(`UPDATE transcriptions SET updated_at = N
 /** @param {string} id */
 const rawRow = async (id) => (await pg.query('SELECT status, summary, shared_with, is_published FROM transcriptions WHERE id = $1', [id])).rows[0];
 
-test('reaper: a run inside the engine caps (Azure 4 h + LLM passes) is not reaped by default', async () => {
-    const { id } = await store.createTranscription({ userId: 'alice', title: 'Long Azure meeting', status: 'processing' });
-    await ageBy(id, 4 * 60 + 30);
+test('reaper: the default measures minutes of silence, not hours (the run beats every minute)', async () => {
+    const { id } = await store.createTranscription({ userId: 'alice', title: 'Beating meeting', status: 'processing' });
+    await ageBy(id, lifecycle.DEFAULT_STUCK_MINUTES - 2);
     await lifecycle.timeoutStuckTranscriptions();
-    assert.strictEqual((await rawRow(id)).status, 'processing', 'a healthy 4.5 h run keeps running');
-    assert.ok(lifecycle.DEFAULT_STUCK_MINUTES > 4 * 60, 'the default sits above the largest engine cap');
+    assert.strictEqual((await rawRow(id)).status, 'processing', 'a run silent for less than the threshold keeps running');
+    assert.ok(lifecycle.DEFAULT_STUCK_MINUTES >= 5 && lifecycle.DEFAULT_STUCK_MINUTES <= 30,
+        'well above the one-minute heartbeat, short enough that a dead run is retried within minutes');
     await pg.exec(`DELETE FROM transcriptions WHERE id = '${id}'`);
+});
+
+test('claim: a silent claim (its pod died) is taken over by Retry, a live one is not', async () => {
+    const { id } = await store.createTranscription({ userId: 'alice', title: 'Pod gone', status: 'completed', summary: 'Kept.' });
+    assert.strictEqual(await store.claimForProcessing(id, 'alice'), true);
+    assert.strictEqual(await store.claimForProcessing(id, 'alice'), false, 'a fresh claim stays exclusive');
+    await ageBy(id, lifecycle.DEFAULT_STUCK_MINUTES + 1);
+    assert.strictEqual(await store.claimForProcessing(id, 'bob'), false, 'only the owner');
+    assert.strictEqual(await store.claimForProcessing(id, 'alice', { stuckMinutes: 0 }), false, 'no takeover with the reaper off');
+    assert.strictEqual(await store.claimForProcessing(id, 'alice'), true, 'the silent claim is taken over');
+    assert.strictEqual(await store.claimForProcessing(id, 'alice'), false, 'and is exclusive again');
+    await pg.exec(`DELETE FROM transcriptions WHERE id = '${id}'`);
+});
+
+test('shutdown: failInterruptedRuns fails only the given runs that are still processing, keeping a summary', async () => {
+    const run1 = await store.createTranscription({ userId: 'alice', title: 'Upload', status: 'processing' });
+    const run2 = await store.createTranscription({ userId: 'alice', title: 'Reprocess', status: 'completed', summary: 'Old summary.' });
+    assert.strictEqual(await store.claimForProcessing(run2.id, 'alice'), true);
+    const other = await store.createTranscription({ userId: 'alice', title: 'Another pod', status: 'processing' });
+    const done = await store.createTranscription({ userId: 'alice', title: 'Done', status: 'completed' });
+
+    assert.strictEqual(await store.failInterruptedRuns([run1.id, run2.id, done.id]), 2);
+    assert.deepStrictEqual(await rawRow(run1.id), { ...(await rawRow(run1.id)), status: 'failed', summary: lifecycle.REAPED_REASON });
+    assert.strictEqual((await rawRow(run2.id)).summary, 'Old summary.');
+    assert.strictEqual((await rawRow(run2.id)).status, 'failed');
+    assert.strictEqual((await rawRow(other.id)).status, 'processing', 'a run of another process is left alone');
+    assert.strictEqual((await rawRow(done.id)).status, 'completed');
+    assert.strictEqual(await store.failInterruptedRuns([]), 0);
+    await pg.exec(`DELETE FROM transcriptions WHERE id IN ('${run1.id}','${run2.id}','${other.id}','${done.id}')`);
 });
 
 test('reaper: a silent run past the threshold fails WITH a reason, and an old summary is kept', async () => {

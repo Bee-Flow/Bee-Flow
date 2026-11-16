@@ -158,6 +158,7 @@ const LOCAL_CACHE_ENABLED = process.env.SAVED_AUDIO_LOCAL_CACHE !== 'false';
  * @param {{audioPath?: string, audioStorageKey?: string}} note
  * @returns {Promise<{path: string|null, cleanup?: () => void, fromStorage?: boolean, cached?: boolean, reason?: string}>}
  *   reason ∈ 'never_durable' (terminal) | 'storage_unavailable' (retryable) | 'fetch_failed' (terminal)
+ *     | 'local_write_failed' (this pod's disk took neither the note's slot nor a temp file)
  */
 async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
     if (audioPath) {
@@ -178,43 +179,99 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
     // Restore into the note's own local slot when we can, so the next play is
     // served from disk with full Range support.
     const cacheable = LOCAL_CACHE_ENABLED && insideSavedDir(audioPath);
+    const ext = path.extname(audioStorageKey) || '.audio';
+    if (cacheable) {
+        const cached = await fetchToLocal(storageStore, audioStorageKey, /** @type {string} */ (audioPath), ext);
+        // A local disk that will not take the file (a fresh pod, a full or
+        // read-only volume) says nothing about object storage: the temp file
+        // below still gets the meeting reprocessed.
+        if (cached.result || !cached.localError) return cached.result || cached.failure;
+        log.warn('[SavedAudio] Cannot cache the restored recording locally, using a temp file:', cached.localError);
+    }
+    const tmp = await fetchToLocal(storageStore, audioStorageKey, null, ext);
+    return tmp.result || (tmp.localError ? { path: null, reason: 'local_write_failed' } : tmp.failure);
+}
+
+/**
+ * Errors of THIS pod's filesystem (no such directory, no permission, disk
+ * full), as opposed to errors of object storage. Reporting them as
+ * `storage_unavailable` told the user to wait a minute for an outage that did
+ * not exist, and every retry on the same pod failed the same way.
+ * @param {unknown} e
+ */
+function isLocalFsError(e) {
+    const err = /** @type {{ syscall?: unknown, code?: unknown } | null} */ (e);
+    if (!err) return false;
+    return typeof err.syscall === 'string' || ['ENOENT', 'EACCES', 'EPERM', 'ENOSPC', 'EROFS', 'EDQUOT'].includes(String(err.code));
+}
+
+/**
+ * Stream one object to local disk: into `audioPath` (the note's own slot,
+ * atomically through a `.part` file) or, with `audioPath` null, into a temp
+ * file that cleanup() removes.
+ * @param {{ streamFile(key: string): Promise<{ stream: NodeJS.ReadableStream }> }} storageStore
+ * @param {string} audioStorageKey
+ * @param {string | null} audioPath
+ * @param {string} ext
+ * @returns {Promise<{ result?: {path: string, cleanup: () => void, fromStorage: boolean, cached: boolean}, failure?: {path: null, reason: string}, localError?: string }>}
+ */
+async function fetchToLocal(storageStore, audioStorageKey, audioPath, ext) {
     // Millisecond-only entropy collides: two replicas resolving the same note in
     // the same tick wrote to one path and each unlinked it from under the other.
-    const ext = path.extname(audioStorageKey) || '.audio';
-    const dest = cacheable
+    const dest = audioPath
         ? `${audioPath}.${crypto.randomUUID()}.part`
         : path.join(os.tmpdir(), `saved-audio-${crypto.randomUUID()}${ext}`);
-
+    // Which side failed decides the answer: our disk, or object storage.
+    let localStep = true;
+    /** @type {'storage' | 'disk' | null} */
+    let failedSide = null;
     try {
+        // The directory FIRST: on a pod that just started, saved-recordings/
+        // does not exist yet, and the write of the `.part` file next to the
+        // note's slot failed with ENOENT before the mkdir that came after it.
+        await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+        localStep = false;
         const { stream } = await storageStore.streamFile(audioStorageKey);
+        const out = fs.createWriteStream(dest);
+        // pipeline() destroys BOTH ends with the first error, so only the
+        // side that errs first tells us where it came from.
+        stream.once('error', () => { failedSide ??= 'storage'; });
+        out.once('error', () => { failedSide ??= 'disk'; });
         // `pipeline` destroys both ends on error; the hand-rolled promise left
         // the write stream open and, more importantly, left a partial file
         // behind — a failed fetch leaked a multi-megabyte temp file on every
         // attempt, and reprocess retries in a loop.
-        await streamPipeline(stream, fs.createWriteStream(dest));
+        await streamPipeline(stream, out);
+        localStep = true;
 
-        if (cacheable) {
-            await fs.promises.mkdir(path.dirname(audioPath), { recursive: true });
+        if (audioPath) {
             // Atomic: a concurrent reader never sees a half-written file.
             await fs.promises.rename(dest, audioPath);
             // 🔴 cleanup MUST be a no-op here. Reprocess calls it unconditionally
             // in its `finally`; deleting would throw away the copy we just
             // restored and put the note straight back into the broken state.
-            return { path: audioPath, cleanup: () => {}, fromStorage: true, cached: true };
+            return { result: { path: audioPath, cleanup: () => {}, fromStorage: true, cached: true } };
         }
         return {
-            path: dest,
-            cleanup: () => { try { fs.unlinkSync(dest); } catch (err) { ignoreGone('meetingNotes/savedAudioStore:cleanup', err); } },
-            fromStorage: true,
-            cached: false,
+            result: {
+                path: dest,
+                cleanup: () => { try { fs.unlinkSync(dest); } catch (err) { ignoreGone('meetingNotes/savedAudioStore:cleanup', err); } },
+                fromStorage: true,
+                cached: false,
+            },
         };
     } catch (e) {
         try { await fs.promises.unlink(dest); } catch (err) { bestEffort('core/meetingNotes/savedAudioStore:resolveSavedAudio#2', err); /* never created */ }
-        log.error('[SavedAudio] Object-storage fetch failed:', /** @type {Error} */ (e).message);
+        const message = /** @type {Error} */ (e).message;
+        // The mkdir, the write or the rename: our disk, not object storage.
+        if ((localStep || failedSide === 'disk') && isLocalFsError(e)) {
+            return { localError: message };
+        }
+        log.error('[SavedAudio] Object-storage fetch failed:', message);
         // A key that exists but will not fetch means RustFS lost the object —
         // terminal, and worth noticing separately from an outage.
-        const notFound = e && (/** @type {Error} */ (e).name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404);
-        return { path: null, reason: notFound ? 'fetch_failed' : 'storage_unavailable' };
+        const notFound = e && (/** @type {Error} */ (e).name === 'NoSuchKey' || /** @type {{ $metadata?: { httpStatusCode?: number } }} */ (e).$metadata?.httpStatusCode === 404);
+        return { failure: { path: null, reason: notFound ? 'fetch_failed' : 'storage_unavailable' } };
     }
 }
 

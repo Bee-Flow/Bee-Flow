@@ -220,6 +220,62 @@ test('no .part leftovers after a failed fetch', async () => {
     assert.deepStrictEqual(leftovers, [], 'a partial write must be cleaned up');
 });
 
+test('a note slot whose directory does not exist yet (a pod that just started) is created, not reported as a storage outage', async () => {
+    const freshDir = path.join(SAVED_DIR, `fresh-pod-${Date.now()}`);
+    const target = path.join(freshDir, 'x.aac');
+    fx.objects.set('saved-recordings/x.aac', Buffer.from('durable-bytes'));
+    try {
+        const res = await store.resolveSavedAudio({ audioPath: target, audioStorageKey: 'saved-recordings/x.aac' });
+        assert.strictEqual(res.reason, undefined, 'the restore must succeed');
+        assert.strictEqual(res.path, target);
+        assert.strictEqual(fs.readFileSync(target, 'utf8'), 'durable-bytes');
+    } finally {
+        fs.rmSync(freshDir, { recursive: true, force: true });
+    }
+});
+
+test('a local disk that refuses the note slot falls back to a temp file instead of storage_unavailable', async (t) => {
+    const target = path.join(SAVED_DIR, 'disk-refuses.webm');
+    fx.objects.set('saved-recordings/disk-refuses.webm', Buffer.from('durable-bytes'));
+    const realMkdir = fs.promises.mkdir;
+    t.after(() => { fs.promises.mkdir = realMkdir; });
+    fs.promises.mkdir = async (dir, opts) => {
+        if (path.resolve(String(dir)).startsWith(SAVED_DIR)) throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES', syscall: 'mkdir' });
+        return realMkdir(dir, opts);
+    };
+    const res = await store.resolveSavedAudio({ audioPath: target, audioStorageKey: 'saved-recordings/disk-refuses.webm' });
+    assert.ok(res.path, `expected a path, got reason ${res.reason}`);
+    assert.strictEqual(res.cached, false);
+    assert.strictEqual(fs.readFileSync(res.path, 'utf8'), 'durable-bytes');
+    res.cleanup();
+});
+
+test('a disk that takes neither the slot nor a temp file is local_write_failed, not storage_unavailable', async (t) => {
+    fx.objects.set('saved-recordings/no-disk.webm', Buffer.from('durable-bytes'));
+    const realMkdir = fs.promises.mkdir;
+    t.after(() => { fs.promises.mkdir = realMkdir; });
+    fs.promises.mkdir = async () => { throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC', syscall: 'mkdir' }); };
+    const res = await store.resolveSavedAudio({ audioPath: path.join(SAVED_DIR, 'no-disk.webm'), audioStorageKey: 'saved-recordings/no-disk.webm' });
+    assert.strictEqual(res.path, null);
+    assert.strictEqual(res.reason, 'local_write_failed');
+});
+
+test('a network error while streaming stays storage_unavailable even though it carries a syscall', async () => {
+    fx.objects.set('saved-recordings/reset.webm', Buffer.from('x'));
+    const realStream = fx.streamError;
+    const failing = new Readable({ read() { this.destroy(Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET', syscall: 'read' })); } });
+    const storage = require('../../stores/storageStore');
+    const realStreamFile = storage.streamFile;
+    storage.streamFile = async () => ({ stream: failing });
+    try {
+        const res = await store.resolveSavedAudio({ audioPath: path.join(SAVED_DIR, 'reset.webm'), audioStorageKey: 'saved-recordings/reset.webm' });
+        assert.strictEqual(res.reason, 'storage_unavailable');
+    } finally {
+        storage.streamFile = realStreamFile;
+        fx.streamError = realStream;
+    }
+});
+
 // ── repairSavedAudio ─────────────────────────────────────────────────────────
 
 test('repair uploads the local file and fills the missing key', async () => {

@@ -34,6 +34,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice } = require('./schemas');
 const { envInt } = require('../../utils/envNumber.mts');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { trackProcessing } = require('../../core/meetingNotes/processingRuns.mts');
 
 // ── What an upload may carry ───────────────────────────────────────
 //
@@ -177,6 +178,8 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
     // Once the 'processing' note is created and the 202 sent, transcriptionId is
     // set and all further outcomes are written to the note, not the HTTP response.
     let transcriptionId = null;
+    // The heartbeat on a timer and the shutdown list, once the note exists.
+    let stopTracking = () => {};
     const dropScratch = () => {
         try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
     };
@@ -238,6 +241,7 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
             return answerRepeat(processingNote);
         }
         transcriptionId = processingNote.id;
+        stopTracking = trackProcessing(transcriptionId);
         // Members see the note appear (still processing) the moment it exists.
         if (projectId) await meetingFiling.announce(projectId, userId, transcriptionId);
         // What we just wrote. The AI title lands minutes later, and the note is
@@ -269,6 +273,8 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         dropScratch();
         const failure = await recordUploadFailure(transcriptionId, userId, err, res);
         if (failure) throw failure;
+    } finally {
+        stopTracking();
     }
 });
 
