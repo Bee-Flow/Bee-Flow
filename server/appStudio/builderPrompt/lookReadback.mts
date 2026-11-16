@@ -38,6 +38,8 @@ function specs(): Specs {
 
 /** Keys the section line already prints (`padding= gap= bg=`). */
 const SECTION_SHOWN = new Set(['padding', 'gap', 'background']);
+/** The design key of the app's own stylesheet: read back by size, never as a cut excerpt. */
+const CUSTOM_CSS = 'customCss';
 const MAX_VALUE = 40;
 /** A plain token may be a little longer: an `asset:<uuid>` ref (42 characters) stays whole and usable. */
 const MAX_TOKEN = 48;
@@ -140,8 +142,12 @@ export function designLine(design: unknown): string | null {
     const bits = offDefault(
         design,
         (key) => (spec[key] && Object.prototype.hasOwnProperty.call(spec[key], 'default') ? spec[key].default : null),
-        () => false,
+        (key) => key === CUSTOM_CSS,
     );
+    // The stylesheet is never cut to a 40-character excerpt: a cut one reads as the whole and gets
+    // overwritten. Its size and where to read it whole instead.
+    const css = design[CUSTOM_CSS];
+    if (typeof css === 'string' && css) bits.push(`${CUSTOM_CSS}=<${css.length} chars; read it whole with app_get_draft {section:"meta"}>`);
     return bits.length ? `design ${bits.join(' ')}` : null;
 }
 

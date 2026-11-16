@@ -23,8 +23,25 @@ const PLAN_LIMITS = {
     TITLE: 120, SUMMARY: 400, PURPOSE: 200, DESC: 200, LABEL: 80, STR: 120,
     MAX_TABLES: 20, MAX_FIELDS: 40, MAX_ROLES: 20, MAX_SCREENS: 30,
     MAX_OPTIONS: 40, MAX_CONTENTS: 30, MAX_DATASETS: 20, MAX_ACTIONS: 40,
-    MAX_PHASES: 12, MAX_QUESTIONS: 12, MAX_SEED: 50,
+    MAX_PHASES: 12, MAX_QUESTIONS: 12, MAX_SEED: 50, MAX_MOVES: 20, MOVE: 160,
 };
+
+/**
+ * The regrouping of an existing screen (a redesign plan): [{ from, to }] with both texts, capped;
+ * undefined when none is usable.
+ */
+function boundMoves(v) {
+    if (!Array.isArray(v)) return undefined;
+    const L = PLAN_LIMITS;
+    /** @type {Array<{ from: string; to: string }>} */
+    const out = [];
+    for (const m of v.slice(0, L.MAX_MOVES)) {
+        const from = capStr(m?.from, L.MOVE);
+        const to = capStr(m?.to, L.MOVE);
+        if (from && to) out.push({ from, to });
+    }
+    return out.length ? out : undefined;
+}
 
 /**
  * Validate + bound a plan artifact from app_propose_plan args into a compact,
@@ -80,13 +97,14 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.screens)) {
         const screens = args.screens.slice(0, L.MAX_SCREENS).map((s) => {
-            /** @type {{ name?: string; icon?: string; purpose?: string; contents?: string[]; forRoles?: string[] }} */
+            /** @type {{ name?: string; icon?: string; purpose?: string; contents?: string[]; forRoles?: string[]; moves?: Array<{ from: string; to: string }> }} */
             const row = {};
             const n = capStr(s?.name, L.STR); if (n) row.name = n;
             const ic = capStr(s?.icon, L.STR); if (ic) row.icon = ic;
             const p = capStr(s?.purpose, L.PURPOSE); if (p) row.purpose = p;
             const contents = capStrArray(s?.contents, L.MAX_CONTENTS, L.STR); if (contents) row.contents = contents;
             const forRoles = capStrArray(s?.forRoles, L.MAX_ROLES, L.STR); if (forRoles) row.forRoles = forRoles;
+            const moves = boundMoves(s?.moves); if (moves) row.moves = moves;
             return row;
         }).filter((s) => s.name);
         if (screens.length) plan.screens = screens;
@@ -129,6 +147,9 @@ function boundPlanArtifact(args) {
 
     const openQuestions = capStrArray(args.openQuestions, L.MAX_QUESTIONS, L.SUMMARY);
     if (openQuestions) plan.openQuestions = openQuestions;
+    // The attached picture does not travel past the plan turn; its description does.
+    const imageNotes = capStr(args.imageNotes, L.SUMMARY);
+    if (imageNotes) plan.imageNotes = imageNotes;
     const baseTemplateId = capStr(args.baseTemplateId, L.STR);
     if (baseTemplateId) plan.baseTemplateId = baseTemplateId;
     const design = boundPlanDesign(args.design);

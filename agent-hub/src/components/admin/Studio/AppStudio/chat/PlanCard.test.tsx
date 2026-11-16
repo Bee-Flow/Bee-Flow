@@ -226,3 +226,21 @@ describe('PlanCard — every edit survives the server-side bounding', () => {
         expect(out.tables[0].key).toBeTruthy();
     });
 });
+
+describe('PlanCard redesign moves (screens[].moves)', () => {
+    const moves = [{ from: 'Loose filters at the top', to: 'One Filters card above the list' }];
+
+    it('shows each move under its screen and approves them with the plan, kept by the server', async () => {
+        const onBuild = vi.fn();
+        const plan = { ...PLAN.plan, screens: [{ name: 'Dashboard', purpose: 'Overview', contents: [], moves }] };
+        render(<PlanCard pendingPlan={{ planId: 'pl-moves', plan }} onBuild={onBuild} onDiscuss={vi.fn()} />);
+        expect(screen.getByText('Loose filters at the top → One Filters card above the list')).toBeInTheDocument();
+        await userEvent.click(screen.getByText('Build it'));
+        expect(approved(JSON.parse(JSON.stringify(onBuild.mock.calls[0][0]))).screens[0].moves).toEqual(moves);
+    });
+
+    it('shows no move list for a screen without moves', () => {
+        const { container } = render(<PlanCard pendingPlan={PLAN} onBuild={vi.fn()} onDiscuss={vi.fn()} />);
+        expect(container.querySelector('[data-plan-moves]')).toBeNull();
+    });
+});

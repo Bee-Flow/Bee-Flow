@@ -61,5 +61,7 @@
     "app_set_record_trigger",
     "app_set_shell",
     "app_set_trigger",
-    "app_update_step"
+    "app_unwrap_node",
+    "app_update_step",
+    "app_wrap_nodes"
 ]

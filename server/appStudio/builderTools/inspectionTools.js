@@ -207,7 +207,13 @@ function applyGetDraft(draftWrap, args = {}) {
     const extras = section === 'tables'
         ? { dataModel: draftWrap.dataModel ?? null, datasets: draftWrap.datasetIds, rowCounts: draftWrap.rowCounts }
         : {};
-    return { draft: renderDraftState(draftWrap.def, extras, { screenId, section }) };
+    /** @type {{ draft: string, customCss?: string }} */
+    const out = { draft: renderDraftState(draftWrap.def, extras, { screenId, section }) };
+    // The tree shows the app's stylesheet by size only; the meta read returns it whole, so a
+    // change to it starts from what is really there (app_set_theme customCssEdits).
+    const css = draftWrap.def?.design?.customCss;
+    if (section === 'meta' && typeof css === 'string' && css) out.customCss = css;
+    return out;
 }
 
 // ── app_inspect_catalog ──────────────────────────────────────────────

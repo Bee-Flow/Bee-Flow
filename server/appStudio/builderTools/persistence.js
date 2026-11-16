@@ -71,6 +71,7 @@ async function applyFinalize(draftWrap) {
         dataModel: draftWrap.dataModel,
         datasets: draftWrap.datasetIds,
         datatables,
+        layoutHygiene: true,
     }));
     if (!validation.ok) {
         return {

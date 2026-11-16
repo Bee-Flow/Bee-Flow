@@ -35,3 +35,15 @@ test('sanitizeEditorContext whitelists, bounds and rejects junk', () => {
     // oversized scalar ids dropped
     assert.strictEqual(sanitizeEditorContext({ screenId: 'x'.repeat(65) }), null);
 });
+
+test('the approved-plan note names the moves and the image notes only for a plan that carries them', () => {
+    const { renderApprovedPlanNote } = require('./turnNotes');
+    const plain = renderApprovedPlanNote({ title: 'T', screens: [{ name: 'Home' }] });
+    assert.doesNotMatch(plain, /moves|imageNotes/);
+    const redesign = renderApprovedPlanNote({
+        title: 'T', imageNotes: 'A cluttered home screen with loose filters.',
+        screens: [{ name: 'Home', moves: [{ from: 'Loose filters at the top', to: 'One Filters card' }] }],
+    });
+    assert.match(redesign, /`moves` are the regrouping the user approved: shoot each screen first \(app_screenshot\)/);
+    assert.match(redesign, /`imageNotes` say what the picture the user attached showed/);
+});

@@ -380,6 +380,7 @@ function validateAfterMutation(turn, ctx, ls) {
         dataModel: draftWrap.dataModel,
         datasets: draftWrap.datasetIds,
         datatables: draftWrap._ownerDatatables,
+        layoutHygiene: true,
     });
     send('validation_errors', { errors: turn.lastValidation.errors, warnings: turn.lastValidation.warnings });
     if (/** @type {unknown[]} */ (turn.lastValidation.errors).length) { // the validator always lists its errors

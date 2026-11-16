@@ -52,6 +52,11 @@ export const ASK_FIRST_RULE = 'On a NEW app (the draft has no real screens or co
 // Build it right away must not stall on a question round.
 export const ONE_QUESTION_RULE = 'Ask at most ONE question with app_ask_questions, and only when nothing can be built without its answer; otherwise build on the most likely reading and say what you assumed.';
 
+// A redesign plan written from the tree alone regroups what the model imagines, not what the user
+// sees; and a plan without the regrouping in it gets approved for something else (2026-11-16).
+export const REDESIGN_RULE = 'On an EXISTING app asked to change its layout or look ("more logical", "chaotic", "cluttered"), look first: app_screenshot of the screen concerned plus its tree (app_get_draft {screenId}). '
+    + 'Then propose the regrouping with app_propose_plan: per screen its `moves` (what is where now → where it goes), one card per task, structure rather than stylesheet.';
+
 export const DESCRIBE_RULE = 'DESCRIBE IT: the person describes in their own words what the app should do and has no technical background. '
     + `Ask at most ${DESCRIBE_QUESTIONS} questions. Talk in their language and in everyday words, in your messages and in the plan alike: no ids, tool names, component type names, bindings, field keys or JSON.`;
 
@@ -92,7 +97,7 @@ export function workModeDirective({ mode, approved, fresh, closed }: DirectiveIn
         const limit = questionLimit(mode, false);
         const ask = closed
             ? 'Your question round for this plan is spent. Do not ask again: call app_propose_plan now and list what is still open as assumptions in the plan summary.'
-            : `${fresh ? `${ASK_FIRST_RULE} ` : ''}If something essential is unclear, ask ALL your questions in ONE app_ask_questions call (at most ${limit}); you get one question round for this plan. Otherwise go straight to app_propose_plan. ${QUESTIONS_RULE}`;
+            : `${fresh ? `${ASK_FIRST_RULE} ` : `${REDESIGN_RULE} `}If something essential is unclear, ask ALL your questions in ONE app_ask_questions call (at most ${limit}); you get one question round for this plan. Otherwise go straight to app_propose_plan. ${QUESTIONS_RULE}`;
         return `${mode === 'describe' ? 'DESCRIBE IT, plan first' : 'PLAN FIRST'}. Nothing is built in this turn: read the draft and the catalog if needed, then end the turn with exactly one of app_ask_questions or app_propose_plan. ${ask}${everyday}`;
     }
     return closed

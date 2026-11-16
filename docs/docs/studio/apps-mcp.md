@@ -72,9 +72,11 @@ with `{ family: "<family>" }`, before it uses it. Besides the tools above there 
 `app_set_shell` (the navigation style, brand, header, links and footer), `app_update_step`
 (change one step of an action by its path), `app_set_trigger`, `app_set_record_trigger` and
 `app_remove_trigger` (see [Server runs and triggers](./apps-server-runs.md)), `app_move_section`,
-`app_remove_section`, `app_reorder_screens`, `app_remove_dataset` and `app_list_assets` (the
-files uploaded to the app). `app_set_theme` also takes tokens, a dark palette, fonts per role
-and a stylesheet.
+`app_remove_section`, `app_reorder_screens`, `app_wrap_nodes` and `app_unwrap_node` (put
+components in one new card or container, or take such a box away and keep its contents),
+`app_remove_dataset` and `app_list_assets` (the files uploaded to the app). `app_set_theme` also
+takes tokens, a dark palette, fonts per role and a stylesheet; `customCssEdits` changes part of the
+stylesheet, and `app_get_draft { section: "meta" }` returns it whole.
 
 An agent cannot create a REST connector, read or set a webhook's address or signing secret,
 set the hosts a link may open, switch on server steps, or add watchers: the owner does that

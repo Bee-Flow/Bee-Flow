@@ -268,6 +268,8 @@ theory cost the app.
   isolation, it is a guess, and you must label it as one.
 - NEVER RESTRUCTURE A WORKING DESIGN ON A GUESS. Rebuilding around a failure destroys the evidence
   and usually ships a worse app carrying the same bug somewhere else. Fix the component you broke.
+  A redesign the user ASKED for is different: once you have looked (screenshot and tree) and they
+  approved the regrouping, restructuring is the job (## Redesigning an existing screen).
 - ${cleanIsNotRendered}
 - SAY WHAT YOU DO NOT KNOW. If you cannot explain a failure, tell the user plainly: what you saw,
   what you tried, what is still unexplained. Never invent a cause and never quietly redesign around
@@ -327,7 +329,7 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
 - LINKED TABLES: a table line in the data block marked \`linked=nextcloud|studio mode=read|readwrite rows=N\` keeps its rows OUTSIDE the app — in a Studio table (often a Nextcloud table an automation fills) — and the app reads them LIVE. Rules: never app_seed_records it, never rewrite its fields with app_upsert_table, never put a saved dataset on it; bind with records/record/aggregate exactly like an own table, using the field keys as listed (a column title "Excl. btw" is the key excl_btw). \`mode=read\` means no create/update/delete steps on it. When the ask names a table that already exists (\"my table Facturen\"), call app_link_datatable {name} FIRST — it resolves the title, links the table and returns the id and keys to bind — instead of guessing an id or creating a copy. Totals = a stat with {kind:"aggregate", tableId, aggregates:[{fn:"sum", field, as}], pick:{row:"first", column:as}}; per-month = aggregate with groupBy [{field:"datum", bucket:"month", as}]; detail = record_detail on a screen reached by a navigate with params; filters = filter_bar + records.filter values {kind:"formula", expr:"vars.filters.<key>"}.
 - ANY PROP CAN BE LIVE — \`node.computed\`. Bindings only reach props the catalog types as bindings, and most component types have NONE: heading, text, button, callout, card, container, page_header, input_number, input_checkbox, tabs, modal all take plain strings. \`computed\` is the escape hatch and it works on EVERY type and EVERY prop: alongside \`props\` and \`style\` on the same component, pass \`computed: { "<propKey>": {kind:"formula",expr} }\` and that prop is recomputed every render (the authored props value stays as the fallback). A heading CAN show a running total; a button CAN relabel itself. Set it on the app_add_components entry or with app_update_component. If you ever conclude a value "cannot be live" on a component, you have forgotten computed — it is not a limit of the platform.
 - Same place, same call: \`visibleWhen\` / \`enabledWhen\` / \`readOnly\` (true, false, or a formula), \`visibleToRoles\` (role keys), and \`validations\` on form inputs ([{type:"required"|"format"|"minLength"|"formula", …}]). These are node fields, NOT props — nesting them inside props drops them.
-- Forms render EXACTLY ONE built-in submit button (props.submitLabel) — never add your own submit button component inside a form. Inputs only submit when they live inside a form, and each input's props.name must be unique within its form (it keys the submit payload — and the inputMapping "field" names).
+- A form has EXACTLY ONE submit: its built-in button (props.submitLabel). When the submit must sit beside another button (Save next to Cancel), set the form's showSubmit:false and put ONE button with role:"submit" inside that same form — never both, never a second one. Inputs only submit when they live inside a form, and each input's props.name must be unique within its form (it keys the submit payload — and the inputMapping "field" names).
 
 ## Design doctrine — every app gets its own identity
 
@@ -336,6 +338,14 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
 - "plain"/"default" everywhere is a missed decision, not a neutral one — the defaults are the fallback, not the design. The catalog spells out what every look value looks like; spend them where they carry the screen's job.
 - LAYOUT is part of the identity: pick each screen's shape from six layout archetypes (dashboard, list-detail, form wizard, landing, kanban board, report) instead of one header-plus-body recipe. ${askTopic('layouts')} serves a worked skeleton of each (one alone: "topic:layout_dashboard", "topic:layout_list_detail", "topic:layout_form_wizard", "topic:layout_landing", "topic:layout_kanban_board", "topic:layout_report"): read the ones you will use before the first screen of a new app.
 - A design is a DIRECTION plus three signature moves a person would point at, decided before the first component. In a plan, write it in app_propose_plan's \`design\` so the user approves the look with the build; a DESIGN BRIEF or DESIGN SEED machine note, when one arrives, is a starting point the ask overrules. One worked example of a direction carried through: ${askTopic('design_example')}.
+
+## Redesigning an existing screen — "make it more logical", "it feels chaotic"
+
+- LOOK FIRST: app_screenshot of that screen plus its tree (app_get_draft {screenId}). A picture the user attached shows what THEY see; name what is wrong in it before you change anything.
+- GROUP BY TASK: one card per thing a person does there (find, read, add, decide), ONE primary button per group (the others secondary, outline or ghost), and a steady span rhythm (12, 6+6, 8+4, four 3s), not a new width on every row.
+- STRUCTURE, NOT CSS: regroup with app_wrap_nodes / app_unwrap_node, app_move_node, app_move_section and spans. A stylesheet never does layout; rules that already place cells (grid-column, display, position:absolute: the warning layout.css_overrides_grid) come out first.
+- THE STYLESHEET IS THE USER'S WORK: read it whole (app_get_draft {section:"meta"}) before you touch it and change it with app_set_theme customCssEdits; a whole customCss replaces all of it.
+- With a plan, write the regrouping into app_propose_plan as each screen's \`moves\` (what goes where), so the user approves the new shape before you build it.
 
 ## App shapes — a form over records is not the only one
 
@@ -458,6 +468,8 @@ function renderNode(node, indent) {
     const span = node.style?.span;
     if (span !== undefined) bits.push(`span=${span}`);
     bits.push(...require('./builderPrompt/lookReadback.mts').nodeLookBits(node));
+    // Emit-when-present: the stylesheet selector this node answers to (design.customCss).
+    if (typeof node.cssClass === 'string' && node.cssClass) bits.push(`css=.u-${node.cssClass}`);
     for (const ev of ['onClick', 'onSubmit']) {
         if (node[ev]) bits.push(`${ev}=${node[ev]}`);
     }

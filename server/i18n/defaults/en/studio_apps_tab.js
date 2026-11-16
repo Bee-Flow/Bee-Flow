@@ -14,5 +14,7 @@ module.exports = {
     "studio_apps_tab.act_run_action": "Test-ran an action",
     "studio_apps_tab.act_run_tests": "Ran the tests",
     "studio_apps_tab.act_save_test": "Saved a test",
+    "studio_apps_tab.act_unwrap_node": "Ungrouped components",
     "studio_apps_tab.act_update_step": "Changed a step",
+    "studio_apps_tab.act_wrap_nodes": "Grouped components",
 };

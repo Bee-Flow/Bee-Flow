@@ -9,7 +9,9 @@
     "studio_apps_tab.act_run_action": "Een actie proefgedraaid",
     "studio_apps_tab.act_run_tests": "De tests gedraaid",
     "studio_apps_tab.act_save_test": "Een test opgeslagen",
-    "studio_apps_tab.act_update_step": "Een stap gewijzigd"
+    "studio_apps_tab.act_unwrap_node": "Componenten uit hun groep gehaald",
+    "studio_apps_tab.act_update_step": "Een stap gewijzigd",
+    "studio_apps_tab.act_wrap_nodes": "Componenten gegroepeerd"
   },
   "sameAsEnglish": []
 }
