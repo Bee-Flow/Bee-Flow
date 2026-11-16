@@ -78,6 +78,12 @@ function makeHarness(over = {}) {
         getTemplates: async () => [{ id: 'tpl_1', name: 'Landing', blocks: [{}, {}] }],
         setSiteLocaleOverride: async (...a) => { calls.live.push(['site-override', ...a]); },
         setPageLocaleOverride: async (...a) => { calls.live.push(['page-override', ...a]); },
+        mergePageLocaleOverride: async (...a) => {
+            const unknown = Object.keys(a[3].blocks || {}).filter((id) => !['blk_a', 'blk_b'].includes(id));
+            if (unknown.length) throw Object.assign(new Error('unknown block'), { code: 'UNKNOWN_BLOCK', blockIds: unknown, knownBlockIds: ['blk_a', 'blk_b'] });
+            calls.live.push(['page-override-merge', ...a]);
+            return { blocks: a[3].blocks || {} };
+        },
         getPage: async () => null,
         deleteSiteLocaleOverride: async () => {},
         deletePageLocaleOverride: async () => {},
@@ -473,6 +479,46 @@ test('cms_set_locale_override rejects page block translations that are not under
     const ok = await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', override: { blocks: { blk_a: { content: { title: 'Hallo' } } }, seo: { metaTitle: 'Hallo' } } });
     assert.equal(JSON.parse(textOf(ok)).saved, true);
     assert.equal(calls.live[0][0], 'page-override');
+});
+
+test('cms_set_locale_override merge:true sends only the given blocks to the merging store call', async () => {
+    const { mcp, calls } = makeHarness();
+    const ctx = ctxOf(FULL);
+    const patch = { blocks: { blk_b: { content: { title: 'B-nl' } } } };
+    const out = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', merge: true, override: patch })));
+    assert.equal(out.saved, true);
+    assert.equal(out.merged, true);
+    assert.deepEqual(calls.live, [['page-override-merge', SITE, 'pg_1', 'nl', patch]]);
+});
+
+test('cms_set_locale_override merge:true still validates the block shape', async () => {
+    const { mcp, calls } = makeHarness();
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', merge: true, override: { blocks: { blk_a: { title: 'x' } } } });
+    assert.equal(res.result.isError, true);
+    assert.equal(calls.live.length, 0);
+});
+
+test('cms_set_locale_override merge:true rejects a block id that is not on the page', async () => {
+    const { mcp, calls } = makeHarness();
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', merge: true, override: { blocks: { blk_zzz: { content: { title: 'x' } } } } });
+    assert.equal(res.result.isError, true);
+    assert.match(textOf(res), /blk_zzz/);
+    assert.match(textOf(res), /blk_a/);
+    assert.equal(calls.live.length, 0);
+});
+
+test('cms_set_locale_override merge:true is for the page scope only', async () => {
+    const { mcp, calls } = makeHarness();
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'nl', merge: true, override: { pageTitles: {} } });
+    assert.equal(res.result.isError, true);
+    assert.equal(calls.live.length, 0);
+});
+
+test('cms_set_locale_override without merge replaces the override as before', async () => {
+    const { mcp, calls } = makeHarness();
+    const override = { blocks: { blk_a: { content: { title: 'A' } } } };
+    await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', override });
+    assert.deepEqual(calls.live, [['page-override', SITE, 'pg_1', 'nl', override]]);
 });
 
 // ── sites, pages, templates, assets ──────────────────────────────────

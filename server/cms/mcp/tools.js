@@ -123,14 +123,15 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_set_locale_override',
-        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields and media addresses…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). The override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. Text and media: the media addresses of a block (`src`, `srcDark`, `poster`, `captionsSrc` anywhere under `content`, e.g. {content:{media:{src:"cms/nl-intro.mp4", poster:"cms/nl-poster.jpg"}}}) may differ per language; they must be uploaded asset keys (cms/…), /api/cms/asset/… paths or http(s) URLs, anything else is dropped. Structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
+        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields and media addresses…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). Without merge the override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. For a page, merge:true updates only what you send: send only the blocks you change; each block entry replaces that block\'s translation as a whole (no merge inside a block), blocks you leave out keep their translation, and seo is replaced only when you send it. Use merge for large pages (e.g. React component blocks) or to fix one block. Text and media: the media addresses of a block (`src`, `srcDark`, `poster`, `captionsSrc` anywhere under `content`, e.g. {content:{media:{src:"cms/nl-intro.mp4", poster:"cms/nl-poster.jpg"}}}) may differ per language; they must be uploaded asset keys (cms/…), /api/cms/asset/… paths or http(s) URLs, anything else is dropped. Structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
         parameters: {
             type: 'object',
             properties: {
                 siteId: SITE_ID_PROP,
                 locale: LOCALE_PROP,
                 pageId: { type: 'string', description: 'Omit for the site-level override (header/footer/page titles).' },
-                override: { type: 'object', description: 'The whole override object. Ignored when remove is true.' },
+                override: { type: 'object', description: 'The whole override object, or with merge:true only the blocks (and seo) to change. Ignored when remove is true.' },
+                merge: { type: 'boolean', description: 'Page scope only (pageId required): merge override.blocks into the stored override block by block instead of replacing it; each given block replaces that block\'s translation whole, other blocks are kept, seo is replaced only when given. A block id that is not on the page is rejected.' },
                 remove: { type: 'boolean', description: 'Delete the override for this language and scope.' },
             },
             required: ['locale'],

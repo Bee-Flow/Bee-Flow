@@ -45,7 +45,7 @@ const {
 const {
     isValidLocale, getDefaultLocale, setDefaultLocale,
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
-    getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
+    getPageLocaleOverride, setPageLocaleOverride, mergePageLocaleOverride, deletePageLocaleOverride,
     collectLocaleOverrides, pruneBlockLocaleOverrides,
 } = require('./cms/localeOverrides');
 const { saveTranslatedPageOverride, saveTranslatedSiteOverride } = require('./cms/translatedOverrides');
@@ -84,7 +84,7 @@ module.exports = {
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     // pages
     getPage, setPage, mutatePage, deletePage,
-    getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
+    getPageLocaleOverride, setPageLocaleOverride, mergePageLocaleOverride, deletePageLocaleOverride,
     saveTranslatedPageOverride, saveTranslatedSiteOverride,
     createPage, removePage, updatePageMeta, setHomepage, reorderPages,
     // page templates (global)

@@ -138,6 +138,47 @@ async function setPageLocaleOverride(siteId, pageId, locale, override) {
 }
 
 /**
+ * Merge a partial page override into the stored one for that language, under
+ * the page lock: each block in `patch.blocks` replaces that block's entry as a
+ * whole (no deep merge inside a block), blocks not named are kept, and
+ * `patch.seo` replaces the seo entry only when given. The merged result goes
+ * through the same sanitising as a full write. A block id that is not on the
+ * page throws an Error with code 'UNKNOWN_BLOCK' and nothing is written.
+ * @param {string} siteId
+ * @param {string} pageId
+ * @param {string} locale
+ * @param {Record<string, any>} patch  {blocks?: {<blockId>: {content: …}}, seo?: {…}}
+ */
+async function mergePageLocaleOverride(siteId, pageId, locale, patch) {
+    assertSiteId(siteId);
+    if (!pageId) throw new Error('pageId required');
+    assertLocale(locale);
+    if (!isPlainObject(patch)) throw new Error('Override must be an object');
+    const patchBlocks = isPlainObject(patch.blocks) ? patch.blocks : {};
+    return withConfigGroup(pageKey(siteId, pageId), async (io) => {
+        const page = await io.get(pageKey(siteId, pageId));
+        const known = (isPlainObject(page) && Array.isArray(page.blocks) ? page.blocks : [])
+            .map((b) => (isPlainObject(b) && typeof b.id === 'string' ? b.id : null))
+            .filter(Boolean);
+        const unknown = Object.keys(patchBlocks).filter((id) => !known.includes(id));
+        if (unknown.length) {
+            throw Object.assign(new Error(`Unknown block id(s) on page ${pageId}: ${unknown.slice(0, 10).join(', ')}`),
+                { code: 'UNKNOWN_BLOCK', blockIds: unknown, knownBlockIds: known });
+        }
+        const stored = await io.get(pageLocaleKey(siteId, pageId, locale));
+        const existing = isPlainObject(stored) ? stored : {};
+        const merged = {
+            blocks: { ...(isPlainObject(existing.blocks) ? existing.blocks : {}), ...patchBlocks },
+            seo: 'seo' in patch ? patch.seo : existing.seo,
+        };
+        const sanitized = sanitizePageOverride(merged);
+        limitReactOverrides(sanitized.blocks, page);
+        await io.set(pageLocaleKey(siteId, pageId, locale), sanitized);
+        return sanitized;
+    });
+}
+
+/**
  * A React component block translates its props and nothing else: its entry is
  * rebuilt from that allow-list, in place. Every writer of a page override calls
  * this under the page lock, with the page as stored.
@@ -222,7 +263,7 @@ async function pruneBlockLocaleOverrides(siteId, pageId, blockId) {
 module.exports = {
     isValidLocale, assertLocale, getDefaultLocale, setDefaultLocale,
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
-    getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
+    getPageLocaleOverride, setPageLocaleOverride, mergePageLocaleOverride, deletePageLocaleOverride,
     collectLocaleOverrides, pruneBlockLocaleOverrides, writeSiteAligned,
     sanitizeSiteOverride, sanitizePageOverride, limitReactOverrides,
 };
