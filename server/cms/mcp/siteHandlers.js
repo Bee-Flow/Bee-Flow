@@ -222,6 +222,24 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
         return { result: out };
     }
 
+    /**
+     * The merge mode of a page override; an unknown block id becomes a tool error.
+     * @param {string} siteId
+     * @param {string} pageId
+     * @param {string} locale
+     * @param {Record<string, any>} patch
+     */
+    async function mergePageOverride(siteId, pageId, locale, patch) {
+        try {
+            return { saved: await cmsStore.mergePageLocaleOverride(siteId, pageId, locale, patch) };
+        } catch (e) {
+            const x = /** @type {{ code?: string, blockIds?: string[], knownBlockIds?: string[] }} */ (e);
+            if (x?.code !== 'UNKNOWN_BLOCK') throw e;
+            const known = (x.knownBlockIds || []).slice(0, 50).join(', ') || 'none';
+            return { rejected: err(`Block(s) not on page "${pageId}": ${(x.blockIds || []).slice(0, 10).map((id) => id.slice(0, 60)).join(', ')}.`, { _fixHint: `Known block ids on this page: ${known}.` }) };
+        }
+    }
+
     /** @param {ToolArgs} args */
     async function setLocaleOverride(args) {
         const locale = String(args.locale || '').toLowerCase();
@@ -237,17 +255,24 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
             else await cmsStore.deleteSiteLocaleOverride(site.siteId, locale);
             return { result: { siteId: site.siteId, locale, pageId, removed: true } };
         }
+        const merge = args.merge === true;
+        if (merge && !pageId) return err('merge works for a page override only.', { _fixHint: 'Pass pageId with merge:true, or leave merge out and send the whole site-level override.' });
         if (!isPlainObject(args.override)) return err('override must be an object.', { _fixHint: 'Site level: {header, footer, pageTitles}. Page level: {blocks:{<blockId>:{content:{…}}}, seo:{metaTitle,metaDescription}}. Read the current one with cms_get_locale_overrides.' });
         if (JSON.stringify(args.override).length > OVERRIDE_MAX_CHARS) return err('The override is too large.');
         if (pageId) {
             const shapeError = blockOverrideShapeError(args.override.blocks);
             if (shapeError) return err(shapeError, { _fixHint: 'Put each block\'s text under `content`: {blocks:{"blk_…":{content:{title:"…", items:[{body:"…"}]}}}}. Without it the renderer ignores the translation.' });
         }
-        const saved = pageId
-            ? await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override)
-            : await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
+        const merged = merge ? await mergePageOverride(site.siteId, /** @type {string} */ (pageId), locale, args.override) : null;
+        if (merged?.rejected) return merged.rejected;
+        const saved = merged
+            ? merged.saved
+            : pageId
+                ? await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override)
+                : await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
         /** @type {Record<string, unknown>} */
         const result = { siteId: site.siteId, locale, pageId, saved: true };
+        if (merge) result.merged = true;
         const mediaWarning = mediaWarningFor(args.override, saved);
         if (mediaWarning) result.mediaWarning = mediaWarning;
         const reactWarning = pageId ? reactOverrideNote(args.override, await cmsStore.getPage(site.siteId, pageId)) : '';
