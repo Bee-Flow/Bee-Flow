@@ -10,7 +10,7 @@ let runtimeText: string | null = null;
 let pending: Promise<string> | null = null;
 
 /** The runtime text when it has already arrived, else null. */
-export function loadedReactRuntime(): string | null {
+function loadedReactRuntime(): string | null {
     return runtimeText;
 }
 

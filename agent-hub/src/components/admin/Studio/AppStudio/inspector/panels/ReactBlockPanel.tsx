@@ -32,7 +32,7 @@ function Names({ label, names, none }: { label: string; names: string[]; none: s
     );
 }
 
-export default function ReactBlockPanel({ node }: PanelProps<{ block?: ReactBlockValue | null }>) {
+function ReactBlockPanel({ node }: PanelProps<{ block?: ReactBlockValue | null }>) {
     const { t } = useTranslation();
     const block: ReactBlockValue = node.props?.block && typeof node.props.block === 'object' ? node.props.block : {};
     const source = textOf(block.source);

@@ -48,7 +48,8 @@ describe('ExecutionView — answering a waiting run from Runs', () => {
         const server = runView('awaiting_form');
         await user.click(await screen.findByRole('button', { name: 'Answer this page' }));
 
-        expect(await screen.findByText('Delivery')).toBeTruthy();
+        // The overlay reads the run's form first; a busy CI runner can take longer than findBy's 1 s.
+        expect(await screen.findByText('Delivery', undefined, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByTestId('form-run-chip').textContent).toBe('Dry run');
         const readsBefore = runReads(server);
         await user.type(screen.getByLabelText(/Address/), 'Main street 1');
@@ -70,7 +71,8 @@ describe('ExecutionView — answering a waiting run from Runs', () => {
         const server = runView('awaiting_approval');
         await user.click(await screen.findByRole('button', { name: 'Decide' }));
         const overlay = await screen.findByRole('dialog');
-        expect(overlay.textContent).toContain('Ship it?');
+        // The dialog opens before the run's form read lands (it first shows "Running the automation…").
+        await waitFor(() => expect(overlay.textContent).toContain('Ship it?'), { timeout: 5000 });
         expect(overlay.textContent).toContain('Waiting for a decision');
         expect(server.posts()).toEqual([]);
     });

@@ -53,7 +53,7 @@ interface Live {
 const NOTICE = 'flex min-h-24 w-full items-center justify-center gap-2 border border-dashed border-[var(--border-default)] px-3 py-4 text-center text-sm text-[var(--text-muted)] rounded-[var(--app-radius,8px)] bfa-react_block__notice';
 
 /** The `:root{…}` rule the frame gets: the app's look as `--bf-*`, plus the names the frame's base stylesheet reads. */
-export function appFrameTheme(theme: BlockTheme): string {
+function appFrameTheme(theme: BlockTheme): string {
     const scheme = theme.appearance === 'dark' ? 'dark' : 'light';
     return `:root{color-scheme:${scheme};${themeVariables(themeVariablesOf(theme))}--bf-font-body:var(--bf-font);--bf-text-secondary:var(--bf-text-muted);}`;
 }
