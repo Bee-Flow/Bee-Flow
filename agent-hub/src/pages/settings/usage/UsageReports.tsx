@@ -6,7 +6,7 @@ import { currencySym } from './format';
 import OverviewTab from './OverviewTab';
 import AdoptionTab from './adoption/AdoptionTab';
 import QualityTab from './quality/QualityTab';
-import SpendTab from './spend/SpendTab';
+import SpendTab, { type SpendExtraView, type SpendViewFilters } from './spend/SpendTab';
 import type { UsageRange } from './RangeControl';
 import { UsageFilterBar } from './UsageFilterBar';
 import { useUsageFilters } from './useUsageFilters';
@@ -28,6 +28,8 @@ export interface UsageReportsProps {
     orgId?: string | null;
     /** The figures cover every organisation, so the organisation-specific parts (subscription, adoption) are left out. */
     allOrganisations?: boolean;
+    /** Spend's views after its own (the AI Monitor adds the conversations). */
+    spendExtraViews?: readonly SpendExtraView[];
 }
 
 /** The model-to-tier lookups of the badges and the "By tier" breakdown. */
@@ -44,8 +46,10 @@ function useTierLookups() {
 
 type UsageProps = ComponentProps<typeof OverviewTab>;
 
-interface ReportBodyProps extends Pick<UsageReportsProps, 'report' | 'range' | 'subTab' | 'orgId' | 'allOrganisations'> {
+interface ReportBodyProps extends Pick<UsageReportsProps, 'report' | 'range' | 'subTab' | 'orgId' | 'allOrganisations' | 'spendExtraViews'> {
     usageProps: UsageProps;
+    /** The filter bar's values, for Spend's host views. */
+    viewFilters: SpendViewFilters;
     nonce: number;
     currency: string;
     showTokens: boolean;
@@ -54,10 +58,10 @@ interface ReportBodyProps extends Pick<UsageReportsProps, 'report' | 'range' | '
 }
 
 /** The report that is open. */
-function ReportBody({ report, usageProps, range, subTab, nonce, orgId, allOrganisations, currency, showTokens, totalCalls }: ReportBodyProps) {
+function ReportBody({ report, usageProps, range, subTab, nonce, orgId, allOrganisations, spendExtraViews, viewFilters, currency, showTokens, totalCalls }: ReportBodyProps) {
     const { rangeParams } = usageProps;
     if (report === 'overview') return <OverviewTab {...usageProps} />;
-    if (report === 'spend') return <SpendTab {...usageProps} key={nonce} initialSubTab={subTab} orgId={orgId} allOrganisations={allOrganisations} />;
+    if (report === 'spend') return <SpendTab {...usageProps} key={nonce} initialSubTab={subTab} orgId={orgId} allOrganisations={allOrganisations} extraViews={spendExtraViews} viewFilters={viewFilters} />;
     if (report === 'adoption') {
         return <AdoptionTab key={nonce} rangeParams={rangeParams} rangePreset={range.preset} showTokens={showTokens} currency={currency} initialSubTab={subTab} orgId={orgId} />;
     }
@@ -67,7 +71,7 @@ function ReportBody({ report, usageProps, range, subTab, nonce, orgId, allOrgani
 }
 
 /** The usage reports (Overview, Adoption, Spend, Quality) with their data, the shared filter bar and the organisation they cover. */
-export default function UsageReports({ report, range, subTab, nonce = 0, onOpenTab, orgId = null, allOrganisations = false }: UsageReportsProps) {
+export default function UsageReports({ report, range, subTab, nonce = 0, onOpenTab, orgId = null, allOrganisations = false, spendExtraViews }: UsageReportsProps) {
     const rangeParams = useMemo(() => deriveRangeParams(range), [range]);
     const filters = useUsageFilters();
     const { data, azureServices, loading, isCustomerView, showTokens } = useUsageReportData(rangeParams, filters, orgId);
@@ -94,7 +98,7 @@ export default function UsageReports({ report, range, subTab, nonce = 0, onOpenT
                     <div className="h-[90px] [border-radius:12px] [background:var(--bg-tertiary)] [animation:pulse_1.5s_ease-in-out_infinite]" />
                 </div>
             ) : (
-                <ReportBody report={report} usageProps={usageProps} range={range} subTab={subTab} nonce={nonce} orgId={orgId} allOrganisations={allOrganisations} currency={currencySym(billing?.plan_currency || 'EUR')} totalCalls={filters.active ? undefined : data.summary?.total_calls} showTokens={showTokens} />
+                <ReportBody report={report} usageProps={usageProps} range={range} subTab={subTab} nonce={nonce} orgId={orgId} allOrganisations={allOrganisations} spendExtraViews={spendExtraViews} viewFilters={filters} currency={currencySym(billing?.plan_currency || 'EUR')} totalCalls={filters.active ? undefined : data.summary?.total_calls} showTokens={showTokens} />
             )}
         </div>
     );

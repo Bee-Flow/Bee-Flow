@@ -62,3 +62,46 @@ describe('EmbeddingsConfig: the index warning', () => {
         expect((await screen.findByRole('status')).textContent).toContain('4096 dimensions');
     });
 });
+
+describe('EmbeddingsConfig: only providers that can embed', () => {
+    const MIXED = [
+        ...PROVIDERS,
+        { id: 'anth', name: 'Anthropic', type: 'claude' },
+        { id: 'mis', name: 'Mistral', type: 'mistral' },
+        { id: 'az', name: 'Azure', type: 'azure' },
+    ];
+    const MIXED_MODELS = [
+        QWEN, GEMMA,
+        { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', providerId: 'anth' },
+        { id: 'mistral-embed', name: 'Mistral Embed', providerId: 'mis', cat: 'Embedding' },
+        { id: 'mistral-large-latest', name: 'Mistral Large', providerId: 'mis' },
+    ];
+    const renderMixed = () => render(withQueryClient(
+        <EmbeddingsConfig providers={MIXED} allModels={MIXED_MODELS} fetchAllModels={() => {}} />,
+    ));
+
+    it('leaves out a provider without embedding models and keeps Azure', async () => {
+        renderMixed();
+        const select = await screen.findByLabelText('Embedding Provider');
+        const names = Array.from(select.querySelectorAll('option')).map(o => o.value).filter(Boolean);
+        expect(names).toEqual(['scw', 'mis', 'az']);
+    });
+
+    it('shows the Mistral hint only for Mistral, a neutral hint for the others', async () => {
+        const user = userEvent.setup();
+        renderMixed();
+        expect(await screen.findByText(/Pick an embedding model this provider offers/)).toBeTruthy();
+        expect(screen.queryByText(/mistral-embed/)).toBeNull();
+        await user.selectOptions(screen.getByLabelText('Embedding Provider'), 'mis');
+        expect(screen.getByText(/"mistral-embed" is recommended/)).toBeTruthy();
+        const models = Array.from(screen.getByLabelText('Embedding Model').querySelectorAll('option')).map(o => o.value).filter(Boolean);
+        expect(models).toEqual(['mistral-embed']);
+    });
+
+    it('says so when no connected provider offers embeddings', async () => {
+        render(withQueryClient(
+            <EmbeddingsConfig providers={[{ id: 'anth', name: 'Anthropic', type: 'claude' }]} allModels={[{ id: 'claude-sonnet-4-6', providerId: 'anth' }]} fetchAllModels={() => {}} />,
+        ));
+        expect(await screen.findByText(/No connected provider offers embedding models/)).toBeTruthy();
+    });
+});

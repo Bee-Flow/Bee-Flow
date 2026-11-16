@@ -3,6 +3,7 @@
 // as before; only the markup is a grid of compact fields.
 import { CLAUDE_RECOMMENDED, type TierDef, type TierDefaults } from './constants';
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
+import { recommendedModelId } from './claudeRecommendations';
 import TierThinkingFields from './TierThinkingFields';
 import type { TierSettings, CatalogModel } from './tierTypes';
 import { getModelDisplayName } from '@/api/modelMeta';
@@ -22,22 +23,22 @@ export interface TierCardSettingsProps {
     toggleHiddenModel: (modelId: string) => Promise<void>;
     isLocal: (id: string) => boolean;
     reasoningCapable: (id: string) => boolean;
-    applyClaudeRecommendedForTier: (tierKey: string) => void;
+    applyClaudeRecommendedForTier: (tierKey: string, models: readonly CatalogModel[]) => void;
 }
 
 /** "Bee Flow recommends" for a Claude model on this tier, with Apply: a slim line, not a box. */
-function ClaudeRecommendedHint({ t, tierKey, onApply }: { t: TranslateFn; tierKey: string; onApply: (tierKey: string) => void }) {
+function ClaudeRecommendedHint({ t, tierKey, modelId, onApply }: { t: TranslateFn; tierKey: string; modelId: string; onApply: () => void }) {
     const rec = CLAUDE_RECOMMENDED[tierKey];
     return (
         <InlineHint
             action={(
-                <button type="button" onClick={() => onApply(tierKey)} className={QUIET_BUTTON}>
+                <button type="button" onClick={onApply} className={QUIET_BUTTON}>
                     {t('admin_ai_config.claude_apply', 'Apply')}
                 </button>
             )}
         >
             <span className="font-medium text-[var(--text-primary)]">{t('admin_ai_config.tier_rec_title', 'Bee Flow recommends')}</span>{' '}
-            {t('admin_ai_config.tier_rec_line', '{model} · {tokens} tokens · {effort} effort · {mode}', { model: getModelMeta(rec.modelId)?.name || rec.modelId, tokens: rec.maxTokens.toLocaleString(), effort: rec.reasoningEffort || t('admin_ai_config.tier_rec_no_effort', 'no'), mode: rec.budgetTokens ? t('admin_ai_config.tier_rec_extended', 'extended ({n})', { n: rec.budgetTokens.toLocaleString() }) : t('admin_ai_config.claude_adaptive', 'adaptive') })}
+            {t('admin_ai_config.tier_rec_line', '{model} · {tokens} tokens · {effort} effort · {mode}', { model: getModelMeta(modelId)?.name || modelId, tokens: rec.maxTokens.toLocaleString(), effort: rec.reasoningEffort || t('admin_ai_config.tier_rec_no_effort', 'no'), mode: rec.budgetTokens ? t('admin_ai_config.tier_rec_extended', 'extended ({n})', { n: rec.budgetTokens.toLocaleString() }) : t('admin_ai_config.claude_adaptive', 'adaptive') })}
         </InlineHint>
     );
 }
@@ -119,7 +120,7 @@ function ReasoningFields({ tier, tierConfig, updateFn, defaults, stampedEfforts,
                 </Field>
             )}
             {isGpt5(modelId) && (
-                <Field label={t('admin_ai_config.tier_verbosity', 'Verbosity')} hint={t('admin_ai_config.tier_verb_hint', 'GPT-5 output length / level of detail.')}>
+                <Field label={t('admin_ai_config.tier_verbosity', 'Verbosity')} hint={t('admin_ai_config.tier_verb_hint', 'Output length and level of detail.')}>
                     <select
                         value={(tierConfig.verbosity as string | undefined) || defaults.verbosity || 'medium'}
                         onChange={e => updateFn(tier.key, 'verbosity', e.target.value)}
@@ -144,7 +145,7 @@ function BootstrapField({ tierConfig, updateFn, chatModels, byProvider, hiddenMo
     return (
         <Field
             label={t('admin_ai_config.tier_bootstrap', 'Bootstrap model (cheap & fast)')}
-            hint={t('admin_ai_config.tier_bootstrap_hint', 'Used once per direct chat to plan the conversation\'s Flow stages. Pick a small/fast model (e.g. Haiku) to cut planning cost. Leave empty to reuse the main model.')}
+            hint={t('admin_ai_config.tier_bootstrap_hint', 'Used once per direct chat to plan the conversation\'s Flow stages. Pick a small, fast model to cut planning cost. Leave empty to reuse the main model.')}
         >
             <SearchableModelSelect
                 value={tierConfig.bootstrapModelId || ''}
@@ -213,13 +214,15 @@ function DefaultsFields(props: TierCardSettingsProps & { defaults: TierDefaults 
 
 export default function TierCardSettings(props: TierCardSettingsProps) {
     const { t } = useTranslation();
-    const { tier, tierConfig, defaults, applyClaudeRecommendedForTier } = props;
+    const { tier, tierConfig, defaults, applyClaudeRecommendedForTier, chatModels } = props;
     const modelId = tierConfig.modelId;
     const adaptiveOnly = isClaudeAdaptiveOnly(modelId);
+    // Offer the recommendation only when this server has a model of its family.
+    const recModelId = recommendedModelId(tier.key, chatModels);
     return (
         <div className="flex flex-col gap-3">
-            {defaults && isClaudeModel(modelId) && CLAUDE_RECOMMENDED[tier.key] && (
-                <ClaudeRecommendedHint t={t} tierKey={tier.key} onApply={applyClaudeRecommendedForTier} />
+            {defaults && isClaudeModel(modelId) && recModelId && (
+                <ClaudeRecommendedHint t={t} tierKey={tier.key} modelId={recModelId} onApply={() => applyClaudeRecommendedForTier(tier.key, chatModels)} />
             )}
             <FieldGrid>
                 {defaults && <DefaultsFields {...props} defaults={defaults} />}
@@ -228,7 +231,7 @@ export default function TierCardSettings(props: TierCardSettingsProps) {
             {defaults && adaptiveOnly && (
                 <p className="m-0 text-[11px] text-[var(--text-tertiary)]">
                     <span className="font-medium text-[var(--text-primary)]">{t('admin_ai_config.tier_adaptive_only_lead', '{model} uses adaptive thinking only.', { model: getModelMeta(modelId)?.name || t('admin_ai_config.tier_this_model', 'This model') })}</span>{' '}
-                    {t('admin_ai_config.tier_adaptive_only_rest', 'The API rejects manual thinking budgets and the temperature setting: the Effort dropdown above controls how deep the model thinks. Use Auto-retry on empty output (Claude Settings panel) as a safety net for heavy reasoning runs.')}
+                    {t('ai_model_setup.tier_adaptive_only_rest', 'The API rejects manual thinking budgets and the temperature setting: the Effort dropdown above controls how deep the model thinks. The empty-answer retry under Reliability, at the bottom of this page, is the safety net for heavy reasoning runs.')}
                 </p>
             )}
         </div>

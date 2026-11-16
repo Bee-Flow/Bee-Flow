@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import type { CustomTierMeta, OrgGroupRow } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
+import { orgRoleLabel } from '../people/orgRoleLabel';
 
 interface GroupSettingsProps {
     group: OrgGroupRow;
@@ -26,22 +27,22 @@ function DescriptionEditor({ group, groupsState }: Omit<GroupSettingsProps, 'cus
                         type="text"
                         value={editGroupDesc}
                         onChange={e => setEditGroupDesc(e.target.value)}
-                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-blue-500"
+                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-[var(--accent-primary)]"
                         placeholder={t('admin_org.users_add_desc_ph', 'Add a description...')}
                         onKeyDown={e => e.key === 'Enter' && handleUpdateGroupDesc(group.id)}
                         autoFocus
                     />
-                    <button onClick={() => handleUpdateGroupDesc(group.id)} className="p-1 text-green-500 hover:bg-green-500/10 rounded">
+                    <button onClick={() => handleUpdateGroupDesc(group.id)} className="p-1 rounded text-[var(--success-ink)] hover:bg-[color-mix(in_srgb,var(--success)_12%,transparent)]" aria-label={t('common.save', 'Save')}>
                         <Check className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => setEditingGroup(null)} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] rounded">
+                    <button onClick={() => setEditingGroup(null)} className="p-1 rounded text-[var(--text-muted)] hover:bg-[var(--item-hover-bg)]" aria-label={t('common.cancel', 'Cancel')}>
                         <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             ) : (
                 <p className="text-xs text-[var(--text-muted)] pt-1.5 flex-1 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                     onClick={(e) => { e.stopPropagation(); setEditingGroup(group.id); setEditGroupDesc(group.description || ''); }}>
-                    {group.description || <span className="italic opacity-60">{t('admin_org.users_click_add_desc', 'Click to add description...')}</span>}
+                    {group.description || <span className="italic text-[var(--text-tertiary)]">{t('admin_org.users_click_add_desc', 'Click to add description...')}</span>}
                 </p>
             )}
         </div>
@@ -56,11 +57,11 @@ export function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onCha
             <select
                 value={group.orgRole || ''}
                 onChange={e => onChange(group.id, e.target.value)}
-                className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-blue-500 cursor-pointer"
+                className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-[var(--accent-primary)] cursor-pointer"
             >
                 <option value="">{t('admin_org.users_user_default', 'User (default)')}</option>
                 {ORG_ROLES.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
+                    <option key={r.id} value={r.id}>{orgRoleLabel(t, r.id)}</option>
                 ))}
             </select>
             {group.orgRole && (

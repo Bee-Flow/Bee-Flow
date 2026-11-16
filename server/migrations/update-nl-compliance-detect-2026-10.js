@@ -40,7 +40,7 @@ const DATA = require(path.join(__dirname, 'data', 'compliance-detect-2026-10-nl.
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here (the test fails until it is updated).
  */
-const DATA_SHA256 = '43baa60b548d7a48b7f97dbe94731d26bfdd4b7fd97c86a2e0b4e4009d5066b7';
+const DATA_SHA256 = '1e1606ef0b56bd1c12db0b3ccef02bc472726f221f37cd577d894b7c5f8d7c2d';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const NL_REWORDED = Object.freeze(Object.fromEntries(

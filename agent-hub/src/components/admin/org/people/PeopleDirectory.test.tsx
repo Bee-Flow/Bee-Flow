@@ -77,7 +77,7 @@ describe('PeopleDirectory', () => {
         expect(heading('Beta N.V.')).toBeInTheDocument();
         expect(screen.getAllByTestId('people-row')).toHaveLength(2);
         expect(
-            screen.getByText(/1 people belong to more than one organisation and are listed under each/),
+            screen.getByText(/1 person belongs to more than one organisation and is listed under each/),
         ).toBeInTheDocument();
     });
 

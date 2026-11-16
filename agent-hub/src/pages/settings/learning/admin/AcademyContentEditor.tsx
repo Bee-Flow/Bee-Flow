@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAcademyApi } from './academyApi';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import useConfirm from '@/components/shared/useConfirm';
+import { CHIP, CHIP_SUCCESS, INPUT } from '@/components/shared/adminUi';
+import { buttonClass } from '@/components/shared/buttonClasses';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import type { TFn, Choice, SlideStep, QuizStep, ExerciseStep, Step, StepPatch, Lesson, Course, CourseEntry, ServerChoice, ServerStep, ServerLesson, FieldProps, ErrorTextProps, IconBtnProps, EmojiRowProps, StatusChipProps, SlideFormProps, QuizFormProps, ExerciseFormProps, StepEditorProps, LessonEditorProps } from './AcademyContentEditor.types';
 /**
@@ -92,8 +94,7 @@ function newStep(type: Step['type']): Step {
 
 /* ── Small shared UI bits (house style: OrgAcademyPanel) ─────────────────── */
 
-const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm outline-none focus:border-[var(--accent-primary)]';
-const inputStyle = { borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' };
+const inputClass = INPUT;
 
 const Field = ({ label, children, hint }: FieldProps) => (
     <div>
@@ -104,21 +105,17 @@ const Field = ({ label, children, hint }: FieldProps) => (
 );
 
 const ErrorText = ({ children }: ErrorTextProps) => (
-    children ? <div className="text-xs mt-2 [color:#dc2626]!" role="alert">{children}</div> : null
+    children ? <div className="text-xs mt-2 text-[var(--error-ink)]" role="alert">{children}</div> : null
 );
 
 const PrimaryBtn = ({ children, ...props }: React.ComponentProps<'button'>) => (
-    <button type="button" {...props}
-        className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-40"
-        style={{ background: 'var(--accent-primary)', color: '#fff' }}>
+    <button type="button" {...props} className={buttonClass('primary', 'md')}>
         {children}
     </button>
 );
 
 const GhostBtn = ({ children, ...props }: React.ComponentProps<'button'>) => (
-    <button type="button" {...props}
-        className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}>
+    <button type="button" {...props} className={buttonClass('secondary', 'md')}>
         {children}
     </button>
 );
@@ -134,11 +131,9 @@ const EmojiRow = ({ value, onChange, emojis }: EmojiRowProps) => (
     <div className="flex flex-wrap gap-1.5">
         {emojis.map((e) => (
             <button key={e} type="button" onClick={() => onChange(e)} aria-pressed={value === e}
-                className="w-9 h-9 rounded-lg border text-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-                style={{
-                    borderColor: value === e ? 'var(--accent-primary)' : 'var(--border-default)',
-                    background: value === e ? 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' : 'var(--bg-card)',
-                }}>
+                className={`w-9 h-9 rounded-lg border text-lg flex items-center justify-center transition-colors hover:bg-[var(--item-hover-bg)] ${value === e
+                    ? 'border-[var(--text-primary)] bg-[var(--item-active-bg)]'
+                    : 'border-[var(--border-default)] bg-[var(--bg-card)]'}`}>
                 {e}
             </button>
         ))}
@@ -147,11 +142,11 @@ const EmojiRow = ({ value, onChange, emojis }: EmojiRowProps) => (
 
 const StatusChip = ({ status, t }: StatusChipProps) => (
     status === 'published' ? (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold [background:color-mix(in_srgb,#059669_15%,transparent)] [color:#059669]!">
+        <span className={CHIP_SUCCESS}>
             {t('org.academy.content.published', 'Published')}
         </span>
     ) : (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+        <span className={CHIP}>
             {t('org.academy.content.draft', 'Draft')}
         </span>
     )
@@ -163,11 +158,11 @@ function SlideForm({ step, onChange, t }: SlideFormProps) {
     return (
         <div className="space-y-3">
             <Field label={t('org.academy.content.step_title', 'Title')}>
-                <input className={inputClass} style={inputStyle} value={step.title}
+                <input className={inputClass} value={step.title}
                     onChange={(e) => onChange({ title: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.slide_body', 'Body (Markdown)')}>
-                <textarea className={inputClass} style={{ ...inputStyle, minHeight: 140, fontFamily: 'monospace' }} value={step.bodyMd}
+                <textarea className={`${inputClass} min-h-[140px] font-mono`} value={step.bodyMd}
                     onChange={(e) => onChange({ bodyMd: e.target.value })} />
             </Field>
             {step.bodyMd.trim() && (
@@ -193,22 +188,22 @@ function QuizForm({ step, onChange, t }: QuizFormProps) {
     return (
         <div className="space-y-3">
             <Field label={t('org.academy.content.step_title', 'Title')}>
-                <input className={inputClass} style={inputStyle} value={step.title}
+                <input className={inputClass} value={step.title}
                     placeholder={t('org.academy.content.quiz_title_ph', 'Quick check')}
                     onChange={(e) => onChange({ title: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.quiz_question', 'Question')}>
-                <input className={inputClass} style={inputStyle} value={step.question}
+                <input className={inputClass} value={step.question}
                     onChange={(e) => onChange({ question: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.quiz_choices', 'Choices (2–6, tick the correct ones)')}>
                 <div className="space-y-1.5">
                     {step.choices.map((c, idx) => (
                         <div key={c.id} className="flex items-center gap-2">
-                            <input type="checkbox" checked={c.correct} className="accent-[#059669]"
+                            <input type="checkbox" checked={c.correct} className="accent-[var(--text-primary)]"
                                 title={t('org.academy.content.quiz_correct', 'Correct answer')}
                                 onChange={(e) => setChoice(idx, { correct: e.target.checked })} />
-                            <input className={inputClass} style={inputStyle} value={c.label}
+                            <input className={inputClass} value={c.label}
                                 placeholder={`${t('org.academy.content.quiz_choice', 'Choice')} ${idx + 1}`}
                                 onChange={(e) => setChoice(idx, { label: e.target.value })} />
                             <IconBtn title={t('org.academy.content.remove', 'Remove')}
@@ -227,12 +222,12 @@ function QuizForm({ step, onChange, t }: QuizFormProps) {
                 )}
             </Field>
             <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                <input type="checkbox" checked={step.multi} className="accent-[#059669]"
+                <input type="checkbox" checked={step.multi} className="accent-[var(--text-primary)]"
                     onChange={(e) => onChange({ multi: e.target.checked })} />
                 {t('org.academy.content.quiz_multi', 'Multiple answers can be correct')}
             </label>
             <Field label={t('org.academy.content.quiz_explanation', 'Explanation (shown after answering)')}>
-                <input className={inputClass} style={inputStyle} value={step.explanation}
+                <input className={inputClass} value={step.explanation}
                     onChange={(e) => onChange({ explanation: e.target.value })} />
             </Field>
         </div>
@@ -244,20 +239,20 @@ function ExerciseForm({ step, onChange, t }: ExerciseFormProps) {
     return (
         <div className="space-y-3">
             <Field label={t('org.academy.content.step_title', 'Title')}>
-                <input className={inputClass} style={inputStyle} value={step.title}
+                <input className={inputClass} value={step.title}
                     placeholder={t('org.academy.content.exercise_title_ph', 'Hands-on practice')}
                     onChange={(e) => onChange({ title: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.exercise_task', 'Task (what the learner must do)')}>
-                <textarea className={inputClass} style={{ ...inputStyle, minHeight: 64 }} value={step.task}
+                <textarea className={`${inputClass} min-h-16`} value={step.task}
                     onChange={(e) => onChange({ task: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.exercise_instruction', 'Instruction (shown above the answer box)')}>
-                <input className={inputClass} style={inputStyle} value={step.instruction}
+                <input className={inputClass} value={step.instruction}
                     onChange={(e) => onChange({ instruction: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.exercise_placeholder', 'Answer box placeholder')}>
-                <input className={inputClass} style={inputStyle} value={step.placeholder}
+                <input className={inputClass} value={step.placeholder}
                     onChange={(e) => onChange({ placeholder: e.target.value })} />
             </Field>
             <Field label={t('org.academy.content.exercise_criteria', 'Grading criteria (private, max 6)')}
@@ -265,7 +260,7 @@ function ExerciseForm({ step, onChange, t }: ExerciseFormProps) {
                 <div className="space-y-1.5">
                     {step.criteria.map((c, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                            <input className={inputClass} style={inputStyle} value={c}
+                            <input className={inputClass} value={c}
                                 placeholder={`${t('org.academy.content.exercise_criterion', 'Criterion')} ${idx + 1}`}
                                 onChange={(e) => setCriterion(idx, e.target.value)} />
                             <IconBtn title={t('org.academy.content.remove', 'Remove')}
@@ -285,16 +280,16 @@ function ExerciseForm({ step, onChange, t }: ExerciseFormProps) {
             </Field>
             <div className="grid grid-cols-2 gap-3">
                 <Field label={t('org.academy.content.exercise_pass_score', 'Pass score (1–100)')}>
-                    <input type="number" min={1} max={100} className={inputClass} style={inputStyle} value={step.passScore}
+                    <input type="number" min={1} max={100} className={inputClass} value={step.passScore}
                         onChange={(e) => onChange({ passScore: e.target.value === '' ? '' : Number(e.target.value) })} />
                 </Field>
                 <Field label={t('org.academy.content.exercise_max_attempts', 'Max attempts (1–10)')}>
-                    <input type="number" min={1} max={10} className={inputClass} style={inputStyle} value={step.maxAttempts}
+                    <input type="number" min={1} max={10} className={inputClass} value={step.maxAttempts}
                         onChange={(e) => onChange({ maxAttempts: e.target.value === '' ? '' : Number(e.target.value) })} />
                 </Field>
             </div>
             <Field label={t('org.academy.content.exercise_guidance', 'Grading guidance (private note to the AI coach)')}>
-                <textarea className={inputClass} style={{ ...inputStyle, minHeight: 56 }} value={step.guidance}
+                <textarea className={`${inputClass} min-h-14`} value={step.guidance}
                     onChange={(e) => onChange({ guidance: e.target.value })} />
             </Field>
         </div>
@@ -361,7 +356,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
                     {t('org.academy.content.back_to_course', 'Back to course')}
                 </GhostBtn>
                 <div className="ml-auto flex items-center gap-2">
-                    {notice && <span className="text-xs [color:#059669]!">{notice}</span>}
+                    {notice && <span role="status" className="text-xs text-[var(--success-ink)]">{notice}</span>}
                     <PrimaryBtn onClick={onSave} disabled={busy}>
                         <Save className="w-3.5 h-3.5" />
                         {t('org.academy.content.save_lesson', 'Save lesson')}
@@ -372,16 +367,16 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
             <div className="rounded-xl border p-4 mb-4 space-y-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <div className="grid md:grid-cols-2 gap-3">
                     <Field label={t('org.academy.content.lesson_title', 'Lesson title')}>
-                        <input className={inputClass} style={inputStyle} value={lesson.title}
+                        <input className={inputClass} value={lesson.title}
                             onChange={(e) => patch({ title: e.target.value })} />
                     </Field>
                     <Field label={t('org.academy.content.lesson_minutes', 'Estimated minutes')}>
-                        <input type="number" min={1} max={120} className={inputClass} style={inputStyle} value={lesson.estMinutes}
+                        <input type="number" min={1} max={120} className={inputClass} value={lesson.estMinutes}
                             onChange={(e) => patch({ estMinutes: e.target.value === '' ? '' : Number(e.target.value) })} />
                     </Field>
                 </div>
                 <Field label={t('org.academy.content.lesson_desc', 'Description')}>
-                    <textarea className={inputClass} style={{ ...inputStyle, minHeight: 56 }} value={lesson.desc}
+                    <textarea className={`${inputClass} min-h-14`} value={lesson.desc}
                         onChange={(e) => patch({ desc: e.target.value })} />
                 </Field>
                 <Field label={t('org.academy.content.lesson_icon', 'Icon')}>
@@ -654,7 +649,7 @@ export default function AcademyContentEditor() {
                     </GhostBtn>
                     <StatusChip status={status} t={t} />
                     <div className="ml-auto flex items-center gap-2 flex-wrap">
-                        {notice && <span className="text-xs [color:#059669]!">{notice}</span>}
+                        {notice && <span role="status" className="text-xs text-[var(--success-ink)]">{notice}</span>}
                         <GhostBtn onClick={handleDeleteCourse} disabled={busy}>
                             <Trash2 className="w-3.5 h-3.5" />
                             {t('org.academy.content.delete_course', 'Delete')}
@@ -666,7 +661,7 @@ export default function AcademyContentEditor() {
                             </GhostBtn>
                         ) : (
                             <button type="button" onClick={handlePublish} disabled={busy}
-                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-40 [background:#059669] [color:#fff]!">
+                                className={buttonClass('success', 'md')}>
                                 <Globe className="w-3.5 h-3.5" />
                                 {t('org.academy.content.publish', 'Publish')}
                             </button>
@@ -681,11 +676,11 @@ export default function AcademyContentEditor() {
                 <div className="rounded-xl border p-4 mb-4 space-y-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                     <div className="grid md:grid-cols-2 gap-3">
                         <Field label={t('org.academy.content.course_title', 'Course title')}>
-                            <input className={inputClass} style={inputStyle} value={course.title}
+                            <input className={inputClass} value={course.title}
                                 onChange={(e) => setCourse((prev) => ({ ...(prev as Course), title: e.target.value }))} />
                         </Field>
                         <Field label={t('org.academy.content.course_level', 'Level')}>
-                            <select className={inputClass} style={inputStyle} value={course.level}
+                            <select className={inputClass} value={course.level}
                                 onChange={(e) => setCourse((prev) => ({ ...(prev as Course), level: e.target.value }))}>
                                 <option value="beginner">{t('org.academy.content.level_beginner', 'Beginner')}</option>
                                 <option value="intermediate">{t('org.academy.content.level_intermediate', 'Intermediate')}</option>
@@ -694,7 +689,7 @@ export default function AcademyContentEditor() {
                         </Field>
                     </div>
                     <Field label={t('org.academy.content.course_desc', 'Description')}>
-                        <textarea className={inputClass} style={{ ...inputStyle, minHeight: 56 }} value={course.desc}
+                        <textarea className={`${inputClass} min-h-14`} value={course.desc}
                             onChange={(e) => setCourse((prev) => ({ ...(prev as Course), desc: e.target.value }))} />
                     </Field>
                     <Field label={t('org.academy.content.course_icon', 'Icon')}>
@@ -702,7 +697,7 @@ export default function AcademyContentEditor() {
                     </Field>
                     <div className="grid md:grid-cols-2 gap-3">
                         <Field label={t('org.academy.content.badge_title', 'Badge title (earned on completion)')}>
-                            <input className={inputClass} style={inputStyle} value={course.badgeTitle}
+                            <input className={inputClass} value={course.badgeTitle}
                                 placeholder={course.title || undefined}
                                 onChange={(e) => setCourse((prev) => ({ ...(prev as Course), badgeTitle: e.target.value }))} />
                         </Field>
@@ -785,10 +780,10 @@ function AcademyContentEditorSection2({ t, newCourse }: { t: (key: string | unde
     return <div className="flex items-center justify-between gap-3 mb-4">
         <div>
             <div className="flex items-center gap-2 mb-1">
-                <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                <BookOpen className="w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
                     {t('org.academy.content.title', 'Custom courses')}
-                </h2>
+                </h3>
             </div>
             <p className="text-sm text-[var(--text-muted)]">
                 {t('org.academy.content.subtitle', 'Author your own Academy courses. Drafts stay private until you publish them to your members.')}

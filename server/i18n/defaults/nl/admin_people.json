@@ -1,0 +1,32 @@
+{
+  "translations": {
+    "admin_people.custom_tiers_forbidden": "Je hebt geen toestemming om aangepaste niveaus voor deze organisatie te beheren.",
+    "admin_people.custom_tiers_icon": "Pictogram",
+    "admin_people.custom_tiers_more": "Meer instellingen",
+    "admin_people.health_pending": "{count} persoon wacht op goedkeuring en kan AI nog niet gebruiken.",
+    "admin_people.health_pending_plural": "{count} personen wachten op goedkeuring en kunnen AI nog niet gebruiken.",
+    "admin_people.ms_link_account": "Koppelen aan account",
+    "admin_people.ms_pick_account_placeholder": "Kies een account…",
+    "admin_people.ms_pick_organisation_placeholder": "Kies een organisatie…",
+    "admin_people.ms_sync_organisation": "Organisatie om in te synchroniseren",
+    "admin_people.ms_tenant_from_sso": "Overgenomen uit de instellingen voor aanmelden met Microsoft. De synchronisatie moet dezelfde tenant gebruiken.",
+    "admin_people.ms_unlink_account": "Account om los te koppelen",
+    "admin_people.multiorg_note": "{count} persoon hoort bij meer dan één organisatie en staat onder elk ervan. De totalen hierboven tellen elke persoon één keer.",
+    "admin_people.multiorg_note_plural": "{count} personen horen bij meer dan één organisatie en staan onder elk ervan. De totalen hierboven tellen elke persoon één keer.",
+    "admin_people.role_agent_admin": "Agentbeheerder",
+    "admin_people.role_agent_editor": "Agentredacteur",
+    "admin_people.role_assigned": "{count} persoon",
+    "admin_people.role_assigned_plural": "{count} personen",
+    "admin_people.role_dpo": "Functionaris gegevensbescherming",
+    "admin_people.role_isms_auditor": "Interne ISMS-auditor",
+    "admin_people.role_member": "Lid",
+    "admin_people.role_org_admin": "Organisatiebeheerder",
+    "admin_people.summary_groups": "{count} groep",
+    "admin_people.summary_groups_plural": "{count} groepen",
+    "admin_people.summary_orgs": "{count} organisatie",
+    "admin_people.summary_orgs_plural": "{count} organisaties",
+    "admin_people.summary_people": "{count} persoon",
+    "admin_people.summary_people_plural": "{count} personen"
+  },
+  "sameAsEnglish": []
+}

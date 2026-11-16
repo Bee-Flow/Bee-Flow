@@ -17,7 +17,7 @@ export interface FeedbackRowProps {
 }
 
 export function FeedbackRow({ item, open, onToggle }: FeedbackRowProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const snapshot = parseSnapshot(item.conversation_snapshot);
     const isUp = item.rating === 'up';
     const where = getSourceDetails(item.source || '', t);
@@ -48,7 +48,7 @@ export function FeedbackRow({ item, open, onToggle }: FeedbackRowProps) {
                 </td>
                 <td className={`${CELL} whitespace-nowrap`} title={item.model}>{item.model ? shortModel(item.model) : '—'}</td>
                 <td className={`${CELL} whitespace-nowrap`}>{item.person?.name || t('org.feedback_anonymous', 'Anonymous')}</td>
-                <td className={`${CELL} whitespace-nowrap text-right text-xs text-[var(--text-muted)]`}>{fmtTime(item.created_at)}</td>
+                <td className={`${CELL} whitespace-nowrap text-right text-xs text-[var(--text-muted)]`}>{fmtTime(item.created_at, resolvedLocale)}</td>
                 <td className={`${CELL} whitespace-nowrap text-right`}>
                     {snapshot ? (
                         <button

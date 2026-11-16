@@ -1,0 +1,16 @@
+{
+  "reworded": {
+    "admin_ai_config.rerank_provider_help": {
+      "nl": "Herrangschik met een gekoppelde provider die een /rerank-endpoint in het gangbare formaat aanbiedt. Volgorde: een lokale llama.cpp-reranker (als die aan staat), deze provider, de gehoste reranker hieronder, de CPU-reranker, een GPU-sidecar en daarna gewone rangfusie. De eerste die is ingesteld en antwoordt, wint.",
+      "was": [
+        "Herrangschik met een provider die je hierboven hebt gekoppeld, bijvoorbeeld IONOS met Qwen/Qwen3-VL-Reranker-8B. Volgorde: lokale llama.cpp (als die aan staat), deze provider, Azure Cohere, CPU, GPU-sidecar en daarna gewone rangfusie. De eerste die is ingesteld en antwoordt, wint."
+      ]
+    },
+    "admin_ai_config.ws_rr_cpu_desc": {
+      "nl": "Draait een kleine cross-encoder-reranker op de CPU van deze server: ongeveer 280 MB geheugen, geen GPU, geen API-aanroep. Haalt bij een zelfgehoste opstelling de meeste kwaliteit uit de beschikbare middelen.",
+      "was": [
+        "Draait een klein bge-reranker-base-model in dit Node-proces via Transformers.js. ~280 MB RAM, geen GPU, geen API-aanroep. Beste kwaliteit per resource voor self-hosted opstellingen."
+      ]
+    }
+  }
+}

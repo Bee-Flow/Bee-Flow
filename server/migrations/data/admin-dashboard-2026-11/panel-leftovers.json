@@ -1,0 +1,10 @@
+{
+  "reworded": {
+    "integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync": {
+      "nl": "Nog geen Nextcloud-groepen gesynchroniseerd. De synchronisatie draait elke 6 uur automatisch, of gebruik \"Nu synchroniseren\" bij Nextcloud.",
+      "was": [
+        "Nog geen Nextcloud-groepen gesynchroniseerd. De synchronisatie draait elke 6 uur automatisch, of gebruik \"Nu synchroniseren\" bij Nextcloud-synchronisatie."
+      ]
+    }
+  }
+}

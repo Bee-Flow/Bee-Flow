@@ -63,7 +63,12 @@ function Facts({ summary: s, currency, showCalls, compare, onOpenAreas }: Adopti
     ].filter(Boolean).join(' · ');
     return (
         <div className="grid content-start gap-4 [grid-template-columns:repeat(3,minmax(0,1fr))]">
-            <Fact label={t('adoption.hero_members', 'Members')} value={fInt(s.members.total)} sub={seatLine} />
+            <Fact label={t('adoption.hero_members', 'Members')} value={fInt(s.members.total)} sub={seatLine}>
+                {/* People and Access count other things (pending invitations, every account): say what this one counts. */}
+                <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="adoption-members-rule">
+                    {t('admin_polish.adoption_members_rule', 'People with an account in this organisation or one of its groups. Pending invitations, guests and the server\'s platform administrator are not counted.')}
+                </span>
+            </Fact>
             <Fact
                 label={t('adoption.hero_makers', 'Makers')} value={fInt(s.makers.total)}
                 sub={t('adoption.hero_makers_sub', '{pct}% of members · {n} new this period', { pct: sharePct(s.makers.total, s.members.total), n: fInt(s.makers.newInPeriod) })}

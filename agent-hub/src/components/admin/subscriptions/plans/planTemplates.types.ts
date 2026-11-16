@@ -10,6 +10,11 @@ export interface PlanTemplate {
         priceLabel: string;
         highlights?: string[];
         badge?: string;
+        /**
+         * Operator-only note (economics, markup, sizing). Shown in the template
+         * gallery only; never copied into `plan`, so it never reaches a customer.
+         */
+        operatorNote?: string;
     };
     plan: PlanRecord;
 }

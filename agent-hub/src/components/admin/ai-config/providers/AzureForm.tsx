@@ -2,7 +2,7 @@ import React from 'react';
 import type { ProviderPaneProps } from './types';
 import DeleteConfirmButtons from '../ProviderCards/shared/DeleteConfirmButtons';
 import SecretInput from '../ProviderCards/shared/SecretInput';
-import { PRIMARY_BTN, INPUT, HINT } from '@/components/mcpLibrary/ui';
+import { PRIMARY_BTN, INPUT, HINT } from '@/components/shared/adminUi';
 import Section from '@/components/shared/Section';
 import { useAzureForm } from './useAzureForm';
 import AzureImageDeployments from './AzureImageDeployments';
@@ -72,7 +72,7 @@ const AzureForm = ({ onMessage }: ProviderPaneProps) => {
                         disabled={saving || (!endpoint.trim() && !apiKey.trim() && models === savedModels && !imagesChanged)}
                         className={PRIMARY_BTN}
                     >
-                        {saving ? '...' : t('admin_ai_config.save', 'Save')}
+                        {saving ? t('admin_ai_config.saving_ellipsis', 'Saving…') : t('admin_ai_config.save', 'Save')}
                     </button>
                 </div>
             </div>

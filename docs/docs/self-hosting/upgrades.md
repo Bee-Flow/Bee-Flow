@@ -193,7 +193,7 @@ organisation as before.
 
 Before you upgrade, check that you can sign in as a platform admin: the operator account
 `admin` from the first setup is one. To make another account one, a platform admin opens
-**Admin → Security → Users**, edits that account and turns on **Platform administrator** (or,
+**Admin dashboard → Workspace → People**, edits that account and turns on **Platform administrator** (or,
 through the API, `PUT /auth/users/<id>` with `{"role": "admin"}`). See
 [Appointing a platform admin](../admin/index.md#appointing-a-platform-admin).
 

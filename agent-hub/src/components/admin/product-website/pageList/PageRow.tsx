@@ -99,19 +99,19 @@ function SlugInput({ initial, isHomepage, allSlugs = null, onConfirm, onCancel }
                     }}
                     placeholder={t('cms_site.site.pagelist.slug_placeholder', 'page-slug')}
                     spellCheck={false}
-                    className={`flex-1 min-w-0 px-1.5 py-0.5 rounded text-[10px] font-mono border bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none ${issue?.blocking ? 'border-red-400' : 'border-[var(--accent-primary)]'}`}
+                    className={`flex-1 min-w-0 px-1.5 py-0.5 rounded text-[10px] font-mono border bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none ${issue?.blocking ? 'border-[var(--error)]' : 'border-[var(--accent-primary)]'}`}
                 />
             </span>
             {isHomepage ? (
                 // Spec: "still allow slug editing but warn the user".
                 // Inline warning keeps the affordance one-step (no
                 // modal); the user can still cancel via Escape.
-                <span className="text-[10px] leading-tight text-amber-500/90">
+                <span className="text-[10px] leading-tight text-[var(--warning-ink)]">
                     {t('cms_site.site.pagelist.homepage_slug_warning', '⚠ Homepage slug. Changing it may break external links.')}
                 </span>
             ) : null}
             {issue ? (
-                <span className={`text-[10px] leading-tight ${issue.blocking ? 'text-red-400' : 'text-amber-500/90'}`}>
+                <span className={`text-[10px] leading-tight ${issue.blocking ? 'text-[var(--error-ink)]' : 'text-[var(--warning-ink)]'}`}>
                     ⚠ {issue.message}{issue.blocking ? ' (press Esc to keep the old slug)' : ''}
                 </span>
             ) : null}

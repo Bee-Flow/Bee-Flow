@@ -27,9 +27,11 @@ interface PairingCode {
  * Flow:
  *   - Click "Generate pairing code" → SaaS mints an 8-char human-readable
  *     code (15-min TTL) and shows it here.
- *   - Admin sets it on the new NC connector as BEEFLOW_PAIRING_CODE
- *     (via `occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <code>`)
- *     and reinstalls the app.
+ *   - A Nextcloud admin enters it on the connector's setup page ("Bind to
+ *     existing organisation"), or, on a first install, gives it as the
+ *     install-time value BEEFLOW_PAIRING_CODE (deploy options, or
+ *     `occ app_api:app:register ... --env`). AppAPI has no command that
+ *     changes a value of an installed app.
  *   - Connector includes the code as `X-Beeflow-Pairing-Code` header on
  *     its bootstrap call; SaaS validates + binds + returns the tenantKey
  *     for THIS existing org. No fresh-org creation, no separate approval —
@@ -38,6 +40,7 @@ interface PairingCode {
  * Codes are one-shot and disappear from this list as soon as redeemed.
  */
 const PAIRING_CODES_KEY = ['orgAdmin', 'ncPairingCodes'] as const;
+const COMMAND_BLOCK = 'px-3 py-2 rounded-lg overflow-x-auto text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
 const NO_CODES: PairingCode[] = [];
 
 async function readPairingCodes(): Promise<PairingCode[]> {
@@ -52,14 +55,20 @@ async function readPairingCodes(): Promise<PairingCode[]> {
     return data.codes || [];
 }
 
-/** The time left on a code, as the list shows it. */
-function fmtCountdown(expiresAt: string | undefined) {
+/** The connector's setup page, by deploy daemon (docs/docs/connector/setup-picker.md). */
+const SETUP_PAGE_ADDRESSES = `https://<your-nextcloud>/exapps/bee_flow/setup
+https://<your-nextcloud>/index.php/apps/app_api/proxy/bee_flow/setup`;
+/** The code as an install-time value, on a first install (mobile pairingCommands says the same). */
+const AT_INSTALL_COMMAND = 'occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=<CODE>';
+
+/** The time left on a code ("12m 05s"), '' without an expiry, null once it has expired. */
+function timeLeft(expiresAt: string | undefined): string | null {
     if (!expiresAt) return '';
     const ms = new Date(expiresAt).getTime() - Date.now();
-    if (ms <= 0) return 'expired';
+    if (ms <= 0) return null;
     const min = Math.floor(ms / 60_000);
     const sec = Math.floor((ms % 60_000) / 1000);
-    return `${min}m ${sec.toString().padStart(2, '0')}s remaining`;
+    return `${min}m ${sec.toString().padStart(2, '0')}s`;
 }
 
 const OrgNcPairingPanel = () => {
@@ -80,7 +89,7 @@ const OrgNcPairingPanel = () => {
     });
     const codes = query.data ?? NO_CODES;
     const loading = query.isFetching;
-    const error = writeError || (query.error ? messageOf(query.error, 'Failed to load pairing codes') : null);
+    const error = writeError || (query.error ? messageOf(query.error, t('nc_pairing.load_failed', 'Failed to load pairing codes')) : null);
     const refresh = () => queryClient.invalidateQueries({ queryKey: PAIRING_CODES_KEY });
     const reload = () => { setWriteError(null); void refresh(); };
 
@@ -100,7 +109,7 @@ const OrgNcPairingPanel = () => {
             if (data.id && data.code) setGenerated((prev) => ({ ...prev, [data.id as string]: data.code as string }));
             await refresh();
         },
-        onError: (e) => setWriteError(messageOf(e, 'Failed to generate pairing code')),
+        onError: (e) => setWriteError(messageOf(e, t('nc_pairing.generate_failed', 'Failed to generate pairing code'))),
     });
     const generating = generateCode.isPending;
     const generate = () => generateCode.mutate();
@@ -115,10 +124,15 @@ const OrgNcPairingPanel = () => {
             }
         },
         onSuccess: () => refresh(),
-        onError: (e) => setWriteError(messageOf(e, 'Failed to revoke')),
+        onError: (e) => setWriteError(messageOf(e, t('nc_pairing.revoke_failed', 'Failed to revoke'))),
     });
     const revoke = async (id: string) => {
-        if (!(await confirm({ title: 'Revoke this pairing code?', description: 'Anyone who has it will no longer be able to use it.', confirmLabel: 'Revoke', destructive: true }))) return;
+        if (!(await confirm({
+            title: t('nc_pairing.revoke_title', 'Revoke this pairing code?'),
+            description: t('nc_pairing.revoke_description', 'Anyone who has it will no longer be able to use it.'),
+            confirmLabel: t('nc_pairing.revoke_confirm', 'Revoke'),
+            destructive: true,
+        }))) return;
         revokeCode.mutate(id);
     };
 
@@ -129,8 +143,11 @@ const OrgNcPairingPanel = () => {
             setTimeout(() => setJustCopiedId((curr: string | null) => curr === id ? null : curr), 1500);
         } catch (err) { logger.debug('clipboard denied — ignore', err); }
     };
-
-
+    const countdownText = (expiresAt: string | undefined) => {
+        const left = timeLeft(expiresAt);
+        if (left === null) return t('nc_pairing.expired', 'expired');
+        return left ? t('nc_pairing.time_left', '{left} remaining', { left }) : '';
+    };
 
     return (
         <div className="rounded-xl p-5 mb-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
@@ -143,7 +160,7 @@ const OrgNcPairingPanel = () => {
                         {t('integ.org_nc_pairing_pair_a_new_nextcloud', 'Pair a new Nextcloud')}
                     </h3>
                     <p className="text-[12px] leading-snug text-[var(--text-muted)]">
-                        {t('integ.org_nc_pairing_generate_a_one_shot_code_then_set_it', 'Generate a one-shot code, then set it as the')} <code className="px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-tertiary)]">BEEFLOW_PAIRING_CODE</code> {t('integ.org_nc_pairing_environment_variable_on_the_connector', 'environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.')}
+                        {t('nc_pairing.intro', 'Generate a one-shot code, then enter it on the setup page of the Bee Flow connector on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.')}
                     </p>
                 </div>
             </div>
@@ -158,9 +175,9 @@ const OrgNcPairingPanel = () => {
                 <button
                     onClick={generate}
                     disabled={generating}
-                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]"
+                    className="px-3.5 py-2 rounded-lg text-[13px] font-medium disabled:opacity-40 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
-                    {generating ? 'Generating…' : 'Generate pairing code'}
+                    {generating ? t('nc_pairing.generating', 'Generating…') : t('nc_pairing.generate', 'Generate pairing code')}
                 </button>
                 <button
                     onClick={reload}
@@ -187,13 +204,14 @@ const OrgNcPairingPanel = () => {
                                 {shown || '••••-••••'}
                             </code>
                             <span className="text-[11px] flex-1 text-[var(--text-tertiary)]">
-                                {fmtCountdown(c.expiresAt)}
+                                {countdownText(c.expiresAt)}
                                 {!shown && ` · ${t('integ.org_nc_pairing_shown_once', 'Shown once, right after it is generated')}`}
                             </span>
                             {shown && <button
                                 onClick={() => copy(c.id, shown)}
                                 className={`p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] ${justCopiedId === c.id ? '[color:#10b981]' : '[color:var(--text-muted)]'}`}
-                                title={justCopiedId === c.id ? 'Copied!' : 'Copy'}
+                                title={justCopiedId === c.id ? t('nc_pairing.copied', 'Copied!') : t('nc_pairing.copy', 'Copy')}
+                                aria-label={t('nc_pairing.copy', 'Copy')}
                             >
                                 {justCopiedId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                             </button>}
@@ -216,13 +234,12 @@ const OrgNcPairingPanel = () => {
                     {t('integ.org_nc_pairing_how_to_use_this_code_on_the_new', 'How to use this code on the new Nextcloud')}
                 </summary>
                 <div className="mt-2 pl-3 space-y-1.5 text-[var(--text-muted)]">
-                    <p>{t('integ.org_nc_pairing_on_the_new_nextcloud_server_run', 'On the new Nextcloud server, run:')}</p>
-                    <pre className="px-3 py-2 rounded-lg overflow-x-auto text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-{`occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>
-occ app_api:app:disable bee_flow
-occ app_api:app:enable bee_flow`}
-                    </pre>
-                    <p>{t('integ.org_nc_pairing_the_connector_picks_up_the_code_on', 'The connector picks up the code on next boot, redeems it once, and binds this Nextcloud to your existing Bee Flow organisation.')}</p>
+                    <p>{t('nc_pairing.howto_setup_page', "As a Nextcloud administrator, open Bee Flow from the Nextcloud top bar, or open the connector's setup page:")}</p>
+                    <pre className={COMMAND_BLOCK}>{SETUP_PAGE_ADDRESSES}</pre>
+                    <p>{t('nc_pairing.howto_enter_code', 'Enter the code under Bind to existing organisation and press Apply pairing code. On a self-hosted server you can also enter it in the Pairing code field when you choose the server. Nothing has to be installed again.')}</p>
+                    <p>{t('nc_pairing.howto_at_install', 'Installing the connector on that Nextcloud for the first time? You can also give the code at install, in the deploy options or with:')}</p>
+                    <pre className={COMMAND_BLOCK}>{AT_INSTALL_COMMAND}</pre>
+                    <p>{t('nc_pairing.howto_result', 'The connector redeems the code once and binds this Nextcloud to your existing Bee Flow organisation. A code that has expired or was already used changes nothing: generate a new one.')}</p>
                 </div>
             </details>
             {confirmDialog}

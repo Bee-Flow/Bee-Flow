@@ -189,7 +189,7 @@ _bus.on(EVENTS.DSR_SUBMITTED, async ({ orgId, requestType }) => {
         orgId,
         'urgent',
         'New data-subject request',
-        `A ${requestType || 'data-subject'} request was submitted. GDPR Art. 12(3) requires a response within one month of receipt. Open Compliance → DSR Inbox to respond.`,
+        `A ${requestType || 'data-subject'} request was submitted. GDPR Art. 12(3) requires a response within one month of receipt. Open Compliance → Requests (DSR) to respond.`,
         complianceSectionPath('dsr'),
         // One bell line per request type per hour: the inbox lists every
         // request, and a flood through the public form must not become a
@@ -208,7 +208,7 @@ _bus.on(EVENTS.CONTROL_DRIFT, async ({ orgId, connectorId, checkIds }) => {
         orgId,
         'heads_up',
         'External system configuration changed',
-        `The ${connectorId || 'evidence'} connector observed a changed configuration in a coupled system. The linked ISO 27001 checks were re-run — review the result under ISO 27001 → Controls.`,
+        `The ${connectorId || 'evidence'} connector observed a changed configuration in a coupled system. The linked ISO 27001 checks were re-run — review the result under Compliance → ISO 27001.`,
         complianceSectionPath('iso_controls'),
         { key: `control_drift:${connectorId || 'evidence'}`, window: 'day' },
     );

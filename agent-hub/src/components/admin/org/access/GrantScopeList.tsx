@@ -1,10 +1,11 @@
 // The scope column of the Grants matrix: "All members", then the groups
 // (searchable once there are more than six), each with the number of
-// capabilities granted to it. The current scope carries aria-current.
+// capabilities granted to it (said as "{n} granted" to a screen reader and
+// on hover, so it never reads as a member count). The current scope carries aria-current.
 
 import { Search, Users } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { EYEBROW } from '@/components/mcpLibrary/ui';
+import { EYEBROW } from '@/components/shared/adminUi';
 
 interface ScopeButtonProps {
     label: string;
@@ -14,18 +15,26 @@ interface ScopeButtonProps {
 }
 
 function ScopeButton({ label, count, active, onSelect }: ScopeButtonProps) {
+    const { t } = useTranslation();
+    // The number is of features and integrations granted, not of people: it says so.
+    const countLabel = t('admin_platform.access_granted_count', '{count} granted', { count });
     return (
         <button
             type="button"
             onClick={onSelect}
             aria-current={active ? 'true' : undefined}
             className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${active
-                ? 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
+                ? 'bg-[var(--item-active-bg)] font-medium text-[var(--text-primary)]'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)]'}`}
         >
             <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate">{label}</span>
-            {count > 0 ? <span className="shrink-0 rounded-full bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[11px] text-[var(--text-tertiary)]">{count}</span> : null}
+            {count > 0 ? (
+                <span className="shrink-0 rounded-full bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[11px] text-[var(--text-tertiary)]" title={countLabel} data-testid="grant-count">
+                    <span aria-hidden="true">{count}</span>
+                    <span className="sr-only">{countLabel}</span>
+                </span>
+            ) : null}
         </button>
     );
 }

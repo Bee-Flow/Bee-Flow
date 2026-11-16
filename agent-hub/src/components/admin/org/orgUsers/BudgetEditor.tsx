@@ -61,13 +61,13 @@ export default function BudgetEditor({ value, label, hint, suffix = '', showLabe
                             }}
                             aria-label={label}
                             placeholder={noLimit}
-                            className="w-28 px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-blue-500"
+                            className="w-28 px-2.5 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-[var(--accent-primary)]"
                             autoFocus
                         />
-                        <button type="button" onClick={() => void save()} disabled={saving} aria-label={t('admin_org.budget_save', 'Save budget')} className="p-1 text-green-500 hover:bg-green-500/10 rounded">
+                        <button type="button" onClick={() => void save()} disabled={saving} aria-label={t('admin_org.budget_save', 'Save budget')} className="p-1 rounded text-[var(--success-ink)] hover:bg-[color-mix(in_srgb,var(--success)_12%,transparent)]">
                             <Check className="w-3.5 h-3.5" />
                         </button>
-                        <button type="button" onClick={() => setEditing(false)} aria-label={t('admin_org.budget_cancel', 'Cancel')} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] rounded">
+                        <button type="button" onClick={() => setEditing(false)} aria-label={t('admin_org.budget_cancel', 'Cancel')} className="p-1 rounded text-[var(--text-muted)] hover:bg-[var(--item-hover-bg)]">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -79,7 +79,7 @@ export default function BudgetEditor({ value, label, hint, suffix = '', showLabe
                         aria-label={`${label}: ${amount === null ? noLimit : `€${amount.toFixed(2)}${suffix}`}`}
                         className={`text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer text-left ${showLabel ? 'pt-1.5' : ''}`}
                     >
-                        {amount === null ? <span className="italic opacity-60">{noLimit}</span> : `€${amount.toFixed(2)}${suffix}`}
+                        {amount === null ? <span className="italic text-[var(--text-tertiary)]">{noLimit}</span> : `€${amount.toFixed(2)}${suffix}`}
                     </button>
                 )}
                 {hint && <p className="text-[10px] mt-1 text-[var(--text-muted)]">{hint}</p>}

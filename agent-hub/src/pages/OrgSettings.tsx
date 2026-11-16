@@ -1,6 +1,8 @@
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import React, { useEffect } from 'react';
 import OrganisationSection from './settings/OrganisationSection';
+import OrgPageHeading from './settings/OrgPageHeading';
+import { Button } from '@/components/shared/Button';
 import OrgUsersPanel from '../components/admin/org/OrgUsersPanel';
 import AgentDesigner from '../components/agents/AgentDesigner/index';
 import GitHubSyncPanel from '../components/integrations/github/GitHubSyncPanel';
@@ -10,6 +12,8 @@ import { AGENT_MANAGEMENT_ROLES, USER_MANAGEMENT_ROLES } from '../config/orgRole
 import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
 import { orgSettingsAdminTarget } from '../authedApp/settingsRoutes';
+import { resolveAdminTab } from '@/components/admin/dashboard/adminTabs';
+import { useAdminTabAccess } from '@/components/admin/dashboard/useAdminTabAccess';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 
 interface OrgSettingsProps {
@@ -21,13 +25,8 @@ interface OrgSettingsProps {
 
 const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSettingsProps) => {
     const { t } = useTranslation();
-    // A desktop opens the moved tabs (Organisation, GitHub and Nextcloud Sync,
-    // Users) in the admin dashboard; Agents and Knowledge Bases stay here.
     const { isMobile } = useViewport();
-    const movedTo = isMobile ? null : orgSettingsAdminTarget(orgSettingsPath.seg1, orgSettingsPath.seg2);
-    useEffect(() => {
-        if (movedTo && onNavigate) onNavigate(movedTo, { replace: true });
-    }, [movedTo, onNavigate]);
+    const { checkTabAccess } = useAdminTabAccess(user);
     // Permission helper — derives from the actual user permission set
     const hasPermission = (perm: string) => {
         const perms = user?.permissions || [];
@@ -65,9 +64,24 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
     ];
 
     const allowedTabs = tabs.filter(tab => tab.allowed);
-    const activeTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
+    const requestedTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
         ? orgSettingsPath.seg1
         : (allowedTabs[0]?.id || null);
+    // The old Users > Sync address (bookmarks, the phone app, a lesson) opens
+    // the Nextcloud Sync tab: the sync panel has that one home on this page.
+    const activeTab = requestedTab === 'users' && orgSettingsPath.seg2 === 'sync' && allowedTabs.some(tab => tab.id === 'nextcloud-sync')
+        ? 'nextcloud-sync'
+        : requestedTab;
+
+    // A desktop opens every tab of this page in the admin dashboard, where each
+    // one is a row (ORG_SETTINGS_ADMIN_TARGETS), when the dashboard opens that
+    // row for this viewer; a phone, and a viewer the dashboard would refuse it
+    // (an agent editor without an admin tab), keep this page.
+    const target = isMobile || !activeTab ? null : orgSettingsAdminTarget(activeTab, orgSettingsPath.seg2);
+    const movedTo = target && dashboardOpens(target, checkTabAccess) ? target : null;
+    useEffect(() => {
+        if (movedTo && onNavigate) onNavigate(movedTo, { replace: true });
+    }, [movedTo, onNavigate]);
 
     const handleTabClick = (tabId: string) => {
         if (onNavigate) {
@@ -80,12 +94,12 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
         return (
             <div className="h-full flex items-center justify-center bg-[var(--bg-primary)]">
                 <div className="text-center p-8 rounded-2xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center [background:rgba(239,68,68,0.1)]">
-                        <ShieldOff className="w-8 h-8 [color:rgb(239,68,68)]" />
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-[color-mix(in_srgb,var(--error)_10%,transparent)]">
+                        <ShieldOff className="w-8 h-8 text-[var(--error-ink)]" />
                     </div>
                     <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">{t('admin.access_denied_title', 'Access Denied')}</h2>
                     <p className="text-sm mb-4 text-[var(--text-muted)]">{t('org.settings_access_denied_text', "You don't have permission to access organisation settings.")}</p>
-                    {onBack && <button onClick={onBack} className="px-4 py-2 rounded-lg font-medium text-white bg-[var(--accent-primary)]">{t('admin.go_back', 'Go Back')}</button>}
+                    {onBack && <Button variant="primary" onClick={onBack}>{t('admin.go_back', 'Go Back')}</Button>}
                 </div>
             </div>
         );
@@ -161,15 +175,19 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
                             'knowledge'); the duplicate admin CRUD that used to
                             sit here (KnowledgeBasesSection.jsx) is gone. */}
                         <div className="max-w-5xl mx-auto space-y-6">
+                            <OrgPageHeading section="knowledge-bases" className="" />
                             <SystemKnowledgeBasesPanel />
                         </div>
                     </div>
                 ) : activeTab === 'github-sync' ? (
                     <div className="absolute inset-0 overflow-y-auto p-6">
+                        {/* The panels draw no page title (the admin dashboard's frame does); this page names them. */}
+                        <OrgPageHeading section="github_sync" />
                         <GitHubSyncPanel user={user} />
                     </div>
                 ) : activeTab === 'nextcloud-sync' ? (
                     <div className="absolute inset-0 overflow-y-auto p-6">
+                        <OrgPageHeading section="nextcloud_sync" />
                         <NextcloudSyncPanel user={user} />
                     </div>
                 ) : null}
@@ -177,5 +195,11 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
         </div>
     );
 };
+
+/** Does the admin dashboard open this page ('admin/<tab>[/<section>]') for the viewer? */
+function dashboardOpens(target: string, allowed: Parameters<typeof resolveAdminTab>[1]): boolean {
+    const [, seg1, seg2] = target.split('/');
+    return resolveAdminTab({ seg1, seg2 }, allowed).isTabAllowed;
+}
 
 export default OrgSettings;

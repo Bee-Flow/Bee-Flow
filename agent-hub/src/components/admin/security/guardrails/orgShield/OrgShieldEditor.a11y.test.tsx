@@ -78,7 +78,7 @@ async function renderOn(tabName?: string | RegExp) {
 describe('Privacy Shield accessibility', () => {
     it('gives every switch an accessible name', async () => {
         await renderOn(/Leaving your org/);
-        const switches = screen.getAllByRole('checkbox');
+        const switches = screen.getAllByRole('switch');
         expect(switches.length).toBeGreaterThan(0);
         for (const box of switches) {
             expect(box).toHaveAccessibleName();
@@ -87,7 +87,7 @@ describe('Privacy Shield accessibility', () => {
 
     it('names the master enable switch', async () => {
         await renderOn();
-        expect(screen.getByRole('checkbox', { name: /Enable/i })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: /Enable/i })).toBeInTheDocument();
     });
 
     it('renders the action choice as a radiogroup with exactly one checked option', async () => {

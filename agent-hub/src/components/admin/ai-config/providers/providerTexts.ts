@@ -14,19 +14,19 @@ export function providerTexts(t: TranslateFn, id: string): ProviderTexts {
     switch (id) {
         case 'claude':
             return {
-                description: t('admin_ai_config.pk_claude_desc', 'Required for Claude models (Opus, Sonnet, Haiku)'),
+                description: t('admin_ai_config.pk_claude_desc', 'Required for Claude models'),
                 placeholder: t('admin_ai_config.pk_claude_placeholder', 'Enter your Claude API key'),
                 docsLabel: t('admin_ai_config.pk_claude_docs', 'console.anthropic.com'),
             };
         case 'openai':
             return {
-                description: t('admin_ai_config.pk_openai_desc', 'Required for OpenAI models (GPT-6 Astra, GPT-5.6, o-series)'),
+                description: t('admin_ai_config.pk_openai_desc', 'Required for OpenAI models'),
                 placeholder: t('admin_ai_config.pk_openai_placeholder', 'Enter your OpenAI API key'),
                 docsLabel: t('admin_ai_config.pk_openai_docs', 'platform.openai.com'),
             };
         case 'google':
             return {
-                description: t('admin_ai_config.pk_google_desc', 'Required for Gemini models + Image Generation'),
+                description: t('admin_ai_config.pk_google_desc', 'Required for Gemini models, including image generation'),
                 placeholder: t('admin_ai_config.pk_google_placeholder', 'Enter your Google AI API key'),
                 docsLabel: t('admin_ai_config.pk_google_docs', 'aistudio.google.com'),
             };

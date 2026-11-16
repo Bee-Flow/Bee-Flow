@@ -210,7 +210,7 @@ Buttons **"Save template"**, **"Cancel"**, **"Delete"**.
 - **Settings → Organisation → "Talk Meeting Notes"** (org admin): the same toggles at org scope, which
   **override each member's personal setting**, plus **"Per-person meeting insights"**
   (*"Off = members see only meeting-level metrics."*).
-- **Admin → Integrations → Transcription** (super admin): a list + detail. The list (group
+- **Admin dashboard → Whole server → Platform services → Transcription** (super admin): a list + detail. The list (group
   **"Active Provider"**) has **Voxtral** (Mistral cloud), **Azure Speech**, **Azure Whisper**,
   **WhisperX** (self-hosted), **Scaleway (hybrid)** (EU Whisper large-v3 + local diarizer) and
   **pyannoteAI** (best diarization + voice profiles); a dot shows whether each is configured and the

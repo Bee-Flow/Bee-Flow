@@ -63,4 +63,13 @@ describe('FeedbackPage', () => {
         await user.click(screen.getByText('bob'));
         expect(screen.getByText('No conversation shared')).toBeTruthy();
     });
+
+    // "—% approval" read as a broken number: no ratings is said in words.
+    it('with no feedback says so in words, not as a placeholder percentage', () => {
+        render(<FeedbackPage feedback={[]} summary={{ thumbs_up: 0, thumbs_down: 0, total: 0, with_comments: 0 }} />);
+        expect(screen.getByText('No ratings yet')).toBeTruthy();
+        expect(screen.queryByText(/—% approval/)).toBeNull();
+        expect(screen.getByText(/No feedback in this period/)).toBeTruthy();
+    });
 });
+

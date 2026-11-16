@@ -54,6 +54,8 @@ vi.mock('../../utils/scopedStorage', () => ({
         getItem: (k) => storeMock.data[k] ?? null,
         setItem: (k, v) => { storeMock.data[k] = v; },
     },
+    // Nobody signed in as far as per-person memory goes (the admin licence tier memory reads it).
+    getCurrentUser: () => null,
 }));
 // The registry stays real unless a test hands it a section list of its own —
 // only the "no sections at all" case needs to replace it.

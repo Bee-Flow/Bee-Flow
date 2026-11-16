@@ -99,6 +99,14 @@ describe('ConnectorHealthPanel', () => {
         expect(screen.getByText('Blokkade BV')).toBeTruthy();
     });
 
+    it('draws no page heading of its own (the Nextcloud instances page and its tab name it), only its hint', async () => {
+        mockFleet();
+        renderWithClient(<ConnectorHealthPanel />);
+        await screen.findByText('Blokkade BV');
+        expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
+        expect(screen.getByText(/Per-organisation status of Nextcloud-connected workspaces/)).toBeTruthy();
+    });
+
     it('narrows rows with the search box', async () => {
         const user = userEvent.setup();
         mockFleet();
@@ -133,7 +141,8 @@ describe('ConnectorHealthPanel', () => {
         const onNavigate = vi.fn();
         renderWithClient(<ConnectorHealthPanel onNavigate={onNavigate} />);
         await user.click(await screen.findByText('Blokkade BV'));
-        expect(onNavigate).toHaveBeenCalledWith('admin/security/connector-health/org-b');
+        // Changed on purpose (wave 2): connector health is the Nextcloud instances row's Health tab.
+        expect(onNavigate).toHaveBeenCalledWith('admin/nextcloud-instances/health/org-b');
         expect(screen.getByTestId('org-drawer').getAttribute('data-org')).toBe('org-b');
     });
 

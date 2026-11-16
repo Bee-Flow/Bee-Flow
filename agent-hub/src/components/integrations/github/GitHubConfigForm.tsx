@@ -1,7 +1,10 @@
-import { Settings, Check, Loader2 } from 'lucide-react';
+import { Settings, Check } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import Toggle from '@/components/shared/Toggle';
+import { INPUT } from '@/components/shared/adminUi';
 
-const inputClass = "w-full px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)] transition-colors";
+const inputClass = INPUT;
 
 interface GitHubConfigFormProps {
     configured: boolean | undefined;
@@ -23,13 +26,13 @@ interface GitHubConfigFormProps {
 export function GitHubConfigForm({ configured, showConfig, configuring, repoOwner, setRepoOwner, repoName, setRepoName, branch, setBranch, autoSync, setAutoSync, onConfigure, onCancel }: GitHubConfigFormProps) {
     const { t } = useTranslation();
     return (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[var(--text-muted)]" />
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 space-y-4">
+            <h3 className="m-0 text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                <Settings className="w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" />
                 {t('integ.git_hub_sync_repository_configuration', 'Repository Configuration')}
             </h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-xs font-medium mb-1.5 text-[var(--text-secondary)]">{t('integ.git_hub_sync_repository_owner', 'Repository Owner')}</label>
                     <input
@@ -63,35 +66,21 @@ export function GitHubConfigForm({ configured, showConfig, configuring, repoOwne
                 />
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]">
-                <button
-                    onClick={() => setAutoSync(!autoSync)}
-                    className={`w-10 h-5.5 rounded-full transition-all flex-shrink-0 relative ${autoSync ? 'bg-[var(--accent-primary)]' : 'bg-[var(--bg-tertiary)]'}`}
-                >
-                    <span className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-all ${autoSync ? 'left-[22px]' : 'left-0.5'}`} />
-                </button>
-                <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('integ.git_hub_sync_auto_sync', 'Auto-sync')}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{t('integ.git_hub_sync_automatically_push_changes_when_agents', 'Automatically push changes when agents are modified')}</p>
-                </div>
-            </div>
+            <Toggle
+                checked={autoSync}
+                onChange={setAutoSync}
+                label={t('integ.git_hub_sync_auto_sync', 'Auto-sync')}
+                description={t('integ.git_hub_sync_automatically_push_changes_when_agents', 'Automatically push changes when agents are modified')}
+            />
 
             <div className="flex gap-3 pt-2">
-                <button
-                    onClick={onConfigure}
-                    disabled={configuring}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:var(--brand-gradient)]"
-                >
-                    {configuring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    {configured ? 'Update Configuration' : 'Connect Repository'}
-                </button>
+                <Button variant="primary" icon={configuring ? undefined : Check} busy={configuring} onClick={onConfigure}>
+                    {configured ? t('admin_connections.gh_update_config', 'Update Configuration') : t('admin_connections.gh_connect_repo', 'Connect Repository')}
+                </Button>
                 {(configured || showConfig) && (
-                    <button
-                        onClick={onCancel}
-                        className="px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-                    >
+                    <Button variant="ghost" onClick={onCancel}>
                         {t('integ.git_hub_sync_cancel', 'Cancel')}
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>

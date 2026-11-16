@@ -2,7 +2,7 @@
 //   useEffect(() => { const onDown = (e) => {...}; const onKey = (e) => {...};
 //   document.addEventListener('mousedown', onDown); ... }, [open])
 // pattern that's open-coded across the chat settings popovers
-// (ElevenLabs/VideoGen/NanoBanana/MusicGen), the sitemap editor's
+// (ElevenLabs/VideoGen/ImageGen/MusicGen), the sitemap editor's
 // EdgePopover/SettingsFlyout, and several admin dropdowns.
 //
 // Usage:

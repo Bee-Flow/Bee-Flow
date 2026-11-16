@@ -29,12 +29,18 @@ export interface ChatPatch {
     webhookUrl?: string;
 }
 
+/** The chat services a card can go to, each with the shape of its webhook address as the field's example. */
 export const PROVIDERS = [
-    { id: 'google_chat', label: 'Google Chat' },
-    { id: 'slack', label: 'Slack' },
-    { id: 'teams', label: 'Microsoft Teams' },
-    { id: 'generic', label: 'Plain JSON webhook' },
+    { id: 'google_chat', label: 'Google Chat', placeholder: 'https://chat.googleapis.com/v1/spaces/…' },
+    { id: 'slack', label: 'Slack', placeholder: 'https://hooks.slack.com/services/…' },
+    { id: 'teams', label: 'Microsoft Teams', placeholder: 'https://….webhook.office.com/…' },
+    { id: 'generic', label: 'Plain JSON webhook', placeholder: 'https://example.com/webhook' },
 ];
+
+/** The example webhook address of a provider (the first one's for an unknown id). */
+export function webhookPlaceholder(provider: string | null | undefined): string {
+    return (PROVIDERS.find(p => p.id === provider) ?? PROVIDERS[0]).placeholder;
+}
 
 /** The chat events in words, written from the reader's side: what happens, not which table it touches. */
 export function eventLabelsFor(t: TranslateFn): Record<string, string> {

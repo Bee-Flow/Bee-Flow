@@ -26,20 +26,31 @@ afterEach(() => vi.unstubAllGlobals());
 describe('SupportAIConfig', () => {
     it('lists its sections in a nav and opens one', async () => {
         renderWithClient(<SupportAIConfig />);
-        const nav = screen.getByRole('navigation', { name: 'AI configuration' });
-        expect(await screen.findByText('Bee Flow Support agent is not seeded yet. Restart the server.')).toBeInTheDocument();
+        const nav = screen.getByRole('navigation', { name: 'Settings' });
+        expect(await screen.findByText('The support agent is not set up yet. Restart the server.')).toBeInTheDocument();
+        // The insights report is a view of its own now; the connections are a section here.
+        expect(screen.queryByRole('button', { name: 'Insights' })).toBeNull();
+        expect(screen.getByRole('button', { name: 'Connections' })).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Tags' }));
         expect(nav).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Tags' })).toHaveAttribute('aria-current', 'page');
         expect(await screen.findByRole('heading', { level: 2, name: 'Tag taxonomy' })).toBeInTheDocument();
         expect(await screen.findByText('#billing')).toBeInTheDocument();
     });
+
+    it('opens the section its host names and reports a choice', async () => {
+        const onSection = vi.fn();
+        renderWithClient(<SupportAIConfig section="tags" onSection={onSection} />);
+        expect(screen.getByRole('button', { name: 'Tags' })).toHaveAttribute('aria-current', 'page');
+        await userEvent.click(screen.getByRole('button', { name: 'SLA' }));
+        expect(onSection).toHaveBeenCalledWith('sla');
+    });
 });
 
 describe('SupportToolsTab', () => {
     it('switches tool use on and saves both settings', async () => {
         renderWithClient(<SupportToolsTab />);
-        const toggle = await screen.findByRole('checkbox', { name: 'Enable tool-using AI (v2)' });
+        const toggle = await screen.findByRole('switch', { name: 'Enable tool-using AI (v2)' });
         await userEvent.click(toggle);
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(await screen.findByText('Saved')).toBeInTheDocument();

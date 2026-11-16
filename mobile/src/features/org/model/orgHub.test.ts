@@ -17,7 +17,6 @@ const ADMIN: OrgVisibilityInputs = {
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,
-    authLocked: false,
     githubConnected: true,
 };
 

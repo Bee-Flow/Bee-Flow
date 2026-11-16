@@ -1,5 +1,6 @@
 import { Check, Info, Plus, RefreshCw, Search, Workflow } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 import WorkflowRow from './N8nWorkflowEditor';
 import type { N8nWorkflows } from './useN8nState';
 
@@ -14,8 +15,7 @@ function DiscoveredList({ wfs }: { wfs: N8nWorkflows }) {
             {wfs.filteredDiscovered.map(dw => {
                 const alreadyAdded = wfs.workflows.some(w => w.id === dw.id);
                 return (
-                    <div key={dw.id} className="flex items-center justify-between px-3 py-2 rounded-lg border"
-                        style={{ borderColor: 'var(--border-subtle)', background: alreadyAdded ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}>
+                    <div key={dw.id} className={`flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border-subtle)] ${alreadyAdded ? 'bg-[var(--bg-secondary)]' : 'bg-transparent'}`}>
                         <div className="min-w-0">
                             <div className="text-sm font-medium truncate text-[var(--text-primary)]">{dw.name}</div>
                             <div className="text-xs truncate text-[var(--text-muted)]">
@@ -23,12 +23,12 @@ function DiscoveredList({ wfs }: { wfs: N8nWorkflows }) {
                             </div>
                         </div>
                         {alreadyAdded ? (
-                            <span className="text-xs font-medium flex items-center gap-1 shrink-0 [color:#10b981]!">
+                            <span className="text-xs font-medium flex items-center gap-1 shrink-0 text-[var(--success-ink)]">
                                 <Check className="w-3.5 h-3.5" /> {t('settings.n8n.added', 'Added')}
                             </span>
                         ) : (
                             <button onClick={() => wfs.addWorkflow(dw)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80 shrink-0 [background:var(--accent-primary)] [color:white]!">
+                                className={`${PRIMARY_BTN} shrink-0`}>
                                 <Plus className="w-3 h-3" /> {t('settings.n8n.add', 'Add')}
                             </button>
                         )}
@@ -58,11 +58,11 @@ function ConfiguredList({ wfs }: { wfs: N8nWorkflows }) {
                     {t('settings.n8n.workflows_enabled', 'Workflows ({enabled}/{total} enabled)', { enabled: workflows.filter(w => w.enabled).length, total: workflows.length })}
                 </h4>
                 <button onClick={wfs.saveWorkflows} disabled={wfs.saving}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
+                    className={PRIMARY_BTN}>
                     {wfs.saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_all', 'Save All')}
                 </button>
             </div>
-            <div className="divide-y border-[var(--border-subtle)]">
+            <div className="divide-y divide-[var(--border-subtle)]">
                 {wfs.filteredWorkflows.map(wf => <WorkflowRow key={wf.id} wf={wf} wfs={wfs} />)}
             </div>
         </div>
@@ -94,7 +94,7 @@ export default function N8nWorkflowsTab({ configured, wfs }: { configured: boole
                 </div>
                 <button
                     onClick={wfs.discoverWorkflows} disabled={wfs.discovering}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                    className={SECONDARY_BTN}
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${wfs.discovering ? 'animate-spin' : ''}`} />
                     {wfs.discovering ? t('settings.n8n.scanning', 'Scanning...') : t('settings.n8n.discover', 'Discover')}

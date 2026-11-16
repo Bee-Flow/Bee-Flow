@@ -15,11 +15,11 @@ interface ModuleLogsDialogProps {
 
 const LEVELS = ['debug', 'info', 'warn', 'error'];
 
-const LEVEL_COLOR: Record<string, string> = {
-    debug: 'var(--text-muted)',
-    info: 'var(--text-secondary)',
-    warn: '#f59e0b',
-    error: '#ef4444',
+const LEVEL_CLASS: Record<string, string> = {
+    debug: 'text-[var(--text-muted)]',
+    info: 'text-[var(--text-secondary)]',
+    warn: 'text-[var(--warning-ink)]',
+    error: 'text-[var(--error-ink)]',
 };
 
 function formatTs(ts: number | string) {
@@ -49,7 +49,7 @@ export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogPr
             zIndex={60}
             title={
                 <span className="flex items-center gap-2 min-w-0">
-                    <ScrollText className="w-4 h-4 flex-shrink-0 [color:#f59e0b]" aria-hidden="true" />
+                    <ScrollText className="w-4 h-4 flex-shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                     <span className="truncate">{t('modules.logs_title', { name: module.name || module.id })}</span>
                 </span>
             }
@@ -82,7 +82,7 @@ export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogPr
                     logs.map((row: ModuleLogEntry) => (
                         <div key={row.seq} className="flex gap-2 py-0.5 leading-relaxed">
                             <span className="flex-shrink-0 text-[var(--text-muted)]">{formatTs(row.ts)}</span>
-                            <span className="flex-shrink-0 uppercase w-12" style={{ color: LEVEL_COLOR[row.level] || 'var(--text-secondary)' }}>
+                            <span className={`flex-shrink-0 uppercase w-12 ${LEVEL_CLASS[row.level] || 'text-[var(--text-secondary)]'}`}>
                                 {row.level}
                             </span>
                             <span className="whitespace-pre-wrap break-all text-[var(--text-primary)]">{row.msg}</span>

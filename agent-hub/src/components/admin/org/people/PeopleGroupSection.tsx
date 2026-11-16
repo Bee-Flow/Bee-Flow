@@ -1,6 +1,7 @@
 import { Building2, ChevronDown, ChevronRight, Users as UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { nOf } from '@/utils/plural';
 import PeopleRow from './PeopleRow';
 import type { PeopleRowProps, PeopleUser } from './PeopleRow';
 
@@ -112,7 +113,7 @@ export default function PeopleGroupSection({
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusChip}`}>{statusLabel}</span>
                     )}
                     <span className="text-xs text-[var(--text-muted)] tabular-nums">
-                        {t('admin.sec_people_count', '{count} people', { count: section.count })}
+                        {nOf(t, 'admin_people.summary_people', section.count, '{count} person', '{count} people')}
                     </span>
                 </span>
             </button>

@@ -5,6 +5,7 @@ import { invalidateSkills } from './useSkills';
 import { invalidateTrainingGates } from './useTrainingGates';
 import { clearAppRefCache } from '../components/automation/Builder/flow/appRefLabel';
 import { invalidateAllowedModelsCache } from '../api/modelMeta';
+import { forgetLicenceTier } from '../components/admin/dashboard/useSteadyLicenceTier';
 
 /**
  * Every MODULE-LEVEL cache that belongs to one signed-in account, dropped in
@@ -67,5 +68,7 @@ export function clearSessionCaches(): void {
     invalidateTrainingGates();
     clearAppRefCache();
     invalidateAllowedModelsCache();
+    // The admin dashboard's remembered licence tier (sessionStorage, which logout does not reload away).
+    forgetLicenceTier();
 }
 

@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 
 const renderEditor = () => render(<OrgAutomationImageAiEditor orgId="org1" />, { wrapper: queryWrapper() });
-const toggle = () => screen.findByRole('checkbox', { name: /show images to AI/ });
+const toggle = () => screen.findByRole('switch', { name: /show images to AI/ });
 
 it('shows the default: off', async () => {
     renderEditor();
@@ -78,5 +78,14 @@ it('a failed load is said, never shown as off', async () => {
     getStatus = 503;
     renderEditor();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this setting.');
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
+});
+
+// The page frame draws the page's h2; the editor is a settings group like the
+// answer-reuse editor above it, not a second page heading.
+it('titles itself as a settings group (h3), not a page heading', async () => {
+    renderEditor();
+    await toggle();
+    expect(screen.getByRole('heading', { level: 3, name: 'Images to AI in automations' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
 });

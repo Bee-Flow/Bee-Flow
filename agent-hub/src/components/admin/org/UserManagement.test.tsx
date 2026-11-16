@@ -84,7 +84,7 @@ describe('UserManagement', () => {
 
     it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
         render(<UserManagement user={allHolder} />);
-        expect(await screen.findByText('admin.users_tab_my_org')).toBeInTheDocument();
+        expect(await screen.findByText('admin.users_tab_groups')).toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
@@ -122,27 +122,38 @@ describe('UserManagement', () => {
 
     it('offers the full-admin section set to a full admin', async () => {
         render(<UserManagement user={fullAdmin} />);
-        for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_custom_tiers', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
+        for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
             expect(await screen.findByText(key)).toBeInTheDocument();
         }
-        expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
     });
 
     it('offers the org-scoped section set to an org-scoped user', async () => {
         render(<UserManagement user={orgScoped} />);
         expect(await screen.findByText('admin.users_tab_users')).toBeInTheDocument();
         expect(screen.getByText('admin.users_tab_groups')).toBeInTheDocument();
-        expect(screen.getByText('admin.users_tab_my_org')).toBeInTheDocument();
         expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
     });
 
+    // Changed on purpose (wave 2): each tab opens its own dashboard row (People, Roles & permissions, ...).
     it('navigates on section switch instead of holding local tab state', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UserManagement user={fullAdmin} onNavigate={onNavigate} />);
         await user.click(await screen.findByRole('tab', { name: 'admin.users_tab_groups' }));
-        expect(onNavigate).toHaveBeenCalledWith('admin/security/users/groups');
+        expect(onNavigate).toHaveBeenCalledWith('admin/people/groups');
+        await user.click(screen.getByRole('tab', { name: /admin.users_tab_permissions/ }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/roles/permissions');
+    });
+
+    it('offers only the tabs a mount names, and no strip for one', async () => {
+        const { unmount } = render(<UserManagement user={fullAdmin} sections={['users', 'invitations', 'groups', 'org-roles']} />);
+        const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
+        expect(within(tabs).queryByRole('tab', { name: /admin.users_tab_organizations/ })).not.toBeInTheDocument();
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_groups' })).toBeInTheDocument();
+        unmount();
+        render(<UserManagement user={fullAdmin} sections={['organizations']} activeSection="organizations" />);
+        await waitFor(() => expect(screen.queryByRole('tablist')).not.toBeInTheDocument());
     });
 
     it('marks the section from the URL as the selected tab', async () => {
@@ -160,23 +171,14 @@ describe('UserManagement', () => {
 
     it('falls back to the users section for an unknown activeSection', async () => {
         render(<UserManagement user={fullAdmin} activeSection="nope" />);
-        expect(await screen.findByText('admin.sec_people_title')).toBeInTheDocument();
+        expect(await screen.findByTestId('people-summary')).toBeInTheDocument();
     });
 
-    // Regression: the my-organization form used to be seeded by a
-    // `setTimeout(() => setOrgData(editData), 0)` called from inside the render
-    // path, which re-fired on every render until the state landed.
-    it('seeds the my-organization form from the caller org, without a render-time side effect', async () => {
+    // The organisation's details have one editor, Organisation info: an old
+    // my-organization address opens the people list instead of a second form.
+    it('has no my-organization form any more', async () => {
         render(<UserManagement user={orgScoped} activeSection="my-organization" />);
-        expect(await screen.findByDisplayValue('Acme B.V.')).toBeInTheDocument();
-    });
-
-    // The organisations arrive in id order; the caller's own organisation wins
-    // over one they only belong to through a group, whatever its id.
-    it('seeds the my-organization form from the home org, not the first org in the list', async () => {
-        const memberOfBoth = { ...orgScoped, organizationId: 'o2', organizations: ['o1', 'o2'] };
-        render(<UserManagement user={memberOfBoth} activeSection="my-organization" />);
-        expect(await screen.findByDisplayValue('Legacy Org')).toBeInTheDocument();
+        expect(await screen.findByTestId('people-summary')).toBeInTheDocument();
         expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
     });
 
@@ -200,7 +202,7 @@ describe('UserManagement', () => {
         const directoryHolder = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizations: ['o1'] };
         render(<UserManagement user={directoryHolder} />);
         expect((await screen.findByText('admin_org.user_mgmt_org_admins_only')).closest('[role="status"]')).not.toBeNull();
-        expect(screen.getByText('admin.sec_people_title')).toBeInTheDocument();
+        expect(screen.getByTestId('people-summary')).toBeInTheDocument();
         // The server refuses the edits as it refused the lists, so no control offers one.
         expect(screen.queryByText('admin.sec_people_add')).not.toBeInTheDocument();
     });

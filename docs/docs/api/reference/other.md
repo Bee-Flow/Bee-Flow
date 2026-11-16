@@ -811,7 +811,7 @@ No request schema.
 
 ### `PUT /api/org-azure-config/:orgId`
 
-**Access:** Signed-in user · Platform admin · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin · Capability `sso_saml` · the handler also checks who the caller is
 
 **Body:** object
 

@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import SectionHeader from '@/components/shared/SectionHeader';
-import { OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsList } from '@/components/shared/SettingsList';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { OptionCard, SettingBlock, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import { canEmbed } from './embeddingProviders';
 import { useToastOnMessage } from './ui/useToastOnMessage';
+import { footerSaveState } from './ui/footerSaveState';
 import { useWebSearchInferenceQuery } from '@/api/queries/adminConfigReads';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '@/api/modelMeta';
@@ -20,7 +22,7 @@ const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string
     {
         id: 'cpu',
         label: t('admin_ai_config.ws_rr_cpu', 'CPU cross-encoder'),
-        desc: t('admin_ai_config.ws_rr_cpu_desc', 'Runs a small bge-reranker-base model in this Node process via Transformers.js. ~280 MB RAM, no GPU, no API call. Best quality-per-resource for self-hosted setups.'),
+        desc: t('admin_ai_config.ws_rr_cpu_desc', 'Runs a small cross-encoder reranker on this server\'s CPU: about 280 MB of memory, no GPU, no API call. The best quality for the resources on a self-hosted setup.'),
     },
     {
         id: 'provider',
@@ -47,7 +49,6 @@ interface InferenceModel extends ModelEntry {
 
 interface WebSearchInferenceConfigProps {
     allModels?: InferenceModel[];
-    onNavigateToTab: (tab: string) => void;
 }
 
 type EmbedSummary = { providerId: string | null; providerName: string | null; modelId: string | null };
@@ -63,10 +64,10 @@ const DEFAULT_INFERENCE_CONFIG: InferenceConfig = {
 };
 const NO_EMBED_SUMMARY: EmbedSummary = { providerId: null, providerName: null, modelId: null };
 
-const isChatModel = (m: InferenceModel): boolean => {
-    const meta = getModelMeta(m.id);
-    if (!meta) return true;
-    return !['Embedding', 'OCR', 'Moderation', 'Audio'].includes(meta.cat);
+/** A model that chats: the category the server stamped wins over the bundled table (as on the Models page). */
+const isChatModel = (m: InferenceModel & { cat?: string }): boolean => {
+    const cat = m.cat || getModelMeta(m.id)?.cat;
+    return !cat || !['Embedding', 'OCR', 'Moderation', 'Audio', 'Rerank'].includes(cat);
 };
 
 function groupByProvider(models: InferenceModel[]): Record<string, InferenceModel[]> {
@@ -89,19 +90,18 @@ function inheritedEmbedName(summary: EmbedSummary): string | null {
     return `${getModelMeta(summary.modelId)?.name || summary.modelId} · ${summary.providerName || summary.providerId}`;
 }
 
-const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearchInferenceConfigProps) => {
+const WebSearchInferenceConfig = ({ allModels = [] }: WebSearchInferenceConfigProps) => {
     const { t } = useTranslation();
     const RERANK_METHODS = getRerankMethods(t);
     const inference = useWebSearchInferenceQuery<InferenceConfig, EmbedSummary>();
     const stored = inference.data;
     const serverConfig = useMemo(() => stored?.config ?? DEFAULT_INFERENCE_CONFIG, [stored]);
     const { value: config, patch, discard } = useDraftOverServer(serverConfig);
+    const dirty = JSON.stringify(config) !== JSON.stringify(serverConfig);
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
     const setConfig: React.Dispatch<React.SetStateAction<InferenceConfig>> = (next) => patch(typeof next === 'function' ? next(config) : next);
-    const embedSummary: EmbedSummary = stored?.embedSummary ?? NO_EMBED_SUMMARY;
-    const loading = inference.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
-    const { refetch: fetchAll } = inference;
 
     const handleSave = async () => {
         setSaving(true);
@@ -114,7 +114,8 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
             });
             if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.limits_saved', 'Saved') });
-                fetchAll().then(discard);
+                setLastSavedAt(new Date());
+                inference.refetch().then(discard);
             } else {
                 setMessage({ type: 'error', text: t('admin_ai_config.limits_save_failed', 'Failed to save') });
             }
@@ -127,20 +128,20 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     };
 
     useToastOnMessage(message);
-    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
+    if (inference.isPending) return <div className="p-4 text-sm text-[var(--text-tertiary)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     // Filter to chat-completion models only — same exclusions ChatModelTiersConfig uses.
     const chatModels = (allModels || []).filter(isChatModel);
     const cleanupGroups = groupByProvider(chatModels);
 
     // Embedding-only models — for the per-feature embed override.
-    const embedModels = (allModels || []).filter((m: InferenceModel) => getModelMeta(m.id)?.cat === 'Embedding');
+    const embedModels = (allModels || []).filter((m: InferenceModel) => canEmbed(m));
     const embedGroups = groupByProvider(embedModels);
 
     const cleanupLabel = modelLabel(findSelected(chatModels, config.cleanup), t('admin_ai_config.ws_cleanup_none', 'Disabled (no cleanup model selected)'));
 
     // Embed override — picker; empty falls back to global Embeddings config.
-    const embedFallbackName = inheritedEmbedName(embedSummary);
+    const embedFallbackName = inheritedEmbedName(stored?.embedSummary ?? NO_EMBED_SUMMARY);
     const inheritLabel = embedFallbackName
         ? t('admin_ai_config.ws_inherit_named', 'Inherit global · {name}', { name: embedFallbackName })
         : t('admin_ai_config.ws_inherit_none', 'Inherit global · (none configured)');
@@ -150,40 +151,32 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     const rerankLabel = modelLabel(findSelected(chatModels, config.rerank), t('admin_ai_config.ws_pick_model', 'Pick a model'));
 
     return (
-        <div className="flex max-w-4xl flex-col gap-6">
-            <SectionHeader
-                title={t('admin_ai_config.ws_title', 'Web Search: Inference')}
-                description={t('admin_ai_config.ws_subtitle', 'Three tasks the search-service runs for every web query. Embeddings inherit your global Embeddings settings; rerank is a method-only choice; cleanup picks any chat model from a configured provider.')}
+        <SettingsGroup
+            title={t('ai_model_setup.ws_group_title', 'Web search inference')}
+            description={t('ai_model_setup.ws_group_hint', 'Three jobs the search runs for every web query: embeddings (the knowledge-base model unless you pick another), reranking and page cleanup.')}
+        >
+            <WebSearchInferenceConfigSection t={t} config={config} embedLabel={embedLabel} embedGroups={embedGroups} setConfig={setConfig} RERANK_METHODS={RERANK_METHODS} rerankLabel={rerankLabel} cleanupGroups={cleanupGroups} cleanupLabel={cleanupLabel} />
+
+            <SaveFooter
+                onSave={() => { void handleSave(); }}
+                onCancel={dirty ? discard : undefined}
+                saving={saving}
+                dirty={dirty}
+                saveState={footerSaveState(saving, message, lastSavedAt)}
+                lastSavedAt={lastSavedAt}
             />
-
-            <WebSearchInferenceConfigSection t={t} onNavigateToTab={onNavigateToTab} config={config} embedLabel={embedLabel} embedGroups={embedGroups} setConfig={setConfig} RERANK_METHODS={RERANK_METHODS} rerankLabel={rerankLabel} cleanupGroups={cleanupGroups} cleanupLabel={cleanupLabel} />
-
-            <div>
-                <button type="button" onClick={handleSave} disabled={saving} className={SAVE_BUTTON}>
-                    {saving ? t('admin_ai_config.saving_ellipsis', 'Saving…') : t('admin_ai_config.save', 'Save')}
-                </button>
-            </div>
-        </div>
+        </SettingsGroup>
     );
 };
 
 export default WebSearchInferenceConfig;
 
-function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabel, embedGroups, setConfig, RERANK_METHODS, rerankLabel, cleanupGroups, cleanupLabel }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: (tab: string) => void; config: { embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }; embedLabel: string; embedGroups: Record<string, InferenceModel[]>; setConfig: React.Dispatch<React.SetStateAction<{ embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }>>; RERANK_METHODS: { id: string; label: string; desc: string; }[]; rerankLabel: string; cleanupGroups: Record<string, InferenceModel[]>; cleanupLabel: string; }) {
+function WebSearchInferenceConfigSection({ t, config, embedLabel, embedGroups, setConfig, RERANK_METHODS, rerankLabel, cleanupGroups, cleanupLabel }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: { embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }; embedLabel: string; embedGroups: Record<string, InferenceModel[]>; setConfig: React.Dispatch<React.SetStateAction<{ embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }>>; RERANK_METHODS: { id: string; label: string; desc: string; }[]; rerankLabel: string; cleanupGroups: Record<string, InferenceModel[]>; cleanupLabel: string; }) {
     return <SettingsList>
         {/* Embeddings (per-feature picker; empty -> inherit global) */}
         <SettingRow
             label={t('admin_ai_config.ws_embeddings', 'Embeddings')}
-            hint={(
-                <>
-                    {t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}{' '}
-                    {onNavigateToTab && (
-                        <button type="button" onClick={() => onNavigateToTab('embeddings')} className="text-[var(--accent-primary)] underline-offset-2 hover:underline">
-                            {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
-                        </button>
-                    )}
-                </>
-            )}
+            hint={t('ai_model_setup.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the knowledge-base embedding model above.')}
         >
             <SearchableModelSelect
                 value={config.embed}
@@ -194,7 +187,7 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
                 onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))} />
             {Object.keys(embedGroups).length === 0 && (
                 <p className="m-0 mt-2 text-xs text-[var(--text-tertiary)]">
-                    {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
+                    {t('ai_model_setup.ws_embed_none', 'No embedding models found in your configured providers: add a provider that offers embedding models under Providers, or keep the knowledge-base model above.')}
                 </p>
             )}
         </SettingRow>
@@ -204,7 +197,7 @@ function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabe
             label={t('admin_ai_config.ws_reranking', 'Reranking')}
             hint={t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
         >
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <div role="radiogroup" aria-label={t('admin_ai_config.ws_reranking', 'Reranking')} className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
                 {RERANK_METHODS.map(opt => (
                     <OptionCard
                         key={opt.id}

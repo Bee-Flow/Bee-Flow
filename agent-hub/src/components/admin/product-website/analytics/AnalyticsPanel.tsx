@@ -6,9 +6,10 @@
  * own fetching through useAnalyticsQuery so a slow report never blocks the
  * rest of the page.
  *
- * Section + range + filters are mirrored into the query string so a view is
- * shareable. Query params (not path segments) because AdminDashboard routes on
- * the pathname and would not recognise /website-analytics/<section>.
+ * The section is the path segment (admin/website-analytics/<section>, the
+ * way Monitoring and Subscriptions address theirs) so a view can be linked to
+ * and Back works; an old `?section=` link still opens its section. Filters
+ * stay in the query string (`f`).
  */
 import {
     BarChart3, Activity, FileText, Share2, Users, Zap, Gauge,
@@ -31,13 +32,15 @@ import SourcesSection from './sections/SourcesSection';
 import { ErrorNote } from './AsyncCard';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlQueryParam } from '@/hooks/useUrlTab';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { useShellProps } from '@/authedApp/useShellProps';
 import SectionHeader from '@/components/shared/SectionHeader';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import IconButton from '@/components/shared/IconButton';
 import Spinner from '@/components/shared/Spinner';
 import { FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
-import RangeControl, { defaultRange, UsageRange } from '@/pages/settings/usage/RangeControl';
+import RangeControl, { defaultRange, type UsageRange } from '@/components/shared/RangeControl';
 
 const TZ = (() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
@@ -98,7 +101,34 @@ export function toScopeRange(range: UsageRange) {
     }
 }
 
-export default function AnalyticsPanel() {
+interface AnalyticsPanelProps {
+    /** The section from the address (admin/website-analytics/<section>); Overview when missing or unknown. */
+    activeSection?: string;
+    /** Writes the address on a section change; the app shell's when left out. */
+    onNavigate?: (path: string) => void;
+}
+
+/** The open section: the address's, the viewer's own click until the address follows, or an old `?section=` link's. */
+function useAnalyticsSection(activeSection: string | undefined, onNavigateProp: AnalyticsPanelProps['onNavigate']) {
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
+    const [sectionParam, setSectionParam] = useUrlQueryParam('section');
+    const known = (id: string | null | undefined): id is string => !!id && SECTION_IDS.includes(id);
+    const requested = known(activeSection) ? activeSection : known(sectionParam) ? sectionParam : 'overview';
+    const [section, setSection] = useState(requested);
+    useAdjustOnChange([requested], () => setSection(requested));
+    const select = (id: string) => {
+        setSection(id);
+        if (onNavigate) {
+            if (sectionParam) setSectionParam(null, { replace: true });
+            onNavigate(`admin/website-analytics/${id}`);
+        } else {
+            setSectionParam(id);
+        }
+    };
+    return [section, select] as const;
+}
+
+export default function AnalyticsPanel({ activeSection: activeSectionProp, onNavigate }: AnalyticsPanelProps = {}) {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<AnalyticsResponse>(null);
     const [sites, setSites] = useState<AnalyticsSite[]>([]);
@@ -108,9 +138,8 @@ export default function AnalyticsPanel() {
     const [view, setView] = useState('dashboard');           // 'dashboard' | 'settings'
     const [reloadToken, setReloadToken] = useState(0);
 
-    const [sectionParam, setSectionParam] = useUrlQueryParam('section');
+    const [section, setSection] = useAnalyticsSection(activeSectionProp, onNavigate);
     const [filterParam, setFilterParam] = useUrlQueryParam('f');
-    const section = sectionParam && SECTION_IDS.includes(sectionParam) ? sectionParam : 'overview';
 
     const [range, setRange] = useState(() => defaultRange('7d'));
     const [filters, setFiltersState] = useState(() => decodeFilters(filterParam));
@@ -221,7 +250,7 @@ export default function AnalyticsPanel() {
             label={title}
             items={SECTIONS.map(s => ({ id: s.id, icon: s.icon, label: t(s.labelKey, s.label) }))}
             activeId={activeSection.id}
-            onSelect={(id) => setSectionParam(id)}
+            onSelect={setSection}
         />
     ) : null;
 
@@ -229,7 +258,7 @@ export default function AnalyticsPanel() {
         <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
             <div className="relative h-full">
                 <div className="absolute inset-0 overflow-y-auto">
-                    <div className={`mx-auto flex flex-col gap-4 p-4 md:p-6 ${sectionWidthClass(activeSection.wide)}`}>
+                    <div className={`flex flex-col gap-4 p-6 md:p-8 ${sectionWidthClass(activeSection.wide)}`}>
                         <SectionHeader
                             title={provisioned ? t(activeSection.labelKey, activeSection.label) : title}
                             description={t('cms_site.analytics.panel.subtitle', 'Self-hosted, privacy-first usage tracking for your published site')}

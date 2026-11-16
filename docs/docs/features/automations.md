@@ -747,4 +747,4 @@ The feature flags behind this are in [Licensing → Tiers](../licensing/tiers.md
 - [Studio overview](../studio/index.md) — where automations live in the UI.
 - [Integrations](../integrations/index.md) — every action a step can call.
 - [API → REST reference](../api/rest.md) — programmatic creation.
-- [Admin → Compliance](../admin/audit-and-compliance.md) — exporting run logs.
+- [Admin dashboard → Security & access → Compliance](../admin/audit-and-compliance.md) — exporting run logs.

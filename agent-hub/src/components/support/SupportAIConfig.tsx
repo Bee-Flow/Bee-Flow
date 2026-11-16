@@ -8,7 +8,7 @@ import { API_BASE } from '../../utils/helpers';
 import SupportSlaPoliciesTab from './tabs/SupportSlaPoliciesTab';
 import SupportCannedResponsesTab from './tabs/SupportCannedResponsesTab';
 import SupportTagsTab from './tabs/SupportTagsTab';
-import SupportInsightsTab from './tabs/SupportInsightsTab';
+import SupportConnectionsConfig from './SupportConnectionsConfig';
 import SupportToolsTab from './tabs/SupportToolsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
@@ -20,8 +20,10 @@ import SectionNav from '@/components/shared/SectionNav';
 import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, CARD, CHIP, CHIP_WARNING, EYEBROW, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 import { apiRequest } from '@/api/typedRequest';
+import type { SupportSettingsSection } from './supportPath';
 
-function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgentData | null {
+/** The editor's draft of the agent row; `defaultName` names an agent stored without one. */
+function deriveAgentData(agent: SupportAgentRow | null | undefined, defaultName: string): SupportAgentData | null {
     if (!agent) return null;
     let starterPrompts = agent.starter_prompts;
     if (typeof starterPrompts === 'string') {
@@ -30,7 +32,7 @@ function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgen
     if (!Array.isArray(starterPrompts)) starterPrompts = [];
     return {
         id: agent.id,
-        name: agent.name || 'Bee Flow Support',
+        name: agent.name || defaultName,
         avatar: agent.avatar || '🛟',
         model: agent.model || 'tier:thinking',
         description: agent.description || '',
@@ -43,7 +45,30 @@ function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgen
 
 const EMPTY_TIERS: ModelTierMap = {};
 
-export default function SupportAIConfig() {
+/** The open section: the host's when it names one, else the panel's own; a choice is reported to the host. */
+function useSettingsSection(section: SupportSettingsSection | undefined, onSection: ((s: SupportSettingsSection) => void) | undefined) {
+    const [own, setOwn] = useState<SupportSettingsSection>('agent');
+    const choose = (id: string) => {
+        const next = id as SupportSettingsSection;
+        setOwn(next);
+        onSection?.(next);
+    };
+    return [section ?? own, choose] as const;
+}
+
+interface SupportAIConfigProps {
+    /** The open section (admin/support/settings/<section>); the agent when left out. */
+    section?: SupportSettingsSection;
+    /** A section was chosen; without it the panel keeps the choice itself. */
+    onSection?: (section: SupportSettingsSection) => void;
+}
+
+/**
+ * The support desk's settings: the agent that answers first, its behaviour,
+ * the SLA targets, reply templates, tags and the outside connections, one
+ * section at a time.
+ */
+export default function SupportAIConfig({ section, onSection }: SupportAIConfigProps = {}) {
     const { t } = useTranslation();
     const [agent, setAgent] = useState<SupportAgentRow | null>(null);
     const [data, setData] = useState<SupportAgentData | null>(null);
@@ -55,7 +80,7 @@ export default function SupportAIConfig() {
     const [previewing, setPreviewing] = useState(false);
     const [previewReply, setPreviewReply] = useState<PreviewReply | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
-    const [tab, setTab] = useState('agent');
+    const [tab, setTab] = useSettingsSection(section, onSection);
     const mountedRef = useRef(true);
 
     // Set `true` on every (re-)mount and only `false` during cleanup. React 18
@@ -82,12 +107,12 @@ export default function SupportAIConfig() {
                 } catch (err) {
                     if (!(err instanceof RefusedError)) throw err;
                     const e = errorBody(err) ?? {};
-                    setSaveError(e.error || 'Failed to load support agent');
+                    setSaveError(e.error || t('support.agent_load_failed', 'The support agent could not be loaded.'));
                     return false;
                 }
                 const { agent: fetched } = await res.json();
                 setAgent(fetched);
-                setData(deriveAgentData(fetched));
+                setData(deriveAgentData(fetched, t('support.agent_default_name', 'Support agent')));
                 setKnowledgeBaseIds(fetched?.config?.knowledge_base_ids || []);
                 setDirty(false);
             } catch (e) {
@@ -186,27 +211,27 @@ export default function SupportAIConfig() {
         { id: 'sla', label: t('support.ai_config_tab_sla', 'SLA') },
         { id: 'canned', label: t('support.ai_config_tab_templates', 'Templates') },
         { id: 'tags', label: t('support.ai_config_tab_tags', 'Tags') },
-        { id: 'insights', label: t('support.ai_config_tab_insights', 'Insights') },
+        { id: 'connections', label: t('support.support_inbox_connections', 'Connections') },
     ];
 
     return (
         <StudioShell
             responsive
-            sidebar={<SectionNav label={t('support.ai_config_sections', 'AI configuration')} items={tabs} activeId={tab} onSelect={setTab} />}
+            sidebar={<SectionNav label={t('support.inbox_view_settings', 'Settings')} items={tabs} activeId={tab} onSelect={setTab} />}
         >
             <div className="flex h-full flex-col">
                 {tab === 'behaviour' && <div className="flex-1 overflow-auto"><SupportToolsTab /></div>}
                 {tab === 'sla' && <div className="flex-1 overflow-auto"><SupportSlaPoliciesTab /></div>}
                 {tab === 'canned' && <div className="flex-1 overflow-auto"><SupportCannedResponsesTab /></div>}
                 {tab === 'tags' && <div className="flex-1 overflow-auto"><SupportTagsTab /></div>}
-                {tab === 'insights' && <div className="flex-1 overflow-auto"><SupportInsightsTab /></div>}
+                {tab === 'connections' && <div className="min-h-0 flex-1"><SupportConnectionsConfig /></div>}
 
                 {tab === 'agent' && loading && (
-                    <div className="p-6 text-sm text-[var(--text-tertiary)]">{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
+                    <div className="p-6 text-sm text-[var(--text-tertiary)]">{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading the support agent…')}</div>
                 )}
                 {tab === 'agent' && !loading && !data && (
                     <div className="p-6 text-sm text-[var(--text-tertiary)]">
-                        {saveError || t('support.ai_config_not_seeded', 'Bee Flow Support agent is not seeded yet. Restart the server.')}
+                        {saveError || t('support.ai_config_not_seeded', 'The support agent is not set up yet. Restart the server.')}
                     </div>
                 )}
                 {tab === 'agent' && !loading && data && (
@@ -226,7 +251,7 @@ export default function SupportAIConfig() {
                                 categories={[]}
                                 modelTiers={tiers}
                             />
-                            <PreviewPane input={previewInput} setInput={setPreviewInput} previewing={previewing} onRun={runPreview} error={previewError} reply={previewReply} />
+                            <PreviewPane input={previewInput} setInput={setPreviewInput} previewing={previewing} onRun={runPreview} error={previewError} reply={previewReply} agentName={data.name || t('support.agent_default_name', 'Support agent')} />
                         </div>
                     </>
                 )}
@@ -286,7 +311,7 @@ function TierCheck({ model, tiers }: { model?: string; tiers: ModelTierMap }) {
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <div>
                     <div className="font-medium">{t('support.support_aiconfig_tier', 'Tier')} <code>{tierKey}</code> {t('support.support_aiconfig_has_no_model_configured', 'has no model configured.')}</div>
-                    <div className="opacity-80">{t('support.support_aiconfig_every_customer_thread_will_escalate_to', 'Every customer thread will escalate to staff until you either pick a different tier above or set')} <code>{tierKey}</code> {t('support.support_aiconfig_in_admin_ai_config_model_tiers', 'in Admin → AI Config → Model tiers.')}</div>
+                    <div className="opacity-80">{t('support.support_aiconfig_every_customer_thread_will_escalate_to', 'Every customer thread will escalate to staff until you either pick a different tier above or set')} <code>{tierKey}</code> {t('support.support_aiconfig_in_admin_ai_config_model_tiers', 'under AI configuration → Models.')}</div>
                 </div>
             </div>
         </div>
@@ -300,13 +325,15 @@ interface PreviewPaneProps {
     onRun: () => void;
     error: string | null;
     reply: PreviewReply | null;
+    /** The agent's name, on the preview reply. */
+    agentName: string;
 }
 
 /**
  * Preview pane — mirrors how MessageItem assistant replies look in the real
  * chat, using MarkdownRenderer (same component MessageItem uses internally).
  */
-function PreviewPane({ input, setInput, previewing, onRun, error, reply }: PreviewPaneProps) {
+function PreviewPane({ input, setInput, previewing, onRun, error, reply, agentName }: PreviewPaneProps) {
     const { t } = useTranslation();
     return (
         <div className="mb-6 max-w-4xl p-4 pt-2">
@@ -328,18 +355,18 @@ function PreviewPane({ input, setInput, previewing, onRun, error, reply }: Previ
                     </button>
                 </div>
                 {error && <div className={ALERT_ERROR}>{error}</div>}
-                {reply && <PreviewReplyCard reply={reply} />}
+                {reply && <PreviewReplyCard reply={reply} agentName={agentName} />}
             </div>
         </div>
     );
 }
 
-function PreviewReplyCard({ reply }: { reply: PreviewReply }) {
+function PreviewReplyCard({ reply, agentName }: { reply: PreviewReply; agentName: string }) {
     const { t } = useTranslation();
     return (
         <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-sm text-[var(--text-primary)]">
             <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-[var(--text-tertiary)]">
-                <span className="font-medium text-[var(--text-secondary)]">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
+                <span className="font-medium text-[var(--text-secondary)]">{t('support.support_aiconfig_bee_flow_support_ai', '{name} (AI)', { name: agentName })}</span>
                 {reply.modelTier && (
                     <span className={CHIP}>{tierLabel(reply.modelTier.replace(/^tier:/, '')) || reply.modelTier}</span>
                 )}

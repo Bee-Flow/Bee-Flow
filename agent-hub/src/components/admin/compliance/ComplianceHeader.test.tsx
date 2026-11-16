@@ -176,6 +176,12 @@ describe('ComplianceHeader — layout and tabs', () => {
         expect(screen.getByTestId('studio-section-title')).toHaveTextContent('Audits & reviews');
     });
 
+    it('titles the section an h3, under the h2 the admin dashboard frame draws', () => {
+        render(<ComplianceHeader section={sectionById('audits')} tab="audits" onTab={vi.fn()} ctx={{}} />);
+        expect(screen.getByRole('heading', { level: 3, name: 'Audits & reviews' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    });
+
     it('HEADER_SPECS is the extension point page streams add to', () => {
         expect(Object.keys(HEADER_SPECS)).toEqual(expect.arrayContaining(['overview', 'frameworks', 'dsr', 'soa', 'ropa', 'portability', 'custom', 'machinery', 'training']));
     });

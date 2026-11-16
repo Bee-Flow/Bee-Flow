@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of English strings naming an AI vendor or model in the admin namespaces of server/i18n/defaults/en may still carry. Lower it with `node scripts/vendor-name-ratchet.mjs --update` after a fix; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-15",
+  "count": 22
+}

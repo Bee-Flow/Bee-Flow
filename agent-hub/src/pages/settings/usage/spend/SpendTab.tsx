@@ -6,7 +6,7 @@
 // customer view (no tokens, billed cost, tiers instead of models) keeps its
 // own page: see CustomerSpend.
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
 import { OVERVIEW_COST_ALERT } from '@/config/analyticsConfig';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -29,6 +29,26 @@ import { headlineCost, pctChange } from './spendFormat';
 type SpendSubTab = 'models' | 'people' | 'agents' | 'sources' | 'services';
 const SUB_TABS: SpendSubTab[] = ['models', 'people', 'agents', 'sources', 'services'];
 
+/** The report's filter bar as a host's view reads it (null: not filtered). */
+export interface SpendViewFilters {
+    user: string | null;
+    agent: string | null;
+    model: string | null;
+    source: string | null;
+}
+
+const NO_FILTERS: SpendViewFilters = { user: null, agent: null, model: null, source: null };
+
+/** A view a host adds after the built-in ones (the AI Monitor's conversations). */
+export interface SpendExtraView {
+    id: string;
+    label: string;
+    /** The line under the sub-tabs while it is open. */
+    description: string;
+    /** The view's table, narrowed by the filter bar above it like the built-in ones. */
+    render: (filters: SpendViewFilters) => ReactNode;
+}
+
 export interface SpendTabProps extends OverviewTabProps {
     /** Sub-tab to open first. */
     initialSubTab?: string;
@@ -36,16 +56,46 @@ export interface SpendTabProps extends OverviewTabProps {
     orgId?: string | null;
     /** The figures cover every organisation: the adoption report belongs to one, so the hero shows no change. */
     allOrganisations?: boolean;
+    /** Views after the built-in ones, from the host. */
+    extraViews?: readonly SpendExtraView[];
+    /** The filter bar's values, handed to the host's views (the built-in ones read them through `data`). */
+    viewFilters?: SpendViewFilters;
 }
 
-function isSubTab(id: string | undefined): id is SpendSubTab {
-    return SUB_TABS.includes(id as SpendSubTab);
+const NO_EXTRAS: readonly SpendExtraView[] = [];
+
+function isSubTab(id: string | undefined, extras: readonly SpendExtraView[]): id is string {
+    return SUB_TABS.includes(id as SpendSubTab) || extras.some(v => v.id === id);
+}
+
+type SpendViewProps = Pick<SpendTabProps, 'data' | 'azureServices' | 'showTokens' | 'tierForModel' | 'modelTiers' | 'setFilterUser' | 'setFilterModel' | 'setFilterSource'> & { currency: string };
+
+/** The open view's table: a built-in one, or the host's own. */
+function SpendView({ sub, extra, view, filters }: { sub: string; extra: SpendExtraView | undefined; view: SpendViewProps; filters: SpendViewFilters }) {
+    if (extra) return <>{extra.render(filters)}</>;
+    if (sub === 'models') {
+        return (
+            <>
+                <ModelsTable {...view} />
+                <section className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))]">
+                    <ByTierCard {...view} />
+                </section>
+            </>
+        );
+    }
+    if (sub === 'people') return <PeopleTable {...view} />;
+    if (sub === 'agents') return <AgentsTable {...view} />;
+    if (sub === 'sources') return <SourcesTable {...view} />;
+    if (sub === 'services') return <OtherServicesPanel azureServices={view.azureServices} currency={view.currency} showTokens={view.showTokens} />;
+    return null;
 }
 
 function SpendBody(props: SpendTabProps & { deltaPct: number | null }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { data, subscription, showTokens, azureServices, compare = true, hasFilters = false, rangeParams, deltaPct, initialSubTab } = props;
-    const [sub, setSub] = useState<SpendSubTab>(isSubTab(initialSubTab) ? initialSubTab : 'models');
+    const extraViews = props.extraViews ?? NO_EXTRAS;
+    const [sub, setSub] = useState<string>(isSubTab(initialSubTab, extraViews) ? initialSubTab : 'models');
+    const extra = extraViews.find(v => v.id === sub);
     const currency = currencySym((subscription as SubscriptionInfo | null)?.billing?.plan_currency || 'EUR');
     const cost = headlineCost(data.summary, false);
     const overBudget = cost > OVERVIEW_COST_ALERT;
@@ -77,25 +127,15 @@ function SpendBody(props: SpendTabProps & { deltaPct: number | null }) {
             )}
             <SpendHero
                 data={data} subscription={subscription} showTokens={showTokens} currency={currency}
-                rangeLabel={formatDateRange(rangeParams.startDate, rangeParams.endDate)}
+                rangeLabel={formatDateRange(rangeParams.startDate, rangeParams.endDate, resolvedLocale)}
                 deltaPct={deltaPct} showDelta={compare && !hasFilters} days={rangeParams.days}
             />
             <SubTabs
-                value={sub} onChange={id => setSub(id as SpendSubTab)} aria-label={t('usage.spend_views', 'Spend views')}
-                options={SUB_TABS.map(id => ({ id, label: labels[id] }))} description={descriptions[sub]}
+                value={sub} onChange={setSub} aria-label={t('usage.spend_views', 'Spend views')}
+                options={[...SUB_TABS.map(id => ({ id, label: labels[id] })), ...extraViews.map(v => ({ id: v.id, label: v.label }))]}
+                description={extra?.description ?? descriptions[sub as SpendSubTab]}
             />
-            {sub === 'models' && (
-                <>
-                    <ModelsTable {...view} />
-                    <section className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))]">
-                        <ByTierCard {...view} />
-                    </section>
-                </>
-            )}
-            {sub === 'people' && <PeopleTable {...view} />}
-            {sub === 'agents' && <AgentsTable {...view} />}
-            {sub === 'sources' && <SourcesTable {...view} />}
-            {sub === 'services' && <OtherServicesPanel azureServices={azureServices} currency={currency} showTokens={showTokens} />}
+            <SpendView sub={sub} extra={extra} view={view} filters={props.viewFilters ?? NO_FILTERS} />
             <p className="m-0 text-xs text-[var(--text-muted)]">
                 {t('usage.spend_footnote', 'Costs are estimates at list price. Self-hosted models are priced at zero; a model without a name on the call cannot be priced and is listed as "unknown".')}
             </p>

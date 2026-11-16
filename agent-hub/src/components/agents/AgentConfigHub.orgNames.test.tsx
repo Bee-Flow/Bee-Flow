@@ -64,3 +64,16 @@ describe('AgentConfigHub: organisation names on the rows', () => {
         expect(screen.queryByTestId('agent-row-org')).not.toBeInTheDocument();
     });
 });
+
+describe('AgentConfigHub in the admin dashboard', () => {
+    it('draws no section column: Agents and System agents are rail rows', async () => {
+        render(withQueryClient(
+            <AdminOrgProvider value={choiceOf({})}>
+                <AgentConfigHub nav={false} user={orgAdmin(['org-a'])} activeSection="chat" />
+            </AdminOrgProvider>,
+        ));
+        expect(await screen.findByText('Alpha')).toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: 'admin.tab_agents' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /admin.agents_system|System agents/ })).not.toBeInTheDocument();
+    });
+});

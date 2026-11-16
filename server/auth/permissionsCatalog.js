@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Permissions — the catalogue: canonical org/system role ids, the permission
  * ids and their discovery list (SYSTEM_PERMISSIONS), the capability grants that
@@ -34,8 +34,12 @@ const OrgRoles = Object.freeze({
 
 const ORG_ADMIN_VARIANTS = Object.freeze([OrgRoles.ORG_ADMIN, OrgRoles.LEGACY_ADMIN]);
 
+/**
+ * @param {string | null | undefined} orgRole
+ * @returns {boolean}
+ */
 function isOrgAdminRole(orgRole) {
-    return ORG_ADMIN_VARIANTS.includes(orgRole);
+    return /** @type {readonly (string | null | undefined)[]} */ (ORG_ADMIN_VARIANTS).includes(orgRole);
 }
 
 // System role values on users.role. 'admin' is the super-admin / platform
@@ -107,7 +111,7 @@ const SYSTEM_PERMISSIONS = [
     { id: 'admin_agents_pipeline', name: 'Pipeline', description: 'Admin: Pipeline configuration', group: 'admin' },
     { id: 'admin_components', name: 'Components', description: 'Admin: Component builder', group: 'admin' },
     { id: 'admin_ai_config', name: 'AI Config', description: 'Admin: AI model configuration', group: 'admin' },
-    { id: 'admin_security', name: 'Security', description: 'Admin: Users, SSO, guardrails', group: 'admin' },
+    { id: 'admin_security', name: 'Security settings', description: 'Admin: Privacy Shield, sign-in, people and access', group: 'admin' },
     { id: 'admin_monitoring', name: 'Monitoring', description: 'Admin: Usage & cost monitoring', group: 'admin' },
     { id: 'admin_compliance', name: 'Compliance', description: 'Admin: GDPR & AI Act monitoring, DSR, ROPA, audit reports', group: 'admin' },
     { id: 'admin_subscriptions', name: 'Subscriptions', description: 'Admin: Subscription management', group: 'admin' },
@@ -236,18 +240,23 @@ function orgRoleImpliedFill(mapping, overrides, implied) {
 }
 
 // ── Load org role → permissions mapping from config file ──
+/** @type {Record<string, string[]> | null} */
 let _orgRolePermissions = null;
+/** @returns {Record<string, string[]>} */
 function getOrgRolePermissions() {
     if (_orgRolePermissions) return _orgRolePermissions;
     try {
         const configPath = path.join(__dirname, '..', 'config', 'orgRoles.json');
         const raw = fs.readFileSync(configPath, 'utf-8');
+        /** @type {Record<string, { permissions?: string[] }>} */
         const config = JSON.parse(raw);
         // Transform { role: { permissions: [...] } } → { role: [...] }
-        _orgRolePermissions = {};
+        /** @type {Record<string, string[]>} */
+        const loaded = {};
         for (const [role, def] of Object.entries(config)) {
-            _orgRolePermissions[role] = def.permissions || [];
+            loaded[role] = def.permissions || [];
         }
+        _orgRolePermissions = loaded;
         return _orgRolePermissions;
     } catch (err) {
         log.error('[Auth] Failed to load orgRoles.json, using empty fallback:', err.message);

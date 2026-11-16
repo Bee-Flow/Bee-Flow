@@ -1,6 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
+import { Button } from '@/components/shared/Button';
+import { INPUT } from '@/components/shared/adminUi';
 import type { AdminPermission, RoleFormData } from './types';
 
 const PERMISSION_GROUPS = [
@@ -31,21 +33,18 @@ export default function RoleModal({ open, onClose, showEditRole, roleData, setRo
             size="lg"
             footer={
                 <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium text-[var(--text-secondary)]">
+                    <Button variant="secondary" onClick={onClose}>
                         {t('admin.sec_cancel', 'Cancel')}
-                    </button>
-                    <button
-                        onClick={showEditRole ? onSubmitUpdate : onSubmitAdd}
-                        className="px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"
-                    >
+                    </Button>
+                    <Button variant="primary" onClick={showEditRole ? onSubmitUpdate : onSubmitAdd}>
                         {showEditRole ? t('admin.sec_save', 'Save') : t('admin.sec_role_add_submit', 'Add role')}
-                    </button>
+                    </Button>
                 </>
             }
         >
             <div className="space-y-4">
-                {!showEditRole && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_name', 'Role Name')}</label><input type="text" value={roleData.name} onChange={e => setRoleData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.role_modal_name_ph', 'Editor')} /></div>}
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_description', 'Description')}</label><input type="text" value={roleData.description} onChange={e => setRoleData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.role_modal_desc_ph', 'Can edit content')} /></div>
+                {!showEditRole && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_name', 'Role Name')}</label><input type="text" value={roleData.name} onChange={e => setRoleData(p => ({ ...p, name: e.target.value }))} className={INPUT} placeholder={t('admin_org.role_modal_name_ph', 'Editor')} /></div>}
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.role_modal_description', 'Description')}</label><input type="text" value={roleData.description} onChange={e => setRoleData(p => ({ ...p, description: e.target.value }))} className={INPUT} placeholder={t('admin_org.role_modal_desc_ph', 'Can edit content')} /></div>
                 <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.role_modal_permissions', 'Permissions')}</label>
                     <div className="space-y-3 max-h-60 overflow-auto p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         {/* Group permissions by their group field */}
@@ -57,7 +56,7 @@ export default function RoleModal({ open, onClose, showEditRole, roleData, setRo
                                     <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">{t(group.labelKey, group.label)}</div>
                                     <div className="space-y-0.5">
                                         {groupPerms.map(p => (
-                                            <label key={p.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
+                                            <label key={p.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors">
                                                 <input type="checkbox" checked={roleData.permissions.includes(p.id)} onChange={e => setRoleData(prev => ({ ...prev, permissions: e.target.checked ? [...prev.permissions, p.id] : prev.permissions.filter(x => x !== p.id) }))} className="accent-[var(--accent-primary)] w-4 h-4" />
                                                 <div className="flex-1 min-w-0">
                                                     <span className="text-sm font-medium block text-[var(--text-primary)]">{p.name}</span>

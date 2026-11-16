@@ -1,6 +1,6 @@
 /**
  * The media panel's controls as data: which setting each one writes, its
- * words and its choices — the web's NanoBananaSettings, VideoGenSettings and
+ * words and its choices — the web's ImageGenSettings, VideoGenSettings and
  * MusicGenSettings, laid out for a phone (tabs of rows instead of popovers).
  * Pinned against those files by mediaPanels.lockstep.test.ts.
  */

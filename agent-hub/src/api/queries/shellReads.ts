@@ -89,8 +89,6 @@ export function useMemoryStatsQuery<T>() {
         retry: false,
     });
 }
-/** The organisations the caller can see (for the sign-in-method lock). */
-export const useSettingsOrganizationsQuery = <T,>(enabled: boolean) => useShellRead<T[]>(shellKeys.settings('organizations'), settingsShellApi.organizations, enabled);
 /** The integration statuses of the settings shell. */
 export const useUserSettingsQuery = <T,>() => useShellRead<T>(shellKeys.settings('user-settings'), settingsShellApi.userSettings);
 export const useLinkedinStatusQuery = <T,>() => useShellRead<T>(shellKeys.settings('linkedin'), settingsShellApi.linkedinStatus);

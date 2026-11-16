@@ -86,9 +86,10 @@ const open = async (name: string): Promise<HTMLElement> => {
 };
 
 describe('TranscriptionSection: layout', () => {
-    it('shows the heading, the engines with the active one selected, and the how-it-works steps', () => {
+    // Changed on purpose (admin dashboard wave 3): the page header is the dashboard's frame (AdminPage), not the section's.
+    it('shows no page heading of its own, the engines with the active one selected, and the how-it-works steps', () => {
         renderSection();
-        expect(screen.getByRole('heading', { level: 2, name: /Meeting Transcription/ })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { level: 2, name: /Meeting Transcription/ })).not.toBeInTheDocument();
         for (const name of ['Voxtral', 'Azure Speech', 'Azure Whisper', 'WhisperX', 'Scaleway (hybrid)', 'pyannoteAI']) {
             expect(within(list()).getByRole('button', { name: new RegExp(name.replace(/[()]/g, '\\$&')) })).toBeInTheDocument();
         }
@@ -343,7 +344,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
         const user = userEvent.setup();
         renderSection();
         const box = within(await open('pyannoteAI'));
-        const toggle = box.getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        const toggle = box.getByRole('switch', { name: 'Recognise speakers by voice' });
         expect(toggle).not.toBeChecked();
         expect(box.queryByRole('spinbutton')).toBeNull();
         await user.click(toggle);
@@ -353,7 +354,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('shows the switch as on, and a click turns it off', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const toggle = within(await open('pyannoteAI')).getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        const toggle = within(await open('pyannoteAI')).getByRole('switch', { name: 'Recognise speakers by voice' });
         expect(toggle).toBeChecked();
         await user.click(toggle);
         expect(saveVoiceprintSettings).toHaveBeenCalledWith({ voiceprintMatchingEnabled: false });

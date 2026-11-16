@@ -1,14 +1,14 @@
 /**
- * The three sign-in methods (orgInfoShared.jsx AUTH_METHODS, with its keys).
- * Before the choice: every method is open and the web's "choose carefully"
- * note sits under them. After it: the chosen one is marked, the others are
- * disabled, and the web's locked notice says why.
+ * The organisation's preferred sign-in method (web: orgInfo/OrgAuthSection.tsx,
+ * AUTH_METHODS in orgInfoShared.tsx). A preference, not a lock: nothing reads
+ * it when someone signs in, so every method stays open and the current one is
+ * marked.
  */
 
 import React from 'react';
 
 import { useTranslation, type TranslateFn } from '@/core/i18n';
-import { Banner, Group, OptionRow } from '@/shared/ui';
+import { Group, OptionRow } from '@/shared/ui';
 
 import { AUTH_METHOD_IDS, type AuthMethodId } from '../model/profile';
 
@@ -29,14 +29,6 @@ function methodCopy(t: TranslateFn): Record<AuthMethodId, { label: string; descr
     };
 }
 
-/** The web's warning before the one-time choice, as one sentence. */
-export function chooseCarefully(t: TranslateFn): string {
-    return `${t('org.choose_carefully', 'Choose carefully:')} ${t(
-        'org.choose_carefully_desc',
-        'Once saved, this cannot be changed. Each user’s data is protected with a unique key that is tied to how they sign in. Switching later would make existing conversations unreadable.',
-    )}`;
-}
-
 export function SignInMethodGroup({
     current,
     saving,
@@ -44,42 +36,25 @@ export function SignInMethodGroup({
 }: {
     current: string | null;
     saving: boolean;
-    onChoose: (method: AuthMethodId, label: string) => void;
+    onChoose: (method: AuthMethodId) => void;
 }) {
     const t = useTranslation();
     const copy = methodCopy(t);
-    const locked = Boolean(current);
     return (
-        <>
-            {locked ? (
-                <Banner tone="warning" icon="Lock">
-                    {`${t('org.signin_locked', 'Sign-in method is locked')}. ${t(
-                        'org.signin_locked_desc',
-                        'Your conversations are protected using a unique key derived from your sign-in method. Changing how users log in would make existing conversations unreadable, so the sign-in method cannot be changed after it has been set.',
-                    )}`}
-                </Banner>
-            ) : null}
-            <Group
-                footer={
-                    locked
-                        ? undefined
-                        : chooseCarefully(t)
-                }
-            >
-                {AUTH_METHOD_IDS.map((id) => (
-                    <OptionRow
-                        key={id}
-                        testID={`auth-${id}`}
-                        label={copy[id].label}
-                        description={
-                            current === id ? `${copy[id].description} · ${t('org.active', 'Active')}` : copy[id].description
-                        }
-                        selected={current === id}
-                        disabled={locked || saving}
-                        onPress={() => onChoose(id, copy[id].label)}
-                    />
-                ))}
-            </Group>
-        </>
+        <Group>
+            {AUTH_METHOD_IDS.map((id) => (
+                <OptionRow
+                    key={id}
+                    testID={`auth-${id}`}
+                    label={copy[id].label}
+                    description={copy[id].description}
+                    selected={current === id}
+                    disabled={saving}
+                    onPress={() => {
+                        if (current !== id) onChoose(id);
+                    }}
+                />
+            ))}
+        </Group>
     );
 }

@@ -9,24 +9,40 @@
 // Two blocks that look different: the organisation block (its header names the
 // organisation, or "Organisations" with the current choice under it), and, for a
 // platform admin, the whole-server block below a divider, on the warning tint the
-// whole-server scope bar uses, as one flat list.
+// whole-server scope bar uses, with the same group headings (none over a group
+// of one row).
 //
 // Rows are links (NavLink), so a middle-click opens a tab in a new window,
 // as the old pill strip did. A row's id is its path under admin/: a tab, or a
-// section of the Organisation tab (organisation/<section>, adminRailRows). A
-// server-wide row inside the organisation block carries the server mark.
+// section that is a row of its own (tab/<section>, adminRailRows). A
+// server-wide row inside the organisation block carries the server mark, a row
+// that leaves the dashboard chrome (a full-screen tool) a trailing Maximize2,
+// and a hub's child rows are indented under its row while it is open.
 
-import { ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Maximize2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useId, useRef } from 'react';
 import NavLink from '@/components/shell/NavLink';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ServerWideMark } from './serverWideNav';
+
+/** One row of the rail as it is drawn. */
+export interface AdminRailRowView {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    serverWide?: boolean;
+    /** The row opens a full-screen tool outside the dashboard chrome. */
+    escapesChrome?: boolean;
+    /** Rows indented under this one while it (or one of them) is open. */
+    children?: AdminRailRowView[];
+}
 
 interface AdminRailGroup {
     id: string;
-    /** The eyebrow above the rows; empty for a flat list. */
+    /** The eyebrow above the rows; empty for none (a flat list, or a group of one row). */
     label: string;
-    tabs: { id: string; label: string; icon: LucideIcon; serverWide?: boolean }[];
+    tabs: AdminRailRowView[];
 }
 
 /** A top-level block of the rail (the organisation, or the whole server) holding the sub-groups. */
@@ -53,29 +69,65 @@ interface AdminRailProps {
 }
 
 interface RailRowProps {
-    id: string;
-    label: string;
-    Icon: LucideIcon;
-    serverWide?: boolean;
+    row: AdminRailRowView;
     active: boolean;
+    /** An indented child row of a hub. */
+    child?: boolean;
     onSelect: (id: string) => void;
 }
 
-function RailRow({ id, label, Icon, serverWide, active, onSelect }: RailRowProps) {
+/** The trailing mark of a row that opens full screen; its name joins the row's accessible name. */
+function FullScreenMark() {
+    const { t } = useTranslation();
+    const label = t('admin_nav.opens_full_screen', 'Opens full screen');
+    // The space keeps the row's accessible name words apart ("Product Website Opens full screen").
+    return (
+        <>
+            {' '}
+            <span role="img" aria-label={label} title={label} className="inline-flex shrink-0 text-[var(--text-tertiary)]" data-testid="admin-rail-full-screen">
+                <Maximize2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+            </span>
+        </>
+    );
+}
+
+function RailRow({ row, active, child = false, onSelect }: RailRowProps) {
+    const Icon = row.icon;
     return (
         <NavLink
-            href={`/admin/${id}`}
-            onNavigate={() => onSelect(id)}
+            href={`/admin/${row.id}`}
+            onNavigate={() => onSelect(row.id)}
             aria-current={active ? 'page' : undefined}
-            data-testid={`admin-rail-${id.replace('/', '-')}`}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all duration-150 [text-decoration:none]! ${active ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--item-hover-bg)]'}`}
+            data-testid={`admin-rail-${row.id.replace('/', '-')}`}
+            className={`flex w-full items-center gap-2.5 rounded-lg py-2 pr-2.5 text-left transition-all duration-150 [text-decoration:none]! ${child ? 'pl-8' : 'pl-2.5'} ${active ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--item-hover-bg)]'}`}
         >
             <Icon className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
             <span className={`min-w-0 flex-1 truncate text-[13px] leading-tight text-[var(--text-primary)] ${active ? 'font-semibold' : 'font-medium'}`}>
-                {label}
+                {row.label}
             </span>
-            {serverWide && <ServerWideMark />}
+            {row.serverWide && <ServerWideMark />}
+            {row.escapesChrome && <FullScreenMark />}
         </NavLink>
+    );
+}
+
+/** Is the hub row open: the row itself or one of its children is the current row? */
+function isOpenHub(row: AdminRailRowView, activeRow: string): boolean {
+    return activeRow === row.id || !!row.children?.some(c => c.id === activeRow);
+}
+
+/** A row, and its children under it while it is open. */
+function RailRowWithChildren({ row, activeRow, onSelect }: { row: AdminRailRowView; activeRow: string; onSelect: (id: string) => void }) {
+    const open = !!row.children?.length && isOpenHub(row, activeRow);
+    return (
+        <>
+            <RailRow row={row} active={row.id === activeRow} onSelect={onSelect} />
+            {open && (
+                <div className="flex flex-col gap-0.5" data-testid={`admin-rail-children-${row.id}`}>
+                    {row.children?.map(c => <RailRow key={c.id} row={c} child active={c.id === activeRow} onSelect={onSelect} />)}
+                </div>
+            )}
+        </>
     );
 }
 
@@ -107,7 +159,7 @@ function RailSection({ section, headingId, activeRow, onSelect }: { section: Adm
                         )}
                         <div className="flex flex-col gap-0.5">
                             {group.tabs.map(tab => (
-                                <RailRow key={tab.id} id={tab.id} label={tab.label} Icon={tab.icon} serverWide={tab.serverWide} active={tab.id === activeRow} onSelect={onSelect} />
+                                <RailRowWithChildren key={tab.id} row={tab} activeRow={activeRow} onSelect={onSelect} />
                             ))}
                         </div>
                     </div>

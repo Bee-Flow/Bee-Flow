@@ -59,12 +59,23 @@ describe('SSOConfigPanel', () => {
         expect(screen.queryByRole('button', { name: /Google/ })).toBeNull();
     });
 
+    // Entra ID group sync runs only for the directory bound to the Microsoft
+    // app (PUT /auth/microsoft/sync-binding, MicrosoftIdentityPanel on the
+    // Microsoft 365 page, which shows once an app is set up): without sso_saml
+    // the app cannot be set, so group sync is Enterprise in the UI too.
+    it('offers neither the Microsoft app nor the group-sync binding on Community', async () => {
+        hasFeature.mockReturnValue(false);
+        renderWithClient(<SSOConfigPanel />);
+        expect(await screen.findByText('Nextcloud OAuth 2.0')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Microsoft/ })).toBeNull();
+        expect(screen.queryByTestId('ms-identity')).toBeNull();
+    });
+
     it('saves the Microsoft provider with the typed secret and clears it', async () => {
         const user = userEvent.setup();
         renderWithClient(<SSOConfigPanel />);
         await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
         expect(screen.getByText('Microsoft / Azure AD')).toBeTruthy();
-        expect(screen.getByTestId('ms-identity')).toBeTruthy();
         const secret = screen.getByPlaceholderText('Client Secret Value');
         await user.type(secret, 's3cret');
         await user.click(screen.getByRole('button', { name: 'admin.sso_save' }));
@@ -73,14 +84,12 @@ describe('SSOConfigPanel', () => {
         expect((secret as HTMLInputElement).value).toBe('');
     });
 
-    it('renders the identity panel below the Microsoft form, inside the content column', async () => {
+    it('leaves the identity links and the directory binding to the Microsoft 365 page', async () => {
         const user = userEvent.setup();
         renderWithClient(<SSOConfigPanel />);
         await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
-        const panel = screen.getByTestId('ms-identity');
-        const content = screen.getByText('Microsoft / Azure AD').closest('.overflow-y-auto');
-        expect(content).not.toBeNull();
-        expect(content!.contains(panel)).toBe(true);
+        expect(screen.getByText('Microsoft / Azure AD')).toBeTruthy();
+        expect(screen.queryByTestId('ms-identity')).toBeNull();
     });
 
     it('sends the primary button text and an added tenant with its own secret', async () => {
@@ -186,5 +195,47 @@ describe('tenant id checks', () => {
         expect(isTenantIdValid('contoso')).toBe(false);
         expect(isMultiTenantId('consumers')).toBe(true);
         expect(isMultiTenantId('12345678-1234-1234-1234-123456789abc')).toBe(false);
+    });
+});
+
+describe('the provider the page opens on', () => {
+    const serve = (providers: typeof PROVIDERS) => fetchMock.mockImplementation(async (url: string) => {
+        if (url === '/auth/providers') return json(providers);
+        if (url === '/auth/setup-status') return json({ serverUrl: 'https://flow.example' });
+        return json({}, false);
+    });
+    const order = async () => {
+        const nav = await screen.findByRole('navigation', { name: 'SSO Providers' });
+        return within(nav).getAllByRole('button').map((b) => (b.textContent ?? '').replace(/[^A-Za-z]/g, ''));
+    };
+
+    it('lists Nextcloud last and opens the first enabled provider on a server that does not sign in with Nextcloud', async () => {
+        serve({
+            ...PROVIDERS,
+            nextcloud: { enabled: false, url: '', clientId: '', clientSecretSet: false },
+            microsoft: { ...PROVIDERS.microsoft, enabled: true },
+        });
+        renderWithClient(<SSOConfigPanel />);
+        expect(await order()).toEqual(['Google', 'Microsoft', 'Nextcloud']);
+        expect(await screen.findByText('Microsoft / Azure AD')).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Microsoft/ }).getAttribute('aria-current')).toBe('true');
+    });
+
+    it('opens the first provider when none is enabled', async () => {
+        serve({
+            ...PROVIDERS,
+            nextcloud: { enabled: false, url: '', clientId: '', clientSecretSet: false },
+        });
+        renderWithClient(<SSOConfigPanel />);
+        expect(await screen.findByText('Google OAuth 2.0')).toBeTruthy();
+    });
+
+    it('keeps the Microsoft identities away until a Microsoft app is set up', async () => {
+        const user = userEvent.setup();
+        serve({ ...PROVIDERS, microsoft: { ...PROVIDERS.microsoft, clientId: '' } });
+        renderWithClient(<SSOConfigPanel />);
+        await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
+        expect(screen.getByText('Microsoft / Azure AD')).toBeTruthy();
+        expect(screen.queryByTestId('ms-identity')).toBeNull();
     });
 });

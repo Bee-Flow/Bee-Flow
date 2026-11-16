@@ -8,7 +8,6 @@ import { type AdminModule } from '@/api/queries/modules.types';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import EmptyState from '@/components/shared/EmptyState';
-import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import Tabs from '@/components/shared/Tabs';
 import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS, CHIP_SUCCESS } from '@/components/mcpLibrary/ui';
@@ -95,14 +94,16 @@ export default function ModulesPanel() {
                 />
             )}
 
-            <SectionHeader
-                title={t('modules.title')}
-                description={<>{t('modules.subtitle')} {t('modules.members_reload_hint')}</>}
-                status={importedCount > 0 ? <span className={CHIP_SUCCESS}>{t('modules.imported_count', { count: importedCount })}</span> : null}
-            />
+            {/* The page header (the rail label) is the dashboard frame's; the intro stays with the panel. */}
+            <p className="m-0 text-sm text-[var(--text-secondary)]">
+                {t('modules.subtitle')} {t('modules.members_reload_hint')}
+            </p>
 
             {/* Installed | Marketplace tabs */}
-            <Tabs value={tab} onChange={setTab} items={TABS} size="sm" ariaLabel={t('modules.title')} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <Tabs value={tab} onChange={setTab} items={TABS} size="sm" ariaLabel={t('modules.title')} />
+                {importedCount > 0 ? <span className={CHIP_SUCCESS}>{t('modules.imported_count', { count: importedCount })}</span> : null}
+            </div>
 
             {/* Success / info / error flash */}
             {message && (

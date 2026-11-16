@@ -95,10 +95,10 @@ function CapBar({ pct }: { pct: number }) {
 }
 
 function CapHero({ data, sub, sym }: { data: Props['data']; sub: SubscriptionInfo | null; sym: string }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const { pct } = capUsage(sub);
     const activeUsers = data.summary?.unique_users || data.users?.length || 0;
-    const period = sub?.billing_period ? formatDateRange(sub.billing_period.startDate, sub.billing_period.endDate) : '';
+    const period = sub?.billing_period ? formatDateRange(sub.billing_period.startDate, sub.billing_period.endDate, resolvedLocale) : '';
     return (
         <section className={`${CARD} flex flex-wrap gap-6 p-6`}>
             <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-2">

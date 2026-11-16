@@ -1,6 +1,6 @@
 import { Edit2, Tag, Trash2 } from 'lucide-react';
 import type { AdminRole } from './types';
-import { AddButton, EntityList, EntityRow, EntitySectionHeader, RowAction } from './EntityRows';
+import { AddButton, EntityList, EntityRow, EntitySectionIntro, RowAction } from './EntityRows';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export interface RolesSectionProps {
@@ -14,8 +14,8 @@ export default function RolesSection({ roles, onAddRole, onEditRole, onDeleteRol
     const { t } = useTranslation();
     return (
         <div>
-            <EntitySectionHeader
-                title={t('admin_org.roles_section_title', 'Roles')}
+            {/* The page (Roles & permissions) and its Roles tab name the section; the hint and the add action stay. */}
+            <EntitySectionIntro
                 description={t('admin_org.roles_section_subtitle', 'Define role templates with permissions')}
                 action={<AddButton onClick={onAddRole} icon={<Tag className="h-3.5 w-3.5" aria-hidden="true" />}>{t('admin_org.roles_section_add', 'Add Role')}</AddButton>}
             />

@@ -1,10 +1,12 @@
-// "Search" section of the IntegrationsAdminPanel: which provider powers web
-// search for agents, its credentials (Bing, Serper) and the Agent Search
-// defaults. The bindings are threaded in as props from the panel.
+// The web search provider: which provider powers web search for agents, its
+// credentials (Serper, and Bing while a server still has it selected) and the
+// Agent Search defaults. Shown on AI configuration > Search & retrieval
+// (ai-config/WebSearchProviderConfig, which reads the state itself) and, until
+// the integrations panel drops its Search section, there. The bindings are
+// threaded in as props.
 import type React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ALERT_INFO } from '@/components/mcpLibrary/ui';
-import SectionHeader from '@/components/shared/SectionHeader';
+import { ALERT_INFO, ALERT_WARNING } from '@/components/shared/adminUi';
 import { FIELD_INPUT, Field, FieldGrid, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Toggle from '@/components/shared/Toggle';
 import type { SearchSectionProps } from './adminPanel.types';
@@ -13,7 +15,15 @@ import { ApiError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 
 const MASK = '••••••••••••••••';
-const PROVIDER_LABELS: Record<string, string> = { 'disabled': 'Disabled', 'bing': 'Azure Bing Search', 'node-search': 'Cloud-only (Serper + provider APIs)', 'agent-search': 'Self-hosted Agent Search' };
+type TranslateFn = ReturnType<typeof useTranslation>['t'];
+
+function providerLabel(t: TranslateFn, value: string): string {
+    if (value === 'disabled') return t('integ.search_disabled', 'Disabled');
+    if (value === 'bing') return t('integ.search_azure_bing_web_search', 'Azure Bing Web Search');
+    if (value === 'node-search') return t('integ.search_cloud_only_serper_provider_apis', 'Cloud-only (Serper + provider APIs)');
+    if (value === 'agent-search') return t('integ.search_self_hosted_agent_search_serper', 'Self-hosted (Agent Search + Serper)');
+    return value;
+}
 
 /** A JSON body as it is, whatever the route's schema type says. */
 function jsonInit(body: unknown) {
@@ -45,9 +55,9 @@ function ProviderRow({ searchProvider, setSearchProvider, setMessage }: Pick<Sea
         setSearchProvider(val);
         try {
             await send(apiRequest('POST /ai/config', { init: jsonInit({ searchProvider: val }) }));
-            setMessage({ type: 'success', text: `Search provider set to ${PROVIDER_LABELS[val] || val}` });
+            setMessage({ type: 'success', text: t('ai_model_setup.search_provider_set', 'Search provider set to {name}', { name: providerLabel(t, val) }) });
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save search provider' });
+            setMessage({ type: 'error', text: t('ai_model_setup.search_provider_failed', 'Failed to save search provider') });
         }
         setTimeout(() => setMessage(null), 3000);
     };
@@ -60,7 +70,8 @@ function ProviderRow({ searchProvider, setSearchProvider, setMessage }: Pick<Sea
             <select id="search-provider" value={searchProvider} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { void change(e.target.value); }} className={FIELD_INPUT}>
                 <option value="agent-search">{t('integ.search_self_hosted_agent_search_serper', 'Self-hosted (Agent Search + Serper)')}</option>
                 <option value="node-search">{t('integ.search_cloud_only_serper_provider_apis', 'Cloud-only (Serper + provider APIs)')}</option>
-                <option value="bing">{t('integ.search_azure_bing_web_search', 'Azure Bing Web Search')}</option>
+                {/* Bing Web Search was retired by its vendor: offered only where it is still selected. */}
+                {searchProvider === 'bing' && <option value="bing">{t('ai_model_setup.search_bing_retired', 'Azure Bing Web Search (retired)')}</option>}
                 <option value="disabled">{t('integ.search_disabled', 'Disabled')}</option>
             </select>
         </SettingRow>
@@ -75,10 +86,10 @@ function BingRows(p: SearchSectionProps) {
             if (await postConfig({ bingSearchKey: p.bingSearchKey, bingSearchMarket: p.bingSearchMarket })) {
                 p.setHasBingSearchKey(!!p.bingSearchKey);
                 p.setBingSearchKey('');
-                p.setMessage({ type: 'success', text: p.bingSearchKey ? 'Bing Search settings saved' : 'Bing Search key removed' });
+                p.setMessage({ type: 'success', text: p.bingSearchKey ? t('ai_model_setup.search_bing_saved', 'Bing Search settings saved') : t('ai_model_setup.search_bing_removed', 'Bing Search key removed') });
             }
         } catch (e) {
-            p.setMessage({ type: 'error', text: 'Failed to save Bing settings' });
+            p.setMessage({ type: 'error', text: t('ai_model_setup.search_bing_failed', 'Failed to save Bing settings') });
         }
         p.setSavingBingKey(false);
         setTimeout(() => p.setMessage(null), 3000);
@@ -91,7 +102,7 @@ function BingRows(p: SearchSectionProps) {
                 hint={<>{t('integ.search_get_your_key_from', 'Get your key from')} <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer" className={HINT_LINK}>{t('integ.search_azure_portal_bing_search_v7', 'Azure Portal → Bing Search v7')}</a>.</>}
             >
                 <div className="flex gap-2">
-                    <input type="password" value={p.bingSearchKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setBingSearchKey(e.target.value)} placeholder={p.hasBingSearchKey ? MASK : 'Enter Bing Search API subscription key'} className={FIELD_INPUT} />
+                    <input type="password" value={p.bingSearchKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setBingSearchKey(e.target.value)} placeholder={p.hasBingSearchKey ? MASK : t('ai_model_setup.search_bing_placeholder', 'Bing Search subscription key')} className={FIELD_INPUT} />
                     <SaveButton saving={p.savingBingKey} onClick={save}>{t('integ.search_save', 'Save')}</SaveButton>
                 </div>
             </SettingRow>
@@ -110,10 +121,10 @@ function SerperRow(p: SearchSectionProps) {
             if (await postConfig({ serperApiKey: p.serperApiKey })) {
                 p.setHasSerperKey(!!p.serperApiKey);
                 p.setSerperApiKey('');
-                p.setMessage({ type: 'success', text: p.serperApiKey ? 'Serper API key saved' : 'Serper API key removed' });
+                p.setMessage({ type: 'success', text: p.serperApiKey ? t('ai_model_setup.search_serper_saved', 'Serper API key saved') : t('ai_model_setup.search_serper_removed', 'Serper API key removed') });
             }
         } catch (e) {
-            p.setMessage({ type: 'error', text: 'Failed to save Serper API key' });
+            p.setMessage({ type: 'error', text: t('ai_model_setup.search_serper_failed', 'Failed to save Serper API key') });
         }
         p.setSavingSerperKey(false);
         setTimeout(() => p.setMessage(null), 3000);
@@ -126,7 +137,7 @@ function SerperRow(p: SearchSectionProps) {
             hint={<>{t('integ.search_get_your_api_key_from', 'Get your API key from')} <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className={HINT_LINK}>serper.dev</a>{t('integ.search_used_by_the_search_service_for_google', '. Used by the search service for Google web search results.')}</>}
         >
             <div className="flex gap-2">
-                <input type="password" value={p.serperApiKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setSerperApiKey(e.target.value)} placeholder={p.hasSerperKey ? MASK : 'Enter Serper.dev API key'} className={FIELD_INPUT} />
+                <input type="password" value={p.serperApiKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setSerperApiKey(e.target.value)} placeholder={p.hasSerperKey ? MASK : t('ai_model_setup.search_serper_placeholder', 'Serper.dev API key')} className={FIELD_INPUT} />
                 <SaveButton saving={p.savingSerperKey} onClick={save}>{t('integ.search_save', 'Save')}</SaveButton>
             </div>
         </SettingRow>
@@ -159,9 +170,9 @@ function DefaultsGroup({ agentSearchDefaults: d, setAgentSearchDefaults: set, sa
         setSavingSearchDefaults(true);
         try {
             await send(apiRequest('PUT /ai/agent-search/defaults', { init: jsonInit(d) }));
-            setMessage({ type: 'success', text: 'Agent Search defaults saved' });
+            setMessage({ type: 'success', text: t('ai_model_setup.search_defaults_saved', 'Agent Search defaults saved') });
         } catch (e) {
-            setMessage({ type: 'error', text: 'Failed to save defaults' });
+            setMessage({ type: 'error', text: t('ai_model_setup.search_defaults_failed', 'Failed to save defaults') });
         }
         setSavingSearchDefaults(false);
         setTimeout(() => setMessage(null), 3000);
@@ -222,14 +233,20 @@ export default function SearchSection(props: SearchSectionProps) {
     const { searchProvider, agentSearchUrl, hasAgentSearchUrl } = props;
     const serperBased = searchProvider === 'agent-search' || searchProvider === 'node-search';
     return (
-        <div className="flex max-w-4xl flex-col gap-8">
-            <SectionHeader
-                title={t('integ.search_agent_search_configuration', 'Agent Search Configuration')}
-                description={t('integ.search_configure_your_self_hosted_agent', 'Configure your self-hosted Agent Search service.')}
-            />
-            <SettingsGroup title={t('integ.search_search_provider', 'Search Provider')}>
+        <div className="flex flex-col gap-8">
+            <SettingsGroup
+                title={t('ai_model_setup.search_group_title', 'Web search provider')}
+                description={t('ai_model_setup.search_group_hint', 'Which service finds web pages for chats and agents, and its keys. Changing the provider applies immediately.')}
+            >
                 <SettingsList>
                     <ProviderRow {...props} />
+                    {searchProvider === 'bing' && (
+                        <div className="px-4 py-3">
+                            <p className={`m-0 ${ALERT_WARNING}`}>
+                                {t('ai_model_setup.search_bing_retired_note', 'The Bing Search APIs were retired by Microsoft, so this provider no longer returns results. Switch to Self-hosted or Cloud-only.')}
+                            </p>
+                        </div>
+                    )}
                     {searchProvider === 'bing' && <BingRows {...props} />}
                     {searchProvider === 'agent-search' && (
                         <SettingRow
@@ -244,7 +261,7 @@ export default function SearchSection(props: SearchSectionProps) {
                     {searchProvider === 'node-search' && (
                         <div className="px-4 py-3">
                             <p className={`m-0 ${ALERT_INFO}`}>
-                                {t('integ.search_no_gpu_service_required_the_search', 'No GPU service required — the search loop (SERP, page fetch, embed, rerank, cleanup) runs in this server using the providers configured under')} <strong>{t('integ.search_ai_configuratie_web_search_inference', 'AI Configuratie → Web Search Inference')}</strong>.
+                                {t('ai_model_setup.search_cloud_note', 'No GPU service needed: the search loop (results, page fetch, embeddings, rerank, cleanup) runs in this server, with the models set under Web search inference on this page.')}
                             </p>
                         </div>
                     )}

@@ -53,7 +53,13 @@ export const readOrgAiContext: (raw: unknown) => OrgAiContext | null = nullable(
         compactionThreshold: field.num(16),
         recentWindow: field.num(8),
         contextBudgetPercent: field.num(75),
-        contextWindowExamples: shapeListOf({ label: field.str(''), contextWindow: field.num(0) }),
+        contextWindowExamples: shapeListOf({
+            label: field.str(''),
+            contextWindow: field.num(0),
+            kind: field.oneOfOrNull(['tier', 'custom', 'generic'] as const),
+            tierKey: field.strOrNull,
+            model: field.strOrNull,
+        }),
         contextBudgetRange: range(25, 95),
     }),
 );

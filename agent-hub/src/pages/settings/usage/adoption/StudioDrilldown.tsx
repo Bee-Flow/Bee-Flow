@@ -32,20 +32,20 @@ function DrillKpis({ kind: k, data, currency }: { kind: AdoptionKind; data: Adop
     const noSignal = t('adoption.studio_no_signal', 'no signal');
     return (
         <MetricGrid min={150} gap={8}>
-            <MetricCard icon={Send} color="#0ea5e9" label={t('adoption.drill_published', 'Published')} value={fInt(k.published)} />
-            <MetricCard icon={Hammer} color="#10b981" label={t('adoption.drill_makers', 'Makers')} value={fInt(k.makers)}
+            <MetricCard icon={Send} color="var(--chart-1)" label={t('adoption.drill_published', 'Published')} value={fInt(k.published)} />
+            <MetricCard icon={Hammer} color="var(--success)" label={t('adoption.drill_makers', 'Makers')} value={fInt(k.makers)}
                 subtitle={t('adoption.drill_makers_new', '{n} new this period', { n: fInt(k.newInPeriod) })} />
-            <MetricCard icon={Users} color="#0ea5e9" label={t('adoption.drill_people', 'People using')} value={k.usage ? fInt(k.usage.people) : noSignal} />
-            <MetricCard icon={Activity} color="#f59e0b" label={k.usage ? usageNoun(k.usage.label, t) : t('adoption.drill_uses', 'Uses')} value={k.usage ? fInt(k.usage.events) : noSignal} />
-            <MetricCard icon={Euro} color="#f59e0b" label={t('adoption.drill_cost', 'AI cost')} value={k.cost == null ? '—' : fMoney(k.cost, currency)} />
-            <MetricCard icon={PackageOpen} color="#94a3b8" label={t('adoption.drill_unused', 'Unused this period')} value={data ? fInt(data.unused.length) : '—'}
+            <MetricCard icon={Users} color="var(--chart-1)" label={t('adoption.drill_people', 'People using')} value={k.usage ? fInt(k.usage.people) : noSignal} />
+            <MetricCard icon={Activity} color="var(--warning)" label={k.usage ? usageNoun(k.usage.label, t) : t('adoption.drill_uses', 'Uses')} value={k.usage ? fInt(k.usage.events) : noSignal} />
+            <MetricCard icon={Euro} color="var(--warning)" label={t('adoption.drill_cost', 'AI cost')} value={k.cost == null ? '—' : fMoney(k.cost, currency)} />
+            <MetricCard icon={PackageOpen} color="var(--text-tertiary)" label={t('adoption.drill_unused', 'Unused this period')} value={data ? fInt(data.unused.length) : '—'}
                 subtitle={t('adoption.drill_unused_sub', 'published, but nobody used them')} />
         </MetricGrid>
     );
 }
 
 function ItemRow({ item, currency }: { item: AdoptionItem; currency: string }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const cell = 'px-3 py-2 text-right tabular-nums text-[12px] text-[var(--text-primary)]';
     return (
         <tr className="border-b border-[var(--border-subtle)] last:border-b-0">
@@ -54,7 +54,7 @@ function ItemRow({ item, currency }: { item: AdoptionItem; currency: string }) {
                 <span className="block text-[10px] text-[var(--text-muted)]">{t('adoption.drill_by', 'by {name}', { name: item.ownerName })}</span>
             </td>
             <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{audienceLabel(item.audience, t)}</td>
-            <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{fDate(item.createdAt)}</td>
+            <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{fDate(item.createdAt, resolvedLocale)}</td>
             <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{fAgo(item.lastUsedAt, t)}</td>
             <td className={cell}>{fInt(item.people)}</td>
             <td className={cell}>{fInt(item.uses)}</td>
@@ -108,7 +108,7 @@ function ItemsTable({ data, currency, hasSignal }: { data: AdoptionStudioItems; 
 }
 
 function SidePanels({ data, currency }: { data: AdoptionStudioItems; currency: string }) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const counts = data.items.reduce<Record<string, number>>((m, i) => { m[i.audience] = (m[i.audience] || 0) + 1; return m; }, {});
     return (
         <div className="flex flex-col gap-3">
@@ -130,7 +130,7 @@ function SidePanels({ data, currency }: { data: AdoptionStudioItems; currency: s
                 {data.unused.length === 0 ? <EmptyInline text={t('adoption.drill_unused_empty', 'Everything published was used.')} /> : (
                     <ul className="space-y-1.5">{data.unused.map(u => (
                         <li key={u.id} className="text-[12px]"><span className="block text-[var(--text-primary)]">{u.name}</span>
-                            <span className="block text-[10px] text-[var(--text-muted)]">{t('adoption.drill_unused_by', 'by {name} · published {date}', { name: u.ownerName, date: fDate(u.publishedAt) })}</span></li>
+                            <span className="block text-[10px] text-[var(--text-muted)]">{t('adoption.drill_unused_by', 'by {name} · published {date}', { name: u.ownerName, date: fDate(u.publishedAt, resolvedLocale) })}</span></li>
                     ))}</ul>
                 )}
                 <p className="mt-2 text-[10px] text-[var(--text-muted)]">{t('adoption.drill_makers_note', 'Makers are shown by name: building something is organisational metadata, using it is not.')}</p>

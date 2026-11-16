@@ -31,19 +31,19 @@ that connection (option A); the app token is used only for covered members witho
 | Role | Where | Does |
 |---|---|---|
 | Bee Flow platform administrator | Admin, Security, SSO, Microsoft | Enters the app registration (client ID, secret, tenant), tests it, and for option B links the organisation to its Microsoft tenant |
-| Organisation admin in Bee Flow | Settings, Organisation, Meeting Templates, in the **Microsoft Teams Meeting Notes** block | Reads the setup guide, makes the admin consent link, sees which members are ready, sets automatic import for everyone, and switches option B on |
+| Organisation admin in Bee Flow | Admin dashboard, Connections, Microsoft 365, in the **Microsoft Teams Meeting Notes** block | Reads the setup guide, makes the admin consent link, sees which members are ready, sets automatic import for everyone, and switches option B on |
 | Microsoft Entra administrator | Microsoft Entra admin center | Adds the permissions to the app registration and grants admin consent |
 | Microsoft Teams administrator | Teams admin center or Teams PowerShell | Allows recording and transcription, the transcript API switches and, for option B, the application access policy |
 | Each organiser | Settings, Connections; Settings, Preferences; Meeting Notes, Upcoming | Connects Microsoft 365 (option A), tests the connection, picks which meetings to import |
 
 The SSO settings, and with them the Microsoft tab, need the `sso_saml` licence feature. The
-Meeting Templates page shows only to organisation admins of an organisation whose plan includes
+Teams part of the Microsoft 365 page shows only to organisation admins of an organisation whose plan includes
 Meeting Notes.
 
 ## What to ask your administrators
 
-For an organisation admin who has no rights in Microsoft Entra or Teams. Run the tests in Settings,
-Organisation, Meeting Templates first: every check that fails names who can fix it. Then send each
+For an organisation admin who has no rights in Microsoft Entra or Teams. Run the tests in Admin dashboard,
+Connections, Microsoft 365 first: every check that fails names who can fix it. Then send each
 administrator the part below that the tests point to.
 
 You need two values. The **Application (client) ID** of the Bee Flow app registration: the platform
@@ -101,7 +101,7 @@ Administrator.
    - Sign-in: `https://your-host/auth/callback/microsoft`
    - Connecting Microsoft 365, and the admin consent link: `https://your-host/api/integrations/microsoft/callback`
 
-   The setup guide in Settings, Organisation, Meeting Templates shows both addresses as your
+   The setup guide in Admin dashboard, Connections, Microsoft 365 shows both addresses as your
    server builds them.
 3. Under **Certificates & secrets**, create a client secret. Copy its **Value**, not the Secret ID.
 4. In Bee Flow, a platform administrator opens **Admin, Security, SSO, Microsoft** and fills in the
@@ -152,7 +152,7 @@ Two ways:
 
 - In the Entra admin center, under **API permissions** of the app registration (or **Enterprise
   apps**, **Permissions**), select **Grant admin consent**.
-- In Bee Flow, an organisation admin opens **Settings, Organisation, Meeting Templates** and, in
+- In Bee Flow, an organisation admin opens **Admin dashboard, Connections, Microsoft 365** and, in
   the Microsoft Teams Meeting Notes block, makes the **admin consent link**. They open it themselves when they hold one of the roles above,
   or copy it and send it to someone who does. The link uses Microsoft's
   [admin consent endpoint](https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent)
@@ -213,9 +213,9 @@ Both API switches can also be set with
    are away and uses only the stored connection.
 2. Under **Settings, Preferences**, in the Microsoft Teams Meeting Notes section, **Test my
    connection** runs the member checks below. The section shows once Microsoft 365 is connected.
-   Organisation admins have the same test in Settings, Organisation, Meeting Templates.
+   Organisation admins have the same test in Admin dashboard, Connections, Microsoft 365.
 3. Automatic import is off by default. Members switch it on under Settings, Preferences;
-   organisation admins can set it for everyone under Settings, Organisation, Meeting Templates.
+   organisation admins can set it for everyone under Admin dashboard, Connections, Microsoft 365.
    With it off, only the meetings a member imports by hand or marks for recording in the Upcoming
    tab are imported.
 
@@ -287,7 +287,7 @@ one, option B is not available.
 
 ### 4. Switch it on
 
-In **Settings, Organisation, Meeting Templates**, under Microsoft Teams Meeting Notes, the
+In **Admin dashboard, Connections, Microsoft 365**, under Microsoft Teams Meeting Notes, the
 **Organisation-wide import** block shows whether option B can be switched on and, when it cannot,
 why and who fixes it. There the organisation admin switches it on and chooses who it covers: all
 members with Meeting Notes, or selected members (ticked in a list of the organisation's members).
@@ -350,9 +350,9 @@ registrations) from the platform test.
 | Test | Where | Who |
 |---|---|---|
 | App registration | Admin, Security, SSO, Microsoft, test button | Platform administrator |
-| Member connection | Settings, Preferences, **Test my connection** (also in Settings, Organisation, Meeting Templates) | Every member with Meeting Notes |
-| Organisation checks and member overview | Settings, Organisation, Meeting Templates, Microsoft Teams Meeting Notes | Organisation admin |
-| Organisation-wide import | Settings, Organisation, Meeting Templates, Organisation-wide import, **Test organisation-wide import** | Organisation admin |
+| Member connection | Settings, Preferences, **Test my connection** (also in Admin dashboard, Connections, Microsoft 365) | Every member with Meeting Notes |
+| Organisation checks and member overview | Admin dashboard, Connections, Microsoft 365, Microsoft Teams Meeting Notes | Organisation admin |
+| Organisation-wide import | Admin dashboard, Connections, Microsoft 365, Organisation-wide import, **Test organisation-wide import** | Organisation admin |
 
 Each check shows a status (passed, failed, needs attention, skipped, could not be tested), a
 sentence, what to do and who can do it. A check whose prerequisite did not pass is **skipped**;
@@ -426,7 +426,7 @@ usual one.
 | `no_stored_connection` | Only connected through sign-in; automatic import needs a stored connection | The member | Connect Microsoft 365 under Settings, Connections |
 | `stored_connection_missing_scopes` | The stored connection lacks permissions (named in the result) | The member | Reconnect and accept |
 | `stored_connection_expired` | The stored connection has expired | The member | Reconnect |
-| `auto_import_off` | Automatic import is off | The member, or the organisation admin when it is off for everyone | Switch it on in Settings, Preferences (or Settings, Organisation, Meeting Templates) |
+| `auto_import_off` | Automatic import is off | The member, or the organisation admin when it is off for everyone | Switch it on in Settings, Preferences (or Admin dashboard, Connections, Microsoft 365) |
 | `auto_import_skipped` | The last automatic import run skipped the account; the result names the reason (see below) | Depends on the reason | See the skip reasons below |
 
 ### Calendar and meetings

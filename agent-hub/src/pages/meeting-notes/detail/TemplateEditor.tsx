@@ -2,12 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Trash2, User, Building2, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Modal from '@/components/shared/Modal';
+import { Button } from '@/components/shared/Button';
 import useConfirm from '@/components/shared/useConfirm';
 import useTranslation from '@/hooks/useTranslation';
 import * as api from '@/api/transcriptionsApi';
 import { useOrgGroupsQuery } from '@/api/queries/orgGroups';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
 import { errorMessage } from '@/utils/caughtError';
+
+/** A field of the editor, in the theme's ink. */
+const FIELD = 'px-3 py-2 rounded-lg text-sm border outline-none bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]';
+/** The chosen scope: the accent with its own foreground ink, never a fixed white. */
+const SCOPE_ON = 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--accent-primary-fg)]';
+const SCOPE_OFF = 'bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-secondary)]';
 
 interface TemplateEditorProps {
     open: boolean;
@@ -154,7 +161,6 @@ export default function TemplateEditor({
         }
     }
 
-    const inputStyle = { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' };
 
     const footer = (
         <div className="flex items-center justify-between w-full gap-2">
@@ -164,31 +170,22 @@ export default function TemplateEditor({
                         type="button"
                         onClick={handleDelete}
                         disabled={saving || deleting}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-500 hover:text-rose-600 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--error-ink)] hover:opacity-80 disabled:opacity-50"
                     >
                         {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                         {t('meeting_notes.template_delete', 'Delete')}
                     </button>
                 )}
-                {error && <span className="text-xs text-rose-500 truncate">{error}</span>}
+                {error && <span className="text-xs text-[var(--error-ink)] truncate">{error}</span>}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border-default)] text-[var(--text-secondary)]"
-                >
+                <Button variant="secondary" size="sm" onClick={onClose}>
                     {t('meeting_notes.template_cancel', 'Cancel')}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!canSave}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]"
-                >
+                </Button>
+                <Button variant="primary" size="sm" onClick={handleSave} disabled={!canSave}>
                     {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {t('meeting_notes.template_save', 'Save template')}
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -212,8 +209,7 @@ export default function TemplateEditor({
                         value={name}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                         placeholder={t('meeting_notes.template_name_ph', 'e.g. Board summary, Klant-review NL')}
-                        className="px-3 py-2 rounded-lg text-sm border outline-none"
-                        style={inputStyle}
+                        className={FIELD}
                     />
                 </label>
 
@@ -224,8 +220,7 @@ export default function TemplateEditor({
                         <select
                             value={seedId}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => applySeed(e.target.value)}
-                            className="px-3 py-2 rounded-lg text-sm border outline-none"
-                            style={inputStyle}
+                            className={FIELD}
                         >
                             <option value="">{t('meeting_notes.template_start_blank', 'Blank')}</option>
                             {builtins.map((b: BuiltinTemplate) => (
@@ -243,8 +238,7 @@ export default function TemplateEditor({
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                         rows={10}
                         placeholder={t('meeting_notes.template_prompt_ph', 'Describe the summary you want — sections, tone, what to focus on…')}
-                        className="px-3 py-2 rounded-lg text-sm border outline-none font-mono leading-relaxed resize-y"
-                        style={inputStyle}
+                        className={`${FIELD} font-mono leading-relaxed resize-y`}
                     />
                 </label>
 
@@ -261,10 +255,7 @@ export default function TemplateEditor({
                                     type="button"
                                     disabled={isEdit}
                                     onClick={() => setScope(opt.id)}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${isEdit ? 'opacity-60 cursor-default' : ''}`}
-                                    style={active
-                                        ? { background: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', color: '#fff' }
-                                        : { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${active ? SCOPE_ON : SCOPE_OFF} ${isEdit ? 'opacity-60 cursor-default' : ''}`}
                                 >
                                     <Icon className="w-3.5 h-3.5" />
                                     {opt.label}
@@ -285,8 +276,7 @@ export default function TemplateEditor({
                             value={groupId}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGroupId(e.target.value)}
                             disabled={isEdit}
-                            className="px-3 py-2 rounded-lg text-sm border outline-none"
-                            style={inputStyle}
+                            className={FIELD}
                         >
                             <option value="">{t('meeting_notes.template_group_choose', 'Choose a group…')}</option>
                             {groups.map((g: OrgGroup) => (

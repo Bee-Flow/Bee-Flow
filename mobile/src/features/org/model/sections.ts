@@ -71,7 +71,7 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'org_github_sync', labelKey: 'settings.github_sync', labelFallback: 'GitHub Sync', icon: 'FolderGit2', color: '#8b5cf6', href: '/org/github-sync' },
     { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', labelFallback: 'Nextcloud Sync', icon: 'Cloud', color: '#0082C9', href: '/org/nextcloud' },
     { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', labelFallback: 'Meeting Templates', icon: 'FileText', color: '#a855f7', href: '/org/meeting-templates' },
-    { id: 'org_azure', labelKey: 'settings.azure_config', labelFallback: 'Azure Configuration', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
+    { id: 'org_azure', labelKey: 'admin_nav.microsoft_365', labelFallback: 'Microsoft 365', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
 ];
 
 /**

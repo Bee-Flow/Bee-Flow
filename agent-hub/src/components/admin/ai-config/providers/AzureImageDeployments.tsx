@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { INPUT, HINT, LABEL, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import { INPUT, HINT, LABEL, QUIET_BTN } from '@/components/shared/adminUi';
 import { AZURE_IMAGE_MODEL_SUGGESTIONS, MAX_DEPLOYMENT_NAME, MAX_IMAGE_DEPLOYMENTS, MAX_IMAGE_PRICE, emptyImageRow } from './azureImageRows';
 import type { AzureImageRow } from './azureImageRows';
 

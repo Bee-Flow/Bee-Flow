@@ -163,7 +163,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence,
-                details: `Only one of two leak-prevention layers is on (${regexEnabled ? 'regex guardrails' : 'PII detection'}). Open Security → Guardrails and enable the missing layer.`,
+                details: `Only one of two leak-prevention layers is on (${regexEnabled ? 'regex guardrails' : 'PII detection'}). Open Admin dashboard → Whole server → Guardrail library and enable the missing layer.`,
             };
         }
         if (failedReads.length) {

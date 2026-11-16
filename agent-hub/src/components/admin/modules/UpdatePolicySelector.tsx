@@ -1,6 +1,8 @@
 import { useTranslation } from '@/hooks/useTranslation';
 import type { UpdatePolicy } from '@/api/queries/modules.types';
 
+const SELECT = 'text-xs rounded-lg border px-1.5 py-1 outline-none disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-default)] focus:border-[var(--accent-primary)]';
+
 export interface PolicyChange {
     channel: string;
     pin: string;
@@ -20,7 +22,6 @@ export default function UpdatePolicySelector({ policy, busy = false, onChange }:
     const { t } = useTranslation();
     const channel = policy?.channel || 'stable';
     const pin = policy?.pin || 'none';
-    const selectStyle = { background: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-default)' };
 
     return (
         <div className="flex items-center gap-2 flex-wrap" data-testid="update-policy-selector" onClick={(e) => e.stopPropagation()}>
@@ -31,8 +32,7 @@ export default function UpdatePolicySelector({ policy, busy = false, onChange }:
                 value={channel}
                 disabled={busy}
                 onChange={(e) => onChange({ channel: e.target.value, pin })}
-                className="text-xs rounded-lg border px-1.5 py-1 outline-none disabled:opacity-50"
-                style={selectStyle}
+                className={SELECT}
                 aria-label={t('modules.update_policy_channel')}
             >
                 <option value="stable">{t('modules.channel_stable')}</option>
@@ -42,8 +42,7 @@ export default function UpdatePolicySelector({ policy, busy = false, onChange }:
                 value={pin}
                 disabled={busy}
                 onChange={(e) => onChange({ channel, pin: e.target.value })}
-                className="text-xs rounded-lg border px-1.5 py-1 outline-none disabled:opacity-50"
-                style={selectStyle}
+                className={SELECT}
                 aria-label={t('modules.update_policy_pin')}
             >
                 <option value="none">{t('modules.pin_none')}</option>

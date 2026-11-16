@@ -25,11 +25,12 @@ const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissio
 const {
     normalizePolicy,
     invalidateContextPolicy,
-    contextWindowExamples,
     CONFIG_KEY_PREFIX,
     MIN_CONTEXT_BUDGET_PERCENT,
     MAX_CONTEXT_BUDGET_PERCENT,
 } = require('../core/llm/contextPolicy');
+const { contextWindowExamples } = require('../core/llm/contextWindowExamples.mts');
+const { compactionRunsOn } = require('../core/llm/runsOnModel.mts');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 
@@ -85,13 +86,18 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
         ...normalizePolicy(stored),
         // Lets the SPA distinguish "never configured" from "explicitly off".
         configured: !!stored,
-        // So the screen can show what a percentage means in real tokens
-        // without shipping a second copy of the context-window table.
-        contextWindowExamples: contextWindowExamples(),
+        // So the screen can show what a percentage means in real tokens for
+        // this organisation's own models (its largest and smallest context
+        // window), without shipping a second copy of the context-window table.
+        contextWindowExamples: await contextWindowExamples(orgId),
         contextBudgetRange: {
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,
         },
+        // The display name of the model that writes the summaries (the Fast
+        // tier, set by the server administrator), or null: the screen says
+        // which model reads the conversation before an admin turns this on.
+        runsOn: await compactionRunsOn(orgId),
     });
 });
 
@@ -126,11 +132,12 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @t
     res.json({
         ...policy,
         configured: true,
-        contextWindowExamples: contextWindowExamples(),
+        contextWindowExamples: await contextWindowExamples(orgId),
         contextBudgetRange: {
             min: MIN_CONTEXT_BUDGET_PERCENT,
             max: MAX_CONTEXT_BUDGET_PERCENT,
         },
+        runsOn: await compactionRunsOn(orgId),
     });
 });
 

@@ -4,7 +4,7 @@ import { ConversationReplay, NoConversation } from './ConversationReplay';
 import { parseSnapshot } from './feedbackModel';
 import type { FeedbackItem, SnapshotMessage } from './feedbackModel';
 import { useTranslation } from '@/hooks/useTranslation';
-import { fmtTime, shortModel } from '../shared';
+import { RelativeTime, shortModel } from '../shared';
 
 /** Source, agent, model, tier and "n msgs" next to the user's name. */
 function FeedbackChips({ item, snapshot }: { item: FeedbackItem; snapshot: SnapshotMessage[] | null }) {
@@ -63,7 +63,7 @@ function FeedbackDetail({ item, snapshot }: { item: FeedbackItem; snapshot: Snap
                     : 'border-[color-mix(in_srgb,var(--error)_30%,transparent)] bg-[color-mix(in_srgb,var(--error)_8%,transparent)]'}`}
                 >
                     <div className={`mb-1 text-[10px] font-semibold uppercase tracking-[0.04em] ${isUp ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`}>
-                        {t('admin_monitoring.feedback_user_feedback', 'User Feedback')}
+                        {t('admin_monitoring.feedback_user_feedback', 'User feedback')}
                     </div>
                     <div className="whitespace-pre-wrap text-[13px] leading-normal text-[var(--text-primary)]">{item.comment}</div>
                 </div>
@@ -114,7 +114,7 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
                     )}
                 </div>
 
-                <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">{fmtTime(item.created_at)}</span>
+                <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]"><RelativeTime value={item.created_at} /></span>
                 <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)] transition-transform ${expanded ? 'rotate-90' : ''}`} aria-hidden="true" />
             </div>
 

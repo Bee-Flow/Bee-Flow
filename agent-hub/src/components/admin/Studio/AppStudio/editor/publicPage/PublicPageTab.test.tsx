@@ -68,13 +68,13 @@ describe('settings', () => {
         routeFetch(defaultRoutes());
         const commits: AppDefinition[] = [];
         renderWithClient(<Harness initial={DEF} onCommit={(d) => commits.push(d)} />);
-        await userEvent.click(screen.getByRole('checkbox', { name: /open a public page/i }));
+        await userEvent.click(screen.getByRole('switch', { name: /open a public page/i }));
         expect(commits.at(-1)?.publicAccess).toEqual({ entryScreenId: 'scr_home01', screenIds: ['scr_home01'], roleKey: 'public' });
 
         await userEvent.click(within(screen.getByTestId('public-page-screens')).getByRole('checkbox', { name: /back office/i }));
         expect((commits.at(-1)?.publicAccess as { screenIds: string[] }).screenIds).toEqual(['scr_home01', 'scr_back01']);
 
-        await userEvent.click(screen.getByRole('checkbox', { name: /open a public page/i }));
+        await userEvent.click(screen.getByRole('switch', { name: /open a public page/i }));
         expect('publicAccess' in (commits.at(-1) as object)).toBe(false);
     });
 
@@ -108,7 +108,7 @@ describe('settings', () => {
     it('a managed app shows the settings read-only', () => {
         routeFetch(defaultRoutes());
         renderWithClient(<Harness initial={{ ...DEF, publicAccess: { entryScreenId: 'scr_home01', screenIds: ['scr_home01'], roleKey: 'public' } }} readOnly />);
-        expect(screen.getByRole('checkbox', { name: /open a public page/i })).toBeDisabled();
+        expect(screen.getByRole('switch', { name: /open a public page/i })).toBeDisabled();
         expect(within(screen.getByTestId('public-page-screens')).getByRole('checkbox', { name: /back office/i })).toBeDisabled();
     });
 });

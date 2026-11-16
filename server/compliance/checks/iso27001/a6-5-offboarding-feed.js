@@ -35,7 +35,7 @@ module.exports = {
             return {
                 status: 'not_applicable',
                 evidence: { connector: 'afas', enabled: false },
-                details: 'AFAS connector not enabled — link an AppConnector token and pick your employee GetConnector under ISO 27001 → Connectors.',
+                details: 'AFAS connector not enabled — link an AppConnector token and pick your employee GetConnector under Compliance → Evidence connectors.',
             };
         }
         // The GetConnector name as the connector trims it into the subject.

@@ -50,7 +50,7 @@ describe('TeamsMeetingNotesSection', () => {
         const user = userEvent.setup();
         state.query = settings(FULL);
         renderWithClient(<TeamsMeetingNotesSection />);
-        const [autoImport] = screen.getAllByRole('button', { pressed: false });
+        const [autoImport] = screen.getAllByRole('switch', { checked: false });
         await user.click(autoImport);
         await user.click(screen.getByRole('button', { name: 'Save' }));
         expect(state.save.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ autoImport: true, autoRecordConfig: false, language: 'nl' }));
@@ -60,8 +60,8 @@ describe('TeamsMeetingNotesSection', () => {
     it('locks the auto-record toggle without the meeting write permission', () => {
         state.query = settings({ ...FULL, hasMeetingWriteScope: false });
         renderWithClient(<TeamsMeetingNotesSection />);
-        const toggles = screen.getAllByRole('button', { pressed: false });
-        expect((toggles[1] as HTMLButtonElement).disabled).toBe(true);
+        const toggles = screen.getAllByRole('switch', { checked: false });
+        expect((toggles[1] as HTMLInputElement).disabled).toBe(true);
         expect(screen.getByText(/reconnect Microsoft 365 to grant it/)).toBeTruthy();
     });
 
@@ -117,8 +117,8 @@ describe('TeamsMeetingNotesSection', () => {
         expect(screen.queryByRole('button', { name: 'Reconnect Microsoft 365' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Test my connection' })).toBeNull();
         // The auto-record toggle stays locked: it needs the person's own meeting write permission.
-        const toggles = screen.getAllByRole('button', { pressed: false });
-        expect((toggles[1] as HTMLButtonElement).disabled).toBe(true);
+        const toggles = screen.getAllByRole('switch', { checked: false });
+        expect((toggles[1] as HTMLInputElement).disabled).toBe(true);
         await user.click(toggles[0]);
         await user.click(screen.getByRole('button', { name: 'Save' }));
         const sent = state.save.mutateAsync.mock.calls[0][0] as Record<string, unknown>;

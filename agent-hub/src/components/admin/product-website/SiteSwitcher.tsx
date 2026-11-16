@@ -142,7 +142,7 @@ export default function SiteSwitcher({
                     </span>
                     {activeSite && activeSite.id === liveSiteId && (
                         <span
-                            className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                            className="w-2 h-2 rounded-full bg-[var(--success)] shrink-0"
                             title={t('cms_site.site.siteswitcher.this_live', 'This site is live')}
                         />
                     )}
@@ -205,10 +205,10 @@ function SiteRow({ site, isActive, isLive, isRenaming, onPick, onStartRename, on
                 <span className="truncate flex-1">{site.name}</span>
                 {isLive && (
                     <span
-                        className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-medium text-emerald-400"
+                        className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[10px] font-medium text-[var(--success-ink)]"
                         title={t('cms_site.site.siteswitcher.currently_live', 'Currently live at the public URL')}
                     >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                         {t('cms_site.site.siteswitcher.live', 'Live')}
                     </span>
                 )}
@@ -236,7 +236,7 @@ function IconBtn({ name, title, onClick, danger }: IconBtnProps) {
             aria-label={title}
             onClick={onClick}
             className={`p-1 rounded hover:bg-[var(--bg-primary)]
-                ${danger ? 'text-[var(--text-muted)] hover:text-red-400' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                ${danger ? 'text-[var(--text-muted)] hover:text-[var(--error-ink)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
         >
             <AppIcon name={name} className="w-3 h-3" />
         </button>
@@ -344,7 +344,7 @@ function CreateSiteForm({ onConfirm, onCancel }: CreateSiteFormProps) {
                     type="button"
                     onClick={submit}
                     disabled={!name.trim()}
-                    className="text-xs px-2 py-1 rounded bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-xs px-2 py-1 rounded bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {t('cms_site.site.siteswitcher.create', 'Create')}
                 </button>

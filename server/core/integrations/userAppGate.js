@@ -16,6 +16,7 @@
 
 const { featureModule } = require('../featureModules');
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
+const { canonicalIntegrationId, listHasIntegration } = require('./integrationIdAliases.mts');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
@@ -149,21 +150,23 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         }
 
         /**
-         * @param {string} appId
+         * Lists are looked up under each alias of the id, as in runtimeAppGate.js.
+         * @param {string} requestedId
          */
-        const isAppOn = (appId) => {
+        const isAppOn = (requestedId) => {
             if (identityUnknown) return false;
+            const appId = canonicalIntegrationId(requestedId);
             if (userEnabledApps) {
                 if (AUTO_ENABLED_APPS.includes(appId)) {
                     // auto-enabled — bypass user list
-                } else if (!userEnabledApps.includes(appId)) {
+                } else if (!listHasIntegration(userEnabledApps, appId)) {
                     return false;
                 }
             }
             if (appId === 'webpages') return webpagesOn;
             if (effectiveIntegrations && isKnownIntegration(appId)) {
-                if (!effectiveIntegrations.has(appId)) return false;
-            } else if (!ORG_EXEMPT_APPS.includes(appId) && orgEnabledIntegrations && !orgEnabledIntegrations.includes(appId)) {
+                if (!listHasIntegration(effectiveIntegrations, appId)) return false;
+            } else if (!ORG_EXEMPT_APPS.includes(appId) && orgEnabledIntegrations && !listHasIntegration(orgEnabledIntegrations, appId)) {
                 return false;
             }
             // orgActiveSet check intentionally omitted — see comment above where it's resolved.

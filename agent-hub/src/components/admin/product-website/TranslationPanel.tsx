@@ -194,7 +194,6 @@ export default function TranslationPanel({
                         onTranslate={onAiTranslate}
                         translating={running}
                         missing={total - done}
-                        gradient={false}
                         className="flex items-center gap-1.5 w-full [&>button]:flex-1 [&>button]:justify-center"
                     />
                 </div>

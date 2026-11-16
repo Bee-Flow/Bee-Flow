@@ -7,11 +7,6 @@ import type { ConnectRequest, DetectResult, PullProgress, RuntimeCatalog, Runtim
 import { API_BASE, authFetch } from '../utils/helpers';
 import { errorMessage, messageOf } from '../utils/caughtError';
 
-export const BTN_PRIMARY =
-    'px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-[var(--accent-primary)] text-white hover:opacity-90 disabled:opacity-50';
-export const BTN_GHOST =
-    'px-3 py-2 rounded-lg text-xs font-medium transition-colors hover:bg-white/10 disabled:opacity-50';
-
 export const TIER_LABELS: Record<StarterTier, string> = {
     fast: 'Fast',
     standard: 'Flow',

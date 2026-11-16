@@ -1,6 +1,6 @@
 // ElevenLabs TTS option tables. Replaces the identical TTS_MODELS /
 // TTS_VOICES arrays that were copy-pasted into both ElevenLabsSettings
-// and NanoBananaSettings — voice/model additions now happen in one place.
+// and ImageGenSettings — voice/model additions now happen in one place.
 
 export interface TtsOption {
     label: string;

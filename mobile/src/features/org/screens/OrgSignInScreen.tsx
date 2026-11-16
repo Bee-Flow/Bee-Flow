@@ -1,25 +1,25 @@
 /**
- * Sign-in method (web: orgInfo/OrgAuthSection.tsx, AUTH_METHODS and
- * AllowedDomainsEditor in orgInfoShared.jsx).
+ * Preferred sign-in method (web: orgInfo/OrgAuthSection.tsx, AUTH_METHODS and
+ * AllowedDomainsEditor in orgInfoShared.tsx).
  *
- * The method is chosen ONCE: each user's key is tied to how they sign in, so
- * the server ignores any later change. The web lets the admin select and then
- * save; here choosing asks for confirmation and saves at once, and after that
- * the choice is shown locked. Allowed domains (self-hosted only) are a list
- * saved through the SaveBar, validated with the web's (and server's) regex.
- * An organisation provisioned through Nextcloud has neither: its identity is
- * the Nextcloud instance's.
+ * A preference, not a lock: nothing reads it when someone signs in, so it can
+ * change at any time. The web selects and then saves on its save bar; here a
+ * tap saves the new method at once. Allowed domains (self-hosted only) are a
+ * list saved through the SaveBar, validated with the web's (and server's)
+ * regex. Auto-approve (whether someone signing in through single sign-on
+ * with an address on the organisation's domain joins at once) saves on a tap,
+ * as the web's AutoApproveSetting does. An organisation provisioned through
+ * Nextcloud has none of these: its identity is the Nextcloud instance's.
  */
 
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
-import { useConfirm } from '@/shared/patterns';
-import { Group, SaveBar, TagInput } from '@/shared/ui';
+import { Group, SaveBar, TagInput, ToggleRow } from '@/shared/ui';
 
 import { FieldRow } from '../components/FieldRow';
 import { OrgSettingsFrame } from '../components/OrgSettingsFrame';
-import { chooseCarefully, SignInMethodGroup } from '../components/SignInMethodGroup';
+import { SignInMethodGroup } from '../components/SignInMethodGroup';
 import { useOrganization } from '../hooks/queries';
 import { useDraft } from '../hooks/useDraft';
 import { useOrgContext } from '../hooks/useOrgSections';
@@ -28,21 +28,14 @@ import { isValidDomain, normalizeDomain, type AuthMethodId } from '../model/prof
 
 export function OrgSignInScreen() {
     const t = useTranslation();
-    const confirm = useConfirm();
     const { orgId, isOrgAdmin, isSelfHosted, isNcOrg } = useOrgContext();
     const allowed = isOrgAdmin && Boolean(orgId) && !isNcOrg;
     const query = useOrganization(allowed ? orgId : null);
     const record = useSaveOrgRecord(orgId);
     const form = useDraft(query.data ? { allowedDomains: query.data.allowedDomains ?? [] } : null);
 
-    const choose = async (method: AuthMethodId, label: string) => {
-        const ok = await confirm({
-            title: label,
-            message: chooseCarefully(t),
-            confirmLabel: t('common.save', 'Save'),
-            tone: 'destructive',
-        });
-        if (ok) await record.save({ authMethod: method });
+    const choose = async (method: AuthMethodId) => {
+        await record.save({ authMethod: method });
     };
 
     const saveDomains = async () => {
@@ -51,8 +44,11 @@ export function OrgSignInScreen() {
 
     return (
         <OrgSettingsFrame
-            title={t('org.signin_title', 'Sign-in Method')}
-            subtitle={t('org.signin_subtitle', 'Choose how users will sign into your organisation')}
+            title={t('org_signin.title', 'Preferred sign-in method')}
+            subtitle={t(
+                'org_signin.subtitle',
+                'How you would like members of this organisation to sign in. It is a preference: the other sign-in methods of this server keep working, and you can change it at any time.',
+            )}
             allowed={allowed}
             denied={
                 isNcOrg
@@ -77,14 +73,14 @@ export function OrgSignInScreen() {
                     <SignInMethodGroup
                         current={org.authMethod ?? null}
                         saving={record.saving}
-                        onChoose={(method, label) => void choose(method, label)}
+                        onChoose={(method) => void choose(method)}
                     />
                     {isSelfHosted ? (
                         <Group
                             title={t('org.allowed_domains', 'Allowed Domains')}
                             footer={t(
-                                'org.allowed_domains_desc',
-                                'Email domains that are allowed to join this organisation via SSO. Users with matching email domains will be automatically linked to this organisation.',
+                                'org_signin.allowed_domains_desc',
+                                'E-mail domains that belong to this organisation. Someone who signs in through single sign-on with an address on one of these domains is linked to this organisation, and no new organisation can be created with them.',
                             )}
                         >
                             <FieldRow>
@@ -104,6 +100,19 @@ export function OrgSignInScreen() {
                             </FieldRow>
                         </Group>
                     ) : null}
+                    <Group>
+                        <ToggleRow
+                            testID="auto-approve"
+                            label={t('org_signin.auto_approve', 'Let people from your domains in straight away')}
+                            description={t(
+                                'org_signin.auto_approve_desc',
+                                "Someone who signs in through single sign-on with an e-mail address on this organisation's domain joins at once, in the default groups. When this is off, they wait as pending until an administrator lets them in.",
+                            )}
+                            value={org.autoApproveSSO === true}
+                            disabled={record.saving}
+                            onValueChange={(next) => void record.save({ autoApproveSSO: next })}
+                        />
+                    </Group>
                 </>
             )}
         </OrgSettingsFrame>

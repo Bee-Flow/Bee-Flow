@@ -9,6 +9,7 @@ import VersionHistory from './VersionHistory';
 import { useMarketplaceModuleDetail, useModuleVersions } from '@/api/queries/modules';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import { ALERT_ERROR, ALERT_WARNING, PRIMARY_BTN } from '@/components/shared/adminUi';
 import type { MarketplaceModuleDetail, ModuleHealthRow } from '@/api/queries/modules.types';
 
 /** What the drawer calls on the shared useModuleActions hook (moduleActions.js). */
@@ -142,13 +143,13 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                     {(quarantined || pendingRestart) && (
                         <div className="mt-3 space-y-1.5">
                             {quarantined && (
-                                <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 flex items-center gap-2">
+                                <div className={`${ALERT_ERROR} items-center`}>
                                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                                     {health?.lastActivationError || t('modules.badge_quarantined')}
                                 </div>
                             )}
                             {pendingRestart && (
-                                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
+                                <div className={`${ALERT_WARNING} items-center`}>
                                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('modules.badge_restart_required')}
                                 </div>
                             )}
@@ -159,7 +160,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                         <button
                             onClick={primary.run}
                             disabled={busy}
-                            className="mt-3 px-4 py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                            className={`${PRIMARY_BTN} mt-3`}
                             data-testid="drawer-primary-action"
                         >
                             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <primary.Icon className="w-3.5 h-3.5" />}
@@ -174,10 +175,8 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                         <button
                             key={id}
                             onClick={() => setTab(id)}
-                            className="px-3 py-1.5 rounded-t-lg text-xs font-medium transition-all"
-                            style={tab === id
-                                ? { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }
-                                : { color: 'var(--text-muted)' }}
+                            aria-pressed={tab === id}
+                            className={`px-3 py-1.5 rounded-t-lg text-xs font-medium transition-all ${tab === id ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                             data-testid={`drawer-tab-${id}`}
                         >
                             {t(TAB_KEY[id])}

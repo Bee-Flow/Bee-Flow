@@ -89,7 +89,7 @@ function PersonRow({ p, revealed, currency, showCalls }: { p: AdoptionPerson; re
             <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{roleLabel(p.role, t)}</td>
             <td className="px-3 py-2 text-[11px] text-[var(--text-secondary)]">{(p.groups || []).join(', ') || '—'}</td>
             <td className="px-3 py-2 text-[11px]">
-                <span className={stale ? 'text-[var(--warning,#b45309)]' : 'text-[var(--text-secondary)]'}>{fAgo(p.lastSeenAt, t)}</span>
+                <span className={stale ? 'text-[var(--warning-ink)]' : 'text-[var(--text-secondary)]'}>{fAgo(p.lastSeenAt, t)}</span>
                 <span className="block text-[10px] text-[var(--text-muted)]">{statusLabel(p.status, t)}</span>
             </td>
             {showCalls && <td className={cell}>{fInt(p.calls)}</td>}

@@ -1,64 +1,56 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { StatusMessage } from './tierTypes';
 import { getAiConfig, postAiConfig } from '@/api/aiConfig';
 
 /**
  * One single-model setting (classifier, title, memory extraction, AI step,
  * data extraction): GET/POST `/ai/config/<path>` with `{ modelId }`, '' for
- * "use the default".
+ * "use the default". Part of the Models page's one draft: `model` is the
+ * draft, `saved` what the server holds; the page's save bar calls `persist`.
  */
 export interface ModelSetting {
     model: string;
     setModel: Dispatch<SetStateAction<string>>;
-    saving: boolean;
-    message: StatusMessage | null;
-    load: () => Promise<void>;
-    save: (next?: string) => Promise<void>;
-}
-
-interface ModelSettingLabels {
-    /** e.g. 'classifier model' — used in the console only. */
-    noun: string;
-    /** e.g. 'Classifier model saved' (already translated) */
     saved: string;
-    /** e.g. 'Failed to save classifier model' (already translated) */
-    failed: string;
+    dirty: boolean;
+    load: () => Promise<void>;
+    /** Store the draft: null when the server took it, else what went wrong ('' when it gave no reason). */
+    persist: () => Promise<string | null>;
+    /** Put the draft back to what is stored. */
+    discard: () => void;
 }
 
 const modelIdOf = (data: { modelId?: unknown }) => (typeof data.modelId === 'string' ? data.modelId : '');
 
-export default function useModelSetting(path: string, { noun, saved, failed }: ModelSettingLabels): ModelSetting {
+export default function useModelSetting(path: string, noun: string): ModelSetting {
     const [model, setModel] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<StatusMessage | null>(null);
+    const [saved, setSaved] = useState('');
 
     const load = async () => {
         try {
             const res = await getAiConfig(path);
             if (res.ok) {
-                setModel(modelIdOf(await res.json()));
+                const id = modelIdOf(await res.json());
+                setModel(id);
+                setSaved(id);
             }
         } catch (e) { console.error(`Failed to load ${noun}:`, e); }
     };
 
-    const save = async (next = model) => {
-        setSaving(true);
+    const persist = async () => {
         try {
-            const res = await postAiConfig(path, { modelId: next || null });
-            if (res.ok) {
-                setModel(modelIdOf(await res.json()));
-                setMessage({ type: 'success', text: saved });
-                setTimeout(() => setMessage(null), 3000);
-            } else {
-                const data = await res.json().catch(() => ({}));
-                setMessage({ type: 'error', text: data.error || failed });
-            }
+            const res = await postAiConfig(path, { modelId: model || null });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) return typeof data.error === 'string' ? data.error : '';
+            const id = 'modelId' in data ? modelIdOf(data) : model;
+            setModel(id);
+            setSaved(id);
+            return null;
         } catch (e) {
-            setMessage({ type: 'error', text: failed });
+            console.error(`Failed to save ${noun}:`, e);
+            return '';
         }
-        setSaving(false);
     };
 
-    return { model, setModel, saving, message, load, save };
+    return { model, setModel, saved, dirty: model !== saved, load, persist, discard: () => setModel(saved) };
 }

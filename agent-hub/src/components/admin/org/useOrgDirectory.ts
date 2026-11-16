@@ -97,11 +97,8 @@ export interface OrgDirectory {
     usageByUser: Map<string, MemberUsage>;
     /** null until the org row lands, and for an org that has no sign-in method. */
     orgAuthMethod: string | null;
-    autoApprove: boolean;
-    savingAutoApprove: boolean;
     myOrgId: string | null;
     fetchData: () => Promise<void>;
-    handleToggleAutoApprove: () => Promise<void>;
 }
 
 export interface UseOrgDirectoryOptions {
@@ -188,7 +185,6 @@ interface DirectorySetters {
     setOrganizations(v: Organization[]): void;
     setMyOrgId(v: string): void;
     setOrgAuthMethod(v: string | null): void;
-    setAutoApprove(v: boolean): void;
 }
 
 /** One answer into the panel's lists; a refused list keeps what it showed. */
@@ -208,7 +204,6 @@ function applyDirectory(d: DirectoryRead, homeOrgId: string | null, set: Directo
     if (myOrg) {
         set.setMyOrgId(myOrg.id);
         set.setOrgAuthMethod(myOrg.authMethod || null);
-        set.setAutoApprove(!!myOrg.autoApproveSSO);
     }
 }
 
@@ -224,7 +219,6 @@ function useDirectoryLists(user: UseOrgDirectoryOptions['user']) {
     // an external provider (Google/Microsoft) — for password-login orgs we hide
     // the toggle entirely because new accounts are admin-created anyway.
     const [orgAuthMethod, setOrgAuthMethod] = useState<string | null>(null);
-    const [autoApprove, setAutoApprove] = useState(false);
     const [myOrgId, setMyOrgId] = useState<string | null>(null);
 
     const directory = useQuery<DirectoryRead>({
@@ -248,7 +242,7 @@ function useDirectoryLists(user: UseOrgDirectoryOptions['user']) {
         setApplied(directory.data);
         applyDirectory(directory.data, user?.organizationId ?? null, {
             setUsers, setNotOrgAdmin, setGroups, setOrgRolePerms, setEditablePermissions,
-            setOrganizations, setMyOrgId, setOrgAuthMethod, setAutoApprove,
+            setOrganizations, setMyOrgId, setOrgAuthMethod,
         });
     }
     const { refetch } = directory;
@@ -256,7 +250,7 @@ function useDirectoryLists(user: UseOrgDirectoryOptions['user']) {
 
     return {
         users, groups, orgRolePerms, setOrgRolePerms, editablePermissions, organizations, notOrgAdmin,
-        orgAuthMethod, autoApprove, setAutoApprove, myOrgId, loading, fetchData,
+        orgAuthMethod, myOrgId, loading, fetchData,
     };
 }
 
@@ -264,12 +258,11 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     const { isSelfHosted } = useDeploymentMode();
     const {
         users, groups, orgRolePerms, setOrgRolePerms, editablePermissions, organizations, notOrgAdmin,
-        orgAuthMethod, autoApprove, setAutoApprove, myOrgId, loading, fetchData,
+        orgAuthMethod, myOrgId, loading, fetchData,
     } = useDirectoryLists(user);
 
     // Custom tier metadata, for the group's Allowed-tiers editor.
     const customTiersMeta = useCustomTiersMeta();
-    const [savingAutoApprove, setSavingAutoApprove] = useState(false);
 
     // Per-user AI usage, read once; non-blocking for the panel, and a failed read keeps what was shown.
     const usage = useQuery<Map<string, MemberUsage>>({
@@ -287,28 +280,6 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     });
     const usageByUser = usage.data ?? NO_USAGE;
 
-    const handleToggleAutoApprove = async () => {
-        if (!myOrgId) return;
-        const next = !autoApprove;
-        setAutoApprove(next);
-        setSavingAutoApprove(true);
-        try {
-            const res = await settled(apiUrl('PUT /auth/organizations/{id}', { params: { id: myOrgId } }), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ autoApproveSSO: next }),
-            }, 'empty');
-            if (!res.ok) {
-                setAutoApprove(!next);
-            }
-        } catch (err) {
-            console.error('Failed to update auto-approve:', err);
-            setAutoApprove(!next);
-        } finally {
-            setSavingAutoApprove(false);
-        }
-    };
-
     return {
         users,
         groups,
@@ -320,10 +291,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         customTiersMeta,
         usageByUser,
         orgAuthMethod,
-        autoApprove,
-        savingAutoApprove,
         myOrgId,
         fetchData,
-        handleToggleAutoApprove,
     };
 }

@@ -6,6 +6,7 @@ import type { PolicyChange } from './UpdatePolicySelector';
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { InstallProgress, MarketplaceModuleDetail, MarketplacePricing, ModuleHealthRow } from '@/api/queries/modules.types';
+import { CHIP, CHIP_ERROR, CHIP_SUCCESS, CHIP_WARNING, DOT_LIVE, PRIMARY_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 /** Server-derived pricing, plus the legacy { model, amountCents } shape older rows still carry. */
 type CardPricing = Partial<MarketplacePricing> & { model?: string; amountCents?: number | null };
@@ -95,30 +96,26 @@ export default function MarketplaceModuleCard({
 
     return (
         <div
-            className="rounded-xl border p-4 transition-all hover:shadow-lg relative flex flex-col cursor-pointer"
-            style={{
-                background: 'var(--bg-secondary)',
-                borderColor: module.installed && !expired ? 'var(--accent-primary)' : 'var(--border-default)',
-            }}
+            className="rounded-xl border p-4 transition-all hover:shadow-lg relative flex flex-col cursor-pointer bg-[var(--bg-secondary)] border-[var(--border-default)]"
             onClick={() => onOpenDetails?.(module)}
             data-testid={`marketplace-card-${module.id}`}
         >
             {/* Status badge */}
             <div className="absolute top-3 right-3">
                 {expired ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
+                    <span className={CHIP_WARNING}>
                         <AlertTriangle className="w-3 h-3" /> {t('modules.badge_expired')}
                     </span>
                 ) : module.installed ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 font-medium">
+                    <span className={CHIP_SUCCESS}>
                         <Check className="w-3 h-3" /> {t('modules.badge_imported')}
                     </span>
                 ) : module.entitled ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 font-medium">
+                    <span className={CHIP_SUCCESS}>
                         <Check className="w-3 h-3" /> {t('modules.badge_purchased')}
                     </span>
                 ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
+                    <span className={CHIP}>
                         {priceLabel(t, module.pricing)}
                     </span>
                 )}
@@ -149,12 +146,12 @@ export default function MarketplaceModuleCard({
                             </span>
                         )}
                         {quarantined && (
-                            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-red-500/15 text-red-400" data-testid={`quarantined-${module.id}`}>
+                            <span className={CHIP_ERROR} data-testid={`quarantined-${module.id}`}>
                                 <AlertTriangle className="w-3 h-3" /> {t('modules.badge_quarantined')}
                             </span>
                         )}
                         {pendingRestart && !quarantined && (
-                            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!" data-testid={`restart-required-${module.id}`}>
+                            <span className={CHIP_WARNING} data-testid={`restart-required-${module.id}`}>
                                 <AlertTriangle className="w-3 h-3" /> {t('modules.badge_restart_required')}
                             </span>
                         )}
@@ -179,7 +176,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onReactivate)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                        className={`${PRIMARY_BTN} w-full`}
                         data-testid={`reactivate-${module.id}`}
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -189,7 +186,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onBuy)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                        className={`${PRIMARY_BTN} w-full`}
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                         {t('modules.renew')}
@@ -197,29 +194,29 @@ export default function MarketplaceModuleCard({
                 ) : module.installed || sideloaded ? (
                     module.updateAvailable && !sideloaded ? (
                         <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 text-xs font-medium [color:#f59e0b]!">
+                            <span className="flex items-center gap-1 text-xs font-medium text-[var(--warning-ink)]">
                                 <ArrowUpCircle className="w-3.5 h-3.5" /> {t('modules.update_available')}
                             </span>
                             <div className="flex-1" />
                             <button
                                 onClick={act(onUpdate)}
                                 disabled={busy}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                                className={PRIMARY_BTN}
                             >
                                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpCircle className="w-3.5 h-3.5" />}
                                 {t('modules.update')}
                             </button>
                         </div>
                     ) : (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-green-500">
-                            <span className="w-2 h-2 rounded-full bg-green-500" /> {t('modules.active')}
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--success-ink)]">
+                            <span className={DOT_LIVE} /> {t('modules.active')}
                         </span>
                     )
                 ) : module.entitled ? (
                     <button
                         onClick={act(onInstall)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                        className={`${PRIMARY_BTN} w-full`}
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                         {t('modules.install')}
@@ -233,7 +230,7 @@ export default function MarketplaceModuleCard({
                         <button
                             onClick={act(onPaidRefresh)}
                             disabled={busy}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 border bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-default)]"
+                            className={SECONDARY_BTN}
                         >
                             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                             {t('modules.paid_refresh')}
@@ -243,7 +240,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onBuy)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                        className={`${PRIMARY_BTN} w-full`}
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />}
                         {t('modules.buy')}

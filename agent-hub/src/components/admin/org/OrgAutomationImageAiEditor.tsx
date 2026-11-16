@@ -5,12 +5,14 @@
 // the pictures then reach the model provider and the Privacy Shield cannot
 // check pixels.
 
-import { AlertTriangle, ImageIcon, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useOrgAutomationImageAi, useSaveOrgAutomationImageAi, type OrgImageAiSetting } from '@/api/queries/orgAutomationImageAi';
 import { useTranslation } from '@/hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Toggle from '../../shared/Toggle';
+import { SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import { ALERT_ERROR } from '@/components/shared/adminUi';
 import { errorStatus } from '@/utils/caughtError';
 
 function Switch({ orgId, server }: { orgId: string; server: OrgImageAiSetting }) {
@@ -34,11 +36,11 @@ function Switch({ orgId, server }: { orgId: string; server: OrgImageAiSetting })
 
     return (
         <div className="space-y-3">
-            <div className="rounded-xl border border-[var(--border-subtle)] p-4">
-                <Toggle checked={server.enabled} disabled={busy} onChange={onChange}
+            <SettingsList>
+                <Toggle flat checked={server.enabled} disabled={busy} onChange={onChange}
                     label={t('automation_image_ai.toggle', 'Let automations show images to AI')}
                     description={t('automation_image_ai.toggle_desc', 'An AI step or a data extraction may show a picture (a receipt, a photo of a document) to a model that reads images. When this is off, the step gets the text read from the image instead.')} />
-            </div>
+            </SettingsList>
             <ul className="m-0 list-disc space-y-1 pl-5 text-xs text-[var(--text-secondary)]">
                 <li>{t('automation_image_ai.rule_shield', 'When the Privacy Shield applies to an automation, its images are never sent: the shield cannot check pictures for personal data, so the step uses the text read from them.')}</li>
                 <li>{t('automation_image_ai.rule_model', 'Only models that read images get them; other models get the text.')}</li>
@@ -67,30 +69,28 @@ export default function OrgAutomationImageAiEditor({ orgId }: { orgId: string | 
     const { t } = useTranslation();
     const query = useOrgAutomationImageAi(orgId);
     if (!orgId) return null;
+    // The same SettingsGroup (an h3 title, a one-line description) as the answer-reuse
+    // editor above it on the Automations page: the page frame draws the page's h2.
     return (
-        <section className="space-y-4 p-1" data-testid="org-automation-image-ai" aria-labelledby="org-automation-image-ai-title">
-            <header>
-                <h2 id="org-automation-image-ai-title" className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-                    <ImageIcon className="h-5 w-5" aria-hidden="true" />
-                    {t('automation_image_ai.title', 'Images to AI in automations')}
-                </h2>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                    {t('automation_image_ai.intro', 'Whether automations may show pictures to an AI model, or only the text read from them.')}
-                </p>
-            </header>
-            {query.isPending && (
-                <div className="flex items-center gap-2 p-2 text-sm text-[var(--text-secondary)]" role="status">
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('automation_image_ai.loading', 'Loading…')}
-                </div>
-            )}
-            {query.isError && (
-                <div className="flex items-center gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-sm text-[var(--text-primary)]" role="alert">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-[var(--error-ink)]" aria-hidden="true" />
-                    <span className="flex-1">{t('automation_image_ai.load_failed', 'Could not load this setting.')}</span>
-                    <button type="button" onClick={() => query.refetch()} className="text-sm underline">{t('automation_image_ai.retry', 'Try again')}</button>
-                </div>
-            )}
-            {query.data && <Switch key={orgId} orgId={orgId} server={query.data} />}
-        </section>
+        <div data-testid="org-automation-image-ai">
+            <SettingsGroup
+                title={t('automation_image_ai.title', 'Images to AI in automations')}
+                description={t('automation_image_ai.intro', 'Whether automations may show pictures to an AI model, or only the text read from them.')}
+            >
+                {query.isPending && (
+                    <div className="flex items-center gap-2 p-2 text-sm text-[var(--text-secondary)]" role="status">
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('automation_image_ai.loading', 'Loading…')}
+                    </div>
+                )}
+                {query.isError && (
+                    <div className={ALERT_ERROR} role="alert">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                        <span className="flex-1">{t('automation_image_ai.load_failed', 'Could not load this setting.')}</span>
+                        <button type="button" onClick={() => query.refetch()} className="underline">{t('automation_image_ai.retry', 'Try again')}</button>
+                    </div>
+                )}
+                {query.data && <Switch key={orgId} orgId={orgId} server={query.data} />}
+            </SettingsGroup>
+        </div>
     );
 }

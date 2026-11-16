@@ -9,7 +9,7 @@ export type SubscriptionsSectionId = 'plans' | 'organizations' | 'grants' | 'acc
 
 export const SUBSCRIPTIONS_SECTIONS: readonly { id: SubscriptionsSectionId; icon: LucideIcon; labelKey: string; label: string }[] = [
     { id: 'plans', icon: Package, labelKey: 'admin_subscriptions.shell_plans', label: 'Plans' },
-    { id: 'organizations', icon: Building2, labelKey: 'admin_subscriptions.shell_orgs', label: 'Orgs' },
+    { id: 'organizations', icon: Building2, labelKey: 'admin_subscriptions.shell_orgs', label: 'Organisations' },
     { id: 'grants', icon: KeyRound, labelKey: 'admin_subscriptions.shell_grants', label: 'Grants' },
     { id: 'access', icon: ShieldCheck, labelKey: 'admin_subscriptions.shell_access', label: 'Access' },
     { id: 'promos', icon: Tag, labelKey: 'admin_subscriptions.shell_promos', label: 'Promos' },

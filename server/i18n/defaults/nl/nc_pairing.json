@@ -1,0 +1,22 @@
+{
+  "translations": {
+    "nc_pairing.intro": "Maak een eenmalige code en vul die in op de instellingenpagina van de Bee Flow-connector op de nieuwe Nextcloud. Met de code wordt die Nextcloud aan deze Bee Flow-organisatie gekoppeld, in plaats van dat er een nieuwe organisatie ontstaat.",
+    "nc_pairing.generate": "Koppelcode maken",
+    "nc_pairing.generating": "Bezig met maken…",
+    "nc_pairing.time_left": "nog {left}",
+    "nc_pairing.expired": "verlopen",
+    "nc_pairing.copy": "Kopiëren",
+    "nc_pairing.copied": "Gekopieerd!",
+    "nc_pairing.revoke_title": "Deze koppelcode intrekken?",
+    "nc_pairing.revoke_description": "Wie de code heeft, kan die daarna niet meer gebruiken.",
+    "nc_pairing.revoke_confirm": "Intrekken",
+    "nc_pairing.load_failed": "Koppelcodes konden niet worden geladen",
+    "nc_pairing.generate_failed": "Koppelcode kon niet worden gemaakt",
+    "nc_pairing.revoke_failed": "Intrekken is mislukt",
+    "nc_pairing.howto_setup_page": "Open als Nextcloud-beheerder Bee Flow via de bovenbalk van Nextcloud, of open de instellingenpagina van de connector:",
+    "nc_pairing.howto_enter_code": "Vul de code in onder Bind to existing organisation en klik op Apply pairing code. Op een eigen server kun je de code ook invullen in het veld Pairing code wanneer je de server kiest. Je hoeft niets opnieuw te installeren.",
+    "nc_pairing.howto_at_install": "Installeer je de connector voor het eerst op die Nextcloud? Dan kun je de code ook bij de installatie meegeven, in de deploy-opties of met:",
+    "nc_pairing.howto_result": "De connector wisselt de code één keer in en koppelt deze Nextcloud aan je bestaande Bee Flow-organisatie. Een verlopen of al gebruikte code verandert niets: maak dan een nieuwe."
+  },
+  "sameAsEnglish": []
+}

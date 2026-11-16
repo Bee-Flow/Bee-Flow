@@ -1,55 +1,46 @@
 /**
- * Pinned to the web and the server: the Azure panel's constants and model
- * rules run beside agent-hub's own (differential); the n8n slug, workflow
- * defaults and search, the Nextcloud countdown, freshness and occ commands,
- * and GitHub's name and branch grammar are pinned to their sources (textual).
+ * Pinned to the web and the server: the Azure screens' sections, tiers and
+ * sync schedule to the server's save schema and to the web group-sync card
+ * (the web's own Azure form is gone; the phone keeps these screens and the
+ * server keeps their writes); the n8n slug, workflow defaults and search, the
+ * Nextcloud countdown, freshness and occ commands, and GitHub's name and
+ * branch grammar are pinned to their sources (textual).
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { loadWebModule, webSourceText } from '@/shared/testing/webModule';
+import { webSourceText } from '@/shared/testing/webModule';
 
-import { AZURE_SECTIONS, AZURE_TIERS, isClaudeReasoning, isReasoningCapable, PANEL_TIER_LABELS, SYNC_INTERVALS, TIER_DEFAULTS } from './azure';
+import { AZURE_SECTIONS, AZURE_TIERS, PANEL_TIER_LABELS, SYNC_INTERVALS } from './azure';
 import { BRANCH_RE, REPO_NAME_RE } from './github';
-import { FRESH_MS } from './nextcloud';
+import { FRESH_MS, pairingCommands, SETUP_PAGE_ADDRESSES } from './nextcloud';
 
 const SERVER = path.resolve(__dirname, '../../../../../server');
 const readWeb = (rel: string) => webSourceText(rel);
 const readServer = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
-interface WebAzure {
-    SUB_SECTIONS: { id: string; labelKey: string; descKey: string; color: string }[];
-    TIERS: { key: string; icon: string; labelKey: string; descKey: string }[];
-    TIER_DEFAULTS: Record<string, { maxTokens: number; temperature: number }>;
-    isReasoningCapable: (id: string | null) => boolean;
-    isClaudeReasoning: (id: string | null) => boolean;
-}
-
 describe('Azure lockstep', () => {
-    const web = loadWebModule<WebAzure>('components/integrations/azure/constants.ts', { Cloud: 'Cloud', Shield: 'Shield', Layers: 'Layers', FileText: 'FileText' });
+    const schema = readServer('routes/orgAzureConfigSchemas.mts');
 
-    it('lists the web’s sections and tiers, with its keys and defaults', () => {
-        expect(AZURE_SECTIONS.map(({ id, labelKey, descKey, color }) => ({ id, labelKey, descKey, color }))).toEqual(
-            web.SUB_SECTIONS.map(({ id, labelKey, descKey, color }) => ({ id, labelKey, descKey, color })),
-        );
-        expect(AZURE_TIERS.map(({ key, icon, labelKey, descKey }) => ({ key, icon, labelKey, descKey }))).toEqual(web.TIERS);
-        expect(TIER_DEFAULTS).toEqual(web.TIER_DEFAULTS);
+    it('saves each screen under a section the server accepts', () => {
+        const accepted = [...schema.matchAll(/section\('([A-Za-z]+)', \{/g)].map((m) => m[1]);
+        for (const { id } of AZURE_SECTIONS) expect(accepted).toContain(id);
     });
 
-    it('asks the web’s question about reasoning models', () => {
-        for (const id of [null, '', 'o3', 'o4-mini', 'gpt-5-mini', 'gpt-4.1', 'claude-opus-4-8', 'claude-3-haiku', 'mistral-large-latest']) {
-            expect({ id, r: isReasoningCapable(id), c: isClaudeReasoning(id) }).toEqual({ id, r: web.isReasoningCapable(id), c: web.isClaudeReasoning(id) });
-        }
-    });
-
-    it('names empty tiers as the server does, and offers the web’s sync intervals', () => {
-        const server = readServer('routes/orgAzureConfig.js');
+    it('names empty tiers as the server does, for the tiers the screens show', () => {
         const labels = Object.entries(PANEL_TIER_LABELS).map(([k, v]) => `${k}: '${v}'`).join(', ');
-        expect(server).toContain(`const PANEL_TIERS = { ${labels} };`);
-        const sso = readWeb('components/integrations/azure/SSOSection.tsx') + readWeb('components/integrations/azure/SSOSectionSection.tsx');
-        const offered = [...sso.matchAll(/<option value=\{(\d+)\}>/g)].map((m) => Number(m[1]));
+        expect(schema).toContain(`const PANEL_TIERS: Record<string, string> = { ${labels} };`);
+        expect(AZURE_TIERS.map(({ key }) => key)).toEqual(Object.keys(PANEL_TIER_LABELS));
+    });
+
+    it('offers the web group sync card\'s intervals, within the server\'s bounds', () => {
+        const card = readWeb('components/integrations/azure/GroupSyncSection.tsx');
+        const offered = [...card.matchAll(/<option value=\{(\d+)\}>/g)].map((m) => Number(m[1]));
         expect(offered).toEqual([...SYNC_INTERVALS]);
+        expect(schema).toContain('.int(INTERVAL_TEXT).min(1, INTERVAL_TEXT).max(168, INTERVAL_TEXT)');
+        expect(Math.min(...SYNC_INTERVALS)).toBeGreaterThanOrEqual(1);
+        expect(Math.max(...SYNC_INTERVALS)).toBeLessThanOrEqual(168);
     });
 });
 
@@ -72,10 +63,13 @@ describe('n8n lockstep (pages/settings/n8n/)', () => {
 });
 
 describe('Nextcloud lockstep (components/integrations/nextcloud/*)', () => {
-    it('counts down, calls a sync fresh and writes the occ commands as the web does', () => {
+    it('counts down, calls a sync fresh and writes the install command as the web does', () => {
         const pairing = readWeb('components/integrations/nextcloud/OrgNcPairingPanel.tsx');
-        expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s remaining`");
-        expect(pairing).toContain('occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>\nocc app_api:app:disable bee_flow\nocc app_api:app:enable bee_flow');
+        expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s`");
+        expect(pairing).toContain(`const AT_INSTALL_COMMAND = '${pairingCommands('<CODE>')}';`);
+        expect(pairing).toContain(`const SETUP_PAGE_ADDRESSES = \`${SETUP_PAGE_ADDRESSES}\`;`);
+        // AppAPI has no command that changes a value of an installed app.
+        expect(pairing).not.toContain(['app_api:app:', 'setenv'].join(''));
         const sync = readWeb('components/integrations/nextcloud/NextcloudSyncPanel.tsx');
         expect(sync).toContain('< 30 * 60_000');
         expect(FRESH_MS).toBe(30 * 60_000);

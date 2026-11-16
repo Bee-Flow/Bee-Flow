@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '@/utils/logger';
-import type { AgentUsage, ChartPoint, ModelUsage, ToolUsage, UsageRecord, UsageSummary, UserUsage } from './shared';
+import type { AgentUsage, ChartPoint, ModelUsage, ToolUsage, UsageRecord, UsageSummary } from './shared';
 import type { ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem, FeedbackSummary } from './feedback/feedbackModel';
 import { monitoringUrl } from './monitoringUrl';
@@ -22,7 +22,6 @@ export interface MonitoringData {
     prevSummary: UsageSummary | null;
     byModel: ModelUsage[];
     byAgent: AgentUsage[];
-    byUser: UserUsage[];
     timeline: ChartPoint[];
     costTimeline: ChartPoint[];
     tools: ToolUsage[];
@@ -36,7 +35,7 @@ export interface MonitoringData {
 }
 
 const INITIAL: MonitoringData = {
-    summary: null, prevSummary: null, byModel: [], byAgent: [], byUser: [], timeline: [], costTimeline: [],
+    summary: null, prevSummary: null, byModel: [], byAgent: [], timeline: [], costTimeline: [],
     tools: [], recent: [], modelCosts: {}, byConversation: [], filterSources: [], filterModels: [],
     feedback: [], feedbackSummary: EMPTY_FEEDBACK,
 };
@@ -76,11 +75,10 @@ async function readCore({ range, customStart, customEnd, orgId }: ReadArgs): Pro
     const qs = new URLSearchParams(filters).toString();
     const q = qs ? '?' + qs : '';
     const interval = autoInterval(range, customStart, customEnd);
-    const [s, m, a, u, tl, ct, mc, t, r, fs, fm, bc] = await Promise.all([
+    const [s, m, a, tl, ct, mc, t, r, fs, fm, bc] = await Promise.all([
         fetchJson(`${API}/summary${q}`),
         fetchJson(`${API}/by-model${q}`),
         fetchJson(`${API}/by-agent${q}`),
-        fetchJson(`${API}/by-user${q}`),
         fetchJson(monitoringUrl(`${API}/timeline`, { ...filters, interval })),
         fetchJson(monitoringUrl(`${API}/cost-timeline`, { ...filters, interval })),
         fetchJson(`${AI_API}/model-costs`),
@@ -92,7 +90,7 @@ async function readCore({ range, customStart, customEnd, orgId }: ReadArgs): Pro
     ]);
     return {
         summary: s || EMPTY_SUMMARY,
-        byModel: list(m), byAgent: list(a), byUser: list(u), timeline: list(tl), costTimeline: list(ct),
+        byModel: list(m), byAgent: list(a), timeline: list(tl), costTimeline: list(ct),
         modelCosts: mc && typeof mc === 'object' ? mc : {},
         tools: list(t), recent: list(r), filterSources: list(fs), filterModels: list(fm), byConversation: list(bc),
     };

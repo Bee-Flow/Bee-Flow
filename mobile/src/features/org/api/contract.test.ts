@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { AUTH_METHOD_IDS } from '../model/profile';
 import { FONT_IDS, RADIUS_RANGE, THEME_PRESET_IDS } from '../model/theme';
 
 const SERVER = path.resolve(__dirname, '../../../../../server');
@@ -34,6 +35,12 @@ describe('the org record, logo and default language', () => {
         }
         // The domain rule the Sign-in screen validates with.
         expect(src).toContain('/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z]{2,})+$/');
+        // The preferred sign-in method: the three ids the screen offers
+        // (model/profile AUTH_METHOD_IDS), and changeable after the first save.
+        const ids = AUTH_METHOD_IDS.map((id) => `'${id}'`).join(', ');
+        expect(read('auth/admin/orgAuthMethod.mts')).toContain(`export const PREFERRED_AUTH_METHODS = Object.freeze([${ids}]);`);
+        expect(src).toContain('const finalAuthMethod = preferredAuthMethodUpdate(existing, authMethod);');
+        expect(src).not.toContain('authMethod can only be set once');
     });
 
     it('keeps GET/PUT /api/languages/org/default and its body', () => {
@@ -70,8 +77,16 @@ describe('the processing policies', () => {
             "compactionThreshold: tunable('compactionThreshold')",
             "recentWindow: tunable('recentWindow')",
             "contextBudgetPercent: tunable('contextBudgetPercent')",
-            'contextWindowExamples: contextWindowExamples()',
+            'contextWindowExamples: await contextWindowExamples(orgId)',
             'contextBudgetRange: {',
+        ]);
+        // The fields readOrgAiContext reads to translate each example line.
+        expectAll(read('core/llm/contextWindowExamples.mts'), [
+            'label: string;',
+            'contextWindow: number;',
+            "kind: 'tier' | 'custom' | 'generic';",
+            'tierKey: string | null;',
+            'model: string | null;',
         ]);
         expect(read('index.js')).toContain("'/api/org-ai-context'");
     });

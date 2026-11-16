@@ -3,7 +3,7 @@ import React, { useState, useCallback, useId, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { iconPackKeys, useIconPackListQuery, type IconPackList } from '@/api/queries/iconPacks';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { loadSettings } from '@/components/chat/NanoBananaSettings';
+import { useComposerOrgSettings } from '@/api/queries/composerSettings';
 import IconPickerModal from '@/components/icons/IconPickerModal';
 import Modal from '@/components/shared/Modal';
 import useConfirm from '@/components/shared/useConfirm';
@@ -14,7 +14,7 @@ import { ApiError } from '@/api/mutate';
 import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { ALERT_ERROR, ALERT_SUCCESS, CHIP_SUCCESS, DANGER_BTN, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 
-export const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPackChanged }: PackEditorProps) => {
+export const PackEditor = ({ packId, categories, isActive, onExport, onPackChanged }: PackEditorProps) => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const packsQuery = useIconPackListQuery<IconPack>();
@@ -30,7 +30,8 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
     const [search, setSearch] = useState('');
     const [showOnly, setShowOnly] = useState('all');
     const [editingIconKey, setEditingIconKey] = useState<string | null>(null);
-    const [nanoSettings] = useState(() => loadSettings());
+    // AI generation runs on the image models the server is configured with; without one it is not offered.
+    const { hasImageGen, imageModels } = useComposerOrgSettings();
     const [bulkOpen, setBulkOpen] = useState(false);
     const [bulkRunning, setBulkRunning] = useState(false);
     const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
@@ -103,7 +104,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
                 onPackChanged({});
                 setTimeout(() => setBulkResult(null), 8000);
             } else {
-                setBulkResult({ ok: false, message: data.error || 'Failed' });
+                setBulkResult({ ok: false, message: data.error || t('icon_gen.bulk_failed', 'Generating the icons failed.') });
             }
         } catch (e) {
             setBulkResult({ ok: false, message: errorMessage(e) });
@@ -117,7 +118,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <PackEditorSection t={t} pack={pack} isActive={isActive} setBulkOpen={setBulkOpen} onExport={onExport} handleResetAll={handleResetAll} onActivate={onActivate} />
+            <PackEditorSection t={t} pack={pack} isActive={isActive} canGenerate={hasImageGen} setBulkOpen={setBulkOpen} onExport={onExport} handleResetAll={handleResetAll} />
 
             <div className="px-4 py-3 flex items-center gap-3 shrink-0 flex-wrap">
                 <div className="flex-1 min-w-48 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
@@ -163,7 +164,8 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
                     iconLabel={editingEntry.label}
                     defaultEmoji={editingEntry.defaultEmoji}
                     currentCustom={(pack.icons || {})[editingEntry.id]}
-                    nanoBananaSettings={nanoSettings}
+                    canGenerate={hasImageGen}
+                    imageModels={imageModels}
                     onApply={(data: CustomIcon | null) => {
                         setIcon(editingEntry.id, data);
                         setEditingIconKey(null);
@@ -171,10 +173,10 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
                 />
             )}
 
-            {bulkOpen && (
+            {bulkOpen && hasImageGen && (
                 <BulkGenerateModal
                     pack={pack}
-                    nanoSettings={nanoSettings}
+                    imageModels={imageModels}
                     running={bulkRunning}
                     onRun={async (opts: BulkOptions) => { await runBulkGenerate(opts); setBulkOpen(false); }}
                     onClose={() => setBulkOpen(false)}
@@ -217,21 +219,24 @@ const IconCell = React.memo(({ entry, custom, onClick }: IconCellProps) => {
     );
 });
 
-const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: BulkGenerateModalProps) => {
+const BulkGenerateModal = ({ pack, imageModels, running, onRun, onClose }: BulkGenerateModalProps) => {
     const { t } = useTranslation();
     const [style, setStyle] = useState('flat 2D vector icon, single subject centred, solid background, no text, app-icon style');
-    const [model, setModel] = useState(nanoSettings?.image?.model || 'gemini-3.1-flash-image-preview');
+    const models = imageModels ?? [];
+    // No list (an older server) sends no model: the server then uses its default.
+    const [model, setModel] = useState<string | undefined>(models[0]?.id);
     const [overwrite, setOverwrite] = useState(false);
     const customCount = Object.keys(pack.icons || {}).length;
     const titleId = useId();
+    const modelId = useId();
     return (
         <Modal open onClose={onClose} variant="bare" size="md" labelledBy={titleId}>
             <div className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-5 shadow-2xl" data-surface="opaque">
                 <div className="flex items-center gap-2 mb-3">
-                    <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)]">{t('appearance.icons_editor_ai_generate_all_emojis', 'AI Generate All Emojis')}</h3>
+                    <h3 id={titleId} className="text-lg font-semibold text-[var(--text-primary)]">{t('icon_gen.bulk_title', 'Generate all icons with AI')}</h3>
                 </div>
                 <p className="text-xs mb-4 text-[var(--text-tertiary)]">
-                    {t('appearance.icons_editor_generates_an_icon_for_every_entry_in', 'Generates an icon for every entry in the catalog using Nano Banana. Existing custom overrides are kept unless you tick overwrite.')}
+                    {t('icon_gen.bulk_description', 'Generates an icon for every entry in the catalogue with the chosen image model. Your own icons are kept unless you tick overwrite.')}
                 </p>
 
                 <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('appearance.icons_editor_style_prompt', 'Style prompt')}</label>
@@ -242,16 +247,19 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
                     className={`${INPUT} mb-3`}
                 />
 
-                <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('appearance.icons_editor_model', 'Model')}</label>
-                <select
-                    value={model}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
-                    className={`${INPUT} mb-3`}
-                >
-                    <option value="gemini-3.1-flash-image-preview">{t('appearance.icons_editor_nano_banana_2_flash_fast', 'Nano Banana 2 — Flash (fast)')}</option>
-                    <option value="gemini-3-pro-image-preview">{t('appearance.icons_editor_nano_banana_pro_quality', 'Nano Banana Pro — Quality')}</option>
-                    <option value="gemini-2.5-flash-image">{t('appearance.icons_editor_nano_banana_2_5_flash', 'Nano Banana — 2.5 Flash')}</option>
-                </select>
+                {models.length > 0 && (
+                    <>
+                        <label htmlFor={modelId} className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('icon_gen.image_model', 'Image model')}</label>
+                        <select
+                            id={modelId}
+                            value={model}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
+                            className={`${INPUT} mb-3`}
+                        >
+                            {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                        </select>
+                    </>
+                )}
 
                 <label className="flex items-center gap-2 text-xs mb-4 text-[var(--text-secondary)]">
                     <input type="checkbox" checked={overwrite} onChange={e => setOverwrite(e.target.checked)} />
@@ -267,7 +275,7 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
                         className={`${PRIMARY_BTN} flex-1 py-2`}
                     >
                         {running && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {running ? 'Generating...' : 'Generate'}
+                        {running ? t('icon_gen.generating', 'Generating…') : t('icon_gen.generate', 'Generate')}
                     </button>
                 </div>
             </div>
@@ -308,7 +316,7 @@ function PackEditorSection2({ categories, search, pack, showOnly, setEditingIcon
     </div>;
 }
 
-function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleResetAll, onActivate }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; pack: IconPack; isActive: boolean; setBulkOpen: React.Dispatch<React.SetStateAction<boolean>>; onExport: () => void; handleResetAll: () => Promise<void>; onActivate: () => void; }) {
+function PackEditorSection({ t, pack, isActive, canGenerate, setBulkOpen, onExport, handleResetAll }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; pack: IconPack; isActive: boolean; canGenerate: boolean; setBulkOpen: React.Dispatch<React.SetStateAction<boolean>>; onExport: () => void; handleResetAll: () => Promise<void>; }) {
     return <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-3 shrink-0 border-[var(--border-default)]">
         <div className="min-w-0">
             <h3 className="font-semibold text-base truncate text-[var(--text-primary)]">
@@ -327,12 +335,14 @@ function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleRes
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-            <button
-                onClick={() => setBulkOpen(true)}
-                className={SECONDARY_BTN}
-            >
-                {t('appearance.icons_editor_ai_generate_all', 'AI Generate All')}
-            </button>
+            {canGenerate && (
+                <button
+                    onClick={() => setBulkOpen(true)}
+                    className={SECONDARY_BTN}
+                >
+                    {t('icon_gen.generate_with_ai', 'Generate with AI')}
+                </button>
+            )}
             <button onClick={onExport} className="px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
                 <Download className="w-3.5 h-3.5" /> {t('appearance.icons_editor_export', 'Export')}
             </button>
@@ -342,14 +352,6 @@ function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleRes
             >
                 {t('appearance.icons_editor_reset_all', 'Reset All')}
             </button>
-            {!isActive && (
-                <button
-                    onClick={onActivate}
-                    className={PRIMARY_BTN}
-                >
-                    {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
-                </button>
-            )}
         </div>
     </div>;
 }

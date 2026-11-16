@@ -1,10 +1,11 @@
 // The Agent Designer's section navigation, its Knowledge section and the
-// empty state. Split out of AgentDesigner/index.jsx without a change in
-// behaviour.
+// empty state.
 import { INTEGRATION_CATALOG } from './integrations';
+import { filterAvailableIntegrations, type IntegrationAvailabilityStatus } from './integrationAvailability';
+import { USER_ACCESS, type DesignerIntegrationAccess } from './useDesignerIntegrationAccess';
 import { Bot } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { PRIMARY_BTN } from '@/components/shared/adminUi';
 import EmptyState from '@/components/shared/EmptyState';
 import SectionHeader from '@/components/shared/SectionHeader';
 import SectionNav from '@/components/shared/SectionNav';
@@ -12,56 +13,29 @@ import KnowledgePanelJs from '../../knowledge/KnowledgePanel';
 
 const KnowledgePanel = KnowledgePanelJs;
 
-/** The integration flags of GET /ai/user-settings this nav reads. */
-export interface IntegrationStatus {
-    orgEnabledIntegrations?: string[] | null;
-    isGoogleUser?: boolean;
-    hasFirefliesKey?: boolean;
-    hasYouTrackConfig?: boolean;
-    hasGammaKey?: boolean;
-    hasAfasConfig?: boolean;
-    hasN8nConfig?: boolean;
-    hasLinkedInConfig?: boolean;
-    linkedInConnected?: boolean;
-    [key: string]: unknown;
-}
+/** The integration flags of GET /ai/user-settings the designer keeps (the whole payload). */
+export type IntegrationStatus = IntegrationAvailabilityStatus & { [key: string]: unknown };
 
-interface CatalogItem { id: string; group?: string }
+/** The designer's sections, in nav order; `tools` only when there is something to decide (always in admin mode). */
+type DesignerSectionId = 'identity' | 'knowledge' | 'tools' | 'behavior' | 'share';
 
-/**
- * Whether this person can use one catalog integration. Not the shared
- * filterAvailableIntegrations: this nav has always answered "no" before the
- * status loads, and knows AFAS but not Microsoft.
- */
-function isIntegrationAvailable(item: CatalogItem, status: IntegrationStatus | null | undefined): boolean {
-    if (!status) return false;
-    const orgEnabled = status.orgEnabledIntegrations;
-    if (orgEnabled && !orgEnabled.includes(item.id)) return false;
-    if (item.group === 'google') return !!status.isGoogleUser;
-    const byId: Record<string, () => boolean> = {
-        fireflies: () => !!status.hasFirefliesKey,
-        youtrack: () => !!status.hasYouTrackConfig,
-        gamma: () => !!status.hasGammaKey,
-        'afas-profit': () => !!status.hasAfasConfig,
-        n8n: () => !!status.hasN8nConfig,
-        linkedin: () => !!status.hasLinkedInConfig || !!status.linkedInConnected,
-    };
-    return byId[item.id] ? byId[item.id]() : true;
-}
-
-/** The section list on the left; Integrations only when one is available. */
-export function DesignerSectionNav({ integrationStatus, activeSection, setActiveSection }: {
+/** The section list on the left. */
+export function DesignerSectionNav({ integrationStatus, access, activeSection, setActiveSection }: {
     integrationStatus: IntegrationStatus | null | undefined;
+    /** How the Integrations section decides (useDesignerIntegrationAccess); the person's own access when absent. */
+    access?: DesignerIntegrationAccess;
     activeSection: string | null;
     setActiveSection: (id: string) => void;
 }) {
     const { t } = useTranslation();
-    const hasIntegrations = (INTEGRATION_CATALOG as CatalogItem[]).some(item => isIntegrationAvailable(item, integrationStatus));
-    const items = [
-        { id: 'identity', label: 'Identity' },
-        { id: 'knowledge', label: 'Knowledge' },
-        ...(hasIntegrations ? [{ id: 'tools', label: 'Integrations' }] : []),
-        { id: 'behavior', label: 'Behavior' },
+    const how = access ?? USER_ACCESS;
+    const hasIntegrations = how.adminMode || filterAvailableIntegrations(INTEGRATION_CATALOG, integrationStatus, how.how).length > 0;
+    const items: { id: DesignerSectionId; label: string }[] = [
+        { id: 'identity', label: t('agent_designer.nav_identity', 'Identity') },
+        { id: 'knowledge', label: t('agent_designer.nav_knowledge', 'Knowledge') },
+        ...(hasIntegrations ? [{ id: 'tools' as const, label: t('agent_designer.nav_integrations', 'Integrations') }] : []),
+        { id: 'behavior', label: t('agent_designer.nav_behavior', 'Behavior') },
+        { id: 'share', label: t('agent_designer.nav_share', 'Share & embed') },
     ];
     return (
         <div className="w-full shrink-0 border-b border-[var(--border-default)] md:w-40 md:border-b-0 md:border-r">
@@ -128,10 +102,12 @@ export function DesignerEmptyState({ systemMode, onCreate }: { systemMode: boole
             className="flex-1"
             icon={<Bot className="h-10 w-10" />}
             title={t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}
-            description={t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
+            description={systemMode
+                ? t('agent_designer.empty_system', 'Select a system agent in the list to edit it.')
+                : t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
             action={systemMode ? undefined : (
                 <button type="button" onClick={onCreate} className={PRIMARY_BTN}>
-                    {t('agent_studio.agent_designer_create_new_agent', 'Create New Agent')}
+                    {t('agent_studio.agent_designer_create_new_agent', 'Create new agent')}
                 </button>
             )}
         />

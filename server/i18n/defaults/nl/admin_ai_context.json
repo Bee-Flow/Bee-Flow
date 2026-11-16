@@ -1,0 +1,9 @@
+{
+  "translations": {
+    "admin_ai_context.example_generic": "Een model met {size} tokens",
+    "admin_ai_context.example_line": "{label}: ongeveer {tokens} tokens"
+  },
+  "sameAsEnglish": [
+    "admin_ai_context.example_tier"
+  ]
+}

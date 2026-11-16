@@ -8,6 +8,7 @@ import ModuleLogsDialog from './ModuleLogsDialog';
 import PermissionConsentDialog from './PermissionConsentDialog';
 import SideloadDialog from './SideloadDialog';
 import type { useModuleActions } from './moduleActions';
+import { ALERT_ERROR, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 // The marketplace tab's grid, its overlays, the hub-down notice and Load more.
 
@@ -63,7 +64,7 @@ export function MarketplaceOverlays({ actions, sideloadOpen, setSideloadOpen, lo
 export function HubUnavailable({ t, hubDetail, onRetry }: { t: TranslateFn; hubDetail: string | undefined; onRetry: () => void }) {
     return (
         <div className="space-y-3">
-            <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 flex items-center gap-2" data-testid="marketplace-hub-unavailable">
+            <div className={`${ALERT_ERROR} items-center`} data-testid="marketplace-hub-unavailable">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>{t('modules.hub_unavailable')}{hubDetail ? ` (${hubDetail})` : ''}</span>
             </div>
@@ -120,7 +121,7 @@ export function LoadMore({ t, busy, onMore }: { t: TranslateFn; busy: boolean; o
             <button
                 onClick={onMore}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg text-xs font-medium transition-all border disabled:opacity-50 flex items-center gap-1.5 bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-default)]"
+                className={SECONDARY_BTN}
             >
                 {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {t('modules.load_more')}

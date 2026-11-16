@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -123,6 +122,9 @@ describe('review copy', () => {
 describe('last changed', () => {
     it('formats a date, and passes through what does not parse', () => {
         expect(formatChanged('2026-09-28T15:48:00Z')).toMatch(/2026/);
+        // Day before month, never the US "Sep 28, 2026, 03:48 PM".
+        expect(formatChanged('2026-09-28T12:00:00Z', 'en')).toMatch(/^28 Sept? 2026/);
+        expect(formatChanged('2026-09-28T12:00:00Z', 'nl')).toMatch(/^28 sep\.? 2026/);
         expect(formatChanged('not a date')).toBe('not a date');
     });
 });

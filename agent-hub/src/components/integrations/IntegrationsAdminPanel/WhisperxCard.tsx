@@ -37,7 +37,7 @@ export default function WhisperxCard({ whisperxUrl, setWhisperxUrl, whisperxToke
         <>
             <SettingsGroup
                 title={t('integ.transcription_server_configuration', 'Server Configuration')}
-                description={t('integ.transcription_point_beeflow_at_your_own_whisperx_or', 'Point BeeFlow at your own WhisperX or Faster-Whisper server. Audio never leaves your network.')}
+                description={t('integ.transcription_point_beeflow_at_your_own_whisperx_or', 'Point Bee Flow at your own WhisperX or Faster-Whisper server. Audio never leaves your network.')}
                 actions={hasWhisperxUrl ? <span className={CHIP}>{t('integ.transcription_url_saved', 'URL saved 🔒')}</span> : undefined}
             >
                 <SettingsList>

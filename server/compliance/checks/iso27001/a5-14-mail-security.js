@@ -33,7 +33,7 @@ module.exports = {
             return {
                 status: 'not_applicable',
                 evidence: { connector: 'mail-security', enabled: false },
-                details: 'Mail-security connector not enabled — enable it under ISO 27001 → Connectors and set your sending domain.',
+                details: 'Mail-security connector not enabled — enable it under Compliance → Evidence connectors and set your sending domain.',
             };
         }
         // The connector's own normalisation of the domain it uses as subject.
@@ -45,7 +45,7 @@ module.exports = {
                 evidence: { connector: 'mail-security', enabled: true, domain: domain || null, snapshots: 0 },
                 details: domain
                     ? `Connector enabled but no snapshot for ${domain} yet — run a sweep or check the configured domain.`
-                    : 'Connector enabled but no sending domain is configured — set it under ISO 27001 → Connectors.',
+                    : 'Connector enabled but no sending domain is configured — set it under Compliance → Evidence connectors.',
             };
         }
         const p = snap.payload || {};

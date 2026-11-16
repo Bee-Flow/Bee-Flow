@@ -8,6 +8,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { ApiError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
+import { buttonClass } from '@/components/shared/buttonClasses';
 
 interface TrainingArea {
     id: string;
@@ -146,7 +147,7 @@ export default function RequiredTrainingPanel() {
 
             <div className="flex items-center gap-3">
                 <button type="button" onClick={save} disabled={!dirty || saving}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed [background:var(--accent-primary)] [color:#fff]!">
+                    className={buttonClass('primary', 'md')}>
                     {saving ? <Loader2 className="animate-spin w-[13px] h-[13px]" /> : <Save className="w-[13px] h-[13px]" aria-hidden="true" />}
                     {t('common.save', 'Save')}
                 </button>

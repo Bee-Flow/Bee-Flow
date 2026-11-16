@@ -1,5 +1,5 @@
 /**
- * Azure OpenAI (web: integrations/azure/OpenAISection.jsx): the resource
+ * Azure OpenAI (web: AI configuration, ai-config/providers/AzureForm.tsx): the resource
  * endpoint, its API key and the deployed model names — the list the chat
  * tiers then pick from. There is no API version: the server always uses
  * Azure's v1 GA API.

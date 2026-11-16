@@ -13,7 +13,7 @@ import type { PlanRecord } from '../plans/usePlanForm';
 import { SubscriptionsTable, type OrgSubscription } from './SubscriptionsTable';
 import { ConfirmModal } from '../ui/Modal';
 import { SearchInput } from '../ui/SearchInput';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 import FilterPills from '@/components/shared/FilterPills';
 
@@ -150,8 +150,8 @@ export function OrgsView() {
 
     return (
         <div className="p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin.sub_org_title', 'Organization Subscriptions')}
+            <ViewHeader className="mb-5"
+                title={t('admin.sub_org_title', 'Organisation subscriptions')}
                 description={t('admin.sub_org_desc', 'Assign plans and manage limits for each organization.')}
             />
 

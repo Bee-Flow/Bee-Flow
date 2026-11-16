@@ -1,25 +1,18 @@
 import React from 'react';
+import { CHIP, CHIP_INFO, CHIP_SUCCESS, CHIP_WARNING } from '@/components/shared/adminUi';
 
 /**
- * Shared bits of the provider panes: the input styling and the small status
- * pill. The card shell that used to live here is gone: a provider's header is
- * providers/PaneHeader.tsx and its body sits in a Section.
+ * The small status pill of the provider panes (runtime type, "from
+ * environment", a model's tier, a model count), in the theme's chip recipes.
+ * Inputs use FIELD_INPUT from the shared SettingsList, like the rest of AI
+ * configuration.
  */
 
-// Shared input styling for the plain text inputs across provider cards.
-export const PROVIDER_INPUT_CLS =
-    'w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm';
-export const PROVIDER_INPUT_STYLE = {
-    background: 'var(--bg-secondary)',
-    borderColor: 'var(--border-default)',
-    color: 'var(--text-primary)',
-};
-
-// Literal class strings (NOT interpolated) so Tailwind's scanner keeps them.
 const TONE_CLS = {
-    green: 'bg-green-500/20 text-green-400',
-    blue: 'bg-blue-500/20 text-blue-400',
-    orange: 'bg-orange-500/20 text-orange-400',
+    neutral: CHIP,
+    info: CHIP_INFO,
+    success: CHIP_SUCCESS,
+    warning: CHIP_WARNING,
 };
 
 interface ProviderStatusPillProps {
@@ -27,7 +20,7 @@ interface ProviderStatusPillProps {
     children?: React.ReactNode;
 }
 
-/** A small rounded status pill (Endpoint / Key / model badges). */
-export const ProviderStatusPill = ({ tone = 'green', children }: ProviderStatusPillProps) => (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full ${TONE_CLS[tone] || TONE_CLS.green}`}>{children}</span>
+/** A small rounded status pill. */
+export const ProviderStatusPill = ({ tone = 'neutral', children }: ProviderStatusPillProps) => (
+    <span className={TONE_CLS[tone]}>{children}</span>
 );

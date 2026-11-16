@@ -276,7 +276,7 @@ describe('UserManagement: platform administrator', () => {
         render(<UserManagement user={platformAdmin} />);
         await screen.findByText('Ann Smit');
         expect(within(rowOf('Ann Smit')).getByText('Platform admin')).toBeInTheDocument();
-        expect(within(rowOf('Ann Smit')).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within(rowOf('Ann Smit')).getByText('Organisation admin')).toBeInTheDocument();
         expect(within(rowOf('Jan de Vries')).queryByText('Platform admin')).not.toBeInTheDocument();
     });
 
@@ -298,12 +298,12 @@ describe('UserManagement: platform administrator', () => {
 
     it('is not offered to an organisation admin', async () => {
         const { dialog } = await openEdit(orgAdmin, 'Jan de Vries');
-        expect(within(dialog).queryByRole('checkbox', { name: 'Platform administrator' })).not.toBeInTheDocument();
+        expect(within(dialog).queryByRole('switch', { name: 'Platform administrator' })).not.toBeInTheDocument();
     });
 
     it('asks before granting, names the person, and sends the platform role', async () => {
         const { user, dialog } = await openEdit(platformAdmin, 'Jan de Vries');
-        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        const toggle = within(dialog).getByRole('switch', { name: 'Platform administrator' });
         expect(within(dialog).getByText('Can change settings for the whole server and see every organisation.')).toBeInTheDocument();
         await user.click(toggle);
 
@@ -319,7 +319,7 @@ describe('UserManagement: platform administrator', () => {
 
     it('leaves the role alone when the confirmation is cancelled', async () => {
         const { user, dialog } = await openEdit(platformAdmin, 'Jan de Vries');
-        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        const toggle = within(dialog).getByRole('switch', { name: 'Platform administrator' });
         await user.click(toggle);
         const confirmDialog = (await screen.findAllByRole('dialog')).at(-1) as HTMLElement;
         expect(confirmDialog).toHaveTextContent('Make Jan de Vries a platform administrator?');
@@ -331,7 +331,7 @@ describe('UserManagement: platform administrator', () => {
     it('asks before you give up your own role, and shows the server refusal for the last platform admin', async () => {
         putResponse = () => jsonRes({ code: 'last_platform_admin', error: 'refused' }, 409);
         const { user, dialog } = await openEdit(platformAdmin, 'Ann Smit');
-        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        const toggle = within(dialog).getByRole('switch', { name: 'Platform administrator' });
         expect(toggle).toBeChecked();
         await user.click(toggle);
 

@@ -1188,7 +1188,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.org-role-set.narrowed.label",
                 "labelFallback": "Someone other than you holds a role narrower than Organisation Admin",
                 "hintKey": "learn.check.org-role-set.narrowed.hint",
-                "hintFallback": "Use the pencil on a colleague's row and pick Member, Agent Editor, Agent Admin, Data Protection Officer or ISMS Internal Auditor.",
+                "hintFallback": "Use Edit user on a colleague's row and pick Member, Agent Editor, Agent Admin, Data Protection Officer or ISMS Internal Auditor.",
                 "endpoint": "/auth/users"
             }
         ]
@@ -1220,7 +1220,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.invite-sent.exists.label",
                 "labelFallback": "Your organisation has at least one invitation on record",
                 "hintKey": "learn.check.invite-sent.exists.hint",
-                "hintFallback": "Click Invite User on the Users tab, fill in the address and click Send — the row then appears under PENDING INVITATIONS.",
+                "hintFallback": "Click Invite User on the Invitations tab, fill in the address and click Send — the row then appears under PENDING INVITATIONS.",
                 "endpoint": "/auth/invitations",
                 "expect": {
                     "kind": "rows"
@@ -1495,7 +1495,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.org-context-configured.configured.label",
                 "labelFallback": "Your organisation has a saved conversation memory setting",
                 "hintKey": "learn.check.org-context-configured.configured.hint",
-                "hintFallback": "Press Save on the Conversation Memory screen at least once — an untouched organisation reports configured false.",
+                "hintFallback": "Press Save on the Conversations page at least once — an untouched organisation reports configured false.",
                 "endpoint": "/api/org-ai-context/:orgid",
                 "expect": {
                     "kind": "truthy",
@@ -1519,7 +1519,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.org-info.street.label",
                 "labelFallback": "A street address is saved on the profile",
                 "hintKey": "learn.check.org-info.street.hint",
-                "hintFallback": "Street, under Legal & Invoicing on Organisation Info — it is read when the tax at checkout is worked out.",
+                "hintFallback": "Street, under Legal & Invoicing on Organisation info — it is read when the tax at checkout is worked out.",
                 "endpoint": "/auth/organizations/:id",
                 "expect": {
                     "kind": "nonEmpty",
@@ -1594,7 +1594,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.licence-plan-known.tier.label",
                 "labelFallback": "Your workspace answers with its licence tier",
                 "hintKey": "learn.check.licence-plan-known.tier.hint",
-                "hintFallback": "On cloud, open License & Usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
+                "hintFallback": "On cloud, open Licence & usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
                 "endpoint": "/api/license/status",
                 "expect": {
                     "kind": "truthy",

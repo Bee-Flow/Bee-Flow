@@ -1,35 +1,91 @@
-// State core of ChatModelTiersConfig: composes one hook per concern (standard
-// tiers, custom tiers, Claude settings, hidden models and the five
-// single-model settings) and runs their loads once on mount. Called first
+// State core of ChatModelTiersConfig (the Models page): composes one hook per
+// concern (standard and EU tiers, custom tiers, the Claude recommendations,
+// the reliability switch, hidden models and the five background models) and
+// runs their loads once on mount. Everything except the two switches (hidden
+// models, the reliability retry), which save on their own, is ONE draft: the
+// page's save bar stores what changed, Discard puts it all back. Called first
 // (and only) in the panel so all state stays owned by the panel's fiber; the
 // section components receive these bindings by explicit threading.
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { buildChatModelCatalog, useHiddenModels } from './chatModelCatalog';
 import type { CatalogModel } from './tierTypes';
 import useClaudeSettings from './useClaudeSettings';
 import useCustomTiers from './useCustomTiers';
 import useModelSetting from './useModelSetting';
+import useReliabilitySettings from './useReliabilitySettings';
 import useTierConfigs from './useTierConfigs';
 import { useTranslation } from '@/hooks/useTranslation';
 import useConfirm from '@/components/shared/useConfirm';
 
-export default function useChatModelTiersState(allModels: CatalogModel[]) {
+interface ModelsSaveMessage {
+    type: 'success' | 'error';
+    text: string;
+}
+
+/** One stored part of the draft: whether it changed, and how to store it (null: stored; else the reason, '' for none). */
+interface DraftPart {
+    dirty: boolean;
+    persist: () => Promise<string | null>;
+}
+
+/** Store every changed part at once; the error texts of the parts that failed (a stored part leaves the draft). */
+async function persistChanged(parts: readonly DraftPart[]): Promise<string[]> {
+    const outcomes = await Promise.all(parts.filter(p => p.dirty).map(p => p.persist()));
+    return outcomes.filter((o): o is string => o !== null);
+}
+
+type CustomSave = Pick<ReturnType<typeof useCustomTiers>, 'customDirty' | 'persistCustomTiers'>;
+
+/** The page's one Save: store every changed part, then say how it went (the save bar's message). */
+function useModelsSave(parts: readonly DraftPart[], custom: CustomSave) {
     const { t } = useTranslation();
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<ModelsSaveMessage | null>(null);
+
+    const say = (message: ModelsSaveMessage) => {
+        setSaveMessage(message);
+        setTimeout(() => setSaveMessage(curr => (curr === message ? null : curr)), 4000);
+    };
+
+    const saveAll = async () => {
+        setSaving(true);
+        try {
+            const customRun = custom.customDirty ? custom.persistCustomTiers() : Promise.resolve({ error: null, warning: '' });
+            const [errors, customOutcome] = await Promise.all([persistChanged(parts), customRun]);
+            if (customOutcome.error !== null) errors.push(customOutcome.error);
+            if (errors.length > 0) {
+                const reasons = errors.filter(Boolean).join('; ');
+                say({ type: 'error', text: reasons
+                    ? t('ai_model_setup.models_save_failed_reason', 'Not everything was saved: {reason}', { reason: reasons })
+                    : t('ai_model_setup.models_save_failed', 'Not everything was saved. The changes that failed are still here: try again.') });
+            } else {
+                say({ type: 'success', text: customOutcome.warning
+                    ? t('ai_model_setup.models_saved_warning', 'Saved{warning}', { warning: customOutcome.warning })
+                    : t('ai_model_setup.models_saved', 'Saved') });
+            }
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return { saving, saveMessage, setSaveMessage, saveAll };
+}
+
+export default function useChatModelTiersState(allModels: CatalogModel[]) {
     const { confirm, confirmDialog } = useConfirm();
     const custom = useCustomTiers(confirm);
-    const tiers = useTierConfigs(custom.customTiers, custom.setCustomTiers);
-    const classifier = useModelSetting('auto-classifier', { noun: 'classifier model', saved: t('admin_ai_config.model_saved_classifier', 'Classifier model saved'), failed: t('admin_ai_config.model_save_failed_classifier', 'Failed to save classifier model') });
-    const title = useModelSetting('title-model', { noun: 'title model', saved: t('admin_ai_config.model_saved_title', 'Title model saved'), failed: t('admin_ai_config.model_save_failed_title', 'Failed to save title model') });
-    const memory = useModelSetting('memory-extraction-model', { noun: 'memory extraction model', saved: t('admin_ai_config.model_saved_memory', 'Memory extraction model saved'), failed: t('admin_ai_config.model_save_failed_memory', 'Failed to save memory extraction model') });
-    // TEMPORARY ai_step override — same contract as the memory model, one key.
-    const aiStep = useModelSetting('ai-step-model', { noun: 'AI step model', saved: t('admin_ai_config.model_saved_aistep', 'AI step model saved'), failed: t('admin_ai_config.model_save_failed_aistep', 'Failed to save AI step model') });
-    // The automation Extract data step's own model — same contract, key
-    // `data_extraction_model`. Separate from the ai_step override on purpose.
-    const dataExtraction = useModelSetting('data-extraction-model', { noun: 'data extraction model', saved: t('admin_ai_config.model_saved_dx', 'Data extraction model saved'), failed: t('admin_ai_config.model_save_failed_dx', 'Failed to save data extraction model') });
+    const tiers = useTierConfigs();
+    const classifier = useModelSetting('auto-classifier', 'classifier model');
+    const title = useModelSetting('title-model', 'title model');
+    const memory = useModelSetting('memory-extraction-model', 'memory extraction model');
+    // The model automation AI steps run on when they ask for Auto or Fast.
+    const aiStep = useModelSetting('ai-step-model', 'AI step model');
+    // The automation Extract data step's own model, separate from the AI step one on purpose.
+    const dataExtraction = useModelSetting('data-extraction-model', 'data extraction model');
     const hidden = useHiddenModels();
-    const claude = useClaudeSettings(tiers.config, tiers.setConfig);
-
-    const runAiStepEffect = useEffectEvent(() => {
+    const claude = useClaudeSettings({ setConfig: tiers.setConfig, setEuConfig: tiers.setEuConfig });
+    const reliability = useReliabilitySettings();
+    const runLoadEffect = useEffectEvent(() => {
         tiers.loadConfig();
         tiers.loadEuConfig();
         custom.loadCustomTiers();
@@ -39,36 +95,43 @@ export default function useChatModelTiersState(allModels: CatalogModel[]) {
         aiStep.load();
         dataExtraction.load();
         hidden.loadHiddenModels();
-        claude.loadClaudeSettings();
+        reliability.load();
     });
-    useEffect(() => { return runAiStepEffect(); }, []);
+    useEffect(() => { return runLoadEffect(); }, []);
+
+    const backgroundModels = [classifier, title, memory, aiStep, dataExtraction];
+    const dirty = tiers.tiersDirty || tiers.euDirty || custom.customDirty || backgroundModels.some(m => m.dirty);
+
+    const { saving, saveMessage, setSaveMessage, saveAll } = useModelsSave([
+        { dirty: tiers.tiersDirty, persist: tiers.persistTiers },
+        { dirty: tiers.euDirty, persist: tiers.persistEu },
+        ...backgroundModels.map(m => ({ dirty: m.dirty, persist: m.persist })),
+    ], custom);
+
+    const discardAll = () => {
+        tiers.discardTiers();
+        custom.discardCustomTiers();
+        backgroundModels.forEach(m => m.discard());
+        setSaveMessage(null);
+    };
 
     const { chatModels, isLocal, reasoningCapable, byProvider } = buildChatModelCatalog(allModels);
 
     return {
         config: tiers.config, euConfig: tiers.euConfig, customTiers: custom.customTiers,
-        saving: tiers.saving, euSaving: tiers.euSaving, message: tiers.message, euMessage: tiers.euMessage,
         expandedTier: tiers.expandedTier, setExpandedTier: tiers.setExpandedTier,
+        expandedEuTier: tiers.expandedEuTier, setExpandedEuTier: tiers.setExpandedEuTier,
         expandedCustomId: custom.expandedCustomId, setExpandedCustomId: custom.setExpandedCustomId,
-        classifierModel: classifier.model, setClassifierModel: classifier.setModel, classifierSaving: classifier.saving,
-        classifierMessage: classifier.message, saveClassifierModel: classifier.save,
-        titleModel: title.model, setTitleModel: title.setModel, titleModelSaving: title.saving,
-        titleModelMessage: title.message, saveTitleModel: title.save,
-        memoryModel: memory.model, setMemoryModel: memory.setModel, memoryModelSaving: memory.saving,
-        memoryModelMessage: memory.message, saveMemoryModel: memory.save,
-        aiStepModel: aiStep.model, setAiStepModel: aiStep.setModel, aiStepModelSaving: aiStep.saving,
-        aiStepModelMessage: aiStep.message, saveAiStepModel: aiStep.save,
-        dataExtractionModel: dataExtraction.model, setDataExtractionModel: dataExtraction.setModel,
-        dataExtractionModelSaving: dataExtraction.saving, dataExtractionModelMessage: dataExtraction.message,
-        saveDataExtractionModel: dataExtraction.save,
+        classifier, title, memory, aiStep, dataExtraction,
         hiddenModelIds: hidden.hiddenModelIds, toggleHiddenModel: hidden.toggleHiddenModel,
-        claudeAutoRetry: claude.claudeAutoRetry, setClaudeAutoRetry: claude.setClaudeAutoRetry,
-        claudeSaving: claude.claudeSaving, claudeMessage: claude.claudeMessage, claudeRecAppliedTier: claude.claudeRecAppliedTier,
-        saveClaudeSettings: claude.saveClaudeSettings, applyClaudeRecommendedForTier: claude.applyClaudeRecommendedForTier,
+        reliability,
+        claudeMessage: claude.claudeMessage, claudeRecAppliedTier: claude.claudeRecAppliedTier,
+        applyClaudeRecommendedForTier: claude.applyClaudeRecommendedForTier,
         applyAllClaudeRecommended: claude.applyAllClaudeRecommended,
-        save: tiers.save, saveEu: tiers.saveEu, updateTier: tiers.updateTier, updateEuTier: tiers.updateEuTier,
+        updateTier: tiers.updateTier, updateEuTier: tiers.updateEuTier,
         addCustomTier: custom.addCustomTier, updateCustomTier: custom.updateCustomTier, renameCustomTier: custom.renameCustomTier,
         removeCustomTier: custom.removeCustomTier, toggleCustomTaskType: custom.toggleCustomTaskType,
+        dirty, saving, saveMessage, saveAll, discardAll,
         chatModels, isLocal, reasoningCapable, byProvider, confirmDialog,
     };
 }

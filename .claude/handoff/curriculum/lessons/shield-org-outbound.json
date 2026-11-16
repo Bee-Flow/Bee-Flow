@@ -115,7 +115,7 @@
       "id": "search-and-eu",
       "icon": "🌍",
       "title": "Search boxes and where the model lives",
-      "bodyMd": "Three more switches sit on the **Before it leaves your organisation** card, each aimed at a specific leak:\n\n- **Protect web searches** — stop search terms that contain personal data from reaching an outside search engine. Enterprise.\n- **No web search while a file is attached** — so nothing from an attached document ends up in a search box.\n- **Use only AI hosted in the EU** — chats only go to AI models hosted in the EU, set up under AI Config → Chat Models. It covers models only; connected apps such as Gmail follow the tool columns.\n\nThe two search switches only appear once a search provider is configured, and the EU switch only once EU-hosted models exist.\n\nFor Van Dijk Groep, a supplier's company name in a search box is fine. A named contact person is not."
+      "bodyMd": "Three more switches sit on the **Before it leaves your organisation** card, each aimed at a specific leak:\n\n- **Protect web searches** — stop search terms that contain personal data from reaching an outside search engine. Enterprise.\n- **No web search while a file is attached** — so nothing from an attached document ends up in a search box.\n- **Use only AI hosted in the EU** — chats only go to AI models hosted in the EU, set up under Admin dashboard → Whole server → AI configuration → Models. It covers models only; connected apps such as Gmail follow the tool columns.\n\nThe two search switches only appear once a search provider is configured, and the EU switch only once EU-hosted models exist.\n\nFor Van Dijk Groep, a supplier's company name in a search box is fine. A named contact person is not."
     },
     {
       "type": "sim",
@@ -154,7 +154,7 @@
             "id": "eu",
             "left": "Our data protection officer signs off only if answers are generated on European infrastructure.",
             "right": "Use only AI hosted in the EU",
-            "note": "Chats are routed to the EU models configured under AI Config → Chat Models; the card only appears once those exist."
+            "note": "Chats are routed to the EU models configured under Admin dashboard → Whole server → AI configuration → Models; the card only appears once those exist."
           }
         ]
       }
@@ -230,7 +230,7 @@
       "checkId": "shield-dlp",
       "existing": false,
       "label": "Turn on the check before an outside AI",
-      "hint": "In Admin dashboard → Security → Guardrails → Org Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save changes.",
+      "hint": "In Admin dashboard → Security & access → Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save changes.",
       "endpoints": [
         {
           "method": "GET",

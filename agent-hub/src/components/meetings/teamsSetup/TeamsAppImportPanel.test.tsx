@@ -84,7 +84,7 @@ describe('TeamsAppImportPanel', () => {
         expect(screen.getByText('Your organisation is not linked to a Microsoft tenant yet.')).toBeTruthy();
         expect(screen.getByText(/links your organisation to its Microsoft tenant \(the directory sync binding\)/)).toBeTruthy();
         expect(screen.getByText('The Bee Flow platform administrator must fix this')).toBeTruthy();
-        expect((screen.getByRole('checkbox', { name: 'Import Teams meetings for the whole organisation' }) as HTMLInputElement).disabled).toBe(true);
+        expect((screen.getByRole('switch', { name: 'Import Teams meetings for the whole organisation' }) as HTMLInputElement).disabled).toBe(true);
         expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(false);
     });
 
@@ -93,7 +93,7 @@ describe('TeamsAppImportPanel', () => {
         serve({ state: appState({ settings: { enabled: true }, availability: { reason: 'instance_disabled', tenantId: null, source: null } }) });
         renderWithClient(<TeamsAppImportPanel />);
         expect(await screen.findByText('Organisation-wide import is switched off on this server.')).toBeTruthy();
-        const toggle = screen.getByRole('checkbox', { name: 'Import Teams meetings for the whole organisation' }) as HTMLInputElement;
+        const toggle = screen.getByRole('switch', { name: 'Import Teams meetings for the whole organisation' }) as HTMLInputElement;
         expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
         expect(toggle.disabled).toBe(false);
         await user.click(toggle);
@@ -109,7 +109,7 @@ describe('TeamsAppImportPanel', () => {
         serve({});
         renderWithClient(<TeamsAppImportPanel />);
         expect(await screen.findByText(`Microsoft tenant: ${TENANT}`)).toBeTruthy();
-        await user.click(screen.getByRole('checkbox', { name: 'Import Teams meetings for the whole organisation' }));
+        await user.click(screen.getByRole('switch', { name: 'Import Teams meetings for the whole organisation' }));
         await user.click(screen.getByRole('button', { name: 'Save' }));
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).getByText(/read the calendars, recordings and transcripts of covered members/)).toBeTruthy();
@@ -124,7 +124,7 @@ describe('TeamsAppImportPanel', () => {
         await screen.findByText('Choose members');
         expect(await screen.findByText('Member Three')).toBeTruthy();
         expect(screen.getByText('Not signed in with Microsoft')).toBeTruthy();
-        await user.click(screen.getByRole('checkbox', { name: 'Import Teams meetings for the whole organisation' }));
+        await user.click(screen.getByRole('switch', { name: 'Import Teams meetings for the whole organisation' }));
         await user.click(screen.getByRole('checkbox', { name: /Member One/ }));
         await user.click(screen.getByRole('checkbox', { name: /Member Three/ }));
         await user.click(screen.getByRole('button', { name: 'Save' }));

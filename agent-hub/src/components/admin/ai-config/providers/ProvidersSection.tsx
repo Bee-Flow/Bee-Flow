@@ -3,20 +3,20 @@
 // lives in the URL (admin/ai-config/providers/<id>), so a deep link and the Back
 // button work; with none in the URL the first connected provider is shown, and
 // when nothing is connected yet a picker asks which one to connect first.
+// Reranking (it had a pane here) is set up under Search & retrieval.
 
 import { useMemo } from 'react';
 import AddRuntimePane from './AddRuntimePane';
 import LocalRuntimePane from './LocalRuntimePane';
-import PaneHeader from './PaneHeader';
 import ProviderDetail from './ProviderDetail';
 import ProviderList from './ProviderList';
-import { ADD_LOCAL_ID, PROVIDER_REGISTRY, RERANKER_ID, findProvider, localPaneId, rerankerConnected, resolveSelection } from './providerRegistry';
+import { ADD_LOCAL_ID, PROVIDER_REGISTRY, findProvider, localPaneId, resolveSelection } from './providerRegistry';
+import type { ProviderEntry } from './providerRegistry';
 import type { ProviderPaneProps } from './types';
 import { useLocalRuntimes } from './useLocalRuntimes';
 import { useSelectNewRuntime } from './useSelectNewRuntime';
-import type { ModelRow, ProviderRow } from './useAiProviderModels';
-import RerankerConfig from '../RerankerConfig';
-import { CARD_BUTTON } from '@/components/mcpLibrary/ui';
+import type { ModelRow } from './useAiProviderModels';
+import { CARD_BUTTON } from '@/components/shared/adminUi';
 import { DetailLayout } from '@/components/shared/DetailList';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import { disconnectRuntime } from '@/api/localRuntimeApi';
@@ -26,31 +26,23 @@ interface ProvidersSectionProps extends ProviderPaneProps {
     /** The provider pane id from the URL, if any. */
     selectedId?: string;
     onSelect: (id: string) => void;
-    /** The providers GET /ai/providers lists (the reranker can use one of them). */
-    providers: ProviderRow[];
     allModels: ModelRow[];
     loadingModels: boolean;
     /** Read the provider list and the models again. */
     onProvidersChanged: () => void;
 }
 
-interface RerankerPaneProps extends ProviderPaneProps {
-    connected: boolean;
-    providers: ProviderRow[];
-    allModels: ModelRow[];
-}
-
-function RerankerPane({ connected, providers, allModels, onMessage }: RerankerPaneProps) {
-    const { t } = useTranslation();
+function PickerCards({ entries, onSelect }: { entries: ProviderEntry[]; onSelect: (id: string) => void }) {
     return (
-        <div className="flex flex-col gap-4">
-            <PaneHeader
-                icon="🎯"
-                iconClass="[background:linear-gradient(135deg,rgba(234,88,12,0.2),rgba(249,115,22,0.2))]"
-                title={t('admin_ai_config.reranker_row', 'Reranker')}
-                connected={connected}
-            />
-            <RerankerConfig onMessage={onMessage} providers={providers} allModels={allModels} />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {entries.map(e => (
+                <button key={e.id} type="button" onClick={() => onSelect(e.id)} className={CARD_BUTTON}>
+                    <span className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
+                        <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded text-sm ${e.iconClass}`}>{e.icon}</span>
+                        {e.name}
+                    </span>
+                </button>
+            ))}
         </div>
     );
 }
@@ -62,23 +54,16 @@ function ProviderPicker({ onSelect }: { onSelect: (id: string) => void }) {
         <div className="flex flex-col gap-3">
             <div>
                 <p className="m-0 text-sm font-medium text-[var(--text-primary)]">{t('admin_ai_config.pick_title', 'Pick a provider to connect')}</p>
-                <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('admin_ai_config.pick_hint', 'Add an API key and its models become available under Chat Models.')}</p>
+                <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('ai_model_setup.pick_hint_language', 'Add an API key and its models become available under Models.')}</p>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {PROVIDER_REGISTRY.map(e => (
-                    <button key={e.id} type="button" onClick={() => onSelect(e.id)} className={CARD_BUTTON}>
-                        <span className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
-                            <span aria-hidden="true" className={`flex h-6 w-6 items-center justify-center rounded text-sm ${e.iconClass}`}>{e.icon}</span>
-                            {e.name}
-                        </span>
-                    </button>
-                ))}
-            </div>
+            <PickerCards entries={PROVIDER_REGISTRY.filter(e => e.group === 'language')} onSelect={onSelect} />
+            <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('ai_model_setup.pick_hint_media', 'Speech & media providers add voices, music and sound effects; they offer no models for chats.')}</p>
+            <PickerCards entries={PROVIDER_REGISTRY.filter(e => e.group === 'media')} onSelect={onSelect} />
         </div>
     );
 }
 
-export default function ProvidersSection({ selectedId: urlId, onSelect, providers, allModels, loadingModels, onProvidersChanged, onMessage }: ProvidersSectionProps) {
+export default function ProvidersSection({ selectedId: urlId, onSelect, allModels, loadingModels, onProvidersChanged, onMessage }: ProvidersSectionProps) {
     const { t } = useTranslation();
     const config = useAiConfigQuery().data?.config ?? null;
     const local = useLocalRuntimes();
@@ -114,8 +99,6 @@ export default function ProvidersSection({ selectedId: urlId, onSelect, provider
     const entry = findProvider(selectedId);
     if (entry) {
         detail = <ProviderDetail entry={entry} config={config} allModels={allModels} loadingModels={loadingModels} onMessage={onMessage} />;
-    } else if (selectedId === RERANKER_ID) {
-        detail = <RerankerPane connected={rerankerConnected(config)} providers={providers} allModels={allModels} onMessage={onMessage} />;
     } else if (selectedId === ADD_LOCAL_ID) {
         detail = <AddRuntimePane runtimes={local.runtimes} unsupported={local.unsupported} connectedCount={local.localProviders.length} onMessage={onMessage} onChanged={() => { watchForNewRuntime(); changed(); }} />;
     } else if (localProvider) {
@@ -142,7 +125,6 @@ export default function ProvidersSection({ selectedId: urlId, onSelect, provider
                 connectedIds={connectedIds}
                 modelCounts={modelCounts}
                 localProviders={local.localProviders}
-                rerankerConnected={rerankerConnected(config)}
                 selectedId={selectedId}
                 onSelect={onSelect}
             />)}

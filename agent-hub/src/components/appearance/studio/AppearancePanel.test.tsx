@@ -13,19 +13,25 @@ beforeEach(() => { setDemoTransport(() => new Promise<Response>(() => {})); });
 afterEach(() => { setDemoTransport(null); });
 
 describe('AppearancePanel', () => {
-    it('lists Look and Icons in the "Appearance sections" nav and opens Look', () => {
+    it('lists Look and Icon packs in the "Appearance sections" nav and opens Look', () => {
         renderWithClient(<AppearancePanel />);
         const nav = screen.getByRole('navigation', { name: 'Appearance sections' });
         expect(nav).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Look' })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('button', { name: 'Icons' })).not.toHaveAttribute('aria-current');
+        expect(screen.getByRole('button', { name: 'Icon packs' })).not.toHaveAttribute('aria-current');
     });
 
-    it('switches to Icons from the nav', async () => {
+    it('switches to Icon packs from the nav', async () => {
         const user = userEvent.setup();
         renderWithClient(<AppearancePanel />);
-        await user.click(screen.getByRole('button', { name: 'Icons' }));
-        expect(screen.getByRole('button', { name: 'Icons' })).toHaveAttribute('aria-current', 'page');
+        await user.click(screen.getByRole('button', { name: 'Icon packs' }));
+        expect(screen.getByRole('button', { name: 'Icon packs' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByText('Loading icon packs...')).toBeInTheDocument();
+    });
+
+    it('shows one section without the nav in the admin dashboard, whose child rows are the sections', () => {
+        renderWithClient(<AppearancePanel section="icon-packs" />);
+        expect(screen.queryByRole('navigation', { name: 'Appearance sections' })).not.toBeInTheDocument();
         expect(screen.getByText('Loading icon packs...')).toBeInTheDocument();
     });
 });

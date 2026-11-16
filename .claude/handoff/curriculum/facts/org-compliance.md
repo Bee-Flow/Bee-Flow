@@ -501,7 +501,7 @@ next run; the attestation and the PDF hash are in the evidence chain.
 
 ### Scenario 2 — HR: an ex-employee asks for deletion
 A former monteur mails `privacy@vandijkgroep.nl`: *"verwijder al mijn gegevens"*. Jeroen, the appointed DPO (org role
-**Data Protection Officer**, so he sees only Settings → Compliance), opens **Requests (DSR)** → **Record a request**:
+**Data Protection Officer**, so he sees only Admin dashboard → Security & access → Compliance), opens **Requests (DSR)** → **Record a request**:
 kind **Delete my data (Art. 17)**, the address, **Arrived via** = *E-mail to DPO*, **Received on** = yesterday 09:14.
 The row appears with a 29-day clock. He clicks it, presses **Start working**, and reads **Found in Bee Flow**: 14 memories,
 38 rows in *Verzuimregistratie*, 3 form answers, 0 knowledge-base documents — plus the note *"{n} rows fall under a statutory

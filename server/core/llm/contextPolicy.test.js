@@ -43,7 +43,6 @@ require.cache[llmClientPath] = {
 const {
     resolveContextPolicy, invalidateContextPolicy, normalizePolicy,
     buildCompactionOptions, contextWindowFor, overflowTokensFor,
-    contextWindowExamples,
     CONFIG_KEY_PREFIX, DEFAULT_CONTEXT_BUDGET_PERCENT,
 } = require('./contextPolicy');
 const { compactMessages, needsSummarization } = require('./compaction');
@@ -160,15 +159,8 @@ test('the percentage is clamped into a range that can never fold everything', ()
     assert.strictEqual(normalizePolicy(null).contextBudgetPercent, DEFAULT_CONTEXT_BUDGET_PERCENT);
 });
 
-test('the settings screen gets real context windows, not a second hardcoded table', () => {
-    const examples = contextWindowExamples();
-    assert.ok(examples.length >= 2);
-    for (const ex of examples) {
-        assert.ok(typeof ex.label === 'string' && ex.label);
-        assert.strictEqual(ex.contextWindow, contextWindowFor(ex.label.toLowerCase().replace(/[ .]/g, '-')),
-            `${ex.label} must be derived from contextWindowFor, not typed out again`);
-    }
-});
+// The settings screen's worked examples are per organisation now:
+// core/llm/contextWindowExamples.test.js.
 
 // ── the gate itself ─────────────────────────────────────────────────────
 

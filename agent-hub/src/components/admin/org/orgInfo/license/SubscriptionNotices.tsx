@@ -1,6 +1,11 @@
 import { AlertTriangle, Clock, Loader2, Shield, Sparkles } from 'lucide-react';
 import { useLicenseText } from './licenseShared';
 import type { OrgSubscription, SubMessage } from './licenseShared';
+import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS, ALERT_WARNING } from '@/components/shared/adminUi';
+import { buttonClass } from '@/components/shared/buttonClasses';
+
+/** The notices on this page: the shared alert recipes, at the page's own padding. */
+const NOTICE = 'px-4 py-3 items-center gap-3';
 
 /**
  * Subscription action result (upgrade/downgrade/cancel/checkout, and the
@@ -12,7 +17,7 @@ export function SubMessageBanner({ message, onDismiss }: { message: SubMessage; 
     return (
         <div
             role={message.type === 'success' ? 'status' : 'alert'}
-            className={`rounded-xl px-4 py-2.5 text-[12.5px] font-medium flex items-center gap-2 ${message.type === 'success' ? 'bg-green-500/10 text-[var(--success-ink)] border border-green-500/30' : 'bg-red-500/10 text-[var(--error-ink)] border border-red-500/30'}`}
+            className={`${message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR} ${NOTICE} text-[12.5px] font-medium`}
         >
             <span aria-hidden="true">{message.type === 'success' ? '✓' : '⚠'}</span>
             <span className="flex-1">{message.text}</span>
@@ -29,8 +34,8 @@ export function SubMessageBanner({ message, onDismiss }: { message: SubMessage; 
 export function ServerOverrideNotice() {
     const { t } = useLicenseText();
     return (
-        <div className="rounded-2xl border px-5 py-4 flex items-start gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]">
-            <Shield className="w-4 h-4 mt-0.5 flex-shrink-0 [color:rgb(59,130,246)]" />
+        <div className={`${ALERT_INFO} px-4 py-3 gap-3`}>
+            <Shield className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
             <div className="text-xs text-[var(--text-secondary)]">
                 <div className="font-semibold mb-0.5 text-[var(--text-primary)]">
                     {t('license.server_override_title', 'Tier is managed server-wide')}
@@ -48,10 +53,8 @@ export function ServerOverrideNotice() {
 export function CheckoutSettlingNotice() {
     const { t } = useLicenseText();
     return (
-        <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
-        >
-            <Loader2 className="w-4 h-4 animate-spin shrink-0 [color:#3b82f6]" />
+        <div className={`${ALERT_INFO} ${NOTICE}`}>
+            <Loader2 className="w-4 h-4 animate-spin shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.activating_subscription', 'Activating your subscription…')}
@@ -78,10 +81,8 @@ interface UndoBannerProps {
 export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps) {
     const { t, fmtDate } = useLicenseText();
     return (
-        <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(100,116,139,0.35)] [background:rgba(100,116,139,0.06)]"
-        >
-            <Clock className="w-4 h-4 shrink-0 [color:#64748b]" />
+        <div className={`${ALERT_INFO} ${NOTICE}`}>
+            <Clock className="w-4 h-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.downgrade_scheduled', 'Downgrade to')} {sub.pending_plan_name || t('org.a_lower_plan', 'a lower plan')} {t('org.downgrade_scheduled_on', 'on')} {sub.pending_plan_effective ? fmtDate(sub.pending_plan_effective) : t('org.period_end', 'the end of this period')}.
@@ -93,7 +94,7 @@ export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps)
             <button
                 onClick={onUndo}
                 disabled={busy}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50 [border-color:rgba(100,116,139,0.35)] [color:#64748b]! [background:rgba(100,116,139,0.05)]"
+                className={`shrink-0 ${buttonClass('secondary', 'sm')}`}
             >
                 {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('org.keep_current_plan', 'Keep current plan')}
             </button>
@@ -109,10 +110,8 @@ export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps)
 export function ScheduledCancelBanner({ sub, busy, onUndo }: UndoBannerProps) {
     const { t, fmtDate } = useLicenseText();
     return (
-        <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
-        >
-            <AlertTriangle className="w-4 h-4 shrink-0 [color:#3b82f6]" />
+        <div className={`${ALERT_WARNING} ${NOTICE}`}>
+            <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('org.cancel_scheduled', 'Subscription cancels on')} {sub.cancel_at ? fmtDate(sub.cancel_at) : t('org.period_end', 'the end of this period')}.
@@ -124,7 +123,7 @@ export function ScheduledCancelBanner({ sub, busy, onUndo }: UndoBannerProps) {
             <button
                 onClick={onUndo}
                 disabled={busy}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50 [border-color:rgba(59,130,246,0.3)] [color:#3b82f6]! [background:rgba(59,130,246,0.05)]"
+                className={`shrink-0 ${buttonClass('secondary', 'sm')}`}
             >
                 {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('org.keep_subscription', 'Keep subscription')}
             </button>
@@ -137,7 +136,7 @@ export function HighestPlanNotice() {
     const { t } = useLicenseText();
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3 text-[12px] text-[var(--text-muted)]">
-            {t('org.on_highest_plan', "You're on the highest plan — contact")} <a href="mailto:info@beeflow.nl" className="text-[#3b82f6] hover:underline">info@beeflow.nl</a> {t('org.for_custom_pricing', 'for custom pricing.')}
+            {t('org.on_highest_plan', "You're on the highest plan — contact")} <a href="mailto:info@beeflow.nl" className="text-[var(--text-primary)] underline underline-offset-2 hover:no-underline">info@beeflow.nl</a> {t('org.for_custom_pricing', 'for custom pricing.')}
         </div>
     );
 }
@@ -150,8 +149,8 @@ export function HighestPlanNotice() {
 export function UsageUpgradeCta({ pct, onUpgrade }: { pct: number; onUpgrade: (() => void) | null }) {
     const { t } = useLicenseText();
     return (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-center gap-3">
-            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+        <div className={`${ALERT_WARNING} ${NOTICE}`}>
+            <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('admin_org.license_budget_used', "You've used {pct}% of your AI usage budget this period.", { pct })}
@@ -162,7 +161,7 @@ export function UsageUpgradeCta({ pct, onUpgrade }: { pct: number; onUpgrade: ((
                 <button
                     type="button"
                     onClick={onUpgrade}
-                    className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-opacity"
+                    className={`shrink-0 ${buttonClass('primary', 'sm')}`}
                 >
                     {t('admin_org.license_upgrade_plan', 'Upgrade plan')}
                 </button>

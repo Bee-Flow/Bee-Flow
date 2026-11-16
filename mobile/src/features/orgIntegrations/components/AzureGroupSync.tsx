@@ -48,8 +48,8 @@ export function AzureGroupSync({ orgId, config, ready }: { orgId: string | null;
     return (
         <>
             <Group
-                title={t('azure.sync_groups_title', 'Azure AD Group Sync')}
-                footer={t('azure.sync_groups_desc', 'Automatically sync groups and users assigned to your Azure AD enterprise app to BeeFlow.')}
+                title={t('azure.sync_groups_title', 'Microsoft Entra ID group sync')}
+                footer={t('azure.sync_groups_desc', 'Automatically sync the groups and users assigned to your Entra ID enterprise app to Bee Flow.')}
             >
                 {status.lastSyncAt ? (
                     <>
@@ -84,7 +84,7 @@ export function AzureGroupSync({ orgId, config, ready }: { orgId: string | null;
                 ) : null}
                 <Button
                     testID="azure-sync-now"
-                    label={sync.isPending ? t('azure.sync_syncing', 'Syncing...') : t('azure.sync_groups_button', 'Sync Now')}
+                    label={sync.isPending ? t('azure.sync_syncing', 'Syncing...') : t('azure.sync_groups_button', 'Sync now')}
                     iconName="RefreshCw"
                     loading={sync.isPending}
                     disabled={!ready}

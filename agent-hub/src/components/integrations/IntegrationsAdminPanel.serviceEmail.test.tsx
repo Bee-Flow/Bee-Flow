@@ -9,16 +9,16 @@ import { asMock, partial } from '@/test/mocks';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+const enterprise = vi.hoisted(() => ({ on: true }));
 vi.mock('../licensing/LicenseContext', () => ({
-    useLicenseContext: () => ({ hasFeature: () => true, hasTier: () => true }),
+    useLicenseContext: () => ({ hasFeature: () => true, hasTier: () => enterprise.on }),
 }));
-// Heavy siblings rendered by other sections — not under test here.
-vi.mock('./FeatureKillSwitches', () => ({ default: () => null }));
 
 const OAUTH_START = '/ai/config/service-email/oauth/start';
 const json = (body: unknown, ok = true) => Promise.resolve({ ok, json: async () => body });
 
 beforeEach(() => {
+    enterprise.on = true;
     asMock(authFetch).mockReset();
     asMock(authFetch).mockImplementation((url: string) => {
         const u = String(url);
@@ -75,18 +75,65 @@ describe('IntegrationsAdminPanel — service email OAuth', () => {
 });
 
 describe('IntegrationsAdminPanel — section navigation', () => {
-    it('lists the sections in a named navigation and marks the one from the URL', async () => {
-        render(<IntegrationsAdminPanel activeSection="search" />);
-        const nav = await screen.findByRole('navigation', { name: 'admin.tab_integrations' });
+    it('lists the Platform services sections in a named navigation and marks the one from the URL', async () => {
+        render(<IntegrationsAdminPanel activeSection="email" />);
+        const nav = await screen.findByRole('navigation', { name: 'Platform services' });
         expect(nav).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'admin.integ_search' })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('button', { name: 'admin.integ_features' })).not.toHaveAttribute('aria-current');
+        expect(screen.getByRole('button', { name: 'Email' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Defaults for new organisations' })).not.toHaveAttribute('aria-current');
+        // The feature switches moved to Licence & features, the search provider to AI configuration.
+        expect(screen.queryByRole('button', { name: 'Features' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument();
     });
 
     it('navigates to admin/integrations/<id> when a section is clicked', async () => {
         const onNavigate = vi.fn();
-        render(<IntegrationsAdminPanel activeSection="features" onNavigate={onNavigate} />);
-        await userEvent.click(await screen.findByRole('button', { name: 'admin.integ_email' }));
+        render(<IntegrationsAdminPanel activeSection="defaults" onNavigate={onNavigate} />);
+        await userEvent.click(await screen.findByRole('button', { name: 'Email' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/integrations/email');
+    });
+
+    it('offers only the sections a mount names, without the section column (the dashboard\'s Platform services)', async () => {
+        render(<IntegrationsAdminPanel sections={['defaults', 'email']} activeSection="features" />);
+        // A section it does not offer (Features moved to Licence & features) opens its first one.
+        expect(await screen.findByRole('button', { name: 'Turn all on' })).toBeInTheDocument();
+        expect(screen.queryByRole('navigation', { name: 'Platform services' })).not.toBeInTheDocument();
+    });
+
+    it('still renders the search provider for a mount that names it', async () => {
+        render(<IntegrationsAdminPanel sections={['search']} activeSection="search" />);
+        expect((await screen.findAllByText('Search Provider')).length).toBeGreaterThan(0);
+    });
+});
+
+describe('IntegrationsAdminPanel — connected apps', () => {
+    it('keeps the Google Maps key on Community, without the Enterprise apps', async () => {
+        enterprise.on = false;
+        render(<IntegrationsAdminPanel sections={['connected-apps']} activeSection="connected-apps" />);
+        expect(await screen.findByText('Google Maps')).toBeInTheDocument();
+        expect(screen.queryByText(/LinkedIn/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Withings/)).not.toBeInTheDocument();
+    });
+
+    it('drops the Azure OpenAI embedding model (now under Search & retrieval)', async () => {
+        render(<IntegrationsAdminPanel sections={['connected-apps']} activeSection="connected-apps" />);
+        expect(await screen.findByText('Google Maps')).toBeInTheDocument();
+        expect(screen.getByText(/Document Intelligence/, { selector: 'h4 *, h4' })).toBeInTheDocument();
+        expect(screen.queryByText(/Azure OpenAI Embeddings/)).not.toBeInTheDocument();
+    });
+
+    it('says a failed Maps key save instead of swallowing it', async () => {
+        asMock(authFetch).mockImplementation((url: string, init?: RequestInit) => {
+            const u = String(url);
+            if (u.includes('/ai/config') && init?.method === 'POST') return Promise.resolve({ ok: false, status: 400, json: async () => ({ error: 'bad key' }) });
+            if (u.includes('/auth/default-integrations')) return json({ defaults: null });
+            if (u.includes('/mcp/servers')) return json({ servers: [] });
+            return json({});
+        });
+        const user = userEvent.setup();
+        render(<><Toaster /><IntegrationsAdminPanel sections={['connected-apps']} activeSection="connected-apps" /></>);
+        await user.type(await screen.findByLabelText('Google Maps API key'), 'k-123');
+        await user.click(screen.getAllByRole('button', { name: /Save/ })[0]);
+        expect(await screen.findByText('Could not save the Google Maps key')).toBeInTheDocument();
     });
 });

@@ -13,6 +13,8 @@ export interface KindTileProps {
 /** The name: a plain 14/600 span, or a rename-on-click button + input. */
 export interface TitleProps {
     title: string;
+    /** The heading element of a plain (not renamable) title; h1 when left out. */
+    as?: 'h1' | 'h2' | 'h3';
     onRename?: (next: string) => void;
     renameRequest?: number;
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
@@ -73,6 +75,8 @@ export interface StudioSectionHeaderProps {
     tabs?: boolean | StudioSectionHeaderTab[] | null;
     tabsFold?: string;
     titleMin?: boolean;
+    /** The title's heading element: h1 by default, lower under a frame that already draws the page heading (the admin dashboard). */
+    titleAs?: 'h1' | 'h2' | 'h3';
     capsule?: React.ReactNode | null;
     primary?: React.ReactNode | null;
     extras?: React.ReactNode | null;

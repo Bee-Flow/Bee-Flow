@@ -1,7 +1,7 @@
 import { History, Loader2, RotateCcw } from 'lucide-react';
-import type { CSSProperties } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { LedgerVersion, MarketplaceHubVersion } from '@/api/queries/modules.types';
+import { CHIP, CHIP_ERROR, CHIP_SUCCESS, CHIP_WARNING, PRIMARY_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 export interface VersionRow {
     version: string;
@@ -68,12 +68,13 @@ const STATUS_KEY: Record<string, string> = {
     quarantined: 'modules.version_status_quarantined',
 };
 
-const STATUS_STYLE: Record<string, CSSProperties> = {
-    active: { background: 'rgba(16,185,129,0.15)', color: '#10b981' },
-    staged: { background: 'rgba(245,158,11,0.15)', color: '#f59e0b' },
-    failed: { background: 'rgba(239,68,68,0.15)', color: '#ef4444' },
-    incompatible: { background: 'rgba(239,68,68,0.15)', color: '#ef4444' },
-    quarantined: { background: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+// Ledger status → chip (the theme's status pairs; retired and unknown are neutral).
+const STATUS_CHIP: Record<string, string> = {
+    active: CHIP_SUCCESS,
+    staged: CHIP_WARNING,
+    failed: CHIP_ERROR,
+    incompatible: CHIP_ERROR,
+    quarantined: CHIP_ERROR,
 };
 
 export default function VersionHistory({ hubVersions, ledgerVersions, busy = false, onRollback, onActivateStaged }: VersionHistoryProps) {
@@ -94,20 +95,17 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                             <History className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                             <span className="text-xs font-semibold text-[var(--text-primary)]">v{row.version}</span>
                             {row.channel && row.channel !== 'stable' && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
+                                <span className={CHIP_WARNING}>
                                     {row.channel}
                                 </span>
                             )}
                             {row.yanked && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium [background:rgba(239,68,68,0.15)] [color:#ef4444]!">
+                                <span className={CHIP_ERROR}>
                                     {t('modules.yanked')}
                                 </span>
                             )}
                             {status && (
-                                <span
-                                    className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                                    style={STATUS_STYLE[status] || { background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}
-                                >
+                                <span className={STATUS_CHIP[status] || CHIP}>
                                     {t(STATUS_KEY[status] || 'modules.version_status_retired')}
                                 </span>
                             )}
@@ -116,7 +114,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                                 <button
                                     onClick={() => onActivateStaged(row.version)}
                                     disabled={busy}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium disabled:opacity-50 flex items-center gap-1 [background:var(--accent-primary)] [color:#fff]!"
+                                    className={PRIMARY_BTN}
                                 >
                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                                     {t('modules.activate_staged')}
@@ -126,7 +124,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                                 <button
                                     onClick={() => onRollback(row.version)}
                                     disabled={busy}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium border disabled:opacity-50 flex items-center gap-1 bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-default)]"
+                                    className={SECONDARY_BTN}
                                     data-testid={`rollback-${row.version}`}
                                 >
                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
@@ -140,7 +138,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                             </p>
                         )}
                         {row.ledger?.error && (
-                            <p className="text-xs mt-1 ml-5 [color:#ef4444]!">{row.ledger.error}</p>
+                            <p className="text-xs mt-1 ml-5 text-[var(--error-ink)]">{row.ledger.error}</p>
                         )}
                     </li>
                 );

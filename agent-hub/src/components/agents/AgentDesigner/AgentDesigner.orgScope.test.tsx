@@ -53,14 +53,14 @@ describe('AgentDesigner and the dashboard organisation', () => {
         const user = userEvent.setup();
         agentsAnswer = { status: 200, body: [] };
         render(withQueryClient(<AgentDesigner orgId="org-b" />));
-        await user.click(await screen.findByRole('button', { name: 'Create First Agent' }));
+        await user.click(await screen.findByRole('button', { name: 'Create first agent' }));
         await user.type(screen.getByLabelText('Name'), 'Helper');
         await user.click(screen.getByRole('button', { name: 'Add to category' }));
         await user.type(screen.getByPlaceholderText('Category name...'), 'Sales');
         await user.click(screen.getByRole('button', { name: 'Create' }));
         await waitFor(() => expect(sent.some(s => s.url.includes('/agents/categories'))).toBe(true));
         expect(sent.find(s => s.url.includes('/agents/categories'))?.url).toContain('/agents/categories?orgId=org-b');
-        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(sent.some(s => /\/agents$/.test(s.url))).toBe(true));
         expect(sent.find(s => /\/agents$/.test(s.url))?.body).toMatchObject({ name: 'Helper', organizationId: 'org-b', categoryId: 'cat-new' });
     });
@@ -69,9 +69,9 @@ describe('AgentDesigner and the dashboard organisation', () => {
         const user = userEvent.setup();
         agentsAnswer = { status: 200, body: [] };
         render(withQueryClient(<AgentDesigner showOrgNames />));
-        await user.click(await screen.findByRole('button', { name: 'Create First Agent' }));
+        await user.click(await screen.findByRole('button', { name: 'Create first agent' }));
         await user.type(screen.getByLabelText('Name'), 'Helper');
-        await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(sent.some(s => /\/agents$/.test(s.url))).toBe(true));
         expect(sent.find(s => /\/agents$/.test(s.url))?.body).not.toHaveProperty('organizationId');
     });

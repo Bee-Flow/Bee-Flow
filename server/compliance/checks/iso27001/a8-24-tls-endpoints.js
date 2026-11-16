@@ -28,7 +28,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'tls-endpoints', 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.');
+        const read = await readConnectorSnapshots(orgId, 'tls-endpoints', 'TLS-endpoint connector not enabled — list your public endpoints under Compliance → Evidence connectors.');
         if (read.result) return read.result;
         const { snaps } = read;
         if (!snaps) return noSnapshotYet('tls-endpoints', 'Connector enabled but its snapshots could not be read.', { endpoints: 0 });

@@ -35,7 +35,7 @@ export function SupportEmailFailureBanner({ messages }: { messages: SupportMessa
             <div>
                 <div className="font-medium">{t('support.support_inbox_outbound_email_failed_for_one_of_the', 'Outbound email failed for one of the messages in this thread.')}</div>
                 <div className="opacity-80">{err}</div>
-                <div className="opacity-60 mt-0.5">{t('support.support_inbox_check_admin_integrations_email_and', 'Check Admin → Integrations → Email and confirm SMTP credentials are valid.')}</div>
+                <div className="opacity-60 mt-0.5">{t('support.support_inbox_check_admin_integrations_email_and', 'Check Admin dashboard → Whole server → Platform services → Email and confirm SMTP credentials are valid.')}</div>
             </div>
         </div>
     );

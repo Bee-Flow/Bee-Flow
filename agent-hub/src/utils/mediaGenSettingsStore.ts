@@ -4,7 +4,7 @@
 //   function getSettings() { return scopedStorage.getJSON(STORAGE_KEY, {}); }
 //   function saveSettings(section, data) { ... }
 // helper pair that was copy-pasted into ElevenLabsSettings, VideoGenSettings,
-// MusicGenSettings and NanoBananaSettings. All four panels persist into the
+// MusicGenSettings and ImageGenSettings. All four panels persist into the
 // same 'nanoBananaSettings' blob, one section per panel ('image',
 // 'elevenlabs', 'sfx', 'video', 'lyria') — use the shared
 // `mediaGenSettingsStore` instance below so migration/mirroring stays

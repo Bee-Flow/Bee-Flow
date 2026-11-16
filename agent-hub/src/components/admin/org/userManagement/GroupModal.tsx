@@ -1,6 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
+import { Button } from '@/components/shared/Button';
+import { INPUT } from '@/components/shared/adminUi';
 import GroupAllowedTiers from '../orgUsers/GroupAllowedTiers';
 import ImageLimitsField from '../imageLimits/ImageLimitsField';
 import { GroupRoleSelect } from '../orgUsers/GroupSettings';
@@ -42,27 +44,24 @@ export default function GroupModal({
             size="md"
             footer={
                 <>
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg font-medium text-[var(--text-secondary)]">
+                    <Button variant="secondary" onClick={onClose}>
                         {t('admin.sec_cancel', 'Cancel')}
-                    </button>
-                    <button
-                        onClick={showEditGroup ? onSubmitUpdate : onSubmitAdd}
-                        className="px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"
-                    >
+                    </Button>
+                    <Button variant="primary" onClick={showEditGroup ? onSubmitUpdate : onSubmitAdd}>
                         {showEditGroup ? t('admin.sec_save', 'Save') : t('admin.sec_group_add_submit', 'Add group')}
-                    </button>
+                    </Button>
                 </>
             }
         >
             <div className="space-y-4">
-                {!showEditGroup && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_name', 'Group Name')}</label><input type="text" value={groupData.name} onChange={e => setGroupData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_name_ph', 'Editors')} /></div>}
+                {!showEditGroup && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_name', 'Group Name')}</label><input type="text" value={groupData.name} onChange={e => setGroupData(p => ({ ...p, name: e.target.value }))} className={INPUT} placeholder={t('admin_org.group_modal_name_ph', 'Editors')} /></div>}
 
                 <div>
                     <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_organization', 'Organization')}</label>
                     <select
                         value={groupData.organizationId || ''}
                         onChange={e => setGroupData(p => ({ ...p, organizationId: e.target.value || '' }))}
-                        className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                        className={INPUT}
                     >
                         <option value="" className="bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('admin_org.group_modal_none_global', 'None (Global Group)')}</option>
                         {organizations.map(org => (
@@ -71,13 +70,13 @@ export default function GroupModal({
                     </select>
                 </div>
 
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_description', 'Description')}</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_desc_ph', 'Can edit agents')} /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_description', 'Description')}</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className={INPUT} placeholder={t('admin_org.group_modal_desc_ph', 'Can edit agents')} /></div>
                 {showEditGroup && <GroupInheritanceFields groupData={groupData} setGroupData={setGroupData} customTiersMeta={customTiersMeta} />}
                 <GroupLimitFields groupData={groupData} setGroupData={setGroupData} isSelfHosted={isSelfHosted} t={t} />
                 <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_permissions', 'Permissions')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {permissions.filter(p => isFullAdmin || (currentUser?.permissions || []).includes(p.id)).map(p => (
-                            <label key={p.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">
+                            <label key={p.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--item-hover-bg)] rounded">
                                 <input type="checkbox" checked={groupData.permissions.includes(p.id)} onChange={e => setGroupData(prev => ({ ...prev, permissions: e.target.checked ? [...prev.permissions, p.id] : prev.permissions.filter(x => x !== p.id) }))} className="accent-[var(--accent-primary)]" />
                                 <span className="text-sm text-[var(--text-primary)]">{p.name}</span>
                             </label>
@@ -87,7 +86,7 @@ export default function GroupModal({
                 <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_roles', 'Assigned Roles')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {roles.filter(r => isFullAdmin || (r.permissions || []).every(rp => (currentUser?.permissions || []).includes(rp))).map(r => (
-                            <label key={r.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">
+                            <label key={r.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--item-hover-bg)] rounded">
                                 <input type="checkbox" checked={groupData.roles?.includes(r.id)} onChange={e => setGroupData(prev => ({ ...prev, roles: e.target.checked ? [...(prev.roles || []), r.id] : (prev.roles || []).filter(x => x !== r.id) }))} className="accent-[var(--accent-primary)]" />
                                 <span className="text-sm text-[var(--text-primary)]">{r.name}</span>
                             </label>
@@ -98,7 +97,7 @@ export default function GroupModal({
                     <p className="text-xs mb-2 text-[var(--text-muted)]">{t('admin_org.group_modal_agent_types_hint', 'Leave all unchecked to allow all types')}</p>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {ALLOWED_AGENT_TYPES.map(type => (
-                            <label key={type.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">
+                            <label key={type.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--item-hover-bg)] rounded">
                                 <input type="checkbox" checked={(groupData.allowedAgentTypes || []).includes(type.id)} onChange={e => setGroupData(prev => ({ ...prev, allowedAgentTypes: e.target.checked ? [...(prev.allowedAgentTypes || []), type.id] : (prev.allowedAgentTypes || []).filter(x => x !== type.id) }))} className="accent-[var(--accent-primary)]" />
                                 <span className="text-sm text-[var(--text-primary)]">{type.name}</span>
                             </label>
@@ -143,7 +142,7 @@ function GroupCostLimitField({ value, onChange, t }: { value: string; onChange: 
                 inputMode="decimal"
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                className={INPUT}
                 placeholder={t('admin_org.cost_limit_placeholder', 'No limit')}
             />
             <p className="text-xs mt-1 text-[var(--text-muted)]">{t('admin_org.group_modal_cost_limit_hint', "Every member of this group gets this amount for themselves; it is not shared between them. A member's own budget takes precedence. Leave empty for no limit.")}</p>

@@ -11,6 +11,7 @@ import { withShell } from '@/test/shellProviders';
 import EntitlementsContext, { type EntitlementsValue } from '@/components/licensing/EntitlementsContext';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import type { OrgSectionFacts } from '@/components/admin/organisation/orgSections';
+import type { FamilyAvailability, IntegrationFamily, OrgIntegrationAvailability } from '@/api/queries/orgIntegrationAvailability';
 import { withQueryClient } from './queryWrapper';
 
 type LicenseValue = React.ComponentProps<typeof LicenseContext.Provider>['value'];
@@ -32,12 +33,56 @@ export const ORG_ADMIN_BY_ROLE = {
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 
-/** Answers the reads the tab makes and records every address asked; `github` is the viewer's GitHub connection. */
-export function stubOrgApi({ github = false }: { github?: boolean } = {}): string[] {
+const FAMILIES: readonly IntegrationFamily[] = [
+    'google', 'microsoft', 'nextcloud', 'github', 'n8n', 'maps', 'mcp', 'meetingNotes', 'projects', 'learningCenter', 'automations', 'imageGen',
+];
+
+interface AvailabilityOptions {
+    orgId?: string;
+    homeOrg?: boolean;
+    /** The families that are NOT available (every other one is). */
+    off?: readonly IntegrationFamily[];
+    ncBound?: boolean;
+    githubSync?: boolean;
+}
+
+/** The integration availability answer of one organisation: every family available unless listed in `off`. */
+export function availabilityAnswer({ orgId = 'org-a', homeOrg = true, off = [], ncBound = false, githubSync = false }: AvailabilityOptions = {}): OrgIntegrationAvailability {
+    const family = (id: IntegrationFamily): FamilyAvailability => (off.includes(id)
+        ? { serverConfigured: true, inCeiling: false, available: false, reason: 'not_in_plan' }
+        : { serverConfigured: true, inCeiling: true, available: true });
+    return {
+        orgId, homeOrg, degraded: false,
+        families: Object.fromEntries(FAMILIES.map(id => [id, family(id)])) as Record<IntegrationFamily, FamilyAvailability>,
+        nextcloud: { bound: ncBound, apps: [], pairingAvailable: !ncBound },
+        microsoft: { directoryConnected: false },
+        github: { syncConfigured: githubSync },
+        signIn: { password: true, google: false, microsoft: false, ssoLicensed: false },
+        integrations: {},
+    };
+}
+
+/** The organisation an availability address asks about (/auth/organizations/<id>/integration-availability), or null. */
+export function availabilityOrgOf(address: string): string | null {
+    const marker = '/integration-availability';
+    const end = address.indexOf(marker);
+    if (end < 0) return null;
+    const head = address.slice(0, end);
+    return decodeURIComponent(head.slice(head.lastIndexOf('/') + 1));
+}
+
+/**
+ * Answers the reads the tab makes and records every address asked; `github` is
+ * the viewer's GitHub connection, `availability` the chosen organisation's
+ * integration availability (every family available unless it says otherwise).
+ */
+export function stubOrgApi({ github = false, availability = {} }: { github?: boolean; availability?: AvailabilityOptions } = {}): string[] {
     const asked: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
         const address = String(url);
         asked.push(address);
+        const availabilityOrg = availabilityOrgOf(address);
+        if (availabilityOrg) return json(availabilityAnswer({ homeOrg: availabilityOrg === 'org-a', ...availability, orgId: availabilityOrg }));
         if (address.includes('/auth/organizations')) return json(ORGS);
         if (address.includes('/api/org/mcp-access')) {
             return json({ policy: { enabled: true, ipAllowlist: [], allowedUsers: { mode: 'all', roles: [], userIds: [] }, rejectLegacyTokens: false }, callerIp: null });
@@ -85,12 +130,16 @@ export function renderOrgTab({ user = PLATFORM_ADMIN, section = 'info', search =
     return { onNavigate };
 }
 
-/** The section-rule facts of an organisation admin on cloud with every gate open; override what a case is about. */
+/**
+ * The section-rule facts of an organisation admin on cloud whose organisation
+ * has every family but GitHub and is not bound to a Nextcloud; override what a
+ * case is about.
+ */
 export function orgFacts(over: Partial<OrgSectionFacts> = {}): OrgSectionFacts {
     return {
-        canSeeOrg: true, isSelfHosted: false, isNcConnectorUser: false, isNcOrg: false, showNcSync: false, isPlatformAdmin: false,
-        canUseLearning: true, githubConnected: false, orgAuthLocked: false, entitlementsLoading: false, entitlementsUnknown: false,
-        inCeiling: id => id === 'meeting_notes',
+        canSeeOrg: true, canManageKnowledge: false, isSelfHosted: false, isNcConnectorUser: false, isPlatformAdmin: false,
+        ncBound: false, ncSectionAvailable: false, githubAvailable: false, microsoft365: false,
+        meetingNotes: true, mcp: true, projects: true, learningCenter: true, automations: true,
         ...over,
     };
 }

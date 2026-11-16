@@ -84,8 +84,8 @@ test('a misspelled account type is refused instead of becoming an org signup', a
 });
 
 test('an unknown sign-in method is refused instead of silently becoming google', async () => {
-    // It becomes the organisation's write-once authMethod column; no later
-    // edit can put it right.
+    // It becomes the organisation's preferred sign-in method (the authMethod
+    // column); a guessed value would be stored as if someone had chosen it.
     await refuses({
         method: 'POST', url: '/pending-signup',
         body: { signupType: 'consumer', authMethod: 'gogle' },

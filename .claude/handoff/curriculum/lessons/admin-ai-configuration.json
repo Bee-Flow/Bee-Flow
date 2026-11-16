@@ -21,14 +21,14 @@
    "id": "doors",
    "icon": "🚪",
    "title": "Two doors to the same switchboard",
-   "bodyMd": "**Admin → AI Configuration** is the full panel. Its left rail reads **API Keys · Chat Models · Embeddings · Direct Chat · Web Search Inference · Limits & Self-host**. It belongs to the platform operator — the super admin who runs the deployment.\n\nOn a self-hosted workspace an org admin gets a second door: **Admin dashboard → Organisation → Azure Configuration**, with the sub-sections **Azure OpenAI**, **Chat Model Tiers**, **Document Processing** and **Microsoft SSO**. The Chat Model Tiers row carries a badge such as *2/4 tiers* — how many of Fast, Thinking, Writer and Deep Thinking actually have a model.\n\nIf neither is in your menu, you are on a hosted deployment. You still read every consequence on Usage & Monitoring; you just ask instead of click."
+   "bodyMd": "**Admin dashboard → Whole server → AI configuration** is the full panel. Its rows read **Providers · Models · Search & retrieval · Direct chat · Setup status**. It belongs to the platform operator — the super admin who runs the deployment.\n\nAn organisation admin gets a second door: **Admin dashboard → AI & agents → Models**, which shows the organisation's own model tiers next to the tiers of the whole server — so you can read which model sits behind Fast, Thinking, Writer and Deep Thinking without being able to change them.\n\nIf neither is in your menu, the AI set-up is someone else's to change. You still read every consequence on Usage & Monitoring; you just ask instead of click."
   },
   {
    "type": "slide",
    "id": "tier-card",
    "icon": "🃏",
    "title": "Inside one tier card",
-   "bodyMd": "Under **Chat Models** sits the section **Chat Model Tiers** — *\"Assign a model to each tier for Direct Chat mode\"*. Expand a tier and you get the model picker plus **Max Tokens**, **Temperature**, **Reasoning Effort** (called **Thinking Effort** on Claude reasoning models), **Reasoning Summary** and **Verbosity**.\n\nThe built-in defaults *of this panel* are worth memorising, because they explain most complaints:\n\n- **Fast** — 4096 max tokens, temperature 0.2, verbosity low\n- **Thinking** and **Writer** — 32768 max tokens, temperature 0.7\n- **Deep Thinking** — 64000 max tokens, temperature 0.7, verbosity high\n\nWatch out: the self-hosted **Azure Configuration → Chat Model Tiers** screen has its own tier cards with their own built-in defaults, so read the number in front of you rather than reciting these.\n\nWhen a tier points at a Claude model, a **Bee Flow recommends** line appears with the model, token budget and effort Bee Flow would pick. Nothing takes effect until **Save Tier Configuration** is pressed — so note the old values first, and any change is a one-minute walk back."
+   "bodyMd": "Under **Models** sits the section **Chat Model Tiers** — *\"Assign a model to each tier for Direct Chat mode\"*. Expand a tier and you get the model picker plus **Max Tokens**, **Temperature**, **Reasoning Effort** (called **Thinking Effort** on Claude reasoning models), **Reasoning Summary** and **Verbosity**.\n\nThe built-in defaults *of this panel* are worth memorising, because they explain most complaints:\n\n- **Fast** — 4096 max tokens, temperature 0.2, verbosity low\n- **Thinking** and **Writer** — 32768 max tokens, temperature 0.7\n- **Deep Thinking** — 32768 max tokens, temperature 0.7, verbosity high\n\nWatch out: a tier that someone already saved shows its own values instead of these defaults, so read the number in front of you rather than reciting these.\n\nWhen a tier points at a Claude model, a **Bee Flow recommends** line appears with the model, token budget and effort Bee Flow would pick. Nothing takes effect until **Save Tier Configuration** is pressed — so note the old values first, and any change is a one-minute walk back."
   },
   {
    "type": "quiz",
@@ -82,13 +82,13 @@
       "id": "p1",
       "left": "Nobody gets a web result in chat, whatever depth they pick.",
       "right": "The search provider setting",
-      "note": "Web search is a provider choice under Admin → Integrations → Search — Disabled is one of the options, and it makes the tool quietly absent."
+      "note": "Web search is a provider choice under Admin dashboard → Whole server → AI configuration → Search & retrieval — Disabled is one of the options, and it makes the tool quietly absent."
      },
      {
       "id": "p2",
       "left": "Works-council audio must stay on hardware Van Dijk owns.",
       "right": "Transcription Active Provider",
-      "note": "One engine is chosen for the whole workspace under Admin → Integrations → Transcription; WhisperX is the self-hosted option."
+      "note": "One engine is chosen for the whole workspace under Admin dashboard → Whole server → Platform services → Transcription; WhisperX is the self-hosted option."
      },
      {
       "id": "p3",
@@ -100,7 +100,7 @@
       "id": "p4",
       "left": "Long Deep Thinking answers stop mid-sentence.",
       "right": "Max Tokens on that tier card",
-      "note": "Max Tokens caps what the model may write back — 64000 is only the default for Deep Thinking, not a law."
+      "note": "Max Tokens caps what the model may write back — 32768 is only the default for Deep Thinking, not a law."
      },
      {
       "id": "p5",
@@ -123,7 +123,7 @@
    "id": "engines",
    "icon": "🔌",
    "title": "Two engines that are not tiers",
-   "bodyMd": "**Admin → Integrations** (operator only) has its own sections, among them **Search** and **Transcription**.\n\n**Transcription → Active Provider** — *\"Choose which engine will be used when you transcribe audio in Meeting Notes.\"* The options are **Voxtral**, **Azure Speech**, **WhisperX** (self-hosted), **Scaleway** (EU Whisper large-v3 with a local diarizer), **pyannoteAI** (the best diarisation, and what voice profiles need) and the local CPU Whisper. One engine serves the whole workspace; nobody chooses per upload.\n\n**Search** — a provider dropdown with **Disabled**, **Azure Bing Search**, **Cloud-only (Serper + provider APIs)** and **Self-hosted (Agent Search + Serper)**, plus **Agent Search Service URL** and **Agent Search Default Options**."
+   "bodyMd": "Two more rows belong to the operator alone: **Search & retrieval** under AI configuration, and **Transcription** under **Admin dashboard → Whole server → Platform services**.\n\n**Transcription → Active Provider** — *\"Choose which engine will be used when you transcribe audio in Meeting Notes.\"* The options are **Voxtral**, **Azure Speech**, **WhisperX** (self-hosted), **Scaleway** (EU Whisper large-v3 with a local diarizer), **pyannoteAI** (the best diarisation, and what voice profiles need) and the local CPU Whisper. One engine serves the whole workspace; nobody chooses per upload.\n\n**Search & retrieval** — a web search provider dropdown with **Disabled**, **Azure Bing Search**, **Cloud-only (Serper + provider APIs)** and **Self-hosted (Agent Search + Serper)**, plus **Agent Search Service URL** and **Agent Search Default Options**."
   },
   {
    "type": "quiz",
@@ -133,7 +133,7 @@
    "choices": [
     {
      "id": "a",
-     "label": "There is no per-recording choice. Active Provider is one setting for the whole workspace, under Admin → Integrations → Transcription, and it belongs to the platform operator.",
+     "label": "There is no per-recording choice. Active Provider is one setting for the whole workspace, under Admin dashboard → Whole server → Platform services → Transcription, and it belongs to the platform operator.",
      "correct": true
     },
     {
@@ -172,7 +172,7 @@
    "choices": [
     {
      "id": "a",
-     "label": "Admin → Integrations → Search: whether the provider went to Disabled, or the Agent Search Service URL or the search key behind it stopped working.",
+     "label": "Admin dashboard → Whole server → AI configuration → Search & retrieval: whether the provider went to Disabled, or the Agent Search Service URL or the search key behind it stopped working.",
      "correct": true
     },
     {
@@ -243,7 +243,7 @@
    "exerciseId": "ex-admin-ai-configuration-request",
    "title": "Your turn: ask the operator properly",
    "instruction": "Most of this switchboard is not yours to touch, so your real skill is the request. In three or four lines, write to Van Dijk Groep's platform operator. Name the exact screen and setting you want changed (screen, section, field), say which value and why, in terms of an effect you have measured or a rule you must meet, and say what you will check afterwards to prove it worked. Pick any one case from this lesson.",
-   "placeholder": "e.g. Please change Admin → Integrations → Transcription, Active Provider, from ... to ... , because ...",
+   "placeholder": "e.g. Please change Admin dashboard → Whole server → Platform services → Transcription, Active Provider, from ... to ... , because ...",
    "passScore": 70,
    "maxAttempts": 4
   },
@@ -253,10 +253,10 @@
    "icon": "🔎",
    "checkId": "ai-switchboard-read",
    "title": "Find out what is behind Fast",
-   "instruction": "Open the switchboard your install gives you — on a self-hosted workspace that is Admin dashboard → Organisation → Azure Configuration → Chat Model Tiers — and answer two questions: which model sits behind Fast, and does web search have a provider or is it Disabled? If that row is missing, your deployment is hosted: write the two questions down for the operator instead. The check reads what your own account can already see.",
+   "instruction": "Open the switchboard your account gives you — Admin dashboard → Whole server → AI configuration → Models for the platform operator, Admin dashboard → AI & agents → Models for an organisation admin — and answer two questions: which model sits behind Fast, and does web search have a provider or is it Disabled? If neither row is there, write the two questions down for the operator instead. The check reads what your own account can already see.",
    "launch": {
-    "navigateTo": "admin/organisation/azure",
-    "label": "Open Azure Configuration"
+    "navigateTo": "admin/organisation/models",
+    "label": "Open Models"
    }
   },
   {
@@ -264,7 +264,7 @@
    "id": "done",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **Read a depth as a bundle.** Fast, Think and Deep Thinking are a model plus an effort plus a Max Tokens budget on a tier card — not three prices. On the operator's Chat Models panel Fast starts at 4096 tokens and 0.2 temperature and Deep Thinking at 64000 and 0.7 — other screens carry their own defaults, so read the card.\n- **Name the right screen.** Chat Model Tiers for what a depth resolves to, Memory Extraction Model for the pause after every reply, Active Provider for what hears your meetings, the search provider for whether web results exist at all.\n- **Ask like an engineer.** Screen, section, field, the value you want, the effect you measured, and the check you will run afterwards. That request gets answered; \"AI is too expensive\" does not."
+   "bodyMd": "- **Read a depth as a bundle.** Fast, Think and Deep Thinking are a model plus an effort plus a Max Tokens budget on a tier card — not three prices. On the operator's Models panel Fast starts at 4096 tokens and 0.2 temperature and Deep Thinking at 32768 and 0.7 — a saved tier carries its own values, so read the card.\n- **Name the right screen.** Chat Model Tiers for what a depth resolves to, Memory Extraction Model for the pause after every reply, Active Provider for what hears your meetings, the search provider for whether web results exist at all.\n- **Ask like an engineer.** Screen, section, field, the value you want, the effect you measured, and the check you will run afterwards. That request gets answered; \"AI is too expensive\" does not."
   }
  ],
  "rubrics": {
@@ -272,7 +272,7 @@
    "title": "A change request an operator can act on",
    "task": "Write three or four lines to the platform operator asking for one change on the AI switchboard: the exact screen and setting, the value wanted and the reason, and how the writer will verify the effect afterwards.",
    "criteria": [
-    "Names a real location precisely — for example Chat Model Tiers and a named tier, the Memory Extraction Model card, Admin → Integrations → Transcription → Active Provider, or the search provider setting — not just 'the AI settings'.",
+    "Names a real location precisely — for example Chat Model Tiers and a named tier, the Memory Extraction Model card, Admin dashboard → Whole server → Platform services → Transcription → Active Provider, or the search provider setting — not just 'the AI settings'.",
     "States the concrete change: which field and which value, or which provider instead of which.",
     "Gives a reason tied to evidence or an obligation (a measured cost or truncation, a queue on a single-slot server, a rule that audio must stay in-house), not a preference.",
     "Says what will be checked afterwards to prove it worked, and ideally that the old value was noted so the change can be reversed."
@@ -285,14 +285,14 @@
   "title": "The AI configuration switchboard",
   "summary": "Which model, token budget and engine sits behind each depth tier, plus the memory, transcription and search choices that are made once for the whole workspace.",
   "facts": [
-   "Admin → AI Configuration has six sections in its left rail: API Keys, Chat Models, Embeddings, Direct Chat, Web Search Inference and Limits & Self-host; the tier tables live under Chat Models.",
+   "Admin dashboard → Whole server → AI configuration has five rows: Providers, Models, Search & retrieval, Direct chat and Setup status; the tier tables live under Models.",
    "Chat Model Tiers assigns a model to each tier for Direct Chat mode and lists Fast, Flow (Direct), Swarm (Direct), Thinking, Writer and Deep Thinking, plus Custom Tiers with + Add Custom Tier; nothing applies until Save Tier Configuration is pressed.",
-   "On that panel the per-tier defaults are Fast 4096 max tokens at temperature 0.2 with low verbosity, Thinking and Writer 32768 at 0.7, and Deep Thinking 64000 at 0.7 with high verbosity; the self-hosted Azure Configuration tier cards carry their own, different defaults.",
+   "On that panel the per-tier defaults are Fast 4096 max tokens at temperature 0.2 with low verbosity, Thinking and Writer 32768 at 0.7, and Deep Thinking 32768 at 0.7 with high verbosity; a tier that has been saved shows its own values instead.",
    "A tier card also carries Reasoning Effort — labelled Thinking Effort on Claude reasoning models — plus Reasoning Summary and Verbosity, and on a Claude model a Bee Flow recommends line naming the model, token budget and effort it would pick.",
    "The Memory Extraction Model card says it defaults to the Fast tier model when unset, and its picker shows '— Use Fast tier model —' while empty.",
    "EU Chat Model Tiers is a second table of EU-hosted models, used when an organisation has EU mode enabled in its Privacy Shield.",
-   "Admin → Integrations → Transcription has one Active Provider for the whole workspace — Voxtral, Azure Speech, WhisperX, Scaleway, pyannoteAI or the local CPU Whisper — and users do not choose per upload.",
-   "Admin → Integrations → Search offers Disabled, Azure Bing Search, Cloud-only (Serper + provider APIs) or Self-hosted (Agent Search + Serper), plus an Agent Search Service URL and Agent Search Default Options."
+   "Admin dashboard → Whole server → Platform services → Transcription has one Active Provider for the whole workspace — Voxtral, Azure Speech, WhisperX, Scaleway, pyannoteAI or the local CPU Whisper — and users do not choose per upload.",
+   "Admin dashboard → Whole server → AI configuration → Search & retrieval offers Disabled, Azure Bing Search, Cloud-only (Serper + provider APIs) or Self-hosted (Agent Search + Serper), plus an Agent Search Service URL and Agent Search Default Options."
   ]
  },
  "actionChecks": [
@@ -300,7 +300,7 @@
       "checkId": "ai-switchboard-read",
       "existing": false,
       "label": "Look up what your workspace actually has configured",
-      "hint": "Self-hosted: Admin dashboard → Organisation → Azure Configuration → Chat Model Tiers shows the model behind each tier. The two criteria below read the same facts from your own account, so they pass on a hosted deployment too.",
+      "hint": "Admin dashboard → Whole server → AI configuration → Models (or AI & agents → Models for an organisation admin) shows the model behind each tier. The two criteria below read the same facts from your own account, so they pass on a hosted deployment too.",
       "endpoints": [
         {
           "method": "GET",

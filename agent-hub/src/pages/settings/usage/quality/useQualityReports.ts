@@ -7,8 +7,8 @@ import type { QualityRevealBannerProps } from './QualityRevealBanner';
 
 /** The period the audit row records, in words. */
 function useScopeLabel({ days, startDate, endDate }: RangeParams): string {
-    const { t } = useTranslation();
-    if (startDate && endDate) return formatDateRange(startDate, endDate);
+    const { t, resolvedLocale } = useTranslation();
+    if (startDate && endDate) return formatDateRange(startDate, endDate, resolvedLocale);
     return days != null ? t('org.quality_scope_days', 'last {n} days', { n: days }) : t('org.quality_scope_all', 'all time');
 }
 

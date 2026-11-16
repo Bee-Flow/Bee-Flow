@@ -43,3 +43,22 @@ test('a refused callback address is the same situation as an unreachable Nextclo
     const unreachable = Object.assign(new Error('bootstrap HTTP 403'), { code: 'nc_capabilities_unreachable', status: 403 });
     assert.equal(categoriseError(unreachable, 'saas_post'), 'nc_not_publicly_reachable');
 });
+
+test('every pairing text names the place in Bee Flow where the code is generated', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const { remediationFor } = require('../src/bootstrap');
+    const { CONNECT_ERRORS } = require('../src/setupTexts');
+    const place = 'Admin dashboard → Connections → Nextcloud → Pair a new Nextcloud';
+    const texts = {
+        tenant_already_provisioned: remediationFor('tenant_already_provisioned'),
+        pairing_required: remediationFor('pairing_required'),
+        pairing_code_invalid: remediationFor('pairing_code_invalid'),
+        connect_pairing_code_required: CONNECT_ERRORS.pairing_code_required,
+        connect_pairing_code_invalid: CONNECT_ERRORS.pairing_code_invalid,
+    };
+    for (const [name, text] of Object.entries(texts)) assert.ok(text.includes(place), name);
+    const page = fs.readFileSync(path.join(__dirname, '..', 'src', 'setup.html'), 'utf8').replace(/\s+/g, ' ');
+    assert.equal(page.split(`<em>${place}</em>`).length - 1, 2, 'the pairing-code hint and the Bind to existing organisation card');
+    assert.ok(!page.includes('Settings → Organisation'));
+});

@@ -125,24 +125,24 @@ export const SETTINGS_ORG_ADMIN_TARGETS: Record<string, string> = {
     auth: 'admin/organisation/auth',
     privacy: 'admin/security/guardrails',
     encryption: 'admin/organisation/encryption',
-    ai_context: 'admin/organisation/ai-context',
+    ai_context: 'admin/organisation/conversations',
     integration_cache: 'admin/organisation/integration-cache',
     info: 'admin/organisation/info',
     org_usage: 'admin/monitoring',
     org_compliance: 'admin/compliance',
-    org_users: 'admin/security/users',
+    org_users: 'admin/people',
     org_academy: 'admin/organisation/academy',
     org_integrations: 'admin/organisation/integrations',
     org_mcp: 'admin/organisation/mcp',
     org_mcp_access: 'admin/organisation/mcp-access',
     org_github_sync: 'admin/organisation/github-sync',
     org_nextcloud_sync: 'admin/organisation/nextcloud-sync',
-    org_meeting_templates: 'admin/organisation/meeting-templates',
+    org_meeting_templates: 'admin/organisation/meeting-notes',
     org_azure: 'admin/organisation/azure',
 };
 
 // The usage reports (/app/settings/organisation/usage/<report>) as Monitoring pages.
-const USAGE_REPORT_TO_MONITORING: Record<string, string> = {
+export const USAGE_REPORT_TO_MONITORING: Record<string, string> = {
     adoption: 'admin/monitoring/adoption',
     spend: 'admin/monitoring/spend',
     quality: 'admin/monitoring/feedback',
@@ -150,22 +150,22 @@ const USAGE_REPORT_TO_MONITORING: Record<string, string> = {
     terminations: 'admin/monitoring/terminations',
 };
 
-// The Users & Groups sub-tabs (Settings' OrgUsersPanel: /users/<tab>) as tabs of
-// Admin > Security > Users (UserManagement). An unknown one opens the people list.
-const ORG_USERS_TAB_TO_SECURITY: Record<string, string> = {
-    users: 'users',
-    groups: 'groups',
-    roles: 'org-roles',
-    customTiers: 'custom-tiers',
-    sync: 'sync',
-    invitations: 'invitations',
+// The Users & Groups sub-tabs (Settings' OrgUsersPanel: /users/<tab>) as dashboard
+// pages: People's own tabs, the organisation's model tiers (Organisation > Models)
+// and its Nextcloud sync. An unknown one opens the people list.
+export const ORG_USERS_TAB_TO_SECURITY: Record<string, string> = {
+    users: 'admin/people/users',
+    groups: 'admin/people/groups',
+    roles: 'admin/people/org-roles',
+    customTiers: 'admin/organisation/models',
+    sync: 'admin/organisation/nextcloud-sync',
+    invitations: 'admin/people/invitations',
 };
 
-/** Admin > Security > Users, on the tab an old Users & Groups sub-tab names. */
+/** The dashboard page an old Users & Groups sub-tab names; People without one. */
 function securityUsersTarget(tab: string | undefined): string {
-    const base = SETTINGS_ORG_ADMIN_TARGETS.org_users;
-    const mapped = tab ? ORG_USERS_TAB_TO_SECURITY[tab] : undefined;
-    return mapped ? `${base}/${mapped}` : base;
+    const mapped = tab && Object.hasOwn(ORG_USERS_TAB_TO_SECURITY, tab) ? ORG_USERS_TAB_TO_SECURITY[tab] : undefined;
+    return mapped ?? SETTINGS_ORG_ADMIN_TARGETS.org_users;
 }
 
 /**
@@ -185,13 +185,16 @@ export function settingsOrgAdminTarget(tabId: string, deep: { seg1?: string; seg
     return base;
 }
 
-// The tabs of the old /app/org-settings/<tab> page that moved to the dashboard.
-// Agents and Knowledge Bases stay on that page: they have no dashboard section.
-const ORG_SETTINGS_ADMIN_TARGETS: Record<string, string> = {
+// The tabs of the old /app/org-settings/<tab> page and their dashboard rows. The
+// page itself stays for a phone and for a viewer the dashboard would refuse that
+// row (an agent editor without an admin tab, pages/OrgSettings).
+export const ORG_SETTINGS_ADMIN_TARGETS: Record<string, string> = {
     organisation: 'admin/organisation/info',
+    agents: 'admin/agents',
+    'knowledge-bases': 'admin/organisation/knowledge-bases',
     'github-sync': 'admin/organisation/github-sync',
     'nextcloud-sync': 'admin/organisation/nextcloud-sync',
-    users: 'admin/security/users',
+    users: 'admin/people',
 };
 
 /** The dashboard page an /app/org-settings/<seg1>[/<seg2>] address moved to, or null. */

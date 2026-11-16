@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AgentEditorUI from './AgentEditorUI';
 import type { AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
@@ -12,6 +12,13 @@ import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.t
 import { ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { AgentDesignerPanelSection } from './AgentDesignerPanelSection';
 import { apiRequest } from '@/api/typedRequest';
+import { panelFormFromAgent } from './agentDesignerPanelForm';
+import { panelConfigForSave } from './agentDesignerPanelSave';
+import { storedConfig } from './AgentDesigner/storedFlag';
+import { QUIET_BTN } from '@/components/shared/adminUi';
+
+/** GET /agents/:id answers with the published copy of a published agent unless asked for the editor's draft. */
+const DRAFT = { draft: '1' } as const;
 
 /** Only the parameters the author fixed go to the server; a tool without any is left out. */
 function fixedToolParams(toolParams: AgentFormData['toolParams'] | undefined) {
@@ -72,34 +79,18 @@ const AgentDesignerPanel = ({
         config: {},
     });
 
+    // The config as loaded, so a save can tell which keys the panel edited.
+    const loadedConfigRef = useRef<Record<string, unknown>>({});
+
     // Load agent data when agent changes
     useEffect(() => {
         if (agent) {
-            setFormData({
-                name: agent.name || '',
-                description: agent.description || '',
-                avatar: agent.avatar || '',
-                systemPrompt: agent.system_prompt || '',
-                tools: agent.tools || [],
-                toolParams: agent.tool_params || {},
-                model: agent.model || '',
-                starterPrompts: typeof agent.starter_prompts === 'string'
-                    ? JSON.parse(agent.starter_prompts || '[]')
-                    : (agent.starter_prompts || []),
-                workspaceEnabled: agent.workspace_enabled !== 0,
-                copyEnabled: agent.copy_enabled !== 0,
-                isPublished: agent.is_published === 1,
-                embedEnabled: agent.embed_enabled === 1,
-                organizationId: agent.organization_id || '',
-                sharedGroups: typeof agent.shared_groups === 'string'
-                    ? (() => { try { return JSON.parse(agent.shared_groups || '[]'); } catch (_) { return []; } })()
-                    : (agent.shared_groups || []),
-                categoryId: agent.category_id || '',
-                config: (typeof agent.config === 'string'
-                    ? (() => { try { return JSON.parse(agent.config || '{}'); } catch (_) { return {}; } })()
-                    : (agent.config || {})),
-            });
+            // The on/off columns are Postgres booleans: `=== 1` / `!== 0` misread them.
+            const form = panelFormFromAgent(agent);
+            loadedConfigRef.current = form.config;
+            setFormData(form);
         } else {
+            loadedConfigRef.current = {};
             // New agent
             setFormData({
                 name: '',
@@ -165,12 +156,35 @@ const AgentDesignerPanel = ({
         }
     };
 
+    /**
+     * The config to send. The server stores it whole, so an existing agent's
+     * save starts from its DRAFT as stored now (Agent Studio may have changed
+     * skills, action grants, memory or the chat bubble since this panel loaded)
+     * and lays only the keys the panel edited over it.
+     */
+    const configForSave = async (): Promise<Record<string, unknown>> => {
+        const edited = formData.config || {};
+        if (!agent) return edited;
+        const res = await apiRequest('GET /agents/{id}', { params: { id: agent.id }, query: DRAFT });
+        const draft = storedConfig((await res.json()).config);
+        return panelConfigForSave(draft, loadedConfigRef.current, edited);
+    };
+
     const saveAgent = async () => {
         if (!formData.name.trim()) return;
         setSaving(true);
 
         try {
             const transformedParams = fixedToolParams(formData.toolParams);
+            let config: Record<string, unknown>;
+            try {
+                config = await configForSave();
+            } catch (err) {
+                // Without the stored draft a save would drop what was written elsewhere: save nothing.
+                console.error('Failed to read the agent before saving:', err);
+                toast.error(t('agent_designer.save_reread_failed', 'Could not read the latest version of this agent, so nothing was saved. Try again.'));
+                return;
+            }
 
             const body = {
                 name: formData.name,
@@ -187,7 +201,7 @@ const AgentDesignerPanel = ({
                 organizationId: formData.organizationId || null,
                 sharedGroups: formData.sharedGroups || [],
                 categoryId: formData.categoryId || null,
-                config: formData.config || {},
+                config,
             };
 
             let savedAgent = agent;
@@ -286,8 +300,8 @@ function AgentDesignerPanelSection3({ formData, handleFieldChange, availableMode
 function AgentDesignerPanelSection2({ agent, t, formData, onClose }: { agent: PanelAgent | null | undefined; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; formData: AgentFormData; onClose: React.MouseEventHandler<HTMLButtonElement>; }) {
     return <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:linear-gradient(135deg,#f59e0b,#d97706)]">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent-primary)]">
+                <svg className="w-4 h-4 text-[var(--accent-primary-fg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
             </div>
@@ -302,7 +316,7 @@ function AgentDesignerPanelSection2({ agent, t, formData, onClose }: { agent: Pa
         </div>
         <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 transition-all"
+            className={QUIET_BTN}
             title={t('agent.back_to_chat')}
         >
             <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

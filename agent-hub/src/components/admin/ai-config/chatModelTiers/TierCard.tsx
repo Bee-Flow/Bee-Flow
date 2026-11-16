@@ -26,7 +26,8 @@ interface TierCardProps {
     toggleHiddenModel: (modelId: string) => Promise<void>;
     isLocal: (id: string) => boolean;
     reasoningCapable: (id: string) => boolean;
-    applyClaudeRecommendedForTier: (tierKey: string) => void;
+    /** Lay the recommendation over this tier, in the table this card belongs to. */
+    applyClaudeRecommendedForTier: (tierKey: string, models: readonly CatalogModel[]) => void;
 }
 
 export default function TierCard(props: TierCardProps) {

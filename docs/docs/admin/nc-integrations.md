@@ -4,9 +4,9 @@ title: Nextcloud integrations
 
 # Nextcloud integrations
 
-Path: **Admin → Organisation → Integrations → Integration settings**, the **Nextcloud integrations** panel. Org admins see it when their organisation is bound to a Nextcloud instance; for any other organisation the panel is not shown.
+Path: **Admin dashboard → Connections → Integration status**, the **Nextcloud integrations** panel. Org admins see it when their organisation is bound to a Nextcloud instance; for any other organisation the panel is not shown.
 
-This panel decides which of the 14 Nextcloud integrations your organisation's agents may use, with exceptions per Nextcloud group. It is separate from **Admin → Access → Grants**: the Nextcloud integrations are not rows in that matrix, and every member is entitled to them unless this panel says otherwise.
+This panel decides which of the 14 Nextcloud integrations your organisation's agents may use, with exceptions per Nextcloud group. It is separate from **Admin dashboard → Security & access → Access → Grants**: the Nextcloud integrations are not rows in that matrix, and every member is entitled to them unless this panel says otherwise.
 
 ![NC integrations panel](../img/screenshots/admin/nc-integrations-org/)
 
@@ -55,11 +55,11 @@ One row per **Nextcloud group** of the organisation (the groups the Nextcloud sy
 
 ![NC integrations per group](../img/screenshots/admin/nc-integrations-per-group/)
 
-If no group is listed yet, the Nextcloud sync has not mirrored any groups; it runs every 6 hours, or use **Sync now** under **Admin → Organisation → Nextcloud Sync** (see [Users & groups](users-and-groups.md#nextcloud-sync)).
+If no group is listed yet, the Nextcloud sync has not mirrored any groups; it runs every 6 hours, or use **Sync now** under **Admin dashboard → Connections → Nextcloud** (see [Users & groups](users-and-groups.md#nextcloud-sync)).
 
 ## Walkthrough: turn off Mail for interns
 
-1. Go to **Admin → Organisation → Integrations → Integration settings**.
+1. Go to **Admin dashboard → Connections → Integration status**.
 2. Under **Per-group exceptions**, open the `interns` row.
 3. Tick **Disable Mail**.
 
@@ -91,4 +91,4 @@ Each user can narrow, never widen, what Bee Flow may touch in their own Nextclou
 - [Connector → Permissions & scopes](../connector/permissions.md): what each scope grants.
 - [Integrations → catalog](../integrations/index.md): full list of available integrations.
 - [Integrations → Nextcloud Files](../integrations/nextcloud.md): and the sibling pages.
-- [Beta features](beta-features.md): how the **Admin → Access → Grants** matrix hands out every other integration and feature.
+- [Beta features](beta-features.md): how the **Admin dashboard → Security & access → Access → Grants** matrix hands out every other integration and feature.

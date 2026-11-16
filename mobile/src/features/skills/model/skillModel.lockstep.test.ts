@@ -15,7 +15,8 @@ const STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/
 
 /**
  * The web module, evaluated from its source text. It is an ES module with one
- * relative import (KnowledgeStudio/plural.ts); requiring it through Babel
+ * relative import (KnowledgeStudio/plural.ts, a re-export of src/utils/plural.ts,
+ * whose source is read here); requiring it through Babel
  * would pull `@babel/runtime` from agent-hub's node_modules, which the mobile
  * job does not install. Both files are plain functions, so inlining the one
  * import and dropping the `export` keywords evaluates exactly the web's code.
@@ -26,7 +27,7 @@ function loadWeb(): Record<string, (...args: unknown[]) => unknown> {
     const plain = (src: string) => ts.transpileModule(src, {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     }).outputText;
-    const plural = strip(plain(fs.readFileSync(path.join(STUDIO, 'KnowledgeStudio/plural.ts'), 'utf8')));
+    const plural = strip(plain(fs.readFileSync(path.resolve(STUDIO, '../../../utils/plural.ts'), 'utf8')));
     const model = plain(fs.readFileSync(path.join(STUDIO, 'SkillsStudio/skillModel.ts'), 'utf8'));
     const names = [...model.matchAll(/^export (?:function|const) (\w+)/gm)].map((m) => m[1] as string);
     return new Function(`${plural}\n${strip(model)}\nreturn { ${names.join(', ')} };`)() as Record<

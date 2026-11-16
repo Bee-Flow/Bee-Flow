@@ -8,10 +8,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import type { ContextType } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AllowedDomainsEditor } from './orgInfo/orgInfoShared';
+import LicenseContext from '@/components/licensing/LicenseContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import OrganisationSection from '@/pages/settings/OrganisationSection';
+import AdminPage from '@/components/admin/dashboard/AdminPage';
 import { withQueryClient } from '@/test/render';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
@@ -104,13 +107,99 @@ it('an edit typed while the save is in flight keeps the bar dirty', async () => 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
 });
 
-// ── Organisation Info: the page names itself, and every label names its field.
+// ── Organisation Info: named once (by the dashboard frame there, by OrganisationSection
+// outside it, never by the panel); every label names its field.
 describe('Organisation Info page', () => {
-    it('has a page title and labels tied to their fields', async () => {
-        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
-        expect(await screen.findByRole('heading', { level: 2, name: 'Organisation Info' })).toBeInTheDocument();
-        expect(screen.getByLabelText('Company Name')).toHaveValue('Old BV');
+    const CLOUD_USER = { ...USER, featureFlags: { deploymentMode: 'cloud' } };
+    const serve = (org: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+        fetchMock.mockImplementation(async (url: string) => {
+            if (url === '/auth/organizations') return respond(200, [org]);
+            if (url === '/auth/groups') return respond(200, []);
+            if (Object.hasOwn(extra, url)) return respond(200, extra[url]);
+            return respond(404, {});
+        });
+    };
+
+    it('has one page title on a phone, none of the panel\'s own, and ties its labels to their fields', async () => {
+        const { unmount } = render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="info" />));
+        expect(await screen.findByLabelText('Company Name')).toHaveValue('Old BV');
+        expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toEqual(['Organisation info']);
         expect(screen.getByLabelText('Country').tagName).toBe('SELECT');
+        unmount();
+
+        // In the admin dashboard (an organisation named) the AdminPage frame draws it, and only it.
+        render(withQueryClient(
+            <AdminPage title="Organisation info"><OrganisationSection user={CLOUD_USER} activeSection="info" orgId="org1" /></AdminPage>,
+        ));
+        expect(await screen.findByLabelText('Company Name')).toHaveValue('Old BV');
+        const headings = screen.getAllByRole('heading', { level: 2 });
+        expect(headings.map(h => h.textContent)).toEqual(['Organisation info']);
+        expect(screen.getByTestId('admin-page-header')).toContainElement(headings[0] ?? null);
+    });
+
+    it('asks for invoicing on cloud only; a self-hosted server keeps the registration numbers', async () => {
+        const { unmount } = render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="info" />));
+        await screen.findByLabelText('Company Name');
+        expect(screen.getByLabelText('Country')).toBeInTheDocument();
+        unmount();
+
+        // The deployment mode is the server's (LicenseContext), not the user's.
+        const selfHosted = { hasFeature: () => false, deploymentMode: 'self-hosted' } as Partial<ContextType<typeof LicenseContext>> as ContextType<typeof LicenseContext>;
+        render(withQueryClient(<LicenseContext.Provider value={selfHosted}><OrganisationSection user={USER} activeSection="info" /></LicenseContext.Provider>));
+        await screen.findByLabelText('Company Name');
+        expect(screen.queryByLabelText('Country')).toBeNull();
+        expect(screen.getByRole('heading', { name: 'Legal details' })).toBeInTheDocument();
+        expect(screen.getByLabelText('Chamber of Commerce (KVK)')).toBeInTheDocument();
+    });
+
+    it('shows the Nextcloud binding of the organisation it edits, its sync mode in words', async () => {
+        serve({ ...ORG, nc_instance_id: 'nc1', nc_base_url: 'https://cloud.example', nc_sync_mode: 'selective_groups' });
+        // The viewer's own session has no Nextcloud: the banner follows the organisation.
+        render(withQueryClient(<OrganisationSection user={{ ...USER, ncOrg: null }} activeSection="info" />));
+        expect(await screen.findByText('Provisioned through Nextcloud')).toBeInTheDocument();
+        expect(screen.getByText('Selected groups only')).toBeInTheDocument();
+        expect(screen.queryByText(/selective/)).toBeNull();
+        expect(screen.getByRole('button', { name: /Open the Nextcloud settings/ })).toBeInTheDocument();
+    });
+
+    it('has no Nextcloud banner for an organisation without a binding, whatever the viewer\'s own session says', async () => {
+        render(withQueryClient(<OrganisationSection user={{ ...USER, ncOrg: { instanceId: 'mine' } }} activeSection="info" />));
+        await screen.findByLabelText('Company Name');
+        expect(screen.queryByText('Provisioned through Nextcloud')).toBeNull();
+    });
+
+    it('shows the default language read only, and points a platform admin to Languages', async () => {
+        const languages = { '/api/languages/org/default': { defaultLocale: 'nl', locales: [{ code: 'en', name: 'English' }, { code: 'nl', name: 'Nederlands' }] } };
+        serve(ORG, languages);
+        const { unmount } = render(withQueryClient(<OrganisationSection user={{ ...USER, isAdmin: true }} activeSection="info" />));
+        expect(await screen.findByText('Nederlands')).toBeInTheDocument();
+        expect(screen.queryByRole('combobox', { name: /language/i })).toBeNull();
+        expect(screen.getByRole('button', { name: /Change it under Languages/ })).toBeInTheDocument();
+        unmount();
+
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
+        expect(await screen.findByText('Nederlands')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Change it under Languages/ })).toBeNull();
+        expect(screen.getByText(/Only a platform administrator can change it/)).toBeInTheDocument();
+    });
+
+    // The block brings its own divider: on a server with one language the page
+    // used to end on a bare dividing line with nothing under it.
+    it('draws neither the default language nor a divider for it on a server with one language', async () => {
+        serve(ORG, { '/api/languages/org/default': { defaultLocale: 'en', locales: [{ code: 'en', name: 'English' }] } });
+        render(withQueryClient(<OrganisationSection user={{ ...USER, isAdmin: true }} activeSection="info" />));
+        const name = await screen.findByLabelText('Company Name');
+        await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === '/api/languages/org/default')).toBe(true));
+        await new Promise(r => setTimeout(r, 0));
+        expect(screen.queryByTestId('org-default-language')).toBeNull();
+        const page = name.closest('.space-y-8');
+        expect(page?.lastElementChild?.textContent).not.toBe('');
+    });
+
+    it('has no image limits: they are on the Models page now', async () => {
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
+        await screen.findByLabelText('Company Name');
+        expect(screen.queryByLabelText('Per hour')).toBeNull();
     });
 });
 
@@ -164,12 +253,15 @@ describe('logo', () => {
     });
 });
 
-// ── Sign-in Method: one choice out of three, so one radio group.
-describe('Sign-in Method', () => {
+// ── Preferred sign-in method: one choice out of three, so one radio group.
+// A preference, not a lock: nothing reads it when someone signs in.
+describe('Preferred sign-in method', () => {
+    const NAME = 'Preferred sign-in method';
+
     it('is a radio group that reports and moves its choice', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
         const radios = within(group).getAllByRole('radio');
         expect(radios).toHaveLength(3);
         expect(radios.filter(r => r.getAttribute('aria-checked') === 'true')).toHaveLength(0);
@@ -183,26 +275,28 @@ describe('Sign-in Method', () => {
         expect(microsoft).toHaveFocus();
     });
 
-    it('locks the method once it is saved, not as soon as a card is picked', async () => {
+    it('can change again after it was saved, and says nothing about a lock', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
 
         await user.click(within(group).getByRole('radio', { name: /Sign in with Google/ }));
-        expect(screen.queryByText('Sign-in method is locked')).toBeNull();
-        await user.click(within(group).getByRole('radio', { name: /Sign in with Microsoft/ }));
-
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(puts).toHaveLength(1));
-        expect(puts[0].body.authMethod).toBe('microsoft');
-        expect(await screen.findByText('Sign-in method is locked')).toBeInTheDocument();
-        expect(within(group).getByRole('radio', { name: /Sign in with Google/ })).toBeDisabled();
+        expect(puts[0].body).toEqual({ authMethod: 'google' });
+
+        const microsoft = within(group).getByRole('radio', { name: /Sign in with Microsoft/ });
+        expect(microsoft).toBeEnabled();
+        await user.click(microsoft);
+        const save = screen.getByRole('button', { name: 'Save changes' });
+        await waitFor(() => expect(save).toBeEnabled());
+        await user.click(save);
+        await waitFor(() => expect(puts).toHaveLength(2));
+        expect(puts[1].body).toEqual({ authMethod: 'microsoft' });
+        expect(screen.queryByText(/locked|cannot be changed|Choose carefully/i)).toBeNull();
     });
 
-    it('freezes the choice while the save is in flight, so the lock shows what the server stored', async () => {
-        // The server keeps the first method it receives and ignores a later
-        // one, so a pick made during the PUT would be shown as locked while
-        // the organisation actually signs in with the other.
+    it('a pick made while the save is in flight stays an unsaved change', async () => {
         let release: () => void = () => {};
         const base = fetchMock.getMockImplementation()!;
         fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
@@ -215,21 +309,16 @@ describe('Sign-in Method', () => {
         });
         const user = userEvent.setup();
         render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
-        const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
-        const google = within(group).getByRole('radio', { name: /Sign in with Google/ });
-        const microsoft = within(group).getByRole('radio', { name: /Sign in with Microsoft/ });
+        const group = await screen.findByRole('radiogroup', { name: NAME });
 
-        await user.click(google);
+        await user.click(within(group).getByRole('radio', { name: /Sign in with Google/ }));
         await user.click(screen.getByRole('button', { name: /Save changes|Saving/ }));
         await waitFor(() => expect(puts).toHaveLength(1));
-        await user.click(microsoft);
-        expect(google).toHaveAttribute('aria-checked', 'true');
-        expect(microsoft).toHaveAttribute('aria-checked', 'false');
-
+        await user.click(within(group).getByRole('radio', { name: /Sign in with Microsoft/ }));
         release();
-        expect(await screen.findByText('Sign-in method is locked')).toBeInTheDocument();
-        expect(google).toHaveAttribute('aria-checked', 'true');
-        expect(microsoft).toBeDisabled();
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
+        expect(within(group).getByRole('radio', { name: /Sign in with Microsoft/ })).toHaveAttribute('aria-checked', 'true');
     });
 });
 
@@ -244,7 +333,7 @@ describe('AllowedDomainsEditor', () => {
     it('names its buttons and its input, and announces a refused domain', async () => {
         const user = userEvent.setup();
         render(withQueryClient(<Harness />));
-        const input = screen.getByRole('textbox', { name: 'Allowed Domains' });
+        const input = screen.getByRole('textbox', { name: 'Allowed domains' });
 
         await user.type(input, 'acme.nl{Enter}');
         expect(screen.getByRole('alert')).toHaveTextContent('Domain "acme.nl" is already added');
@@ -311,6 +400,14 @@ describe('License & Usage', () => {
         expect(await screen.findByText(/You've used 90% of your AI usage budget/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Upgrade plan' })).toBeNull();
         expect(screen.queryByRole('link', { name: 'Upgrade plan' })).toBeNull();
+    });
+
+    it('heads the licence page once on a phone (Settings keeps its own screen title in the bar)', async () => {
+        serveCloud(NEAR_CAP);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
+
+        expect(await screen.findByText('Usage this period')).toBeInTheDocument();
+        expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent)).toEqual(['Licence & usage']);
     });
 
     it('reads AI usage out once, in "Usage this period"', async () => {

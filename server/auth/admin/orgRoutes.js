@@ -24,6 +24,7 @@ const { requireOrgAdmin } = require('./orgAdminGuards');
 const { defaultGroupsUpdateRefusal } = require('./groupAssignGuards');
 const { HttpError } = require('../../core/http/errors');
 const { contactDomainUpdate } = require('./orgContactDomain.mts');
+const { preferredAuthMethodUpdate } = require('./orgAuthMethod.mts'); // a preference, not a lock
 
 /**
  * The fields PUT /organizations/:id writes. The user route has had an
@@ -451,15 +452,14 @@ router.put('/organizations/:id', requireOrgAdmin('id'), imageLimitsColumnBody('i
 
     const { name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod, enabledIntegrations, autoApproveSSO, allowedDomains, usagePooled, imageLimits } = req.body;
 
-    // authMethod can only be set once — if already set, ignore any change
     const existing = await userStore.getOrganization(id);
+    const finalAuthMethod = preferredAuthMethodUpdate(existing, authMethod);
 
     // Default groups are handed to every new member (groupAssignGuards.defaultGroupsUpdateRefusal).
     if (defaultGroups !== undefined) {
         const refusal = await defaultGroupsUpdateRefusal(req, id, defaultGroups, existing?.defaultGroups || []);
         if (refusal) return res.status(refusal.status).json(refusal.body);
     }
-    const finalAuthMethod = (existing && existing.authMethod) ? undefined : authMethod;
     const contact = await contactDomainUpdate(req, id, existing, email); // a new contact domain (./orgContactDomain.mts)
     if ('refusal' in contact) return res.status(409).json(contact.refusal);
 
@@ -513,8 +513,7 @@ router.put('/organizations/:id', requireOrgAdmin('id'), imageLimitsColumnBody('i
 
     const orgUpdates = sanitizeOrgText({ name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod: finalAuthMethod, enabledIntegrations: finalIntegrations, autoApproveSSO, allowedDomains: finalAllowedDomains, usagePooled, imageLimits, contactDomainVerified: contact.contactDomainVerified });
     if (await userStore.updateOrganization(id, orgUpdates)) {
-        // Record only the access-relevant deltas. existing was loaded above
-        // for the authMethod check; reuse it.
+        // Record only the access-relevant deltas against the row loaded above.
         const AUDIT_FIELDS = ['name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat', 'authMethod', 'enabledIntegrations', 'allowSignup', 'autoApproveSSO', 'allowedDomains', 'defaultGroups', 'usagePooled', 'imageLimits'];
         /** @type {Record<string, unknown>} */
         const oldVals = {};

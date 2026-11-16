@@ -3,32 +3,32 @@
   "icon": "🎚️",
   "estMinutes": 14,
   "title": "Two switches nobody explains",
-  "desc": "Conversation Memory and Answer Reuse: what they really change, and what they cost.",
+  "desc": "Conversations and answer reuse: what they really change, and what they cost.",
   "gate": {
     "permission": "org_admin"
   },
-  "learningGoal": "After this lesson you can decide both switches on evidence rather than on hope, and you know which half of Answer Reuse you do not control.",
+  "learningGoal": "After this lesson you can decide both switches on evidence rather than on hope, and you know which half of answer reuse you do not control.",
   "steps": [
     {
       "type": "slide",
       "id": "where",
       "icon": "🧭",
       "title": "Two switches that look like a pair",
-      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. In **Admin dashboard → Organisation**, between **Encryption** and **Organisation Info**, sit two candidates:\n\n- **Conversation Memory** — how much of a long *chat* the assistant still sees.\n- **Answer Reuse** — whether the answers a *automation* gets back from a connected app are kept between runs.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other automations, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
+      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. The admin dashboard has two candidates:\n\n- **AI & agents → Conversations** — how much of a long *chat* the assistant still sees.\n- **Connections → Automations** — whether the answers an *automation* gets back from a connected app are kept between runs: *answer reuse*.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other automations, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
     },
     {
       "type": "slide",
       "id": "lossy",
       "icon": "✂️",
       "title": "Lossy here, lossless at the model",
-      "bodyMd": "Two mechanisms decide what the assistant actually reads. Only one has a switch.\n\n**Summarising** is the switch, on the Conversation Memory screen. Turned on, it works inside Bee Flow: once a chat passes about 16 messages, everything older is replaced by a short summary written by the fast model, and long tool results are cut down. What the summary leaves out is gone for the rest of that conversation.\n\n**Context editing at the model** is the other. On supported Claude models, once a request gets heavy, Anthropic drops the older tool results from that one request, keeping the last handful. The reasoning trail is deliberately kept and Bee Flow's stored history untouched — nothing is rewritten, so nothing is lost.\n\nThe lossless one runs by default, with no switch here. The one you can turn is the lossy one."
+      "bodyMd": "Two mechanisms decide what the assistant actually reads. Only one has a switch.\n\n**Summarising** is the switch, on the Conversations page. Turned on, it works inside Bee Flow: once a chat passes about 16 messages, everything older is replaced by a short summary written by the fast model, and long tool results are cut down. What the summary leaves out is gone for the rest of that conversation.\n\n**Context editing at the model** is the other. On supported Claude models, once a request gets heavy, Anthropic drops the older tool results from that one request, keeping the last handful. The reasoning trail is deliberately kept and Bee Flow's stored history untouched — nothing is rewritten, so nothing is lost.\n\nThe lossless one runs by default, with no switch here. The one you can turn is the lossy one."
     },
     {
       "type": "slide",
       "id": "default-off",
       "icon": "📐",
       "title": "Off by default, for a reason",
-      "bodyMd": "**Keep the full conversation (recommended)** is selected until somebody changes it.\n\nSummarising used to be unconditional, firing at about 16 messages. On a model with a one-million-token context window — the amount of text a model can hold in view at once — that is pure loss: the chat was folded into a summary long before the window was near full. That is the “the assistant forgot what we discussed” complaint, manufactured by a cost setting.\n\nThe arithmetic has moved. Under the slider the screen does the sum for two real models, and at the default **Safety limit** of 75% it reads: Claude Sonnet 5 → about 750,000 tokens, Claude Haiku 4.5 → about 150,000. Nadia's 60-message tender chat in procurement is nowhere near either ceiling. Nothing to win by summarising it, and something real to lose."
+      "bodyMd": "**Keep the full conversation (recommended)** is selected until somebody changes it.\n\nSummarising used to be unconditional, firing at about 16 messages. On a model with a one-million-token context window — the amount of text a model can hold in view at once — that is pure loss: the chat was folded into a summary long before the window was near full. That is the “the assistant forgot what we discussed” complaint, manufactured by a cost setting.\n\nThe arithmetic has moved. Under the slider the screen does the sum for your own models: the one with the largest context window and the one with the smallest. At the default **Safety limit** of 75%, a model with a one-million-token window comes to about 750,000 tokens, and a model with 200,000 tokens to about 150,000. Nadia's 60-message tender chat in procurement is nowhere near either ceiling. Nothing to win by summarising it, and something real to lose."
     },
     {
       "type": "quiz",
@@ -74,14 +74,14 @@
       "type": "slide",
       "id": "reuse",
       "icon": "🗄️",
-      "title": "Answer Reuse is a cupboard, not a note",
-      "bodyMd": "Two things sound alike and are not.\n\n**Inside one run**, an automation can avoid asking the same question twice — a step ticked **Ask this app only once per run**. Van Dijk's HR automation loops over all sixty employees; that tick stops it hammering the same look-up. The answer lives in memory on the run, dies with the run, is stored nowhere, and needs no permission from you.\n\n**Between runs** is the other thing. The answer is written to the database, encrypted, so tomorrow's run can use it instead of asking again. That means storing what the app sent back — a mailbox search result is somebody's mail. So it is an admin's decision, it is off by default, and saving it records that a human said yes.\n\n**Answer Reuse** governs only the second."
+      "title": "Answer reuse is a cupboard, not a note",
+      "bodyMd": "Two things sound alike and are not.\n\n**Inside one run**, an automation can avoid asking the same question twice — a step ticked **Ask this app only once per run**. Van Dijk's HR automation loops over all sixty employees; that tick stops it hammering the same look-up. The answer lives in memory on the run, dies with the run, is stored nowhere, and needs no permission from you.\n\n**Between runs** is the other thing. The answer is written to the database, encrypted, so tomorrow's run can use it instead of asking again. That means storing what the app sent back — a mailbox search result is somebody's mail. So it is an admin's decision, it is off by default, and saving it records that a human said yes.\n\n**Answer reuse**, on **Connections → Automations**, governs only the second."
     },
     {
       "type": "quiz",
       "id": "q-halves",
       "icon": "🧮",
-      "question": "The admin turns Answer Reuse on, leaves Answers from connected apps ticked, and saves. A week later the lead automation still calls the ticket system on every run, and the Stored right now line has never appeared. What is missing?",
+      "question": "The admin turns answer reuse on, leaves Answers from connected apps ticked, and saves. A week later the lead automation still calls the ticket system on every run, and the Stored right now line has never appeared. What is missing?",
       "multi": false,
       "choices": [
         {
@@ -103,7 +103,7 @@
         },
         {
           "id": "d",
-          "label": "Answer Reuse only covers Call a web service steps, never connected apps.",
+          "label": "Answer reuse only covers Call a web service steps, never connected apps.",
           "correct": false,
           "feedback": "It covers both, as two separate ticks. Answers from connected apps is precisely the app half, and it was on."
         }
@@ -122,7 +122,7 @@
           {
             "id": "tender",
             "left": "A 60-message tender chat where the assistant re-asks for a delivery window it was given in message 12.",
-            "right": "Conversation Memory: keep the full conversation",
+            "right": "Conversations: keep the full conversation",
             "note": "Summarising was switched on last quarter. Turning it back to the full conversation applies from her next message."
           },
           {
@@ -134,7 +134,7 @@
           {
             "id": "leads",
             "left": "A lead automation that calls a per-call billed company register, and a burst of new leads keeps asking it about the same twenty companies within the hour.",
-            "right": "Answer Reuse: keep answers for a short while",
+            "right": "Answer reuse: keep answers for a short while",
             "note": "Only a stored answer survives from one run into the next, and only for the window you set — 60 minutes at most. As a hand-typed web service step it also needs the Answers from web service calls tick."
           },
           {
@@ -212,7 +212,7 @@
       "exerciseId": "ex-defend-both-switches",
       "title": "Make the call, and write what it costs",
       "instruction": "Two requests reach Van Dijk's admin in one week.\n\n1. Support wants faster handling: on every incoming mail the support automation looks up that customer's open tickets in the ticket system, and busy customers are looked up several times an hour. The mail bodies go out under Privacy Shield in its real mode.\n2. Procurement's long tender chats have become the biggest line on the bill, and somebody suggests \"just turn the memory down\".\n\nWrite the decision you would put in writing for both. For each: which screen, which mode, and — the part that matters — the price you are accepting by choosing it. If a setting of yours is not enough on its own, say what else has to happen.",
-      "placeholder": "Answer Reuse: I would … , which costs us … . Conversation Memory: I would … , because … . This only works if …",
+      "placeholder": "Answer reuse: I would … , which costs us … . Conversations: I would … , because … . This only works if …",
       "passScore": 65,
       "maxAttempts": 3
     },
@@ -222,10 +222,10 @@
       "icon": "🎚️",
       "checkId": "org-context-configured",
       "title": "Set the Safety limit deliberately",
-      "instruction": "Open Admin dashboard → Organisation and click Conversation Memory, the entry just below Encryption. Leave the mode card on whichever of the two you can defend. Then move the Safety limit off its default of 75%: up towards 95% if you want the emergency fold to hold off as long as possible, down towards 25% if you would rather be summarised early than ever meet a refusal. Read the worked examples under the slider before you let go, then Save. We check that the slider is no longer at the default and that your organisation has a saved setting.",
+      "instruction": "Open Admin dashboard → AI & agents → Conversations. Leave the mode card on whichever of the two you can defend. Then move the Safety limit off its default of 75%: up towards 95% if you want the emergency fold to hold off as long as possible, down towards 25% if you would rather be summarised early than ever meet a refusal. Read the worked examples under the slider before you let go, then Save. We check that the slider is no longer at the default and that your organisation has a saved setting.",
       "launch": {
-        "navigateTo": "admin/organisation/encryption",
-        "label": "Open Organisation"
+        "navigateTo": "admin/organisation/conversations",
+        "label": "Open Conversations"
       }
     },
     {
@@ -233,36 +233,36 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Read the two apart.** Conversation Memory is about a chat and is lossy when on. Answer Reuse is about an automation and stores data between runs. Neither is a general cost dial, and the lossless half — context editing at the model — needs nothing from you.\n- **Defend the Safety limit.** It is the one number on that screen worth choosing on purpose, it applies in both modes, and for providers other than Claude it is the only ceiling there is.\n- **Know which half is missing.** Reuse on but nothing reused? Look at the step, not the setting. And remember that switching Answer Reuse off erases as well as stops, while shortening the window applies to what is already held."
+      "bodyMd": "- **Read the two apart.** Conversations is about a chat and is lossy when on. Answer reuse is about an automation and stores data between runs. Neither is a general cost dial, and the lossless half — context editing at the model — needs nothing from you.\n- **Defend the Safety limit.** It is the one number on that screen worth choosing on purpose, it applies in both modes, and for providers other than Claude it is the only ceiling there is.\n- **Know which half is missing.** Reuse on but nothing reused? Look at the step, not the setting. And remember that switching answer reuse off erases as well as stops, while shortening the window applies to what is already held."
     }
   ],
   "practiceTopic": {
-    "title": "Conversation Memory and Answer Reuse",
+    "title": "Conversations and answer reuse",
     "summary": "The two organisation switches that govern how much of a chat the assistant sees and whether an automation's answers are stored between runs.",
     "facts": [
-      "Conversation Memory defaults to Keep the full conversation (recommended); summarising is opt-in per organisation and is lossy, because detail folded into the summary is gone for the rest of that conversation.",
+      "Conversations (Admin dashboard → AI & agents) defaults to Keep the full conversation (recommended); summarising is opt-in per organisation and is lossy, because detail folded into the summary is gone for the rest of that conversation.",
       "The Safety limit defaults to 75% of the model's context window and can be set between 25% and 95%; it fires in both modes and is the only protection for providers other than Claude.",
-      "At 75% the screen shows worked examples that recalculate as you drag — for instance Claude Sonnet 5 at about 750,000 tokens and Claude Haiku 4.5 at about 150,000.",
-      "Answer Reuse is off by default; its window runs from 1 to 60 minutes with a default of 5 minutes, and shortening it rewrites the expiry on answers already stored.",
+      "At 75% the screen shows worked examples for the organisation's own largest and smallest model that recalculate as you drag — for instance about 750,000 tokens on a one-million-token model and about 150,000 on a 200,000-token model.",
+      "Answer reuse (Admin dashboard → Connections → Automations) is off by default; its window runs from 1 to 60 minutes with a default of 5 minutes, and shortening it rewrites the expiry on answers already stored.",
       "Choosing Ask every run (recommended) and saving also deletes every answer the organisation had stored, confirmed by the toast reading: Saved. Stored answers were deleted.",
       "Nothing is stored between runs unless three levels agree: the server operator has not switched it off, the organisation allows that kind of answer, and the step's author ticked the nested option keeping the answer for later runs.",
-      "Answer Reuse carries two separate ticks — Answers from connected apps, and Answers from web service calls, which stays off until an admin says otherwise.",
+      "Answer reuse carries two separate ticks — Answers from connected apps, and Answers from web service calls, which stays off until an admin says otherwise.",
       "Only organisation admins see the two menu entries at all, and only they may save a change; neither switch is a paid feature — both ship on every plan, including self-host."
     ]
   },
   "rubrics": {
     "ex-defend-both-switches": {
       "title": "Two decisions, with their price named",
-      "task": "Decide Answer Reuse for the support ticket look-up and Conversation Memory for the tender chats, naming for each the concrete setting and the cost the organisation accepts by choosing it.",
+      "task": "Decide answer reuse for the support ticket look-up and Conversations for the tender chats, naming for each the concrete setting and the cost the organisation accepts by choosing it.",
       "criteria": [
-        "Case 1 names a real Answer Reuse setting: the mode, the Answers from connected apps scope, and a window inside the 1–60 minute range — or a defended refusal to store at all.",
+        "Case 1 names a real answer reuse setting: the mode, the Answers from connected apps scope, and a window inside the 1–60 minute range — or a defended refusal to store at all.",
         "States what that choice costs: the ticket answers are written to the database, and a run may act on data as old as the window.",
         "Notes that the org setting alone changes nothing until the step's author ticks Ask this app only once per run and, under it, keeping the answer for later runs.",
         "Case 2 resists the reflex: summarising is lossy and the folded detail is gone for that conversation, so the defensible lever is the mode choice or the Safety limit, argued against the model's context window.",
         "Keeps the two switches apart — no claim that either of them governs both chats and automations."
       ],
       "passScore": 65,
-      "guidance": "Reward a decision that is made, not hedged. Full marks do not require a particular answer: storing ticket look-ups for a short window is defensible, and so is refusing because ticket contents are customer data. Withhold marks when the price is left unnamed, when the step-level tick is forgotten, or when the learner treats Conversation Memory as a cost dial without mentioning the detail it destroys."
+      "guidance": "Reward a decision that is made, not hedged. Full marks do not require a particular answer: storing ticket look-ups for a short window is defensible, and so is refusing because ticket contents are customer data. Withhold marks when the price is left unnamed, when the step-level tick is forgotten, or when the learner treats Conversations as a cost dial without mentioning the detail it destroys."
     }
   },
   "actionChecks": [
@@ -270,7 +270,7 @@
       "checkId": "org-context-configured",
       "existing": false,
       "label": "Choose a Safety limit and save it",
-      "hint": "Admin dashboard → Organisation → Conversation Memory: move the Safety limit slider off 75%, then Save.",
+      "hint": "Admin dashboard → AI & agents → Conversations: move the Safety limit slider off 75%, then Save.",
       "endpoints": [
         {
           "method": "GET",
@@ -282,7 +282,7 @@
         {
           "id": "configured",
           "label": "Your organisation has a saved conversation memory setting",
-          "hint": "Press Save on the Conversation Memory screen at least once — an untouched organisation reports configured false.",
+          "hint": "Press Save on the Conversations page at least once — an untouched organisation reports configured false.",
           "rule": "GET /api/org-ai-context/:orgId returns configured === true",
           "endpoint": "/api/org-ai-context/:orgid",
           "expect": {

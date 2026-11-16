@@ -32,31 +32,30 @@ export { AvatarDisplay } from './settings/shell/AvatarDisplay';
  * they name a phone's detail view (Compliance, the no-plan licence page). */
 const BASE_ORG_SUB_ITEMS = [
     ...ORG_SECTIONS,                                            // OrgInfoPanel's seven sections (license … info); already use labelKey
-    { id: 'org_usage', labelKey: 'settings.usage_monitoring', icon: BarChart2, color: '#f59e0b' },
-    // Scale (the balance) is the Compliance Center's own glyph, and its
-    // colour is the kind token the whole hub is drawn in — not a hex green
-    // that drifts from it on the next palette pass. OrgSubItem passes
-    // `section.color` straight into a style, so a var() works there.
-    { id: 'org_compliance', labelKey: 'settings.compliance', icon: Scale, color: 'var(--kind-compliance)' },
-    { id: 'org_users', labelKey: 'settings.users_groups', icon: Users, color: '#3b82f6' },
-    { id: 'org_academy', labelKey: 'settings.academy', icon: GraduationCap, color: '#059669' },
-    { id: 'org_integrations', labelKey: 'settings.integrations', icon: Link2, color: '#0ea5e9' },
+    { id: 'org_usage', labelKey: 'settings.usage_monitoring', icon: BarChart2 },
+    // Scale (the balance) is the Compliance Center's own glyph.
+    { id: 'org_compliance', labelKey: 'settings.compliance', icon: Scale },
+    { id: 'org_users', labelKey: 'settings.users_groups', icon: Users },
+    { id: 'org_academy', labelKey: 'settings.academy', icon: GraduationCap },
+    { id: 'org_integrations', labelKey: 'settings.integrations', icon: Link2 },
     // Remote MCP servers for this organisation, and who uses the server-wide
     // ones (pages/settings → components/mcpLibrary). Licence-gated on the
     // server (mcp_marketplace); the page explains a plan without it.
-    { id: 'org_mcp', labelKey: 'mcp_library.nav', icon: Plug, color: '#f59e0b' },
+    { id: 'org_mcp', labelKey: 'mcp_library.nav', icon: Plug },
     // The org-wide rules every MCP request passes through (IP allow-list, who
     // may use MCP, legacy tokens). Org admins only; named tokens live in the
     // member's own Settings → Security.
-    { id: 'org_mcp_access', labelKey: 'mcp_access.nav', icon: ShieldCheck, color: '#ef4444' },
-    { id: 'org_github_sync', labelKey: 'settings.github_sync', icon: FolderGit2, color: '#8b5cf6' },
-    { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', icon: Cloud, color: '#0082C9' },
-    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText, color: '#a855f7' },
+    { id: 'org_mcp_access', labelKey: 'mcp_access.nav', icon: ShieldCheck },
+    { id: 'org_github_sync', labelKey: 'settings.github_sync', icon: FolderGit2 },
+    { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', icon: Cloud },
+    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText },
 ];
-const AZURE_SUB_ITEM = { id: 'org_azure', labelKey: 'settings.azure_config', icon: Cloud, color: '#0078D4' };
+// The organisation's Microsoft 365 page (Microsoft365Panel), the dashboard row's
+// label.
+const AZURE_SUB_ITEM = { id: 'org_azure', labelKey: 'admin_nav.microsoft_365', icon: Cloud };
 // The same tab and address for an organisation admin who is not the platform
-// admin: the organisation's own group sync (GroupSyncPanel), not the instance-wide setup.
-const GROUP_SYNC_SUB_ITEM = { id: 'org_azure', labelKey: 'azure.group_sync_nav', icon: RefreshCw, color: '#0078D4' };
+// admin: the organisation's own group sync (GroupSyncPanel), not the whole page.
+const GROUP_SYNC_SUB_ITEM = { id: 'org_azure', labelKey: 'azure.group_sync_nav', icon: RefreshCw };
 
 /* Every org sub-tab id, taken from the URL table: each one has an address
  * there (settingsRoutes.js), so this is the same set without a second list. */
@@ -148,7 +147,7 @@ const AdvancedSettings = ({ onNavigate: onNavigateProp, onLogout, user: userProp
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
     // 'review' when the pending-review row of Settings → Memory opened the panel.
     const [memoryPanelView, setMemoryPanelView] = useState<MemoryView>('active');
-    const { memoryStats, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
+    const { memoryStats, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData();
     // The per-org "License & Usage" section does not exist on self-hosted
     // (licensing is server-wide). On a phone a deep link can still resolve
     // activeTab to 'license'; it goes to Preferences (a desktop redirects above).
@@ -202,11 +201,14 @@ const AdvancedSettings = ({ onNavigate: onNavigateProp, onLogout, user: userProp
     };
 
     // Phone title bar shows the section name while in detail view: a top-level
-    // row, an org sub-tab (Compliance, the no-plan licence page) or a consumer
-    // row (the Stripe return), else the screen title.
+    // row, an org sub-tab or a consumer row (the Stripe return), else the
+    // screen title. An organisation page drawn by OrganisationSection (the
+    // no-plan licence page) names itself with its own heading, so the bar keeps
+    // the screen title there: the page's name is said once.
     const activeNavItem = findActiveNavItem(activeTab, [...BASE_ORG_SUB_ITEMS, isPlatformAdmin ? AZURE_SUB_ITEM : GROUP_SYNC_SUB_ITEM]);
     const mobileInDetail = isMobile && mobileDetail;
-    const titleLabel = mobileInDetail && activeNavItem ? t(activeNavItem.labelKey) : t('settings.title');
+    const pageNamesItself = isOrgSubTab && canSeeOrg && activeTab !== 'org_compliance' && activeTab !== 'org_azure';
+    const titleLabel = mobileInDetail && activeNavItem && !pageNamesItself ? t(activeNavItem.labelKey) : t('settings.title');
     // The Compliance Center draws its OWN top bar on a phone, so in detail view
     // the settings bar is hidden (two back buttons would mean different things).
     const hideTitleBar = mobileInDetail && activeTab === 'org_compliance';

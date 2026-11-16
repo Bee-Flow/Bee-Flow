@@ -50,23 +50,39 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); });
 
 const renderPanel = () => renderWithClient(<GitHubSyncPanel user={null} />);
-const ready = async () => { renderPanel(); await screen.findByRole('heading', { name: 'GitHub Sync' }); };
+const ready = async () => { renderPanel(); await screen.findByTestId('github-sync-panel'); };
 
 describe('GitHubSyncPanel: states', () => {
     it('shows a skeleton while the status loads', async () => {
         renderPanel();
         expect(document.querySelector('.animate-pulse')).not.toBeNull();
-        expect(screen.queryByRole('heading', { name: 'GitHub Sync' })).toBeNull();
-        await screen.findByRole('heading', { name: 'GitHub Sync' });
+        expect(screen.queryByTestId('github-sync-panel')).toBeNull();
+        await screen.findByTestId('github-sync-panel');
         expect(document.querySelector('.animate-pulse')).toBeNull();
         expect(calls()).toEqual([`GET ${BASE}/status`]);
     });
 
-    it('asks to connect GitHub first when it is not connected', async () => {
+    it('asks to connect GitHub first when it is not connected, with a link to Settings > Connections', async () => {
         status = { githubConnected: false };
         await ready();
         expect(screen.getByText('GitHub Not Connected')).toBeInTheDocument();
         expect(screen.queryByText('Set Up Agent Sync')).toBeNull();
+        expect(screen.getByRole('link', { name: /Settings › Connections/ })).toHaveAttribute('href', '/app/settings/integrations');
+    });
+
+    it('shows a configured sync to an admin without a personal GitHub link: disconnect works, pushing waits for a connection', async () => {
+        status = { githubConnected: false, configured: true, config: CONFIG, overview: OVERVIEW };
+        const user = userEvent.setup();
+        await ready();
+        expect(screen.getByRole('heading', { name: 'acme/agents' })).toBeInTheDocument();
+        expect(screen.getByText(/Pushing to GitHub uses your own GitHub account/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Push All to GitHub' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Push 2 Pending' })).toBeDisabled();
+        expect(screen.getByTitle('Edit configuration')).toBeDisabled();
+        await user.click(screen.getByTitle('Disconnect'));
+        await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Disconnect' }));
+        expect(await screen.findByText('GitHub sync disconnected')).toBeInTheDocument();
+        expect(calls()).toContain(`DELETE ${BASE}/configure`);
     });
 
     it('still leaves the skeleton when the status request fails', async () => {
@@ -155,7 +171,7 @@ describe('GitHubSyncPanel: configuration', () => {
         await user.type(screen.getByPlaceholderText('your-username'), ' acme ');
         await user.type(screen.getByPlaceholderText('beeflow-agents'), ' agents ');
         await user.clear(screen.getByPlaceholderText('main'));
-        await user.click(screen.getByRole('button', { name: '' }));
+        await user.click(screen.getByRole('switch', { name: 'Auto-sync' }));
         status = { githubConnected: true, configured: true, config: { ...CONFIG, autoSync: true, branch: 'main' }, overview: OVERVIEW };
         await user.click(screen.getByRole('button', { name: 'Connect Repository' }));
         expect(await screen.findByText('GitHub sync configured successfully!')).toBeInTheDocument();
@@ -265,9 +281,9 @@ describe('GitHubSyncPanel: details and disconnect', () => {
         expect(screen.getByText('skill/zyxwvuts')).toBeInTheDocument();
         expect(screen.getByText('conflict')).toBeInTheDocument();
         expect(screen.getByText(new Date('2026-03-04T10:00:00Z').toLocaleString())).toBeInTheDocument();
-        expect(screen.getByText('synced')).toHaveClass('text-green-500');
-        expect(screen.getByText('pending')).toHaveClass('text-amber-500');
-        expect(screen.getByText('error')).toHaveClass('text-red-500');
+        expect(screen.getByText('synced')).toHaveClass('text-[var(--success-ink)]');
+        expect(screen.getByText('pending')).toHaveClass('text-[var(--warning-ink)]');
+        expect(screen.getByText('error')).toHaveClass('text-[var(--error-ink)]');
         await user.click(screen.getByRole('button', { name: /Hide sync details/ }));
         expect(screen.queryByText('agent/abcdefgh')).toBeNull();
     });

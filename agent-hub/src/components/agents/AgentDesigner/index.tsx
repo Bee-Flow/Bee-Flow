@@ -12,11 +12,13 @@ import useDesignerEffects from "./hooks/useDesignerEffects";
 import PublishMenu from "./PublishMenu";
 import { BehaviorSection as BehaviorSectionJs } from "./sections/BehaviorSection";
 import { IdentitySection as IdentitySectionJs } from "./sections/IdentitySection";
+import { ShareSection } from "./sections/ShareSection";
 import { ToolsSection as ToolsSectionJs } from "./sections/ToolsSection";
+import { useDesignerIntegrationAccess, type DesignerIntegrationAccess } from "./useDesignerIntegrationAccess";
 import type { DesignerSectionProps } from "./sections/sectionProps";
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from "@/utils/helpers";
-import { CHIP_ERROR, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { CHIP_ERROR, PRIMARY_BTN } from '@/components/shared/adminUi';
 import SectionHeader from '@/components/shared/SectionHeader';
 
 /** The designer's state (hooks/useAgentState.ts). */
@@ -52,6 +54,12 @@ export interface AgentDesignerProps {
   orgId?: string | null;
   /** The list spans organisations: show each agent's organisation. */
   showOrgNames?: boolean;
+  /**
+   * Inside a page whose frame already names it (the admin dashboard): the agent
+   * list draws no title of its own, and the open agent's header keeps only its
+   * actions (publish, save), not a second heading.
+   */
+  embedded?: boolean;
 }
 
 const AgentDesigner = ({
@@ -62,6 +70,7 @@ const AgentDesigner = ({
   onClose = null,
   orgId = null,
   showOrgNames = false,
+  embedded,
 }: AgentDesignerProps) => {
   const { t } = useTranslation();
   // All state from hooks
@@ -80,6 +89,9 @@ const AgentDesigner = ({
   useDesignerEffects(state);
 
   const isReadonly = isReadonlyFor(selectedAgent, user, isCreating);
+  // In the admin dashboard the Integrations section follows the agent's organisation, not the admin's own access.
+  const agentOrgId = typeof selectedAgent?.organization_id === 'string' ? selectedAgent.organization_id : null;
+  const integrationAccess = useDesignerIntegrationAccess({ systemMode, agentOrgId });
 
   const sharedProps = {
     ...state,
@@ -108,6 +120,7 @@ const AgentDesigner = ({
           loading={state.loading}
           systemMode={systemMode}
           showOrgNames={showOrgNames}
+          showTitle={!embedded}
           canManage={hasPermission("manage_agents")}
           user={user}
           onSelect={api.selectAgent}
@@ -119,7 +132,7 @@ const AgentDesigner = ({
         {/* 2. Main Workspace (Split View) */}
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
           {selectedAgent || isCreating ? (
-            <AgentWorkspace state={state} api={api} systemMode={systemMode} isReadonly={isReadonly} sharedProps={sharedProps} />
+            <AgentWorkspace state={state} api={api} systemMode={systemMode} isReadonly={isReadonly} sharedProps={sharedProps} integrationAccess={integrationAccess} actionsOnly={embedded} />
           ) : (
             <DesignerEmptyState systemMode={systemMode} onCreate={api.createNewAgent} />
           )}
@@ -139,55 +152,73 @@ function SaveControls({ isReadonly, saving, canSave, onSave }: { isReadonly: boo
         <span className={CHIP_ERROR}>{t('agent_studio.agent_designer_read_only_unpublished', 'Read-only (Unpublished)')}</span>
       )}
       <button type="button" onClick={onSave} disabled={saving || !canSave || isReadonly} className={PRIMARY_BTN}>
-        {saving ? "Saving..." : "Save Changes"}
+        {saving ? t('agent_designer.saving', 'Saving…') : t('agent_designer.save_changes', 'Save changes')}
       </button>
     </div>
   );
 }
 
+/** Publish (for an organisation's agent) and Save: the actions of the open agent. */
+function WorkspaceActions({ state, api, systemMode, isReadonly }: { state: DesignerState; api: DesignerApi; systemMode: boolean; isReadonly: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      {!systemMode && state.selectedAgent && (
+        <PublishMenu
+          isReadonly={isReadonly}
+          isPublished={state.isPublished}
+          sharedGroups={state.sharedGroups}
+          setSharedGroups={state.setSharedGroups}
+          orgGroups={state.orgGroups}
+          showPublishMenu={state.showPublishMenu}
+          setShowPublishMenu={state.setShowPublishMenu}
+          publishError={state.publishError}
+          setPublishError={state.setPublishError}
+          setPublishState={api.setPublishState}
+          togglePublish={api.togglePublish}
+        />
+      )}
+      <SaveControls isReadonly={isReadonly} saving={state.saving} canSave={!!state.name.trim()} onSave={api.saveAgent} />
+    </div>
+  );
+}
+
 /** The open agent: its header (publish, save) and the section it is on. */
-function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps }: {
+function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps, integrationAccess, actionsOnly = false }: {
   state: DesignerState;
   api: DesignerApi;
   systemMode: boolean;
   isReadonly: boolean;
   sharedProps: SharedProps;
+  integrationAccess: DesignerIntegrationAccess;
+  /** The page frame names the page: the header holds only the actions. */
+  actionsOnly?: boolean;
 }) {
   const { t } = useTranslation();
-  const { selectedAgent, isCreating, activeSection } = state;
+  const { selectedAgent, isCreating } = state;
+  const { activeSection, setActiveSection } = state;
+  const actions = <WorkspaceActions state={state} api={api} systemMode={systemMode} isReadonly={isReadonly} />;
   return (
     <div className="flex-1 flex w-full min-w-0">
       {/* Configuration Area */}
       <div className="flex-1 flex flex-col min-w-0 xl:min-w-[600px] border-r border-[var(--border-default)]">
         {/* Header */}
-        <div className="border-b border-[var(--border-default)] px-6 py-4">
-          <SectionHeader
-            title={isCreating ? "Create New Agent" : "Edit Agent"}
-            description={t('agent_studio.agent_designer_configure_identity_logic_and', 'Configure identity, logic, and safeguards.')}
-            status={<div className="flex items-center gap-2">
-            {!systemMode && selectedAgent && (
-              <PublishMenu
-                isReadonly={isReadonly}
-                isPublished={state.isPublished}
-                sharedGroups={state.sharedGroups}
-                setSharedGroups={state.setSharedGroups}
-                orgGroups={state.orgGroups}
-                showPublishMenu={state.showPublishMenu}
-                setShowPublishMenu={state.setShowPublishMenu}
-                publishError={state.publishError}
-                setPublishError={state.setPublishError}
-                setPublishState={api.setPublishState}
-                togglePublish={api.togglePublish}
-              />
-            )}
-            <SaveControls isReadonly={isReadonly} saving={state.saving} canSave={!!state.name.trim()} onSave={api.saveAgent} />
-            </div>}
-          />
-        </div>
+        {actionsOnly ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-b border-[var(--border-default)] px-6 py-2" data-testid="agent-workspace-actions">
+            {actions}
+          </div>
+        ) : (
+          <div className="border-b border-[var(--border-default)] px-6 py-4">
+            <SectionHeader
+              title={isCreating ? t('agent_studio.agent_designer_create_new_agent', 'Create new agent') : t('agent_designer.edit_agent', 'Edit agent')}
+              description={t('agent_studio.agent_designer_configure_identity_logic_and', 'Configure identity, logic, and safeguards.')}
+              status={actions}
+            />
+          </div>
+        )}
 
         {/* Config Content (Sidebar + Main) */}
         <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-          <DesignerSectionNav integrationStatus={state.integrationStatus} activeSection={activeSection} setActiveSection={state.setActiveSection} />
+          <DesignerSectionNav integrationStatus={state.integrationStatus} access={integrationAccess} activeSection={activeSection} setActiveSection={setActiveSection} />
 
           {/* Section Content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
@@ -205,8 +236,9 @@ function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps }: {
                 />
               )}
               {activeSection === "identity" && <IdentitySection {...sharedProps} />}
-              {activeSection === "tools" && <ToolsSection {...sharedProps} />}
+              {activeSection === "tools" && <ToolsSection {...sharedProps} access={integrationAccess} />}
               {activeSection === "behavior" && <BehaviorSection {...sharedProps} />}
+              {activeSection === "share" && <ShareSection {...sharedProps} />}
             </div>
           </div>
         </div>

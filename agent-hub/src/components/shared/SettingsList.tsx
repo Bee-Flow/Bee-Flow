@@ -5,12 +5,13 @@
 // settings that most people never touch.
 
 import type { ReactNode } from 'react';
+import { FOCUS_RING, PRIMARY_TONE } from './buttonClasses';
 
 /** Class strings for the compact controls inside a row or an expanded area. */
 export const FIELD_INPUT = 'w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-1.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)] disabled:opacity-60';
 
-/** The primary action of a group (Save ...). */
-export const SAVE_BUTTON = 'inline-flex items-center justify-center rounded-md bg-[var(--accent-primary)] px-4 py-1.5 text-[13px] font-medium text-[var(--accent-primary-fg)] transition-opacity hover:opacity-90 disabled:opacity-50';
+/** The primary action of a group (Save ...): the shared Button's primary colours at this compact size. */
+export const SAVE_BUTTON = `inline-flex items-center justify-center rounded-md border px-4 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${PRIMARY_TONE} ${FOCUS_RING}`;
 
 /** A quiet bordered button for a row (Apply, Add ...). */
 export const QUIET_BUTTON = 'inline-flex items-center justify-center gap-1.5 rounded-md border border-[var(--border-default)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-secondary)] disabled:opacity-50';
@@ -148,24 +149,30 @@ export function SettingBlock({ label, hint, htmlFor, children }: SettingBlockPro
     );
 }
 
-/** One choice out of several, as a card: the radio-card look of a provider or method picker. */
+/**
+ * One choice out of several, as a card: the radio-card look of a provider or
+ * method picker. Selected is the same recipe as ChoiceCards: the theme's
+ * selected-row tint, an ink outline and an ink dot, never a status colour.
+ * The caller's grid is the group; give it role="radiogroup" and a name.
+ */
 export function OptionCard({ selected, onClick, title, description }: { selected: boolean; onClick: () => void; title: ReactNode; description?: ReactNode }) {
     return (
         <button
             type="button"
+            role="radio"
             onClick={onClick}
-            aria-pressed={selected}
-            className={`rounded-md border p-3 text-left transition-colors ${selected
-                ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
-                : 'border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]'}`}
+            aria-checked={selected}
+            className={`rounded-md border-[1.5px] p-3 text-left transition-colors ${FOCUS_RING} ${selected
+                ? 'border-[var(--text-primary)] bg-[var(--item-active-bg)]'
+                : 'border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--item-hover-bg)]'}`}
         >
-            <span className={`flex items-center gap-2 text-[13px] font-medium ${selected ? 'text-[var(--success-ink)]' : 'text-[var(--text-primary)]'}`}>
-                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? 'border-[var(--success)] bg-[var(--success)]' : 'border-[var(--border-default)]'}`}>
-                    {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+            <span className="flex items-center gap-2 text-[13px] font-medium text-[var(--text-primary)]">
+                <span aria-hidden="true" className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px] ${selected ? 'border-[var(--text-primary)]' : 'border-[var(--border-default)]'}`}>
+                    {selected && <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-primary)]" />}
                 </span>
                 {title}
             </span>
-            {description ? <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-tertiary)]">{description}</span> : null}
+            {description ? <span className="mt-1 block text-xs leading-relaxed text-[var(--text-secondary)]">{description}</span> : null}
         </button>
     );
 }

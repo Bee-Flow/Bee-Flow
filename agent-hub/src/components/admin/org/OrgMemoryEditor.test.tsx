@@ -69,7 +69,7 @@ describe('OrgMemoryEditor', () => {
         getStatus = 503;
         renderEditor();
         expect(await screen.findByText('Could not load the memory settings.')).toBeInTheDocument();
-        expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     });
 
     it('shows counts and no memory content', async () => {
@@ -83,7 +83,7 @@ describe('OrgMemoryEditor', () => {
         renderEditor();
         const save = await screen.findByRole('button', { name: 'Save' });
         expect(save).toBeDisabled();
-        await user.click(screen.getByRole('checkbox', { name: 'Allow members to opt in to sensitive topics' }));
+        await user.click(screen.getByRole('switch', { name: 'Allow members to opt in to sensitive topics' }));
         const cap = screen.getByLabelText('Memories per person');
         await user.clear(cap);
         await user.type(cap, '2000');
@@ -94,11 +94,11 @@ describe('OrgMemoryEditor', () => {
     it('an out-of-range cap shows an error and cannot be saved', async () => {
         const user = userEvent.setup();
         renderEditor();
-        await user.click(await screen.findByRole('checkbox', { name: 'Memory enabled for this organisation' }));
+        await user.click(await screen.findByRole('switch', { name: 'Memory enabled for this organisation' }));
         const cap = screen.getByLabelText('Memories per person');
         await user.clear(cap);
         await user.type(cap, '20');
-        expect(screen.getByText('Enter a whole number between 50 and 10000.')).toBeInTheDocument();
+        expect(screen.getByText('Enter a whole number between 50 and 10,000.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
         await user.clear(cap);
         await user.type(cap, '20000');
@@ -131,7 +131,7 @@ describe('OrgMemoryEditor: sensitive topics', () => {
         server.settings.sensitiveOptInAllowed = true;
         const user = userEvent.setup();
         renderEditor();
-        await user.click(await screen.findByRole('checkbox', { name: 'Allow members to opt in to sensitive topics' }));
+        await user.click(await screen.findByRole('switch', { name: 'Allow members to opt in to sensitive topics' }));
         putExtra = { stats: { activeMemories: 1200, users: 17 }, deletedSensitive: 34 };
         await user.click(screen.getByRole('button', { name: 'Save' }));
         // The warning comes first; nothing is sent until it is confirmed.
@@ -147,7 +147,7 @@ describe('OrgMemoryEditor: sensitive topics', () => {
         server.settings.sensitiveOptInAllowed = true;
         const user = userEvent.setup();
         renderEditor();
-        await user.click(await screen.findByRole('checkbox', { name: 'Allow members to opt in to sensitive topics' }));
+        await user.click(await screen.findByRole('switch', { name: 'Allow members to opt in to sensitive topics' }));
         await user.click(screen.getByRole('button', { name: 'Save' }));
         await screen.findByText('Stop allowing sensitive topics?');
         await user.click(screen.getByTestId('confirm-dialog-cancel'));
@@ -157,7 +157,7 @@ describe('OrgMemoryEditor: sensitive topics', () => {
     it('turning it ON needs no warning', async () => {
         const user = userEvent.setup();
         renderEditor();
-        await user.click(await screen.findByRole('checkbox', { name: 'Allow members to opt in to sensitive topics' }));
+        await user.click(await screen.findByRole('switch', { name: 'Allow members to opt in to sensitive topics' }));
         await user.click(screen.getByRole('button', { name: 'Save' }));
         await waitFor(() => expect(puts).toHaveLength(1));
         expect(screen.queryByText('Stop allowing sensitive topics?')).not.toBeInTheDocument();

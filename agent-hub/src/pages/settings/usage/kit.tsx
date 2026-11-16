@@ -7,7 +7,11 @@
 // Inline-styled on purpose: it matches the dashboard's existing CSS-var
 // vocabulary (--bg-secondary / --border-subtle / --text-muted) rather than the
 // Tailwind/TSX shared components, so adopting it is a pure consolidation with
-// no visual drift. No purple/violet/indigo anywhere.
+// no visual drift. Colours are theme tokens only (the chart slots and the
+// status pairs), tinted with color-mix, so light and dark themes both hold.
+
+/** A colour (a token or any CSS colour) at `pct` percent over transparent. */
+const tint = (color: string, pct: number) => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import type {
@@ -30,7 +34,7 @@ const TOKENS = {
 };
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
-export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
+export const Sparkline = ({ values, color = 'var(--chart-1)', width = 60, height = 16 }: SparklineProps) => {
     if (!Array.isArray(values) || values.length < 2) return null;
     const max = Math.max(...values, 1);
     const points = values.map((v: number, i: number) => {
@@ -52,12 +56,12 @@ export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }
 export const TrendChip = ({ delta, display, title, goodWhenDown = false }: TrendChipProps) => {
     if (delta == null) return null;
     const isGood = goodWhenDown ? delta < 0 : delta > 0;
-    const color = delta === 0 ? '#94a3b8' : isGood ? '#10b981' : '#ef4444';
+    const color = delta === 0 ? 'var(--text-tertiary)' : isGood ? 'var(--success-ink)' : 'var(--error-ink)';
     const arrow = delta > 0 ? '↑' : delta < 0 ? '↓' : '·';
     return (
         <span title={title} style={{
             display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 5,
-            background: delta === 0 ? 'var(--bg-tertiary)' : `${color}15`, color, fontSize: 11, fontWeight: 800,
+            background: delta === 0 ? 'var(--bg-tertiary)' : tint(color, 8), color, fontSize: 11, fontWeight: 800,
         }}>
             <span className="[font-size:13px]">{arrow}</span>{display}
         </span>
@@ -94,14 +98,14 @@ export const Card = ({ children, style, title, icon: Icon, right, pad }: CardPro
 //   size 'sm' → horizontal, 18px, optional sparkline (old MiniStat; hero asides)
 //   size 'md' → vertical,   22px, optional subtitle  (old Kpi / StatCard)
 //   size 'lg' → vertical,   24px, optional subtitle  (old KpiCard)
-export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtitle, spark, size = 'md', onClick }: MetricCardProps) => {
+export const MetricCard = ({ icon: Icon, label, value, color = 'var(--chart-1)', subtitle, spark, size = 'md', onClick }: MetricCardProps) => {
     if (size === 'sm') {
         return (
             <div onClick={onClick} style={{
                 padding: '10px 12px', borderRadius: 10, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)',
                 display: 'flex', alignItems: 'center', gap: 10, cursor: onClick ? 'pointer' : 'default',
             }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}15`, flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tint(color, 8), flexShrink: 0 }}>
                     {Icon && <Icon style={{ width: 14, height: 14, color }} />}
                 </div>
                 <div className="[min-width:0] [flex:1]">
@@ -120,7 +124,7 @@ export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtit
             padding: 14, display: 'flex', flexDirection: 'column', gap: 5, cursor: onClick ? 'pointer' : 'default',
         }}>
             <div className="[display:flex] [align-items:center] [gap:8px]">
-                <div style={{ width: chip, height: chip, borderRadius: 7, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: chip, height: chip, borderRadius: 7, background: tint(color, 8), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {Icon && <Icon style={{ width: 13, height: 13, color }} />}
                 </div>
                 <span className="[font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.06em] [color:var(--text-muted)]">{label}</span>
@@ -147,23 +151,24 @@ export const MetricGrid = ({ children, cols = 2, min, gap = TOKENS.gridGap }: Me
 // One action-required banner for all tabs (Feedback/Terminations no longer
 // re-implement it). Spacing comes from the parent column gap (no marginBottom).
 export const AlertBanner = ({ severity = 'amber', title = 'Action required', message, ctaLabel, onCta, icon: Icon = AlertTriangle }: AlertBannerProps) => {
-    const c = severity === 'red' ? '#ef4444' : '#f59e0b';
+    const c = severity === 'red' ? 'var(--error)' : 'var(--warning)';
+    const ink = severity === 'red' ? 'var(--error-ink)' : 'var(--warning-ink)';
     return (
         <div style={{
-            padding: '12px 16px', borderRadius: 12, background: `${c}10`, border: `1px solid ${c}55`,
+            padding: '12px 16px', borderRadius: 12, background: tint(c, 6), border: `1px solid ${tint(c, 33)}`,
             display: 'flex', alignItems: 'center', gap: 12,
         }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${c}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon style={{ width: 16, height: 16, color: c }} />
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: tint(c, 12), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon style={{ width: 16, height: 16, color: ink }} />
             </div>
             <div className="[flex:1] [min-width:0]">
-                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: c }}>{title}</div>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: ink }}>{title}</div>
                 <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [margin-top:1px]">{message}</div>
             </div>
             {ctaLabel && onCta && (
                 <button onClick={onCta} style={{
-                    padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: c, color: 'white', fontWeight: 700, fontSize: 12,
+                    padding: '7px 14px', borderRadius: 8, border: `1px solid ${tint(c, 45)}`, cursor: 'pointer',
+                    background: 'var(--bg-card)', color: ink, fontWeight: 700, fontSize: 12,
                     display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
                 }}>
                     {ctaLabel} <ChevronRight className="[width:14px] [height:14px]" />
@@ -201,8 +206,8 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
                     <button key={String(o.value)} onClick={() => onChange(o.value)} style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: pad, borderRadius: 8,
                         border: active && color ? `1.5px solid ${color}` : '1px solid var(--border-subtle)',
-                        background: active ? (color ? `${color}10` : 'var(--accent-primary)') : 'var(--bg-secondary)',
-                        color: active ? (color || '#fff') : 'var(--text-muted)',
+                        background: active ? (color ? tint(color, 6) : 'var(--accent-primary)') : 'var(--bg-secondary)',
+                        color: active ? (color || 'var(--accent-primary-fg)') : 'var(--text-muted)',
                         fontWeight: active ? 700 : 500, fontSize: fs, cursor: 'pointer', transition: 'all 0.15s',
                     }}>
                         {color && <span style={{ width: 6, height: 6, borderRadius: 99, background: color, opacity: active ? 1 : 0.5 }} />}
@@ -210,9 +215,9 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
                         {o.label}
                         {o.count != null && (
                             <span style={{
-                                background: active ? (color ? `${color}20` : 'rgba(255,255,255,0.22)') : 'var(--bg-tertiary)',
+                                background: active ? tint(color || 'var(--accent-primary-fg)', color ? 12 : 22) : 'var(--bg-tertiary)',
                                 padding: '1px 6px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                                color: active ? (color || '#fff') : 'var(--text-muted)',
+                                color: active ? (color || 'var(--accent-primary-fg)') : 'var(--text-muted)',
                             }}>{o.count}</span>
                         )}
                     </button>

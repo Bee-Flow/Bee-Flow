@@ -13,7 +13,7 @@ import { createState, ROUTES } from '@/demo/fixtures/monitoring';
 import { renderWithClient } from '@/test/render';
 import { setDemoTransport } from '@/utils/helpers';
 import type { OverviewTabProps } from '../OverviewTab.types';
-import SpendTab from './SpendTab';
+import SpendTab, { type SpendTabProps } from './SpendTab';
 
 type License = ContextType<typeof LicenseContext>;
 type Handler = (ctx: { state: ReturnType<typeof createState> }) => unknown;
@@ -43,11 +43,11 @@ function baseProps(over: Partial<OverviewTabProps> = {}): OverviewTabProps {
     } as OverviewTabProps;
 }
 
-function renderSpend(over: Partial<OverviewTabProps> = {}, features: string[] = [FEATURE]) {
+function renderSpend(over: Partial<OverviewTabProps> = {}, features: string[] = [FEATURE], extra: Partial<SpendTabProps> = {}) {
     const value = { hasFeature: (name: string) => features.includes(name), deploymentMode: 'self-hosted' } as unknown as License;
     return renderWithClient(
         <LicenseContext.Provider value={value}>
-            <SpendTab {...baseProps(over)} />
+            <SpendTab {...baseProps(over)} {...extra} />
         </LicenseContext.Provider>,
     );
 }
@@ -191,5 +191,30 @@ describe('SpendTab: agents and customer view', () => {
         expect(screen.getByText('Team')).toBeTruthy();
         expect(screen.getByText('By tier')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Models' })).toBeNull();
+    });
+});
+
+// The AI Monitor hands Spend the views the old Usage explorer had (its conversations).
+describe('SpendTab: a host\'s own views', () => {
+    const conversations = { id: 'conversations', label: 'Conversations', description: 'The most expensive conversations.', render: (f: { agent: string | null }) => <p>conversation table{f.agent ? ` for ${f.agent}` : ''}</p> };
+
+    it('lists the host\'s view after the built-in ones and shows it with its description', async () => {
+        const user = userEvent.setup();
+        renderSpend({}, [FEATURE], { extraViews: [conversations] });
+        const views = within(screen.getByRole('group', { name: 'Spend views' })).getAllByRole('button').map((b) => b.textContent);
+        expect(views[views.length - 1]).toBe('Conversations');
+        await user.click(screen.getByRole('button', { name: 'Conversations' }));
+        expect(screen.getByText('conversation table')).toBeTruthy();
+        expect(screen.getByText('The most expensive conversations.')).toBeTruthy();
+    });
+
+    it('opens on the host\'s view when the link names it', () => {
+        renderSpend({}, [FEATURE], { extraViews: [conversations], initialSubTab: 'conversations' });
+        expect(screen.getByText('conversation table')).toBeTruthy();
+    });
+
+    it('hands the host\'s view the filter bar\'s values', () => {
+        renderSpend({}, [FEATURE], { extraViews: [conversations], initialSubTab: 'conversations', viewFilters: { user: null, agent: 'a1', model: null, source: null } });
+        expect(screen.getByText('conversation table for a1')).toBeTruthy();
     });
 });

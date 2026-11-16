@@ -21,7 +21,7 @@ const DATA = require(path.join(__dirname, 'data', 'admin-studio-4a-2026-11-nl.js
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here; the test fails until it is updated.
  */
-const DATA_SHA256 = '15272d8ebf39d3e88a2fd376216a47328447005e7f5d55e7009292af790a887c';
+const DATA_SHA256 = 'ae30c31548c13d9a64a6a06028e0691b90464f27bc861a4569a27d6ebc48c158';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

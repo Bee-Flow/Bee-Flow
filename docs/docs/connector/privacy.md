@@ -52,7 +52,7 @@ accounts: it takes the key into use for the chosen server.
 - Users and groups: user id, e-mail address, display name and group memberships of the Nextcloud
   accounts, read by the Bee Flow server through the connector. The organisation's administrator sets
   which groups are synchronised in the onboarding wizard and later under
-  **Admin → Organisation**. Until that wizard is finished, other users cannot use Bee Flow
+  **the admin dashboard**. Until that wizard is finished, other users cannot use Bee Flow
   ([why](troubleshooting.md#setup-in-progress)).
 - On every sign-in: your Nextcloud user id, e-mail address, display name and group memberships (used
   to identify your organisation and apply group-based permissions).
@@ -163,7 +163,7 @@ Default detection covers email addresses, phone numbers, IBANs, BSNs (NL), credi
 | Per-call NC API access | `tail -f data/nextcloud.log \| grep bee_flow` |
 | Per-call connector activity | `docker logs nc_app_bee_flow --tail 200 -f` |
 | Per-tool-call provenance in chat | Inline tool-call rows in the conversation — click to expand request/response |
-| Per-org audit | **Admin → Compliance** (Enterprise+) |
+| Per-org audit | **Admin dashboard → Security & access → Compliance** (Enterprise+) |
 
 ## Full policy
 

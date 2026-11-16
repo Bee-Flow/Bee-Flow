@@ -8,6 +8,7 @@ import {
     useMicrosoft365Status,
 } from '../../api/queries/microsoft365';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { MICROSOFT_APP_IDS } from '@/utils/integrationFamilies';
 // Circular on purpose, like SimpleApiKeyIntegration: the shared row
 // primitives are only read at render time.
 import { IntegrationRow, DisconnectButton } from './IntegrationPrimitives';
@@ -50,7 +51,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
     if (!status.configured) {
         return (
             <p className="text-[12px] text-[var(--text-muted)]">
-                {t('integ.microsoft_not_configured', 'Microsoft 365 is not configured. Ask your admin to set the Microsoft Client ID and Secret in Admin → Authentication.')}
+                {t('integ.microsoft_not_configured', 'Microsoft 365 is not configured. Ask your platform administrator to set the Microsoft client ID and secret in Admin dashboard → Whole server → Sign-in & SSO.')}
             </p>
         );
     }
@@ -162,7 +163,6 @@ export default function Microsoft365Integration({ onSaved, last = false }: { onS
     );
 }
 
-const MICROSOFT_APP_IDS = ['outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts'];
 
 /**
  * The Microsoft 365 group on the Connections page: shown whenever at least

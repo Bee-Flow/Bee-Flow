@@ -2,14 +2,15 @@ import { AdminOrgScopeProvider } from '@/api/adminOrgScope';
 import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import { useEffectiveAdminOrgId } from '@/components/admin/dashboard/useEffectiveAdminOrgId';
-import NextcloudSyncPanel from '@/components/integrations/nextcloud/NextcloudSyncPanel';
-import OrgCustomTiersPanel from '../OrgCustomTiersPanel';
 import OrgInvitationsSection from './OrgInvitationsSection';
 import OrgRolesSection from './OrgRolesSection';
 import type { AdminCurrentUser, AdminUser } from './types';
 
-/** The tabs of this screen that work on one organisation: its invitations, roles, model tiers and Nextcloud sync. */
-export const ORG_ONLY_SECTIONS = ['invitations', 'org-roles', 'custom-tiers', 'sync'] as const;
+/**
+ * The tabs of this screen that work on one organisation: its invitations and roles. Its model tiers
+ * and its Nextcloud sync are dashboard rows of their own (Models, Nextcloud).
+ */
+export const ORG_ONLY_SECTIONS = ['invitations', 'org-roles'] as const;
 
 /** The organisation the organisation-only tabs work on (dashboard/useEffectiveAdminOrgId). */
 interface OrgTabTarget {
@@ -39,14 +40,9 @@ interface OrgTabContentProps {
     currentUser: AdminCurrentUser | null | undefined;
 }
 
-function TabBody({ section, users, currentUser, scopeOrgId }: Omit<OrgTabContentProps, 'target'> & { scopeOrgId: string | null }) {
+function TabBody({ section, users, currentUser }: Omit<OrgTabContentProps, 'target'>) {
     if (section === 'invitations') return <OrgInvitationsSection />;
     if (section === 'org-roles') return <OrgRolesSection users={users} currentUser={currentUser} />;
-    if (section === 'custom-tiers') return <OrgCustomTiersPanel />;
-    if (section === 'sync') {
-        const ncUser = currentUser as { organizationId?: string | null };
-        return scopeOrgId ? <NextcloudSyncPanel user={ncUser} orgId={scopeOrgId} /> : <NextcloudSyncPanel user={ncUser} />;
-    }
     return null;
 }
 
@@ -59,7 +55,7 @@ export default function OrgTabContent({ section, target, users, currentUser }: O
     return (
         <AdminOrgScopeProvider value={target.scopeOrgId}>
             <div key={target.scopeOrgId ?? 'own'}>
-                <TabBody section={section} users={users} currentUser={currentUser} scopeOrgId={target.scopeOrgId} />
+                <TabBody section={section} users={users} currentUser={currentUser} />
             </div>
         </AdminOrgScopeProvider>
     );

@@ -105,7 +105,7 @@ The audio track is extracted (the video is discarded immediately), transcribed w
 | A recording exists | Bee Flow only imports meetings that were **recorded in Meet**. Recording is a Google Meet product feature: it works only when the **organizer has Google Workspace Business Standard or higher**. Free Gmail accounts can never produce recordings — there is nothing to import. |
 | Recording was started | Someone must press record in the meeting, or the organizer pre-configures auto-recording (see below). Unrecorded meetings are skipped quietly. |
 | Meet scopes granted | The Google connection must include the two Meet scopes (see below). |
-| WhisperX reachable | `WHISPERX_URL` (or the URL in Admin → Integrations → Transcription) must point at your WhisperX service — see the self-hosting notes. |
+| WhisperX reachable | `WHISPERX_URL` (or the URL in Admin dashboard → Whole server → Platform services → Transcription) must point at your WhisperX service — see the self-hosting notes. |
 | Bee Flow licence | Enterprise or higher (`meeting_notes` feature). |
 
 ### Organizer vs attendee
@@ -132,7 +132,7 @@ Meeting Notes adds two scopes to the Google connection:
 
 - Every calendar meeting with a Meet link shows in **Meeting Notes → Upcoming** with a per-meeting **record / skip toggle** — per occurrence, or for the whole series.
 - With **auto-record configuration** enabled in settings, toggling a meeting on pre-sets Meet's auto-recording on the conference space — but **only for meetings you organize**: Google restricts this to the host, and it requires a Workspace edition with recording. Meetings organized by someone else show **Record in Meet** instead — someone still has to press record in the call; Bee Flow picks the recording up afterwards.
-- Auto-import (off by default), import scope (only meetings you organize vs. any calendar meeting with a Meet link) and default transcription language live in **Settings → Preferences → Meeting notes**; org admins get the same controls org-wide under **Admin → Organisation**.
+- Auto-import (off by default), import scope (only meetings you organize vs. any calendar meeting with a Meet link) and default transcription language live in **Settings → Preferences → Meeting notes**; org admins get the same controls org-wide under **the admin dashboard**.
 - Manual import always works: **New transcription → Google Meet** lists your recent recorded meetings.
 
 ### Statuses & errors
@@ -155,7 +155,7 @@ Stable codes shown in the Upcoming tab and import panel:
 
 - **Set the OAuth consent screen to *Internal*** (available on Google Workspace). An *External* consent screen left in *Testing* mode expires refresh tokens after **7 days** — every user would have to reconnect weekly, and background imports would park as `needs_reauth`. External + *In production* works but requires Google's app verification because `meetings.space.readonly` is a sensitive scope; for a self-hosted instance used by your own Workspace, Internal is the right choice and needs no verification.
 - **Enable the Google Meet REST API** in your Google Cloud project, alongside Calendar and Drive.
-- **Point `WHISPERX_URL` at your own WhisperX service** (or set the URL under Admin → Integrations → Transcription). There is deliberately no hosted fallback: if no WhisperX URL is configured, Meet imports fail rather than sending meeting audio anywhere else. See [Environment variables](../self-hosting/env.md).
+- **Point `WHISPERX_URL` at your own WhisperX service** (or set the URL under Admin dashboard → Whole server → Platform services → Transcription). There is deliberately no hosted fallback: if no WhisperX URL is configured, Meet imports fail rather than sending meeting audio anywhere else. See [Environment variables](../self-hosting/env.md).
 
 ### Privacy
 

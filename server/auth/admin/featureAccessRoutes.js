@@ -29,6 +29,7 @@ const { worded } = require('../../core/http/schemaParts');
  * @typedef {import('express').Request<{ id: string }>} IdRequest
  * @typedef {{ id: string, kind: string, name: string, description: string, category: string, lifecycle: string, userFacing?: boolean, groupTogglable?: boolean, groupScoped?: boolean, licenseFeature?: string, moduleId?: string }} Capability  One descriptor of core/entitlements/capabilityRegistry.
  * @typedef {{ core?: string[], beta?: string[], integration?: string[] }} KindLists
+ * @typedef {import('../../core/entitlements/orgEntitlementSnapshot.mts').EntitlementsLike} EntitlementsLike
  */
 
 /**
@@ -486,19 +487,14 @@ router.get('/my-entitlements', requireAuth, async (req, res) => {
     });
 });
 
-// Resolve the ORG-scoped entitlement snapshot (ceiling + actual org-wide grants)
-// independent of who is asking — uses the org's own tier, never the caller's
-// (super-admin) elevated tier, so the matrix shows the real org state.
-/** @param {string} orgId */
-async function resolveOrgEntitlementSnapshot(orgId) {
-    const entitlements = require('../../core/entitlements/entitlements');
-    return entitlements.resolveEntitlements({ userId: null, orgId, session: null, req: null });
-}
-
-/** @param {KindLists} kindObj */
-function unionKindArrays(kindObj) {
-    return [...(kindObj.core || []), ...(kindObj.beta || []), ...(kindObj.integration || [])];
-}
+// The org snapshot and the org-availability read: core/entitlements/orgEntitlementSnapshot.mts,
+// handed this router's modules so a test that swaps them reaches every read.
+const orgSnapshot = require('../../core/entitlements/orgEntitlementSnapshot.mts');
+const { unionKindArrays } = orgSnapshot;
+const availability = () => require('../../usecases/integrations/orgIntegrationAvailability.mts');
+/** @returns {import('../../core/entitlements/orgEntitlementSnapshot.mts').SnapshotDeps} */
+const snapshotDeps = () => ({ entitlements: /** @type {EntitlementsLike} */ (/** @type {unknown} */ (require('../../core/entitlements/entitlements'))), userStore });
+const resolveOrgEntitlementSnapshot = (/** @type {string} */ orgId) => orgSnapshot.resolveOrgEntitlementSnapshot(orgId, snapshotDeps());
 
 // Shared builder for the "Access & Permissions" matrix payload (org-scoped).
 /** @param {string} orgId */
@@ -525,7 +521,7 @@ async function buildGroupAccessResponse(orgId) {
     // (excludes NC family + exempt + infra core, which aren't toggled here).
     /** @param {KindLists} ids */
     const inMatrix = (ids) => unionKindArrays(ids).filter(id => capIdSet.has(id));
-    return {
+    return availability().withServerConfigured({
         orgId,
         mode: snap.mode,
         capabilities,
@@ -542,7 +538,7 @@ async function buildGroupAccessResponse(orgId) {
         // "All members" column is plan-driven (read-only). Integrations (incl.
         // MCP servers) and core are org + per-group distributable in both modes.
         betaGoverned: snap.mode === 'cloud',
-    };
+    });
 }
 
 // Shared writer for the org-wide "All members" grants (clamped to ceiling).
@@ -565,7 +561,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     for (const capId of granted) {
         const cap = entitlements.registry.getCapability(capId);
         if (!cap || !cap.groupTogglable) continue;
-        if (!bound[cap.kind] || !bound[cap.kind].includes(capId)) continue; // server-side clamp
+        if (!bound[cap.kind]?.includes(capId)) continue; // server-side clamp
         buckets[cap.kind].push(capId);
     }
     // Org-scoped custom integrations ('custom:<uuid>': AI-builder rows and the
@@ -660,33 +656,19 @@ function assertSuperAdmin(req, res) {
     return true;
 }
 
-/** @param {string} orgId */
-async function buildOrgAvailabilityResponse(orgId) {
-    const entitlements = require('../../core/entitlements/entitlements');
-    const snap = await resolveOrgEntitlementSnapshot(orgId);
-    await entitlements.registry.refreshMcpIntegrationDescriptors(); // MCP servers as integration caps
-    await entitlements.registry.refreshModuleCapabilityFilter();    // drop un-imported module caps
-    /** @type {Capability[]} */
-    const matrixCaps = entitlements.registry.listCapabilities().filter((/** @type {Capability} */ c) => c.userFacing && c.groupTogglable);
-    const capIdSet = new Set(matrixCaps.map(c => c.id));
-    const capabilities = matrixCaps.map(c => ({ id: c.id, kind: c.kind, name: c.name, description: c.description, category: c.category, lifecycle: c.lifecycle }));
-    /** @param {KindLists} ids */
-    const inMatrix = (ids) => unionKindArrays(ids).filter(id => capIdSet.has(id));
-    const stored = await userStore.getOrgAvailableCapabilities(orgId); // null = unrestricted
-    return {
-        orgId,
-        mode: snap.mode,
-        capabilities,
-        ceiling: inMatrix(snap.ceiling),     // the full plan/license menu to choose from
-        available: inMatrix(snap.orgAvailable), // what the org may currently use
-        unrestricted: stored == null,
-    };
-}
+// Plus whether each integration row is set up on this server (additive).
+const orgAvailabilityPayload = async (/** @type {string} */ orgId) => availability().withServerConfigured(await orgSnapshot.buildOrgAvailabilityResponse(orgId, snapshotDeps()));
 
 router.get('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), async (/** @type {OrgRequest} */ req, res) => {
     if (!assertSuperAdmin(req, res)) return;
-    res.json(await buildOrgAvailabilityResponse(req.params.orgId));
+    res.json(await orgAvailabilityPayload(req.params.orgId));
 });
+
+// GET /organizations/:orgId/integration-availability: org-availability's gate without its super-admin narrowing (the .mts types its router structurally; it is an express Router).
+router.use(/** @type {import('express').Router} */ (require('./orgIntegrationAvailabilityRoutes.mts').createOrgIntegrationAvailabilityRouter({
+    gate: requireOrgAdmin('orgId'),
+    resolve: (/** @type {string} */ orgId, /** @type {{ organizationId: string | null }} */ viewer) => availability().resolveOrgIntegrationAvailability(orgId, viewer),
+})));
 
 router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), validate({ body: OrgAvailabilityBody }), async (/** @type {OrgRequest} */ req, res) => {
     if (!assertSuperAdmin(req, res)) return;
@@ -715,7 +697,7 @@ router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), v
     try {
         await userStore.logAccessAudit('org.availability.update', 'organization', orgId, req.session.user?.id || null, {}, { available: unrestricted === true ? null : available }, orgId);
     } catch (e) { log.warn('[Entitlements] org-availability audit failed:', /** @type {Error} */ (e).message); }
-    res.json(await buildOrgAvailabilityResponse(orgId));
+    res.json(await orgAvailabilityPayload(orgId));
 });
 
 // PUT /auth/admin/selected-org — persist the Access org-picker selection on the

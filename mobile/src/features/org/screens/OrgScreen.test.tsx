@@ -40,7 +40,6 @@ const ADMIN: OrgVisibilityInputs = {
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,
-    authLocked: false,
     githubConnected: false,
 };
 const query = (data: unknown) => ({ data, isRefetching: false, refetch: jest.fn() });

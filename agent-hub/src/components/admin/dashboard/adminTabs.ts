@@ -3,13 +3,20 @@
 // functions, so the gating can be tested without rendering a single panel.
 
 import {
-    Activity, BadgeCheck, BarChart3, Bot, Building2, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
-    Newspaper, Package, Palette, Plug, Scale, Shield, Sparkles,
+    Activity, BadgeCheck, BarChart3, Bot, Building, Building2, Cloud, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
+    Newspaper, Package, Palette, Plug, Scale, Shield, Sparkles, Tag, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { TIER_RANK } from '@/components/licensing/licenseTiers';
+import { ORG_HUB_SECTIONS } from '@/components/admin/organisation/orgSections';
+import { BARE_TAB_FALLBACKS, resolveAdminPath, type AdminPath, type ResolvedAdminPath } from './adminPathAliases';
+import type { AdminRailBlock, AdminRailGateContext, AdminRailRowDef } from './adminRailRowDef';
+import {
+    AGENT_RAIL_ROWS, AI_CONFIG_RAIL_ROWS, APPEARANCE_RAIL_ROWS, LICENSE_RAIL_ROWS, MONITORING_RAIL_ROWS,
+    PLATFORM_SERVICES_RAIL_ROWS, SECURITY_RAIL_ROWS, SUBSCRIPTIONS_RAIL_ROWS,
+} from './adminTabRows';
 
-export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
+export type AdminTabGroupId = 'organisation' | 'ai' | 'identity' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
 
 /**
  * Whose data a section is about:
@@ -25,6 +32,9 @@ export interface AdminTab {
     id: string;
     labelKey: string;
     labelFallback?: string;
+    /** The line under the page header (AdminPage) on the tab's own row, when it has one. */
+    descriptionKey?: string;
+    descriptionFallback?: string;
     icon: LucideIcon;
     group: AdminTabGroupId;
     perm: string[];
@@ -44,18 +54,45 @@ export interface AdminTab {
     capability?: string;
     cloudOnly?: boolean;
     selfHostedOnly?: boolean;
+    /** Sections that are rows of the rail (AdminRailRowDef); a row id is `tab/section`. */
+    railRows?: readonly AdminRailRowDef[];
+    /**
+     * The tab's own row is drawn only when this answers true (the tab still
+     * opens on its address): a row about something the server does not have yet.
+     */
+    railGate?: (ctx: AdminRailGateContext) => boolean;
+    /** The tab leaves the dashboard chrome and renders full screen (Product website). */
+    escapesChrome?: boolean;
 }
 
 /** The rail's groups, in rail order, each with the eyebrow above it. */
 export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string; labelFallback: string }[] = [
-    { id: 'organisation', labelKey: 'settings.workspace_section', labelFallback: 'Workspace' },
-    { id: 'ai', labelKey: 'admin.nav_group_ai', labelFallback: 'AI & agents' },
-    { id: 'security', labelKey: 'admin.nav_group_security', labelFallback: 'Security & access' },
-    // Only the Organisation tab's connection sections sit here (organisation/orgSections).
-    { id: 'connections', labelKey: 'admin.org_hub_group_connections', labelFallback: 'Connections' },
-    { id: 'platform', labelKey: 'admin.nav_group_platform', labelFallback: 'Platform' },
-    { id: 'operations', labelKey: 'admin.nav_group_operations', labelFallback: 'Operations' },
-    { id: 'website', labelKey: 'admin.nav_group_website', labelFallback: 'Website' },
+    { id: 'organisation', labelKey: 'admin_nav.group_workspace', labelFallback: 'Workspace' },
+    { id: 'ai', labelKey: 'admin_nav.group_ai', labelFallback: 'AI & agents' },
+    // The whole server's organisations, roles, sign-in providers and guardrail console.
+    { id: 'identity', labelKey: 'admin_nav.group_identity', labelFallback: 'Identity & access' },
+    { id: 'security', labelKey: 'admin_nav.group_security', labelFallback: 'Security & access' },
+    { id: 'connections', labelKey: 'admin_nav.group_connections', labelFallback: 'Connections' },
+    { id: 'platform', labelKey: 'admin_nav.group_platform', labelFallback: 'Platform' },
+    { id: 'operations', labelKey: 'admin_nav.group_operations', labelFallback: 'Operations' },
+    { id: 'website', labelKey: 'admin_nav.group_website', labelFallback: 'Website' },
+];
+
+/**
+ * The rail's rows in the order the target tree draws them inside a group (a
+ * row's id is its path under admin/); a row not listed comes after these, in
+ * ADMIN_TABS order. ADMIN_TABS's own order stays the fallback-tab order.
+ */
+export const ADMIN_RAIL_ORDER: readonly string[] = [
+    // The organisation block.
+    'organisation/info', 'organisation/license', 'people', 'organisation/projects', 'organisation/academy', 'monitoring',
+    'agents/chat', 'organisation/knowledge-bases', 'organisation/models', 'organisation/conversations', 'organisation/memory', 'organisation/meeting-notes',
+    'organisation/auth', 'access', 'security/guardrails', 'organisation/encryption', 'organisation/mcp-access', 'compliance',
+    'organisation/integrations', 'organisation/mcp', 'organisation/nextcloud-sync', 'organisation/azure', 'organisation/github-sync', 'organisation/integration-cache',
+    // The whole-server block.
+    'ai-config', 'agents/system', 'organisations', 'roles', 'security/sso', 'security/guardrail-library',
+    'integrations', 'mcp-servers', 'nextcloud-instances', 'licenses', 'modules', 'appearance', 'languages',
+    'support', 'subscriptions', 'product-website', 'website-analytics', 'release-notes',
 ];
 
 // Tab definitions — each tab requires its page-level permission
@@ -80,42 +117,31 @@ export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string;
 // per-organisation shield is the viewer's own organisation.
 const SECURITY_SCOPES: Readonly<Record<string, AdminScope>> = {
     sso: 'instance',
-    'email-domains': 'instance',
-    'connector-health': 'instance',
-    guardrails: 'mixed',
-    'guardrails/presets': 'instance',
-    'guardrails/patterns': 'instance',
-    'guardrails/terms': 'instance',
-    'guardrails/pii': 'instance',
-    'guardrails/dlp': 'instance',
-    'guardrails/directchat': 'instance',
-    'guardrails/organisations': 'mixed',
-    // Users screen tabs (admin/security/users/<tab>): the organisations, their Nextcloud
-    // bindings, the server's role table and the permission catalogue are server-wide.
-    'users/organizations': 'instance',
-    'users/nextcloud': 'instance',
-    'users/roles': 'instance',
-    'users/permissions': 'instance',
-    // The organisation's own invitations, roles, model tiers and Nextcloud sync follow the chosen organisation.
-    'users/invitations': 'org',
-    'users/org-roles': 'org',
-    'users/custom-tiers': 'org',
-    'users/sync': 'org',
+    // The per-organisation shield follows the chosen organisation; the console is the whole server.
+    guardrails: 'org',
+    'guardrail-library': 'instance',
+};
+
+// People: the list follows the chosen organisation (a platform admin with none
+// chosen sees every organisation's); its invitations and roles are the organisation's own.
+const PEOPLE_SCOPES: Readonly<Record<string, AdminScope>> = {
+    invitations: 'org',
+    'org-roles': 'org',
 };
 
 // Access: Grants and the organisation's access menu follow the dashboard's organisation;
-// the server licence and the global feature switches under Ceiling are server-wide.
+// the read-only summary of the server licence under Ceiling's Whole-server divider is server-wide.
 const ACCESS_SCOPES: Readonly<Record<string, AdminScope>> = {
     'ceiling/server': 'instance',
 };
 
-// Organisation: every section is the organisation the dashboard works on; two
-// parts inside them are server-wide (the Azure services setup and the Google
-// Maps key), shown to the platform admin only and marked as such.
-const ORGANISATION_SCOPES: Readonly<Record<string, AdminScope>> = {
-    'azure/config': 'instance',
-    'integrations/maps': 'instance',
-};
+// The Organisation tab's sections, each a top-level row of the organisation
+// block. Which of them a viewer gets, and the Azure row's form, is the one list
+// of section rules in organisation/orgSections (dashboard/adminRailRows reads it).
+const ORGANISATION_RAIL_ROWS: readonly AdminRailRowDef[] = ORG_HUB_SECTIONS.map(s => ({
+    section: s.id, labelKey: s.labelKey, labelFallback: s.labelFallback, descriptionKey: s.descriptionKey,
+    descriptionFallback: s.descriptionFallback, icon: s.icon, group: s.group, block: 'org', kind: 'row',
+}));
 
 /**
  * Sections whose data does not follow the dashboard's organisation picker, keyed
@@ -125,7 +151,6 @@ const ORGANISATION_SCOPES: Readonly<Record<string, AdminScope>> = {
  */
 const FIXED_ORG_VIEWS: Readonly<Record<string, FixedOrgView>> = {
     compliance: 'home',
-    'security/guardrails/organisations': 'all',
 };
 
 /** How a section that does not follow the organisation picker chooses its organisation. */
@@ -141,62 +166,52 @@ export function fixedOrgViewOf(tabId: string, section?: string, part?: string): 
 }
 
 export const ADMIN_TABS: readonly AdminTab[] = [
-    { id: 'agents', labelKey: 'admin.tab_agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
-    // The organisation's own settings (what Settings > Organisation held): placed
-    // after Agents here so the fallback tab stays Agents, first in the rail by its
-    // group. Opened by whoever administers an organisation (org_admin, or an
-    // organisation-admin role; see dashboard/adminTabAccess.ts). The rail shows
-    // no row for the tab itself: each of its sections is a row in its own group
-    // (dashboard/adminRailRows).
-    { id: 'organisation', labelKey: 'settings.organisation', labelFallback: 'Organisation', icon: Building2, group: 'organisation', perm: ['org_admin'], scope: 'mixed', sections: ORGANISATION_SCOPES, superAdminOnly: false },
-    { id: 'ai-config', labelKey: 'admin.tab_ai_config', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
-    { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false },
-    { id: 'integrations', labelKey: 'admin.tab_integrations', icon: Plug, group: 'platform', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
-    // Access & Permissions — grant features/integrations to All members or
-    // per group, within the plan/license ceiling. Available to org-admins
-    // too (they manage their own org); a platform admin works on the
-    // organisation chosen in the dashboard, and the Ceiling's licence and
-    // global switches are server-wide (ACCESS_SCOPES).
-    { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: ACCESS_SCOPES, superAdminOnly: false },
-    // No minTier: Overview is open to every admin of the tab, and the other pages need the
-    // `advanced_usage_monitoring` capability (monitoring/monitoring.constants.ts), as Settings' usage did.
-    // An organisation admin by role gets the tab through `org_admin`, like Access.
+    // Agents: its sections are rows (the organisation's agents, the server's system agents).
+    { id: 'agents', labelKey: 'admin_nav.agents', labelFallback: 'Agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise', railRows: AGENT_RAIL_ROWS },
+    // The organisation's own settings, opened by whoever administers an organisation
+    // (org_admin, or an organisation-admin role; dashboard/useAdminTabAccess). Placed after
+    // Agents so the fallback tab stays Agents. Each section is a row in its own group, and every
+    // one is the organisation the dashboard works on (the Google Maps key is Platform services').
+    { id: 'organisation', labelKey: 'settings.organisation', labelFallback: 'Organisation', icon: Building2, group: 'organisation', perm: ['org_admin'], scope: 'mixed', superAdminOnly: false, railRows: ORGANISATION_RAIL_ROWS },
+    // People: the organisation's users, invitations, groups and roles (the old Security > Users).
+    { id: 'people', labelKey: 'admin_nav.people', labelFallback: 'People', descriptionKey: 'admin_nav.people_desc', descriptionFallback: "The organisation's members, invitations, groups and roles.", icon: Users, group: 'organisation', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: PEOPLE_SCOPES, superAdminOnly: false },
+    { id: 'ai-config', labelKey: 'admin_nav.ai_config', labelFallback: 'AI configuration', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, railRows: AI_CONFIG_RAIL_ROWS },
+    // Security: the Privacy Shield, the sign-in providers and the guardrail console, each a row.
+    { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false, railRows: SECURITY_RAIL_ROWS },
+    { id: 'integrations', labelKey: 'admin_nav.platform_services', labelFallback: 'Platform services', icon: Plug, group: 'connections', perm: ['admin_security'], scope: 'instance', superAdminOnly: true, railRows: PLATFORM_SERVICES_RAIL_ROWS },
+    // Access & Permissions: grant features and integrations to all members or per
+    // group, within the plan/licence ceiling. Org admins manage their own org; a
+    // platform admin works on the organisation chosen in the dashboard.
+    { id: 'access', labelKey: 'admin_nav.access', labelFallback: 'Access', descriptionKey: 'admin_nav.access_desc', descriptionFallback: "Which features and integrations members and groups get, within what the organisation's plan allows.", icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: ACCESS_SCOPES, superAdminOnly: false },
+    // No minTier: Overview is open to every admin of the tab, the other pages need the
+    // `advanced_usage_monitoring` capability (monitoring/monitoring.constants.ts). An
+    // organisation admin by role gets the tab through `org_admin`, like Access.
     // Feedback: a platform admin reads every organisation's, an organisation admin their home
     // organisation's (server routes/feedback.js `/org`, which refuses anyone else).
-    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring', 'org_admin'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false },
-    // Compliance Hub — available on cloud AND self-hosted (Enterprise):
-    // self-hosted GDPR customers are exactly who the hub serves. Also
-    // reachable from Settings → Organisation for org-admins/DPOs.
-    { id: 'compliance', labelKey: 'admin.tab_compliance', icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, capability: 'compliance_hub_gdpr' },
-    // Bee Flow customer-support inbox. Visible to any super-admin (or a
-    // user with the `admin_support` permission), on cloud and self-hosted
-    // alike — outbound email + AI reply are best-effort and degrade
-    // gracefully if SMTP / KB aren't configured.
-    { id: 'support', labelKey: 'admin.tab_support', labelFallback: 'Support', icon: LifeBuoy, group: 'operations', perm: ['admin_support'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise' },
-    // Subscriptions are a Bee Flow Cloud feature. Self-hosted installs
-    // manage paid access via license keys (Settings → License & Usage).
-    { id: 'subscriptions', labelKey: 'admin.tab_subscriptions', icon: CreditCard, group: 'operations', perm: ['admin_subscriptions'], scope: 'instance', superAdminOnly: true, cloudOnly: true },
-    // Server-wide licence governs every org/user on this install.
-    // Available to super-admins on any deployment mode — a single-tenant
-    // operator applies one licence for the whole server.
-    { id: 'licenses', labelKey: 'admin.tab_server_license', labelFallback: 'Server licence', icon: BadgeCheck, group: 'operations', perm: ['all'], scope: 'instance', superAdminOnly: true },
-    // Optional server modules — import/remove feature modules install-wide.
-    // Mirrors the Server-licence gating: global super-admin, any deployment.
-    { id: 'modules', labelKey: 'admin.tab_modules', labelFallback: 'Modules', icon: Package, group: 'platform', perm: ['all'], scope: 'instance', superAdminOnly: true },
-    { id: 'appearance', labelKey: 'admin.tab_appearance', icon: Palette, group: 'platform', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise' },
-    { id: 'languages', labelKey: 'admin.tab_languages', icon: Languages, group: 'platform', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
-    // Product website builder — a Bee Flow Cloud marketing surface. On a
-    // self-hosted install the public site is disabled (root goes straight
-    // to /app), so the editor tab is hidden too.
-    { id: 'product-website', labelKey: 'admin.tab_product_website', icon: Globe, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true },
-    // Website analytics — self-hosted usage tracking for the CMS site.
-    // Gated identically to product-website so it only surfaces when the
-    // Website CMS product is active (super-admin, Enterprise, cloud).
-    { id: 'website-analytics', labelKey: 'admin.tab_website_analytics', labelFallback: 'Website Analytics', icon: BarChart3, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true },
-    // Release notes review queue. Same gating as the two tabs above — it is
-    // part of the Website CMS surface, and it is where machine-drafted
-    // changelog copy is approved before a customer ever sees it.
-    { id: 'release-notes', labelKey: 'admin.tab_release_notes', labelFallback: 'Release Notes', icon: Newspaper, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true },
+    { id: 'monitoring', labelKey: 'admin_nav.monitoring', labelFallback: 'Usage & monitoring', icon: Activity, group: 'organisation', perm: ['admin_monitoring', 'org_admin'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false, railRows: MONITORING_RAIL_ROWS },
+    // Compliance Hub, on cloud and self-hosted (Enterprise).
+    { id: 'compliance', labelKey: 'admin.tab_compliance', descriptionKey: 'admin_nav.compliance_desc', descriptionFallback: "The organisation's privacy and security checks, records and reports.", icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, capability: 'compliance_hub_gdpr' },
+    // The customer-support inbox, for every super-admin (or `admin_support`), cloud and self-hosted.
+    { id: 'support', labelKey: 'admin_nav.support_inbox', labelFallback: 'Support inbox', descriptionKey: 'admin_nav.support_desc', descriptionFallback: 'Questions and requests from customers, in one inbox.', icon: LifeBuoy, group: 'operations', perm: ['admin_support'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise' },
+    // Subscriptions are a Bee Flow Cloud feature; self-hosted installs use licence keys. Its sections are child rows.
+    { id: 'subscriptions', labelKey: 'admin.tab_subscriptions', descriptionKey: 'admin_nav.subscriptions_desc', descriptionFallback: 'The plans organisations can subscribe to, and their subscriptions.', icon: CreditCard, group: 'operations', perm: ['admin_subscriptions'], scope: 'instance', superAdminOnly: true, cloudOnly: true, railRows: SUBSCRIPTIONS_RAIL_ROWS },
+    // The server-wide licence and the global feature switches, on any deployment mode.
+    { id: 'licenses', labelKey: 'admin_nav.licence_features', labelFallback: 'Licence & features', icon: BadgeCheck, group: 'platform', perm: ['all'], scope: 'instance', superAdminOnly: true, railRows: LICENSE_RAIL_ROWS },
+    // Optional server modules, install-wide; gated like the server licence.
+    { id: 'modules', labelKey: 'admin.tab_modules', labelFallback: 'Modules', descriptionKey: 'admin_nav.modules_desc', descriptionFallback: 'Optional modules for this server, and the marketplace to add more.', icon: Package, group: 'platform', perm: ['all'], scope: 'instance', superAdminOnly: true },
+    { id: 'appearance', labelKey: 'admin.tab_appearance', icon: Palette, group: 'platform', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', railRows: APPEARANCE_RAIL_ROWS },
+    { id: 'languages', labelKey: 'admin.tab_languages', descriptionKey: 'admin_nav.languages_desc', descriptionFallback: 'The languages of the interface, and their texts.', icon: Languages, group: 'platform', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
+    // The whole server's organisations, roles and permission catalogue, MCP servers and Nextcloud instances
+    // (its row only once some organisation is bound to a Nextcloud or came in through the connector).
+    { id: 'organisations', labelKey: 'admin_nav.organisations', labelFallback: 'Organisations', descriptionKey: 'admin_nav.organisations_desc', descriptionFallback: 'Every organisation on this server.', icon: Building, group: 'identity', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
+    { id: 'roles', labelKey: 'admin_nav.roles', labelFallback: 'Roles & permissions', descriptionKey: 'admin_nav.roles_desc', descriptionFallback: 'The roles of this server, and the permissions they grant.', icon: Tag, group: 'identity', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
+    { id: 'mcp-servers', labelKey: 'admin_nav.mcp_servers', labelFallback: 'MCP servers', descriptionKey: 'admin_nav.mcp_servers_desc', descriptionFallback: 'MCP servers installed for every organisation, and what organisations may add themselves.', icon: Plug, group: 'connections', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
+    { id: 'nextcloud-instances', labelKey: 'admin_nav.nextcloud_instances', labelFallback: 'Nextcloud instances', descriptionKey: 'admin_nav.nextcloud_instances_desc', descriptionFallback: 'The Nextclouds connected to this server, and how their connectors are doing.', icon: Cloud, group: 'connections', perm: ['admin_security'], scope: 'instance', superAdminOnly: true, railGate: (c) => c.hasNextcloudInstances !== false },
+    // The Website CMS surface (product website builder, analytics, release notes): cloud,
+    // Enterprise, super-admin. The builder leaves the dashboard chrome.
+    { id: 'product-website', labelKey: 'admin.tab_product_website', icon: Globe, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true, escapesChrome: true },
+    { id: 'website-analytics', labelKey: 'admin.tab_website_analytics', labelFallback: 'Website Analytics', descriptionKey: 'admin_nav.website_analytics_desc', descriptionFallback: 'Visits to the product website, in totals.', icon: BarChart3, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true },
+    { id: 'release-notes', labelKey: 'admin.tab_release_notes', labelFallback: 'Release Notes', descriptionKey: 'admin_nav.release_notes_desc', descriptionFallback: 'Write and publish the release notes of each version.', icon: Newspaper, group: 'website', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true, minTier: 'enterprise', cloudOnly: true },
 ];
 
 export interface AdminAccess {
@@ -299,56 +314,74 @@ export function shownAdminScope({ tab, override, section, hasHomeOrg }: ShownSco
     return scope;
 }
 
-// Direct paths like /admin/chat map to the agents tab with that section.
-const AGENT_SECTION_IDS = ['chat', 'system'];
-
 export interface ResolvedAdminTab {
     activeTab: string;
     agentSection: string;
+    /** The address after the aliases (adminPathAliases): what every part of the dashboard reads. */
+    path: ResolvedAdminPath;
     /** The first tab this user may open, in ADMIN_TABS order. */
     firstAllowedTab: AdminTab | undefined;
+    /** False: the address names a tab this viewer may not open, and the dashboard says so (no silent swap). */
     isTabAllowed: boolean;
 }
 
-/** Which tab the URL opens: the requested one when allowed, else the first allowed one. */
-export function resolveAdminTab(adminPath: { seg1?: string; seg2?: string }, allowed: (tab: AdminTab | undefined) => boolean): ResolvedAdminTab {
-    let requestedTab = adminPath.seg1 || 'agents';
-    let agentSection = adminPath.seg2 || '';
-    // If seg1 is an agent section (e.g. /admin/chat), remap to agents tab
-    if (AGENT_SECTION_IDS.includes(requestedTab)) {
-        agentSection = requestedTab;
-        requestedTab = 'agents';
-    }
+/** A tab named without a section opens its fallback (BARE_TAB_FALLBACKS) when that one is allowed. */
+function bareTabFallback(tab: AdminTab | undefined, path: ResolvedAdminPath, allowed: (tab: AdminTab | undefined) => boolean): AdminTab | undefined {
+    if (!tab || path.seg2 || !Object.hasOwn(BARE_TAB_FALLBACKS, tab.id)) return tab;
+    const fallback = ADMIN_TABS.find(candidate => candidate.id === BARE_TAB_FALLBACKS[tab.id]);
+    return fallback && allowed(fallback) ? fallback : tab;
+}
+
+/**
+ * Which tab the URL opens, after the old addresses are mapped onto the new ones
+ * (ADMIN_PATH_ALIASES). A tab that exists opens as itself, allowed or not: a
+ * refused one is the denied page, not another tab under the requested address.
+ * No tab, or a name no tab has, opens the first tab this viewer may open.
+ */
+export function resolveAdminTab(adminPath: AdminPath, allowed: (tab: AdminTab | undefined) => boolean): ResolvedAdminTab {
+    const resolved = resolveAdminPath(adminPath);
     const firstAllowedTab = ADMIN_TABS.find(tab => allowed(tab));
-    const isRequestedAllowed = allowed(ADMIN_TABS.find(tab => tab.id === requestedTab));
-    const activeTab = isRequestedAllowed ? requestedTab : (firstAllowedTab?.id || requestedTab);
-    return { activeTab, agentSection, firstAllowedTab, isTabAllowed: allowed(ADMIN_TABS.find(tab => tab.id === activeTab)) };
+    const requested = bareTabFallback(ADMIN_TABS.find(tab => tab.id === resolved.seg1), resolved, allowed);
+    const path = requested ? { ...resolved, seg1: requested.id } : { seg1: firstAllowedTab?.id ?? resolved.seg1, seg2: '', seg3: '' };
+    const isTabAllowed = requested ? allowed(requested) : !!firstAllowedTab;
+    return { activeTab: path.seg1, agentSection: path.seg1 === 'agents' ? path.seg2 : '', path, firstAllowedTab, isTabAllowed };
 }
 
 /** The two top-level groups of the rail: the viewer's organisation, and the whole server (platform admin only). */
 export interface AdminRailSection<T extends AdminTab = AdminTab> {
-    id: 'org' | 'instance';
+    id: AdminRailBlock;
     groups: { id: AdminTabGroupId; labelKey: string; labelFallback: string; tabs: T[] }[];
 }
 
+/** The block of a rail row: its own when it is a section row, else by the tab's scope (instance is the whole server). */
+export function adminRailBlockOf(tab: AdminTab & { block?: AdminRailBlock }): AdminRailBlock {
+    return tab.block ?? (tab.scope === 'instance' ? 'instance' : 'org');
+}
+
 /**
- * Splits the tabs a viewer may open into the rail's two top-level groups by
- * scope: instance tabs are the whole server, everything else (org, mixed, user,
- * or a panel that picks its own organisation) is the viewer's organisation. The
- * whole-server group is left out for anyone but a platform admin. Empty groups
- * are left out.
+ * Splits the rows a viewer gets into the rail's two top-level groups: a
+ * section row by the block it names, a tab by its scope (instance tabs are the
+ * whole server, everything else, org, mixed, user, or a panel that picks its
+ * own organisation, is the viewer's organisation). The whole-server group is
+ * left out for anyone but a platform admin. Empty groups are left out.
  */
-export function buildAdminRailSections<T extends AdminTab>(tabs: readonly T[], isPlatformAdmin: boolean): AdminRailSection<T>[] {
+export function buildAdminRailSections<T extends AdminTab & { block?: AdminRailBlock }>(tabs: readonly T[], isPlatformAdmin: boolean): AdminRailSection<T>[] {
     const sections: AdminRailSection<T>[] = [
-        { id: 'org', groups: groupAdminTabs(tabs.filter(tab => tab.scope !== 'instance')) },
+        { id: 'org', groups: groupAdminTabs(tabs.filter(tab => adminRailBlockOf(tab) === 'org')) },
     ];
-    if (isPlatformAdmin) sections.push({ id: 'instance', groups: groupAdminTabs(tabs.filter(tab => tab.scope === 'instance')) });
+    if (isPlatformAdmin) sections.push({ id: 'instance', groups: groupAdminTabs(tabs.filter(tab => adminRailBlockOf(tab) === 'instance')) });
     return sections.filter(section => section.groups.length > 0);
 }
 
-/** The tabs a user may open, grouped in rail order; empty groups are left out. */
+/** A row's place in ADMIN_RAIL_ORDER; an unlisted row after every listed one. */
+function railRank(id: string): number {
+    const at = ADMIN_RAIL_ORDER.indexOf(id);
+    return at === -1 ? ADMIN_RAIL_ORDER.length : at;
+}
+
+/** The tabs a user may open, grouped in rail order (ADMIN_RAIL_ORDER inside a group); empty groups are left out. */
 export function groupAdminTabs<T extends AdminTab>(tabs: readonly T[]) {
     return ADMIN_TAB_GROUPS
-        .map(group => ({ ...group, tabs: tabs.filter(tab => tab.group === group.id) }))
+        .map(group => ({ ...group, tabs: tabs.filter(tab => tab.group === group.id).sort((a, b) => railRank(a.id) - railRank(b.id)) }))
         .filter(group => group.tabs.length > 0);
 }

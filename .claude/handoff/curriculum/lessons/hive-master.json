@@ -185,7 +185,7 @@
           {
             "id": "cap",
             "left": "In week three chat starts answering that the organisation has reached its monthly cost limit",
-            "right": "The cost cap on License & Usage",
+            "right": "The cost cap on Licence & usage",
             "note": "The cap is the monthly AI ceiling. The Usage page's “AI usage vs. cap” gauge turns amber at 80 %, and a warning e-mail goes out once per billing period — so raising the cap, or switching from one pooled budget to a budget per user, is a decision taken in advance, not a surprise."
           }
         ]

@@ -10,18 +10,37 @@ import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScop
 type AppearanceSection = 'look' | 'icons';
 
 /**
- * AppearancePanel — top-level admin Appearance, a StudioShell with two
- * sections: **Look** (theme + wallpaper in one scrolling editor) and **Icons**
- * (asset management, kept apart because its UX is a different domain). While
- * Look is open, its table of contents sits in the sidebar under the "Look"
- * row: the editor renders it into the slot below the section list.
+ * AppearancePanel — Whole server > Appearance, two sections:
+ *   **Look**        the theme and wallpaper for everyone on this server (one
+ *                   server-wide default, not one organisation's);
+ *   **Icon packs**  authoring icon packs (create, edit, generate, export).
+ *                   Which pack a person USES is their own choice, made in
+ *                   Settings > Appearance (pages/settings/IconPackChoice).
+ * The dashboard mounts one section per rail row (`section`); without it the
+ * panel keeps its own section column, and while Look is open its table of
+ * contents sits in that column under the "Look" row.
  */
-export default function AppearancePanel() {
+interface AppearancePanelProps {
+    /**
+     * The section to show without the section column (the admin dashboard's
+     * child rows: admin/appearance/look, admin/appearance/icon-packs). Left out:
+     * both, with the column, Look first.
+     */
+    section?: 'look' | 'icon-packs';
+}
+
+export default function AppearancePanel({ section }: AppearancePanelProps = {}) {
     const { t } = useTranslation();
-    const [active, setActive] = useState<AppearanceSection>('look');
-    // Look is server-wide; the icon packs a person picks are their own.
+    const [activeState, setActive] = useState<AppearanceSection>('look');
+    const active: AppearanceSection = section ? (section === 'icon-packs' ? 'icons' : 'look') : activeState;
+    // Look is server-wide; the icon packs are the viewer's own.
     useAdminScopeOverride(active === 'icons' ? 'user' : null);
     const [lookNavSlot, setLookNavSlot] = useState<HTMLDivElement | null>(null);
+
+    if (section) {
+        // The dashboard frame draws the heading, so Look shows no title of its own.
+        return <div className="h-full">{active === 'look' ? <LookEditor titled={false} /> : <IconsEditor />}</div>;
+    }
 
     const sidebar = (
         <>
@@ -29,7 +48,7 @@ export default function AppearancePanel() {
                 label={t('appearance.panel_sections', 'Appearance sections')}
                 items={[
                     { id: 'look', label: t('appearance.look_editor_look', 'Look'), icon: Palette },
-                    { id: 'icons', label: t('appearance.panel_icons', 'Icons'), icon: Package },
+                    { id: 'icons', label: t('admin_nav.icon_packs', 'Icon packs'), icon: Package },
                 ]}
                 activeId={active}
                 onSelect={(id) => setActive(id as AppearanceSection)}

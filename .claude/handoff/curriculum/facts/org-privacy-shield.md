@@ -54,7 +54,7 @@ There is a separate **personal** shield for consumer accounts (`GET/PUT /api/org
 URL: `/app/settings/organisation/privacy`
 Active tab rides in a **query param**, not a path segment: `/app/settings/organisation/privacy?tab=activity`.
 
-Sibling items in the same Organisation menu (for orientation): `License & Usage`, `Sign-in Method`, **`Privacy Shield`**, `Encryption`, `Conversation Memory`, `Answer Reuse`, `Organisation Info`.
+Sibling items in the same Organisation menu (for orientation): `Licence & usage`, `Sign-in Method`, **`Privacy Shield`**, `Encryption`, `Conversations`, `answer reuse`, `Organisation info`.
 
 **Secondary route (server operators, Enterprise only):**
 `Admin` → `Security` → `Guardrails` → tab `Organisations`
@@ -131,7 +131,7 @@ Page title `Guardrail configs` / subtitle “Reusable security configuration for
 - **“Protect web searches”** (only rendered when a search provider is configured) — “Stop search terms that contain personal data from being sent to an outside search engine.” Enterprise; otherwise “Protecting web searches is an Enterprise feature.”
 - **“No web search while a file is attached”** — “When someone attaches a document, do not let the AI search the web — so nothing from that document can end up in a search box.”
 - **“Check connected-app traffic for personal data”** — “Every connected-app call is always recorded: which server, which country, when, and whether it worked. Turn this on to also check the content for personal data, so the reports can show what kind of data left your organisation.”
-- **“Use only AI hosted in the EU”** (only when EU chat models are configured) — “Send chats only to the AI models hosted in the EU. Set those up under AI Config → Chat Models.”
+- **“Use only AI hosted in the EU”** (only when EU chat models are configured) — “Send chats only to the AI models hosted in the EU. Set those up under Admin dashboard → Whole server → AI configuration → Models.”
 
 ### 2.7 Tab “What happened” (monitoring)
 
@@ -326,10 +326,10 @@ There is **no** `requireLicenseFeature(...)` on the `/api/org-privacy-shield` mo
 - **Automations / automations** — covered when `applyToAutomations` is on (default). Automation events appear in the activity table as `Automation — <title>` and carry `automation_id` / `run_id` / `step_id`. Dry runs are excluded from every dashboard.
 - **Knowledge bases** — “Also check knowledge bases when documents are added” redacts at ingest. Irreversible: the stored text is the checked text.
 - **Cowork** — has its own per-org opt-in flag on top of the shield (`coworkEnabled` in the status route).
-- **AI Config → Chat Models** — where the EU-hosted models are defined; the “Use only AI hosted in the EU” card only appears once at least one EU tier has a model id. The web-search cards only appear once a search provider is configured.
+- **Admin dashboard → Whole server → AI configuration → Models** — where the EU-hosted models are defined; the “Use only AI hosted in the EU” card only appears once at least one EU tier has a model id. The web-search cards only appear once a search provider is configured.
 - **Compliance Hub** — saving the shield emits `DLP_CONFIG_CHANGED`, which re-runs the GDPR Art. 32 “Data Loss Prevention active” check and the ISO 27001 A.8.11/8.12 “Data masking & leak prevention” check immediately instead of waiting for the six-hourly sweep. Those checks' fix text points back here: “Open Security → Guardrails and enable both regex collections and PII detection.”
 - **Usage & Monitoring** — the same two consolidated endpoints back the “What happened” tab; the tab replaced ~17 sections and 19 requests with two calls.
-- **Encryption / Conversation Memory / Answer Reuse** — sibling org-level policies in the same menu, each with the same “pinned orgId, never guess” discipline.
+- **Encryption / Conversations / answer reuse** — sibling org-level policies in the same menu, each with the same “pinned orgId, never guess” discipline.
 - **Integrations / connectors** — `monitorIntegrations` decides whether connector traffic is also content-scanned; the egress ledger itself is always recorded.
 
 ---

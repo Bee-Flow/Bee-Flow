@@ -82,7 +82,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence,
-                details: 'Retention enforcement is running, but the DSR ledger could not be read — deletion-request fulfilment is unverified. Open Compliance → DSR Inbox to check.',
+                details: 'Retention enforcement is running, but the DSR ledger could not be read — deletion-request fulfilment is unverified. Open Compliance → Requests (DSR) to check.',
             };
         }
         const fulfilNote = stats.total > 0

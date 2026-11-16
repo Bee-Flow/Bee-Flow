@@ -1,62 +1,79 @@
 import { AlertCircle, Download, FileText, Globe, Languages, Mail, Plus, Star, Trash2, Upload, X } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import AddLanguageModal from './AddLanguageModal';
 import EmailTemplateEditor from './EmailTemplateEditor';
 import GuiStringEditor from './GuiStringEditor';
+import NewUserLanguage from './NewUserLanguage';
 import PromptEditor from './PromptEditor';
 import useLanguages from './useLanguages';
 import type { LanguagesState } from './useLanguages';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useShellProps } from '@/authedApp/useShellProps';
 import EmptyState from '@/components/shared/EmptyState';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import StudioShell from '@/components/shared/StudioShell';
 import Tabs from '@/components/shared/Tabs';
-import { ALERT_ERROR, CHIP, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { ALERT_ERROR, CHIP, QUIET_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
+import { SECTION_NAV_LIST, SECTION_NAV_ROW_ACTIVE, SECTION_NAV_ROW_BOX, SECTION_NAV_ROW_IDLE, SECTION_NAV_ROW_LABEL } from '@/components/shared/sectionNavRecipe';
 
-type Section = 'gui' | 'prompts' | 'emails';
+type LanguagesSection = 'gui' | 'prompts' | 'emails';
+
+const SECTIONS: readonly LanguagesSection[] = ['gui', 'prompts', 'emails'];
+
+/** A path segment to a section; anything else is the first one. */
+function languagesSectionOf(segment: string | undefined): LanguagesSection {
+    return SECTIONS.find(s => s === segment) ?? 'gui';
+}
+
+/** The address of a locale's section: admin/languages/<locale>/<section>. */
+function languagesPath(locale: string, section: LanguagesSection): string {
+    return `admin/languages/${encodeURIComponent(locale)}/${section}`;
+}
 
 type LocaleListProps = Pick<LanguagesState,
-    'locales' | 'selectedLocale' | 'setSelectedLocale' | 'setShowAddModal'
-    | 'handleSetDefault' | 'handleExport' | 'handleImport' | 'handleDeleteLocale'>;
+    'locales' | 'selectedLocale' | 'setSelectedLocale' | 'handleSetDefault' | 'handleDeleteLocale'>;
 
 const ROW_ACTION = 'rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]';
 
-/** The sidebar: the installed locales, with per-locale actions on hover (and on the current one). */
-function LocaleList({ locales, selectedLocale, setSelectedLocale, handleSetDefault, handleExport, handleImport, handleDeleteLocale }: Omit<LocaleListProps, 'setShowAddModal'>) {
+/**
+ * The sidebar: the installed locales, in SectionNav's row recipe
+ * (shared/sectionNavRecipe, the rail's look: the current row a raised card),
+ * with Set default and Delete on hover and on the current row. Export and Import sit in the editor's header,
+ * once, for the locale that is open.
+ */
+function LocaleList({ locales, selectedLocale, setSelectedLocale, handleSetDefault, handleDeleteLocale }: LocaleListProps) {
     const { t } = useTranslation();
     return (
-        <nav aria-label={t('admin_languages.title', 'Languages')} className="flex flex-row gap-0.5 overflow-x-auto p-2 md:flex-col md:overflow-x-visible">
+        <nav aria-label={t('admin_languages.title', 'Languages')} className={SECTION_NAV_LIST}>
             {locales.map(locale => {
                 const active = selectedLocale === locale.code;
                 return (
                     <div
                         key={locale.code}
-                        className={`group flex shrink-0 items-center gap-1 rounded-md pr-1 md:shrink ${active ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
+                        className={`group flex shrink-0 items-center gap-1 pr-1 md:shrink ${SECTION_NAV_ROW_BOX} ${active ? SECTION_NAV_ROW_ACTIVE : SECTION_NAV_ROW_IDLE}`}
                     >
                         <button
                             type="button"
                             onClick={() => setSelectedLocale(locale.code)}
                             aria-current={active ? 'page' : undefined}
-                            className={`flex min-w-0 flex-1 items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-sm ${active ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            className={`flex min-w-0 flex-1 ${SECTION_NAV_ROW_LABEL}`}
                         >
                             <span className="truncate">{locale.name}</span>
-                            <span className="text-xs text-[var(--text-tertiary)]">{locale.code}</span>
+                            <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{locale.code}</span>
                             {locale.isDefault && <span className={CHIP}>{t('admin_languages.default', 'Default')}</span>}
                         </button>
                         {locale.code !== 'en' && (
-                            <div className={`flex items-center gap-0.5 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
+                            <div
+                                role="group"
+                                aria-label={t('platform_panels.locale_actions', 'Actions for {name}', { name: locale.name })}
+                                className={`flex items-center gap-0.5 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}
+                            >
                                 {!locale.isDefault && (
                                     <button type="button" onClick={() => handleSetDefault(locale.code)} className={ROW_ACTION} title={t('admin_languages.set_default', 'Set as default')} aria-label={t('admin_languages.set_default', 'Set as default')}>
                                         <Star className="h-3 w-3" aria-hidden="true" />
                                     </button>
                                 )}
-                                <button type="button" onClick={() => handleExport(locale.code)} className={ROW_ACTION} title={t('admin_languages.export', 'Export')} aria-label={t('admin_languages.export', 'Export')}>
-                                    <Download className="h-3 w-3" aria-hidden="true" />
-                                </button>
-                                <button type="button" onClick={() => handleImport(locale.code)} className={ROW_ACTION} title={t('admin_languages.import', 'Import')} aria-label={t('admin_languages.import', 'Import')}>
-                                    <Upload className="h-3 w-3" aria-hidden="true" />
-                                </button>
                                 <button type="button" onClick={() => handleDeleteLocale(locale.code)} className={ROW_ACTION} title={t('admin_languages.delete', 'Delete')} aria-label={t('admin_languages.delete', 'Delete')}>
                                     <Trash2 className="h-3 w-3" aria-hidden="true" />
                                 </button>
@@ -72,8 +89,8 @@ function LocaleList({ locales, selectedLocale, setSelectedLocale, handleSetDefau
 interface LocaleEditorProps {
     locale: string;
     localeName: string;
-    activeSection: Section;
-    setActiveSection: (s: Section) => void;
+    activeSection: LanguagesSection;
+    setActiveSection: (s: LanguagesSection) => void;
     onExport: () => void;
     onImport: () => void;
 }
@@ -83,7 +100,7 @@ function LocaleEditor({ locale, localeName, activeSection, setActiveSection, onE
     const { t } = useTranslation();
     const sections = [
         { id: 'gui' as const, label: t('admin_languages.tab_gui', 'GUI Translations'), icon: <Languages className="h-3.5 w-3.5" aria-hidden="true" /> },
-        { id: 'prompts' as const, label: t('admin_languages.tab_prompts', 'System Prompts'), icon: <FileText className="h-3.5 w-3.5" aria-hidden="true" /> },
+        { id: 'prompts' as const, label: t('admin_languages.tab_prompts', 'Prompt translations'), icon: <FileText className="h-3.5 w-3.5" aria-hidden="true" /> },
         { id: 'emails' as const, label: t('admin_languages.tab_emails', 'Email Templates'), icon: <Mail className="h-3.5 w-3.5" aria-hidden="true" /> },
     ];
     return (
@@ -121,12 +138,37 @@ function LocaleEditor({ locale, localeName, activeSection, setActiveSection, onE
     );
 }
 
-/** Admin → Languages: installed locales and, per locale, the GUI strings, system prompts and email templates. */
-const LanguagesPanel = () => {
+interface LanguagesPanelProps {
+    /** The locale the address names (admin/languages/<locale>); left out, the panel picks one. */
+    locale?: string;
+    /** The section the address names (admin/languages/<locale>/<section>); left out, GUI translations. */
+    section?: string;
+    /** Navigation, when the host is not the app shell (a test, a kit). */
+    onNavigate?: (page: string) => void;
+}
+
+/**
+ * Admin → Languages: the language new users start in, the installed locales
+ * and, per locale, the GUI strings, the prompt translations and the email
+ * templates. The open locale and section live in the address
+ * (admin/languages/<locale>/<section>), so a reload or Back keeps them; a host
+ * that does not pass them still works, from the panel's own state.
+ */
+const LanguagesPanel = ({ locale: routeLocale, section: routeSection, onNavigate: onNavigateProp }: LanguagesPanelProps = {}) => {
     const { t } = useTranslation();
-    const langs = useLanguages();
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
+    const [chosenSection, setChosenSection] = useState<LanguagesSection>('gui');
+    const activeSection = routeSection ? languagesSectionOf(routeSection) : chosenSection;
+    const go = useCallback((code: string | null, section: LanguagesSection) => {
+        if (code) onNavigate?.(languagesPath(code, section));
+    }, [onNavigate]);
+    const onLocaleChange = useCallback((code: string | null) => go(code, activeSection), [go, activeSection]);
+    const langs = useLanguages({ routeLocale, onLocaleChange });
     const { locales, catalog, selectedLocale, loading, error, setError, showAddModal, setShowAddModal, handleAddLocale, handleExport, handleImport, confirmDialog } = langs;
-    const [activeSection, setActiveSection] = useState<Section>('gui');
+    const setActiveSection = (section: LanguagesSection) => {
+        setChosenSection(section);
+        go(selectedLocale, section);
+    };
 
     if (loading) {
         return (
@@ -148,6 +190,8 @@ const LanguagesPanel = () => {
                     <button type="button" onClick={() => setError('')} className="ml-auto" aria-label={t('common.close', 'Close')}><X className="h-3.5 w-3.5" /></button>
                 </div>
             )}
+
+            <NewUserLanguage locales={locales} />
 
             <div className="min-h-0 flex-1">
                 <StudioShell
@@ -178,7 +222,6 @@ const LanguagesPanel = () => {
                 </StudioShell>
             </div>
 
-            {/* Add Language Modal */}
             {showAddModal && (
                 <AddLanguageModal
                     available={availableToAdd}

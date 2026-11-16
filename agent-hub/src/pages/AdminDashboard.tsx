@@ -7,7 +7,7 @@ import AdminRail from '../components/admin/dashboard/AdminRail';
 import AdminTabContent from '../components/admin/dashboard/AdminTabContent';
 import { ADMIN_TABS, fixedOrgViewOf, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
 import type { AdminScope, AdminTab } from '../components/admin/dashboard/adminTabs';
-import { activeRailRow, adminRailView, railRowLabel, useOrgRailSections } from '@/components/admin/dashboard/adminRailRows';
+import { useAdminRail } from '@/components/admin/dashboard/adminRailRows';
 import AdminScopeBar from '@/components/admin/dashboard/AdminScopeBar';
 import { scopeBarView, type ScopeBarView } from '@/components/admin/dashboard/scopeBarView';
 import { AdminOrgProvider, useAdminOrg, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
@@ -46,11 +46,17 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // a tenant via a role attached to a group. Including it here would render
     // operator-only tabs that then 403 on every request, which reads as a broken
     // console rather than a clean denial.
-    const { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard } = useAdminTabAccess(user);
+    const { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard, gatesPending } = useAdminTabAccess(user);
     const isPlatformAdmin = isSuperAdmin;
-    const { activeTab, agentSection, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
-    // The Organisation tab's sections are rows of the rail (adminRailRows).
-    const orgSections = useOrgRailSections(user, orgChoice, checkTabAccess(ADMIN_TABS.find(tab => tab.id === 'organisation')));
+    // Old addresses land on their new place (adminPathAliases); a tab that exists
+    // but is not this viewer's is refused on its own address, not swapped.
+    const { activeTab, agentSection, path, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
+    // The rail (adminRailRows): the Organisation tab's rows from its section rules,
+    // on the chosen organisation's availability; the current row names the page
+    // (the header AdminPage draws for every tab).
+    const { sections, activeRow, currentLabel, currentDescription } = useAdminRail({
+        user, choice: orgChoice, tabs: ADMIN_TABS.filter(tab => checkTabAccess(tab)), isPlatformAdmin, activeTab, section: path.seg2, t,
+    });
 
     const handleTabClick = (rowId: string) => {
         setDrawerOpen(false);
@@ -66,7 +72,8 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     if (!canOpenDashboard) return <AdminAccessDenied scope={onOrgLicensePage ? 'no-plan' : 'whole'} onBack={onBack} />;
 
     // Product website — full-screen builder. It escapes the admin chrome
-    // entirely (no dashboard rail): the builder owns its own TopBar and
+    // entirely (no dashboard rail; its rail row carries the full-screen mark,
+    // AdminTab.escapesChrome): the builder owns its own TopBar and
     // navigates back / cross-links via onExit / onNavigate. Gating is
     // identical to the tab (checkTabAccess ran above); a forbidden request
     // falls through to the normal chrome + the access-denied state below.
@@ -81,11 +88,9 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         );
     }
 
-    const sections = adminRailView({ tabs: ADMIN_TABS.filter(tab => checkTabAccess(tab)), orgSections, isPlatformAdmin, choice: orgChoice, t });
-    const activeRow = activeRailRow(activeTab, adminPath.seg2, orgSections);
     const activeDef = ADMIN_TABS.find(tab => tab.id === activeTab);
     const barView = isTabAllowed
-        ? barViewFor(activeDef, scopeOverride, user, orgChoice, [activeTab === 'agents' ? agentSection : adminPath.seg2, adminPath.seg3])
+        ? barViewFor(activeDef, scopeOverride, user, orgChoice, [path.seg2, path.seg3])
         : null;
     const railProps = {
         title: t('admin.dashboard_title'),
@@ -104,7 +109,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                     onBack={onBack}
                     backTitle={railProps.backTitle}
                     sectionsLabel={t('admin.nav_sections', 'Admin sections')}
-                    currentLabel={railRowLabel(sections, activeRow) ?? (activeDef ? t(activeDef.labelKey, activeDef.labelFallback) : railProps.title)}
+                    currentLabel={currentLabel}
                     drawerOpen={drawerOpen}
                     onOpen={() => setDrawerOpen(true)}
                 />
@@ -114,11 +119,11 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                         ? (
                             <AdminOrgGate choice={orgChoice}>
                                 <AdminScopeOverrideProvider value={setScopeOverride}>
-                                    <AdminTabContent activeTab={activeTab} hasPermission={hasPermission} agentSection={agentSection} adminPath={adminPath} />
+                                    <AdminTabContent activeTab={activeTab} hasPermission={hasPermission} agentSection={agentSection} adminPath={path} title={currentLabel} description={currentDescription} />
                                 </AdminScopeOverrideProvider>
                             </AdminOrgGate>
                         )
-                        : <AdminAccessDenied scope={onOrgLicensePage ? 'no-plan' : 'section'} inSection />}
+                        : <RefusedTab pending={gatesPending} noPlan={onOrgLicensePage} />}
                 </div>
             </div>
             <Modal
@@ -156,20 +161,33 @@ function barViewFor(tab: AdminTab | undefined, override: AdminScope | null, user
 }
 
 /**
+ * A tab this viewer may not open: the denied page, or a spinner while the
+ * licence status that may still open it is being read (a deep link on a fresh
+ * load would otherwise flash "access denied").
+ */
+function RefusedTab({ pending, noPlan }: { pending: boolean; noPlan: boolean }) {
+    if (pending) return <PaneSpinner testId="admin-gates-pending" />;
+    return <AdminAccessDenied scope={noPlan ? 'no-plan' : 'section'} inSection />;
+}
+
+/** The pane's spinner while what decides it is still being read. */
+function PaneSpinner({ testId }: { testId: string }) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex h-full items-center justify-center p-6" data-testid={testId}>
+            <Spinner size="sm" label={t('common.loading', 'Loading...')} />
+        </div>
+    );
+}
+
+/**
  * The tab content under the dashboard's organisation choice. While an
  * organisation from the URL or this browser is still checked against the
  * organisation list, a spinner stands in, so no section reads with an id that
  * may not exist.
  */
 function AdminOrgGate({ choice, children }: { choice: AdminOrgChoice; children: React.ReactNode }) {
-    const { t } = useTranslation();
-    if (choice.pending) {
-        return (
-            <div className="flex h-full items-center justify-center p-6" data-testid="admin-org-pending">
-                <Spinner size="sm" label={t('common.loading', 'Loading...')} />
-            </div>
-        );
-    }
+    if (choice.pending) return <PaneSpinner testId="admin-org-pending" />;
     return <AdminOrgProvider value={choice}>{children}</AdminOrgProvider>;
 }
 

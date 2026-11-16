@@ -25,7 +25,7 @@ export function ToolGapNote({
         <button
             type="button"
             onClick={() => onGoTo?.('detection')}
-            className="font-semibold underline underline-offset-2 text-[var(--info-ink)] hover:opacity-80"
+            className="font-semibold underline underline-offset-2 text-[var(--text-primary)] hover:opacity-80"
         >
             {t('shield_checks.tools_gap_link', 'tool columns of the matrix')}
         </button>

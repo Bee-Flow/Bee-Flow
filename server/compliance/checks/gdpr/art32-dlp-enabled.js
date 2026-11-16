@@ -125,7 +125,7 @@ module.exports = {
             configCoverage === DLP_LAYERS
                 ? 'Regex guardrails and PII detection are both enabled.'
                 : configCoverage >= 1
-                    ? `DLP is partially enabled. Open Security → Guardrails and turn on ${regexEnabled ? 'PII detection' : 'a regex collection'}.`
+                    ? `DLP is partially enabled. Open Admin dashboard → Whole server → Guardrail library and turn on ${regexEnabled ? 'PII detection' : 'a regex collection'}.`
                     : 'No DLP protection active. Sensitive data can leave the system unchecked.';
 
         return {

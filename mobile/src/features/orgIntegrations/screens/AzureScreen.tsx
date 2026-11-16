@@ -5,7 +5,8 @@
  * section at a time beside its list; here the list opens each as its own
  * screen. Every key is the installation's (the admin dashboard writes the
  * same ones), which is why the server opens it to org admins on self-hosted
- * installs only — and only to the strict org_admin role.
+ * installs only — and only to the strict org_admin role. Microsoft SSO is
+ * offered only with the `sso_saml` licence feature, as on the web.
  */
 
 import { useRouter } from 'expo-router';
@@ -32,7 +33,7 @@ export function AzureScreen() {
                         'Manage Azure services for your platform. Changes here apply to the same configuration used in the admin dashboard.',
                     )}
                 >
-                    {AZURE_SECTIONS.map((section) => (
+                    {AZURE_SECTIONS.filter((section) => section.id !== 'sso' || azure.ssoAvailable).map((section) => (
                         <AzureSectionRow key={section.id} section={section} config={config} onPress={() => router.push(section.href as never)} />
                     ))}
                 </Group>

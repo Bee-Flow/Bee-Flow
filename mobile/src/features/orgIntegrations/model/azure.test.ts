@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 
 import { blankTier, deployedModels, nextSync, sectionStatus, temperatureFromText, TEMPERATURE_RANGE, tierFields, tiersBody, validEndpoint, validTenant } from './azure';
 import type { AzureConfig, AzureTier } from './azureTypes';
@@ -88,9 +86,7 @@ describe('a typed temperature', () => {
         expect(temperatureFromText('0.7.1')).toBeUndefined();
     });
 
-    it('is bounded as the web field is', () => {
-        const web = fs.readFileSync(path.resolve(__dirname, '../../../../../agent-hub/src/components/integrations/azure/ChatModelsSection.tsx'), 'utf8');
-        const field = web.slice(web.indexOf("updateTier(tier.key, 'temperature'"));
-        expect(/min=\{(\d+)\} max=\{(\d+)\}/.exec(field)?.slice(1).map(Number)).toEqual([TEMPERATURE_RANGE.min, TEMPERATURE_RANGE.max]);
+    it('is bounded as the tier temperature of the AI configuration is (0 to 2)', () => {
+        expect(TEMPERATURE_RANGE).toEqual({ min: 0, max: 2 });
     });
 });

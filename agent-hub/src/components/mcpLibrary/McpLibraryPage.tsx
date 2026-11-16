@@ -10,6 +10,7 @@ import { categoryLabel, errorText, policyDescription, policyLabel } from './libr
 import ServerDrawer from './ServerDrawer';
 import ServerWideDrawer from './ServerWideDrawer';
 import ServerMcpPanel from './server/ServerMcpPanel';
+import { useShellProps } from '@/authedApp/useShellProps';
 import { DASHED, FILTER_CHIP_OFF, FILTER_CHIP_ON, SECONDARY_BTN, SECTION_TITLE } from './ui';
 
 const GRID = 'grid grid-cols-1 @[34rem]/mcplib:grid-cols-2 @[60rem]/mcplib:grid-cols-3 gap-2.5';
@@ -30,11 +31,23 @@ function matches(q: string, ...fields: Array<string | null | undefined>) {
  * where the server policy allows it), and decide who uses the servers the
  * server administrator installed for everyone. A server administrator also
  * gets the "Server-wide" tab: those servers and the policy itself.
+ *
+ * `view` shows one of the two without the tabs and without the page header
+ * (the admin dashboard frame draws it): the dashboard's organisation row
+ * ('org', where "Change policy" opens the whole-server MCP servers row) and
+ * that whole-server row ('server'). Left out: both, as tabs, under the header.
  */
-export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = false }: { isServerAdmin?: boolean }) {
+interface McpLibraryPageProps {
+    isServerAdmin?: boolean;
+    view?: 'org' | 'server';
+}
+
+export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = false, view }: McpLibraryPageProps) {
     const { t } = useTranslation();
-    const query = useMcpLibraryQuery();
-    const [tab, setTab] = useState<'org' | 'server'>('org');
+    const query = useMcpLibraryQuery({ enabled: view !== 'server' });
+    const [tabState, setTab] = useState<'org' | 'server'>('org');
+    const tab = view ?? tabState;
+    const { onNavigate } = useShellProps({});
     // From the session as well as from the library: a server administrator
     // without an organisation of their own gets no library (the org routes
     // answer 400) but must still reach the policy and the server-wide servers.
@@ -43,7 +56,8 @@ export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = fal
 
     return (
         <div className="@container/mcplib flex flex-col gap-5">
-            <header className="flex items-start gap-3">
+            {/* In the admin dashboard (a `view`) the page frame draws the title from the rail label. */}
+            {!view && <header className="flex items-start gap-3">
                 <span className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--accent-primary)_14%,transparent)] text-[var(--accent-primary)]">
                     <Plug size={18} aria-hidden="true" />
                 </span>
@@ -53,26 +67,33 @@ export default function McpLibraryPage({ isServerAdmin: sessionServerAdmin = fal
                         {t('mcp_library.intro', 'Give your agents new tools by connecting MCP servers. Servers run at their vendor, keys stay encrypted in Bee Flow, and you decide who uses what.')}
                     </p>
                 </div>
-            </header>
+            </header>}
 
-            {isServerAdmin && (
+            {isServerAdmin && !view && (
                 <Tabs
                     value={tab}
                     onChange={setTab}
                     size="sm"
                     ariaLabel={t('mcp_library.title', 'MCP library')}
                     items={[
-                        { id: 'org', label: t('mcp_library.tab.org', 'Your organisation') },
+                        { id: 'org', label: t('mcp_library.tab.org', 'Organisation') },
                         { id: 'server', label: t('mcp_library.tab.server', 'Server-wide') },
                     ]}
                 />
             )}
 
-            {tab === 'server' && isServerAdmin
+            {tab === 'server' && (isServerAdmin || view === 'server')
                 ? <ServerMcpPanel />
-                : <OrgLibrary query={query} onOpenPolicy={isServerAdmin ? () => setTab('server') : null} />}
+                : <OrgLibrary query={query} onOpenPolicy={policyOpener(isServerAdmin, view, setTab, onNavigate)} />}
         </div>
     );
+}
+
+/** "Change policy": the Server-wide tab, or in the dashboard's organisation row the whole-server MCP servers row. */
+function policyOpener(isServerAdmin: boolean, view: McpLibraryPageProps['view'], setTab: (tab: 'server') => void, go: ((page: string) => void) | undefined): (() => void) | null {
+    if (!isServerAdmin) return null;
+    if (!view) return () => setTab('server');
+    return go ? () => go('admin/mcp-servers') : null;
 }
 
 function OrgLibrary({ query, onOpenPolicy }: { query: ReturnType<typeof useMcpLibraryQuery>; onOpenPolicy: (() => void) | null }) {

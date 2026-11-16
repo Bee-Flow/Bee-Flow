@@ -3,6 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { CHART_SERIES, chartSeriesVar } from '@/components/shared/charts/chartChrome';
 import type { InOutBarProps, ModelRowProps } from '../shared.types';
 import { fmt } from './SvgAreaChart';
+import { shortModelName } from '@/utils/modelNames';
 
 // Costs are amounts in the organisation's currency; the product prices in euro.
 const CURRENCY = '€';
@@ -15,17 +16,14 @@ export function fmtCost(n: number | null | undefined) {
     return CURRENCY + n.toFixed(6);
 }
 
-export function shortModel(m: string | null | undefined) {
-    if (!m) return 'Unknown';
-    return m.replace(/^(openai\/|anthropic\/|google\/|azure\/|mistral\/)/, '')
-        .replace(/-\d{4}-\d{2}-\d{2}$/, '');
-}
+/** The model's short name (utils/modelNames: its provider path and dated snapshot stripped). */
+export const shortModel = (m: string | null | undefined) => shortModelName(m);
 
 /** One colour per model, in rank order: the theme's chart slots. */
 export const MODEL_COLORS = CHART_SERIES;
 
 /** Input (slot 1) against output (slot 4) as one thin bar; the widths are the data. */
-export function InOutBar({ input, output, className = '' }: InOutBarProps) {
+function InOutBar({ input, output, className = '' }: InOutBarProps) {
     const total = (input || 0) + (output || 0);
     const inputPct = total === 0 ? 0 : ((input || 0) / total) * 100;
     return (

@@ -328,6 +328,10 @@
    chrome, cards, and modals respectively. Admin's intensity knob drives blur
    + saturation + brightness via --glass-intensity (0 / 1 / 2). */
 [data-theme="glass"] {
+    /* Opaque switch/slider parts: --bg-primary is transparent here (index.css). */
+    --control-knob: #ffffff;
+    --control-track-off: rgba(15, 23, 42, 0.18);
+
     /* Scale-factor written by ThemeProvider from admin's intensity slider.
        0 = subtle, 1 = medium, 2 = strong. Defaults to medium if unset. */
     --glass-intensity: 1;
@@ -403,6 +407,10 @@
    text flips to light. The wallpaper-layer's base swaps to near-black via
    the [data-theme="glass-dark"] override in the wallpaper section above. */
 [data-theme="glass-dark"] {
+    /* Opaque switch/slider parts: --bg-primary is transparent here (index.css). */
+    --control-knob: #0f172a;
+    --control-track-off: rgba(255, 255, 255, 0.22);
+
     --glass-intensity: 1;
     --glass-blur:       calc(8px + var(--glass-intensity) * 20px);
     --glass-saturate:   calc(140% + var(--glass-intensity) * 15%);
@@ -483,6 +491,11 @@
     --accent-primary-hover: #fff080;
     --accent-primary-fg: #000000;
     --accent-glow: rgba(255, 212, 0, 0.35);
+
+    /* Switch/slider off track: --border-default (65% white, about #a6a6a6)
+       sits too close to the white ink of a switch that is on. A dark grey
+       keeps off and on clearly apart and still clears 3:1 against the page. */
+    --control-track-off: #5c5c5c;
 
     --text-primary: #ffffff;
     --text-secondary: #e5e5e5;

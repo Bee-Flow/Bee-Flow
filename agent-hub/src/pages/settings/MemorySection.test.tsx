@@ -61,14 +61,14 @@ describe('MemorySection: the master switch', () => {
     it('is On when the user never touched it', () => {
         mockFetch();
         setup({}, {});
-        expect(screen.getByRole('checkbox', { name: 'Use memory' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Use memory' })).toBeChecked();
         expect(screen.getByTestId('memory-state')).toHaveTextContent('On');
     });
 
     it('shows Paused (kept, not used or saved) only when explicitly false', () => {
         mockFetch();
         setup({}, { memoryEnabled: false });
-        expect(screen.getByRole('checkbox', { name: 'Use memory' })).not.toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Use memory' })).not.toBeChecked();
         expect(screen.getByTestId('memory-state')).toHaveTextContent('Paused (kept, not used or saved)');
         expect(screen.getByText('67')).toBeInTheDocument();
     });
@@ -77,7 +77,7 @@ describe('MemorySection: the master switch', () => {
         const spy = mockFetch();
         const onUpdateUser = vi.fn();
         setup({ onUpdateUser });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Use memory' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Use memory' }));
         expect(onUpdateUser).toHaveBeenCalledWith({ memoryEnabled: false });
         await waitFor(() => expect(spy).toHaveBeenCalled());
         const { url, body } = lastPost(spy);
@@ -89,7 +89,7 @@ describe('MemorySection: the master switch', () => {
         mockFetch({ ok: false, status: 500, json: async () => ({}) });
         const onUpdateUser = vi.fn();
         setup({ onUpdateUser });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Use memory' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Use memory' }));
         expect(await screen.findByText(/Could not change the memory setting/)).toBeInTheDocument();
         expect(onUpdateUser).toHaveBeenNthCalledWith(1, { memoryEnabled: false });
         expect(onUpdateUser).toHaveBeenNthCalledWith(2, { memoryEnabled: true });
@@ -112,8 +112,8 @@ describe('MemorySection: organisation has memory off', () => {
         mockFetch();
         setup({}, { memoryEnabled: true, orgMemoryEnabled: false, sensitiveOptInAllowed: true });
         expect(screen.getByTestId('memory-org-off')).toHaveTextContent(/organisation has turned memory off/);
-        expect(screen.getByRole('checkbox', { name: 'Use memory' })).toBeDisabled();
-        expect(screen.getByRole('checkbox', { name: 'Remember sensitive topics' })).toBeDisabled();
+        expect(screen.getByRole('switch', { name: 'Use memory' })).toBeDisabled();
+        expect(screen.getByRole('switch', { name: 'Remember sensitive topics' })).toBeDisabled();
         expect(screen.getByTestId('memory-import-button')).toBeDisabled();
         expect(screen.getByTestId('memory-manage-row')).toBeEnabled();
         expect(screen.getByTestId('memory-export-row')).toBeEnabled();
@@ -124,13 +124,13 @@ describe('MemorySection: sensitive topics', () => {
     it('is absent unless the organisation allows it', () => {
         mockFetch();
         setup({}, { memoryEnabled: true });
-        expect(screen.queryByRole('checkbox', { name: 'Remember sensitive topics' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch', { name: 'Remember sensitive topics' })).not.toBeInTheDocument();
     });
 
     it('turns on without a warning', async () => {
         const spy = mockFetch();
         setup({}, { memoryEnabled: true, sensitiveOptInAllowed: true, memorySensitiveOptIn: false });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Remember sensitive topics' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Remember sensitive topics' }));
         await waitFor(() => expect(spy).toHaveBeenCalled());
         expect(lastPost(spy).body).toEqual({ memorySensitiveOptIn: true });
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -140,19 +140,19 @@ describe('MemorySection: sensitive topics', () => {
         const spy = mockFetch();
         const onUpdateUser = vi.fn();
         setup({ onUpdateUser }, { memoryEnabled: true, sensitiveOptInAllowed: true, memorySensitiveOptIn: true });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Remember sensitive topics' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Remember sensitive topics' }));
         expect(await screen.findByRole('dialog')).toHaveTextContent(/will be deleted/);
         await userEvent.click(screen.getByTestId('confirm-dialog-cancel'));
         expect(spy).not.toHaveBeenCalled();
         expect(onUpdateUser).not.toHaveBeenCalled();
-        expect(screen.getByRole('checkbox', { name: 'Remember sensitive topics' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Remember sensitive topics' })).toBeChecked();
     });
 
     it('turns off after the confirmation and refreshes the counts', async () => {
         const spy = mockFetch();
         const onRetryStats = vi.fn();
         setup({ onRetryStats }, { memoryEnabled: true, sensitiveOptInAllowed: true, memorySensitiveOptIn: true });
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Remember sensitive topics' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Remember sensitive topics' }));
         await userEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
         await waitFor(() => expect(spy).toHaveBeenCalled());
         expect(lastPost(spy).body).toEqual({ memorySensitiveOptIn: false });

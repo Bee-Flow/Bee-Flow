@@ -6,12 +6,14 @@ import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, Sett
 import { ALERT_ERROR, ALERT_SUCCESS, ALERT_WARNING, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
 import { RefusedError, errorBody } from '../../api/mutate';
-import { type YouTrackConnection, type ChatNotifications, type ChatPatch, PROVIDERS, eventLabelsFor } from './SupportConnectionsConfig.helpers';
+import { type YouTrackConnection, type ChatNotifications, type ChatPatch, PROVIDERS, eventLabelsFor, webhookPlaceholder } from './SupportConnectionsConfig.helpers';
+import SupportMailboxCard from './SupportMailboxCard';
 import { apiRequest } from '@/api/typedRequest';
 
 /**
- * Where support connects to the outside world: YouTrack, and the team chat
- * space that gets told about new tickets.
+ * Where support connects to the outside world: the mailbox tickets that
+ * reached the inbox, YouTrack, and the team chat space that gets told about
+ * new tickets.
  *
  * Neither credential ever comes back to the browser. The YouTrack token is
  * write-only, and a Google Chat webhook URL carries its key and token in the
@@ -179,6 +181,8 @@ export default function SupportConnectionsConfig() {
     return (
         <div className="h-full overflow-y-auto">
             <div className="flex max-w-4xl flex-col gap-8 p-6">
+                <SupportMailboxCard />
+
                 <YouTrackSection yt={yt} ytError={ytError} ytUrl={ytUrl} setYtUrl={setYtUrl} ytToken={ytToken} setYtToken={setYtToken} ytProject={ytProject} setYtProject={setYtProject} saveYt={saveYt} ytSaving={ytSaving} />
 
                 <SettingsGroup
@@ -331,7 +335,7 @@ function ChatSection({ chat, chatError, testResult, saveChat, hook, setHook, tog
                         type="password"
                         value={hook}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHook(e.target.value)}
-                        placeholder={chat?.configured ? t('support.connections_unchanged', '••••••••  (unchanged)') : 'https://chat.googleapis.com/v1/spaces/…'}
+                        placeholder={chat?.configured ? t('support.connections_unchanged', '••••••••  (unchanged)') : webhookPlaceholder(chat?.provider)}
                         className={FIELD_INPUT} />
                 </SettingRow>
                 <SettingBlock label={t('support.support_connections_config_send_a_message_when', 'Send a message when')}>

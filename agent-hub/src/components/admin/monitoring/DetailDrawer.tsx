@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import SideDrawer from '@/components/shared/SideDrawer';
 import { useViewport } from '@/hooks/useViewport';
+import { useTranslation } from '@/hooks/useTranslation';
+import { callName } from './shared/callLabels';
 import { DrawerBreakdown, DrawerStats, RelatedCalls } from './drawer/DrawerSections';
 import type { DrawerDetail, ModelRate, UsageRow } from './drawer/drawerTypes';
 
@@ -9,6 +11,8 @@ interface DetailDrawerProps {
     modelCosts: Record<string, ModelRate | undefined>;
     costPerModel: Record<string, number>;
     recent: UsageRow[];
+    /** overlay: over the right of the positioned pane that scrolls itself; modal: a right-side dialog (a phone, or a page whose frame scrolls). */
+    mode?: 'overlay' | 'modal';
     onClose: () => void;
 }
 
@@ -17,10 +21,11 @@ interface DetailDrawerProps {
  * shared SideDrawer: a card over the right of the page (its host is the
  * positioned content pane), a right-side dialog on a phone.
  */
-export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose }: DetailDrawerProps) {
+export function DetailDrawer({ detail, modelCosts, costPerModel, recent, mode = 'overlay', onClose }: DetailDrawerProps) {
     const { type, data } = detail;
+    const { t } = useTranslation();
     const { isMobile } = useViewport();
-    const eyebrow = type === 'model' ? 'Model Details' : 'Agent Details';
+    const eyebrow = type === 'model' ? t('admin_polish.drawer_model_details', 'Model details') : t('admin_polish.drawer_agent_details', 'Agent details');
 
     // Get recent calls related to this item
     const relatedCalls = useMemo(() => {
@@ -33,7 +38,7 @@ export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose
         <SideDrawer
             open
             onClose={onClose}
-            mode={isMobile ? 'modal' : 'overlay'}
+            mode={isMobile ? 'modal' : mode}
             width={440}
             ariaLabel={eyebrow}
             testId="monitoring-detail"
@@ -41,7 +46,7 @@ export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose
                 <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{eyebrow}</div>
                     <div className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                        {type === 'model' ? data.model : data.agent_name || 'Unknown'}
+                        {type === 'model' ? data.model : callName(data, t)}
                     </div>
                 </div>
             )}

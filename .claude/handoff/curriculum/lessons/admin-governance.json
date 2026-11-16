@@ -17,7 +17,7 @@
       "id": "stakes",
       "icon": "🧭",
       "title": "The doors that only open one way",
-      "bodyMd": "Van Dijk Groep has sixty people in one workspace, and Marieke, its organisation admin, is about to change something for all of them. You already know the parts: roles, groups, sign-in, the grants that give a team its tools. This chapter is the part nobody writes down — the **order** you touch them in, what you say beforehand, and which doors only open one way.\n\nAlmost everything under **Admin dashboard → Organisation** can be clicked back. Two things cannot, and a third undoes the setting but not its consequences.\n\n- **Sign-in Method.** The card warns *\"Choose carefully: Once saved, this cannot be changed.\"* After the save the row leaves the settings nav behind a lock.\n- **Reject** on a pending member. The confirm is blunt — *\"Reject and remove this user? They can sign up again later.\"* The account is deleted.\n- **The Zero-knowledge encryption level.** Pick another level tomorrow if you like; the save cannot be un-rung. Everyone was signed out, and each key now comes from its owner's own secret — so nobody, not you and not Bee Flow, can recover that data once the password and recovery key are gone.\n\nRoles, groups, tiers, grants and shield settings are adjustments. Treat those three as decisions."
+      "bodyMd": "Van Dijk Groep has sixty people in one workspace, and Marieke, its organisation admin, is about to change something for all of them. You already know the parts: roles, groups, sign-in, the grants that give a team its tools. This chapter is the part nobody writes down — the **order** you touch them in, what you say beforehand, and which doors only open one way.\n\nAlmost everything in the **Admin dashboard** can be clicked back. One thing cannot, and a second undoes the setting but not its consequences.\n\n- **Reject** on a pending member. The confirm is blunt — *\"Reject and remove this user? They can sign up again later.\"* The account is deleted.\n- **The Zero-knowledge encryption level.** Pick another level tomorrow if you like; the save cannot be un-rung. Everyone was signed out, and each key now comes from its owner's own secret — so nobody, not you and not Bee Flow, can recover that data once the password and recovery key are gone.\n\nRoles, groups, tiers, grants, shield settings and the preferred sign-in method are adjustments. Treat those two as decisions."
     },
     {
       "type": "quiz",
@@ -56,7 +56,7 @@
       "id": "order",
       "icon": "🧱",
       "title": "Policy first, then access, then people",
-      "bodyMd": "A rollout has three waves, and the order is not a matter of taste.\n\n1. **Policy.** Privacy Shield, Encryption, Sign-in Method. The shield only checks messages sent *after* you save it, and the option to check knowledge bases works at the moment a document is added — never backwards over what is already stored.\n2. **Access.** Create the group, set its Group Role and Allowed tiers, then grant it what it needs under **Integrations → Integration access**. The group has to exist before anything can be granted to it.\n3. **People.** Invite or approve last, so the first thing a newcomer meets is a workspace that already has the right shape.\n\nVerification is a fourth wave, and it belongs to next week, not to this sitting."
+      "bodyMd": "A rollout has three waves, and the order is not a matter of taste.\n\n1. **Policy.** Privacy Shield, Encryption, Preferred sign-in method. The shield only checks messages sent *after* you save it, and the option to check knowledge bases works at the moment a document is added — never backwards over what is already stored.\n2. **Access.** Create the group, set its Group Role and Allowed tiers, then grant it what it needs under **Access → Grants**. The group has to exist before anything can be granted to it.\n3. **People.** Invite or approve last, so the first thing a newcomer meets is a workspace that already has the right shape.\n\nVerification is a fourth wave, and it belongs to next week, not to this sitting."
     },
     {
       "type": "sim",
@@ -77,7 +77,7 @@
           },
           {
             "id": "grant",
-            "label": "Open Integrations → Integration access, select Inkoop, and switch on the integration the team needs"
+            "label": "Open Access → Grants, select Inkoop, and switch on the integration the team needs"
           },
           {
             "id": "inv",
@@ -95,7 +95,7 @@
           "inv",
           "check"
         ],
-        "feedback": "Policy first, because the shield only checks what is sent after it is saved. Then the group — the Integration access panel says as much when there are none: \"No groups yet. Create groups under Users & Groups to grant capabilities per team.\" Grant to the group, then invite, so nobody spends their first hour in a half-built workspace. Verification is a separate visit, a week later."
+        "feedback": "Policy first, because the shield only checks what is sent after it is saved. Then the group — the Grants panel says as much when there are none: \"No groups yet. Create groups under Users & Groups to grant capabilities per team.\" Grant to the group, then invite, so nobody spends their first hour in a half-built workspace. Verification is a separate visit, a week later."
       }
     },
     {
@@ -135,7 +135,7 @@
       "id": "verify",
       "icon": "🔍",
       "title": "Verify, do not assume",
-      "bodyMd": "Every change has a screen that proves it took.\n\n- **Privacy Shield → Overview** shows *How things stand*, one card per step. *Kinds of data* reading *\"0 of 21\"* puts *\"No kinds of data are selected\"* on the review card above it: protection is on, and the page warns that nothing will ever be found.\n- **Users & Groups** carries a count badge on each tab, a member count on every group card, and a role chip on every row.\n- **Integrations → Integration access**: pick All members or one group on the left and read its toggles. An integration your subscription does not include is not shown at all, so a missing card means \"not in the plan\", not \"not granted yet\".\n- **Usage & Monitoring** answers the week after, through Top Users and By app area.\n\nOne trap: a blank Usage page is not proof of no usage. A refused request draws the same empty panels, with no error at all."
+      "bodyMd": "Every change has a screen that proves it took.\n\n- **Privacy Shield → Overview** shows *How things stand*, one card per step. *Kinds of data* reading *\"0 of 21\"* puts *\"No kinds of data are selected\"* on the review card above it: protection is on, and the page warns that nothing will ever be found.\n- **People** carries a count badge on each tab, a member count on every group card, and the role of every member.\n- **Access → Grants**: pick All members or one group on the left and read its toggles. An integration your subscription does not include is not shown at all, so a missing card means \"not in the plan\", not \"not granted yet\".\n- **Usage & Monitoring** answers the week after, through Top Users and By app area.\n\nOne trap: a blank Usage page is not proof of no usage. A refused request draws the same empty panels, with no error at all."
     },
     {
       "type": "sim",
@@ -161,7 +161,7 @@
           {
             "id": "grant",
             "left": "She gave the supplier connector to one team only",
-            "right": "Integrations → Integration access",
+            "right": "Access → Grants",
             "note": "Select the group on the left; the header then reads \"grants stack on top of All members\" — grants add, they never subtract."
           },
           {
@@ -183,14 +183,14 @@
       "timeoutMs": 7000,
       "icon": "📊",
       "title": "Where next week lives",
-      "body": "Usage & Monitoring opens on the last 30 days and is read-only. On Bee Flow Cloud, the controls that change behaviour sit higher up the same Organisation menu, on License & Usage: the plan's cap, and the toggle Share AI usage across the organisation."
+      "body": "Usage & Monitoring opens on the last 30 days and is read-only. On Bee Flow Cloud, the controls that change behaviour sit in the same Workspace group, on Licence & usage: the plan's cap, and the toggle Share AI usage across the organisation."
     },
     {
       "type": "slide",
       "id": "duties",
       "icon": "⚖️",
       "title": "A role change is a rollout too",
-      "bodyMd": "Van Dijk Groep appoints Anne, its office manager, as **Data Protection Officer**. One pencil on her row in Users & Groups, and half the work you two had planned is no longer hers to do.\n\nThat role — like **ISMS Internal Auditor** beside it — opens the **Compliance Center**. Not Users & Groups, not the Privacy Shield, not Sign-in Method. So treat the change the way you treat any other: pick the day it takes effect, hand over whatever Anne had half-finished, and tell the people who used to walk up to her desk with access requests.\n\nTwo things to settle before you click the pencil:\n\n- **Where the work lands.** Back with Marieke, the organisation admin. If she is the only one, holidays become an outage — and the server refuses to demote or remove the last active Organisation Admin anyway, so promote a second one while nothing is on fire.\n- **What proves it.** Her row's role chip on the Users tab, and her own Organisation menu, which is now one item long."
+      "bodyMd": "Van Dijk Groep appoints Anne, its office manager, as **Data Protection Officer**. One Organisation Role change on her row in People, and half the work you two had planned is no longer hers to do.\n\nThat role — like **ISMS Internal Auditor** beside it — opens the **Compliance Center**. Not People, not the Privacy Shield, not the preferred sign-in method. So treat the change the way you treat any other: pick the day it takes effect, hand over whatever Anne had half-finished, and tell the people who used to walk up to her desk with access requests.\n\nTwo things to settle before you save her new role:\n\n- **Where the work lands.** Back with Marieke, the organisation admin. If she is the only one, holidays become an outage — and the server refuses to demote or remove the last active Organisation Admin anyway, so promote a second one while nothing is on fire.\n- **What proves it.** Her role on the Users tab, and her own admin dashboard, which now holds Compliance and little else."
     },
     {
       "type": "exercise",
@@ -247,7 +247,7 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Sequence a change**: policy, then access, then people — and verification a week later, on purpose.\n- **Spot the one-way doors** before you open them: Sign-in Method and Reject on a pending member, plus the Zero-knowledge encryption level, whose save you can never un-ring. Announce those; the rest you can simply adjust.\n- **Prove it landed** on the screen that owns it — the shield's How things stand, the group card, the Integration access panel, Usage & Monitoring — and keep your one-line note beside what the Access log already writes for you.\n\nThat is the whole method. You can let all sixty of Van Dijk Groep's people in now, in an order that will not need explaining afterwards."
+      "bodyMd": "- **Sequence a change**: policy, then access, then people — and verification a week later, on purpose.\n- **Spot the one-way doors** before you open them: Reject on a pending member, and the Zero-knowledge encryption level, whose save you can never un-ring. Announce those; the rest you can simply adjust.\n- **Prove it landed** on the screen that owns it — the shield's How things stand, the group card, the Grants panel, Usage & Monitoring — and keep your one-line note beside what the Access log already writes for you.\n\nThat is the whole method. You can let all sixty of Van Dijk Groep's people in now, in an order that will not need explaining afterwards."
     }
   ],
   "rubrics": {
@@ -262,7 +262,7 @@
         "States the rollback honestly: how to undo it, or that it cannot be undone plus what was done to reduce that risk."
       ],
       "passScore": 70,
-      "guidance": "Reward concreteness and honesty about irreversibility over polish. Do NOT pass: a plan with no named change; a vague verification ('monitor it', 'see if people complain'); a plan that puts invitations or approvals before the policy and access they depend on; a plan claiming an undo for the Sign-in Method, the Zero-knowledge encryption level or a rejected pending member. A plan may have no announcement if the change genuinely touches nobody — but it must say why."
+      "guidance": "Reward concreteness and honesty about irreversibility over polish. Do NOT pass: a plan with no named change; a vague verification ('monitor it', 'see if people complain'); a plan that puts invitations or approvals before the policy and access they depend on; a plan claiming an undo for the Zero-knowledge encryption level or a rejected pending member. A plan may have no announcement if the change genuinely touches nobody — but it must say why."
     }
   },
   "practiceTopic": {
@@ -274,8 +274,8 @@
       "Privacy Shield → Overview shows How things stand, where the row 'Kinds of data' counts the ticked kinds; at '0 of 21' the review card lists 'No kinds of data are selected' and warns that nothing will ever be found.",
       "A group's Allowed tiers pills restrict only that group, an empty selection means no restriction at all, and a Clear restrictions link puts it back.",
       "Demoting yourself while you are the only active Organisation Admin is refused: that change would leave the organisation without an administrator, so promote someone else first.",
-      "Usage & Monitoring is read-only and opens on the last 30 days; on Bee Flow Cloud the plan cap and the toggle 'Share AI usage across the organisation' live higher up the same Organisation menu, on License & Usage.",
-      "In the Organisation menu the Data Protection Officer and ISMS Internal Auditor roles open the Compliance Center and nothing else — they carry compliance and monitoring, not user management.",
+      "Usage & Monitoring is read-only and opens on the last 30 days; on Bee Flow Cloud the plan cap and the toggle 'Share AI usage across the organisation' live in the same Workspace group of the admin dashboard, on Licence & usage.",
+      "In the admin dashboard the Data Protection Officer and ISMS Internal Auditor roles open the Compliance Center and nothing else — they carry compliance and monitoring, not user management.",
       "Compliance → Access log records sign-ins, changes to who can reach what, and app publications, newest first, with server-side filters on event kind, date range and account, and an export capped at 50 000 rows per file and twenty exports an hour. It has no field for why a change was made."
     ]
   },

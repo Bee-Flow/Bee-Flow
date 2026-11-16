@@ -1,6 +1,6 @@
 import { Mail, Plus, X } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
 import type { OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 
@@ -38,7 +38,7 @@ export function GroupMemberAdd({ group, orgUsers, groupsState }: GroupMembersPro
         }
         return shown.map(u => (
             <button key={u.id} disabled={memberBusy} onClick={() => addGroupMember(group.id, u.id)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-left disabled:opacity-50">
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--item-hover-bg)] text-left disabled:opacity-50">
                 <span className="text-xs font-medium text-[var(--text-primary)] truncate">{u.displayName || u.username}</span>
                 {u.email && <span className="text-[10px] text-[var(--text-muted)] truncate">{u.email}</span>}
                 <Plus className="w-3 h-3 ml-auto text-[var(--text-muted)] shrink-0" />
@@ -55,7 +55,7 @@ export function GroupMemberAdd({ group, orgUsers, groupsState }: GroupMembersPro
                         value={memberAddSearch}
                         onChange={e => setMemberAddSearch(e.target.value)}
                         placeholder={t('admin.org_group_add_member_search', 'Search users to add…')}
-                        className="w-full px-2.5 py-1.5 rounded-md border text-xs outline-none mb-1.5 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
+                        className="w-full px-2.5 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs outline-none mb-1.5 focus:border-[var(--accent-primary)]"
                     />
                     <div className="max-h-40 overflow-y-auto space-y-1">
                         {renderCandidates()}
@@ -66,7 +66,7 @@ export function GroupMemberAdd({ group, orgUsers, groupsState }: GroupMembersPro
                 </div>
             ) : (
                 <button onClick={() => { setMemberAddGroupId(group.id); setMemberAddSearch(''); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-dashed hover:bg-[var(--item-hover-bg)] border-[var(--border-default)] text-[var(--text-secondary)]">
                     <Plus className="w-3.5 h-3.5" /> {t('admin.org_group_add_member', 'Add member')}
                 </button>
             )}
@@ -93,8 +93,7 @@ export function GroupMembersList({ group, groupsState }: Omit<GroupMembersProps,
             </p>
             {members.map(m => (
                 <div key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--bg-primary)]">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                        style={{ background: `hsl(${(m.displayName || m.username || '').charCodeAt(0) * 37 % 360}, 55%, 50%)` }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 bg-[var(--bg-tertiary)] text-[var(--text-primary)]" aria-hidden="true">
                         {(m.displayName || m.username || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -107,14 +106,14 @@ export function GroupMembersList({ group, groupsState }: Omit<GroupMembersProps,
                         )}
                     </div>
                     <div className="shrink-0">
-                        <RoleBadge role={group.orgRole || m.role || m.orgRole} />
+                        <OrgRoleChip role={group.orgRole || m.orgRole || m.role} />
                     </div>
                     <button
                         disabled={memberBusy}
                         onClick={() => removeGroupMember(group.id, m.id)}
                         title={t('admin.org_group_remove_member', 'Remove from group')}
                         aria-label={t('admin.org_group_remove_member', 'Remove from group')}
-                        className="shrink-0 p-1 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
+                        className="shrink-0 p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] disabled:opacity-50"
                     >
                         <X className="w-3.5 h-3.5" />
                     </button>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { LANGUAGES } from '@/config/meetingNotesConfig';
+import SharedToggle from '@/components/shared/Toggle';
 
 /**
  * Small presentational atoms shared by the org-level (admin) and personal
@@ -7,9 +8,9 @@ import { LANGUAGES } from '@/config/meetingNotesConfig';
  * re-declared them byte-for-byte. Keep purely presentational — the panels own
  * their own data.
  *
- * Colours come from the theme: a switch that is on uses the accent, like every
- * other switch in Settings. NC_BLUE is the Nextcloud brand colour, kept for the
- * Talk header icon only.
+ * Colours come from the theme: the switch is the shared one (shared/Toggle), so
+ * it looks like every other switch in the product. NC_BLUE is the Nextcloud
+ * brand colour, kept for the Talk header icon only.
  */
 
 export const NC_BLUE = '#0082C9';
@@ -35,18 +36,19 @@ export function languageOptions(current?: string | null): readonly LangOption[] 
 }
 
 /**
- * On/off switch. Pass the row title as `ariaLabel`: the switch has no visible
- * text of its own.
+ * On/off switch: an adapter over the shared Toggle (role="switch",
+ * aria-checked) that keeps this file's `{ on, onClick }` API for the meeting
+ * panels. Pass the row title as `ariaLabel`: the switch has no visible text of
+ * its own.
  */
 export const Toggle = ({ on, onClick, disabled, ariaLabel }: { on?: boolean; onClick?: () => void; disabled?: boolean; ariaLabel?: string }) => (
-    <button
-        type="button" onClick={onClick} disabled={disabled} aria-pressed={!!on} aria-label={ariaLabel}
-        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${on ? 'bg-[var(--accent-primary)]' : 'bg-[var(--border-default)]'}`}
-    >
-        {/* The knob takes the accent's readable foreground when on: white on a
-            very light accent (high-contrast, obsidian) would vanish. */}
-        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform ${on ? 'translate-x-5 bg-[var(--accent-primary-fg)]' : 'bg-white'}`} />
-    </button>
+    <SharedToggle
+        checked={!!on}
+        onChange={() => onClick?.()}
+        disabled={disabled}
+        ariaLabel={ariaLabel}
+        className="flex-shrink-0"
+    />
 );
 
 /** A settings row: title and description, the control beside them (below them on a phone). */
@@ -60,6 +62,10 @@ export const Row = ({ title, desc, children }: { title?: React.ReactNode; desc?:
     </div>
 );
 
+/**
+ * A compact select. It grows to its longest option ("Each member decides" must
+ * not be cut off) and never past its row.
+ */
 export const Select = ({ value, onChange, disabled, options, ariaLabel }: {
     value?: string;
     onChange?: React.ChangeEventHandler<HTMLSelectElement>;
@@ -69,7 +75,7 @@ export const Select = ({ value, onChange, disabled, options, ariaLabel }: {
 }) => (
     <select
         value={value} onChange={onChange} disabled={disabled} aria-label={ariaLabel}
-        className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+        className="w-auto min-w-[12rem] max-w-full px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
     >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>

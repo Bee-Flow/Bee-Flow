@@ -4,16 +4,15 @@ title: "Users & groups"
 
 # Users & groups
 
-Two places manage people:
+People are managed under **Admin dashboard → Workspace → People**, with the tabs **Users**, **Invitations**, **Groups** and **Organisation roles**. An organisation admin sees their own organisation; a platform admin sees the organisation chosen at the top of the dashboard (with none chosen, every organisation's users). Adding, editing and deleting needs the Manage Users permission or the organisation admin role.
 
-- **Admin → Security → Users** on the admin dashboard. A full admin gets the tabs Users, Organizations, Nextcloud, Groups, Roles and Permissions, across every organisation on the server. Anyone else who can open Admin → Security gets Users, Groups and, when they belong to an organisation, My Organization. Adding, editing and deleting needs the Manage Users or Privacy Shield permission.
-- The same screen for an org admin, scoped to their own organisation, with the tabs Users, Groups and Roles. Invitations and approvals live here.
+The server-wide lists are rows of their own in the whole-server block, for a platform admin: **Organisations**, **Roles & permissions** and **Nextcloud instances**. The organisation's own details are **Admin dashboard → Workspace → Organisation info**.
 
-What a user or group may *use* (features, beta features, integrations) is not set on these screens: that is **Admin → Access → Grants**, see [Beta features](beta-features.md). The Nextcloud integrations have their own panel, see [Nextcloud integrations](nc-integrations.md).
+What a user or group may *use* (features, beta features, integrations) is not set on these screens: that is **Admin dashboard → Security & access → Access → Grants**, see [Beta features](beta-features.md). The Nextcloud integrations have their own panel, see [Nextcloud integrations](nc-integrations.md).
 
 ## User management panel
 
-The **Users** tab of Admin → Security → Users is the People directory: everyone you may see, grouped **By organisation**, **By group** or **Flat**, with a search and filters. Each row shows the name, the organisation role, `@username` and the email address. A person in more than one organisation is listed under each.
+The **Users** tab of People is the directory: everyone you may see, grouped **By organisation**, **By group** or **Flat**, with a search and filters. Each row shows the name, the organisation role, `@username` and the email address. A person in more than one organisation is listed under each.
 
 ![Users & groups panel](../img/screenshots/admin/users-and-groups/)
 
@@ -28,32 +27,33 @@ The **Users** tab of Admin → Security → Users is the People directory: every
 
 Deleting or demoting the last org admin of an organisation that still has other members is refused, so an organisation is never left without an administrator. The built-in system account cannot be deleted.
 
-### The other tabs
+### For a platform admin
+
+The whole-server rows, and what the Groups tab adds for a platform admin:
+
+| Row or tab | What it offers |
+|-----|----------------|
+| **Organisations** | Add, edit and delete organisations; remove an organisation's Nextcloud association. |
+| **Nextcloud instances** | Every organisation connected to a Nextcloud instance: its Nextcloud URL, instance ID and when it was connected, with **Health** (the connector health page) and **Remove Nextcloud association**. Removing it revokes that connector's tenant key so it can no longer authenticate; the organisation itself is kept. |
+| **Groups** (tab of People) | Add, edit and delete groups (name, organisation or none for a global group, description, permissions, assigned roles, allowed agent types, and on a self-hosted server an AI budget per member per month). |
+| **Roles & permissions** | Role templates with their permissions (add, edit, delete), and the list of permissions roles and groups can carry (read-only). |
+
+## Organisation admins: the tabs of People
 
 | Tab | What it offers |
 |-----|----------------|
-| **Organizations** | Add, edit and delete organisations; remove an organisation's Nextcloud association. |
-| **Nextcloud** | Every organisation connected to a Nextcloud instance: its Nextcloud URL, instance ID and when it was connected, with **Health** (the connector health page) and **Remove Nextcloud association**. Removing it revokes that connector's tenant key so it can no longer authenticate; the organisation itself is kept. |
-| **Groups** | Add, edit and delete groups (name, organisation or none for a global group, description, permissions, assigned roles, allowed agent types, and on a self-hosted server an AI budget per member per month). |
-| **Roles** | Role templates with their permissions: add, edit, delete. |
-| **Permissions** | The list of permissions roles and groups can carry (read-only). |
-| **My Organization** | Your own organisation's details and logo. |
-
-## Organisation admins: Admin → Security → Users
-
-| Tab | What it offers |
-|-----|----------------|
-| **Users** | The organisation's members. Per member: change the organisation role, assign groups, see this month's AI cost, set [image limits](#image-limits), and on a self-hosted server set a monthly AI budget. A member waiting for approval has **Approve** and **Reject** (reject removes the account; they can sign up again). |
+| **Users** | The organisation's members. Per member (**Edit**): change the organisation role, assign groups, see this month's AI cost, set [image limits](#image-limits), and on a self-hosted server set a monthly AI budget. A member waiting for approval has **Approve** and **Reject** (reject removes the account; they can sign up again). |
+| **Invitations** | Invite someone by e-mail, and the pending invitations. |
 | **Groups** | Create and delete groups, add and remove members, and per group: description, a role all members inherit, allowed tiers, [image limits](#image-limits) per member and, on a self-hosted server, an AI budget per member. |
-| **Roles** | What each organisation role may do (Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor, Member). Open a role to see its permissions; an org admin can switch the ones the organisation decides (such as Notebooks, the Studio sections, Approvals and Forms) on or off for that role. The rest of what a role is stays fixed by the install. |
+| **Organisation roles** | What each organisation role may do (Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor, Member). Open a role to see its permissions; an org admin can switch the ones the organisation decides (such as Notebooks, the Studio sections, Approvals and Forms) on or off for that role. The rest of what a role is stays fixed by the install. |
 
-When the organisation signs in through Google or Microsoft, the Users tab also has **Auto-approve users from trusted domains**: on, matching users are added straight away; off, they are added as pending and wait for approval.
+Who joins through single sign-on is set on **Admin dashboard → Security & access → Preferred sign-in method**: **Let people from your domains in straight away** adds matching users at once, in the default groups; off, they are added as pending and wait for approval on the Users tab.
 
 Which users match: a Microsoft account by the organisation's verified tenant. Any account, also an existing one without an organisation, by a domain on a self-hosted server's allowed-domain list. A Google account, only when it is created, by the domain of the organisation's contact e-mail once an organisation admin signs in with a verified address on that domain (or a platform admin set the contact e-mail); an existing account is not added by the contact e-mail domain on a later sign-in: invite it. A domain that two organisations use adds nobody, and a public mail domain (such as gmail.com) never matches. The contact e-mail cannot be set to a domain another organisation already uses.
 
 ### Invitations
 
-1. On the **Users** tab, click **Invite User**.
+1. On the **Invitations** tab, click **Invite User**.
 2. Enter the email address and a role, and click **Send**.
 3. The invitee receives an email with a link, valid for 7 days. If the email could not be sent, the screen shows the link to copy and share yourself.
 4. On first visit they create their account through the link.
@@ -64,12 +64,12 @@ Pending invitations are listed with who invited them and when they expire, each 
 
 Groups are how access is handed out:
 
-- capabilities granted to a group in **Admin → Access → Grants** (a user gets everything granted to All members plus everything granted to any of their groups);
+- capabilities granted to a group in **Admin dashboard → Security & access → Access → Grants** (a user gets everything granted to All members plus everything granted to any of their groups);
 - per-group exceptions for the [Nextcloud integrations](nc-integrations.md);
 - agents shared with a group;
 - the permissions, roles, allowed agent types, budgets and image limits set on the group itself.
 
-A group comes from one of three places: made in Bee Flow, mirrored from Nextcloud by the [Nextcloud sync](#nextcloud-sync), or synced from Azure AD. Azure groups are marked **Managed** under Admin → Security → Users and are changed by syncing, not by hand.
+A group comes from one of three places: made in Bee Flow, mirrored from Nextcloud by the [Nextcloud sync](#nextcloud-sync), or synced from Microsoft Entra ID (**Admin dashboard → Connections → Microsoft 365**). Synced groups are marked **Managed** on the Groups tab and are changed by syncing, not by hand.
 
 ## Image limits
 
@@ -98,7 +98,7 @@ The image limits are separate from the per-minute guard on image requests (`IMAG
 
 ## Nextcloud sync
 
-Path: **Admin → Organisation → Nextcloud Sync**, for organisations bound to a Nextcloud instance (and for super-admins). It decides which Nextcloud users get a Bee Flow account.
+Path: **Admin dashboard → Connections → Nextcloud**, for organisations bound to a Nextcloud instance (and for super-admins). It decides which Nextcloud users get a Bee Flow account.
 
 | Mode | Behaviour |
 |------|-----------|
@@ -119,7 +119,7 @@ User and group changes arrive as events from Nextcloud through the connector (se
 
 ## Signup settings
 
-On Bee Flow Cloud, a super-admin controls who can sign up under **Admin → Subscriptions → Access**:
+On Bee Flow Cloud, a super-admin controls who can sign up under **Admin dashboard → Whole server → Subscriptions → Access**:
 
 | Setting | Effect |
 |---------|--------|
@@ -136,7 +136,7 @@ The `ALLOW_SIGNUPS=false` environment variable overrides these toggles and hides
 
 ## Waitlist
 
-If waitlist mode is on, new registrations appear in the **Waitlist queue** under Admin → Subscriptions → Access, with their signup date. **Approve** lets them in, **Reject** turns them away.
+If waitlist mode is on, new registrations appear in the **Waitlist queue** under Admin dashboard → Whole server → Subscriptions → Access, with their signup date. **Approve** lets them in, **Reject** turns them away.
 
 ## Seat limits
 
@@ -148,6 +148,6 @@ A user record holds the username, display name, first and last name, email, an o
 
 ## Right to erasure (GDPR)
 
-**Delete** on a user (Admin → Security → Users) is the erasure: after the confirmation it removes the account and the user's data in one go, and it cannot be undone. Datatables the user had shared pass to the org admin of the organisation whose account is oldest, rather than being deleted, because they are the organisation's records. If a step fails, the account stays and the delete can simply be repeated.
+**Delete** on a user (Admin dashboard → Workspace → People) is the erasure: after the confirmation it removes the account and the user's data in one go, and it cannot be undone. Datatables the user had shared pass to the org admin of the organisation whose account is oldest, rather than being deleted, because they are the organisation's records. If a step fails, the account stays and the delete can simply be repeated.
 
 An account mirrored from Nextcloud whose Nextcloud user is deleted is only deactivated by the sync; erase it here.

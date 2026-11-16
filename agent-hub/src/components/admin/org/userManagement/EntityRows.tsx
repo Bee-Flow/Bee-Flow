@@ -11,6 +11,21 @@ export function EntitySectionHeader({ title, description, action }: { title: Rea
     return <SectionHeader title={title} description={description} status={action} className="mb-4" />;
 }
 
+/**
+ * The top of a section on an admin dashboard page that names it already (the
+ * page header, an in-page tab): no heading, the section's one-line hint and its
+ * add action.
+ */
+export function EntitySectionIntro({ description, action }: { description?: ReactNode; action?: ReactNode }) {
+    if (!description && !action) return null;
+    return (
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            {description ? <p className="m-0 min-w-[12rem] flex-1 text-xs text-[var(--text-secondary)]">{description}</p> : <span />}
+            {action ? <div className="max-w-full">{action}</div> : null}
+        </div>
+    );
+}
+
 /** The section's add button. */
 export function AddButton({ onClick, icon, children }: { onClick: () => void; icon: ReactNode; children: ReactNode }) {
     return <button type="button" onClick={onClick} className={PRIMARY_BTN}>{icon}{children}</button>;

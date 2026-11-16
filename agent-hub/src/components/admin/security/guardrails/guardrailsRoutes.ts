@@ -81,7 +81,7 @@ const SECTIONS: GuardrailSection[] = [
     {
         id: 'directchat',
         labelKey: 'admin.gr_tab_directchat',
-        fallback: 'Direct chat',
+        fallback: 'Direct chat guardrails',
         icon: MessageSquare,
         capability: null,
         descKey: 'admin.gr_tab_directchat_desc',
@@ -90,7 +90,7 @@ const SECTIONS: GuardrailSection[] = [
     {
         id: 'organisations',
         labelKey: 'admin.gr_tab_orgs',
-        fallback: 'Organisations',
+        fallback: 'Per organisation',
         icon: Building2,
         capability: null,
         descKey: 'admin.gr_tab_orgs_desc',
@@ -135,7 +135,11 @@ export function isKnownButUnavailable(segment: string | null | undefined, sectio
 
 const BASE_PATH = 'admin/security/guardrails';
 
-/** The navigation target for a section, for onNavigate(). */
-export function pathFor(sectionId: string) {
-    return `${BASE_PATH}/${sectionId}`;
+/** The admin dashboard's Guardrail library row (GuardrailsHub mode 'library'), and its Privacy Shield row. */
+export const LIBRARY_PATH = 'admin/security/guardrail-library';
+export const PRIVACY_SHIELD_PATH = BASE_PATH;
+
+/** The navigation target for a section, for onNavigate(); `base` is the console's own address. */
+export function pathFor(sectionId: string, base: string = BASE_PATH) {
+    return `${base}/${sectionId}`;
 }

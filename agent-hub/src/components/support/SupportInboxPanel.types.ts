@@ -81,5 +81,15 @@ export interface CsatStarsProps {
 }
 
 export interface SupportInboxPanelProps {
+    /**
+     * admin/support/<view>: inbox (the default), settings or insights. Any
+     * other value is a ticket id: the server's ticket links are admin/support/<threadId>.
+     */
+    view?: string | null;
+    /** admin/support/<view>/<item>: the open ticket (inbox) or the open section (settings). */
+    item?: string | null;
+    /** The old single segment (a ticket id, or a view name); read when `view` is not given. */
     focusThreadId?: string | null;
+    /** Writes the address on a view, ticket or section change; the app shell's when left out. */
+    onNavigate?: (path: string) => void;
 }

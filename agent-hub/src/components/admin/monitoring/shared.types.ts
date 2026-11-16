@@ -1,5 +1,4 @@
 import type { UsageRow } from './drawer/drawerTypes';
-import type React from 'react';
 import type { ReactNode } from 'react';
 
 /** A usage row or one recent call, with the fields the monitoring pages read beyond UsageRow's. */
@@ -25,7 +24,6 @@ export interface ModelUsage extends UsageRecord { model: string }
 
 export interface AgentUsage extends UsageRecord { agent_id: string }
 
-export interface UserUsage extends UsageRecord { user_id: string }
 
 export interface ToolUsage { tool_name: string; calls: number }
 
@@ -90,11 +88,6 @@ export interface InOutBarProps {
     className?: string;
 }
 
-export interface InOutLabelProps {
-    input?: number;
-    output?: number;
-}
-
 export interface SvgAreaChartProps {
     data?: ChartPoint[] | null;
     yKey?: Exclude<keyof ChartPoint, 'period'>;
@@ -116,27 +109,6 @@ export interface DonutChartProps {
     size?: number;
     centerLabel?: string;
     centerValue?: string;
-}
-
-export interface FilterOption {
-    value: string;
-    label: string;
-}
-
-export interface FilterState {
-    user: string | null;
-    agent: string | null;
-    model: string | null;
-    source: string | null;
-}
-
-export interface FilterBarProps {
-    filters: FilterState;
-    setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
-    userOptions?: FilterOption[];
-    agentOptions?: FilterOption[];
-    modelOptions?: FilterOption[];
-    sourceOptions?: FilterOption[];
 }
 
 export interface SortableColumn<Row> {

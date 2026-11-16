@@ -36,6 +36,13 @@ const PACK = { id: 'p1', user_id: 'u1', name: 'Mine', icons: FULL_BUT_TWO };
 
 const { HttpError } = require('../core/http/errors');
 
+const CONFIGURED_MODELS = [
+    { id: 'gemini-3.1-flash-image-preview', label: 'Flash Image (Fast)', provider: 'google' },
+    { id: 'gemini-3-pro-image-preview', label: 'Pro Image (Quality)', provider: 'google' },
+    { id: 'azure/icons-deploy', label: 'gpt-image-1.5 (icons-deploy)', provider: 'azure' },
+];
+let imageModels = CONFIGURED_MODELS;
+
 const MOCKS = {
     '../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../auth/permissions': { requireAuth: pass },
@@ -47,7 +54,8 @@ const MOCKS = {
         setIcon: async (id, userId, key, data) => { touched.push({ what: 'setIcon', args: [key, data] }); return {}; },
     },
     '../stores/userStore': { getUser: async () => ({ id: 'u1' }), updateUser: async () => {} },
-    '../core/media/imageModels.mts': { isImageGenerationAvailable: async () => true },
+    // What listImageModels() returns on this server; a test swaps it for "nothing configured".
+    '../core/media/imageModels.mts': { listImageModels: async () => imageModels },
     '../core/media/imageHttp': {
         // No image comes back, so nothing is ever written to the icon folder.
         generateImageForRoute: async ({ aspectRatio, model }) => {
@@ -101,7 +109,7 @@ function dispatch({ method, url, body, userId = 'u1' }) {
 const refusedAt = (res, path) => res.statusCode === 400 && res.body.details.some((d) => d.path === path);
 const calls = (what) => touched.filter((t) => t.what === what);
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; imageModels = CONFIGURED_MODELS; });
 
 // ── bulk-generate ───────────────────────────────────────────────────
 
@@ -154,10 +162,38 @@ test('`only` deduplicates repeated ids instead of generating the same icon repea
     assert.strictEqual(calls('generate').length, 1, 'three copies of the same id must cost one generation, not three');
 });
 
-test('a model that is not a Gemini image model never reaches Google', async () => {
-    const res = await dispatch({ method: 'POST', url: '/p1/bulk-generate', body: { model: 'gemini-3-pro-preview' } });
+test('a model that is not one of the configured image models never reaches a provider', async () => {
+    for (const model of ['gemini-3-pro-preview', 'azure/not-deployed', 'dall-e-3']) {
+        const res = await dispatch({ method: 'POST', url: '/p1/bulk-generate', body: { model } });
+        assert.strictEqual(res.statusCode, 400, model);
+        assert.strictEqual(res.body.code, 'image_model_unknown', model);
+    }
+    const res = await dispatch({ method: 'POST', url: '/p1/bulk-generate', body: { model: 123 } });
     assert.ok(refusedAt(res, 'body.model'));
     assert.deepStrictEqual(calls('generate'), []);
+});
+
+test('a configured Azure image deployment is accepted and passed on as chosen', async () => {
+    const res = await dispatch({ method: 'POST', url: '/p1/bulk-generate', body: { model: 'azure/icons-deploy' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(calls('generate').map((c) => c.args[0].model), ['azure/icons-deploy', 'azure/icons-deploy']);
+
+    touched.length = 0;
+    const one = await dispatch({ method: 'POST', url: '/generate', body: { prompt: 'a bee', model: 'azure/icons-deploy' } });
+    assert.strictEqual(one.statusCode, 502, 'the stub returns no image');
+    assert.strictEqual(calls('generate')[0].args[0].model, 'azure/icons-deploy');
+});
+
+test('with no image model configured both routes answer 503 before generating anything', async () => {
+    imageModels = [];
+    const bulk = await dispatch({ method: 'POST', url: '/p1/bulk-generate', body: {} });
+    assert.strictEqual(bulk.statusCode, 503);
+    assert.strictEqual(bulk.body.code, 'image_generation_unavailable');
+    const one = await dispatch({ method: 'POST', url: '/generate', body: { prompt: 'a bee' } });
+    assert.strictEqual(one.statusCode, 503);
+    assert.strictEqual(one.body.code, 'image_generation_unavailable');
+    assert.deepStrictEqual(calls('generate'), []);
+    assert.deepStrictEqual(calls('update'), [], 'the pack is not touched');
 });
 
 // ── generate ────────────────────────────────────────────────────────

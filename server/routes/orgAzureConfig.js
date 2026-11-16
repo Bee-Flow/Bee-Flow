@@ -6,7 +6,10 @@
  * admin dashboard sets: the platform's Azure OpenAI endpoint and key, chat-model
  * tiers, Microsoft SSO app, PII defaults and document processing. That state is
  * instance-wide, so both routes take the platform-admin gate in every
- * deployment mode (platformConfigGate). The org's own `autoApproveSSO` flag rides
+ * deployment mode (platformConfigGate). The Microsoft SSO app also needs the
+ * `sso_saml` capability, as Security > SSO does: the `sso` save is refused
+ * without it and the read leaves its fields out (ssoSectionGate,
+ * microsoftSsoView). The org's own `autoApproveSSO` flag rides
  * along in the `sso` section; an org admin sets it in the organisation settings
  * (auth/admin/orgRoutes.js). The group-sync routes are org-scoped and keep the
  * strict org-admin check for the organisation in the path (isOrgAdmin); their
@@ -26,8 +29,8 @@ const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, g
 const { groupSyncView } = require('../usecases/orgAzureSyncView');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
-const { z, typeError } = require('../utils/zod');
-const { worded, choice } = require('../core/http/schemaParts');
+// What a caller may send, and why each save is a closed schema: orgAzureConfigSchemas.mts.
+const { ConfigBody, SyncSettingsBody, NoBody, PANEL_TIERS } = require('./orgAzureConfigSchemas.mts');
 
 // requireAuth is the canonical gate (verifies the user still exists in the DB,
 // cached 5s, and destroys deleted-user sessions). isOrgAdminForOrg: platform
@@ -52,138 +55,63 @@ function platformConfigGate(req, _res, next) {
 }
 tagGate(platformConfigGate, PLATFORM_GATE);
 
-// ── What a caller may send ──────────────────────────────────────────
+// ── Microsoft SSO is Enterprise ─────────────────────────────────────
 //
-// The save is one PUT with a `section`, and every section writes GLOBAL keys.
-// It read the body key by key, so a mistake was never refused:
-//
-//   - an unknown `section` ('SSO', 'opnai') matched no branch and answered
-//     `{ ok: true }` — "Saved" in the panel, nothing written. So did a key
-//     sent under the wrong section, or misspelled;
-//   - `!!x` read the STRING "false" as true: `useAzureDocProcessing: "false"`
-//     switched document processing ON (documents start going to Azure),
-//     `autoApproveSSO: "false"` auto-approved every Microsoft sign-in into the
-//     organisation, `piiDetectionEnabled: "false"` switched PII detection on;
-//   - `chatModelTiers` was rebuilt from four tier names, so a save DROPPED the
-//     `standard` and `swarm` tiers the admin dashboard keeps in the same key —
-//     and every agent on `tier:standard` fell back to the fast model. A tier
-//     map with a misspelled name reset the four to empty. Tiers not sent are
-//     now kept, and a tier name nothing reads is refused;
-//   - on the sync settings, `destructiveSync: "false"` switched DESTRUCTIVE
-//     sync on — group memberships removed on the next run — and an interval
-//     outside 1..168 hours was silently not saved.
-//
-// Inside a tier the object stays OPEN (modelId, label, maxTokens, temperature,
-// reasoning knobs): it is the model-tier config the admin dashboard owns too.
-// An empty or absent secret keeps the stored one, as the screens rely on.
-
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
-const bodyOf = (shape) => z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
-);
-
-/** @param {string} name */
-const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
-/** @param {string} name */
-const text = (name) => worded(`${name} is text.`).trim().optional();
+// The `sso` section writes the Microsoft app of the sign-in (providers.microsoft),
+// the same one Security > SSO > Microsoft writes behind the `sso_saml` capability
+// (auth/oauth/ssoConfigRoutes.js). Without that gate here, a Community install
+// could save a Microsoft sign-in the login routes then refuse. The other sections
+// are not sign-in and stay open to the platform admin.
+const SSO_CAPABILITY = 'sso_saml';
+/** @type {typeof import('../core/entitlements/entitlements') | null} */
+let _entitlements = null;
+// Required lazily: the entitlements module pulls in the licence and the stores.
+const entitlements = () => _entitlements || (_entitlements = require('../core/entitlements/entitlements'));
+/** @type {import('express').RequestHandler | null} */
+let _ssoGate = null;
 
 /**
- * An address the SDK can call, or '' to clear it.
- * @param {string} name
+ * The `sso_saml` gate, for the `sso` section of the save only. Runs after the
+ * body schema, so `section` is one of the known five.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
-const endpoint = (name) => {
-    const message = `${name} is an https:// address, or empty to clear it.`;
-    return worded(message).trim().refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), message).optional();
-};
-
-const TIER_NAMES = ['fast', 'standard', 'swarm', 'thinking', 'writer', 'pro',
-    // A hand-written legacy alias that still wins where someone set it
-    // (core/meetingNotes/summaryHelpers.js), so it has to survive a save.
-    'smart'];
-const TIER_TEXT = 'A tier is an object: { modelId, … }.';
-const Tier = z.object({
-    modelId: z.string({ error: typeError({ invalid: 'A tier\'s modelId is text.' }) }).optional(),
-    label: z.string({ error: typeError({ invalid: 'A tier\'s label is text.' }) }).optional(),
-}, { error: typeError({ invalid: TIER_TEXT }) }).passthrough();
-const TIERS_TEXT = `chatModelTiers is a map of tiers: ${TIER_NAMES.join(', ')}.`;
-const TierMap = z.object(Object.fromEntries(TIER_NAMES.map((n) => [n, Tier.optional()])),
-    { error: typeError({ required: TIERS_TEXT, invalid: TIERS_TEXT }) }).strict();
-/** The four this panel shows, as a save always wrote them when absent. */
-const PANEL_TIERS = { fast: 'Fast', thinking: 'Thinking', writer: 'Writer', pro: 'Deep Thinking' };
-
-/** @type {[string, ...string[]]} */
-const PII_ACTIONS = ['block', 'tokenize', 'warn'];
-const TENANT_ALIASES = ['common', 'organizations', 'consumers'];
-const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const TENANT_TEXT = 'ssoTenantId is your directory (tenant) GUID, or one of common, organizations, consumers.';
-const THRESHOLD_TEXT = 'piiDetectionConfidenceThreshold is a number from 0 to 1.';
-const CATEGORY_TEXT = 'piiDetectionCategories is a list of categories, or null for all of them.';
-
-/** @template {string} N @param {N} name @param {import('zod').ZodRawShape} shape */
-const section = (name, shape) => z.object({ section: z.literal(name), ...shape }).strict();
-
-const SECTION_TEXT = 'section is one of openai, chatModels, piiDetection, docProcessing or sso.';
-const ConfigBody = z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.discriminatedUnion('section', [
-        section('openai', {
-            azureEndpoint: endpoint('azureEndpoint'),
-            azureApiKey: text('azureApiKey'),
-            // Accepted and ignored: Azure runs on the v1 GA API, which has no
-            // api-version, and installed apps older than that still send it.
-            azureApiVersion: text('azureApiVersion'),
-            azureModels: text('azureModels'),
-        }),
-        section('chatModels', { chatModelTiers: TierMap }),
-        section('piiDetection', {
-            piiDetectionEnabled: flag('piiDetectionEnabled'),
-            piiDetectionCategories: z.array(worded(CATEGORY_TEXT).trim().min(1, CATEGORY_TEXT),
-                { error: typeError({ invalid: CATEGORY_TEXT }) }).nullable().optional(),
-            piiDetectionConfidenceThreshold: z.number({ error: typeError({ invalid: THRESHOLD_TEXT }) })
-                .min(0, THRESHOLD_TEXT).max(1, THRESHOLD_TEXT).optional(),
-            piiDetectionScope: z.object({
-                userInput: flag('piiDetectionScope.userInput'),
-                agentOutput: flag('piiDetectionScope.agentOutput'),
-            }, { error: typeError({ invalid: 'piiDetectionScope is { userInput, agentOutput }, each true or false.' }) })
-                .strict().optional(),
-            piiDetectionAction: choice(PII_ACTIONS, `piiDetectionAction is one of ${PII_ACTIONS.join(', ')}.`).optional(),
-        }),
-        section('docProcessing', {
-            useAzureDocProcessing: flag('useAzureDocProcessing'),
-            azureDocIntelligenceEndpoint: endpoint('azureDocIntelligenceEndpoint'),
-            azureDocIntelligenceKey: text('azureDocIntelligenceKey'),
-            azureOpenaiEmbeddingEndpoint: endpoint('azureOpenaiEmbeddingEndpoint'),
-            azureOpenaiEmbeddingKey: text('azureOpenaiEmbeddingKey'),
-            azureOpenaiEmbeddingModel: text('azureOpenaiEmbeddingModel'),
-        }),
-        section('sso', {
-            ssoClientId: text('ssoClientId'),
-            ssoClientSecret: text('ssoClientSecret'),
-            ssoTenantId: worded(TENANT_TEXT).trim()
-                .refine((v) => v === '' || TENANT_ALIASES.includes(v.toLowerCase()) || GUID.test(v), TENANT_TEXT)
-                .optional(),
-            autoApproveSSO: flag('autoApproveSSO'),
-        }),
-    ], {
-        error: /** @param {import('zod/v4/core').$ZodRawIssue} iss */ (iss) => {
-            if (iss.code === 'invalid_union' && iss.note === 'No matching discriminator') return SECTION_TEXT;
-            return iss.code === 'invalid_type' ? 'Send the settings as a JSON object.' : undefined;
-        },
-    }),
-);
-
-const INTERVAL_TEXT = 'syncIntervalHours is a whole number of hours from 1 to 168.';
-const SyncSettingsBody = bodyOf({
-    destructiveSync: flag('destructiveSync'),
-    autoActivateUsers: flag('autoActivateUsers'),
-    periodicSync: flag('periodicSync'),
-    syncIntervalHours: z.number({ error: typeError({ invalid: INTERVAL_TEXT }) })
-        .int(INTERVAL_TEXT).min(1, INTERVAL_TEXT).max(168, INTERVAL_TEXT).optional(),
+function ssoSectionGate(req, res, next) {
+    if (req.body?.section !== 'sso') return next();
+    const gate = _ssoGate || (_ssoGate = entitlements().requireCapability(SSO_CAPABILITY));
+    return gate(req, res, next);
+}
+tagGate(ssoSectionGate, {
+    axis: 'capability', id: SSO_CAPABILITY, param: 'section', paramDependent: true,
+    note: 'Only the sso section of the body needs sso_saml; the other sections are not sign-in.',
 });
 
-/** A sync run takes no options — a `dryRun` it ignored would still run for real. */
-const NoBody = bodyOf({});
+/**
+ * The Microsoft sign-in app as the read shows it: its fields only with the
+ * `sso_saml` capability (the panel hides the section without it), and whether
+ * the caller has it. The organisation's own auto-approve flag rides along in
+ * every case: the Users screen sets it too.
+ * @param {import('express').Request} req
+ * @param {{ clientId?: string, clientSecret?: string, tenantId?: string }} msProvider
+ */
+async function microsoftSsoView(req, msProvider) {
+    const user = req.session?.user;
+    const ssoAvailable = await entitlements().hasCapability(SSO_CAPABILITY, {
+        userId: user?.id || null,
+        orgId: user?.organizationId || user?.orgId || null,
+        session: req.session,
+        req,
+    });
+    if (!ssoAvailable) return { ssoAvailable };
+    return {
+        ssoAvailable,
+        ssoClientId: msProvider.clientId || '',
+        hasSsoClientSecret: !!msProvider.clientSecret,
+        ssoClientSecretMasked: maskSecret(msProvider.clientSecret),
+        ssoTenantId: msProvider.tenantId || 'common',
+    };
+}
 
 /**
  * Helper: Mask a secret for display (show last 4 chars)
@@ -272,11 +200,8 @@ router.get('/:orgId', requireAuth, platformConfigGate, /** @param {import('expre
         azureEmbedModel,
         useAzureDocProcessing: !!useAzureDocProcessing,
 
-        // Microsoft SSO
-        ssoClientId: msProvider.clientId || '',
-        hasSsoClientSecret: !!msProvider.clientSecret,
-        ssoClientSecretMasked: maskSecret(msProvider.clientSecret),
-        ssoTenantId: msProvider.tenantId || 'common',
+        // Microsoft SSO (its app only with sso_saml)
+        ...(await microsoftSsoView(req, msProvider)),
         autoApproveSSO: org?.autoApproveSSO || false,
 
         // Group Sync settings & status
@@ -286,7 +211,7 @@ router.get('/:orgId', requireAuth, platformConfigGate, /** @param {import('expre
 });
 
 // PUT /:orgId — save Azure config (writes to global platform config — same keys as admin dashboard)
-router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
+router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBody }), ssoSectionGate, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {

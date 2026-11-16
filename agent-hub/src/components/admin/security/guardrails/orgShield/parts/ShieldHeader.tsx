@@ -7,7 +7,8 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { SHIELD_ROW } from '../shieldLayout';
 
 /**
- * The Privacy Shield's header block: what you are editing, for whom, the one
+ * The Privacy Shield's header block: whose shield it is (the page title is the
+ * admin dashboard's), the one
  * fact that decides whether anything below it matters, and the path strip.
  *
  * ── Why the guard pill lives up here ──────────────────────────────────────
@@ -39,11 +40,10 @@ export function ShieldHeader({
                 <div className="w-7 h-7 rounded-lg grid place-items-center shrink-0 bg-[color-mix(in_srgb,var(--error)_14%,transparent)] text-[var(--error)]">
                     <ShieldCheck className="w-[15px] h-[15px]" aria-hidden="true" />
                 </div>
-                <h2 className="text-[15px] font-semibold whitespace-nowrap m-0 text-[var(--text-primary)]">
-                    {t('admin.guard_org_title', 'Organization Privacy Shield')}
-                </h2>
+                {/* The admin dashboard's page header already says "Privacy Shield":
+                    this row names whose shield it is, not the page again. */}
                 {orgName && (
-                    <span className="text-xs min-w-0 truncate text-[var(--text-tertiary)]">{orgName}</span>
+                    <span className="text-[13px] font-semibold min-w-0 truncate text-[var(--text-primary)]" data-testid="shield-org-name">{orgName}</span>
                 )}
 
                 <div className="flex-1" />

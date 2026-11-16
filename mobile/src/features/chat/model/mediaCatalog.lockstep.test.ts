@@ -1,7 +1,8 @@
 /**
  * DIFFERENTIAL + TEXTUAL lockstep: the media option tables against the web's
- * constants/elevenLabsOptions.ts (loaded and compared value for value) and
- * the arrays written into NanoBananaSettings.tsx and VideoGenSettings.tsx.
+ * constants/elevenLabsOptions.ts and components/chat/imageModelChoice.ts (loaded
+ * and compared value for value) and the arrays written into ImageGenSettings.tsx
+ * and VideoGenSettings.tsx.
  */
 
 import fs from 'node:fs';
@@ -15,6 +16,7 @@ type Option = { label: string; value: string | number };
 const web = loadWebModule<{ TTS_MODELS: Option[]; TTS_VOICES: Option[]; DEFAULT_TTS_MODEL: string; DEFAULT_TTS_VOICE: string }>(
     'constants/elevenLabsOptions.ts',
 );
+const webImage = loadWebModule<{ FALLBACK_IMAGE_MODELS: { id: string; label: string }[] }>('components/chat/imageModelChoice.ts');
 
 /** `const NAME = [ { label: 'x', value: y }, … ];` out of a component file, without its icons. */
 function arrayIn(file: string, name: string): Option[] {
@@ -38,8 +40,8 @@ it('offers the web’s voices and speech models, with the same defaults', () => 
 });
 
 it('offers the web’s image and video choices', () => {
-    expect(asWeb(catalog.IMAGE_ASPECT_RATIOS)).toEqual(arrayIn('NanoBananaSettings.tsx', 'ASPECT_RATIOS'));
-    expect(asWeb(catalog.IMAGE_MODELS)).toEqual(arrayIn('NanoBananaSettings.tsx', 'IMAGE_MODELS'));
+    expect(asWeb(catalog.IMAGE_ASPECT_RATIOS)).toEqual(arrayIn('ImageGenSettings.tsx', 'ASPECT_RATIOS'));
+    expect(asWeb(catalog.IMAGE_MODELS)).toEqual(webImage.FALLBACK_IMAGE_MODELS.map(({ id, label }) => ({ label, value: id })));
     expect(asWeb(catalog.VIDEO_MODELS)).toEqual(arrayIn('VideoGenSettings.tsx', 'VIDEO_MODELS'));
     expect(asWeb(catalog.VIDEO_ASPECT_RATIOS)).toEqual(arrayIn('VideoGenSettings.tsx', 'ASPECT_RATIOS'));
     expect(asWeb(catalog.VIDEO_DURATIONS)).toEqual(arrayIn('VideoGenSettings.tsx', 'DURATIONS'));

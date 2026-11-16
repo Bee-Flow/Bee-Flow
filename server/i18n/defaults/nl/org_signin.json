@@ -1,0 +1,19 @@
+{
+  "translations": {
+    "org_signin.allowed_domains": "Toegestane domeinen",
+    "org_signin.allowed_domains_desc": "E-maildomeinen die bij deze organisatie horen. Wie via single sign-on inlogt met een adres op een van deze domeinen, wordt aan deze organisatie gekoppeld, en met deze domeinen kan geen nieuwe organisatie worden aangemaakt.",
+    "org_signin.allowed_domains_placeholder": "bedrijf.nl",
+    "org_signin.allowed_domains_save_hint": "Voeg een domein toe en sla de pagina daarna op met Wijzigingen opslaan.",
+    "org_signin.auto_approve": "Mensen van je domeinen direct toelaten",
+    "org_signin.auto_approve_desc": "Wie via single sign-on inlogt met een e-mailadres op het domein van deze organisatie, komt er meteen bij, in de standaardgroepen. Staat dit uit, dan blijft die persoon in afwachting tot een beheerder toegang geeft.",
+    "org_signin.auto_approve_failed": "De instelling kon niet worden opgeslagen. Probeer het opnieuw.",
+    "org_signin.method_password": "Gebruikersnaam en wachtwoord",
+    "org_signin.nav": "Voorkeursmethode voor inloggen",
+    "org_signin.subtitle": "Hoe je wilt dat leden van deze organisatie inloggen. Het is een voorkeur: de andere inlogmethoden van deze server blijven werken, en je kunt het altijd aanpassen.",
+    "org_signin.title": "Voorkeursmethode voor inloggen",
+    "org_signin.unavailable_not_set_up": "Nog niet ingesteld op deze server. Een platformbeheerder stelt dit in onder Hele server › Identiteit en toegang › Aanmelden en SSO.",
+    "org_signin.unavailable_password": "Inloggen met een wachtwoord staat uit op deze server.",
+    "org_signin.unavailable_unlicensed": "Valt niet onder de licentie van deze server."
+  },
+  "sameAsEnglish": []
+}

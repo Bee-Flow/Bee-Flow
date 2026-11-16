@@ -9,7 +9,7 @@ export function MoreLink({ label, onClick }: MoreLinkProps) {
         <button
             type="button"
             onClick={onClick}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[13px] font-medium text-[var(--accent-primary)] hover:underline"
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-[13px] font-medium text-[var(--text-primary)] underline decoration-[var(--border-default)] underline-offset-2 hover:decoration-[var(--text-primary)]"
         >
             {label} <span aria-hidden="true">→</span>
         </button>

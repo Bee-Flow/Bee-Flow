@@ -30,6 +30,8 @@ const touched = [];
 const pass = (req, res, next) => next();
 /** The logo the stubbed organisation carries (the logo-delete test sets it). */
 let orgLogo;
+/** The sign-in method the stubbed organisation has stored (the preferred-method tests set it). */
+let orgAuthMethod;
 
 const MOCKS = {
     '../permissions': {
@@ -40,7 +42,7 @@ const MOCKS = {
     './orgAdminGuards': { requireOrgAdmin: () => pass, isOrgAdminForOrg: async () => true, wouldOrphanOrg: async () => false },
     '../../stores/userStore': {
         getAllOrganizations: async () => [],
-        getOrganization: async (id) => ({ id, name: 'Acme', logo: orgLogo }),
+        getOrganization: async (id) => ({ id, name: 'Acme', logo: orgLogo, authMethod: orgAuthMethod }),
         createOrganization: async (org) => { touched.push({ what: 'createOrganization', args: [org] }); return true; },
         updateOrganization: async (id, u) => { touched.push({ what: 'updateOrganization', args: [id, u] }); return true; },
         logAccessAudit: async () => {},
@@ -74,7 +76,7 @@ const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; orgAuthMethod = undefined; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -108,6 +110,56 @@ test('a real boolean still decides, and reaches the store as one', async () => {
     const res = await dispatch({ method: 'POST', url: '/organizations', body: { name: 'Acme', allowSignup: false } });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'createOrganization').args[0].allowSignup, false);
+});
+
+// ── The preferred sign-in method ─────────────────────────────────────
+// A preference, not a lock: nothing reads organizations.authMethod when
+// someone signs in, so the route used to keep the first method it stored and
+// silently drop every later one while answering 200.
+
+/** The authMethod the PUT handed to the store (undefined: left as stored). */
+const storedAuthMethod = () => touched.find((t) => t.what === 'updateOrganization')?.args[1].authMethod;
+
+test('the sign-in method can change after it was first saved', async () => {
+    orgAuthMethod = 'password';
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'google' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(storedAuthMethod(), 'google');
+});
+
+test('a first sign-in method is stored, and sending the stored one again changes nothing', async () => {
+    let res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'microsoft' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(storedAuthMethod(), 'microsoft');
+
+    touched.length = 0;
+    orgAuthMethod = 'microsoft';
+    res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'microsoft', tagline: 'Hello' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(storedAuthMethod(), undefined);
+});
+
+test('an unknown sign-in method is refused, and reaches no store', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'nextcloud_connector' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'invalid_auth_method');
+    assert.deepStrictEqual(touched, []);
+});
+
+test('a client that resends a stored method outside the three (an older form sends the whole row) saves its other fields', async () => {
+    orgAuthMethod = 'nextcloud_connector';
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'nextcloud_connector', tagline: 'Hello' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(storedAuthMethod(), undefined);
+    assert.strictEqual(touched.find((t) => t.what === 'updateOrganization').args[1].tagline, 'Hello');
+});
+
+test('a Nextcloud-bound organisation keeps the method its binding wrote', async () => {
+    orgAuthMethod = 'nextcloud_connector';
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { authMethod: 'password' } });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'auth_method_nextcloud');
+    assert.deepStrictEqual(touched, []);
 });
 
 test('DELETE /organizations/:id/logo removes the file and clears the field', async () => {

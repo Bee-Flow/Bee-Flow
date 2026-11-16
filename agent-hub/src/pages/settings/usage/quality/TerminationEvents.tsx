@@ -31,11 +31,11 @@ interface EventRowProps {
 }
 
 function EventRow({ row: r, showTokens, open, colSpan, onToggle }: EventRowProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     return (
         <Fragment>
             <tr>
-                <td className={`${TD} whitespace-nowrap text-[11px] text-[var(--text-muted)]`}>{fmtTime(r.timestamp)}</td>
+                <td className={`${TD} whitespace-nowrap text-[11px] text-[var(--text-muted)]`}>{fmtTime(r.timestamp, resolvedLocale)}</td>
                 <td className={TD}>{r.agent_name || r.agent_id || <span className="text-[var(--text-muted)]">—</span>}</td>
                 <td className={`${TD} text-[var(--text-muted)]`}>{shortModel(r.model)}</td>
                 <td className={TD}>

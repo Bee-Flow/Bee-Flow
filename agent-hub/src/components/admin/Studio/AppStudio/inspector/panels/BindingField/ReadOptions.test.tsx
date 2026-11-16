@@ -32,12 +32,12 @@ describe('SearchOption', () => {
         const user = userEvent.setup();
         const onChange = vi.fn();
         const view = render(<SearchOption search={undefined} fields={FIELDS} onChange={onChange} disabled={false} definition={DEFINITION} node={null} />);
-        await user.click(view.getByRole('checkbox', { name: 'Search in some columns' }));
+        await user.click(view.getByRole('switch', { name: 'Search in some columns' }));
         expect(onChange).toHaveBeenLastCalledWith({ value: { kind: 'formula', expr: 'vars.filters.q' }, fields: ['title'] });
         view.unmount();
 
         const on = render(<SearchOption search={{ value: FORMULA, fields: ['title'] }} fields={FIELDS} onChange={onChange} disabled={false} definition={DEFINITION} node={null} />);
-        await user.click(on.getByRole('checkbox', { name: 'Search in some columns' }));
+        await user.click(on.getByRole('switch', { name: 'Search in some columns' }));
         expect(onChange).toHaveBeenLastCalledWith(undefined);
     });
 

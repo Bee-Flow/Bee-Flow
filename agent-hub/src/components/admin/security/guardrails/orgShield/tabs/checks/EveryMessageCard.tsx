@@ -35,7 +35,7 @@ function actionOptions(licence: ChecksLicence, t: TranslateFn): ChoiceCardOption
                         href={licence.upgradeUrl || 'https://beeflow.nl/pricing'}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[var(--info-ink)] hover:underline"
+                        className="font-medium text-[var(--text-primary)] underline underline-offset-2 hover:opacity-80"
                     >
                         {t('license.upgrade_at_beeflow', 'Upgrade at beeflow.nl')}
                     </a>

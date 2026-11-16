@@ -3,8 +3,9 @@ import { intervalLabel, planCurrencySymbol, useLicenseText } from './licenseShar
 import type { BillingPlan, ChangePreview } from './licenseShared';
 import type { OrgSubscriptionState } from './useOrgSubscription';
 import Modal from '@/components/shared/Modal';
+import { buttonClass } from '@/components/shared/buttonClasses';
 
-const SECONDARY_BUTTON = 'px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50';
+const SECONDARY_BUTTON = buttonClass('secondary', 'md');
 const PANEL = 'w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4';
 
 function PreviewRow({ label, value }: { label: string; value: string }) {
@@ -64,7 +65,7 @@ export function ChangePlanDialog({ target, preview, labelId, setChangeTarget, se
         >
             <div className={PANEL}>
                 <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4" style={{ color: isDown ? '#64748b' : '#3b82f6' }} />
+                    <Zap className={`w-4 h-4 ${isDown ? 'text-[var(--text-muted)]' : 'text-[var(--accent-primary)]'}`} aria-hidden="true" />
                     <h3 id={labelId} className="text-sm font-bold text-[var(--text-primary)]">
                         {isDown ? t('org.confirm_downgrade', 'Confirm downgrade') : t('org.confirm_upgrade', 'Confirm upgrade')} — {target.name}
                     </h3>
@@ -74,7 +75,7 @@ export function ChangePlanDialog({ target, preview, labelId, setChangeTarget, se
                     <button onClick={close} disabled={changeBusy} className={SECONDARY_BUTTON}>
                         {t('org.cancel', 'Cancel')}
                     </button>
-                    <button onClick={handleConfirmChange} disabled={changeBusy} className={`px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 ${isDown ? '[background:#64748b]' : '[background:#3b82f6]'}`}>
+                    <button onClick={handleConfirmChange} disabled={changeBusy} className={buttonClass(isDown ? 'secondary' : 'primary', 'md')}>
                         {changeBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : t('org.confirm', 'Confirm')}
                     </button>
                 </div>
@@ -98,7 +99,7 @@ export function CancelSubscriptionDialog({ labelId, cancelBusy, setShowCancelCon
         >
             <div className={PANEL}>
                 <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <AlertTriangle className="w-4 h-4 text-[var(--warning-ink)]" aria-hidden="true" />
                     <h3 id={labelId} className="text-sm font-bold text-[var(--text-primary)]">{t('org.cancel_subscription', 'Cancel subscription')}</h3>
                 </div>
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
@@ -108,7 +109,7 @@ export function CancelSubscriptionDialog({ labelId, cancelBusy, setShowCancelCon
                     <button onClick={() => setShowCancelConfirm(false)} disabled={cancelBusy} className={SECONDARY_BUTTON}>
                         {t('org.keep_subscription', 'Keep subscription')}
                     </button>
-                    <button onClick={doCancelSubscription} disabled={cancelBusy} className="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50">
+                    <button onClick={doCancelSubscription} disabled={cancelBusy} className={buttonClass('danger', 'md')}>
                         {cancelBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : t('org.cancel_subscription_confirm', 'Cancel subscription')}
                     </button>
                 </div>

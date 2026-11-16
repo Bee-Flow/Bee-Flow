@@ -1,5 +1,5 @@
 import EmojiPicker from 'emoji-picker-react';
-import { Upload, X, Loader2, Image as ImageIcon, Smile } from 'lucide-react';
+import { Upload, X, Loader2, Image as ImageIcon, Smile, Sparkles } from 'lucide-react';
 import React, { useId, useState, useRef } from 'react';
 import Modal from '../shared/Modal';
 import { toast } from '../shared/Toast';
@@ -9,6 +9,7 @@ import type { CustomIcon } from '../../hooks/useIconPack';
 import { errorMessage } from '../../utils/caughtError';
 import { ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { apiRequest } from '@/api/typedRequest';
+import type { ImageModelOption } from '@/api/queries/composerSettings';
 
 interface IconPickerModalProps {
     isOpen: boolean;
@@ -18,18 +19,30 @@ interface IconPickerModalProps {
     defaultEmoji?: string;
     currentCustom?: CustomIcon | null;
     onApply: (icon: CustomIcon | null) => void;
-    nanoBananaSettings?: { image?: { model?: string } } | null;
+    /** At least one image model is configured; without it there is no AI tab. */
+    canGenerate?: boolean;
+    /** The configured image models (composerSettings `imageModels`); null when the server sent no list. */
+    imageModels?: ImageModelOption[] | null;
 }
 
-function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }: IconPickerModalProps) {
+const tabClass = (active: boolean) => `flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${active
+    ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+    : 'border-transparent text-[var(--text-secondary)]'}`;
+
+function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, canGenerate = false, imageModels = null }: IconPickerModalProps) {
     const { t } = useTranslation();
-    const [tab, setTab] = useState<'emoji' | 'image' | 'nano'>('emoji');
+    const [tab, setTab] = useState<'emoji' | 'image' | 'ai'>('emoji');
     const [prompt, setPrompt] = useState('');
+    const [model, setModel] = useState('');
     const [generating, setGenerating] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const titleId = useId();
+    const modelId = useId();
+    const models = imageModels ?? [];
+    // The chosen model, or the first configured one; none (no list) lets the server pick its default.
+    const chosenModel = models.some((m) => m.id === model) ? model : models[0]?.id;
 
     if (!isOpen) return null;
 
@@ -77,25 +90,23 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
                 res = await apiRequest('POST /api/icons/generate', {
                     body: {
                     prompt,
-                    // The icon route takes only a Gemini model id; any other choice (an Azure
-                    // deployment) is left out and the server picks its default image model.
-                    model: nanoBananaSettings?.image?.model?.startsWith('gemini-') ? nanoBananaSettings.image.model : undefined,
+                    model: chosenModel,
                     aspectRatio: '1:1',
                 },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
-                toast.error(data.error || 'Generation failed. Make sure the Google API key is configured.');
+                toast.error(data.error || t('icon_gen.failed', 'Generating the icon failed.'));
             }
             if (res) {
                 const data = await res.json();
                 if (data.url) onApply({ type: 'image', value: data.url });
-                else toast.error('Generation returned no image.');
+                else toast.error(t('icon_gen.no_image', 'No image came back. Try a different description.'));
             }
         } catch (err) {
             console.error('Generate Error:', err);
-            toast.error('Generation failed: ' + errorMessage(err));
+            toast.error(t('icon_gen.failed_reason', 'Generating the icon failed: {reason}', { reason: errorMessage(err) }));
         }
         setGenerating(false);
     };
@@ -116,7 +127,9 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
                             <span>{iconLabel || iconKey}</span>
                         </h2>
                         <p className="text-xs mt-1 text-[var(--text-muted)]">
-                            {t('common.icon_picker.subtitle', 'Pick an emoji, upload an image, or generate one with AI. Default: {default}', { default: defaultEmoji || iconKey })}
+                            {canGenerate
+                                ? t('common.icon_picker.subtitle', 'Pick an emoji, upload an image, or generate one with AI. Default: {default}', { default: defaultEmoji || iconKey })
+                                : t('icon_gen.picker_subtitle_no_ai', 'Pick an emoji or upload an image. Default: {default}', { default: defaultEmoji || iconKey })}
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5">
@@ -125,15 +138,17 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
                 </div>
 
                 <div className="flex border-b border-[var(--border-subtle)]">
-                    <button onClick={() => setTab('emoji')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'emoji' ? 'var(--accent-primary)' : 'transparent', color: tab === 'emoji' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+                    <button onClick={() => setTab('emoji')} className={tabClass(tab === 'emoji')}>
                         <span className="flex items-center justify-center gap-2"><Smile className="w-4 h-4"/> {t('common.icon_picker.tab_emoji', 'Emoji')}</span>
                     </button>
-                    <button onClick={() => setTab('image')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'image' ? 'var(--accent-primary)' : 'transparent', color: tab === 'image' ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+                    <button onClick={() => setTab('image')} className={tabClass(tab === 'image')}>
                         <span className="flex items-center justify-center gap-2"><Upload className="w-4 h-4"/> {t('common.icon_picker.tab_upload', 'Upload')}</span>
                     </button>
-                    <button onClick={() => setTab('nano')} className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2`} style={{ borderColor: tab === 'nano' ? '#f59e0b' : 'transparent', color: tab === 'nano' ? '#f59e0b' : 'var(--text-secondary)' }}>
-                        <span className="flex items-center justify-center gap-2">{t('common.icon_picker.tab_ai', 'AI Gen')}</span>
-                    </button>
+                    {canGenerate && (
+                        <button onClick={() => setTab('ai')} className={tabClass(tab === 'ai')}>
+                            <span className="flex items-center justify-center gap-2"><Sparkles className="w-4 h-4"/> {t('icon_gen.generate_with_ai', 'Generate with AI')}</span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex-1 p-4 min-h-[350px] flex">
@@ -157,25 +172,38 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
                         </div>
                     )}
 
-                    {tab === 'nano' && (
+                    {tab === 'ai' && canGenerate && (
                         <div className="flex-1 flex flex-col">
-                            <p className="text-sm mb-4 p-3 rounded-lg border flex items-start gap-2 [background:rgba(245,158,11,0.1)] [border-color:rgba(245,158,11,0.2)] [color:var(--text-primary)]!">
-                                🍌 <span><strong>{t('common.icon_picker.nano_label', 'Nano Banana:')}</strong> {t('common.icon_picker.nano_hint', 'Describe the icon you want to generate. It will use your configured Nano Banana settings.')}</span>
+                            <p className="text-sm mb-4 p-3 rounded-lg border bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-primary)]">
+                                {t('icon_gen.picker_hint', 'Describe the icon you want. It is made with the image model chosen below.')}
                             </p>
                             <textarea
                                 value={prompt}
                                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                                 placeholder={t('common.icon_picker.prompt_placeholder', 'A minimalist 3D icon of a glowing orb...')}
-                                className="w-full p-3 rounded-xl border resize-none h-32 text-sm focus:outline-none focus:ring-1 [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]! [outline-color:#f59e0b]!"
+                                className="w-full p-3 rounded-xl border resize-none h-32 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)] bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-primary)]"
                             />
+                            {models.length > 0 && (
+                                <div className="mt-3">
+                                    <label htmlFor={modelId} className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{t('icon_gen.image_model', 'Image model')}</label>
+                                    <select
+                                        id={modelId}
+                                        value={chosenModel}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
+                                        className="w-full rounded-lg border px-2 py-1.5 text-sm bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                                    >
+                                        {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                    </select>
+                                </div>
+                            )}
                             <div className="mt-auto pt-4 flex justify-end">
                                 <button
                                     onClick={handleGenerate}
                                     disabled={generating || !prompt.trim()}
-                                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-medium shadow-md shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+                                    className="px-6 py-2.5 rounded-lg font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-opacity"
                                 >
                                     {generating && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    {t('common.icon_picker.generate', 'Generate Icon')}
+                                    {t('icon_gen.picker_generate', 'Generate icon')}
                                 </button>
                             </div>
                         </div>

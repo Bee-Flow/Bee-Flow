@@ -10,7 +10,7 @@ import type { ProviderKeyConfig } from '../ProviderCards/providerKeyConfig';
 import type { ProviderTexts } from './providerTexts';
 import type { ProviderPaneProps } from './types';
 import Section from '@/components/shared/Section';
-import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { PRIMARY_BTN } from '@/components/shared/adminUi';
 import useProviderConfig from '@/hooks/useProviderConfig';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -74,7 +74,7 @@ export default function ApiKeyDetail({ provider, texts, onMessage, children }: A
                     disabled={saving || !apiKey.trim()}
                     className={PRIMARY_BTN}
                 >
-                    {saving ? '...' : hasKey ? t('admin_ai_config.provider_key_replace', 'Replace key') : t('admin_ai_config.save', 'Save')}
+                    {saving ? t('admin_ai_config.saving_ellipsis', 'Saving…') : hasKey ? t('admin_ai_config.provider_key_replace', 'Replace key') : t('admin_ai_config.save', 'Save')}
                 </button>
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
                 {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title={t('admin_ai_config.apikey_delete_title', 'Delete API key')} />}

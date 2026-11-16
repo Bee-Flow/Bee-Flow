@@ -1,5 +1,5 @@
 /**
- * Microsoft / Azure AD SSO (web: integrations/azure/SSOSection.jsx): the app
+ * Microsoft / Azure AD SSO (web: Sign-in & SSO, security/sso/MicrosoftSsoTab.tsx): the app
  * registration's client ID, secret and tenant, whether Microsoft sign-ins are
  * approved automatically, and the Azure AD group sync with its settings.
  *
@@ -8,6 +8,8 @@
  * the save is offered. The sync and its settings act at once and are not part
  * of the form, as on the web. The lock-out warning shows while there is
  * something unsaved to warn about, and Back asks before dropping it.
+ * Without the `sso_saml` licence feature the screen says Microsoft sign-in is
+ * not part of the licence (the server refuses the save, as on the web).
  */
 
 import React from 'react';
@@ -47,8 +49,9 @@ export function AzureSsoScreen() {
         <OrgSettingsFrame
             title={t('azure.sso_title', 'Microsoft / Azure AD SSO')}
             subtitle={azure.subtitle}
-            allowed={azure.allowed}
-            denied={azure.denied}
+            allowed={azure.allowed && azure.ssoAvailable}
+            denied={azure.allowed ? azure.ssoDenied : azure.denied}
+            pending={azure.allowed && azure.ssoPending}
             query={azure.query}
             footer={
                 <SaveBar

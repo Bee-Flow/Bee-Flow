@@ -43,7 +43,7 @@ function renderEditor(orgId: string | null = 'org1', enabled?: boolean) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     return render(<QueryClientProvider client={client}><OrgCollabEditor orgId={orgId} enabled={enabled} /></QueryClientProvider>);
 }
-const toggle = () => screen.findByRole('checkbox', { name: /edit project notebooks and pages together/ });
+const toggle = () => screen.findByRole('switch', { name: /edit project notebooks and pages together/ });
 
 it('renders nothing without an organisation, and asks nothing', () => {
     const { container } = renderEditor(null);
@@ -55,7 +55,7 @@ it('a failed load says so instead of showing the default as saved', async () => 
     getStatus = 503;
     renderEditor();
     expect(await screen.findByText('Could not load this setting.')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
 });
 
 it('switching on saves at once', async () => {
@@ -66,7 +66,9 @@ it('switching on saves at once', async () => {
     expect(box).not.toBeChecked();
     await user.click(box);
     await waitFor(() => expect(puts).toEqual([{ collabEnabled: true }]));
-    expect(await screen.findByRole('status')).toHaveTextContent('Saved.');
+    // A switch that saves on its own says so, and shows that it did.
+    expect(screen.getByText('Applies immediately')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(/Saved just now/);
     expect(await toggle()).toBeChecked();
 });
 
@@ -103,6 +105,8 @@ it('switched off by the operator: the toggle is locked and says why', async () =
     expect(box).toBeDisabled();
     expect(box).not.toBeChecked();
     expect(screen.getByTestId('org-collab-server-off')).toHaveTextContent('Switched off for this server by the operator');
+    // A locked switch applies nothing, so it does not claim to.
+    expect(screen.queryByText('Applies immediately')).not.toBeInTheDocument();
     await user.click(box);
     expect(puts).toEqual([]);
 });

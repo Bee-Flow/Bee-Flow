@@ -276,7 +276,7 @@ Max 50 per conversation.
 **Context / compaction.** Long conversations get folded. Lossless context editing (Anthropic's
 `context_management`) runs by default; the lossy local summariser
 (`server/core/llm/compaction.js`) is **opt-in per org, default OFF** since 2026-08-20 — the org
-setting is called **Conversation Memory** (`settings.ai_context`). When a fold happens the thread
+setting is called **Conversations** (`settings.ai_context`). When a fold happens the thread
 shows **"Earlier messages were summarised"**.
 
 **Simple Mode.** A per-user preference (Settings → **Enable Simple Mode**) described as *"Show only

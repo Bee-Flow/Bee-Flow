@@ -3,6 +3,7 @@
 
 import { useId } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useLocaleFormat, type LocaleFormat } from '@/hooks/useLocaleFormat';
 import { fMoney } from '../adoption/format';
 import type { TimelineRow } from '../OverviewTab.types';
 import { timelineCost, timelineDate } from './spendFormat';
@@ -15,19 +16,24 @@ interface CostPerDayChartProps {
 
 const TICKS = 5;
 
-function shortDate(raw: string): string {
-    const d = new Date(raw);
-    return Number.isFinite(d.getTime()) ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : raw;
+const DAY_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** "11 Nov" in the app's language; a bare 'YYYY-MM-DD' is a calendar day (no time zone shifts it). */
+function shortDate(raw: string, lf: LocaleFormat): string {
+    const day = DAY_ONLY.exec(raw);
+    const d = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(raw);
+    return lf.day(d, { year: false }) || raw;
 }
 
 /** Up to `TICKS` evenly spaced timeline dates, first and last included. */
-function tickDates(timeline: TimelineRow[]): string[] {
-    if (timeline.length <= TICKS) return timeline.map(r => shortDate(timelineDate(r)));
-    return Array.from({ length: TICKS }, (_, i) => shortDate(timelineDate(timeline[Math.round((i / (TICKS - 1)) * (timeline.length - 1))])));
+function tickDates(timeline: TimelineRow[], lf: LocaleFormat): string[] {
+    if (timeline.length <= TICKS) return timeline.map(r => shortDate(timelineDate(r), lf));
+    return Array.from({ length: TICKS }, (_, i) => shortDate(timelineDate(timeline[Math.round((i / (TICKS - 1)) * (timeline.length - 1))]), lf));
 }
 
 export function CostPerDayChart({ timeline, currency, isCustomerView = false }: CostPerDayChartProps) {
     const { t } = useTranslation();
+    const lf = useLocaleFormat();
     const gradientId = useId();
     const label = t('usage.spend_cost_per_day', 'Cost per day');
     if (timeline.length === 0) {
@@ -43,7 +49,20 @@ export function CostPerDayChart({ timeline, currency, isCustomerView = false }: 
     const peakIndex = values.indexOf(Math.max(...values));
     const x = (i: number) => (i / Math.max(timeline.length - 1, 1)) * 100;
     const points = values.map((v, i) => `${x(i).toFixed(2)},${(100 - (v / max) * 96).toFixed(2)}`).join(' ');
-    const peak = t('usage.spend_peak', 'peak {cost} on {date}', { cost: fMoney(values[peakIndex], currency), date: shortDate(timelineDate(timeline[peakIndex])) });
+    const peak = t('usage.spend_peak', 'peak {cost} on {date}', { cost: fMoney(values[peakIndex], currency), date: shortDate(timelineDate(timeline[peakIndex]), lf) });
+    // One day is no trend: a line from that day's cost down to the corner read as a fall.
+    if (timeline.length === 1) {
+        return (
+            <div className="flex min-w-0 flex-col gap-2">
+                <p className="m-0 text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--text-muted)]">{label}</p>
+                <div className="flex h-[140px] flex-col items-center justify-center gap-1 rounded-lg bg-[var(--bg-secondary)] text-center" data-testid="cost-per-day-single">
+                    <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">{fMoney(values[0], currency)}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{shortDate(timelineDate(timeline[0]), lf)}</span>
+                    <span className="mt-1 max-w-xs text-[11px] text-[var(--text-secondary)]">{t('admin_polish.trend_one_day', 'One day of data in this period. The trend appears from two days on.')}</span>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-baseline justify-between gap-2">
@@ -63,7 +82,7 @@ export function CostPerDayChart({ timeline, currency, isCustomerView = false }: 
                 </svg>
             </div>
             <div className="flex justify-between text-[11px] text-[var(--text-muted)]" aria-hidden="true">
-                {tickDates(timeline).map((d, i) => <span key={i}>{d}</span>)}
+                {tickDates(timeline, lf).map((d, i) => <span key={i}>{d}</span>)}
             </div>
         </div>
     );

@@ -11,15 +11,17 @@ import { renderWithClient } from '@/test/render';
  */
 
 let urls: string[];
+let items: unknown[];
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
     urls = [];
+    items = [{ id: 'kb1', name: 'Reference set', system_slug: 'ref-set', betaFeatureId: 'ref-set', enabledForOrg: true, allowedForOrg: true, superAdminBypass: true, documentCount: 3, totalChunks: 12 }];
     setDemoTransport(async (url: string) => {
         urls.push(url);
         return json({
-            items: [{ id: 'kb1', name: 'Reference set', system_slug: 'ref-set', betaFeatureId: 'ref-set', enabledForOrg: true, allowedForOrg: true, superAdminBypass: true, documentCount: 3, totalChunks: 12 }],
+            items,
             orgId: 'o1',
             isSuperAdmin: true,
         });
@@ -35,5 +37,16 @@ describe('SystemKnowledgeBasesPanel', () => {
         expect(screen.getByRole('button', { name: /Enabled for organisation/ })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Refresh now|Seeding/ })).not.toBeInTheDocument();
         expect(urls.every((u) => u.endsWith('/api/kb/system'))).toBe(true);
+    });
+
+    // The empty state said "provisioned": it now says what a knowledge base is for and who adds one.
+    it('with none on the server, says what a knowledge base is and who can add one', async () => {
+        items = [];
+        renderWithClient(<SystemKnowledgeBasesPanel />);
+        const empty = await screen.findByTestId('system-kb-empty');
+        expect(empty).toHaveTextContent('No built-in knowledge bases on this server yet');
+        expect(empty).toHaveTextContent(/documents that agents and chats can look things up in/);
+        expect(empty).toHaveTextContent(/Ask your platform administrator/);
+        expect(empty).not.toHaveTextContent(/provisioned/);
     });
 });

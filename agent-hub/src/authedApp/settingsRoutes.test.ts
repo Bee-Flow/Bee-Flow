@@ -231,23 +231,24 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
 
 describe('the organisation pages moved to the admin dashboard (desktop)', () => {
     // One target per organisation sub-tab: the old address is a lookup, and a
-    // new sub-tab without a target goes red here.
+    // new sub-tab without a target goes red here. Changed on purpose (wave 2):
+    // AI context, Users and Meeting templates point at their new rows.
     const EXPECTED: Record<string, string> = {
         info: 'admin/organisation/info',
         auth: 'admin/organisation/auth',
         license: 'admin/organisation/license',
         org_academy: 'admin/organisation/academy',
         encryption: 'admin/organisation/encryption',
-        ai_context: 'admin/organisation/ai-context',
+        ai_context: 'admin/organisation/conversations',
         integration_cache: 'admin/organisation/integration-cache',
-        org_meeting_templates: 'admin/organisation/meeting-templates',
+        org_meeting_templates: 'admin/organisation/meeting-notes',
         org_integrations: 'admin/organisation/integrations',
         org_mcp: 'admin/organisation/mcp',
         org_mcp_access: 'admin/organisation/mcp-access',
         org_github_sync: 'admin/organisation/github-sync',
         org_nextcloud_sync: 'admin/organisation/nextcloud-sync',
         org_azure: 'admin/organisation/azure',
-        org_users: 'admin/security/users',
+        org_users: 'admin/people',
         org_usage: 'admin/monitoring',
         privacy: 'admin/security/guardrails',
         org_compliance: 'admin/compliance',
@@ -274,14 +275,16 @@ describe('the organisation pages moved to the admin dashboard (desktop)', () => 
         expect(deep('/app/settings/organisation/usage/unknown')).toBe('admin/monitoring');
     });
 
-    it('opens a Users & Groups sub-tab as its tab under Security > Users', () => {
+    // Changed on purpose (wave 2): People holds the users, invitations, groups and roles; the model tiers are
+    // Organisation > Models and the Nextcloud sync Organisation > Nextcloud.
+    it('opens a Users & Groups sub-tab as its page: People, Models or Nextcloud', () => {
         const deep = (path: string) => settingsOrgAdminTarget(settingsTabFromPath(path) as string, settingsOrgDeepSegsFromPath(path));
-        expect(deep('/app/settings/organisation/users')).toBe('admin/security/users');
-        expect(deep('/app/settings/organisation/users/customTiers')).toBe('admin/security/users/custom-tiers');
-        expect(deep('/app/settings/organisation/users/roles')).toBe('admin/security/users/org-roles');
-        expect(deep('/app/settings/organisation/users/groups')).toBe('admin/security/users/groups');
-        expect(deep('/app/settings/organisation/users/sync')).toBe('admin/security/users/sync');
-        expect(deep('/app/settings/organisation/users/unknown')).toBe('admin/security/users');
+        expect(deep('/app/settings/organisation/users')).toBe('admin/people');
+        expect(deep('/app/settings/organisation/users/customTiers')).toBe('admin/organisation/models');
+        expect(deep('/app/settings/organisation/users/roles')).toBe('admin/people/org-roles');
+        expect(deep('/app/settings/organisation/users/groups')).toBe('admin/people/groups');
+        expect(deep('/app/settings/organisation/users/sync')).toBe('admin/organisation/nextcloud-sync');
+        expect(deep('/app/settings/organisation/users/unknown')).toBe('admin/people');
     });
 
     it('leaves the personal and consumer tabs where they are', () => {
@@ -290,16 +293,19 @@ describe('the organisation pages moved to the admin dashboard (desktop)', () => 
         }
     });
 
-    it('moves the old /app/org-settings tabs that have a dashboard page, and only those', () => {
+    // Changed on purpose (wave 2): Agents and Knowledge bases are dashboard rows too now.
+    it('maps every old /app/org-settings tab onto its dashboard row', () => {
         expect(orgSettingsAdminTarget('organisation')).toBe('admin/organisation/info');
+        expect(orgSettingsAdminTarget('agents')).toBe('admin/agents');
+        expect(orgSettingsAdminTarget('knowledge-bases')).toBe('admin/organisation/knowledge-bases');
         expect(orgSettingsAdminTarget('github-sync')).toBe('admin/organisation/github-sync');
         expect(orgSettingsAdminTarget('nextcloud-sync')).toBe('admin/organisation/nextcloud-sync');
-        expect(orgSettingsAdminTarget('users')).toBe('admin/security/users');
-        expect(orgSettingsAdminTarget('users', 'groups')).toBe('admin/security/users/groups');
-        expect(orgSettingsAdminTarget('users', 'customTiers')).toBe('admin/security/users/custom-tiers');
-        expect(orgSettingsAdminTarget('users', 'roles')).toBe('admin/security/users/org-roles');
-        expect(orgSettingsAdminTarget('users', 'other')).toBe('admin/security/users');
-        for (const seg of ['agents', 'knowledge-bases', '', undefined]) expect(orgSettingsAdminTarget(seg)).toBeNull();
+        expect(orgSettingsAdminTarget('users')).toBe('admin/people');
+        expect(orgSettingsAdminTarget('users', 'groups')).toBe('admin/people/groups');
+        expect(orgSettingsAdminTarget('users', 'customTiers')).toBe('admin/organisation/models');
+        expect(orgSettingsAdminTarget('users', 'roles')).toBe('admin/people/org-roles');
+        expect(orgSettingsAdminTarget('users', 'other')).toBe('admin/people');
+        for (const seg of ['', 'nope', undefined]) expect(orgSettingsAdminTarget(seg)).toBeNull();
     });
 
     it('the subscription gate: the dashboard licence page on a desktop, the Settings one on a phone; both are the licence page', () => {

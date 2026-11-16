@@ -4,13 +4,20 @@ title: Organisation settings
 
 # Organisation settings
 
-Path: **Admin → Organisation** (URL `/app/admin/organisation`). It used to sit under Settings; the old addresses forward here.
+The organisation's settings are rows of the admin dashboard, in the block of your organisation (URL `/app/admin/organisation/<row>`; people, access and compliance have their own rows). They used to sit under Settings; the old addresses forward here.
 
-A grab-bag of org-wide configuration. Sub-pages within:
+| Group | Rows |
+|-------|------|
+| **Workspace** | Organisation info, Licence & usage, People, Projects, Learning Center, Usage & monitoring |
+| **AI & agents** | Agents, Knowledge bases, Models, Conversations, Memory, Meeting notes |
+| **Security & access** | Preferred sign-in method, Access, Privacy Shield, Encryption, MCP client access, Compliance |
+| **Connections** | Integration status, MCP servers, Nextcloud, Microsoft 365, GitHub sync, Automations |
+
+A row only shows when it applies to the organisation: Nextcloud for an organisation bound to a Nextcloud, Microsoft 365 when Microsoft is set up on the server, Meeting notes, Projects and Automations when the organisation has them. The sections below describe them.
 
 ## Overview
 
-The org's basic info: name, logo, primary contact email, default language, default timezone.
+Path: **Admin dashboard → Workspace → Organisation info**. The org's basic info: name, logo, primary contact email, default language, default timezone.
 
 ![Organisation settings overview](../img/screenshots/admin/organisation-settings/)
 
@@ -53,7 +60,7 @@ Org-wide rules for what users can do in Studio:
 
 ## Licence & usage
 
-Path: **Org settings → Licence & usage**.
+Path: **Admin dashboard → Workspace → Licence & usage**, on Bee Flow Cloud. On a self-hosted server this row is not there: the licence is the whole server's, under **Admin dashboard → Whole server → Licence & features → Server licence**.
 
 | Field | Notes |
 |-------|-------|
@@ -65,12 +72,12 @@ Path: **Org settings → Licence & usage**.
 | Refresh now | Manual re-check button. |
 
 How much AI your organisation uses, where it goes and who uses it is under
-**Admin → Monitoring**; the Adoption tab there is described in
+**Admin dashboard → Workspace → Usage & monitoring**; the Adoption row there is described in
 [Usage & adoption](usage-and-adoption.md).
 
 ## Privacy
 
-Org-level Privacy Shield settings (the same JSONB record described in [Privacy Shield](../features/privacy-shield.md)).
+Path: **Admin dashboard → Security & access → Privacy Shield**. Org-level Privacy Shield settings (the same JSONB record described in [Privacy Shield](../features/privacy-shield.md)).
 
 | Field | Notes |
 |-------|-------|
@@ -80,6 +87,14 @@ Org-level Privacy Shield settings (the same JSONB record described in [Privacy S
 | Custom regex categories | Org-defined patterns. |
 | EU mode | Minimises logs, anonymises IPs. |
 | Lock user override | Users can't tune their own privacy level. |
+
+## Preferred sign-in method
+
+Path: **Admin dashboard → Security & access → Preferred sign-in method**. How you would like the members of the organisation to sign in: a username and password, Google or Microsoft, out of the methods this server offers (a method it does not offer says why). It is a preference, not a lock: nothing reads it when someone signs in, the other sign-in methods of the server keep working, and you can change it at any time. An organisation bound to a Nextcloud signs in through its Nextcloud and has no choice to make here.
+
+The same page holds who may join through single sign-on: the **Allowed domains** (self-hosted), the e-mail domains that link a newcomer to this organisation, and **Let people from your domains in straight away**, which lets someone from those domains join at once in the default groups instead of waiting as pending.
+
+The sign-in providers themselves (the Google, Microsoft and Nextcloud apps) are set up once for the whole server, under **Admin dashboard → Whole server → Sign-in & SSO**.
 
 ## SSO (Enterprise+)
 
@@ -103,14 +118,16 @@ See [Audit & compliance](audit-and-compliance.md) for the data model.
 ## Voice (Enterprise+)
 
 Voice chat has no provider picker of its own. Speech-to-text and text-to-speech run on
-Voxtral with the Mistral API key from **Admin → AI Config**; an ElevenLabs key entered
+Voxtral with the Mistral API key from **Admin dashboard → Whole server → AI configuration → Providers**; an ElevenLabs key entered
 there is the text-to-speech fallback. See [Voice](../features/voice.md#provider-routing).
 
 ## Integrations (other than NC)
 
-**Admin → Access → Grants** grants each integration your subscription includes to the whole organisation or to a group (grant-only: a user has an integration when All members or any of their groups has it). **Admin → Organisation → Integrations** (**Integration settings**) configures the integrations themselves; for an organisation bound to Nextcloud it holds the [Nextcloud integrations panel](nc-integrations.md), which works differently (org-wide switches with per-group exceptions).
+**Admin dashboard → Security & access → Access → Grants** grants each integration your subscription includes to the whole organisation or to a group (grant-only: a user has an integration when All members or any of their groups has it). **Admin dashboard → Connections → Integration status** configures the integrations themselves; for an organisation bound to Nextcloud it holds the [Nextcloud integrations panel](nc-integrations.md), which works differently (org-wide switches with per-group exceptions).
 
 ## Memory
+
+Path: **Admin dashboard → AI & agents → Memory**.
 
 | Field | Notes |
 |-------|-------|
@@ -124,7 +141,7 @@ How long memories are kept is not set here: retention lives in the compliance se
 
 ## Images to AI in automations
 
-**Admin → Organisation → AI context → Images to AI in automations.** One switch, **off by default**, that only an admin of the organisation can change.
+**Admin dashboard → Connections → Automations**, the switch **Images to AI in automations**, next to reusing answers between runs. One switch, **off by default**, that only an admin of the organisation can change.
 
 | Setting | What it does |
 |---------|--------------|

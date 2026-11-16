@@ -4,8 +4,18 @@ import useConfirm from '../../shared/useConfirm';
 import { RefusedError, errorBody } from '@/api/mutate';
 import { useAdminOrgScope } from '@/api/adminOrgScope';
 import OrgGlobalTiersList from './OrgGlobalTiersList';
+import OrgServerTiersList from './OrgServerTiersList';
+import SaveStatus from '@/components/shared/SaveStatus';
+import { Plus } from 'lucide-react';
 import { apiRequest } from '@/api/typedRequest';
 import { useCustomTiersRead, type AvailableModel, type OrgTier } from './useCustomTiersRead';
+import { Button } from '@/components/shared/Button';
+import SaveFooter from '@/components/shared/SaveFooter';
+import { ALERT_ERROR, ALERT_SUCCESS, ALERT_WARNING, CHIP } from '@/components/shared/adminUi';
+
+/** A field of the tier cards: the theme's field look, a little smaller. */
+const FIELD = 'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
+const ALERT_OF: Record<PanelMessage['type'], string> = { success: ALERT_SUCCESS, warning: ALERT_WARNING, error: ALERT_ERROR };
 
 interface PanelMessage {
     type: 'success' | 'warning' | 'error';
@@ -46,13 +56,17 @@ const OrgCustomTiersPanel = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<PanelMessage | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    // The tiers as last read or saved: the form is dirty while it differs, and Cancel goes back to it.
+    const [baseline, setBaseline] = useState<OrgTier[]>([]);
+    const [savedAt, setSavedAt] = useState<Date | null>(null);
+    const [saveFailed, setSaveFailed] = useState(false);
 
     // Each answer seeds the working copy; the editor then changes it until it is saved.
     const loading = useCustomTiersRead(scopeOrgId, (d) => {
-        if (d.orgTiers) setOrgTiers(d.orgTiers);
+        if (d.orgTiers) { setOrgTiers(d.orgTiers); setBaseline(d.orgTiers); }
         if (d.globalTiers) setGlobalTiers(d.globalTiers);
         if (d.models) setAvailableModels(d.models);
-        if (d.forbidden) setMessage({ type: 'error', text: 'You do not have permission to manage custom tiers for your organisation.' });
+        if (d.forbidden) setMessage({ type: 'error', text: t('admin_people.custom_tiers_forbidden', 'You do not have permission to manage custom tiers for this organisation.') });
         if (d.failed) setMessage({ type: 'error', text: t('admin_org.custom_tiers_load_failed', 'Failed to load custom tiers.') });
     });
 
@@ -111,6 +125,7 @@ const OrgCustomTiersPanel = () => {
 
     const save = async () => {
         setSaving(true);
+        setSaveFailed(false);
         try {
             let res: Response | undefined;
             try {
@@ -118,66 +133,85 @@ const OrgCustomTiersPanel = () => {
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};
+                setSaveFailed(true);
                 setMessage({ type: 'error', text: body.error || t('admin_org.custom_tiers_save_failed', 'Failed to save') });
             }
             if (res) {
                 const data = await res.json();
-                if (Array.isArray(data.tiers)) setOrgTiers(data.tiers);
+                const stored: OrgTier[] = Array.isArray(data.tiers) ? data.tiers : orgTiers;
+                setOrgTiers(stored);
+                setBaseline(stored);
+                setSavedAt(new Date());
                 const warn = Array.isArray(data.warnings) && data.warnings.length > 0
                     ? ` (${data.warnings.join('; ')})`
                     : '';
                 setMessage({ type: warn ? 'warning' : 'success', text: t('admin_org.custom_tiers_saved', 'Org custom tiers saved{warn}', { warn }) });
             }
-        } catch (e) {
+        } catch {
+            setSaveFailed(true);
             setMessage({ type: 'error', text: t('admin_org.custom_tiers_save_failed', 'Failed to save') });
         } finally {
             setSaving(false);
-            setTimeout(() => setMessage(null), 4000);
+            setTimeout(() => setMessage(m => (m?.type === 'error' ? m : null)), 4000);
         }
     };
 
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_org.custom_tiers_loading', 'Loading custom tiers...')}</div>;
 
+    const dirty = JSON.stringify(orgTiers) !== JSON.stringify(baseline);
+    // Save appears once there is something to save (or a save to retry): never a disabled
+    // button under an empty list. After a save the status line says so.
+    const footer = dirty || saving || saveFailed ? (
+        <SaveFooter
+            onSave={() => void save()}
+            onCancel={dirty ? () => setOrgTiers(baseline) : undefined}
+            saving={saving}
+            dirty={dirty}
+            saveState={saving ? 'saving' : saveFailed ? 'error' : savedAt ? 'saved' : 'idle'}
+            onRetry={() => void save()}
+            lastSavedAt={savedAt}
+        />
+    ) : savedAt ? (
+        <SaveStatus saveState="saved" lastSavedAt={savedAt} />
+    ) : null;
+
     return (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between">
-                <div>
-                    <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_org.custom_tiers_title', 'Organisation Custom Tiers')}</h3>
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {t('admin_org.custom_tiers_subtitle', 'Create tiers scoped to this organisation. They appear alongside global tiers for your members.')}
-                    </p>
+        <div className="space-y-6">
+            <OrgServerTiersList models={availableModels} />
+            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden">
+                <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_polish.tiers_org_title', 'Organisation custom tiers')}</h3>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            {t('admin_org.custom_tiers_subtitle', 'Create tiers scoped to this organisation. They appear alongside global tiers for your members.')}
+                        </p>
+                    </div>
+                    <Button variant="primary" size="sm" onClick={addTier}>
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('admin_polish.tiers_add', 'Add tier')}
+                    </Button>
                 </div>
-                <button
-                    onClick={addTier}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[var(--accent-primary)] hover:opacity-90 transition-opacity"
-                >
-                    {t('admin_org.custom_tiers_add', '+ Add Tier')}
-                </button>
+
+                {message && message.type !== 'success' && (
+                    <div className={`mx-5 mt-4 ${ALERT_OF[message.type]}`} role={message.type === 'error' ? 'alert' : 'status'}>
+                        {message.text}
+                    </div>
+                )}
+
+                <OrgCustomTiersPanelSection orgTiers={orgTiers} t={t} expandedId={expandedId} availableModels={availableModels} patch={patch} rename={rename} setExpandedId={setExpandedId} remove={remove} toggleTaskType={toggleTaskType} footer={footer} globalTiers={globalTiers} />
+                {confirmDialog}
             </div>
-
-            {message && (
-                <div className={`mx-5 mt-4 p-3 rounded-lg text-sm ${
-                    message.type === 'success' ? 'bg-green-500/20 text-green-400' :
-                    message.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                }`}>
-                    {message.text}
-                </div>
-            )}
-
-            <OrgCustomTiersPanelSection orgTiers={orgTiers} t={t} expandedId={expandedId} availableModels={availableModels} patch={patch} rename={rename} setExpandedId={setExpandedId} remove={remove} toggleTaskType={toggleTaskType} save={save} saving={saving} globalTiers={globalTiers} />
-            {confirmDialog}
         </div>
     );
 };
 
 export default OrgCustomTiersPanel;
 
-function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, patch, rename, setExpandedId, remove, toggleTaskType, save, saving, globalTiers }: { orgTiers: OrgTier[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; expandedId: string | null; availableModels: AvailableModel[]; patch: (id: string, patchObj: Partial<OrgTier>) => void; rename: (currentId: string, newLabel: string) => void; setExpandedId: React.Dispatch<React.SetStateAction<string | null>>; remove: (id: string) => Promise<void>; toggleTaskType: (id: string, key: string) => void; save: () => Promise<void>; saving: boolean; globalTiers: OrgTier[]; }) {
+function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, patch, rename, setExpandedId, remove, toggleTaskType, footer, globalTiers }: { orgTiers: OrgTier[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; expandedId: string | null; availableModels: AvailableModel[]; patch: (id: string, patchObj: Partial<OrgTier>) => void; rename: (currentId: string, newLabel: string) => void; setExpandedId: React.Dispatch<React.SetStateAction<string | null>>; remove: (id: string) => Promise<void>; toggleTaskType: (id: string, key: string) => void; footer: React.ReactNode; globalTiers: OrgTier[]; }) {
     return <div className="p-5 space-y-4">
         {orgTiers.length === 0 ? (
-            <div className="p-4 rounded-lg border text-center text-xs border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
-                {t('admin_org.custom_tiers_none_a', 'No organisation-scoped tiers yet. Click')} <strong>{t('admin_org.custom_tiers_none_b', 'Add Tier')}</strong> {t('admin_org.custom_tiers_none_c', 'to create one.')}
+            <div className="p-4 rounded-lg border border-dashed text-center text-xs border-[var(--border-default)] text-[var(--text-muted)]">
+                {t('admin_polish.tiers_none', 'This organisation has no custom tiers yet. Add one to give your members a tier with a model you choose.')}
             </div>
         ) : (
             orgTiers.map((tier, position) => {
@@ -188,7 +222,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                 return (
                     // Keyed by position: the id follows the name, and a key that changed on
                     // every keystroke remounted the card and took the focus out of the name field.
-                    <div key={position} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] overflow-hidden">
+                    <div key={position} className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
                         <div className="p-4">
                             <div className="flex items-center gap-3 mb-3">
                                 <input
@@ -196,27 +230,31 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                     value={tier.icon || ''}
                                     onChange={e => patch(tier.id, { icon: e.target.value.slice(0, 4) })}
                                     maxLength={4}
-                                    className="w-12 text-center text-xl px-1 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none" />
+                                    aria-label={t('admin_people.custom_tiers_icon', 'Icon')}
+                                    className={`w-12 text-center text-xl px-1 py-1 ${FIELD}`} />
                                 <div className="flex-1 min-w-0">
                                     <input
                                         type="text"
                                         value={tier.label || ''}
                                         onChange={e => rename(tier.id, e.target.value)}
                                         placeholder={t('admin_org.custom_tiers_name_ph', 'Tier name')}
-                                        className="w-full text-sm font-semibold px-2 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none" />
+                                        className={`text-sm font-semibold px-2 py-1 ${FIELD}`} />
                                     <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full [background:rgba(234,179,8,0.2)] [color:#eab308]!">{t('admin_org.custom_tiers_org', 'org')}</span>
+                                <span className={CHIP}>{t('admin_org.custom_tiers_org', 'org')}</span>
                                 <button
                                     onClick={() => setExpandedId(isExpanded ? null : tier.id)}
-                                    className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 text-[var(--text-muted)]"
+                                    aria-expanded={isExpanded}
+                                    aria-label={t('admin_people.custom_tiers_more', 'More settings')}
+                                    className="text-xs px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] text-[var(--text-muted)]"
                                 >
                                     {isExpanded ? '▲' : '▼'}
                                 </button>
                                 <button
                                     onClick={() => remove(tier.id)}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 text-[var(--text-muted)]"
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)]"
                                     title={t('admin_org.custom_tiers_delete', 'Delete')}
+                                    aria-label={t('admin_org.custom_tiers_delete', 'Delete')}
                                 >✕</button>
                             </div>
 
@@ -225,7 +263,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                 value={tier.description || ''}
                                 onChange={e => patch(tier.id, { description: e.target.value })}
                                 placeholder={t('admin_org.custom_tiers_desc_ph', 'Short description (shown in tier picker)')}
-                                className="w-full text-xs px-3 py-2 mb-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] outline-none" />
+                                className={`text-xs px-3 py-2 mb-3 ${FIELD}`} />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
@@ -233,7 +271,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                     <select
                                         value={tier.modelId || ''}
                                         onChange={e => patch(tier.id, { modelId: e.target.value })}
-                                        className="w-full px-3 py-2 mt-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none"
+                                        className={`px-3 py-2 mt-1 text-sm ${FIELD}`}
                                     >
                                         <option value="">{t('admin_org.custom_tiers_not_configured', 'Not configured')}</option>
                                         {availableModels.map(m => (
@@ -246,7 +284,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                     <select
                                         value={tier.euModelId || ''}
                                         onChange={e => patch(tier.id, { euModelId: e.target.value })}
-                                        className="w-full px-3 py-2 mt-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none"
+                                        className={`px-3 py-2 mt-1 text-sm ${FIELD}`}
                                     >
                                         <option value="">{t('admin_org.custom_tiers_same_as_main', 'Same as main model')}</option>
                                         {availableModels.map(m => (
@@ -268,12 +306,10 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                                 key={tt.key}
                                                 type="button"
                                                 onClick={() => toggleTaskType(tier.id, tt.key)}
-                                                className="px-2.5 py-1 rounded-full text-xs font-medium"
-                                                style={{
-                                                    background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                                    color: active ? '#fff' : 'var(--text-muted)',
-                                                    border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
-                                                }}
+                                                aria-pressed={active}
+                                                className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-colors ${active
+                                                    ? 'bg-[var(--item-active-bg)] border-[var(--text-primary)] text-[var(--text-primary)]'
+                                                    : 'bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'}`}
                                             >
                                                 {active ? '✓ ' : ''}{t(tt.labelKey, tt.label)}
                                             </button>
@@ -292,7 +328,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                         value={tier.maxTokens ?? 16384}
                                         onChange={e => patch(tier.id, { maxTokens: parseInt(e.target.value) || 16384 })}
                                         min={256} max={131072} step={256}
-                                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none" />
+                                        className={`px-3 py-2 text-sm ${FIELD}`} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.custom_tiers_temperature', 'Temperature')}</label>
@@ -301,7 +337,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
                                         value={tier.temperature ?? 0.7}
                                         onChange={e => patch(tier.id, { temperature: parseFloat(e.target.value) || 0.7 })}
                                         min={0} max={2} step={0.1}
-                                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm outline-none" />
+                                        className={`px-3 py-2 text-sm ${FIELD}`} />
                                 </div>
                             </div>
                         )}
@@ -310,13 +346,7 @@ function OrgCustomTiersPanelSection({ orgTiers, t, expandedId, availableModels, 
             })
         )}
 
-        <button
-            onClick={save}
-            disabled={saving}
-            className="px-6 py-2.5 rounded-lg font-medium text-sm text-white bg-[var(--accent-primary)] hover:opacity-90 disabled:opacity-50"
-        >
-            {saving ? t('admin_org.custom_tiers_saving', 'Saving...') : t('admin_org.custom_tiers_save', 'Save Organisation Tiers')}
-        </button>
+        {footer}
 
         <OrgGlobalTiersList tiers={globalTiers} />
     </div>;

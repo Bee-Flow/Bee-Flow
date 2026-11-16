@@ -54,6 +54,7 @@ const router = createOrgMemoryRouter({
     },
     configStore: { async deleteConfig(key) { optInDeletes.push(key); return true; } },
     sensitiveOptInKey: (id) => `memory_sensitive_opt_in_user_${id}`,
+    async memoryRunsOn(orgId) { return orgId === 'org_test' ? 'Small Model' : null; },
     userStore: {
         async logAccessAudit(...args) { audits.push(args); },
     },
@@ -113,6 +114,11 @@ test('GET returns the defaults and counts only', async () => {
     assert.strictEqual(res.body.stats.activeMemories, 7);
     assert.strictEqual(res.body.stats.users, 3);
     assert.ok(!('memories' in res.body) && !('items' in res.body), 'no memory content');
+});
+
+test('GET names the model that picks memories out of a chat (a display name only)', async () => {
+    const res = await request('GET', URL_);
+    assert.strictEqual(res.body.runsOn, 'Small Model');
 });
 
 test('a member, an admin of another org, and a signed-out caller are refused on all three routes', async () => {

@@ -4,7 +4,7 @@ title: Admin
 
 # Admin
 
-Org-admin operations live in the admin dashboard in the SPA: **Admin → Organisation** for the organisation's own settings, and the Security, Access, Monitoring and Compliance tabs for people, grants, usage and compliance. A platform admin picks the organisation to work on at the top of the dashboard; an organisation admin always works on their own. This section is the reference for what each panel does.
+Org-admin operations live in the admin dashboard in the SPA. Its rail is the only navigation: the organisation's own pages (people, settings, grants, usage and compliance) in one block, and for a platform admin the pages of the whole server in a second block. A platform admin picks the organisation to work on at the top of the dashboard; an organisation admin always works on their own. This section is the reference for what each panel does.
 
 URL inside Bee Flow: `/app/admin`. The former Settings addresses (`/app/settings/organisation/…`, `/app/org-settings/…`) forward to the matching admin page.
 
@@ -15,7 +15,7 @@ There are two admin levels, the same on Bee Flow Cloud and on a self-hosted serv
 | Level | What they can do | How someone becomes one |
 |-------|------------------|-------------------------|
 | **Organisation admin** | Manage their organisation: its settings, users, groups, access and audit. | Their **Organisation Role** is Organisation Admin in their own organisation, set under [Users & groups](users-and-groups.md). Whoever signs up and creates an organisation becomes its organisation admin. A group of an organisation can also carry admin rights; its members administer that organisation. |
-| **Platform admin** | Everything that applies to the whole server: AI configuration and provider keys, integrations, modules, appearance, languages, the server licence, and every organisation on it. | The operator account `admin`, created at first setup (the setup page, or `INIT_ADMIN_PASSWORD`), is one. A platform admin makes another account one under **Admin → Security → Users**: edit (or add) the person and turn on **Platform administrator**. |
+| **Platform admin** | Everything that applies to the whole server: AI configuration and provider keys, integrations, modules, appearance, languages, the server licence, and every organisation on it. | The operator account `admin`, created at first setup (the setup page, or `INIT_ADMIN_PASSWORD`), is one. A platform admin makes another account one under **Admin dashboard → Workspace → People**: edit (or add) the person and turn on **Platform administrator**. |
 
 An organisation admin is never a platform admin, also not on a self-hosted server with a single
 organisation, and administers only their own organisation (or one whose admin group they are in).
@@ -23,7 +23,7 @@ Being an ordinary member of a group of another organisation gives no admin right
 
 ### Appointing a platform admin
 
-Under **Admin → Security → Users**, a platform admin edits the person and turns on
+Under **Admin dashboard → Workspace → People**, a platform admin edits the person and turns on
 **Platform administrator**, in the section **Whole server** of the form, below the organisation
 role. The form asks for confirmation and names the person; the change applies when you save.
 Only a platform admin sees this switch: an organisation admin cannot set or clear the platform
@@ -45,43 +45,51 @@ to withdraw it), as a platform admin.
 
 ## The admin dashboard
 
-`/app/admin` opens the global admin dashboard. It has three columns:
+`/app/admin` opens the admin dashboard. The rail on the left is the only navigation: every
+page is a row of it, and a page with parts of its own shows them as rows indented under it
+while it is open. The rail has two blocks.
 
-1. **The rail** on the left, with the tabs in five groups:
+**Your organisation** (headed with the organisation's name), in four groups:
 
-   | Group | Tabs |
-   |-------|------|
-   | **AI & agents** | Agents, AI Config |
-   | **Security & access** | Security, Access, Compliance |
-   | **Platform** | Integrations, Modules, Appearance, Languages |
-   | **Operations** | Monitoring, Support, Subscriptions, Server licence |
-   | **Website** | Product Website, Website Analytics, Release Notes |
+| Group | Rows |
+|-------|------|
+| **Workspace** | Organisation info, Licence & usage, People, Projects, Learning Center, Usage & monitoring |
+| **AI & agents** | Agents, Knowledge bases, Models, Conversations, Memory, Meeting notes |
+| **Security & access** | Preferred sign-in method, Access, Privacy Shield, Encryption, MCP client access, Compliance |
+| **Connections** | Integration status, MCP servers, Nextcloud, Microsoft 365, GitHub sync, Automations |
 
-   You only see the tabs you may open: most are for super-admins, several need an
-   Enterprise licence, and Subscriptions and the three Website tabs exist on Bee Flow
-   Cloud only. On a self-hosted Community install a super-admin sees AI Config,
-   Security, Access, Integrations, Modules, Languages and Server licence.
-2. **The section list** of the open tab (for example AI Config → API Keys, Chat Models,
-   Embeddings, Direct Chat, Web Search Inference, Limits & Self-host).
-3. **The section itself.**
+**Whole server**, for a platform admin only:
 
-The tab and the section are in the URL, so every screen can be bookmarked or linked:
-`/app/admin/<tab>/<section>`, for example `/app/admin/ai-config/embeddings`,
-`/app/admin/integrations/transcription`, `/app/admin/security/sso` or
-`/app/admin/subscriptions/promos`. A third part opens one item or tab: a provider under
-API Keys (`/app/admin/ai-config/providers/<provider>`) or a tab under Security → Users
-`/app/admin/security/users/roles`. Website Analytics keeps its section in a query
-parameter instead: `/app/admin/website-analytics?section=pages`.
+| Group | Rows |
+|-------|------|
+| **AI & agents** | AI configuration (Providers, Models, Search & retrieval, Direct chat, Setup status), System agents |
+| **Identity & access** | Organisations, Roles & permissions, Sign-in & SSO, Guardrail library |
+| **Connections** | Platform services (Defaults for new organisations, Email, Transcription, Connected apps), MCP servers, Nextcloud instances |
+| **Platform** | Licence & features (Server licence, Feature switches), Modules, Appearance (Look, Icon packs), Languages |
+| **Operations** | Support inbox, Subscriptions |
+| **Website** | Product website, Website analytics, Release notes |
 
-On a phone the rail folds into a menu under the tab's name at the top, and the section
-list becomes a row of tabs you can scroll sideways.
+You only see the rows you may open and that apply to the organisation: a row for something
+the organisation does not have (no Nextcloud bound, no Microsoft set up on the server, a
+feature outside its plan) is left out, several whole-server rows need an Enterprise
+licence, and Subscriptions and the three Website rows exist on Bee Flow Cloud only. On a
+self-hosted server **Licence & usage** is not an organisation row: the licence is the
+whole server's, under **Licence & features**.
 
-Sections that hold a list of things with settings per item show the list on the left
-and the selected item on the right: Integrations → Transcription (the engines),
-Security → SSO (Nextcloud, Google, Microsoft) and AI Config → API Keys (the providers).
+The row is in the URL, so every page can be bookmarked or linked:
+`/app/admin/<row>/<part>`, for example `/app/admin/people`,
+`/app/admin/organisation/conversations`, `/app/admin/ai-config/retrieval` or
+`/app/admin/integrations/transcription`. Old addresses (`/app/admin/security/users`,
+`/app/admin/organisation/meeting-templates`, `/app/settings/organisation/…`) still open the
+page they moved to.
 
-In this documentation a path such as **Admin → Integrations → Transcription** means:
-the Integrations tab in the rail, then the Transcription section.
+On a phone the dashboard is not available; the organisation's settings are in the app's own
+Settings there.
+
+In this documentation a path names the rail: **Admin dashboard → Connections → Nextcloud**
+is the Nextcloud row in the Connections group of your organisation, and
+**Admin dashboard → Whole server → Platform services → Transcription** is the Transcription
+row under Platform services in the whole-server block.
 
 ## Pages
 
@@ -97,7 +105,7 @@ the Integrations tab in the rail, then the Transcription section.
 
 -    [Organisation settings](organisation-settings.md)
 
-    Branding, defaults, integrations, License & usage.
+    Branding, defaults, integrations, Licence & usage, the preferred sign-in method.
 
 -    [Usage & adoption](usage-and-adoption.md)
 
@@ -123,10 +131,10 @@ the Integrations tab in the rail, then the Transcription section.
 |------|-------|
 | Invite a user | [Users & groups](users-and-groups.md) |
 | Turn off Nextcloud Mail for one Nextcloud group | [NC integrations](nc-integrations.md) |
-| Apply a licence key | [Organisation settings](organisation-settings.md) → Licence & usage |
+| Apply a licence key (self-hosted) | Admin dashboard → Whole server → Licence & features → Server licence ([details](../licensing/apply.md)) |
 | Give a beta feature to one group | [Beta features](beta-features.md) |
 | Export the last 30 days of guardrail events | [Audit & compliance](audit-and-compliance.md) |
-| Set up single sign-on (Google or Microsoft) | [Organisation settings](organisation-settings.md) → SSO (Enterprise+) |
+| Set up single sign-on (Google or Microsoft) | Admin dashboard → Whole server → Sign-in & SSO (Enterprise+); the organisation's preference is [Preferred sign-in method](organisation-settings.md#preferred-sign-in-method) |
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
 | See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |

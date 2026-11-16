@@ -137,7 +137,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                 {boolFields.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                         {boolFields.map(f => (
-                            <span key={f.label} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${f.value ? 'bg-green-500/15 text-green-400' : 'bg-white/5 text-[var(--text-tertiary)]'}`}>
+                            <span key={f.label} className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${f.value ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                                 {f.label}: {f.value ? 'On' : 'Off'}
                             </span>
                         ))}
@@ -150,7 +150,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                 {sysPrompt && (
                     <div>
                         <span className="text-[var(--text-tertiary)] font-medium block mb-1">{t('agent.version_history_system_prompt', 'System Prompt:')}</span>
-                        <pre className="text-[10px] text-[var(--text-secondary)] bg-black/20 rounded p-2 whitespace-pre-wrap max-h-32 overflow-y-auto font-mono leading-relaxed">
+                        <pre className="text-[10px] text-[var(--text-secondary)] bg-[var(--bg-tertiary)] rounded p-2 whitespace-pre-wrap max-h-32 overflow-y-auto font-mono leading-relaxed">
                             {sysPrompt.length > 500 ? sysPrompt.substring(0, 500) + '...' : sysPrompt}
                         </pre>
                     </div>
@@ -162,7 +162,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                         <span className="text-[var(--text-tertiary)] font-medium">{t('agent.version_history_tools_count', 'Tools ({count}):', { count: tools.length })}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                             {tools.map((t: string) => (
-                                <span key={t} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 text-[10px]">{t}</span>
+                                <span key={t} className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px]">{t}</span>
                             ))}
                         </div>
                     </div>
@@ -201,11 +201,11 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                         <span className="text-[var(--text-tertiary)] font-medium">{t('agent.version_history_phases_count', 'Phases ({count}):', { count: phases.length })}</span>
                         <div className="mt-1 space-y-2">
                             {phases.map((phase: SnapshotPhase, pi: number) => (
-                                <div key={phase.id || pi} className="rounded-lg bg-black/15 p-2">
+                                <div key={phase.id || pi} className="rounded-lg bg-[var(--bg-tertiary)] p-2">
                                     <div className="flex items-center gap-2 mb-1">
                                         {phase.icon && <span>{phase.icon}</span>}
                                         <span className="font-medium text-[var(--text-primary)]">{phase.name || `Phase ${pi + 1}`}</span>
-                                        {phase.parallel && <span className="px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px]">{t('agent.version_history_parallel', 'parallel')}</span>}
+                                        {phase.parallel && <span className="px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)] text-[9px]">{t('agent.version_history_parallel', 'parallel')}</span>}
                                     </div>
                                     {phase.description && (
                                         <div className="text-[10px] text-[var(--text-tertiary)] mb-1">{phase.description}</div>
@@ -217,24 +217,24 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                                     <div className="flex items-center gap-2 text-[10px]">
                                                         <span className="text-[var(--text-primary)] font-medium">{agent.name || agent.role}</span>
                                                         {agent.role && agent.name && <span className="text-[var(--text-tertiary)]">({agent.role})</span>}
-                                                        {agent.model && <span className="text-purple-400 text-[9px]">{agent.model}</span>}
+                                                        {agent.model && <span className="text-[var(--text-tertiary)] text-[9px]">{agent.model}</span>}
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5 text-[9px]">
                                                         {agent.temperature !== undefined && (
-                                                            <span className="px-1 py-0.5 rounded bg-white/5 text-[var(--text-tertiary)]">temp: {agent.temperature}</span>
+                                                            <span className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">temp: {agent.temperature}</span>
                                                         )}
                                                         {agent.maxTokens !== undefined && (
-                                                            <span className="px-1 py-0.5 rounded bg-white/5 text-[var(--text-tertiary)]">tokens: {agent.maxTokens}</span>
+                                                            <span className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">tokens: {agent.maxTokens}</span>
                                                         )}
                                                         {agent.hiveMindAccess && (
-                                                            <span className="px-1 py-0.5 rounded bg-amber-500/10 text-amber-400">hive: {agent.hiveMindAccess}</span>
+                                                            <span className="px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]">hive: {agent.hiveMindAccess}</span>
                                                         )}
 
                                                     </div>
                                                     {agent.tools && agent.tools.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 text-[9px]">
                                                             {agent.tools.map((t: string) => (
-                                                                <span key={t} className="px-1 py-0.5 rounded bg-blue-500/10 text-blue-300">🔧 {t}</span>
+                                                                <span key={t} className="px-1 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">🔧 {t}</span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -242,7 +242,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                                         const prompt = agent.system_prompt || agent.systemPrompt;
                                                         if (!prompt) return null;
                                                         return (
-                                                            <pre className="text-[9px] text-[var(--text-tertiary)] bg-black/20 rounded p-1.5 whitespace-pre-wrap max-h-20 overflow-y-auto font-mono leading-relaxed">{prompt.length > 300 ? prompt.substring(0, 300) + '...' : prompt}</pre>
+                                                            <pre className="text-[9px] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] rounded p-1.5 whitespace-pre-wrap max-h-20 overflow-y-auto font-mono leading-relaxed">{prompt.length > 300 ? prompt.substring(0, 300) + '...' : prompt}</pre>
                                                         );
                                                     })()}
                                                 </div>
@@ -281,7 +281,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                 onClick={() => handlePreview(v.id)}
                             >
                                 {/* Version bullet */}
-                                <div className="w-2 h-2 rounded-full bg-blue-400/60 flex-shrink-0" />
+                                <div className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] flex-shrink-0" />
 
                                 {/* Version info */}
                                 <div className="flex-1 min-w-0">
@@ -298,7 +298,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handlePreview(v.id); }}
-                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-blue-400"
+                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                                         title={t('agent.version_history_preview', 'Preview')}
                                         aria-label={t('agent.version_history_preview', 'Preview')}
                                     >
@@ -307,7 +307,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleRestore(v.id, v.version_number); }}
                                         disabled={restoring === v.id}
-                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-green-400 disabled:opacity-50"
+                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--success-ink)] disabled:opacity-50"
                                         title={t('agent.version_history_restore_this_version', 'Restore this version')}
                                         aria-label={t('agent.version_history_restore_this_version', 'Restore this version')}
                                     >
@@ -315,7 +315,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                     </button>
                                     <button
                                         onClick={(e) => handleDelete(v.id, e)}
-                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-red-400"
+                                        className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--error-ink)]"
                                         title={t('agent.version_history_delete_version', 'Delete version')}
                                         aria-label={t('agent.version_history_delete_version', 'Delete version')}
                                     >

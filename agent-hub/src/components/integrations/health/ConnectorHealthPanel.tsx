@@ -6,7 +6,6 @@ import type { FleetOrg } from './healthMeta';
 import OrgHealthDrawer from './OrgHealthDrawer';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ALERT_ERROR, DANGER_BTN, EYEBROW, FILTER_CHIP_OFF, FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
-import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import { apiRequest } from '@/api/typedRequest';
 
@@ -16,7 +15,7 @@ import { apiRequest } from '@/api/typedRequest';
  * Data source: GET /auth/admin/connector-health/fleet (one aggregated call).
  *
  * Row click opens OrgHealthDrawer (problems + event timeline) and pushes
- * admin/security/connector-health/<orgId> so the drill-in is deep-linkable.
+ * admin/nextcloud-instances/health/<orgId> so the drill-in is deep-linkable.
  * No export button (project rule for audit/health dashboards).
  */
 
@@ -106,7 +105,7 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
     const { orgs, loading, loadFailed, load } = useFleet();
 
-    // Deep-link drill-in: admin/security/connector-health/<orgId> opens the
+    // Deep-link drill-in: admin/nextcloud-instances/health/<orgId> opens the
     // drawer once the fleet has loaded (applied once, so closing stays closed).
     useDeepLinkedOrg(initialOrgId, orgs, setSelectedId);
 
@@ -133,12 +132,12 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
 
     const openOrg = (org: FleetOrg) => {
         setSelectedId(org.id);
-        if (onNavigate) onNavigate(`admin/security/connector-health/${org.id}`);
+        if (onNavigate) onNavigate(`admin/nextcloud-instances/health/${org.id}`);
     };
 
     const closeDrawer = () => {
         setSelectedId(null);
-        if (onNavigate) onNavigate('admin/security/connector-health');
+        if (onNavigate) onNavigate('admin/nextcloud-instances/health');
     };
 
     if (loading && orgs.length === 0 && !loadFailed) {
@@ -151,12 +150,11 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
     }
 
     return (
-        <div className="max-w-5xl">
-            <SectionHeader
-                className="mb-4"
-                title={t('admin.ch_title', 'Nextcloud connector health')}
-                description={t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
-            />
+        <div>
+            {/* The page (Nextcloud instances) and its Connector health tab name the panel, at the page's width; the hint stays. */}
+            <p className="m-0 mb-4 text-xs text-[var(--text-secondary)]">
+                {t('admin.ch_desc', 'Per-organisation status of Nextcloud-connected workspaces: why users can or cannot reach AI chat.')}
+            </p>
 
             {loadFailed && (
                 <div className={`mb-4 items-center justify-between ${ALERT_ERROR}`}>

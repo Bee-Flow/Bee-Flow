@@ -128,7 +128,10 @@ describe('OrgAiContextScreen', () => {
                 compactionThreshold: 20,
                 recentWindow: 6,
                 contextBudgetPercent: 75,
-                contextWindowExamples: [{ label: 'Claude Sonnet 5', contextWindow: 1_000_000 }],
+                contextWindowExamples: [
+                    { label: 'Think (Big Model)', contextWindow: 1_000_000, kind: 'tier', tierKey: 'thinking', model: 'Big Model' },
+                    { label: 'A 200,000-token model', contextWindow: 200_000, kind: 'generic', tierKey: null, model: null },
+                ],
                 contextBudgetRange: { min: 25, max: 95 },
             },
         };
@@ -137,7 +140,9 @@ describe('OrgAiContextScreen', () => {
     it('saves the switch and the limit, sending the unseen tunables back as read', async () => {
         await render(<OrgAiContextScreen />);
         expect(await screen.findByText('Keep the full conversation (recommended)')).toBeTruthy();
-        expect(screen.getByText('Claude Sonnet 5 → ~750,000 tokens')).toBeTruthy();
+        expect(
+            screen.getByText('Think (Big Model): about 750,000 tokens   ·   A 200,000-token model: about 150,000 tokens'),
+        ).toBeTruthy();
 
         await fireEvent.press(screen.getByTestId('choice-on'));
         await fireEvent.press(screen.getByLabelText('More'));
@@ -204,12 +209,11 @@ describe('OrgSignInScreen', () => {
         answers = { '/auth/organizations/o1': { id: 'o1', name: 'Acme', allowedDomains: ['acme.nl'] } };
     });
 
-    it('chooses the method once, after a confirm', async () => {
+    it('saves the preferred method on a tap, with no lock warning', async () => {
         await render(<OrgSignInScreen />);
         await fireEvent.press(await screen.findByTestId('auth-google'));
-        expect(screen.getAllByText(/Once saved, this cannot be changed/)).toHaveLength(2);
-        await fireEvent.press(screen.getByLabelText('Save'));
         await waitFor(() => expect(api.put).toHaveBeenCalledWith('/auth/organizations/o1', { authMethod: 'google' }));
+        expect(screen.queryByText(/cannot be changed|locked/)).toBeNull();
     });
 
     it('validates and lower-cases allowed domains, and saves only the list', async () => {
@@ -229,12 +233,23 @@ describe('OrgSignInScreen', () => {
         expect(mockRefresh).not.toHaveBeenCalled();
     });
 
-    it('shows a chosen method locked', async () => {
+    it('lets a stored method change: it is a preference, not a lock', async () => {
         answers = { '/auth/organizations/o1': { id: 'o1', name: 'Acme', authMethod: 'password' } };
         (useOrgContext as jest.Mock).mockReturnValue({ ...ADMIN, isSelfHosted: false });
         await render(<OrgSignInScreen />);
-        expect(await screen.findByText(/Sign-in method is locked/)).toBeTruthy();
+        await fireEvent.press(await screen.findByTestId('auth-microsoft'));
+        await waitFor(() => expect(api.put).toHaveBeenCalledWith('/auth/organizations/o1', { authMethod: 'microsoft' }));
+        expect(screen.queryByText(/Sign-in method is locked/)).toBeNull();
         expect(screen.queryByTestId('allowed-domains')).toBeNull();
+    });
+
+    it('saves auto-approve the moment it moves, alone (its one home on the web too)', async () => {
+        answers = { '/auth/organizations/o1': { id: 'o1', name: 'Acme', authMethod: 'google', autoApproveSSO: false } };
+        await render(<OrgSignInScreen />);
+        const toggle = await screen.findByTestId('auto-approve');
+        expect(toggle.props.accessibilityState).toMatchObject({ checked: false });
+        await fireEvent.press(toggle);
+        await waitFor(() => expect(api.put).toHaveBeenCalledWith('/auth/organizations/o1', { autoApproveSSO: true }));
     });
 
     it('sends a Nextcloud-provisioned organisation to Nextcloud', async () => {

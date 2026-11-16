@@ -9,7 +9,7 @@ import { Dot } from '../ui/Badge';
 import type { BadgeTone } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { SearchInput } from '../ui/SearchInput';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 import FilterPills from '@/components/shared/FilterPills';
 
@@ -163,8 +163,8 @@ export function AuditView() {
 
     return (
         <div className="max-w-3xl p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.audit_title', 'Subscription Audit Log')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.audit_title', 'Subscription audit log')}
                 description={t('admin_subscriptions.audit_desc', 'Track all subscription plan and organization changes.')}
                 status={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72 max-w-full" />}
             />

@@ -120,7 +120,7 @@
       "id": "admin",
       "icon": "🛟",
       "title": "What an administrator can — and must not — do",
-      "bodyMd": "Your organisation admin has one button for you, in **Admin → Security → Users**: **Reset two-factor authentication?** The confirmation says it plainly — *\"Their authenticator and recovery codes stop working immediately; they will be asked to enroll again at their next sign-in.\"* Clean, reversible by simply enrolling again, and it never touches your data.\n\nGiving you a new password is not a substitute for it. That happens elsewhere on the same screen — the **Edit user** form has a field *\"New Password (blank to keep)\"* — and it never asks for your old password, so your keys cannot be carried across: your previously encrypted content then needs your recovery key. A second-factor problem is never a reason to reset somebody's password."
+      "bodyMd": "Your organisation admin has one button for you, in **Admin dashboard → Workspace → People**: **Reset two-factor authentication?** The confirmation says it plainly — *\"Their authenticator and recovery codes stop working immediately; they will be asked to enroll again at their next sign-in.\"* Clean, reversible by simply enrolling again, and it never touches your data.\n\nGiving you a new password is not a substitute for it. That happens elsewhere on the same screen — the **Edit user** form has a field *\"New Password (blank to keep)\"* — and it never asks for your old password, so your keys cannot be carried across: your previously encrypted content then needs your recovery key. A second-factor problem is never a reason to reset somebody's password."
     },
     {
       "type": "quiz",
@@ -128,7 +128,7 @@
       "question": "Joost lost his phone and never saved his recovery codes. The office manager at Van Dijk Groep is organisation admin. Which action gets him back in with the least damage?",
       "multi": false,
       "choices": [
-        { "id": "a", "label": "Admin → Security → Users, on Joost's row: \"Reset two-factor authentication?\" — he enrols again at his next sign-in.", "correct": true },
+        { "id": "a", "label": "Admin dashboard → Workspace → People, on Joost's row: \"Reset two-factor authentication?\" — he enrols again at his next sign-in.", "correct": true },
         { "id": "b", "label": "Give Joost a new password in the Edit user form; a fresh password clears the account's locks.", "correct": false, "feedback": "An admin-set password arrives without his old password, so his encrypted content afterwards needs his recovery key — and two-factor would still be switched on. Maximum damage, problem unsolved." },
         { "id": "c", "label": "Delete Joost's account and invite him again with a clean one.", "correct": false, "feedback": "The dialog warns that the account is removed and cannot be restored. His chats, agents and history go with it, to avoid one re-enrolment." },
         { "id": "d", "label": "Tell Joost to open Settings → Security himself and press Disable.", "correct": false, "feedback": "He cannot reach Settings — he is stuck at the code prompt during sign-in. And Disable demands a six-digit code or a recovery code, which is precisely what he no longer has." }
@@ -169,7 +169,7 @@
       "At three or fewer recovery codes the card advises regenerating a fresh set while one code is still available to confirm with.",
       "Disabling two-factor or regenerating recovery codes both accept either a 6-digit code or an unused recovery code as proof.",
       "Passwords need at least 8 characters, 12 for administrator and organisation-admin accounts, at most 256, and are refused when breached, repetitive, sequential, or containing the username or e-mail.",
-      "An organisation admin uses \"Reset two-factor authentication?\" in Admin → Security → Users; the authenticator and recovery codes stop working at once and the user enrols again at next sign-in.",
+      "An organisation admin uses \"Reset two-factor authentication?\" in Admin dashboard → Workspace → People; the authenticator and recovery codes stop working at once and the user enrols again at next sign-in.",
       "An admin password reset is destructive in the zero-knowledge sense: without the old password the account is re-keyed and the user's encrypted content needs their recovery key."
     ]
   },

@@ -170,7 +170,7 @@ describe('OrgUsersPanel — member filter bar', () => {
     it('renders a colour-coded chip for a known org role', async () => {
         await renderPanel();
         const janRow = screen.getByText('Jan de Vries').closest('div.px-5');
-        expect(within((janRow as HTMLElement)).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within((janRow as HTMLElement)).getByText('Organisation admin')).toBeInTheDocument();
     });
 });
 

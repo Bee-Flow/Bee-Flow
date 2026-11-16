@@ -56,8 +56,8 @@ function ShieldOffNote({ t }: { t: TranslateFn }) {
 /** Where these rules sit relative to an agent's own: first, and stricter wins. */
 function RulesOrderNote({ t }: { t: TranslateFn }) {
     return (
-        <div className="flex gap-2.5 items-start px-4 py-3 rounded-xl bg-[color-mix(in_srgb,var(--info-ink)_6%,transparent)] text-xs leading-[18px] text-[var(--text-secondary)]">
-            <Layers className="w-[15px] h-[15px] shrink-0 mt-px text-[var(--info-ink)]" aria-hidden="true" />
+        <div className="flex gap-2.5 items-start px-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-xs leading-[18px] text-[var(--text-secondary)]">
+            <Layers className="w-[15px] h-[15px] shrink-0 mt-px text-[var(--text-secondary)]" aria-hidden="true" />
             <p className="m-0">
                 <strong className="font-semibold text-[var(--text-primary)]">
                     {t('shield_overview.rules_lead', 'Agents can be stricter, never looser.')}

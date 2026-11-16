@@ -14,7 +14,7 @@ Built-in AI capabilities exposed as tools — image generation, video generation
 
 Image generation is available as soon as one image model is configured: the Google API key, an Azure image deployment, or both. The chat, agents and automations offer the same models. The icon generator takes a Google model, or the first Azure deployment when there is no Google key. Generated images are stored short-term in Bee Flow's blob store and served via signed URLs that expire in 24h. Add to a Knowledge Base or upload to Files for permanent storage.
 
-**Google.** Set the Google API key under **Admin → AI Config → API Keys**. It gives two models: Flash Image (fast) and Pro Image (quality).
+**Google.** Set the Google API key under **Admin dashboard → Whole server → AI configuration → Providers**. It gives two models: Flash Image (fast) and Pro Image (quality).
 
 **Which model is used.** The model the person picked, when it is still configured. Otherwise Google's Flash Image when there is a Google key, and otherwise the first Azure deployment. Through the API, an Azure model is named `azure/<deployment>`.
 
@@ -22,10 +22,10 @@ An admin can limit how many images each person generates per hour, 24 hours, 7 d
 
 ### Azure image deployments (Microsoft Foundry)
 
-Images can also be made by image models you deploy in your own Microsoft Foundry resource. They use the endpoint and key of the Azure provider, so set those first under **Admin → AI Config → API Keys → Azure**.
+Images can also be made by image models you deploy in your own Microsoft Foundry resource. They use the endpoint and key of the Azure provider, so set those first under **Admin dashboard → Whole server → AI configuration → Providers → Azure**.
 
 1. In Microsoft Foundry, deploy a supported image model (see the table below) in the resource whose endpoint and key Bee Flow uses. Note the deployment name.
-2. In **Admin → AI Config → API Keys → Azure**, add the deployment to the list of image deployments:
+2. In **Admin dashboard → Whole server → AI configuration → Providers → Azure**, add the deployment to the list of image deployments:
 
    | Field | What to enter |
    |-------|---------------|
@@ -62,7 +62,7 @@ The aspect ratio the person picks is mapped to a size the model accepts. The Ope
 | `generate_music` | Google (Lyria) | Instrumental music from a text prompt. |
 | `elevenlabs_music` | ElevenLabs Music | Music or songs, with or without vocals. |
 
-`elevenlabs_music` requires an ElevenLabs API key, entered in **Admin → AI Config** and stored encrypted in the database. There is no environment variable for it.
+`elevenlabs_music` requires an ElevenLabs API key, entered in **Admin dashboard → Whole server → AI configuration → Providers** and stored encrypted in the database. There is no environment variable for it.
 
 ## Text-to-speech
 
@@ -76,9 +76,9 @@ The aspect ratio the person picks is mapped to a size the model accepts. The Ope
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `transcribe_audio` | Voxtral (Mistral) / Azure Speech / Azure Whisper / WhisperX self-hosted / local-whisper (whisper.cpp) | Pick under Admin → Integrations → Transcription |
+| `transcribe_audio` | Voxtral (Mistral) / Azure Speech / Azure Whisper / WhisperX self-hosted / local-whisper (whisper.cpp) | Pick under Admin dashboard → Whole server → Platform services → Transcription |
 
-The default is **Voxtral** (Mistral cloud) — fast, multilingual, cheapest per minute. Switch in **Admin → Integrations → Transcription** (pick the engine in the list, then **Use this provider**).
+The default is **Voxtral** (Mistral cloud) — fast, multilingual, cheapest per minute. Switch in **Admin dashboard → Whole server → Platform services → Transcription** (pick the engine in the list, then **Use this provider**).
 
 For audio capture in the chat UI (voice messages, "press to talk"), the in-process **whisper.cpp** path runs entirely on CPU — no GPU, no API key needed. Toggle via `local_whisper_enabled` config.
 
@@ -86,7 +86,7 @@ For audio capture in the chat UI (voice messages, "press to talk"), the in-proce
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `agent_search` | Self-hosted Agent Search service / Cloud-only / Azure Bing | Web search + page fetch + rerank + cleanup. Picked in **Admin → Integrations → Search**. |
+| `agent_search` | Self-hosted Agent Search service / Cloud-only / Azure Bing | Web search + page fetch + rerank + cleanup. Picked in **Admin dashboard → Whole server → AI configuration → Search & retrieval**. |
 | `kb_search` | In-process pgvector / remote search-service | KB-only retrieval. Routed by `kb_provider` admin toggle. |
 
 The cloud-only path runs the entire SERP → fetch → embed → rerank → cleanup loop inside the Node server using your configured providers (Mistral, OpenAI, Azure, Cohere) plus the in-process CPU rerank/embed models — no GPU box required. See [Web search](./web-search.md) for setup and provider comparison.
@@ -109,7 +109,7 @@ Pricing varies by provider and tier — check the provider's current rates.
 
 ### Where image cost shows up
 
-Every generated image writes one row to the AI usage log, from every place that makes images: chat, agents, automations and the icon generator. In **Admin → Monitoring** images count under the **media** area, per person and per model. An Azure image is listed under the model behind the deployment (such as `gpt-image-1.5`).
+Every generated image writes one row to the AI usage log, from every place that makes images: chat, agents, automations and the icon generator. In **Admin dashboard → Workspace → Usage & monitoring** images count under the **media** area, per person and per model. An Azure image is listed under the model behind the deployment (such as `gpt-image-1.5`).
 
 - **Azure, with a price per image**: the row carries that price, in EUR. Tokens are not rated.
 - **Azure, without a price**: the row carries the tokens the API reported, rated like any other model with the model prices in AI Config, your own price overrides included.

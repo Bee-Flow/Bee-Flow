@@ -17,10 +17,11 @@ export type PanelAgent = {
     tool_params?: Record<string, Record<string, ToolParamConfig>>;
     model?: string | null;
     starter_prompts?: string | string[];
-    workspace_enabled?: number;
-    copy_enabled?: number;
-    is_published?: number;
-    embed_enabled?: number;
+    /** The on/off columns: Postgres BOOLEAN (true/false); an older row may still hold 1/0. Read them with storedFlag. */
+    workspace_enabled?: boolean | number;
+    copy_enabled?: boolean | number;
+    is_published?: boolean | number;
+    embed_enabled?: boolean | number;
     organization_id?: string | null;
     shared_groups?: string | string[];
     category_id?: string | null;

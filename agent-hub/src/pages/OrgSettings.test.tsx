@@ -192,32 +192,48 @@ describe('OrgSettings — tab bar', () => {
         expect(screen.getByRole('button', { name: 'Organisation' })).not.toHaveAttribute('aria-current');
         expect(screen.getByTestId('mock-org-users')).toBeTruthy();
     });
+
+    it('opens the old Users > Sync address on the Nextcloud Sync tab: the sync panel has one home', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1: 'users', seg2: 'sync' }} />);
+        expect(screen.getAllByTestId('mock-nextcloud-sync')).toHaveLength(1);
+        expect(screen.queryByTestId('mock-org-users')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Nextcloud Sync' })).toHaveAttribute('aria-current', 'page');
+    });
 });
 
+// Changed on purpose (wave 2): every tab is a dashboard row now (Knowledge bases and Agents too, and the bare
+// address opens the first tab's row); the page stays where the dashboard would refuse that row.
 describe('OrgSettings — the tabs that moved to the admin dashboard', () => {
-    it('replaces Organisation, GitHub Sync, Nextcloud Sync and Users with their dashboard page on a desktop', async () => {
+    it('replaces each tab with its dashboard row on a desktop', async () => {
         const OrgSettings = await loadOrgSettings();
-        const moved: [string, string | undefined, string][] = [
+        const moved: [string | undefined, string | undefined, string][] = [
             ['organisation', undefined, 'admin/organisation/info'],
+            [undefined, undefined, 'admin/organisation/info'],
+            ['knowledge-bases', undefined, 'admin/organisation/knowledge-bases'],
             ['github-sync', undefined, 'admin/organisation/github-sync'],
             ['nextcloud-sync', undefined, 'admin/organisation/nextcloud-sync'],
-            ['users', 'groups', 'admin/security/users/groups'],
+            ['users', 'groups', 'admin/people/groups'],
         ];
         for (const [seg1, seg2, target] of moved) {
             const onNavigate = vi.fn();
             const view = render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1, seg2 }} onNavigate={onNavigate} />);
-            expect(onNavigate, seg1).toHaveBeenCalledWith(target, { replace: true });
+            expect(onNavigate, String(seg1)).toHaveBeenCalledWith(target, { replace: true });
             view.unmount();
         }
     });
 
-    it('keeps Agents and Knowledge Bases here, and the bare address', async () => {
+    it('keeps a tab here when the dashboard would refuse its row', async () => {
         const OrgSettings = await loadOrgSettings();
-        for (const seg1 of ['agents', 'knowledge-bases', undefined]) {
-            const onNavigate = vi.fn();
-            const view = render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1 }} onNavigate={onNavigate} />);
-            expect(onNavigate, String(seg1)).not.toHaveBeenCalled();
-            view.unmount();
-        }
+        // The Agents tab of the dashboard is Enterprise; the licence here is not.
+        const onNavigate = vi.fn();
+        const view = render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1: 'agents' }} onNavigate={onNavigate} />);
+        expect(onNavigate).not.toHaveBeenCalled();
+        view.unmount();
+        // An agent editor has no dashboard tab at all: the page is theirs.
+        const editor = { orgRole: 'agent_editor', permissions: ['manage_agents'] };
+        render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={editor} orgSettingsPath={{ seg1: 'agents' }} onNavigate={onNavigate} />);
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(screen.getByTestId('mock-agent-designer')).toBeTruthy();
     });
 });

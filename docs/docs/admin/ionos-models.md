@@ -20,7 +20,7 @@ covers all three jobs of a knowledge base: **chat, embeddings and reranking**.
 
 1. In the IONOS Data Center Designer (DCD), create an API token for the AI Model Hub. See the
    [IONOS documentation](https://docs.ionos.com/cloud/ai/ai-model-hub).
-2. Go to **Admin → AI Config → API Keys** and paste it into the **IONOS** card.
+2. Go to **Admin dashboard → Whole server → AI configuration → Providers** and paste it into the **IONOS** card.
 
 The provider is created automatically and the live model list is read from IONOS on the
 next request. The endpoint is
@@ -48,11 +48,11 @@ excluding VAT (IONOS price list, 9 November 2026).
 Model ids are matched by a normalised name, so a suffix such as `-Instruct` or `-fp8` does
 not matter. A model that IONOS serves but Bee Flow does not know yet is still usable, but
 carries no price: Bee Flow never guesses one. Usage is billed at IONOS's own tariff and
-shows up in **Admin → Monitoring**.
+shows up in **Admin dashboard → Workspace → Usage & monitoring**.
 
 ## Embeddings
 
-Choose **IONOS** as the embedding provider under **Admin → AI Config → Embeddings**;
+Choose **IONOS** as the embedding provider under **Admin dashboard → Whole server → AI configuration → Search & retrieval**;
 only the models IONOS flags as embedding models are listed.
 
 Use **`BAAI/bge-m3`** (1024 dimensions). `Qwen3-VL-Embedding-8B` produces more dimensions

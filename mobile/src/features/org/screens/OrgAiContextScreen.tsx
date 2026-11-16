@@ -21,7 +21,7 @@ import { useOrgAiContext } from '../hooks/sectionQueries';
 import { useDraft } from '../hooks/useDraft';
 import { useOrgContext } from '../hooks/useOrgSections';
 import { formatTokens } from '../model/format';
-import type { OrgAiContext } from '../model/sectionTypes';
+import type { ContextWindowExample, OrgAiContext } from '../model/sectionTypes';
 
 type Mode = 'off' | 'on';
 
@@ -46,12 +46,31 @@ function modeChoices(t: TranslateFn): Choice<Mode>[] {
     ];
 }
 
-/** "Claude Sonnet 5 → ~750,000 tokens", as the web writes each example. */
+/**
+ * "Fast (model name)" in the app's language; a custom tier keeps the admin's
+ * own label, and a tier name the catalogue does not have keeps the server's
+ * English line.
+ */
+function exampleLabel(ex: ContextWindowExample, t: TranslateFn): string {
+    const tier = ex.kind === 'tier' && ex.tierKey ? t(`tier.${ex.tierKey}`, '') : '';
+    if (tier && ex.model) {
+        return t('admin_ai_context.example_tier', '{tier} ({model})', { tier, model: ex.model });
+    }
+    if (ex.kind === 'generic') {
+        return t('admin_ai_context.example_generic', 'A {size}-token model', { size: formatTokens(ex.contextWindow) });
+    }
+    return ex.label;
+}
+
+/**
+ * "Fast (model name): about 750,000 tokens" for the organisation's largest and
+ * smallest model, as the web writes each example.
+ */
 function budgetExamples(server: OrgAiContext, percent: number, t: TranslateFn): string {
     return server.contextWindowExamples
         .map((ex) =>
-            t('mobile.org.ai_context_example', '{model} → ~{tokens} tokens', {
-                model: ex.label,
+            t('admin_ai_context.example_line', '{label}: about {tokens} tokens', {
+                label: exampleLabel(ex, t),
                 tokens: formatTokens((ex.contextWindow * percent) / 100),
             }),
         )

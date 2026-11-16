@@ -42,9 +42,9 @@ const ORG_NAME_TEXT = 'Organization name is required';
  * wizard sends; an unrecognised value is now refused instead of guessed.
  *
  * `authMethod` is stored on the pending blob and becomes the organisation's
- * write-once `authMethod` column (it can never be corrected afterwards — see
- * admin/orgRoutes.js), and for a consumer signup it silently defaulted to
- * 'google' for every value the caller could name.
+ * preferred sign-in method (the `authMethod` column: a preference an admin
+ * may change later, see auth/admin/orgAuthMethod.mts), and for a consumer
+ * signup it silently defaulted to 'google' for every value the caller could name.
  *
  * `orgDetails` and `privacyShield` stay open on purpose: they are wizard
  * payloads consumed field-by-field downstream (accountProvisioning sanitises

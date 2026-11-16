@@ -7,21 +7,21 @@
   "gate": {
     "permission": "org_admin"
   },
-  "learningGoal": "After this lesson you can read the License & Usage card, tell a licence tier from a plan, change or cancel a subscription knowing exactly when it lands and how to undo it, and explain why the whole row is missing on a self-hosted install.",
+  "learningGoal": "After this lesson you can read the Licence & usage card, tell a licence tier from a plan, change or cancel a subscription knowing exactly when it lands and how to undo it, and explain why the whole row is missing on a self-hosted install.",
   "steps": [
     {
       "type": "slide",
       "id": "why",
       "icon": "🧭",
       "title": "One screen where the answer is yes or no",
-      "bodyMd": "Van Dijk Groep runs about forty people on Bee Flow Cloud. In one week their admin, Erik, gets two requests: sales wants Meeting Notes, and procurement wants a fourth knowledge base.\n\nEverything else in this course **reports** — Usage & Monitoring shows what was spent, the cap gauge shows how close you are. Only one screen **changes** what the organisation is allowed to do: **Admin dashboard → Organisation → License & Usage**.\n\nThis lesson is about the four buttons on it — **Subscribe**, **Change plan**, **Manage Billing**, **Cancel subscription** — what each one does to the bill, on what date, and which of them you can take back."
+      "bodyMd": "Van Dijk Groep runs about forty people on Bee Flow Cloud. In one week their admin, Erik, gets two requests: sales wants Meeting Notes, and procurement wants a fourth knowledge base.\n\nEverything else in this course **reports** — Usage & Monitoring shows what was spent, the cap gauge shows how close you are. Only one screen **changes** what the organisation is allowed to do: **Admin dashboard → Workspace → Licence & usage**.\n\nThis lesson is about the four buttons on it — **Subscribe**, **Change plan**, **Manage Billing**, **Cancel subscription** — what each one does to the bill, on what date, and which of them you can take back."
     },
     {
       "type": "slide",
       "id": "where",
       "icon": "📍",
       "title": "Where it is, and who may press it",
-      "bodyMd": "In the admin dashboard, open the **Organisation** tab. On Bee Flow Cloud, **License & Usage** is its first section (some cloud accounts see the same screen titled **Subscription & Usage**). On a self-hosted install the row does not exist at all — the end of this lesson explains why.\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
+      "bodyMd": "In the admin dashboard, open **Workspace → Licence & usage**. That row is there on Bee Flow Cloud (some cloud accounts see the same screen titled **Subscription & Usage**). On a self-hosted install the row does not exist at all — the end of this lesson explains why.\n\nThe heading reads **Licence & usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
     },
     {
       "type": "slide",
@@ -67,14 +67,14 @@
       "id": "card",
       "icon": "🔎",
       "title": "Reading the card, tile by tile",
-      "bodyMd": "From the top of **License & Usage**:\n\n- **The plan card** with the plan name and **Billing cycle started** plus the date the current period opened.\n- **cost cap / month** at the right — the ceiling AI spending has to stay under this period.\n- One big number below it: the percentage under **\"AI usage of cap this period\"**. With no cap set you get a dash and **\"AI usage this period\"** instead.\n- **Usage this period**, then **Plan limits** with **Users**, **Agents** and **Knowledge Sources**.\n\nThe Users tile is the odd one out: where the subscription tracks seats it shows **current seats against the plan limit** rather than the bare cap, and it always carries an **Add user** button. On a per-seat plan a note under the grid warns that inviting a user adds a seat, billed per user per month and prorated for the current period."
+      "bodyMd": "From the top of **Licence & usage**:\n\n- **The plan card** with the plan name and **Billing cycle started** plus the date the current period opened.\n- **cost cap / month** at the right — the ceiling AI spending has to stay under this period.\n- One big number below it: the percentage under **\"AI usage of cap this period\"**. With no cap set you get a dash and **\"AI usage this period\"** instead.\n- **Usage this period**, then **Plan limits** with **Users**, **Agents** and **Knowledge Sources**.\n\nThe Users tile is the odd one out: where the subscription tracks seats it shows **current seats against the plan limit** rather than the bare cap, and it always carries an **Add user** button. On a per-seat plan a note under the grid warns that inviting a user adds a seat, billed per user per month and prorated for the current period."
     },
     {
       "type": "sim",
       "id": "sim-controls",
       "icon": "🧩",
       "title": "Five errands, five different buttons",
-      "instruction": "Erik has a list of small jobs. Match each one to the control on License & Usage that actually does it.",
+      "instruction": "Erik has a list of small jobs. Match each one to the control on Licence & usage that actually does it.",
       "sim": {
         "kind": "match",
         "pairs": [
@@ -168,7 +168,7 @@
         "items": [
           {
             "id": "open",
-            "label": "Open Admin dashboard → Organisation → License & Usage and read the plan card and the billing cycle date"
+            "label": "Open Admin dashboard → Workspace → Licence & usage and read the plan card and the billing cycle date"
           },
           {
             "id": "compare",
@@ -209,12 +209,12 @@
       "id": "selfhost",
       "icon": "🏠",
       "title": "Self-hosted: the row is gone on purpose",
-      "bodyMd": "If Van Dijk Groep ran Bee Flow on their own server, this lesson would end differently: on a self-hosted install **License & Usage is not in the Organisation list at all**, and a link to it lands on the first Organisation section instead. The subscriptions API answers *not available in self-hosted*, so plan cards, the plan picker and the cap gauge never appear. That is expected, not a fault.\n\nInstead, one **server-wide licence** sets the tier for every organisation on the server. Whoever administers the whole installation applies and reads it in the **Admin Dashboard**, on the **Server licence** tab — a tab only those installation-wide administrators see.\n\nSo on a self-hosted install the honest answer to \"can we upgrade?\" is: not on this screen, and not by the organisation admin — it is a question for whoever runs the server."
+      "bodyMd": "If Van Dijk Groep ran Bee Flow on their own server, this lesson would end differently: on a self-hosted install **Licence & usage is not in the admin dashboard at all**, and a link to it opens a notice instead: *\"On this server the licence is managed for the whole server, under Licence & features.\"* The subscriptions API answers *not available in self-hosted*, so plan cards, the plan picker and the cap gauge never appear. That is expected, not a fault.\n\nInstead, one **server-wide licence** sets the tier for every organisation on the server. Whoever administers the whole installation applies and reads it in the admin dashboard, under **Whole server → Licence & features → Server licence** — a row only those installation-wide administrators see.\n\nSo on a self-hosted install the honest answer to \"can we upgrade?\" is: not on this screen, and not by the organisation admin — it is a question for whoever runs the server."
     },
     {
       "type": "quiz",
       "id": "q-selfhost",
-      "question": "A client of Van Dijk Groep runs Bee Flow on their own server. Their admin can open Users & Groups and Privacy Shield, but there is no License & Usage row anywhere. What should you tell them?",
+      "question": "A client of Van Dijk Groep runs Bee Flow on their own server. Their admin can open People and Privacy Shield, but there is no Licence & usage row anywhere. What should you tell them?",
       "multi": false,
       "choices": [
         {
@@ -226,7 +226,7 @@
           "id": "b",
           "label": "Their organisation-admin role is missing, so the licensing row is hidden from them.",
           "correct": false,
-          "feedback": "Without that role the entire Organisation group would be hidden, not one row inside it — and they can clearly open the other rows."
+          "feedback": "Without that role the organisation's rows of the admin dashboard would be hidden, not one row among them — and they can clearly open the other rows."
         },
         {
           "id": "c",
@@ -260,10 +260,10 @@
       "icon": "🧾",
       "checkId": "licence-plan-known",
       "title": "Read your own plan card — and press nothing",
-      "instruction": "On Bee Flow Cloud, open Admin dashboard → Organisation → License & Usage. Note the plan name, the cost cap / month and every Plan limits tile, and which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace offers. Do not press any of them. On a self-hosted install the button lands on another Organisation section, because License & Usage does not exist there: your tier comes from the server-wide licence, so find out who runs the server. Either way, the checklist only confirms that your workspace answers with a licence tier.",
+      "instruction": "On Bee Flow Cloud, open Admin dashboard → Workspace → Licence & usage. Note the plan name, the cost cap / month and every Plan limits tile, and which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace offers. Do not press any of them. On a self-hosted install the button opens a notice instead, because Licence & usage does not exist there: your tier comes from the server-wide licence, so find out who runs the server. Either way, the checklist only confirms that your workspace answers with a licence tier.",
       "launch": {
         "navigateTo": "admin/organisation/license",
-        "label": "Open the Organisation settings"
+        "label": "Open Licence & usage"
       }
     },
     {
@@ -277,7 +277,7 @@
   "rubrics": {
     "ex-admin-plan-and-billing-note": {
       "title": "The note before the plan change",
-      "task": "Write a short note to the directeur of Van Dijk Groep before changing the plan, based on what License & Usage actually shows: what is short, what the change costs and when, and how it can be undone.",
+      "task": "Write a short note to the directeur of Van Dijk Groep before changing the plan, based on what Licence & usage actually shows: what is short, what the change costs and when, and how it can be undone.",
       "criteria": [
         "Quotes at least two concrete readings from the card — the plan name, a Plan limits tile (Users, Agents or Knowledge Sources), or the cost cap / month",
         "States when the change lands: an upgrade immediately with a prorated charge today, a downgrade at the end of the current billing period",
@@ -290,14 +290,14 @@
   },
   "practiceTopic": {
     "title": "Plan, billing and the licence tier",
-    "summary": "The License & Usage screen: what the plan sets, what the tier sets, and what each lifecycle button does to the bill and when.",
+    "summary": "The Licence & usage screen: what the plan sets, what the tier sets, and what each lifecycle button does to the bill and when.",
     "facts": [
-      "On Bee Flow Cloud, License & Usage is the first row of the Organisation group in settings; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
+      "On Bee Flow Cloud, Licence & usage is a row of the Workspace group in the admin dashboard; its subtitle is \"Your current plan and usage for this billing period\", and a consumer cloud account sees the same screen as Subscription & Usage.",
       "Plan limits shows only concrete caps — Users, Agents and Knowledge Sources; unlimited values draw no tile, the whole card disappears when a plan sets none of the three and has no notes, and the Users tile carries an Add user button.",
       "An upgrade takes effect immediately and its dialog shows Prorated charge today and Then; a downgrade's dialog shows Takes effect, Charge today 0,00 and Then, is scheduled to the end of the billing period, and is released with Keep current plan.",
       "Cancel subscription schedules the end of the current billing period, keeps full access until that date, takes no further payment, and is reversed with Keep subscription.",
       "With no plan the card reads \"No license assigned\" and offers Choose a Plan with a Subscribe button per plan, or \"No plans are available right now.\"",
-      "On a self-hosted install the License & Usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; the tier comes from one server-wide licence that installation-wide administrators manage in the Admin Dashboard on the Server licence tab."
+      "On a self-hosted install the Licence & usage row is removed entirely and the subscriptions API answers not_available_in_self_hosted; the tier comes from one server-wide licence that installation-wide administrators manage in the Admin Dashboard on the Server licence tab."
     ]
   },
   "actionChecks": [
@@ -305,7 +305,7 @@
       "checkId": "licence-plan-known",
       "existing": false,
       "label": "Read the workspace's licence and plan",
-      "hint": "On Bee Flow Cloud: Admin dashboard → Organisation → License & Usage. On a self-hosted install that row does not exist and the tier comes from the server-wide licence. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
+      "hint": "On Bee Flow Cloud: Admin dashboard → Workspace → Licence & usage. On a self-hosted install that row does not exist and the tier comes from the server-wide licence. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
       "endpoints": [
         {
           "method": "GET",
@@ -317,7 +317,7 @@
         {
           "id": "tier",
           "label": "Your workspace answers with its licence tier",
-          "hint": "On cloud, open License & Usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
+          "hint": "On cloud, open Licence & usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
           "rule": "GET /api/license/status → tier is a non-empty string; a read-back, not an achievement (features[] is always non-empty too, so it verifies nothing extra)",
           "endpoint": "/api/license/status",
           "expect": {

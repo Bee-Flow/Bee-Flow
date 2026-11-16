@@ -19,6 +19,7 @@ import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { useUrlQueryParam } from '@/hooks/useUrlTab';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
 import { toast } from '@/components/shared/Toast';
+import { Button } from '@/components/shared/Button';
 import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
 
 /**
@@ -204,14 +205,14 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
             {noOrgs ? (
                 <div className="p-8 m-6 rounded-xl border text-center bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Building2 className="w-8 h-8 mx-auto mb-3 text-[var(--text-muted)]" aria-hidden="true" />
-                    <p className="text-sm text-muted">
+                    <p className="text-sm text-[var(--text-muted)]">
                         {t('admin.shield_no_orgs', 'No organizations found. Create one in User Management first.')}
                     </p>
                 </div>
             ) : loadError ? (
                 <ShieldLoadError status={loadError.status} t={t} />
             ) : shieldLoading ? (
-                <div className="text-sm text-muted py-8 text-center">{t('admin.shield_loading')}</div>
+                <div className="text-sm text-[var(--text-muted)] py-8 text-center">{t('admin.shield_loading')}</div>
             ) : (
                 <>
                     {message?.type === 'warning' && (
@@ -299,13 +300,8 @@ function OrgShieldEditorShieldHeader({ orgList, selectedOrgId, guardStatus, guar
             which leaves a screen that may hold unsaved edits, is
             unreachable on an air-gapped self-host, and described an
             older version of this very page. */}
-        <button
-            type="button"
-            onClick={() => setHowItWorks(true)}
-            className="inline-flex items-center gap-1.5 h-[30px] px-[11px] rounded-[9px] text-xs font-medium whitespace-nowrap hover:opacity-80 border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)]"
-        >
-            <BookOpen className="w-[13px] h-[13px]" aria-hidden="true" />
+        <Button variant="secondary" size="sm" icon={BookOpen} onClick={() => setHowItWorks(true)}>
             {t('admin.shield_how_this_works', 'How this works')}
-        </button>
+        </Button>
     </ShieldHeader>;
 }

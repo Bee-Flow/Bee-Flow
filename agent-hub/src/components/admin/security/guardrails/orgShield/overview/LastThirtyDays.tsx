@@ -5,6 +5,7 @@ import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import { OUTCOME_TEXT } from '../shieldPalette';
 import { toolGapCount } from '../tabs/checks/checksModel';
 import type { GoTo } from './types';
+import { QUIET_BTN } from '@/components/shared/adminUi';
 
 interface Props {
     evidence: ShieldEvidence;
@@ -42,7 +43,7 @@ export default function LastThirtyDays({ evidence, t, onGoTo }: Props) {
                 <button
                     type="button"
                     onClick={() => onGoTo('activity')}
-                    className="ml-auto text-xs font-semibold text-[var(--info-ink)] inline-flex items-center gap-1 hover:underline"
+                    className={`${QUIET_BTN} ml-auto -my-1`}
                 >
                     {t('admin.shield_tab_activity', 'What happened')}
                     <ArrowRight className="w-3 h-3" aria-hidden="true" />

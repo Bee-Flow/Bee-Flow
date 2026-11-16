@@ -1,4 +1,4 @@
-# Fact sheet — Organisation Encryption (Settings → Organisation → Encryption)
+# Fact sheet — Organisation Encryption (Admin dashboard → Security & access → Encryption)
 
 Audience: **organisation admin**. Status: **the feature exists and is fully wired** (backend policy,
 escrow, three tiers, per-surface scope, admin route, UI picker, audit trail, backfill script).
@@ -55,17 +55,17 @@ The intro line on the screen says exactly this:
 ### 2.2 The Organisation sub-menu, in order (real labels, `orgInfoShared.jsx` + `en-defaults.js`)
 | Nav label | id | i18n key |
 |---|---|---|
-| License & Usage | `license` | `settings.license_usage` |
+| Licence & usage | `license` | `settings.license_usage` |
 | Sign-in Method | `auth` | `settings.signin_method` |
 | Privacy Shield | `privacy` | `settings.privacy_shield` |
 | **Encryption** | `encryption` | `settings.encryption` |
-| Conversation Memory | `ai_context` | `settings.ai_context` |
-| Answer Reuse | `integration_cache` | `settings.integration_cache` |
-| Organisation Info | `info` | `settings.org_info` |
+| Conversations | `ai_context` | `settings.ai_context` |
+| answer reuse | `integration_cache` | `settings.integration_cache` |
+| Organisation info | `info` | `settings.org_info` |
 | Usage & Monitoring | `org_usage` | `settings.usage_monitoring` |
 | Compliance | `org_compliance` | `settings.compliance` |
-| Users & Groups | `org_users` | `settings.users_groups` |
-| Academy, Integrations, GitHub Sync, Nextcloud Sync, Meeting Templates | … | … |
+| People | `org_users` | `settings.users_groups` |
+| Academy, Integrations, GitHub Sync, Nextcloud Sync, Meeting notes | … | … |
 
 Icon for Encryption: lucide `Lock`, colour `#8b5cf6` (purple).
 
@@ -330,7 +330,7 @@ a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DE
    path hard-locks.
 
 ### Workflow E — Admin resets a colleague's password (and what it costs)
-1. Settings → Organisation → **Users & Groups**.
+1. Settings → Organisation → **People**.
 2. Open the user, set a new password, save (`PUT /auth/users/:id` with `password` and **no** `oldPassword`).
 3. Server-side `adminResetUser(userId)` runs: it **wipes `wrappedDEK` and `kekSalt`**, sets
    `passwordResetRequired = 1`, and clears the failure counters. `recoveryWrappedDEK` is deliberately kept.
@@ -413,11 +413,11 @@ a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DE
 
 ## 10. How it connects to the rest of the product
 
-- **Privacy Shield** (Settings → Organisation → Privacy Shield). The Shield produces the
+- **Privacy Shield** (Admin dashboard → Security & access → Privacy Shield). The Shield produces the
   `pii_token_map`: the dictionary that turns `[person_1]` back into a real name. That map is an
   encryption surface (`piiTokenMap`) and is escrowed even on `zk`, because the DLP runner writes it with
   no session. The per-user tokenisation vault is encrypted on every tier.
-- **Conversation Memory / compaction** (Settings → Organisation → Conversation Memory). The compaction
+- **Conversations / compaction** (Admin dashboard → AI & agents → Conversations). The compaction
   summary lives in `conversation_meta` — surface `conversationMeta`, also escrowed on `zk`.
 - **Meeting Notes / transcripts.** Surface `transcripts`, keyed to the organisation via
   `org_transcript_dek` (wrapped by the ORK, so an ORK rotation rewraps it and nothing is orphaned).
@@ -429,7 +429,7 @@ a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DE
 - **Sign-in Method / SSO.** SSO users have no password to derive a KEK from, hence the separate
   **Encryption PIN** and the `EncryptionSetup` gate. `GET /auth/opaque/status` reports `kdfMode`
   (`opaque_v1` vs `legacy_argon2`).
-- **Users & Groups.** Admin password reset is the destructive interaction (§7 Workflow E).
+- **People.** Admin password reset is the destructive interaction (§7 Workflow E).
 - **Compliance Center.** `GDPR-Art32-encryption-at-rest` (severity `critical`, also mapped to NIS2
   Art. 21(2)(h)) passes only when both `MASTER_ENCRYPTION_KEY` and `SESSION_SECRET` are set; its evidence
   block reports `envelope_encryption: "AES-256-GCM (messageEncryption)"`. Every tier change is written to
@@ -474,7 +474,7 @@ a toggleable surface; `norm_key` is an HMAC blind index keyed from the user's DE
 Van Dijk Groep's inkoop team pastes supplier quotations and draft framework contracts into Bee Flow to
 compare terms. Prices and rebate ladders are commercially sensitive but the team must be able to hand a
 thread to a colleague, and the nightly "open tenders" automation has to summarise them. Marieke (org admin)
-opens **Settings → Organisation → Encryption** and picks **Managed**. Result: the quotation text is
+opens **Admin dashboard → Security & access → Encryption** and picks **Managed**. Result: the quotation text is
 AES-256-GCM in the database, a stolen backup yields nothing, the 3am automation still works because it reads
 the escrowed key, and when a buyer forgets their password Marieke can reset it without losing the thread.
 Afterwards she runs the backfill on the messages surface so the two years of history already in the system
@@ -494,7 +494,7 @@ so they are **not** zero-knowledge — the team agrees not to record those meeti
 ### Scenario 3 — Sales
 Sales keeps deal threads and call transcripts in Bee Flow and shares them into a project so the whole team
 and the follow-up automations can act on them. Van Dijk Groep is on the Community plan, so when the sales
-manager opens **Settings → Organisation → Encryption** he sees the amber banner "Encryption is not included
+manager opens **Admin dashboard → Security & access → Encryption** he sees the amber banner "Encryption is not included
 in your current plan. You can still turn it off, but not on.", with **Managed** and **Zero-knowledge**
 greyed out, each carrying an **Enterprise** badge and an **Upgrade at beeflow.nl** link. After the upgrade
 he picks **Managed** — the right choice here anyway, because every sales thread is shared into a project and

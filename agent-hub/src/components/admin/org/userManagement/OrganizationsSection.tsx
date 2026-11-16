@@ -2,7 +2,7 @@ import { Edit2, Plus, Trash2, Unlink } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import { ORG_SOURCE_KEY } from './constants';
-import { AddButton, EntityList, EntityRow, EntitySectionHeader, OrgIcon, RowAction } from './EntityRows';
+import { AddButton, EntityList, EntityRow, OrgIcon, RowAction } from './EntityRows';
 import type { AdminOrganization } from './types';
 
 export interface OrganizationsSectionProps {
@@ -18,11 +18,12 @@ export interface OrganizationsSectionProps {
 export default function OrganizationsSection({ organizations, isFullAdmin, onAddOrg, onEditOrg, onDeleteOrg, onRemoveNcBinding, t }: OrganizationsSectionProps) {
     return (
         <div>
-            <EntitySectionHeader
-                title={t('admin_org.orgs_section_title', 'Organizations')}
-                description={t('admin_org.orgs_section_subtitle', 'Manage organizations and their metadata')}
-                action={isFullAdmin ? <AddButton onClick={onAddOrg} icon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}>{t('admin_org.orgs_section_add', 'Add Organization')}</AddButton> : undefined}
-            />
+            {/* The page header is the dashboard's (the Organisations row); the add action stays with the list. */}
+            {isFullAdmin && (
+                <div className="mb-4 flex justify-end">
+                    <AddButton onClick={onAddOrg} icon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}>{t('admin_org.orgs_section_add', 'Add Organization')}</AddButton>
+                </div>
+            )}
             <EntityList>
                 {organizations.map(org => (
                     <EntityRow

@@ -14,10 +14,10 @@ export default function SaveBadge({ status, onRetry }: SaveBadgeProps) {
     const { t } = useTranslation();
     const map: Record<string, { label: string; color: string }> = {
         idle:   { label: '',                  color: 'var(--text-muted)' },
-        dirty:  { label: t('cms_site.site.shell.save_unsaved', '● Unsaved'),         color: '#fbbf24' },
+        dirty:  { label: t('cms_site.site.shell.save_unsaved', '● Unsaved'),         color: 'var(--warning-ink)' },
         saving: { label: t('cms_site.site.shell.save_saving', 'Saving…'),           color: 'var(--text-secondary)' },
-        saved:  { label: t('cms_site.site.shell.save_saved', '✓ Saved'),           color: '#34d399' },
-        error:  { label: t('cms_site.site.shell.save_failed', '⚠ Save failed'),     color: '#f87171' },
+        saved:  { label: t('cms_site.site.shell.save_saved', '✓ Saved'),           color: 'var(--success-ink)' },
+        error:  { label: t('cms_site.site.shell.save_failed', '⚠ Save failed'),     color: 'var(--error-ink)' },
     };
     const s = map[status] || map.idle;
     if (!s.label) return <span />;

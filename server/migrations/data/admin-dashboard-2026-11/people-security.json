@@ -1,0 +1,16 @@
+{
+  "reworded": {
+    "mcp_access.reveal.commands": {
+      "nl": "Opdrachtregelclient",
+      "was": [
+        "Claude Code verbinden"
+      ]
+    },
+    "mcp_access.tokens.intro": {
+      "nl": "Geef elke MCP-client, zoals een desktopassistent, een code-editor of een agent op de opdrachtregel, een eigen token, beperkt tot de servers en tools die jij kiest. Elke token kun je los intrekken.",
+      "was": [
+        "Geef Claude Code, Cursor of een andere MCP-client een eigen token, beperkt tot de servers en tools die jij kiest. Elke token kun je los intrekken."
+      ]
+    }
+  }
+}

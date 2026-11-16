@@ -17,7 +17,7 @@ automatically, whether or not anyone says it out loud.
 :::info Only available with pyannoteAI
 Voice profiles use pyannoteAI's speaker-identification model. The feature is completely hidden
 unless an administrator has selected **pyannoteAI** as the transcription engine in
-*Admin → Integrations → Transcription* and saved an API key. On any other engine, nothing changes.
+*Admin dashboard → Whole server → Platform services → Transcription* and saved an API key. On any other engine, nothing changes.
 :::
 
 ## Recording yours
@@ -74,7 +74,7 @@ speech is separated by speaker exactly as it always was.
 
 ## For administrators
 
-*Admin → Integrations → Transcription → pyannoteAI* has two controls:
+*Admin dashboard → Whole server → Platform services → Transcription → pyannoteAI* has two controls:
 
 - **Recognise speakers by voice** — an instance-wide off switch. Turning it off stops identification
   everywhere without anyone having to delete their profile.

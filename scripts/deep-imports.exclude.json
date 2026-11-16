@@ -213,6 +213,7 @@
     "utils/httpCredentialTypes.ts",
     "utils/integrationIcons.ts",
     "utils/logger.ts",
+    "utils/plural.ts",
     "utils/scopedStorage.ts",
     "utils/studioRecentSources.ts"
   ]

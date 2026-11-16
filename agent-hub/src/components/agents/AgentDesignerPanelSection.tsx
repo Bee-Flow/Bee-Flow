@@ -2,31 +2,19 @@ import React from 'react';
 import type { AgentFormData } from './AgentEditorUI';
 import { TranslateParams } from '../../hooks/useTranslation';
 import type { PanelAgent } from './AgentDesignerPanel.types';
+import Button from '@/components/shared/Button';
 
+/** The footer of the agent panel: delete and publish on the left, cancel and save on the right. Theme tokens only. */
 export function AgentDesignerPanelSection({ agent, handleDelete, t, togglePublish, formData, onClose, saveAgent, saving }: { agent: PanelAgent | null | undefined; handleDelete: () => Promise<void>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; togglePublish: () => Promise<void>; formData: AgentFormData; onClose: React.MouseEventHandler<HTMLButtonElement>; saveAgent: () => Promise<void>; saving: boolean; }) {
     return <div className="px-4 py-3 border-t flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-2">
             {agent && (
                 <>
-                    <button
-                        onClick={handleDelete}
-                        className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-red-500/20 text-[var(--error)]"
-                        data-testid="agent-delete-btn"
-                    >
+                    <Button variant="danger" onClick={() => { void handleDelete(); }} data-testid="agent-delete-btn">
                         {t('common.delete')}
-                    </button>
-                    <button
-                        onClick={togglePublish}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all`}
-                        style={formData.isPublished ? {
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                            color: 'white'
-                        } : {
-                            background: 'var(--bg-tertiary)',
-                            color: 'var(--text-muted)'
-                        }}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    </Button>
+                    <Button variant={formData.isPublished ? 'success' : 'secondary'} onClick={() => { void togglePublish(); }} aria-pressed={!!formData.isPublished}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             {formData.isPublished ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             ) : (
@@ -34,25 +22,22 @@ export function AgentDesignerPanelSection({ agent, handleDelete, t, togglePublis
                             )}
                         </svg>
                         {formData.isPublished ? t('agent.published') : t('agent.publish')}
-                    </button>
+                    </Button>
                 </>
             )}
         </div>
         <div className="flex items-center gap-2">
-            <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-[var(--text-muted)]"
-            >
+            <Button variant="ghost" onClick={onClose}>
                 {t('common.cancel')}
-            </button>
-            <button
-                onClick={saveAgent}
-                className="px-6 py-2 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02] [background:linear-gradient(135deg,#8b5cf6,#6366f1)]"
+            </Button>
+            <Button
+                variant="primary"
+                onClick={() => { void saveAgent(); }}
                 disabled={saving || !formData.name.trim()}
                 data-testid="agent-save-btn"
             >
                 {saving ? t('agent.saving') : agent ? t('agent.save_changes') : t('agent.create_agent')}
-            </button>
+            </Button>
         </div>
     </div>;
 }

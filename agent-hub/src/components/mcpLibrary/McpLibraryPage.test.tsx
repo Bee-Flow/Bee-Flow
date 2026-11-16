@@ -7,11 +7,12 @@
 
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     deferred, fakeBackend, library, ORG_PATH, POLICY_PATH, policyPayload,
 } from '@/test/mcpLibraryKit';
 import type { Reply } from '@/test/mcpLibraryKit';
+import { withShell } from '@/test/shellProviders';
 import { withQueryClient } from '@/test/queryWrapper';
 import McpLibraryPage from './McpLibraryPage';
 
@@ -197,7 +198,7 @@ it('a server administrator gets the "Server-wide" tab with the policy and the se
     api.on('GET', '/ai/mcp-servers', { body: { servers: [{ id: 'github', name: 'GitHub', enabled: true, status: 'ready', transport: 'stdio', tools_cache: [{ name: 'search_code' }] }] } });
     const user = await renderLoaded({ isServerAdmin: true });
 
-    expect(screen.getByRole('tab', { name: 'Your organisation' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Organisation' })).toHaveAttribute('aria-selected', 'true');
     await user.click(screen.getByRole('tab', { name: 'Server-wide' }));
 
     expect(await screen.findByRole('region', { name: 'What organisation admins may install' })).toBeInTheDocument();
@@ -213,4 +214,28 @@ it('"Change policy" takes a server administrator to the Server-wide tab', async 
     await user.click(screen.getByRole('button', { name: 'Change policy' }));
     expect(screen.getByRole('tab', { name: 'Server-wide' })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByText(/No server-wide MCP servers\./)).toBeInTheDocument();
+});
+
+describe('one view of the two, without the tabs (the admin dashboard\'s rows)', () => {
+    it('the organisation row: no tabs, no page header of its own, and "Change policy" opens the whole-server MCP servers row', async () => {
+        api.on('GET', ORG_PATH, { body: library({ isServerAdmin: true }) });
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        render(withQueryClient(withShell(<McpLibraryPage view="org" isServerAdmin />, { onNavigate })));
+        await screen.findByRole('heading', { name: /^Linear/ });
+        expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+        // The admin dashboard frame titles the page from the rail label.
+        expect(screen.queryByRole('heading', { level: 2, name: 'MCP library' })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Change policy' }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/mcp-servers');
+    });
+
+    it('the whole-server row: the policy and the servers, and no organisation library read', async () => {
+        api.on('GET', POLICY_PATH, { body: policyPayload() });
+        api.on('GET', '/ai/mcp-servers', { body: { servers: [] } });
+        render(withQueryClient(<McpLibraryPage view="server" />));
+        expect(await screen.findByRole('region', { name: 'What organisation admins may install' })).toBeInTheDocument();
+        expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes(ORG_PATH))).toBe(false);
+    });
 });

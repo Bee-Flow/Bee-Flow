@@ -7,6 +7,7 @@ import { toast } from '../../components/shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ThemeSettings } from '../../components/appearance/ThemeContext.types';
 import { messageOf } from '../../utils/caughtError';
+import IconPackChoice from './IconPackChoice';
 
 /**
  * AppearanceSection — user-facing theme overrides. End users pick a theme
@@ -18,6 +19,8 @@ import { messageOf } from '../../utils/caughtError';
  *     a member spots when they want out of their personalisation.
  *   - Save is implicit per-control — no batch save — so end users don't have
  *     to think about a save bar like admins do.
+ *   - The icon pack a person uses is chosen here too (IconPackChoice), in both
+ *     states: the theme lock does not cover icons.
  */
 
 const USER_PRESETS = [
@@ -36,23 +39,7 @@ export default function AppearanceSection() {
     const theme = useTheme();
     const [busy, setBusy] = useState(false);
 
-    if (theme.allowUserOverride === false) {
-        return (
-            <div className="space-y-6">
-                <header>
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                        {t('settings.appearance.title', 'Appearance')}
-                    </h2>
-                </header>
-                <div className="px-4 py-3 rounded-xl flex items-start gap-3 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                    <Lock className="w-4 h-4 mt-0.5 shrink-0" />
-                    <p className="text-sm">
-                        {t('settings.appearance.locked_prefix', 'Your organisation has locked the appearance to')} <strong>{labelForPreset(theme.preset)}</strong>{t('settings.appearance.locked_suffix', '. Contact an administrator if you need to change it.')}
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    if (theme.allowUserOverride === false) return <LockedAppearance preset={theme.preset} />;
 
     const isGlassPreset = theme.preset === 'glass' || theme.preset === 'glass-dark';
 
@@ -113,6 +100,29 @@ export default function AppearanceSection() {
                     />
                 </section>
             )}
+
+            <IconPackChoice />
+        </div>
+    );
+}
+
+/** The organisation locked the theme: say to what, and still offer the icon pack (the lock does not cover icons). */
+function LockedAppearance({ preset }: { preset: string }) {
+    const { t } = useTranslation();
+    return (
+        <div className="space-y-6">
+            <header>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t('settings.appearance.title', 'Appearance')}
+                </h2>
+            </header>
+            <div className="px-4 py-3 rounded-xl flex items-start gap-3 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+                <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+                <p className="text-sm">
+                    {t('settings.appearance.locked_prefix', 'Your organisation has locked the appearance to')} <strong>{labelForPreset(preset)}</strong>{t('settings.appearance.locked_suffix', '. Contact an administrator if you need to change it.')}
+                </p>
+            </div>
+            <IconPackChoice />
         </div>
     );
 }

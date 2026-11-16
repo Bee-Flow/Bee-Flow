@@ -463,7 +463,7 @@ Chat-side numbers worth quoting
   `manage_skills`.
 - **Org-authored prompt courses**: `learning_custom_content` (Beta, org-admin only, requires
   the Learning Center) lets admins write their own courses with their own AI-graded
-  exercises in **Settings → Organisation → Academy**; rubrics and quiz keys stay server-side.
+  exercises in **Admin dashboard → Workspace → Learning Center**; rubrics and quiz keys stay server-side.
 - **Org learning overview** (`GET /ai/learning/org-overview`) requires
   `requirePrimaryOrgAdmin()`.
 - Permission checks in code to grep: `useCan('learning_center')`, `checkPermission(user, gate.permission)`

@@ -6,10 +6,13 @@ import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import { API_BASE } from '@/utils/helpers';
-import RoleBadge from '@/components/shared/RoleBadge';
+import OrgRoleChip from '../people/OrgRoleChip';
+import { Button } from '@/components/shared/Button';
+import { CHIP_WARNING } from '@/components/shared/adminUi';
 import type { MemberUsage, OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 import type { OrgMemberRoles } from '../useOrgMemberRoles';
+import { orgRoleLabel } from '../people/orgRoleLabel';
 
 interface OrgMemberRowProps {
     member: OrgMember;
@@ -39,7 +42,7 @@ function MemberAvatar({ member: u }: { member: OrgMember }) {
         return <img src={u.avatar.startsWith('/') ? `${API_BASE}${u.avatar}` : u.avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />;
     }
     return (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+        <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-primary)] text-sm font-bold shrink-0" aria-hidden="true">
             {(u.displayName || u.username || '?')[0].toUpperCase()}
         </div>
     );
@@ -76,22 +79,12 @@ function PendingActions({ userId, memberRoles }: { userId: string; memberRoles: 
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1">
-            <button
-                onClick={() => memberRoles.handleApproveUser(userId)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
-                title={t('admin_org.users_approve_title', 'Approve user')}
-            >
-                <Check className="w-3.5 h-3.5" />
+            <Button variant="success" size="sm" icon={Check} onClick={() => memberRoles.handleApproveUser(userId)} title={t('admin_org.users_approve_title', 'Approve user')}>
                 {t('admin.org_approve', 'Approve')}
-            </button>
-            <button
-                onClick={() => memberRoles.handleRejectUser(userId)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                title={t('admin_org.users_reject_title', 'Reject user')}
-            >
-                <X className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="danger" size="sm" icon={X} onClick={() => memberRoles.handleRejectUser(userId)} title={t('admin_org.users_reject_title', 'Reject user')}>
                 {t('admin.org_reject', 'Reject')}
-            </button>
+            </Button>
         </div>
     );
 }
@@ -106,14 +99,14 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
                     <select
                         defaultValue={u.orgRole || 'user'}
                         onChange={e => handleUserRoleChange(u.id, e.target.value)}
-                        className="text-xs px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none"
+                        className="text-xs px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
                     >
                         <option value="user">{t('admin_org.users_user', 'User')}</option>
                         {ORG_ROLES.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
+                            <option key={r.id} value={r.id}>{orgRoleLabel(t, r.id)}</option>
                         ))}
                     </select>
-                    <button onClick={() => setEditingUserRole(null)} className="p-1 rounded hover:bg-white/10 text-[var(--text-muted)]">
+                    <button onClick={() => setEditingUserRole(null)} className="p-1 rounded hover:bg-[var(--item-hover-bg)] text-[var(--text-muted)]" aria-label={t('common.cancel', 'Cancel')}>
                         <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
@@ -137,19 +130,19 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
     const uGroups = Array.isArray(u.groups) ? u.groups : [];
     const userOrgGroups = orgGroups.filter(g => uGroups.includes(g.id));
     return (
-        <div className="px-5 py-3 flex items-center gap-4 hover:bg-[var(--bg-secondary)] transition-colors">
+        <div className="px-5 py-3 flex items-center gap-4 hover:bg-[var(--item-hover-bg)] transition-colors">
             <MemberAvatar member={u} />
             {/* Info */}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">{u.displayName || u.username}</span>
                     {u.status === 'pending' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-500 flex items-center gap-1">
+                        <span className={CHIP_WARNING}>
                             <Clock className="w-2.5 h-2.5" />
                             {t('admin_org.users_pending', 'Pending')}
                         </span>
                     ) : (
-                        <RoleBadge role={u.orgRole || u.role} />
+                        <OrgRoleChip role={u.orgRole || u.role} />
                     )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">

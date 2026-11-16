@@ -15,7 +15,7 @@
       "id": "self-written",
       "icon": "🧭",
       "title": "The register writes itself, you sign it",
-      "bodyMd": "An auditor's first question is almost never about your firewall. It is: *show me the record of what you process, and who signed it off.*\n\nArticle 30 requires that record. In Bee Flow it is not a form you fill in. Open Settings → **Compliance** → **Processing register (ROPA)** and it is already built from what this workspace actually runs:\n\n- **Controller** — your organisation, your DPO, data residency and legal bases from setup.\n- **Processing activities** — one row per **published** agent: **Activity · Purpose · Data categories · Retention · Transfers**. A draft you are still editing is not in the register; the published configuration is.\n- **Processors** — the next card.\n\nThe toolbar carries **Regenerate from live configuration**, **Download ROPA (PDF)** and **Mark as reviewed**.\n\nThe synthesis is the machine's work. The signature is yours."
+      "bodyMd": "An auditor's first question is almost never about your firewall. It is: *show me the record of what you process, and who signed it off.*\n\nArticle 30 requires that record. In Bee Flow it is not a form you fill in. Open Admin dashboard → Security & access → **Compliance** → **Processing register (ROPA)** and it is already built from what this workspace actually runs:\n\n- **Controller** — your organisation, your DPO, data residency and legal bases from setup.\n- **Processing activities** — one row per **published** agent: **Activity · Purpose · Data categories · Retention · Transfers**. A draft you are still editing is not in the register; the published configuration is.\n- **Processors** — the next card.\n\nThe toolbar carries **Regenerate from live configuration**, **Download ROPA (PDF)** and **Mark as reviewed**.\n\nThe synthesis is the machine's work. The signature is yours."
     },
     {
       "type": "slide",
@@ -297,7 +297,7 @@
       "checkId": "ropa-reviewed",
       "existing": false,
       "label": "Review the processing register",
-      "hint": "In Settings → Compliance → Processing register (ROPA), read the generated record and press Mark as reviewed.",
+      "hint": "In Admin dashboard → Security & access → Compliance → Processing register (ROPA), read the generated record and press Mark as reviewed.",
       "endpoints": [
         {
           "method": "GET",

@@ -80,7 +80,7 @@ function Stage({ n, Icon, title, body, onGoTo, goToLabel }: {
                     <button
                         type="button"
                         onClick={onGoTo}
-                        className="text-[11px] font-semibold inline-flex items-center gap-1 mt-1 hover:underline text-[var(--info-ink)]"
+                        className="text-[11px] font-semibold inline-flex items-center gap-1 mt-1 underline-offset-2 hover:underline text-[var(--text-primary)]"
                     >
                         {goToLabel}
                         <ArrowRight className="w-3 h-3" aria-hidden="true" />

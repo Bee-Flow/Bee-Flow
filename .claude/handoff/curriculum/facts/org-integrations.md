@@ -16,7 +16,7 @@ actually fires for a given person:
 1. **Does the subscription / licence include it?** — the *ceiling*. Set by the plan (cloud) or the
    server licence (self-hosted); an org admin can only look at it.
 2. **Has the org admin handed it out?** — the *grant*. Done in
-   Settings → Organisation → Integrations → **Integration access**, to *All members* or to a group.
+   Admin dashboard → Connections → Integration status → **Integration access**, to *All members* or to a group.
 3. **Has the individual supplied a credential?** — the *connection*. Done by each user in
    Settings → **Connections** (the personal screen), or lent to them by a colleague.
 
@@ -31,7 +31,7 @@ touch). Both appear conditionally.
 
 ## 2. Screens, with real labels
 
-### 2.1 Settings → Organisation → Integrations
+### 2.1 Admin dashboard → Connections → Integration status
 `/app/settings/organisation/integrations` (tab id `org_integrations`).
 Rendered by `OrganisationSection.jsx` with `activeSection='integrations'`; the sidebar row comes
 from `AdvancedSettings.jsx` (`labelKey: 'settings.integrations'` → **"Integrations"**, icon `Link2`,
@@ -50,7 +50,7 @@ Page header (i18n `org.integ_*`):
   the integrations your subscription includes."**
 - Left rail scope picker: **"All members"** (blue) then a **"Groups"** header with the group count
   in brackets. A search box **"Search groups…"** appears only when there are **more than 6 groups**.
-- Empty group list: **"No groups yet. Create groups under Users & Groups to grant capabilities per
+- Empty group list: **"No groups yet. Create groups under People to grant capabilities per
   team."**
 - Right pane header: **"All members"** or the group name; beside a group name:
   **"grants stack on top of All members"**.
@@ -114,7 +114,7 @@ MCP rows read **"Configure your credentials for {toolCount} tools"** → once fi
 **"{toolCount} tools available — credentials configured"**, and each stored field shows
 **"✓ Configured"**.
 
-### 2.3 Settings → Organisation → Nextcloud Sync
+### 2.3 Admin dashboard → Connections → Nextcloud
 `/app/settings/organisation/nextcloud-sync`, label **"Nextcloud Sync"** (`settings.nextcloud_sync`).
 Visible only when the org is NC-bound (`user.ncOrg.instanceId`) **or** the viewer is a super-admin.
 Contains, in order:
@@ -129,14 +129,20 @@ Contains, in order:
    instance."**
 2. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
    empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
-   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
-   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
-   pairing code? Anyone who has it will no longer be able to use it."*
+   use."**, expander **"How to use this code on the new Nextcloud"**: a Nextcloud admin opens Bee
+   Flow from the Nextcloud top bar or the connector's setup page
+   (`https://<your-nextcloud>/exapps/bee_flow/setup`, or
+   `/index.php/apps/app_api/proxy/bee_flow/setup`), enters the code under **Bind to existing
+   organisation** and presses **Apply pairing code** (nothing is reinstalled). On a first install
+   the code can also be given as the install-time value `BEEFLOW_PAIRING_CODE` (deploy options, or
+   `occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=<CODE>`); AppAPI has no
+   command that changes a value of an installed app. Revoke confirm: *"Revoke this pairing code?
+   Anyone who has it will no longer be able to use it."*
 3. `MeetingNotesAdminPanel` (Talk Meeting Notes; Talk only exists with a Nextcloud).
 
 The org-level Google Meet and Microsoft Teams meeting-notes panels (`GoogleMeetAdminPanel`,
 `TeamsAdminPanel`) are NOT here: they need no Nextcloud, so they sit under
-**Settings → Organisation → Meeting Templates**, after the summary templates.
+**Admin dashboard → AI & agents → Meeting notes**, after the summary templates.
 
 `OrgNcIntegrationsPanel` (shown under *Integration settings*, section 2.1) — heading
 **"Nextcloud integrations"**, lead *"Choose which Nextcloud tools your agents may use, and exclude
@@ -148,7 +154,7 @@ org-wide settings unless something is checked below."). Per-group checkboxes rea
 No synced groups → *"No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use
 'Sync now' in Nextcloud Sync."*
 
-### 2.4 Settings → Organisation → GitHub Sync
+### 2.4 Admin dashboard → Connections → GitHub sync
 `/app/settings/organisation/github-sync`, label **"GitHub Sync"** (`settings.github_sync`).
 **The menu row only appears once `GET /api/integrations/github/status` says `connected:true`** —
 i.e. after someone connected a GitHub PAT on the personal Connections screen.
@@ -171,7 +177,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 - **Admin → Access** (`admin.tab_access`) IS reachable by org admins (`perm: ['admin_security',
   'org_admin', 'manage_users']`). Left rail **Grants / Ceiling**. For a non-super-admin the Grants
   matrix is deliberately narrowed to `kinds={['core','beta']}` — *integrations are handled in
-  Settings → Organisation → Integrations* — and **Ceiling** is read-only.
+  Admin dashboard → Connections → Integration status* — and **Ceiling** is read-only.
 
 ---
 
@@ -209,7 +215,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 ### W2 — Give an integration to one team only
 1. Settings → Organisation → **Integrations** → **Integration access**.
 2. In the left rail under **Groups**, pick the group (type in **Search groups…** if there are more
-   than six). If the list is empty, create the group first under **Users & Groups**.
+   than six). If the list is empty, create the group first under **People**.
 3. The right pane header now shows the group name and *"grants stack on top of All members"*.
 4. Toggle the integration on. The count badge next to the group name increases.
 5. Verify a card is not already showing **"Granted to all members"** — that means everybody has it
@@ -235,7 +241,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 
 ### W5 — Mirror agents to GitHub
 1. Settings → **Connections** → **Developer** → **GitHub**: paste a PAT with `repo` scope, Save.
-2. Reload settings. **Organisation → GitHub Sync** now appears in the menu.
+2. Reload settings. **Connections → GitHub sync** now appears in the menu.
 3. Click **Configure Repository**, fill **Repository Owner**, **Repository Name**, **Branch**,
    optionally switch **Auto-sync** on.
 4. **Connect Repository**.
@@ -247,7 +253,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 2. In **Nextcloud integrations → Org-wide**, tick only the NC apps agents may touch, click **Save**.
 3. Scroll to **Per-group exceptions**, expand a synced NC group, tick **"Disable <tool>"** for that
    group. (Saves immediately, optimistic; it reverts on failure.)
-4. If the group list is empty, go to **Organisation → Nextcloud Sync** and press **Sync now**
+4. If the group list is empty, go to **Connections → Nextcloud** and press **Sync now**
    (or wait for the 6-hourly run).
 
 ---
@@ -362,8 +368,8 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 - **Organisation → Information → integration cache** (`OrgIntegrationCacheEditor`,
   `org_integration_cache_<orgId>`) decides whether third-party answers may be stored between runs;
   off by default, and switching it off purges what is stored.
-- **Users & Groups** is where the groups used by the access matrix are created.
-- **Admin → Access → Ceiling** shows the plan/licence ceiling; **Admin → Integrations** is where
+- **People** is where the groups used by the access matrix are created.
+- **Admin dashboard → Security & access → Access → Ceiling** shows the plan/licence ceiling; **Admin → Integrations** is where
   super-admins install MCP servers that then show up as grantable integrations.
 - **Meeting Notes / Google Meet / Summary templates** admin panels share the Nextcloud Sync page.
 
@@ -402,7 +408,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 
 **A — Procurement (Inkoop).** Van Dijk's inkoopteam wants an agent that reads supplier mail,
 files the PDF in Nextcloud and opens a YouTrack issue for disputed invoices.
-Steps: Settings → Organisation → Integrations → *Integration access* → scope **Inkoop** → grant
+Steps: Admin dashboard → Connections → Integration status → *Integration access* → scope **Inkoop** → grant
 `Gmail`, `Nextcloud`, `YouTrack`. Then *Integration settings* → **Nextcloud integrations** →
 Org-wide: tick Files & WebDAV, Tables; untick Talk. Buyer Pieter opens Settings → Connections,
 adds **"YouTrack – Inkoop"** and lends it to the team with a **90 days** expiry so nobody needs

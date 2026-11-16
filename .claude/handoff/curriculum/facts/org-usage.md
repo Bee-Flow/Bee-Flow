@@ -39,7 +39,7 @@ reads those rows back, aggregated, so an admin can answer four questions:
    early because of token limits, loops, errors or aborts (Terminations)?
 
 It is a **read-only reporting screen**. Nothing on it changes a setting. The two things that
-*do* change behaviour live one nav row away, on **License & Usage**: the plan/cost cap and the
+*do* change behaviour live one nav row away, on **Licence & usage**: the plan/cost cap and the
 "AI usage sharing" (pooled vs per-user budget) toggle.
 
 Deliberately **not** on this page: Safety & Guardrails and Integrations. They were moved to
@@ -53,7 +53,7 @@ Overview (the id list in `REPORT_TABS` no longer contains them).
 
 - URL: **`/app/settings/organisation/usage`** (tab id `org_usage`; table in
   `authedApp/settingsRoutes.js`).
-- Path in the UI: **Settings → Organisation → Usage & Monitoring**
+- Path in the UI: **Admin dashboard → Workspace → Usage & monitoring**
   (sidebar label key `settings.usage_monitoring` = **"Usage & Monitoring"**, icon `BarChart2`,
   amber `#f59e0b`). The Organisation group parent is labelled **"Organisation"**.
 - Deep link to a tab: `/app/settings/organisation/usage/<report>` — only `feedback` and
@@ -148,8 +148,8 @@ Triggered automatically when the `/summary` payload has no `total_calls` and doe
 ### 3.4 Feedback tab (Enterprise)
 
 Title **User Feedback**, subtitle **Feedback your users gave on AI responses**. KPI cards
-**Positive / Negative / With Comments / With Conversation** plus an `approval` percentage.
-Filter chips: **All · 👍 Positive · 👎 Negative · 💬 Comments · 🗨️ With Conversation**, search
+**Positive / Negative / With comments / With conversation** plus an `approval` percentage.
+Filter chips: **All · 👍 Positive · 👎 Negative · 💬 Comments · 🗨️ With conversation**, search
 box placeholder **Search feedback...**. Empty: **No feedback entries**; loading:
 **Loading feedback...**; unknown author: **Anonymous**. An amber banner appears when the
 positive share drops below **60 %** on a sample of at least **5** items. Page size **10**.
@@ -169,7 +169,7 @@ sample of at least **10** events.
 
 ### 3.6 The budget controls (a different screen, one nav row up)
 
-**Settings → Organisation → License & Usage** contains:
+**Admin dashboard → Workspace → Licence & usage** contains:
 - the plan card with the limit rows (users / agents / knowledge sources / cost cap),
 - section **AI usage sharing** — *"Choose whether your team shares one AI-usage budget, or
   whether each user gets their own slice."* with the toggle **Share AI usage across the
@@ -240,11 +240,11 @@ sample of at least **10** events.
 6. Click **Clear** to reset.
 
 ### W3 — "We got the 80 %-of-cap email. Are we about to be blocked?"
-1. Open **Settings → Organisation → Usage & Monitoring** (cloud org).
+1. Open **Admin dashboard → Workspace → Usage & monitoring** (cloud org).
 2. The hero gauge **AI usage vs. cap** shows the percentage for the *billing period* — amber
    from 80 %, red from 95 %.
 3. Use **Top users by cost** and **By app area** to find the driver.
-4. Go one row up in the sidebar to **License & Usage** to see the plan, the cap and the
+4. Go one row up in the sidebar to **Licence & usage** to see the plan, the cap and the
    billing period; upgrade the plan there, or
 5. In **AI usage sharing**, switch **Share AI usage across the organisation** off so each
    active seat gets `cap ÷ seats` instead of one person being able to drain the pool.
@@ -407,12 +407,12 @@ the **enterprise** tier; community does not have it):
   web pages (`webpage_bridge_ai`), forms (`form_ai_draft`), datatables
   (`datatable_ai_draft`), Cowork (`cowork_compose`), image/video/music generation, knowledge
   embeddings and agent test chats (`agent_test_chat`).
-- **License & Usage** (same Organisation group) owns the plan, the cap and the pooled toggle
+- **Licence & usage** (same Organisation group) owns the plan, the cap and the pooled toggle
   the gauge is drawn against.
 - **Privacy Shield → What happened** now owns guardrail events and the egress ledger that used
   to be the Safety and Integrations tabs here — same `/api/usage/*` router, different screen.
 - **Admin → Monitoring** is the platform-operator version of the same data, cross-org.
-- **Users & Groups** shows a per-user `cost · 30d` chip built from the same table
+- **People** shows a per-user `cost · 30d` chip built from the same table
   (`admin.org_usage_cost_30d`).
 - **OpenObserve / OTel**: `jobs/usageOpenObservePush.js` pushes an hourly rollup, and
   `logUsage` records an OTel metric per call. Production currently ships with those pushes
@@ -485,9 +485,9 @@ come back truncated. The admin opens **Terminations**, range **7d**, and sees **
 dominating with a **Large input** badge on most rows; **By agent** points at the proposal
 agent. Meanwhile the cap gauge shows 86 % — amber — because the sales rep with the biggest
 deals is burning the shared pool. Two actions: split the RFP upload / raise the model's output
-budget, and on **License & Usage** turn **Share AI usage across the organisation** off so each
+budget, and on **Licence & usage** turn **Share AI usage across the organisation** off so each
 of the 40 seats gets its own slice for the rest of the period. *(Teaches: Terminations, the
-cap gauge, pooled vs. per-user budget, and that budget controls live on License & Usage.)*
+cap gauge, pooled vs. per-user budget, and that budget controls live on Licence & usage.)*
 
 ---
 

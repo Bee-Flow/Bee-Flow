@@ -1,7 +1,7 @@
 import { Bot, MessageSquare, User } from 'lucide-react';
 import type { SnapshotMessage } from './feedbackModel';
 import { useTranslation } from '@/hooks/useTranslation';
-import { fmtTime } from '../shared';
+import { RelativeTime } from '../shared';
 import { MarkdownRenderer } from '../sharedTyped';
 
 /** One message of the shared conversation; empty system/tool messages render nothing. */
@@ -26,7 +26,7 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
                 <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold text-[var(--text-tertiary)]">
                     {isUserMsg ? <User className="h-2.5 w-2.5" aria-hidden="true" /> : <Bot className="h-2.5 w-2.5" aria-hidden="true" />}
                     <span>{isUserMsg ? 'User' : 'AI'}</span>
-                    {msg.timestamp && <span className="ml-auto pl-2 font-normal">{fmtTime(msg.timestamp)}</span>}
+                    {msg.timestamp && <span className="ml-auto pl-2 font-normal"><RelativeTime value={msg.timestamp} /></span>}
                 </div>
                 <div className="prose prose-sm max-w-none break-words text-[13px] leading-relaxed text-[var(--text-primary)] dark:prose-invert">
                     {isUserMsg

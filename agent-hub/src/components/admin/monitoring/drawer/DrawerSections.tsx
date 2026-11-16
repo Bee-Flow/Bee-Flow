@@ -2,7 +2,10 @@ import type { ReactNode } from 'react';
 import { DrawerSection } from '@/components/shared/SideDrawer';
 import type { DetailType, ModelRate, UsageRow } from './drawerTypes';
 import { useTranslation } from '@/hooks/useTranslation';
-import { fmt, fmtCost, fmtDuration, fmtTime, rowCost, agentChipClass, SeriesDot } from '../shared';
+import { fmt, fmtCost, fmtDuration, rowCost, SeriesDot } from '../shared';
+import { CHIP } from '@/components/mcpLibrary/ui';
+import { useLocaleFormat } from '@/hooks/useLocaleFormat';
+import { agentTypeName, callName } from '../shared/callLabels';
 
 interface StatsProps {
     type: DetailType;
@@ -30,8 +33,8 @@ export function DrawerStats({ type, data, costPerModel }: StatsProps) {
     return (
         <div className="grid grid-cols-3 gap-2">
             <Stat value={fmt(data.calls || 0)} label={t('admin_monitoring.drawer_calls', 'Calls')} />
-            <Stat value={fmt(data.total_tokens || 0)} label={t('admin_monitoring.drawer_total_tokens', 'Total Tokens')} />
-            <Stat value={fmtCost(isPayg ? billed : raw)} label={isPayg ? `Billed (raw ${fmtCost(raw)})` : 'Est. Cost'} />
+            <Stat value={fmt(data.total_tokens || 0)} label={t('admin_monitoring.drawer_total_tokens', 'Total tokens')} />
+            <Stat value={fmtCost(isPayg ? billed : raw)} label={isPayg ? t('admin_polish.drawer_billed_raw', 'Billed (raw {cost})', { cost: fmtCost(raw) }) : t('admin_monitoring.overview_est_cost', 'Est. cost')} />
         </div>
     );
 }
@@ -68,7 +71,7 @@ export function DrawerBreakdown({ type, data, modelCosts }: BreakdownProps) {
                     </>
                 )}
                 {type === 'agent' && data.agent_type && (
-                    <Line label={t('admin_monitoring.drawer_agent_type', 'Agent type')}><span className={agentChipClass(data.agent_type)}>{data.agent_type}</span></Line>
+                    <Line label={t('admin_monitoring.drawer_agent_type', 'Agent type')}><span className={CHIP}>{agentTypeName(data.agent_type, t)}</span></Line>
                 )}
             </div>
         </DrawerSection>
@@ -77,16 +80,17 @@ export function DrawerBreakdown({ type, data, modelCosts }: BreakdownProps) {
 
 function CallCard({ call: r, type, rate }: { call: UsageRow; type: DetailType; rate: ModelRate | undefined }) {
     const { t } = useTranslation();
+    const lf = useLocaleFormat();
     const cost = rowCost(r, rate);
     return (
         <li className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-[11px]">
             <div className="mb-1 flex justify-between gap-3">
-                <span className="text-[var(--text-tertiary)]">{fmtTime(r.timestamp)}</span>
+                <span className="text-[var(--text-tertiary)]" title={lf.dateTime(r.timestamp)}>{lf.relative(r.timestamp) || '—'}</span>
                 <span className="font-semibold tabular-nums text-[var(--text-primary)]">{cost != null ? fmtCost(cost) : '—'}</span>
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums text-[var(--text-secondary)]">
                 {type !== 'model' && <span>{r.model || '—'}</span>}
-                {type !== 'agent' && <span>{r.agent_name || '—'}</span>}
+                {type !== 'agent' && <span>{callName(r, t)}</span>}
                 <span>{t('admin_monitoring.drawer_in_n', '{n} in', { n: fmt(r.prompt_tokens) })}</span>
                 <span>{t('admin_monitoring.drawer_out_n', '{n} out', { n: fmt(r.completion_tokens) })}</span>
                 <span className="text-[var(--text-tertiary)]">{fmtDuration(r.duration_ms)}</span>
@@ -105,7 +109,7 @@ interface RelatedCallsProps {
 export function RelatedCalls({ type, calls, modelCosts }: RelatedCallsProps) {
     const { t } = useTranslation();
     return (
-        <DrawerSection label={t('admin_monitoring.drawer_recent_calls', 'Recent Calls ({n})', { n: calls.length })}>
+        <DrawerSection label={t('admin_monitoring.drawer_recent_calls', 'Recent calls ({n})', { n: calls.length })}>
             {calls.length === 0 ? (
                 <p className="m-0 py-4 text-center text-xs text-[var(--text-tertiary)]">{t('admin_monitoring.drawer_no_recent', 'No recent calls found')}</p>
             ) : (

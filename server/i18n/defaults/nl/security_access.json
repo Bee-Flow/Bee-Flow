@@ -1,0 +1,8 @@
+{
+  "translations": {
+    "security_access.mcp_cli_hint": "Per server een kant-en-klare opdracht voor een client op de opdrachtregel. Het formaat is dat van Claude Code; een andere client gebruikt hetzelfde adres en dezelfde header.",
+    "security_access.shield_preview_sample": "Stuur de polis naar {email} voor {name}, IBAN {iban}.",
+    "security_access.shield_review_reveal_body": "‘{setting}’ staat aan. Dat is goed voor het vertrouwen, maar het betekent ook dat gedeelde gesprekken de originele waarden laten zien."
+  },
+  "sameAsEnglish": []
+}

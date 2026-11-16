@@ -1,7 +1,7 @@
 import type { ModelRow } from './useAiProviderModels';
 import Section from '@/components/shared/Section';
 import Disclosure from '@/components/shared/Disclosure';
-import { CHIP } from '@/components/mcpLibrary/ui';
+import { CHIP } from '@/components/shared/adminUi';
 import { getModelMeta } from '@/api/modelMeta';
 import { useTranslation } from '@/hooks/useTranslation';
 

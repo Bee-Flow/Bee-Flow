@@ -189,7 +189,7 @@
       "checkId": "shield-terms",
       "existing": false,
       "label": "Tick your kinds of data and add an exception",
-      "hint": "Admin dashboard → Security → Guardrails → Org Privacy Shield: tick kinds under Hide from AI on What we look for, add a Never hidden exception on Your own data, then Save changes.",
+      "hint": "Admin dashboard → Security & access → Privacy Shield: tick kinds under Hide from AI on What we look for, add a Never hidden exception on Your own data, then Save changes.",
       "endpoints": [
         {
           "method": "GET",

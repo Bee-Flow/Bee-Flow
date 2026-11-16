@@ -77,7 +77,7 @@ While the assistant speaks, the mic stays open. If the user starts speaking (ene
 | Text → speech (TTS) | **Voxtral** (default) | Streams chunks for low first-byte latency. |
 | | ElevenLabs | The fallback when Voxtral text-to-speech fails or the Mistral account has no voice. |
 
-Voice chat needs a Mistral API key, and ElevenLabs its own key. Both are entered in **Admin → AI Config** and stored encrypted in the database; there is no environment variable for either. Without a Mistral key the voice routes answer `mistral_not_configured`.
+Voice chat needs a Mistral API key, and ElevenLabs its own key. Both are entered in **Admin dashboard → Whole server → AI configuration → Providers** and stored encrypted in the database; there is no environment variable for either. Without a Mistral key the voice routes answer `mistral_not_configured`.
 
 There is no provider picker. Per-user voice (e.g. one Talk room uses a Dutch voice, another an English voice) is on the roadmap.
 

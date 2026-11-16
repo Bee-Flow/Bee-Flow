@@ -2,6 +2,8 @@ import { Check, Send, Link2, AlertCircle } from 'lucide-react';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { OrgInvitations } from '../useOrgInvitations';
+import { Button } from '@/components/shared/Button';
+import { ALERT_ERROR, ALERT_SUCCESS, INPUT } from '@/components/shared/adminUi';
 
 type InviteFormProps = Pick<OrgInvitations,
     'inviteEmail' | 'setInviteEmail' | 'inviteRole' | 'setInviteRole'
@@ -14,7 +16,7 @@ export default function InviteForm({
 }: InviteFormProps) {
     const { t } = useTranslation();
     return (
-        <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--accent-primary)]/5">
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
             <div className="flex items-end gap-3">
                 <div className="flex-1">
                     <label className="block text-[10px] font-medium text-[var(--text-muted)] mb-1 uppercase tracking-wider">{t('admin_org.users_email_address', 'Email Address')}</label>
@@ -23,7 +25,7 @@ export default function InviteForm({
                         value={inviteEmail}
                         onChange={e => setInviteEmail(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSendInvite()}
-                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)] transition-colors"
+                        className={INPUT}
                         placeholder="colleague@example.com"
                         autoFocus
                     />
@@ -33,7 +35,7 @@ export default function InviteForm({
                     <select
                         value={inviteRole}
                         onChange={e => setInviteRole(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none"
+                        className={INPUT}
                     >
                         <option value="user">{t('admin_org.users_user', 'User')}</option>
                         {ORG_ROLES.map(r => (
@@ -41,28 +43,19 @@ export default function InviteForm({
                         ))}
                     </select>
                 </div>
-                <button
-                    onClick={handleSendInvite}
-                    disabled={sendingInvite || !inviteEmail.trim()}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--accent-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                    {sendingInvite ? (
-                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                        <Send className="w-3.5 h-3.5" />
-                    )}
+                <Button variant="primary" icon={Send} busy={sendingInvite} onClick={handleSendInvite} disabled={!inviteEmail.trim()}>
                     {t('admin_org.users_send', 'Send')}
-                </button>
+                </Button>
             </div>
             {inviteResult && (
-                <div className={`mt-3 flex items-start gap-2 text-xs px-3 py-2 rounded-lg ${inviteResult.success ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className={`mt-3 ${inviteResult.success ? ALERT_SUCCESS : ALERT_ERROR}`} role={inviteResult.success ? 'status' : 'alert'}>
                     {inviteResult.success ? <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
                     <div>
                         <span>{inviteResult.message}</span>
                         {inviteResult.inviteUrl && (
                             <button
                                 onClick={() => { navigator.clipboard.writeText(inviteResult.inviteUrl as string); }}
-                                className="flex items-center gap-1 mt-1 text-[var(--accent-primary)] hover:underline"
+                                className="flex items-center gap-1 mt-1 font-medium text-[var(--text-primary)] underline-offset-2 hover:underline"
                             >
                                 <Link2 className="w-3 h-3" />
                                 {t('admin_org.users_copy_invite', 'Copy invite link')}
@@ -72,7 +65,7 @@ export default function InviteForm({
                         {inviteResult.upgradeLink && (
                             <a
                                 href="/app/admin/organisation/license"
-                                className="flex items-center gap-1 mt-1 font-semibold text-[var(--accent-primary)] hover:underline"
+                                className="flex items-center gap-1 mt-1 font-semibold text-[var(--text-primary)] underline-offset-2 hover:underline"
                             >
                                 {t('agent_wizard.view_plans', 'View plans & upgrade')}
                             </a>

@@ -203,7 +203,7 @@ const config = {
     // One-shot pairing code for binding this NC to an existing Bee Flow org
     // (instead of creating a new one). An install-time value, or entered on
     // the setup page after generating the code in the existing org's
-    // Settings → Organisation → Nextcloud Sync panel. Consumed once at
+    // Admin dashboard → Connections → Nextcloud panel. Consumed once at
     // bootstrap; clear after.
     pairingCode: (process.env.BEEFLOW_PAIRING_CODE || '').trim().toUpperCase() || null,
 

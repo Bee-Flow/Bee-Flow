@@ -7,7 +7,7 @@ import WaitlistQueue from './WaitlistQueue';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/shared/Button';
 import { Banner } from '../ui/Banner';
-import SectionHeader from '@/components/shared/SectionHeader';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 
 /** Why the switches are overridden, or that they take effect at once. */
@@ -68,8 +68,8 @@ export function AccessView() {
 
     return (
         <div className="max-w-3xl p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.access_title', 'Access Control')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.access_title', 'Access control')}
                 description={t('admin_subscriptions.access_desc', 'Control which types of accounts can be created on this platform.')}
             />
 

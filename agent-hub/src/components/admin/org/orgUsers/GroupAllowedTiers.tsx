@@ -33,22 +33,21 @@ export default function GroupAllowedTiers({ group, customTiersMeta, onChange }: 
         onChange(group.id, Array.from(set));
     };
     const clearAll = () => onChange(group.id, []);
-    const renderPill = (tier: TierPill, accent: string) => {
+    const renderPill = (tier: TierPill) => {
         // When unrestricted, render pills muted as inactive so clicking
         // feels like "selecting this one tier to restrict to" rather than
-        // deselecting from an all-selected state.
+        // deselecting from an all-selected state. Selected is ink, as every
+        // selected choice in the dashboard.
         const active = !unrestricted && allowed.includes(tier.id);
         return (
             <button
                 key={tier.id}
                 type="button"
                 onClick={() => toggleTier(tier.id)}
-                className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                style={{
-                    background: active ? accent : 'var(--bg-primary)',
-                    color: active ? '#fff' : 'var(--text-muted)',
-                    border: `1px solid ${active ? accent : 'var(--border-subtle)'}`,
-                }}
+                aria-pressed={active}
+                className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-colors ${active
+                    ? 'bg-[var(--item-active-bg)] border-[var(--text-primary)] text-[var(--text-primary)]'
+                    : 'bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)]'}`}
                 title={tier.description || ''}
             >
                 {tier.icon || '✨'} {tier.label || tier.id}
@@ -60,8 +59,8 @@ export default function GroupAllowedTiers({ group, customTiersMeta, onChange }: 
             <label className="text-xs text-[var(--text-secondary)] w-24 pt-1.5 shrink-0">{t('admin_org.users_allowed_tiers', 'Allowed tiers')}</label>
             <div className="flex-1 space-y-2">
                 <div className="flex flex-wrap gap-1.5">
-                    {STANDARD_TIERS.map(tier => renderPill(tier, 'rgb(59, 130, 246)'))}
-                    {customTiersMeta.map(tier => renderPill(tier, 'rgb(234, 179, 8)'))}
+                    {STANDARD_TIERS.map(tier => renderPill(tier))}
+                    {customTiersMeta.map(tier => renderPill(tier))}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-3">
                     {unrestricted ? (

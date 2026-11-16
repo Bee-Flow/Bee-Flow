@@ -9,7 +9,8 @@ import { TIER_PRESETS } from '../constants';
 import { useResource, apiJson } from '../hooks/useApi';
 import { GrantsTable, type Grant } from './GrantsTable';
 import { ConfirmModal } from '../ui/Modal';
-import SectionHeader from '@/components/shared/SectionHeader';
+import { CopyBlobDialog, ExtendDialog, ImportDialog } from './GrantDialogs';
+import ViewHeader from '../ui/ViewHeader';
 import Spinner from '@/components/shared/Spinner';
 
 /** What the wizard offers as an organization. */
@@ -41,6 +42,9 @@ export function GrantsView() {
     const [issuing, setIssuing]   = useState(false);
     const [revoking, setRevoking] = useState<Grant | null>(null);
     const [busy, setBusy]         = useState(false);
+    const [copyFallback, setCopyFallback] = useState<string | null>(null);
+    const [extending, setExtending] = useState<{ id: string; expiresAt?: string | number | Date } | null>(null);
+    const [importing, setImporting] = useState(false);
 
     const grants = listRes.data?.licenses || [];
     const orgs   = orgsRes.data || [];
@@ -48,22 +52,23 @@ export function GrantsView() {
 
     const copyBlob = async (blob: string) => {
         try { await navigator.clipboard.writeText(blob); toast.success(t('admin_subscriptions.grants_blob_copied', 'Blob copied.')); }
-        catch { window.prompt(t('admin_subscriptions.grants_copy_prompt', 'Copy this blob:'), blob); }
+        catch { setCopyFallback(blob); }
     };
 
-    const handleExtend = async (id: string, current: string | number | Date | undefined) => {
-        const def = current ? new Date(current).toISOString().slice(0, 10) : '';
-        const next = window.prompt(t('admin_subscriptions.grants_expiry_prompt', 'New expiry date (YYYY-MM-DD):'), def);
-        if (!next) return;
+    const handleExtend = async (date: string) => {
+        if (!extending) return;
+        setBusy(true);
         try {
-            await apiJson(`/api/admin/licenses/${id}/extend`, {
+            await apiJson(`/api/admin/licenses/${extending.id}/extend`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expiresAt: new Date(next + 'T23:59:59Z').toISOString() }),
+                body: JSON.stringify({ expiresAt: new Date(date + 'T23:59:59Z').toISOString() }),
             });
             toast.success(t('admin_subscriptions.grants_expiry_extended', 'Expiry extended.'));
+            setExtending(null);
             listRes.reload();
         } catch (e) { toast.error((e as Error).message || t('admin_subscriptions.grants_extend_failed', 'Extend failed')); }
+        finally { setBusy(false); }
     };
 
     const handleRevoke = async () => {
@@ -78,19 +83,19 @@ export function GrantsView() {
         finally { setBusy(false); }
     };
 
-    const handleImport = async () => {
-        const blob = window.prompt(t('admin_subscriptions.grants_import_prompt', 'Paste a beeflow-admin-v1.* license blob to import:'));
-        if (!blob) return;
-        const orgId = window.prompt(t('admin_subscriptions.grants_import_org_prompt', 'Target organization id (leave blank to use the org embedded in the blob):'), '');
+    const handleImport = async (blob: string, organizationId: string | null) => {
+        setBusy(true);
         try {
             await apiJson('/api/admin/licenses/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ blob: blob.trim(), organizationId: orgId || null }),
+                body: JSON.stringify({ blob, organizationId }),
             });
             toast.success(t('admin_subscriptions.grants_imported', 'License imported.'));
+            setImporting(false);
             listRes.reload();
         } catch (e) { toast.error((e as Error).message || t('admin_subscriptions.grants_import_failed', 'Import failed')); }
+        finally { setBusy(false); }
     };
 
     if (issuing) {
@@ -108,12 +113,12 @@ export function GrantsView() {
 
     return (
         <div className="p-6 md:p-8">
-            <SectionHeader className="mb-5"
-                title={t('admin_subscriptions.grants_title', 'Admin License Grants')}
+            <ViewHeader className="mb-5"
+                title={t('admin_subscriptions.grants_title', 'Admin licence grants')}
                 description={t('admin_subscriptions.grants_desc', 'Mint licenses directly without Stripe. Org members pick up the new tier on next request.')}
                 status={
                     <div className="flex items-center gap-2">
-                        <Button variant="secondary" icon={Upload} onClick={handleImport}>{t('admin_subscriptions.grants_import', 'Import blob')}</Button>
+                        <Button variant="secondary" icon={Upload} onClick={() => setImporting(true)}>{t('admin_subscriptions.grants_import', 'Import blob')}</Button>
                         <Button icon={Plus} onClick={() => setIssuing(true)}>{t('admin_subscriptions.grants_issue', 'Issue license')}</Button>
                     </div>
                 }
@@ -129,7 +134,7 @@ export function GrantsView() {
                     action={<Button icon={Plus} onClick={() => setIssuing(true)}>{t('admin_subscriptions.grants_issue', 'Issue license')}</Button>}
                 />
             ) : (
-                <GrantsTable grants={grants} onCopy={copyBlob} onExtend={handleExtend} onRevoke={setRevoking} />
+                <GrantsTable grants={grants} onCopy={copyBlob} onExtend={(id, expiresAt) => setExtending({ id, expiresAt })} onRevoke={setRevoking} />
             )}
 
             <ConfirmModal
@@ -141,6 +146,9 @@ export function GrantsView() {
                 message={t('admin_subscriptions.grants_revoke_message', 'Members of the organization will fall back to community tier on their next request. This cannot be undone.')}
                 confirmLabel={t('admin_subscriptions.grants_revoke_confirm', 'Revoke license')}
             />
+            <CopyBlobDialog blob={copyFallback} onClose={() => setCopyFallback(null)} />
+            <ExtendDialog grant={extending} busy={busy} onClose={() => setExtending(null)} onSave={handleExtend} />
+            <ImportDialog open={importing} orgs={orgs} busy={busy} onClose={() => setImporting(false)} onImport={handleImport} />
         </div>
     );
 }

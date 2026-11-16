@@ -6184,7 +6184,7 @@
         "desc": "Knows what the workspace costs, why, and which switch changes it."
       },
       "audience": "The admin who got the 80%-of-cap e-mail, or who has to justify the bill next quarter.",
-      "learningRationale": "Cost panic makes admins turn knobs at random, so the course insists on reading before changing: chapter 1 teaches what the numbers are and are not (cloud redaction, tool rows, billing period versus range), chapter 2 traces one spike to a person, a model and an app area before touching a cap. Chapters 3 and 4 then cover the two settings most often mistaken for cost controls — Conversation Memory and Answer Reuse — with their real trade-offs, and the course closes on the Academy panel so the admin can see whether the team is actually learning any of this.",
+      "learningRationale": "Cost panic makes admins turn knobs at random, so the course insists on reading before changing: chapter 1 teaches what the numbers are and are not (cloud redaction, tool rows, billing period versus range), chapter 2 traces one spike to a person, a model and an app area before touching a cap. Chapters 3 and 4 then cover the two settings most often mistaken for cost controls — Conversations and answer reuse — with their real trade-offs, and the course closes on the Academy panel so the admin can see whether the team is actually learning any of this.",
       "lessons": [
         {
           "id": "org-usage",
@@ -6262,7 +6262,7 @@
             },
             {
               "kind": "slide",
-              "purpose": "Budgets live on License & Usage, not on this report"
+              "purpose": "Budgets live on Licence & usage, not on this report"
             },
             {
               "kind": "sim",
@@ -6298,10 +6298,10 @@
           "id": "org-context-and-reuse",
           "video": {
             "id": "org-context-and-reuse",
-            "titleFallback": "Conversation Memory and Answer Reuse in three minutes"
+            "titleFallback": "Conversations and answer reuse in three minutes"
           },
           "title": "Two switches nobody explains",
-          "desc": "Conversation Memory and Answer Reuse: what they really change, and what they cost.",
+          "desc": "Conversations and answer reuse: what they really change, and what they cost.",
           "icon": "🎚️",
           "estMinutes": 14,
           "areas": [
@@ -6310,7 +6310,7 @@
           "gate": {
             "permission": "org_admin"
           },
-          "learningGoal": "After this lesson you can decide both switches on evidence rather than on hope, and you know which half of Answer Reuse you do not control.",
+          "learningGoal": "After this lesson you can decide both switches on evidence rather than on hope, and you know which half of answer reuse you do not control.",
           "stepOutline": [
             {
               "kind": "slide",
@@ -6330,7 +6330,7 @@
             },
             {
               "kind": "slide",
-              "purpose": "Answer Reuse: a durable cache between runs, not a run memo"
+              "purpose": "Answer reuse: a durable cache between runs, not a run memo"
             },
             {
               "kind": "quiz",
@@ -6521,7 +6521,7 @@
           "gate": {
             "permission": "org_admin"
           },
-          "learningGoal": "After this lesson you can read the License & Usage card, tell a licence tier from a plan, change or cancel a subscription knowing exactly when it lands and how to undo it, and explain why the whole row is missing on a self-hosted install.",
+          "learningGoal": "After this lesson you can read the Licence & usage card, tell a licence tier from a plan, change or cancel a subscription knowing exactly when it lands and how to undo it, and explain why the whole row is missing on a self-hosted install.",
           "stepOutline": [
             {
               "kind": "slide",

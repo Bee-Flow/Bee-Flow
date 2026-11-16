@@ -119,3 +119,13 @@ test('GET /config: a platform admin gets everything (the admin pages depend on i
     assert.strictEqual(res.body.hasStripeSecretKey, false);
     assert.strictEqual(res.body.searchProvider, 'serper');
 });
+
+// The Direct chat page showed per-surface round defaults of its own (5/5/10/10)
+// while the loops ran on 15/15/20/20. The answer now carries the table the
+// page shows, for the admin only (memberConfigView is an allow-list).
+test('GET /config: the per-surface tool-round defaults reach the admin, not a member', async () => {
+    const admin = await api.call('GET', '/ai/config', { user: PLATFORM_ADMIN });
+    assert.deepStrictEqual(admin.body.toolRoundDefaults, { directChat: 15, notebookChat: 15, webpageChat: 20, nativeLoop: 20 });
+    const member = await api.call('GET', '/ai/config', { user: MEMBER });
+    assert.ok(!('toolRoundDefaults' in member.body));
+});

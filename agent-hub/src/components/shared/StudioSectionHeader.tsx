@@ -143,7 +143,7 @@ function KindTile({ kind, icon }: KindTileProps) {
     );
 }
 
-function Title({ title, onRename, renameRequest = 0, t }: TitleProps) {
+function Title({ title, onRename, renameRequest = 0, as: Heading = 'h1', t }: TitleProps) {
     const display = (title || '').trim();
     const shown = display || t('studio.header.untitled', 'Untitled');
     const [editing, setEditing] = useState(false);
@@ -185,7 +185,7 @@ function Title({ title, onRename, renameRequest = 0, t }: TitleProps) {
     const textClass = 'text-[14px] font-semibold text-[var(--text-primary)] truncate';
 
     if (!onRename) {
-        return <h1 className={`${textClass} m-0`} data-testid="studio-section-title">{shown}</h1>;
+        return <Heading className={`${textClass} m-0`} data-testid="studio-section-title">{shown}</Heading>;
     }
     if (editing) {
         return (
@@ -370,6 +370,7 @@ export default function StudioSectionHeader({
     onTab,
     tabsFold,
     titleMin,
+    titleAs,
     capsule,
     primary,
     extras,
@@ -393,7 +394,7 @@ export default function StudioSectionHeader({
             {onBack && <BackButton onBack={onBack} label={backLabel || t('studio.header.back', 'Back')} />}
             <KindTile kind={kind} icon={icon} />
             <div className={`${titleMin ? 'shrink-0' : 'min-w-0'} max-w-[22rem] @max-[1440px]/objhead:max-w-[12rem] flex items-center gap-2`}>
-                <Title title={title} onRename={onRename} renameRequest={renameRequest} t={t} />
+                <Title title={title} as={titleAs} onRename={onRename} renameRequest={renameRequest} t={t} />
             </div>
             <StatusChip chip={statusChip} />
             <div className="flex-1 min-w-0" aria-hidden="true" />

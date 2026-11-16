@@ -304,7 +304,7 @@ async function addPersonalServiceTools({ userId, isAppOn, addTools, isLentProvid
 
     // Google Maps — requires Maps API key
     const hasMapsKey = !!(await D.configStore.getSecret('google_maps_api_key'));
-    if (hasMapsKey && isAppOn('google-maps')) {
+    if (hasMapsKey && isAppOn('maps')) {
         addTools(T.MAPS_TOOLS);
     }
 

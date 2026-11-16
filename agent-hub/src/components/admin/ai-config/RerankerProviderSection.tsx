@@ -4,15 +4,17 @@ import useDraftOverServer from '@/hooks/useDraftOverServer';
 import useProviderConfig from '@/hooks/useProviderConfig';
 import type { ProviderMessage } from '@/hooks/useProviderConfig';
 import { useTranslation } from '@/hooks/useTranslation';
-import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
+import { Button } from '@/components/shared/Button';
+import { CHIP_SUCCESS } from '@/components/shared/adminUi';
+import { FIELD_INPUT, SettingBlock } from '@/components/shared/SettingsList';
 
-export interface RerankProvider {
+interface RerankProvider {
     id: string;
     name?: string;
     type?: string;
 }
 
-export interface RerankModel {
+interface RerankModel {
     id: string;
     name?: string;
     providerId?: string;
@@ -42,7 +44,7 @@ const RerankModelPicker = ({ models, value, onChange }: RerankModelPickerProps) 
     const label = t('admin_ai_config.rerank_provider_model', 'Rerank model');
     if (models.length > 0) {
         return (
-            <select value={value} onChange={e => onChange(e.target.value)} className={PROVIDER_INPUT_CLS} style={PROVIDER_INPUT_STYLE} aria-label={label}>
+            <select value={value} onChange={e => onChange(e.target.value)} className={FIELD_INPUT} aria-label={label}>
                 <option value="">{t('admin_ai_config.rerank_provider_select_model', 'Select model...')}</option>
                 {models.map(m => (
                     <option key={m.id} value={m.id}>{m.name || m.id}</option>
@@ -55,18 +57,17 @@ const RerankModelPicker = ({ models, value, onChange }: RerankModelPickerProps) 
             type="text"
             value={value}
             onChange={e => onChange(e.target.value)}
-            placeholder={t('admin_ai_config.rerank_provider_model_placeholder', 'Model id, e.g. Qwen/Qwen3-VL-Reranker-8B')}
-            className={PROVIDER_INPUT_CLS}
-            style={PROVIDER_INPUT_STYLE}
+            placeholder={t('ai_model_setup.rerank_model_placeholder', 'The rerank model id as your provider names it')}
+            className={FIELD_INPUT}
             aria-label={label}
         />
     );
 };
 
 /**
- * The provider tier of the Knowledge Base rerank chain: any provider that
- * serves an OpenAI/Cohere-style /rerank endpoint (IONOS, ...). Provider and
- * model are saved together; the tier is active only when both are set.
+ * The provider tier of the knowledge-base rerank chain: any connected provider
+ * that serves a /rerank endpoint in the common format. Provider and model are
+ * saved together; the tier is active only when both are set.
  */
 const RerankerProviderSection = ({ providers, allModels, onMessage }: RerankerProviderSectionProps) => {
     const { t } = useTranslation();
@@ -98,20 +99,20 @@ const RerankerProviderSection = ({ providers, allModels, onMessage }: RerankerPr
     };
 
     return (
-        <div className="space-y-2 pb-4 border-b border-[var(--border-default)]">
-            <h4 className="text-sm font-medium text-[var(--text-primary)]">
-                {t('admin_ai_config.rerank_provider_title', 'Provider (OpenAI/Cohere-style /rerank)')}
-                {isActive && <span className="ml-2 text-xs text-green-500">{t('admin_ai_config.rerank_provider_active', 'Active')}</span>}
-            </h4>
-            <p className="text-xs text-[var(--text-muted)]">
-                {t('admin_ai_config.rerank_provider_help', 'Rerank with a provider you connected above, for example IONOS with Qwen/Qwen3-VL-Reranker-8B. Order tried: local llama.cpp (if enabled), this provider, Azure Cohere, CPU, GPU sidecar, then plain rank fusion. The first one that is configured and answers wins.')}
-            </p>
-            <div className="flex gap-2">
+        <SettingBlock
+            label={(
+                <span className="flex items-center gap-2">
+                    {t('admin_ai_config.rerank_provider_title', 'Reranking through a connected provider')}
+                    {isActive && <span className={CHIP_SUCCESS}>{t('admin_ai_config.rerank_provider_active', 'Active')}</span>}
+                </span>
+            )}
+            hint={t('admin_ai_config.rerank_provider_help', 'Rerank with a connected provider that serves a /rerank endpoint in the common format. Order tried: a local llama.cpp reranker (when enabled), this provider, the hosted reranker below, the CPU reranker, a GPU sidecar, then plain rank fusion. The first one that is set up and answers wins.')}
+        >
+            <div className="flex flex-col gap-2 sm:flex-row">
                 <select
                     value={form.rerankProviderId}
                     onChange={e => patch({ rerankProviderId: e.target.value, rerankModel: '' })}
-                    className={`w-64 ${PROVIDER_INPUT_CLS.replace('w-full ', '')}`}
-                    style={PROVIDER_INPUT_STYLE}
+                    className={`${FIELD_INPUT} sm:w-64`}
                     aria-label={t('admin_ai_config.rerank_provider_select', 'Rerank provider')}
                 >
                     <option value="">{t('admin_ai_config.rerank_provider_none', 'No provider')}</option>
@@ -121,25 +122,17 @@ const RerankerProviderSection = ({ providers, allModels, onMessage }: RerankerPr
                 </select>
                 <RerankModelPicker models={rerankModels} value={form.rerankModel} onChange={model => patch({ rerankModel: model })} />
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end gap-2">
                 {isActive && (
-                    <button
-                        onClick={handleClear}
-                        disabled={saving}
-                        className="px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-white/10 [background:var(--bg-secondary)]! [color:var(--text-primary)]!"
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => { void handleClear(); }} disabled={saving}>
                         {t('admin_ai_config.rerank_provider_turn_off', 'Turn off')}
-                    </button>
+                    </Button>
                 )}
-                <button
-                    onClick={handleSave}
-                    disabled={saving || !complete || !dirty}
-                    className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
-                >
-                    {saving ? '...' : t('admin_ai_config.save', 'Save')}
-                </button>
+                <Button size="sm" onClick={() => { void handleSave(); }} busy={saving} disabled={!complete || !dirty}>
+                    {t('admin_ai_config.save', 'Save')}
+                </Button>
             </div>
-        </div>
+        </SettingBlock>
     );
 };
 

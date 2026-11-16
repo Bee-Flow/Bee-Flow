@@ -27,7 +27,7 @@ BTW, a hard blocker for Dutch B2B.
 1. **Activate Stripe Tax** in the Dashboard: set the origin address (NL) and
    add the NL VAT registration (21%). This also enables automatic EU B2B
    reverse charge.
-2. In Bee Flow: **Admin → Subscriptions → Stripe → Enable Stripe Tax**.
+2. In Bee Flow: **Admin dashboard → Whole server → Subscriptions → Stripe → Enable Stripe Tax**.
    Flipping the toggle automatically backfills `automatic_tax` onto existing
    active/trialing subscriptions (customers without a billing address are
    skipped and logged — complete their addresses, then re-toggle to retry).

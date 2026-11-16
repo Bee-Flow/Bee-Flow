@@ -209,6 +209,8 @@ export default function ComplianceHeader({ section, tab, onTab, onBack, backLabe
         kind: 'compliance',
         icon: section.icon,
         title: t(section.labelKey, section.labelFallback),
+        // The admin dashboard frame draws the page heading (h2); a section is a level below it.
+        titleAs: 'h3' as const,
         tabs: tabs.length ? [...tabs, ...(extraTabs || [])] : false,
         activeTab: tab,
         onTab,

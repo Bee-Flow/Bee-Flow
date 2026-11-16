@@ -1,4 +1,4 @@
-# Fact sheet — Organisation ▸ Academy, Licence/subscription gates, Organisation Info, Meeting templates
+# Fact sheet — Organisation ▸ Academy, Licence/subscription gates, Organisation info, Meeting templates
 
 Audience for lessons: **org admins** (orgRole `org_admin`, legacy `admin`).
 Status: **exists and is fully built** (not a stub). Everything below was read from the code in
@@ -37,14 +37,14 @@ Three admin-facing things live next to each other under **Settings → Organisat
    (courses completed, badges, certificates, last activity) and, with a beta capability,
    *authors the org's own courses* (slides, quizzes, AI-coached exercises) that appear inside
    members' Learning Center next to Bee Flow's nine built-in courses.
-2. **License & Usage** — the org's plan/subscription (cloud) or licence key (self-hosted), what
+2. **Licence & usage** — the org's plan/subscription (cloud) or licence key (self-hosted), what
    tier it is, the AI-usage cost cap and the plan limits. The tier is the *ceiling*: what the
    organisation is even allowed to switch on.
-3. **Organisation Info** and **Meeting templates** — the org's identity (branding, legal/invoicing,
+3. **Organisation info** and **Meeting templates** — the org's identity (branding, legal/invoicing,
    default language) and org-wide/group Meeting Notes summary styles.
 
 They belong in one lesson block because the Academy's authoring half is gated by a capability that
-comes from the licence/plan, and Organisation Info is the org row the whole gating machinery hangs
+comes from the licence/plan, and Organisation info is the org row the whole gating machinery hangs
 off (`organizationId`).
 
 ---
@@ -58,15 +58,15 @@ Its rows, in order (`BASE_ORG_SUB_ITEMS` in `AdvancedSettings.jsx`):
 
 | Row label (en) | i18n key | URL |
 |---|---|---|
-| License & Usage | `settings.license_usage` | `/app/settings/organisation/license` |
+| Licence & usage | `settings.license_usage` | `/app/settings/organisation/license` |
 | Sign-in Method | `settings.signin_method` | `/app/settings/organisation/auth` |
 | Privacy Shield | `settings.privacy_shield` | `/app/settings/organisation/privacy` |
 | Encryption | `settings.encryption` | `/app/settings/organisation/encryption` |
 | AI Context / Integration cache | `settings.ai_context`, `settings.integration_cache` | `…/info` group |
-| Organisation Info | `settings.org_info` | `/app/settings/organisation/info` |
+| Organisation info | `settings.org_info` | `/app/settings/organisation/info` |
 | Usage & Monitoring | `settings.usage_monitoring` | `/app/settings/organisation/usage` |
 | Compliance | `settings.compliance` | `/app/settings/organisation/compliance` |
-| Users & Groups | `settings.users_groups` | `/app/settings/organisation/users` |
+| People | `settings.users_groups` | `/app/settings/organisation/users` |
 | **Academy** | `settings.academy` → **"Academy"** | `/app/settings/organisation/academy` |
 | Integrations | `settings.integrations` | `/app/settings/organisation/integrations` |
 | GitHub Sync / Nextcloud Sync | … | `…/github-sync`, `…/nextcloud-sync` |
@@ -144,9 +144,9 @@ Empty: **"No steps yet — add a slide, quiz or exercise above."**
   **Pass score (1–100)**, **Max attempts (1–10)**,
   **Grading guidance (private note to the AI coach)**.
 
-### 2.4 License & Usage
+### 2.4 Licence & usage
 
-Heading **"License & Usage"** (cloud consumer variant: *Subscription & Usage*), subtitle
+Heading **"Licence & usage"** (cloud consumer variant: *Subscription & Usage*), subtitle
 **"Your current plan and usage for this billing period"**.
 No plan: **"No license assigned"** + **"Contact your administrator to set up a plan for your
 organisation."** and, on cloud, **"Choose a Plan"** with per-plan **"Subscribe"** buttons; if the
@@ -158,10 +158,10 @@ organisation"** (**Pooled across the organisation** vs **Each user has their own
 **"Cancel subscription"** and the confirm copy
 **"Cancel your subscription at the end of the current billing period? …"**.
 Self-hosted with a server licence: **"Tier is managed server-wide"**. On self-hosted the whole
-**License & Usage** row is removed from the sidebar — licensing is governed from the admin
+**Licence & usage** row is removed from the sidebar — licensing is governed from the admin
 dashboard's **Server licence** panel instead.
 
-### 2.5 Organisation Info
+### 2.5 Organisation info
 
 Sections **Branding** (*"Logo, name, and public-facing details"*) with **Logo**
 (hint: *"Displayed in the UI header and exports. PNG or SVG, max 500×200px."*), **Company Name**,
@@ -275,7 +275,7 @@ one. The panel self-hides when the caller is not an org admin or Meeting Notes i
    **"Delete this course and all its lessons? This also removes it for members."**
 
 ### W4 — Check what the plan allows, then grant it
-1. **Organisation → License & Usage** — read the tier, the **cost cap / month** and **Plan limits**.
+1. **Organisation → Licence & usage** — read the tier, the **cost cap / month** and **Plan limits**.
 2. Admin dashboard → **Access** → **Grants**.
 3. Pick **All members** or a group in the left column.
 4. Toggle the capability (e.g. *Academy Custom Courses (Beta)*). 🔒 items are outside the ceiling
@@ -283,8 +283,8 @@ one. The panel self-hides when the caller is not an org admin or Meeting Notes i
 5. Return to **Organisation → Academy**; the **Content** tab appears after the entitlements snapshot
    reloads (the SPA reads `GET /auth/my-entitlements`).
 
-### W5 — Fill in Organisation Info
-1. **Organisation → Organisation Info**.
+### W5 — Fill in Organisation info
+1. **Admin dashboard → Workspace → Organisation info**.
 2. Upload a **Logo** (PNG/SVG, max 500×200 px), set **Company Name**, **Tagline**, **Description**,
    **Email**, **Phone**, **Website**.
 3. Fill **Legal & Invoicing**: **Street**, **Address line 2**, **Postal code**, **City**,
@@ -428,10 +428,10 @@ Licence-tier placement that matters here
 - **Member Learning Center** (`/app/settings/learning`, tabs **Curriculum**, **Review**,
   **Achievements**) is the other half: published org courses land in a trailing curriculum column
   headed **"Your organisation"**, earn badges, and are graded by the same AI coach.
-- **Users & Groups** supplies the member list the Overview reports on and the groups the Grants
+- **People** supplies the member list the Overview reports on and the groups the Grants
   matrix and group-scoped meeting templates target.
 - **Access & Permissions (Grants / Ceiling)** is where a capability is actually switched on.
-- **License & Usage / server licence** sets the ceiling those grants are capped by.
+- **Licence & usage / server licence** sets the ceiling those grants are capped by.
 - **Usage & Monitoring** shows the AI cost the coach/tutor calls contribute to (they run on the
   `fast` tier and are rate-limited per user).
 - **Meeting Notes** consumes the org summary templates; the panel disappears without the
@@ -468,7 +468,7 @@ Licence-tier placement that matters here
    `organizationId` and therefore sees **no** custom courses — even though they *do* appear as a
    member in the Academy Overview (which counts group membership).
 8. **Looking for Academy on a phone.** The Organisation accordion is desktop-only.
-9. **Looking for License & Usage on self-hosted.** That row is removed; use the admin dashboard's
+9. **Looking for Licence & usage on self-hosted.** That row is removed; use the admin dashboard's
    server-licence panel.
 10. **Confusing "locked 🔒" with "off".** Locked = outside the plan ceiling (needs a plan/licence
     change). Unlocked-but-off = granted to nobody yet (a toggle away).
@@ -507,7 +507,7 @@ GDPR-safe to share internally.
 
 **C. Sales — a plan upgrade and a meeting template.** Sales lead Joost wants meeting summaries in
 the Van Dijk sales format, plus the ability to write a short sales course. Erik opens
-**Organisation → License & Usage**, sees the org is on a plan without Meeting Notes, uses
+**Organisation → Licence & usage**, sees the org is on a plan without Meeting Notes, uses
 **Change plan** → the confirm dialog shows **Takes effect**, **Prorated charge today**, **Then**
 € x / month. After the upgrade, **Meeting templates** appears: he adds *Sales-gesprek NL* scoped to
 the group **Sales**, marks it **Default**. For the course, *Academy Custom Courses (Beta)* is still
@@ -555,5 +555,5 @@ Write endpoints (for completeness, not for verification):
   `GET /ai/learning/org-overview` returns `members.length > 0` so the lesson step is answerable.
 - *"An org meeting template exists"* → `GET /api/summary-templates/org`, expect a row with
   `scope === 'org'` (and `isDefault === true` when the lesson asked for a default).
-- *"Organisation Info is filled in"* → `GET /auth/organizations/:id`, expect non-empty `name`,
+- *"Organisation info is filled in"* → `GET /auth/organizations/:id`, expect non-empty `name`,
   `kvk`/`vat` or `address`.

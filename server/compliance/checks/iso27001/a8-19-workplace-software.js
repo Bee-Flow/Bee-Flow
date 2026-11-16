@@ -27,7 +27,7 @@ module.exports = {
      * @param {string} orgId
      */
     async evaluate(orgId) {
-        const read = await readConnectorSnapshots(orgId, 'nextcloud', 'Nextcloud connector not enabled — link an admin app password under ISO 27001 → Connectors to record the workplace server version.');
+        const read = await readConnectorSnapshots(orgId, 'nextcloud', 'Nextcloud connector not enabled — link an admin app password under Compliance → Evidence connectors to record the workplace server version.');
         if (read.result) return read.result;
         const { snaps } = read;
         if (!snaps.length) return noSnapshotYet('nextcloud', 'Connector enabled but no snapshot yet — serverinfo unreachable or a sweep has not run; check the base URL and app password.');

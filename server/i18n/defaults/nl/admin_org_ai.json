@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "admin_org_ai.applies_immediately": "Wordt direct toegepast",
+    "admin_org_ai.cache_clear": "Het opgeslagen antwoord nu verwijderen",
+    "admin_org_ai.cache_clear_confirm": "Antwoorden verwijderen",
+    "admin_org_ai.cache_clear_desc": "Alle antwoorden die deze organisatie heeft opgeslagen, worden nu verwijderd. Latere uitvoeringen vragen het de app, de dienst of het model gewoon opnieuw, dus verder gaat er niets verloren.",
+    "admin_org_ai.cache_clear_plural": "De {count} opgeslagen antwoorden nu verwijderen",
+    "admin_org_ai.cache_clear_title": "Opgeslagen antwoorden verwijderen?",
+    "admin_org_ai.cache_held": "Nu opgeslagen: 1 antwoord, {size}.",
+    "admin_org_ai.cache_held_expired": "Daarvan is er 1 al verlopen en wordt nooit meer gebruikt. De opruiming per uur verwijdert het, of de knop hieronder.",
+    "admin_org_ai.cache_held_expired_plural": "Daarvan zijn er {count} al verlopen en worden nooit meer gebruikt. De opruiming per uur verwijdert ze, of de knop hieronder.",
+    "admin_org_ai.cache_held_plural": "Nu opgeslagen: {count} antwoorden, {size}.",
+    "admin_org_ai.cache_intro": "Automatiseringen stellen vaak steeds dezelfde vraag: aan een gekoppelde app, aan een webdienst die ze rechtstreeks aanroepen, of aan een AI-model in een AI-stap. Hier bepaal je of het antwoord mag worden opgeslagen zodat een latere uitvoering het kan gebruiken. Dat betekent wel dat opgeslagen wordt wat de andere kant teruggaf.",
+    "admin_org_ai.cache_minutes": "1 minuut",
+    "admin_org_ai.cache_minutes_plural": "{count} minuten",
+    "admin_org_ai.context_on_desc": "Zodra een chat ongeveer {count} berichten telt, wordt alles daarvoor vervangen door een korte samenvatting en worden lange toolresultaten ingekort. Goedkoper, maar details uit eerdere delen van het gesprek zijn voor de assistent definitief verloren.",
+    "admin_org_ai.context_runs_on": "Samenvattingen worden geschreven door {model}. Dat model kiest de serverbeheerder.",
+    "admin_org_ai.memory_runs_on": "Herinneringen worden uit chats gehaald door {model}. Dat model kiest de serverbeheerder.",
+    "admin_org_ai.memory_settings_title": "Geheugen in deze organisatie",
+    "admin_org_ai.retry": "Opnieuw proberen"
+  },
+  "sameAsEnglish": []
+}

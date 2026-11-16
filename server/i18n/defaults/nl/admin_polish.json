@@ -1,0 +1,38 @@
+{
+  "translations": {
+    "admin_polish.adoption_members_rule": "Mensen met een account in deze organisatie of in een van haar groepen. Openstaande uitnodigingen, gasten en de platformbeheerder van de server tellen niet mee.",
+    "admin_polish.agent_type_automation": "Automatisering",
+    "admin_polish.agent_type_system": "Systeem",
+    "admin_polish.call_direct_chat": "Directe chat",
+    "admin_polish.chart_no_data": "Geen gegevens om te tonen",
+    "admin_polish.drawer_agent_details": "Agentdetails",
+    "admin_polish.drawer_billed_raw": "Gefactureerd (ruw {cost})",
+    "admin_polish.drawer_model_details": "Modeldetails",
+    "admin_polish.feedback_no_ratings": "Nog geen beoordelingen",
+    "admin_polish.feedback_none_yet": "Geen feedback in deze periode. Mensen geven die met de duim omhoog of omlaag onder een antwoord.",
+    "admin_polish.kb_empty_body": "Een kennisbank is een verzameling documenten waarin agents en chats dingen kunnen opzoeken. Ingebouwde kennisbanken zijn kant-en-klare verzamelingen die de platformbeheerder van deze server installeert; staat er een klaar, dan zet je die hier aan voor je organisatie.",
+    "admin_polish.kb_empty_next": "Wil je er een? Vraag het je platformbeheerder. Voor je eigen documenten is dit niet nodig: iedereen die kennis mag beheren, kan daar zelf een kennisbank voor maken.",
+    "admin_polish.kb_empty_title": "Nog geen ingebouwde kennisbanken op deze server",
+    "admin_polish.source_agent_chat": "antwoord",
+    "admin_polish.source_agent_stream": "antwoord",
+    "admin_polish.source_agent_test_chat": "testchat",
+    "admin_polish.source_automation_builder": "bouwen met AI",
+    "admin_polish.source_chat_title": "gesprek een naam geven",
+    "admin_polish.source_kb_summary": "documenten samenvatten",
+    "admin_polish.source_knowledge_embedding": "documenten indexeren",
+    "admin_polish.source_meeting_actions": "actiepunten",
+    "admin_polish.source_meeting_summary": "samenvatting",
+    "admin_polish.tiers_add": "Niveau toevoegen",
+    "admin_polish.tiers_none": "Deze organisatie heeft nog geen aangepaste niveaus. Voeg er een toe om je leden een niveau te geven met een model dat jij kiest.",
+    "admin_polish.tiers_org_title": "Aangepaste niveaus van de organisatie",
+    "admin_polish.tiers_server_desc": "Deze niveaus horen bij de server. De platformbeheerder kiest hun modellen: je kunt ze hier lezen, niet wijzigen. Een groep kan nog beperken welke niveaus haar leden krijgen.",
+    "admin_polish.tiers_server_model_eu": "{model} · in EU-modus: {eu}",
+    "admin_polish.tiers_server_title": "Niveaus van de hele server",
+    "admin_polish.trend_one_day": "Eén dag aan gegevens in deze periode. De trend verschijnt vanaf twee dagen.",
+    "admin_polish.trend_one_hour": "Eén uur aan gegevens in deze periode. De trend verschijnt vanaf twee uur."
+  },
+  "sameAsEnglish": [
+    "admin_polish.agent_type_chat",
+    "admin_polish.source_with_purpose"
+  ]
+}

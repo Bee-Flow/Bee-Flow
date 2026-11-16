@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import UsageReports from '@/pages/settings/usage/UsageReports';
+import type { SpendExtraView } from '@/pages/settings/usage/spend/SpendTab';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface UsageReportPageProps {
@@ -14,6 +15,8 @@ interface UsageReportPageProps {
     /** Changes when the page's Refresh button is pressed. */
     refreshKey: number;
     onNavigate?: (path: string) => void;
+    /** Spend's views after its own (the monitor's conversations). */
+    spendExtraViews?: readonly SpendExtraView[];
 }
 
 /** Where the dashboard says the reports read: the chosen organisation, or all of them (a platform admin without a choice). */
@@ -48,7 +51,7 @@ function useRefreshOnKey(refreshKey: number) {
  * choice there; Spend then covers every organisation and leaves out the
  * subscription and the adoption-based change.
  */
-export function UsageReportPage({ report, range, customStart, customEnd, refreshKey, onNavigate }: UsageReportPageProps) {
+export function UsageReportPage({ report, range, customStart, customEnd, refreshKey, onNavigate, spendExtraViews }: UsageReportPageProps) {
     const { t } = useTranslation();
     const org = useReportOrg();
     const period = useMemo(() => ({ preset: range, customStart, customEnd }), [range, customStart, customEnd]);
@@ -59,7 +62,7 @@ export function UsageReportPage({ report, range, customStart, customEnd, refresh
     }
     return (
         <UsageReports
-            report={report} range={period} orgId={org.orgId} allOrganisations={org.all}
+            report={report} range={period} orgId={org.orgId} allOrganisations={org.all} spendExtraViews={spendExtraViews}
             onOpenTab={(tab) => onNavigate?.(`admin/monitoring/${tab}`)}
         />
     );

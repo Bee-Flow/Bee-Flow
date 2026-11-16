@@ -78,7 +78,7 @@ router.get('/auth-url', requireAuth, async (req, res) => {
     const { clientId } = await automationAuth.withingsClientConfig();
     if (!clientId) {
         return res.status(400).json({
-            error: 'Withings is not configured. Ask your admin to set the Withings Client ID and Secret in Admin → Integrations.',
+            error: 'Withings is not configured. Ask your platform administrator to set the Withings client ID and secret in Admin dashboard → Whole server → Platform services → Connected apps.',
             code: 'withings_not_configured',
         });
     }

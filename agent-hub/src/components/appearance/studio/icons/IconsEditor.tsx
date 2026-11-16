@@ -1,4 +1,4 @@
-import { Package, Plus, Trash2, Star, Download, Upload, AlertCircle, X } from 'lucide-react';
+import { Package, Plus, Trash2, Download, Upload, AlertCircle, X } from 'lucide-react';
 import React, { useState, useCallback, useId } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { iconPackKeys, useIconPackListQuery, type IconPackList } from '@/api/queries/iconPacks';
@@ -12,7 +12,7 @@ import type { AddPackModalProps, IconCategory, IconPack, PackListItemProps } fro
 import { ApiError, RefusedError } from '@/api/mutate';
 import { apiRequest } from '@/api/typedRequest';
 import { PackEditor } from './PackEditor';
-import { ALERT_ERROR, CHIP_SUCCESS, INPUT, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { ALERT_ERROR, CHIP, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '@/components/shared/adminUi';
 
 const NO_PACKS: IconPack[] = [];
 
@@ -20,13 +20,13 @@ const NO_PACKS: IconPack[] = [];
  * The pack list (one read on mount, again after a change), the active and the
  * selected pack (both follow each answer), and the error line.
  */
-function useIconPackList() {
+function useIconPackList(loadFailed: string) {
     const packsQuery = useIconPackListQuery<IconPack, IconCategory>();
     const qc = useQueryClient();
     const listed = packsQuery.data;
     const packs = listed?.packs || NO_PACKS;
     const categories = Array.isArray(listed?.categories) && listed.categories.length ? listed.categories : FALLBACK_CATEGORIES;
-    // The active pack follows each answer; activating or deleting one sets it at once.
+    // The pack in use follows each answer; deleting it clears it at once.
     const [activePackId, setActivePackId] = useState<string | null>(null);
     const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
     useAdjustOnChange([listed], () => {
@@ -39,7 +39,7 @@ function useIconPackList() {
     });
     const loading = packsQuery.isPending;
     const [error, setError] = useState('');
-    useAdjustOnChange([packsQuery.errorUpdatedAt], () => { if (packsQuery.isError) setError('Failed to load icon packs'); });
+    useAdjustOnChange([packsQuery.errorUpdatedAt], () => { if (packsQuery.isError) setError(loadFailed); });
     const refetchPacks = packsQuery.refetch;
     const fetchPacks = useCallback(async () => { await refetchPacks(); }, [refetchPacks]);
 
@@ -57,10 +57,11 @@ function useIconPackList() {
 }
 
 /**
- * IconsEditor — icon-pack management. Moved verbatim from the old
- * `admin/appearance/IconsSubPanel.jsx`; only the import paths and the export
- * name changed. Lives under the new Appearance shell as the second top-level
- * tab so its asset-management UX isn't tangled with the theme-token editor.
+ * IconsEditor — icon-pack authoring (Whole server > Appearance > Icon packs):
+ * create, edit, generate, import, export and delete packs. A pack belongs to
+ * the person who made it, and choosing the pack you USE is a personal setting:
+ * it lives in Settings > Appearance (pages/settings/IconPackChoice), next to
+ * the theme. The list here only marks the pack in use.
  */
 export default function IconsEditor() {
     const { t } = useTranslation();
@@ -69,7 +70,7 @@ export default function IconsEditor() {
     const {
         packs, categories, loading, error, setError, activePackId, setActivePackId,
         selectedPackId, setSelectedPackId, fetchPacks, updatePackLocally,
-    } = useIconPackList();
+    } = useIconPackList(t('platform_panels.icon_packs_load_failed', 'Could not load the icon packs.'));
     const [showAddModal, setShowAddModal] = useState(false);
     const { confirm, confirmDialog } = useConfirm();
 
@@ -86,30 +87,15 @@ export default function IconsEditor() {
                 setSelectedPackId(newPack.id);
                 setShowAddModal(false);
             } else {
-                setError('Failed to create pack');
+                setError(t('platform_panels.icon_packs_create_failed', 'Could not create the pack.'));
             }
         } catch {
-            setError('Failed to create pack');
-        }
-    };
-
-    const handleActivatePack = async (id: string | null) => {
-        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await apiRequest('POST /api/icons/{id}/activate', { params: { id: id || 'default' } }).catch((err: unknown) => {
-                if (err instanceof ApiError) return null;
-                throw err;
-            });
-            if (res) {
-                setActivePackId(id);
-                iconPackContext.setIconPack(id);
-            }
-        } catch (e) {
-            console.error(e);
+            setError(t('platform_panels.icon_packs_create_failed', 'Could not create the pack.'));
         }
     };
 
     const handleDeletePack = async (id: string) => {
-        if (!(await confirm({ title: 'Delete this icon pack?', description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('platform_panels.icon_packs_delete_title', 'Delete this icon pack?'), description: t('platform_panels.icon_packs_delete_body', 'This cannot be undone.'), confirmLabel: t('appearance.icons_editor_delete', 'Delete'), destructive: true }))) return;
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
             const res = await apiRequest('DELETE /api/icons/{id}', { params: { id } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
@@ -146,7 +132,7 @@ export default function IconsEditor() {
             a.click();
             URL.revokeObjectURL(url);
         } catch {
-            setError('Export failed');
+            setError(t('platform_panels.icon_packs_export_failed', 'Could not export the pack.'));
         }
     };
 
@@ -171,7 +157,7 @@ export default function IconsEditor() {
                 await fetchPacks();
                 setSelectedPackId(newPack.id);
             } catch {
-                setError('Import failed — invalid JSON file');
+                setError(t('platform_panels.icon_packs_import_failed', 'Could not import the pack: the file is not valid JSON.'));
             }
         };
         input.click();
@@ -191,12 +177,12 @@ export default function IconsEditor() {
                 <div className={`mx-4 mt-3 ${ALERT_ERROR}`}>
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
-                    <button onClick={() => setError('')} className="ml-auto" aria-label={t('appearance.icons_editor_dismiss_error', 'Dismiss error')}><X className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => setError('')} className="ml-auto" aria-label={t('appearance.icons_editor_dismiss_error', 'Dismiss error')}><X className="w-3.5 h-3.5" /></button>
                 </div>
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                <IconsEditorSection t={t} handleImport={handleImport} setShowAddModal={setShowAddModal} activePackId={activePackId} handleActivatePack={handleActivatePack} packs={packs} selectedPackId={selectedPackId} setSelectedPackId={setSelectedPackId} handleExport={handleExport} handleDeletePack={handleDeletePack} />
+                <IconsEditorSection t={t} handleImport={handleImport} setShowAddModal={setShowAddModal} activePackId={activePackId} packs={packs} selectedPackId={selectedPackId} setSelectedPackId={setSelectedPackId} handleExport={handleExport} handleDeletePack={handleDeletePack} />
 
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {selectedPackId ? (
@@ -205,7 +191,6 @@ export default function IconsEditor() {
                             packId={selectedPackId}
                             categories={categories}
                             isActive={activePackId === selectedPackId}
-                            onActivate={() => handleActivatePack(selectedPackId)}
                             onExport={() => handleExport(selectedPackId)}
                             onPackChanged={(partial: Partial<IconPack>) => {
                                 updatePackLocally(selectedPackId, partial);
@@ -231,42 +216,34 @@ export default function IconsEditor() {
     );
 }
 
-const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onActivate, onExport, onDelete }: PackListItemProps) => {
+const PackListItem = ({ label, sub, isActive, isSelected, onSelect, onExport, onDelete }: PackListItemProps) => {
     const { t } = useTranslation();
     const isHighlight = isSelected;
     return (
         <div
-            onClick={onSelect}
-            className={`group px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between transition-all ${isHighlight ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
+            className={`group px-3 py-2 rounded-md flex items-center justify-between transition-all ${isHighlight ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
         >
-            <div className="flex items-center gap-2 min-w-0">
-                <Package className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? '' : 'opacity-60'}`} />
-                <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{label}</div>
-                    <div className={`text-[10px] truncate ${isHighlight ? 'opacity-80' : 'opacity-60'}`}>{sub}</div>
-                </div>
+            <button type="button" onClick={onSelect} aria-current={isSelected ? 'true' : undefined} className="flex flex-1 items-center gap-2 min-w-0 text-left">
+                <Package className={`w-3.5 h-3.5 shrink-0 ${isHighlight ? '' : 'opacity-60'}`} aria-hidden="true" />
+                <span className="min-w-0">
+                    <span className="block text-sm font-medium truncate">{label}</span>
+                    <span className={`block text-[10px] truncate ${isHighlight ? 'opacity-80' : 'opacity-60'}`}>{sub}</span>
+                </span>
                 {isActive && (
-                    <span
-                        className={`ml-1 ${CHIP_SUCCESS}`}
-                    >
-                        {t('appearance.icons_editor_active', 'Active')}
+                    <span className={`ml-1 ${CHIP}`}>
+                        {t('platform_panels.icon_packs_in_use', 'In use by you')}
                     </span>
                 )}
-            </div>
-            {(onActivate || onExport || onDelete) && (
-                <div className={`flex items-center gap-0.5 shrink-0 ${isHighlight ? 'opacity-80' : 'opacity-0 group-hover:opacity-60'} transition-opacity`}>
-                    {onActivate && !isActive && (
-                        <button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onActivate(); }} className="p-1 rounded hover:bg-black/10" title={t('appearance.icons_editor_set_as_active', 'Set as active')} aria-label={t('appearance.icons_editor_set_as_active', 'Set as active')}>
-                            <Star className="w-3 h-3" />
-                        </button>
-                    )}
+            </button>
+            {(onExport || onDelete) && (
+                <div className={`flex items-center gap-0.5 shrink-0 ${isHighlight ? 'opacity-80' : 'opacity-0 group-hover:opacity-60 group-focus-within:opacity-80'} transition-opacity`}>
                     {onExport && (
-                        <button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onExport(); }} className="p-1 rounded hover:bg-black/10" title={t('appearance.icons_editor_export', 'Export')} aria-label={t('appearance.icons_editor_export', 'Export')}>
+                        <button type="button" onClick={onExport} className="p-1 rounded hover:bg-[var(--item-hover-bg)]" title={t('appearance.icons_editor_export', 'Export')} aria-label={t('appearance.icons_editor_export', 'Export')}>
                             <Download className="w-3 h-3" />
                         </button>
                     )}
                     {onDelete && (
-                        <button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-500/20" title={t('appearance.icons_editor_delete', 'Delete')} aria-label={t('appearance.icons_editor_delete', 'Delete')}>
+                        <button type="button" onClick={onDelete} className="p-1 rounded text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_12%,transparent)]" title={t('appearance.icons_editor_delete', 'Delete')} aria-label={t('appearance.icons_editor_delete', 'Delete')}>
                             <Trash2 className="w-3 h-3" />
                         </button>
                     )}
@@ -296,13 +273,14 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
                     className={`${INPUT} mb-4`}
                 />
                 <div className="flex gap-2">
-                    <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
+                    <button type="button" onClick={onClose} className={`${SECONDARY_BTN} flex-1`}>
                         {t('appearance.icons_editor_cancel', 'Cancel')}
                     </button>
                     <button
+                        type="button"
                         onClick={() => onAdd(name)}
                         disabled={!name.trim()}
-                        className={`${PRIMARY_BTN} flex-1 py-2`}
+                        className={`${PRIMARY_BTN} flex-1`}
                     >
                         {t('appearance.icons_editor_create', 'Create')}
                     </button>
@@ -313,40 +291,32 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
 };
 
 
-function IconsEditorSection({ t, handleImport, setShowAddModal, activePackId, handleActivatePack, packs, selectedPackId, setSelectedPackId, handleExport, handleDeletePack }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; handleImport: () => void; setShowAddModal: React.Dispatch<React.SetStateAction<boolean>>; activePackId: string | null; handleActivatePack: (id: string | null) => Promise<void>; packs: IconPack[]; selectedPackId: string | null; setSelectedPackId: React.Dispatch<React.SetStateAction<string | null>>; handleExport: (id: string) => Promise<void>; handleDeletePack: (id: string) => Promise<void>; }) {
+function IconsEditorSection({ t, handleImport, setShowAddModal, activePackId, packs, selectedPackId, setSelectedPackId, handleExport, handleDeletePack }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; handleImport: () => void; setShowAddModal: React.Dispatch<React.SetStateAction<boolean>>; activePackId: string | null; packs: IconPack[]; selectedPackId: string | null; setSelectedPackId: React.Dispatch<React.SetStateAction<string | null>>; handleExport: (id: string) => Promise<void>; handleDeletePack: (id: string) => Promise<void>; }) {
     return <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
         <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
             <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                <Package className="w-4 h-4 text-[var(--accent-primary)]" />
-                {t('admin.tab_appearance', 'Icon Packs')}
+                <Package className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+                {t('admin_nav.icon_packs', 'Icon packs')}
             </span>
             <div className="flex items-center gap-0.5">
-                <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
+                <button type="button" onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
                     <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
                 </button>
-                <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
+                <button type="button" onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
                     <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
                 </button>
             </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            <PackListItem
-                label="System Default"
-                sub="Standard Lucide icons"
-                isActive={!activePackId}
-                isSelected={false}
-                onSelect={() => handleActivatePack(null)} />
-
             {packs.map((pack: IconPack) => (
                 <PackListItem
                     key={pack.id}
                     label={pack.name}
-                    sub={`${Object.keys(pack.icons || {}).length} custom`}
+                    sub={t('platform_panels.icon_packs_count', '{n} custom icons', { n: Object.keys(pack.icons || {}).length })}
                     isActive={activePackId === pack.id}
                     isSelected={selectedPackId === pack.id}
                     onSelect={() => setSelectedPackId(pack.id)}
-                    onActivate={() => handleActivatePack(pack.id)}
                     onExport={() => handleExport(pack.id)}
                     onDelete={() => handleDeletePack(pack.id)} />
             ))}
@@ -357,5 +327,8 @@ function IconsEditorSection({ t, handleImport, setShowAddModal, activePackId, ha
                 </p>
             )}
         </div>
+        <p className="m-0 border-t border-[var(--border-default)] px-3 py-2 text-[11px] leading-snug text-[var(--text-tertiary)]">
+            {t('platform_panels.icon_packs_choose_hint', 'Packs are yours. Pick the one you use in Settings > Appearance.')}
+        </p>
     </div>;
 }

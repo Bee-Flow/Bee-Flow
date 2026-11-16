@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "icon_gen.bulk_description": "Maakt voor elk item in de catalogus een pictogram met het gekozen beeldmodel. Je eigen pictogrammen blijven staan, tenzij je overschrijven aanvinkt.",
+    "icon_gen.bulk_failed": "Het maken van de pictogrammen is mislukt.",
+    "icon_gen.bulk_title": "Alle pictogrammen met AI maken",
+    "icon_gen.failed": "Het maken van het pictogram is mislukt.",
+    "icon_gen.failed_reason": "Het maken van het pictogram is mislukt: {reason}",
+    "icon_gen.generate": "Maken",
+    "icon_gen.generate_with_ai": "Maken met AI",
+    "icon_gen.generating": "Bezig met maken…",
+    "icon_gen.image_model": "Beeldmodel",
+    "icon_gen.no_image": "Er kwam geen afbeelding terug. Probeer een andere omschrijving.",
+    "icon_gen.picker_generate": "Pictogram maken",
+    "icon_gen.picker_hint": "Beschrijf het pictogram dat je wilt. Het wordt gemaakt met het beeldmodel dat je hieronder kiest.",
+    "icon_gen.picker_subtitle_no_ai": "Kies een emoji of upload een afbeelding. Standaard: {default}"
+  },
+  "sameAsEnglish": []
+}

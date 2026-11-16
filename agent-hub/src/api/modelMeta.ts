@@ -367,14 +367,3 @@ export const filterVisibleModels = (models: ModelEntry[], agentType: string | nu
         };
     });
 };
-
-export const CAT_COLORS: Record<string, string> = {
-    Generalist: 'rgba(59, 130, 246, 0.2)',
-    Reasoning: 'rgba(168, 85, 247, 0.2)',
-    Coding: 'rgba(16, 185, 129, 0.2)',
-    Vision: 'rgba(245, 158, 11, 0.2)',
-    Audio: 'rgba(236, 72, 153, 0.2)',
-    Embedding: 'rgba(107, 114, 128, 0.2)',
-    OCR: 'rgba(249, 115, 22, 0.2)',
-    Moderation: 'rgba(239, 68, 68, 0.2)',
-};

@@ -1,6 +1,6 @@
 /**
- * Nextcloud Sync's words and small rules, from NextcloudSyncPanel.jsx and
- * OrgNcPairingPanel.jsx (pinned by nextcloud.lockstep.test.ts).
+ * Nextcloud Sync's words and small rules, from NextcloudSyncPanel.tsx and
+ * OrgNcPairingPanel.tsx (pinned by orgIntegrations.lockstep.test.ts).
  */
 
 import type { TranslateFn } from '@/core/i18n';
@@ -34,13 +34,17 @@ export function countdown(expiresAt: string | null, now = Date.now()): string | 
     return `${min}m ${sec.toString().padStart(2, '0')}s`;
 }
 
-/** What the connector's admin runs on the new Nextcloud (the web's "How to use this code"). */
+/** The connector's setup page, by deploy daemon (the web's SETUP_PAGE_ADDRESSES): where the code is entered. */
+export const SETUP_PAGE_ADDRESSES = `https://<your-nextcloud>/exapps/bee_flow/setup
+https://<your-nextcloud>/index.php/apps/app_api/proxy/bee_flow/setup`;
+
+/**
+ * The code as an install-time value, for a first install of the connector (the
+ * web's AT_INSTALL_COMMAND). AppAPI has no command that changes a value of an
+ * installed app: there the code goes in on the connector's setup page.
+ */
 export function pairingCommands(code: string): string {
-    return [
-        `occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE ${code}`,
-        'occ app_api:app:disable bee_flow',
-        'occ app_api:app:enable bee_flow',
-    ].join('\n');
+    return `occ app_api:app:register bee_flow <daemon> --env BEEFLOW_PAIRING_CODE=${code}`;
 }
 
 export function syncModeLabel(mode: NcSyncMode, t: TranslateFn): string {

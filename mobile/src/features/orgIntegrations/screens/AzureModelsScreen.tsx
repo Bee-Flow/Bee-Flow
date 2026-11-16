@@ -1,5 +1,5 @@
 /**
- * Chat model tiers (web: integrations/azure/ChatModelsSection.jsx): which
+ * Chat model tiers (web: AI configuration, ChatModelTiersConfig): which
  * Azure deployment each Direct Chat tier uses, with its budget, temperature
  * and reasoning. Saved together; the server merges the four over what it
  * stores, so the tiers this screen does not show are kept.

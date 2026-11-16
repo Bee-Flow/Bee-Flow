@@ -1,7 +1,7 @@
 // Types of hooks/useAgentApi.ts.
 import type { DesignerAgent } from '../AgentListSidebar';
 import type useAgentState from './useAgentState';
-import type { DesignerMessage } from './useAgentState';
+import type { DesignerMessage, RegexScope } from './useAgentState';
 
 export type { DesignerAgent, DesignerMessage };
 
@@ -31,4 +31,19 @@ export interface AgentSaveBody {
     categoryId?: string | null;
     /** On create only: the organisation the admin dashboard narrowed the list to (POST /agents trusts it from a platform admin). */
     organizationId?: string;
+}
+
+/** The keys of an agent's `config` the designer edits; every other key is kept as stored. */
+export interface DesignerConfig {
+    allowCopy?: boolean;
+    enableGuardrails?: boolean;
+    llamaGuardEnabled?: boolean;
+    webSearchGuardEnabled?: boolean;
+    strictKnowledge?: boolean;
+    disableExternalTools?: boolean;
+    includeSourceReferences?: boolean;
+    enabledIntegrations?: string[] | null;
+    knowledge_base_ids?: string[];
+    regexGuardrails?: { enabled?: boolean; collectionIds?: string[]; scope?: RegexScope; action?: string };
+    [key: string]: unknown;
 }

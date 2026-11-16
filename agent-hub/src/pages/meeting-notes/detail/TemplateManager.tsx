@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Pencil, Star, User, Building2, Users } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import TemplateEditor from './TemplateEditor';
+import { Button } from '@/components/shared/Button';
 import type { LucideIcon } from 'lucide-react';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
 
@@ -90,14 +91,9 @@ export default function TemplateManager({
             </div>
 
             <div className="mt-3">
-                <button
-                    type="button"
-                    onClick={openNew}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-medium text-white bg-[var(--accent-primary)]"
-                >
-                    <Plus className="w-3.5 h-3.5" />
+                <Button variant="primary" size="sm" icon={Plus} onClick={openNew}>
                     {t('meeting_notes.template_new', 'New template…')}
-                </button>
+                </Button>
             </div>
 
             <TemplateEditor

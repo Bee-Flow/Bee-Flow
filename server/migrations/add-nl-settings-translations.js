@@ -56,7 +56,7 @@ const NL_TRANSLATIONS = {
     'integ.linkedin_connected': 'AI kan posten op LinkedIn',
     'integ.linkedin_connected_as': 'Verbonden als {name} — AI kan posten op LinkedIn',
     'integ.linkedin_desc': 'Verbind om via AI op LinkedIn te posten',
-    'integ.linkedin_not_configured': 'LinkedIn is niet geconfigureerd. Vraag je beheerder om het in te stellen via Beheer → Integraties.',
+    'integ.linkedin_not_configured': 'LinkedIn is niet geconfigureerd. Vraag je platformbeheerder om de client-ID en het secret in te stellen bij Beheerdashboard → Hele server → Platformdiensten → Gekoppelde apps.',
     'integ.linkedin_connect': 'LinkedIn verbinden',
     'integ.linkedin_opening': 'Openen…',
     'integ.github_connected': 'Verbonden als {username} — AI kan repo\'s beheren en code bekijken',
@@ -74,7 +74,7 @@ const NL_TRANSLATIONS = {
     'org.default_language_desc': 'Stel de standaardtaal in voor nieuwe gebruikers in je organisatie',
     'org.new_user_language': 'Taal nieuwe gebruiker',
     'org.new_user_language_desc': 'Wanneer een nieuwe gebruiker voor het eerst inlogt, wordt de interface in deze taal weergegeven. Gebruikers kunnen hun taal op elk moment wijzigen in hun persoonlijke instellingen.',
-    'org.default_language_info': 'Deze instelling geldt alleen voor nieuwe gebruikers die nog geen taal hebben gekozen. Bestaande gebruikers behouden hun huidige taalvoorkeur. Ga naar het beheerdersdashboard > Talen om meer talen aan BeeFlow toe te voegen.',
+    'org.default_language_info': 'Deze instelling geldt alleen voor nieuwe gebruikers die nog geen taal hebben gekozen. Bestaande gebruikers behouden hun huidige taalvoorkeur. Ga naar Beheer → Talen om meer talen aan Bee Flow toe te voegen.',
     'org.description': 'Beschrijving',
 
     // ── Agents ──────────────────────────────────────────────────

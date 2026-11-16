@@ -1,8 +1,15 @@
-import { AlertTriangle, DatabaseZap, Loader2, Timer, Trash2 } from 'lucide-react';
-import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import { AlertTriangle, DatabaseZap, Timer, Trash2 } from 'lucide-react';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { nOf } from '@/utils/plural';
+import Button from '@/components/shared/Button';
+import Section from '@/components/shared/Section';
+import { SettingBlock, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Slider from '@/components/shared/Slider';
+import Toggle from '@/components/shared/Toggle';
+import { ALERT_WARNING } from '@/components/shared/adminUi';
 
-// The pieces of OrgIntegrationCacheEditor: the two ChoiceCards, what may be kept,
-// the reuse window, what is stored now, and the header and buttons.
+// The pieces of OrgIntegrationCacheEditor: the two ChoiceCards, what may be kept
+// and the reuse window, what is stored now with its clear button.
 
 const MINUTES = (s: number) => Math.round(s / 60);
 
@@ -18,198 +25,156 @@ const BYTES = (n: number) => {
 /** Off (ask every run) or on (keep answers for a while), as ChoiceCards options. */
 export function cacheModeOptions(t: TranslateFn) {
     return [
-    {
-        value: 'off',
-        label: t('admin.integration_cache.off', 'Ask every run (recommended)'),
-        description: t(
-            'admin.integration_cache.off_desc',
-            'Nothing an app answers is stored. An automation can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
-        ),
-        Icon: DatabaseZap,
-    },
-    {
-        value: 'on',
-        label: t('admin.integration_cache.on', 'Keep answers for a short while'),
-        description: t(
-            'admin.integration_cache.on_desc',
-            'Answers are stored, encrypted, so a later run can use them instead of asking again — both what a connected app answers and what a web service call brings back. Only look-ups, never anything that changes something, and only for steps whose author asked for it. Faster and cheaper — but a run can then work from data that is a few minutes old.',
-        ),
-        Icon: Timer,
-    },
+        {
+            value: 'off',
+            label: t('admin.integration_cache.off', 'Ask every run (recommended)'),
+            description: t(
+                'admin.integration_cache.off_desc',
+                'Nothing an app answers is stored. An automation can still avoid asking the same thing twice inside one run — that reuse never leaves the run.',
+            ),
+            Icon: DatabaseZap,
+        },
+        {
+            value: 'on',
+            label: t('admin.integration_cache.on', 'Keep answers for a short while'),
+            description: t(
+                'admin.integration_cache.on_desc',
+                'Answers to look-ups are stored, encrypted, so a later run can use them instead of asking again. Only look-ups, never anything that changes something, and only for steps whose author asked for it. Faster and cheaper — but a run can then work from data that is a few minutes old.',
+            ),
+            Icon: Timer,
+        },
     ];
 }
 
 /** The operator has switched the store off for the whole server. */
 export function KillSwitchNotice({ t }: { t: TranslateFn }) {
     return (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            <AlertTriangle className="mr-2 inline h-4 w-4" aria-hidden="true" />
-            {t(
-                'admin.integration_cache.kill_switch',
-                'This is switched off for the whole server by its operator, so nothing is stored whatever you choose here.',
-            )}
+        <div role="status" className={ALERT_WARNING}>
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="text-sm">
+                {t(
+                    'admin.integration_cache.kill_switch',
+                    'This is switched off for the whole server by its operator, so nothing is stored whatever you choose here.',
+                )}
+            </span>
         </div>
     );
 }
 
-interface ScopeChecksProps {
+export interface CacheScopes {
+    integration: boolean;
+    http: boolean;
+    ai: boolean;
+}
+
+interface ScopeRowsProps {
     t: TranslateFn;
     saving: boolean;
-    scopeIntegration: boolean;
-    setScopeIntegration: (on: boolean) => void;
-    scopeHttp: boolean;
-    setScopeHttp: (on: boolean) => void;
-    scopeAi: boolean;
-    setScopeAi: (on: boolean) => void;
+    scopes: CacheScopes;
+    setScope: (patch: Partial<CacheScopes>) => void;
 }
 
 /** What may be kept: connected-app answers, web-service replies, AI-step answers. */
-export function ScopeChecks({ t, saving, scopeIntegration, setScopeIntegration, scopeHttp, setScopeHttp, scopeAi, setScopeAi }: ScopeChecksProps) {
+function ScopeRows({ t, saving, scopes, setScope }: ScopeRowsProps) {
     return (
         <>
-            <label className="flex items-start gap-2 text-sm">
-                <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={scopeIntegration}
-                    disabled={saving}
-                    onChange={(e) => setScopeIntegration(e.target.checked)}
-                />
-                <span>
-                    {t('admin.integration_cache.scope_integration', 'Answers from connected apps')}
-                    <span className="block text-xs opacity-70">
-                        {t('admin.integration_cache.scope_integration_desc', 'Look-ups an automation makes through an app action — a calendar, a mailbox, a ticket system.')}
-                    </span>
-                </span>
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-                <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={scopeHttp}
-                    disabled={saving}
-                    onChange={(e) => setScopeHttp(e.target.checked)}
-                />
-                <span>
-                    {t('admin.integration_cache.scope_http', 'Answers from web service calls')}
-                    <span className="block text-xs opacity-70">
-                        {t('admin.integration_cache.scope_http_desc', 'Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.')}
-                    </span>
-                </span>
-            </label>
-
-            <label className="flex items-start gap-2 text-sm">
-                <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={scopeAi}
-                    disabled={saving}
-                    onChange={(e) => setScopeAi(e.target.checked)}
-                />
-                <span>
-                    {t('admin.integration_cache.scope_ai', 'Answers from AI steps')}
-                    <span className="block text-xs opacity-70">
-                        {t('admin.integration_cache.scope_ai_desc', 'When an AI step asks the same question with the same (privacy-protected) input, the stored answer is reused instead of asking the model again. Stored encrypted until the window ends; never used in test runs.')}
-                    </span>
-                </span>
-            </label>
+            <Toggle
+                flat
+                checked={scopes.integration}
+                disabled={saving}
+                onChange={(on) => setScope({ integration: on })}
+                label={t('admin.integration_cache.scope_integration', 'Answers from connected apps')}
+                description={t('admin.integration_cache.scope_integration_desc', 'Look-ups an automation makes through an app action — a calendar, a mailbox, a ticket system.')}
+            />
+            <Toggle
+                flat
+                checked={scopes.http}
+                disabled={saving}
+                onChange={(on) => setScope({ http: on })}
+                label={t('admin.integration_cache.scope_http', 'Answers from web service calls')}
+                description={t('admin.integration_cache.scope_http_desc', 'Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.')}
+            />
+            <Toggle
+                flat
+                checked={scopes.ai}
+                disabled={saving}
+                onChange={(on) => setScope({ ai: on })}
+                label={t('admin.integration_cache.scope_ai', 'Answers from AI steps')}
+                description={t('admin.integration_cache.scope_ai_desc', 'When an AI step asks the same question with the same (privacy-protected) input, the stored answer is reused instead of asking the model again. Stored encrypted until the window ends; never used in test runs.')}
+            />
         </>
     );
 }
 
-interface TtlPickerProps {
-    t: TranslateFn;
+interface KeptSettingsProps extends ScopeRowsProps {
     range: { min: number; max: number };
     ttlSeconds: number;
     setTtlSeconds: (seconds: number) => void;
-    saving: boolean;
 }
 
-/** How long an answer may be reused, in whole minutes on the slider. */
-export function TtlPicker({ t, range, ttlSeconds, setTtlSeconds, saving }: TtlPickerProps) {
+/** What may be kept, and how long an answer may be reused (whole minutes on the slider). */
+export function KeptSettings({ t, saving, scopes, setScope, range, ttlSeconds, setTtlSeconds }: KeptSettingsProps) {
     return (
-        <>
-            <label htmlFor="integration-cache-ttl" className="block text-sm font-medium pt-2">
-                {t('admin.integration_cache.ttl_label', 'How long an answer may be reused')}
-            </label>
-            <p className="text-xs opacity-70">
-                {t(
-                    'admin.integration_cache.ttl_note',
-                    'After this, the answer is deleted and the next run asks the app again. This is also the longest a run can be working from stale data. Shortening it applies to answers already stored, not just new ones.',
-                )}
-            </p>
-            <div className="flex items-center gap-3">
-                <input
-                    id="integration-cache-ttl"
-                    type="range"
-                    min={range.min}
-                    max={range.max}
-                    step={60}
-                    value={ttlSeconds}
-                    onChange={(e) => setTtlSeconds(Number(e.target.value))}
-                    disabled={saving}
-                    className="flex-1"
-                />
-                <span className="w-28 shrink-0 text-sm tabular-nums">
-                    {t('admin.integration_cache.ttl_minutes', '{{n}} minutes').replace('{{n}}', String(MINUTES(ttlSeconds)))}
-                </span>
-            </div>
-        </>
-    );
-}
-
-/** What is stored right now, and how much of it has already expired. */
-export function StoredLine({ t, storedEntries, storedBytes, expiredEntries }: { t: TranslateFn; storedEntries: number; storedBytes: number; expiredEntries: number }) {
-    return (
-        <p className="text-xs opacity-70">
-            {t('admin.integration_cache.held', 'Stored right now: {{n}} answer(s), {{size}}.')
-                .replace('{{n}}', String(storedEntries))
-                .replace('{{size}}', BYTES(storedBytes))}
-            {expiredEntries > 0 && ' ' + t(
-                'admin.integration_cache.held_expired',
-                '{{n}} of those have already expired and are never served — they are deleted by the hourly clean-up, or by the button below.',
-            ).replace('{{n}}', String(expiredEntries))}
-        </p>
-    );
-}
-
-export function OrgIntegrationCacheEditorHeader({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
-    return <header>
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <DatabaseZap className="h-5 w-5" aria-hidden="true" />
-            {t('admin.integration_cache.title', 'Reusing answers between runs')}
-        </h2>
-        <p className="mt-1 text-sm opacity-75">
-            {t(
-                'admin.integration_cache.intro',
-                'Automations often ask the same question over and over — of a connected app, or of a web service they call directly. This decides whether the answer may be stored so a later run can use it, which means storing what the other side sent back.'
+        <SettingsGroup
+            title={t('admin.integration_cache.scopes_label', 'What may be kept')}
+            description={t(
+                'admin.integration_cache.scopes_note',
+                'These are different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, and the third about what an AI model wrote, so those two are off until you say otherwise.',
             )}
-        </p>
-    </header>;
+        >
+            <SettingsList>
+                <ScopeRows t={t} saving={saving} scopes={scopes} setScope={setScope} />
+                <SettingBlock
+                    label={t('admin.integration_cache.ttl_label', 'How long an answer may be reused')}
+                    htmlFor="integration-cache-ttl"
+                    hint={t(
+                        'admin.integration_cache.ttl_note',
+                        'After this, the answer is deleted and the next run asks the app again. This is also the longest a run can be working from stale data. Shortening it applies to answers already stored, not just new ones.',
+                    )}
+                >
+                    <Slider
+                        id="integration-cache-ttl"
+                        min={range.min}
+                        max={range.max}
+                        step={60}
+                        value={ttlSeconds}
+                        onChange={setTtlSeconds}
+                        disabled={saving}
+                        valueFormatter={(s) => nOf(t, 'admin_org_ai.cache_minutes', MINUTES(s), '1 minute', '{count} minutes')}
+                    />
+                </SettingBlock>
+            </SettingsList>
+        </SettingsGroup>
+    );
 }
 
-export function OrgIntegrationCacheEditorSection({ handleSave, isDirty, saving, t, storedEntries, handleClear, clearing }: { handleSave: () => Promise<void>; isDirty: boolean; saving: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; storedEntries: number; handleClear: () => Promise<void>; clearing: boolean; }) {
-    return <div className="flex flex-wrap items-center gap-3">
-        <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-3 py-2 text-sm font-medium text-[var(--accent-primary-fg)] disabled:opacity-50"
-        >
-            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
-            {t('common.save', 'Save')}
-        </button>
+interface StoredAnswersProps {
+    t: TranslateFn;
+    storedEntries: number;
+    storedBytes: number;
+    expiredEntries: number;
+    clearing: boolean;
+    onClear: () => void;
+}
 
-        {storedEntries > 0 && (
-            <button
-                type="button"
-                onClick={handleClear}
-                disabled={clearing}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm disabled:opacity-50"
-            >
-                {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                {t('admin.integration_cache.clear', 'Delete the {{n}} stored answer(s) now').replace('{{n}}', String(storedEntries))}
-            </button>
-        )}
-    </div>;
+/** What is stored right now, how much of it has already expired, and the button that deletes it all. */
+export function StoredAnswers({ t, storedEntries, storedBytes, expiredEntries, clearing, onClear }: StoredAnswersProps) {
+    const size = BYTES(storedBytes);
+    return (
+        <Section>
+            <p className="m-0 text-sm text-[var(--text-secondary)]" data-testid="integration-cache-stored">
+                {nOf(t, 'admin_org_ai.cache_held', storedEntries, 'Stored right now: 1 answer, {size}.', 'Stored right now: {count} answers, {size}.', { size })}
+                {expiredEntries > 0 && ` ${nOf(
+                    t,
+                    'admin_org_ai.cache_held_expired',
+                    expiredEntries,
+                    '1 of those has already expired and is never served. The hourly clean-up deletes it, or the button below does.',
+                    '{count} of those have already expired and are never served. The hourly clean-up deletes them, or the button below does.',
+                )}`}
+            </p>
+            <Button variant="secondary" icon={Trash2} onClick={onClear} busy={clearing} className="mt-3">
+                {nOf(t, 'admin_org_ai.cache_clear', storedEntries, 'Delete the stored answer now', 'Delete the {count} stored answers now')}
+            </Button>
+        </Section>
+    );
 }

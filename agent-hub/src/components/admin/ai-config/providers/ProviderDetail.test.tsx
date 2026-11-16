@@ -62,11 +62,11 @@ describe('ProviderDetail', () => {
             '/ai/providers': { providers: [{ id: 'p-openai', type: 'openai', name: 'OpenAI', url: 'https://api.openai.com/v1' }] },
         });
         renderDetail('openai', { hasOpenaiKey: true });
-        const toggle = await screen.findByRole('checkbox', { name: /Process in the EU/ });
+        const toggle = await screen.findByRole('switch', { name: /Process in the EU/ });
         expect((toggle as HTMLInputElement).checked).toBe(false);
         await user.click(toggle);
         await waitFor(() => expect(callsTo('/ai/providers/p-openai/region', 'PUT')).toHaveLength(1));
         expect(JSON.parse(callsTo('/ai/providers/p-openai/region', 'PUT')[0][1].body)).toEqual({ region: 'eu' });
-        await waitFor(() => expect((screen.getByRole('checkbox', { name: /Process in the EU/ }) as HTMLInputElement).checked).toBe(true));
+        await waitFor(() => expect((screen.getByRole('switch', { name: /Process in the EU/ }) as HTMLInputElement).checked).toBe(true));
     });
 });

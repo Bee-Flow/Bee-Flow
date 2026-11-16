@@ -1,0 +1,40 @@
+{
+  "reworded": {
+    "admin_monitoring.overview_reasoning_hint": {
+      "nl": "denk- en redeneermodellen",
+      "was": [
+        "o-serie / thinking"
+      ]
+    },
+    "admin_subscriptions.shell_grants": {
+      "nl": "Licentietoekenningen",
+      "was": [
+        "Toekenningen"
+      ]
+    },
+    "admin_subscriptions.shell_access": {
+      "nl": "Aanmeldingen",
+      "was": [
+        "Toegang"
+      ]
+    },
+    "support.support_aiconfig_loading_bee_flow_support_agent": {
+      "nl": "Supportagent laden…",
+      "was": [
+        "Bee Flow Support-Agent laden…"
+      ]
+    },
+    "support.ai_config_not_seeded": {
+      "nl": "De supportagent is nog niet ingesteld. Herstart de server.",
+      "was": [
+        "De Bee Flow Support-agent is nog niet aangemaakt. Herstart de server."
+      ]
+    },
+    "support.support_aiconfig_in_admin_ai_config_model_tiers": {
+      "nl": "instelt onder AI-configuratie → Modellen.",
+      "was": [
+        "instelt via Admin → AI Config → Model tiers."
+      ]
+    }
+  }
+}

@@ -7,6 +7,8 @@ import { useActivateStaged, useOfflineGrant, useSideloadModule } from '@/api/que
 import type { SideloadResponse } from '@/api/queries/modules.types';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
+import Button from '@/components/shared/Button';
+import { ALERT_ERROR, ALERT_WARNING } from '@/components/shared/adminUi';
 import { errorBodyRecord, errorMessage, errorStatus } from '@/utils/caughtError';
 
 interface SideloadResult {
@@ -25,23 +27,20 @@ function SideloadSuccess({ result, onClose, t }: { result: SideloadResult; onClo
     return (
         <>
             <div className="flex items-center gap-2 text-xs text-[var(--text-primary)]" data-testid="sideload-success">
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--success-ink)]" />
                 {result.activated
                     ? t('modules.sideload_activated', { version: result.version })
                     : t('modules.sideload_success', { version: result.version })}
             </div>
             {result.requiresRestart && (
-                <p className="text-xs px-3 py-2 rounded-lg [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
+                <p className={ALERT_WARNING}>
                     {t('modules.sideload_restart_required')}
                 </p>
             )}
             <div className="flex justify-end pt-1">
-                <button
-                    onClick={onClose}
-                    className="px-4 py-2 rounded-lg text-sm font-medium [background:var(--accent-primary)] [color:#fff]!"
-                >
+                <Button onClick={onClose}>
                     {t('modules.close')}
-                </button>
+                </Button>
             </div>
         </>
     );
@@ -149,7 +148,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                 disableEscapeClose={busy}
                 title={
                     <span className="flex items-center gap-2">
-                        <FileUp className="w-4 h-4 [color:#f59e0b]" aria-hidden="true" />
+                        <FileUp className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
                         {t('modules.sideload_title')}
                     </span>
                 }
@@ -167,7 +166,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                             <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                 {t('modules.sideload_grant_needed')}
                             </p>
-                            {error && <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>}
+                            {error && <div className={ALERT_ERROR} role="alert">{error}</div>}
                             <input
                                 ref={grantRef}
                                 type="file"
@@ -176,22 +175,17 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) applyGrant(f); e.target.value = ''; }}
                             />
                             <div className="flex items-center justify-end gap-2 pt-1">
-                                <button
-                                    onClick={onClose}
-                                    disabled={busy}
-                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
-                                >
+                                <Button variant="secondary" onClick={onClose} disabled={busy}>
                                     {t('modules.cancel')}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => grantRef.current?.click()}
                                     disabled={busy}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     data-testid="sideload-pick-grant"
                                 >
                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
                                     {t('modules.sideload_pick_grant')}
-                                </button>
+                                </Button>
                             </div>
                         </>
                     ) : (
@@ -199,7 +193,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                             <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                 {t('modules.sideload_body')}
                             </p>
-                            {error && <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400">{error}</div>}
+                            {error && <div className={ALERT_ERROR} role="alert">{error}</div>}
                             <input
                                 ref={fileRef}
                                 type="file"
@@ -210,30 +204,24 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                             <button
                                 onClick={() => fileRef.current?.click()}
                                 disabled={busy}
-                                className="w-full px-3 py-2.5 rounded-lg text-xs border border-dashed disabled:opacity-50 flex items-center justify-center gap-2"
-                                style={{ background: 'var(--bg-primary)', color: file ? 'var(--text-primary)' : 'var(--text-muted)', borderColor: 'var(--border-default)' }}
+                                className={`w-full px-3 py-2.5 rounded-lg text-xs border border-dashed disabled:opacity-50 flex items-center justify-center gap-2 bg-[var(--bg-primary)] border-[var(--border-default)] ${file ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
                                 data-testid="sideload-pick-file"
                             >
                                 <FileUp className="w-3.5 h-3.5" />
                                 {file ? file.name : t('modules.sideload_pick')}
                             </button>
                             <div className="flex items-center justify-end gap-2 pt-1">
-                                <button
-                                    onClick={onClose}
-                                    disabled={busy}
-                                    className="px-3 py-2 rounded-lg text-sm border disabled:opacity-50 bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]"
-                                >
+                                <Button variant="secondary" onClick={onClose} disabled={busy}>
                                     {t('modules.cancel')}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => doSideload()}
                                     disabled={busy || !file}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     data-testid="sideload-submit"
                                 >
                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                                     {t('modules.sideload_submit')}
-                                </button>
+                                </Button>
                             </div>
                         </>
                     )}

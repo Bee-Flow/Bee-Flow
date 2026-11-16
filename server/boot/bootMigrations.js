@@ -289,6 +289,7 @@ const NL_TRANSLATIONS = [
     'update-nl-nc-trigger-scope-calendar-2026-10', // The colleagues switch covers calendar events: its Dutch hint says so (old shipped text only)
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
     'update-nl-learn-action-limits-2026-11', // App actions lesson quiz: the corrected step, nesting and action limits (old shipped text only)
+    'update-nl-admin-dashboard-2026-11', // Admin dashboard round: provider-neutral AI configuration texts, the context lesson's model example and the relabelled admin panels; data in data/admin-dashboard-2026-11/*.json (old shipped text only)
     // After every catalogue file above: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
     // Dutch for new namespaces, one data file per namespace (i18n/defaults/nl/<namespace>.json): a new

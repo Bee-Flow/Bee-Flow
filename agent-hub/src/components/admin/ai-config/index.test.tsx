@@ -28,13 +28,17 @@ describe('section and provider paths', () => {
     it('builds the URL of a section and of a provider', () => {
         expect(aiConfigPath('providers')).toBe('admin/ai-config/providers');
         expect(aiConfigPath('providers', 'claude')).toBe('admin/ai-config/providers/claude');
-        expect(aiConfigPath('web-search')).toBe('admin/ai-config/web-search');
+        expect(aiConfigPath('retrieval')).toBe('admin/ai-config/retrieval');
     });
 
-    it('reads a section from a URL id or from an old tab name', () => {
+    // Changed on purpose (wave 2): the chat models are Models, the embeddings and web search Search & retrieval.
+    it('reads a section from a URL id or from an old id or tab name', () => {
         expect(sectionIdOf('limits')).toBe('limits');
-        expect(sectionIdOf('webSearchInference')).toBe('web-search');
-        expect(sectionIdOf('chatModels')).toBe('chat-models');
+        expect(sectionIdOf('webSearchInference')).toBe('retrieval');
+        expect(sectionIdOf('web-search')).toBe('retrieval');
+        expect(sectionIdOf('embeddings')).toBe('retrieval');
+        expect(sectionIdOf('chatModels')).toBe('models');
+        expect(sectionIdOf('chat-models')).toBe('models');
         expect(sectionIdOf('nope')).toBeNull();
         expect(sectionIdOf(undefined)).toBeNull();
     });
@@ -44,14 +48,14 @@ describe('AIConfigPanel', () => {
     it('shows the provider the URL names, and marks the providers section as current', async () => {
         renderPanel({ activeSection: 'providers', activeProvider: 'mistral' });
         expect(await screen.findByRole('heading', { name: 'Mistral' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /API Keys/ }).getAttribute('aria-current')).toBe('page');
+        expect(screen.getByRole('button', { name: 'Providers' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('button', { name: /Mistral/ }).getAttribute('aria-current')).toBe('true');
     });
 
     it('falls back to the providers section for an unknown one, and to the first connected provider', async () => {
         renderPanel({ activeSection: 'bogus' });
         expect(await screen.findByRole('heading', { name: 'Claude' })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /API Keys/ }).getAttribute('aria-current')).toBe('page');
+        expect(screen.getByRole('button', { name: 'Providers' }).getAttribute('aria-current')).toBe('page');
     });
 
     it('navigates to the URL of the section or provider that is clicked', async () => {
@@ -60,7 +64,22 @@ describe('AIConfigPanel', () => {
         await screen.findByRole('heading', { name: 'Claude' });
         await user.click(screen.getByRole('button', { name: /OpenAI/ }));
         expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/providers/openai');
-        await user.click(screen.getByRole('button', { name: /Embeddings/ }));
-        expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/embeddings');
+        await user.click(screen.getByRole('button', { name: /Search & retrieval/ }));
+        expect(onNavigate).toHaveBeenLastCalledWith('admin/ai-config/retrieval');
+    });
+
+    it('draws no section column in the dashboard, whose rail rows are the sections', async () => {
+        renderPanel({ activeSection: 'providers', activeProvider: 'mistral', nav: false });
+        expect(await screen.findByRole('heading', { name: 'Mistral' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Providers' })).toBeNull();
+        // The dashboard frame draws the page header: no heading of the panel's own.
+        expect(screen.queryByRole('heading', { name: 'Providers' })).toBeNull();
+    });
+
+    // The reranker had a pane in the provider list; an old link to it lands on Search & retrieval.
+    it('opens Search & retrieval for the old reranker pane link', async () => {
+        renderPanel({ activeSection: 'providers', activeProvider: 'reranker' });
+        expect(await screen.findByRole('heading', { name: 'Reranking' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Search & retrieval/ }).getAttribute('aria-current')).toBe('page');
     });
 });

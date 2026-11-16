@@ -1,4 +1,4 @@
-# Fact sheet — `org-ai-context` (Conversation Memory + Answer Reuse)
+# Fact sheet — `org-ai-context` (Conversations + answer reuse)
 
 **Audience:** organisation admins.
 **Status:** EXISTS and is fully built (backend + UI + tests). Two separate org-level switches that
@@ -11,12 +11,12 @@ Source of truth read for this sheet:
 |---|---|
 | Compaction policy (storage, defaults, clamps, context windows) | `server/core/llm/contextPolicy.js` |
 | The lossy compaction algorithm itself | `server/core/llm/compaction.js` |
-| Conversation Memory API | `server/routes/orgAiContext.js` |
-| Conversation Memory screen | `agent-hub/src/components/admin/org/OrgAiContextEditor.jsx` |
-| Answer Reuse policy | `server/core/automationRunner/integrationCachePolicy.js` |
-| Answer Reuse API | `server/routes/orgIntegrationCache.js` |
-| Answer Reuse storage (HMAC key, encryption, quotas) | `server/stores/integrationCacheStore.js` |
-| Answer Reuse screen | `agent-hub/src/components/admin/org/OrgIntegrationCacheEditor.jsx` |
+| Conversations API | `server/routes/orgAiContext.js` |
+| Conversations screen | `agent-hub/src/components/admin/org/OrgAiContextEditor.jsx` |
+| answer reuse policy | `server/core/automationRunner/integrationCachePolicy.js` |
+| answer reuse API | `server/routes/orgIntegrationCache.js` |
+| answer reuse storage (HMAC key, encryption, quotas) | `server/stores/integrationCacheStore.js` |
+| answer reuse screen | `agent-hub/src/components/admin/org/OrgIntegrationCacheEditor.jsx` |
 | Menu entries | `agent-hub/src/components/admin/org/orgInfo/orgInfoShared.jsx` (`SECTIONS`) |
 | Panel mounting | `agent-hub/src/components/admin/org/OrgInfoPanel.jsx` (lines 620–640) |
 | All UI strings | `agent-hub/src/i18n/en-defaults.js` lines 1685–1725 |
@@ -30,14 +30,14 @@ Source of truth read for this sheet:
 Both switches answer the same shape of question — *how much may Bee Flow keep, and for how long?* —
 but in two different places.
 
-**Conversation Memory** decides how much of a long chat the model still sees. Historically Bee Flow
+**Conversations** decides how much of a long chat the model still sees. Historically Bee Flow
 folded everything older than the 16th message into a ~200-word summary, unconditionally. On a model
 with a 1M-token context window that is pure loss, and it is exactly what people report as "the
 assistant forgot what we discussed". So local compaction is now **opt-in per organisation, default
 OFF**, and the lossless provider-side mechanism (Anthropic `context_management`) carries the load
 instead. A **Safety limit** slider defends the hard ceiling in both modes.
 
-**Answer Reuse** decides whether the answers automations get back from connected apps and web services
+**answer reuse** decides whether the answers automations get back from connected apps and web services
 may be **stored in the database between runs**. That is a data-processing decision, not a performance
 tweak — a Gmail search result is somebody's mail — so it belongs to an org admin, is **off by
 default**, and leaves a config row recording that a human said yes.
@@ -51,15 +51,15 @@ Neither is a premium feature. Neither route calls `requireLicenseFeature` or `ha
 ### 2.1 Getting there
 
 Settings → left nav item **Organisation** (an accordion with a chevron; clicking it expands and
-auto-selects the first sub-item, **License & Usage**, or **Sign-in Method** on self-host) → the
+auto-selects the first sub-item, **Licence & usage**, or **Sign-in Method** on self-host) → the
 sub-item list. The two entries of this area are, in menu order:
 
-- **Conversation Memory** (`settings.ai_context`, Brain icon, amber `#f59e0b`)
-- **Answer Reuse** (`settings.integration_cache`, DatabaseZap icon, cyan `#06b6d4`)
+- **Conversations** (`settings.ai_context`, Brain icon, amber `#f59e0b`)
+- **answer reuse** (`settings.integration_cache`, DatabaseZap icon, cyan `#06b6d4`)
 
-They sit between **Encryption** and **Organisation Info** in the sidebar
-(`SECTIONS`: License & Usage, Sign-in Method, Privacy Shield, Encryption, **Conversation Memory**,
-**Answer Reuse**, Organisation Info).
+They sit between **Encryption** and **Organisation info** in the sidebar
+(`SECTIONS`: Licence & usage, Sign-in Method, Privacy Shield, Encryption, **Conversations**,
+**answer reuse**, Organisation info).
 
 **Both sub-items are visible only to org admins.** `orgSubItems` in `AdvancedSettings.jsx` drops
 every org entry except Compliance when `canSeeOrg` is false.
@@ -72,11 +72,11 @@ every org entry except Compliance when `canSeeOrg` is false.
 > Never write a lesson step that says "go to `/app/settings/organisation/ai-context`" — that URL
 > does not exist.
 
-### 2.2 Screen: Conversation Memory
+### 2.2 Screen: Conversations
 
 | Element | Exact text |
 |---|---|
-| Sidebar entry | `Conversation Memory` |
+| Sidebar entry | `Conversations` |
 | Heading (H2, Brain icon) | `Conversation memory` |
 | Intro | `How much of a long conversation the assistant keeps in view. Applies to chats and agents across the whole organisation and takes effect on the next message.` |
 | Choice card 1 (Brain) | `Keep the full conversation (recommended)` |
@@ -100,11 +100,11 @@ slider at 75%). The API returns `configured: false` so a lesson check can tell "
 The screen deliberately exposes only **two** controls. `compactionThreshold` (16) and `recentWindow`
 (8) are read from the server and sent straight back unchanged — an admin cannot edit them in the UI.
 
-### 2.3 Screen: Answer Reuse
+### 2.3 Screen: answer reuse
 
 | Element | Exact text |
 |---|---|
-| Sidebar entry | `Answer Reuse` |
+| Sidebar entry | `answer reuse` |
 | Heading (H2, DatabaseZap icon) | `Reusing answers between runs` |
 | Intro | `Automations often ask an app the same question over and over. This decides whether the answer may be stored so a later run can use it — which means storing what the app sent back.` |
 | Kill-switch banner (amber, only when the env flag is set) | `This is switched off for the whole server by its operator, so nothing is stored whatever you choose here.` |
@@ -167,7 +167,7 @@ Validator warning shown on the automation when the nested tick is on:
   turns rebuild the summary block locally instead of re-summarising the whole prefix every turn.
 - **Run memo** — an automation reusing an answer *inside one run*. Lives in memory on the run, dies with
   it, stores nothing, needs no org permission. This is what `Ask this app only once per run` gives.
-- **Durable answer cache** — a Postgres row that *outlives* the run. This is what Answer Reuse
+- **Durable answer cache** — a Postgres row that *outlives* the run. This is what answer reuse
   governs. Key is an HMAC under a server secret; the payload is AES-256-GCM encrypted.
 - **Scope (`integration` vs `http`)** — two separate promises inside one consent row: answers from
   apps the org connected, versus replies to a hand-typed "Call a web service" step.
@@ -183,8 +183,8 @@ Validator warning shown on the automation when the nested tick is on:
 
 ### W1 — Turn compaction ON for the whole organisation (cost control)
 1. Open **Settings**.
-2. Click **Organisation** in the left nav (it expands; License & Usage opens).
-3. Click **Conversation Memory**.
+2. Click **Organisation** in the left nav (it expands; Licence & usage opens).
+3. Click **Conversations**.
 4. Read the two cards. Click the second card, **Summarise older messages**.
 5. Leave the **Safety limit** slider where it is (75%), or drag it.
 6. Click **Save**.
@@ -193,7 +193,7 @@ Validator warning shown on the automation when the nested tick is on:
    memoises the policy for 30 seconds but the save invalidates that memo immediately).
 
 ### W2 — Give long chats more headroom (or less)
-1. Settings → Organisation → **Conversation Memory**.
+1. Admin dashboard → AI & agents → **Conversations**.
 2. Leave **Keep the full conversation (recommended)** selected.
 3. Drag **Safety limit** — the readout and the examples line update live
    (e.g. at 60%: `Claude Sonnet 5 → ~600,000 tokens · Claude Haiku 4.5 → ~120,000 tokens`).
@@ -201,7 +201,7 @@ Validator warning shown on the automation when the nested tick is on:
 5. If you change your mind before saving, click **Cancel** — it restores the last loaded values.
 
 ### W3 — Allow automations to reuse app answers between runs
-1. Settings → Organisation → **Answer Reuse**.
+1. Admin dashboard → Connections → **Automations**.
 2. Click **Keep answers for a short while**. The scope block and TTL slider appear.
 3. Leave **Answers from connected apps** ticked. Leave **Answers from web service calls** unticked
    unless you mean it.
@@ -213,7 +213,7 @@ Validator warning shown on the automation when the nested tick is on:
 7. Save the automation and run it twice. The second run skips the app call.
 
 ### W4 — Shorten the window after noticing stale data
-1. Settings → Organisation → **Answer Reuse**.
+1. Admin dashboard → Connections → **Automations**.
 2. Drag the TTL slider down (e.g. 60 minutes → 5 minutes).
 3. **Save**.
 4. The save rewrites `expires_at` on rows **already stored** (`shrinkTtlForOrg`), so the change bites
@@ -221,14 +221,14 @@ Validator warning shown on the automation when the nested tick is on:
    once the hourly prune catches up.
 
 ### W5 — Forget everything cached, right now, without changing the policy
-1. Settings → Organisation → **Answer Reuse**.
+1. Admin dashboard → Connections → **Automations**.
 2. Read the line `Stored right now: N answer(s), X MB.`
 3. Click **Delete the N stored answer(s) now**.
 4. Toast `Stored answers deleted`; the counter line and the button disappear.
 5. The policy is untouched — the next run starts refilling the cache.
 
-### W6 — Switch Answer Reuse off entirely (and erase)
-1. Settings → Organisation → **Answer Reuse**.
+### W6 — Switch answer reuse off entirely (and erase)
+1. Admin dashboard → Connections → **Automations**.
 2. Click **Ask every run (recommended)**.
 3. **Save**.
 4. Toast reads `Saved. Stored answers were deleted.` — switching off *also purges* every row the org
@@ -238,7 +238,7 @@ Validator warning shown on the automation when the nested tick is on:
 
 ## 5. Defaults, limits and the exact numbers
 
-### Conversation Memory (`org_ai_context_<orgId>` in configStore)
+### Conversations (`org_ai_context_<orgId>` in configStore)
 
 | Field | Default | Range | In the UI? |
 |---|---|---|---|
@@ -270,7 +270,7 @@ Validator warning shown on the automation when the nested tick is on:
   `claude-opus-4/5*`, `claude-sonnet-4/5*`, `claude-haiku-4-5*`, `claude-fable/mythos*` — Claude 3.x
   rejects the parameter. Anthropic's native `compact_20260112` is deliberately **not** enabled.
 
-### Answer Reuse (`org_integration_cache_<orgId>` in configStore)
+### answer reuse (`org_integration_cache_<orgId>` in configStore)
 
 | Field | Default | Range | In the UI? |
 |---|---|---|---|
@@ -320,7 +320,7 @@ skipped too); `blockPrivateTargets` must not be `false`; only 2xx responses; a r
 | Compaction throws mid-turn | Logged (`Compaction failed, using full history`) and the turn continues with the **full** history. |
 | The fast-tier summariser fails | The watermark does **not** advance; the evicted messages stay verbatim and the fold is retried next turn. |
 | Anthropic rejects `context_management` | Logged, the parameter is stripped and the request is retried **once** without it. |
-| Answer Reuse cache unreachable / decrypt fails | Treated as a **miss** — the automation makes the real call. A blob that will not decrypt is reaped. |
+| answer reuse cache unreachable / decrypt fails | Treated as a **miss** — the automation makes the real call. A blob that will not decrypt is reaped. |
 | Quota exceeded | The write is refused and counted; the automation keeps working, just without reuse. |
 | `GET /api/org-integration-cache/:orgId` errors | `500 {"error":"Failed to load the setting"}` → `Could not load this setting.` |
 | Purge fails | `500 {"error":"Failed to clear the stored answers"}` → toast `Could not clear the stored answers`. |
@@ -362,7 +362,7 @@ Compliance entry and nothing else under Organisation. `member` carries neither.
   so the cost of compaction is a fast-tier call, not a frontier one.
 - **Providers** — the lossless half lives in the Claude adapter. Non-Claude providers get no
   server-side context editing, so for them the Safety limit is the only protection.
-- **Automations / App actions** — Answer Reuse is meaningless without the per-step tick, and vice versa.
+- **Automations / App actions** — answer reuse is meaningless without the per-step tick, and vice versa.
   `execAi.js` gates app look-ups on `scopes.integration`; `httpCache.js` gates "Call a web service"
   on `scopes.http`.
 - **Privacy Shield** — `egressMode` decides whether a durable entry is even legal. Under `tokenize`
@@ -380,7 +380,7 @@ Compliance entry and nothing else under Organisation. `member` carries neither.
 
 ## 9. Common mistakes
 
-1. **Assuming the two switches are the same knob.** Conversation Memory is about a *chat*; Answer
+1. **Assuming the two switches are the same knob.** Conversations is about a *chat*; Answer
    Reuse is about a *automation*. Neither affects the other.
 2. **Turning compaction on to "make chats cheaper" and then reporting lost detail.** The second card
    says it plainly: detail is *permanently lost to the assistant*. On a 1M-token model there is
@@ -405,7 +405,7 @@ Compliance entry and nothing else under Organisation. `member` carries neither.
    is the only thing standing between a huge conversation and a `400 prompt is too long`.
 9. **Expecting a change to be instant on every server.** The policy memo is 30 seconds and the
    invalidation is in-process; on a multi-replica cluster another replica can lag by up to 30 s.
-10. **Assuming turning Answer Reuse off leaves the data.** It purges. And turning it back on does
+10. **Assuming turning answer reuse off leaves the data.** It purges. And turning it back on does
     not bring anything back.
 11. **Setting a step TTL longer than the org TTL.** The effective window is the minimum of the two;
     the step tick can only ever *shorten*.
@@ -419,7 +419,7 @@ Nadia in inkoop runs long chats about a European tender: 60+ messages, several P
 price comparison the assistant built in message 12. She complains that by message 40 the assistant
 re-asks for the delivery window it already had.
 
-The admin opens **Settings → Organisation → Conversation Memory** and finds the second card,
+The admin opens **Admin dashboard → AI & agents → Conversations** and finds the second card,
 **Summarise older messages**, is selected — somebody turned it on last quarter to save tokens. He
 switches to **Keep the full conversation (recommended)**, leaves **Safety limit** at 75%, and saves.
 Nadia's next message already sees the whole thread; on Claude Sonnet 5 that is ~750 000 tokens of
@@ -434,7 +434,7 @@ the HR app and mails a reminder to anyone with untaken days. The automation auth
 later runs too** because it looked faster.
 
 The admin's call: leave balances change during the day, and a reminder based on a stale balance is
-an HR complaint. In **Answer Reuse** he leaves the org setting on **Ask every run (recommended)**.
+an HR complaint. In **answer reuse** he leaves the org setting on **Ask every run (recommended)**.
 The automation still deduplicates *inside* one run (that reuse never leaves the run and stores nothing),
 and nothing about 180 employees' leave records is written to the database. If he ever does turn it
 on, he keeps the TTL at **5 minutes**, which is also the longest the automation could be working from
@@ -444,7 +444,7 @@ stale data.
 The sales automation enriches inbound leads: for every new lead it calls a paid KvK/company-data web
 service, one call per lead, billed per call. The same twenty companies come back week after week.
 
-The admin opens **Answer Reuse**, picks **Keep answers for a short while**, and — because this is a
+The admin opens **answer reuse**, picks **Keep answers for a short while**, and — because this is a
 hand-typed "Call a web service" step, not a connected app — ticks **Answers from web service calls**
 as well as leaving **Answers from connected apps** ticked. He drags **How long an answer may be
 reused** to **60 minutes**, the maximum, and saves. The automation author then ticks both boxes on that
@@ -483,7 +483,7 @@ Practical verification recipes:
   `compactionEnabled === true && configured === true`.
 - *"The learner moved the Safety limit"* → assert `contextBudgetPercent !== 75` (and is within
   `contextBudgetRange`).
-- *"The learner enabled Answer Reuse for connected apps only"* → `GET /api/org-integration-cache/:orgId`
+- *"The learner enabled answer reuse for connected apps only"* → `GET /api/org-integration-cache/:orgId`
   and assert `enabled === true && scopes.integration === true && scopes.http === false`.
 - *"The learner shortened the window"* → assert `ttlSeconds < 300`.
 - *"The learner cleared the cache"* → assert `entries === 0 && expiredEntries === 0` (note this is

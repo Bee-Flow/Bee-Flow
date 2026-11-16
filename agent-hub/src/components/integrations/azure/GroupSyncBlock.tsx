@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import type { GroupSyncSettings, GroupSyncStatus, SyncResult } from './SSOSection.types';
-import { SSOSectionSection } from './SSOSectionSection';
+import { errorMessage } from '@/utils/caughtError';
+import { ALERT_ERROR } from '@/components/shared/adminUi';
+import type { GroupSyncSettings, GroupSyncStatus, SyncResult } from './groupSync.types';
+import { GroupSyncSection } from './GroupSyncSection';
 import { apiFetch } from '@/api/typedRequest';
 
 export interface GroupSyncBlockProps {
@@ -12,32 +14,32 @@ export interface GroupSyncBlockProps {
     groupSyncStatus: GroupSyncStatus | null;
     onSyncSettingsChange: React.Dispatch<React.SetStateAction<GroupSyncSettings | null>>;
     onSyncStatusChange: React.Dispatch<React.SetStateAction<GroupSyncStatus | null>>;
-    /** The line shown while no directory is connected (default: configure the SSO credentials above). */
-    notConnectedHint?: string;
+    /** The line shown while no directory is connected. */
+    notConnectedHint: string;
 }
 
+const DEFAULT_SETTINGS: GroupSyncSettings = {
+    destructiveSync: false,
+    autoActivateUsers: true,
+    periodicSync: false,
+    syncIntervalHours: 6,
+};
+
 /**
- * The Azure AD group sync of one organisation: its last run, "Sync now" and
+ * The Entra ID group sync of one organisation: its last run, "Sync now" and
  * the sync settings, over the organisation-scoped routes
  * (POST /api/org-azure-config/:orgId/sync-groups, PUT …/sync-groups/settings).
- * Drawn inside the Microsoft SSO section of the Azure panel and on its own in
- * GroupSyncPanel.
+ * A settings switch saves at once; a refused save says so.
  */
 export default function GroupSyncBlock({ orgId, connected, groupSyncSettings, groupSyncStatus, onSyncSettingsChange, onSyncStatusChange, notConnectedHint }: GroupSyncBlockProps) {
     const { t } = useTranslation();
     const [syncing, setSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
     const [syncError, setSyncError] = useState<string | null>(null);
-    const [showDetails, setShowDetails] = useState(false);
-    const settings = groupSyncSettings || {
-        destructiveSync: false,
-        autoActivateUsers: true,
-        periodicSync: false,
-        syncIntervalHours: 6,
-    };
+    const [settingError, setSettingError] = useState<string | null>(null);
+    const settings = groupSyncSettings || DEFAULT_SETTINGS;
     const status = groupSyncStatus || {};
 
-    // ── Sync trigger ──
     const handleSync = async () => {
         if (!orgId || syncing) return;
         setSyncing(true);
@@ -56,42 +58,41 @@ export default function GroupSyncBlock({ orgId, connected, groupSyncSettings, gr
                     errors: data.errors || [],
                 });
             } else {
-                setSyncError(data.error || 'Sync failed');
+                setSyncError(data.error || t('azure.sync_groups_error', 'Sync failed'));
             }
         } catch (err) {
-            setSyncError((err as Error).message);
+            setSyncError(errorMessage(err) ?? t('azure.sync_groups_error', 'Sync failed'));
         }
         setSyncing(false);
     };
 
-    // ── Save sync setting ──
-    const handleSyncSetting = async (key: string, value: number | boolean) => {
+    const handleSyncSetting = async (key: keyof GroupSyncSettings, value: number | boolean) => {
         if (!orgId) return;
+        setSettingError(null);
         try {
             const res = await apiFetch('PUT /api/org-azure-config/{orgId}/sync-groups/settings', { params: { orgId }, body: { [key]: value } });
             const data = await res.json();
             if (data.ok) onSyncSettingsChange(data.settings);
+            else setSettingError(data.error || t('common.save_failed', 'Save failed'));
         } catch (err) {
-            console.error('Failed to update sync setting:', err);
+            setSettingError(errorMessage(err) ?? t('common.save_failed', 'Save failed'));
         }
     };
 
-    // ── Format relative time ──
-    const formatTimeAgo = (isoString: string | number | Date) => {
-        if (!isoString) return 'Never';
-        const dt = new Date(isoString);
-        const now = new Date();
-        const diffMs = now.getTime() - dt.getTime();
-        const diffMin = Math.floor(diffMs / 60000);
-        const diffHr = Math.floor(diffMin / 60);
-        const diffDay = Math.floor(diffHr / 24);
-        if (diffMin < 1) return 'Just now';
-        if (diffMin < 60) return `${diffMin}m ago`;
-        if (diffHr < 24) return `${diffHr}h ago`;
-        return `${diffDay}d ago`;
-    };
-
     return (
-        <SSOSectionSection t={t} status={status} formatTimeAgo={formatTimeAgo} settings={settings} handleSync={handleSync} syncing={syncing} ssoConfigured={connected} syncResult={syncResult} setShowDetails={setShowDetails} showDetails={showDetails} syncError={syncError} handleSyncSetting={handleSyncSetting} notConnectedHint={notConnectedHint} />
+        <div className="flex flex-col gap-3">
+            <GroupSyncSection
+                status={status}
+                settings={settings}
+                onSync={handleSync}
+                syncing={syncing}
+                connected={connected}
+                syncResult={syncResult}
+                syncError={syncError}
+                onSetting={handleSyncSetting}
+                notConnectedHint={notConnectedHint}
+            />
+            {settingError && <p role="alert" className={ALERT_ERROR}>{settingError}</p>}
+        </div>
     );
 }
