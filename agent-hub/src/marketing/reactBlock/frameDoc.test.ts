@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { REACT_THEME_VARS } from '@shared/cmsReact/compile.mjs';
-import { buildReactFrameDoc, frameLang, readSiteTheme, scriptJson, SEALED_FRAME_CSP, SEALED_FRAME_SANDBOX, themeCss, THEME_VARS } from './frameDoc';
+import { buildReactFrameDoc, buildSealedOuterDoc, frameLang, readSiteTheme, scriptJson, SEALED_FRAME_CSP, SEALED_FRAME_SANDBOX, SEALED_OUTER_CSP, themeCss, THEME_VARS } from './frameDoc';
 
 const RUNTIME = '(function(){window.__bfReactMount=function(){};})();';
 
@@ -113,5 +113,17 @@ describe('buildReactFrameDoc, sealed (App Studio react_block)', () => {
         const html = doc({ props: { title: 'Hi' } });
         expect(html).not.toContain('Content-Security-Policy');
         expect(html).toContain('{"title":"Hi"},{"mode":"public"});</script>');
+    });
+
+    it('wraps the component frame in an outer frame that no frame may navigate past', () => {
+        expect(SEALED_OUTER_CSP).toBe("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'");
+        const inner = doc({ policy: 'sealed' });
+        const outer = buildSealedOuterDoc(inner, 'Sim "1"');
+        expect(outer.startsWith(`<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="${SEALED_OUTER_CSP}">`)).toBe(true);
+        expect(outer).toContain(`<iframe id="bf-inner" sandbox="${SEALED_FRAME_SANDBOX}" title="Sim &quot;1&quot;" srcdoc="`);
+        // The inner document sits in the attribute, escaped: it cannot close it.
+        expect(outer).toContain(`srcdoc="&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta http-equiv=&quot;Content-Security-Policy&quot;`);
+        expect(outer.match(/<script>/g)).toHaveLength(1);
+        expect(outer).toContain("(window,document.getElementById('bf-inner'));</script>");
     });
 });

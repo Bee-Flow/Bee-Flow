@@ -10,8 +10,8 @@
  *   - a nested frame: a `srcdoc` iframe inherits the policy and the sandbox, but has a window
  *     of its own, and so its own RTCPeerConnection;
  *   - `<link rel="prerender">`: the browser fetches it whatever the policy says;
- *   - `<meta http-equiv="refresh">`: navigates the frame itself (the embedding page's frame-src
- *     stops that in the product, a page without one does not).
+ *   - `<meta http-equiv="refresh">`: navigates the frame itself (the outer frame's frame-src
+ *     'none' stops any navigation of this frame, frameDoc.ts buildSealedOuterDoc).
  *
  * So, in this window, before any code of the component runs:
  *   - the peer connection constructors are gone for good (non-configurable);

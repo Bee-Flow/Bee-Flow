@@ -9,6 +9,7 @@
  */
 import { REACT_THEME_VARS } from '@shared/cmsReact/compile.mjs';
 import { defangScriptClose } from '@shared/webpage/previewInline.mjs';
+import { installRelay } from './sealedRelay';
 
 export type FrameMode = 'public' | 'editor';
 
@@ -124,6 +125,34 @@ export const SEALED_FRAME_CSP = "default-src 'none'; script-src 'unsafe-inline';
  * to the page, its cookies or storage), no popups, no top navigation, no forms, no modals.
  */
 export const SEALED_FRAME_SANDBOX = 'allow-scripts';
+
+/**
+ * The policy of the OUTER frame of a sealed block (./sealedRelay.ts): its one inline script (the
+ * relay) runs, and no frame may load into it from anywhere (frame-src 'none', child-src 'none';
+ * a srcdoc document is not a load). The inner frame's navigations are held to this policy, so
+ * the component cannot navigate its own frame away, whatever policy the app page has.
+ */
+export const SEALED_OUTER_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'";
+
+/** Text for a double-quoted attribute. */
+function attr(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * The outer document of a sealed block: its policy, the relay, and the inner sandboxed frame that
+ * holds `inner` (buildReactFrameDoc with policy 'sealed'), filling it. The app page sizes the
+ * outer frame from the heights the relay passes on.
+ */
+export function buildSealedOuterDoc(inner: string, title = ''): string {
+    return [
+        `<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="${SEALED_OUTER_CSP}"><meta charset="utf-8">`,
+        '<style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:transparent}iframe{display:block;border:0;width:100%;height:100%;background:transparent}</style>',
+        `</head><body><iframe id="bf-inner" sandbox="${SEALED_FRAME_SANDBOX}" title="${attr(title)}" srcdoc="${attr(inner)}"></iframe>`,
+        `<script>(${defangScriptClose(String(installRelay))})(window,document.getElementById('bf-inner'));</script>`,
+        '</body></html>',
+    ].join('');
+}
 
 /** The head of a sealed frame: the policy first, then nothing that names an address. */
 function sealedHead(): string {

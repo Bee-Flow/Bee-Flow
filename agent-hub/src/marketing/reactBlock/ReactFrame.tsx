@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
-import { buildReactFrameDoc, SEALED_FRAME_SANDBOX, type FrameMode, type FramePolicy } from './frameDoc';
+import { buildReactFrameDoc, buildSealedOuterDoc, SEALED_FRAME_SANDBOX, type FrameMode, type FramePolicy } from './frameDoc';
 import type { BlockProps } from './blockProps';
 
 /**
@@ -20,7 +20,9 @@ import type { BlockProps } from './blockProps';
  * sandbox is scripts only, the document carries a policy that loads and connects
  * nothing, the props (the app's data) go in by postMessage only, once the frame
  * has loaded and on every change, and a `bf-react-event` from this frame is
- * handed to onFrameEvent, which decides whether it does anything.
+ * handed to onFrameEvent, which decides whether it does anything. The element
+ * here is the OUTER frame (frameDoc.ts buildSealedOuterDoc, ./sealedRelay.ts):
+ * the component runs in a frame inside it and talks through its relay.
  */
 export const FRAME_SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
 
@@ -79,8 +81,13 @@ export default function ReactFrame({ runtime, compiled, css, theme, props, mode,
     const [docProps, setDocProps] = useState(currentProps);
     useAdjustOnChange([runtime, compiled, css, theme, mode, lang, policy], () => setDocProps(currentProps));
     const srcDoc = useMemo(
-        () => (runtime === null ? undefined : buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode, lang, policy })),
-        [runtime, compiled, css, theme, docProps, mode, lang, policy],
+        () => {
+            if (runtime === null) return undefined;
+            const doc = buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode, lang, policy });
+            // Sealed: the component's frame sits inside an outer frame whose policy it cannot navigate past (frameDoc.ts).
+            return policy === 'sealed' ? buildSealedOuterDoc(doc, title) : doc;
+        },
+        [runtime, compiled, css, theme, docProps, mode, lang, policy, title],
     );
     const onEvent = useRef(onFrameEvent);
     useEffect(() => { onEvent.current = onFrameEvent; }, [onFrameEvent]);

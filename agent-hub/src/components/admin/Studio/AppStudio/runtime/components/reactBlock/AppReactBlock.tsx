@@ -19,6 +19,9 @@ import { acceptFrameEvent, createEventGate } from './frameEvents';
  *   - sandbox="allow-scripts" only: an opaque origin, no popups, no top navigation, no forms;
  *   - the document's first head element is a policy that loads nothing and connects nowhere
  *     (frameDoc.ts SEALED_FRAME_CSP): no fetch, XHR, WebSocket or beacon can carry data out;
+ *   - that frame sits inside an outer sandboxed frame whose policy has frame-src 'none', so the
+ *     component cannot navigate its own frame to an outside address, whatever policy the page
+ *     has; the outer frame's relay passes on only props in, heights and events out (sealedRelay.ts);
  *   - the data goes in only as the block's declared inputs, resolved here under the viewer's
  *     own session like every binding, by postMessage into this element's own frame;
  *   - what comes out is an event: only one the block wired, from this frame's window, plain

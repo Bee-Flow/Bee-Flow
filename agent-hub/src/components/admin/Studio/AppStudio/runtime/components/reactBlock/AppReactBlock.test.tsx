@@ -1,7 +1,7 @@
 import { act } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadReactRuntime } from '@/marketing/reactBlock/loadRuntime';
-import { SEALED_FRAME_CSP } from '@/marketing/reactBlock/frameDoc';
+import { SEALED_FRAME_CSP, SEALED_OUTER_CSP } from '@/marketing/reactBlock/frameDoc';
 import { renderScreen } from '@/test/appScreenRender';
 
 // The frame's runtime text is its own chunk; loaded first, the block draws on the first render.
@@ -25,15 +25,19 @@ async function fromFrame(frame: HTMLIFrameElement, data: unknown, source: Window
 }
 
 describe('AppReactBlock', () => {
-    it('draws a sealed frame: scripts only, the policy first in its head, and no app data in the document', () => {
+    it('draws a sealed frame in an outer frame: scripts only, each policy first in its head, and no app data in either document', () => {
         const { container } = renderScreen([node()], {}, ACTIONS);
         const frame = frameOf(container);
         expect(frame.getAttribute('sandbox')).toBe('allow-scripts');
         expect(frame.getAttribute('referrerpolicy')).toBe('no-referrer');
         const srcdoc = frame.getAttribute('srcdoc') || '';
-        expect(srcdoc.startsWith(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="${SEALED_FRAME_CSP}">`)).toBe(true);
+        expect(srcdoc.startsWith(`<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="${SEALED_OUTER_CSP}">`)).toBe(true);
+        const inner = new DOMParser().parseFromString(srcdoc, 'text/html').getElementById('bf-inner') as HTMLIFrameElement;
+        expect(inner.getAttribute('sandbox')).toBe('allow-scripts');
+        const innerDoc = inner.getAttribute('srcdoc') || '';
+        expect(innerDoc.startsWith(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="${SEALED_FRAME_CSP}">`)).toBe(true);
         expect(srcdoc).not.toContain('Ada');
-        expect(srcdoc).toContain('--bf-primary:');
+        expect(innerDoc).toContain('--bf-primary:');
         expect(container.querySelector('.bfa-react_block__root')).not.toBeNull();
     });
 
