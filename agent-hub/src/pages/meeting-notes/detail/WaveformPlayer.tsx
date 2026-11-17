@@ -36,10 +36,13 @@ function finiteDuration(v: number) {
     return Number.isFinite(v) && v > 0 ? v : 0;
 }
 
-function useAudioPlayback(audioRef: React.RefObject<HTMLAudioElement | null>, peakDuration: number) {
+function useAudioPlayback(audioRef: React.RefObject<HTMLVideoElement | null>, peakDuration: number) {
     const [playing, setPlaying] = useState<boolean>(false);
     const [currentTime, setCurrentTime] = useState<number>(0);
     const [duration, setDuration] = useState<number>(0);
+    // A Talk recording made in video mode is saved whole, picture included;
+    // an audio file reports a width of 0. Read again on every source swap.
+    const [hasVideo, setHasVideo] = useState<boolean>(false);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -59,7 +62,10 @@ function useAudioPlayback(audioRef: React.RefObject<HTMLAudioElement | null>, pe
         // — the usual `currentTime = 1e10` trick. On a blob-backed WebM the
         // element enters a seek that can never complete, and a later play() then
         // waits on it forever: the button toggles and no audio is ever heard.
-        const onMeta = () => setDuration(finiteDuration(audio.duration) || peakDuration || 0);
+        const onMeta = () => {
+            setDuration(finiteDuration(audio.duration) || peakDuration || 0);
+            setHasVideo(audio.videoWidth > 0);
+        };
         const onPlay = () => setPlaying(true);
         const onPause = () => setPlaying(false);
         audio.addEventListener('timeupdate', onTime);
@@ -81,14 +87,14 @@ function useAudioPlayback(audioRef: React.RefObject<HTMLAudioElement | null>, pe
         };
     }, [audioRef, peakDuration]);
 
-    return { playing, currentTime, duration };
+    return { playing, currentTime, duration, hasVideo };
 }
 
 /**
- * Keep the listening position (and play state) across an <audio> src swap.
+ * Keep the listening position (and play state) across a media src swap.
  * Used when the waveform hook's blob URL replaces the streaming URL mid-listen.
  */
-function useAudioSourceSwap(audioRef: React.RefObject<HTMLAudioElement | null>, src: string) {
+function useAudioSourceSwap(audioRef: React.RefObject<HTMLVideoElement | null>, src: string) {
     const lastSrcRef = useRef<string | null>(null);
     useEffect(() => {
         const a = audioRef.current;
@@ -109,11 +115,11 @@ function useAudioSourceSwap(audioRef: React.RefObject<HTMLAudioElement | null>, 
 
 export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentionMarkers = [], segments = [], speakers = [], chapters = [], durationSeconds = 0 }: WaveformPlayerProps) {
     const { t } = useTranslation();
-    const audioRef = useRef<HTMLAudioElement>(null);
+    const audioRef = useRef<HTMLVideoElement>(null);
     const { peaks, duration: peakDuration, loading, objectUrl } = useWaveform(audioSrc, 600);
-    const { playing, currentTime, duration } = useAudioPlayback(audioRef, peakDuration);
+    const { playing, currentTime, duration, hasVideo } = useAudioPlayback(audioRef, peakDuration);
     // The waveform hook already downloaded the full authenticated audio; its
-    // blob URL backs the <audio> element too (one download, and playback works
+    // blob URL backs the media element too (one download, and playback works
     // in the token-bridged iframe embed where the element can't send headers).
     // Until the blob exists the element streams the raw URL, so listening can
     // start immediately; the swap hook restores the position.
@@ -183,39 +189,52 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
     };
 
     return (
-        <div
-            tabIndex={0}
-            onKeyDown={onKeyDown}
-            aria-label={t('meeting_notes.player_aria', 'Meeting audio player. Space to play or pause, arrow keys to skip.')}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border outline-none focus-visible:ring-1 bg-[var(--bg-secondary)] border-[var(--border-default)]"
-        >
-            <Transport playing={playing} onToggle={togglePlay} onSkip={skip} />
+        <div className="flex flex-col gap-2">
+            {/* One <video> element for every recording: it plays audio-only files
+                just as well, and shows the picture of a Talk video recording.
+                Hidden while there is no picture. The transport below drives it. */}
+            <video
+                ref={audioRef}
+                src={effectiveSrc}
+                preload="metadata"
+                playsInline
+                aria-hidden="true"
+                onClick={togglePlay}
+                className={hasVideo ? 'w-full max-h-[60vh] rounded-xl bg-black cursor-pointer' : 'hidden'}
+            />
+            <div
+                tabIndex={0}
+                onKeyDown={onKeyDown}
+                aria-label={t('meeting_notes.player_aria', 'Meeting audio player. Space to play or pause, arrow keys to skip.')}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border outline-none focus-visible:ring-1 bg-[var(--bg-secondary)] border-[var(--border-default)]"
+            >
+                <Transport playing={playing} onToggle={togglePlay} onSkip={skip} />
 
-            <div className="flex-1 min-w-0">
-                <TimelineStack
-                    peaks={peaks}
-                    loading={loading}
-                    duration={effectiveDuration}
-                    currentTime={currentTime}
-                    markers={markers}
-                    mentionMarkers={mentionMarkers}
-                    rows={rows}
-                    others={others}
-                    colorMap={colorMap}
-                    chapters={chapterBlocks}
-                    segments={segments}
-                    onSeekTo={seekTo}
-                />
-                <TimeRow
-                    currentTime={currentTime}
-                    duration={effectiveDuration}
-                    showRemaining={showRemaining}
-                    onToggle={() => setShowRemaining((v: boolean) => !v)}
-                />
+                <div className="flex-1 min-w-0">
+                    <TimelineStack
+                        peaks={peaks}
+                        loading={loading}
+                        duration={effectiveDuration}
+                        currentTime={currentTime}
+                        markers={markers}
+                        mentionMarkers={mentionMarkers}
+                        rows={rows}
+                        others={others}
+                        colorMap={colorMap}
+                        chapters={chapterBlocks}
+                        segments={segments}
+                        onSeekTo={seekTo}
+                    />
+                    <TimeRow
+                        currentTime={currentTime}
+                        duration={effectiveDuration}
+                        showRemaining={showRemaining}
+                        onToggle={() => setShowRemaining((v: boolean) => !v)}
+                    />
+                </div>
+
+                <RateChip rate={rate} onCycle={cycleRate} />
             </div>
-
-            <RateChip rate={rate} onCycle={cycleRate} />
-            <audio ref={audioRef} src={effectiveSrc} preload="metadata" />
         </div>
     );
 }

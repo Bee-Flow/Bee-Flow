@@ -29,6 +29,9 @@ const MIME_BY_EXT = {
     '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
     '.ogg': 'audio/ogg', '.webm': 'audio/webm', '.flac': 'audio/flac',
     '.aac': 'audio/aac', '.mp4': 'audio/mp4', '.opus': 'audio/ogg',
+    // Talk's video-mode containers. The player plays every recording in a
+    // <video> element and shows the picture when there is one.
+    '.ogv': 'video/ogg', '.mkv': 'video/x-matroska',
 };
 
 /** The one place that knows where saved recordings live on this pod. */
