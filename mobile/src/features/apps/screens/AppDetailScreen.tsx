@@ -21,26 +21,21 @@ import { AppBody } from '../components/AppBody';
 import { AppScreenChips } from '../components/AppScreenChips';
 import { AppUnavailable } from '../components/AppUnavailable';
 import { useAppRuntime } from '../hooks/queries';
-import { planScreen, runtimeNavScreens } from '../model/appDefinition';
+import { runtimeNavScreens, runtimePlan } from '../model/appDefinition';
 
 export function AppDetailScreen({ id, draft = false }: { id: string; draft?: boolean }) {
     const t = useTranslation();
     const [screenId, setScreenId] = useState<string | null>(null);
     const runtime = useAppRuntime(id, draft);
     const refresh = useUserRefresh(() => runtime.refetch());
-    const definition = runtime.data?.definition ?? null;
     // Only the screens this viewer's role may open get a chip (navigableScreens).
     const screens = useMemo(() => runtimeNavScreens(runtime.data), [runtime.data]);
 
     // The viewer's role decides what they may see. The server enforces it on
     // every action (studioAppRunGate), and until the phone read this field,
     // role-gated content was drawn and a role-gated button answered 403 on tap.
-    const viewerRole = runtime.data?.viewer?.roleKey ?? null;
-
-    const plan = useMemo(
-        () => (definition ? planScreen(definition, screenId, viewerRole) : null),
-        [definition, screenId, viewerRole],
-    );
+    // A screen gated away from their role is not drawn at all (runtimePlan).
+    const plan = useMemo(() => runtimePlan(runtime.data, screenId), [runtime.data, screenId]);
 
     if (runtime.isLoading) {
         return (

@@ -1831,6 +1831,56 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
           "plan": {
             "blocks": [
               {
+                "id": "cmp_title1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_save01",
+                  "kind": "save_record",
+                  "label": "Save",
+                  "runnable": false,
+                },
+                "id": "cmp_btn001",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_nav001",
+                  "kind": "navigate",
+                  "label": "Go",
+                  "runnable": false,
+                },
+                "id": "cmp_btn002",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_omod01",
+                  "kind": "open_modal",
+                  "label": "Edit",
+                  "runnable": false,
+                },
+                "id": "cmp_btn003",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home01",
+            "unsupported": [
+              "table",
+              "modal",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
                 "id": "cmp_dtext1",
                 "kind": "text",
                 "muted": false,
@@ -1841,7 +1891,6 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
             "unsupported": [],
           },
           "roles": [
-            "(no role)",
             "manager",
           ],
         },
@@ -6829,6 +6878,28 @@ exports[`compat corpus: what the phone plans for every stored app template-field
           "plan": {
             "blocks": [
               {
+                "divider": false,
+                "id": "cmp_fsph",
+                "kind": "page_header",
+                "subtitle": "Every open job, by status. Drag a card to move it on.",
+                "title": "Field service",
+              },
+            ],
+            "screen": "scr_fsboard",
+            "unsupported": [
+              "stat",
+              "kanban (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "technician",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
                 "id": "cmp_fsbh",
                 "kind": "heading",
                 "level": 1,
@@ -6928,9 +6999,7 @@ exports[`compat corpus: what the phone plans for every stored app template-field
             ],
           },
           "roles": [
-            "(no role)",
             "planner",
-            "technician",
           ],
         },
       ],
@@ -8314,6 +8383,100 @@ exports[`compat corpus: what the phone plans for every stored app template-invoi
             "blocks": [
               {
                 "divider": false,
+                "id": "cmp_iahhdr",
+                "kind": "page_header",
+                "subtitle": "Read the PDF, check the numbers, send it up the ladder — and keep the record of who said yes.",
+                "title": "Invoice approvals",
+              },
+              {
+                "action": {
+                  "actionId": "act_iagonew",
+                  "kind": "navigate",
+                  "label": "New invoice",
+                  "runnable": false,
+                },
+                "id": "cmp_iahnew",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_iagoappr",
+                  "kind": "navigate",
+                  "label": "Approvals",
+                  "runnable": false,
+                },
+                "id": "cmp_iahgoap",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_iagopay",
+                  "kind": "navigate",
+                  "label": "Payments",
+                  "runnable": false,
+                },
+                "id": "cmp_iahgopy",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_iarefresh",
+                  "kind": "sequence",
+                  "label": "Refresh",
+                  "runnable": false,
+                },
+                "id": "cmp_iahref",
+                "kind": "button",
+              },
+              {
+                "body": "The approval ladder ships with **placeholder approver groups** (every seat is named \`replace-me-…\`). Until you replace them with your own groups, every rung falls back to the app owner — the ladder still runs, in order, and nothing is skipped, but the same person is asked each time. Open **Approval policy** for the ladder and the list of groups to create.",
+                "id": "cmp_iahsetup",
+                "kind": "callout",
+                "title": "Before the first real invoice",
+                "tone": "info",
+              },
+              {
+                "id": "cmp_iahmh",
+                "kind": "heading",
+                "level": 2,
+                "text": "Waiting on you",
+              },
+              {
+                "id": "cmp_iahwh",
+                "kind": "heading",
+                "level": 2,
+                "text": "Needs a person",
+              },
+              {
+                "action": {
+                  "actionId": "act_iaback",
+                  "kind": "navigate",
+                  "label": "All invoices",
+                  "runnable": false,
+                },
+                "id": "cmp_iahall",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_iahome",
+            "unsupported": [
+              "stat",
+              "approval_list",
+              "data_grid",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "ap",
+            "approver",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
                 "id": "cmp_iaauhdr",
                 "kind": "page_header",
                 "subtitle": "Append-only by access matrix, not by convention — nobody, the controller included, can edit a row here.",
@@ -8327,10 +8490,7 @@ exports[`compat corpus: what the phone plans for every stored app template-invoi
             ],
           },
           "roles": [
-            "(no role)",
             "finance",
-            "ap",
-            "approver",
           ],
         },
       ],
@@ -11138,6 +11298,64 @@ exports[`compat corpus: what the phone plans for every stored app template-quote
             "blocks": [
               {
                 "divider": true,
+                "id": "cmp_qiprevh",
+                "kind": "page_header",
+                "subtitle": "Pick one on the left to read it here.",
+                "title": "Select a request",
+              },
+              {
+                "action": {
+                  "actionId": "act_qigo",
+                  "kind": "sequence",
+                  "label": "Open workspace",
+                  "runnable": false,
+                },
+                "id": "cmp_qiopenb",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_qiassign",
+                  "kind": "sequence",
+                  "label": "Assign to me",
+                  "runnable": false,
+                },
+                "id": "cmp_qiassignb",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_qiclassify",
+                  "kind": "sequence",
+                  "label": "Classify with AI",
+                  "runnable": false,
+                },
+                "id": "cmp_qiclassb",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_qiinbox",
+            "unsupported": [
+              "pane",
+              "filter_bar",
+              "badge_list",
+              "list",
+              "stepper",
+              "form",
+              "markdown",
+              "message_thread",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "verkoper",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
                 "id": "cmp_qiacth",
                 "kind": "page_header",
                 "subtitle": "Append-only: nobody, not even an administrator, can edit this trail.",
@@ -11150,9 +11368,7 @@ exports[`compat corpus: what the phone plans for every stored app template-quote
             ],
           },
           "roles": [
-            "(no role)",
             "admin",
-            "verkoper",
           ],
         },
       ],
@@ -12342,6 +12558,159 @@ exports[`compat corpus: what the phone plans for every stored app template-suppo
           "plan": {
             "blocks": [
               {
+                "divider": true,
+                "id": "cmp_sdhead",
+                "kind": "page_header",
+                "subtitle": null,
+                "title": "Conversation",
+              },
+              {
+                "action": {
+                  "actionId": "act_sdassign",
+                  "kind": "sequence",
+                  "label": "Assign to me",
+                  "runnable": false,
+                },
+                "id": "cmp_sdassignb",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_sdopenfiles",
+                  "kind": "sequence",
+                  "label": "Files",
+                  "runnable": false,
+                },
+                "id": "cmp_sdfilesb",
+                "kind": "button",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_sdtriage",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Status",
+                    "max": null,
+                    "min": null,
+                    "name": "status",
+                    "nodeId": "cmp_sdstat",
+                    "options": [
+                      {
+                        "label": "New",
+                        "value": "new",
+                      },
+                      {
+                        "label": "Open",
+                        "value": "open",
+                      },
+                      {
+                        "label": "Waiting on customer",
+                        "value": "awaiting_user",
+                      },
+                      {
+                        "label": "Waiting on us",
+                        "value": "awaiting_agent",
+                      },
+                      {
+                        "label": "Resolved",
+                        "value": "resolved",
+                      },
+                    ],
+                    "placeholder": "Set status",
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_select",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Priority",
+                    "max": null,
+                    "min": null,
+                    "name": "priority",
+                    "nodeId": "cmp_sdprio",
+                    "options": [
+                      {
+                        "label": "Low",
+                        "value": "low",
+                      },
+                      {
+                        "label": "Normal",
+                        "value": "normal",
+                      },
+                      {
+                        "label": "High",
+                        "value": "high",
+                      },
+                      {
+                        "label": "Urgent",
+                        "value": "urgent",
+                      },
+                    ],
+                    "placeholder": "Set priority",
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_select",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Save",
+                "title": "triage",
+              },
+              {
+                "action": {
+                  "actionId": "act_sdsend",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_sdform",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Your reply",
+                    "max": null,
+                    "min": null,
+                    "name": "body",
+                    "nodeId": "cmp_sdbody",
+                    "options": [],
+                    "placeholder": "Write a reply… or type / for a saved reply",
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_textarea",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send reply",
+                "title": "reply",
+              },
+            ],
+            "screen": "scr_sdinbox",
+            "unsupported": [
+              "pane",
+              "filter_bar",
+              "badge_list",
+              "list",
+              "input_multiselect",
+              "message_thread",
+              "button",
+              "modal",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "agent",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
                 "body": "The Support mailbox connector under Data reads mail labelled “support” using the Google or Microsoft account you signed in to Bee Flow with. Conversations become tickets by themselves; status, priority, assignee and tags belong to your team and are never overwritten by a refresh.",
                 "id": "cmp_sdsetnote",
                 "kind": "callout",
@@ -12414,9 +12783,7 @@ exports[`compat corpus: what the phone plans for every stored app template-suppo
             ],
           },
           "roles": [
-            "(no role)",
             "admin",
-            "agent",
           ],
         },
       ],

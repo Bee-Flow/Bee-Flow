@@ -4,7 +4,7 @@
  * Every case here is a defect that reached a real screen, not a spec check.
  */
 
-import { navigableScreens, planScreen } from './appDefinition';
+import { navigableScreens, planScreen, runtimePlan } from './appDefinition';
 import type { AppDefinition, AppNode } from './types';
 
 
@@ -170,5 +170,32 @@ describe('the screen chips follow the screen role gate', () => {
     it('offers it to the role named and to the owner', () => {
         expect(ids({ roleKey: 'manager' })).toEqual(['home', 'report']);
         expect(ids({ roleKey: 'owner', isOwner: true })).toEqual(['home', 'report']);
+    });
+});
+
+describe('a screen the viewer may not open is not drawn', () => {
+    const def = {
+        homeScreenId: 'report',
+        screens: [
+            { id: 'report', visibleToRoles: ['manager'], sections: [{ id: 'sec1', children: [node('heading', { id: 'secret', props: { text: 'numbers' } })] }] },
+            { id: 'home', sections: [{ id: 'sec2', children: [node('heading', { id: 'open', props: { text: 'hello' } })] }] },
+        ],
+        actions: {},
+    } as unknown as AppDefinition;
+
+    it('falls back to a screen the role may open, also for the home screen', () => {
+        expect(planScreen(def, 'report', 'member').screen?.id).toBe('home');
+        expect(planScreen(def, null, 'member').blocks.map((b) => b.id)).toEqual(['open']);
+        expect(planScreen(def, 'report', null).screen?.id).toBe('home');
+    });
+
+    it('opens it for the role named and for the owner', () => {
+        expect(planScreen(def, 'report', 'manager').screen?.id).toBe('report');
+        expect(runtimePlan({ definition: def, viewer: { roleKey: 'owner', isOwner: true } }, 'report')?.blocks.map((b) => b.id)).toEqual(['secret']);
+    });
+
+    it('draws nothing when no screen is open to the role', () => {
+        const only = { ...def, screens: (def.screens ?? []).slice(0, 1) } as AppDefinition;
+        expect(planScreen(only, null, 'member')).toEqual({ screen: null, blocks: [], unsupported: [] });
     });
 });

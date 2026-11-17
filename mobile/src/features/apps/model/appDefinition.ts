@@ -201,6 +201,11 @@ function planNode(node: AppNode, ctx: PlanContext): void {
     build(node, node.props ?? {}, ctx);
 }
 
+/** A screen's own role gate (visibleToRoles), read like a node's: absent or empty is open. */
+function mayOpenScreen(screen: AppScreen, viewerRole: string | null | undefined): boolean {
+    return roleAllows({ id: screen.id, type: 'screen', visibleToRoles: screen.visibleToRoles }, viewerRole);
+}
+
 /**
  * Flatten one screen into an ordered list of things the phone can draw.
  * Containers keep their children's order, which is the only part of the
@@ -217,10 +222,16 @@ export function planScreen(
      * it looks available and fails on tap.
      */
     viewerRole?: string | null,
+    /** The app owner (runtime viewer.isOwner): every screen opens, as in the browser. */
+    options: { owner?: boolean } = {},
 ): AppPlan {
-    const screens = definition.screens ?? [];
+    // A screen the viewer's role may not open is never drawn: the asked screen falls back to
+    // the home screen, then to the first screen they may open (the browser's route does the same).
+    const screens = (definition.screens ?? []).filter((s) => options.owner === true || mayOpenScreen(s, viewerRole));
     const screen =
-        screens.find((s) => s.id === (screenId ?? definition.homeScreenId)) ?? screens[0] ?? null;
+        screens.find((s) => s.id === (screenId ?? definition.homeScreenId))
+        ?? screens.find((s) => s.id === definition.homeScreenId)
+        ?? screens[0] ?? null;
     if (!screen) return { screen: null, blocks: [], unsupported: [] };
 
     const unsupported: string[] = [];
@@ -261,7 +272,13 @@ export function navigableScreens(
     viewer?: { roleKey?: string | null; isOwner?: boolean } | null,
 ): AppScreen[] {
     return (definition.screens ?? []).filter((s) => s.showInNav !== false
-        && (!viewer || viewer.isOwner === true || roleAllows({ id: s.id, type: 'screen', visibleToRoles: s.visibleToRoles }, viewer.roleKey)));
+        && (!viewer || viewer.isOwner === true || mayOpenScreen(s, viewer.roleKey)));
+}
+
+/** The run view's plan of one screen for the runtime payload's viewer, null before it loads. */
+export function runtimePlan(runtime: Pick<StudioAppRuntime, 'definition' | 'viewer'> | null | undefined, screenId: string | null): AppPlan | null {
+    if (!runtime?.definition) return null;
+    return planScreen(runtime.definition, screenId, runtime.viewer?.roleKey ?? null, { owner: runtime.viewer?.isOwner === true });
 }
 
 /** The run view's screen chips: navigableScreens for the runtime payload's viewer, none before it loads. */
