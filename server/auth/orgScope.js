@@ -17,6 +17,11 @@
  *
  *   orgIds       every org the caller may READ, or `null` for a super-admin —
  *                which every list query already reads as "no filter".
+ *   memberOrgIds the orgs the caller BELONGS to, a Set for everyone, the
+ *                super-admin included. For an audience that is membership by
+ *                rule (an app or page published to an org): a super-admin who
+ *                is a member there is in that audience like any member, and
+ *                nowhere else (auth/audience resolveAudienceContext).
  *   orgId        the tenant being acted IN: the org on the account, else the
  *                first org a group grants. A super-admin gets their own org
  *                here rather than `null`, because they still act somewhere.
@@ -45,7 +50,7 @@ const { bestEffort } = require('../utils/bestEffort');
 // A fresh Set per call, never a shared constant: callers treat the result as
 // theirs, and one that narrowed a shared Set would narrow it for everyone.
 const anonymous = () => ({
-    userId: null, isSuperAdmin: false, orgIds: new Set(),
+    userId: null, isSuperAdmin: false, orgIds: new Set(), memberOrgIds: new Set(),
     orgId: null, homeOrgId: null, identityError: null,
 });
 
@@ -110,6 +115,7 @@ async function orgScope(req, { strict = false } = {}) {
         isSuperAdmin,
         // A super-admin sees everything, so there is no org filter to apply.
         orgIds: isSuperAdmin ? null : orgIds,
+        memberOrgIds: orgIds,
         orgId: homeOrgId || (orgIds.values().next().value ?? null),
         homeOrgId,
         identityError,
@@ -153,6 +159,6 @@ module.exports = { orgScope, requireOrgScope };
  */
 
 /**
- * @typedef {{ userId: string|null, isSuperAdmin: boolean, orgIds: Set<string>|null,
+ * @typedef {{ userId: string|null, isSuperAdmin: boolean, orgIds: Set<string>|null, memberOrgIds: Set<string>,
  *   orgId: string|null, homeOrgId: string|null, identityError: string|null }} OrgScope
  */

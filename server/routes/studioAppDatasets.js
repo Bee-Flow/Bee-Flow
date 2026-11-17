@@ -182,9 +182,8 @@ const CompleteBody = partOf({});
 // ── Gating helpers (the studioAppFiles idiom — each studio router carries its
 // own copies; the SHARED rules live in appStudio/attachmentAccess) ────────────
 async function audienceFor(req) {
-    const { orgIds, userGroups } = await resolveAudienceContext(req);
-    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-    return { orgIdArr, userGroups: Array.isArray(userGroups) ? userGroups : [] };
+    const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+    return { orgIdArr: [...(memberOrgIds ?? orgIds ?? [])], userGroups: Array.isArray(userGroups) ? userGroups : [] };
 }
 
 async function loadVisibleApp(/** @type {import('express').Request<any, any, any, any>} */ req, /** @type {import('express').Response} */ res) {

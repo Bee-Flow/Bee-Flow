@@ -11,6 +11,7 @@
 
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
+const { orgScope } = require('./orgScope');
 const { fallback } = require('../utils/bestEffort');
 
 /**
@@ -80,13 +81,21 @@ async function resolveUserGroups(userId) {
 }
 
 /**
- * Convenience: build the full {userId, orgIds, userGroups} context from a request.
+ * Convenience: build the full {userId, orgIds, memberOrgIds, userGroups} context from a request.
+ *
+ * `orgIds` is resolveUserOrgIds (null = super admin, the canSeePublished bypass). `memberOrgIds`
+ * is the orgs the caller belongs to, never null: the same Set for a member, the membership
+ * orgScope reads for a super admin. The Studio app and webpage predicates and list queries read
+ * it: they take an array and know no bypass, so collapsing the null to [] (what they did) made a
+ * super admin match no organisation at all, their own included.
  */
 async function resolveAudienceContext(req) {
     const userId = req.session?.user?.id || null;
     const orgIds = await resolveUserOrgIds(req);
+    /** @type {Set<string>} */
+    const memberOrgIds = orgIds instanceof Set ? orgIds : (await orgScope(req)).memberOrgIds;
     const userGroups = userId ? await resolveUserGroups(userId) : [];
-    return { userId, orgIds, userGroups };
+    return { userId, orgIds, memberOrgIds, userGroups };
 }
 
 module.exports = {

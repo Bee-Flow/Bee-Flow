@@ -250,8 +250,8 @@ const KINDS = [
         key: 'apps',
         gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
         search: async (req, d, q) => {
-            const { userId, orgIds, userGroups } = await d.audience.resolveAudienceContext(req);
-            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
+            const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
             const apps = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
             return apps.filter((a) => matchesName(a, q));
         },
@@ -261,8 +261,8 @@ const KINDS = [
         key: 'webpages',
         gate: async (req, d) => (await moduleActive(d, 'webpages')) && (await capability(d, req, 'webpages')),
         search: async (req, d, q) => {
-            const { userId, orgIds, userGroups } = await d.audience.resolveAudienceContext(req);
-            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
+            const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
             const pages = await d.webpageStore.getAccessibleWebpages(userId, userGroups, orgIdArr);
             return pages.filter((p) => matchesName(p, q));
         },

@@ -103,9 +103,8 @@ function bodySizeGuard(req, res, next) {
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
 /** @param {import('express').Request} req */
 async function audienceFor(req) {
-    const { orgIds, userGroups } = await resolveAudienceContext(req);
-    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-    return { orgIdArr, userGroups: Array.isArray(userGroups) ? userGroups : [] };
+    const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+    return { orgIdArr: [...(memberOrgIds ?? orgIds ?? [])], userGroups: Array.isArray(userGroups) ? userGroups : [] };
 }
 
 // ── App visibility gates (mirror studioAppsRun / studioApps) ────────

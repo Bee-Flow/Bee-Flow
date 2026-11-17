@@ -151,11 +151,10 @@ function register(router) {
     });
 
     router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
-        // resolveUserOrgIds returns null for super-admin (sees everything in scope);
-        // collapse to [] so the SQL ANY($orgIds) doesn't blow up — super-admins fall
-        // through to their own webpages plus anything they own.
-        const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+        const { userId, orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+        // The orgs the caller belongs to (auth/audience resolveAudienceContext, memberOrgIds): a super-admin sees
+        // their own pages plus what is published to their organisations, like any member.
+        const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
         const webpages = await webpageStore.getAccessibleWebpages(userId, userGroups, orgIdArr);
         // The overview card paints "who can see this", and a live share link
         // is the widest audience there is (pages/webpages/webpageVisibility).
@@ -179,8 +178,8 @@ function register(router) {
         if (!webpage) {
             // Owner mismatch — check published visibility.
             const raw = await webpageStore.getWebpageRaw(req.params.id);
-            const { orgIds, userGroups } = await resolveAudienceContext(req);
-            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
             if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
                 webpage = raw;
             }

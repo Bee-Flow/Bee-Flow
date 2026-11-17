@@ -69,8 +69,8 @@ async function findReadableWebpage(req, userId) {
     if (own) return own;
     const raw = await webpageStore.getWebpageRaw(req.params.id);
     if (!raw) return null;
-    const { orgIds, userGroups } = await resolveAudienceContext(req);
-    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+    const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+    const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
     return (await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) ? raw : null;
 }
 

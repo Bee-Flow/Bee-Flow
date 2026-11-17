@@ -38,8 +38,8 @@ function register(router) {
     router.post('/:id/clone', requireAuth, validate({ body: CloneBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const sourceId = req.params.id;
         const { name } = req.body;
-        const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
-        const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+        const { userId, orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+        const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
 
         // Visibility gate: owner OR audience member of an org/group the source
         // is published to. Mirrors the GET /:id rules so anyone who can read

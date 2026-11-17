@@ -133,9 +133,8 @@ const MaterializeBody = partOf({
  */
 /** @param {import('express').Request} req */
 async function audienceFor(req) {
-    const { orgIds, userGroups } = await resolveAudienceContext(req);
-    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-    return { orgIdArr, userGroups: Array.isArray(userGroups) ? userGroups : [] };
+    const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+    return { orgIdArr: [...(memberOrgIds ?? orgIds ?? [])], userGroups: Array.isArray(userGroups) ? userGroups : [] };
 }
 
 // Owner always; else published + org/group/project audience
