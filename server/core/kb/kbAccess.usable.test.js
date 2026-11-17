@@ -37,6 +37,8 @@ const KBS = {
     // Another member's unpublished draft in the same org: an ORG ADMIN can read
     // it through canAccessKB. It must still never answer their chat.
     'kb-org-draft': { id: 'kb-org-draft', tenant_id: 'bob', organization_id: 'org-1', is_published: false, shared_groups: '[]', usage_contexts: null },
+    // Published to the whole of org-1 by another member: every member of org-1 may use it.
+    'kb-org-wide': { id: 'kb-org-wide', tenant_id: 'bob', organization_id: 'org-1', is_published: true, shared_groups: '[]', usage_contexts: null },
     'kb-foreign': { id: 'kb-foreign', tenant_id: 'carol', organization_id: 'org-2', is_published: true, shared_groups: '[]', usage_contexts: null },
 };
 
@@ -46,6 +48,7 @@ const fx = {
     orgRole: 'member',
     resolverThrows: false,
     kbStoreThrows: false,
+    homeOrg: 'org-1',
 };
 
 const kbStorePath = require.resolve('../../stores/knowledgeBases');
@@ -64,7 +67,8 @@ require.cache[kbStorePath] = {
 const userStorePath = require.resolve('../../stores/userStore');
 require.cache[userStorePath] = {
     id: userStorePath, filename: userStorePath, loaded: true,
-    exports: { getUser: async () => ({ orgRole: fx.orgRole }) },
+    // organizationId: what orgScope reads as the caller's membership (a super admin's own orgs).
+    exports: { getUser: async () => ({ orgRole: fx.orgRole, organizationId: fx.homeOrg }) },
 };
 
 // kbAccess imports its auth helpers from auth/permissions and auth/audience.
@@ -91,6 +95,8 @@ require.cache[audiencePath] = {
 const { usableKbIdsForRequest, partitionAccessibleKBIds } = require('./kbAccess');
 
 const req = { session: { user: { id: 'alice', organizationId: 'org-1' } } };
+// orgScope memoises its answer on the request, so a test that reads the membership gets its own.
+const freshReq = () => ({ session: { user: { id: 'alice', organizationId: 'org-1' } } });
 
 function reset() {
     fx.orgIds = new Set(['org-1']);
@@ -98,6 +104,7 @@ function reset() {
     fx.orgRole = 'member';
     fx.resolverThrows = false;
     fx.kbStoreThrows = false;
+    fx.homeOrg = 'org-1';
 }
 
 test('a base the caller owns and that allows chat comes back', async () => {
@@ -131,8 +138,22 @@ test('this wrapper is never wider than the linker\'s check', async () => {
 test('a super admin\'s null org ids must not read as "allow everything"', async () => {
     reset();
     fx.orgIds = null; // what resolveUserOrgIds returns for a super admin
-    const out = await usableKbIdsForRequest(req, ['kb-foreign', 'kb-mine']);
+    const out = await usableKbIdsForRequest(freshReq(), ['kb-foreign', 'kb-mine']);
     assert.ok(!out.includes('kb-foreign'), 'a null must narrow, never widen');
+});
+
+test('a super admin who is a member of an organisation uses what it shares, and only that', async () => {
+    reset();
+    fx.orgIds = null; // resolveUserOrgIds for a super admin; orgScope still reads their membership (org-1)
+    const out = await usableKbIdsForRequest(freshReq(), ['kb-org-wide', 'kb-foreign', 'kb-org-draft']);
+    assert.deepStrictEqual(out, ['kb-org-wide'], 'the org-wide base of their own organisation, not another org\'s, not a draft');
+});
+
+test('a super admin who belongs to no organisation gets no shared base', async () => {
+    reset();
+    fx.orgIds = null;
+    fx.homeOrg = '';
+    assert.deepStrictEqual(await usableKbIdsForRequest(freshReq(), ['kb-org-wide', 'kb-foreign']), []);
 });
 
 test('a base its owner switched off for chat is refused', async () => {

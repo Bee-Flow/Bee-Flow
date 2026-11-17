@@ -53,6 +53,8 @@ const fx = {
     memoryPolicyCalls: [],
     memoryStoreCalls: 0,
     memoryStoreArgs: null,
+    /** Every kbOrgIdsFor call (core/kb/askerContext): the one org answer the picker and the turn share. */
+    orgCalls: [],
 };
 
 const noop = () => {};
@@ -113,6 +115,14 @@ const MOCKS = {
     },
     '../../../core/conversation/historyMerge': { mergeAttachmentSidecars: (m) => m },
     '../../../core/privacy/orgShield': { resolveShieldFor: async () => fx.shield },
+    // The picker (core/kb/kbAccess usableKbIdsForRequest) asks this same function; its rule is pinned
+    // in core/kb/kbAccess.usable.test.js. Here: the turn asks it too, with its own request.
+    '../../../core/kb/askerContext': {
+        kbOrgIdsFor: async (req, orgIds) => {
+            fx.orgCalls.push({ req, orgIds });
+            return orgIds instanceof Set ? orgIds : new Set(['org-member']);
+        },
+    },
     '../../../core/agentRuntime/historyHydrator': { hydrateHistoryAttachments: async () => {} },
 };
 
@@ -147,6 +157,7 @@ function reset() {
     fx.memoryPolicy = { read: true, write: true, reason: 'enabled' };
     fx.memoryPolicyCalls.length = 0;
     fx.memoryStoreCalls = 0;
+    fx.orgCalls.length = 0;
 }
 
 function runTurn(overrides = {}) {
@@ -195,6 +206,17 @@ test('the ids the client named are put to the policy before anything is searched
     assert.strictEqual(fx.policyCalls[0].opts.surface, 'direct_chat');
     assert.ok(fx.policyCalls[0].opts.orgIds instanceof Set, 'orgIds must be a Set — a null reads as super admin');
     assert.deepStrictEqual(state.usableKbIds, ['kb-ok']);
+});
+
+test('a super admin\'s turn reads their membership, the same way the picker does', async () => {
+    reset();
+    fx.allowed = ['kb-ok'];
+    const req = { session: { user: { id: 'alice' }, isAdmin: true } };
+    await runTurn({ req, requestedKbIds: ['kb-ok'], orgIdsForTiers: null });
+    assert.strictEqual(fx.orgCalls.length, 1, 'the one org resolver is asked');
+    assert.strictEqual(fx.orgCalls[0].req, req, 'for THIS request');
+    assert.strictEqual(fx.orgCalls[0].orgIds, null);
+    assert.deepStrictEqual([...fx.policyCalls[0].opts.orgIds], ['org-member'], 'the policy reads what it answered, never an empty set');
 });
 
 test('a refused id never reaches the search, and does not take the allowed ones with it', async () => {
