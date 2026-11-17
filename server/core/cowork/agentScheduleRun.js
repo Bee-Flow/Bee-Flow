@@ -36,7 +36,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
 
         const agent = await services.agentStore.getForRuntime(task.agentId);
         if (!agent) throw new Error(`Linked agent ${task.agentId} no longer exists`);
-        if (agent.owner_id !== task.userId) throw new Error('Schedule agent owner mismatch — refusing to run');
+        if (!(await services.canRunAgent(agent, task.userId))) throw new Error('Schedule agent is no longer available to this user — refusing to run');
         if (!(await agentRoutinesAllowed(task, agent, store))) {
             if (trigger) await store.markError(task.id, 'agent_routines unavailable'); // an event is not retried: close its row
             return;
@@ -210,6 +210,7 @@ function servicesOf(deps) {
         terminationStore: own.terminationStore || defaultTerminationStore,
         chatWithAgentStream: own.chatWithAgentStream || require('../agentRuntime').chatWithAgentStream,
         buildUserAuth: own.buildUserAuth || require('../../auth/automationAuth').buildUserAuth,
+        canRunAgent: own.canRunAgent || require('./coworkAgentAccess.mts').canRunCoworkAgent,
     };
 }
 
@@ -382,6 +383,6 @@ module.exports = { executeAgentRun };
  *   isRepeating: (task: ScheduleTask) => boolean,
  *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore') }) => Promise<void>,
  *   NOTIFICATION: { category: string, link: string | null, prefix: string },
- *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any },
+ *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any, canRunAgent?: (agent: any, userId: string) => Promise<boolean> },
  * }} AgentRunDeps
  */
