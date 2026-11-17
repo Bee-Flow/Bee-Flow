@@ -383,6 +383,6 @@ module.exports = { executeAgentRun };
  *   isRepeating: (task: ScheduleTask) => boolean,
  *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore') }) => Promise<void>,
  *   NOTIFICATION: { category: string, link: string | null, prefix: string },
- *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any },
+ *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any, canRunAgent?: (agent: any, userId: string) => Promise<boolean> },
  * }} AgentRunDeps
  */
