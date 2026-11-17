@@ -4,7 +4,7 @@
  * Every case here is a defect that reached a real screen, not a spec check.
  */
 
-import { planScreen } from './appDefinition';
+import { navigableScreens, planScreen } from './appDefinition';
 import type { AppDefinition, AppNode } from './types';
 
 
@@ -147,5 +147,28 @@ describe('content inside a form', () => {
             ]),
         );
         expect(plan.unsupported).toContain('input_richtext');
+    });
+});
+
+describe('the screen chips follow the screen role gate', () => {
+    const def = {
+        homeScreenId: 'home',
+        screens: [
+            { id: 'home', name: 'Home' },
+            { id: 'report', name: 'Report', visibleToRoles: ['manager'] },
+            { id: 'hidden', name: 'Hidden', showInNav: false },
+        ],
+        actions: {},
+    } as unknown as AppDefinition;
+    const ids = (viewer: Parameters<typeof navigableScreens>[1]) => navigableScreens(def, viewer).map((s) => s.id);
+
+    it('offers a member no chip for a manager-only screen', () => {
+        expect(ids({ roleKey: 'member' })).toEqual(['home']);
+        expect(ids({ roleKey: null })).toEqual(['home']);
+    });
+
+    it('offers it to the role named and to the owner', () => {
+        expect(ids({ roleKey: 'manager' })).toEqual(['home', 'report']);
+        expect(ids({ roleKey: 'owner', isOwner: true })).toEqual(['home', 'report']);
     });
 });

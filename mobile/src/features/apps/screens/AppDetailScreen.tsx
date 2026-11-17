@@ -21,7 +21,7 @@ import { AppBody } from '../components/AppBody';
 import { AppScreenChips } from '../components/AppScreenChips';
 import { AppUnavailable } from '../components/AppUnavailable';
 import { useAppRuntime } from '../hooks/queries';
-import { navigableScreens, planScreen } from '../model/appDefinition';
+import { planScreen, runtimeNavScreens } from '../model/appDefinition';
 
 export function AppDetailScreen({ id, draft = false }: { id: string; draft?: boolean }) {
     const t = useTranslation();
@@ -29,8 +29,8 @@ export function AppDetailScreen({ id, draft = false }: { id: string; draft?: boo
     const runtime = useAppRuntime(id, draft);
     const refresh = useUserRefresh(() => runtime.refetch());
     const definition = runtime.data?.definition ?? null;
-
-    const screens = useMemo(() => (definition ? navigableScreens(definition) : []), [definition]);
+    // Only the screens this viewer's role may open get a chip (navigableScreens).
+    const screens = useMemo(() => runtimeNavScreens(runtime.data), [runtime.data]);
 
     // The viewer's role decides what they may see. The server enforces it on
     // every action (studioAppRunGate), and until the phone read this field,

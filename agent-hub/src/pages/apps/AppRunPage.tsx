@@ -112,6 +112,7 @@ function RunBody({
             viewer={viewer}
             appId={appId}
             onExit={onExit}
+            previewRole={previewRole}
         >
             {versionBanner}
             <ConnectionsPreflight appId={appId} />

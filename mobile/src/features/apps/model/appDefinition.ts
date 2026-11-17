@@ -23,7 +23,7 @@
 import { hasFormulaGate, roleAllows, sectionGate } from './gates';
 import { collectInputs, type AppInput } from './inputs';
 import { bool, num, staticBinding, str } from './props';
-import type { AppAction, AppDefinition, AppNode, AppScreen } from './types';
+import type { AppAction, AppDefinition, AppNode, AppScreen, StudioAppRuntime } from './types';
 
 export interface RunnableAction {
     actionId: string;
@@ -251,7 +251,20 @@ export function planScreen(
     return { screen, blocks: ctx.blocks, unsupported };
 }
 
-/** Screens worth offering in a picker — the ones the app itself navigates to. */
-export function navigableScreens(definition: AppDefinition): AppScreen[] {
-    return (definition.screens ?? []).filter((s) => s.showInNav !== false);
+/**
+ * Screens worth offering in a picker: the ones the app itself navigates to and the viewer's
+ * role may open (a screen's visibleToRoles gates its nav entry too). The owner, and a call
+ * without a viewer (the full list), see them all.
+ */
+export function navigableScreens(
+    definition: AppDefinition,
+    viewer?: { roleKey?: string | null; isOwner?: boolean } | null,
+): AppScreen[] {
+    return (definition.screens ?? []).filter((s) => s.showInNav !== false
+        && (!viewer || viewer.isOwner === true || roleAllows({ id: s.id, type: 'screen', visibleToRoles: s.visibleToRoles }, viewer.roleKey)));
+}
+
+/** The run view's screen chips: navigableScreens for the runtime payload's viewer, none before it loads. */
+export function runtimeNavScreens(runtime: Pick<StudioAppRuntime, 'definition' | 'viewer'> | null | undefined): AppScreen[] {
+    return runtime?.definition ? navigableScreens(runtime.definition, runtime.viewer) : [];
 }

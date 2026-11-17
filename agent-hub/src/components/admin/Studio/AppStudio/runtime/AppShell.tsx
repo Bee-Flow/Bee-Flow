@@ -59,6 +59,11 @@ interface AppShellProps {
     screenId?: string | null;
     onNavigate: NavigateFn | null;
     viewer?: UserMenuViewer | null;
+    /**
+     * The role the viewer runs as (AppRenderer's previewRole): every nav entry and nav.items
+     * link to a screen this role may not open is left out. Null/'owner' shows everything.
+     */
+    previewRole?: string | null;
     children?: React.ReactNode;
 }
 
@@ -69,11 +74,12 @@ export default function AppShell({
     viewer = null,
     appId = null,
     onExit = null,
+    previewRole = null,
     children,
 }: AppShellProps) {
     const screens = definition?.screens || [];
     const activeScreen = screens.find((s: { id: string; }) => s.id === screenId) || null;
-    const model = navModel(definition);
+    const model = navModel(definition, previewRole);
     const showNav = model.flat.length > 1;
     const navStyle = NAV_STYLES.includes(definition?.nav?.style)
         ? ((definition as ShellDefinition).nav as { style?: string; }).style
@@ -99,7 +105,7 @@ export default function AppShell({
     const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppCustomCss definition={definition} appId={appId} /><AppKbNotice definition={definition} />{children}</main>;
 
     // The shell options (schema 3, shell/shellOptions.ts); an app without them gets none of these parts.
-    const opts = shellOptions(definition);
+    const opts = shellOptions(definition, previewRole);
     const footer = <ShellFooter text={opts.footerText} />;
     const corner = (withNav: boolean) => (
         <ShellCorner model={withNav ? model : null} activeScreen={activeScreen} onNavigate={onNavigate} viewer={viewer} onExit={onExit} items={withNav ? opts.items : []} />

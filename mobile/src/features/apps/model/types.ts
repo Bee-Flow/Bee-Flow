@@ -62,6 +62,8 @@ export interface AppScreen {
     name?: string;
     icon?: string | null;
     showInNav?: boolean;
+    /** Role keys that may open this screen (absent or empty: everyone); its nav chip follows it. */
+    visibleToRoles?: string[] | null;
     sections?: AppSection[];
 }
 

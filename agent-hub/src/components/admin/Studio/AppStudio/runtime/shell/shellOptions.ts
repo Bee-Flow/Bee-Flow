@@ -13,6 +13,8 @@
  * stored bytes say.
  */
 
+import { roleAllows } from '../roleGate';
+
 export interface ShellItem {
     id: string;
     label: string;
@@ -79,12 +81,18 @@ function readBrand(raw: unknown): ShellBrand | null {
 
 interface ShellDefinitionLike {
     nav?: unknown;
-    screens?: Array<{ id?: unknown }> | null;
+    screens?: Array<{ id?: unknown; visibleToRoles?: unknown }> | null;
 }
 
-export function shellOptions(definition: ShellDefinitionLike | null | undefined): ShellOptions {
+/**
+ * `previewRole` (roleGate.ts): an item pointing at a screen that role may not open is left
+ * out, like the screen's own nav entry; null (owner, editor outside "View as") keeps them all.
+ */
+export function shellOptions(definition: ShellDefinitionLike | null | undefined, previewRole: string | null = null): ShellOptions {
     const nav = isObject(definition?.nav) ? definition.nav : {};
-    const screenIds = new Set((definition?.screens || []).map((s) => (typeof s?.id === 'string' ? s.id : '')).filter(Boolean));
+    const screenIds = new Set((definition?.screens || [])
+        .filter((s) => roleAllows(s, previewRole))
+        .map((s) => (typeof s?.id === 'string' ? s.id : '')).filter(Boolean));
     const footer = typeof nav.footerText === 'string' && nav.footerText.trim() ? nav.footerText : null;
     return {
         none: nav.style === 'none',
