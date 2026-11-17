@@ -115,7 +115,7 @@ function HeadlessScreen({ definition, screenId, dataState, currentUser, previewR
         />
     );
     return (
-        <ScreenshotFrame view={screenshot} definition={definition} screenId={screenId} viewer={viewer}>
+        <ScreenshotFrame view={screenshot} definition={definition} screenId={screenId} viewer={viewer} previewRole={previewRole || null}>
             {screenshot.chrome ? renderer : <HeadlessGround definition={definition}>{renderer}</HeadlessGround>}
         </ScreenshotFrame>
     );

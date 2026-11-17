@@ -154,6 +154,7 @@ function CanvasPreview({
                 onNavigate={onNavigate}
                 viewer={previewUser || null}
                 appId={appId}
+                previewRole={previewRole}
             >
                 <AppRenderer
                     definition={definition}

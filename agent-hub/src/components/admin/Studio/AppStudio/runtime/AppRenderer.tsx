@@ -1,4 +1,5 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { roleAllows } from './roleGate';
 import { EyeOff, FileQuestion, TriangleAlert } from 'lucide-react';
 import { useMemo, type JSX } from 'react';
 import './css/layout.css';
@@ -66,19 +67,6 @@ const MAX_WIDTHS: Record<string, string> = { narrow: '640px', medium: '960px', w
 
 const noop = () => {};
 
-/**
- * PRESENTATIONAL role gate — is a screen/node visible to the active preview
- * role? A missing/empty visibleToRoles means "everyone"; a null role or the
- * owner sentinel disables gating entirely (full view). This drives the editor's
- * "view as role" preview ONLY — real row-level security is server-enforced by
- * the RLS gateway, so this is never a security control.
- */
-function roleAllows(nodeOrScreen: { visibleToRoles?: string[] } | null | undefined, previewRole: string | null) {
-    if (!previewRole || previewRole === 'owner') return true;
-    const gate = nodeOrScreen && nodeOrScreen.visibleToRoles;
-    if (!Array.isArray(gate) || gate.length === 0) return true;
-    return gate.includes(previewRole);
-}
 function DefaultNodeWrapper({ node, className, style, children, interactive = null }: NodeWrapperProps) {
     // `interactive`: a clickable tile (./tileClick.ts), run mode only; absent, the cell is what it was.
     return (

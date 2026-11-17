@@ -39,6 +39,8 @@ interface FrameProps {
     definition?: AppDefinition;
     screenId?: string;
     viewer: UserMenuViewer | null;
+    /** The role the screenshot runs as (asRole): the shell's nav leaves out what it may not open. */
+    previewRole?: string | null;
     children: ReactNode;
 }
 
@@ -49,13 +51,13 @@ function stillQueryClient() {
 }
 
 /** The providers of screenshot mode, and the shell when `chrome` is asked for. */
-export function ScreenshotFrame({ view, definition, screenId, viewer, children }: FrameProps) {
+export function ScreenshotFrame({ view, definition, screenId, viewer, previewRole = null, children }: FrameProps) {
     const [client] = useState(stillQueryClient);
     const body = view.chrome ? (
         // A grid row stretches to the viewport and still grows with a tall screen, so the
         // shell's full-height layout has a definite box without clipping the capture.
         <div className="grid min-h-screen">
-            <AppShell definition={definition as never} screenId={screenId} onNavigate={noop} viewer={viewer}>
+            <AppShell definition={definition as never} screenId={screenId} onNavigate={noop} viewer={viewer} previewRole={previewRole}>
                 {children}
             </AppShell>
         </div>

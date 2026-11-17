@@ -19,6 +19,8 @@
  * were; a link opened cold gets the text form.
  */
 
+import { roleAllows } from './roleGate';
+
 const ROUTE_PREFIX = '#/s/';
 const PARAM_PREFIX = 'p.';
 const STATE_KEY = 'bfAppScreen';
@@ -91,14 +93,6 @@ export function previewRoleFor(viewer: { isOwner?: boolean; roleKey?: string | n
     return viewer?.roleKey || '__no_role__';
 }
 
-// The same rule as AppRenderer's screen gate: no visibleToRoles means
-// everyone, the owner passes every gate.
-function roleMaySee(screen: RouteScreen, previewRole: string): boolean {
-    if (previewRole === 'owner') return true;
-    const gate = screen.visibleToRoles;
-    return !Array.isArray(gate) || gate.length === 0 || gate.includes(previewRole);
-}
-
 /** Whether a screen exists in this definition at all. */
 export function hasScreen(definition: RouteDefinition | null | undefined, screenId: string): boolean {
     return (definition?.screens || []).some((s) => s?.id === screenId);
@@ -112,7 +106,7 @@ export function hasScreen(definition: RouteDefinition | null | undefined, screen
  */
 function reachable(definition: RouteDefinition | null | undefined, screenId: string, previewRole: string): boolean {
     const screen = (definition?.screens || []).find((s) => s?.id === screenId);
-    return !!screen && roleMaySee(screen, previewRole);
+    return !!screen && roleAllows(screen, previewRole);
 }
 
 function stateRoute(state: unknown): ScreenRoute | null {
