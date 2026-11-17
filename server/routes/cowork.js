@@ -96,8 +96,8 @@ async function resolveAgentId(agentId, userId, session) {
         throw err;
     }
     const agent = await agentStore.getAgent(agentId);
-    if (!agent || agent.owner_id !== userId) {
-        const err = new Error('Agent not found or not owned by you');
+    if (!agent || !(await require('../core/cowork/coworkAgentAccess.mts').canRunCoworkAgent(agent, userId))) {
+        const err = new Error('Agent not found or not available to you');
         err.statusCode = 403;
         throw err;
     }

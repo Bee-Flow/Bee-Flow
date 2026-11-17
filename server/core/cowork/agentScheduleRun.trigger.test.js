@@ -84,3 +84,23 @@ test('reply-all in a mail-started run is the agent owner\'s setting for that mai
     assert.strictEqual(await run({ tools: { gmail: { mailAccess: 'send_reply', replyAll: true } } }), true);
     assert.strictEqual(await run({ tools: { gmail: { mailAccess: 'send_reply', replyAll: true } } }, 'outlook'), false);
 });
+
+test('an agent that is no longer available to the item\'s user is refused at run time, before the model runs', async () => {
+    const failed = [];
+    let chatted = false;
+    const d = deps(failed, async () => { chatted = true; return { message: 'x' }; });
+    d.services.agentStore = { getForRuntime: async () => ({ id: 'a1', name: 'Shared agent', owner_id: 'someone-else', organization_id: null, config: {} }) };
+    d.services.canRunAgent = async (agent, userId) => { assert.strictEqual(userId, 'u1'); return false; };
+    await executeAgentRun(task, { store: fakeStore() }, d);
+    assert.strictEqual(chatted, false);
+    assert.match(failed[0].err, /no longer available/);
+});
+
+test('a shared agent the item\'s user may chat with runs as that user', async () => {
+    const d = deps([]);
+    d.services.agentStore = { getForRuntime: async () => ({ id: 'a1', name: 'Shared agent', owner_id: 'someone-else', organization_id: null, config: {} }) };
+    d.services.canRunAgent = async () => true;
+    seen.runtime = null;
+    await executeAgentRun(task, { store: fakeStore() }, d);
+    assert.strictEqual(seen.runtime.userId, 'u1');
+});
