@@ -338,8 +338,49 @@ async function discardSavedAudio({ audioPath = null, audioStorageKey = null } = 
     }
 }
 
+/**
+ * Copy the recording to saved-recordings (playback) and, when configured, to
+ * object storage, then delete the scratch file. Returns where it landed.
+ * @param {string} filePath
+ * @param {string} userId
+ * @returns {Promise<{ audioPath: string, audioStorageKey: string | null }>}
+ */
+async function persistRecordingCopy(filePath, userId) {
+    const ext = path.extname(filePath).toLowerCase();
+    if (!fs.existsSync(SAVED_RECORDINGS_DIR)) fs.mkdirSync(SAVED_RECORDINGS_DIR, { recursive: true });
+    // randomUUID for the same reason as the scratch names upstream, but the
+    // stakes here are higher: a collision in saved-recordings does not fail
+    // loudly, it silently re-points one note's playback at another meeting's
+    // audio (and, via savedAudioKey, at the other note's object-storage copy).
+    // Nothing parses this basename — savedAudioBackfill matches on the full
+    // path — so the extra segment is safe for existing rows.
+    const savedBase = `${Date.now()}-${crypto.randomUUID()}-${userId}${ext}`;
+    const audioPath = path.join(SAVED_RECORDINGS_DIR, savedBase);
+    try { fs.copyFileSync(filePath, audioPath); }
+    catch (e) {
+        // Logged: the note gets an empty audio_path, unnoticed until a replay fails.
+        log.error(`[SavedAudio] local audio copy failed (${audioPath}): ${e.message}`);
+    }
+    // Durable object-storage copy (when configured) so replay + reprocess
+    // survive pod restarts / replicas — same backstop as the upload route.
+    let audioStorageKey = null;
+    try {
+        const src = fs.existsSync(audioPath) ? audioPath : filePath;
+        const persisted = await persistSavedAudioToStorage(savedAudioKey(savedBase), src, ext);
+        audioStorageKey = persisted.ok ? persisted.key : null;
+        // A `{ok:false}` must not slip through this
+        // try/catch silently.
+        if (!persisted.ok && persisted.reason !== 'not_configured') {
+            log.error(`[SavedAudio] No durable audio copy for ${savedBase} (${persisted.reason}) — queued for repair`);
+        }
+    } catch (e) { log.error('[SavedAudio] durable audio copy failed:', e.message); }
+    try { fs.unlinkSync(filePath); } catch (e) { ignoreGone('meetingNotes/savedAudioStore:unlinkScratch', e); }
+    return { audioPath, audioStorageKey };
+}
+
 module.exports = {
     savedAudioKey,
+    persistRecordingCopy,
     persistSavedAudioToStorage,
     resolveSavedAudio,
     discardSavedAudio,

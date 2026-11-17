@@ -12,7 +12,6 @@
  * removed; on failure or dedup the file is unlinked.
  */
 
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -36,12 +35,11 @@ const {
 const { stampForTemplate } = require('./summaryStamp');
 const { IngestError, safeUnlink } = require('./ingestShared');
 const { chooseProvider, transcribe } = require('./ingestTranscription');
+const { engineFileName } = require('./recordingAudioTrack.mts');
 const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
 const { runnerPort } = require('../automationRunner/featurePorts');
 const { resolveUserFirstName, resolveOwnerDefaultTemplate } = require('./ingestOwnerDefaults');
-
-const savedDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
 
 /**
  * A `source_uri` dedup hit proves the recording was already imported — it does
@@ -161,11 +159,11 @@ async function saveNote(row, savedAudio) {
  * @param {{ userId: string, orgId?: string | null, filePath?: string, fileName?: string, language?: string,
  *   provider?: string | null, contextTerms?: string | null, titleHint?: string | null,
  *   userName?: string | null, participantNames?: string[], source?: string, sourceUri?: string,
- *   extraStoreFields?: Record<string, unknown>, transcriptResponse?: {text?: string, segments: any[]}, speakersNamed?: boolean,
+ *   playbackFilePath?: string | null, extraStoreFields?: Record<string, unknown>, transcriptResponse?: {text?: string, segments: any[]}, speakersNamed?: boolean,
  *   accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, meetingDate?: string | Date | null, extraRecordings?: number }} opts
  *   `userId`: Bee Flow user who owns the note; `orgId`: org id (model-tier + EU resolution);
- *   `filePath`: local recording file (consumed); absent only with transcriptResponse; `fileName`:
- *   display name (default: basename); `language`: BCP-47-ish lang code (default 'nl'); `provider`:
+ *   `filePath`: local recording file (consumed); absent only with transcriptResponse; `playbackFilePath`:
+ *   kept for playback instead of `filePath`, a video whose sound is `filePath` (consumed); `fileName`: display name (default: basename); `language`: BCP-47-ish lang code (default 'nl'); `provider`:
  *   explicit provider override; `contextTerms`: bias terms for the transcriber; `titleHint`: fallback
  *   title; `userName`: recorder's first name (speaker hint); `participantNames`: real attendee roster
  *   for diarization; `source`: provenance tag ('nextcloud', 'gmeet', …); `sourceUri`: canonical dedup
@@ -179,7 +177,7 @@ async function saveNote(row, savedAudio) {
  */
 async function ingestLocalRecording(opts) {
     const {
-        userId, orgId = null, filePath, fileName: fileNameArg,
+        userId, orgId = null, filePath, playbackFilePath = null, fileName: fileNameArg,
         language = 'nl', provider: requestedProvider, contextTerms = '',
         titleHint = null, userName: userNameArg, participantNames = [],
         source = 'upload', sourceUri = null, extraStoreFields = {},
@@ -193,7 +191,6 @@ async function ingestLocalRecording(opts) {
     }
 
     const fileName = fileNameArg || (filePath ? path.basename(filePath) : 'transcript');
-    const ext = filePath ? path.extname(filePath).toLowerCase() : '';
 
     // Cheap pre-check so an already-ingested recording isn't transcribed twice.
     if (sourceUri) {
@@ -211,8 +208,9 @@ async function ingestLocalRecording(opts) {
     try {
         const userName = userNameArg !== undefined ? userNameArg : await resolveUserFirstName(userId);
         const provider = await chooseProvider(requestedProvider, transcriptResponse);
+        // The engine is told the name of what it hears (a video's sound is an .m4a).
         const { response, voiceprint, truncated } = await transcribe(provider, {
-            filePath, fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse,
+            filePath, fileName: playbackFilePath && filePath ? engineFileName(fileName, filePath) : fileName, language, contextTerms, orgId, userId, participantNames, transcriptResponse,
         });
 
         // ── Build transcript + diarized speakers ─────────────
@@ -242,10 +240,13 @@ async function ingestLocalRecording(opts) {
 
         // ── Persist audio for playback ───────────────────────
         // A transcript-only ingest (Teams VTT without a recording) has no audio.
-        const { discardSavedAudio } = require('./savedAudioStore');
-        const { audioPath, audioStorageKey } = filePath
-            ? await persistAudioCopy(filePath, userId, ext)
+        const { discardSavedAudio, persistRecordingCopy } = require('./savedAudioStore');
+        // A video keeps its picture: the original is the playback copy, the sound the engine heard is scratch.
+        const kept = playbackFilePath || filePath;
+        const { audioPath, audioStorageKey } = kept
+            ? await persistRecordingCopy(kept, userId)
             : { audioPath: null, audioStorageKey: null };
+        if (playbackFilePath) safeUnlink(filePath);
         const savedAudio = { audioPath: audioPath && fs.existsSync(audioPath) ? audioPath : null, audioStorageKey };
         const saved = await saveNote({
             userId, organizationId: orgId, title, fileName, language,
@@ -369,43 +370,6 @@ function emitMeetingProcessed({ transcriptionId, tags, userId, orgId, reprocesse
     } catch (e) {
         log.warn('[MeetingNotes] meeting.processed tap unavailable:', e.message);
     }
-}
-
-/**
- * Copy the recording to saved-recordings (playback) and, when configured, to
- * object storage, then delete the scratch file. Returns where it landed.
- */
-async function persistAudioCopy(filePath, userId, ext) {
-    if (!fs.existsSync(savedDir)) fs.mkdirSync(savedDir, { recursive: true });
-    // randomUUID for the same reason as the scratch names upstream, but the
-    // stakes here are higher: a collision in saved-recordings does not fail
-    // loudly, it silently re-points one note's playback at another meeting's
-    // audio (and, via savedAudioKey, at the other note's object-storage copy).
-    // Nothing parses this basename — savedAudioBackfill matches on the full
-    // path — so the extra segment is safe for existing rows.
-    const savedBase = `${Date.now()}-${crypto.randomUUID()}-${userId}${ext}`;
-    const audioPath = path.join(savedDir, savedBase);
-    try { fs.copyFileSync(filePath, audioPath); }
-    catch (e) {
-        // Logged: the note gets an empty audio_path, unnoticed until a replay fails.
-        log.error(`[IngestCore] local audio copy failed (${audioPath}): ${e.message}`);
-    }
-    // Durable object-storage copy (when configured) so replay + reprocess
-    // survive pod restarts / replicas — same backstop as the upload route.
-    let audioStorageKey = null;
-    const { savedAudioKey, persistSavedAudioToStorage } = require('./savedAudioStore');
-    try {
-        const src = fs.existsSync(audioPath) ? audioPath : filePath;
-        const persisted = await persistSavedAudioToStorage(savedAudioKey(savedBase), src, ext);
-        audioStorageKey = persisted.ok ? persisted.key : null;
-        // A `{ok:false}` must not slip through this
-        // try/catch silently.
-        if (!persisted.ok && persisted.reason !== 'not_configured') {
-            log.error(`[IngestCore] No durable audio copy for ${savedBase} (${persisted.reason}) — queued for repair`);
-        }
-    } catch (e) { log.error('[IngestCore] durable audio copy failed:', e.message); }
-    safeUnlink(filePath);
-    return { audioPath, audioStorageKey };
 }
 
 module.exports = {

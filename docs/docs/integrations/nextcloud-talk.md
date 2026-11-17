@@ -58,6 +58,10 @@ POST /ocs/v2.php/apps/spreed/api/v1/reaction/{token}/{messageId}
 
 Bee Flow can run as a Talk bot — give it a service account, set up a dedicated room, and route automation outputs there. See [Automations](../features/automations.md) for the trigger setup.
 
+## Recordings in Meeting Notes
+
+A Talk call recording (from the recording backend, in audio or video mode) can become a meeting note, by hand from the capture dialog or automatically. A video recording is kept whole: the meeting player shows the picture above the timeline. Only its sound goes to the transcription engine; the picture never leaves Bee Flow. The largest recording Bee Flow downloads is set by `NEXTCLOUD_MAX_RECORDING_BYTES` (2 GiB by default, see [environment variables](../self-hosting/env.md)); the sound the engine gets has its own 500 MB cap.
+
 ## Privacy
 
 Message bodies are scanned by the Privacy Shield. In Strict mode, message author names tokenise as `[person_N]` to the model.
