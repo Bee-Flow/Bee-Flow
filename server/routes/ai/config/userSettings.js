@@ -231,8 +231,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     let orgEnabledIntegrations = null;
     try {
         if (homeOrgId) {
-            const { resolveOrgIntegrations } = require('../../../core/integrations/enabledIntegrations');
-            orgEnabledIntegrations = await resolveOrgIntegrations(homeOrgId);
+            orgEnabledIntegrations = await require('../../../core/integrations/userGrantedIntegrations.mts').pickerIntegrations({ userId, orgId: homeOrgId, session: req.session, req });
         }
     } catch (e) { fallback('routes/ai/config/userSettings:anon#4', e); /* ignore — null means "no org restriction" */ }
 
