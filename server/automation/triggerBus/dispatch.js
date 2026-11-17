@@ -8,6 +8,7 @@
 const automationStore = require('../../stores/automationStore');
 const { applyDslFilter } = require('../triggers/dslFilters');
 const { pickMatcher, tagFilterNeedsNames } = require('./filters');
+const { matchableFilter } = require('./matchableFilter.mts');
 const { normaliseNextcloudPayload } = require('./ncPayload.mts');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
@@ -98,22 +99,8 @@ function _setDepsForTests(over = null) {
 // POST /webhook/:slug already uses — so a slow/hanging automation never
 // blocks the caller (an ingest HTTP handler, or the global polling tick
 // working through every other tenant's due subscriptions).
-/**
- * The filter a matcher sees. `includeColleagues` is a delivery switch read by
- * dispatchEvent, not a payload condition: a matcher that compares unknown
- * keys (the shallow matchFilter) would otherwise never match.
- * @param {string} provider
- * @param {Record<string, unknown> | null | undefined} filter
- * @returns {Record<string, unknown> | null | undefined}
- */
-function matchableFilter(provider, filter) {
-    if (provider !== 'nextcloud' || !filter || typeof filter !== 'object' || !Object.hasOwn(filter, 'includeColleagues')) return filter;
-    const { includeColleagues: _switch, ...rest } = filter;
-    return rest;
-}
-
 function runMatchedSubscription(sub, matcher, provider, event, payload) {
-    const ok = matcher(payload, matchableFilter(provider, sub.filter));
+    const ok = matcher(payload, matchableFilter(provider, sub));
     if (!ok) {
         // Don't log the raw subject/sender — that's user PII (email subjects,
         // ticket bodies, actor names) landing in plaintext server logs on every

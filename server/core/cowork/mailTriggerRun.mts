@@ -42,6 +42,7 @@ export type MailSubscription = {
     cowork_schedule_id?: string | null; coworkScheduleId?: string | null;
     user_id?: string | null; userId?: string | null;
     provider?: string | null; event_type?: string | null; eventType?: string | null;
+    filter?: Row | null;
 };
 
 /** What the pollers / the Graph webhook fire with. */
@@ -107,6 +108,26 @@ export function messageIdOf(payload: MailPayload): string | null {
     for (const c of candidates) if (typeof c === 'string' && c) return c;
     const resource = typeof payload.resource === 'string' ? /Messages\('([^']+)'\)|Messages\/([^/]+)$/.exec(payload.resource) : null;
     return resource ? (resource[1] || resource[2] || null) : null;
+}
+
+const containsCI = (haystack: unknown, needle: string): boolean =>
+    String(haystack ?? '').toLowerCase().includes(needle.trim().toLowerCase());
+
+/**
+ * An Outlook item's "sender contains" / "subject contains", checked on the
+ * fetched message: a Graph notification carries only the message id, so the
+ * trigger bus lets these two through (automation/triggerBus/dispatch.js
+ * matchableFilter) and they are decided here. A message that could not be
+ * read does not pass a filter that asks for something.
+ */
+export function outlookContentFilterPasses(filter: Row | null | undefined, fetched: Row | null): boolean {
+    const from = typeof filter?.from === 'string' ? filter.from.trim() : '';
+    const subject = typeof filter?.subjectContains === 'string' ? filter.subjectContains.trim() : '';
+    if (!from && !subject) return true;
+    if (!fetched) return false;
+    if (from && !containsCI(`${fetched.from_name ?? ''} ${fetched.from_email ?? ''}`, from)) return false;
+    if (subject && !containsCI(fetched.subject, subject)) return false;
+    return true;
 }
 
 const clip = (v: unknown, max: number): string => String(v ?? '').replace(/\r/g, '').slice(0, max);
@@ -262,14 +283,20 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
         return;
     }
 
-    // A duplicate (redelivery, overlapping poll) stops here, silently.
-    const runId = await deps.claim({ scheduleId, userId, triggerRef: messageId });
-    if (!runId) return;
-
+    // Read before the claim: an Outlook sender / subject filter is decided on the message, and a mail it refuses opens no run.
     const mailbox = typeof payload.mailbox === 'string' && payload.mailbox ? payload.mailbox : null;
     let fetched: Row | null = null;
     try { fetched = await deps.fetchMessage({ provider, userId, messageId, mailbox }); }
     catch (e) { log.warn(`[MailTrigger] schedule ${scheduleId}: could not read the message: ${(e as Error).message}`); }
+    if (provider === 'outlook' && !outlookContentFilterPasses(sub.filter, fetched)) {
+        log.info(`[MailTrigger] schedule ${scheduleId}: the sender / subject filter refused this mail`);
+        return;
+    }
+
+    // A duplicate (redelivery, overlapping poll) stops here, silently.
+    const runId = await deps.claim({ scheduleId, userId, triggerRef: messageId });
+    if (!runId) return;
+
     // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start.
     if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
     const mail = shapeMessage(payload, fetched, messageId, mailbox);

@@ -43,3 +43,19 @@ test('a failing run is logged, never thrown into the poller', async () => {
     await tick();
     await tick();
 });
+
+test('Outlook: a Graph notification carries no sender, so the sender / subject filter is left to the runner', async () => {
+    const outlookSub = { ...SUB, id: 'sub-ol', filter: { from: 'boss@x.nl', subjectContains: 'offer' } };
+    const graphNotification = { changeType: 'created', resourceData: { id: 'm2' }, mailbox: 'me' };
+    const runs = dispatchToSubscription(outlookSub, { provider: 'msgraph', event: 'mail.new', payload: graphNotification });
+    await tick();
+    assert.deepStrictEqual(runs, [{ subId: 'sub-ol' }]);
+    assert.strictEqual(cowork[0].sub.filter.from, 'boss@x.nl', 'the runner still gets the filter');
+});
+
+test('Outlook: the mailbox check stays in the bus: an own-inbox push does not reach an item that watches a shared mailbox', async () => {
+    const sharedSub = { ...SUB, id: 'sub-sh', filter: { mailbox: 'team@x.nl', from: 'boss' } };
+    const runs = dispatchToSubscription(sharedSub, { provider: 'msgraph', event: 'mail.new', payload: { resourceData: { id: 'm3' }, mailbox: 'me' } });
+    await tick();
+    assert.deepStrictEqual(runs, []);
+});
