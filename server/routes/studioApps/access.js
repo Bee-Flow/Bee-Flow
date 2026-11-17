@@ -41,12 +41,13 @@ const appAudience = require('../../appStudio/appAudience');
 // the runtime routes have their own per-app access rules.
 const requireManageApps = requirePermission('manage_apps');
 
-// resolveUserOrgIds returns null for super-admin; collapse Sets/null to a
-// plain array so the store predicates can iterate it (same as webpages.js).
+// The orgs the caller is a MEMBER of, as a plain array for the store predicates
+// (auth/audience resolveAudienceContext, memberOrgIds): a super-admin sees what is published to their
+// organisations, like any member, in the list and in the single read alike.
 /** @param {import('express').Request} req */
 async function audienceFor(req) {
-    const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
-    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+    const { userId, orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+    const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
     return { userId, orgIdArr, userGroups };
 }
 

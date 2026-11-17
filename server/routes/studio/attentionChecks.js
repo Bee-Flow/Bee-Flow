@@ -526,7 +526,6 @@ function knowledgeBasesToActOn(req, d, ctx) {
     });
 }
 
-const orgIdArray = (orgIds) => (orgIds instanceof Set ? [...orgIds] : asArray(orgIds));
 
 /**
  * The register. `key` is the vocabulary the response and the client share.
@@ -544,8 +543,8 @@ const SOURCES = [
         gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
         load: async (req, d) => {
             const { gaps, miss } = gapCollector();
-            const { userId, orgIds, userGroups } = await d.audience.resolveAudienceContext(req);
-            const all = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArray(orgIds));
+            const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
+            const all = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, [...(memberOrgIds ?? orgIds ?? [])]);
             // ONLY APPS THIS PERSON CAN OPEN IN THE EDITOR. "Show me" goes to
             // /app/studio/apps/:id, and canWriteStudioApp is owner-only — a row
             // about a colleague's published app would hand out a button that

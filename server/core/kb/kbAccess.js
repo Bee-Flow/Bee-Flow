@@ -19,6 +19,7 @@ const { resolveUserOrgIds } = permissions;
 const { resolveUserGroups: resolveUserGroupsById } = require('../../auth/audience');
 const { makeKbAccess, kbAccessOf } = require('../../auth/kbAccess.mts');
 const log = require('../../telemetry/log');
+const { kbOrgIdsFor } = require('./askerContext');
 
 /** @typedef {import('../../auth/kbAccess.mts').KbRequest} KbRequest */
 /** @typedef {import('../../auth/kbAccess.mts').KbRow} KbRow */
@@ -172,12 +173,9 @@ async function usableKbIdsForRequest(req, ids, { surface = 'direct_chat' } = {})
     const { resolveUsableKbIds } = require('./kbSelection');
     return resolveUsableKbIds(ids, {
         userId,
-        // resolveUserOrgIds yields null for a super admin, and null means
-        // "super admin, allow everything" to canUserAccessKB. Coerced to a Set
-        // here so this answers the same as the turn does — promptAssembly
-        // coerces identically, and the two MUST agree or the picker shows a
-        // base the answer never used.
-        orgIds: orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []),
+        // A Set, never null (see kbOrgIdsFor); the turn (promptContext) asks the same way, and the
+        // two MUST agree or the picker shows a base the answer never used.
+        orgIds: await kbOrgIdsFor(req, orgIds),
         userGroups,
         surface,
     });

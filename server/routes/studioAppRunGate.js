@@ -39,8 +39,8 @@ async function loadVisibleApp(req, res) {
         return null;
     }
     if (app.userId !== userId) {
-        const { orgIds, userGroups } = await resolveAudienceContext(req);
-        const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+        const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+        const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
         if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr)) {
             res.status(404).json({ error: 'App not found' });
             return null;

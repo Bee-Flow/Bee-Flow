@@ -127,8 +127,8 @@ function register(router) {
         let isOwner = !!wp;
         if (!wp) {
             const raw = await webpageStore.getWebpageRaw(req.params.id);
-            const { orgIds, userGroups } = await resolveAudienceContext(req);
-            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
             if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) wp = raw;
         }
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

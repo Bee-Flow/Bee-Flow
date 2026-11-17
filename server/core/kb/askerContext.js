@@ -97,4 +97,22 @@ async function askerContext(userId) {
     return { orgIds, userGroups };
 }
 
-module.exports = { askerContext };
+/**
+ * The organisations a knowledge-base READ for this request may reach: what resolveUserOrgIds
+ * answered when it is a Set, else (its `null` for a super admin) the organisations the caller
+ * BELONGS to (orgScope memberOrgIds). Never null: null means "super admin, allow everything" to
+ * canUserAccessKB, and a base must not be quoted into an answer from an organisation the asker is
+ * not in. Never empty for a member either: a super admin who is a member of an organisation reads
+ * what it shares, like any member, and only that (the same rule as askerContext). A failed read
+ * narrows (orgScope degrades to what it could read).
+ * @param {import('../../auth/orgScope').OrgScopeRequest} req
+ * @param {Set<string> | null | undefined} orgIds  resolveUserOrgIds(req)
+ * @returns {Promise<Set<string>>}
+ */
+async function kbOrgIdsFor(req, orgIds) {
+    if (orgIds instanceof Set) return orgIds;
+    const { orgScope } = require('../../auth/orgScope');
+    return (await orgScope(req)).memberOrgIds;
+}
+
+module.exports = { askerContext, kbOrgIdsFor };

@@ -127,13 +127,14 @@ async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsF
     const out = { volatile: '', usableKbIds: [] };
     if (!(Array.isArray(requestedKbIds) && requestedKbIds.length > 0)) return out;
     const { resolveUsableKbIds } = require('../../../core/kb/kbSelection');
+    const { kbOrgIdsFor } = require('../../../core/kb/askerContext');
     const userGroupsRaw = await userStore.getUser(userId).then(u => u?.groups).catch((e) => fallback('routes/ai/directChat/promptContext:attachedKbContext', e, null));
     const userGroups = Array.isArray(userGroupsRaw)
         ? userGroupsRaw
         : (() => { try { return JSON.parse(userGroupsRaw || '[]'); } catch (_) { return []; } })();
     out.usableKbIds = await resolveUsableKbIds(requestedKbIds, {
         userId,
-        orgIds: orgIdsForTiers instanceof Set ? orgIdsForTiers : new Set(),
+        orgIds: await kbOrgIdsFor(req, orgIdsForTiers instanceof Set ? orgIdsForTiers : null),
         userGroups,
         surface: 'direct_chat',
     });
