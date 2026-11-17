@@ -360,8 +360,58 @@ test('the download is capped at the recording limit; a cut-off is a classified 4
         () => ingestNextcloudRecording({ userId: 'u1', session: {}, ncPath: '/Recordings/huge.mp4' }),
         (err) => err instanceof IngestError && err.code === 'recording_too_large' && err.status === 413,
     );
-    assert.strictEqual(fx.downloads[0].opts.maxBytes, 500 * 1024 * 1024);
+    // A Talk video recording is kept whole, so the download cap is far above
+    // the 500 MB the engine may get (that cap applies to the extracted sound).
+    assert.strictEqual(fx.downloads[0].opts.maxBytes, 2 * 1024 * 1024 * 1024);
     assert.strictEqual(fx.transcribeCalls.length, 0);
+});
+
+test('NEXTCLOUD_MAX_RECORDING_BYTES sets the download cap, and 0 lifts it', async (t) => {
+    const before = process.env.NEXTCLOUD_MAX_RECORDING_BYTES;
+    t.after(() => {
+        if (before === undefined) delete process.env.NEXTCLOUD_MAX_RECORDING_BYTES;
+        else process.env.NEXTCLOUD_MAX_RECORDING_BYTES = before;
+    });
+    resetFx();
+    process.env.NEXTCLOUD_MAX_RECORDING_BYTES = '0';
+    fx.downloadError = Object.assign(new Error('stop'), { code: 'download_too_large' });
+    await assert.rejects(() => ingestNextcloudRecording({ userId: 'u1', session: {}, ncPath: '/Recordings/a.mp4' }));
+    assert.strictEqual(fx.downloads[0].opts.maxBytes, 0);
+
+    resetFx();
+    process.env.NEXTCLOUD_MAX_RECORDING_BYTES = String(3 * 1024 * 1024 * 1024);
+    fx.downloadError = Object.assign(new Error('stop'), { code: 'download_too_large' });
+    await assert.rejects(
+        () => ingestNextcloudRecording({ userId: 'u1', session: {}, ncPath: '/Recordings/b.mp4' }),
+        (err) => err.code === 'recording_too_large' && /3072 MB/.test(err.message),
+    );
+    assert.strictEqual(fx.downloads[0].opts.maxBytes, 3 * 1024 * 1024 * 1024);
+});
+
+test('a Talk video recording: the engine hears only its sound, the note keeps the picture', async () => {
+    resetFx();
+    const { runFfmpeg } = require('../media/ffmpeg');
+    const { hasVideoStream } = require('./recordingAudioTrack.mts');
+    fx.onDownload = async () => {
+        const dest = fx.downloads.at(-1).destPath;
+        await runFfmpeg(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=1', '-f', 'lavfi', '-i', 'sine=d=1',
+            '-shortest', '-c:v', 'mpeg4', '-c:a', 'aac', '-f', 'mp4', dest], { timeoutMs: 30_000 });
+    };
+    await ingestNextcloudRecording({
+        userId: 'u1', session: {}, ncPath: '/Talk/tok7/meeting.mp4', talkRoomToken: 'tok7', source: 'talk',
+    });
+    trackCreates();
+
+    const heard = fx.transcribeCalls[0].filePath;
+    assert.match(heard, /\.audio\.m4a$/);
+    assert.strictEqual(fx.transcribeCalls[0].fileName, 'meeting.m4a');
+    assert.strictEqual(fx.creates[0].fileName, 'meeting.mp4', 'the note keeps the recording name');
+    const saved = fx.creates[0].audioPath;
+    assert.match(saved, /\.mp4$/);
+    assert.ok(fs.existsSync(saved), 'the video is kept for playback');
+    assert.strictEqual(await hasVideoStream(saved), true);
+    assert.ok(!fs.existsSync(heard), 'the extracted sound is scratch');
+    assert.ok(!fs.existsSync(fx.downloads[0].destPath), 'the download is scratch');
 });
 
 test('a second request for a recording that is still being imported waits and answers with its note', async () => {

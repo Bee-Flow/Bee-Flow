@@ -75,6 +75,7 @@ stub('./shared', {
 });
 stub('../../stores/userStore', { getUser: async () => ({ firstName: 'Tom' }) });
 stub('../../core/meetingNotes/savedAudioStore', {
+    AUDIO_SCRATCH_DIR: require('path').join(require('os').tmpdir(), 'reprocess-test-scratch'),
     resolveSavedAudio: async () => audio,
     repairSavedAudio: async (a) => { calls.repair.push(a); },
 });
@@ -288,6 +289,30 @@ test('a note without a durable copy is repaired from the local file; one with a 
 });
 
 // ═══ The pipeline ═══════════════════════════════════════════════════════
+
+test('a stored Talk video is re-transcribed from its sound only, and that sound is scratch', async (t) => {
+    const fs = require('fs');
+    const path = require('path');
+    const { runFfmpeg } = require('../../core/media/ffmpeg');
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'reprocess-video-'));
+    t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+    const video = path.join(dir, 'saved.mp4');
+    await runFfmpeg(['-y', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=1', '-f', 'lavfi', '-i', 'sine=d=1',
+        '-shortest', '-c:v', 'mpeg4', '-c:a', 'aac', video], { timeoutMs: 30_000 });
+    audio = { path: video, fromStorage: false, cleanup() { calls.cleanup += 1; } };
+    note.fileName = 'Overleg.mp4';
+
+    const res = await dispatch();
+    assert.strictEqual(res.statusCode, 202);
+    await waitFor(() => calls.emitted.length > 0);
+    await settle();
+
+    const [heard, name] = calls.whisperx[0];
+    assert.match(heard, /\.audio\.m4a$/);
+    assert.strictEqual(name, 'Overleg.m4a');
+    assert.ok(!fs.existsSync(heard), 'the extracted sound is removed after the run');
+    assert.ok(fs.existsSync(video), 'the stored video is left alone');
+});
 
 test('the 202 answers first, then the whisperx run completes the note and announces it', async () => {
     const res = await dispatch();

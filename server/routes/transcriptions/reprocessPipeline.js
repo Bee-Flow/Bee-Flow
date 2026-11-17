@@ -11,7 +11,7 @@
  */
 
 const log = require('../../telemetry/log');
-const { fallback } = require('../../utils/bestEffort');
+const { fallback, ignoreGone } = require('../../utils/bestEffort');
 const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
@@ -66,8 +66,30 @@ async function transcribeWithVoxtral({ audioPath, fileName, language }) {
  * Transcribe the saved audio with the given provider.
  * @returns {Promise<{ response: any, truncationNotice: any, voiceprintMapping: any,
  *   voiceprintRoster: string[], voiceprintRuledOut: any, voiceprintInfo: any }>}
+ * @param {{ provider: string, audioPath: string, fileName: string, language: string, numSpeakers: number | null,
+ *   transcription: any, userId: string }} args
  */
-async function transcribeStoredAudio({ provider, audioPath, fileName, language, numSpeakers, transcription, userId }) {
+async function transcribeStoredAudio(args) {
+    // A Talk video recording is stored whole for playback; the engine gets
+    // its sound only, as on the first import, and that sound is scratch.
+    const { AUDIO_SCRATCH_DIR } = require('../../core/meetingNotes/savedAudioStore');
+    const { audioForTranscription, engineFileName } = require('../../core/meetingNotes/recordingAudioTrack.mts');
+    fs.mkdirSync(AUDIO_SCRATCH_DIR, { recursive: true });
+    const heard = await audioForTranscription(args.audioPath, { outDir: AUDIO_SCRATCH_DIR });
+    if (!heard.extracted) return transcribeAudioFile(args);
+    try {
+        return await transcribeAudioFile({ ...args, audioPath: heard.path, fileName: engineFileName(args.fileName, heard.path) });
+    } finally {
+        try { fs.unlinkSync(heard.path); } catch (e) { ignoreGone('routes/transcriptions/reprocessPipeline:unlinkExtracted', e); }
+    }
+}
+
+/**
+ * The provider call itself, on a file that holds sound only.
+ * @param {Parameters<typeof transcribeStoredAudio>[0]} args
+ * @returns {ReturnType<typeof transcribeStoredAudio>}
+ */
+async function transcribeAudioFile({ provider, audioPath, fileName, language, numSpeakers, transcription, userId }) {
     let response;
     /** @type {{ reason: 'inactivity' | 'overall_timeout'; atSeconds: number; } | null} */
     let truncationNotice = null;

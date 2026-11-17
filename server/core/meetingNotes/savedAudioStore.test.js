@@ -136,6 +136,8 @@ test('WebM is never labelled audio/mpeg', async () => {
     assert.strictEqual(store.contentTypeForAudio('saved-recordings/x.webm'), 'audio/webm');
     assert.strictEqual(store.contentTypeForAudio('x.mp3'), 'audio/mpeg');
     assert.strictEqual(store.contentTypeForAudio('x.m4a'), 'audio/mp4');
+    assert.strictEqual(store.contentTypeForAudio('x.ogv'), 'video/ogg');
+    assert.strictEqual(store.contentTypeForAudio('x.mkv'), 'video/x-matroska');
     const unknown = store.contentTypeForAudio('x.bin');
     assert.strictEqual(unknown, 'application/octet-stream');
     assert.notStrictEqual(unknown, 'audio/mpeg');

@@ -34,14 +34,29 @@ const log = require('../../telemetry/log');
 const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 // Nextcloud and Talk clients are injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
+const { envInt } = require('../../utils/envNumber.mts');
+const { audioForTranscription } = require('./recordingAudioTrack.mts');
 
 // Audio + (Talk) video container extensions we can hand to a provider. Talk
 // records audio as .ogg and video as .mp4/.webm/.ogv/.mkv.
 const ACCEPTED_RECORDING_EXTS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac', '.mp4', '.mpeg', '.aac', '.ogv', '.mkv'];
 
-// Hard ceiling — matches the manual-upload multer limit. Larger recordings are
-// rejected with a classified error rather than silently timing out.
-const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
+// What a transcription engine is handed: matches the manual-upload multer
+// limit. For a video recording this is the extracted SOUND, not the file.
+const MAX_AUDIO_BYTES = 500 * 1024 * 1024;
+
+// What is downloaded from Nextcloud. A Talk video recording is kept whole for
+// playback, and an hour of it is 0.4-1 GB, so this is far above the audio cap.
+// 0 = no limit. Read per call so a test (or an operator) can change it.
+const DEFAULT_MAX_RECORDING_BYTES = 2 * 1024 * 1024 * 1024;
+function maxRecordingBytes() {
+    return envInt('NEXTCLOUD_MAX_RECORDING_BYTES', DEFAULT_MAX_RECORDING_BYTES, { min: 0 });
+}
+
+/** @param {number} bytes */
+function tooLarge(bytes) {
+    return new IngestError(`Recording exceeds the ${Math.round(bytes / (1024 * 1024))} MB limit. Record audio-only or trim the file.`, { code: 'recording_too_large', status: 413 });
+}
 
 /** sourceUri -> the ingest running for it in this process (see ingestNextcloudRecording). */
 /** @type {Map<string, Promise<unknown>>} */
@@ -148,48 +163,25 @@ async function ingestOnce(opts, args) {
     // savedAudioStore's `.part` files and summaryHelpers' transcode output.
     const tmpPath = path.join(uploadsDir, `${Date.now()}-${crypto.randomUUID()}-${userId}${ext}`);
 
-    // ── Download from Nextcloud ──────────────────────────────
-    try {
-        const ncClient = integrationClient('nextcloud');
-        // Capped while it streams: a recording over the limit is refused at its
-        // Content-Length, or cut off, instead of filling the disk first.
-        await ncClient.downloadBinary(session, userId, ncPath, tmpPath, { maxBytes: MAX_RECORDING_BYTES });
-    } catch (err) {
-        safeUnlink(tmpPath);
-        if (err.code === 'download_too_large') {
-            throw new IngestError('Recording exceeds the 500 MB limit. Record audio-only or trim the file.', { code: 'recording_too_large', status: 413 });
-        }
-        if (err.message === 'NOT_CONNECTED') {
-            throw new IngestError('Nextcloud is not connected for this account', { code: 'not_connected', status: 400 });
-        }
-        throw new IngestError(`Could not fetch from Nextcloud: ${err.message}`, { code: 'download_failed', status: 502 });
-    }
-
-    // Reject oversized recordings up front (classified, not a timeout).
-    try {
-        const { size } = fs.statSync(tmpPath);
-        if (size > MAX_RECORDING_BYTES) {
-            safeUnlink(tmpPath);
-            throw new IngestError('Recording exceeds the 500 MB limit. Record audio-only or trim the file.', { code: 'recording_too_large', status: 413 });
-        }
-    } catch (err) {
-        if (err instanceof IngestError) throw err;
-    }
+    // ── Download from Nextcloud, split off the sound ────────
+    const { audio, playbackPath, cleanup } = await fetchRecording(session, userId, ncPath, tmpPath);
 
     // For Talk recordings, pass the real attendee roster so the model maps
     // speaker_0/1/2 to the actual participants instead of guessing.
     const participantNames = talkRoomToken ? await resolveTalkParticipantNames(session, userId, talkRoomToken, orgId) : [];
 
     // ── Transcribe → diarize → summarize → persist (shared core) ──
+    // The core consumes both files on success; whatever is left after a
+    // failure is scratch.
     const result = await ingestLocalRecording({
-        userId, orgId, filePath: tmpPath, fileName, language,
+        userId, orgId, filePath: audio.path, playbackFilePath: playbackPath, fileName, language,
         provider: requestedProvider, contextTerms, titleHint, userName: userNameArg,
         participantNames, source, sourceUri,
         extraStoreFields: { talkRoomToken },
         // The core checks the dedup key again (a colleague's import can land
         // during the download): the caller must be able to read that note too.
         accessCtx: opts.accessCtx,
-    });
+    }).finally(cleanup);
 
     // Dedup (pre-existing note or a lost concurrent-ingest race).
     if (result.dedup) {
@@ -203,6 +195,56 @@ async function ingestOnce(opts, args) {
     }
 
     return { ...result, talkRoomToken, writeBack };
+}
+
+/**
+ * Download the recording to `tmpPath` and pick what the engine hears: the
+ * file itself, or the extracted sound of a video (the picture stays here, for
+ * playback, and never goes to the transcription provider).
+ * @param {Express.Session} session
+ * @param {string} userId
+ * @param {string} ncPath
+ * @param {string} tmpPath
+ * @returns {Promise<{ audio: { path: string, extracted: boolean }, playbackPath: string | null, cleanup: () => void }>}
+ */
+async function fetchRecording(session, userId, ncPath, tmpPath) {
+    const maxBytes = maxRecordingBytes();
+    try {
+        const ncClient = integrationClient('nextcloud');
+        // Capped while it streams: a recording over the limit is refused at its
+        // Content-Length, or cut off, instead of filling the disk first.
+        await ncClient.downloadBinary(session, userId, ncPath, tmpPath, { maxBytes });
+    } catch (err) {
+        safeUnlink(tmpPath);
+        if (err.code === 'download_too_large') throw tooLarge(maxBytes);
+        if (err.message === 'NOT_CONNECTED') {
+            throw new IngestError('Nextcloud is not connected for this account', { code: 'not_connected', status: 400 });
+        }
+        throw new IngestError(`Could not fetch from Nextcloud: ${err.message}`, { code: 'download_failed', status: 502 });
+    }
+
+    let audio;
+    try {
+        audio = await audioForTranscription(tmpPath);
+    } catch (err) {
+        safeUnlink(tmpPath);
+        throw new IngestError(`Could not extract the audio of the recording: ${err.message}`, { code: 'audio_extract_failed', status: 422 });
+    }
+    const playbackPath = audio.extracted ? tmpPath : null;
+    const cleanup = () => { safeUnlink(tmpPath); if (audio.extracted) safeUnlink(audio.path); };
+
+    // Reject oversized recordings up front (classified, not a timeout).
+    try {
+        const { size } = fs.statSync(audio.path);
+        if (size > MAX_AUDIO_BYTES) {
+            cleanup();
+            throw tooLarge(MAX_AUDIO_BYTES);
+        }
+    } catch (err) {
+        if (err instanceof IngestError) throw err;
+    }
+
+    return { audio, playbackPath, cleanup };
 }
 
 /**

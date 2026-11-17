@@ -248,6 +248,7 @@ tests and organisation-wide import do.
 | `TEAMS_APP_IMPORT_MAX_SELECTED_USERS` | `5000` | Members an organisation admin may select for organisation-wide Teams import. `0` = unlimited. |
 | `TEAMS_APP_IMPORT` | `1` | `0` switches organisation-wide Teams import (application permissions) off for the whole server. Not a limit: any other value leaves it available. |
 | `TEAMS_MAX_RECORDING_BYTES` | `6442450944` (6 GiB) | Largest Teams recording video Bee Flow downloads. A bigger one fails as `recording_too_large`. An unset, `0` or non-numeric value means the default; there is no unlimited setting. The extracted audio has its own fixed 500 MB cap. |
+| `NEXTCLOUD_MAX_RECORDING_BYTES` | `2147483648` (2 GiB) | Largest Nextcloud (Talk) recording Bee Flow downloads for meeting notes. A video recording is kept whole so the meeting player shows the picture; only its extracted audio goes to the transcription engine, with its own fixed 500 MB cap. A bigger download fails as `recording_too_large`. `0` = unlimited. |
 | `MEETING_IMPORT_MAX_CONCURRENT_PER_USER` | `3` | Manual meeting imports (Teams, Google Meet) one user runs at once on one server process; more gets a `429`. `0` = unlimited. |
 | `MEETING_IMPORT_MAX_CONCURRENT_PER_ORG` | `10` | The same per organisation. `0` = unlimited. |
 
