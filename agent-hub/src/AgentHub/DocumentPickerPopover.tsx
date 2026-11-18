@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import useDebouncedValue from '../hooks/useDebouncedValue';
 import useTranslation from '../hooks/useTranslation';
 import { formatRelativeTime } from '../utils/dateFormatters';
+import { notebookRef } from '../pages/documents/notebookRef';
 
 interface PickerDocument {
     id: string;
@@ -63,6 +64,16 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
     if (!open) return null;
 
     const choose = (id: string) => { onSelect(id); onClose(); };
+    // A notebook is listed as a document type, but its id is a notebook's: the
+    // document panel would look it up as a document and find nothing. It opens
+    // on its own page, as in the Documents library (notebookRef).
+    const chooseRow = (d: PickerDocument) => {
+        if (d.docType !== 'notebook') return choose(d.id);
+        const href = `/app/studio/documents/${notebookRef(d.id)}`;
+        window.history.pushState({ page: 'studio' }, '', href);
+        window.dispatchEvent(new PopStateEvent('popstate', { state: { page: 'studio' } }));
+        onClose();
+    };
 
     const createPage = async () => {
         setCreating(true);
@@ -150,7 +161,7 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
                     <button
                         key={d.id}
                         type="button"
-                        onClick={() => choose(d.id)}
+                        onClick={() => chooseRow(d)}
                         className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[var(--bg-secondary)] transition-colors"
                     >
                         <FileText className="w-4 h-4 shrink-0 text-[var(--accent-primary)]" />

@@ -57,6 +57,20 @@ describe('DocumentPickerPopover', () => {
         expect(onClose).toHaveBeenCalled();
     });
 
+    it('a notebook opens on its own page, not in the document panel (a notebook id is no document id)', async () => {
+        get.mockResolvedValue({ documents: [{ id: 'nb1', name: 'Regulations', docType: 'notebook' }] });
+        const onPop = vi.fn();
+        window.addEventListener('popstate', onPop);
+        const user = userEvent.setup();
+        const { onSelect, onClose } = setup();
+        await user.click(await screen.findByText('Regulations'));
+        window.removeEventListener('popstate', onPop);
+        expect(onSelect).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/app/studio/documents/notebook/nb1');
+        expect(onPop).toHaveBeenCalled();
+        expect(onClose).toHaveBeenCalled();
+    });
+
     it('New page creates a page and opens it', async () => {
         const user = userEvent.setup();
         const { onSelect } = setup();
