@@ -196,7 +196,7 @@ function checkGenerateFile(step, path, ctx) {
 }
 
 function checkFillDocument(step, path, ctx) {
-    const { pushE, pushW } = ctx;
+    const { pushE } = ctx;
     if (step.documentId && typeof step.documentId === 'string' && ctx.ownedDocuments && !ctx.ownedDocuments.get(step.documentId)) {
         const known = [...ctx.ownedDocuments.values()].map((d) => `${d.id} ("${d.name}")`);
         pushE({
@@ -215,23 +215,37 @@ function checkFillDocument(step, path, ctx) {
     // The SAME half-a-link bug generate_file has, and for the same reason:
     // an attachment ledger row with recordId null is owner-only, so a
     // colleague who presses the button gets a 404 on Download.
+    checkAttachPair(step, path, ctx, 'fill_document', 'document');
+}
+
+/**
+ * attachToRecordId + attachToFieldKey of a file step: both or neither (half a link is an
+ * owner-only file), and a field key some table has.
+ * @param {Record<string, unknown>} step
+ * @param {string} path
+ * @param {ValidationCtx} ctx
+ * @param {string} kind
+ * @param {string} noun  what the viewer downloads ('document', 'deck')
+ */
+function checkAttachPair(step, path, ctx, kind, noun) {
+    const { pushE, pushW } = ctx;
     const hasRec = step.attachToRecordId !== undefined && step.attachToRecordId !== null;
     const hasKey = typeof step.attachToFieldKey === 'string' && step.attachToFieldKey !== '';
     if (hasRec !== hasKey) {
         pushE({
-            code: 'action.fill_document_attach_partial', severity: 'error', path,
-            message: 'Step "fill_document" sets only half of attachToRecordId + attachToFieldKey.',
-            hint: 'Set both (the record and its file column) so viewers other than the owner can download the document — or neither, making it owner-only.',
+            code: `action.${kind}_attach_partial`, severity: 'error', path,
+            message: `Step "${kind}" sets only half of attachToRecordId + attachToFieldKey.`,
+            hint: `Set both (the record and its file column) so viewers other than the owner can download the ${noun} — or neither, making it owner-only.`,
         });
     }
     if (hasKey && ctx.dataTables) {
         let known = false;
         for (const keys of ctx.dataTables.values()) {
-            if (keys && typeof keys.has === 'function' && keys.has(step.attachToFieldKey)) { known = true; break; }
+            if (keys && typeof keys.has === 'function' && keys.has(/** @type {string} */ (step.attachToFieldKey))) { known = true; break; }
         }
         if (!known) {
             pushW({
-                code: 'action.fill_document_field_unknown', severity: 'warning', path: `${path}.attachToFieldKey`,
+                code: `action.${kind}_field_unknown`, severity: 'warning', path: `${path}.attachToFieldKey`,
                 message: `No table has a column named ${JSON.stringify(step.attachToFieldKey)}.`,
                 hint: 'Name an existing `file` column, or the download link will 404 for everyone but the owner.',
             });
@@ -240,7 +254,7 @@ function checkFillDocument(step, path, ctx) {
 }
 
 function checkGeneratePresentation(step, path, ctx) {
-    const { pushE, pushW } = ctx;
+    const { pushE } = ctx;
     const s = step.slides;
     if (s === undefined || s === null || (typeof s === 'string' && !s.trim())) {
         pushE({
@@ -250,28 +264,12 @@ function checkGeneratePresentation(step, path, ctx) {
         });
     }
     // The SAME half-a-link bug generate_file has, and for the same reason.
-    const hasRec = step.attachToRecordId !== undefined && step.attachToRecordId !== null;
-    const hasKey = typeof step.attachToFieldKey === 'string' && step.attachToFieldKey !== '';
-    if (hasRec !== hasKey) {
-        pushE({
-            code: 'action.generate_presentation_attach_partial', severity: 'error', path,
-            message: 'Step "generate_presentation" sets only half of attachToRecordId + attachToFieldKey.',
-            hint: 'Set both (the record and its file column) so viewers other than the owner can download the deck — or neither, making it owner-only.',
-        });
-    }
-    if (hasKey && ctx.dataTables) {
-        let known = false;
-        for (const keys of ctx.dataTables.values()) {
-            if (keys && typeof keys.has === 'function' && keys.has(step.attachToFieldKey)) { known = true; break; }
-        }
-        if (!known) {
-            pushW({
-                code: 'action.generate_presentation_field_unknown', severity: 'warning', path: `${path}.attachToFieldKey`,
-                message: `No table has a column named ${JSON.stringify(step.attachToFieldKey)}.`,
-                hint: 'Name an existing `file` column, or the download link will 404 for everyone but the owner.',
-            });
-        }
-    }
+    checkAttachPair(step, path, ctx, 'generate_presentation', 'deck');
+}
+
+/** generate_document: the same pair rule as its file-step siblings (its other fields are typed by the registry). */
+function checkGenerateDocument(step, path, ctx) {
+    checkAttachPair(step, path, ctx, 'generate_document', 'document');
 }
 
 function checkLoopCosts(step, path, ctx) {
@@ -373,6 +371,7 @@ const KIND_CHECKS = {
     generate_file: checkGenerateFile,
     fill_document: checkFillDocument,
     generate_presentation: checkGeneratePresentation,
+    generate_document: checkGenerateDocument,
     loop: checkLoopCosts,
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,

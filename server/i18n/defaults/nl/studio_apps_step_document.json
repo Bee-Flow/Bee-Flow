@@ -1,0 +1,21 @@
+{
+  "translations": {
+    "studio_apps_step_document.blurb": "Maak van tekst, zoals een rapport of een AI-samenvatting, een PDF- of Word-bestand.",
+    "studio_apps_step_document.field_ai_generated": "Geschreven door AI",
+    "studio_apps_step_document.field_content": "Tekst",
+    "studio_apps_step_document.field_content_format": "Tekstopmaak",
+    "studio_apps_step_document.field_file_name": "Bestandsnaam",
+    "studio_apps_step_document.field_format": "Bestandstype",
+    "studio_apps_step_document.field_house_style": "Huisstijl",
+    "studio_apps_step_document.hint_ai_generated": "Aan als de tekst uit een AI-stap komt: het bestand krijgt dan de AI-markering van de organisatie.",
+    "studio_apps_step_document.hint_attach_field": "De bestandskolom van dat record. Vul beide in of geen van beide.",
+    "studio_apps_step_document.hint_attach_record": "Met een bestandskolom kan iedereen die dit record mag lezen het bestand downloaden. Zonder kan alleen de eigenaar van de app dat.",
+    "studio_apps_step_document.hint_content": "Markdown: # koppen, lijsten, tabellen. Bijvoorbeeld de tekst die een AI-stap schreef (vars.<name>.text) of een sjabloon over het record.",
+    "studio_apps_step_document.hint_file_name": "Zonder extensie; .pdf of .docx wordt toegevoegd.",
+    "studio_apps_step_document.hint_house_style": "Een Word-bestand krijgt de Word-huisstijl van de organisatie. Uit: een neutraal document.",
+    "studio_apps_step_document.hint_result_var": "De variabele die het bestand krijgt, voor een download, een voorbeeld of een bijlage bij een e-mail.",
+    "studio_apps_step_document.hint_title": "Optioneel. De kop van de eerste pagina en de titel van het bestand.",
+    "studio_apps_step_document.label": "Een PDF- of Word-bestand maken"
+  },
+  "sameAsEnglish": []
+}

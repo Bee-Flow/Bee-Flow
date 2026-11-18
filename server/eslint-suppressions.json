@@ -1001,7 +1001,7 @@
   },
   "appStudio/validate/stepKindChecks.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "auth/accountProvisioning.js": {

@@ -933,6 +933,11 @@
             "mutatesData": false,
             "since": 3
         },
+        "generate_document": {
+            "client": false,
+            "mutatesData": true,
+            "since": 3
+        },
         "http_request": {
             "client": false,
             "mutatesData": true,
