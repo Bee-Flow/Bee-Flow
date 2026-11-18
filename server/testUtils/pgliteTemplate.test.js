@@ -80,6 +80,8 @@ test('publishing a template drops the ones of an older key, and only of its own 
     try {
         fs.writeFileSync(path.join(dir, 'ladder-old.tgz'), 'x');
         fs.writeFileSync(path.join(dir, 'empty-old.tgz'), 'x');
+        const old = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        for (const f of ['ladder-old.tgz', 'empty-old.tgz']) fs.utimesSync(path.join(dir, f), old, old);
         writeAtomic(path.join(dir, 'ladder-new.tgz'), Buffer.from('y'));
         assert.deepStrictEqual(fs.readdirSync(dir).sort(), ['empty-old.tgz', 'ladder-new.tgz']);
     } finally {
@@ -92,4 +94,19 @@ test('the ladder key follows the server source, the empty key does not', () => {
     assert.match(path.basename(ladder), /^ladder-[0-9a-f]{20}\.tgz$/);
     assert.match(path.basename(templateFile('empty')), /^empty-[0-9a-f]{20}\.tgz$/);
     assert.strictEqual(templateFile('ladder'), ladder, 'stable for an unchanged tree');
+});
+
+test('writeAtomic keeps a fresh template of another key (a parallel test process may be reading it) and drops a stale one', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pglite-tpl-'));
+    const fresh = path.join(dir, 'ladder-aaaa.tgz');
+    const stale = path.join(dir, 'ladder-bbbb.tgz');
+    fs.writeFileSync(fresh, 'x');
+    fs.writeFileSync(stale, 'x');
+    const old = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    fs.utimesSync(stale, old, old);
+    writeAtomic(path.join(dir, 'ladder-cccc.tgz'), Buffer.from('payload'));
+    assert.ok(fs.existsSync(fresh), 'a template written minutes ago is left alone');
+    assert.ok(!fs.existsSync(stale), 'a template of an old key is cleaned up');
+    assert.ok(readVerified(path.join(dir, 'ladder-cccc.tgz')));
+    fs.rmSync(dir, { recursive: true, force: true });
 });

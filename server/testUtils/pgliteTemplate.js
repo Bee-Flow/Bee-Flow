@@ -52,6 +52,8 @@ const { PGlite } = require('@electric-sql/pglite');
 const SERVER = path.join(__dirname, '..');
 /** Bump when the file layout below changes. */
 const FORMAT = 1;
+/** A template of another key younger than this may still be read by a parallel test process. */
+const STALE_TEMPLATE_MS = 60 * 60 * 1000;
 /** Directories that never hold schema-defining source (journeys/ is test code that only reads the template). */
 const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'dist', 'journeys']);
 const SOURCE_FILE = /\.(c|m)?js$|\.mts$|\.ts$|\.json$|\.sql$|\.md$|\.txt$/;
@@ -122,12 +124,16 @@ function writeAtomic(file, payload) {
     const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmp, Buffer.concat([crypto.createHash('sha256').update(payload).digest(), payload]));
     fs.renameSync(tmp, file);
-    // Templates of an older key (another server version, another pglite) are dead weight.
+    // Templates of an older key (another server version, another pglite) are dead weight. A FRESH one is
+    // not: test files run in parallel processes, and one whose source hash differs (a file in the tree
+    // changed between two walks) may be about to read the template it just built.
     const prefix = path.basename(file).split('-')[0] + '-';
+    const staleBefore = Date.now() - STALE_TEMPLATE_MS;
     for (const f of fs.readdirSync(path.dirname(file))) {
-        if (f.startsWith(prefix) && f.endsWith('.tgz') && f !== path.basename(file)) {
-            fs.rmSync(path.join(path.dirname(file), f), { force: true });
-        }
+        if (!f.startsWith(prefix) || !f.endsWith('.tgz') || f === path.basename(file)) continue;
+        const other = path.join(path.dirname(file), f);
+        const st = fs.statSync(other, { throwIfNoEntry: false });   // another process may have removed it already
+        if (st && st.mtimeMs < staleBefore) fs.rmSync(other, { force: true });
     }
 }
 
@@ -136,11 +142,14 @@ function writeAtomic(file, payload) {
  * require.cache, which must not leak into the caller) and publish it.
  *
  * @param {'empty' | 'ladder'} kind
+ * @param {string} file
  */
-function buildInChild(kind) {
+function buildInChild(kind, file) {
+    // The child writes exactly the file this process will read: it does not walk the tree again, so a
+    // file that changes in between (another test process writing into server/) cannot rename it.
     const res = spawnSync(
         process.execPath,
-        ['--require', path.join(__dirname, 'registerFeatures.js'), path.join(__dirname, 'pgliteTemplateBuild.js'), '--build', kind],
+        ['--require', path.join(__dirname, 'registerFeatures.js'), path.join(__dirname, 'pgliteTemplateBuild.js'), '--build', kind, '--out', file],
         { cwd: SERVER, env: process.env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
     );
     if (res.status !== 0) throw new Error(`pgliteTemplate: building the ${kind} template failed (exit ${res.status})\n${res.stdout}${res.stderr}`);
@@ -163,7 +172,7 @@ function templatePayload(kind) {
         const file = templateFile(kind);
         let payload = readVerified(file);
         if (!payload) {
-            buildInChild(kind);
+            buildInChild(kind, file);
             payload = readVerified(file);
             if (!payload) throw new Error(`pgliteTemplate: ${kind} template missing after the build (${file})`);
         }
