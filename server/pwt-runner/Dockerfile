@@ -14,9 +14,9 @@
 # The Playwright base ships Node 24.21.0, which has the bundled-Brotli
 # out-of-bounds write (CVE-2026-111497, fixed in 24.22.1). Same major, so only
 # the binary is swapped below. Drop this stage once a Playwright base ships
-# 24.22.1 or later, and keep the version assert in
+# 24.22.3 or later (the 2026-11-10 security release), and keep the version assert in
 # scripts/check-release-container.sh in step.
-FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS node
+FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS node
 
 # IMPORTANT: this version MUST match the `playwright` version the server
 # installs (server/package.json). Playwright's connect() handshake rejects a

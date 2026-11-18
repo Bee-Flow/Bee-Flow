@@ -200,10 +200,10 @@
     {
       "id": "GHSA-fc5q-39xc-vjpf",
       "package": "picomatch",
-      "reason": "No fixed release exists (4.0.7 is the latest; the advisory covers <=4.0.7, published 2026-11-18). The ReDoS needs an attacker-controlled glob PATTERN with repeated extglobs. In server and nextcloud-connector picomatch is reached through http-proxy-middleware -> micromatch, and none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so no pattern is ever compiled; the other server path (re2 -> node-gyp -> tinyglobby) runs only at install time. In mobile, docs and the hub-module frontend it is build tooling (metro, docusaurus, vite) with patterns from our own config, never in a shipped bundle. Revisit when picomatch publishes a fix.",
-      "expires": "2027-01-04",
+      "reason": "No fixed release exists (the advisory covers <= 4.0.7, and 4.0.7 is the latest; 2.x has no successor). The advisory needs an attacker-controlled glob PATTERN (+(*) style extglobs). In server and nextcloud-connector picomatch is reached only through http-proxy-middleware -> micromatch, and none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so no pattern is compiled at all; the other server path is re2 -> node-gyp -> tinyglobby, the native build at npm install time with patterns from node-gyp itself. In mobile, docs, agent-hub, desktop and hub-module-sdk it sits only in build and test tooling (metro, jest, chokidar, vite, docusaurus) on the build machine with patterns from our own config, never in the APK or a served bundle. Revisit when picomatch publishes a fix.",
+      "expires": "2027-02-15",
       "reviewedAt": "2026-11-18",
-      "reachability": "npm ls picomatch --omit=dev in server/ shows it only under http-proxy-middleware 4.2.1 -> micromatch 4.0.8 and re2 -> node-gyp -> tinyglobby. No production createProxyMiddleware call configures a pathFilter (grep over server/routes and nextcloud-connector/src), and no file requires picomatch, micromatch, minimatch or anymatch directly. No request text reaches a glob pattern.",
+      "reachability": "Lockfile walk of every runtime chain to picomatch: server (2.3.2 via http-proxy-middleware 4.2.1 -> micromatch; 4.0.7 via re2 -> node-gyp -> tinyglobby/fdir), nextcloud-connector (2.3.2 via http-proxy-middleware 4.2.1 -> micromatch), mobile (2.3.2 and 4.0.7 via jest-haste-map/metro/anymatch, build tooling only). No production file configures a pathFilter or calls picomatch, micromatch or tinyglobby with input from a request.",
       "images": [
         "server",
         "nextcloud-connector",

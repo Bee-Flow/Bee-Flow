@@ -3,7 +3,7 @@
 # BuildKit schedules them CONCURRENTLY — the embed build no longer adds its full
 # duration to the wall clock (~104s → overlapped with the ~74s main build on a
 # multi-core box). npm ci and the context copy still happen exactly once.
-FROM node:22.23.4-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS src
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS src
 
 WORKDIR /app
 

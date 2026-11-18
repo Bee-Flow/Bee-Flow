@@ -15,9 +15,12 @@
 const { PGlite } = require('@electric-sql/pglite');
 const { templateFile, readVerified, writeAtomic } = require('./pgliteTemplate');
 
-/** @param {'empty' | 'ladder'} kind */
-async function build(kind) {
-    const file = templateFile(kind);
+/**
+ * @param {'empty' | 'ladder'} kind
+ * @param {string} [out] the file the parent will read (pgliteTemplate buildInChild); else this tree's key
+ */
+async function build(kind, out) {
+    const file = out || templateFile(kind);
     /** @type {import('@electric-sql/pglite').PGlite} */
     let pg;
     if (kind === 'empty') {
@@ -40,6 +43,8 @@ async function build(kind) {
 
 const args = process.argv.slice(2);
 const kinds = args[0] === '--prepare' ? ['empty'] : args[0] === '--build' ? [args[1]] : [];
+const outAt = args.indexOf('--out');
+const out = outAt > 0 && args[0] === '--build' ? args[outAt + 1] : undefined;
 if (!kinds.length || kinds.some((k) => k !== 'empty' && k !== 'ladder')) {
     console.error('usage: pgliteTemplateBuild.js --prepare | --build empty|ladder');
     process.exit(2);
@@ -47,7 +52,7 @@ if (!kinds.length || kinds.some((k) => k !== 'empty' && k !== 'ladder')) {
 (async () => {
     for (const kind of /** @type {Array<'empty' | 'ladder'>} */ (kinds)) {
         if (args[0] === '--prepare' && readVerified(templateFile(kind))) continue;
-        await build(kind);
+        await build(kind, out);
     }
     process.exit(0);
 })().catch((err) => { console.error(err); process.exit(1); });
