@@ -113,6 +113,7 @@ const ChatSidePanels = ({
                             documentId={sidePanelDocumentId}
                             onClose={closeDocumentPanel}
                             onNavigate={onNavigate}
+                            user={user}
                         />
                     </div>
                 )}

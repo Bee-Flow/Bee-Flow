@@ -38,10 +38,12 @@ const norm = (id) => String(id).toLowerCase();
 
 /**
  * The request's `sidePanelDocument`, or null when it is not a usable
- * `{ id: string <= 100 chars, name?: string }`. The name is a display hint:
- * single line, capped.
+ * `{ id: string <= 100 chars, name?: string, kind?: 'notebook' }`. The name is
+ * a display hint: single line, capped. `kind: 'notebook'` marks a notebook open
+ * in the panel (its id is a notebook's, not a document's); any other kind is
+ * dropped.
  * @param {unknown} raw
- * @returns {{ id: string, name?: string } | null}
+ * @returns {{ id: string, name?: string, kind?: 'notebook' } | null}
  */
 function normaliseSidePanelDocument(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -49,8 +51,9 @@ function normaliseSidePanelDocument(raw) {
     if (typeof id !== 'string') return null;
     const trimmed = id.trim();
     if (!trimmed || trimmed.length > MAX_ID) return null;
-    /** @type {{ id: string, name?: string }} */
+    /** @type {{ id: string, name?: string, kind?: 'notebook' }} */
     const out = { id: trimmed };
+    if (/** @type {{ kind?: unknown }} */ (raw).kind === 'notebook') out.kind = 'notebook';
     if (typeof /** @type {{ name?: unknown }} */ (raw).name === 'string') {
         const name = /** @type {{ name: string }} */ (raw).name.replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_NAME);
         if (name) out.name = name;
@@ -99,7 +102,8 @@ function createDocumentScope({ sidePanelDocument, history, message } = {}) {
     };
 
     const panel = normaliseSidePanelDocument(sidePanelDocument);
-    if (panel) add(panel.id);
+    // A notebook in the panel is no document: the document tools never reach it.
+    if (panel && panel.kind !== 'notebook') add(panel.id);
 
     /** @type {string[]} */
     const userTexts = [];

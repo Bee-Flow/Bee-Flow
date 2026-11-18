@@ -65,15 +65,10 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
 
     const choose = (id: string) => { onSelect(id); onClose(); };
     // A notebook is listed as a document type, but its id is a notebook's: the
-    // document panel would look it up as a document and find nothing. It opens
-    // on its own page, as in the Documents library (notebookRef).
-    const chooseRow = (d: PickerDocument) => {
-        if (d.docType !== 'notebook') return choose(d.id);
-        const href = `/app/studio/documents/${notebookRef(d.id)}`;
-        window.history.pushState({ page: 'studio' }, '', href);
-        window.dispatchEvent(new PopStateEvent('popstate', { state: { page: 'studio' } }));
-        onClose();
-    };
+    // document panel would look it up as a document and find nothing. It is
+    // handed over as `notebook/<id>`, the reference the Documents library uses
+    // too (notebookRef); the side panel opens a notebook for it.
+    const chooseRow = (d: PickerDocument) => choose(d.docType === 'notebook' ? notebookRef(d.id) : d.id);
 
     const createPage = async () => {
         setCreating(true);

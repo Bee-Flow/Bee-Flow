@@ -316,3 +316,25 @@ describe('an empty notebook', () => {
         expect(screen.getByTestId('starter-summary')).toBeEnabled();
     });
 });
+
+describe('beside the main chat (panel)', () => {
+    it('is the editor alone: no sources, no notebook chat, no AI actions that answer there; Close and Open in Studio', async () => {
+        const user = userEvent.setup();
+        const onBack = vi.fn();
+        const onOpenInStudio = vi.fn();
+        render(withQueryClient(
+            <NotebookEditorView data={detail()} user={{ id: 'erin', name: 'Erin' }} variant="panel" onOpenInStudio={onOpenInStudio}
+                onBack={onBack} onListChanged={vi.fn()} onOpenProject={vi.fn()} onReload={vi.fn()} />,
+        ));
+        expect(screen.getByTestId('editor').dataset.editable).toBe('true');
+        expect(screen.queryByTestId('chat')).not.toBeInTheDocument();
+        expect(screen.queryByText('Report.pdf')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Toggle AI Chat' })).not.toBeInTheDocument();
+        expect(h.editorProps?.onAIAction).toBeUndefined();
+
+        await user.click(screen.getByRole('button', { name: 'Open in Studio' }));
+        expect(onOpenInStudio).toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        expect(onBack).toHaveBeenCalled();
+    });
+});

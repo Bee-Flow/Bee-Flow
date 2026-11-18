@@ -11,6 +11,10 @@ describe('buildSidePanelPayload', () => {
         expect(buildSidePanelPayload({ ...base, sidePanelDocumentId: 'd1' }).sidePanelDocument).toEqual({ id: 'd1' });
     });
 
+    it('an open notebook goes as its own id with kind notebook', () => {
+        expect(buildSidePanelPayload({ ...base, sidePanelDocumentId: 'notebook/nb1' }).sidePanelDocument).toEqual({ id: 'nb1', kind: 'notebook' });
+    });
+
     it('keeps the notebook and webpage parts', () => {
         const p = buildSidePanelPayload({
             ...base, showNotebook: true, notebookContent: 'hi',

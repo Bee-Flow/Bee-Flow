@@ -1,6 +1,8 @@
 // The side-panel part of a chat request body: which notebook, webpage or
 // document the user has open, so the server can tell the AI what is on screen.
 
+import { notebookIdOf } from '../pages/documents/notebookRef';
+
 export interface SidePanelPayloadState {
     notebooksEnabled: boolean;
     showNotebook: boolean;
@@ -26,7 +28,13 @@ export function buildSidePanelPayload(s: SidePanelPayloadState): Record<string, 
                 ...(s.sidePanelWebpage?.description ? { description: s.sidePanelWebpage.description } : {}),
             },
         } : {}),
-        // Document side panel: the AI reads only this document.
-        ...(s.sidePanelDocumentId ? { sidePanelDocument: { id: s.sidePanelDocumentId } } : {}),
+        // Document side panel: the AI reads only this document (or notebook).
+        ...(s.sidePanelDocumentId ? { sidePanelDocument: panelDocument(s.sidePanelDocumentId) } : {}),
     };
+}
+
+/** A notebook open in the panel (`notebook/<id>`, notebookRef) goes as its own id, marked as one. */
+function panelDocument(ref: string): { id: string; kind?: 'notebook' } {
+    const notebookId = notebookIdOf(ref);
+    return notebookId ? { id: notebookId, kind: 'notebook' } : { id: ref };
 }

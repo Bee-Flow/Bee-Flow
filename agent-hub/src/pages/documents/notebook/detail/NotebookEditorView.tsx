@@ -10,7 +10,7 @@
  * own: the live session is the save.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState , useLayoutEffect } from 'react';
-import { BookOpen, History, ListTree, MessagesSquare } from 'lucide-react';
+import { BookOpen, History, ListTree, Maximize2, MessagesSquare } from 'lucide-react';
 import RichTextEditorJs from '@/editor/react/RichTextEditor.jsx';
 import CollabPresence from '@/editor/react/CollabPresence';
 import VersionHistoryPanel from '@/components/versions/VersionHistoryPanel';
@@ -48,6 +48,14 @@ export interface NotebookEditorViewProps {
     onListChanged: () => void;
     onOpenProject: (projectId: string) => void;
     onReload: () => void;
+    /**
+     * 'page' (Studio, a project) | 'panel' (beside the main chat). In the panel
+     * the chat next to it is the AI: no sources drawer, no notebook chat and
+     * none of the AI actions that answer in that chat; those stay in Studio.
+     */
+    variant?: 'page' | 'panel';
+    /** Panel only: hand the notebook over to its full page. */
+    onOpenInStudio?: () => void;
 }
 
 const TOC_AUTO_OPEN_AT = 3;
@@ -56,7 +64,8 @@ const NotebookWorkspace = NotebookWorkspaceJs as unknown as React.ComponentType<
 const RichTextEditor = RichTextEditorJs;
 const NotebookTOC = NotebookTOCJs;
 
-export default function NotebookEditorView({ data, user, onBack, onListChanged, onOpenProject, onReload }: NotebookEditorViewProps) {
+export default function NotebookEditorView({ data, user, onBack, onListChanged, onOpenProject, onReload, variant = 'page', onOpenInStudio }: NotebookEditorViewProps) {
+    const inPanel = variant === 'panel';
     const { t, locale } = useTranslation();
     const rel = useRelativeTime();
     const nb = data.notebook;
@@ -165,13 +174,13 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         onVersions: openVersions,
         onComments: project ? toggleComments : undefined,
         onToggleToc: tocItems.length ? toggleToc : undefined,
-        onNewChat: () => { void chat.newChat(); },
+        onNewChat: inPanel ? undefined : () => { void chat.newChat(); },
         onRename: readOnly ? undefined : () => setRenameSignal((n) => n + 1),
         onImport: readOnly ? undefined : openImport,
         onFind: () => editorRef.current?.openFind?.(),
         onShortcuts: () => editorRef.current?.openShortcuts?.(),
     }), [editorRef, readOnly, exportsApi.handleExport, exportsApi.handleNextcloudExport, hasExportContent, signRequestConfigured,
-        nextcloudConfigured, openVersions, project, toggleComments, tocItems.length, toggleToc, chat, openImport]);
+        nextcloudConfigured, openVersions, project, toggleComments, tocItems.length, toggleToc, chat, openImport, inPanel]);
 
     const headerExtras = [
         {
@@ -180,6 +189,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         },
         { id: 'versions', icon: History, label: t('notebooks.version_history', 'Version history'), active: panel === 'versions', onClick: openVersions },
         ...(project ? [{ id: 'comments', icon: MessagesSquare, label: t('notebooks.toggle_comments', 'Comments'), active: panel === 'comments', onClick: toggleComments }] : []),
+        ...(inPanel && onOpenInStudio ? [{ id: 'studio', icon: Maximize2, label: t('documents.open_in_studio', 'Open in Studio'), active: false, onClick: onOpenInStudio }] : []),
     ];
 
     const banners = (
@@ -230,7 +240,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         <>
             <input type="file" ref={importInputRef} className="hidden" onChange={onImportChange} accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx" aria-hidden="true" tabIndex={-1} />
             <NotebookWorkspace
-                variant="notebook"
+                variant={inPanel ? 'notebook-panel' : 'notebook'}
                 kind="document"
                 // The notebook glyph, as its row in the Documents library shows it.
                 icon={BookOpen}
@@ -248,7 +258,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                     />
                 )}
                 onBack={onBack}
-                backLabel={t('notebooks.back_to_documents', 'Documents')}
+                backLabel={inPanel ? t('documents.close', 'Close') : t('notebooks.back_to_documents', 'Documents')}
                 headerExtras={headerExtras}
                 headerActions={(
                     <ExportMenu
@@ -262,7 +272,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                         nextcloudExporting={exportsApi.nextcloudExporting}
                     />
                 )}
-                leftDrawer={{
+                leftDrawer={inPanel ? null : {
                     label: t('notebooks.sources', 'Sources'),
                     node: <NotebookSourcesPanel sources={sources} readOnly={readOnly} showMeetingNotes={!!showMeetingNotes} />,
                 }}
@@ -272,7 +282,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                     </div>
                 )}
                 secondaryRight={sidePanel}
-                rightDrawer={{
+                rightDrawer={inPanel ? null : {
                     label: t('notebooks.ai_chat', 'AI Chat'),
                     node: (
                         <NotebookChatPanel
@@ -313,7 +323,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                     />
                 )}
             >
-                {!readOnly && empty && !docState.collab.slow && (
+                {!readOnly && !inPanel && empty && !docState.collab.slow && (
                     <NotebookStarters
                         readySourceCount={sources.readySources.length}
                         onDraft={chat.send}
@@ -329,7 +339,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                     collab={docState.collab.handle}
                     onChange={docState.onEditorChange}
                     onSave={docState.autosave.handleDocSave}
-                    onAIAction={readOnly ? undefined : chat.onEditorAIAction}
+                    onAIAction={readOnly || inPanel ? undefined : chat.onEditorAIAction}
                     onAIFill={readOnly ? undefined : aiFill.handleAIFill}
                     aiFilling={aiFill.aiFilling}
                     saving={docState.autosave.docSaving}

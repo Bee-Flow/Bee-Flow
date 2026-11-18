@@ -1,4 +1,12 @@
+import { Suspense } from 'react';
+import useTranslation from '../../hooks/useTranslation';
 import DocumentEditor from '../../pages/documents/DocumentEditor';
+import { useSessionUser } from '../../pages/documents/documentQueries';
+import { notebookIdOf } from '../../pages/documents/notebookRef';
+import { lazy } from '../../utils/lazyWithReload';
+import { projectRoutePath } from '../../utils/projectRoutes';
+
+const NotebookDetail = lazy(() => import('../../pages/documents/notebook/detail/NotebookDetail'));
 
 /**
  * A document in the right-hand chat slot — the sibling of SideWebpagePanel.
@@ -15,14 +23,52 @@ import DocumentEditor from '../../pages/documents/DocumentEditor';
  * A thin wrapper on purpose: forking DocumentEditor would have meant two
  * autosave implementations, and the copy nobody maintains would be this one —
  * the one people actually reach, since a chat link lands here.
+ *
+ * A notebook comes as `notebook/<id>` (notebookRef), as in the Documents
+ * library: its id is a notebook's, not a document's. It opens in the notebook's
+ * own editor in its panel form: the chat beside it is the AI, so its sources
+ * and its own chat stay in Studio.
  */
 interface SideDocumentPanelProps {
     documentId: string;
     onClose?: () => void;
     onNavigate?: (path: string) => void;
+    /** Who is signed in, as the chat knows them; read from the session otherwise. */
+    user?: unknown;
 }
 
-export default function SideDocumentPanel({ documentId, onClose, onNavigate }: SideDocumentPanelProps) {
+function openProject(projectId: string) {
+    window.history.pushState({ page: 'projects' }, '', projectRoutePath(projectId, 'notebooks'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
+function SideNotebookPanel({ notebookId, onClose, onNavigate, user }: { notebookId: string } & Omit<SideDocumentPanelProps, 'documentId'>) {
+    const { t } = useTranslation();
+    const me = useSessionUser(!user);
+    const close = () => onClose?.();
+    return (
+        <Suspense fallback={<div className="h-full flex items-center justify-center text-sm text-[var(--text-tertiary)]" role="status">{t('documents.notebook.loading', 'Opening the notebook…')}</div>}>
+            <NotebookDetail
+                key={notebookId}
+                notebookId={notebookId}
+                user={user || me.data || null}
+                variant="panel"
+                onBack={close}
+                onListChanged={() => {}}
+                onOpenProject={(projectId) => { close(); openProject(projectId); }}
+                onOpenInStudio={() => {
+                    // As for a document: one editor on it at a time.
+                    close();
+                    onNavigate?.(`studio/documents/notebook/${notebookId}`);
+                }}
+            />
+        </Suspense>
+    );
+}
+
+export default function SideDocumentPanel({ documentId, onClose, onNavigate, user }: SideDocumentPanelProps) {
+    const notebookId = notebookIdOf(documentId);
+    if (notebookId) return <SideNotebookPanel notebookId={notebookId} onClose={onClose} onNavigate={onNavigate} user={user} />;
     return (
         <DocumentEditor
             key={documentId}
