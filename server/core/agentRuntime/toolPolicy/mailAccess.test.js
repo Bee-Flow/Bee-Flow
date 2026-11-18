@@ -130,3 +130,14 @@ test('buildToolPolicy: the reply tool is not gated in a mail-triggered run with 
     const without = buildToolPolicy({ agentConfig: cfg, tools, unattended: true });
     assert.deepStrictEqual(without.droppedForUnattended, ['gmail_reply_in_thread']);
 });
+
+test('mail-triggered run: the draft tool survives the unattended drop when the mailbox app is on "ask" (forced for an app that can send)', () => {
+    for (const [appId, draft] of [['outlook', 'outlook_create_draft'], ['gmail', 'gmail_create_draft']]) {
+        const tools = norm({ [appId]: { mailAccess: 'draft', confirm: 'ask', actAs: 'viewer' } });
+        assert.strictEqual(tools[appId].confirm, 'ask');
+        const got = names(narrowToolsForTurn({ tools: stack(), agent: agentWith(tools), agentId: 'a1', messageMetadata: mailRun }).tools);
+        assert.ok(got.includes(draft), `${draft} must be offered: the owner chose "prepare draft" for mail-started runs`);
+        assert.strictEqual(confirmForTool(draft, tools, { mailTrigger: true }), 'direct');
+        assert.strictEqual(confirmForTool(draft, tools), 'ask', 'outside a mail-started run the owner\'s "ask" still holds');
+    }
+});

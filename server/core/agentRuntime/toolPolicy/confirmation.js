@@ -15,7 +15,7 @@ const { effectOf } = require('../../automationModel/sideEffectMap');
 const { _plainObject, toolsConfigOf, CONFIRM_MODES, ACT_AS_MODES } = require('./configShape');
 const { appIdForTool, isAttributionAvailable, _decidingApps, _warnDegraded } = require('./appIndex');
 const { hasCuratedGrants } = require('./grantResolution');
-const { REPLY_IN_THREAD_TOOLS, mailAccessOf } = require('./mailAccess');
+const { REPLY_IN_THREAD_TOOLS, MAIL_APPS, mailAccessOf } = require('./mailAccess');
 
 /**
  * The one send that may run without a person: a reply in the thread of the mail that started a mail-triggered
@@ -27,6 +27,22 @@ function replyInThreadIsDirect(toolName, toolsConfig) {
     if (!REPLY_IN_THREAD_TOOLS.includes(toolName) || !_plainObject(toolsConfig)) return false;
     const appId = appIdForTool(toolName);
     return !!appId && mailAccessOf(appId, toolsConfig[appId]) === 'send_reply';
+}
+
+/**
+ * The draft of a mail-triggered run, for an agent whose owner chose `mailAccess: 'draft'` (or `send_reply`) on that
+ * app. A draft goes to the owner's own drafts folder and is sent by a person, so it is the confirmation itself. The
+ * app's `confirm` is `ask` whenever the app CAN send (the picker forces it), and the unattended drop removes every
+ * tool that would ask: without this the "prepare draft" choice was dropped in exactly the runs it exists for.
+ * @param {string} toolName
+ */
+function mailRunDraftIsDirect(toolName, toolsConfig) {
+    if (!_plainObject(toolsConfig)) return false;
+    const appId = appIdForTool(toolName);
+    if (!appId || !Object.prototype.hasOwnProperty.call(MAIL_APPS, appId)) return false;
+    if (MAIL_APPS[/** @type {'gmail' | 'outlook'} */ (appId)].draft !== toolName) return false;
+    const level = mailAccessOf(appId, toolsConfig[appId]);
+    return level === 'draft' || level === 'send_reply';
 }
 
 /**
@@ -47,6 +63,7 @@ function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct', mailT
     const effect = effectOf(toolName);          // sideEffectMap — no registry involved
     if (effect === 'reads') return 'direct';
     if (effect === 'sends') return mailTrigger && replyInThreadIsDirect(toolName, toolsConfig) ? 'direct' : 'ask';
+    if (mailTrigger && mailRunDraftIsDirect(toolName, toolsConfig)) return 'direct';
     // The opt-in boundary, here too: an agent without a grants map has no decision that can be looked up, so the registry is not
     // even touched. Without this shortcut every old agent would touch it on every turn anyway — precisely what "invisibly shippable" excludes.
     if (!_plainObject(toolsConfig)) return CONFIRM_MODES.includes(legacyDefault) ? legacyDefault : 'direct';
