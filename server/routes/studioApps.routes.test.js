@@ -54,6 +54,7 @@ const EXPECTED = [
     'delete /templates/:templateId requireAuth <anonymous> <anonymous>',
     'get / requireAuth <anonymous>',
     'get /:id requireAuth <anonymous>',
+    'get /:id/ai-capabilities requireAuth gateOwnedApp <anonymous>',
     'get /:id/public-pages requireAuth <anonymous>',
     'get /:id/ref requireAuth validateRequest <anonymous>',
     'get /:id/runs requireAuth validateRequest <anonymous>',

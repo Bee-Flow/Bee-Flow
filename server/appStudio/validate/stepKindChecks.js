@@ -362,6 +362,9 @@ function checkTransaction(step, path, ctx) {
 }
 
 const KIND_CHECKS = {
+    // Web search asked for in an app whose own switch is off (aiWebSearchChecks.js).
+    ai_generate: require('./aiWebSearchChecks').checkAiWebSearch,
+    ai_extract: require('./aiWebSearchChecks').checkAiWebSearch,
     transaction: checkTransaction,
     request_approval: checkApproval,
     // await_approval asks with the request's own fields (componentSpecs/approvalRequestFields.js).

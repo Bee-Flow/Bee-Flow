@@ -21,29 +21,14 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const studioAppStore = require('../../stores/studioAppStore');
 const { requireAuth } = require('../../auth/permissions');
-const { sessionUser } = require('../../core/http/sessionUser');
 const { TriggerParams, TriggerSwitchBody, NoBody } = require('./schemas');
+const { gateOwnedApp } = require('./access');
 const { listTriggerState, setTriggerEnabled } = require('../../appStudio/triggers/triggerState.mts');
 const { webhookView, revealWebhookSecret, rotateWebhookSecret } = require('../../appStudio/triggers/webhook/webhookEndpoints.mts');
 const { resolvePublicBaseUrl } = require('../../utils/publicUrl');
 
 const router = express.Router();
-
-/**
- * Middleware: the app when the caller owns it, on `res.locals.ownedApp`; anything else is the 404
- * of an unknown app. Before the body is read, so a stranger learns nothing from a refused body.
- * @param {import('express').Request<{ id: string }>} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-async function gateOwnedApp(req, res, next) {
-    const app = await studioAppStore.getStudioApp(req.params.id);
-    if (!app || !studioAppStore.canWriteStudioApp(app, sessionUser(req).id)) throw new HttpError(404, 'not_found', 'App not found');
-    res.locals.ownedApp = app;
-    next();
-}
 
 router.get('/:id/triggers', requireAuth, gateOwnedApp, async (_req, res) => {
     res.json(await listTriggerState(res.locals.ownedApp));

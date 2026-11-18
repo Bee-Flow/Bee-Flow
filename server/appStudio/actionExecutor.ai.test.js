@@ -80,6 +80,18 @@ const aiState = {
     docBlocks: [{ type: 'text', text: '[invoice.pdf — extracted]\nINVOICE ACME 10' }],
     realDocs: false,
 };
+// Web search: the real gate chain, with the workspace and provider checks answered here.
+const realWebSearch = require('./aiWebSearch.mts');
+const webSearchRuns = [];
+stub('./aiWebSearch.mts', {
+    ...realWebSearch,
+    withWebSearchTools: (base, a, step, c) => realWebSearch.withWebSearchTools(base, a, step, c, {
+        isPermitted: async () => true,
+        providerAvailable: async () => true,
+        toolDefs: () => [{ type: 'function', function: { name: 'agent_search' } }, { type: 'function', function: { name: 'read_url' } }],
+        run: async (name, args) => { webSearchRuns.push({ name, args }); return 'found'; },
+    }),
+});
 stub('./aiRuntime', {
     resolveOwnerModel: async (app, tier) => { calls.resolveOwnerModel.push({ tier }); return aiState.model; },
     extractDocuments: async (app, descriptors, opts) => {
@@ -195,6 +207,31 @@ test('ai_generate (structured): returns a coerced object from the declared schem
 test('ai_generate: an empty prompt is a 400 (surfaced as ok:false)', async () => {
     const r = await actionExecutor.executeDataStep(app, model, { kind: 'ai_generate', prompt: '   ', output: 'text', resultVar: 'x' }, ctx());
     assert.strictEqual(r.ok, false);
+});
+
+test('ai_generate with webSearch in an app whose switch is off fails with the reason and calls no model', async () => {
+    const before = calls.runText.length;
+    const r = await actionExecutor.executeDataStep(app, model, { kind: 'ai_generate', prompt: 'Latest VAT rate?', output: 'text', webSearch: true, resultVar: 'x' }, ctx());
+    assert.strictEqual(r.ok, false);
+    assert.match(r.error, /Web search is not enabled for this app/);
+    assert.strictEqual(calls.runText.length, before);
+});
+
+test('ai_generate with webSearch and the app switch on hands the model agent_search and read_url', async () => {
+    const before = calls.runText.length;
+    const r = await actionExecutor.executeDataStep(app, model, { kind: 'ai_generate', prompt: 'Latest VAT rate?', output: 'text', webSearch: true, resultVar: 'x' }, ctx({ aiWebSearch: true }));
+    assert.strictEqual(r.ok, true);
+    const args = calls.runText[before];
+    assert.deepStrictEqual(args.tools.map((t) => t.def.function.name), ['agent_search', 'read_url']);
+    assert.match(args.system, /agent_search/);
+    assert.strictEqual(await args.tools[0].execute({ query: 'vat' }), 'found');
+    assert.deepStrictEqual(webSearchRuns.at(-1), { name: 'agent_search', args: { query: 'vat' } });
+});
+
+test('ai_generate without webSearch gets no web tools, even with the app switch on', async () => {
+    const before = calls.runText.length;
+    await actionExecutor.executeDataStep(app, model, { kind: 'ai_generate', prompt: 'Summarize', output: 'text', resultVar: 'x' }, ctx({ aiWebSearch: true }));
+    assert.deepStrictEqual(calls.runText[before].tools, []);
 });
 
 // ── kb_query ───────────────────────────────────────────────────────────────

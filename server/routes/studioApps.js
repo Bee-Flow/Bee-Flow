@@ -29,6 +29,7 @@
  *   POST   /:id/versions/:versionId/restore — owner-only restore snapshot → working draft
  *   GET    /:id/triggers                   — owner-only: the app's server triggers and their armed state
  *   PUT    /:id/triggers/:triggerId        — owner-only: switch an armed trigger off or on again
+ *   GET    /:id/ai-capabilities            — owner-only: web search and browsing available to the app's AI
  *   GET    /:id/runtime                    — run-view payload (draft for owner, else published)
  *                                            + viewer { id, name, email, isOwner, roleKey }
  *
@@ -64,5 +65,7 @@ router.use('/', require('./studioApps/runtime'));
 router.use('/', require('./studioApps/runLog'));
 // GET /:id/triggers, PUT /:id/triggers/:triggerId — the server triggers (owner only).
 router.use('/', require('./studioApps/triggers'));
+// GET /:id/ai-capabilities — what the app's AI can reach here (owner only).
+router.use('/', require('./studioApps/aiCapabilities'));
 
 module.exports = router;

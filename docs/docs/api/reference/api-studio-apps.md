@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-93 routes, 62 with a request schema. Back to the [endpoint reference](../reference.md).
+94 routes, 62 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -240,6 +240,12 @@ No request schema.
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 
 **Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/studio-apps/:id/ai-capabilities`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 No request schema.
 

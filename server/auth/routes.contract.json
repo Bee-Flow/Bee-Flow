@@ -2710,6 +2710,9 @@
     "GET /api/studio-apps/:id/actions/runs/:runId": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/ai-capabilities": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/assets": {
       "gate": "auth"
     },

@@ -195,6 +195,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 orgId: app.organizationId || null,
                 actionId: ownerActionId,
                 def,                                   // browseStep needs aiBrowsing
+                aiWebSearch: require('../appStudio/aiWebSearch.mts').webSearchOn(def), // ai_generate / ai_extract web search (aiWebSearch.mts)
                 formValues,
                 vars,
                 variables: Array.isArray(def && def.variables) ? def.variables : null,
