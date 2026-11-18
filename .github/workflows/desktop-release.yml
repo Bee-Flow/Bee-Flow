@@ -285,7 +285,7 @@ jobs:
           # matters because plenty of self-hosters run this on an ARM laptop.
           ALL='[
             {"os":"ubuntu-latest","platform":"linux","flag":"--linux"},
-            {"os":"macos-14","platform":"macos","flag":"--mac"},
+            {"os":"macos-15","platform":"macos","flag":"--mac"},
             {"os":"windows-latest","platform":"windows","flag":"--win"}
           ]'
           if [[ "$WANTED" == "all" ]]; then
@@ -306,7 +306,7 @@ jobs:
             {"leg":"pacman","os":"ubuntu-24.04","platform":"linux"},
             {"leg":"nsis","os":"windows-2025","platform":"windows"},
             {"leg":"portable-zip","os":"windows-2025","platform":"windows"},
-            {"leg":"dmg","os":"macos-14","platform":"macos"},
+            {"leg":"dmg","os":"macos-15","platform":"macos"},
             {"leg":"dmg-intel","os":"macos-15-intel","platform":"macos"}
           ]'
           if [[ "$WANTED" == "all" ]]; then
