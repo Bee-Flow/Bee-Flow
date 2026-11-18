@@ -237,8 +237,8 @@ function resolveWriteConstants(constants, table, ctx, scope) {
     return out;
 }
 
-// ── AI-step dataset tools: aiDatasetTools.mts ─────────────────────────────────
-const buildDatasetTools = (app, step, ctx, scope) => require(AI_DATASET_TOOLS).buildDatasetTools(app, step, ctx, (b) => resolveBinding(b, ctx, scope));
+// ── AI-step tools: aiDatasetTools.mts, plus web search behind the app's switch (../aiWebSearch.mts) ──
+const buildDatasetTools = async (app, step, ctx, scope) => require('../aiWebSearch.mts').withWebSearchTools(await require(AI_DATASET_TOOLS).buildDatasetTools(app, step, ctx, (b) => resolveBinding(b, ctx, scope)), app, step, ctx);
 
 /**
  * The query-log option of a Studio step: the person asking is the viewer, not the app's owner.

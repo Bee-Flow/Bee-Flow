@@ -16,6 +16,9 @@ registerFeatureModules({
     // chat turn, tasks, custom integrations, KB
     'integrations/workspaceTools': () => require('../integrations/workspaceTools'),
     'integrations/agentSearchTools': () => require('../integrations/agentSearchTools'),
+    // web search for App Studio AI steps (appStudio/aiWebSearch.mts, aiCapabilities.mts)
+    'integrations/agentSearchEgress': () => require('../integrations/agentSearchEgress'),
+    'integrations/webSearchAvailability': () => require('../integrations/webSearchAvailability'),
     'integrations/customIntegrationRunner': () => require('../integrations/customIntegrationRunner'),
     // every integration's tool arrays, for getIntegrationTools
     'integrations/coreToolsets': () => require('../integrations/coreToolsets'),

@@ -49,6 +49,8 @@
  * @typedef {{
  *   'integrations/workspaceTools': typeof import('../integrations/workspaceTools'),
  *   'integrations/agentSearchTools': typeof import('../integrations/agentSearchTools'),
+ *   'integrations/agentSearchEgress': typeof import('../integrations/agentSearchEgress'),
+ *   'integrations/webSearchAvailability': typeof import('../integrations/webSearchAvailability'),
  *   'integrations/customIntegrationRunner': any,
  *   'integrations/coreToolsets': typeof import('../integrations/coreToolsets'),
  *   'services/browserProvider': typeof import('../services/browserProvider'),

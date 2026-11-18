@@ -284,7 +284,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // The app's DECLARED variables, so a step's formula sees the same
         // starting values the browser seeded at mount. Client-supplied
         // `vars` still wins — see buildServerScope.
-        variables: Array.isArray(def && def.variables) ? def.variables : null,
+        variables: Array.isArray(def && def.variables) ? def.variables : null, aiWebSearch: require('../appStudio/aiWebSearch.mts').webSearchOn(def), // + the app's web-search switch
         item,
         index,
         value,

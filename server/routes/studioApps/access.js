@@ -12,6 +12,9 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { requirePermission } = require('../../auth/permissions');
 // Publish / unpublish / groups, shared with a Solution stage's on/off.
 const appAudience = require('../../appStudio/appAudience');
+const studioAppStore = require('../../stores/studioAppStore');
+const { HttpError } = require('../../core/http/errors');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── Who may BUILD an app, as opposed to use one ──────────────────────
 // The mount in server/index.js gates /api/studio-apps on requireModule('apps')
@@ -84,8 +87,24 @@ function refuseRead(res, app, orgIdArr) {
  */
 const resolveOwnerOrgId = (userId) => appAudience.resolveOwnerOrgId(userId, userStore);
 
+// The owner-only routes (triggers, AI capabilities): a trigger and an AI step run as the owner.
+/**
+ * Middleware: the app when the caller owns it, on `res.locals.ownedApp`; anything else is the 404
+ * of an unknown app. Before the body is read, so a stranger learns nothing from a refused body.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function gateOwnedApp(req, res, next) {
+    const app = await studioAppStore.getStudioApp(req.params.id);
+    if (!app || !studioAppStore.canWriteStudioApp(app, sessionUser(req).id)) throw new HttpError(404, 'not_found', 'App not found');
+    res.locals.ownedApp = app;
+    next();
+}
+
 module.exports = {
     requireManageApps,
+    gateOwnedApp,
     audienceFor,
     refuseRead,
     resolveOwnerOrgId,

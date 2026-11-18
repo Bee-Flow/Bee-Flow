@@ -8,12 +8,14 @@ import Toggle from '@/components/shared/Toggle';
 import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '../runtime/appDesign';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';
+import { updateAiWebSearch } from '../state/aiWebSearchOps';
 import DesignPresetGallery from './DesignPresetGallery';
 import ScreenTriggers from './ScreenTriggers';
 import type { DesignPreset } from './DesignPresetGallery';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
+import { AiCapabilitiesPanel } from './AiCapabilitiesPanel';
 import { LinkHostsSettings } from './LinkHostsSettings';
 import { updateAllowedLinkHosts } from '../state/linkHostOps';
 import { ServerScopeSettings } from './ServerScopeSettings';
@@ -155,6 +157,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
         const next = updateAiBrowsing(definition, patch);
         if (next !== definition) onCommit(next);
     };
+    const commitAiWebSearch = (enabled: boolean) => {
+        const next = updateAiWebSearch(definition, enabled);
+        if (next !== definition) onCommit(next);
+    };
     const commitLinkHosts = (hosts: string[]) => {
         const next = updateAllowedLinkHosts(definition, hosts);
         if (next !== definition) onCommit(next);
@@ -292,6 +298,8 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                     />
                 </div>
             </div>
+
+            <AiCapabilitiesPanel definition={definition} appId={appId} onWebSearchChange={commitAiWebSearch} disabled={disabled} />
 
             <AiBrowsingSettings
                 value={definition?.aiBrowsing || null}

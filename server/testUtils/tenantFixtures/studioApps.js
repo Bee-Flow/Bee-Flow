@@ -113,6 +113,19 @@ const FIXTURES = [
         ],
     },
     {
+        // What the AI of an app can reach (routes/studioApps/aiCapabilities.js): owner only, so a
+        // member of org A gets 404, and the owner the capabilities.
+        kind: 'studioAppAiCapabilities',
+        mount: '/api/studio-apps',
+        router: () => require('../../routes/studioApps/aiCapabilities'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `AI app ${index}` });
+            return app.id;
+        },
+        routes: ['GET /api/studio-apps/:id/ai-capabilities'],
+    },
+    {
         // The address of a webhook trigger (routes/studioAppWebhook.mts), served beside the owner's
         // trigger list so the kind has a route its owner reads. The address is not an organisation's
         // id: a session of org A (of anyone) is no credential there, and without a signature every

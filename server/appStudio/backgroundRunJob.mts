@@ -27,6 +27,7 @@ import { trimToBytes, writtenVars } from './backgroundRunParts.mts';
 import { runsUnattended } from './triggers/unattendedPolicy.mts';
 import { triggerCtx } from './triggers/runTriggerCtx.mts';
 import type { JobView, RunnerDeps, StartInput } from './backgroundRunParts.mts';
+import { webSearchOn } from './aiWebSearch.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 type Attribution = { withUsageAttribution: <T>(a: { actorUserId?: string | null; runId?: string | null }, fn: () => T) => T };
@@ -79,6 +80,7 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
         ...(w.error ? { error: w.error } : {}),
         ...(w.trigger ? { trigger: w.trigger } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
+        aiWebSearch: webSearchOn(def),
         item: w.item, index: w.index, value: w.value,
         viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null },
         ...triggerCtx(input),
