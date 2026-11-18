@@ -80,3 +80,12 @@ test('anyOrganisationUses reads the org switch', async () => {
     await pg.query(`INSERT INTO organizations (id, org_enabled_integrations) VALUES ('o1', '["maps","sanctions-lists"]')`);
     assert.strictEqual(await store.anyOrganisationUses('sanctions-lists'), true);
 });
+
+test('screening demand: one row, a time only', async () => {
+    assert.strictEqual(await store.hasRecentDemand(48), false);
+    await store.recordDemand();
+    await store.recordDemand();
+    assert.strictEqual(await store.hasRecentDemand(48), true);
+    const { rows } = await pg.query('SELECT count(*)::int AS n FROM sanctions_demand');
+    assert.strictEqual(rows[0].n, 1);
+});

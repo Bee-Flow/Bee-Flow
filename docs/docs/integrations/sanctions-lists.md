@@ -30,8 +30,17 @@ The server refreshes the lists once a day while at least one organisation has th
 (see [environment variables](../self-hosting/env.md#sanctions-lists)). A list is replaced in one
 transaction. A failed download, a file that cannot be read or a download with far fewer entries
 than expected never empties a list: the previous copy stays, and the error shows on the status
-page. A platform admin sees each list's last refresh, number of entries and last error under
-Admin dashboard → Platform services → **Sanctions lists**, with **Refresh now**.
+page. A download with less than 70% of the entries the stored copy holds is refused too, unless
+a platform admin forces it with **Refresh now**. A list that is still empty is retried every hour,
+so an organisation that switches the integration on has its lists within the hour. A platform
+admin sees each list's last refresh, number of entries and last error under Admin dashboard →
+Platform services → **Sanctions lists**, with **Refresh now** (which requests a refresh; when
+another server replica is refreshing already, that one finishes it).
+
+A screening reports `complete: false`, with a `warnings` line per list, when a requested list is
+missing, its last refresh failed or its copy is older than two refresh intervals: then no
+candidate is not a clean result. When none of the requested lists holds data, the screening fails
+with code `lists_unavailable` instead of answering "no match".
 
 ## PEP functions
 
@@ -65,6 +74,9 @@ as former; a PEP keeps that status for at least twelve months after leaving the 
     }
   ],
   "candidateCount": 1,
+  "complete": true,
+  "incompleteLists": [],
+  "warnings": [],
   "pep": { "isPep": false, "possiblePep": false, "former": false, "matches": [] },
   "lists": [{ "id": "eu_fsf", "label": "EU consolidated financial sanctions list", "status": "ok", "lastSuccessAt": "…", "entityCount": 5800 }],
   "missingLists": [],
@@ -86,5 +98,7 @@ yet, for example on a new server before its first refresh.
 - Only the downloads of the public lists go out, from the server to the addresses above.
 - A screening is a local tool: it is not recorded as data leaving the platform, and the
   organisation's rules for personal data in outside tools do not block it.
-- The server does not store or log the names it screens. Store the result yourself where your
-  client file needs it (an App Studio table, an automation step).
+- The screening service itself does not store or log the names it screens. What runs it does
+  keep them: an automation run records each step's arguments and result, an App Studio run log
+  keeps them for 30 days, and a chat keeps its history. Treat those records as part of your
+  client file, under your organisation's retention settings.

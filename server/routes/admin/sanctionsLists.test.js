@@ -60,8 +60,8 @@ test('POST /refresh starts one forced pass; a second while it runs does not', as
         const post = () => fetch(`${base}/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
         const first = await post();
         assert.strictEqual(first.status, 202);
-        assert.deepStrictEqual(await first.json(), { started: true });
-        assert.deepStrictEqual(await (await post()).json(), { started: false, reason: 'running' });
+        assert.deepStrictEqual(await first.json(), { requested: true });
+        assert.deepStrictEqual(await (await post()).json(), { requested: false, reason: 'running' });
         assert.deepStrictEqual(state.runs, [{ force: true }]);
         assert.strictEqual((await fetch(`${base}/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"x":1}' })).status, 400);
     });

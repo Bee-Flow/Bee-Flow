@@ -36,6 +36,7 @@ export const SANCTIONS_TOOLS: ToolDef[] = [
             description: 'Screen the name of a person or organisation against the official sanctions lists (EU consolidated financial sanctions, UN Security Council, Dutch national terrorism list, OFAC SDN, UK Sanctions List). '
                 + 'Runs on this server; nothing is sent outside it. Returns candidates with a score from 0 to 1, the list, the matched name, birth dates, countries and the list\'s own reference and link. '
                 + 'A candidate is a possible match for a person to check, not a finding. Give a birth date and a country when you have them: they lower the score of namesakes. '
+                + 'Read `complete`: false means a requested list is missing, failed to refresh or is out of date (`warnings` says which), so no candidate is not a clean result. When no requested list holds data the call fails with code lists_unavailable. '
                 + 'Give `function` (a job title) to also check whether it is a prominent public function (PEP).',
             parameters: {
                 type: 'object',
@@ -83,7 +84,12 @@ export async function executeSanctionsTool(name: string, args: Args, ctx: { user
     const a = args && typeof args === 'object' ? args : {};
     if (name === 'sanctions_screen') {
         if (typeof a.name !== 'string' || !a.name.trim()) return { error: 'name is required: the full name to screen.' };
-        return service().screen(a);
+        try {
+            return await service().screen(a);
+        } catch (e) {
+            if (e instanceof service().ListsUnavailableError) return { error: e.message, code: e.code };
+            throw e;
+        }
     }
     if (name === 'sanctions_pep_function_check') {
         if (typeof a.function !== 'string' || !a.function.trim()) return { error: 'function is required: the job title to check.' };

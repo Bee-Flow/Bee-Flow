@@ -17,6 +17,9 @@
  *   candidates(keys, lists, limit)           the stored names sharing a key, with their entity
  *   listStatus()                             every list's row
  *   anyOrganisationUses(integrationId)       is the integration switched on anywhere?
+ *   recordDemand() / hasRecentDemand(h)      a screening met an empty list (sanctions_demand, one row,
+ *                                            a time only): the job refreshes for it, which covers a
+ *                                            user without an organisation, whose switch no org row holds
  *
  * makeSanctionsStore(db) takes the `{ query, tx }` of testUtils/pgliteDb.js; `sanctionsStore()`
  * is the same store on the server's pool, its schema created through makeStoreInit (the ledger)
@@ -69,6 +72,10 @@ export const SANCTIONS_DDL: readonly string[] = Object.freeze([
         name TEXT NOT NULL,
         keys TEXT[] NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS sanctions_demand (
+        id INT PRIMARY KEY CHECK (id = 1),
+        last_at TIMESTAMPTZ NOT NULL
+    )`,
     'CREATE INDEX IF NOT EXISTS sanctions_names_keys_idx ON sanctions_names USING GIN (keys)',
     'CREATE INDEX IF NOT EXISTS sanctions_names_entity_idx ON sanctions_names (list_id, entity_id)',
 ]);
@@ -101,6 +108,8 @@ export interface SanctionsStore {
     candidates(keys: string[], lists: string[] | null, limit: number): Promise<CandidateRow[]>;
     listStatus(): Promise<ListStatusRow[]>;
     anyOrganisationUses(integrationId: string): Promise<boolean>;
+    recordDemand(): Promise<void>;
+    hasRecentDemand(withinHours: number): Promise<boolean>;
 }
 
 const BATCH = 1000;
@@ -162,6 +171,21 @@ function nameRows(entities: IndexedEntity[]): Array<{ entityId: string; name: st
 
 const STATUS_UPSERT = `INSERT INTO sanctions_lists (id, label) VALUES ($1, $2)
     ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label`;
+
+/** A screening met a list without data: the one instance-wide mark the refresh job reads. No name, no user. */
+function demandStore(db: Queryable, ready: () => Promise<unknown>): Pick<SanctionsStore, 'recordDemand' | 'hasRecentDemand'> {
+    return {
+        async recordDemand() {
+            await ready();
+            await db.query(`INSERT INTO sanctions_demand (id, last_at) VALUES (1, now()) ON CONFLICT (id) DO UPDATE SET last_at = now()`);
+        },
+        async hasRecentDemand(withinHours: number) {
+            await ready();
+            const { rows } = await db.query(`SELECT 1 FROM sanctions_demand WHERE last_at > now() - make_interval(hours => $1::int)`, [Math.max(1, Math.floor(withinHours))]);
+            return rows.length > 0;
+        },
+    };
+}
 
 export function makeSanctionsStore(db: StoreDb, opts: { ready?: () => Promise<unknown> } = {}): SanctionsStore {
     const ready = opts.ready ?? (async () => undefined);
@@ -243,7 +267,7 @@ export function makeSanctionsStore(db: StoreDb, opts: { ready?: () => Promise<un
         return rows.length > 0;
     }
 
-    return { replaceList, recordFailure, recordUnchanged, candidates, listStatus, anyOrganisationUses };
+    return { replaceList, recordFailure, recordUnchanged, candidates, listStatus, anyOrganisationUses, ...demandStore(db, ready) };
 }
 
 // ── The store on the server's pool ──────────────────────────────────

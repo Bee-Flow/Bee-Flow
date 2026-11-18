@@ -27,7 +27,8 @@ export interface SanctionsStatusResponse {
 }
 
 export interface SanctionsRefreshResponse {
-    started: boolean;
+    /** The pass was asked for; another server replica that is refreshing already finishes it instead. */
+    requested: boolean;
     reason?: 'running';
 }
 

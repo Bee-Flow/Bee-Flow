@@ -2,7 +2,9 @@
  * match.mts: how alike two names are, from 0 (nothing in common) to 1 (the same tokens).
  *
  * Both names arrive as token lists (normalize.mts nameTokens). Two views are taken and the
- * higher one wins (one word against a longer name stays at 0.8 or below):
+ * higher one wins (one word against a longer name stays at 0.8 or below, unless the listing is
+ * an organisation and the word has five letters or more). Tokens with the same phoneticCode
+ * (normalize.mts) score at least 0.92, and particles are also tried run together:
  *
  *   - run together: the tokens joined without spaces, compared with Jaro-Winkler, counted only
  *     when nearly identical ("AlZawahiri" and "Al Zawahiri");
@@ -14,6 +16,8 @@
  *
  * Pure and synchronous: the screening scores a few hundred candidates per name.
  */
+
+import { mergeParticles, phoneticCode } from './normalize.mts';
 
 /** Which characters of `a` and `b` match within the Jaro window. */
 function jaroHits(a: string, b: string): { aHit: boolean[]; bHit: boolean[]; matches: number } {
@@ -68,11 +72,20 @@ export function jaroWinkler(a: string, b: string): number {
 export function tokenSimilarity(q: string, c: string): number {
     if (q === c) return 1;
     if (q.length === 1 || c.length === 1) return (q[0] === c[0]) ? 0.8 : 0;
-    return jaroWinkler(q, c);
+    const jw = jaroWinkler(q, c);
+    // Two transliterations of one name (Qadhafi / Gaddafi, Osman / Usman) share the phonetic
+    // code; Jaro-Winkler alone puts them around 0.8. The floor on jw keeps an unrelated pair that
+    // happens to share a short code (Hassan / Hussein, 0.77) where it was.
+    if (jw >= PHONETIC_JW_FLOOR && q.length >= 3 && c.length >= 3 && phoneticCode(q) === phoneticCode(c)) return Math.max(jw, PHONETIC_SCORE);
+    return jw;
 }
 
+/** What two tokens with the same phonetic code score at least, and the Jaro-Winkler they need for it. */
+export const PHONETIC_SCORE = 0.92;
+export const PHONETIC_JW_FLOOR = 0.78;
+
 /** Below this, two tokens are different words rather than two spellings of one. */
-export const TOKEN_FLOOR = 0.82;
+export const TOKEN_FLOOR = 0.86;
 
 function alignment(query: string[], candidate: string[]): number {
     const [short, long] = query.length <= candidate.length ? [query, candidate] : [candidate, query];
@@ -101,14 +114,38 @@ function alignment(query: string[], candidate: string[]): number {
     return avg * (1 - Math.min(0.15, unpaired * 0.04));
 }
 
-/** How alike two names are, 0..1. Empty on either side is 0. */
-export function nameSimilarity(query: string[], candidate: string[]): number {
+/** One word against a name of several (or the other way round) scores at most this, unless the listing is an organisation. */
+export const ONE_WORD_CAP = 0.8;
+/** An organisation's one distinctive word ("Sberbank") is enough from this many letters on. */
+export const ENTITY_WORD_MIN = 5;
+
+export interface SimilarityOptions {
+    /** The listing is an organisation (or a vessel, an aircraft): one distinctive word may identify it. */
+    candidateIsEntity?: boolean;
+}
+
+/** How alike two names are, 0..1, also with their particles run together ("abd al rahman" / "abdulrahman"). */
+export function nameSimilarity(query: string[], candidate: string[], opts: SimilarityOptions = {}): number {
+    const raw = rawSimilarity(query, candidate, opts);
+    const q = mergeParticles(query);
+    const c = mergeParticles(candidate);
+    if (!q && !c) return raw;
+    return Math.max(raw, rawSimilarity(q ?? query, c ?? candidate, opts));
+}
+
+function rawSimilarity(query: string[], candidate: string[], opts: SimilarityOptions): number {
     if (!query.length || !candidate.length) return 0;
     // The words run together ("AlZawahiri" against "Al Zawahiri") only count when they are
     // nearly the same: across a whole name Jaro-Winkler is lenient, the alignment is not.
     const joined = jaroWinkler(query.join(''), candidate.join(''));
     const score = Math.max(joined >= 0.95 ? joined : 0, alignment(query, candidate));
     // One word against a longer name ("Hussein" against "Saddam Hussein"), or the other way
-    // round, says little on its own: never above 0.8.
-    return (query.length === 1) !== (candidate.length === 1) ? Math.min(score, 0.8) : score;
+    // round, says little on its own about a person. An organisation is often known by one
+    // distinctive word ("Sberbank" for "Sberbank of Russia"), so the cap is lifted for an
+    // organisation's listing when that word is not short ("Bank" stays capped).
+    // Only the query may be the one word: a one-word listing ("Devrez") against a longer query
+    // ("Jan de Vries") stays capped.
+    if ((query.length === 1) === (candidate.length === 1)) return score;
+    const lift = opts.candidateIsEntity && query.length === 1 && query[0].length >= ENTITY_WORD_MIN;
+    return lift ? score : Math.min(score, ONE_WORD_CAP);
 }

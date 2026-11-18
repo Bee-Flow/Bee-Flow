@@ -22,7 +22,7 @@ beforeEach(() => {
     calls.length = 0;
     vi.stubGlobal('fetch', vi.fn(async (url: unknown, init?: RequestInit) => {
         calls.push({ url: String(url), method: init?.method ?? 'GET' });
-        const body = String(url).endsWith('/refresh') ? { started: true } : STATUS;
+        const body = String(url).endsWith('/refresh') ? { requested: true } : STATUS;
         return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
     }));
 });

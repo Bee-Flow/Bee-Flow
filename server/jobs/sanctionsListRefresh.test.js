@@ -132,3 +132,33 @@ test('SANCTIONS_REFRESH_INTERVAL_HOURS=0 starts no timer', () => {
     job.stop();
     assert.strictEqual(job.settings().intervalHours, 0);
 });
+
+test('a list that shrinks below 70% of what it held is refused unless forced', async () => {
+    const prev = { id: 'test_list', status: 'ok', entityCount: 10, etag: null, lastModified: null, contentHash: 'old' };
+    const { store } = setup({ store: fakeStore([prev]), fetch: () => response('a,b,c,d,e,f') });
+    await job.runOnce();
+    assert.deepStrictEqual(store.calls.map((c) => c[0]), ['failure']);
+    assert.match(store.calls[0][2], /6 entries, less than 70% of the 10 stored; the stored list was kept/);
+    const forced = setup({ store: fakeStore([prev]), fetch: () => response('a,b,c,d,e,f') });
+    await job.runOnce({ force: true });
+    assert.strictEqual(forced.store.calls[0][0], 'replace');
+});
+
+test('the hourly tick: not due while every list is fresh, due at once while a list is empty', async () => {
+    const recent = new Date(Date.now() - 60_000).toISOString();
+    const fresh = { id: 'test_list', status: 'ok', entityCount: 3, lastAttemptAt: recent, lastSuccessAt: recent, etag: null, lastModified: null, contentHash: null };
+    const a = setup({ store: fakeStore([fresh]), fetch: () => response('a,b,c') });
+    assert.deepStrictEqual(await job.runOnce(), { ran: false, reason: 'not_due' });
+    assert.strictEqual(a.fetched.length, 0);
+    const old = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    const b = setup({ store: fakeStore([{ ...fresh, entityCount: 0, status: 'error', lastAttemptAt: old }]), fetch: () => response('a,b,c') });
+    await job.runOnce();
+    assert.strictEqual(b.fetched.length, 1, 'an empty list is retried every hour');
+});
+
+test('screening demand counts as use: a user without an organisation still gets the lists', async () => {
+    const store = { ...fakeStore(), anyOrganisationUses: async () => false, hasRecentDemand: async () => true };
+    const { fetched } = setup({ store, fetch: () => response('a,b') });
+    await job.runOnce();
+    assert.strictEqual(fetched.length, 1);
+});

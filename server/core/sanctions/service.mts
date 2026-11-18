@@ -39,7 +39,7 @@ export interface ScreenInput {
     maxResults?: unknown;
 }
 
-export interface ListInfo { id: string; label: string; status: string; lastSuccessAt: string | null; entityCount: number }
+export interface ListInfo { id: string; label: string; status: string; lastSuccessAt: string | null; entityCount: number; stale: boolean; lastError: string | null }
 
 export interface ScreenResult {
     screened: boolean;
@@ -49,16 +49,33 @@ export interface ScreenResult {
     lists: ListInfo[];
     /** Lists that were asked for but hold no rows yet (never imported, or every import failed). */
     missingLists: string[];
+    /** False when a requested list is missing, its last refresh failed, or its copy is older than two refresh intervals. */
+    complete: boolean;
+    /** The requested lists that make the result incomplete. */
+    incompleteLists: string[];
+    /** One sentence per such list. */
+    warnings: string[];
     checkedAt: string;
     note: string;
+}
+
+/** No requested list holds any data: a screening would say "no match" without having looked. */
+export class ListsUnavailableError extends Error {
+    code = 'lists_unavailable' as const;
+    constructor() {
+        super('None of the requested sanctions lists has been imported on this server yet, so nothing could be screened. Try again later; a platform admin sees the import under Platform services, Sanctions lists.');
+        this.name = 'ListsUnavailableError';
+    }
 }
 
 export type AccessRefusal = { ok: false; code: 'feature_locked' | 'integration_off' | 'forbidden'; error: string };
 
 export interface ServiceDeps {
-    store: () => Pick<SanctionsStore, 'candidates' | 'listStatus'>;
+    store: () => Pick<SanctionsStore, 'candidates' | 'listStatus' | 'recordDemand'>;
     hasFeature: (scope: { organizationId?: string | null; userId?: string | null }, feature: string) => Promise<boolean>;
     log: { info: (m: string) => void };
+    /** Hours between refreshes (SANCTIONS_REFRESH_INTERVAL_HOURS); a copy older than twice that is stale. */
+    intervalHours?: () => number;
 }
 
 function defaultDeps(): ServiceDeps {
@@ -66,6 +83,7 @@ function defaultDeps(): ServiceDeps {
         store: () => nodeRequire('../../stores/sanctionsStore.mts').sanctionsStore(),
         hasFeature: (scope, feature) => nodeRequire('../../license/index.js').hasFeature(scope, feature),
         log: nodeRequire('../../telemetry/log.js'),
+        intervalHours: () => (nodeRequire('../../utils/envNumber.mts') as { envInt: (n: string, f: number, b?: { min?: number }) => number }).envInt('SANCTIONS_REFRESH_INTERVAL_HOURS', 24, { min: 0 }),
     };
 }
 
@@ -76,6 +94,8 @@ const deps = (): ServiceDeps => ({ ...defaultDeps(), ...(overrides ?? {}) });
 
 export const NOTE = 'Candidates are possible matches for a person to check against the list entry (reference and link), not a finding. '
     + 'The screening ran on this server against the stored official lists; nothing was sent outside it.';
+export const INCOMPLETE_NOTE = 'This screening is NOT complete: some requested lists are missing, failed to refresh or are out of date (see warnings). '
+    + 'No candidate does not mean no match on those lists. ';
 
 /**
  * May this user (in this organisation) screen? `integrationOn` answers whether the org admin's
@@ -109,21 +129,52 @@ const numberOf = (v: unknown): number | undefined => {
     return Number.isFinite(n) ? n : undefined;
 };
 
-function listInfo(rows: ListStatusRow[], wanted: string[] | null): { lists: ListInfo[]; missing: string[] } {
-    const byId = new Map(rows.map((r) => [r.id, r]));
-    const ids = wanted ?? LIST_SOURCES.map((s) => s.id);
-    const lists: ListInfo[] = [];
-    const missing: string[] = [];
-    for (const id of ids) {
-        const r = byId.get(id);
-        const label = LIST_SOURCES.find((s) => s.id === id)?.label ?? id;
-        if (!r || !r.entityCount) missing.push(id);
-        lists.push({ id, label, status: r?.status ?? 'never', lastSuccessAt: r?.lastSuccessAt ?? null, entityCount: r?.entityCount ?? 0 });
-    }
-    return { lists, missing };
+const HOUR_MS = 3_600_000;
+
+function infoOf(id: string, r: ListStatusRow | undefined, staleBefore: number): ListInfo {
+    const label = LIST_SOURCES.find((src) => src.id === id)?.label ?? id;
+    const entityCount = r?.entityCount ?? 0;
+    const last = r?.lastSuccessAt ? Date.parse(r.lastSuccessAt) : NaN;
+    const stale = entityCount > 0 && !(last >= staleBefore);
+    return { id, label, status: r?.status ?? 'never', lastSuccessAt: r?.lastSuccessAt ?? null, entityCount, stale, lastError: r?.lastError ?? null };
 }
 
-/** Screen one name (and optionally a function) against the stored lists. Throws only on a store error. */
+/** Why this list makes a screening incomplete, or null when it does not. */
+function warningOf(info: ListInfo): string | null {
+    if (!info.entityCount) return `${info.label}: not imported on this server yet, so it was not screened.`;
+    const since = info.lastSuccessAt ?? 'an earlier refresh';
+    if (info.status === 'error') return `${info.label}: the last refresh failed${info.lastError ? ` (${info.lastError})` : ''}; screened against the copy of ${since}.`;
+    if (info.stale) return `${info.label}: the copy dates from ${since} and is out of date.`;
+    return null;
+}
+
+function oneList(id: string, r: ListStatusRow | undefined, staleBefore: number): { info: ListInfo; warning: string | null } {
+    const info = infoOf(id, r, staleBefore);
+    return { info, warning: warningOf(info) };
+}
+
+function listInfo(rows: ListStatusRow[], wanted: string[] | null, intervalHours: number) {
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const staleBefore = Date.now() - 2 * Math.max(intervalHours, 24) * HOUR_MS;
+    const lists: ListInfo[] = [];
+    const missing: string[] = [];
+    const incomplete: string[] = [];
+    const warnings: string[] = [];
+    for (const id of wanted ?? LIST_SOURCES.map((s) => s.id)) {
+        const { info, warning } = oneList(id, byId.get(id), staleBefore);
+        lists.push(info);
+        if (!info.entityCount) missing.push(id);
+        if (warning) { incomplete.push(id); warnings.push(warning); }
+    }
+    return { lists, missing, incomplete, warnings };
+}
+
+/**
+ * Screen one name (and optionally a function) against the stored lists. Throws
+ * ListsUnavailableError when a name was given and no requested list holds data, and a store
+ * error as it is. Missing lists are reported to the refresh job (recordDemand), which then
+ * fetches them within the hour, also for a user without an organisation.
+ */
 export async function screen(input: ScreenInput): Promise<ScreenResult> {
     const d = deps();
     const name = str(input.name);
@@ -131,7 +182,9 @@ export async function screen(input: ScreenInput): Promise<ScreenResult> {
     const lists = listsOf(input.lists);
     const opts = screenOptions({ minScore: numberOf(input.minScore), maxResults: numberOf(input.maxResults), lists });
     const store = d.store();
-    const { lists: infos, missing } = listInfo(await store.listStatus(), lists);
+    const { lists: infos, missing, incomplete, warnings } = listInfo(await store.listStatus(), lists, d.intervalHours ? d.intervalHours() : 24);
+    if (missing.length) await store.recordDemand().catch(() => undefined);
+    if (name && missing.length === infos.length) throw new ListsUnavailableError();
     let candidates: Candidate[] = [];
     if (name) {
         const rows = await store.candidates(nameKeys(name), lists, CANDIDATE_LIMIT);
@@ -141,6 +194,7 @@ export async function screen(input: ScreenInput): Promise<ScreenResult> {
     d.log.info(`[sanctions] screening done: ${candidates.length} candidate(s)${pep ? `, pep=${pep.isPep}` : ''}`);
     return {
         screened: !!name, candidates, candidateCount: candidates.length, pep,
-        lists: infos, missingLists: missing, checkedAt: new Date().toISOString(), note: NOTE,
+        lists: infos, missingLists: missing, complete: incomplete.length === 0, incompleteLists: incomplete, warnings,
+        checkedAt: new Date().toISOString(), note: incomplete.length ? INCOMPLETE_NOTE + NOTE : NOTE,
     };
 }

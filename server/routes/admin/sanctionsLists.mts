@@ -4,8 +4,11 @@
  *   GET  /api/admin/sanctions-lists          per list: label, publisher, status, entries, names,
  *                                            last attempt, last success, last error; whether a
  *                                            refresh runs now, and the PEP function list version
- *   POST /api/admin/sanctions-lists/refresh  start a refresh pass now (202 { started: true }), or
- *                                            { started: false, reason: 'running' } while one runs
+ *   POST /api/admin/sanctions-lists/refresh  request a forced refresh pass (202 { requested: true }), or
+ *                                            { requested: false, reason: 'running' } while this
+ *                                            replica runs one. "Requested": when another replica
+ *                                            holds the refresh lock, that replica's pass is the one
+ *                                            that runs, and this one stops without downloading.
  *
  * Public list data and download errors only: nothing about a screening, an organisation or a
  * user is read or returned. Not gated on the licence: the operator sees the import whatever the
@@ -69,12 +72,12 @@ export function makeSanctionsListsRouter(deps: SanctionsAdminDeps = {}): Router 
     router.post('/refresh', gate, validate({ body: NoBody }), (_req, res: Response) => {
         const j = job();
         if (j.isRunning()) {
-            res.json({ started: false, reason: 'running' });
+            res.json({ requested: false, reason: 'running' });
             return;
         }
         // The pass takes minutes (five downloads, tens of MB): it runs on, the page polls GET.
         void j.runOnce({ force: true });
-        res.status(202).json({ started: true });
+        res.status(202).json({ requested: true });
     });
 
     return router;

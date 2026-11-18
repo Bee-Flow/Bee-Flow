@@ -15,7 +15,9 @@
  * and never a URL from a request, a user or a model. `minEntities` is the floor below which a
  * download counts as broken (a truncated file, an error page that happened to parse): the
  * stored list is then kept. The floors sit far below today's sizes (EU ~5,800, UN ~1,000,
- * NL ~120, OFAC ~18,000, UK ~6,400 entries) so a list that shrinks for real still updates.
+ * NL ~120, OFAC ~18,000, UK ~6,400 entries) for a first import; after that the refresh job
+ * also refuses a download below 70% of the stored count (SHRINK_FLOOR, jobs/sanctionsListRefresh.mts)
+ * unless the platform admin forces the refresh.
  */
 
 import type { ParsedEntity } from './entity.mts';
@@ -44,6 +46,24 @@ const text = (files: Record<string, string | Buffer>, key: string): string => {
     const v = files[key];
     return typeof v === 'string' ? v : Buffer.isBuffer(v) ? v.toString('utf8') : '';
 };
+
+/**
+ * The downloaded bytes as the parser reads them: a text file decoded as UTF-8, a binary one as a
+ * Buffer over the same memory. Each raw file is dropped from `raw` once decoded, so the bytes
+ * and the text of a file are never both held longer than the decode itself.
+ */
+export function decodeFiles(source: ListSource, raw: Record<string, Uint8Array>): Record<string, string | Buffer> {
+    const out: Record<string, string | Buffer> = {};
+    for (const file of source.files) {
+        const name = file.key;
+        const bytes = raw[name];
+        delete raw[name];
+        if (!bytes) continue;
+        const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        out[name] = file.as === 'binary' ? buf : buf.toString('utf8');
+    }
+    return out;
+}
 
 export const LIST_SOURCES: readonly ListSource[] = Object.freeze([
     {

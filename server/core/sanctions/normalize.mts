@@ -3,7 +3,8 @@
  *
  *   foldText('Qoussaï Al-Tikriti')   -> 'qoussai al tikriti'
  *   nameTokens('Al-Tikriti, Qusay')  -> ['al', 'tikriti', 'qusay']
- *   tokenKeys('mohammed')            -> ['s:mhmd', 'p:moh']   (the lookup keys of one token)
+ *   tokenKeys('mohammed')            -> ['s:mt', 'p:moh']     (the lookup keys of one token)
+ *   phoneticCode('qadhafi')          -> 'k_d_f_'              (what match.mts compares spellings by)
  *   countryCode('Netherlands')       -> 'NL'
  *
  * Folding: NFKD with the combining marks removed, a few letters NFKD keeps (ß, æ, ø, ł, đ, þ, ı)
@@ -11,10 +12,14 @@
  * meet a Latin spelling halfway), lower case, everything that is not a letter or digit a space.
  * Arabic, Chinese and other scripts stay as they are: they only match the same script.
  *
- * The keys are what the store indexes (stores/sanctionsStore.mts): a consonant skeleton (first
- * letter kept, vowels dropped, look-alike consonants merged, doubles collapsed) so Mohammed,
- * Muhammad and Mohamed meet, and a three-letter prefix for short or unusual spellings. They
- * only choose the candidates; the score comes from match.mts. Pure, no I/O.
+ * The keys are what the store indexes (stores/sanctionsStore.mts): a coarse consonant skeleton
+ * (first letter kept, a leading vowel as '_', vowels, h and w dropped, look-alike consonants
+ * merged, doubles collapsed) so Mohammed, Muhammad and Mohamed meet (all 'mt'), Ibrahim and
+ * Ebrahim too, and a three-letter prefix for short or unusual spellings. Name particles (al,
+ * abd, bin, van, de, ...) also get the keys of the name run together with them ("abd al rahman"
+ * as "abdalrahman"). The keys only choose the candidates: they are coarse on purpose (Mahmoud
+ * shares Mohammed's skeleton), the score comes from match.mts, which compares the finer
+ * phoneticCode. Pure, no I/O.
  */
 
 const EXTRA: Record<string, string> = {
@@ -73,11 +78,13 @@ const SKELETON_MAP: Record<string, string> = {
     c: 'k', q: 'k', g: 'k', z: 's', x: 's', v: 'w', b: 'p', d: 't', j: 'y',
 };
 
-/** First letter, then the consonants with look-alikes merged and doubles collapsed. */
+const VOWELS = 'aeiou';
+
+/** First letter (a leading vowel as '_'), then the consonants with look-alikes merged and doubles collapsed. */
 export function skeleton(token: string): string {
     const t = token.replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/kh/g, 'h').replace(/th/g, 't');
     if (!t) return '';
-    const first = SKELETON_MAP[t[0]] ?? t[0];
+    const first = VOWELS.includes(t[0]) ? '_' : (SKELETON_MAP[t[0]] ?? t[0]);
     let out = first;
     for (const ch of t.slice(1)) {
         if ('aeiouyhw'.includes(ch)) continue;
@@ -85,6 +92,43 @@ export function skeleton(token: string): string {
         if (out[out.length - 1] !== m) out += m;
     }
     return out;
+}
+
+const PHONETIC_MAP: Record<string, string> = { c: 'k', q: 'k', g: 'k', z: 's', x: 's', v: 'w' };
+
+/**
+ * A spelling-tolerant code of one token, finer than the skeleton: doubles collapsed, the common
+ * digraphs (ph, ck, dh, th, kh, gh, sh stay one sound), look-alike consonants merged, and every
+ * run of vowels (y and w inside a word count as vowels) one '_'. The consonants and where the
+ * vowels sit stay, so Qadhafi, Gaddafi and Kadhafi share 'k_d_f_', Osman and Usman '_sm_n',
+ * while Mohammed ('m_h_m_d') and Mahmoud ('m_hm_d') or Ahmed and Hamid stay apart.
+ */
+export function phoneticCode(token: string): string {
+    const t = token.replace(/(.)\1+/g, '$1').replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/dh/g, 'd').replace(/th/g, 't').replace(/gh/g, 'g');
+    let out = '';
+    for (let i = 0; i < t.length; i++) {
+        const ch = t[i];
+        const vowel = VOWELS.includes(ch) || (i > 0 && (ch === 'y' || ch === 'w'));
+        const m = vowel ? '_' : (PHONETIC_MAP[ch] ?? ch);
+        if (out[out.length - 1] !== m) out += m;
+    }
+    return out;
+}
+
+/** Particles that are written apart or run together with the next word ("abd al rahman", "abdulrahman"). */
+export const PARTICLES = new Set(['al', 'el', 'ul', 'abd', 'abdul', 'abu', 'bin', 'ben', 'ibn', 'bint', 'van', 'von', 'der', 'den', 'de', 'di', 'da', 'du', 'la', 'le', 'ter', 'ten']);
+
+/** The tokens with every run of particles joined to the word after it; null when nothing changes. */
+export function mergeParticles(tokens: string[]): string[] | null {
+    const out: string[] = [];
+    let pending = '';
+    for (const t of tokens) {
+        if (PARTICLES.has(t)) { pending += t; continue; }
+        out.push(pending + t);
+        pending = '';
+    }
+    if (pending) out.push(pending);
+    return out.length === tokens.length ? null : out;
 }
 
 /** The lookup keys of one token. Tokens of one character carry none: they would match half the list. */
@@ -98,7 +142,8 @@ export function tokenKeys(token: string): string[] {
 /** Every lookup key of a name, without duplicates. */
 export function nameKeys(input: unknown): string[] {
     const out = new Set<string>();
-    for (const t of nameTokens(input)) for (const k of tokenKeys(t)) out.add(k);
+    const tokens = nameTokens(input);
+    for (const t of [...tokens, ...(mergeParticles(tokens) ?? [])]) for (const k of tokenKeys(t)) out.add(k);
     return [...out];
 }
 

@@ -5099,7 +5099,7 @@
                     "resultVar": {
                         "type": "string",
                         "maxLen": 60,
-                        "description": "The variable that gets the result: { candidates, candidateCount, pep, lists, missingLists, checkedAt }."
+                        "description": "The variable that gets the result: { candidates, candidateCount, complete, warnings, pep, lists, missingLists, checkedAt }."
                     },
                     "retry": {
                         "type": "retry",

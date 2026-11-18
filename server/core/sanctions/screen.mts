@@ -104,7 +104,7 @@ export function countryAdjustment(queryCountry: string | null, listed: string[])
 }
 
 function scoreRow(queryTokens: string[], q: ScreenQuery, row: CandidateRow): Candidate {
-    const nameScore = nameSimilarity(queryTokens, nameTokens(row.name));
+    const nameScore = nameSimilarity(queryTokens, nameTokens(row.name), { candidateIsEntity: row.kind !== 'person' && row.kind !== 'unknown' });
     const reasons: string[] = [];
     let score = nameScore;
     const dob = birthDateAdjustment(birthDateKey(q.birthDate ?? null), row.birthDates);

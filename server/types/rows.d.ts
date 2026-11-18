@@ -2897,6 +2897,11 @@ declare namespace DbRow {
         name: string;
         permissions: string | null;
     }
+    /** Row of `sanctions_demand`. */
+    interface SanctionsDemand {
+        id: number;
+        last_at: Date;
+    }
     /** Row of `sanctions_entities`. */
     interface SanctionsEntities {
         birth_dates: Json;

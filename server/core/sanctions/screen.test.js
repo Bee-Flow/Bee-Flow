@@ -82,3 +82,51 @@ test('one word against a longer name stays below the default threshold', () => {
     assert.ok(nameSimilarity(['saddam', 'hussein'], ['hussein']) <= 0.8);
     assert.strictEqual(nameSimilarity(['cimex'], ['cimex']), 1);
 });
+
+const sim = (a, b, opts) => nameSimilarity(nameTokens(a), nameTokens(b), opts);
+
+test('transliteration variants reach the default threshold', () => {
+    for (const [a, b] of [
+        ['Muammar Qadhafi', 'Muammar Gaddafi'],
+        ['Muammar Qaddafi', 'Moammar Kadhafi'],
+        ['Abdulrahman Ali', 'Abd al-Rahman Ali'],
+        ['Ibrahim Osman', 'Ebrahim Usman'],
+        ['Yusuf Said', 'Youssef Saeed'],
+        ['Hans van der Berg', 'Hans Vanderberg'],
+    ]) assert.ok(sim(a, b) >= 0.85, `${a} / ${b}: ${sim(a, b)}`);
+});
+
+test('a leading vowel does not split the lookup keys', () => {
+    assert.strictEqual(skeleton('ibrahim'), skeleton('ebrahim'));
+    assert.strictEqual(skeleton('osman'), skeleton('usman'));
+    assert.ok(nameKeys('Ebrahim Usman').some((k) => nameKeys('Ibrahim Osman').includes(k)));
+});
+
+test('one word against an organisation name is not capped', () => {
+    assert.ok(sim('Sberbank', 'Sberbank of Russia', { candidateIsEntity: true }) >= 0.85);
+    assert.ok(sim('Rosneft', 'Rosneft Oil Company', { candidateIsEntity: true }) >= 0.85);
+    assert.ok(sim('Bank', 'Bank Melli Iran', { candidateIsEntity: true }) < 0.85, 'a short generic word stays capped');
+    assert.ok(sim('Hussein', 'Saddam Hussein') <= 0.8, 'a person keeps the cap');
+});
+
+test('different common names stay well under the threshold', () => {
+    for (const [a, b] of [
+        ['Hassan Ali', 'Hussein Ali'],
+        ['Mohammed Khan', 'Mahmoud Khan'],
+        ['Ahmed Malik', 'Hamid Malik'],
+        ['Jan de Vries', 'Jan de Groot'],
+        ['Peter Smith', 'Pieter Schmidt'],
+        ['Anna Schmidt', 'Hanna Schneider'],
+    ]) assert.ok(sim(a, b) < 0.8, `${a} / ${b}: ${sim(a, b)}`);
+});
+
+test('the screening lifts the one-word cap for an organisation listing only', () => {
+    const org = { ...row(), kind: 'entity', name: 'Sberbank of Russia', primaryName: 'Sberbank of Russia', birthDates: [], countries: [] };
+    assert.strictEqual(screenCandidates({ name: 'Sberbank' }, [org]).length, 1);
+    assert.strictEqual(screenCandidates({ name: 'Sberbank' }, [{ ...org, kind: 'person' }]).length, 0);
+});
+
+test('a one-word organisation listing does not match a longer query', () => {
+    assert.ok(sim('Jan de Vries', 'Devrez', { candidateIsEntity: true }) <= 0.8);
+    assert.ok(sim('Vladimir Putin', 'Petion', { candidateIsEntity: true }) <= 0.8);
+});

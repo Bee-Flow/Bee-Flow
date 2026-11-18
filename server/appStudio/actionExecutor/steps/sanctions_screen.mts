@@ -66,7 +66,8 @@ export async function runSanctionsScreen(app: App, step: Obj, ctx: Obj, deps: Sa
             maxResults: typeof step.maxResults === 'number' ? step.maxResults : undefined,
         });
         return { ok: true, result };
-    } catch {
+    } catch (e) {
+        if ((e as { code?: unknown })?.code === 'lists_unavailable') return fail((e as Error).message, 'lists_unavailable', true);
         return fail('The sanctions lists could not be read just now. Try again in a moment.', 'sanctions_unavailable', true);
     }
 }

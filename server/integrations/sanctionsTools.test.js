@@ -23,6 +23,7 @@ function stub({ licensed = true } = {}) {
     service._setServiceDeps({
         hasFeature: async (scope, feature) => { asked.push({ scope, feature }); return licensed; },
         store: () => ({
+            recordDemand: async () => {},
             candidates: async () => rows,
             listStatus: async () => [{ id: 'un_sc', label: 'UN', status: 'ok', entityCount: 1, nameCount: 1, lastAttemptAt: null, lastSuccessAt: '2026-01-01T00:00:00.000Z', replacedAt: null, lastError: null, etag: null, lastModified: null, contentHash: null }],
         }),
@@ -69,4 +70,48 @@ test('the family is local: no outbound server, internal for the outside-tools PI
     assert.strictEqual(meta?.server, null);
     assert.strictEqual(classifyToolClass('sanctions_screen', { name: 'x' }), 'internal');
     assert.strictEqual(classifyToolClass('sanctions_pep_function_check', {}), 'internal');
+});
+
+const statusRow = (over) => ({ id: 'un_sc', label: 'UN', status: 'ok', entityCount: 1, nameCount: 1, lastAttemptAt: null, lastSuccessAt: new Date().toISOString(), replacedAt: null, lastError: null, etag: null, lastModified: null, contentHash: null, ...over });
+
+function stubStatus(status) {
+    const demand = [];
+    service._setServiceDeps({
+        hasFeature: async () => true,
+        store: () => ({ candidates: async () => [], listStatus: async () => status, recordDemand: async () => { demand.push(1); } }),
+        log: { info: () => {} },
+    });
+    return demand;
+}
+
+test('no requested list holds data: the screening fails, never a clean "no match"', async () => {
+    const demand = stubStatus([]);
+    assert.deepStrictEqual(await executeSanctionsTool('sanctions_screen', { name: 'Aldo Examplo' }, { userId: 'u1' }), {
+        error: 'None of the requested sanctions lists has been imported on this server yet, so nothing could be screened. Try again later; a platform admin sees the import under Platform services, Sanctions lists.',
+        code: 'lists_unavailable',
+    });
+    assert.ok(demand.length > 0, 'the empty lists are reported to the refresh job');
+    stubStatus([statusRow({ entityCount: 0, status: 'error', lastError: 'HTTP 503' })]);
+    assert.strictEqual(/** @type {any} */ (await executeSanctionsTool('sanctions_screen', { name: 'X Y', lists: ['un_sc'] }, { userId: 'u1' })).code, 'lists_unavailable');
+});
+
+test('a missing, failing or stale list makes the result incomplete, with a warning', async () => {
+    stubStatus(['eu_fsf', 'un_sc', 'nl_terrorism', 'us_ofac_sdn', 'uk_fcdo'].map((id) => statusRow({ id })));
+    const fresh = /** @type {any} */ (await executeSanctionsTool('sanctions_screen', { name: 'X Y' }, { userId: 'u1' }));
+    assert.strictEqual(fresh.complete, true);
+    assert.deepStrictEqual(fresh.warnings, []);
+
+    const old = new Date(Date.now() - 10 * 86400000).toISOString();
+    stubStatus([statusRow({ id: 'eu_fsf' }), statusRow({ id: 'un_sc', status: 'error', lastError: 'HTTP 503' }), statusRow({ id: 'uk_fcdo', lastSuccessAt: old })]);
+    const partial = /** @type {any} */ (await executeSanctionsTool('sanctions_screen', { name: 'X Y' }, { userId: 'u1' }));
+    assert.strictEqual(partial.complete, false);
+    assert.deepStrictEqual(partial.incompleteLists.sort(), ['nl_terrorism', 'uk_fcdo', 'un_sc', 'us_ofac_sdn']);
+    assert.ok(partial.warnings.some((w) => w.includes('UN') && w.includes('failed')), partial.warnings.join(' | '));
+    assert.match(partial.note, /NOT complete/);
+});
+
+test('the PEP check alone needs no list', async () => {
+    stubStatus([]);
+    const out = /** @type {any} */ (await executeSanctionsTool('sanctions_pep_function_check', { function: 'Minister' }, { userId: 'u1' }));
+    assert.strictEqual(out.isPep, true);
 });

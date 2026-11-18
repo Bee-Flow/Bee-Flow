@@ -50,3 +50,9 @@ test('nothing to screen, or a store failure, are sentences', async () => {
     const broken = await runSanctionsScreen(app, { kind: 'sanctions_screen', name: { value: 'A B' } }, {}, deps({ screen: async () => { throw new Error('connection refused'); } }).deps);
     assert.deepStrictEqual(broken, { ok: false, code: 'sanctions_unavailable', error: 'The sanctions lists could not be read just now. Try again in a moment.', retryable: true });
 });
+
+test('no list with data: the step fails with lists_unavailable, never an empty result', async () => {
+    const err = Object.assign(new Error('None of the requested sanctions lists has been imported on this server yet.'), { code: 'lists_unavailable' });
+    const out = await runSanctionsScreen(app, { kind: 'sanctions_screen', name: { value: 'A B' } }, {}, deps({ screen: async () => { throw err; } }).deps);
+    assert.deepStrictEqual(out, { ok: false, code: 'lists_unavailable', error: err.message, retryable: true });
+});
