@@ -187,3 +187,26 @@ test('an automatic mail (Auto-Submitted other than no, or a list / bulk Preceden
     await mod.runForEvent(sub, { messageId: 'human-1' }, deps);
     assert.strictEqual(state.ran.length, 1, 'Auto-Submitted: no is a person');
 });
+
+test('Outlook: "sender contains" / "subject contains" are decided on the fetched mail, case-insensitive, before a run is claimed', async () => {
+    const outlook = (filter) => ({ ...sub, provider: 'msgraph', filter });
+    const cases = [
+        [{ from: 'ANN@ext.com' }, 1],
+        [{ from: 'Ann' }, 1],
+        [{ from: 'bob@ext.com' }, 0],
+        [{ subjectContains: 'offer' }, 1],
+        [{ from: 'ann@', subjectContains: 'invoice' }, 0],
+        [{ mailbox: 'me' }, 1],
+    ];
+    for (const [filter, runs] of cases) {
+        mod._resetQueues();
+        const { deps, state } = fakeDeps();
+        await mod.runForEvent(outlook(filter), { messageId: 'o1', mailbox: 'me' }, deps);
+        assert.strictEqual(state.ran.length, runs, JSON.stringify(filter));
+        assert.strictEqual(state.claims.size, runs, 'a refused mail opens no run row');
+    }
+    mod._resetQueues();
+    const { deps, state } = fakeDeps({ fetchMessage: async () => { throw new Error('no token'); } });
+    await mod.runForEvent(outlook({ from: 'ann' }), { messageId: 'o2' }, deps);
+    assert.strictEqual(state.ran.length, 0, 'an unreadable mail does not pass a sender filter');
+});
