@@ -817,6 +817,10 @@ test('success: session shape, connectorAuth, persistence suppressed, liveness to
     assert.equal(s.connectorOrgId, ORG);
     assert.equal(s.connectorNcUid, 'ann');
     assert.equal(s.encryptionKey, 'sso-key');
+    // Signed in by Nextcloud and verified on this request: it counts as a recent sign-in, so a
+    // step-up route (an MCP token) works inside Nextcloud.
+    assert.ok(typeof s.authenticatedAt === 'number' && Date.now() - s.authenticatedAt < 5_000, 'authenticatedAt is now');
+    assert.equal(require('./recentAuth').hasRecentAuth(s), true);
     assert.deepEqual(req.connectorAuth, { orgId: ORG, ncUid: 'ann' });
     let saved = false;
     assert.equal(s.save(() => { saved = true; }), s);

@@ -20,6 +20,32 @@ export const MCP_SERVERS: readonly McpServerInfo[] = [
     { id: 'cms', path: '/mcp/cms', clientName: 'beeflow-cms' },
 ];
 
+const NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789-_';
+const MAX_CLIENT_NAME = 40;
+
+/** A token name as a client server name: lower case, other characters as '-', no '-' at the ends. */
+export function clientNameSlug(tokenName: string): string {
+    let out = '';
+    for (const ch of tokenName.trim().toLowerCase()) {
+        const c = NAME_CHARS.includes(ch) ? ch : '-';
+        if (c === '-' && (out === '' || out.endsWith('-'))) continue;
+        out += c;
+    }
+    while (out.endsWith('-')) out = out.slice(0, -1);
+    return out.slice(0, MAX_CLIENT_NAME).replace(/-+$/, '');
+}
+
+/**
+ * The servers named after the token, so each token gets its own entries in the client:
+ * 'Mine' → mine (Integrations), mine-automations, mine-studio, mine-cms. A name with nothing
+ * usable in it keeps the default names (beeflow, beeflow-automations, ...).
+ */
+export function withClientNames(servers: readonly McpServerInfo[], tokenName: string): McpServerInfo[] {
+    const slug = clientNameSlug(tokenName);
+    if (!slug) return [...servers];
+    return servers.map(s => ({ ...s, clientName: s.id === 'integrations' ? slug : `${slug}-${s.id}` }));
+}
+
 /** "a, b\nc" → ['a', 'b', 'c']: trimmed, no empties, no duplicates. */
 export function parseList(text: string): string[] {
     const seen = new Set<string>();

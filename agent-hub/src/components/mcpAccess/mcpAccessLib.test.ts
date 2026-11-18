@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { claudeAddCommand, expiryToIso, invalidEntries, ipInList, isValidIpOrCidr, MCP_SERVERS, parseList } from './mcpAccessLib';
+import { claudeAddCommand, clientNameSlug, expiryToIso, invalidEntries, ipInList, isValidIpOrCidr, MCP_SERVERS, parseList, withClientNames } from './mcpAccessLib';
 
 describe('parseList', () => {
     it('splits on commas, semicolons, spaces and new lines, and drops empties and duplicates', () => {
@@ -80,5 +80,20 @@ describe('claudeAddCommand', () => {
             .toBe('claude mcp add --transport http beeflow-cms https://bee.example/mcp/cms --header "Authorization: Bearer bfmcp_x"');
         expect(claudeAddCommand(MCP_SERVERS[0], 'https://bee.example', 't'))
             .toBe('claude mcp add --transport http beeflow https://bee.example/mcp --header "Authorization: Bearer t"');
+    });
+});
+
+describe('withClientNames', () => {
+    it('names every server after the token: the name itself, then name-<server>', () => {
+        expect(withClientNames(MCP_SERVERS, 'beeflowlocaltom').map(s => s.clientName))
+            .toEqual(['beeflowlocaltom', 'beeflowlocaltom-automations', 'beeflowlocaltom-studio', 'beeflowlocaltom-cms']);
+        expect(claudeAddCommand(withClientNames(MCP_SERVERS, 'Laptop Tom')[1], 'https://bee.example', 't'))
+            .toBe('claude mcp add --transport http laptop-tom-automations https://bee.example/mcp/automations --header "Authorization: Bearer t"');
+    });
+
+    it('turns a free-form name into a safe one, and keeps the defaults when nothing is left', () => {
+        expect(clientNameSlug('  Mijn Laptop (werk)!  ')).toBe('mijn-laptop-werk');
+        expect(clientNameSlug('a'.repeat(60))).toHaveLength(40);
+        expect(withClientNames(MCP_SERVERS, '***').map(s => s.clientName)).toEqual(MCP_SERVERS.map(s => s.clientName));
     });
 });

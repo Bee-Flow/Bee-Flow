@@ -207,9 +207,9 @@ it('shows the secret once, with a ready command for exactly the servers granted,
     // The command-line client's ready commands are one tab next to it.
     await user.click(within(reveal).getByRole('tab', { name: 'Command-line client' }));
     expect(within(reveal).getAllByText(/^claude mcp add --transport http /)).toHaveLength(2);
-    expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms .*\/mcp\/cms --header "Authorization: Bearer bfmcp_abc_secret123"/)).toBeInTheDocument();
-    expect(within(reveal).getByText(/claude mcp add --transport http beeflow .*\/mcp --header/)).toBeInTheDocument();
-    expect(within(reveal).queryByText(/beeflow-studio/)).not.toBeInTheDocument();
+    expect(within(reveal).getByText(/claude mcp add --transport http new-one-cms .*\/mcp\/cms --header "Authorization: Bearer bfmcp_abc_secret123"/)).toBeInTheDocument();
+    expect(within(reveal).getByText(/claude mcp add --transport http new-one .*\/mcp --header/)).toBeInTheDocument();
+    expect(within(reveal).queryByText(/new-one-studio/)).not.toBeInTheDocument();
 
     await user.click(within(reveal).getByRole('button', { name: 'Copy' }));
     expect(await navigator.clipboard.readText()).toBe('bfmcp_abc_secret123');
@@ -364,7 +364,7 @@ it('builds the server address and the claude mcp add line from the base URL the 
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
     expect(within(reveal).getByText('https://flow.example.org/mcp/cms')).toBeInTheDocument();
     await user.click(within(reveal).getByRole('tab', { name: 'Command-line client' }));
-    expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms https:\/\/flow\.example\.org\/mcp\/cms /)).toBeInTheDocument();
+    expect(within(reveal).getByText(/claude mcp add --transport http claude-code-laptop-cms https:\/\/flow\.example\.org\/mcp\/cms /)).toBeInTheDocument();
 });
 
 it('warns on a token whose server its owner has lost access to', async () => {

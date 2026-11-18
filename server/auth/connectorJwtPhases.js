@@ -360,6 +360,7 @@ async function establishConnectorSession(req, user, orgId, payload) {
     // server/integrations/nextcloudClient.js resolveConnectorAuth().
     Object.assign(req.session, {
         isAuthenticated: true,
+        authenticatedAt: Date.now(), // signed in by Nextcloud, JWT verified now: a recent sign-in (auth/recentAuth.js)
         user: sessionUser,
         isAdmin: user.role === 'admin',
         connectorOrgId: orgId,
