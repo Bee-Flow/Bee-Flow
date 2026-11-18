@@ -42,13 +42,14 @@ export interface SanctionsAdminDeps {
 
 export function makeSanctionsListsRouter(deps: SanctionsAdminDeps = {}): Router {
     const router = express.Router();
-    const gate: RequestHandler = deps.requireSuperAdmin || (nodeRequire('../../auth/permissions') as { requireSuperAdmin: RequestHandler }).requireSuperAdmin;
+    // Named as the gate itself, so the access sweep (auth/accessRegistry.sweep.test.js) reads it on each route.
+    const requireSuperAdmin: RequestHandler = deps.requireSuperAdmin || (nodeRequire('../../auth/permissions') as { requireSuperAdmin: RequestHandler }).requireSuperAdmin;
     const listStatus = deps.listStatus || (() => (nodeRequire('../../stores/sanctionsStore.mts') as typeof import('../../stores/sanctionsStore.mts')).sanctionsStore().listStatus());
     const job = deps.job || ((): Job => nodeRequire('../../jobs/sanctionsListRefresh.mts') as Job);
     const pepVersion = deps.pepVersion || (() => (nodeRequire('../../core/sanctions/pepFunctions.mts') as typeof import('../../core/sanctions/pepFunctions.mts')).pepData().version);
     const { LIST_SOURCES } = nodeRequire('../../core/sanctions/sources.mts') as Sources;
 
-    router.get('/', gate, async (_req, res: Response) => {
+    router.get('/', requireSuperAdmin, async (_req, res: Response) => {
         let rows: ListStatusRow[];
         try {
             rows = await listStatus();
@@ -69,7 +70,7 @@ export function makeSanctionsListsRouter(deps: SanctionsAdminDeps = {}): Router 
         res.json({ lists, refreshing: j.isRunning(), intervalHours: j.settings().intervalHours, pepFunctionsVersion: pepVersion() });
     });
 
-    router.post('/refresh', gate, validate({ body: NoBody }), (_req, res: Response) => {
+    router.post('/refresh', requireSuperAdmin, validate({ body: NoBody }), (_req, res: Response) => {
         const j = job();
         if (j.isRunning()) {
             res.json({ requested: false, reason: 'running' });

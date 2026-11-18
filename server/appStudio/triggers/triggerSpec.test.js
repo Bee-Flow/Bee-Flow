@@ -143,6 +143,8 @@ const RUNS = [
     'wait', 'await_approval',
     // A web service through a REST connection a person made, with every rule of the step (an owner decision).
     'http_request',
+    // A read of the stored public sanctions lists on this server: nothing about the person leaves it.
+    'sanctions_screen',
     'break', 'code', 'continue', 'parallel', 'raise_error', 'return', 'try', 'while',
 ];
 
