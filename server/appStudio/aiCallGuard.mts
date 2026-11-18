@@ -11,7 +11,7 @@
  *
  * Only the app action path uses it. Other errors are not retried here.
  *
- * Limit: STUDIO_AI_CALL_TIMEOUT_MS, default 120000, 0 = no time-out (STUDIO_APP_AI_TIMEOUT_MS is
+ * Limit: STUDIO_AI_CALL_TIMEOUT_MS, default 180000 (an AI step over a stack of documents takes minutes), 0 = no time-out (STUDIO_APP_AI_TIMEOUT_MS is
  * read as an alias when it is unset; aiRuntime's adapter timeoutMs reads the same value).
  * Logs carry the step kind, the model id, durations and a status or code, never
  * prompt text, document content or an error message from the provider.
@@ -21,7 +21,7 @@ import { createRequire } from 'node:module';
 
 const nodeRequire = createRequire(import.meta.url);
 
-export const DEFAULT_AI_CALL_TIMEOUT_MS = 120_000;
+export const DEFAULT_AI_CALL_TIMEOUT_MS = 180_000;
 
 type LogLike = { info: (...a: unknown[]) => void };
 export type GuardDeps = { log?: LogLike; now?: () => number; env?: Record<string, string | undefined> };

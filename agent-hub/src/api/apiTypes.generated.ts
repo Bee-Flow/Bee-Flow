@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1922 operations. */
+/** 1923 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -5053,6 +5053,7 @@ export interface ApiOperations {
         value?: unknown;
         vars?: Record<string, unknown> | null;
     }>;
+    'GET /api/studio-apps/{id}/ai-capabilities': Op<{ id: string | number }>;
     'POST /api/studio-apps/{id}/ai/chat': Op<{ id: string | number }, {
         draft?: '0' | '1' | 'true' | 'false';
     }, {

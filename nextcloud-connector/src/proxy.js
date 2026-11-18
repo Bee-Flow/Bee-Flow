@@ -39,6 +39,36 @@ const { isHtmlContentType, isJavascriptContentType } = require('./requestText');
 const RESPONSE_HEADERS_TIMEOUT_MS = intFromEnv(
     'BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS', { fallback: 60_000, min: 0, max: 86_400_000 });
 
+// An App Studio step answers with ONE JSON body once the step is done, so its
+// headers only come at the end: an AI step reading a stack of documents takes
+// minutes (the server allows one AI call 180 s and one retry, the browser waits
+// 375 s). Those requests get this longer wait; the setting above still raises it
+// further, and 0 there still switches every timeout off.
+const STEP_HEADERS_TIMEOUT_MS = 420_000;
+
+/**
+ * True for the request of an App Studio step: POST /api/studio-apps/<id>/actions/<actionId>/step.
+ * Plain string operations, no pattern over request text.
+ * @param {import('http').IncomingMessage} req
+ */
+function isStudioStepRequest(req) {
+    if (req.method !== 'POST') return false;
+    const path = String(req.url || '').split('?')[0];
+    if (!path.startsWith('/api/studio-apps/') || !path.endsWith('/step')) return false;
+    const parts = path.split('/');
+    // ['', 'api', 'studio-apps', <id>, 'actions', <actionId>, 'step']
+    return parts.length === 7 && parts[4] === 'actions' && parts[3] !== '' && parts[5] !== '';
+}
+
+/**
+ * The response-headers timeout for one request.
+ * @param {import('http').IncomingMessage} req
+ */
+function headersTimeoutFor(req) {
+    if (!(RESPONSE_HEADERS_TIMEOUT_MS > 0)) return 0;
+    return isStudioStepRequest(req) ? Math.max(RESPONSE_HEADERS_TIMEOUT_MS, STEP_HEADERS_TIMEOUT_MS) : RESPONSE_HEADERS_TIMEOUT_MS;
+}
+
 // Sockets per upstream origin. 0 (the default) = no cap. A cap is a shared
 // queue for every user of this Nextcloud: chat turns, project and document
 // streams each hold a socket for minutes, so 64 of them used to leave every
@@ -230,9 +260,10 @@ function rewriteToEmbed(p) {
  * @param {string} label
  */
 function armHeadersTimeout(req, res, label) {
-    if (!(RESPONSE_HEADERS_TIMEOUT_MS > 0)) return;
+    const timeoutMs = headersTimeoutFor(req);
+    if (!(timeoutMs > 0)) return;
     const timer = setTimeout(() => {
-        const err = new Error(`upstream sent no response headers within ${RESPONSE_HEADERS_TIMEOUT_MS}ms`);
+        const err = new Error(`upstream sent no response headers within ${timeoutMs}ms`);
         const pending = req.__beeflowProxyReq;
         // On a socket: abort it, the proxy's error hook answers 502.
         if (pending && !pending.destroyed) { pending.destroy(err); return; }
@@ -245,7 +276,7 @@ function armHeadersTimeout(req, res, label) {
             res.setHeader('content-type', 'application/json; charset=utf-8');
             res.end(JSON.stringify({ error: 'Bee Flow service did not answer in time. Please try again.' }));
         }
-    }, RESPONSE_HEADERS_TIMEOUT_MS);
+    }, timeoutMs);
     timer.unref?.();
     req.__beeflowHeadersTimer = timer;
     res.on('close', () => clearTimeout(timer));
@@ -724,5 +755,6 @@ function buildEmbedProxyFor(target) {
 
 module.exports = {
     buildApiProxy, buildEmbedProxy, isSpaShellPath, rewriteToEmbed, RUNTIME_SETTINGS_PATH,
+    headersTimeoutFor, isStudioStepRequest, STEP_HEADERS_TIMEOUT_MS,
     API_REQUEST_HEADERS, SHELL_REQUEST_HEADERS,
 };

@@ -3016,6 +3016,11 @@
                         "max": 3,
                         "since": 3,
                         "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
+                    },
+                    "webSearch": {
+                        "type": "boolean",
+                        "since": 3,
+                        "description": "Lets this AI step search the web and read public pages before it answers. Runs only while the app owner has turned on web search in the app settings (aiWebSearch, which the builder cannot write), and the workspace allows web search. Leave it out for an answer from the step's own data."
                     }
                 }
             },
@@ -3092,6 +3097,11 @@
                         "max": 3,
                         "since": 3,
                         "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
+                    },
+                    "webSearch": {
+                        "type": "boolean",
+                        "since": 3,
+                        "description": "Lets this AI step search the web and read public pages before it answers. Runs only while the app owner has turned on web search in the app settings (aiWebSearch, which the builder cannot write), and the workspace allows web search. Leave it out for an answer from the step's own data."
                     }
                 }
             },
@@ -3856,6 +3866,11 @@
                         "since": 3,
                         "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
                     },
+                    "webSearch": {
+                        "type": "boolean",
+                        "since": 3,
+                        "description": "Lets this AI step search the web and read public pages before it answers. Runs only while the app owner has turned on web search in the app settings (aiWebSearch, which the builder cannot write), and the workspace allows web search. Leave it out for an answer from the step's own data."
+                    },
                     "retry": {
                         "type": "retry",
                         "envelope": true
@@ -3946,6 +3961,11 @@
                         "max": 3,
                         "since": 3,
                         "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
+                    },
+                    "webSearch": {
+                        "type": "boolean",
+                        "since": 3,
+                        "description": "Lets this AI step search the web and read public pages before it answers. Runs only while the app owner has turned on web search in the app settings (aiWebSearch, which the builder cannot write), and the workspace allows web search. Leave it out for an answer from the step's own data."
                     },
                     "retry": {
                         "type": "retry",

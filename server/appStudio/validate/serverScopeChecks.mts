@@ -34,10 +34,13 @@ export const WIDE_SCOPE_ROOTS: readonly string[] = Object.freeze(['screen', 'for
 const EMPTY_ON_SERVER: readonly string[] = Object.freeze(['records', 'datasets']);
 
 /** What validate.js spreads into its context for the keys a person or a since-3 flag sets on the definition. */
-export function since3Ctx(def: Obj): { allowedLinkHosts: string[]; serverScopeWide: boolean } {
+export function since3Ctx(def: Obj): { allowedLinkHosts: string[]; serverScopeWide: boolean; aiWebSearchEnabled: boolean } {
+    const ws = def.aiWebSearch as Obj | undefined;
     return {
         allowedLinkHosts: Array.isArray(def.allowedLinkHosts) ? def.allowedLinkHosts as string[] : [],
         serverScopeWide: def.serverScope === SERVER_SCOPE_WIDE,
+        // The per-app web-search switch (HUMAN-set, definitionKeys/aiWebSearch.js), read per AI step with webSearch.
+        aiWebSearchEnabled: !!ws && typeof ws === 'object' && ws.enabled === true,
     };
 }
 

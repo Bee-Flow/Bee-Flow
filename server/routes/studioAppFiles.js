@@ -80,7 +80,8 @@ const { bestEffort } = require('../utils/bestEffort');
 const { envInt } = require('../utils/envNumber.mts');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
-const FILE_UPLOAD_RPM = envInt('STUDIO_APP_FILE_UPLOAD_RPM', 20, { min: 1 });
+// One request per file and a file input takes a whole stack at once: a generous default, 0 = no limit.
+const FILE_UPLOAD_RPM = envInt('STUDIO_APP_FILE_UPLOAD_RPM', 200, { min: 0 }) || Number.MAX_SAFE_INTEGER;
 const FILE_READ_RPM = envInt('STUDIO_APP_FILE_READ_RPM', 120, { min: 1 });
 /** @param {import('express').Request<{ id: string }>} req */
 function fileKey(req) {

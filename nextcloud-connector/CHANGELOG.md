@@ -9,6 +9,10 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 
 ## [Unreleased]
 
+### Fixed
+
+- **A long App Studio step stopped after one minute.** An app step answers only when it is done, and an AI step that reads a stack of documents takes minutes; the connector gave up waiting after 60 seconds and the app said the step failed. App steps now get 7 minutes. Every other request keeps the 60-second guard (`BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS`).
+
 ## [2.1.0] - 2026-11-15
 
 ### Added

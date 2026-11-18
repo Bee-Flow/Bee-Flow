@@ -25,6 +25,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { webSearchOn } from './aiWebSearch.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -131,6 +132,7 @@ function ctxFor(app: App, def: Record<string, unknown>, actionId: string, w: Wal
         role: 'owner', orgId: app.organizationId || null,
         formValues: {}, vars: w.vars,
         variables: Array.isArray(def.variables) ? def.variables : null,
+        aiWebSearch: webSearchOn(def),
         item: w.item,
         ...(w.error ? { error: w.error } : {}),
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },

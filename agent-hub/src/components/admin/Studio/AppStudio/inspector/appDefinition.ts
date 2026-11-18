@@ -135,6 +135,7 @@ export interface AppDefinition {
     roles?: MirroredRole[];
     variables?: DefinitionVariable[];
     aiBrowsing?: Record<string, unknown>;
+    aiWebSearch?: { enabled?: boolean };
     [key: string]: unknown;
 }
 

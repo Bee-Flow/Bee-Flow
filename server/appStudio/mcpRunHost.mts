@@ -17,6 +17,7 @@ import { defaultMockOf, mockStepResult } from './actionTests/mockStep.mts';
 import { ownAction } from './actionCalls.mts';
 import { guardAllows } from './actionExecutor/stepGuard.mts';
 import type { MockHelpers } from './actionTests/mockStep.mts';
+import { webSearchOn } from './aiWebSearch.mts';
 
 export type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; definitionVersion?: number | null };
 
@@ -104,6 +105,7 @@ function ctxFor(run: Run, w: WalkState): Obj {
         // A mocked trigger root (scope.trigger); no writeSource, so a test's writes start no record trigger.
         ...(w.trigger ? { trigger: w.trigger } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
+        aiWebSearch: webSearchOn(def),
         item: w.item, index: w.index,
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
     };
