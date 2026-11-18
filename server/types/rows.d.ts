@@ -2897,6 +2897,40 @@ declare namespace DbRow {
         name: string;
         permissions: string | null;
     }
+    /** Row of `sanctions_entities`. */
+    interface SanctionsEntities {
+        birth_dates: Json;
+        countries: Json;
+        entity_id: string;
+        kind: string;
+        list_id: string;
+        primary_name: string;
+        programmes: Json;
+        reference: string | null;
+        url: string | null;
+    }
+    /** Row of `sanctions_lists`. */
+    interface SanctionsLists {
+        content_hash: string | null;
+        entity_count: number;
+        etag: string | null;
+        id: string;
+        label: string;
+        last_attempt_at: Date | null;
+        last_error: string | null;
+        last_modified: string | null;
+        last_success_at: Date | null;
+        name_count: number;
+        replaced_at: Date | null;
+        status: string;
+    }
+    /** Row of `sanctions_names`. */
+    interface SanctionsNames {
+        entity_id: string;
+        keys: string[];
+        list_id: string;
+        name: string;
+    }
     /** Row of `shares`. */
     interface Shares {
         created_at: Date | null;

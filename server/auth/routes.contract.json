@@ -982,6 +982,10 @@
       "gate": "platform",
       "via": "superAdmin"
     },
+    "GET /api/admin/sanctions-lists": {
+      "gate": "platform",
+      "via": "superAdmin"
+    },
     "GET /api/ai-participation/me": {
       "gate": "middleware",
       "via": "requireAuth"
@@ -4536,6 +4540,10 @@
       "via": "superAdmin"
     },
     "POST /api/admin/modules/sideload": {
+      "gate": "platform",
+      "via": "superAdmin"
+    },
+    "POST /api/admin/sanctions-lists/refresh": {
       "gate": "platform",
       "via": "superAdmin"
     },

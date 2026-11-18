@@ -2,6 +2,7 @@ import React from 'react';
 import { useLicenseContext } from '../licensing/LicenseContext';
 import EmailSection from './IntegrationsAdminPanel/EmailSection';
 import GlobalDefaultsSection from './IntegrationsAdminPanel/GlobalDefaultsSection';
+import SanctionsListsSection from './IntegrationsAdminPanel/SanctionsListsSection';
 import SearchSection from './IntegrationsAdminPanel/SearchSection';
 import { SECTIONS, MOUNT_ONLY_SECTIONS, SECTION_FEATURE_GATE, ENTERPRISE_ONLY_SECTIONS } from './IntegrationsAdminPanel/sections';
 import ServicesSection from './IntegrationsAdminPanel/ServicesSection';
@@ -190,6 +191,8 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'de
                     setMessage={setMessage}
                 />
             )}
+
+            {active === 'sanctions-lists' && <SanctionsListsSection />}
 
             {active === 'connected-apps' && (
                 <ServicesSection

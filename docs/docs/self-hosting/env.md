@@ -320,6 +320,19 @@ An install with Azure (or any provider) embeddings, a Cohere reranker or
 `cpu_reranker_enabled = false` in the admin never loads the matching CPU model
 at boot; an install that never transcribes never loads Whisper.
 
+## Sanctions lists
+
+Optional; empty means the default. The server downloads the official public lists (EU, UN, Dutch
+national terrorism list, OFAC SDN, UK Sanctions List) only while an organisation has the
+[Sanctions lists](../integrations/sanctions-lists.md) integration switched on. A server without
+internet access keeps its last copy and shows the error on the status page.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SANCTIONS_REFRESH_INTERVAL_HOURS` | `24` | Hours between two refreshes of the lists. `0` = no automatic refresh (the platform admin's **Refresh now** still works). |
+| `SANCTIONS_DOWNLOAD_TIMEOUT_MS` | `120000` | How long one list download may wait for the server's answer to start. |
+| `SANCTIONS_MAX_DOWNLOAD_MB` | `200` | Largest list file accepted. A larger download is refused and the stored list is kept. `0` = no limit. |
+
 ## Everything else
 
 OAuth client credentials, SMTP, licensing, retention windows, rate limits,

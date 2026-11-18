@@ -227,6 +227,9 @@ const STORE_MODULES = [
     // (user_notification_prefs, project_notification_mutes). No FKs, so the
     // place in the ladder does not matter.
     { name: 'notificationPrefsStore', file: './stores/notificationPrefsStore' },
+    // The imported public sanctions lists (sanctions_lists, sanctions_entities,
+    // sanctions_names): instance-wide, no FKs, filled by jobs/sanctionsListRefresh.mts.
+    { name: 'sanctionsStore', file: './stores/sanctionsStore.mts' },
 ];
 
 // Platform-module stores (server/modules/catalog.js) — in v1 the tables of

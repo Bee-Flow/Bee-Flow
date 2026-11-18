@@ -201,6 +201,7 @@ const sidebars: SidebarsConfig = {
             'integrations/vplan',
             'integrations/firebird',
             'integrations/frappe-crm',
+            'integrations/sanctions-lists',
           ],
         },
         {

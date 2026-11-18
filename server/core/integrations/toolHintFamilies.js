@@ -72,6 +72,7 @@ const FAMILY_LINES = [
     { prefixes: ['workspace_', 'notebook_'], line: 'Notebook (read and write a persistent rich-text document alongside the conversation)' },
     { name: 'kb_search', line: 'Knowledge Base Search (look up internal documentation when the user asks a specific question — do NOT search for greetings or small-talk)' },
     { name: 'kb_get_original', line: 'Knowledge Base original files (kb_get_original gives the user the uploaded file of a document you found with kb_search, as a download card; not every document has one)' },
+    { prefix: 'sanctions_', line: 'Sanctions lists (sanctions_screen screens a name, with birth date and country when known, against the EU, UN, Dutch, OFAC and UK lists on this server; sanctions_pep_function_check says whether a job title is a prominent public function; a candidate is a possible match for a person to check, never a finding)' },
     { prefix: 'maps_', line: 'Google Maps (get directions between locations with route maps, search for places/businesses — IMPORTANT: after getting results, always output the map as a ```map-embed code block containing JSON with embedUrl, title, and mapsLink fields so it renders as an interactive map in the chat)' },
     { prefix: 'linkedin_', line: 'LinkedIn (create posts — user approves before publishing)' },
     { prefix: 'github_', line: 'GitHub (list repos, view code, create repos, manage branches)' },

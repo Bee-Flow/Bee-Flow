@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "studio_apps_step_sanctions.blurb": "Controleer een naam tegen de sanctielijsten van de EU, de VN, Nederland, OFAC en het VK, en een functie op een PEP-functie.",
+    "studio_apps_step_sanctions.field_birth_date": "Geboortedatum",
+    "studio_apps_step_sanctions.field_function": "Functie",
+    "studio_apps_step_sanctions.field_max_results": "Meeste kandidaten",
+    "studio_apps_step_sanctions.field_min_score": "Laagste score",
+    "studio_apps_step_sanctions.hint_birth_date": "Optioneel. Verlaagt de score van naamgenoten die in een ander jaar zijn geboren.",
+    "studio_apps_step_sanctions.hint_country": "Optioneel. Nationaliteit of land, zoals NL of Netherlands.",
+    "studio_apps_step_sanctions.hint_function": "Optioneel. Wordt vergeleken met de Nederlandse en Europese lijsten van prominente publieke functies.",
+    "studio_apps_step_sanctions.hint_lists": "Laat leeg om tegen alle lijsten te screenen.",
+    "studio_apps_step_sanctions.hint_min_score": "Van 0,5 tot 1. Lager vindt meer spellingen, en meer naamgenoten.",
+    "studio_apps_step_sanctions.hint_name": "De volledige naam van de persoon of organisatie.",
+    "studio_apps_step_sanctions.hint_result_var": "De variabele die het resultaat krijgt: vars.<name>.candidates, vars.<name>.candidateCount en vars.<name>.pep.",
+    "studio_apps_step_sanctions.label": "Screenen tegen sanctielijsten"
+  },
+  "sameAsEnglish": []
+}

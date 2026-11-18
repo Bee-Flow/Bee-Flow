@@ -362,9 +362,9 @@ app.use('/api/stripe', require('./routes/stripe'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/license', require('./routes/license'));
 app.use('/api/admin/licenses', require('./routes/adminLicense'));
-// Platform modules — instance-level import/remove of modular features
-// (super-admin only; the router enforces it).
+// Platform modules (instance-level import/remove of modular features) and the imported sanctions lists: super-admin only, the routers enforce it.
 app.use('/api/admin/modules', require('./routes/admin/modules'));
+app.use('/api/admin/sanctions-lists', require('./routes/admin/sanctionsLists.mts').sanctionsListsRouter);
 const { requireFeature: requireLicenseFeature } = require('./license/middleware');
 // Unified entitlement gate — folds tier + plan-grant + beta opt-in + org/group
 // grant into one decision (compound betas enforce license AND beta). Replaces

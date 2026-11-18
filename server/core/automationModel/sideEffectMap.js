@@ -76,8 +76,8 @@ const READ_ONLY = new Set([
     // Scaleway Billing (read-only by design; the download keeps the PDF for the
     // run and writes nowhere outside Bee Flow)
     'scaleway_list_invoices', 'scaleway_download_invoice',
-    // Maps / Search / KB
-    'maps_search_places', 'maps_geocode', 'maps_directions',
+    // Maps / Search / KB / Sanctions lists (local reads of the imported public lists)
+    'maps_search_places', 'maps_geocode', 'maps_directions', 'sanctions_screen', 'sanctions_pep_function_check',
     'agent_search', 'read_url', 'kb_search', 'kb_get_original',
     // A datatable read an agent's owner granted (core/tools/datatableTools.js).
     // Chat-only — it is not in the automation registry, which the docblock

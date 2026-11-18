@@ -93,7 +93,7 @@ async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn
 }
 
 /** The first-party tools: regex generator, notebooks, presentations, Word, memory, automation evolution, KB, datatables. */
-async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, automationStep, userSimpleMode, entSnapshot, isAppOn, addTools, T, D }) {
+async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, automationStep, userSimpleMode, userOrgId, entSnapshot, isAppOn, addTools, T, D }) {
     // Regex Generator — admin only
     if (!userSimpleMode && isAdmin) {
         addTools(T.REGEX_GENERATOR_TOOLS);
@@ -132,6 +132,13 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     // settings, which the tools honour by reading through memoryStore).
     if (isAppOn('memory')) {
         addTools(D.memoryTools().MEMORY_TOOLS);
+    }
+    // Sanctions lists: local screening against the imported public lists. The org admin's switch
+    // (off by default) AND the licence feature sanctions_screening; no credentials.
+    if (isAppOn('sanctions-lists')) {
+        const orgId = userOrgId && userOrgId !== '__system__' ? userOrgId : null;
+        const allowed = await D.sanctionsAccess().access({ userId, orgId }).catch((e) => fallback('core/integrations/integrationToolFeatures:sanctions', e, { ok: false }));
+        if (allowed.ok) addTools(T.SANCTIONS_TOOLS);
     }
     // Automation evolution — automation steps only (never chat): an automation proposes
     // and, after approval, applies changes to its OWN definition.

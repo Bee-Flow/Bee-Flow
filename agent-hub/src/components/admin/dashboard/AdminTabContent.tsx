@@ -107,7 +107,7 @@ function Frame({ tab, frame, section, title, description, children }: { tab: str
 }
 
 /** The Platform services sections (the child rows of the integrations tab). */
-const PLATFORM_SERVICE_SECTIONS: readonly string[] = ['defaults', 'email', 'transcription', 'connected-apps'];
+const PLATFORM_SERVICE_SECTIONS: readonly string[] = ['defaults', 'email', 'transcription', 'connected-apps', 'sanctions-lists'];
 /** The People tab's own tabs of the users screen; the rest are rows of their own. */
 const PEOPLE_SECTIONS: readonly string[] = ['users', 'invitations', 'groups', 'org-roles'];
 

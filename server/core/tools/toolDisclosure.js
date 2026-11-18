@@ -89,6 +89,7 @@ const LAZY_GROUPS = [
     { key: 'scaleway_billing', label: 'Scaleway Billing', desc: 'list Scaleway invoices; download the invoice PDF inside an automation', prefix: 'scaleway_' },
     { key: 'linkedin',     label: 'LinkedIn',     desc: 'create posts (approval before publishing)',      prefix: 'linkedin_' },
     { key: 'github',       label: 'GitHub',       desc: 'list repos, view code, manage branches',         prefix: 'github_' },
+    { key: 'sanctions',    label: 'Sanctions lists', desc: 'screen a name against the EU, UN, Dutch, OFAC and UK sanctions lists; check a job title for a PEP function', prefix: 'sanctions_' },
     { key: 'maps',         label: 'Google Maps',  desc: 'directions and place search with map embeds',    prefix: 'maps_' },
     { key: 'transcription', label: 'Meeting Transcription', desc: 'transcribe uploaded audio with diarization', match: (n) => n === 'transcribe_audio' },
 ];

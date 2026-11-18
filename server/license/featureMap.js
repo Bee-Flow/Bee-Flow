@@ -81,4 +81,5 @@ module.exports = {
     '/api/subscriptions': { gate: null, beta: null, notes: 'Mixed admin + org-member endpoints; per-handler requireAuthOrOrgMember' },
     '/api/stripe': { gate: null, beta: null, notes: 'Checkout/portal + webhook; webhook uses signature verification' },
     '/api/billing': { gate: null, beta: null, notes: 'Public plan listing' },
+    '/api/admin/sanctions-lists': { gate: null, beta: null, notes: 'Super-admin only (router): the status of the imported public sanctions lists and "refresh now". Deliberately not on sanctions_screening: the operator sees the import whatever the organisations bought; the screening itself (tools, App Studio step) checks sanctions_screening in core/sanctions/service.mts.' },
 };

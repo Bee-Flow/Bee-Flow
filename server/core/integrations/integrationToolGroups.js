@@ -350,6 +350,7 @@ module.exports = {
  *   datatableTools: () => typeof import('../tools/datatableTools'),
  *   nextcloudClient: () => typeof import('../../integrations/nextcloudClient'),
  *   nextcloudCapabilities: () => typeof import('../../integrations/nextcloudCapabilities.mts'),
+ *   sanctionsAccess: () => typeof import('../sanctions/service.mts'),
  *   userStore: () => typeof import('../../stores/userStore'),
  *   ncScope: () => typeof import('./ncScope'),
  *   toolPolicy: () => typeof import('../agentRuntime/toolPolicy'),

@@ -361,8 +361,7 @@ const INTEGRATION_TOOL_FAMILIES = [
     { name: 'frappe_crm', order: 177, isTool: n => require('./frappeCrmTools.mts').isFrappeCrmTool(n), execute: byUser((n, a, u) => require('./frappeCrmTools.mts').executeFrappeCrmTool(n, a, u)) },
     // The run scope lets scaleway_download_invoice keep the PDF for this automation run and hand on a generated_file handle.
     { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) },
-    // Lazily required: withingsTools pulls in automationAuth (and through it the
-    // credential vault), which nothing else on this hot path needs.
+    // Lazily required: withingsTools pulls in automationAuth (and through it the credential vault), which nothing else on this hot path needs.
     { name: 'withings', order: 190, isTool: n => require('./withingsTools').isWithingsTool(n), execute: (n, a, ctx) => require('./withingsTools').executeWithingsTool(n, a, ctx.userId) },
     // `autoSend` is opt-in per-call: only the automation runner sets it (no
     // user is present to confirm a draft). Direct chat / agent chat leave it
@@ -396,8 +395,9 @@ const INTEGRATION_TOOL_FAMILIES = [
     // Self-scoped: context.automationId is set by the automation runner only.
     { name: 'automation_evolution', order: 440, isTool: n => require('./automationEvolutionTools').isAutomationEvolutionTool(n), execute: (n, a, ctx) => require('./automationEvolutionTools').executeAutomationEvolutionTool(n, a, { userId: ctx.userId, orgId: ctx.orgId, automationId: ctx.automationId || null, autoSend: ctx.autoSend === true }) },
     { name: 'kb_search', order: 450, isTool: isKbSearchTool, execute: executeKbSearch },
-    // Automation-only WRITE (Support Studio template).
+    // Automation-only WRITE (Support Studio template). sanctions: local screening, the executor re-checks the licence.
     { name: 'kb_ingest', order: 470, isTool: isKbIngestTool, execute: (n, a, ctx) => executeKbIngestTool(n, a, { orgId: ctx.orgId, userId: ctx.userId }) },
+    { name: 'sanctions', order: 475, isTool: n => require('./sanctionsTools.mts').isSanctionsTool(n), execute: (n, a, ctx) => require('./sanctionsTools.mts').executeSanctionsTool(n, a, { userId: ctx.userId, orgId: ctx.orgId }) },
     { name: 'maps', order: 480, isTool: isMapsTool, execute: (n, a) => executeMapsTool(n, a) },
     { name: 'linkedin', order: 490, isTool: isLinkedInTool, execute: bySession(executeLinkedInTool) },
     { name: 'github', order: 500, isTool: isGitHubTool, execute: byUser(executeGitHubTool) },
