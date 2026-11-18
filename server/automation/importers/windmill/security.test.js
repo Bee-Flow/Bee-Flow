@@ -76,6 +76,17 @@ test('scrubSource keeps ordinary text', () => {
     assert.deepStrictEqual(scrubSource(src), { text: src, removed: 0 });
 });
 
+test('a generated key without a single digit is still removed (1 in ~5000 random keys has none)', () => {
+    // The random key that made the flow_env test above fail now and then.
+    const key = 'tEJPaUGTYFfmHBJDvkCwIikBgKuAsqfbhIdCfaf_VBs';
+    assert.equal(scrubSource(`flow_input.code === "${key}"`).removed, 1);
+});
+
+test('a long camelCase name or a mixed-case sentence-like word is not a key', () => {
+    const src = 'const kind = "MonthlyRevenueReportForAllRegions";\nconst t = "UPPERCASE_CONSTANT_NAME_VALUE";\n';
+    assert.deepStrictEqual(scrubSource(src), { text: src, removed: 0 });
+});
+
 test('a file name that leaves the export is refused', async () => {
     await assert.rejects(toIntermediate({ kind: 'files', files: { '../outside/flow.yaml': 'summary: x' } }), PathRefused);
     await assert.rejects(toIntermediate({ kind: 'files', files: { '/etc/flow.yaml': 'summary: x' } }), PathRefused);
