@@ -93,7 +93,7 @@ describe('adminRailView: the whole-server block', () => {
             'ai-config/providers', 'ai-config/models', 'ai-config/retrieval', 'ai-config/direct-chat', 'ai-config/limits',
         ]);
         expect(rows.find(r => r.id === 'integrations')?.children?.map(c => c.id)).toEqual([
-            'integrations/defaults', 'integrations/email', 'integrations/transcription', 'integrations/connected-apps',
+            'integrations/defaults', 'integrations/email', 'integrations/transcription', 'integrations/connected-apps', 'integrations/sanctions-lists',
         ]);
         expect(rows.find(r => r.id === 'appearance')?.children?.map(c => c.id)).toEqual(['appearance/look', 'appearance/icon-packs']);
         expect(rows.find(r => r.id === 'licenses')?.children?.map(c => c.id)).toEqual(['licenses/server', 'licenses/features']);

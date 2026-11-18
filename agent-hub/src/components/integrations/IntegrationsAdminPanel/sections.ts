@@ -2,7 +2,7 @@
 // old Integrations tab). Its sections are the child rows of the dashboard's
 // Platform services row; the feature switches moved to Licence & features and
 // the web search provider to AI configuration > Search & retrieval.
-import { Cloud, ExternalLink, Mail, Search as SearchIcon, ToggleLeft } from 'lucide-react';
+import { Cloud, ExternalLink, Mail, Search as SearchIcon, ShieldAlert, ToggleLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { INTEGRATION_CATALOG } from '@/config/integrationCatalog';
 
@@ -19,6 +19,7 @@ export const SECTIONS: readonly PlatformSection[] = [
     { id: 'email', labelKey: 'admin_platform.section_email', fallback: 'Email', icon: Mail },
     { id: 'transcription', labelKey: 'admin_platform.section_transcription', fallback: 'Transcription', icon: Cloud },
     { id: 'connected-apps', labelKey: 'admin_platform.section_connected_apps', fallback: 'Connected apps', icon: ExternalLink },
+    { id: 'sanctions-lists', labelKey: 'sanctions.title', fallback: 'Sanctions lists', icon: ShieldAlert },
 ];
 
 /**
@@ -36,6 +37,7 @@ export const MOUNT_ONLY_SECTIONS: readonly PlatformSection[] = [
 // Meeting Transcription config backs the Enterprise `meeting_notes` feature.
 export const SECTION_FEATURE_GATE: Record<string, string> = {
     transcription: 'meeting_notes',
+    'sanctions-lists': 'sanctions_screening',
 };
 
 // Sections hidden on Community by raw tier rather than a single feature flag:

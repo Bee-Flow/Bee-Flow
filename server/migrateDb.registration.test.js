@@ -157,7 +157,7 @@ test('elke geregistreerde store bestaat en exporteert een awaitbare initDB', () 
     // exists, and it names initDB in its exports or defines it via
     // makeStoreInit. The real await guarantee is supplied by the integration test.
     const src = fs.readFileSync(path.join(__dirname, 'storeModules.js'), 'utf8');
-    const files = [...src.matchAll(/file:\s*'\.\/(stores\/[^']+)'/g)].map((m) => `${m[1]}.js`);
+    const files = [...src.matchAll(/file:\s*'\.\/(stores\/[^']+)'/g)].map((m) => (/\.m?[jt]s$/.test(m[1]) ? m[1] : `${m[1]}.js`));
     for (const f of files) {
         const p = path.join(__dirname, f);
         assert.ok(fs.existsSync(p), `STORE_MODULES wijst naar een verdwenen bestand: ${f}`);

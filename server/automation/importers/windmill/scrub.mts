@@ -34,6 +34,7 @@ export const SECRET_REMOVED = '«secret removed»';
 const SENSITIVE_NAMES = ['token', 'secret', 'password', 'passwd', 'apikey', 'api_key', 'api-key', 'authorization', 'private_key', 'privatekey', 'client_secret', 'access_key'];
 const MIN_TOKEN_LENGTH = 24;
 const MIN_TOKEN_ENTROPY = 3.8;
+const MIN_DIGITLESS_TOKEN_ENTROPY = 4.3;
 
 export interface ScrubResult {
     text: string;
@@ -152,17 +153,23 @@ export function isSensitiveName(name: string): boolean {
 export function looksLikeToken(s: string): boolean {
     if (s.length < MIN_TOKEN_LENGTH || s.length > 4096) return false;
     for (const ch of s) if (' /.:\n@{,'.includes(ch)) return false;
-    return hasLetterAndDigit(s) && entropy(s) >= MIN_TOKEN_ENTROPY;
+    const k = charKinds(s);
+    if (!(k.lower || k.upper)) return false;
+    if (k.digit) return entropy(s) >= MIN_TOKEN_ENTROPY;
+    // About 1 in 5000 random base64 keys has no digit at all. Without one it must mix upper and
+    // lower case and score higher, so a long camelCase name or an ALL_CAPS constant stays.
+    return k.lower && k.upper && entropy(s) >= MIN_DIGITLESS_TOKEN_ENTROPY;
 }
 
-function hasLetterAndDigit(s: string): boolean {
-    let letters = false;
-    let digits = false;
+/** Whether a text holds lower-case letters, upper-case letters and digits. */
+function charKinds(s: string): { lower: boolean; upper: boolean; digit: boolean } {
+    const k = { lower: false, upper: false, digit: false };
     for (const ch of s) {
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) letters = true;
-        else if (ch >= '0' && ch <= '9') digits = true;
+        if (ch >= 'a' && ch <= 'z') k.lower = true;
+        else if (ch >= 'A' && ch <= 'Z') k.upper = true;
+        else if (ch >= '0' && ch <= '9') k.digit = true;
     }
-    return letters && digits;
+    return k;
 }
 
 function entropy(s: string): number {

@@ -953,6 +953,11 @@
             "mutatesData": false,
             "since": 3
         },
+        "sanctions_screen": {
+            "client": false,
+            "mutatesData": true,
+            "since": 3
+        },
         "scroll_to": {
             "client": true,
             "mutatesData": false,

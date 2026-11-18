@@ -14,7 +14,8 @@
  *            puts the run on hold) and waits for the decision; it goes on as the owner again.
  *            And `http_request`: only through a `rest` connector a person made, with the owner's
  *            stored credential, the outbound privacy check and the size and time limits of the
- *            step (actionExecutor/steps/http_request.mts). A trigger kind that must not call out
+ *            step (actionExecutor/steps/http_request.mts). And `sanctions_screen`: a read of the
+ *            public lists stored on this server, nothing about the person leaves it. A trigger kind that must not call out
  *            (a record change or a webhook may decide so) lists it in its `refusedKinds`.
  *
  *   MAY NOT  - anything that needs a page: navigate, open_url, the modal steps, reset_form,

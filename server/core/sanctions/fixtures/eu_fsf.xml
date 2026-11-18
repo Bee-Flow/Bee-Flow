@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<export xmlns="http://eu.europa.ec/fpi/fsd/export" generationDate="2026-01-01T10:00:00.000+01:00" globalFileId="1">
+    <sanctionEntity designationDetails="" unitedNationId="" euReferenceNumber="EU.1.11" logicalId="101">
+        <regulation regulationType="regulation" programme="TST" logicalId="9">
+            <publicationUrl>https://eur-lex.europa.eu/example-regulation</publicationUrl>
+        </regulation>
+        <subjectType code="person" classificationCode="P"/>
+        <nameAlias firstName="Jöran" middleName="" lastName="Testmann" wholeName="Jöran Testmann" function="" strong="true" logicalId="1"/>
+        <nameAlias firstName="" middleName="" lastName="" wholeName="Joran Testman" strong="true" logicalId="2"/>
+        <citizenship countryIso2Code="XX" countryDescription="FICTIONLAND" logicalId="3"/>
+        <birthdate birthdate="1970-05-04" year="1970" countryIso2Code="00" logicalId="4"/>
+    </sanctionEntity>
+    <sanctionEntity euReferenceNumber="EU.2.22" logicalId="102">
+        <regulation programme="TST" logicalId="9"/>
+        <subjectType code="enterprise" classificationCode="E"/>
+        <nameAlias wholeName="Example Trading Company Ltd" logicalId="5"/>
+    </sanctionEntity>
+</export>

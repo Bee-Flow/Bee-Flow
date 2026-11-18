@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1921 operations. */
+/** 1923 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -1073,6 +1073,8 @@ export interface ApiOperations {
         pin?: 'none' | 'major' | 'minor';
     }>;
     'GET /api/admin/modules/{id}/versions': Op<{ id: string | number }>;
+    'GET /api/admin/sanctions-lists': Op;
+    'POST /api/admin/sanctions-lists/refresh': Op<NoParams, UndeclaredQuery, Record<string, never>>;
     'GET /api/ai-participation/me': Op;
     'PUT /api/ai-participation/me': Op<NoParams, UndeclaredQuery, {
         autoJoinOnMyMessages: boolean;

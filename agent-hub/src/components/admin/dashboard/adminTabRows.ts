@@ -5,7 +5,7 @@
 
 import {
     AlertTriangle, BarChart3, BookLock, Bot, Clock, Coins, Database, Globe, KeyRound, Mail, Mic,
-    Package, Palette, Settings, Shield, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, ToggleLeft, Users,
+    Package, Palette, Settings, Shield, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, ThumbsUp, ToggleLeft, Users,
 } from 'lucide-react';
 import { ADVANCED_PAGES_FEATURE, isPageAllowedFor } from '@/components/admin/monitoring/monitoring.constants';
 import { SUBSCRIPTIONS_SECTIONS } from '@/components/admin/subscriptions/subscriptionsSections';
@@ -80,6 +80,7 @@ export const PLATFORM_SERVICES_RAIL_ROWS: readonly AdminRailRowDef[] = children(
     { section: 'email', labelKey: 'admin_nav.ps_email', labelFallback: 'Email', descriptionKey: 'admin_nav.ps_email_desc', descriptionFallback: 'The account this server sends its email from.', icon: Mail, gate: (c) => c.hasTier('enterprise') },
     { section: 'transcription', labelKey: 'admin_nav.ps_transcription', labelFallback: 'Transcription', descriptionKey: 'admin_nav.ps_transcription_desc', descriptionFallback: 'Which service turns meeting recordings into text, with who said what.', icon: Mic, gate: (c) => c.hasFeature('meeting_notes') },
     { section: 'connected-apps', labelKey: 'admin_nav.ps_connected_apps', labelFallback: 'Connected apps', descriptionKey: 'admin_nav.ps_connected_apps_desc', descriptionFallback: 'The keys of outside services that people can then connect to.', icon: Globe },
+    { section: 'sanctions-lists', labelKey: 'sanctions.title', labelFallback: 'Sanctions lists', descriptionKey: 'sanctions.rail_desc', descriptionFallback: 'The official sanctions lists this server imports, and their last refresh.', icon: ShieldAlert, gate: (c) => c.hasFeature('sanctions_screening') },
 ]);
 
 const advancedPage = (id: string) => (c: AdminRailGateContext) => isPageAllowedFor(id, c.hasFeature(ADVANCED_PAGES_FEATURE));

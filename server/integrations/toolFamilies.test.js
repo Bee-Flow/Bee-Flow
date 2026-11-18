@@ -40,7 +40,7 @@ test('the walk keeps the order of the former dispatcher chain', () => {
         'set_reminder', 'set_ai_task',
         'notebook', 'memory', 'automation_evolution', 'kb_search',
         'datatable',
-        'kb_ingest', 'maps', 'linkedin', 'github',
+        'kb_ingest', 'sanctions', 'maps', 'linkedin', 'github',
         'nextcloud',
         'support', 'webpage_automation', 'outlook', 'ms_calendar', 'onedrive', 'ms_contacts', 'transcription',
     ]);

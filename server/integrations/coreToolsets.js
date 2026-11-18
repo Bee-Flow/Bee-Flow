@@ -27,6 +27,7 @@ const { NMBRS_TOOLS } = require('./nmbrsTools');
 const { VPLAN_TOOLS } = require('./vplanTools');
 const { FIREBIRD_TOOLS } = require('./firebirdTools');
 const { FRAPPE_CRM_TOOLS } = require('./frappeCrmTools.mts');
+const { SANCTIONS_TOOLS } = require('./sanctionsTools.mts');
 const { SCALEWAY_BILLING_TOOLS } = require('./scalewayBillingTools');
 const { buildN8nTools } = require('./n8nTools');
 const { N8N_WORKFLOW_TOOLS, getN8nToolPermission } = require('./n8nWorkflowTools');
@@ -80,6 +81,7 @@ const TOOLSETS = {
     VPLAN_TOOLS,
     FIREBIRD_TOOLS,
     FRAPPE_CRM_TOOLS,
+    SANCTIONS_TOOLS,
     SCALEWAY_BILLING_TOOLS,
     N8N_WORKFLOW_TOOLS,
     AGENT_SEARCH_TOOLS,
@@ -126,6 +128,8 @@ const GROUP_DEPS = {
     automationEvolutionTools: () => require('./automationEvolutionToolDefs'),
     nextcloudClient: () => require('./nextcloudClient'),
     nextcloudCapabilities: () => require('./nextcloudCapabilities.mts'),
+    // Licence check of the sanctions tools (feature sanctions_screening), asked only once the org switch is on.
+    sanctionsAccess: () => require('../core/sanctions/service.mts'),
 };
 
 module.exports = { TOOLSETS, GROUP_DEPS };

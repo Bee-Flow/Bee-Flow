@@ -65,6 +65,9 @@ const TOOL_REGISTRY = [
     { app: 'frappe-crm',              label: 'Frappe CRM',             module: '../integrations/frappeCrmTools.mts',        arrayName: 'FRAPPE_CRM_TOOLS',           enabledKey: 'frappe-crm' },
     { app: 'scaleway-billing',        label: 'Scaleway Billing',       module: '../integrations/scalewayBillingTools',      arrayName: 'SCALEWAY_BILLING_TOOLS',     enabledKey: 'scaleway-billing' },
     { app: 'agent-search',            label: 'Web Search',             module: '../integrations/agentSearchTools',          arrayName: 'AGENT_SEARCH_TOOLS',         enabledKey: 'agent-search',         availableTo: ['agent', 'automation_step'] },
+    // Sanctions lists (first-party, local, no credentials): screening against the imported public
+    // lists and the PEP function check. Org switch + licence feature sanctions_screening.
+    { app: 'sanctions-lists',         label: 'Sanctions lists',        module: '../integrations/sanctionsTools.mts',        arrayName: 'SANCTIONS_TOOLS',            enabledKey: 'sanctions-lists',    availableTo: ['agent', 'automation_step'] },
     { app: 'maps',                    label: 'Google Maps',            module: '../integrations/mapsTools',                 arrayName: 'MAPS_TOOLS',                 enabledKey: 'maps' },
     { app: 'linkedin',                label: 'LinkedIn',               module: '../integrations/linkedinTools',             arrayName: 'LINKEDIN_TOOLS',             enabledKey: 'linkedin' },
     { app: 'withings',                label: 'Withings',               module: '../integrations/withingsTools',             arrayName: 'WITHINGS_TOOLS',             enabledKey: 'withings' },

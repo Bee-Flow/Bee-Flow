@@ -202,6 +202,10 @@ const TIER_FEATURES = {
         // recorder (no licence, no new rows). Reading/deleting for GDPR and
         // retention is deliberately NOT gated by it.
         'kb_query_log',
+        // Sanctions lists: screening names against the imported EU, UN, Dutch, OFAC and UK
+        // lists and the PEP function check (integration `sanctions-lists`, off until an org
+        // admin switches it on). Checked in core/sanctions/service.mts access().
+        'sanctions_screening',
         // Compliance / admin block (unchanged).
         'guardrails_dlp',
         // compliance_hub_gdpr gates the whole /api/compliance mount (GDPR +

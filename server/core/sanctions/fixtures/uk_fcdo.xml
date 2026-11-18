@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Designations>
+  <DateGenerated>01/01/2026</DateGenerated>
+  <Designation>
+    <UniqueID>TST0001</UniqueID>
+    <Names>
+      <Name><Name1>Petra</Name1><Name6>PROBEERSMA</Name6><NameType>Primary Name</NameType></Name>
+      <Name><Name6>P. Probeersma</Name6><NameType>Alias</NameType></Name>
+    </Names>
+    <NonLatinNames><NonLatinName><NameNonLatinScript>Петра Пробеерсма</NameNonLatinScript></NonLatinName></NonLatinNames>
+    <RegimeName>The Test (Sanctions) Regulations 2026</RegimeName>
+    <IndividualEntityShip>Individual</IndividualEntityShip>
+    <Addresses><Address><AddressCountry>Germany</AddressCountry></Address></Addresses>
+    <IndividualDetails><Individual>
+      <DOBs><DOB>dd/mm/1981</DOB><DOB>12/03/1982</DOB></DOBs>
+      <Nationalities><Nationality>Netherlands</Nationality></Nationalities>
+    </Individual></IndividualDetails>
+  </Designation>
+  <Designation>
+    <UniqueID>TST0002</UniqueID>
+    <Names><Name><Name6>SEA SAMPLE</Name6><NameType>Primary Name</NameType></Name></Names>
+    <RegimeName>The Test (Sanctions) Regulations 2026</RegimeName>
+    <IndividualEntityShip>Ship</IndividualEntityShip>
+  </Designation>
+</Designations>

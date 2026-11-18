@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/admin`
 
-34 routes, 23 with a request schema. Back to the [endpoint reference](../reference.md).
+36 routes, 24 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `guard`
 
@@ -317,4 +317,18 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `acceptedPermissions` | string |  |  |
+
+## `sanctions-lists`
+
+### `GET /api/admin/sanctions-lists`
+
+**Access:** Platform admin
+
+No request schema.
+
+### `POST /api/admin/sanctions-lists/refresh`
+
+**Access:** Platform admin
+
+**Body:** object (no other keys)
 

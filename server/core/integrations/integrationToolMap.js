@@ -58,8 +58,7 @@ const INTEGRATION_PREFIXES = {
     // AFAS host is per-customer ({nr}.rest.afas.online); null lets the
     // probe-captured tls_servername be the truth (same rationale as YouTrack).
     afas_:          { integration: 'afas_profit',     label: 'AFAS Profit',         serverFn: () => null },
-    // NMBRS host depends on the API mode (api.nmbrs.nl SOAP / api.nmbrsapp.com
-    // REST); null lets the probe-captured tls_servername be the truth.
+    // NMBRS host depends on the API mode (api.nmbrs.nl SOAP / api.nmbrsapp.com REST); null lets the probe-captured tls_servername be the truth.
     nmbrs_:         { integration: 'nmbrs',           label: 'NMBRS',               serverFn: () => null },
     vplan_:         { integration: 'vplan',           label: 'vPlan',               server: 'api.vplan.com' },
     // Firebird host is user-defined (the customer's own database server).
@@ -84,8 +83,9 @@ const INTEGRATION_PREFIXES = {
     // the dashboard honest instead of showing a fake hostname.
     generate_:      { integration: 'media_gen',       label: 'Media Generation',    server: null },
 
-    // Search & Maps
+    // Search & Maps; sanctions_ is screened on this server against the imported public lists (local)
     maps_:          { integration: 'maps',            label: 'Google Maps',         server: 'maps.googleapis.com' },
+    sanctions_:     { integration: 'sanctions_lists', label: 'Sanctions lists',     serverFn: () => null, isLocal: true },
     keyword_planner_: { integration: 'keyword_planner', label: 'Keyword Planner',   server: 'googleads.googleapis.com' },
 
     // Transcription — Whisper is local unless an explicit URL is configured

@@ -49,6 +49,7 @@ export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning, capacity and time tracking (read-only)', category: 'Productivity' },
     { id: 'firebird', label: 'Firebird database', description: 'Read a Firebird database (read-only)', category: 'Productivity' },
     { id: 'frappe-crm', label: 'Frappe CRM', description: 'Read and update leads, deals, contacts, tasks and notes', category: 'Productivity' },
+    { id: 'sanctions-lists', label: 'Sanctions lists', description: 'Screen names against the EU, UN, Dutch, OFAC and UK sanctions lists and check PEP functions (on this server)', category: 'Productivity' },
     { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices as PDF for automations (read-only)', category: 'Productivity' },
     { id: 'n8n', label: 'n8n', description: 'Workflow automation', category: 'Automation' },
     { id: 'linkedin', label: 'LinkedIn', description: 'Post to LinkedIn', category: 'Social' },

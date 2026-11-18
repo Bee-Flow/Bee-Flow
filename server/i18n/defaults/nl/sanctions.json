@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "sanctions.entries": "{count} vermeldingen",
+    "sanctions.interval": "Elke {hours} uur ververst zolang een organisatie de lijsten gebruikt.",
+    "sanctions.interval_off": "Automatisch verversen staat uit op deze server (SANCTIONS_REFRESH_INTERVAL_HOURS=0).",
+    "sanctions.intro": "Deze server houdt een eigen kopie bij van de officiële sanctielijsten. Screenen gebeurt hier, op die kopie: namen verlaten de server nooit. Organisaties zetten de integratie Sanctielijsten zelf aan.",
+    "sanctions.last_error": "Laatste fout: {error}",
+    "sanctions.last_success": "Laatst gecontroleerd {when}",
+    "sanctions.load_failed": "De status van de sanctielijsten kon niet worden geladen.",
+    "sanctions.loading": "Sanctielijsten laden...",
+    "sanctions.no_success": "Nog nooit met succes ververst",
+    "sanctions.pep_version": "PEP-functielijsten (Nederland en EU) in deze versie: {version}.",
+    "sanctions.rail_desc": "De officiële sanctielijsten die deze server binnenhaalt, en wanneer ze voor het laatst zijn ververst.",
+    "sanctions.refresh_failed": "Verversen kon niet worden gestart.",
+    "sanctions.refresh_now": "Nu verversen",
+    "sanctions.refreshing": "Bezig met verversen...",
+    "sanctions.status_error": "Laatste verversing mislukt",
+    "sanctions.status_never": "Nog niet binnengehaald",
+    "sanctions.status_ok": "Actueel",
+    "sanctions.title": "Sanctielijsten"
+  },
+  "sameAsEnglish": []
+}

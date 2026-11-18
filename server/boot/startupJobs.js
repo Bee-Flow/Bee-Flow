@@ -252,6 +252,9 @@ function startSupportAndSyncJobs() {
     // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
     try { require('../projects/taskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
     if (isModuleAvailable('projects')) try { require('../projects/stages/deployRunnerJob').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
+    // The public sanctions lists (EU, UN, NL, OFAC, UK): daily, only while an organisation has the
+    // integration on (SANCTIONS_REFRESH_INTERVAL_HOURS, 0 = off). Advisory-locked across pods.
+    try { require('../jobs/sanctionsListRefresh.mts').start(); } catch (err) { log.warn('[Server] Sanctions list refresh load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).
     try { require('../jobs/memoryTelemetry').start(); } catch (err) { log.warn('[Server] Memory telemetry load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners
