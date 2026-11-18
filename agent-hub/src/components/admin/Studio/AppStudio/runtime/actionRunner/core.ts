@@ -83,11 +83,12 @@ export const CANCELLED = Symbol('useActionRunner.cancelled');
 export const SEQ_ABORT = Symbol('useActionRunner.abort');
 
 // A hard deadline on one server step. Deliberately longer than the server's
-// worst case for one AI step (STUDIO_AI_CALL_TIMEOUT_MS, 120 s, with one retry
-// after a time-out: 240 s) so a real server error still wins the race and the
-// user gets the specific message rather than this generic one. Longer work
+// worst case for one AI step (STUDIO_AI_CALL_TIMEOUT_MS, 180 s, with one retry
+// after a time-out: 360 s) so a real server error still wins the race and the
+// user gets the specific message rather than this generic one. The Nextcloud
+// connector waits 420 s for a step (nextcloud-connector/src/proxy.js). Longer work
 // belongs in a background action (background: true), which has no deadline here.
-export const STEP_DEADLINE_MS = 255_000;
+export const STEP_DEADLINE_MS = 375_000;
 
 // A browse holds a browser slot far longer than a data step. Deadline sits
 // ABOVE the server's own 240s hard cap (routes/studioAppBrowse.js) so a

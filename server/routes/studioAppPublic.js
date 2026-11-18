@@ -110,7 +110,7 @@ const PUB_STEP_RPM = envInt('STUDIO_APP_PUBLIC_STEP_RPM', 30, { min: 1 });
 // another. 12/min was sized for the old submit-time batch and would have
 // throttled an ordinary visitor halfway through.
 const PUB_AI_STEP_RPM = envInt('STUDIO_APP_PUBLIC_AI_STEP_RPM', 30, { min: 1 });
-const PUB_UPLOAD_RPM = envInt('STUDIO_APP_PUBLIC_UPLOAD_RPM', 20, { min: 1 });
+const PUB_UPLOAD_RPM = envInt('STUDIO_APP_PUBLIC_UPLOAD_RPM', 60, { min: 0 }) || Number.MAX_SAFE_INTEGER; // 0 = no limit
 
 const ipLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_IP, keyFn: (req) => `pubapp-ip:${req.ip || 'unknown'}`, name: 'studio-public-ip' });
 const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_TOKEN, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-tok:${req.params.token}`, name: 'studio-public-token' });
