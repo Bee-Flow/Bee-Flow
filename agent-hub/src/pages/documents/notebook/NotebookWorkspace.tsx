@@ -67,12 +67,12 @@ interface NotebookWorkspaceProps {
     backLabel: string;
     statusChip?: React.ReactNode;
     headerActions: React.ReactNode;
-    leftDrawer: {
-        icon: LucideIcon; label: string; node: React.ReactNode 
-};
-    rightDrawer: {
-        icon: LucideIcon; label: string; node: React.ReactNode 
-};
+    leftDrawer?: {
+        icon?: LucideIcon; label: string; node: React.ReactNode
+} | null;
+    rightDrawer?: {
+        icon?: LucideIcon; label: string; node: React.ReactNode
+} | null;
     secondaryLeft?: boolean | React.ReactNode;
     banners?: React.ReactNode;
     overlays?: React.ReactNode;

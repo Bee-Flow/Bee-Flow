@@ -100,3 +100,10 @@ test('createdInChat: only what the chat made, not what was merely opened or ment
     assert.ok(!s.createdInChat(B), 'add() alone does not mark created');
     assert.strictEqual(s.createdInChat(5), false);
 });
+
+test('a notebook open in the side panel is marked as one and is no document in scope', () => {
+    assert.deepStrictEqual(normaliseSidePanelDocument({ id: 'nb1', kind: 'notebook' }), { id: 'nb1', kind: 'notebook' });
+    assert.deepStrictEqual(normaliseSidePanelDocument({ id: 'd1', kind: 'other' }), { id: 'd1' });
+    const scope = createDocumentScope({ sidePanelDocument: { id: 'nb1', kind: 'notebook' } });
+    assert.strictEqual(scope.has('nb1'), false);
+});

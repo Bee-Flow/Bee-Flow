@@ -39,3 +39,29 @@ test('agent content: spreadsheet gets a note, long text is truncated', async () 
     assert.match(out, /…\[truncated, the document is \d+ characters\]/);
     assert.ok(out.length < MAX_CONTENT_CHARS + 400);
 });
+
+const NOTEBOOK = { id: 'nb1', name: 'Regulations\n2027', documentMd: '# Leave\nTwenty-five days.', documentContent: '<h1>Leave</h1><p>Twenty-five days.</p>' };
+const notebookDeps = (/** @type {Record<string, unknown> | null} */ nb) => ({
+    documentStore: { getDocument: async () => { throw new Error('a notebook is not looked up as a document'); } },
+    notebookStore: { getNotebook: async (/** @type {string} */ id, /** @type {string} */ userId) => (nb && id === nb.id && userId === 'u1' ? nb : null) },
+});
+
+test('an open notebook: its text, read-only, in both chats; nothing when the person may not read it', async () => {
+    for (const build of [buildDirectNote, buildAgentContent]) {
+        const out = await build({ id: 'nb1', kind: 'notebook' }, 'u1', notebookDeps(NOTEBOOK));
+        assert.match(out, /\[NOTEBOOK OPEN: Regulations 2027\]/);
+        assert.match(out, /# Leave\nTwenty-five days\./);
+        assert.match(out, /cannot change it/);
+        assert.strictEqual(await build({ id: 'nb1', kind: 'notebook' }, 'other', notebookDeps(NOTEBOOK)), '');
+    }
+});
+
+test('an open notebook without Markdown is read from its HTML, and a long one is truncated', async () => {
+    const html = await buildAgentContent({ id: 'nb1', kind: 'notebook' }, 'u1', notebookDeps({ ...NOTEBOOK, documentMd: null }));
+    assert.match(html, /Leave\nTwenty-five days\./);
+    assert.ok(!html.includes('<h1>'));
+    const long = await buildDirectNote({ id: 'nb1', kind: 'notebook' }, 'u1', notebookDeps({ ...NOTEBOOK, documentMd: 'a'.repeat(MAX_CONTENT_CHARS + 10) }));
+    assert.match(long, /…\[truncated, the notebook is \d+ characters\]/);
+    const empty = await buildAgentContent({ id: 'nb1', kind: 'notebook' }, 'u1', notebookDeps({ ...NOTEBOOK, documentMd: '', documentContent: '<p></p>' }));
+    assert.match(empty, /\(The notebook is empty\.\)/);
+});

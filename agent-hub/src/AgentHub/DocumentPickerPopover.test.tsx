@@ -57,6 +57,15 @@ describe('DocumentPickerPopover', () => {
         expect(onClose).toHaveBeenCalled();
     });
 
+    it('a notebook is handed over as a notebook reference (a notebook id is no document id)', async () => {
+        get.mockResolvedValue({ documents: [{ id: 'nb1', name: 'Regulations', docType: 'notebook' }] });
+        const user = userEvent.setup();
+        const { onSelect, onClose } = setup();
+        await user.click(await screen.findByText('Regulations'));
+        expect(onSelect).toHaveBeenCalledWith('notebook/nb1');
+        expect(onClose).toHaveBeenCalled();
+    });
+
     it('New page creates a page and opens it', async () => {
         const user = userEvent.setup();
         const { onSelect } = setup();

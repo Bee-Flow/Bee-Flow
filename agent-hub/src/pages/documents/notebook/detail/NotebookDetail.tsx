@@ -16,9 +16,12 @@ interface Props {
     onBack: () => void;
     onListChanged: () => void;
     onOpenProject: (projectId: string) => void;
+    /** 'panel': beside the main chat (NotebookEditorView). */
+    variant?: 'page' | 'panel';
+    onOpenInStudio?: () => void;
 }
 
-export default function NotebookDetail({ notebookId, user, onBack, onListChanged, onOpenProject }: Props) {
+export default function NotebookDetail({ notebookId, user, onBack, onListChanged, onOpenProject, variant, onOpenInStudio }: Props) {
     const detail = useNotebookDetail(notebookId);
     const qc = useQueryClient();
     const [generation, setGeneration] = useState(0);
@@ -44,6 +47,8 @@ export default function NotebookDetail({ notebookId, user, onBack, onListChanged
             onListChanged={onListChanged}
             onOpenProject={onOpenProject}
             onReload={reload}
+            variant={variant}
+            onOpenInStudio={onOpenInStudio}
         />
     );
 }

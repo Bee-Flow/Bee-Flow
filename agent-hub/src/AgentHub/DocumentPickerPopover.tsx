@@ -5,6 +5,7 @@ import { apiClient } from '../api/client';
 import useDebouncedValue from '../hooks/useDebouncedValue';
 import useTranslation from '../hooks/useTranslation';
 import { formatRelativeTime } from '../utils/dateFormatters';
+import { notebookRef } from '../pages/documents/notebookRef';
 
 interface PickerDocument {
     id: string;
@@ -63,6 +64,11 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
     if (!open) return null;
 
     const choose = (id: string) => { onSelect(id); onClose(); };
+    // A notebook is listed as a document type, but its id is a notebook's: the
+    // document panel would look it up as a document and find nothing. It is
+    // handed over as `notebook/<id>`, the reference the Documents library uses
+    // too (notebookRef); the side panel opens a notebook for it.
+    const chooseRow = (d: PickerDocument) => choose(d.docType === 'notebook' ? notebookRef(d.id) : d.id);
 
     const createPage = async () => {
         setCreating(true);
@@ -150,7 +156,7 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
                     <button
                         key={d.id}
                         type="button"
-                        onClick={() => choose(d.id)}
+                        onClick={() => chooseRow(d)}
                         className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[var(--bg-secondary)] transition-colors"
                     >
                         <FileText className="w-4 h-4 shrink-0 text-[var(--accent-primary)]" />
