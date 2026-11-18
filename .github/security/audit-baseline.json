@@ -74,7 +74,7 @@
   "counts": {
     "server": {
       "critical": 0,
-      "high": 0
+      "high": 7
     },
     "agent-hub": {
       "critical": 0,
@@ -82,7 +82,7 @@
     },
     "nextcloud-connector": {
       "critical": 0,
-      "high": 0
+      "high": 3
     },
     "desktop": {
       "critical": 0,
@@ -90,7 +90,7 @@
     },
     "mobile": {
       "critical": 0,
-      "high": 0
+      "high": 54
     },
     ".": {
       "critical": 0,
@@ -134,11 +134,11 @@
     },
     "hub-module-sdk/modules/security_scan/frontend": {
       "critical": 0,
-      "high": 0
+      "high": 4
     },
     "docs": {
       "critical": 0,
-      "high": 0
+      "high": 34
     }
   },
   "advisories": {
@@ -194,6 +194,20 @@
       "reviewedAt": "2026-10-30",
       "reachability": "npm ls in mobile/ shows decode-uri-component 0.2.2 only under expo-router -> query-string. expo-router calls queryString.parse on the query of a deep link in react-navigation/core/getStateFromPath.js, so a crafted link opened on the device reaches the vulnerable code; the effect is bounded to CPU time on that device. No file in mobile/src or mobile/modules imports query-string or decode-uri-component directly.",
       "images": [
+        "mobile"
+      ]
+    },
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "No fixed release exists (the advisory covers <= 4.0.7, and 4.0.7 is the latest; 2.x has no successor). The advisory needs an attacker-controlled glob PATTERN (+(*) style extglobs). In server and nextcloud-connector picomatch is reached only through http-proxy-middleware -> micromatch, and none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so no pattern is compiled at all; the other server path is re2 -> node-gyp -> tinyglobby, the native build at npm install time with patterns from node-gyp itself. In mobile, docs, agent-hub, desktop and hub-module-sdk it sits only in build and test tooling (metro, jest, chokidar, vite, docusaurus) on the build machine with patterns from our own config, never in the APK or a served bundle. Revisit when picomatch publishes a fix.",
+      "expires": "2027-02-15",
+      "reviewedAt": "2026-11-18",
+      "reachability": "Lockfile walk of every runtime chain to picomatch: server (2.3.2 via http-proxy-middleware 4.2.1 -> micromatch; 4.0.7 via re2 -> node-gyp -> tinyglobby/fdir), nextcloud-connector (2.3.2 via http-proxy-middleware 4.2.1 -> micromatch), mobile (2.3.2 and 4.0.7 via jest-haste-map/metro/anymatch, build tooling only). No production file configures a pathFilter or calls picomatch, micromatch or tinyglobby with input from a request.",
+      "images": [
+        "server",
+        "nextcloud-connector",
+        "connector",
         "mobile"
       ]
     }
