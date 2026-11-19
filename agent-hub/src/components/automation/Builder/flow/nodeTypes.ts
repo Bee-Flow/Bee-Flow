@@ -22,6 +22,7 @@ import GenerateDocumentNode from './nodes/GenerateDocumentNode';
 import FillDocumentNode from './nodes/FillDocumentNode';
 import FlattenNode from './nodes/FlattenNode';
 import ReadTableNode from './nodes/ReadTableNode';
+import WriteTableNode from './nodes/WriteTableNode';
 import TableNode from './nodes/TableNode';
 import SlideNode from './nodes/SlideNode';
 import PresentationNode from './nodes/PresentationNode';
@@ -88,6 +89,7 @@ export const NODE_TYPES = {
     flatten:            FlattenNode,
     read_table:         ReadTableNode,
     table:              TableNode,
+    write_table:        WriteTableNode,
     aggregate:          AggregateNode,
     datatable:          DatatableNode,
     knowledge_write:    KnowledgeWriteNode,

@@ -21,3 +21,12 @@ export const FrappeCrmLogo = ({ size = 18, className }: LogoProps) => (
         <rect x="14" y="14.8" width="3" height="1.6" rx="0.8" fill="#fff" fillOpacity="0.5" />
     </svg>
 );
+
+// Neutral price-tag tile (no brand mark) for the 2BA integration.
+export const TwobaLogo = ({ size = 18, className }: LogoProps) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className ? `block ${className}` : 'block'}>
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" />
+        <path d="M6 7.2c0-.66.54-1.2 1.2-1.2h4.6c.32 0 .62.13.85.35l5.2 5.2c.47.47.47 1.23 0 1.7l-4.6 4.6c-.47.47-1.23.47-1.7 0l-5.2-5.2A1.2 1.2 0 0 1 6 11.8z" fill="#fff" />
+        <circle cx="9" cy="9" r="1.3" fill="#1D4ED8" />
+    </svg>
+);

@@ -73,9 +73,8 @@ const READ_ONLY = new Set([
     'vplan_list_activities', 'vplan_list_collections', 'vplan_get_collection', 'vplan_list_cards',
     'vplan_get_card', 'vplan_list_orders', 'vplan_get_order', 'vplan_list_time_tracking',
     'vplan_time_tracking_summary', 'vplan_get_capacity', 'vplan_list_master_data', 'firebird_whoami', 'firebird_list_tables', 'firebird_describe_table', 'firebird_sample_rows', 'firebird_query', 'frappe_crm_list_leads', 'frappe_crm_get_lead', 'frappe_crm_list_deals', 'frappe_crm_get_deal', 'frappe_crm_list_contacts', 'frappe_crm_get_contact', 'frappe_crm_list_organizations', 'frappe_crm_get_organization', 'frappe_crm_list_tasks', 'frappe_crm_list_notes', 'frappe_crm_list_statuses',
-    // Scaleway Billing (read-only by design; the download keeps the PDF for the
-    // run and writes nowhere outside Bee Flow)
-    'scaleway_list_invoices', 'scaleway_download_invoice',
+    // Scaleway Billing (read-only; the download keeps the PDF for the run, writes nowhere outside Bee Flow); 2BA reads (the upload is a side effect)
+    'scaleway_list_invoices', 'scaleway_download_invoice', 'twoba_find_trade_items', 'twoba_net_price', 'twoba_list_condition_databases',
     // Maps / Search / KB / Sanctions lists (local reads of the imported public lists)
     'maps_search_places', 'maps_geocode', 'maps_directions', 'sanctions_screen', 'sanctions_pep_function_check',
     'agent_search', 'read_url', 'kb_search', 'kb_get_original',
@@ -173,9 +172,9 @@ const SIDE_EFFECTS = new Set([
     'contacts_create', 'contacts_update',
     'keep_create', 'keep_delete',
     'groups_reply',
-    // YouTrack / Frappe CRM (no deletes by design) / SignRequest / Gamma / LinkedIn / GitHub
+    // YouTrack / Frappe CRM (no deletes by design) / 2BA condition upload / SignRequest / Gamma / LinkedIn / GitHub
     'youtrack_create_issue', 'youtrack_add_comment', 'youtrack_update_issue', 'youtrack_link_issues', 'youtrack_change_assignee', 'youtrack_log_work', 'youtrack_manage_tags',
-    'frappe_crm_create_lead', 'frappe_crm_update_lead', 'frappe_crm_create_deal', 'frappe_crm_update_deal', 'frappe_crm_add_note', 'frappe_crm_create_task',
+    'frappe_crm_create_lead', 'frappe_crm_update_lead', 'frappe_crm_create_deal', 'frappe_crm_update_deal', 'frappe_crm_add_note', 'frappe_crm_create_task', 'twoba_upload_conditions',
     'signrequest_send_document', 'signrequest_cancel',
     'gamma_create_presentation', 'gamma_create_from_template', 'gamma_revise_as_new',
     'linkedin_create_post',

@@ -53,6 +53,7 @@ Available via the [Nextcloud connector](../connector/index.md). The 11 integrati
 | [vPlan](vplan.md) | Read planning, capacity, resources, orders & time tracking (read-only) |
 | [Firebird database](firebird.md) | Read a Firebird database such as Syntess Atrium with SELECT queries (read-only) |
 | [Frappe CRM](frappe-crm.md) | Read and update leads, deals, contacts, organisations, tasks and notes in Frappe CRM |
+| [2BA](twoba.md) | Article data and net purchase prices from your 2BA condition files; upload condition files |
 | [Sanctions lists](sanctions-lists.md) | Screen names against the EU, UN, Dutch, OFAC and UK sanctions lists and check PEP functions, on your own server |
 
 ### Social / messaging

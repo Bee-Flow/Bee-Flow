@@ -31,7 +31,7 @@ const tool = (name, description) => ({ type: 'function', function: { name, ...(d
 const FAMILY_NAMES = [
     'gmail_search', 'calendar_list', 'drive_search', 'docs_create', 'contacts_search', 'keep_list', 'groups_list',
     'youtrack_search', 'afas_query', 'nmbrs_list_debtors', 'vplan_list_boards', 'firebird_query', 'frappe_crm_list_leads',
-    'scaleway_list_invoices', 'signrequest_send', 'fireflies_list', 'gamma_create', 'generate_image', 'create_presentation',
+    'twoba_net_price', 'scaleway_list_invoices', 'signrequest_send', 'fireflies_list', 'gamma_create', 'generate_image', 'create_presentation',
     'create_word_document', 'create_spreadsheet', 'generate_music', 'generate_video', 'agent_search', 'browse_web', 'read_url',
     'workspace_read', 'notebook_write', 'kb_search', 'kb_get_original', 'maps_directions', 'linkedin_post', 'github_list',
     'ms_calendar_list', 'onedrive_search', 'ms_contacts_search', 'transcribe_audio', 'nextcloud_calendar_list',

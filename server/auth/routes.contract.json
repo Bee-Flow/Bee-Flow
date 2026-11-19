@@ -2091,6 +2091,16 @@
     "GET /api/integrations/outlook/status": {
       "gate": "auth"
     },
+    "GET /api/integrations/twoba/auth-url": {
+      "gate": "auth"
+    },
+    "GET /api/integrations/twoba/callback": {
+      "gate": "open",
+      "reason": "OAuth-callback, als nmbrs/callback; state is eenmalig, aan de ingelogde gebruiker gebonden en hooguit tien minuten geldig (integrations/twobaAuth.mts)"
+    },
+    "GET /api/integrations/twoba/status": {
+      "gate": "auth"
+    },
     "GET /api/integrations/withings/auth-url": {
       "gate": "auth"
     },
@@ -4461,6 +4471,9 @@
       "gate": "platform",
       "via": "superAdmin"
     },
+    "POST /ai/twoba/test": {
+      "gate": "auth"
+    },
     "POST /ai/user-settings": {
       "gate": "auth"
     },
@@ -5369,6 +5382,9 @@
       "gate": "auth"
     },
     "POST /api/integrations/outlook/send": {
+      "gate": "auth"
+    },
+    "POST /api/integrations/twoba/disconnect": {
       "gate": "auth"
     },
     "POST /api/integrations/withings/disconnect": {

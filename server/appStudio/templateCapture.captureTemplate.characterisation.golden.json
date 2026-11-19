@@ -4236,6 +4236,173 @@
     "title": "Inbound orders copy",
     "sha": "fe4dbf90d7ea06bb6c6997fa656fd5a4514632981d8fb8ec00e62448c6af0442"
   },
+  "app-bom-pricing/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 3,
+      "seededTables": {
+        "tbl_bpcond": 1,
+        "tbl_bpcalc": 1,
+        "tbl_bpline": 4
+      },
+      "seededRows": 6,
+      "bytes": 23998,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Bill of materials pricing",
+    "sha": "f465a8869ef79562c90ce96b891955fe351b789b2ada064b09d97061cb614419"
+  },
+  "app-bom-pricing/rows": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 3,
+      "seededTables": {
+        "tbl_bpcond": 1,
+        "tbl_bpcalc": 1,
+        "tbl_bpline": 4
+      },
+      "seededRows": 6,
+      "bytes": 23910,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Bill of materials pricing",
+    "sha": "2cf2237e72d5d602fb96931cd5b6bbff4de806963c52c2dd8ea44f7c51e83b07"
+  },
+  "app-bom-pricing/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 3,
+      "seededTables": {
+        "tbl_bpcond": 1,
+        "tbl_bpcalc": 1,
+        "tbl_bpline": 1
+      },
+      "seededRows": 3,
+      "bytes": 23182,
+      "requires": [],
+      "warnings": [
+        "3 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Bill of materials pricing",
+    "sha": "71edaf1e01d27befce7646a132ad3913757f6985e831dc8a8b426bc648e5f662"
+  },
+  "app-bom-pricing/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 16358,
+      "requires": [],
+      "warnings": [
+        "6 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[2].children[3].props.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[4].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[3].props.source.tableId",
+        "binding.table_unverified @ actions.act_bpprice.steps[1].tableId",
+        "binding.table_unverified @ actions.act_bpprice.steps[2].steps[0].tableId",
+        "binding.table_unverified @ actions.act_bpprice.steps[3].rows.tableId",
+        "binding.table_unverified @ actions.act_bpprice.steps[4].tableId",
+        "binding.table_unverified @ actions.act_bpupload.steps[1].tableId",
+        "binding.table_unverified @ actions.act_bpupload.steps[2].tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Bill of materials pricing",
+    "sha": "9ff37aef21448b9c531d131174b61eab85ba2b367da0e48f8b9af1cfbe0e99a9"
+  },
+  "app-bom-pricing/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 3,
+      "seededTables": {
+        "tbl_bpcond": 1,
+        "tbl_bpcalc": 1,
+        "tbl_bpline": 4
+      },
+      "seededRows": 6,
+      "bytes": 24121,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Bill of materials pricing copy",
+    "sha": "a8071738c5957af128194e80c567fb19bcdb3fc9f83d4ad15c82a4eaf9bbfb4d"
+  },
   "noTitle": {
     "ok": false,
     "errors": [

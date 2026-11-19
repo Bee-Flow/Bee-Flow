@@ -9,18 +9,8 @@
 
 'use strict';
 
-/**
- * A whole number >= 0 from the environment; unset, empty or garbage gives `fallback`.
- * @param {string} name
- * @param {number} fallback
- * @param {Record<string, string|undefined>} [env]
- */
-function capFromEnv(name, fallback, env = process.env) {
-    const raw = env[name];
-    if (raw == null || raw === '') return fallback;
-    const n = Number(raw);
-    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-}
+/** A whole number >= 0 from the environment; unset, empty or garbage gives `fallback` (utils/envNumber.mts envCap). */
+const { envCap: capFromEnv } = require('../../../utils/envNumber.mts');
 
 /**
  * True when `cap` is on (> 0) and `value` is past it.
@@ -60,6 +50,8 @@ function tableLimits(env = process.env) {
         previewInputRows: cap('AUTOMATION_TABLE_PREVIEW_INPUT_ROWS', 1000),
         previewRpm: cap('AUTOMATION_TABLE_PREVIEW_RPM', 60),
         csvRpm: cap('AUTOMATION_TABLE_CSV_RPM', 30),
+        // write_table: rows one file may hold (an .xlsx sheet stops at 1,048,576 rows regardless).
+        writeMaxRows: cap('AUTOMATION_TABLE_WRITE_MAX_ROWS', 1_000_000),
     };
 }
 

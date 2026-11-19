@@ -1,5 +1,5 @@
 /**
- * Drafts and patches for the spreadsheet steps: Read table and Edit table. The
+ * Drafts and patches for the spreadsheet steps: Read table, Edit table and Write table. The
  * defaults are the server's (core/automationModel/tableOps). From agent-hub
  * `Builder/flow/settings/formState/{extract,patch}/tables.ts`; pinned by
  * formState.lockstep.test.ts.
@@ -8,6 +8,10 @@
 import { applyForEachPatch } from './common';
 import { clamp } from './read';
 import type { Extractor, FormDraft, Patcher } from './types';
+import type { FormRecord } from '../bindings/mirror/formState/types';
+import {
+    extractWriteTable as webExtractWriteTable, patchWriteTable as webPatchWriteTable,
+} from '../bindings/mirror/formState/writeTable';
 
 const clone = <T,>(v: T): T => (v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T));
 const days = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 7);
@@ -55,3 +59,7 @@ export const patchTable: Patcher = (patch, step, draft) => {
     patch.expiresInDays = wholeDays(draft.expiresInDays);
     applyForEachPatch(patch, step, draft);
 };
+
+// Write table: the web's own module, mirrored (bindings/mirror/formState/writeTable.ts).
+export const extractWriteTable: Extractor = (step, base) => webExtractWriteTable(step as FormRecord, base as FormRecord);
+export const patchWriteTable: Patcher = (patch, step, draft) => webPatchWriteTable(patch as FormRecord, step as FormRecord, draft as FormRecord);

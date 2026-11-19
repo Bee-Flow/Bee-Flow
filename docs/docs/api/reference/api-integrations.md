@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/integrations`
 
-58 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
+62 routes, 35 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `calendar`
 
@@ -560,6 +560,32 @@ No request schema.
 ### `GET /api/integrations/outlook/status`
 
 **Access:** Signed-in user · middleware `microsoftSessionHydration`
+
+No request schema.
+
+## `twoba`
+
+### `GET /api/integrations/twoba/auth-url`
+
+**Access:** Signed-in user
+
+No request schema.
+
+### `GET /api/integrations/twoba/callback`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
+
+### `POST /api/integrations/twoba/disconnect`
+
+**Access:** Signed-in user
+
+**Body:** object (no other keys)
+
+### `GET /api/integrations/twoba/status`
+
+**Access:** Signed-in user
 
 No request schema.
 

@@ -5,9 +5,10 @@ import { lazyWithI18n } from '@/utils/lazyWithReload';
 // The table editors are large and only the table steps need them: keep them out of the entry chunks.
 const ReadTableFields = lazyWithI18n(() => import('./tableEditor/ReadTableFields'));
 const TableFields = lazyWithI18n(() => import('./tableEditor/TableFields'));
+const WriteTableFields = lazyWithI18n(() => import('./tableEditor/WriteTableFields'));
 
 /** The step types this dispatcher answers for. */
-export const DATA_STEP_TYPES: ReadonlySet<string> = new Set(['limit', 'dedupe', 'aggregate', 'summarize', 'read_table', 'table']);
+export const DATA_STEP_TYPES: ReadonlySet<string> = new Set(['limit', 'dedupe', 'aggregate', 'summarize', 'read_table', 'table', 'write_table']);
 
 interface Props {
     step: { id: string; type: string };
@@ -23,7 +24,7 @@ interface Props {
 
 /**
  * The settings of the steps that work on a list or a table and share one prop
- * shape (limit, dedupe, aggregate, summarize, read_table, table). One dispatcher
+ * shape (limit, dedupe, aggregate, summarize, read_table, table, write_table). One dispatcher
  * so the settings form does not grow a branch for each of them.
  */
 export default function DataStepFields({ step, draft, set, groups, onFocusField, previewSample, errorSections, automationId }: Props) {
@@ -37,6 +38,7 @@ export default function DataStepFields({ step, draft, set, groups, onFocusField,
         case 'summarize': return <SummarizeFields {...common} />;
         case 'read_table': return <Suspense fallback={null}><ReadTableFields {...common} stepId={step.id} /></Suspense>;
         case 'table': return <Suspense fallback={null}><TableFields {...common} automationId={automationId ?? null} /></Suspense>;
+        case 'write_table': return <Suspense fallback={null}><WriteTableFields {...common} /></Suspense>;
         default: return null;
     }
 }

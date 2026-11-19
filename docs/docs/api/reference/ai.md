@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/ai`
 
-130 routes, 71 with a request schema. Back to the [endpoint reference](../reference.md).
+131 routes, 72 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `agent-search`
 
@@ -1298,6 +1298,22 @@ No request schema.
 
 **Query:** object (no other keys)
 
+## `twoba`
+
+### `POST /ai/twoba/test`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `twobaClientId` | string or null |  |  |
+| `twobaClientSecret` | string or null |  |  |
+| `twobaAuthMode` | string or null |  |  |
+| `twobaUsername` | string or null |  |  |
+| `twobaPassword` | string or null |  |  |
+
 ## `user-settings`
 
 ### `GET /ai/user-settings`
@@ -1342,6 +1358,11 @@ No request schema.
 | `frappeCrmUrl` | string or null |  |  |
 | `frappeCrmApiKey` | string or null |  |  |
 | `frappeCrmApiSecret` | string or null |  |  |
+| `twobaClientId` | string or null |  |  |
+| `twobaClientSecret` | string or null |  |  |
+| `twobaAuthMode` | string or null |  |  |
+| `twobaUsername` | string or null |  |  |
+| `twobaPassword` | string or null |  |  |
 | `scalewayBillingSecretKey` | string or null |  |  |
 | `scalewayBillingOrgId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |

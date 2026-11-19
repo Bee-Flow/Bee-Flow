@@ -8,7 +8,7 @@ custom_edit_url: null
 
 # Endpoint reference
 
-Every route the server mounts, 1931 in all, read from the running app rather than written by hand. 1195 of them declare a request schema (body, query or path parameters), shown below as fields; the other 736 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
+Every route the server mounts, 1936 in all, read from the running app rather than written by hand. 1197 of them declare a request schema (body, query or path parameters), shown below as fields; the other 739 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
 
 ## How to read it
 
@@ -23,7 +23,7 @@ Every route the server mounts, 1931 in all, read from the running app rather tha
 | Area | Routes | With a request schema |
 |------|-------:|----------------------:|
 | [`/agents`](./reference/agents.md) | 76 | 57 |
-| [`/ai`](./reference/ai.md) | 130 | 71 |
+| [`/ai`](./reference/ai.md) | 131 | 72 |
 | [`/api/admin`](./reference/api-admin.md) | 36 | 24 |
 | [`/api/automation`](./reference/api-automation.md) | 167 | 99 |
 | [`/api/branding`](./reference/api-branding.md) | 10 | 2 |
@@ -33,7 +33,7 @@ Every route the server mounts, 1931 in all, read from the running app rather tha
 | [`/api/datatables`](./reference/api-datatables.md) | 47 | 37 |
 | [`/api/dsr`](./reference/api-dsr.md) | 14 | 9 |
 | [`/api/icons`](./reference/api-icons.md) | 12 | 7 |
-| [`/api/integrations`](./reference/api-integrations.md) | 58 | 34 |
+| [`/api/integrations`](./reference/api-integrations.md) | 62 | 35 |
 | [`/api/kb`](./reference/api-kb.md) | 56 | 40 |
 | [`/api/languages`](./reference/api-languages.md) | 27 | 12 |
 | [`/api/mcp-library`](./reference/api-mcp-library.md) | 13 | 8 |
@@ -56,4 +56,4 @@ Every route the server mounts, 1931 in all, read from the running app rather tha
 | [`/api/webpages-preview`](./reference/api-webpages-preview.md) | 18 | 3 |
 | [`/auth`](./reference/auth.md) | 173 | 91 |
 | [Other endpoints](./reference/other.md) | 233 | 120 |
-| **Total** | **1931** | **1195** |
+| **Total** | **1936** | **1197** |

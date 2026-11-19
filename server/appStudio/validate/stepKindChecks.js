@@ -187,7 +187,8 @@ function checkGenerateFile(step, path, ctx) {
             });
         }
     }
-    if (step.format && step.format !== 'csv' && step.delimiter !== undefined) {
+    // ';' is the default canonicalize writes on every generate_file: only a chosen separator is a finding.
+    if (step.format && step.format !== 'csv' && step.delimiter !== undefined && step.delimiter !== ';') {
         pushW({ code: 'action.generate_file_field_ignored', severity: 'warning', path: `${path}.delimiter`, message: '`delimiter` only applies to CSV output.', hint: 'Remove it, or set format to csv.' });
     }
     if ((step.format === 'csv' || step.format === undefined) && step.sheetName !== undefined) {

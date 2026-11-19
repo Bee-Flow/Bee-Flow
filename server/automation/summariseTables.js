@@ -10,7 +10,7 @@
 /**
  * @typedef {{ kind?: string, path?: string, value?: unknown }} BindingLike
  * @typedef {{ type?: string, label?: string, source?: BindingLike|string|number|boolean|null, sheets?: string[]|string, headerRow?: number,
- *   ops?: Array<{ op?: string, enabled?: boolean }> }} TableStep
+ *   ops?: Array<{ op?: string, enabled?: boolean }>, format?: string, highlightColumn?: string }} TableStep
  */
 
 /**
@@ -46,7 +46,18 @@ function describeTableStep(step, n) {
         const named = step.label && step.label !== 'Edit table' ? ` — ${step.label}` : '';
         return `${n} Edit table: ${ops.join(', ') || 'no operations yet'}${step.source == null ? '' : ` on ${describeBinding(step.source)}`}${named}.`;
     }
+    if (step.type === 'write_table') return describeWriteTable(step, n);
     return null;
+}
+
+/**
+ * @param {TableStep} step
+ * @param {string} n
+ */
+function describeWriteTable(step, n) {
+    const named = step.label && step.label !== 'Write table' ? ` — ${step.label}` : '';
+    const source = step.source == null ? '(no table picked yet)' : describeBinding(step.source);
+    return `${n} Write table ${source} as ${step.format === 'csv' ? 'CSV' : 'Excel'}${named}.`;
 }
 
 /**
@@ -62,6 +73,7 @@ function tableDetail(step) {
         const ops = (Array.isArray(step.ops) ? step.ops : []).map(o => (o && o.op ? `${o.op}${o.enabled === false ? ' (off)' : ''}` : '?'));
         return ` on ${describeBinding(step.source)} ops=[${ops.join(', ')}]`;
     }
+    if (step.type === 'write_table') return ` from ${describeBinding(step.source)} format=${step.format || 'xlsx'}${step.highlightColumn ? ` highlight=${step.highlightColumn}` : ''}`;
     return '';
 }
 

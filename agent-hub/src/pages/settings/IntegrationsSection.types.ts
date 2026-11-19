@@ -74,6 +74,16 @@ export interface FirebirdIntegrationProps {
     last: boolean;
 }
 
+export interface TwobaIntegrationProps {
+    hasTwobaConfig?: boolean;
+    /** 'password' or 'authorization_code' ("Sign in with 2BA"). */
+    authMode?: string;
+    /** The stored 2BA user name (password sign-in); the password is never returned. */
+    username?: string;
+    onSaved: () => void;
+    last: boolean;
+}
+
 export interface FrappeCrmIntegrationProps {
     hasFrappeCrmConfig?: boolean;
     onSaved: () => void;

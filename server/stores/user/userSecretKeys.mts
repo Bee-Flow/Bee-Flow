@@ -38,6 +38,11 @@ export const SECRETS: Readonly<Record<string, string>> = Object.freeze({
     frappeCrmUrl: 'frappe_crm_url',
     frappeCrmApiKey: 'frappe_crm_api_key',
     frappeCrmApiSecret: 'frappe_crm_api_secret',
+    twobaClientId: 'twoba_client_id',
+    twobaClientSecret: 'twoba_client_secret',
+    twobaAuthMode: 'twoba_auth_mode',
+    twobaUsername: 'twoba_username',
+    twobaPassword: 'twoba_password',
     scalewayBillingSecretKey: 'scaleway_billing_secret_key',
     scalewayBillingOrgId: 'scaleway_billing_org_id',
 });

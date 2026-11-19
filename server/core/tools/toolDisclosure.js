@@ -86,6 +86,7 @@ const LAZY_GROUPS = [
     { key: 'vplan',        label: 'vPlan',        desc: 'read planning: boards, cards, collections, resource availability, capacity, orders, time tracking', prefix: 'vplan_' },
     { key: 'firebird',     label: 'Firebird database', desc: 'read a Firebird database such as Syntess Atrium: tables, columns, sample rows, SELECT queries', prefix: 'firebird_' },
     { key: 'frappe_crm',   label: 'Frappe CRM',   desc: 'leads, deals, contacts, organisations, tasks and notes: read, create, update, change status', prefix: 'frappe_crm_' },
+    { key: 'twoba',        label: '2BA',          desc: 'article data and net purchase prices from the condition files: price a bill of materials, one article, list condition databases, upload a condition file', prefix: 'twoba_' },
     { key: 'scaleway_billing', label: 'Scaleway Billing', desc: 'list Scaleway invoices; download the invoice PDF inside an automation', prefix: 'scaleway_' },
     { key: 'linkedin',     label: 'LinkedIn',     desc: 'create posts (approval before publishing)',      prefix: 'linkedin_' },
     { key: 'github',       label: 'GitHub',       desc: 'list repos, view code, manage branches',         prefix: 'github_' },

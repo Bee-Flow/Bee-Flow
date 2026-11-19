@@ -82,9 +82,8 @@ async function getAvailableIntegrations(userId) {
     const orgId = user?.organizationId || null;
 
     let orgEnabled = null;
-    // Org-admin "active" subset; null = no extra restriction (e.g. for super
-    // admin or when the org has no active list yet). Applied as an
-    // intersection AFTER the super-admin allow-list filter.
+    // Org-admin "active" subset; null = no extra restriction (e.g. for super admin or when the org has
+    // no active list yet). Applied as an intersection AFTER the super-admin allow-list filter.
     let orgActiveSet = null;
     if (orgId) {
         try {
@@ -134,6 +133,7 @@ async function getAvailableIntegrations(userId) {
     const hasFrappeCrmConfig = !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#25', e, null)))
         && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#26', e, null)))
         && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#27', e, null)));
+    const hasTwobaConfig = await require('../../core/integrations/twobaConfigured.mts').hasTwobaConfig((/** @type {string} */ k) => configStore.getSecret(k), userId).catch((/** @type {unknown} */ e) => fallback('routes/agents/wizard:getAvailableIntegrations#28', e, false));
     const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#15', e, null)));
     const hasLinkedInConfig = !!(await configStore.getSecret('linkedin_client_id').catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#16', e, null)));
     let hasN8nConfig = false;
@@ -146,7 +146,7 @@ async function getAvailableIntegrations(userId) {
     }
 
     /** @type {Record<string, boolean>} */
-    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasFirebirdConfig, hasFrappeCrmConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
+    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasFirebirdConfig, hasFrappeCrmConfig, hasTwobaConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
 
     return INTEGRATION_CATALOG.filter(item => {
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;

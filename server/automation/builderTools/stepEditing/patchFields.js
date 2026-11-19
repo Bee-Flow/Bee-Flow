@@ -124,6 +124,7 @@ const PATCHABLE_FIELDS = {
     // are normalised field by field (normalizePatchField).
     read_table: ['source', 'sheets', 'headerRow', 'provenanceSheet', 'format', 'delimiter', 'skipHiddenSheets', 'expiresInDays', 'label', 'forEach'],
     table: ['source', 'ops', 'name', 'expiresInDays', 'label', 'forEach'],
+    write_table: ['source', 'format', 'fileName', 'sheetName', 'columns', 'highlightColumn', 'delimiter', 'expiresInDays', 'label'],
 };
 
 // The fields of a filter/switch whose change moves its outputs (and so what

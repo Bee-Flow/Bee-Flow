@@ -184,6 +184,10 @@ const FULL_PROMPT_STEP_MENU = `
                      to loop over (forEach), whose item.rules feed a later filter op's rulesFrom.
                      PRIVACY: pseudonymise early, with saltVar naming a Solution variable (never a
                      literal secret); groups keeps groups smaller than minN hidden.
+  write_table      — a table (or a list of rows) out as a file. Only in a batch (type "write_table"):
+                     {type:"write_table", spec:{source:{kind:"ref",path:"steps.$table.output.table"},
+                     format:"xlsx"|"csv", fileName?, columns?:[{column,header?}], highlightColumn?}}.
+                     output.sourceHandle is a generated file: attach it to a mail or upload it.
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
                      automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent

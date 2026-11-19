@@ -19,7 +19,7 @@ import {
     describeCondition, describeSwitch, describeWait, describeApproval, describeCallLayer,
 } from './controlFlowSteps';
 import {
-    describeGenerateDocument, describeFillDocument, describeSlide, describePresentation,
+    describeGenerateDocument, describeFillDocument, describeSlide, describePresentation, describeWriteTable,
 } from './documentSteps';
 import {
     describeSet, describeParseJson, describeDateTime, describeCollectionItems,
@@ -107,6 +107,7 @@ export function describeNode(node: UpstreamNode | null | undefined, definition: 
     // auto-map, and nothing errors.
     if (node.type === 'read_table') return describeReadTable(node);
     if (node.type === 'table')      return describeTable(node);
+    if (node.type === 'write_table') return describeWriteTable(node);
     if (node.type === 'datatable')  return describeDatatable(node, catalog);
     if (node.type === 'knowledge_write') return describeKnowledgeWrite(node, catalog);
     return null;

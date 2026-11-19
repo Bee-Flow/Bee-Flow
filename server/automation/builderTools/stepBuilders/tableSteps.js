@@ -1,9 +1,10 @@
 // @typecheck
 /**
- * Builder tools — the two table steps: read_table (an uploaded or generated
- * spreadsheet / CSV into tables) and table (edit a table without code).
+ * Builder tools — the table steps: read_table (an uploaded or generated
+ * spreadsheet / CSV into tables), table (edit a table without code) and
+ * write_table (a table out as an .xlsx / .csv file).
  *
- * Both are created through builder_add_steps (type "read_table" / "table").
+ * All are created through builder_add_steps (type "read_table" / "table" / "write_table").
  * The settings are read and judged by the shared specs, the same ones the
  * validator and the runner use (core/automationModel/tableOps), so a step the
  * builder adds is a step the validator accepts. A refused step names the field
@@ -112,6 +113,26 @@ function applyAddReadTable(draft, args, draftWrap) {
     return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
+/**
+ * write_table: a table (or a list of rows) out as an .xlsx or .csv file of the
+ * run, a generated_file later steps pass on. Default label 'Write table'.
+ */
+function applyAddWriteTable(draft, args, draftWrap) {
+    const { normalizeWriteTableStep, validateWriteTableStep } = require('../../../core/automationModel/tableOps/writeTableSpec.mts');
+    const src = fixSource(args.source, draft, draftWrap, SOURCE_HINT_TABLE);
+    if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
+    const candidate = { ...args, source: src.source };
+    const findings = validateWriteTableStep(candidate);
+    const refusal = findingsRefusal('write_table', findings);
+    if (refusal) return refusal;
+
+    const settings = normalizeWriteTableStep(candidate);
+    const step = { id: newId('write'), type: 'write_table', label: args.label || 'Write table', ...settings };
+    appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
+    const warnings = [...src.notes, ...findings.filter(f => f.severity === 'warning').map(f => `${f.path}: ${f.message}`)];
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
+}
+
 /** Copy of an op with its bindings (join.with, filter.rulesFrom, rule values, derive values) passed through `fn(value, label)`. */
 function mapOpBindings(op, index, fn) {
     if (!isObject(op)) return op;
@@ -182,7 +203,7 @@ function applyAddTable(draft, args, draftWrap) {
 }
 
 module.exports = {
-    applyAddReadTable, applyAddTable,
+    applyAddReadTable, applyAddTable, applyAddWriteTable,
     fixBinding, fixSource, fixOpBindings, findingsRefusal, mapOpBindings,
     SOURCE_HINT_READ, SOURCE_HINT_TABLE,
 };

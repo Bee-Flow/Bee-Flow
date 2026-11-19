@@ -6,12 +6,13 @@ title: Tables in Automations
 
 A **table** is a spreadsheet or CSV that an automation has read and can edit without code: leave out rows, add a column, count per group, build a cross-table, then hand the small result to an AI step or a PDF. The table itself is kept by the run, so it can hold far more rows than fits in a step's output.
 
-Two steps do the work, both in the builder:
+Three steps do the work, all in the builder:
 
 - **Read table** opens an uploaded or generated file and turns every sheet into a table.
 - **Edit table** takes a table from an earlier step and applies a list of operations to it, one after the other.
+- **Write table** writes a table back out as an Excel or CSV file, to mail, upload or offer as a download.
 
-Both can be used inside a loop or with a per-item repeat, and the AI builder knows them.
+Read table and Edit table can be used inside a loop or with a per-item repeat, and the AI builder knows them.
 
 ## Not the same as a datatable
 
@@ -19,7 +20,7 @@ A [datatable](datatables.md) is a small table that stays put between runs, for l
 
 ## Read table
 
-Point **Source** at a file: a **File** answer on a form (`trigger.output.<field>`) or a file an earlier step made. The step reads `.xlsx`, `.xlsm`, `.xls`, `.ods` and `.csv`.
+Point **Source** at a file: a **File** answer on a form (`trigger.output.<field>`), a file input an App Studio app hands to the automation (an app trigger's `file` input), or a file an earlier step made. The step reads `.xlsx`, `.xlsm`, `.xls`, `.ods` and `.csv`.
 
 | Setting | What it does | Default |
 |---|---|---|
@@ -52,6 +53,8 @@ The output holds:
 - `output.description`: what each column holds, when you used **Describe**.
 - `output.opStats` and `output.warnings`: what each operation did, and what to look at.
 
+A **Loop** can go through a table: point its list at `steps.<step>.output.table` and the loop gets the table's rows, however many there are (at most `AUTOMATION_COLLECTION_MAX_ITEMS`). With a **batch size** each pass gets that many rows as a list, for example to hand 200 lines at a time to one app action.
+
 ### The operations
 
 **Join.** Adds columns from a second table (or a list) to every row, matched on one to three key pairs. Matching ignores capitals and surrounding spaces unless you switch that off, and a key can have alternative column names for files that call it differently. *Left* keeps every row; *Inner* keeps only rows with a match. By default only the first match is used; choose to keep all of them. Example: add the department name to each answer, matched on a code.
@@ -75,6 +78,24 @@ The output holds:
 **Segments.** Builds a list of groups to report on, for example "all", "each region" and "each channel". Each split names a column; a cell that holds a list (`a; b`) counts in each of its values. A segment smaller than the minimum (30 by default) is **not listed at all**. The result table lists the segments with their size; `output.segments` holds the usable ones, each with the rules that select its rows. Repeat a step per segment and feed `item.rules` into a Filter's *rules from* to work on one segment at a time.
 
 **Describe.** Changes nothing in the rows. It looks at the columns and reports, per column, what kind it is (one choice, several choices, a scale, a number, a date, free text, an identifier), how many are filled, how many different values there are, the most common options, and whether it can be used to split on. Columns that look personal, and identifiers, show no sample values.
+
+## Write table
+
+Point **Source** at a table (`steps.<step>.output.table`) or at a list of rows (a Code step's result, an app action's list). The step writes a file of the run and hands it on like a generated document.
+
+| Setting | What it does | Default |
+|---|---|---|
+| File type | Excel (`.xlsx`) or CSV (`.csv`) | Excel |
+| File name | Without the extension; may hold values of earlier steps (`{{trigger.output.project}}`) | The step's name |
+| Columns | Which columns go into the file, in this order, each with the heading it gets | All columns, as they are |
+| Mark rows | The rows where this column is not empty get a colour in the Excel file (a flags or remarks column: the rows to check) | None |
+| Sheet name | The sheet's name in the Excel file | The step's name |
+| Separator | Between the columns of a CSV file: semicolon (Dutch Excel), comma or tab | Semicolon |
+| Keep for | How many days the file is kept (1 to 90) | 7 |
+
+In the Excel file the header row is bold and stays in view while scrolling, numbers stay numbers, and text is always text: a cell that looks like a formula is never run. In a CSV file such a cell gets a leading apostrophe.
+
+The output holds `output.sourceHandle` (the file, for a mail attachment, a Nextcloud or Drive upload, or a form page download), `output.fileId`, `output.filename`, `output.rowCount`, `output.columns` and `output.highlightedRows`. A dry run writes nothing.
 
 ## Preview in the builder
 
@@ -111,6 +132,7 @@ Every limit is an environment variable on the server. `0` means unlimited, excep
 | `AUTOMATION_TABLE_PREVIEW_INPUT_ROWS` | Rows the builder preview reads | 1000 |
 | `AUTOMATION_TABLE_PREVIEW_RPM` | Previews per person per minute | 60 |
 | `AUTOMATION_TABLE_CSV_RPM` | CSV downloads per person per minute | 30 |
+| `AUTOMATION_TABLE_WRITE_MAX_ROWS` | Rows one Write table file may hold (an Excel sheet stops at 1,048,575 rows anyway) | 1000000 |
 
 A result over a limit stops the step with a message that names the variable. Nothing is cut off to make it fit.
 

@@ -104,6 +104,8 @@ const CRAFTED = [
     { id: 'dtab', type: 'datatable', datatableId: 'd', op: 'insert', where: [{ field: 'a', op: 'eq', value: 1 }, { value: 2 }], values: { a: 1, b: '', c: null }, matchColumn: 'a', limit: 5, forEach: { overRef: 'x' } },
     { id: 'kw', type: 'knowledge_write', knowledgeBaseId: 'kb', title: 't', content: 'c', sourceUri: 's', nearDuplicateStrategy: 'replace' },
     { id: 'note', type: 'note', label: 'N', icon: 'x' },
+    { id: 'wt', type: 'write_table', source: { kind: 'ref', path: 'steps.t.output.table' }, format: 'csv', fileName: 'Out', columns: ['a', { column: 'b', header: 'B' }, {}], highlightColumn: ' flags ', delimiter: ',', expiresInDays: 120 },
+    { id: 'wt2', type: 'write_table' },
 ] as unknown as FlowNode[];
 
 function corpus(): FlowNode[] {

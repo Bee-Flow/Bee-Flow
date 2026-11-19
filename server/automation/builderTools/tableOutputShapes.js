@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * What the two table steps output, as shapes for the builder's reference
+ * What the table steps output, as shapes for the builder's reference
  * check (refCheck.js): `steps.<id>.output.<key>` is checked against these, so a
  * misspelt key is refused with a "did you mean" instead of reaching run time.
  *
@@ -70,6 +70,16 @@ function tableOutputShape() {
     ]);
 }
 
+/** write_table (execWriteTable.mts): the file it kept, as a generated_file handle. */
+function writeTableOutputShape() {
+    return obj([
+        ['fileId', str()], ['filename', str()], ['mimeType', str()], ['size', num()], ['format', str()],
+        ['rowCount', num()], ['columns', arr(obj([['key', str()], ['header', str()]]))], ['highlightedRows', num()],
+        ['sourceHandle', obj([['kind', str()], ['fileId', str()]])],
+        ['warnings', arr(str())],
+    ]);
+}
+
 /**
  * The output shape of a table step, or null for any other step type.
  * @param {{ type?: string }} step
@@ -77,7 +87,8 @@ function tableOutputShape() {
 function tableStepOutputShape(step) {
     if (step && step.type === 'read_table') return readTableOutputShape();
     if (step && step.type === 'table') return tableOutputShape();
+    if (step && step.type === 'write_table') return writeTableOutputShape();
     return null;
 }
 
-module.exports = { tableStepOutputShape, readTableOutputShape, tableOutputShape, tableHandleShape };
+module.exports = { tableStepOutputShape, readTableOutputShape, tableOutputShape, writeTableOutputShape, tableHandleShape };

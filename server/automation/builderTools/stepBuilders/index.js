@@ -22,7 +22,7 @@
  *   dataExtractionStep.js  data_extraction, and every vocabulary it arrives in
  *   datatableStep.js       datatable reads and writes
  *   outboundSteps.js       http_request, notification, knowledge_write
- *   tableSteps.js          read_table, table
+ *   tableSteps.js          read_table, table, write_table
  *   callBlock.js           call_block: a reusable building block from the picker list
  *   noteStep.js            the free-floating canvas note
  */
@@ -68,7 +68,7 @@ const {
     applyAddKnowledgeWrite,
 } = require('./outboundSteps');
 const { sanitizeNoteSize, applyAddNote, NOTE_MAX_TEXT_LENGTH, NOTE_COLOR_KEYS } = require('./noteStep');
-const { applyAddReadTable, applyAddTable } = require('./tableSteps');
+const { applyAddReadTable, applyAddTable, applyAddWriteTable } = require('./tableSteps');
 const { applyAddCallBlock } = require('./callBlock');
 const { applyAddKbQueryLog } = require('./kbQueryLogStep.mts');
 
@@ -95,6 +95,7 @@ const BUILDERS = {
     flatten: applyAddFlatten,
     read_table: applyAddReadTable,
     table: applyAddTable,
+    write_table: applyAddWriteTable,
     call_block: applyAddCallBlock,
 };
 

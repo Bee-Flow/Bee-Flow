@@ -1,5 +1,5 @@
 /**
- * The presentation records of the two spreadsheet steps (and the KB query log step), in the shape of
+ * The presentation records of the three spreadsheet steps (and the KB query log step), in the shape of
  * nodeDefs.js's NODE_DEFS (which spreads them in). Their own file keeps the
  * shared registry under its size ceiling. Presentation only, like the rest.
  */
@@ -34,6 +34,21 @@ export const TABLE_NODE_DEFS = {
         issueSections: {
             fallback: 'config',
             map: { label: FLAT, source: 'config', ops: 'config', name: 'output', expiresInDays: 'output', forEach: 'advanced' },
+        },
+    },
+    write_table: {
+        family: 'data',
+        typeLabel: 'Write table', defaultLabel: 'Write table',
+        label: 'Write table', desc: 'Save a table as an Excel or CSV file, to mail, upload or download.',
+        help: 'Writes a table from an earlier step to an Excel or CSV file: the columns you choose, in your order, with the rows to check marked. A later step can mail the file, upload it or offer it as a download.',
+        sectionKeys: ['config', 'advanced'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: {
+                label: FLAT, source: 'config', format: 'config', fileName: 'config',
+                columns: 'advanced', highlightColumn: 'advanced', sheetName: 'advanced', delimiter: 'advanced', expiresInDays: 'advanced',
+            },
         },
     },
     kb_query_log: {

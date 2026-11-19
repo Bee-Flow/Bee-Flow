@@ -282,6 +282,13 @@ async function addFrappeCrmTools({ userId, isAppOn, addTools, T, D }) {
     if (hasFrappeCrmConfig && isAppOn('frappe-crm')) {
         addTools(T.FRAPPE_CRM_TOOLS);
     }
+    // 2BA — article data and net prices. Requires the client id and secret and a
+    // sign-in (password, or "Sign in with 2BA"). Bring-your-own like Frappe CRM:
+    // the tools act as one 2BA user and price with that company's conditions.
+    const hasTwoba = await require('./twobaConfigured.mts').hasTwobaConfig((/** @type {string} */ k) => D.configStore.getSecret(k), userId);
+    if (hasTwoba && isAppOn('twoba')) {
+        addTools(T.TWOBA_TOOLS);
+    }
 }
 
 /** LinkedIn, Withings, Google Maps and GitHub. */

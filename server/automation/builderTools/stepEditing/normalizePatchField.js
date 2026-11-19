@@ -312,6 +312,7 @@ const FIELD_RULES = {
 const TYPE_RULES = {
     // The shared spec clamps each setting, so a patched step equals an added one.
     read_table: (v, key) => require('../../../core/automationModel/tableOps/readTableSpec').normalizeReadTableStep({ [key]: v })[key],
+    write_table: (v, key) => require('../../../core/automationModel/tableOps/writeTableSpec.mts').normalizeWriteTableStep({ [key]: v })[key],
 };
 
 /**

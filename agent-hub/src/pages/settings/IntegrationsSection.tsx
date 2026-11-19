@@ -3,6 +3,7 @@ import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
 import FirebirdIntegration from './FirebirdIntegration';
 import FrappeCrmIntegration from './FrappeCrmIntegration';
+import TwobaIntegration from './TwobaIntegration';
 import VplanIntegration from './VplanIntegration';
 import NMBRSIntegration from './NmbrsIntegration';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
@@ -24,9 +25,7 @@ import { apiRequest, apiUrl } from '@/api/typedRequest';
 import { GOOGLE_APP_IDS } from '@/utils/integrationFamilies';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
-    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">
-        {children}
-    </p>
+    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">{children}</p>
 );
 // ── Fireflies ─────────────────────────────────────────────────────────────────
 // Single-key integration — all save/disconnect/error logic lives in
@@ -570,12 +569,12 @@ const IntegrationsSection = ({ statuses, onSaved, user }: IntegrationsSectionPro
                 isEnabled('vplan') && ['vplan', (last: boolean): React.ReactNode => <VplanIntegration hasVplanConfig={statuses.hasVplanConfig as boolean | undefined} onSaved={() => onSaved('vplan')} last={last} />],
                 isEnabled('firebird') && ['firebird', (last: boolean): React.ReactNode => <FirebirdIntegration hasFirebirdConfig={statuses.hasFirebirdConfig as boolean | undefined} onSaved={() => onSaved('firebird')} last={last} />],
                 isEnabled('frappe-crm') && ['frappe-crm', (last: boolean): React.ReactNode => <FrappeCrmIntegration hasFrappeCrmConfig={statuses.hasFrappeCrmConfig as boolean | undefined} onSaved={() => onSaved('frappe-crm')} last={last} />],
+                isEnabled('twoba') && ['twoba', (last: boolean): React.ReactNode => <TwobaIntegration hasTwobaConfig={statuses.hasTwobaConfig as boolean | undefined} authMode={statuses.twobaAuthMode as string | undefined} username={statuses.twobaUsername as string | undefined} onSaved={() => onSaved('twoba')} last={last} />],
                 isEnabled('scaleway-billing') && ['scaleway-billing', (last: boolean): React.ReactNode => <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={last} />],
                 isEnabled('nmbrs') && ['nmbrs', (last: boolean): React.ReactNode => <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig as boolean | undefined} hasNmbrsSubscriptionKey={statuses.hasNmbrsSubscriptionKey as boolean | undefined} hasNmbrsClient={statuses.hasNmbrsClient as boolean | undefined} apiMode={statuses.nmbrsApiMode as string | undefined} subdomain={statuses.nmbrsSubdomain as string | undefined} email={statuses.nmbrsEmail as string | undefined} env={statuses.nmbrsEnv as string | undefined} onSaved={() => onSaved('nmbrs')} last={last} />],
             ]} />
 
-            {/* Health — special-category data, so it gets its own group rather
-                than hiding among Productivity tiles. */}
+            {/* Health — special-category data, so it gets its own group rather than hiding among Productivity tiles. */}
             <IntegrationGroup label={t('settings.integrations_health', 'Health')} rows={[
                 isEnabled('withings') && ['withings', (last: boolean): React.ReactNode => <WithingsIntegration onSaved={() => onSaved('withings')} last={last} />],
             ]} />

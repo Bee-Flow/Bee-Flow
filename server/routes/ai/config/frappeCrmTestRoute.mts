@@ -14,7 +14,7 @@
 import { createRequire } from 'node:module';
 import type { Request, RequestHandler, Response, Router } from 'express';
 import { frappeCrmFields } from '../../../usecases/ai/config/frappeCrmFields.mts';
-import { integrationTestLimiter } from '../../../usecases/ai/config/integrationTestLimit.mts';
+import { integrationTestLimiter, withTestTimeout } from '../../../usecases/ai/config/integrationTestLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');
@@ -61,21 +61,6 @@ async function credsFor(req: Request, getSecret: (key: string) => Promise<string
     };
 }
 
-/** The race of the test against its timeout; the timer never outlives the answer. */
-async function withTimeout(pending: Promise<TestOutcome>): Promise<TestOutcome> {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-        return await Promise.race([
-            pending,
-            new Promise<TestOutcome>((_resolve, reject) => {
-                timer = setTimeout(() => reject(new Error('timed out')), TEST_TIMEOUT_MS);
-            }),
-        ]);
-    } finally {
-        clearTimeout(timer);
-    }
-}
-
 export function createFrappeCrmTestRouter(deps: FrappeCrmTestDeps = {}): Router {
     const router = express.Router();
     // lazyGate keeps the deferred require and tags the mount as the session gate it is.
@@ -92,7 +77,7 @@ export function createFrappeCrmTestRouter(deps: FrappeCrmTestDeps = {}): Router 
         if (!creds.url || !creds.apiKey || !creds.apiSecret) return res.json({ ok: false, error: NOT_CONFIGURED });
         const scrub = (message: unknown) => String(message || CONNECT_FAILED).split(creds.apiSecret).join('***').slice(0, 300);
         try {
-            const outcome = await withTimeout(testConnection(creds));
+            const outcome = await withTestTimeout(testConnection(creds), TEST_TIMEOUT_MS);
             if (!outcome || !outcome.ok) return res.json({ ok: false, error: scrub(outcome && outcome.error) });
             return res.json({ ok: true, user: outcome.user });
         } catch {

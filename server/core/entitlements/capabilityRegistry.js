@@ -123,7 +123,8 @@ const INTEGRATION_CATALOG = [
     { id: 'vplan',            name: 'vPlan',                 description: 'Read vPlan planning, capacity and time tracking (read-only)', category: 'Productivity' },
     { id: 'firebird',         name: 'Firebird database',     description: 'Read a Firebird database (read-only)', category: 'Productivity' },
     { id: 'frappe-crm',       name: 'Frappe CRM',            description: 'Read and update leads, deals, contacts, tasks and notes', category: 'Productivity' },
-    { id: 'sanctions-lists',  name: 'Sanctions lists',       description: 'Screen names against the EU, UN, Dutch, OFAC and UK sanctions lists and check PEP functions (on this server)', category: 'Productivity' },
+    { id: 'twoba',            name: '2BA',                   description: 'Article data and net purchase prices from your 2BA condition files; upload condition files', category: 'Productivity' },
+    { id: 'sanctions-lists',  name: 'Sanctions lists',      description: 'Screen names against the EU, UN, Dutch, OFAC and UK sanctions lists and check PEP functions (on this server)', category: 'Productivity' },
     { id: 'scaleway-billing', name: 'Scaleway Billing',      description: 'Fetch Scaleway invoices as PDF for automations (read-only)', category: 'Productivity' },
     { id: 'youtrack',         name: 'YouTrack',              description: 'Issue tracking',                             category: 'Developer' },
     { id: 'github',           name: 'GitHub',                description: 'Repositories and code',           category: 'Developer' },
@@ -137,8 +138,7 @@ const INTEGRATION_CATALOG = [
 // intersected with this catalogue). These get defaultState:'on'; the rest require an explicit OAuth/credential anyway.
 const AUTO_ON_INTEGRATIONS = new Set([
     'agent-search', 'browser-fetch', 'image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'maps',
-    'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook',
-    'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'webpages',
+    'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'webpages',
 ]);
 
 // MCP servers are NOT a separate kind. Each installed MCP server is projected

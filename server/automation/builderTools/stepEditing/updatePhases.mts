@@ -296,6 +296,7 @@ const STRUCTURED_FIELDS: Record<string, string[]> = {
     flatten: FLATTEN_PLANNED_KEYS,
     read_table: ['source', 'ops'],
     table: ['source', 'ops'],
+    write_table: ['source'],
 };
 const MAP_FIELDS = ['inputs', 'fields', 'forEach'];
 

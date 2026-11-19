@@ -1,7 +1,8 @@
 // @typecheck
 /**
- * Field rules of the two table steps: read_table (open an uploaded spreadsheet
- * or CSV as tables) and table (edit a table without code).
+ * Field rules of the table steps: read_table (open an uploaded spreadsheet
+ * or CSV as tables), table (edit a table without code) and write_table (a
+ * table out as an .xlsx or .csv file).
  *
  * The rules themselves live in the shared specs under
  * core/automationModel/tableOps (the runner and the builder read the same
@@ -40,6 +41,16 @@ function checkReadTable(ctx, step, at) {
     if (step.type !== 'read_table') return;
     const { validateReadTableStep } = require('../../../core/automationModel/tableOps/readTableSpec');
     report(ctx, validateReadTableStep(step), at);
+}
+
+/**
+ * write_table: the counterpart of read_table, a table written out as a file.
+ * @param {string} at
+ */
+function checkWriteTable(ctx, step, at) {
+    if (step.type !== 'write_table') return;
+    const { validateWriteTableStep } = require('../../../core/automationModel/tableOps/writeTableSpec.mts');
+    report(ctx, validateWriteTableStep(step), at);
 }
 
 /**
@@ -104,7 +115,7 @@ function checkTable(ctx, step, at) {
     checkSaltDeclared(ctx, step, at);
 }
 
-module.exports = { checkReadTable, checkTable, checkSaltPlacement, checkSaltDeclared };
+module.exports = { checkReadTable, checkWriteTable, checkTable, checkSaltPlacement, checkSaltDeclared };
 
 /** @typedef {import('../../../core/automationModel/tableOps/readTableSpec').Finding} Finding */
 

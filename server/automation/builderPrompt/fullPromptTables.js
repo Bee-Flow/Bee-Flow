@@ -1,8 +1,8 @@
 // @typecheck strict
 'use strict';
 /**
- * The builder prompt's section on uploaded tables (the `read_table` and `table`
- * steps). Its own file so the workflow rules stay under the file budget; the
+ * The builder prompt's section on uploaded tables (the `read_table`, `table`
+ * and `write_table` steps). Its own file so the workflow rules stay under the file budget; the
  * full prompt (../builderPrompt.js) splices it in after the form rules.
  */
 
@@ -36,6 +36,12 @@ list of ops. Build both steps in one \`builder_add_steps\` batch.
   that segment's rows. Groups below \`minN\` never appear as segments.
 - **Keep \`datatable\` for small lookups** (a code book, a theme map). It is not the place for an
   uploaded dataset; \`join\` a lookup list onto a table with the \`join\` op instead.
+- **A Loop over a table**: a Loop's \`overRef\` may be \`steps.<id>.output.table\`; it gets the
+  table's rows, of any size, and with \`batchSize\` n rows per pass (one tool call per batch).
+- **A table back out as a file**: \`write_table\` writes a table (or a list of rows) as an .xlsx
+  or .csv file; \`columns\` picks, orders and renames the columns, and \`highlightColumn\` marks
+  the rows where that column is not empty (a flags column: the rows to check). Its
+  \`output.sourceHandle\` goes to a mail attachment or an upload like any generated file.
 - A wrong column name fails with the name of the op and field: read the error, fix that op.
 
 `;

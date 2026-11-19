@@ -42,7 +42,7 @@ const STEP_TYPES = new Set(REPLACEABLE_STEP_TYPES);
 
 /**
  * Step types whose builder tool is not simply `builder_add_<type>`.
- * `guard`, `tokenize`, `untokenize`, `read_table` and `table` have no add tool at all — they are made
+ * `guard`, `tokenize`, `untokenize`, `read_table`, `table` and `write_table` have no add tool at all — they are made
  * in a builder_add_steps batch — so they map to null and the caller falls back to
  * a generic hint.
  */
@@ -56,6 +56,7 @@ const TOOL_NAME_OVERRIDES = {
     // The table steps, likewise made in a builder_add_steps batch only.
     read_table: null,
     table: null,
+    write_table: null,
     // A building block (a published Step) as well: builder_add_steps {type:'call_block'}.
     call_block: null,
     // The query-log step is only a builder_add_steps entry as well.

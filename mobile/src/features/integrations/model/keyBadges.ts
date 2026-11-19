@@ -19,6 +19,7 @@ const NMBRS: Copy = { i18nKey: 'mobile.integrations.app_nmbrs', en: 'NMBRS' };
 const VPLAN: Copy = { i18nKey: 'mobile.integrations.app_vplan', en: 'vPlan' };
 const FIREBIRD: Copy = { i18nKey: 'mobile.integrations.app_firebird', en: 'Firebird database' };
 const FRAPPE_CRM: Copy = { i18nKey: 'mobile.integrations.app_frappe_crm', en: 'Frappe CRM' };
+const TWOBA: Copy = { i18nKey: 'mobile.integrations.app_twoba', en: '2BA' };
 const N8N: Copy = { i18nKey: 'mobile.integrations.app_n8n', en: 'n8n' };
 
 const badge = (copy: Copy, present: boolean) => ({ label: translate(copy.i18nKey, copy.en), present });
@@ -36,6 +37,7 @@ export function keyBadges(
         badge(VPLAN, Boolean(settings?.hasVplanConfig)),
         badge(FIREBIRD, Boolean(settings?.hasFirebirdConfig)),
         badge(FRAPPE_CRM, Boolean(settings?.hasFrappeCrmConfig)),
+        badge(TWOBA, Boolean(settings?.hasTwobaConfig)),
         badge(N8N, Boolean(settings?.hasN8nConfig)),
     ];
 }

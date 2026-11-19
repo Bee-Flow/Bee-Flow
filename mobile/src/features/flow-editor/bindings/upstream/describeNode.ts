@@ -21,7 +21,7 @@ import {
 } from './collectionSteps';
 import { describeApproval, describeCallLayer, describeCondition, describeSwitch, describeWait } from './controlFlowSteps';
 import { describeDatatable, describeKnowledgeWrite, describeReadTable, describeTable } from './dataSteps';
-import { describeFillDocument, describeGenerateDocument, describePresentation, describeSlide } from './documentSteps';
+import { describeFillDocument, describeGenerateDocument, describePresentation, describeSlide, describeWriteTable } from './documentSteps';
 import { describeFormPage } from './formAnswers';
 import { describeLoop, describeLoopItem } from './loops';
 import { describeTrigger } from './triggers';
@@ -71,6 +71,7 @@ const DESCRIBERS: Record<string, Describer> = {
     summarize: (n) => describeSummarize(n),
     read_table: (n) => describeReadTable(n),
     table: (n) => describeTable(n),
+    write_table: (n) => describeWriteTable(n),
     datatable: (n, c) => describeDatatable(n, c.catalog),
     knowledge_write: (n, c) => describeKnowledgeWrite(n, c.catalog),
 };

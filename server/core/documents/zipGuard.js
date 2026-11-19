@@ -220,13 +220,9 @@ function checkDeclaredSizes(entries, { maxTotalBytes, maxRatio, ratioFloorBytes 
  * @param {Record<string, string | undefined>} [env]
  */
 function officePackageLimits(env = process.env) {
+    const { envCap } = require('../../utils/envNumber.mts');
     /** @param {string} name @param {number} fallback */
-    const cap = (name, fallback) => {
-        const raw = env[name];
-        if (raw == null || raw === '') return fallback;
-        const n = Number(raw);
-        return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-    };
+    const cap = (name, fallback) => envCap(name, fallback, env);
     return {
         maxEntries: cap('OFFICE_PACKAGE_MAX_ENTRIES', 10_000),
         maxTotalBytes: cap('OFFICE_PACKAGE_MAX_INFLATED_BYTES', 256 * MIB),

@@ -81,3 +81,17 @@ export function envInt(name: string, defaultValue: number, bounds: EnvNumberBoun
 export function envNumber(name: string, defaultValue: number, bounds: EnvNumberBounds = {}): number {
     return read(name, defaultValue, bounds, false);
 }
+
+/**
+ * A cap (a whole number >= 0, where 0 usually means unlimited) from `env`:
+ * unset, empty or garbage gives `fallback`, a fraction is rounded down. Silent
+ * and read from the given environment, so a module can read its caps fresh on
+ * every call and a test can hand in its own (automationRunner/tables/limits.js,
+ * documents/zipGuard.js).
+ */
+export function envCap(name: string, fallback: number, env: Record<string, string | undefined> = process.env): number {
+    const raw = env[name];
+    if (raw == null || raw === '') return fallback;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}

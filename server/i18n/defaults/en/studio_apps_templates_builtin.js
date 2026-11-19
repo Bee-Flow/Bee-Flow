@@ -14,6 +14,8 @@ module.exports = {
     "studio_apps_templates_builtin.app_asset_inventory.title": "Asset inventory",
     "studio_apps_templates_builtin.app_bi_reports.description": "A self-service reporting workspace: a small relational warehouse your connectors fill, a report designer with a live preview, and a six-slot dashboard of the reports your team saves.",
     "studio_apps_templates_builtin.app_bi_reports.title": "BI reports",
+    "studio_apps_templates_builtin.app_bom_pricing.description": "Upload a bill of materials, pick the supplier and get the list back with net purchase prices from your 2BA condition files, line totals and the lines to check, as an Excel file. Every calculation records which condition file was in use.",
+    "studio_apps_templates_builtin.app_bom_pricing.title": "Bill of materials pricing",
     "studio_apps_templates_builtin.app_breach_register.description": "GDPR Articles 33 and 34 with the 72-hour clock on the front page: report a breach, assess the risk, notify the authority and the people affected in time, and keep the evidence that you did — including for the breaches you correctly decided not to notify.",
     "studio_apps_templates_builtin.app_breach_register.title": "Data breach register",
     "studio_apps_templates_builtin.app_crm_pipeline.description": "A sales pipeline over your own data: drag deals across stages on a kanban, filter by name, and drill into a deal. Ships with companies, contacts and deals.",

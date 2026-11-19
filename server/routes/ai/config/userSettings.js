@@ -146,8 +146,8 @@ const UserSettingsBody = z.object({
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
     vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
-    // Firebird database (read-only SQL) and Frappe CRM: the shapes live in firebirdFields.js and frappeCrmFields.mts, shared with their connection tests.
-    ...firebirdFields, ...frappeCrmFields,
+    // Firebird, Frappe CRM and 2BA: the shapes live in firebirdFields.js, frappeCrmFields.mts and twobaFields.mts, shared with their connection tests.
+    ...firebirdFields, ...frappeCrmFields, ...require('../../../usecases/ai/config/twobaFields.mts').twobaFields,
     // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
     // the organization id in a query string; both are UUIDs.
     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
@@ -324,7 +324,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
         hasFirebirdConfig: !!(await configStore.getSecret(`firebird_host_user_${userId}`)) && !!(await configStore.getSecret(`firebird_database_user_${userId}`))
             && !!(await configStore.getSecret(`firebird_user_user_${userId}`)) && !!(await configStore.getSecret(`firebird_password_user_${userId}`)),
-        hasFrappeCrmConfig: !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`)),
+        hasFrappeCrmConfig: !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`)), ...(await require('../../../core/integrations/twobaConfigured.mts').twobaStatus((/** @type {string} */ k) => configStore.getSecret(k), userId)),
         hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
         // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
         nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
