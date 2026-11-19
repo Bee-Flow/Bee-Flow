@@ -221,7 +221,8 @@ export const AppExemptionsSchema = z.record(
     z.array(z.string({ error: EXEMPTIONS_TEXT }), { error: EXEMPTIONS_TEXT })
         .max(MAX_EXEMPT_CATEGORIES_PER_APP, `An app exception names at most ${MAX_EXEMPT_CATEGORIES_PER_APP} kinds of data.`),
     { error: EXEMPTIONS_TEXT },
-).superRefine((value, ctx) => {
+// Typed by hand: agent-hub's typecheck reaches this file without server/node_modules, where zod's own types are absent.
+).superRefine((value: Record<string, string[]>, ctx: { addIssue: (issue: { code: 'custom'; message: string; path?: (string | number)[] }) => void }) => {
     const appIds = Object.keys(value);
     if (appIds.length > MAX_EXEMPT_APPS_PER_CLASS) {
         ctx.addIssue({ code: 'custom', message: `appExemptions holds at most ${MAX_EXEMPT_APPS_PER_CLASS} apps per tool class.` });
