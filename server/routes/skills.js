@@ -18,6 +18,11 @@
  *   POST /:id/test       { agentId?, question } → SSE   — one sandboxed turn,
  *                        graded per step, one `skill_test_runs` row
  *
+ * ── The Skill store (2026-11) ───────────────────────────────────────
+ *   GET  /store-stats    { stats: { [skillId]: { uses, lastUsedByMeAt } } }
+ *   POST /:id/copy       { name? } → 201 the caller's private copy of a visible skill
+ *   POST / and PUT /:id accept `agentOnly` (boolean) and `category` (text or null)
+ *
  *   POST / and PUT /:id accept the structured fields next to the text ones:
  *     steps, rulesV2, examplesV2, outputSchema, knowledgeBaseIds, allowedAutomationIds
  *     (precedence rule in stores/skillStore.js; a string in a structured field → 400 `invalid_structure`)
@@ -80,80 +85,12 @@ const { requirePermission, validateSharedGroupsForOrg, requireActiveOrgForMutati
 const { sanitizeEnabledIntegrations } = require('../core/tools/skillInjection');
 const { SkillStructureError } = require('../core/skills/skillStructure');
 const { validate } = require('../core/http/validate');
-const { z, typeError } = require('../utils/zod');
-const { worded, orEmpty } = require('../core/http/schemaParts');
 
-// ── What a caller may send ──────────────────────────────────────────
-
-const NoQuery = orEmpty(z.object({}).strict());
-
-const NAME_TEXT = 'A skill needs a name.';
-const GROUP_TEXT = 'Each shared group is the id of a group.';
-const INTEGRATION_TEXT = 'Each enabled integration is the id of an app.';
-const skillName = worded(NAME_TEXT).trim().min(1, NAME_TEXT);
-
-/** The writable fields of a skill, shared by POST / and PUT /:id. All optional here. */
-const SKILL_FIELDS = {
-    description: worded('A description must be text.'),
-    // Checked untrimmed, as it always was: the editor caps at exactly 4000
-    // (SkillDetail's INSTRUCTION_LIMIT), and the two limits must be one limit.
-    instructions: worded('Instructions must be text.').max(4000, 'Instructions too long (max 4000 characters)'),
-    workflow: worded('The workflow must be text.'),
-    rules: worded('The rules must be text.'),
-    examples: worded('The examples must be text.'),
-    icon: worded('An icon must be text.'),
-    isShared: z.boolean({ error: typeError({ invalid: 'isShared is true or false.' }) }),
-    dynamicActivation: z.boolean({ error: typeError({ invalid: 'dynamicActivation is true or false.' }) }),
-    // `[]` is "the whole organisation" (with isShared); a blank entry is
-    // refused rather than dropped, because dropping the only one is `[]` too.
-    // null leaves the groups as they are.
-    sharedGroups: z.array(worded(GROUP_TEXT).trim().min(1, GROUP_TEXT),
-        { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) }).nullable(),
-    automationId: worded('automationId is the id of an automation, or null for none.').nullable(),
-    // Not narrowed to KNOWN apps: a stored skill may carry one that has since
-    // left the registry, and the autosave resends the whole list every time.
-    // The sanitiser drops those, as before; the schema refuses the wrong shape.
-    enabledIntegrations: z.array(worded(INTEGRATION_TEXT),
-        { error: typeError({ invalid: 'enabledIntegrations is a list of app ids.' }) }).nullable(),
-    steps: z.unknown().optional(),
-    rulesV2: z.unknown().optional(),
-    examplesV2: z.unknown().optional(),
-    outputSchema: z.unknown().optional(),
-    knowledgeBaseIds: z.unknown().optional(),
-    allowedAutomationIds: z.unknown().optional(),
-};
-const optionalFields = Object.fromEntries(Object.entries(SKILL_FIELDS).map(([k, s]) => [k, s.optional()]));
-
-const CreateSkillBody = orEmpty(z.object({ name: skillName, ...optionalFields }).strict());
-const UpdateSkillBody = orEmpty(z.object({ name: skillName.optional(), ...optionalFields }).strict());
-
-const CONFIRM_TEXT = 'confirmBreaking is true once the list of what breaks has been seen.';
-const DeleteBody = orEmpty(z.object({
-    confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional(),
-}).strict());
-const DeleteQuery = orEmpty(z.object({
-    confirmBreaking: z.enum(['true', 'false'], { error: () => CONFIRM_TEXT }).optional(),
-}).strict());
-
-// The bodies of the handlers in ./skills/*.js. Types and keys only: a blank
-// sentence or question is the handler's refusal, with its own code.
-const DraftBody = orEmpty(z.object({
-    sentence: worded('The sentence must be text.').optional(),
-}).strict());
-const ImproveBody = orEmpty(z.object({
-    note: worded('The note must be text.').optional(),
-}).strict());
-const TestBody = orEmpty(z.object({
-    agentId: worded('agentId is the id of an agent, or null to test without one.').nullable().optional(),
-    question: worded('The question must be text.').optional(),
-}).strict());
-const MESSAGE_TEXT = 'messageIndex is the position of the message in the conversation, from 0.';
-const CONVERSATION_TEXT = 'conversationId is the id of one of your conversations.';
-const FromMessageBody = orEmpty(z.object({
-    conversationId: worded(CONVERSATION_TEXT).trim().min(1, CONVERSATION_TEXT),
-    messageIndex: z.number({ error: MESSAGE_TEXT }).int(MESSAGE_TEXT).min(0, MESSAGE_TEXT),
-    question: worded('The question must be text.').optional(),
-}).strict());
+// What a caller may send (every body and query `.strict()`, see the header): ./skills/skillSchemas.mts.
+const {
+    NoQuery, CreateSkillBody, UpdateSkillBody, CopyBody, DeleteBody, DeleteQuery,
+    DraftBody, ImproveBody, TestBody, FromMessageBody,
+} = require('./skills/skillSchemas.mts');
 
 // Block all writes when the caller's org is suspended/archived.
 router.use(requireActiveOrgForMutations());
@@ -265,6 +202,17 @@ router.get('/usage-summary', validate({ query: NoQuery }), async (req, res) => {
     res.json({ summary });
 });
 
+// ── GET /api/skills/store-stats — the Skill store's sort keys (before /:id) ──
+// `{ stats: { [skillId]: { uses, lastUsedByMeAt } } }` for the skills the
+// caller can see: how often a skill was used (Popular) and when THIS account
+// last used it (Recently used). Nobody else's use time leaves the server.
+router.get('/store-stats', validate({ query: NoQuery }), async (req, res) => {
+    const orgId = await getOrgId(req);
+    const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id);
+    const stats = await skillStore.getStoreStats(skills.map(s => s.id), req.session.user.id);
+    res.json({ stats });
+});
+
 // ── POST /api/skills — create a new skill ────────────────────
 router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkillBody }), async (req, res) => {
     try {
@@ -275,7 +223,7 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
 
         // The schema has refused a blank name and instructions over 4000
         // characters (the cap that keeps the system prompt bounded).
-        const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations } = /** @type {Record<string, any>} */ (req.body);
+        const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations, agentOnly, category } = /** @type {Record<string, any>} */ (req.body);
 
         const cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
         await require('../usecases/skills/automationLink').assertMayLinkAutomation(automationId, req.session.user.id);
@@ -294,6 +242,8 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
             sharedGroups: cleanedGroups || [],
             automationId: automationId || null,
             enabledIntegrations: sanitizeEnabledIntegrations(enabledIntegrations),
+            agentOnly,
+            category,
             ...pickStructured(req.body),
         });
         res.status(201).json({ ...skill, canEdit: true });
@@ -400,12 +350,47 @@ router.post('/:id/ai/improve', requirePermission('manage_skills'), validate({ bo
 // The body is checked before the stream opens, so a refusal is still JSON.
 router.post('/:id/test', requirePermission('manage_skills'), validate({ body: TestBody }), testLimit, /** @param {import('express').Request<{ id: string }>} req */ (req, res) => tests().run(req, res));
 
+// ── POST /api/skills/:id/copy — your own copy of a skill you can see ──
+// The Skill store's "Make a copy": change it without changing the original.
+// No new right: what the caller can SEE (getSkill's visibility) is what it may
+// copy, and creating a skill is `manage_skills`, the gate of POST /. The copy
+// is the caller's, private, in the caller's organisation and in no project; a
+// link to an automation the caller may not start is left off rather than
+// refused, the same rule POST / applies (usecases/skills/automationLink).
+router.post('/:id/copy', requirePermission('manage_skills'), validate({ body: CopyBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+    const orgId = await getOrgId(req);
+    const userId = req.session.user.id;
+    const source = await skillStore.getSkill(req.params.id, orgId, userId);
+    if (!source) return res.status(404).json({ error: 'Skill not found' });
+    let automationId = source.automationId || null;
+    try {
+        await require('../usecases/skills/automationLink').assertMayLinkAutomation(automationId, userId);
+    } catch (_) {
+        automationId = null;
+    }
+    const name = String(req.body?.name || '').trim() || source.name;
+    const copy = await skillStore.createSkill({
+        orgId, userId, name,
+        description: source.description, instructions: source.instructions,
+        workflow: source.workflow, rules: source.rules, examples: source.examples,
+        icon: source.icon, isShared: false, sharedGroups: [],
+        dynamicActivation: source.dynamicActivation === true,
+        agentOnly: source.agentOnly === true, category: source.category ?? null,
+        automationId,
+        enabledIntegrations: sanitizeEnabledIntegrations(source.enabledIntegrations),
+        steps: source.steps, rulesV2: source.rulesV2, examplesV2: source.examplesV2,
+        outputSchema: source.outputSchema, knowledgeBaseIds: source.knowledgeBaseIds,
+        allowedAutomationIds: source.allowedAutomationIds,
+    });
+    res.status(201).json({ ...copy, canEdit: true });
+});
+
 // ── PUT /api/skills/:id — update a skill ─────────────────────
 router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSkillBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     try {
         // Instructions over 4000 characters are the schema's refusal, before
         // anything is read or written.
-        const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations } = req.body;
+        const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations, agentOnly, category } = req.body;
 
         // Owner OR manage_skills in the skill's own org (the design's "a
         // change here applies everywhere at once"). The middleware proved
@@ -423,6 +408,7 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
         const cleanedGroups = sharedGroups !== undefined ? await validateSharedGroupsForOrg(orgId, sharedGroups) : undefined;
         const updated = await skillStore.updateSkill(req.params.id, req.session.user.id, {
             name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation,
+            agentOnly, category,
             sharedGroups: cleanedGroups,
             automationId,
             // undefined = leave as-is (same semantics as sharedGroups)

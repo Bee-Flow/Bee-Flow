@@ -182,33 +182,67 @@ export function SkillUsageTab({ name, usage, usageError, uncheckedKinds, current
                     : t('skills_studio.usage.empty', 'No agent or automation uses this skill yet.')}
             />
             {canDelete && (
-                <DangerZone
-                    entityName={name}
-                    // `usageError ? [] : usage`, NOT `knownUsage`.
-                    // The two "not known" cases want opposite
-                    // answers here: a read still in flight keeps the
-                    // spinner (null), a read that FAILED must not
-                    // spin forever over an answer that is never
-                    // coming — it is an empty list with every kind
-                    // unchecked, which is what makes the card print
-                    // the narrow line instead of "can be deleted
-                    // without breaking anything else".
-                    usage={usageError ? [] : usage}
-                    // The SAME list the tab two elements up shows.
-                    // Withholding it here was the whole gap: the tab
-                    // said "Could not be checked: automations" and
-                    // the card directly under it offered the delete
-                    // as safe.
-                    unchecked={uncheckedKinds}
-                    onDelete={onDelete}
-                    kindLabel={t('skills_studio.kind', 'skill')}
+                <SkillDangerZone
+                    name={name}
+                    usage={usage}
+                    usageError={usageError}
+                    uncheckedKinds={uncheckedKinds}
                     currentUserId={currentUserId}
                     onNavigate={onNavigate}
-                    openLabel={t('skills_studio.delete_title', 'Delete skill')}
-                    requireName
-                    notice={t('skills_studio.delete_notice', 'Agents that attach this skill lose the behaviour immediately.')}
+                    onDelete={onDelete}
                 />
             )}
         </div>
+    );
+}
+
+export interface SkillDangerZoneProps {
+    name: string;
+    usage: UsageRow[] | null;
+    usageError: string | null;
+    uncheckedKinds: readonly string[];
+    currentUserId: string | null;
+    onNavigate: ((to: string) => void) | null;
+    onDelete: (confirmBreaking: boolean) => Promise<void>;
+    /** In SkillDeleteDialog: open on the armed card, and Cancel closes the dialog. */
+    onCancel?: (() => void) | null;
+}
+
+/**
+ * The skill's delete card: under the Used-by tab, and inside SkillDeleteDialog
+ * (the header's and the list row's ⋯ menu). One component, so both confirm
+ * against the same list and the server's 409 `in_use` stays the authority.
+ */
+export function SkillDangerZone({ name, usage, usageError, uncheckedKinds, currentUserId, onNavigate, onDelete, onCancel = null }: SkillDangerZoneProps) {
+    const { t } = useTranslation();
+    const inDialog = typeof onCancel === 'function';
+    return (
+        <DangerZone
+            entityName={name}
+            // `usageError ? [] : usage`, NOT `knownUsage`.
+            // The two "not known" cases want opposite
+            // answers here: a read still in flight keeps the
+            // spinner (null), a read that FAILED must not
+            // spin forever over an answer that is never
+            // coming — it is an empty list with every kind
+            // unchecked, which is what makes the card print
+            // the narrow line instead of "can be deleted
+            // without breaking anything else".
+            usage={usageError ? [] : usage}
+            // The SAME list the tab shows. Withholding it here was the
+            // whole gap: the tab said "Could not be checked: automations"
+            // and the card offered the delete as safe.
+            unchecked={uncheckedKinds}
+            onDelete={onDelete}
+            onCancel={onCancel}
+            defaultArmed={inDialog}
+            className={inDialog ? 'mt-0 pt-0 border-t-0' : ''}
+            kindLabel={t('skills_studio.kind', 'skill')}
+            currentUserId={currentUserId}
+            onNavigate={onNavigate}
+            openLabel={t('skills_studio.delete_title', 'Delete skill')}
+            requireName
+            notice={t('skills_studio.delete_notice', 'Agents that attach this skill lose the behaviour immediately.')}
+        />
     );
 }

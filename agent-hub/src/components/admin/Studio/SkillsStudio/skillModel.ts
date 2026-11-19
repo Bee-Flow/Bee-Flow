@@ -257,7 +257,10 @@ export function sortSkills(skills: Skill[] | null | undefined, mode: string, sum
  * step id (skillStructure.resolveBodyWrite). The six text fields mobile
  * sends stay valid — this client simply is not one of them.
  */
-export function buildSavePayload(draft: SkillDraft): SkillDraft {
+/** What PUT /api/skills/:id is sent: the draft, with a blank category as null (none). */
+export type SkillSavePayload = Omit<SkillDraft, 'category'> & { category: string | null };
+
+export function buildSavePayload(draft: SkillDraft): SkillSavePayload {
     return {
         name: draft.name,
         description: draft.description,
@@ -265,6 +268,8 @@ export function buildSavePayload(draft: SkillDraft): SkillDraft {
         icon: draft.icon,
         isShared: draft.isShared,
         dynamicActivation: draft.dynamicActivation,
+        agentOnly: draft.agentOnly === true,
+        category: String(draft.category || '').trim() || null,
         sharedGroups: draft.sharedGroups,
         enabledIntegrations: draft.enabledIntegrations,
         steps: draft.steps,
@@ -273,6 +278,14 @@ export function buildSavePayload(draft: SkillDraft): SkillDraft {
         outputSchema: draft.outputSchema,
         knowledgeBaseIds: draft.knowledgeBaseIds,
         allowedAutomationIds: draft.allowedAutomationIds,
+    };
+}
+
+/** "Only through agents" and the category, as the editor holds them ('' = no category). */
+function accessOf(skill: Skill | null | undefined): Pick<SkillDraft, 'agentOnly' | 'category'> {
+    return {
+        agentOnly: skill?.agentOnly === true,
+        category: typeof skill?.category === 'string' ? skill.category : '',
     };
 }
 
@@ -285,6 +298,7 @@ export function draftOf(skill: Skill | null | undefined): SkillDraft {
         icon: skill?.icon || '⚡',
         isShared: !!skill?.isShared,
         dynamicActivation: !!skill?.dynamicActivation,
+        ...accessOf(skill),
         sharedGroups: idsOf(skill, 'sharedGroups'),
         enabledIntegrations: idsOf(skill, 'enabledIntegrations'),
         steps: stepsOf(skill),

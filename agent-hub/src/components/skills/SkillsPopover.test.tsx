@@ -384,3 +384,23 @@ describe('SkillsPopover — keyboard and accessible names', () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
+
+describe('SkillsPopover — a skill kept for agents is not offered on its own', () => {
+  beforeEach(reset);
+
+  it('hides an agent-only skill in a plain chat, shows it where the agent attaches it', () => {
+    skillsState.current = {
+      skills: [
+        { id: 'open', name: 'Open skill', description: '' },
+        { id: 'kept', name: 'Agent skill', description: '', agentOnly: true },
+      ],
+      loading: false,
+    };
+    renderPopover();
+    expect(screen.getByText('Open skill')).toBeTruthy();
+    expect(screen.queryByText('Agent skill')).toBeNull();
+    cleanup();
+    renderPopover({ attachedSkillIds: ['kept'] });
+    expect(screen.getByText('Agent skill')).toBeTruthy();
+  });
+});

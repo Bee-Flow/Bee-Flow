@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1923 operations. */
+/** 1925 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -4787,8 +4787,10 @@ export interface ApiOperations {
     'GET /api/session-token': Op;
     'GET /api/skills': Op;
     'POST /api/skills': Op<NoParams, UndeclaredQuery, {
+        agentOnly?: boolean;
         allowedAutomationIds?: unknown;
         automationId?: string | null;
+        category?: string | null;
         description?: string;
         dynamicActivation?: boolean;
         enabledIntegrations?: Array<string> | null;
@@ -4811,12 +4813,15 @@ export interface ApiOperations {
     }>;
     'GET /api/skills/examples/conversations': Op;
     'GET /api/skills/examples/conversations/{conversationId}/messages': Op<{ conversationId: string | number }>;
+    'GET /api/skills/store-stats': Op;
     'GET /api/skills/test-agents': Op;
     'GET /api/skills/usage-summary': Op;
     'GET /api/skills/{id}': Op<{ id: string | number }>;
     'PUT /api/skills/{id}': Op<{ id: string | number }, UndeclaredQuery, {
+        agentOnly?: boolean;
         allowedAutomationIds?: unknown;
         automationId?: string | null;
+        category?: string | null;
         description?: string;
         dynamicActivation?: boolean;
         enabledIntegrations?: Array<string> | null;
@@ -4841,6 +4846,9 @@ export interface ApiOperations {
     }>;
     'POST /api/skills/{id}/ai/improve': Op<{ id: string | number }, UndeclaredQuery, {
         note?: string;
+    }>;
+    'POST /api/skills/{id}/copy': Op<{ id: string | number }, UndeclaredQuery, {
+        name?: string;
     }>;
     'POST /api/skills/{id}/examples/from-message': Op<{ id: string | number }, UndeclaredQuery, {
         conversationId: string;

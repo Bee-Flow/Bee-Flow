@@ -173,7 +173,7 @@ async function groundAiStepWithKB(step, ctx, query, _mode, kbIds = null, deps) {
 async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null, deps) {
     const empty = { systemPromptAddendum: '', tools: [], startsAutomations: false };
     const { skillIdsForStep } = deps.aiStepAgent();
-    const { attachedSkillIds, sessionSkillIds } = skillIdsForStep(step, binding);
+    const { attachedSkillIds, sessionSkillIds, agentSkillIds } = skillIdsForStep(step, binding);
     if (!attachedSkillIds.length && !sessionSkillIds.length) return empty;
     if (!ctx.orgId) {
         log.warn(`[AutomationRunner] ai_step ${step.id}: skills skipped — this run has no organisation context`);
@@ -184,6 +184,8 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
         const injection = await buildSkillInjection({
             attachedSkillIds,
             sessionSkillIds,
+            // The ids the bound agent brings in: an agent-only skill counts only there.
+            agentSkillIds,
             orgId: ctx.orgId,
             // De VRAGER is de automation-eigenaar: een persoonlijke skill van de
             // agent-eigenaar valt daarmee vanzelf weg (stores/skillStore.js).

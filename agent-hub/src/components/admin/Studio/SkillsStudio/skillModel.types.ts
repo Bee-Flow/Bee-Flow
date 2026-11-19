@@ -44,12 +44,18 @@ export interface LastTest { status?: string | null; adviceCount?: number | strin
 
 export interface Skill {
     id: string;
+    /** The owner: the one (with an admin) who may delete it (server/stores/skillStore.js deleteSkill). */
+    userId?: string;
     name?: string;
     description?: string;
     instructions?: string;
     icon?: string;
     isShared?: boolean;
     dynamicActivation?: boolean;
+    /** Used only through agents (server/core/skills/agentOnlySkills.mts). */
+    agentOnly?: boolean;
+    /** The owner's free-text category; null or absent = none. */
+    category?: string | null;
     sharedGroups?: string[] | null;
     enabledIntegrations?: string[] | null;
     steps?: (RawStep | null)[] | null;
@@ -83,6 +89,9 @@ export interface SkillDraft {
     icon: string;
     isShared: boolean;
     dynamicActivation: boolean;
+    agentOnly: boolean;
+    /** '' = no category in the editor; the save sends null for it. */
+    category: string;
     sharedGroups: string[];
     enabledIntegrations: string[];
     steps: Step[];

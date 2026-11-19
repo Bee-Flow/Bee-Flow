@@ -5,6 +5,8 @@ import { lazy } from '../utils/lazyWithReload';
 // loading saves ~1.2 MB off the initial bundle.
 export const AgentDesignerPanel = lazy(() => import('../components/agents/AgentDesignerPanel'));
 export const AgentMarketplace = lazy(() => import('../components/agents/AgentMarketplace'));
+// The Skill store, the second shelf of the store the sidebar's "Agents" item opens.
+export const SkillStore = lazy(() => import('../components/skills/store/SkillStore'));
 export const MemoryPanel = lazy(() => import('../components/knowledge/memory/MemoryPanel'));
 export const AdvancedSettings = lazy(() => import('../pages/AdvancedSettings'));
 export const AgentStudio = lazy(() => import('../components/agents/AgentStudio/index'));

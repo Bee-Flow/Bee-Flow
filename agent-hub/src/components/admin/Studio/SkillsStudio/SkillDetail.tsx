@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import useUsage from '@/hooks/useUsage';
 import SaveStatus from '@/components/shared/SaveStatus';
@@ -9,6 +10,7 @@ import TestTab from './TestTab';
 import { draftOf } from './skillModel';
 import { skillsApi } from '@/api/skillsApi';
 import useSkillPickerData, { refOptionsOf } from './useSkillPickerData';
+import SkillActionsMenu from './SkillActionsMenu';
 import { ImproveButton, ReadOnlyNote, SkillCapsule, SkillUsageTab, refOpener, skillTabs, usageReading } from './SkillDetailParts';
 import { MethodTab } from './SkillMethodTab';
 import { useSkillAutosave } from './useSkillAutosave';
@@ -23,6 +25,8 @@ export default function SkillDetail({
     onSaved,
     onDeleted,
     onNavigate = null,
+    categorySuggestions = [],
+    onRequestDelete = null,
 }: SkillDetailProps) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(() => draftOf(skill));
@@ -142,7 +146,13 @@ export default function SkillDetail({
                         patch={patch}
                     />
                 )}
-                primary={readOnly ? null : <ImproveButton improving={improving} onImprove={improve} />}
+                primary={(
+                    <HeaderActions
+                        name={draft.name}
+                        improve={readOnly ? null : <ImproveButton improving={improving} onImprove={improve} />}
+                        onRequestDelete={onRequestDelete}
+                    />
+                )}
             />
 
             <div className="flex-1 min-h-0 overflow-y-auto px-7 py-6" onBlur={flushNow}>
@@ -161,6 +171,7 @@ export default function SkillDetail({
                         legacyAutomationId={skill.automationId || null}
                         usage={knownUsage}
                         unchecked={uncheckedKinds}
+                        categorySuggestions={categorySuggestions}
                         t={t}
                     />
                 )}
@@ -193,5 +204,16 @@ export default function SkillDetail({
                 )}
             </div>
         </div>
+    );
+}
+
+/** "Improve with AI" and, for whoever may delete the skill, the ⋯ menu beside it. */
+function HeaderActions({ name, improve, onRequestDelete }: { name: string; improve: ReactNode; onRequestDelete: (() => void) | null }) {
+    if (!improve && !onRequestDelete) return null;
+    return (
+        <span className="inline-flex items-center gap-1.5">
+            {improve}
+            {onRequestDelete && <SkillActionsMenu name={name} onDelete={onRequestDelete} testid="skill-header-actions" />}
+        </span>
     );
 }

@@ -2969,8 +2969,10 @@ declare namespace DbRow {
     }
     /** Row of `skills`. */
     interface Skills {
+        agent_only: boolean;
         allowed_automation_ids: Json;
         automation_id: string | null;
+        category: string | null;
         created_at: Date;
         description: string | null;
         dynamic_activation: boolean | null;

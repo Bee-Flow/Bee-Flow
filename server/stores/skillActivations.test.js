@@ -137,3 +137,14 @@ test('getLastActivationByAgent answers per agent for one skill', async () => {
     assert.deepStrictEqual(await store.getLastActivationByAgent('s1', []), {});
     assert.deepStrictEqual(await store.getLastActivationByAgent(null, ['a1']), {});
 });
+
+test('getStoreStats: uses per skill (test runs left out) and when THIS user last used it', async () => {
+    await pg.query(`INSERT INTO skill_activations (skill_id, agent_id, conversation_id, user_id, source, at) VALUES
+        ('s1', 'a1', 'c1', 'me', 'static', '2026-09-01T10:00:00Z'), ('s1', 'a2', 'c2', 'other', 'activate_skill', '2026-09-05T10:00:00Z'),
+        ('s1', '', 'c3', 'me', 'test', '2026-09-09T10:00:00Z'), ('s2', '', 'c4', 'other', 'ai_step', '2026-07-01T10:00:00Z')`);
+    assert.deepStrictEqual(await store.getStoreStats(['s1', 's2', 's9'], 'me'), {
+        s1: { uses: 2, lastUsedByMeAt: '2026-09-01T10:00:00.000Z' },
+        s2: { uses: 1, lastUsedByMeAt: null },
+    });
+    assert.deepStrictEqual(await store.getStoreStats([], 'me'), {});
+});

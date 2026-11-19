@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/skills`
 
-15 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
+17 routes, 17 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -36,6 +36,8 @@ toc_max_heading_level: 2
 | `icon` | string |  |  |
 | `isShared` | boolean |  |  |
 | `dynamicActivation` | boolean |  |  |
+| `agentOnly` | boolean |  |  |
+| `category` | string or null |  |  |
 | `sharedGroups` | array of string or null |  |  |
 | `automationId` | string or null |  |  |
 | `enabledIntegrations` | array of string or null |  |  |
@@ -69,6 +71,8 @@ toc_max_heading_level: 2
 | `icon` | string |  |  |
 | `isShared` | boolean |  |  |
 | `dynamicActivation` | boolean |  |  |
+| `agentOnly` | boolean |  |  |
+| `category` | string or null |  |  |
 | `sharedGroups` | array of string or null |  |  |
 | `automationId` | string or null |  |  |
 | `enabledIntegrations` | array of string or null |  |  |
@@ -104,6 +108,16 @@ toc_max_heading_level: 2
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `note` | string |  |  |
+
+### `POST /api/skills/:id/copy`
+
+**Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string |  |  |
 
 ### `POST /api/skills/:id/examples/from-message`
 
@@ -163,6 +177,14 @@ toc_max_heading_level: 2
 ### `GET /api/skills/examples/conversations/:conversationId/messages`
 
 **Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
+## `store-stats`
+
+### `GET /api/skills/store-stats`
+
+**Access:** Signed-in user · Capability `skills` · middleware `trainingGate`
 
 **Query:** object (no other keys)
 

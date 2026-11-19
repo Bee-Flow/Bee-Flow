@@ -125,3 +125,20 @@ describe('SkillCard — every visible word goes through a key', () => {
     expect(document.body.textContent).not.toMatch(/\b(skills|common)\.[a-z_]+\b/);
   });
 });
+
+describe('SkillCard — room for the Skill store', () => {
+  beforeEach(() => { cleanup(); transOverride.current = null; });
+
+  it('renders extra badges and actions next to its own, without owner controls', () => {
+    render(
+      <SkillCard
+        skill={SKILL}
+        badges={<span>only through agents</span>}
+        actions={<button type="button">Make a copy</button>}
+      />,
+    );
+    expect(screen.getByText('only through agents')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Make a copy' })).toBeTruthy();
+    expect(screen.queryByTitle('Edit skill')).toBeNull();
+  });
+});
