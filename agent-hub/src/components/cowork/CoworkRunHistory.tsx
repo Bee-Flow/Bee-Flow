@@ -76,6 +76,17 @@ function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrPara
     return firstMeaningfulLine(run.result) || t('cowork.history.no_output', 'No output recorded');
 }
 
+/**
+ * Who or what started the run, for the opened row. 'mail' is what the server
+ * writes for a run a new message started (coworkTriggerStore.claimEventRun);
+ * every value other than 'manual' and 'mail' keeps reading as the schedule.
+ */
+function startedByLine(triggerKind: string | undefined, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+    if (triggerKind === 'manual') return t('cowork.history.started_by_you', 'Started by you');
+    if (triggerKind === 'mail') return t('cowork.history.started_by_mail', 'Started by a new e-mail');
+    return t('cowork.history.started_on_schedule', 'Started on schedule');
+}
+
 function RunRow({ run }: { run: CoworkRun }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -128,9 +139,7 @@ function RunRow({ run }: { run: CoworkRun }) {
                         It is the one fact that is about the RUN rather than
                         about the work, and the row had four of those already. */}
                     <p className="text-[11px] pb-2 text-[var(--text-tertiary)]">
-                        {run.triggerKind === 'manual'
-                            ? t('cowork.history.started_by_you', 'Started by you')
-                            : t('cowork.history.started_on_schedule', 'Started on schedule')}
+                        {startedByLine(run.triggerKind, t)}
                     </p>
                     {/* A result is model output, so it arrives as Markdown —
                         headings, bullets, tables, bold. Printed raw it was a

@@ -246,6 +246,17 @@ describe('CoworkRunHistory — what one row says while it is closed', () => {
         for (const row of rows) expect(body(row)).toHaveTextContent('Started on schedule');
     });
 
+    it('says a run started by a new e-mail was started by that e-mail, not by the schedule', async () => {
+        // The server writes trigger_kind = 'mail' for a run a new message
+        // started (coworkTriggerStore.claimEventRun). That run never had a
+        // schedule, so "Started on schedule" was simply untrue.
+        await renderHistory([run({ triggerKind: 'mail' })]);
+        const row = screen.getByTestId('cowork-run');
+        await expand(row);
+        expect(body(row)).toHaveTextContent('Started by a new e-mail');
+        expect(body(row)).not.toHaveTextContent('Started on schedule');
+    });
+
     it('leaves the duration column blank when there is none, and prints a zero one', async () => {
         await renderHistory([
             run({ id: 'a', durationMs: null }),

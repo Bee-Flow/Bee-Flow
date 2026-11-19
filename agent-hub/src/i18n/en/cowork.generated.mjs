@@ -76,6 +76,7 @@ export default {
     "cowork.history.loading": "Loading history…",
     "cowork.history.no_output": "No output recorded",
     "cowork.history.nothing_to_report": "Nothing to report",
+    "cowork.history.started_by_mail": "Started by a new e-mail",
     "cowork.history.started_by_you": "Started by you",
     "cowork.history.started_on_schedule": "Started on schedule",
     "cowork.history.still_running": "Still running…",
