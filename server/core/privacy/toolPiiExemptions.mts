@@ -294,6 +294,25 @@ export function withAppExemptionsForSave(policy: Record<ToolClass, SavedClass>, 
     return policy;
 }
 
+type SentToolPolicy = Record<string, { blockCategories?: unknown; appExemptions?: unknown } | null | undefined> | null | undefined;
+
+/**
+ * The tool policy a save stores: per class the built-in kinds (capped at 40) then the org's own types,
+ * then the per-app exceptions via withAppExemptionsForSave. `builtInPart` is the route's filter of built-in keys.
+ */
+export function toolPolicyForSave(
+    sent: SentToolPolicy,
+    custom: { lists: Record<ToolClass, string[]>; customDataTypes: Array<{ id: string }> },
+    storedPolicy: PolicyIn,
+    builtInPart: (list: unknown, max?: number) => string[],
+): Record<ToolClass, SavedClass> {
+    const policy = {
+        external: { blockCategories: [...builtInPart(sent?.external?.blockCategories, 40), ...custom.lists.external] },
+        internal: { blockCategories: [...builtInPart(sent?.internal?.blockCategories, 40), ...custom.lists.internal] },
+    };
+    return withAppExemptionsForSave(policy, sent, storedPolicy, new Set(custom.customDataTypes.map(t => t.id)));
+}
+
 /**
  * One audit line per app whose exceptions changed: org, admin, class, app id
  * and category keys. No personal data: a key names a kind of data, and an own
