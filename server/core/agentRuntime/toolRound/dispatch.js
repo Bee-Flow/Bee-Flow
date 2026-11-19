@@ -187,6 +187,8 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
         // The mail that started this run (core/cowork/mailTriggerRun.mts), set by the server only: the
         // reply-in-thread tools read the thread they may answer in from here, never from their arguments.
         mailTrigger: messageMetadata.mailTrigger || null,
+        // A Cowork run (core/cowork/runActivity.mts), set by the server only: the review tool writes its request here.
+        coworkRun: messageMetadata.coworkRun || null,
         fixedParams: fixedParams,
         agentId: agent.id,
         // This path holds a call on 'ask' until the

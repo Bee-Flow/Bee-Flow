@@ -257,6 +257,25 @@ describe('CoworkRunHistory — what one row says while it is closed', () => {
         expect(body(row)).not.toHaveTextContent('Started on schedule');
     });
 
+    it('a run that waits for review says so on its closed line; a follow-up says it continued after an answer', async () => {
+        await renderHistory([
+            run({ id: 'w', status: 'needs_review', result: 'I stopped.', review: { reason: 'No price agreed.', question: null, summary: null, resolution: null, resolvedBy: null, resolvedAt: null } }),
+            run({ id: 'f', triggerKind: 'review' }),
+        ]);
+        const [waiting, followUp] = screen.getAllByTestId('cowork-run');
+        expect(waiting).toHaveTextContent('Waiting for your review: No price agreed.');
+        await expand(followUp);
+        expect(body(followUp)).toHaveTextContent('Continued after your answer to a review');
+    });
+
+    it('an opened run shows what it used, with a refused call and its reason', async () => {
+        await renderHistory([run({ activity: { tools: [{ name: 'outlook_create_draft', app: 'outlook', ok: 0, failed: 0, refused: 1, reasons: ['privacy_shield'] }], skills: [], toolCalls: 1 } })]);
+        const row = screen.getByTestId('cowork-run');
+        await expand(row);
+        expect(within(row).getByTestId('cowork-run-tool')).toHaveAttribute('data-refused', 'true');
+        expect(body(row)).toHaveTextContent('Stopped by the Privacy Shield');
+    });
+
     it('leaves the duration column blank when there is none, and prints a zero one', async () => {
         await renderHistory([
             run({ id: 'a', durationMs: null }),

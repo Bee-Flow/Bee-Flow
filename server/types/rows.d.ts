@@ -39,6 +39,7 @@ declare namespace DbRow {
         messages_json: string | null;
         messages_migrated: boolean | null;
         meta_json: string | null;
+        origin: string | null;
         pii_token_map: Json | null;
         pinned: boolean | null;
         project_id: string | null;
@@ -1228,12 +1229,24 @@ declare namespace DbRow {
     }
     /** Row of `cowork_runs`. */
     interface CoworkRuns {
+        activity_json: string | null;
+        conversation_id: string | null;
         duration_ms: number | null;
         error: string | null;
         finished_at: Date | null;
+        followup_depth: number;
         id: string;
+        mail_subject: string | null;
+        parent_run_id: string | null;
         produced_output: boolean | null;
         result: string | null;
+        review_question: string | null;
+        review_reason: string | null;
+        review_resolution: string | null;
+        review_resolved_at: Date | null;
+        review_resolved_by: string | null;
+        review_summary: string | null;
+        run_context_json: string | null;
         schedule_id: string;
         started_at: Date;
         status: string;

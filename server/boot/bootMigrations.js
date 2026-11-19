@@ -54,6 +54,7 @@ const LOOSE_MIGRATIONS = [
     // The agent-linked tasks (the old "agent routines") follow: Cowork can now
     // run an item as an agent, so ai_tasks is no longer written to.
     'agent-tasks-to-cowork-2026-10',
+    'cowork-conversation-origin-2026-11', // Cowork's own conversations out of the chat history, only where demonstrable
     // The stored word "routine" becomes "automation" (logs, grants,
     // knowledge-base provenance, playbooks, tool key). After the previous one: an old
     // ai_tasks row is recognised by its Cowork twin and labelled "cowork".

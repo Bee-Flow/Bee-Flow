@@ -5140,6 +5140,9 @@
     "POST /api/cowork/:id/run-now": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/runs/:runId/review": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/toggle": {
       "gate": "auth"
     },

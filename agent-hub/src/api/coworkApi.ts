@@ -9,8 +9,9 @@
  * moved.
  */
 import { API_BASE, authFetch } from '../utils/helpers';
+import { apiJson } from './typedRequest';
 import type {
-    CoworkAgent, CoworkItem, CoworkPayload, CoworkTriggerPayload, CoworkRun, CoworkSpec, CoworkStatsData, CoworkUpdate,
+    CoworkAgent, CoworkItem, CoworkPayload, CoworkReviewAction, CoworkTriggerPayload, CoworkRun, CoworkSpec, CoworkStatsData, CoworkUpdate,
 } from './cowork.types';
 
 const BASE = () => `${API_BASE}/api/cowork`;
@@ -153,4 +154,15 @@ export async function listCoworkAgents(): Promise<CoworkAgent[]> {
     if (!res.ok) return [];
     const data = await res.json().catch(() => ({}));
     return Array.isArray(data) ? data : (data.agents || []);
+}
+
+/**
+ * Handle a run that asked for review: answer it (the agent continues in the same conversation, as a follow-up run in
+ * Cowork) or close it without a follow-up. A refusal (already handled, over the follow-up limit, the item is running)
+ * throws a RefusedError with the server's message.
+ */
+export async function resolveCoworkReview(
+    id: string, runId: string, body: { action: CoworkReviewAction; answer?: string },
+): Promise<{ run: CoworkRun | null; followUpRunId: string | null }> {
+    return apiJson('POST /api/cowork/{id}/runs/{runId}/review', { params: { id, runId }, body });
 }

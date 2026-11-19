@@ -150,7 +150,8 @@ async function runToolCall(rc, toolCall) {
             toolName,
             toolArgs,
             finalToolResult: '[Tool execution skipped — client aborted]',
-            blocked: true
+            blocked: true,
+            policyReason: 'aborted',
         };
     }
 
@@ -315,7 +316,7 @@ module.exports = {
 /**
  * What one tool call ends as: its result (or a refusal sentinel) and how it got there.
  * `finalToolResult` is whatever the tool returned — a string or any JSON value.
- * @typedef {{ toolCall: RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, finalToolResult: unknown, blocked: boolean, policyRefused?: boolean, confirmPending?: boolean, confirmDeclined?: boolean, outboundProbe?: Awaited<ReturnType<typeof import('../http/outboundProbe').runWithProbe>>['probe'], dispatchMs?: number, toolClass?: string, blockCats?: string[] }} ToolCallOutcome
+ * @typedef {{ toolCall: RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, finalToolResult: unknown, blocked: boolean, policyRefused?: boolean, policyReason?: string, confirmPending?: boolean, confirmDeclined?: boolean, outboundProbe?: Awaited<ReturnType<typeof import('../http/outboundProbe').runWithProbe>>['probe'], dispatchMs?: number, toolClass?: string, blockCats?: string[] }} ToolCallOutcome
  */
 
 /**

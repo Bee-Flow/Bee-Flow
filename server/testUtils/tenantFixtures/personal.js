@@ -77,8 +77,11 @@ const FIXTURES = [
         },
         routes: [
             'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
-            'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'DELETE /api/cowork/:id',
+            'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
+            'DELETE /api/cowork/:id',
         ],
+        // The review body is validated before the ownership check.
+        bodies: { 'POST /api/cowork/:id/runs/:runId/review': { action: 'not_needed' } },
     },
     {
         // A reminder of user B (routes/reminders.js): the owner's alone.

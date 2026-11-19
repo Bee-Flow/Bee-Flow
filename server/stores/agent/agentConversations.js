@@ -22,6 +22,8 @@ const log = require('../../telemetry/log');
 const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
 const { bestEffort } = require('../../utils/bestEffort');
 const { deleteConversationsWhere } = require('./agentConversationsDelete.mts');
+// A Cowork run's conversation (origin 'cowork') is no chat: every chat read below filters on origin IS NULL.
+const { createNewConversation, getConversationOrigin } = require('./conversationOrigin.mts');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -130,7 +132,7 @@ async function _appendNewMessages(id, type, messages, ctx) {
 
 async function getConversation(agentId, userId, encryptionKey = /** @type {string | null | undefined} */ (null)) {
     await initDB();
-    const row = await getOne('SELECT * FROM agent_conversations WHERE agent_id = $1 AND user_id = $2 ORDER BY updated_at DESC LIMIT 1', [agentId, userId]);
+    const row = await getOne('SELECT * FROM agent_conversations WHERE agent_id = $1 AND user_id = $2 AND origin IS NULL ORDER BY updated_at DESC LIMIT 1', [agentId, userId]);
     if (!row) return null;
     // Passing an owner-derived ctx in as `sharedCtx` short-circuited
     // _readMessages' crypto_scope branch, so a project-shared conversation was
@@ -287,13 +289,6 @@ async function getOrCreateConversation(agentId, userId, encryptionKey = /** @typ
     return conv;
 }
 
-async function createNewConversation(agentId, userId) {
-    await initDB();
-    const id = randomUUID();
-    await run("INSERT INTO agent_conversations (id, agent_id, user_id, messages_json, created_at, updated_at) VALUES ($1,$2,$3,'[]',NOW(),NOW())", [id, agentId, userId]);
-    return { id, agent_id: agentId, user_id: userId, messages: [] };
-}
-
 /**
  * Phase 4 dual-write: persist messages to conversation_messages table (new, fast) AND
  * keep messages_json updated as a backup for rollback safety.
@@ -367,7 +362,7 @@ async function getConversationWorkspace(conversationId) {
 
 async function listConversations(agentId, userId) {
     await initDB();
-    const rows = await getAll('SELECT id, agent_id, user_id, title, project_id, shared_scope, pinned, labels_json, created_at, updated_at FROM agent_conversations WHERE agent_id = $1 AND user_id = $2 ORDER BY updated_at DESC', [agentId, userId]);
+    const rows = await getAll('SELECT id, agent_id, user_id, title, project_id, shared_scope, pinned, labels_json, created_at, updated_at FROM agent_conversations WHERE agent_id = $1 AND user_id = $2 AND origin IS NULL ORDER BY updated_at DESC', [agentId, userId]);
     // One resolve for the whole page: every row belongs to the same user, and
     // on `managed` each resolve unwraps the escrowed DEK.
     return openTitles(rows, 'agent', await resolveCrypto({ userId }));
@@ -379,7 +374,7 @@ async function listAllConversations(userId) {
         a.name as agent_name, a.avatar as agent_avatar
         FROM agent_conversations c
         LEFT JOIN agents a ON c.agent_id = a.id
-        WHERE c.user_id = $1
+        WHERE c.user_id = $1 AND c.origin IS NULL
         ORDER BY c.updated_at DESC
         LIMIT 50`, [userId]);
     return openTitles(rows, 'agent', await resolveCrypto({ userId }));
@@ -540,7 +535,7 @@ async function _readMessages(row, encryptionKey, sharedCtx = null) {
 module.exports = {
     getConversation, getOrCreateConversation, createNewConversation,
     updateConversation, clearConversation, updateConversationWorkspace, getConversationWorkspace,
-    listConversations, listAllConversations, searchConversations,
+    listConversations, listAllConversations, searchConversations, getConversationOrigin,
     getConversationById, createConversation,
     updateConversationTitle, pinConversation, setConversationLabels, updateThreadTitles, deleteConversationById,
     updateConversationMeta, getConversationMeta, _resolveAgentWriteContext, ConversationWriteDenied, // ./conversationTurns.js

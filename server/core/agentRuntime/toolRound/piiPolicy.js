@@ -92,7 +92,8 @@ function regexInputGuard(rc, { toolCall, toolName, toolArgs }) {
                 toolName,
                 toolArgs,
                 finalToolResult: `[Tool input blocked - violates ${ruleNames} policy]`,
-                blocked: true
+                blocked: true,
+                policyReason: 'guardrail',
             };
         }
     }
@@ -162,6 +163,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 toolCall, toolName, toolArgs,
                 finalToolResult: `[Tool '${toolName}' was not called: the PII guard is unavailable and org policy fails closed. Ask the user to retry shortly.]`,
                 blocked: true,
+                policyReason: 'privacy_shield_unavailable',
             };
         }
         // else fall through and execute (fail-open)
@@ -192,6 +194,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 toolCall, toolName, toolArgs,
                 finalToolResult: `[Tool '${toolName}' was not called: its arguments contained ${_labels}, which org policy forbids sending to ${_toolClass} tools. Continue without that information or ask the user how to proceed.]`,
                 blocked: true,
+                policyReason: 'privacy_shield',
             };
         }
         // Monitor-only (search guard configured but disabled): log, allow.

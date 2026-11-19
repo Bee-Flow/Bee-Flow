@@ -20,7 +20,7 @@ import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
 import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
-import CoworkRow from './CoworkRow';
+import CoworkRow, { ReviewCountPill } from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
 import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
 import { useCoworkAgents } from '../../api/queries/coworkReads';
@@ -109,7 +109,6 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     // drift: the badge used to count `isActive`, so six schedules with two
     // running showed a 5 (CW-02/CW-18).
     const inFlightCount = useMemo(() => items.filter(isInFlight).length, [items]);
-
 
     const selected = useMemo(
         () => items.find(i => i.id === selectedId) || null,
@@ -281,6 +280,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             {t('cowork.list.running_count', '{count} running', { count: inFlightCount })}
                         </span>
                     )}
+                    <ReviewCountPill count={items.reduce((n, i) => n + (i.openReviewCount || 0), 0)} testId="cowork-review-count" />
                     <div className="ml-auto flex items-center gap-1">
                         <button
                             type="button"

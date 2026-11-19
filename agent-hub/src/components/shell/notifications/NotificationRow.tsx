@@ -224,15 +224,20 @@ function NotificationDetail({ n, cat, actions }: { n: AppNotification; cat: Cate
  */
 function ResultActions({ n, body, actions }: { n: AppNotification; body: string; actions: NotificationRowActions }) {
     const { t } = useTranslation();
+    // A Cowork run that links to its item opens THERE: its conversation, what it
+    // used and a review it asked for live in Cowork, not in the chat history.
+    const inCowork = n.category === 'cowork' && !!n.link;
     return (
         <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:10px] [flex-wrap:wrap]">
             <button
-                onClick={stop(() => actions.onOpenResultInChat(n, body))}
-                data-testid="notif-open-in-chat"
+                onClick={stop(() => (inCowork ? actions.onNavigateLink(n) : actions.onOpenResultInChat(n, body)))}
+                data-testid={inCowork ? 'notif-open-in-cowork' : 'notif-open-in-chat'}
                 className="[display:inline-flex] [align-items:center] [gap:6px] [padding:8px_16px] [border-radius:9px] [font-size:12.5px] [font-weight:600] [border:none] [cursor:pointer] [flex-shrink:0] [background:var(--text-primary,#0f172a)] [color:var(--bg-primary,#fff)]"
             >
                 <MessageSquare className="w-[14px] h-[14px]" />
-                {t('notifications.open_result_in_chat', 'Open result in chat')}
+                {inCowork
+                    ? t('cowork_review.notification.open_in_cowork', 'Open in Cowork')
+                    : t('notifications.open_result_in_chat', 'Open result in chat')}
             </button>
             <span className="[font-size:13px] [font-weight:600] min-w-[0] [color:var(--text-primary,#0f172a)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                 {n.title}
