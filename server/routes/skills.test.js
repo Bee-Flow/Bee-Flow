@@ -514,3 +514,50 @@ test('POST / and PUT /:id ask whether the caller may link the automation, and wr
     assert.strictEqual((await call('post', '/', { body: { name: 'Runner', automationId: 'au-x' } })).statusCode, 201);
     assert.strictEqual((await call('put', '/:id', { params: { id: 'sk1' }, body: { name: 'x', automationId: 'au-x' } })).statusCode, 200);
 });
+
+// ── POST /from-plan: the skills an agent plan proposes ──────────────
+//
+// The refine rail of the agent editor saves the skills a plan proposed
+// through here, with the SAME mapping POST /agents/wizard/commit uses
+// (usecases/agents/wizardSkills). Structure and activation come along; refs,
+// grants and audience never do.
+
+test('POST /from-plan is registered before /:id and demands manage_skills', () => {
+    const paths = router.stack.filter(l => l.route).map(l => l.route.path);
+    assert.ok(paths.includes('/from-plan'));
+    assert.ok(paths.indexOf('/from-plan') < paths.indexOf('/:id'));
+    assert.deepStrictEqual(routeStack('post', '/from-plan').map(h => h.permission).filter(Boolean), ['manage_skills']);
+});
+
+test('POST /from-plan creates the planned skills with their structure, and reuses one that exists', async () => {
+    fx.list = [SKILL({ id: 'sk-known', name: 'Known' })];
+    const res = await call('post', '/from-plan', {
+        body: {
+            skills: [
+                { id: 'sk-known', name: 'Known' },
+                {
+                    id: null, name: 'Reply drafts', description: 'Writes a draft reply', activation: 'dynamic',
+                    draft: { steps: [{ text: 'Read the e-mail', refs: [{ kind: 'kb', id: 'kb-x' }] }], rulesV2: [{ polarity: 'never', text: 'Never send it' }] },
+                },
+            ],
+        },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body.attachedSkillIds, ['sk-known', 'new1']);
+    assert.strictEqual(res.body.createdSkills.length, 1);
+    assert.strictEqual(res.body.createdSkills[0].canEdit, true);
+    const args = lastCall('createSkill').args;
+    assert.strictEqual(args.orgId, 'org1');
+    assert.strictEqual(args.userId, 'owner');
+    assert.strictEqual(args.dynamicActivation, true);
+    assert.strictEqual(args.isShared, false);
+    assert.deepStrictEqual(args.steps.map(s => s.text), ['Read the e-mail']);
+    assert.deepStrictEqual(args.steps[0].refs, [], 'a ref is a grant: never from a plan');
+    assert.ok(!('knowledgeBaseIds' in args) && !('enabledIntegrations' in args));
+});
+
+test('POST /from-plan refuses grants and unknown keys on a planned skill', async () => {
+    const res = await call('post', '/from-plan', { body: { skills: [{ name: 'X', knowledgeBaseIds: ['kb1'] }] } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(lastCall('createSkill'), undefined);
+});

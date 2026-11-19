@@ -5,6 +5,8 @@ import ModelTierSelector from '@/components/licensing/ModelTierSelector';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import PlanCard from '../PlanCard';
 import RefineDoneCard from './RefineDoneCard';
+import SkillProposalsCard from './SkillProposalsCard';
+import type { PlannedSkill } from '../plannedSkills';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ChatMessage } from '../agentEditor.types';
 import type { createHandleRefine } from './refineActions';
@@ -37,9 +39,11 @@ interface BuilderChatPanelProps {
     setChatTier: Dispatch<SetStateAction<string>>;
     onTestAgent: () => void;
     onUndoRefine: (index: number, versionId: string | undefined) => Promise<void>;
+    onAddPlannedSkills: (index: number, chosen: PlannedSkill[]) => Promise<void>;
+    onSkipPlannedSkills: (index: number) => void;
 }
 
-export default function BuilderChatPanel({ chatWidth, t, chatScrollRef, chat, chatInput, setChatInput, handleRefine, chatBusy, tiers, chatTier, setChatTier, onTestAgent, onUndoRefine }: BuilderChatPanelProps) {
+export default function BuilderChatPanel({ chatWidth, t, chatScrollRef, chat, chatInput, setChatInput, handleRefine, chatBusy, tiers, chatTier, setChatTier, onTestAgent, onUndoRefine, onAddPlannedSkills, onSkipPlannedSkills }: BuilderChatPanelProps) {
     const lastDoneIndex = chat.reduce((last, m, i) => (m.role === 'done' ? i : last), -1);
     return (
             <aside
@@ -99,6 +103,21 @@ export default function BuilderChatPanel({ chatWidth, t, chatScrollRef, chat, ch
                                     superseded={i !== lastDoneIndex}
                                     onTest={onTestAgent}
                                     onUndo={(versionId) => onUndoRefine?.(i, versionId as string | undefined)}
+                                />
+                            );
+                        }
+                        if (m.role === 'skills') {
+                            // The NEW skills a refinement proposed: nothing is
+                            // stored until the person adds the ones they keep.
+                            return (
+                                <SkillProposalsCard
+                                    key={i}
+                                    t={t}
+                                    skills={m.skills || []}
+                                    state={m.skillsState || 'pending'}
+                                    addedCount={m.addedCount}
+                                    onAdd={(chosen) => { void onAddPlannedSkills(i, chosen); }}
+                                    onSkip={() => onSkipPlannedSkills(i)}
                                 />
                             );
                         }

@@ -42,7 +42,7 @@ Every route the server mounts, 1932 in all, read from the running app rather tha
 | [`/api/organizations`](./reference/api-organizations.md) | 12 | 8 |
 | [`/api/playbooks`](./reference/api-playbooks.md) | 14 | 0 |
 | [`/api/projects`](./reference/api-projects.md) | 143 | 103 |
-| [`/api/skills`](./reference/api-skills.md) | 15 | 15 |
+| [`/api/skills`](./reference/api-skills.md) | 16 | 16 |
 | [`/api/step`](./reference/api-step.md) | 11 | 6 |
 | [`/api/stripe`](./reference/api-stripe.md) | 12 | 7 |
 | [`/api/studio-apps`](./reference/api-studio-apps.md) | 94 | 62 |

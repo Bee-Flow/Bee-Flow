@@ -3,6 +3,7 @@ import { AGENT_TAB_IDS } from './builderSplit/AgentEditorHeader';
 import BuilderView from './builderSplit/BuilderView';
 import { createHandleRefine } from './builderSplit/refineActions';
 import { createUndoRefine } from './builderSplit/undoRefine';
+import { createPlannedSkillActions } from './builderSplit/plannedSkillActions';
 import { uploadDocCountOf, uploadKbIdOf, type ReportedDocCount } from './builderSplit/uploadKb';
 import useAgentBootstrapData from './builderSplit/useAgentBootstrapData';
 import useAgentSave from './builderSplit/useAgentSave';
@@ -159,7 +160,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
         chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing,
         dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description,
         setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations,
-        setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills,
+        setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills,
         availableIntegrations, tiers, queueSave, schedulesAllowed: schedules.schedulesAllowed, agent, refreshAgentSchedules: schedules.refreshAgentSchedules,
         // The persona as it stands in the column. Unknown stays undefined: the merge reads that as "leave it
         // alone", not as "there is none".
@@ -174,6 +175,10 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
     // "Undo" on a Done turn: restore of the pre_refine row, flush first —
     // moved to builderSplit/undoRefine.ts.
     const handleUndoRefine = createUndoRefine({ roRef, agentIdRef, mountedRef, setChat, flush, handleVersionRestore });
+
+    // "Add selected skills" / "Not now" on the skills turn a refinement
+    // proposed — builderSplit/plannedSkillActions.ts.
+    const plannedSkills = createPlannedSkillActions({ setChat, stateRef, setAttachedSkillIds, setAllSkills, queueSave });
 
     // When the wizard handed us off mid-conversation (user typed a refine
     // message on the landing screen), auto-fire it here so the response
@@ -215,7 +220,7 @@ export default function BuilderSplit({ agent: initialAgent, plan, history, tier,
             onBack={onBack} rightHeaderExtras={rightHeaderExtras} s={s} actions={actions} canUse={canUse} save={save}
             boot={boot} derived={derived} schedules={schedules} testSet={testSet} uploadDocCount={uploadDocCount}
             onDocCountChange={onDocCountChange} flushNow={flushNow} handleRefine={handleRefine} toolChooser={toolChooser}
-            handleUndoRefine={handleUndoRefine} handleVersionRestore={handleVersionRestore} mountedRef={mountedRef}
+            handleUndoRefine={handleUndoRefine} plannedSkills={plannedSkills} handleVersionRestore={handleVersionRestore} mountedRef={mountedRef}
             chatWidth={chatWidth} onDragStart={onDragStart}
         />
     );

@@ -39,18 +39,17 @@
 'use strict';
 
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { SkillStructureError } = require('../../core/skills/skillStructure');
 const {
-    DRAFT_TOOL,
     parseSkillDraft,
     buildDraftMessages,
     buildImproveMessages,
     MAX_SENTENCE_CHARS,
 } = require('../../core/skills/skillDraft');
-const log = require('../../telemetry/log');
+// The model call itself (fast tier, forced tool, one usage row) is shared
+// with the agent wizard, so both draft a skill the same way.
+const { askForDraft, resolveDraftModel: resolveModel } = require('../../core/skills/skillDraftCall.mts');
 const { HttpError } = require('../../core/http/errors');
-const { bestEffort } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
@@ -60,74 +59,11 @@ const { sessionUser } = require('../../core/http/sessionUser');
  */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 
-const MAX_TOKENS = 2000;
-
 /** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
     const user = await userStore.getUser(sessionUser(req).id);
     return user?.organizationId || null;
-}
-
-/**
- * The fast tier, with the global default behind it — `learning.js`'s resolver.
- * @param {{ userId: string, userOrgId: string | null }} who
- */
-async function resolveModel({ userId, userOrgId }) {
-    const { resolveModelForTier, resolveModelWithGlobalFallback } = require('../../core/llm/modelResolver');
-    try {
-        const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
-        if (resolved) return resolved;
-    } catch (err) { bestEffort('routes/skills/ai:resolveModel', err); /* fall through */ }
-    try {
-        return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
-    } catch (_) {
-        return null;
-    }
-}
-
-/**
- * One usage row per drafting call. `chatForcedTool` logs nothing itself, so
- * without this the Test/Improve buttons would spend tokens that never appear
- * in anybody's usage — the one place a self-hosted customer looks to find
- * out what their AI costs.
- * @param {{ userId: string, userOrgId: string | null, modelId: string, usage: import('../../core/providers/usageNormalizer').RawUsage | null | undefined, startMs: number, source: string }} entry
- */
-async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs, source }) {
-    try {
-        const usageStore = require('../../stores/usageStore');
-        await usageStore.logUsage({
-            user_id: userId,
-            agent_name: 'skill-ai',
-            agent_type: 'system',
-            model: modelId,
-            // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
-            // the 5m/1h split and reasoning tokens ride along.
-            ...usageLogFields(usage),
-            source,
-            duration_ms: Date.now() - startMs,
-            organization_id: userOrgId || null,
-        });
-    } catch (e) {
-        log.warn('[Skills/ai] failed to log usage:', /** @type {Error} */ (e).message);
-    }
-}
-
-/**
- * Ask the model for a skill. Returns `{ structured, usage, modelId }` or null when no model is configured.
- * @param {{ messages: Parameters<typeof import('../../core/llm/llmClient').chatForcedTool>[1], userId: string, userOrgId: string | null, source: string }} ask
- */
-async function askForDraft({ messages, userId, userOrgId, source }) {
-    const modelId = await resolveModel({ userId, userOrgId });
-    if (!modelId) return null;
-    const llmClient = require('../../core/llm/llmClient');
-    const startMs = Date.now();
-    const result = await llmClient.chatForcedTool(modelId, messages, DRAFT_TOOL, {
-        maxTokens: MAX_TOKENS,
-        temperature: 0.4,
-    });
-    await logDraftUsage({ userId, userOrgId, modelId, usage: result?.usage, startMs, source });
-    return { structured: result?.structured || null, modelId };
 }
 
 // Two failures the editor names rather than calling them a server fault: no

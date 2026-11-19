@@ -6081,6 +6081,13 @@
         "manage_skills"
       ]
     },
+    "POST /api/skills/from-plan": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_skills"
+      ]
+    },
     "POST /api/solution-stages/:stageProjectId/detach": {
       "gate": "auth"
     },

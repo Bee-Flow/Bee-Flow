@@ -6849,9 +6849,6 @@
   "routes/agents/wizard.js": {
     "complexity": {
       "count": 4
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "routes/ai/appStudioBuilder/chatStream.js": {

@@ -4818,6 +4818,16 @@ export interface ApiOperations {
     }>;
     'GET /api/skills/examples/conversations': Op;
     'GET /api/skills/examples/conversations/{conversationId}/messages': Op<{ conversationId: string | number }>;
+    'POST /api/skills/from-plan': Op<NoParams, UndeclaredQuery, {
+        skills: Array<{
+            activation?: 'static' | 'dynamic';
+            description?: string;
+            draft?: Record<string, unknown> | null;
+            id?: string | null;
+            instructions?: string;
+            name: string;
+        }>;
+    }>;
     'GET /api/skills/test-agents': Op;
     'GET /api/skills/usage-summary': Op;
     'GET /api/skills/{id}': Op<{ id: string | number }>;
