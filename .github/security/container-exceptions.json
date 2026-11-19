@@ -723,6 +723,26 @@
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-85091"
       ]
+    },
+    {
+      "id": "CVE-2026-112366",
+      "images": [
+        "server"
+      ],
+      "package": "picomatch",
+      "versions": [
+        "2.3.2",
+        "4.0.5",
+        "4.0.7"
+      ],
+      "reviewedAt": "2026-11-19",
+      "expires": "2026-12-19",
+      "reason": "CVE alias of the reviewed GHSA-fc5q-39xc-vjpf; GitHub has withdrawn that advisory (checked 2026-11-19) and no fixed picomatch release exists (4.0.7 is the latest, 2.x has no successor), so this stays only while scanners still report the alias.",
+      "reachability": "The finding needs an attacker-controlled glob pattern. 2.3.2 is reached only through http-proxy-middleware -> micromatch, and no createProxyMiddleware call passes a pathFilter, so no pattern is compiled. 4.0.7 (re2 -> node-gyp -> tinyglobby) and 4.0.5 (the global npm 12.2.1 -> node-gyp -> tinyglobby) run only during a native build, with patterns that node-gyp supplies itself. No production file calls picomatch, micromatch or tinyglobby with input from a request.",
+      "references": [
+        "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
+        ".github/security/audit-baseline.json"
+      ]
     }
   ]
 }
