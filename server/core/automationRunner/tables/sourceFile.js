@@ -47,7 +47,7 @@ const NOT_FOUND = 'The file could not be found. It may have expired or belong to
  */
 function appFileRow(descriptor, ctx, resolveKey) {
     const key = typeof descriptor.url === 'string' ? resolveKey(descriptor.url) : null;
-    if (!key || !ctx.userId || !key.startsWith(`studio-apps/${ctx.userId}/`) || !key.includes('/attachments/')) return null;
+    if (!key || !ctx.userId || key.includes('..') || !key.startsWith(`studio-apps/${ctx.userId}/`) || !key.includes('/attachments/')) return null;
     return {
         storageKey: key,
         size: 0,

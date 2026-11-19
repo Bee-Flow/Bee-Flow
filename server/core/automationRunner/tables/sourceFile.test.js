@@ -132,7 +132,11 @@ test('a live row without bytes is not found', async () => {
 test("an app's file: read through its signed url, only for an attachment of the run owner's app", async () => {
     const owned = 'studio-apps/u1/app1/attachments/' + 'a'.repeat(64);
     blobs[owned] = Buffer.from('a;b\n1;2');
-    const keys = { 'https://x/api/storage/tmp/good': owned, 'https://x/api/storage/tmp/other': 'studio-apps/u2/app9/attachments/' + 'b'.repeat(64) };
+    const keys = {
+        'https://x/api/storage/tmp/good': owned,
+        'https://x/api/storage/tmp/other': 'studio-apps/u2/app9/attachments/' + 'b'.repeat(64),
+        'https://x/api/storage/tmp/climb': 'studio-apps/u1/../u2/app9/attachments/' + 'c'.repeat(64),
+    };
     const readApp = (value, ctx = { ...CTX, userId: 'u1' }) => readSourceFile(value, ctx, {
         store: fakeStore, storage: fakeStorage, limits: () => limits, resolveTempKey: (url) => keys[url] || null,
     });
@@ -140,6 +144,7 @@ test("an app's file: read through its signed url, only for an attachment of the 
     assert.deepStrictEqual([file.kind, file.filename, file.mimeType, file.buffer.toString()], ['app_file', 'bom.csv', 'text/csv', 'a;b\n1;2']);
     await assert.rejects(readApp({ fileId: 'att2', url: 'https://x/api/storage/tmp/other' }), { errorClass: 'table_source_not_found' }, 'another owner');
     await assert.rejects(readApp({ fileId: 'att3', url: 'https://x/api/storage/tmp/forged' }), { errorClass: 'table_source_not_found' }, 'a bad signature');
+    await assert.rejects(readApp({ fileId: 'att4', url: 'https://x/api/storage/tmp/climb' }), { errorClass: 'table_source_not_found' }, 'a key that climbs out of the owner');
     await assert.rejects(readApp({ fileId: 'att1', url: 'https://x/api/storage/tmp/good' }, CTX), { errorClass: 'table_source_not_found' }, 'no owner to compare with');
     limits = { ...limits, maxFileBytes: 4 };
     await assert.rejects(readApp({ fileId: 'att1', url: 'https://x/api/storage/tmp/good' }), { errorClass: 'table_source_too_large' });
