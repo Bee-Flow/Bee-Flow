@@ -101,6 +101,8 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
     // Get or create conversation - use specific conversationId if provided
     // For ephemeral chats (embed), skip database persistence entirely
     const isEphemeral = messageMetadata.ephemeral === true;
+    // Set by the server only (core/cowork/agentScheduleRun.js): the thread of a Cowork run is not a chat.
+    const conversationOrigin = messageMetadata.conversationOrigin === 'cowork' ? 'cowork' : null;
     let conversation;
     if (isEphemeral) {
         // Use a dummy in-memory conversation — no database writes.
@@ -125,12 +127,15 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
         // their original values.
         conversation = await agentStore.getConversationById(messageMetadata.conversationId, userAuth.encryptionKey, { restore: false });
         if (!conversation) {
-            // If conversation doesn't exist, create a new one
-            conversation = await agentStore.getOrCreateConversation(agentId, userId, userAuth.encryptionKey);
+            // If conversation doesn't exist, create a new one. A Cowork run gets a fresh thread of its own:
+            // falling back to the agent's latest chat would write the run into a conversation the person had.
+            conversation = conversationOrigin
+                ? await agentStore.createNewConversation(agentId, userId, { origin: conversationOrigin })
+                : await agentStore.getOrCreateConversation(agentId, userId, userAuth.encryptionKey);
         }
     } else {
-        // No conversationId provided - create a new conversation
-        conversation = await agentStore.createNewConversation(agentId, userId);
+        // No conversationId provided - create a new conversation (a Cowork run's is marked, so no chat list shows it)
+        conversation = await agentStore.createNewConversation(agentId, userId, { origin: conversationOrigin });
     }
 
     // ── Shared project thread: permission + turn lock ────────────

@@ -19,6 +19,7 @@ const { emitSideChannels } = require('./sideChannels');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { noteToolOutcome } = require('../../cowork/runActivity.mts');
 
 /**
  * One result's concurrent PII pre-scan.
@@ -43,6 +44,8 @@ async function processToolResults(rc, deps, toolResults) {
         const { toolCall, toolName, toolArgs, finalToolResult } = result;
 
         toolCalls.push({ name: toolName, args: toolArgs, result: finalToolResult });
+        // A Cowork run keeps the name and the outcome of every call (never its arguments or result): core/cowork/runActivity.mts.
+        noteToolOutcome(rc.messageMetadata?.coworkRun, result);
         // Track for persistence
         _toolHistory.push({
             name: toolName,

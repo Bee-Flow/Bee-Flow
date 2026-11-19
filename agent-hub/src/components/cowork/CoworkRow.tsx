@@ -32,6 +32,10 @@ import useTranslation from '../../hooks/useTranslation';
 import { statusLabel } from '../shared/statusTokens';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkItem } from '../../api/cowork.types';
+import ReviewCountPill from './ReviewCountPill';
+
+// The list header shows the same pill, over every item.
+export { ReviewCountPill };
 
 interface CoworkRowProps {
     item: CoworkItem;
@@ -110,6 +114,7 @@ export default function CoworkRow({ item, selected, onSelect }: CoworkRowProps) 
     // "this state makes no claim" is what tertiary grey looks like.
     const tone = status.cssVar || 'var(--text-tertiary)';
     const meta = [whenText(item, t), historyText(item, t)].filter(Boolean).join(' · ');
+    const reviews = item.openReviewCount || 0;
 
     return (
         <button
@@ -141,11 +146,13 @@ export default function CoworkRow({ item, selected, onSelect }: CoworkRowProps) 
                 </span>
             </div>
 
-            {meta && (
+            {(meta || reviews > 0) && (
                 <p
-                    className="mt-1.5 text-[11px] truncate text-[var(--text-tertiary)]"
+                    className="mt-1.5 flex items-center gap-1.5 min-w-0 truncate text-[11px] text-[var(--text-tertiary)]"
                 >
-                    {meta}
+                    {/* Runs waiting for the owner: the thing to notice on this row. */}
+                    <ReviewCountPill count={reviews} testId="cowork-row-review-count" />
+                    <span className="truncate">{meta}</span>
                 </p>
             )}
         </button>

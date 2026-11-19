@@ -211,7 +211,7 @@ test('the aggregate counts success apart and "failed" as closed-and-not-successf
     await runRow({ status: 'running', duration_ms: 999999 });
     await schedule({ id: 'cw-other' });
     await runRow({ schedule_id: 'cw-other', status: 'error', finished_at: NOW, duration_ms: 1 });
-    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 7, success: 3, failed: 3, avgDurationMs: 4000 });
+    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 7, success: 3, failed: 3, needsReview: 0, avgDurationMs: 4000 });
 });
 
 test('never a finished attempt gives null, not 0 ms', async () => {
@@ -230,5 +230,5 @@ test('a MEASURED 0 stays 0 — the other half of the same rule', async () => {
 });
 
 test('a schedule without history gives zeros instead of failing', async () => {
-    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 0, success: 0, failed: 0, avgDurationMs: null });
+    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 0, success: 0, failed: 0, needsReview: 0, avgDurationMs: null });
 });

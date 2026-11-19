@@ -27,6 +27,7 @@
 import { CalendarClock, Clock, LayoutGrid, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import CoworkEditForm from './CoworkEditForm';
+import CoworkReviewQueue from './CoworkReviewQueue';
 import CoworkRunHistory from './CoworkRunHistory';
 import { describeMoment, repeatLabel } from './coworkSchedule';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
@@ -285,9 +286,11 @@ export default function CoworkDetail({
                 onRunNow={onRunNow}
             />
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-[26px] py-[22px] flex flex-col gap-[18px]">
+                {/* What needs a person now comes before the brief and the figures. */}
+                <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} />
                 <AssignmentCard item={item} agents={agents} t={t} />
                 <CoworkStats coworkId={item.id} reloadKey={reloadKey} />
-                <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} />
+                <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} agentId={item.agentId} title={item.title} />
             </div>
         </div>
     );

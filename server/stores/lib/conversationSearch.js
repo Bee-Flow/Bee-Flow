@@ -34,6 +34,7 @@ const log = require('../../telemetry/log');
  * @property {string} [joins]         extra JOINs on every query
  * @property {string} [messageJoin]   extra ON condition for the conversation_messages join
  * @property {boolean} [agentIdFilter] honour filters.agentId
+ * @property {string} [baseClause]    an extra condition on every query (`AND ...`, no parameters)
  * @property {string} logTag          log prefix
  */
 
@@ -54,6 +55,8 @@ const AGENT_SEARCH = {
     extraCols: 'a.name AS agent_name, a.avatar AS agent_avatar',
     joins: 'LEFT JOIN agents a ON c.agent_id = a.id',
     agentIdFilter: true,
+    // A conversation a Cowork run wrote is not a chat (stores/agent/initSchema.base.js, origin).
+    baseClause: 'AND c.origin IS NULL',
     logTag: '[AgentConversations]',
 };
 
@@ -90,7 +93,7 @@ async function searchConversationRows(spec, deps, userId, query, filters, encryp
 
     // Base filter params (userId is always $1)
     const filterParams = [userId];
-    let filterClauses = '';
+    let filterClauses = spec.baseClause ? ` ${spec.baseClause}` : '';
     let filterIdx = 2;
     if (spec.agentIdFilter && filters.agentId) { filterClauses += ` AND c.agent_id = $${filterIdx++}`; filterParams.push(filters.agentId); }
     if (filters.startDate) { filterClauses += ` AND c.updated_at >= $${filterIdx++}`; filterParams.push(filters.startDate); }

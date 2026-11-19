@@ -80,6 +80,44 @@ function rowToRun(r) {
         producedOutput: (r.produced_output === null || r.produced_output === undefined)
             ? null
             : !!r.produced_output,
+        // The conversation the run wrote into (an agent run), opened from the run.
+        conversationId: r.conversation_id ?? null,
+        // An answered review starts a follow-up: the run it continues, and how many answers deep it is.
+        parentRunId: r.parent_run_id ?? null,
+        followupDepth: r.followup_depth ?? 0,
+        mailSubject: r.mail_subject ?? null,
+        review: reviewOf(r),
+        // Names, outcomes and counts only (core/cowork/runActivity.mts); null for a run from before it was kept.
+        activity: r.activity_json ? safeParseJSON(r.activity_json, NO_ACTIVITY) : null,
+        // run_context_json is deliberately not here: it is the server's, for a follow-up run.
+    };
+}
+
+/**
+ * What a run did, as core/cowork/runActivity.mts stores it.
+ * @typedef {{
+ *   tools: Array<{ name: string, app: string | null, ok: number, failed: number, refused: number, reasons: string[] }>,
+ *   skills: Array<{ id: string, name: string, how: 'static' | 'activated' }>,
+ *   toolCalls: number,
+ * }} RunActivity
+ */
+
+/** @type {RunActivity | null} */
+const NO_ACTIVITY = null;
+
+/**
+ * The review a run asked for, and how its owner handled it; null for a run that asked for none.
+ * @param {DbRow.CoworkRuns} r
+ */
+function reviewOf(r) {
+    if (!r.review_reason) return null;
+    return {
+        reason: r.review_reason,
+        question: r.review_question ?? null,
+        summary: r.review_summary ?? null,
+        resolution: r.review_resolution ?? null,
+        resolvedBy: r.review_resolved_by ?? null,
+        resolvedAt: r.review_resolved_at ? new Date(r.review_resolved_at).toISOString() : null,
     };
 }
 

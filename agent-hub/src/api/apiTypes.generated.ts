@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1928 operations. */
+/** 1924 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -923,13 +923,6 @@ export interface ApiOperations {
         region: 'eu' | 'default';
     }>;
     'GET /ai/swarms/available': Op;
-    'POST /ai/twoba/test': Op<NoParams, UndeclaredQuery, {
-        twobaAuthMode?: string | null;
-        twobaClientId?: string | null;
-        twobaClientSecret?: string | null;
-        twobaPassword?: string | null;
-        twobaUsername?: string | null;
-    }>;
     'GET /ai/user-settings': Op;
     'POST /ai/user-settings': Op<NoParams, UndeclaredQuery, {
         afasEnvType?: string | null;
@@ -966,11 +959,6 @@ export interface ApiOperations {
         signrequestSubdomain?: string | null;
         signrequestToken?: string | null;
         simpleMode?: boolean;
-        twobaAuthMode?: string | null;
-        twobaClientId?: string | null;
-        twobaClientSecret?: string | null;
-        twobaPassword?: string | null;
-        twobaUsername?: string | null;
         userEuModeEnabled?: unknown;
         vplanApiEnv?: string | null;
         vplanApiKey?: string | null;
@@ -2589,6 +2577,10 @@ export interface ApiOperations {
         limit?: number;
         offset?: number;
     }>;
+    'POST /api/cowork/{id}/runs/{runId}/review': Op<{ id: string | number; runId: string | number }, UndeclaredQuery, {
+        action: 'answer' | 'done_myself' | 'not_needed';
+        answer?: string;
+    }>;
     'GET /api/cowork/{id}/stats': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/toggle': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/csp-report': Op;
@@ -3143,10 +3135,6 @@ export interface ApiOperations {
         to: string;
     }>;
     'GET /api/integrations/outlook/status': Op;
-    'GET /api/integrations/twoba/auth-url': Op;
-    'GET /api/integrations/twoba/callback': Op;
-    'POST /api/integrations/twoba/disconnect': Op<NoParams, UndeclaredQuery, Record<string, never>>;
-    'GET /api/integrations/twoba/status': Op;
     'GET /api/integrations/withings/auth-url': Op;
     'GET /api/integrations/withings/callback': Op;
     'POST /api/integrations/withings/disconnect': Op<NoParams, UndeclaredQuery, Record<string, never>>;

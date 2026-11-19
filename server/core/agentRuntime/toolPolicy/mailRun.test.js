@@ -104,3 +104,24 @@ test('noteMailRunToolUse: reading the triggering thread keeps the run inside it;
     }
     assert.doesNotThrow(() => noteMailRunToolUse(null, 'kb_search', {}, {}));
 });
+
+test('the Cowork review tool stays in a mail-started run (curated or not) and does not take the run outside its thread', () => {
+    const { REVIEW_TOOL_NAME } = require('../../cowork/runActivity.mts');
+    assert.ok(narrow([REVIEW_TOOL_NAME], null).includes(REVIEW_TOOL_NAME));
+    const curated = normaliseToolsConfig({ tools: { gmail: { actions: '*', confirm: 'direct', mailAccess: 'read' } } }).tools;
+    assert.ok(narrow([REVIEW_TOOL_NAME], curated).includes(REVIEW_TOOL_NAME));
+    const mt = { messageId: 'm1', threadId: 't1' };
+    noteMailRunToolUse(mt, REVIEW_TOOL_NAME, { reason: 'x' }, { ok: true });
+    assert.strictEqual(mt.readOutside, undefined);
+});
+
+test('a follow-up Cowork run is never offered a tool outside the ceiling of the run it continues, and the offer is noted', () => {
+    const { createRunActivity, offeredToolNames, REVIEW_TOOL_NAME } = require('../../cowork/runActivity.mts');
+    const coworkRun = createRunActivity({ toolCeiling: ['gmail_read', 'kb_search'] });
+    const got = names(narrowToolsForTurn({
+        tools: [...GMAIL_TOOLS, fn('kb_search'), fn(REVIEW_TOOL_NAME)],
+        agent: { config: null, id: 'a1' }, agentId: 'a1', messageMetadata: { ...mailRun(), coworkRun },
+    }).tools);
+    assert.deepStrictEqual(got.sort(), ['gmail_read', 'kb_search', REVIEW_TOOL_NAME].sort());
+    assert.deepStrictEqual(offeredToolNames(coworkRun).sort(), got.sort());
+});

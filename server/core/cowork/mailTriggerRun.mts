@@ -34,6 +34,7 @@ const MAX_BODY_CHARS = 20_000;
 const MAX_HEADER_CHARS = 500;
 const MAX_LIST_CHARS = 1500;
 const MAX_SUBJECT_IN_NOTIFICATION = 80;
+const MAX_STORED_SUBJECT = 300;
 
 type Row = Record<string, unknown>;
 
@@ -261,6 +262,33 @@ export function outcomeWords(outcomes: Array<{ kind: string }> | undefined): str
     return 'mail handled';
 }
 
+/** What a mail run kept for its follow-up (core/cowork/agentScheduleRun.js runCloseOf): ids only, no address. */
+export type MailRunContext = { provider: 'gmail' | 'outlook'; messageId: string; threadId?: string | null; mailbox?: string | null; readOutside?: boolean };
+
+/**
+ * The mail-trigger context of a follow-up run (usecases/coworkReview.mts): the same provider, message, thread and
+ * mailbox as the run it continues, so the reply tools answer in the same thread only. The people on the mail are read
+ * again from the provider rather than kept: a run stores no address. A message that cannot be read leaves the list
+ * empty, which the reply tools treat as nobody to answer (integrations/mailReplyGuard.js). A run that had read outside
+ * its thread stays marked, so its reply still goes to the drafts.
+ */
+export async function followUpMailTrigger(mail: MailRunContext, userId: string, fetchMessage: Deps['fetchMessage'] = fetchProviderMessage) {
+    const mailbox = typeof mail.mailbox === 'string' && mail.mailbox ? mail.mailbox : null;
+    let fetched: Row | null = null;
+    try { fetched = await fetchMessage({ provider: mail.provider, userId, messageId: mail.messageId, mailbox }); }
+    catch (e) { log.warn(`[MailTrigger] follow-up: could not read the message again: ${(e as Error).message}`); }
+    const shaped = shapeMessage({}, fetched, mail.messageId, mailbox);
+    return {
+        provider: mail.provider,
+        messageId: mail.messageId,
+        threadId: mail.threadId || shaped.threadId,
+        mailbox,
+        participants: fetched ? addressesIn(shaped.from, shaped.to, shaped.cc) : [],
+        outcomes: [] as Array<{ kind: string }>,
+        ...(mail.readOutside === true ? { readOutside: true } : {}),
+    };
+}
+
 /** Per-schedule chain: one run at a time, the rest wait their turn. */
 const tails = new Map<string, Promise<void>>();
 const queued = new Map<string, number>();
@@ -308,6 +336,10 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
     };
     const subject = mail.subject.length > MAX_SUBJECT_IN_NOTIFICATION ? `${mail.subject.slice(0, MAX_SUBJECT_IN_NOTIFICATION)}...` : mail.subject;
     const trigger = {
+        // The history row the claim opened: the run closes that row, not the newest open one.
+        runId,
+        // For the review queue in Cowork (the notification below cuts it shorter).
+        mailSubject: mail.subject.slice(0, MAX_STORED_SUBJECT),
         prompt: buildMailPrompt(String(schedule.prompt || ''), mail),
         scheduleText: 'This agent runs automatically whenever a new email arrives; the trigger is already set up and will keep running without any further action.',
         metadata: { unattended: true, mailTrigger },

@@ -148,4 +148,18 @@ const RunsQuery = z.object({
     offset: z.coerce.number({ error: typeError({ invalid: OFFSET_TEXT }) }).int(OFFSET_TEXT).min(0, OFFSET_TEXT).optional(),
 }).strict();
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+// POST /:id/runs/:runId/review — how the owner handles a run that asked for review
+// (usecases/coworkReview.mts): an answer the agent continues with, or closed without a follow-up.
+const ACTION_TEXT = "action is 'answer', 'done_myself' or 'not_needed'.";
+const ANSWER_MAX = 4000;
+const ANSWER_TEXT = `answer is the text the agent continues with, at most ${ANSWER_MAX} characters.`;
+const ReviewBody = z.object({
+    action: z.enum(['answer', 'done_myself', 'not_needed'], { error: () => ACTION_TEXT }),
+    answer: worded(ANSWER_TEXT).max(ANSWER_MAX, ANSWER_TEXT).optional(),
+}).strict().superRefine((b, ctx) => {
+    if (b.action === 'answer' && !(b.answer && b.answer.trim())) {
+        ctx.addIssue({ code: 'custom', path: ['answer'], message: 'An answer needs the text the agent should continue with.' });
+    }
+});
+
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

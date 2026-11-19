@@ -29,6 +29,8 @@ import { useCoworkRunsQuery } from '../../api/queries/coworkReads';
 import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
+import CoworkRunDetails from './CoworkRunDetails';
+import { isWaitingForReview } from './coworkReview';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { statusLabel } from '../shared/statusTokens';
@@ -60,6 +62,8 @@ const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout
 /** The one line the closed row shows: what came out of this run. */
 function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (run.status === 'running') return t('cowork.history.still_running', 'Still running…');
+    // A run that asked for review says so first: that is what the reader has to act on.
+    if (isWaitingForReview(run)) return t('cowork_review.history.waiting_line', 'Waiting for your review: {reason}', { reason: firstMeaningfulLine(run.review?.reason) });
     // The error comes FIRST, and stays first. The server writes
     // produced_output = false on every failed run, so a rule that read that
     // flag earlier would replace every failure message in this list with
@@ -76,7 +80,19 @@ function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrPara
     return firstMeaningfulLine(run.result) || t('cowork.history.no_output', 'No output recorded');
 }
 
-function RunRow({ run }: { run: CoworkRun }) {
+/**
+ * Who or what started the run, for the opened row. 'mail' is what the server
+ * writes for a run a new message started (coworkTriggerStore.claimEventRun);
+ * every value other than 'manual' and 'mail' keeps reading as the schedule.
+ */
+function startedByLine(triggerKind: string | undefined, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+    if (triggerKind === 'manual') return t('cowork.history.started_by_you', 'Started by you');
+    if (triggerKind === 'mail') return t('cowork.history.started_by_mail', 'Started by a new e-mail');
+    if (triggerKind === 'review') return t('cowork_review.history.started_by_answer', 'Continued after your answer to a review');
+    return t('cowork.history.started_on_schedule', 'Started on schedule');
+}
+
+function RunRow({ run, agentId, title }: { run: CoworkRun; agentId?: string | null; title: string }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const status = runStatusToken(run.status);
@@ -128,10 +144,10 @@ function RunRow({ run }: { run: CoworkRun }) {
                         It is the one fact that is about the RUN rather than
                         about the work, and the row had four of those already. */}
                     <p className="text-[11px] pb-2 text-[var(--text-tertiary)]">
-                        {run.triggerKind === 'manual'
-                            ? t('cowork.history.started_by_you', 'Started by you')
-                            : t('cowork.history.started_on_schedule', 'Started on schedule')}
+                        {startedByLine(run.triggerKind, t)}
                     </p>
+                    {/* The review, what it used (a refusal stands out) and its conversation. */}
+                    <CoworkRunDetails run={run} agentId={agentId} title={title} t={t} />
                     {/* A result is model output, so it arrives as Markdown —
                         headings, bullets, tables, bold. Printed raw it was a
                         wall of asterisks and pipes. A failure is not: it is a
@@ -225,9 +241,13 @@ const NO_RUNS: CoworkRun[] = [];
 interface CoworkRunHistoryProps {
     coworkId: string;
     reloadKey: number | undefined;
+    /** The agent the item runs as: a run's conversation opens in its chat. */
+    agentId?: string | null;
+    /** The item's title, for the conversation it opens. */
+    title?: string;
 }
 
-export default function CoworkRunHistory({ coworkId, reloadKey }: CoworkRunHistoryProps) {
+export default function CoworkRunHistory({ coworkId, reloadKey, agentId = null, title = '' }: CoworkRunHistoryProps) {
     const { t } = useTranslation();
     // State carries the key it was fetched for, so "is this stale?" is derived
     // rather than announced by a setState in the effect body. Switching items
@@ -262,7 +282,7 @@ export default function CoworkRunHistory({ coworkId, reloadKey }: CoworkRunHisto
     } else {
         body = (
             <div data-testid="cowork-run-list">
-                {state.runs.map(run => <RunRow key={run.id} run={run} />)}
+                {state.runs.map(run => <RunRow key={run.id} run={run} agentId={agentId} title={title} />)}
                 {state.total > state.runs.length && (
                     <p className="text-[11px] px-3.5 py-2.5 text-[var(--text-tertiary)]">
                         {t(

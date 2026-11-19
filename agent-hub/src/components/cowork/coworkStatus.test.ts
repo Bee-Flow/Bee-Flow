@@ -101,6 +101,13 @@ describe('runStatusToken', () => {
         expect(token.labelKey).toBe('cowork.status.needs_reauth');
         expect(token.cssVar).toBe(STATUS_TOKENS.error.cssVar);
     });
+
+    it('gives a run that waits for its owner its own word, in the tone of waiting for approval', () => {
+        const token = runStatusToken('needs_review');
+        expect(token.labelEn).toBe('Needs review');
+        expect(token.labelKey).toBe('cowork_review.status.needs_review');
+        expect(token.cssVar).toBe(STATUS_TOKENS.awaiting_approval.cssVar);
+    });
 });
 
 describe('isInFlight', () => {

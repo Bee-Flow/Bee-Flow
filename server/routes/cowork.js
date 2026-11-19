@@ -11,6 +11,7 @@
  * POST   /:id/run-now   → force an immediate run
  * GET    /:id/runs      → execution history, newest first
  * GET    /:id/stats     → the aggregate behind the figure cards
+ * POST   /:id/runs/:runId/review → handle a run that asked for review (./coworkReviewRoutes.js)
  *
  * An item is started by its clock (`triggerKind: 'schedule'`, the default) or by
  * an event (`triggerKind: 'app_event'` + `trigger: { provider, event, filter? }`,
@@ -70,6 +71,7 @@ const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
 const { requireAuth } = require('../auth/permissions');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
+const { mountReviewRoutes, withReviewCounts, reviewCountOf } = require('./coworkReviewRoutes');
 const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
 
 const DEFAULT_MAX_SCHEDULES = 10;
@@ -128,25 +130,8 @@ async function startNowRun(schedule, norm) {
     });
 }
 
-/**
- * Load a schedule and assert the caller owns it.
- * @param {string} id
- * @param {string} userId
- */
-async function loadOwned(id, userId) {
-    const existing = await coworkStore.getSchedule(id);
-    if (!existing) {
-        const err = new Error('Not found');
-        err.statusCode = 404;
-        throw err;
-    }
-    if (existing.userId !== userId) {
-        const err = new Error('Forbidden');
-        err.statusCode = 403;
-        throw err;
-    }
-    return existing;
-}
+// Load a schedule and assert the caller owns it (404 / 403).
+const loadOwned = require('../usecases/coworkItems.mts').loadOwnedItem;
 
 /**
  * @param {string} _label
@@ -198,6 +183,7 @@ router.get('/', async (req, res) => {
         // One query for all open runs of this user, not one query per row.
         const openRuns = await coworkStore.getOpenRunStarts(userId).catch((e) => fallback('routes/cowork:anon#2', e, {}));
         for (const s of schedules) withCurrentRun(s, openRuns[s.id]);
+        await withReviewCounts(schedules, userId); // the same for the runs that wait for review
 
         res.json({ schedules, maxSchedules: await getMaxSchedules() });
     } catch (err) {
@@ -274,7 +260,7 @@ router.get('/:id', async (req, res) => {
     try {
         const schedule = await loadOwned(req.params.id, req.session.user.id);
         const startedAt = await coworkStore.getOpenRunStart(req.params.id).catch((e) => fallback('routes/cowork:anon#3', e, null));
-        res.json(withCurrentRun(schedule, startedAt));
+        res.json({ ...withCurrentRun(schedule, startedAt), openReviewCount: await reviewCountOf(req.params.id) });
     } catch (err) {
         fail(res, err, 'Get');
     }
@@ -395,6 +381,8 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
         fail(res, err, 'Runs');
     }
 });
+
+mountReviewRoutes(router); // POST /:id/runs/:runId/review
 
 // GET /:id/stats — the figures behind the four cards (CW-11).
 //

@@ -259,3 +259,15 @@ describe('CoworkRow — selection and accessibility', () => {
         expect(onSelect).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('CoworkRow — runs waiting for review', () => {
+    beforeEach(() => { cleanup(); });
+
+    it('says how many runs wait for the owner, and nothing when none do', () => {
+        renderRow({ openReviewCount: 2 });
+        expect(screen.getByTestId('cowork-row-review-count')).toHaveTextContent('2 to review');
+        cleanup();
+        renderRow({ openReviewCount: 0 });
+        expect(screen.queryByTestId('cowork-row-review-count')).toBeNull();
+    });
+});

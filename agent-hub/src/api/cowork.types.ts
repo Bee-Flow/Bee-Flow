@@ -61,6 +61,38 @@ export interface CoworkItem {
     enabledApps?: string[] | null;
     triggerKind?: 'schedule' | 'app_event';
     trigger?: MailTrigger | null;
+    /** Runs that asked for review and wait for the owner (absent from an older server: read as 0). */
+    openReviewCount?: number;
+}
+
+/** How the owner handled a run that asked for review. */
+export type CoworkReviewResolution = 'answered' | 'done_myself' | 'not_needed';
+
+/** What the agent asked for (cowork_request_review), and how its owner handled it. */
+export interface CoworkRunReview {
+    reason: string;
+    question: string | null;
+    summary: string | null;
+    resolution: CoworkReviewResolution | null;
+    resolvedBy: string | null;
+    resolvedAt: string | null;
+}
+
+/** One tool a run called: its name and app, and how its calls ended (a refusal with its reason codes). */
+export interface CoworkRunTool {
+    name: string;
+    app: string | null;
+    ok: number;
+    failed: number;
+    refused: number;
+    reasons: string[];
+}
+
+/** What one run did, in names and counts only. */
+export interface CoworkRunActivity {
+    tools: CoworkRunTool[];
+    skills: Array<{ id: string; name: string; how: 'static' | 'activated' }>;
+    toolCalls: number;
 }
 
 /** One execution of a cowork item. */
@@ -73,7 +105,20 @@ export interface CoworkRun {
     result?: string | null;
     producedOutput?: boolean | null;
     triggerKind?: string;
+    /** The conversation the run wrote into (an agent run). */
+    conversationId?: string | null;
+    /** A follow-up after an answered review: the run it continues. */
+    parentRunId?: string | null;
+    followupDepth?: number;
+    /** The subject of the e-mail that started a mail run. */
+    mailSubject?: string | null;
+    review?: CoworkRunReview | null;
+    /** Null for a run from before this was kept. */
+    activity?: CoworkRunActivity | null;
 }
+
+/** How the owner handles a run that waits for review. */
+export type CoworkReviewAction = 'answer' | 'done_myself' | 'not_needed';
 
 export interface CoworkStatsData {
     total: number;

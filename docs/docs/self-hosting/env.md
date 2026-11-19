@@ -219,6 +219,7 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
 | `AUTOMATION_AI_IMAGES_MAX` | `10` | The most images one AI step or data extraction step shows the model in one run (see [Images to AI](../features/automations.md#images-to-ai)). The images over the limit go as the text read from them. `0` = unlimited. |
 | `AUTOMATION_AI_IMAGES_MAX_MB` | `20` | The most megabytes of images one AI step or data extraction step shows the model in one run, all images together. An image that does not fit goes as the text read from it. `0` = unlimited. |
+| `COWORK_REVIEW_MAX_FOLLOWUPS` | `5` | How many times one piece of Cowork work may be continued after its owner answered a review the agent asked for ("To review" in Cowork). Each answer starts a follow-up run in the same conversation with the same tools; past this number the owner can still close the review, but not answer it with another follow-up. `0` = unlimited. |
 
 ## Per-user spend budgets
 
