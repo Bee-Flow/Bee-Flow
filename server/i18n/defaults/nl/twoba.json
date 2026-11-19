@@ -1,0 +1,32 @@
+{
+  "translations": {
+    "twoba.client_id_label": "Client-id",
+    "twoba.client_secret_label": "Client-secret",
+    "twoba.connected": "Verbonden: chat, agents en automatiseringen rekenen artikelen met je 2BA-condities",
+    "twoba.desc": "Verbind om artikelen en netto inkoopprijzen uit je 2BA-conditiebestanden op te zoeken",
+    "twoba.mode_account": "2BA-gebruikersnaam en wachtwoord",
+    "twoba.mode_code": "Inloggen met 2BA (geen wachtwoord opgeslagen)",
+    "twoba.mode_label": "Inloggen",
+    "twoba.need_all": "Vul de client-id, het client-secret, de gebruikersnaam en het wachtwoord in.",
+    "twoba.need_client": "Vul de client-id en het client-secret in.",
+    "twoba.needs_reauth": "De 2BA-aanmelding is verlopen of ingetrokken. Log opnieuw in.",
+    "twoba.not_signed_in": "Nog niet ingelogd met 2BA.",
+    "twoba.password_label": "Wachtwoord",
+    "twoba.redirect_uri": "Redirect-adres om bij 2BA te registreren: {uri}",
+    "twoba.scope_note": "Bee Flow stuurt 2BA alleen artikelgegevens: GLN van de leverancier, artikelnummers, GTIN's, aantallen en een projectnummer. De verbinding is alleen van jou; anderen in je organisatie verbinden hun eigen.",
+    "twoba.signed_in": "Ingelogd met 2BA.",
+    "twoba.signin": "Inloggen met 2BA",
+    "twoba.signin_again": "Opnieuw inloggen met 2BA",
+    "twoba.signin_error": "Inloggen bij 2BA kon niet worden gestart.",
+    "twoba.signin_opening": "2BA openen…",
+    "twoba.step1": "Vraag 2BA om een client-id en client-secret voor Bee Flow (2BA geeft die uit aan softwareleveranciers).",
+    "twoba.step2": "Je bedrijf heeft de 2BA Online Conditie Server nodig, met de conditiebestanden van je leveranciers erin.",
+    "twoba.step3": "Kies hoe je inlogt, sla op en test de verbinding.",
+    "twoba.test": "Verbinding testen",
+    "twoba.test_failed": "Kon geen verbinding maken met 2BA.",
+    "twoba.test_ok": "Verbonden als {company}, conditiedatabase {database}.",
+    "twoba.test_ok_no_database": "Verbonden als {company}; in 2BA is geen conditiedatabase gekozen.",
+    "twoba.username_label": "2BA-gebruikersnaam"
+  },
+  "sameAsEnglish": []
+}

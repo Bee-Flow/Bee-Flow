@@ -234,8 +234,8 @@ const INTEGRATION_TOOL_MAP = {
 
     // Firebird and vPlan: integrationToolMap.databases.js
     ...require('./integrationToolMap.databases'),
-    // Frappe CRM: integrationToolMap.crm.mts
-    ...require('./integrationToolMap.crm.mts').FRAPPE_CRM_TOOL_MAP,
+    // Frappe CRM: integrationToolMap.crm.mts; 2BA: integrationToolMap.twoba.mts
+    ...require('./integrationToolMap.crm.mts').FRAPPE_CRM_TOOL_MAP, ...require('./integrationToolMap.twoba.mts').TWOBA_TOOL_MAP,
 
     // ── Scaleway Billing (read-only invoices) ────────────────
     // Invoices are the organisation's own financial records.

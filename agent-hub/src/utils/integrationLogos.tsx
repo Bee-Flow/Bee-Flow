@@ -1,7 +1,7 @@
 import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.types';
-import { FirebirdLogo, FrappeCrmLogo } from './integrationLogos.database';
+import { FirebirdLogo, FrappeCrmLogo, TwobaLogo } from './integrationLogos.database';
 /**
  * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in underscore
  * form ('google_drive') so they line up with INTEGRATION_META in
@@ -544,8 +544,7 @@ const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     afas_profit: AfasLogo,
     nmbrs: NmbrsLogo,
     vplan: VplanLogo,
-    firebird: FirebirdLogo,
-    frappe_crm: FrappeCrmLogo,
+    firebird: FirebirdLogo, frappe_crm: FrappeCrmLogo, twoba: TwobaLogo,
     scaleway_billing: ScalewayBillingLogo,
     linkedin: LinkedInLogo,
     github: GitHubLogo,

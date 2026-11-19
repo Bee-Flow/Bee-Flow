@@ -60,7 +60,7 @@ export interface StatusGroup {
  * set up at the organisation level.
  */
 export const PER_USER_INTEGRATION_IDS: ReadonlySet<string> = new Set([
-    'fireflies', 'nmbrs', 'afas-profit', 'frappe-crm', 'firebird', 'vplan', 'signrequest', 'youtrack', 'gamma',
+    'fireflies', 'nmbrs', 'afas-profit', 'frappe-crm', 'twoba', 'firebird', 'vplan', 'signrequest', 'youtrack', 'gamma',
     'github', 'linkedin', 'withings', 'scaleway-billing',
 ]);
 

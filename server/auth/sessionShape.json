@@ -54,6 +54,7 @@
     "serviceEmailConnect",
     "supportMailbox",
     "teamsAdminConsent",
+    "twobaConnect",
     "user",
     "withingsConnectRedirectUri",
     "withingsConnectState"

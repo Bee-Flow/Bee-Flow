@@ -92,6 +92,10 @@ const INTEGRATION_ICONS: Record<string, React.ReactElement> = {
     'frappe-crm': (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0F766E" /><circle cx="9" cy="10" r="2.4" fill="white" /><path d="M5.2 17c.4-2.3 1.9-3.6 3.8-3.6s3.4 1.3 3.8 3.6z" fill="white" fillOpacity="0.9" /><rect x="14" y="8.4" width="5" height="1.6" rx="0.8" fill="white" fillOpacity="0.9" /><rect x="14" y="11.6" width="4" height="1.6" rx="0.8" fill="white" fillOpacity="0.7" /><rect x="14" y="14.8" width="3" height="1.6" rx="0.8" fill="white" fillOpacity="0.5" /></svg>
     ),
+    // A neutral price-tag tile (no brand mark).
+    twoba: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" /><path d="M6 7.2c0-.66.54-1.2 1.2-1.2h4.6c.32 0 .62.13.85.35l5.2 5.2c.47.47.47 1.23 0 1.7l-4.6 4.6c-.47.47-1.23.47-1.7 0l-5.2-5.2A1.2 1.2 0 0 1 6 11.8z" fill="white" /><circle cx="9" cy="9" r="1.3" fill="#1D4ED8" /></svg>
+    ),
     // Scaleway's mark is not bundled; a brand-purple receipt tile instead.
     'scaleway-billing': (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#4F0599" /><path d="M7 5.5h10v13l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2L7 18.5v-13z" fill="white" /><rect x="9" y="8.5" width="6" height="1.4" rx="0.7" fill="#4F0599" /><rect x="9" y="11.3" width="6" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.7" /><rect x="9" y="14.1" width="3.5" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.5" /></svg>

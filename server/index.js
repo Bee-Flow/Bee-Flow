@@ -483,12 +483,12 @@ app.use('/api/storage', require('./routes/storageProxy'));
 app.use('/api/integrations/linkedin', require('./routes/integrations/linkedin'));
 app.use('/api/integrations/withings', require('./routes/integrations/withings'));
 app.use('/api/integrations/nmbrs', require('./routes/integrations/nmbrs'));
+app.use('/api/integrations/twoba', require('./routes/integrations/twoba.mts').twobaRouter);
 app.use('/api/integrations/github', require('./routes/integrations/github'));
 app.use('/api/integrations/github-sync', require('./routes/integrations/githubSync'));
 app.use('/api/integrations/gamma', require('./routes/integrations/gamma'));
-// These routers read tokens straight off the session, so hydrate it from the
-// vault first — otherwise a connector-acquired Microsoft grant reports "not
-// connected" until the user re-logs in via Microsoft SSO.
+// These routers read tokens straight off the session, so hydrate it from the vault first — otherwise a
+// connector-acquired Microsoft grant reports "not connected" until the user re-logs in via Microsoft SSO.
 const { microsoftSessionHydration } = require('./auth/microsoftSessionHydration');
 app.use('/api/integrations/outlook', microsoftSessionHydration, require('./routes/integrations/outlook'));
 app.use('/api/integrations/onedrive', microsoftSessionHydration, require('./routes/integrations/oneDrive'));

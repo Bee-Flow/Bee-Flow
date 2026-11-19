@@ -21,29 +21,19 @@
  * back-channel token / revocation calls.
  */
 
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { nmbrsFetch, safeText } from './nmbrsTransport.mts';
 import { NMBRS_READ_SCOPES } from './nmbrsRest.mts';
+import {
+    createConnectAttempt, pkceChallenge, stateMatches, type ConnectAttempt, type CredentialStore, type VaultCredential,
+} from './shared/oauthConnectAttempt.mts';
+
+export type { ConnectAttempt };
 
 const nodeRequire = createRequire(import.meta.url);
 
 interface ConfigStore {
     getSecret: (key: string) => Promise<string | null | undefined>;
-}
-interface VaultCredential {
-    userId: string;
-    orgId: string;
-    accessToken: string | null;
-    refreshToken: string | null;
-    expiresAt: number | null;
-    scope: string | null;
-    status: string;
-}
-interface CredentialStore {
-    getCredential: (userId: string, provider: string) => Promise<VaultCredential | null>;
-    upsertCredential: (row: { userId: string; orgId: string; provider: string; accessToken: string; refreshToken: string | null; expiresAt: number | null; scope: string | null }) => Promise<void>;
-    markNeedsReauth: (userId: string, provider: string, reason: string) => Promise<void>;
 }
 
 /** Stores, lazily: loading this module must not open the database. Tests replace them. */
@@ -88,28 +78,12 @@ export function basicAuth({ clientId, clientSecret }: ClientConfig): string {
 
 // ─── The connect attempt (state + PKCE) ──────────────────────────
 
-/** What the session holds between /auth-url and /callback. Single use. */
-export interface ConnectAttempt {
-    state: string;
-    verifier: string;
-    redirectUri: string;
-    userId: string;
-    createdAt: number;
-}
-
+/** A new single-use attempt (shared/oauthConnectAttempt.mts). */
 export function newConnectAttempt(userId: string, redirectUri: string): ConnectAttempt {
-    return {
-        state: randomBytes(16).toString('hex'),
-        verifier: randomBytes(32).toString('base64url'),
-        redirectUri,
-        userId,
-        createdAt: oauthDeps.now(),
-    };
+    return createConnectAttempt(userId, redirectUri, oauthDeps.now());
 }
 
-export function codeChallenge(verifier: string): string {
-    return createHash('sha256').update(verifier).digest('base64url');
-}
+export const codeChallenge = pkceChallenge;
 
 export function authorizeUrl(clientId: string, attempt: ConnectAttempt): string {
     const params = new URLSearchParams({
@@ -126,12 +100,7 @@ export function authorizeUrl(clientId: string, attempt: ConnectAttempt): string 
 
 /** The callback's state: equal (in constant time), for this user, and not older than CONNECT_TTL_MS. */
 export function attemptMatches(attempt: ConnectAttempt | null | undefined, receivedState: unknown, userId: string | null | undefined): boolean {
-    if (!attempt || typeof receivedState !== 'string' || !userId) return false;
-    if (attempt.userId !== userId) return false;
-    if (oauthDeps.now() - attempt.createdAt > CONNECT_TTL_MS) return false;
-    const a = Buffer.from(receivedState);
-    const b = Buffer.from(String(attempt.state || ''));
-    return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
+    return stateMatches(attempt, receivedState, userId, oauthDeps.now(), CONNECT_TTL_MS);
 }
 
 // ─── Token endpoint ──────────────────────────────────────────────

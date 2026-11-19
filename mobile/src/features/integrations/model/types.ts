@@ -54,6 +54,7 @@ export interface UserSettings {
     hasVplanConfig: boolean;
     hasFirebirdConfig: boolean;
     hasFrappeCrmConfig: boolean;
+    hasTwobaConfig: boolean;
     hasLinkedInConfig: boolean;
     hasWithingsConfig: boolean;
     hasN8nConfig: boolean;

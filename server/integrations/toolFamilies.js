@@ -359,8 +359,8 @@ const INTEGRATION_TOOL_FAMILIES = [
     { name: 'vplan', order: 170, isTool: isVplanTool, execute: byUser(executeVplanTool) },
     { name: 'firebird', order: 175, isTool: n => require('./firebirdTools').isFirebirdTool(n), execute: byUser((n, a, u) => require('./firebirdTools').executeFirebirdTool(n, a, u)) }, // lazy: the driver loads on first use
     { name: 'frappe_crm', order: 177, isTool: n => require('./frappeCrmTools.mts').isFrappeCrmTool(n), execute: byUser((n, a, u) => require('./frappeCrmTools.mts').executeFrappeCrmTool(n, a, u)) },
-    // The run scope lets scaleway_download_invoice keep the PDF for this automation run and hand on a generated_file handle.
-    { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) },
+    { name: 'twoba', order: 178, isTool: n => n.startsWith('twoba_') && require('./twobaTools.mts').isTwobaTool(n), execute: (n, a, ctx) => require('./twobaTools.mts').executeTwobaTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) }, // the run scope: upload a file of this run
+    { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) }, // the run scope: keep the PDF for this run, hand on a generated_file handle
     // Lazily required: withingsTools pulls in automationAuth (and through it the credential vault), which nothing else on this hot path needs.
     { name: 'withings', order: 190, isTool: n => require('./withingsTools').isWithingsTool(n), execute: (n, a, ctx) => require('./withingsTools').executeWithingsTool(n, a, ctx.userId) },
     // `autoSend` is opt-in per-call: only the automation runner sets it (no

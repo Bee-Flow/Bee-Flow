@@ -27,6 +27,7 @@ const { NMBRS_TOOLS } = require('./nmbrsTools');
 const { VPLAN_TOOLS } = require('./vplanTools');
 const { FIREBIRD_TOOLS } = require('./firebirdTools');
 const { FRAPPE_CRM_TOOLS } = require('./frappeCrmTools.mts');
+const { TWOBA_TOOLS } = require('./twobaToolDefs.mts');
 const { SANCTIONS_TOOLS } = require('./sanctionsTools.mts');
 const { SCALEWAY_BILLING_TOOLS } = require('./scalewayBillingTools');
 const { buildN8nTools } = require('./n8nTools');
@@ -81,6 +82,7 @@ const TOOLSETS = {
     VPLAN_TOOLS,
     FIREBIRD_TOOLS,
     FRAPPE_CRM_TOOLS,
+    TWOBA_TOOLS,
     SANCTIONS_TOOLS,
     SCALEWAY_BILLING_TOOLS,
     N8N_WORKFLOW_TOOLS,

@@ -61,6 +61,7 @@ describe('keyBadges', () => {
             hasVplanConfig: false,
             hasFirebirdConfig: false,
             hasFrappeCrmConfig: false,
+            hasTwobaConfig: false,
             hasLinkedInConfig: false,
             hasWithingsConfig: false,
             hasN8nConfig: false,

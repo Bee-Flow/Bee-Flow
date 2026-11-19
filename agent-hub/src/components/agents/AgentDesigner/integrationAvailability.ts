@@ -37,6 +37,7 @@ export interface IntegrationAvailabilityStatus {
     hasAfasConfig?: boolean;
     hasNmbrsConfig?: boolean;
     hasFrappeCrmConfig?: boolean;
+    hasTwobaConfig?: boolean;
     hasFirebirdConfig?: boolean;
     hasVplanConfig?: boolean;
     hasSignRequestConfig?: boolean;
@@ -53,6 +54,7 @@ const PERSONAL_CREDENTIAL: Readonly<Record<string, (s: IntegrationAvailabilitySt
     'afas-profit': s => !!s.hasAfasConfig,
     nmbrs: s => !!s.hasNmbrsConfig,
     'frappe-crm': s => !!s.hasFrappeCrmConfig,
+    twoba: s => !!s.hasTwobaConfig,
     firebird: s => !!s.hasFirebirdConfig,
     vplan: s => !!s.hasVplanConfig,
     signrequest: s => !!s.hasSignRequestConfig,

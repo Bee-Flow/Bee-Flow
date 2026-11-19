@@ -29,6 +29,7 @@ const INTEGRATION_CATALOG = [
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning, capacity & time tracking (read-only)', requiresKey: 'hasVplanConfig' },
     { id: 'firebird', label: 'Firebird database', description: 'Read a Firebird database such as Syntess Atrium (read-only)', requiresKey: 'hasFirebirdConfig' },
     { id: 'frappe-crm', label: 'Frappe CRM', description: 'Read and update leads, deals, contacts, tasks and notes', requiresKey: 'hasFrappeCrmConfig' },
+    { id: 'twoba', label: '2BA', description: 'Article data and net purchase prices from your 2BA condition files', requiresKey: 'hasTwobaConfig' },
     { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', requiresKey: 'hasScalewayBillingConfig' },
     { id: 'linkedin', label: 'LinkedIn', description: 'Post and search on LinkedIn', requiresKey: 'hasLinkedInConfig' },
     { id: 'n8n', label: 'n8n', description: 'Run workflows', requiresKey: 'hasN8nConfig' },
