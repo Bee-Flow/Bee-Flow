@@ -1,0 +1,36 @@
+{
+  "translations": {
+    "automation_write_table.add_column": "Kolom toevoegen",
+    "automation_write_table.advanced": "Geavanceerd",
+    "automation_write_table.card.csv": "Als CSV-bestand",
+    "automation_write_table.card.xlsx": "Als Excel-bestand",
+    "automation_write_table.column": "Kolom {n}",
+    "automation_write_table.column_placeholder": "Kolom van de tabel",
+    "automation_write_table.columns": "Kolommen",
+    "automation_write_table.columns_help": "Welke kolommen in het bestand komen, in deze volgorde, elk met de kop die hij krijgt. Geen kolommen: allemaal, zoals ze zijn.",
+    "automation_write_table.delimiter": "Scheidingsteken tussen de kolommen",
+    "automation_write_table.delimiter_comma": "Komma",
+    "automation_write_table.delimiter_help": "Excel opent een CSV-bestand met zijn eigen lijstscheidingsteken: in het Nederlands een puntkomma.",
+    "automation_write_table.delimiter_semicolon": "Puntkomma (Excel in het Nederlands en veel andere talen)",
+    "automation_write_table.file_name": "Bestandsnaam",
+    "automation_write_table.file_name_help": "Zonder de extensie. Mag waarden van eerdere stappen bevatten, zoals een projectnummer uit het formulier. Leeg: de naam van deze stap.",
+    "automation_write_table.format": "Bestandstype",
+    "automation_write_table.format_help": "Excel houdt getallen als getallen en kan rijen markeren. CSV is platte tekst die elk programma leest.",
+    "automation_write_table.header": "Kop van kolom {n}",
+    "automation_write_table.header_placeholder": "Kop (optioneel)",
+    "automation_write_table.highlight": "Rijen markeren waar deze kolom gevuld is",
+    "automation_write_table.highlight_help": "Bijvoorbeeld een kolom met opmerkingen of vlaggen: de rijen om te controleren krijgen een kleur in het Excel-bestand. Leeg: geen rij gemarkeerd.",
+    "automation_write_table.keep": "Bestand bewaren (dagen)",
+    "automation_write_table.keep_help": "Na zoveel dagen wordt het bestand verwijderd. Van 1 tot 90.",
+    "automation_write_table.remove_column": "Kolom {n} verwijderen",
+    "automation_write_table.sheet_name": "Naam van het werkblad",
+    "automation_write_table.sheet_name_help": "De naam van het werkblad in het Excel-bestand. Leeg: de naam van deze stap.",
+    "automation_write_table.source": "Tabel om weg te schrijven",
+    "automation_write_table.source_help": "Een tabel van een eerdere stap: een stap Tabel inlezen of Tabel bewerken, of een lijst met rijen."
+  },
+  "sameAsEnglish": [
+    "automation_write_table.delimiter_tab",
+    "automation_write_table.format_csv",
+    "automation_write_table.format_xlsx"
+  ]
+}

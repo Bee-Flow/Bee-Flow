@@ -109,19 +109,20 @@ interface RunFile { buffer: Buffer; filename: string; size: number }
 
 const FILE_ERRORS: Record<string, [number, string]> = {
     table_source_missing: [400, 'No file was given: pass the sourceHandle of a form upload or of a file an earlier step made.'],
-    table_source_unsupported: [400, 'This tool takes a file from a form or from an earlier step of this run.'],
+    table_source_unsupported: [400, 'This tool takes a file from a form, from an app or from an earlier step of this run.'],
     table_source_not_found: [404, 'The file could not be found. It may have expired or belong to another automation.'],
     table_source_too_large: [413, 'The condition file is larger than this server accepts (TWOBA_MAX_UPLOAD_BYTES).'],
 };
 
-async function readRunFile(handle: unknown, ctx: RunContext): Promise<RunFile> {
+async function readRunFile(handle: unknown, ctx: RunContext, userId: string): Promise<RunFile> {
     if (!ctx.runScope?.runId) throw userError('twoba_needs_run', 'twoba_upload_conditions works inside an automation run: the condition file is a file of that run.');
     const { readSourceFile } = nodeRequire('../core/automationRunner/tables/sourceFile.js') as {
         readSourceFile: (v: unknown, c: Record<string, unknown>, d: Record<string, unknown>) => Promise<RunFile>;
     };
     const cap = maxUploadBytes();
     try {
-        return await readSourceFile(handle, { automationId: ctx.automationId, runId: ctx.runScope.runId, rootRunId: ctx.runScope.rootRunId }, { limits: () => ({ maxFileBytes: cap }) });
+        // userId: a file an app handed to the run is read only when the app is the run owner's.
+        return await readSourceFile(handle, { automationId: ctx.automationId, runId: ctx.runScope.runId, rootRunId: ctx.runScope.rootRunId, userId }, { limits: () => ({ maxFileBytes: cap }) });
     } catch (err) {
         const known = FILE_ERRORS[String((err as { errorClass?: unknown })?.errorClass)];
         if (known) throw new TwobaError(known[0], 'twoba_file', known[1]);
@@ -147,7 +148,7 @@ function importResult(answer: unknown): Raw | null {
 }
 
 async function uploadConditions(conn: Connection, args: UploadInput, ctx: RunContext): Promise<Raw> {
-    const file = await readRunFile(args.sourceHandle, ctx);
+    const file = await readRunFile(args.sourceHandle, ctx, conn.userId);
     const lower = file.filename.toLowerCase();
     if (!CONDITION_EXTENSIONS.some((ext) => lower.endsWith(ext))) throw userError('twoba_file_type', 'A condition file is an ICC file (.txt or .icc) or an INSBOU/DICO file (.xml).');
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');

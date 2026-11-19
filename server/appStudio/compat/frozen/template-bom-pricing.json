@@ -1,0 +1,181 @@
+{
+  "corpus": "template-bom-pricing",
+  "canonical": {
+    "sha256": "cd2397aec207b3b0f810c35c9bb47c776da8148992b7fb2cf4dede5fbe275520",
+    "bytes": 16213,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "bfc173dc42c645ab",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "751ffefb6dfa3398",
+      "screens[0] scr_bpprice": "b92b4c5c62177d3c",
+      "screens[1] scr_bpcalcs": "eb43efae4557c9a4",
+      "screens[2] scr_bpcalc": "1c1ef2e8eb234442",
+      "screens[3] scr_bpconds": "a062cc01319d96bd",
+      "actions.act_bpprice": "2030c1a78bdde1be",
+      "actions.act_bpopen": "11e75576bcfb23f1",
+      "actions.act_bpback": "ba6df93e71987c39",
+      "actions.act_bpdl": "c3b8a4ced1641297",
+      "actions.act_bpupload": "69d8de068732a791",
+      "homeScreenId": "cf8ccbc454529626"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_bpprice.steps[0].automationId",
+        "action.automation_unset @ actions.act_bpupload.steps[0].automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_bpprice.steps[0].automationId",
+        "action.automation_unset @ actions.act_bpupload.steps[0].automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_bpprice": [
+        "0 run_automation",
+        "1 create_record",
+        "2 loop",
+        "3 create_record",
+        "4 generate_file",
+        "5 update_record",
+        "6 refresh",
+        "7 toast",
+        "8 set_variable",
+        "9 navigate"
+      ],
+      "act_bpopen": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_bpback": [
+        "0 navigate"
+      ],
+      "act_bpdl": [
+        "0 condition",
+        "1 toast",
+        "2 download_file"
+      ],
+      "act_bpupload": [
+        "0 run_automation",
+        "1 create_record",
+        "2 refresh",
+        "3 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "0e6697d8cc2372cf19da2f423f717cc27b4449e5fbbc47ba4845451c241de940",
+    "afterResave": "0e6697d8cc2372cf19da2f423f717cc27b4449e5fbbc47ba4845451c241de940"
+  },
+  "reads": [
+    {
+      "at": "cmp_bpcgrid.source",
+      "kind": "records",
+      "table": "tbl_bpcalc",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculations\" WHERE (1=1) ORDER BY \"priced_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculations\" WHERE (1=1) ORDER BY \"priced_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bpcrd.source",
+      "kind": "record",
+      "table": "tbl_bpcalc",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculations\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculations\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bplgrid.source",
+      "kind": "records",
+      "table": "tbl_bpline",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculation_lines\" WHERE (1=1) ORDER BY \"needs_check\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"calculation_lines\" WHERE (1=1) ORDER BY \"needs_check\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bpugrid.source",
+      "kind": "records",
+      "table": "tbl_bpcond",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"condition_uploads\" WHERE (1=1) ORDER BY \"uploaded_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"condition_uploads\" WHERE (1=1) ORDER BY \"uploaded_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

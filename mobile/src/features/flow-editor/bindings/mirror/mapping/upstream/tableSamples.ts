@@ -1,6 +1,6 @@
 // GENERATED from agent-hub/src/components/automation/Builder/mapping/upstream/tableSamples.ts by scripts/gen-shared-mirror.mjs — do not edit
 /**
- * The example payloads of the two table steps, as they look BEFORE any run.
+ * The example payloads of the table steps, as they look BEFORE any run.
  * Shared with the phone (mirrored into its bindings/mirror/ by
  * scripts/gen-shared-mirror.mjs), so both pickers offer the same fields.
  *
@@ -44,6 +44,28 @@ export function editTableSample(name: string) {
         rows: [],
         markdown: '',
         opStats: [],
+        warnings: [],
+    };
+}
+
+/**
+ * What a Write table step hands downstream (execWriteTable.mts): the file it
+ * wrote, with the same `fileId` a document step offers (a download field or an
+ * attachment binds it alike), and `sourceHandle` for an upload or a later Read
+ * table step.
+ */
+export function writeTableSample(format: unknown) {
+    const ext = format === 'csv' ? 'csv' : 'xlsx';
+    return {
+        fileId: 'f_1a2b3c',
+        filename: `table.${ext}`,
+        mimeType: ext === 'csv' ? 'text/csv; charset=utf-8' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        size: 0,
+        format: ext,
+        rowCount: 0,
+        columns: [],
+        highlightedRows: 0,
+        sourceHandle: { kind: 'generated_file', fileId: 'f_1a2b3c' },
         warnings: [],
     };
 }

@@ -97,7 +97,7 @@ async function execParallel(step, ctx, runState, mode, dispatchSubStep) {
 }
 
 async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
-    const resolved = require('../automationModel/bind').walkList(step.overRef, runState);
+    const resolved = await require('./tables/handleRows.mts').rowsOfTableValue(require('../automationModel/bind').walkList(step.overRef, runState), ctx, COLLECTION_OP_MAX_ITEMS); // a table handle: its rows
     if (!Array.isArray(resolved)) {
         // Top-level skippedReason → runDag records the row as 'skipped', not
         // a green success (A10). An UNRESOLVED source is not the same thing

@@ -4706,6 +4706,249 @@ exports[`compat corpus: what the phone plans for every stored app template-bi-re
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app template-bom-pricing 1`] = `
+{
+  "defaultScreen": "scr_bpprice",
+  "navigable": [
+    "scr_bpprice",
+    "scr_bpcalcs",
+    "scr_bpconds",
+  ],
+  "screens": [
+    {
+      "id": "scr_bpprice",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_bph1",
+                "kind": "heading",
+                "level": 1,
+                "text": "Price a bill of materials",
+              },
+              {
+                "id": "cmp_bpintro",
+                "kind": "text",
+                "muted": true,
+                "text": "Upload the list as Excel or CSV: per line a quantity, a unit and the supplier's article number and/or the GTIN. The net prices come from the condition files of your 2BA account.",
+              },
+              {
+                "action": {
+                  "actionId": "act_bpprice",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_bpform",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Supplier GLN (13 digits)",
+                    "max": null,
+                    "min": null,
+                    "name": "supplier_gln",
+                    "nodeId": "cmp_bpgln",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Project number (optional)",
+                    "max": null,
+                    "min": null,
+                    "name": "project_number",
+                    "nodeId": "cmp_bpproj",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Price the list",
+                "title": "bom",
+              },
+            ],
+            "screen": "scr_bpprice",
+            "unsupported": [
+              "input_file",
+              "input_relation",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_bpcalcs",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_bph2",
+                "kind": "heading",
+                "level": 1,
+                "text": "Calculations",
+              },
+            ],
+            "screen": "scr_bpcalcs",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_bpcalc",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "action": {
+                  "actionId": "act_bpback",
+                  "kind": "navigate",
+                  "label": "Back to calculations",
+                  "runnable": false,
+                },
+                "id": "cmp_bpback",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_bpdl",
+                  "kind": "sequence",
+                  "label": "Download as Excel",
+                  "runnable": false,
+                },
+                "id": "cmp_bpdl",
+                "kind": "button",
+              },
+              {
+                "id": "cmp_bph3",
+                "kind": "heading",
+                "level": 2,
+                "text": "Lines, the ones to check first",
+              },
+            ],
+            "screen": "scr_bpcalc",
+            "unsupported": [
+              "record_detail",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_bpconds",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_bph4",
+                "kind": "heading",
+                "level": 1,
+                "text": "Condition files",
+              },
+              {
+                "id": "cmp_bpcintro",
+                "kind": "text",
+                "muted": true,
+                "text": "Upload the condition file a supplier sent you (ICC as .txt or .icc, or INSBOU/DICO as .xml) into your 2BA Online Condition Server. Every calculation records which upload was in use.",
+              },
+              {
+                "action": {
+                  "actionId": "act_bpupload",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_bpuform",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Condition database id",
+                    "max": null,
+                    "min": null,
+                    "name": "database_id",
+                    "nodeId": "cmp_bpudb",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_number",
+                  },
+                  {
+                    "initial": "DoNotProcess",
+                    "inputType": "text",
+                    "label": "After the import",
+                    "max": null,
+                    "min": null,
+                    "name": "process",
+                    "nodeId": "cmp_bpuproc",
+                    "options": [
+                      {
+                        "label": "Import only (check it in 2BA first)",
+                        "value": "DoNotProcess",
+                      },
+                      {
+                        "label": "Activate when no row failed",
+                        "value": "ProcessIfAllOk",
+                      },
+                      {
+                        "label": "Activate, skipping failed rows",
+                        "value": "ProcessAlways",
+                      },
+                    ],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_select",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Upload",
+                "title": "conditions",
+              },
+            ],
+            "screen": "scr_bpconds",
+            "unsupported": [
+              "input_file",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app template-breach-register 1`] = `
 {
   "defaultScreen": "scr_clock",

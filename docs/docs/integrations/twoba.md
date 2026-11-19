@@ -43,7 +43,8 @@ Access tokens of 2BA live about two minutes. Bee Flow reuses one until ten secon
 - the article with its units (use unit, order unit, price unit), packaging, status and successor;
 - the price block from 2BA: gross and net price, `conditionId`, `scenario` (number and name) and `termsType`;
 - `unitNetPrice`: the net price **per use unit** (per metre for a cable priced "per 100 m"), and `lineTotalExVat` = quantity × unit net price, rounded to cents once;
-- `priceDate` (today) and `flags`.
+- `priceDate` (today) and `flags`;
+- flat copies for a table or a sheet, where a nested object is one cell: `articleNumber`, `description`, `conditionId`, `scenarioName`, `termsType`, and `review`: the status when it is not `matched` and the flags as one text, empty when the line needs no look.
 
 A line's unit (`m`, `mtr`, `st`, `stuks`, `pcs`, `rol`, `doos`, ...) is compared with the article's use unit. When it is unknown or another unit, the line is flagged and has no total: 2 "rol" of a cable sold per metre is not 2 metres.
 
@@ -60,11 +61,26 @@ A line's unit (`m`, `mtr`, `st`, `stuks`, `pcs`, `rol`, `doos`, ...) is compared
 
 The `summary` counts the lines per status and flag and adds up the priced lines.
 
+### A bill of materials in an automation
+
+A form with a file question (or an App Studio app that hands a file to an app trigger) starts the automation:
+
+1. **Read table** on the uploaded file.
+2. **Edit table**, **Select columns**: rename the list's columns to `ref` (the line number), `quantity`, `unit`, `tradeItemId` and `gtin`.
+3. **Loop** over `steps.<edit>.output.table` with a batch size of 200 (the tool's `TWOBA_MAX_ITEMS`), with an action step `twoba_find_trade_items` whose `items` is `loop.<item>`. For a list of up to 200 lines the loop is not needed: bind `items` to `steps.<edit>.output.rows`.
+4. **Edit table**, **Join** with `steps.<loop>.output.results[*].output.items` on `ref`, taking the columns you want (`description`, `unitNetPrice`, `lineTotalExVat`, `priceDate`, `conditionId`, `scenarioName`, `status`, `review`).
+5. **Write table** as Excel, with **Mark rows** on `review`: the lines to check are coloured.
+
+The App Studio template **Bill of materials pricing** records every calculation and its lines, offers the Excel download and keeps the history of condition file uploads. It runs two automations with an app trigger, which you connect after installing it (the app lists them as setup steps):
+
+- **Price the list**: inputs `bom` (file), `supplierGln` and `projectNumber`; the steps above, ending with a step whose output has `items`, the priced lines (after a loop: `steps.<loop>.output.results[*].output.items`). The app records at most 200 lines per calculation.
+- **Upload a condition file**: inputs `file` (file), `databaseId` (number) and `process`; its last step is `twoba_upload_conditions` with `sourceHandle` set to `trigger.output.file`.
+
 ### Which condition file was used
 
 `twoba_upload_conditions` returns what 2BA reports per imported file and the **sha256** of the file sent. Store those in a data table to know later which condition file version priced a calculation; each priced line carries the `conditionId`, `scenario` and `termsType` that gave its price. 2BA does not say which import a condition came from, so when files are also uploaded in the 2BA portal, the last upload through Bee Flow is not necessarily the active one.
 
-The file comes from the run: a form upload or a file an earlier step made (`sourceHandle`). `process` is `DoNotProcess` (default: import only, check the result in 2BA), `ProcessIfAllOk` or `ProcessAlways`.
+The file comes from the run: a form upload, a file an app handed to the run, or a file an earlier step made (`sourceHandle`). `process` is `DoNotProcess` (default: import only, check the result in 2BA), `ProcessIfAllOk` or `ProcessAlways`.
 
 ## Limits and privacy
 

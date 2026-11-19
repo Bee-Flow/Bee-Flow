@@ -171,10 +171,34 @@ function lineInput(l: Line): Record<string, unknown> {
     return { tradeItemId: l.tradeItemId ?? null, gtin: l.gtin ?? null, quantity: l.quantity ?? null, unit: l.unit ?? null };
 }
 
+/**
+ * Why a line needs a look, as one text (the status when it is not `matched`,
+ * then the flags), or null when it needs none: the column a written sheet
+ * highlights its rows by. The same rule as the summary's linesNeedingReview.
+ */
+export function reviewText(status: MatchResult['status'], flags: string[]): string | null {
+    const reasons = [...(status === 'matched' ? [] : [status]), ...flags];
+    return reasons.length ? reasons.join('; ') : null;
+}
+
+/** Flat copies for a table or a sheet, where a nested object is one cell of JSON. */
+function flatCopies(match: MatchResult, price: PriceOut | null, flags: string[]): Record<string, unknown> {
+    const item = match.item;
+    return {
+        articleNumber: item ? item.tradeItemId : null,
+        description: item ? item.description : null,
+        conditionId: price ? price.conditionId : null,
+        scenarioName: price ? price.scenarioName : null,
+        termsType: price ? price.termsType : null,
+        review: reviewText(match.status, flags),
+    };
+}
+
 function lineOut(l: Line, match: MatchResult, answer: PriceAnswer | undefined, priceDate: string): FoundLine {
     const price = answer?.price ?? null;
     const priced = match.item ? priceLine(match.item, price, l.quantity, l.unit) : NOT_PRICED;
     const extra = [l.invalidGtin && 'invalid_gtin', answer?.failed && 'price_lookup_failed'].filter((f): f is string => typeof f === 'string');
+    const flags = [...new Set([...match.flags, ...priced.flags, ...extra])];
     const out: FoundLine = {
         ref: l.ref,
         status: match.status,
@@ -186,7 +210,8 @@ function lineOut(l: Line, match: MatchResult, answer: PriceAnswer | undefined, p
         lineTotalExVat: priced.lineTotalExVat,
         currency: match.item?.currencyCode ?? null,
         priceDate,
-        flags: [...new Set([...match.flags, ...priced.flags, ...extra])],
+        flags,
+        ...flatCopies(match, price, flags),
     };
     if (match.candidates.length) out.candidates = match.candidates.slice(0, MAX_CANDIDATES).map(candidate);
     return out;

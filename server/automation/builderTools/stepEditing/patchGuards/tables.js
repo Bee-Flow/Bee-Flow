@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * builder_update_step on a read_table or table step: `source` and `ops`
+ * builder_update_step on a read_table, table or write_table step: `source` and `ops`
  * checked through the add path's helpers (a path must exist in the draft, an
  * operation list is replaced wholesale and normalised), and the settings the
  * patch touches judged by the shared specs. Only the findings under a patched
@@ -15,6 +15,7 @@ const { validateReadTableStep } = require('../../../../core/automationModel/tabl
 
 const READ_TABLE_KEYS = ['source', 'sheets', 'headerRow', 'provenanceSheet', 'format', 'delimiter', 'skipHiddenSheets', 'expiresInDays'];
 const TABLE_KEYS = ['source', 'ops', 'name', 'expiresInDays'];
+const WRITE_TABLE_KEYS = ['source', 'format', 'fileName', 'sheetName', 'columns', 'highlightColumn', 'delimiter', 'expiresInDays'];
 
 /**
  * @param {string[]} keys
@@ -22,10 +23,30 @@ const TABLE_KEYS = ['source', 'ops', 'name', 'expiresInDays'];
 const underPatched = (/** @type {{ path: string; }} */ f, keys) => keys.some(k => f.path === k || f.path.startsWith(`${k}[`) || f.path.startsWith(`${k}.`));
 
 /**
+ * write_table: `source` checked against the draft, the patched settings judged by its spec.
+ * @param {{ draftWrap: DraftWrap, patchNotes: string[] }} io
+ */
+function patchWriteTableStep(graph, step, patch, next, io) {
+    const { draftWrap, patchNotes } = io;
+    const keys = WRITE_TABLE_KEYS.filter(k => k in patch);
+    if (!keys.length) return null;
+    if ('source' in patch) {
+        const src = fixSource(patch.source, graph, draftWrap, SOURCE_HINT_TABLE);
+        if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
+        next.source = src.source;
+        patchNotes.push(...src.notes);
+    }
+    const { validateWriteTableStep } = require('../../../../core/automationModel/tableOps/writeTableSpec.mts');
+    const findings = validateWriteTableStep({ ...step, ...patch, source: next.source }).filter((/** @type {{ path: string; }} */ f) => underPatched(f, keys));
+    return findingsRefusal(step.type, findings);
+}
+
+/**
  * A refusal, or null. Mutates `next` (source and ops).
  * @param {string[]} patchNotes
  */
 function patchTableStep(graph, step, patch, next, draftWrap, patchNotes) {
+    if (step.type === 'write_table') return patchWriteTableStep(graph, step, patch, next, { draftWrap, patchNotes });
     const isRead = step.type === 'read_table';
     if (!isRead && step.type !== 'table') return null;
     const keys = (isRead ? READ_TABLE_KEYS : TABLE_KEYS).filter(k => k in patch);

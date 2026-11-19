@@ -29,7 +29,8 @@ export const OUTPUT_SCHEMAS_TWOBA: Record<string, { shape: Record<string, string
             projectNumber: 'string or null',
             priceDate: 'string (YYYY-MM-DD, the day the prices were asked)',
             items: `array of { ref, status (matched|not_found|multiple|code_mismatch), input { tradeItemId, gtin, quantity, unit }, tradeItem ${TRADE_ITEM}, price ${PRICE}, `
-                + 'unitNetPrice (per use unit) or null, quantity, lineTotalExVat (rounded to cents) or null, currency, priceDate, flags (array of string), candidates (array, only for multiple / code_mismatch) }',
+                + 'unitNetPrice (per use unit) or null, quantity, lineTotalExVat (rounded to cents) or null, currency, priceDate, flags (array of string), candidates (array, only for multiple / code_mismatch), '
+                + 'and flat copies for a table: articleNumber, description, conditionId, scenarioName, termsType, review (the status when not matched and the flags as one text, null when the line needs no look) }',
             summary: 'object { items, byStatus { matched, not_found, multiple, code_mismatch }, byFlag { <flag>: count }, pricedLines, linesNeedingReview, totalExVat, currency }',
         },
         sample: {
@@ -37,6 +38,7 @@ export const OUTPUT_SCHEMAS_TWOBA: Record<string, { shape: Record<string, string
             items: [{
                 ref: '1', status: 'matched', input: { tradeItemId: 'K-100', gtin: null, quantity: 30, unit: 'm' }, tradeItem: sampleItem, price: samplePrice,
                 unitNetPrice: 1.255, quantity: 30, lineTotalExVat: 37.65, currency: 'EUR', priceDate: '2026-11-19', flags: [],
+                articleNumber: 'K-100', description: 'Cable 3x2.5', conditionId: 501, scenarioName: 'DiscountGroupPercentage', termsType: 'BC', review: null,
             }],
             summary: { items: 1, byStatus: { matched: 1, not_found: 0, multiple: 0, code_mismatch: 0 }, byFlag: {}, pricedLines: 1, linesNeedingReview: 0, totalExVat: 37.65, currency: 'EUR' },
         },

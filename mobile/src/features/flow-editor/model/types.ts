@@ -25,7 +25,7 @@ export const STEP_TYPES = [
     'form_page',
     'generate_document',
     'fill_document',
-    'read_table', 'table',
+    'read_table', 'table', 'write_table',
     'slide',
     'presentation',
     'data_extraction',

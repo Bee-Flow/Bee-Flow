@@ -101,6 +101,8 @@ export const DATA_ITEMS: readonly PaletteItem[] = [
         'read table spreadsheet csv excel xlsx xls ods workbook sheet open import upload file rows columns data'),
     stepItem('table', 'table', 'TableProperties',
         'edit table spreadsheet csv excel sheet columns rows join merge lookup filter group pivot summarise summarize count total average derive calculate bucket bands sample select rename pseudonymise anonymise anonymize segments describe'),
+    stepItem('write_table', 'write_table', 'FileDown',
+        'write table save export spreadsheet csv excel xlsx file download attachment columns highlight mark rows'),
     stepItem('generate_document', 'generate_document', 'FileText',
         'document pdf word docx file generate make create render export offer quote report letter invoice download attachment print'),
     stepItem('fill_document', 'fill_document', 'FileSignature',

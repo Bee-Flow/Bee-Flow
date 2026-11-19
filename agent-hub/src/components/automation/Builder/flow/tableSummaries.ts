@@ -6,6 +6,7 @@ interface StepLike {
     [key: string]: unknown;
     source?: Binding | null;
     sheets?: unknown;
+    format?: unknown;
     ops?: { op?: unknown }[];
 }
 
@@ -22,6 +23,14 @@ export function readTableSummary(step: StepLike, t: TFn): SummaryText {
     return step.sheets === 'first'
         ? t('automation_tables.card.first_sheet', 'First sheet')
         : t('automation_tables.card.all_sheets', 'All sheets');
+}
+
+/** The line under a Write table card: the file type, or that it still needs a table. */
+export function writeTableSummary(step: StepLike, t: TFn): SummaryText {
+    if (isBlankBinding(step.source)) return { muted: t('automation_tables.card.pick_table', 'Pick a table') };
+    return step.format === 'csv'
+        ? t('automation_write_table.card.csv', 'As a CSV file')
+        : t('automation_write_table.card.xlsx', 'As an Excel file');
 }
 
 /** The line under an Edit table card: how many steps it has and the first two by name. */

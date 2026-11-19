@@ -244,7 +244,7 @@ test('upload: only inside a run; the file of the run goes to the streaming endpo
     assert.equal(out.ok, true, out.error);
     assert.equal(out.sha256, require('node:crypto').createHash('sha256').update(bytes).digest('hex'));
     assert.deepEqual(out.files, [{ importId: 77, name: 'supplier.icc', size: bytes.length, error: null }]);
-    assert.deepEqual(asked.ctx, { automationId: 'a1', runId: 'run-1', rootRunId: 'run-0' });
+    assert.deepEqual(asked.ctx, { automationId: 'a1', runId: 'run-1', rootRunId: 'run-0', userId: 'u1' });
     assert.equal(asked.cap, tools.DEFAULT_MAX_UPLOAD_BYTES);
     const call = calls[0];
     assert.equal(call.url.origin + call.url.pathname, 'https://api.2ba.nl/1/streaming/CompanyConditionsUpload/UploadFileToDatabase');

@@ -97,6 +97,7 @@ const STEP_TYPE_TABLE = Object.freeze([
     // and edit a table without code (builderTools/stepBuilders/tableSteps.js).
     { type: 'read_table', authoring: 'batch', family: 'data', userLabel: 'Read table' },
     { type: 'table', authoring: 'batch', family: 'data', userLabel: 'Edit table' },
+    { type: 'write_table', authoring: 'batch', family: 'data', userLabel: 'Write table' },
     // A reusable building block (a published Step, kind='block') by its id, from
     // the "Building blocks you may use" list (builderPickerCatalog.js); no
     // single-step tool (stepBuilders/callBlock.js).

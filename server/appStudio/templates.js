@@ -158,6 +158,14 @@ const TEMPLATES = [
     require('./templates/appRequestApproval'),
     require('./templates/appSalesDashboard'),
     require('./templates/appInboundOrders'),
+
+    // ------------------------------------------------------------------
+    // 26. Bill of materials pricing — net purchase prices from the 2BA
+    // integration for an uploaded list, with every calculation and the
+    // condition file it used on record. Two run_automation steps left unset
+    // (the module header names the automations to connect).
+    // ------------------------------------------------------------------
+    require('./templates/appBomPricing'),
 ];
 
 /**

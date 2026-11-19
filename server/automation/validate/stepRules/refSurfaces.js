@@ -375,6 +375,7 @@ const SURFACES = {
         c.bindings(step.source, 'source');
         collectTableOpRefs(step, c.refs);
     },
+    write_table: (step, c) => { c.bindings(step.source, 'source'); c.template(step.fileName, 'fileName'); },
     // The same three-template shape generate_document has. A binding OBJECT is
     // accepted too: a definition is data, and an import or an MCP patch can
     // carry the shape the builder's older tools used.

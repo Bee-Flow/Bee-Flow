@@ -40,6 +40,7 @@ export const TYPE_ICON: Readonly<Record<string, IconName>> = {
     datatable: 'Table2',
     read_table: 'FileSpreadsheet',
     table: 'TableProperties',
+    write_table: 'FileDown',
     knowledge_write: 'BookOpen',
     dedupe: 'Copy',
     aggregate: 'Layers',

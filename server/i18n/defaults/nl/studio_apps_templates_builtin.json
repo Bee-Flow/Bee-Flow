@@ -8,6 +8,8 @@
     "studio_apps_templates_builtin.app_asset_inventory.title": "Inventaris van bedrijfsmiddelen",
     "studio_apps_templates_builtin.app_bi_reports.description": "Een werkplek voor eigen rapportages: een klein relationeel datawarehouse dat je koppelingen vullen, een rapportontwerper met een live voorbeeld en een dashboard met zes plekken voor de rapporten die je team bewaart.",
     "studio_apps_templates_builtin.app_bi_reports.title": "BI-rapporten",
+    "studio_apps_templates_builtin.app_bom_pricing.description": "Upload een materiaalstaat, kies de leverancier en krijg de lijst terug met netto inkoopprijzen uit je 2BA-conditiebestanden, regeltotalen en de regels om te controleren, als Excel-bestand. Bij elke calculatie staat welk conditiebestand er gold.",
+    "studio_apps_templates_builtin.app_bom_pricing.title": "Materiaalstaat doorrekenen",
     "studio_apps_templates_builtin.app_breach_register.description": "Artikel 33 en 34 AVG met de klok van 72 uur op de voorpagina: meld een datalek, beoordeel het risico, informeer de toezichthouder en de betrokkenen op tijd, en bewaar het bewijs dat je dat deed, ook voor de lekken die je terecht niet hebt gemeld.",
     "studio_apps_templates_builtin.app_breach_register.title": "Register van datalekken",
     "studio_apps_templates_builtin.app_crm_pipeline.description": "Een verkooppijplijn op je eigen gegevens: sleep deals over de fasen op een kanbanbord, filter op naam en open een deal voor de details. Met bedrijven, contactpersonen en deals.",

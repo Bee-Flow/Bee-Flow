@@ -5,6 +5,7 @@
 import { clamp } from '../primitives';
 import { applyForEachPatch } from '../stepOptions';
 import type { TypePatcher } from '../types';
+import { patchWriteTable } from '../writeTable';
 
 const wholeDays = (v: unknown) => clamp(Math.round(Number(v)) || 7, 1, 90);
 
@@ -27,4 +28,5 @@ export const tablePatchers: Record<string, TypePatcher> = {
         patch.expiresInDays = wholeDays(draft.expiresInDays);
         applyForEachPatch(patch, step, draft);
     },
+    write_table: patchWriteTable,
 };

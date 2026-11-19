@@ -1,8 +1,9 @@
 /**
- * extractFormState for the spreadsheet steps: Read table and Edit table.
+ * extractFormState for the spreadsheet steps: Read table, Edit table and Write table.
  * The defaults are the server's (core/automationModel/tableOps).
  */
 import type { FormRecord, TypeExtractor } from '../types';
+import { extractWriteTable } from '../writeTable';
 
 const clone = <T,>(v: T): T => (v === undefined ? v : (JSON.parse(JSON.stringify(v)) as T));
 const days = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 7);
@@ -29,4 +30,5 @@ export const tableExtractors: Record<string, TypeExtractor> = {
         name: typeof step.name === 'string' ? step.name : '',
         expiresInDays: days(step.expiresInDays),
     }),
+    write_table: extractWriteTable,
 };

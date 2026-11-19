@@ -9,6 +9,7 @@ import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 
 import { isObj } from '../json';
+import { writeTableSample } from '../mirror/mapping/upstream/tableSamples';
 import type { FlowNode, VariableGroup } from '../types';
 import { stepGroup } from './sampleFields';
 
@@ -97,4 +98,9 @@ export function describePresentation(node: FlowNode): VariableGroup {
         sourceHandle: { kind: 'generated_file', fileId: 'f_1a2b3c' },
     };
     return stepGroup(node, { label: node.label || nodeDefaultLabel('presentation', t), kind: 'presentation' }, sample);
+}
+
+/** The file a Write table step wrote (the sample is shared with the web). */
+export function describeWriteTable(node: FlowNode): VariableGroup {
+    return stepGroup(node, { label: node.label || nodeDefaultLabel('write_table', t), kind: 'write_table' }, writeTableSample(node.format));
 }

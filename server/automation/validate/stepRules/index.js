@@ -31,7 +31,7 @@ const { checkRoutes } = require('./routeRules');
 const { checkCode, checkLayerOutput, checkSet, checkParseJson, checkDatetime } = require('./dataShapingRules');
 const { checkGenerateDocument, checkFillDocument, checkSlide, checkPresentation } = require('./documentRules');
 const { checkKnowledgeWrite, checkKbQueryLog, checkDatatable } = require('./persistenceRules');
-const { checkReadTable, checkTable } = require('./tableRules');
+const { checkReadTable, checkWriteTable, checkTable } = require('./tableRules');
 const {
     checkNotification, checkWait, checkStopError, checkReturnToApp, checkNote, checkFormPage,
 } = require('./runFlowRules');
@@ -139,6 +139,7 @@ function createStepChecker({
         checkKbQueryLog(ctx, step, at);
         checkDatatable(ctx, step, at);
         checkReadTable(ctx, step, at);
+        checkWriteTable(ctx, step, at);
         checkTable(ctx, step, at);
         checkReferences(ctx, step, at);
         // Last, and never in front of a field rule: a compliance warning is

@@ -74,7 +74,7 @@ export const TWOBA_TOOLS: ToolDef[] = [
         + 'Returns what 2BA reports per imported file, and the sha256 of the file sent, to record which condition file version was used.',
         {
             databaseId: { type: 'integer', description: 'Id of the Online Condition Server database (twoba_list_condition_databases).' },
-            sourceHandle: { type: 'object', description: 'The file: { kind: "form_upload" | "generated_file", fileId } from a form or an earlier step.' },
+            sourceHandle: { type: 'object', description: 'The file: { kind: "form_upload" | "generated_file", fileId } from a form or an earlier step, or the file input an app handed to the run.' },
             process: { type: 'string', enum: [...PROCESS_MODES], description: 'What 2BA does after the import (default DoNotProcess).' },
         }, ['databaseId', 'sourceHandle']),
 ];

@@ -37,6 +37,7 @@ const SCAFFOLDS: Record<string, Scaffold> = {
         }),
     },
     table: { label: 'Edit table', fields: () => ({ source: null, ops: [], expiresInDays: 7 }) },
+    write_table: { label: 'Write table', fields: () => ({ source: null, format: 'xlsx', fileName: '', columns: [], expiresInDays: 7 }) },
     aggregate: { label: 'Aggregate', fields: () => ({ arrayRef: '', field: '' }) },
     summarize: { label: 'Summarize', fields: () => ({ arrayRef: '', field: '', op: 'sum' }) },
 };

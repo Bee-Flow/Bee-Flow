@@ -72,6 +72,7 @@ const RUN_DEPS = {
     // The table steps load on first use: their readers and engine stay out of the run path until needed.
     execReadTable: (a, b, c, d, e) => require('./execReadTable').execReadTable(a, b, c, d, e),
     execTable: (a, b, c, d, e) => require('./execTable').execTable(a, b, c, d, e),
+    execWriteTable: (a, b, c, d) => require('./execWriteTable.mts').execWriteTable(a, b, c, d),
     createTokenVault,
     defaultPersist,
     notifyRunEvent,

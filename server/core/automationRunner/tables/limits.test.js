@@ -32,6 +32,7 @@ test('the defaults', () => {
         previewInputRows: 1000,
         previewRpm: 60,
         csvRpm: 30,
+        writeMaxRows: 1_000_000,
     });
 });
 

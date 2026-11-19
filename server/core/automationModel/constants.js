@@ -30,8 +30,8 @@ const VALID_STEP_TYPES = new Set([
     // n8n-style utility nodes (Phase A: data + control flow, Phase B: collection ops)
     'set', 'datetime', 'wait', 'stop_error', 'switch',
     'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
-    // flatten: a row per inner item (shared/expr/flatten.mjs); read_table / table: files as tables, edited without code.
-    'flatten', 'read_table', 'table',
+    // flatten: a row per inner item (shared/expr/flatten.mjs); read_table / table / write_table: files as tables and back.
+    'flatten', 'read_table', 'table', 'write_table',
     // Scan a value for personal data with the Privacy Shield's detector and
     // branch on the answer.
     'guard',

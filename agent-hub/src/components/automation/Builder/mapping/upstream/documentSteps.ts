@@ -7,6 +7,7 @@
  * file shapes would have meant teaching each of them a second one.
  */
 import { sampleToFields } from './sampleFields';
+import { writeTableSample } from './tableSamples';
 import type { Group, UpstreamNode } from './upstream.types';
 
 /**
@@ -126,6 +127,19 @@ export function describePresentation(node: UpstreamNode): Group {
         id: node.id,
         label: node.label || 'Presentation',
         kind: 'presentation',
+        basePath: `steps.${node.id}.output`,
+        sample,
+        fields: sampleToFields(sample, `steps.${node.id}.output`),
+    };
+}
+
+/** What a Write table step offers downstream (the sample is shared with the phone, tableSamples.ts). */
+export function describeWriteTable(node: UpstreamNode): Group {
+    const sample = writeTableSample(node.format);
+    return {
+        id: node.id,
+        label: node.label || 'Write table',
+        kind: 'write_table',
         basePath: `steps.${node.id}.output`,
         sample,
         fields: sampleToFields(sample, `steps.${node.id}.output`),

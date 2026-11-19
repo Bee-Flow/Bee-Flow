@@ -1,10 +1,12 @@
-import { FileSpreadsheet, TableProperties } from 'lucide-react';
+import { FileDown, FileSpreadsheet, TableProperties } from 'lucide-react';
 import { stepItem } from './stepItem';
 
-/** The spreadsheet pair: open a file as tables, then work on a table without code. */
+/** The spreadsheet steps: open a file as tables, work on a table without code, write a table out as a file. */
 export const TABLE_ITEMS = [
     stepItem('read_table', 'read_table', FileSpreadsheet,
         'read table spreadsheet csv excel xlsx xls ods workbook sheet open import upload file rows columns data'),
     stepItem('table', 'table', TableProperties,
         'edit table spreadsheet csv excel sheet columns rows join merge lookup filter group pivot summarise summarize count total average derive calculate bucket bands sample select rename pseudonymise anonymise anonymize segments describe'),
+    stepItem('write_table', 'write_table', FileDown,
+        'write table save export spreadsheet csv excel xlsx file download attachment columns highlight mark rows'),
 ];
