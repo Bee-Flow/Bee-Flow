@@ -110,7 +110,7 @@ FROM scratch AS sourcemaps
 COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
-FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
+FROM nginx:alpine@sha256:0563c36f94a6d3ec3584161b77859f740f7e20b4853f52c796a864ce6908e8ea
 # OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned base digest
 # and this instruction never change, so without it a cached layer would keep serving
 # packages with fixed CVEs. CI passes the build date, so the layer is refreshed daily.
