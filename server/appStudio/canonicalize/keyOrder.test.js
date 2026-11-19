@@ -47,7 +47,7 @@ const KEEPS_STORED_ORDER_V2 = new Set([
     'column-rights', 'computed-read-time', 'data-model-field-rules', 'data-model-field-types', 'dataset-params',
     'legacy-onerror-array', 'lockstep-sample', 'public-intake', 'sample-kitchen-sink', 'sample-v2-rich',
     'sample-v2-showcase', 'sample-v21-batch', 'template-ai-act-register', 'template-approval-inbox',
-    'template-asset-inventory', 'template-bi-reports', 'template-breach-register', 'template-crm-pipeline',
+    'template-asset-inventory', 'template-bi-reports', 'template-bom-pricing', 'template-breach-register', 'template-crm-pipeline',
     'template-data-subject-requests', 'template-event-planner', 'template-invoice-approvals',
     'template-knowledge-governance', 'template-meeting-dossier', 'template-ops-dashboard',
     'template-processing-register', 'template-quote-intake', 'template-request-form', 'template-sprint-board',

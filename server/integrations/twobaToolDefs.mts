@@ -86,6 +86,9 @@ export const TWOBA_WRITE_TOOLS: ReadonlySet<string> = new Set(['twoba_upload_con
 
 // ─── Argument schemas ────────────────────────────────────────────
 
+/** A line or request that names its article by number and/or GTIN. */
+interface CodedLine { tradeItemId?: string | undefined; gtin?: string | undefined }
+
 /** null and '' (an empty spreadsheet cell) count as not given. */
 const absent = (v: unknown) => (v === null || (typeof v === 'string' && v.trim() === '') ? undefined : v);
 
@@ -97,16 +100,16 @@ function printable(v: string): boolean {
     return true;
 }
 
-const code = (label: string, max: number) => z.preprocess((v) => absent(typeof v === 'number' ? String(v) : v), z.string({ error: () => `${label} must be text.` })
+const code = (label: string, max: number) => z.preprocess((v: unknown) => absent(typeof v === 'number' ? String(v) : v), z.string({ error: () => `${label} must be text.` })
     .trim().min(1, `${label} is empty.`).max(max, `${label} is at most ${max} characters.`).refine(printable, `${label} holds control characters.`).optional());
 
 /** A positive number; text with a decimal comma or point is read as a number. */
-const quantity = (label: string) => z.preprocess((v) => {
+const quantity = (label: string) => z.preprocess((v: unknown) => {
     const given = absent(v);
     return typeof given === 'string' ? Number(given.trim().split(',').join('.')) : given;
 }, z.number({ error: () => `${label} must be a number.` }).finite(`${label} must be a number.`).positive(`${label} must be more than 0.`).optional());
 
-const supplierGln = z.preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string({ error: () => 'supplierGln is required: the 13-digit GLN of the supplier.' })
+const supplierGln = z.preprocess((v: unknown) => (typeof v === 'number' ? String(v) : v), z.string({ error: () => 'supplierGln is required: the 13-digit GLN of the supplier.' })
     .trim().refine(isValidGln, 'supplierGln must be the 13-digit GLN of the supplier, with a valid check digit.'));
 
 const itemSchema = z.object({
@@ -115,7 +118,7 @@ const itemSchema = z.object({
     gtin: code('gtin', 32),
     quantity: quantity('quantity'),
     unit: code('unit', 32),
-}, { error: () => 'Each item is an object with a tradeItemId or a gtin.' }).refine((i) => i.tradeItemId !== undefined || i.gtin !== undefined, 'Each item needs a tradeItemId or a gtin.');
+}, { error: () => 'Each item is an object with a tradeItemId or a gtin.' }).refine((i: CodedLine) => i.tradeItemId !== undefined || i.gtin !== undefined, 'Each item needs a tradeItemId or a gtin.');
 
 export const FindItemsArgs = z.object({
     supplierGln,
@@ -129,7 +132,7 @@ export const NetPriceArgs = z.object({
     gtin: code('gtin', 32),
     projectNumber: code('projectNumber', 64),
     orderQuantity: quantity('orderQuantity'),
-}).refine((a) => a.tradeItemId !== undefined || a.gtin !== undefined, 'Give a tradeItemId or a gtin.');
+}).refine((a: CodedLine) => a.tradeItemId !== undefined || a.gtin !== undefined, 'Give a tradeItemId or a gtin.');
 
 export const ListDatabasesArgs = z.object({});
 
