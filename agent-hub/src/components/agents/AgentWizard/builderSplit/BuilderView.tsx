@@ -10,6 +10,7 @@ import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type useAgentTests from '../tests/useAgentTests';
 import type { createHandleRefine } from './refineActions';
 import type { createUndoRefine } from './undoRefine';
+import type { createPlannedSkillActions } from './plannedSkillActions';
 import type useChatPanelResize from './useChatPanelResize';
 import type useAgentBootstrapData from './useAgentBootstrapData';
 import type useAgentSave from './useAgentSave';
@@ -43,6 +44,7 @@ interface Props {
     flushNow: () => void;
     handleRefine: ReturnType<typeof createHandleRefine>;
     handleUndoRefine: ReturnType<typeof createUndoRefine>;
+    plannedSkills: ReturnType<typeof createPlannedSkillActions>;
     handleVersionRestore: () => Promise<void>;
     mountedRef: Ref<boolean>;
     chatWidth: ReturnType<typeof useChatPanelResize>['chatWidth'];
@@ -135,6 +137,8 @@ export default function BuilderView(p: Props) {
                         setChatTier={s.setChatTier}
                         onTestAgent={() => s.setActiveTab(AGENT_TAB_IDS.TEST)}
                         onUndoRefine={p.handleUndoRefine}
+                        onAddPlannedSkills={p.plannedSkills.add}
+                        onSkipPlannedSkills={p.plannedSkills.skip}
                     />
                 )}
             </div>

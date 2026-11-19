@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/skills`
 
-15 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
+16 routes, 16 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -165,6 +165,24 @@ toc_max_heading_level: 2
 **Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
 
 **Query:** object (no other keys)
+
+## `from-plan`
+
+### `POST /api/skills/from-plan`
+
+**Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `skills` | array of object | yes | max items 20 |
+| `skills[].id` | string or null |  |  |
+| `skills[].name` | string | yes | min length 1 |
+| `skills[].description` | string |  |  |
+| `skills[].instructions` | string |  | max length 4000 |
+| `skills[].activation` | one of `"static"`, `"dynamic"` |  |  |
+| `skills[].draft` | object or null |  |  |
 
 ## `test-agents`
 

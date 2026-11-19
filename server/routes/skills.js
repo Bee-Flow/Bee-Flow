@@ -28,7 +28,7 @@
  * `requireAuth` is the only router-wide middleware; every route carries its
  * own gate. Every route that reaches the skill EDITOR carries `manage_skills`
  * — a read-only one too — so the refusal is honest the moment the screen
- * opens. That is: the two example reads, `POST /`, `/:id/examples/
+ * opens. That is: the two example reads, `POST /`, `/from-plan`, `/:id/examples/
  * from-message`, `/ai/draft`, `/:id/ai/improve`, `/test-agents`, `/:id/test`,
  * `/:id/test-runs` and `PUT /:id`. Ungated are only the reads that show what
  * the caller can already see — `GET /`, `/usage-summary`, `/:id`, `/:id/usage`
@@ -302,7 +302,7 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
         throw err;
     }
 });
-
+require('./skills/fromPlan').register(router, { requirePermission, validate, getOrgId, store: skillStore }); // POST /from-plan, before `/:id`
 /**
  * `managed: null | {solutionId, solutionName, stage, releaseSeq, devRef}`: the
  * Solution stage that owns this skill (design 5.3). The client never derives

@@ -1,0 +1,30 @@
+{
+  "translations": {
+    "wizard_skills.add": "Gekozen skills toevoegen ({count})",
+    "wizard_skills.added": "{count} skill(s) aan deze agent toegevoegd.",
+    "wizard_skills.busy": "Toevoegen…",
+    "wizard_skills.details_hide": "Details verbergen",
+    "wizard_skills.details_show": "Details tonen",
+    "wizard_skills.dynamic": "Als het nodig is",
+    "wizard_skills.dynamic_hint": "Wordt alleen geladen als een taak erom vraagt.",
+    "wizard_skills.edit": "Aanpassen",
+    "wizard_skills.edit_done": "Klaar",
+    "wizard_skills.failed": "De skills konden niet worden toegevoegd. Probeer het opnieuw.",
+    "wizard_skills.include": "Deze skill toevoegen",
+    "wizard_skills.intro": "Kies de skills die je aan deze agent toevoegt. Je kunt ze later aanpassen in de skill-editor.",
+    "wizard_skills.name_label": "Naam",
+    "wizard_skills.plain_note": "Alleen instructies. Voeg stappen en regels toe in de skill-editor.",
+    "wizard_skills.rule_must": "Altijd",
+    "wizard_skills.rule_never": "Nooit",
+    "wizard_skills.rules_label": "Regels",
+    "wizard_skills.skip": "Niet nu",
+    "wizard_skills.skipped": "Geen skills toegevoegd.",
+    "wizard_skills.static": "Altijd aan",
+    "wizard_skills.static_hint": "De instructies horen bij elk antwoord.",
+    "wizard_skills.steps_label": "Stappen",
+    "wizard_skills.summary_label": "Wat het doet",
+    "wizard_skills.title": "Voorgestelde skills",
+    "wizard_skills.when_label": "Wanneer te gebruiken"
+  },
+  "sameAsEnglish": []
+}

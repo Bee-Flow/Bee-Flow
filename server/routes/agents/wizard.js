@@ -18,6 +18,10 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { fallback } = require('../../utils/bestEffort');
+// New skills in a plan are drafted by the skill editor's own drafter and
+// stored through one mapping, shared with POST /api/skills/from-plan.
+const { askForDraft } = require('../../core/skills/skillDraftCall.mts');
+const wizardSkills = require('../../usecases/agents/wizardSkills.mts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -178,7 +182,8 @@ const PLAN_SCHEMA = `{
       "id": "string|null",                  // null when proposing a NEW skill
       "name": "string",
       "description": "string (one line)",
-      "instructions": "string (when and how the agent should use this skill, in the user's language)"
+      "instructions": "string (when and how the agent should use this skill, in the user's language)",
+      "activation": "static|dynamic"        // static = needed on EVERY task of this agent; dynamic = only in some situations
     }
   ],
   "knowledge_base_ids": ["id", ...],        // keep the agent's current KBs unless the feedback asks to change them
@@ -252,10 +257,11 @@ Rules:
 - Capabilities are short user-visible bullets, not technical jargon.
 - model: recommend "fast" for simple lookups and Q&A, "thinking" for analysis, writing and deep multi-step reasoning. Default to "fast" when unsure.
 - enabledIntegrations: APPS ARE OFF BY DEFAULT. Add an id ONLY when the agent's stated job clearly requires it (e.g. include "gmail" only if the agent must read or send email). Do not enable apps speculatively. If unsure, leave the array empty — the user can flip apps on later in the editor.
-- skills: propose 0-5 skills. Reuse existing ones by id when there's a clear match; otherwise propose new skills with id=null and meaningful instructions.
+- skills: propose 0-5 skills. Reuse existing ones by id when there's a clear match; otherwise propose new skills with id=null and meaningful instructions. A new skill is worked out into steps and rules afterwards, so describe in "description" and "instructions" what it does and when it applies.
+- activation: "static" only for a skill the agent needs on every task (it is then in every turn); "dynamic" for a skill that applies in some situations (it is loaded when a task matches). Prefer "dynamic" unless the skill is part of nearly every answer.
 - persona is the SOURCE of the agent's role: "who", "tone", "does" and "doesNot" are the fields its owner edits afterwards, so put the real substance there and write them in ${langName}. Say the same things you would put in systemPrompt, split across the fields: scope and responsibility in "who", house style in "tone", the concrete rules in "does", and the hard limits ("never promise a refund") in "doesNot". Keep each does/doesNot entry to one short sentence.
 - persona and systemPrompt must agree. Fill in persona ALWAYS; systemPrompt stays the prose version for agents whose owner writes their instructions by hand.
-- systemPrompt must be self-contained: tone, scope, what to do, what to avoid.
+- systemPrompt must be self-contained: tone, scope, what to do, what to avoid. When the plan has skills, do NOT repeat their steps in systemPrompt or persona: keep those to the role, the tone and the hard limits, and refer to each skill by name instead (for example: 'For replies, use the skill "Reply drafts".').
 - schedule: leave null UNLESS the user is explicitly asking to SCHEDULE a recurring task ("every morning", "each Monday", "weekly", "every 2 hours", "monthly report"). When set, write title/prompt in ${langName}, and pick the cadence and time that match the user's request. Do NOT invent a schedule for vague capability requests like "summarize emails" — only when there's a clear time signal.
 - Respond with raw JSON only, no markdown fences.`;
 }
@@ -316,14 +322,10 @@ function normalizePlan(plan, availableIntegrationIds) {
 
     // Skills: each must have at least a name. id may be null/missing.
     if (!Array.isArray(plan.skills)) plan.skills = [];
-    plan.skills = plan.skills
-        .filter(s => s && typeof s === 'object' && s.name && String(s.name).trim())
-        .map(s => ({
-            id: s.id || null,
-            name: String(s.name).trim(),
-            description: String(s.description || '').trim(),
-            instructions: String(s.instructions || '').trim(),
-        }));
+    // Clamped to the plan fields (id, name, description, instructions,
+    // activation): a `draft` the model wrote itself is dropped here, the real
+    // one comes from draftPlannedSkills.
+    plan.skills = plan.skills.map(wizardSkills.normalisePlannedSkill).filter(Boolean);
 
     // Knowledge base ids — coerce to a clean string array. Actual cross-org
     // authorization is enforced at save time by validateAgentConfigReferences;
@@ -425,7 +427,11 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
         throw err;
     }
 
-    return normalizePlan(plan, availableIds);
+    const normalized = normalizePlan(plan, availableIds);
+    // Every NEW skill gets a structured draft (bounded, see wizardSkills); a
+    // draft that fails leaves the plain skill and never fails the plan.
+    await wizardSkills.draftPlannedSkills(normalized, { userId, userOrgId, existingSkills, ask: askForDraft });
+    return normalized;
 }
 
 // Shared error mapping for the plan-generating endpoints. A malformed model
@@ -553,60 +559,15 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
     const orgIds = await resolveUserOrgIds(req);
     const orgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
-    // ── Skills: reuse existing by id, create new ones ──────────────
+    // ── Skills: reuse existing by id or name, create new ones ──────
+    // The same function as POST /api/skills/from-plan (the refine rail), so
+    // a skill is stored the same way whichever path saves it.
     /** @type {string[]} */
     let attachedSkillIds = [];
-    const createdSkills = [];
+    /** @type {Array<Record<string, unknown>>} */
+    let createdSkills = [];
     if (orgId && Array.isArray(plan.skills) && plan.skills.length > 0) {
-        // Best-effort lookup of existing skills — but a failure here must NOT
-        // block creation of new ones. Default to empty list on error.
-        let orgSkills = [];
-        try {
-            orgSkills = await skillStore.getAvailableSkills(orgId, userId);
-        } catch (lookupErr) {
-            log.warn('Wizard: getAvailableSkills failed, will only create new skills:', /** @type {Error} */ (lookupErr).message);
-        }
-        const knownIds = new Set((orgSkills || []).map(s => s.id));
-        const byName = new Map((orgSkills || []).map(s => [String(s.name || '').toLowerCase().trim(), s.id]));
-
-        for (const s of plan.skills) {
-            if (!s || !s.name) continue;
-
-            // Reuse existing skill by id when valid
-            if (s.id && knownIds.has(s.id)) { attachedSkillIds.push(s.id); continue; }
-
-            // Reuse by case-insensitive name match before creating a duplicate
-            const nameKey = String(s.name).toLowerCase().trim();
-            const matchByName = byName.get(nameKey);
-            if (matchByName) { attachedSkillIds.push(matchByName); continue; }
-
-            // Create the skill — isolate failures per skill so one bad
-            // entry doesn't drop the rest.
-            try {
-                const created = await skillStore.createSkill({
-                    orgId,
-                    userId,
-                    name: s.name,
-                    description: s.description || '',
-                    instructions: (s.instructions || '').slice(0, 4000),
-                    workflow: '',
-                    rules: '',
-                    examples: '',
-                    icon: null,
-                    isShared: false,
-                    dynamicActivation: false,
-                    sharedGroups: [],
-                });
-                if (created?.id) {
-                    attachedSkillIds.push(created.id);
-                    createdSkills.push(created);
-                } else {
-                    log.warn('Wizard: createSkill returned no id for', s.name);
-                }
-            } catch (createErr) {
-                log.warn('Wizard: skill create failed for', s.name, ':', /** @type {Error} */ (createErr).message);
-            }
-        }
+        ({ attachedSkillIds, createdSkills } = await wizardSkills.createPlannedSkills(plan.skills, { orgId, userId, store: skillStore }));
     }
     log.info(`[Wizard commit] attached skills: ${attachedSkillIds.length}, newly created: ${createdSkills.length}`);
 
@@ -706,7 +667,7 @@ module.exports = Object.assign(router, { personaFromPlan, planPersonaFields });
  * @typedef {{
  *   name?: string, description?: string, avatar?: string, capabilities?: string[], model?: string|null,
  *   enabledIntegrations?: string[],
- *   skills?: Array<{ id?: string|null, name?: string, description?: string, instructions?: string }>,
+ *   skills?: Array<{ id?: string|null, name?: string, description?: string, instructions?: string, activation?: string, draft?: unknown }>,
  *   knowledge_base_ids?: string[], persona?: unknown, systemPrompt?: string,
  *   schedule?: { title?: string, prompt?: string, repeatInterval?: string, daysOfWeek?: string[]|null, timeOfDay?: string|null, timezone?: string|null },
  *   channels?: unknown, suggestedSkills?: unknown, automation?: unknown,

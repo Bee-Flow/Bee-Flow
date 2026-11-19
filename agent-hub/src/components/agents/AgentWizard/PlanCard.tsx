@@ -20,7 +20,7 @@ export interface AgentPlan {
     description?: string;
     capabilities: string[];
     enabledIntegrations: string[];
-    skills: Array<{ id?: string | null; name?: string; description?: string }>;
+    skills: Array<{ id?: string | null; name?: string; description?: string; activation?: 'static' | 'dynamic' }>;
 }
 
 interface PlanCardProps {
@@ -85,6 +85,11 @@ export default function PlanCard({ plan, onAdjust, onBuild, busy, t: tOverride, 
                                     <div className="truncate">{s.name}</div>
                                     {s.description && <div className="text-xs text-[var(--text-tertiary)] truncate">{s.description}</div>}
                                 </div>
+                                {!s.id && s.activation && (
+                                    <span className="text-[10px] text-[var(--text-tertiary)]">
+                                        {s.activation === 'dynamic' ? t('wizard_skills.dynamic', 'When relevant') : t('wizard_skills.static', 'Always on')}
+                                    </span>
+                                )}
                                 {!s.id && (
                                     <span className="text-[10px] uppercase tracking-wide text-[var(--accent)]">{t('agent_wizard.skills_new_badge')}</span>
                                 )}
