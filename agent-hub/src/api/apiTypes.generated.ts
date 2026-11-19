@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1923 operations. */
+/** 1924 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -3864,9 +3864,11 @@ export interface ApiOperations {
         showRawPayload?: boolean;
         toolPiiPolicy?: {
             external?: {
+                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
             internal?: {
+                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
         };
@@ -3874,6 +3876,7 @@ export interface ApiOperations {
         webSearchGuardPiiCategories?: Array<string>;
         [key: string]: unknown;
     }>;
+    'GET /api/org-privacy-shield/{orgId}/app-exemption-apps': Op<{ orgId: string | number }>;
     'POST /api/org-privacy-shield/{orgId}/custom-data/assist': Op<{ orgId: string | number }, UndeclaredQuery, {
         examples?: Array<string>;
         expectLookalikes: Array<string>;

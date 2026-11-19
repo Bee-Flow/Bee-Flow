@@ -1,12 +1,15 @@
 import { Eye, ScanSearch, Tags } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
+import { useShieldExemptionAppsQuery } from '@/api/queries/shieldExemptionApps';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import type { ToolPiiPolicy } from '../orgShieldDoc';
 import { builtInOnly, customOnly } from '../ownData/ownDataModel';
+import AppExemptionsCard from '../parts/AppExemptionsCard';
 import CategoryMatrix from '../parts/CategoryMatrix';
 import type { MatrixKind } from '../parts/categoryMatrixModel';
+import { exceptionsByKind } from '../parts/categoryMatrixModel';
 import ShieldLinkCard from '../parts/ShieldLinkCard';
 import StrictnessCard from '../parts/StrictnessCard';
 
@@ -33,6 +36,8 @@ interface DetectionFields {
     piiAllowTerms?: string[];
     piiAllowPublicOrgs?: boolean;
     customDataTypes?: unknown[];
+    /** One app's exception in one tool class (useShieldFields); absent where exceptions are not edited. */
+    setAppExemption?: (cls: 'external' | 'internal', appId: string, ids: string[] | null) => void;
 }
 
 interface DetectionTabProps {
@@ -43,6 +48,8 @@ interface DetectionTabProps {
     /** The last 30 days; null when unknown (render nothing, never a zero). */
     evidence?: ShieldEvidence | null;
     toggleToolPiiCat: (cls: 'external' | 'internal', id: string, on: boolean) => void;
+    /** The organisation being edited, for the apps an exception can be made for. */
+    orgId?: string | null;
     onGoTo?: (tab: string) => void;
     t: TranslateFn;
 }
@@ -78,8 +85,11 @@ function neverHiddenSummary(f: DetectionFields, t: TranslateFn): string {
 }
 
 function DetectionTab({
-    f, categories, readOnly, licence = {}, evidence = null, toggleToolPiiCat, onGoTo, t,
+    f, categories, readOnly, licence = {}, evidence = null, toggleToolPiiCat, orgId = null, onGoTo, t,
 }: DetectionTabProps) {
+    const canExempt = !!f.setAppExemption;
+    const appsQuery = useShieldExemptionAppsQuery(orgId, canExempt && !readOnly);
+    const apps = appsQuery.data ?? null;
     const toggleDetect = useCallback((id: string, on: boolean) => {
         const current = f.piiCategories || [];
         f.setPiiCategories(on ? [...new Set([...current, id])] : current.filter(x => x !== id));
@@ -88,9 +98,13 @@ function DetectionTab({
     // The matrix sees and writes only the built-in kinds; see the header.
     const matrixDetect = useMemo(() => builtInOnly(f.piiCategories), [f.piiCategories]);
     const matrixTools = useMemo(() => ({
-        external: { blockCategories: builtInOnly(f.toolPiiPolicy?.external?.blockCategories) },
-        internal: { blockCategories: builtInOnly(f.toolPiiPolicy?.internal?.blockCategories) },
+        external: { blockCategories: builtInOnly(f.toolPiiPolicy?.external?.blockCategories), appExemptions: f.toolPiiPolicy?.external?.appExemptions || {} },
+        internal: { blockCategories: builtInOnly(f.toolPiiPolicy?.internal?.blockCategories), appExemptions: f.toolPiiPolicy?.internal?.appExemptions || {} },
     }), [f.toolPiiPolicy]);
+    const exceptions = useMemo(
+        () => exceptionsByKind(matrixTools, id => apps?.find(a => a.id === id)?.label || id),
+        [matrixTools, apps],
+    );
     const setDetect = (ids: string[]) => f.setPiiCategories([...ids, ...customOnly(f.piiCategories)]);
     const goToOwnData = () => onGoTo?.('owndata');
 
@@ -115,11 +129,25 @@ function DetectionTab({
                 readOnly={readOnly}
                 toolKinds={evidence ? evidence.toolKinds : null}
                 days={evidence?.days}
+                exceptions={exceptions}
                 onToggleDetect={toggleDetect}
                 onSetDetect={setDetect}
                 onToggleTool={toggleToolPiiCat}
                 t={t}
             />
+
+            {f.setAppExemption && (
+                <AppExemptionsCard
+                    toolPolicy={matrixTools}
+                    categories={categories}
+                    apps={apps}
+                    appsFailed={appsQuery.isError}
+                    canBlockExternal={licence.canUseWebSearchGuard !== false}
+                    readOnly={readOnly}
+                    onSet={f.setAppExemption}
+                    t={t}
+                />
+            )}
 
             {/* Both are edited on "Your own data". The never-hidden list is
                 the one control that makes the shield leak by design, so it

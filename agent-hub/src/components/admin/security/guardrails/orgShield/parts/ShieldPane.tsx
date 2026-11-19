@@ -75,6 +75,7 @@ export default function ShieldPane({
                     licence={licence}
                     evidence={evidence}
                     toggleToolPiiCat={toggleToolPiiCat}
+                    orgId={orgId}
                     onGoTo={onGoTo}
                     t={t}
                 />

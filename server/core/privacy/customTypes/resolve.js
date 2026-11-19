@@ -126,7 +126,12 @@ async function applyCustomTypes(resolved, shield, orgId, opts = {}) {
         const ext = keepKnown(policy.external?.blockCategories || [], ids);
         const int = keepKnown(policy.internal?.blockCategories || [], ids);
         if (ext !== (policy.external?.blockCategories || []) || int !== (policy.internal?.blockCategories || [])) {
-            resolved.toolPiiPolicy = { external: { blockCategories: ext }, internal: { blockCategories: int } };
+            // A class keeps its other keys (the per-app exceptions,
+            // core/privacy/toolPiiExemptions.mts); only its list is narrowed.
+            resolved.toolPiiPolicy = {
+                external: { ...policy.external, blockCategories: ext },
+                internal: { ...policy.internal, blockCategories: int },
+            };
         }
     }
     if (Array.isArray(resolved.webSearchGuardPiiCategories)) {

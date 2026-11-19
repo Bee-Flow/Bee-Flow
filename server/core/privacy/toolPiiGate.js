@@ -37,11 +37,11 @@
  *     'block' and the class has a non-empty block list; otherwise it fails
  *     open. A degraded scan is a failed scan, not a clean one. A guard that is
  *     not installed at all (detectPii answers null) stays open.
- *   - stripping a result or a passage fails OPEN: a scan error never drops a
- *     turn.
+ *   - stripping a result or a passage fails OPEN: a scan error never drops a turn.
  * Matching goes through orgShield.isBlockedForTool, the one decision the admin
- * route and the agent loop share. Every function takes a RESOLVED shield
- * (resolveShieldFor), which is always `enabled`; anything else is a no-op.
+ * route and the agent loop share; a call's list drops its own app's exceptions
+ * (orgShield.blockCategoriesForTool), injected passages keep the whole list.
+ * Every function takes a RESOLVED shield (resolveShieldFor), always `enabled`.
  *
  * The block lists are the resolved `toolPiiPolicy` and nothing else. The
  * legacy Web Search Guard list is not added on top: the resolver absorbs it
@@ -58,16 +58,16 @@ const { bestEffort } = require('../../utils/bestEffort');
 const telemetryLog = require('../../telemetry/log');
 
 const DEFAULT_THRESHOLD = 0.7;
-
-// Resolved lazily: piiDetection and orgShield both reach the config store at
-// require time. Tests replace these through `_deps`.
+// Resolved lazily: piiDetection and orgShield reach the config store at require time. Tests replace these.
 const _deps = {
     detectPii: (/** @type {Parameters<typeof import('./piiDetection').detectPii>} */ ...args) => require('./piiDetection').detectPii(...args),
     orgShield: () => require('./orgShield'),
 };
 
-function blockListFor(shield, toolClass) {
-    const list = shield?.toolPiiPolicy?.[toolClass]?.blockCategories;
+/** @param {ToolShield | null | undefined} shield @param {string} toolClass @param {string | null} [toolName] without one (or with a test double), the whole list */
+function blockListFor(shield, toolClass, toolName = null) {
+    const forTool = toolName ? _deps.orgShield().blockCategoriesForTool : null;
+    const list = typeof forTool === 'function' ? forTool(shield?.toolPiiPolicy, toolClass, toolName) : shield?.toolPiiPolicy?.[toolClass]?.blockCategories;
     return Array.isArray(list) ? list.filter(c => typeof c === 'string' && c) : [];
 }
 
@@ -114,7 +114,7 @@ async function checkToolArgs({ toolName, args, shield }) {
     const { classifyToolClass, isBlockedForTool } = _deps.orgShield();
     const toolClass = classifyToolClass(toolName, args || {});
     const allow = { verdict: /** @type {'allow'} */ ('allow'), toolClass, labels: [], logLabels: [] };
-    const blockList = blockListFor(shield, toolClass);
+    const blockList = blockListFor(shield, toolClass, toolName);
     if (blockList.length === 0) return allow;
 
     let scan = null;
@@ -173,7 +173,7 @@ async function stripBlockedFromText(text, { toolName = null, toolClass = null, s
     if (!shield?.enabled || typeof text !== 'string' || !text) return unchanged;
     try {
         const cls = toolClass || _deps.orgShield().classifyToolClass(toolName);
-        const blockList = blockListFor(shield, cls);
+        const blockList = blockListFor(shield, cls, toolName);
         if (blockList.length === 0) return unchanged;
         const blocked = await _blockedEntitiesIn(text, blockList, shield);
         if (blocked.length === 0) return unchanged;
@@ -394,7 +394,7 @@ module.exports = {
 /**
  * The parts of a resolved shield (resolveShieldFor) this module reads.
  * @typedef {{ enabled?: boolean, privacyAction?: string, piiDetectionConfidenceThreshold?: number,
- *   toolPiiPolicy?: Record<string, { blockCategories?: string[] }> }} ToolShield
+ *   toolPiiPolicy?: Record<string, { blockCategories?: string[], appExemptions?: Record<string, string[]> }> }} ToolShield (appExemptions: toolPiiExemptions.mts)
  * @typedef {import('./piiDetection/scanCache').PiiEntity} PiiEntity
  * @typedef {(fields: Record<string, string>) => void} LogEvent
  */

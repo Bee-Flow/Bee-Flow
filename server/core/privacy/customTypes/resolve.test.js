@@ -97,6 +97,18 @@ test('Community keeps only migrated types enforced; Enterprise all of them; inva
     assert.equal(registry.displayNameFor(created.id), 'New');
 });
 
+test('dropping an unlicensed own type from a tool list keeps that class\'s per-app exceptions', async () => {
+    const created = { id: 'cdt_00000000a1', name: 'New', method: 'words', tokenKey: 'new_word', words: { values: ['Osprey'] } };
+    const stored = { customDataTypes: [created], piiDetectionCategories: ['Email'] };
+    const resolved = {
+        piiDetectionCategories: ['Email'],
+        toolPiiPolicy: { external: { blockCategories: ['Email', created.id], appExemptions: { outlook: ['Email'] } }, internal: { blockCategories: [] } },
+    };
+    const r = await applyCustomTypes(resolved, stored, 'org1', { lic: lic('community'), featureCacheMs: 0 });
+    assert.deepEqual(r.toolPiiPolicy.external, { blockCategories: ['Email'], appExemptions: { outlook: ['Email'] } });
+    assert.deepEqual(r.toolPiiPolicy.internal, { blockCategories: [] });
+});
+
 test('a row without any custom data resolves byte-for-byte as before', async () => {
     const lists = ['Email', 'Person'];
     const policy = { external: { blockCategories: ['Email'] }, internal: { blockCategories: [] } };

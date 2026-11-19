@@ -2,7 +2,7 @@ import { Lock, TriangleAlert } from 'lucide-react';
 import { useId, useMemo } from 'react';
 
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { MatrixColumn, MatrixKind, MatrixToolPolicy } from './categoryMatrixModel';
+import type { MatrixColumn, MatrixExceptions, MatrixKind, MatrixToolPolicy } from './categoryMatrixModel';
 import { columnCounts, groupsOf, halfOpen, selectionOf } from './categoryMatrixModel';
 import MatrixGroup from './MatrixGroup';
 import MatrixHead from './MatrixHead';
@@ -40,6 +40,8 @@ interface CategoryMatrixProps {
     /** Canonical id → tool calls that carried it in the last 30 days; null = unknown. */
     toolKinds?: Record<string, number> | null;
     days?: number;
+    /** Per tool column, kind → the apps it is released to by a per-app exception ("except Outlook"). */
+    exceptions?: MatrixExceptions | null;
     onToggleDetect: (id: string, on: boolean) => void;
     onSetDetect: (ids: string[]) => void;
     onToggleTool: (cls: 'external' | 'internal', id: string, on: boolean) => void;
@@ -85,7 +87,7 @@ function HalfOpenStrip({ kinds, t }: { kinds: MatrixKind[]; t: TranslateFn }) {
 
 function CategoryMatrix({
     categories, detect, toolPolicy, canBlockExternal, readOnly, allowPublicOrgs,
-    toolKinds = null, days = 30, onToggleDetect, onSetDetect, onToggleTool, t,
+    toolKinds = null, days = 30, exceptions = null, onToggleDetect, onSetDetect, onToggleTool, t,
 }: CategoryMatrixProps) {
     const descId = useId();
     const sel = useMemo(() => selectionOf(detect, toolPolicy), [detect, toolPolicy]);
@@ -146,6 +148,7 @@ function CategoryMatrix({
                             readOnly={readOnly}
                             toolKinds={toolKinds}
                             days={days}
+                            exceptions={exceptions}
                             onToggle={onToggle}
                             t={t}
                         />

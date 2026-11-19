@@ -51,6 +51,7 @@ const FIXTURES = [
             'PUT /api/org-privacy-shield/:orgId', 'POST /api/org-privacy-shield/:orgId/custom-data/assist',
             'POST /api/org-privacy-shield/:orgId/custom-data/assist/preview', 'POST /api/org-privacy-shield/:orgId/custom-data/test',
             'POST /api/org-privacy-shield/:orgId/custom-data/tune',
+            'GET /api/org-privacy-shield/:orgId/app-exemption-apps',
         ],
         bodies: {
             'PUT /api/org-privacy-shield/:orgId': { enabled: false },

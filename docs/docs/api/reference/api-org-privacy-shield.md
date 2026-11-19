@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/org-privacy-shield`
 
-10 routes, 6 with a request schema. Back to the [endpoint reference](../reference.md).
+11 routes, 6 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -45,8 +45,10 @@ No request schema.
 | `toolPiiPolicy` | object |  | no other keys |
 | `toolPiiPolicy.external` | object |  | no other keys |
 | `toolPiiPolicy.external.blockCategories` | array of string |  |  |
+| `toolPiiPolicy.external.appExemptions` | object |  |  |
 | `toolPiiPolicy.internal` | object |  | no other keys |
 | `toolPiiPolicy.internal.blockCategories` | array of string |  |  |
+| `toolPiiPolicy.internal.appExemptions` | object |  |  |
 | `monitorIntegrations` | boolean |  |  |
 | `applyToAutomations` | boolean |  |  |
 | `privacy_scan_knowledge_bases` | boolean |  |  |
@@ -62,6 +64,12 @@ No request schema.
 | `piiAllowTerms` | array of string or object |  |  |
 | `piiAllowPublicOrgs` | boolean |  |  |
 | `showRawPayload` | boolean |  |  |
+
+### `GET /api/org-privacy-shield/:orgId/app-exemption-apps`
+
+**Access:** Signed-in user · the handler also checks who the caller is
+
+No request schema.
 
 ### `POST /api/org-privacy-shield/:orgId/custom-data/assist`
 

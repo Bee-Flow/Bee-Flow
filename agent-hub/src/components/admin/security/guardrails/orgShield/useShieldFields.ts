@@ -1,9 +1,18 @@
 import { useCallback, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ShieldFields, ToolPiiPolicy } from './orgShieldDoc';
+import type { AppExemptions, ShieldFields, ToolClassPolicy, ToolPiiPolicy } from './orgShieldDoc';
 import type { CustomDataType, TestsDoc } from './ownData/ownDataModel';
 
 type Setter<K extends keyof ShieldFields> = Dispatch<SetStateAction<ShieldFields[K]>>;
+
+/** A class with a new block list; its exceptions keep only kinds the new list still holds back. */
+function withBlockList(current: ToolClassPolicy, ids: string[]): ToolClassPolicy {
+    if (!current.appExemptions) return { ...current, blockCategories: ids };
+    const held = new Set(ids);
+    const appExemptions: AppExemptions = {};
+    for (const [appId, cats] of Object.entries(current.appExemptions)) appExemptions[appId] = cats.filter(c => held.has(c));
+    return { ...current, blockCategories: ids, appExemptions };
+}
 
 /** The form's fields and their setters, as `useOrgShield().fields` hands them to the panes. */
 export interface ShieldFieldBindings extends Omit<ShieldFields, 'piiFailureMode'> {
@@ -25,6 +34,8 @@ export interface ShieldFieldBindings extends Omit<ShieldFields, 'piiFailureMode'
     setPiiAction: Setter<'piiAction'>;
     setShowRawPayload: Setter<'showRawPayload'>;
     setScanKnowledgeBases: Setter<'scanKnowledgeBases'>;
+    /** One app's exception in one tool class: the held-back kinds it may receive, or null to remove it. */
+    setAppExemption: (cls: keyof ToolPiiPolicy, appId: string, ids: string[] | null) => void;
 }
 
 export interface ShieldFieldsState {
@@ -97,19 +108,31 @@ export default function useShieldFields(): ShieldFieldsState {
         setShowRawPayload(f.showRawPayload);
     }, []);
 
-    const toggleToolPiiCat = useCallback((cls: keyof ToolPiiPolicy, id: string, checked: boolean) => setToolPiiPolicy(prev => ({
-        ...prev,
-        [cls]: {
-            blockCategories: checked
-                ? [...new Set([...(prev[cls]?.blockCategories || []), id])]
-                : (prev[cls]?.blockCategories || []).filter(x => x !== id),
-        },
-    })), []);
+    // A class keeps its per-app exceptions when its list changes; a kind that
+    // is no longer held back leaves them too (there is nothing to except).
+    const toggleToolPiiCat = useCallback((cls: keyof ToolPiiPolicy, id: string, checked: boolean) => setToolPiiPolicy(prev => {
+        const current = prev[cls] || { blockCategories: [] };
+        return {
+            ...prev,
+            [cls]: withBlockList(current, checked
+                ? [...new Set([...(current.blockCategories || []), id])]
+                : (current.blockCategories || []).filter(x => x !== id)),
+        };
+    }), []);
 
     const setToolPiiCats = useCallback((cls: keyof ToolPiiPolicy, ids: string[]) => setToolPiiPolicy(prev => ({
         ...prev,
-        [cls]: { blockCategories: ids },
+        [cls]: withBlockList(prev[cls] || { blockCategories: [] }, ids),
     })), []);
+
+    // One app's exception in one class: the kinds it may receive, or null to drop it.
+    const setAppExemption = useCallback((cls: keyof ToolPiiPolicy, appId: string, ids: string[] | null) => setToolPiiPolicy(prev => {
+        const current = prev[cls] || { blockCategories: [] };
+        const next = { ...(current.appExemptions || {}) };
+        if (ids === null) delete next[appId];
+        else next[appId] = [...new Set(ids)];
+        return { ...prev, [cls]: { ...current, appExemptions: next } };
+    }), []);
 
     const values: ShieldFields = {
         enabled, euModeEnabled, webSearchGuard, disableSearchOnUpload,
@@ -132,7 +155,7 @@ export default function useShieldFields(): ShieldFieldsState {
         customDataTests, setCustomDataTests,
         piiAllowTerms, setPiiAllowTerms,
         piiAllowPublicOrgs, setPiiAllowPublicOrgs,
-        toolPiiPolicy,
+        toolPiiPolicy, setAppExemption,
         piiCategories, setPiiCategories,
         piiConfidenceThreshold, setPiiConfidenceThreshold,
         piiAction, setPiiAction,
