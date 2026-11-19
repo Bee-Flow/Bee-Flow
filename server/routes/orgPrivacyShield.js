@@ -400,6 +400,20 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
     res.json(responseConfig);
 });
 
+/**
+ * Per class { blockCategories: string[] }: strings only, capped, built-ins then the org's own types;
+ * then the per-app exceptions (toolPiiExemptions.mts), refused before anything is written.
+ * @param {any} toolPiiPolicy the body's policy
+ * @param {{ lists: { external: string[], internal: string[] }, customDataTypes: { id: string }[] }} custom
+ * @param {any} storedRow
+ */
+function _toolPiiPolicyForSave(toolPiiPolicy, custom, storedRow) {
+    return exemptions.withAppExemptionsForSave({
+        external: { blockCategories: [..._builtInPart(toolPiiPolicy?.external?.blockCategories, 40), ...custom.lists.external] },
+        internal: { blockCategories: [..._builtInPart(toolPiiPolicy?.internal?.blockCategories, 40), ...custom.lists.internal] },
+    }, toolPiiPolicy, storedRow?.toolPiiPolicy, new Set(custom.customDataTypes.map(t => t.id)));
+}
+
 // PUT /:orgId — save shield config (org admin or super admin only)
 router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
@@ -456,12 +470,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
         }
     }
 
-    // Per class { blockCategories: string[] }: strings only, capped, built-ins then the org's own types;
-    // then the per-app exceptions (toolPiiExemptions.mts), refused before anything is written.
-    const sanitizedToolPiiPolicy = exemptions.withAppExemptionsForSave({
-        external: { blockCategories: [..._builtInPart(toolPiiPolicy?.external?.blockCategories, 40), ...custom.lists.external] },
-        internal: { blockCategories: [..._builtInPart(toolPiiPolicy?.internal?.blockCategories, 40), ...custom.lists.internal] },
-    }, toolPiiPolicy, storedRow?.toolPiiPolicy, new Set(custom.customDataTypes.map(t => t.id)));
+    const sanitizedToolPiiPolicy = _toolPiiPolicyForSave(toolPiiPolicy, custom, storedRow);
 
     const config = {
         enabled: !!enabled,
