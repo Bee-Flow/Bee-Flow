@@ -51,8 +51,7 @@ const LOOSE_MIGRATIONS = [
     // Moves bare prompt tasks to Cowork; both runners tick every 60s,
     // so the two tables must not stay alive at the same time.
     'prompt-tasks-to-cowork-2026-08',
-    // The agent-linked tasks (the old "agent routines") follow: Cowork can now
-    // run an item as an agent, so ai_tasks is no longer written to.
+    // The agent-linked tasks (the old "agent routines") follow: Cowork runs an item as an agent, ai_tasks is unwritten.
     'agent-tasks-to-cowork-2026-10',
     'cowork-conversation-origin-2026-11', // Cowork's own conversations out of the chat history, only where demonstrable
     // The stored word "routine" becomes "automation" (logs, grants,
