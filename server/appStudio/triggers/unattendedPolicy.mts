@@ -15,7 +15,9 @@
  *            And `http_request`: only through a `rest` connector a person made, with the owner's
  *            stored credential, the outbound privacy check and the size and time limits of the
  *            step (actionExecutor/steps/http_request.mts). And `sanctions_screen`: a read of the
- *            public lists stored on this server, nothing about the person leaves it. A trigger kind that must not call out
+ *            public lists stored on this server, nothing about the person leaves it. And
+ *            `generate_document`: the app's own text rendered into a PDF or Word file and kept as
+ *            an attachment of the app, like generate_file. A trigger kind that must not call out
  *            (a record change or a webhook may decide so) lists it in its `refusedKinds`.
  *
  *   MAY NOT  - anything that needs a page: navigate, open_url, the modal steps, reset_form,

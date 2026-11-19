@@ -145,6 +145,8 @@ const RUNS = [
     'http_request',
     // A read of the stored public sanctions lists on this server: nothing about the person leaves it.
     'sanctions_screen',
+    // Text of the app rendered into a PDF or Word file, kept as an attachment of the app: nothing leaves Bee Flow.
+    'generate_document',
     'break', 'code', 'continue', 'parallel', 'raise_error', 'return', 'try', 'while',
 ];
 

@@ -107,6 +107,33 @@ fixed headers. Neither you nor the AI builder can create the connector or see it
   by a webhook run starts.
 - In a dry run a read (`GET`) is really sent; a write is only described.
 
+## Make a PDF or Word file
+
+The **Make a PDF or Word file** step (`generate_document`) turns text into a document without a
+layout someone designed first: a report after an approval built from the record's fields, a
+summary an *Ask the AI* step wrote, a letter. It is the sibling of *Make a file* (rows into a CSV
+or spreadsheet), *Fill a document* (a layout designed under [Documents](./documents.md)) and *Make
+a presentation*.
+
+- **Text** (`content`) is markdown: `#` headings, lists, tables, bold. Bind it to the text an AI
+  step wrote (`vars.<its result variable>.text`), a field, or a formula or template over the
+  record. HTML is accepted too (`contentFormat: html`); scripts, frames and remote images are
+  removed. At most 2,000,000 characters.
+- **File type** (`format`) is `pdf` (default) or `docx`. A Word file uses the organisation's Word
+  house style unless **House style** is off. **File name** gets the extension added.
+- **Written by AI** (`aiGenerated`): switch it on when the text came from an AI step. The file then
+  carries the organisation's AI content marking (a visible line and the file metadata), when the
+  organisation marks AI output under compliance settings. The result says what the file carries:
+  `marked` is true only when both the line and the metadata are in it.
+- The result variable gets the same file descriptor the other file steps return, so a file
+  preview shows it, *Download a file* hands it over, an e-mail attachment carries it and a file
+  column of a row takes it. Set **attachToRecordId** and **attachToFieldKey** (a file column)
+  together, or only the app owner can download the file.
+- Without the browser renderer (a self-host without the browser container) the PDF still comes,
+  in a plain layout, and the result says `degraded: true`.
+- It runs on a click, in a background run, from a mailbox hook, in an action a trigger starts and
+  on a public page, like *Make a file*. A dry run does not store a file.
+
 ## Steps that work on the page
 
 These steps run only in the browser. A background run, a mailbox hook and a test run through

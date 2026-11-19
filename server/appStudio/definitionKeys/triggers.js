@@ -66,7 +66,7 @@ module.exports = {
         + 'A trigger only runs once the app is PUBLISHED: in a draft it does nothing, and a later change goes live with the next publish. '
         + 'The run is the app owner (role owner, viewer.* is the owner) and has no page, so the action and every action it calls may hold only steps that run unattended: '
         + 'set_variable, condition, switch, loop, while, try, parallel, call_action, return, raise_error, create_record, update_record, delete_record, transaction, '
-        + 'dataset_query, ai_generate, ai_extract, kb_query, code, generate_file, fill_document, generate_presentation, redact_pdf, file_intake, '
+        + 'dataset_query, ai_generate, ai_extract, kb_query, code, generate_file, fill_document, generate_presentation, generate_document, redact_pdf, file_intake, '
         + 'send_email (never in a loop), run_automation, request_approval, wait and await_approval (the run goes on hold and continues by itself), '
         + 'and http_request (through a REST connection a person made, with every rule of that step; not in a webhook run). '
         + 'Refused: navigate, open_url, the modal steps, confirm, toast, refresh, reset_form, download_file, every focus/scroll/clipboard/form/ui step, ai_browse, copy_document and the kb_log steps. '

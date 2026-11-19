@@ -46,6 +46,11 @@ export const EXTENSION_STEP_KINDS = Object.freeze({
         "retrySafe": true,
         "server": false
     },
+    "generate_document": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": true
+    },
     "http_request": {
         "childSlots": [],
         "retrySafe": true,
