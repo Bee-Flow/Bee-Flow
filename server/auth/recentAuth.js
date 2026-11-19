@@ -11,7 +11,9 @@
  * factor routes (`mfaVerifiedAt`), finalizeOpaqueLogin (`opaqueLoginAt`) and
  * the PIN unlock (`pinVerifiedAt`). A session rebuilt from a bridge token
  * carries the `authenticatedAt` the token was minted with, so for such a
- * client "recent" means "signed in recently", which is the only proof it has.
+ * client "recent" means "signed in recently", which is the only proof it has. A Nextcloud
+ * connector request is signed in by Nextcloud and carries a JWT verified on that request, so
+ * its session counts as recent (auth/connectorJwtPhases.js).
  */
 
 const RECENT_AUTH_MAX_AGE_MS = 10 * 60 * 1000;

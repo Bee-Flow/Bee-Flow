@@ -8,7 +8,7 @@ import Modal from '../shared/Modal';
 import toast from '../shared/Toast';
 import Toggle from '../shared/Toggle';
 import { ALERT_ERROR, ALERT_WARNING, HINT, INPUT, LABEL, PRIMARY_BTN, SECONDARY_BTN } from '../shared/adminUi';
-import { MCP_SERVERS, expiryToIso, invalidEntries, parseList, parseToolList } from './mcpAccessLib';
+import { MCP_SERVERS, expiryToIso, invalidEntries, parseList, parseToolList, withClientNames } from './mcpAccessLib';
 import McpConnectBlock from './McpConnectBlock';
 import { mcpOrigin } from './mcpConnect';
 import type { ExpiryChoice, McpServerInfo } from './mcpAccessLib';
@@ -36,7 +36,8 @@ function Reveal({ created, baseUrl, onDone }: { created: McpTokenCreated; baseUr
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const origin = mcpOrigin(baseUrl);
-    const enabled = MCP_SERVERS.filter(s => created.record.scopes[s.id]);
+    // Named after the token, so the commands below add servers the person recognises (and two tokens do not collide).
+    const enabled = withClientNames(MCP_SERVERS.filter(s => created.record.scopes[s.id]), created.record.name);
 
     const copyToken = async () => {
         if (await copyText(created.token)) {
