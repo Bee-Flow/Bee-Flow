@@ -25,8 +25,32 @@ export interface MatrixKind {
 }
 
 export interface MatrixToolPolicy {
-    external?: { blockCategories?: string[] };
-    internal?: { blockCategories?: string[] };
+    external?: { blockCategories?: string[]; appExemptions?: Record<string, string[]> };
+    internal?: { blockCategories?: string[]; appExemptions?: Record<string, string[]> };
+}
+
+export type ToolColumn = 'external' | 'internal';
+
+/** Per tool column, kind id → the names of the apps that may receive it anyway ("except Outlook"). */
+export type MatrixExceptions = Record<ToolColumn, Record<string, string[]>>;
+
+/**
+ * The per-app exceptions turned around for the table: which apps a held-back
+ * kind is released to. A kind the column does not hold back has no exception
+ * to show, and an app with an empty list names nothing.
+ */
+export function exceptionsByKind(tools: MatrixToolPolicy | undefined, labelOf: (appId: string) => string): MatrixExceptions {
+    const out: MatrixExceptions = { external: {}, internal: {} };
+    for (const col of ['external', 'internal'] as const) {
+        const held = new Set(tools?.[col]?.blockCategories || []);
+        for (const [appId, kinds] of Object.entries(tools?.[col]?.appExemptions || {})) {
+            for (const kind of kinds) {
+                if (!held.has(kind)) continue;
+                (out[col][kind] ||= []).push(labelOf(appId));
+            }
+        }
+    }
+    return out;
 }
 
 export type MatrixSelection = Record<MatrixColumn, Set<string>>;

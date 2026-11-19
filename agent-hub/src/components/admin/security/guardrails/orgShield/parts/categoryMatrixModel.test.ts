@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-    columnCounts, groupsOf, halfOpen, hiddenInGroup, leftWithTools, selectionOf,
+    columnCounts, exceptionsByKind, groupsOf, halfOpen, hiddenInGroup, leftWithTools, selectionOf,
 } from './categoryMatrixModel';
 
 const KINDS = [
@@ -62,5 +62,16 @@ describe('categoryMatrixModel', () => {
         expect(leftWithTools({ Person: 0 }, 'Person')).toBeNull();
         // Unknown figures render nothing, never a zero.
         expect(leftWithTools(null, 'Person')).toBeNull();
+    });
+
+    it('turns the per-app exceptions around per held-back kind', () => {
+        const label = (id: string) => ({ outlook: 'Outlook', gmail: 'Gmail' }[id] || id);
+        const out = exceptionsByKind({
+            external: { blockCategories: ['Person', 'Email'], appExemptions: { outlook: ['Person', 'Email', 'IBAN'], gmail: ['Email'], empty: [] } },
+            internal: { blockCategories: ['IBAN'] },
+        }, label);
+        // IBAN is not held back from outside tools, so there is no exception to show for it.
+        expect(out).toEqual({ external: { Person: ['Outlook'], Email: ['Outlook', 'Gmail'] }, internal: {} });
+        expect(exceptionsByKind(undefined, label)).toEqual({ external: {}, internal: {} });
     });
 });

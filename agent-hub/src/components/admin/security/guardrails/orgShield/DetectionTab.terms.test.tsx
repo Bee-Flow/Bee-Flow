@@ -18,6 +18,7 @@ import DetectionTab from './tabs/DetectionTab';
 import { piiCategoriesLocalized } from '@/config/piiCategories';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { stub } from '@/test/mocks';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;
@@ -40,7 +41,7 @@ function renderTab(over = {}, evidence = null) {
         ...over,
     };
     const onGoTo = vi.fn();
-    render(
+    render(withQueryClient(
         <DetectionTab
             f={f}
             categories={piiCategoriesLocalized(stub<Parameters<typeof piiCategoriesLocalized>[0]>(t))}
@@ -51,7 +52,7 @@ function renderTab(over = {}, evidence = null) {
             onGoTo={onGoTo}
             t={t}
         />,
-    );
+    ));
     return { f, onGoTo };
 }
 
@@ -124,5 +125,21 @@ describe('DetectionTab matrix and the org\'s own types', () => {
     it('shows no tool figures at all when they are unknown', () => {
         renderTab({}, null);
         expect(screen.queryByText(/left with tools/)).toBeNull();
+    });
+});
+
+describe('DetectionTab per-app exceptions', () => {
+    it('shows the exceptions section under the table, and names the exempt app on the kind\'s row', () => {
+        renderTab({
+            toolPiiPolicy: { external: { blockCategories: ['Person'], appExemptions: { outlook: ['Person'] } }, internal: { blockCategories: [] } },
+            setAppExemption: vi.fn(),
+        });
+        expect(screen.getByRole('heading', { name: 'Exceptions per app' })).toBeInTheDocument();
+        expect(screen.getByText('except outlook')).toBeInTheDocument();
+    });
+
+    it('leaves the section out where exceptions are not edited', () => {
+        renderTab();
+        expect(screen.queryByRole('heading', { name: 'Exceptions per app' })).toBeNull();
     });
 });

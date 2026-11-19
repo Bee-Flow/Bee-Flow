@@ -36,6 +36,7 @@ const { hasCustomDataFeature } = require('../core/privacy/customTypes/resolve');
 const customShieldDoc = require('../core/privacy/customTypes/shieldDoc');
 const customTypeRegistry = require('../core/privacy/customTypes/registry');
 const { sessionUser } = require('../core/http/sessionUser');
+const exemptions = require('../core/privacy/toolPiiExemptions.mts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -97,8 +98,8 @@ const scopeFlag = z.boolean({ error: typeError({ invalid: SCOPE_TEXT }) }).optio
 const SCOPE_SHAPE = { userInput: scopeFlag, agentOutput: scopeFlag };
 const Scope = z.object(SCOPE_SHAPE, { error: typeError({ invalid: SCOPE_TEXT }) }).passthrough();
 
-const POLICY_TEXT = 'toolPiiPolicy is { external: { blockCategories: [...] }, internal: { blockCategories: [...] } }.';
-const BlockList = z.object({ blockCategories: textList('blockCategories') }, { error: typeError({ invalid: POLICY_TEXT }) }).strict();
+const POLICY_TEXT = 'toolPiiPolicy is { external: { blockCategories: [...], appExemptions?: {...} }, internal: { blockCategories: [...], appExemptions?: {...} } }.';
+const BlockList = exemptions.toolClassPolicySchema(POLICY_TEXT); // + per-app exceptions: toolPiiExemptions.mts
 const ToolPiiPolicy = z.object({
     external: BlockList.optional(),
     internal: BlockList.optional(),
@@ -217,9 +218,8 @@ function refuseStrangers(body, stored, shape, where = 'body') {
     throw badRequest('invalid_request', details[0].message, details);
 }
 
-// Lazy-required to avoid pulling the licence module into the route's
-// import chain at boot. Licence module depends on stores/userStore which
-// some test fixtures stub — keeping this lazy preserves backward compat.
+// Lazy: keeps the licence module (it depends on stores/userStore, which some
+// test fixtures stub) out of the route's import chain at boot.
 /** @type {typeof import('../license') | null} */
 let _license = null;
 function _licenseModule() {
@@ -295,13 +295,13 @@ function _applyTierClamps(config, { hasWebSearchGuard }) {
     return clamped;
 }
 
-// requireAuth is the canonical gate from auth/permissions (verifies the
-// user still exists in the DB, cached 5s, and destroys deleted-user sessions).
+// The canonical gate: verifies the user still exists (cached 5s), destroys deleted-user sessions.
 const { requireAuth } = require('../auth/permissions');
 
 // "Your own data" test bench (assistant, test, tune): its own router, every
 // route gated there (auth, rate limit, org admin, target-org licence).
 router.use('/:orgId/custom-data', require('./orgCustomData'));
+router.use('/:orgId/app-exemption-apps', require('./orgPrivacyShieldApps'));
 
 /**
  * Check if the current user is an admin for the given org.
@@ -456,13 +456,12 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
         }
     }
 
-    // Sanitize the per-tool-class block policy: coerce each class to a
-    // { blockCategories: string[] } shape, drop non-strings, cap length.
-    // Built-in categories as before; the org's own types after them.
-    const sanitizedToolPiiPolicy = {
+    // Per class { blockCategories: string[] }: strings only, capped, built-ins then the org's own types;
+    // then the per-app exceptions (toolPiiExemptions.mts), refused before anything is written.
+    const sanitizedToolPiiPolicy = exemptions.withAppExemptionsForSave({
         external: { blockCategories: [..._builtInPart(toolPiiPolicy?.external?.blockCategories, 40), ...custom.lists.external] },
         internal: { blockCategories: [..._builtInPart(toolPiiPolicy?.internal?.blockCategories, 40), ...custom.lists.internal] },
-    };
+    }, toolPiiPolicy, storedRow?.toolPiiPolicy, new Set(custom.customDataTypes.map(t => t.id)));
 
     const config = {
         enabled: !!enabled,
@@ -542,6 +541,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     const clampedFields = _applyTierClamps(config, clamps);
 
     await configStore.setConfig(`org_privacy_shield_${orgId}`, config);
+    for (const line of exemptions.exemptionAuditLines(orgId, sessionUser(req).id, storedRow?.toolPiiPolicy, config.toolPiiPolicy)) log.info(line);
 
     // The save route is the registry's other writer (resolveOrgShield is the
     // first): this replica scans with the new types from the next request on;

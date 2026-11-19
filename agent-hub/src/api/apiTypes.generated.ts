@@ -3868,9 +3868,11 @@ export interface ApiOperations {
         showRawPayload?: boolean;
         toolPiiPolicy?: {
             external?: {
+                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
             internal?: {
+                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
         };
@@ -3878,6 +3880,7 @@ export interface ApiOperations {
         webSearchGuardPiiCategories?: Array<string>;
         [key: string]: unknown;
     }>;
+    'GET /api/org-privacy-shield/{orgId}/app-exemption-apps': Op<{ orgId: string | number }>;
     'POST /api/org-privacy-shield/{orgId}/custom-data/assist': Op<{ orgId: string | number }, UndeclaredQuery, {
         examples?: Array<string>;
         expectLookalikes: Array<string>;

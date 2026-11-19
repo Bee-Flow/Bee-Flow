@@ -2398,6 +2398,9 @@
     "GET /api/org-privacy-shield/:orgId": {
       "gate": "auth"
     },
+    "GET /api/org-privacy-shield/:orgId/app-exemption-apps": {
+      "gate": "auth"
+    },
     "GET /api/org-privacy-shield/:orgId/effective": {
       "gate": "auth"
     },

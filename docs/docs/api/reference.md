@@ -8,7 +8,7 @@ custom_edit_url: null
 
 # Endpoint reference
 
-Every route the server mounts, 1932 in all, read from the running app rather than written by hand. 1196 of them declare a request schema (body, query or path parameters), shown below as fields; the other 736 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
+Every route the server mounts, 1932 in all, read from the running app rather than written by hand. 1195 of them declare a request schema (body, query or path parameters), shown below as fields; the other 737 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
 
 ## How to read it
 
@@ -29,7 +29,7 @@ Every route the server mounts, 1932 in all, read from the running app rather tha
 | [`/api/branding`](./reference/api-branding.md) | 10 | 2 |
 | [`/api/cms`](./reference/api-cms.md) | 81 | 42 |
 | [`/api/compliance`](./reference/api-compliance.md) | 121 | 77 |
-| [`/api/cowork`](./reference/api-cowork.md) | 12 | 7 |
+| [`/api/cowork`](./reference/api-cowork.md) | 11 | 6 |
 | [`/api/datatables`](./reference/api-datatables.md) | 47 | 37 |
 | [`/api/dsr`](./reference/api-dsr.md) | 14 | 9 |
 | [`/api/icons`](./reference/api-icons.md) | 12 | 7 |
@@ -38,7 +38,7 @@ Every route the server mounts, 1932 in all, read from the running app rather tha
 | [`/api/languages`](./reference/api-languages.md) | 27 | 12 |
 | [`/api/mcp-library`](./reference/api-mcp-library.md) | 13 | 8 |
 | [`/api/notebooks`](./reference/api-notebooks.md) | 35 | 21 |
-| [`/api/org-privacy-shield`](./reference/api-org-privacy-shield.md) | 10 | 6 |
+| [`/api/org-privacy-shield`](./reference/api-org-privacy-shield.md) | 11 | 6 |
 | [`/api/organizations`](./reference/api-organizations.md) | 12 | 8 |
 | [`/api/playbooks`](./reference/api-playbooks.md) | 14 | 0 |
 | [`/api/projects`](./reference/api-projects.md) | 143 | 103 |
@@ -56,4 +56,4 @@ Every route the server mounts, 1932 in all, read from the running app rather tha
 | [`/api/webpages-preview`](./reference/api-webpages-preview.md) | 18 | 3 |
 | [`/auth`](./reference/auth.md) | 173 | 91 |
 | [Other endpoints](./reference/other.md) | 233 | 120 |
-| **Total** | **1932** | **1196** |
+| **Total** | **1932** | **1195** |

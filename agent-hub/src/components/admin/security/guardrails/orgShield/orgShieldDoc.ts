@@ -10,9 +10,32 @@ import { isCustomTypeId } from './ownData/ownDataModel';
 
 type Doc = Record<string, unknown>;
 
+/**
+ * Per app, the kinds a tool class blocks that this app may receive anyway
+ * (server: core/privacy/toolPiiExemptions.mts). appId → category ids.
+ */
+export type AppExemptions = Record<string, string[]>;
+
+/** One tool class: what it holds back, and the per-app exceptions to that. */
+export interface ToolClassPolicy {
+    blockCategories: string[];
+    /** Absent on a class the page did not load from a document (a test, the own-data bench). */
+    appExemptions?: AppExemptions;
+}
+
 export interface ToolPiiPolicy {
-    external: { blockCategories: string[] };
-    internal: { blockCategories: string[] };
+    external: ToolClassPolicy;
+    internal: ToolClassPolicy;
+}
+
+/** A stored `appExemptions` as the page edits it: string lists only. Always an object, so the save always states it. */
+export function normaliseAppExemptions(v: unknown): AppExemptions {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+    const out: AppExemptions = {};
+    for (const [appId, cats] of Object.entries(v as Record<string, unknown>)) {
+        if (Array.isArray(cats)) out[appId] = cats.filter((c): c is string => typeof c === 'string');
+    }
+    return out;
 }
 
 export interface ShieldFields {
@@ -88,9 +111,13 @@ export function normaliseDoc(data: Doc, builtInIds: ReadonlySet<string>): Shield
             .filter((v): v is string => typeof v === 'string' && !!v.trim())
             .map(v => v.trim()),
         piiAllowPublicOrgs: data.piiAllowPublicOrgs !== false,
+        // The exceptions travel whole: the save always states them, so the
+        // page is the one writer of a class's exceptions (an absent key on
+        // the server means "keep the stored ones", for clients that do not
+        // know them).
         toolPiiPolicy: {
-            external: { blockCategories: asList(tpp.external?.blockCategories).filter(keep) },
-            internal: { blockCategories: asList(tpp.internal?.blockCategories).filter(keep) },
+            external: { blockCategories: asList(tpp.external?.blockCategories).filter(keep), appExemptions: normaliseAppExemptions(tpp.external?.appExemptions) },
+            internal: { blockCategories: asList(tpp.internal?.blockCategories).filter(keep), appExemptions: normaliseAppExemptions(tpp.internal?.appExemptions) },
         },
         piiCategories: asList(data.piiDetectionCategories).filter(keep),
         piiConfidenceThreshold: typeof data.piiDetectionConfidenceThreshold === 'number' ? data.piiDetectionConfidenceThreshold : 0.7,
