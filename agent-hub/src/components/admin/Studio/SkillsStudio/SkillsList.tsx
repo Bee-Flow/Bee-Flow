@@ -1,6 +1,8 @@
-import { Plus, Search, Zap } from 'lucide-react';
-import React from 'react';
+import { Eraser, Layers, Plus, Search, Zap } from 'lucide-react';
+import React, { useState } from 'react';
 import { isEmptySkill, usageSubline } from './skillModel';
+import { groupByCategory } from './skillListModel';
+import SkillActionsMenu from './SkillActionsMenu';
 import type { UsageSummaryMap, Skill } from './skillModel.types';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateParams } from '@/hooks/useTranslation';
@@ -24,10 +26,15 @@ import { kindColorVar } from '@/components/shared/kindColors';
  *      attached nowhere does nothing at all, and that used to be invisible
  *      until you opened it.
  *
- *   3. THE DELETE BUTTON IS GONE FROM THE ROW. Deleting a skill breaks
- *      every agent that attaches it, and a trash icon that appears on hover
- *      next to the name is one slip away from doing that. It lives on the
- *      detail, under the Used-by list that says what would break.
+ *   3. NO TRASH ICON ON THE ROW. Deleting a skill breaks every agent that
+ *      attaches it, and a trash icon that appears on hover next to the name
+ *      is one slip away from doing that. Since 2026-11 the row has a ⋯ menu
+ *      instead (people could not find the delete under Used-by): it opens
+ *      SkillDeleteDialog, which shows what would break first.
+ *
+ * (2026-11) The list can be grouped by the owner's category, with the skills
+ * without one under "No category", and the empty drafts nothing uses can be
+ * removed in one click (skillModel.cleanableDrafts).
  *
  * The filter box is always present (never "past four items"): a control
  * that appears with the fifth row cannot be found at the third.
@@ -66,6 +73,12 @@ interface SkillsListProps {
     onQuery: React.Dispatch<React.SetStateAction<string>>;
     onCreate?: (() => Promise<void>) | null;
     canCreate?: boolean;
+    /** Whether this account may delete a skill; draws the row's ⋯ menu. */
+    canDelete?: ((skill: Skill) => boolean) | null;
+    onRequestDelete?: ((skill: Skill) => void) | null;
+    /** The empty drafts the one-click clean-up would remove (skillModel.cleanableDrafts). */
+    cleanable?: Skill[];
+    onCleanDrafts?: (() => void) | null;
 }
 
 export default function SkillsList({
@@ -79,10 +92,27 @@ export default function SkillsList({
     onSelect,
     onCreate = null,
     canCreate = false,
+    canDelete = null,
+    onRequestDelete = null,
+    cleanable = [],
+    onCleanDrafts = null,
 }: SkillsListProps) {
     const { t } = useTranslation();
     const rows = Array.isArray(skills) ? skills : [];
     const filtering = String(query || '').trim() !== '';
+    const [grouped, setGrouped] = useState(false);
+    const groups = grouped ? groupByCategory(rows) : [{ category: null, skills: rows }];
+    const renderRow = (skill: Skill) => (
+        <SkillRow
+            key={skill.id}
+            skill={skill}
+            name={skill.name || t('skills_studio.untitled', 'Untitled skill')}
+            sub={usageSubline(skill, summary?.[skill.id], t)}
+            selected={skill.id === selectedId}
+            onSelect={onSelect}
+            onRequestDelete={onRequestDelete && canDelete?.(skill) ? () => onRequestDelete(skill) : null}
+        />
+    );
 
     return (
         <div
@@ -133,6 +163,30 @@ export default function SkillsList({
                         className="w-full bg-transparent outline-none text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                     />
                 </div>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    <button
+                        type="button"
+                        onClick={() => setGrouped((g) => !g)}
+                        aria-pressed={grouped}
+                        data-testid="skills-group-toggle"
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition ${grouped ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]'}`}
+                    >
+                        <Layers size={12} aria-hidden="true" />
+                        {t('skillStore.group_by_category', 'Group by category')}
+                    </button>
+                    {cleanable.length > 0 && onCleanDrafts && (
+                        <button
+                            type="button"
+                            onClick={onCleanDrafts}
+                            data-testid="skills-clean-drafts"
+                            title={t('skillStore.clean_drafts_help', 'Removes the empty drafts nothing uses.')}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition"
+                        >
+                            <Eraser size={12} aria-hidden="true" />
+                            {t('skillStore.clean_drafts', 'Remove empty drafts ({count})', { count: cleanable.length })}
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-2.5 flex flex-col gap-1">
@@ -144,15 +198,18 @@ export default function SkillsList({
                 {!loading && rows.length === 0 && (
                     <EmptyColumn error={error} filtering={filtering} query={query} t={t} />
                 )}
-                {rows.map((skill) => (
-                    <SkillRow
-                        key={skill.id}
-                        skill={skill}
-                        name={skill.name || t('skills_studio.untitled', 'Untitled skill')}
-                        sub={usageSubline(skill, summary?.[skill.id], t)}
-                        selected={skill.id === selectedId}
-                        onSelect={onSelect}
-                    />
+                {groups.map((g) => (
+                    <React.Fragment key={g.category ?? '__none'}>
+                        {grouped && g.skills.length > 0 && (
+                            <h3
+                                data-testid="skills-group-heading"
+                                className="m-0 mt-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]"
+                            >
+                                {g.category ?? t('skillStore.no_category', 'No category')}
+                            </h3>
+                        )}
+                        {g.skills.map(renderRow)}
+                    </React.Fragment>
                 ))}
             </div>
         </div>
@@ -209,37 +266,46 @@ interface SkillRowProps {
     name: string;
     sub: string;
     selected: boolean;
+    onRequestDelete?: (() => void) | null;
 }
 
-function SkillRow({ skill, name, sub, selected, onSelect }: SkillRowProps) {
+function SkillRow({ skill, name, sub, selected, onSelect, onRequestDelete = null }: SkillRowProps) {
     // An empty skill is quieter than a real one — it has nothing to say yet.
     const quiet = isEmptySkill(skill);
     return (
-        <button
-            type="button"
-            onClick={() => onSelect?.(skill.id)}
-            aria-current={selected ? 'true' : undefined}
-            data-testid="skill-row"
-            data-skill-id={skill.id}
-            className={`w-full text-left flex items-center gap-2 p-2 rounded-lg transition ${
-                selected ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--bg-secondary)]'
-            }`}
-        >
-            <Zap
-                size={14}
-                aria-hidden="true"
-                className="flex-shrink-0"
-                style={{ color: quiet ? 'var(--text-tertiary)' : kindColorVar('skill') }}
-            />
-            <span className="min-w-0 flex-1">
-                <span
-                    className="block text-xs font-medium truncate"
-                    style={{ color: quiet ? 'var(--text-tertiary)' : 'var(--text-primary)' }}
-                >
-                    {name}
+        <div className="group relative">
+            <button
+                type="button"
+                onClick={() => onSelect?.(skill.id)}
+                aria-current={selected ? 'true' : undefined}
+                data-testid="skill-row"
+                data-skill-id={skill.id}
+                className={`w-full text-left flex items-center gap-2 p-2 ${onRequestDelete ? 'pr-9 ' : ''}rounded-lg transition ${
+                    selected ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--bg-secondary)]'
+                }`}
+            >
+                <Zap
+                    size={14}
+                    aria-hidden="true"
+                    className="flex-shrink-0"
+                    style={{ color: quiet ? 'var(--text-tertiary)' : kindColorVar('skill') }}
+                />
+                <span className="min-w-0 flex-1">
+                    <span
+                        className="block text-xs font-medium truncate"
+                        style={{ color: quiet ? 'var(--text-tertiary)' : 'var(--text-primary)' }}
+                    >
+                        {name}
+                    </span>
+                    {sub && <span className="block text-xs truncate text-[var(--text-tertiary)]">{sub}</span>}
                 </span>
-                {sub && <span className="block text-xs truncate text-[var(--text-tertiary)]">{sub}</span>}
-            </span>
-        </button>
+            </button>
+            {onRequestDelete && (
+                // Beside the row's button, not inside it: a button in a button is no button.
+                <span className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${selected ? '' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}>
+                    <SkillActionsMenu name={name} onDelete={onRequestDelete} variant="row" testid="skill-row-actions" />
+                </span>
+            )}
+        </div>
     );
 }

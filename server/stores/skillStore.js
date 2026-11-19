@@ -56,7 +56,7 @@ const log = require('../telemetry/log');
 // The store is split by concern under stores/skill/; this file keeps create,
 // update and delete, and re-exports the rest under the names it always had.
 const { initDB, TEST_RUNS_KEEP } = require('./skill/schema');
-const { SKILL_COLUMNS, mapRow } = require('./skill/rows');
+const { SKILL_COLUMNS, mapRow, cleanCategory } = require('./skill/rows');
 const { getAvailableSkills, getSkill, getSkillScope, getSkillsByIds, canEditSkill } = require('./skill/reads');
 const { listProjectSkills, countProjectSkills, setSkillProject, clearProjectFromSkills, writeManagedSkill } = require('./skill/projects');
 const { listSkillUsage, getUsageSummary } = require('./skill/usage');
@@ -102,7 +102,7 @@ async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = 
  * on a malformed structured field.
  * @param {{ orgId: string, userId: string, name: string, description?: string, instructions?: string,
  *   workflow?: string, rules?: string, examples?: string, icon?: string, isShared?: boolean,
- *   dynamicActivation?: boolean, sharedGroups?: string[], automationId?: string | null,
+ *   dynamicActivation?: boolean, sharedGroups?: string[], automationId?: string | null, agentOnly?: boolean, category?: string | null,
  *   enabledIntegrations?: string[], steps?: unknown, rulesV2?: unknown, examplesV2?: unknown,
  *   outputSchema?: unknown, knowledgeBaseIds?: unknown, allowedAutomationIds?: unknown }} args
  */
@@ -110,6 +110,7 @@ async function createSkill({
     orgId, userId, name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation,
     sharedGroups, automationId, enabledIntegrations,
     steps, rulesV2, examplesV2, outputSchema, knowledgeBaseIds, allowedAutomationIds,
+    agentOnly, category,
 }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -124,13 +125,15 @@ async function createSkill({
     const cleanSchema = validateOutputSchema(outputSchema);
     const kbIds = validateIdList(knowledgeBaseIds, 'knowledgeBaseIds');
     const autoIds = validateIdList(allowedAutomationIds, 'allowedAutomationIds');
+    const onlyAgents = agentOnly === true;
+    const cleanCat = cleanCategory(category);
 
     await run(
         `INSERT INTO skills (id, org_id, user_id, name, description, instructions, workflow, rules, examples, icon, is_shared, dynamic_activation, shared_groups, automation_id, enabled_integrations,
-                             steps, rules_v2, examples_v2, output_schema, knowledge_base_ids, allowed_automation_ids, version)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20::jsonb, $21::jsonb, 1)`,
+                             steps, rules_v2, examples_v2, output_schema, knowledge_base_ids, allowed_automation_ids, version, agent_only, category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20::jsonb, $21::jsonb, 1, $22, $23)`,
         [id, orgId, userId, name, description || '', instructions || '', body.workflow ?? '', body.rules ?? '', body.examples ?? '', icon || '⚡', isShared === true, dynamicActivation === true, groupsJson, linkedAutomationId, integrationsJson,
-            JSON.stringify(cleanSteps), JSON.stringify(cleanRules), JSON.stringify(cleanExamples), cleanSchema === null ? null : JSON.stringify(cleanSchema), JSON.stringify(kbIds), JSON.stringify(autoIds)]
+            JSON.stringify(cleanSteps), JSON.stringify(cleanRules), JSON.stringify(cleanExamples), cleanSchema === null ? null : JSON.stringify(cleanSchema), JSON.stringify(kbIds), JSON.stringify(autoIds), onlyAgents, cleanCat]
     );
     log.info(`[SkillStore] Created skill "${name}" for org ${orgId}${linkedAutomationId ? ` (linked automation ${linkedAutomationId})` : ''}`);
     _notifySkillSync(orgId, id);
@@ -145,6 +148,7 @@ async function createSkill({
         steps: cleanSteps, rulesV2: cleanRules, examplesV2: cleanExamples,
         outputSchema: cleanSchema, knowledgeBaseIds: kbIds, allowedAutomationIds: autoIds,
         projectId: null, version: 1, lastUsedAt: null,
+        agentOnly: onlyAgents, category: cleanCat,
         createdAt: now, updatedAt: now,
     };
 }
@@ -183,7 +187,8 @@ const _blankToNull = (v) => (v === undefined || v === null || v === '' ? null : 
 /** The keys of `write` whose value differs from the stored (mapped) skill. */
 function _changedSkillKeys(cur, write) {
     return Object.keys(write).filter((k) => {
-        if (k === 'isShared' || k === 'dynamicActivation') return (cur[k] === true) !== (write[k] === true);
+        if (k === 'isShared' || k === 'dynamicActivation' || k === 'agentOnly') return (cur[k] === true) !== (write[k] === true);
+        if (k === 'category') return (cur.category || null) !== cleanCategory(write.category);
         return !_sameJson(_blankToNull(cur[k]), _blankToNull(write[k]));
     });
 }
@@ -269,6 +274,9 @@ async function updateSkill(id, userId, updates, opts = {}) {
     }
     if (updates.isShared !== undefined) write.isShared = updates.isShared;
     if (updates.dynamicActivation !== undefined) write.dynamicActivation = updates.dynamicActivation;
+    // Neither bumps `version`: who may use a skill, and its label, are not its content.
+    if (updates.agentOnly !== undefined) write.agentOnly = updates.agentOnly;
+    if (updates.category !== undefined) write.category = updates.category;
     if (updates.sharedGroups !== undefined) write.sharedGroups = updates.sharedGroups;
     if (updates.automationId !== undefined) {
         write.automationId = updates.automationId;
@@ -372,6 +380,9 @@ module.exports = {
     recordTestRun,
     listTestRuns,
     getLastTestBySkillIds,
+    // The Skill store's sort keys (uses, the caller's own last use): stores/skillActivations.js.
+    /** @param {string[]} skillIds @param {string} userId */
+    getStoreStats: (skillIds, userId) => require('./skillActivations').getStoreStats(skillIds, userId),
     TEST_RUNS_KEEP,
     TEST_STATUSES,
     mapRow,

@@ -305,12 +305,9 @@ function skillIdsForStep(step, binding) {
     // a skill that is both the step's and the agent's stays with the step.
     const disabled = new Set(clean(step && step.disabledAgentSkillIds));
     const own = new Set(attachedSkillIds);
-    return {
-        attachedSkillIds,
-        sessionSkillIds: binding
-            ? clean(binding.config.attachedSkillIds).filter((id) => !disabled.has(id) && !own.has(id))
-            : [],
-    };
+    const sessionSkillIds = binding ? clean(binding.config.attachedSkillIds).filter((id) => !disabled.has(id) && !own.has(id)) : [];
+    // agentSkillIds: what a bound agent brings in, where an agent-only skill counts (core/skills/agentOnlySkills.mts).
+    return { attachedSkillIds, sessionSkillIds, agentSkillIds: binding ? [...attachedSkillIds, ...sessionSkillIds] : [] };
 }
 
 /**

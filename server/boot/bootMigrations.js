@@ -158,6 +158,7 @@ const LOOSE_MIGRATIONS = [
     // records the subject of accounts whose id already names it (no-credential
     // rows only). ON CONFLICT DO NOTHING, so a rerun adds nothing.
     'sso-identities-2026-11',
+    'skills-agent-only-category-2026-11', // skills.agent_only (default false) + skills.category; ADD COLUMN IF NOT EXISTS, as the store schema
 ];
 
 /**

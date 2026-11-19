@@ -338,3 +338,38 @@ test('mapRow presents NULL structure as [] and keeps every legacy field (mobile 
         assert.ok(k in s, `new field ${k} present`);
     }
 });
+
+// ── agent-only and category (2026-11) ───────────────────────────────
+test('createSkill stores agentOnly and a trimmed category; both default to "everywhere" and none', async () => {
+    const plain = await store.createSkill({ orgId: 'org1', userId: 'u1', name: 'Plain' });
+    assert.strictEqual(plain.agentOnly, false);
+    assert.strictEqual(plain.category, null);
+    const row = await storedSkill(plain.id);
+    assert.strictEqual(row.agent_only, false);
+    assert.strictEqual(row.category, null);
+
+    const flagged = await store.createSkill({ orgId: 'org1', userId: 'u1', name: 'Flagged', agentOnly: true, category: '  Finance  ' });
+    assert.strictEqual(flagged.agentOnly, true);
+    assert.strictEqual(flagged.category, 'Finance');
+    const stored = store.mapRow(await storedSkill(flagged.id));
+    assert.strictEqual(stored.agentOnly, true);
+    assert.strictEqual(stored.category, 'Finance');
+});
+
+test('updateSkill writes agentOnly and category without a version bump; a blank category clears it', async () => {
+    await seedSkill({ user_id: 'owner' });
+    const { before, after } = await writes(() => store.updateSkill('sk1', 'owner', { agentOnly: true, category: 'Sales' }));
+    assert.strictEqual(after.agent_only, true);
+    assert.strictEqual(after.category, 'Sales');
+    assert.strictEqual(after.version, before.version, 'a usage restriction and a label are not content');
+    await store.updateSkill('sk1', 'owner', { category: '   ' });
+    assert.strictEqual((await storedSkill()).category, null);
+    await store.updateSkill('sk1', 'owner', { agentOnly: false });
+    assert.strictEqual((await storedSkill()).agent_only, false);
+});
+
+test('mapRow carries agentOnly and category for an old row without them', () => {
+    const s = store.mapRow(baseRow({ agent_only: null, category: null }));
+    assert.strictEqual(s.agentOnly, false);
+    assert.strictEqual(s.category, null);
+});

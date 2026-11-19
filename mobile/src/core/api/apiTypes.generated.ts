@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1924 operations. */
+/** 1925 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2577,10 +2577,6 @@ export interface ApiOperations {
         limit?: number;
         offset?: number;
     }>;
-    'POST /api/cowork/{id}/runs/{runId}/review': Op<{ id: string | number; runId: string | number }, UndeclaredQuery, {
-        action: 'answer' | 'done_myself' | 'not_needed';
-        answer?: string;
-    }>;
     'GET /api/cowork/{id}/stats': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/toggle': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/csp-report': Op;
@@ -3868,11 +3864,9 @@ export interface ApiOperations {
         showRawPayload?: boolean;
         toolPiiPolicy?: {
             external?: {
-                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
             internal?: {
-                appExemptions?: Record<string, Array<string>>;
                 blockCategories?: Array<string>;
             };
         };
@@ -3880,7 +3874,6 @@ export interface ApiOperations {
         webSearchGuardPiiCategories?: Array<string>;
         [key: string]: unknown;
     }>;
-    'GET /api/org-privacy-shield/{orgId}/app-exemption-apps': Op<{ orgId: string | number }>;
     'POST /api/org-privacy-shield/{orgId}/custom-data/assist': Op<{ orgId: string | number }, UndeclaredQuery, {
         examples?: Array<string>;
         expectLookalikes: Array<string>;
@@ -4794,8 +4787,10 @@ export interface ApiOperations {
     'GET /api/session-token': Op;
     'GET /api/skills': Op;
     'POST /api/skills': Op<NoParams, UndeclaredQuery, {
+        agentOnly?: boolean;
         allowedAutomationIds?: unknown;
         automationId?: string | null;
+        category?: string | null;
         description?: string;
         dynamicActivation?: boolean;
         enabledIntegrations?: Array<string> | null;
@@ -4818,22 +4813,15 @@ export interface ApiOperations {
     }>;
     'GET /api/skills/examples/conversations': Op;
     'GET /api/skills/examples/conversations/{conversationId}/messages': Op<{ conversationId: string | number }>;
-    'POST /api/skills/from-plan': Op<NoParams, UndeclaredQuery, {
-        skills: Array<{
-            activation?: 'static' | 'dynamic';
-            description?: string;
-            draft?: Record<string, unknown> | null;
-            id?: string | null;
-            instructions?: string;
-            name: string;
-        }>;
-    }>;
+    'GET /api/skills/store-stats': Op;
     'GET /api/skills/test-agents': Op;
     'GET /api/skills/usage-summary': Op;
     'GET /api/skills/{id}': Op<{ id: string | number }>;
     'PUT /api/skills/{id}': Op<{ id: string | number }, UndeclaredQuery, {
+        agentOnly?: boolean;
         allowedAutomationIds?: unknown;
         automationId?: string | null;
+        category?: string | null;
         description?: string;
         dynamicActivation?: boolean;
         enabledIntegrations?: Array<string> | null;
@@ -4858,6 +4846,9 @@ export interface ApiOperations {
     }>;
     'POST /api/skills/{id}/ai/improve': Op<{ id: string | number }, UndeclaredQuery, {
         note?: string;
+    }>;
+    'POST /api/skills/{id}/copy': Op<{ id: string | number }, UndeclaredQuery, {
+        name?: string;
     }>;
     'POST /api/skills/{id}/examples/from-message': Op<{ id: string | number }, UndeclaredQuery, {
         conversationId: string;

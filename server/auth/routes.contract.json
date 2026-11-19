@@ -2657,6 +2657,9 @@
         "manage_skills"
       ]
     },
+    "GET /api/skills/store-stats": {
+      "gate": "auth"
+    },
     "GET /api/skills/test-agents": {
       "gate": "permission",
       "anyOf": [
@@ -6054,6 +6057,13 @@
       ]
     },
     "POST /api/skills/:id/ai/improve": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_skills"
+      ]
+    },
+    "POST /api/skills/:id/copy": {
       "gate": "permission",
       "anyOf": [
         "all",

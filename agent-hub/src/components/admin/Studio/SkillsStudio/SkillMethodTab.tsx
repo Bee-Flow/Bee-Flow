@@ -14,7 +14,7 @@ import type { MethodTabProps, UsedByNoteProps, TextCardProps } from './SkillDeta
 
 const INSTRUCTION_LIMIT = 4000;
 
-export function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picker, legacyAutomationId, usage, unchecked, onFillIn, drafting, t }: MethodTabProps) {
+export function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picker, legacyAutomationId, usage, unchecked, onFillIn, drafting, categorySuggestions = [], t }: MethodTabProps) {
     const near = draft.instructions.length / INSTRUCTION_LIMIT > 0.9;
     const empty = draft.steps.length === 0 && draft.rulesV2.length === 0 && !draft.instructions.trim();
     return (
@@ -70,6 +70,9 @@ export function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picke
                         allowedAutomationIds={draft.allowedAutomationIds}
                         knowledgeBaseIds={draft.knowledgeBaseIds}
                         dynamicActivation={draft.dynamicActivation}
+                        agentOnly={draft.agentOnly}
+                        category={draft.category}
+                        categorySuggestions={categorySuggestions}
                         legacyAutomationId={legacyAutomationId}
                         automations={picker.automations}
                         knowledgeBases={picker.knowledgeBases}

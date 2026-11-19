@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Edit2, Trash2, Check, ChevronDown, ChevronUp, Users, Lock, Link2 } from 'lucide-react';
 import type { Skill } from '../../api/queries/skills';
 import type { UseSkillsReturn } from '../../hooks/useSkills';
@@ -54,6 +55,10 @@ interface SkillCardProps {
     onDelete?: (id: string) => void;
     attachedAgentCount?: number;
     compact?: boolean;
+    /** Extra badges after the card's own (the Skill store: static/dynamic, "only through agents"). */
+    badges?: ReactNode;
+    /** Extra actions before the Use toggle (the Skill store: open, add to agent, copy). */
+    actions?: ReactNode;
 }
 
 export default function SkillCard({
@@ -65,6 +70,8 @@ export default function SkillCard({
     onDelete,
     attachedAgentCount = 0,
     compact = false,
+    badges = null,
+    actions = null,
 }: SkillCardProps) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState<boolean>(false);
@@ -106,6 +113,7 @@ export default function SkillCard({
                                 <Link2 size={9} /> {t('skills.attached_to', 'attached to {count}', { count: attachedAgentCount })}
                             </span>
                         )}
+                        {badges}
                     </div>
                     {skill.description && (
                         <p className="m-0 mt-0.5 text-[12px] leading-snug truncate text-[var(--text-secondary)]">
@@ -162,6 +170,8 @@ export default function SkillCard({
                             )}
                         </>
                     )}
+
+                    {actions}
 
                     {/* Two whole labels behind two keys, chosen by a ternary around
                         the KEY — never one string with a word swapped into it. */}

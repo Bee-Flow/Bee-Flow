@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-    buildSavePayload, draftOf, examplesOf, filterSkills, isAgentCallable, isEmptySkill,
-    metaLine, moveItem, refIdsOfKind, refKindKey, rulesOf, sortSkills, stepsOf, testChip,
+    buildSavePayload, draftOf, examplesOf, filterSkills, isAgentCallable, isEmptySkill, metaLine, moveItem, refIdsOfKind, refKindKey, rulesOf, sortSkills, stepsOf, testChip,
     usageSubline,
 } from './skillModel';
+import { canDeleteSkill, categoriesOf, cleanableDrafts, groupByCategory } from './skillListModel';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { partial, stub } from '@/test/mocks';
 
@@ -144,6 +144,54 @@ describe('skillModel — the save payload', () => {
         expect(payload.steps).toEqual([{ id: 's1', text: 'a', refs: [] }]);
         expect(payload.rulesV2).toEqual([]);
         expect(payload.outputSchema).toBe(null);
+    });
+
+    it('carries agentOnly and the category both ways; an old row reads "everywhere" and none', () => {
+        const old = draftOf(stub<Parameters<typeof draftOf>[0]>({ name: 'n' }));
+        expect(old.agentOnly).toBe(false);
+        expect(old.category).toBe('');
+        const payload = buildSavePayload(draftOf(stub<Parameters<typeof draftOf>[0]>({ name: 'n', agentOnly: true, category: 'Sales' })));
+        expect(payload.agentOnly).toBe(true);
+        expect(payload.category).toBe('Sales');
+        // A blank category goes out as null: no category, not the empty word.
+        expect(buildSavePayload({ ...old, category: '   ' }).category).toBe(null);
+    });
+});
+
+describe('skillModel — categories, delete, empty drafts', () => {
+    const rows = [
+        { id: 'a', name: 'B skill', category: 'Sales' },
+        { id: 'b', name: 'A skill', category: 'finance' },
+        { id: 'c', name: 'C skill', category: null },
+        { id: 'd', name: 'D skill', category: 'Sales' },
+    ];
+
+    it('groups by category, A to Z, with the skills without one last', () => {
+        const groups = groupByCategory(rows);
+        expect(groups.map(g => g.category)).toEqual(['finance', 'Sales', null]);
+        expect(groups[1].skills.map(s => s.id)).toEqual(['a', 'd']);
+        expect(groups[2].skills.map(s => s.id)).toEqual(['c']);
+    });
+
+    it('suggests every category once, A to Z', () => {
+        expect(categoriesOf([...rows, { id: 'e', category: ' Sales ' }])).toEqual(['finance', 'Sales']);
+    });
+
+    it('a skill is deletable by its owner or an admin, with the right to manage skills', () => {
+        expect(canDeleteSkill({ id: 'x', userId: 'u1' }, { id: 'u1' }, true)).toBe(true);
+        expect(canDeleteSkill({ id: 'x', userId: 'u2' }, { id: 'u1' }, true)).toBe(false);
+        expect(canDeleteSkill({ id: 'x', userId: 'u2' }, { id: 'u1', isAdmin: true }, true)).toBe(true);
+        expect(canDeleteSkill({ id: 'x', userId: 'u1' }, { id: 'u1' }, false)).toBe(false);
+    });
+
+    it('an empty draft is cleanable only when it is mine and the summary says nothing uses it', () => {
+        const empty = { id: 'e', userId: 'u1', description: '', steps: [] };
+        const user = { id: 'u1' };
+        expect(cleanableDrafts([empty], { e: { agents: 0, automations: 0 } }, user, true).map(s => s.id)).toEqual(['e']);
+        expect(cleanableDrafts([empty], { e: { agents: 1, automations: 0 } }, user, true)).toEqual([]);
+        expect(cleanableDrafts([empty], null, user, true), 'no summary is no answer').toEqual([]);
+        expect(cleanableDrafts([empty], { e: { agents: 0, automations: 0, automationsUnchecked: true } }, user, true)).toEqual([]);
+        expect(cleanableDrafts([{ ...empty, description: 'x' }], { e: { agents: 0, automations: 0 } }, user, true)).toEqual([]);
     });
 });
 

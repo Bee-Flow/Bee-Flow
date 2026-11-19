@@ -3,11 +3,12 @@ import type { AppUserLike } from '../components/projects/workspace/types';
 import { renderHubChat, type HubChatContentProps } from './HubChatContent';
 import {
     AdvancedSettings, AgentMarketplace, AgentStudio, AppsHomePage, CoworkPage, DocumentsPage,
-    FormsHomePage, PublicFormPage, SkillsPanel, Studio,
+    FormsHomePage, PublicFormPage, SkillsPanel, SkillStore, Studio,
 } from './hubLazySlots';
 import type { MarketCategory } from '../components/agents/AgentMarketplace.types';
 import type { Project } from '../api/queries/projects';
 import ProjectsView, { type ProjectsRoute } from './ProjectsView';
+import StoreSwitch from '../components/skills/store/StoreSwitch';
 import { studioRouteProps, type StudioRoute } from './studioRouteProps';
 
 type Translate = (key: string, fallback?: string) => string;
@@ -159,7 +160,7 @@ function marketplaceSlot(props: HubMainContentProps) {
         agents, favorites, agentCategories, handleToggleFavorite, handleSelectAgent, setShowMarketplace,
         handleUnpublishAgent, isMobile, user, onNavigate,
     } = props;
-    return (
+    const agentShelf = (
         /* Agent Marketplace rendered inline in conversation area */
         <AgentMarketplace
             agents={agents}
@@ -178,6 +179,21 @@ function marketplaceSlot(props: HubMainContentProps) {
                 ? (agent?: { id: string } | null) => { setShowMarketplace(false); onNavigate(agent ? `agentDesigner:${agent.id}` : 'agentDesigner'); }
                 : undefined}
             user={user}
+        />
+    );
+    /* The Skill store beside it, as a second shelf of the same store (one
+       entry, no new menu item). Opening a skill goes to Studio → Skills,
+       which phones do not offer, so on mobile the store only shows. */
+    return (
+        <StoreSwitch
+            agents={agentShelf}
+            skills={(
+                <SkillStore
+                    user={user}
+                    onClose={() => setShowMarketplace(false)}
+                    onNavigate={isMobile ? null : onNavigate}
+                />
+            )}
         />
     );
 }

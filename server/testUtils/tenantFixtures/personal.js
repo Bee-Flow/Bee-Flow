@@ -29,7 +29,7 @@ const FIXTURES = [
         routes: [
             'GET /api/skills/:id', 'GET /api/skills/:id/test-runs', 'GET /api/skills/:id/usage', 'PUT /api/skills/:id',
             'POST /api/skills/:id/ai/improve', 'POST /api/skills/:id/examples/from-message', 'POST /api/skills/:id/test',
-            'DELETE /api/skills/:id',
+            'POST /api/skills/:id/copy', 'DELETE /api/skills/:id',
         ],
         bodies: {
             'POST /api/skills/:id/examples/from-message': { conversationId: 'c-matrix', messageIndex: 0 },
