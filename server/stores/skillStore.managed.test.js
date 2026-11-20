@@ -156,6 +156,21 @@ test('writeManagedSkill inserts an unshared stage skill owned by run-as, then up
     })), (e) => e.status === 409 && e.code === 'skill_not_in_stage');
 });
 
+test('a deploy carries agentOnly and the category into the stage, on insert and on update', async () => {
+    const first = await deployedSkill({ agentOnly: true, category: 'Invoices' });
+    assert.strictEqual(first.agentOnly, true, 'an agent-only Dev skill is not usable in a stage chat');
+    assert.strictEqual(first.category, 'Invoices');
+    const second = await db.withTransaction((client) => skillStore.writeManagedSkill(client, {
+        id: first.id, ownerId: 'alice', orgId: 'org1', projectId: uat.projectId, managedWrite: cap(),
+        fields: { agentOnly: false, category: null },
+    }));
+    assert.strictEqual(second.agentOnly, false);
+    assert.strictEqual(second.category, null);
+    // A full snapshot that resends the same flag is not a change on the stage.
+    assert.strictEqual(await skillStore.updateSkill(first.id, 'alice', { agentOnly: false, isShared: true }), true);
+    await assert.rejects(skillStore.updateSkill(first.id, 'alice', { agentOnly: true }), isManaged);
+});
+
 // ── The guard on updateSkill / deleteSkill ───────────────────────────
 
 test('a stage skill shares without a deploy; its content needs one', async () => {

@@ -54,6 +54,11 @@ async function _initDB() {
         -- The project a skill is filed into (soft reference; a Solution stage
         -- project makes it a managed part).
         ALTER TABLE skills ADD COLUMN IF NOT EXISTS project_id TEXT DEFAULT NULL;
+        -- "Only through agents" and the owner's category (2026-11). Same
+        -- statements as migrations/skills-agent-only-category-2026-11.js:
+        -- either side may run first on a rolling deploy.
+        ALTER TABLE skills ADD COLUMN IF NOT EXISTS agent_only BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE skills ADD COLUMN IF NOT EXISTS category TEXT DEFAULT NULL;
 
         CREATE INDEX IF NOT EXISTS idx_skills_org ON skills(org_id);
         CREATE INDEX IF NOT EXISTS idx_skills_user ON skills(user_id);

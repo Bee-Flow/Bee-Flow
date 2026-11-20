@@ -29,7 +29,7 @@ const FIXTURES = [
         routes: [
             'GET /api/skills/:id', 'GET /api/skills/:id/test-runs', 'GET /api/skills/:id/usage', 'PUT /api/skills/:id',
             'POST /api/skills/:id/ai/improve', 'POST /api/skills/:id/examples/from-message', 'POST /api/skills/:id/test',
-            'DELETE /api/skills/:id',
+            'POST /api/skills/:id/copy', 'DELETE /api/skills/:id',
         ],
         bodies: {
             'POST /api/skills/:id/examples/from-message': { conversationId: 'c-matrix', messageIndex: 0 },
@@ -77,8 +77,11 @@ const FIXTURES = [
         },
         routes: [
             'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
-            'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'DELETE /api/cowork/:id',
+            'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
+            'DELETE /api/cowork/:id',
         ],
+        // The review body is validated before the ownership check.
+        bodies: { 'POST /api/cowork/:id/runs/:runId/review': { action: 'not_needed' } },
     },
     {
         // A reminder of user B (routes/reminders.js): the owner's alone.

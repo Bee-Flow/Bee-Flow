@@ -24,6 +24,9 @@ const { runDdl } = require('./lib/_ddl');
 const { advanceNextRun } = require('./aiTaskStore');
 const log = require('../telemetry/log');
 const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
+const coworkReviews = require('./coworkReviews.mts').makeCoworkReviews({ ready: () => initDB() });
+const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => initDB() });
+const { RUN_COLUMNS } = require('./ddl/cowork-review-2026-11');
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
 // (same convention as studioAppStore) so a plain `npm run db:migrate` — which
@@ -49,7 +52,9 @@ async function _initDB() {
     // then via runDdl — not in a loose migration file and not in a
     // silent catch (boot/bootMigrations.test.js explains that rule).
     await runDdl('coworkStore', [
-        'ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS produced_output BOOLEAN',
+        `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS produced_output BOOLEAN`,
+        // The review queue and the per-run activity.
+        ...RUN_COLUMNS,
     ]);
     log.info('[CoworkStore] PostgreSQL initialized');
 }
@@ -303,7 +308,8 @@ async function getRunStats(scheduleId) {
     const r = await getOne(
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE status = 'success')::int AS success,
-                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status <> 'success')::int AS failed,
+                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status NOT IN ('success', 'needs_review'))::int AS failed,
+                COUNT(*) FILTER (WHERE status = 'needs_review')::int AS needs_review,
                 AVG(duration_ms) FILTER (WHERE finished_at IS NOT NULL) AS avg_duration_ms
            FROM cowork_runs
           WHERE schedule_id = $1`,
@@ -314,6 +320,8 @@ async function getRunStats(scheduleId) {
         total: r?.total || 0,
         success: r?.success || 0,
         failed: r?.failed || 0,
+        // A run that finished and asked a person to decide: neither a success nor a failure.
+        needsReview: r?.needs_review || 0,
         // null stays null: "no attempt completed yet" is something other than
         // "0 ms on average".
         avgDurationMs: (avg === null || avg === undefined) ? null : Math.round(Number(avg)),
@@ -333,41 +341,12 @@ async function getRunCount(scheduleId) {
 }
 
 /**
- * Close the run this schedule currently has open. Returns the run id, or null
- * when there is nothing open — a manual run-now that raced the scheduler, or a
- * server restart mid-run. Callers treat null as "no history row to update"
- * rather than as an error: losing a history row must never fail the work.
- * @param scheduleId
- * @param {{ status?: string, result?: any, error?: any, producedOutput?: boolean }} opts
+ * Close the run this schedule currently has open (./coworkRunClose.mts): the row
+ * the run names, else the newest open one. Null when nothing is open.
+ * @param {string} scheduleId
+ * @param {import('./coworkRunClose.mts').CloseOpts} opts
  */
-async function _closeOpenRun(scheduleId, { status, result, error, producedOutput }) {
-    await initDB();
-    const openRun = await getOne(
-        `SELECT id, started_at FROM cowork_runs
-         WHERE schedule_id = $1 AND finished_at IS NULL
-         ORDER BY started_at DESC LIMIT 1`,
-        [scheduleId],
-    );
-    if (!openRun) return null;
-    // CW-13: the "was there anything to report" judgement falls HERE, once, and is
-    // stored. An explicit value from the caller wins; otherwise deriveProducedOutput
-    // infers it from what has been stored.
-    const produced = typeof producedOutput === 'boolean'
-        ? producedOutput
-        : deriveProducedOutput(result);
-    await run(
-        `UPDATE cowork_runs
-         SET status = $1,
-             result = $2,
-             error = $3,
-             produced_output = $4,
-             finished_at = NOW(),
-             duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int
-         WHERE id = $5`,
-        [status, result ?? null, error ?? null, produced, openRun.id],
-    );
-    return openRun.id;
-}
+const _closeOpenRun = (scheduleId, opts) => runClose.closeOpenRun(scheduleId, opts);
 
 /**
  * Close runs that have been open far longer than any run could legitimately
@@ -486,11 +465,17 @@ async function markRunning(id, { triggerKind = 'schedule' } = {}) {
  * meant for a caller that knows for certain. The runner does not pass it along today;
  * that extra parameter therefore remains purely additive (the shared
  * runner surface with aiTaskStore calls markCompleted(id, result)).
+ *
+ * An agent run also hands its row (`runId`), what it did (`activity`), its
+ * conversation, its run context and, when it asked for one, its `review`: the
+ * row then closes as 'needs_review' instead of 'success'. The schedule itself
+ * reads 'success' either way: the run finished, and the open reviews are counted
+ * on their own (getOpenReviewCounts).
  * @param id
  * @param result
- * @param {{ producedOutput?: boolean }} [opts]
+ * @param {{ producedOutput?: boolean } & import('./coworkRunClose.mts').RunClose} [opts]
  */
-async function markCompleted(id, result, { producedOutput } = {}) {
+async function markCompleted(id, result, { producedOutput, ...close } = {}) {
     await initDB();
     await run(
         `UPDATE cowork_schedules
@@ -501,10 +486,15 @@ async function markCompleted(id, result, { producedOutput } = {}) {
          WHERE id = $2`,
         [result, id],
     );
-    await _closeOpenRun(id, { status: 'success', result, producedOutput });
+    await _closeOpenRun(id, { status: close.review?.reason ? 'needs_review' : 'success', result, producedOutput, ...close });
 }
 
-async function markError(id, error) {
+/**
+ * @param id
+ * @param error
+ * @param {import('./coworkRunClose.mts').RunClose} [close] the run's row and what it did before it failed (a review request is dropped: it failed)
+ */
+async function markError(id, error, close = {}) {
     await initDB();
     const msg = typeof error === 'string' ? error : error?.message || 'Unknown error';
     // Same convention as aiTaskStore: an expired integration is its own status
@@ -521,7 +511,7 @@ async function markError(id, error) {
     );
     // A failed run has by definition produced nothing — no inference,
     // no doubt: false.
-    await _closeOpenRun(id, { status, error: msg, producedOutput: false });
+    await _closeOpenRun(id, { ...close, review: null, status, error: msg, producedOutput: false });
 }
 
 /**
@@ -557,6 +547,11 @@ module.exports = {
     reapStaleRuns,
     deleteRunsOlderThan,
     getDueSchedules,
+    // The review queue (./coworkReviews.mts).
+    getOpenReviewCounts: coworkReviews.getOpenReviewCounts,
+    countOpenReviews: coworkReviews.countOpenReviews,
+    getRunForReview: coworkReviews.getRunForReview,
+    resolveReview: coworkReviews.resolveReview,
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
     markCompleted,

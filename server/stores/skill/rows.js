@@ -29,7 +29,23 @@ const SKILL_COLUMNS = {
     sharedGroups: { col: 'shared_groups', transform: v => JSON.stringify(Array.isArray(v) ? v : []) },
     automationId: { col: 'automation_id', transform: v => v || null },
     enabledIntegrations: { col: 'enabled_integrations', transform: v => JSON.stringify(Array.isArray(v) ? v : []) },
+    agentOnly: { col: 'agent_only', transform: v => v === true },
+    category: { col: 'category', transform: v => cleanCategory(v) },
 };
+
+/** The longest category a skill keeps (the routes refuse a longer one first). */
+const CATEGORY_MAX = 60;
+
+/**
+ * A category as stored: trimmed text, or null for none. Blank is none.
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+function cleanCategory(v) {
+    if (typeof v !== 'string') return null;
+    const t = v.trim().slice(0, CATEGORY_MAX);
+    return t === '' ? null : t;
+}
 
 /**
  * @param {string} v
@@ -76,6 +92,9 @@ function mapRow(r) {
         knowledgeBaseIds: _jsonArray(r.knowledge_base_ids),
         allowedAutomationIds: _jsonArray(r.allowed_automation_ids),
         projectId: r.project_id || null,
+        // Used only through agents (core/skills/agentOnlySkills.mts); false on a row from before the column.
+        agentOnly: r.agent_only === true,
+        category: cleanCategory(r.category),
         version: Number.isFinite(Number(r.version)) && Number(r.version) > 0 ? Number(r.version) : 1,
         lastUsedAt: r.last_used_at ? new Date(r.last_used_at).toISOString() : null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
@@ -83,4 +102,4 @@ function mapRow(r) {
     };
 }
 
-module.exports = { SKILL_COLUMNS, mapRow };
+module.exports = { SKILL_COLUMNS, mapRow, cleanCategory, CATEGORY_MAX };

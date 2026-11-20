@@ -13,6 +13,11 @@ const http = require('node:http');
 const Module = require('module');
 
 const createCalls = [];
+const skillCreates = [];
+let availableSkills = [];
+// Reconfigurable skill drafter: what the editor's drafter answers per brief.
+let draftImpl = null;
+const draftCalls = [];
 
 // Reconfigurable LLM stub. chatImpl(messages, options) → { content }.
 let chatImpl = null;
@@ -28,7 +33,13 @@ const MOCKS = {
     '../../stores/agentStore': {
         createAgent: async (...args) => { createCalls.push(args); return { id: 'new-agent', name: args[0] }; },
     },
-    '../../stores/skillStore': { getAvailableSkills: async () => [] },
+    '../../stores/skillStore': {
+        getAvailableSkills: async () => availableSkills,
+        createSkill: async (args) => { skillCreates.push(args); return { id: `sk-new-${skillCreates.length}`, ...args }; },
+    },
+    '../../core/skills/skillDraftCall.mts': {
+        askForDraft: async (args) => { draftCalls.push(args); return draftImpl ? draftImpl(args) : null; },
+    },
     '../../stores/userStore': {
         getUser: async () => ({}),
         getOrganization: async () => null,
@@ -138,7 +149,7 @@ const CURRENT = {
     knowledge_base_ids: ['kb1'],
 };
 
-test.beforeEach(() => { chatCalls.length = 0; });
+test.beforeEach(() => { chatCalls.length = 0; draftCalls.length = 0; draftImpl = null; availableSkills = []; skillCreates.length = 0; });
 
 test('preserves apps/skills/model (incl. custom tier) when the plan omits them', async () => {
     // Model returns a valid plan but drops the curated apps/skills/kbs and only
@@ -365,4 +376,81 @@ test('a commit without a plan is refused by name', async () => {
     assert.strictEqual(res.status, 400);
     assert.ok(res.body.details.some(d => d.path === 'body.plan'), JSON.stringify(res.body.details));
     assert.strictEqual(createCalls.length, before, 'and no agent is created');
+});
+
+// ── Skills the plan proposes: structured, static or dynamic ──────────
+//
+// A NEW skill in a plan gets a structured draft (steps, rules, when to use
+// it) from the skill editor's own drafter, plus static/dynamic from the plan.
+// A reused skill costs no model call, and a draft that fails leaves the plain
+// skill: it never blocks the plan.
+
+const DRAFT_ANSWER = {
+    name: 'Reply drafts',
+    description: 'Writes a draft reply.',
+    instructions: 'Use when a new e-mail needs an answer.',
+    steps: [{ text: 'Read the e-mail' }, { text: 'Write a short draft' }],
+    rules: [{ polarity: 'never', text: 'Never send the reply yourself' }],
+};
+
+test('refine: a new skill in the plan comes back with a structured draft and its activation', async () => {
+    availableSkills = [{ id: 'sk-old', name: 'Known skill' }];
+    chatImpl = () => ({ content: JSON.stringify({
+        name: 'E-mail assistant',
+        systemPrompt: 'You help with e-mail. Use the skill "Reply drafts" for replies.',
+        skills: [
+            { id: 'sk-old', name: 'Known skill', description: 'old' },
+            { id: null, name: 'Reply drafts', description: 'Writes a draft reply', instructions: 'For new mail', activation: 'dynamic' },
+        ],
+    }) });
+    draftImpl = () => ({ structured: DRAFT_ANSWER });
+    const res = await refine({ plan: { name: 'X' }, refinement: 'draft replies to my e-mail', modelTier: 'fast', locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(draftCalls.length, 1, 'only the NEW skill is drafted');
+    assert.match(draftCalls[0].messages[1].content, /Reply drafts/);
+    const [known, fresh] = res.body.plan.skills;
+    assert.strictEqual(known.draft, undefined);
+    assert.strictEqual(known.activation, 'static');
+    assert.strictEqual(fresh.activation, 'dynamic');
+    assert.deepStrictEqual(fresh.draft.steps.map(s => s.text), ['Read the e-mail', 'Write a short draft']);
+    assert.deepStrictEqual(fresh.draft.rulesV2.map(r => r.text), ['Never send the reply yourself']);
+});
+
+test('refine: a failing skill draft leaves the plain skill and the plan still answers', async () => {
+    chatImpl = () => ({ content: JSON.stringify({ name: 'E', skills: [{ id: null, name: 'Reply drafts', instructions: 'For new mail' }] }) });
+    draftImpl = () => { throw new Error('provider down'); };
+    const res = await refine({ plan: { name: 'X' }, refinement: 'go', modelTier: 'fast', locale: 'en' });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.plan.skills[0].draft, undefined);
+    assert.strictEqual(res.body.plan.skills[0].instructions, 'For new mail');
+});
+
+test('the plan prompt asks for static/dynamic per skill and a short prompt that points at the skills', async () => {
+    chatImpl = () => ({ content: JSON.stringify({ name: 'X' }) });
+    await refine({ plan: { name: 'X' }, refinement: 'go', modelTier: 'fast', locale: 'en' });
+    const system = chatCalls[0].messages[0].content;
+    assert.match(system, /"activation": "static\|dynamic"/);
+    assert.match(system, /refer to each skill by name/i);
+});
+
+test('POST /wizard/commit creates a planned skill WITH its structure and activation', async () => {
+    createCalls.length = 0;
+    const plan = {
+        name: 'E-mail assistant',
+        systemPrompt: 'You help with e-mail.',
+        skills: [{
+            id: null, name: 'Reply drafts', description: 'Writes a draft reply', activation: 'dynamic',
+            draft: { instructions: 'Use for new mail.', steps: [{ text: 'Read the e-mail', refs: [{ kind: 'kb', id: 'kb-x' }] }], rulesV2: [{ polarity: 'never', text: 'Never send it' }] },
+        }],
+    };
+    const res = await post('/agents/wizard/commit', { plan, locale: 'en' });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(skillCreates.length, 1);
+    const made = skillCreates[0];
+    assert.strictEqual(made.dynamicActivation, true);
+    assert.deepStrictEqual(made.steps.map(s => s.text), ['Read the e-mail']);
+    assert.deepStrictEqual(made.steps[0].refs, []);
+    assert.deepStrictEqual(made.rulesV2.map(r => r.text), ['Never send it']);
+    assert.strictEqual(made.instructions, 'Use for new mail.');
+    assert.deepStrictEqual(createCalls[0][9].attachedSkillIds, ['sk-new-1']);
 });

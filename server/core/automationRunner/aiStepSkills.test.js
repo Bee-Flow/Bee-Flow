@@ -30,7 +30,15 @@ test('the agent skills a step switched off drop out; the step skills stay first'
         { skillIds: ['own', 'shared'], disabledAgentSkillIds: ['a1'] },
         { config: { attachedSkillIds: ['a1', 'a2', 'shared'] } },
     );
-    assert.deepStrictEqual(ids, { attachedSkillIds: ['own', 'shared'], sessionSkillIds: ['a2'] });
+    assert.deepStrictEqual(ids, { attachedSkillIds: ['own', 'shared'], sessionSkillIds: ['a2'], agentSkillIds: ['own', 'shared', 'a2'] });
+});
+
+test('a step bound to an agent brings its skills in through that agent; without an agent nothing counts as agent-brought', () => {
+    // agentSkillIds is the set an agent-only skill may come from (core/skills/agentOnlySkills.mts).
+    const bound = skillIdsForStep({ skillIds: ['own'] }, { config: { attachedSkillIds: ['a1'] } });
+    assert.deepStrictEqual(bound.agentSkillIds, ['own', 'a1']);
+    const unbound = skillIdsForStep({ skillIds: ['own'] }, null);
+    assert.deepStrictEqual(unbound.agentSkillIds, []);
 });
 
 test('switching off one of the step\'s OWN skills via the agent list changes nothing', () => {
@@ -152,7 +160,7 @@ test('loadStepSkillContext loads once, in run order, and derives lead, schema an
         binding: { config: { attachedSkillIds: ['a1', 'a2'] } },
         deps: { skillInjection: injection },
     });
-    assert.deepStrictEqual(calls, [{ attachedSkillIds: ['own'], sessionSkillIds: ['a2'], orgId: 'org1', userId: 'u1' }]);
+    assert.deepStrictEqual(calls, [{ attachedSkillIds: ['own'], sessionSkillIds: ['a2'], agentSkillIds: ['own', 'a2'], orgId: 'org1', userId: 'u1' }]);
     assert.strictEqual(ctx.loaded, true);
     assert.deepStrictEqual(ctx.skills.map((s) => s.id), ['own', 'a2']);
     assert.strictEqual(ctx.leading.id, 'own');

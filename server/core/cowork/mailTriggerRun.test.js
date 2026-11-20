@@ -52,6 +52,25 @@ test('one mail starts one run, with the mail in the metadata and the schedule un
     assert.deepStrictEqual(trigger.metadata.mailTrigger.participants.sort(), ['ann@ext.com', 'me@corp.nl']);
 });
 
+test('a follow-up gets the same thread and reads the people on the mail again; an unreadable mail leaves nobody to answer', async () => {
+    const { deps } = fakeDeps();
+    const mt = await mod.followUpMailTrigger({ provider: 'gmail', messageId: 'g1', threadId: 'T1', mailbox: null, readOutside: true }, 'u1', deps.fetchMessage);
+    assert.deepStrictEqual({ ...mt, participants: mt.participants.sort() }, {
+        provider: 'gmail', messageId: 'g1', threadId: 'T1', mailbox: null, participants: ['ann@ext.com', 'me@corp.nl'], outcomes: [], readOutside: true,
+    });
+    const gone = await mod.followUpMailTrigger({ provider: 'outlook', messageId: 'x', threadId: 'T9', readOutside: false }, 'u1', async () => { throw new Error('gone'); });
+    assert.deepStrictEqual(gone.participants, []);
+    assert.strictEqual(gone.threadId, 'T9');
+    assert.ok(!('readOutside' in gone));
+});
+
+test('the run knows the history row its claim opened and the subject of its mail', async () => {
+    const { deps, state } = fakeDeps();
+    await mod.runForEvent(sub, { messageId: 'g1', threadId: 'T1' }, deps);
+    assert.strictEqual(state.ran[0].trigger.runId, 'run-g1');
+    assert.strictEqual(state.ran[0].trigger.mailSubject, 'Offer for Q3');
+});
+
 test('a duplicate message id is a silent no-op, also while the first is still running', async () => {
     const { deps, state } = fakeDeps();
     await Promise.all([

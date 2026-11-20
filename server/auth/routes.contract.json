@@ -2398,6 +2398,9 @@
     "GET /api/org-privacy-shield/:orgId": {
       "gate": "auth"
     },
+    "GET /api/org-privacy-shield/:orgId/app-exemption-apps": {
+      "gate": "auth"
+    },
     "GET /api/org-privacy-shield/:orgId/effective": {
       "gate": "auth"
     },
@@ -2653,6 +2656,9 @@
         "all",
         "manage_skills"
       ]
+    },
+    "GET /api/skills/store-stats": {
+      "gate": "auth"
     },
     "GET /api/skills/test-agents": {
       "gate": "permission",
@@ -5153,6 +5159,9 @@
     "POST /api/cowork/:id/run-now": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/runs/:runId/review": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/toggle": {
       "gate": "auth"
     },
@@ -6054,6 +6063,13 @@
         "manage_skills"
       ]
     },
+    "POST /api/skills/:id/copy": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_skills"
+      ]
+    },
     "POST /api/skills/:id/examples/from-message": {
       "gate": "permission",
       "anyOf": [
@@ -6069,6 +6085,13 @@
       ]
     },
     "POST /api/skills/ai/draft": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_skills"
+      ]
+    },
+    "POST /api/skills/from-plan": {
       "gate": "permission",
       "anyOf": [
         "all",

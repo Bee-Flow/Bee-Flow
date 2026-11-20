@@ -36,11 +36,19 @@ function resolveToolPiiPolicy(rc, deps, toolName, toolArgs) {
     // reused by the pre-dispatch block check AND the result-redaction
     // step below. classifyToolClass lives in orgShield (single source
     // of truth shared with the admin route/UI).
-    const { classifyToolClass: _classifyToolClass } = deps.orgShield();
-    const _toolClass = _classifyToolClass(toolName, toolArgs);
+    const shieldMod = deps.orgShield();
+    const _toolClass = shieldMod.classifyToolClass(toolName, toolArgs);
     const _piiThreshold = (typeof dlpShield?.piiDetectionConfidenceThreshold === 'number')
         ? dlpShield.piiDetectionConfidenceThreshold : 0.7;
-    const _blockCats = new Set((dlpShield?.toolPiiPolicy?.[_toolClass]?.blockCategories) || []);
+    // The class's list minus what this tool's own app is exempted from
+    // (core/privacy/toolPiiExemptions.mts; the app comes from the tool name,
+    // never from the arguments). Decides the argument check AND the strip of
+    // this tool's result (dispatch.js carries it to results.js). An orgShield
+    // without the helper (a test double) keeps the whole class list.
+    const _classList = typeof shieldMod.blockCategoriesForTool === 'function'
+        ? shieldMod.blockCategoriesForTool(dlpShield?.toolPiiPolicy, _toolClass, toolName)
+        : dlpShield?.toolPiiPolicy?.[_toolClass]?.blockCategories;
+    const _blockCats = new Set(_classList || []);
     // Legacy Web Search Guard: its category list still BLOCKS external
     // tools, but only when the guard is actually enabled. Orgs that
     // picked categories with the guard DISABLED stay monitor-only
@@ -92,7 +100,8 @@ function regexInputGuard(rc, { toolCall, toolName, toolArgs }) {
                 toolName,
                 toolArgs,
                 finalToolResult: `[Tool input blocked - violates ${ruleNames} policy]`,
-                blocked: true
+                blocked: true,
+                policyReason: 'guardrail',
             };
         }
     }
@@ -162,6 +171,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 toolCall, toolName, toolArgs,
                 finalToolResult: `[Tool '${toolName}' was not called: the PII guard is unavailable and org policy fails closed. Ask the user to retry shortly.]`,
                 blocked: true,
+                policyReason: 'privacy_shield_unavailable',
             };
         }
         // else fall through and execute (fail-open)
@@ -192,6 +202,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
                 toolCall, toolName, toolArgs,
                 finalToolResult: `[Tool '${toolName}' was not called: its arguments contained ${_labels}, which org policy forbids sending to ${_toolClass} tools. Continue without that information or ask the user how to proceed.]`,
                 blocked: true,
+                policyReason: 'privacy_shield',
             };
         }
         // Monitor-only (search guard configured but disabled): log, allow.

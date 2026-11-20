@@ -46,7 +46,8 @@ function parseToolCall(toolCall) {
                 toolName,
                 toolArgs,
                 finalToolResult: `[Tool '${toolName}' arguments were not valid JSON: ${jsonParseError}. Please re-emit the tool call with well-formed JSON.]`,
-                blocked: true
+                blocked: true,
+                policyReason: 'invalid_arguments',
             },
         };
     }

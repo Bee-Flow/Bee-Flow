@@ -136,6 +136,12 @@ async function addConversationColumns() {
         // Migration: Add project_id for Projects feature
         `ALTER TABLE direct_conversations ADD COLUMN IF NOT EXISTS project_id TEXT`,
         `ALTER TABLE agent_conversations ADD COLUMN IF NOT EXISTS project_id TEXT`,
+        // Where a conversation came from when it is not a chat: 'cowork' for the
+        // thread a Cowork run writes into (core/cowork/agentScheduleRun.js). NULL is
+        // a chat, as every row was before. The chat list, the per-agent list, the
+        // latest-conversation lookup and the chat search read only origin IS NULL;
+        // the conversation itself is kept and opens by id from the Cowork run.
+        `ALTER TABLE agent_conversations ADD COLUMN IF NOT EXISTS origin TEXT`,
         `CREATE INDEX IF NOT EXISTS idx_direct_conversations_project ON direct_conversations(project_id)`,
         `CREATE INDEX IF NOT EXISTS idx_agent_conversations_project ON agent_conversations(project_id)`,
         // ── An agent can be filed into a Solution (O1) ───────────────────────

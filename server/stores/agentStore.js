@@ -61,6 +61,7 @@ module.exports = {
     listAllConversations: agentConversations.listAllConversations,
     searchConversations: agentConversations.searchConversations,
     getConversationById: agentConversations.getConversationById,
+    getConversationOrigin: agentConversations.getConversationOrigin,
     createConversation: agentConversations.createConversation,
     updateConversationTitle: agentConversations.updateConversationTitle,
     updateConversationMeta: agentConversations.updateConversationMeta,

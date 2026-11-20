@@ -77,7 +77,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]skills[\\/]ai\.js$/.test(parent.filename)
+    if (parent && /(routes[\\/]skills[\\/]ai\.js|core[\\/]skills[\\/]skillDraftCall\.mts)$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }

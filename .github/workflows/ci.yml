@@ -275,7 +275,7 @@ jobs:
               - 'server/routes/integrations/*'
               - 'server/routes/playbooks/*'
               - 'server/routes/projects/*'
-              - 'server/routes/skills/{ai.js,test.js}'
+              - 'server/routes/skills/{ai.js,skillSchemas.mts,test.js}'
               - 'server/routes/stripe/*'
               - 'server/routes/studio/*'
               - 'server/routes/studioDocuments/*'

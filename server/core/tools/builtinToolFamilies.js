@@ -46,6 +46,14 @@ async function executeActivateSkillTool(toolName, toolArgs, context) {
     });
 }
 
+// ─── Cowork review request (a Cowork run asks its owner to decide) ──
+// Only works with the run context the tool round hands over (`context.coworkRun`):
+// it writes the request onto it, and the run closes as needs_review.
+async function executeCoworkReview(toolName, toolArgs, context) {
+    const { executeReviewTool } = require('../cowork/reviewTool.mts');
+    return await executeReviewTool(toolName, toolArgs, context);
+}
+
 // ─── Session Skill Runtime (direct-chat local skills) ──────────
 function isSessionSkillTool(toolName) {
     const rt = sessionSkillRuntime();
@@ -203,6 +211,7 @@ async function executeDatatable(toolName, toolArgs, context) {
 
 const BUILTIN_TOOL_FAMILIES = [
     { name: 'activate_skill', order: 10, isTool: n => n === require('./skillInjection').ACTIVATE_SKILL_TOOL_NAME, execute: executeActivateSkillTool },
+    { name: 'cowork_review', order: 15, isTool: n => n === 'cowork_request_review', execute: executeCoworkReview },
     { name: 'session_skills', order: 20, isTool: isSessionSkillTool, execute: executeSessionSkillTool },
     { name: 'generate_image', order: 30, isTool: n => n === 'generate_image', execute: executeGenerateImage },
     { name: 'generate_video', order: 60, isTool: n => n === 'generate_video', execute: executeGenerateVideo },

@@ -8,6 +8,10 @@ export interface CanUseCardProps {
     allowedAutomationIds?: string[] | null;
     knowledgeBaseIds?: string[] | null;
     dynamicActivation?: boolean;
+    agentOnly?: boolean;
+    category?: string;
+    /** The categories the other skills carry: the category field's suggestions. */
+    categorySuggestions?: string[];
     legacyAutomationId?: string | null;
     automations?: PickerAutomation[];
     knowledgeBases?: PickerKnowledgeBase[];

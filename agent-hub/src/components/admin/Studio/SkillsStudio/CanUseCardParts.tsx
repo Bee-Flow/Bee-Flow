@@ -1,9 +1,10 @@
 import { X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import Disclosure from '@/components/shared/Disclosure';
 import type { PillProps } from './CanUseCard.types';
 import type { SkillDraft } from './skillModel.types';
+import SkillAccessOptions from './SkillAccessOptions';
 
 /**
  * The presentational pieces of CanUseCard (the grant pills, the link menu's
@@ -48,7 +49,18 @@ export function GrantGapNote({ t, gapNames, reloadLists }: { t: TranslateFn; gap
     );
 }
 
-export function CanUseCardDisclosure({ t, dynamicActivation, readOnly, onChange, legacyAutomationId }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; dynamicActivation: boolean | undefined; readOnly: boolean; onChange: (patch: Partial<SkillDraft>) => void; legacyAutomationId: string | null; }) {
+export interface CanUseCardDisclosureProps {
+    t: TranslateFn;
+    dynamicActivation: boolean | undefined;
+    agentOnly?: boolean;
+    category?: string;
+    categorySuggestions?: string[];
+    readOnly: boolean;
+    onChange: (patch: Partial<SkillDraft>) => void;
+    legacyAutomationId: string | null;
+}
+
+export function CanUseCardDisclosure({ t, dynamicActivation, agentOnly = false, category = '', categorySuggestions = [], readOnly, onChange, legacyAutomationId }: CanUseCardDisclosureProps) {
     return <Disclosure
         title={t('skills_studio.options.title', 'All options')}
         className="mt-1"
@@ -69,6 +81,15 @@ export function CanUseCardDisclosure({ t, dynamicActivation, readOnly, onChange,
                     {t('skills_studio.field.dynamic_help', 'When on, the agent decides at runtime whether to apply this skill based on the user message.')}
                 </span>
             </label>
+
+            <SkillAccessOptions
+                t={t}
+                agentOnly={agentOnly}
+                category={category}
+                categorySuggestions={categorySuggestions}
+                readOnly={readOnly}
+                onChange={onChange}
+            />
 
             {legacyAutomationId && (
                 <p className="text-xs m-0 text-[var(--text-secondary)]" data-testid="skill-legacy-automation">

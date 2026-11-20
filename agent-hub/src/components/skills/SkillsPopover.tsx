@@ -83,10 +83,10 @@ export default function SkillsPopover({
     }, [activeSkillIds, attachedSkillIds]);
 
     const filtered = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return skills;
-        return skills.filter(s => (s.name as string).toLowerCase().includes(q) || s.description?.toLowerCase().includes(q));
-    }, [skills, search]);
+        const q = search.trim().toLowerCase(); // an "only through agents" skill only where the agent attaches it (server: core/skills/agentOnlySkills.mts)
+        const offered = skills.filter(s => s.agentOnly !== true || attachedSet.has(s.id));
+        return q ? offered.filter(s => (s.name as string).toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)) : offered;
+    }, [skills, search, attachedSet]);
 
     const filteredSessionSkills = useMemo(() => {
         const q = search.trim().toLowerCase();

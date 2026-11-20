@@ -181,6 +181,35 @@ async function getLastActivationByAgent(skillId, agentIds) {
 }
 
 /**
+ * What the Skill store sorts on, per skill: `uses` (rows within the retention,
+ * one per conversation/agent/source, test runs left out) and when `userId`
+ * itself last used it. `user_id` stays on the server: only the caller's own
+ * timestamp leaves this function.
+ * @param {string[]} skillIds
+ * @param {string} userId
+ * @returns {Promise<Record<string, { uses: number, lastUsedByMeAt: string | null }>>}
+ */
+async function getStoreStats(skillIds, userId) {
+    const ids = [...new Set((Array.isArray(skillIds) ? skillIds : []).filter(Boolean))];
+    if (ids.length === 0) return {};
+    await initDB();
+    const rows = await getAll(
+        `SELECT skill_id, COUNT(*)::int AS uses,
+                MAX(at) FILTER (WHERE user_id = $2) AS mine
+           FROM skill_activations
+          WHERE skill_id = ANY($1::text[]) AND source <> 'test'
+          GROUP BY skill_id`,
+        [ids, userId || ''],
+    );
+    /** @type {Record<string, { uses: number, lastUsedByMeAt: string | null }>} */
+    const out = {};
+    for (const r of rows || []) {
+        out[r.skill_id] = { uses: Number(r.uses) || 0, lastUsedByMeAt: r.mine ? new Date(r.mine).toISOString() : null };
+    }
+    return out;
+}
+
+/**
  * Recent activations of one skill (newest first).
  * @param {number} [limit]
  */
@@ -210,6 +239,7 @@ module.exports = {
     recordActivations,
     getLastActivationBySkillIds,
     getLastActivationByAgent,
+    getStoreStats,
     listRecentActivations,
     _resetCache,
 };

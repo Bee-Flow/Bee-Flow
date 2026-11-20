@@ -69,6 +69,9 @@ export default function CanUseCard({
     allowedAutomationIds,
     knowledgeBaseIds,
     dynamicActivation,
+    agentOnly,
+    category,
+    categorySuggestions,
     legacyAutomationId = null,
     automations = [],
     knowledgeBases = [],
@@ -247,7 +250,16 @@ export default function CanUseCard({
 
             {gapNames.length > 0 && <GrantGapNote t={t} gapNames={gapNames} reloadLists={reloadLists} />}
 
-            <CanUseCardDisclosure t={t} dynamicActivation={dynamicActivation} readOnly={readOnly} onChange={onChange} legacyAutomationId={legacyAutomationId} />
+            <CanUseCardDisclosure
+                t={t}
+                dynamicActivation={dynamicActivation}
+                agentOnly={agentOnly}
+                category={category}
+                categorySuggestions={categorySuggestions}
+                readOnly={readOnly}
+                onChange={onChange}
+                legacyAutomationId={legacyAutomationId}
+            />
 
             {showApps && (
                 <AppsPicker

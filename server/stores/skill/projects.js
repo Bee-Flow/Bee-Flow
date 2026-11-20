@@ -12,7 +12,7 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const managedParts = require('../managedPartsDefault');
 const log = require('../../telemetry/log');
 const { initDB } = require('./schema');
-const { SKILL_COLUMNS, mapRow } = require('./rows');
+const { SKILL_COLUMNS, mapRow, cleanCategory } = require('./rows');
 const { resolveBodyWrite, validateOutputSchema, validateIdList } = require('../../utils/skillStructure');
 
 /**
@@ -139,7 +139,7 @@ async function writeManagedSkill(client, { id = null, ownerId, orgId, projectId,
         workflow: f.workflow, rules: f.rules, examples: f.examples, steps: f.steps, rulesV2: f.rulesV2, examplesV2: f.examplesV2,
     });
     const write = {};
-    for (const k of ['name', 'description', 'instructions', 'icon', 'dynamicActivation', 'automationId', 'enabledIntegrations']) {
+    for (const k of ['name', 'description', 'instructions', 'icon', 'dynamicActivation', 'automationId', 'enabledIntegrations', 'agentOnly', 'category']) {
         if (f[k] !== undefined) write[k] = f[k];
     }
     for (const k of ['workflow', 'steps', 'rules', 'rulesV2', 'examples', 'examplesV2']) {
@@ -180,15 +180,17 @@ async function writeManagedSkill(client, { id = null, ownerId, orgId, projectId,
         row = (await client.query(
             `INSERT INTO skills (id, org_id, user_id, project_id, name, description, instructions, workflow, rules, examples, icon,
                                  is_shared, dynamic_activation, shared_groups, automation_id, enabled_integrations,
-                                 steps, rules_v2, examples_v2, output_schema, knowledge_base_ids, allowed_automation_ids, version)
+                                 steps, rules_v2, examples_v2, output_schema, knowledge_base_ids, allowed_automation_ids, version,
+                                 agent_only, category)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, $12, '[]', $13, $14,
-                     $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20::jsonb, 1)
+                     $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb, $20::jsonb, 1, $21, $22)
              RETURNING *`,
             [newId, orgId || null, ownerId, projectId, v('name', 'Skill'), v('description', ''), v('instructions', ''),
                 v('workflow', ''), v('rules', ''), v('examples', ''), v('icon', '⚡'), v('dynamicActivation', false) === true,
                 v('automationId', null) || null, JSON.stringify(Array.isArray(v('enabledIntegrations', [])) ? v('enabledIntegrations', []) : []),
                 JSON.stringify(v('steps', [])), JSON.stringify(v('rulesV2', [])), JSON.stringify(v('examplesV2', [])),
-                schema === null ? null : JSON.stringify(schema), JSON.stringify(kbIds), JSON.stringify(autoIds)],
+                schema === null ? null : JSON.stringify(schema), JSON.stringify(kbIds), JSON.stringify(autoIds),
+                v('agentOnly', false) === true, cleanCategory(v('category', null))],
         )).rows[0];
     }
     log.info(`[SkillStore] Deployed skill ${row.id} into stage project ${projectId}`);

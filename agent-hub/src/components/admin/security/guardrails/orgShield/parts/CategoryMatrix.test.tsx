@@ -177,4 +177,11 @@ describe('CategoryMatrix findings and states', () => {
         expect(screen.getByRole('button', { name: 'All' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'None' })).toBeDisabled();
     });
+
+    it('names the apps a held-back kind is released to, on its row', () => {
+        setup({ exceptions: { external: { Person: ['Outlook'] }, internal: {} } });
+        const row = screen.getByRole('row', { name: /Person names/ });
+        expect(within(row).getByText('except Outlook')).toBeInTheDocument();
+        expect(screen.getAllByText(/^except /)).toHaveLength(1);
+    });
 });

@@ -485,8 +485,8 @@ async function advanceAfterTaskRun(task, { manual, store, startTime }) {
  * A failed run of either kind: mark the error, keep the schedule moving, and
  * tell the owner.
  */
-async function failRun(task, err, { manual, store }) {
-    await store.markError(task.id, err);
+async function failRun(task, err, { manual, store, close = undefined }) { // close: an agent run's own row and activity
+    await store.markError(task.id, err, close);
 
     // Still advance schedule on error (don't let errors block future runs) — but not for manual runs
     if (isRepeating(task) && !manual) {

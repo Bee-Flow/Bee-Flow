@@ -80,6 +80,10 @@ export interface Skill {
      * `automationId` is treated as dynamic whatever this flag says.
      */
     dynamicActivation: boolean;
+    /** Usable only through an agent that attaches it, never on its own in a chat (server-enforced). */
+    agentOnly?: boolean;
+    /** Free-text category for grouping; absent or null = none. */
+    category?: string | null;
     sharedGroups: string[];
     /** The legacy scalar automation: when set it REPLACES the skill body. */
     automationId: string | null;
@@ -113,6 +117,10 @@ export interface SkillDraft {
     icon: string;
     isShared: boolean;
     dynamicActivation: boolean;
+    /** "Only through agents", as the web editor holds it. */
+    agentOnly: boolean;
+    /** The category, '' = none (the save sends null). */
+    category: string;
     sharedGroups: string[];
     enabledIntegrations: string[];
     steps: SkillStep[];
@@ -175,3 +183,6 @@ export const SKILL_INSTRUCTIONS_MAX = 4000;
  * SkillsPopover.jsx: every active pack is prepended to the system prompt.
  */
 export const ACTIVE_SKILL_CAP = 5;
+
+/** What a save sends: the draft, with a blank category as null (none) — the web's SkillSavePayload. */
+export type SkillSavePayload = Omit<SkillDraft, 'category'> & { category: string | null };

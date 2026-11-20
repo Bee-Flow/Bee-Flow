@@ -3,6 +3,7 @@ const { processSystemPrompt } = require('../llm/promptUtils');
 const { nowLine } = require('../llm/clock');
 const { buildSkillInjection } = require('../tools/skillInjection');
 const log = require('../../telemetry/log');
+const { noteStaticSkills } = require('../cowork/runActivity.mts');
 const {
     toolHintSection, scheduleSection, scheduleCoverageSection, houseStyleSection,
     notebookSections, sidePanelSections, STRICT_KNOWLEDGE_PREAMBLE,
@@ -131,9 +132,24 @@ async function injectSkills({ agent, tools, userId, messageMetadata, forceDynami
     if (Array.isArray(tools) && skillInjection.tools.length > 0) {
         for (const t of skillInjection.tools) tools.push(t);
     }
+    noteStaticSkillsOfRun(messageMetadata, skillInjection, [...attachedSkillIds, ...sessionSkillIds]);
     if (!skillInjection.systemPromptAddendum) return '';
     log.info(`[contextBuilder] Skills: ${skillInjection.staticCount} static, ${skillInjection.dynamicSkillIds.length} dynamic (attached=${attachedSkillIds.length}, session=${sessionSkillIds.length})`);
     return skillInjection.systemPromptAddendum;
+}
+
+/**
+ * A Cowork run records which skills took part (core/cowork/runActivity.mts): the static ones are the merged ids the
+ * injection did not treat as dynamic, in merged order, as many as it injected.
+ * @param {import('./chatStream/turnState').MessageMetadata} messageMetadata
+ * @param {{ staticCount: number, dynamicSkillIds: string[] }} skillInjection
+ * @param {string[]} askedIds the attached ids, then the session ids
+ */
+function noteStaticSkillsOfRun(messageMetadata, skillInjection, askedIds) {
+    if (!(skillInjection.staticCount > 0) || !messageMetadata) return;
+    const dynamic = new Set(skillInjection.dynamicSkillIds);
+    const merged = [...new Set(askedIds)];
+    noteStaticSkills(messageMetadata.coworkRun, merged.filter((id) => !dynamic.has(id)).slice(0, skillInjection.staticCount));
 }
 
 module.exports = { buildSystemPrompt };

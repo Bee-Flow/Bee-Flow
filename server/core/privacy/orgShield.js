@@ -307,11 +307,8 @@ const _legacyLogged = new Set();
 function synthesizeToolPiiPolicy(shield) {
     const empty = { external: { blockCategories: [] }, internal: { blockCategories: [] } };
     if (!shield || typeof shield !== 'object') return empty;
-    const norm = (v) => ({
-        blockCategories: (v && Array.isArray(v.blockCategories))
-            ? v.blockCategories.filter(c => typeof c === 'string')
-            : [],
-    });
+    // The list, plus per-app exceptions only when the row holds some (toolPiiExemptions.mts).
+    const norm = (v) => _exemptions().normaliseClassPolicy(v);
     const stored = shield.toolPiiPolicy;
     if (stored && typeof stored === 'object' && (stored.external || stored.internal)) {
         return { external: norm(stored.external), internal: norm(stored.internal) };
@@ -357,13 +354,18 @@ function classifyToolClass(toolName, toolArgs = {}) {
     return 'external';                       // any resolved integration leaving the box
 }
 
+/** Lazy: the exceptions read the tool registry. @returns {typeof import('./toolPiiExemptions.mts')} */
+const _exemptions = () => require('./toolPiiExemptions.mts');
+/** A class's list for one call, minus the tool's own app's exceptions (toolPiiExemptions.mts). @type {typeof import('./toolPiiExemptions.mts').blockCategoriesForTool} */
+const blockCategoriesForTool = (policy, toolClass, toolName) => _exemptions().blockCategoriesForTool(policy, toolClass, toolName);
+
 /**
  * Decide whether a tool call must be refused given the categories of PII
- * detected in its (real-value) arguments and the resolved tool block policy.
- *
+ * detected in its (real-value) arguments and the resolved tool block policy
+ * (blockCategoriesForTool: after the tool's own app's exceptions).
  * @param {string} toolName
  * @param {string[]} detectedCategories  canonical PII category ids (entity.category)
- * @param {Record<string, { blockCategories?: string[] } | undefined> | null | undefined} policy  resolved toolPiiPolicy
+ * @param {Parameters<typeof blockCategoriesForTool>[0]} policy  resolved toolPiiPolicy
  * @param {Record<string, unknown>} [toolArgs]            the call's arguments (see classifyToolClass)
  * @returns {{ blocked: boolean, blockedCategories: string[], toolClass: string }}
  */
@@ -372,9 +374,7 @@ function isBlockedForTool(toolName, detectedCategories, policy, toolArgs = {}) {
     if (!policy || !Array.isArray(detectedCategories) || detectedCategories.length === 0) {
         return { blocked: false, blockedCategories: [], toolClass };
     }
-    const blockList = (policy[toolClass] && Array.isArray(policy[toolClass].blockCategories))
-        ? policy[toolClass].blockCategories
-        : [];
+    const blockList = blockCategoriesForTool(policy, toolClass, toolName);
     if (blockList.length === 0) return { blocked: false, blockedCategories: [], toolClass };
     const set = new Set(blockList);
     const hits = [...new Set(detectedCategories)].filter(c => set.has(c));
@@ -607,4 +607,4 @@ async function resolveShieldFor({ orgId, userId }) {
 // this file (that would close the cycle), so it is handed over here.
 customTypeRegistry.setOrgShieldResolver(resolveOrgShield);
 
-module.exports = { resolveOrgShield, resolveUserShield, resolveShieldFor, mergeWithOrgShield, selfCheckOrgShields, applyTierClampsToShield, synthesizeToolPiiPolicy, classifyToolClass, isBlockedForTool, _deps };
+module.exports = { resolveOrgShield, resolveUserShield, resolveShieldFor, mergeWithOrgShield, selfCheckOrgShields, applyTierClampsToShield, synthesizeToolPiiPolicy, classifyToolClass, isBlockedForTool, blockCategoriesForTool, _deps };

@@ -122,6 +122,50 @@ Where tool block lists apply, they still apply there.
 - AI chat components in App Studio apps
 - AI on publicly shared and previewed web pages
 
+## Exceptions per app
+
+The two hold-back columns of the kinds table, **Outside tools** and **Own
+server**, hold for every tool in that column. Sometimes one app needs a kind
+the column holds back: an agent that writes draft replies into the user's own
+mailbox always puts a name and an e-mail address in the draft.
+
+Under the table, **Exceptions per app** lets you release some held-back kinds
+to one app only. For example: Outlook may receive person names and e-mail
+addresses, while IBANs and national ID numbers stay held back for Outlook too,
+and every other outside tool keeps the whole list.
+
+- **Per column, per app, per kind.** Pick an app your organisation has, then
+  tick which of the kinds that column holds back it may receive. Only
+  held-back kinds are offered. When you stop holding a kind back, its
+  exceptions go with it.
+- **Both halves of a call.** For that app, the released kinds pass the check
+  on what goes into the tool, and they are also left in what the tool sends
+  back. Everything else the column holds back is still refused and still
+  stripped from its results.
+- **The AI still sees placeholders.** An exception changes nothing about
+  **Hide from AI**: the model keeps working with `[person_1]` and
+  `[email_1]`, and the real values are put back only on the way into that
+  app's tool call, exactly as without an exception.
+- **The app comes from the tool, not from the AI.** Bee Flow works out which
+  app a tool call belongs to from the tool itself, on the server. Nothing the
+  model writes into a call can claim an exception. A tool that belongs to no
+  known app (built-in tools, MCP servers, custom integrations) gets no
+  exception.
+- **Never released:** API keys and secrets, passport numbers and driving
+  licence numbers stay held back for every app. A credential has no business
+  in a tool call, and an identity-document number is what an impostor needs.
+  The save refuses them.
+- **Everywhere the lists apply:** agent chats, direct chat, automations,
+  scheduled tasks and every other place the tool lists already hold. Passages
+  from a knowledge base that go into the prompt without a tool call belong to
+  no app and keep the whole Own server list.
+- **Who and what is logged.** Only Privacy Shield admins can change
+  exceptions. Every change writes a log line with the organisation, the admin,
+  the column, the app and the kinds (by their ids), never any personal data.
+
+The legacy Web Search Guard list, when it is switched on, is a separate
+setting and still applies on top.
+
 ## Org-level config fields
 
 | Field | Default | What it controls |
@@ -135,6 +179,7 @@ Where tool block lists apply, they still apply there.
 | `showRawPayload` | `false` | Emit tokenised prompt + token map as SSE events for transparency (debug). |
 | `euModeEnabled` | `false` | GDPR-aware data handling (logs minimised). |
 | `webSearchGuardEnabled` | `false` | Apply PII filter to web-search results before injection. Needs the web-search guard licence feature. |
+| `toolPiiPolicy` | empty | Per tool class (`external` = outside tools, `internal` = own server): `blockCategories`, the kinds held back from every tool in the class, and optionally `appExemptions`, `{ "<app id>": ["<kind>", …] }`, the held-back kinds one app may receive (see [Exceptions per app](#exceptions-per-app)). A save that leaves `appExemptions` out keeps the stored ones; `{}` removes them. |
 | `customDataTypes` | `[]` | Your own kinds of data (see [Your own data](#your-own-data)). Each one is switched on by its id in `piiDetectionCategories` and the two tool lists. |
 | `customSensitiveTerms` | `[]` | The old list of your own words and patterns. Kept for one release as a copy of your own words and fixed formats; edit them under Your own data instead. |
 

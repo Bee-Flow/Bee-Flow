@@ -292,3 +292,42 @@ describe('createHandleRefine — de Gedaan-beurt draagt de diff', () => {
         expect(chat.some(m => m.role === 'plan')).toBe(false);
     });
 });
+
+describe('createHandleRefine — voorgestelde skills', () => {
+    const DRAFT = { instructions: 'Use for new mail.', steps: [{ text: 'Read the e-mail' }], rulesV2: [{ polarity: 'never', text: 'Never send it' }] };
+
+    it('een NIEUWE skill wordt voorgesteld, niet meteen aangemaakt: de gebruiker kiest eerst', async () => {
+        const { deps, chat, stateRef, calls } = makeDeps({ allSkills: [{ id: 'sk-old', name: 'Known skill' }] });
+        answerWith([
+            ['/pre-refine', { id: 'v-pre' }],
+            ['/agents/wizard/refine', {
+                plan: {
+                    ...PLAN,
+                    skills: [
+                        { id: 'sk-old', name: 'Known skill', activation: 'static' },
+                        { id: null, name: 'known SKILL ' },
+                        { id: null, name: 'Reply drafts', description: 'Writes a draft reply', activation: 'dynamic', draft: DRAFT },
+                    ],
+                },
+                preserved: {},
+            }],
+        ], calls);
+
+        await createHandleRefine(deps)();
+
+        expect(calls.some(c => c.includes('/api/skills'))).toBe(false);
+        expect(stateRef.current.config.attachedSkillIds).toEqual(['sk-old']);
+        const turn = chat.find(m => m.role === 'skills');
+        expect(turn.skillsState).toBe('pending');
+        expect(turn.skills).toEqual([
+            { id: null, name: 'Reply drafts', description: 'Writes a draft reply', instructions: '', activation: 'dynamic', draft: DRAFT },
+        ]);
+    });
+
+    it('zonder nieuwe skills komt er geen voorstel-beurt', async () => {
+        const { deps, chat, calls } = makeDeps();
+        answerWith([['/pre-refine', { id: 'v' }], ['/agents/wizard/refine', { plan: PLAN, preserved: {} }]], calls);
+        await createHandleRefine(deps)();
+        expect(chat.some(m => m.role === 'skills')).toBe(false);
+    });
+});

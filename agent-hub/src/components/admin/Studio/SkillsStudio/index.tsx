@@ -6,8 +6,10 @@ import { toast } from '@/components/shared/Toast';
 import SkillDetail from './SkillDetail';
 import SkillsList from './SkillsList';
 import SkillsOverview from './SkillsOverview';
+import SkillDeleteDialog from './SkillDeleteDialog';
 import { filterSkills } from './skillModel';
 import { skillsApi } from '@/api/skillsApi';
+import { useSkillHousekeeping } from './useSkillHousekeeping';
 
 /**
  * Studio → Skills (Bee Flow Builder redesign, Sep 2026; Skills.dc.html).
@@ -118,6 +120,7 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
 
     const shown = useMemo(() => filterSkills(skills, query), [skills, query]);
     const openSkill = useMemo(() => skills.find(s => s.id === openId) || null, [skills, openId]);
+    const house = useSkillHousekeeping({ skills, summary, user, canManage: !!canManage, openId, open, dropSkill, loadSummary, t });
 
     // A saved edit is merged into the row in place: the list's name and
     // subline follow the editor without a refetch, and without remounting
@@ -125,12 +128,6 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
     const onSaved = useCallback((patch: { id: string; }) => {
         patchSkill(patch);
     }, [patchSkill]);
-
-    const onDeleted = useCallback((id: string) => {
-        dropSkill(id);
-        open(null);
-        loadSummary();
-    }, [dropSkill, open, loadSummary]);
 
     return (
         <div className="flex h-full min-h-0 bg-[var(--bg-primary)]" data-testid="skills-studio">
@@ -145,6 +142,10 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
                 onSelect={open}
                 onCreate={createEmpty}
                 canCreate={canManage}
+                canDelete={house.mayDelete}
+                onRequestDelete={house.setDeleting}
+                cleanable={house.cleanable}
+                onCleanDrafts={() => { void house.cleanDrafts(); }}
             />
             <section className="flex-1 min-w-0 min-h-0 flex flex-col">
                 {openSkill ? (
@@ -155,8 +156,10 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
                         canManage={canManage}
                         onBack={() => open(null)}
                         onSaved={onSaved}
-                        onDeleted={onDeleted}
+                        onDeleted={house.onDeleted}
                         onNavigate={onNavigate}
+                        categorySuggestions={house.categorySuggestions}
+                        onRequestDelete={house.requestDeleteOf(openSkill)}
                     />
                 ) : (
                     <SkillsOverview
@@ -185,6 +188,15 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
                     />
                 )}
             </section>
+            {house.deleting && (
+                <SkillDeleteDialog
+                    skill={house.deleting}
+                    currentUserId={house.currentUserId}
+                    onClose={() => house.setDeleting(null)}
+                    onDeleted={(id) => { house.setDeleting(null); house.onDeleted(id); }}
+                    onNavigate={onNavigate}
+                />
+            )}
         </div>
     );
 }

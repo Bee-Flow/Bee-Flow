@@ -11,6 +11,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
 import { ApiError } from '@/api/mutate';
 import { apiFetch, apiRequest } from '@/api/typedRequest';
+import { splitPlannedSkills } from '../plannedSkills';
 
 export interface RefineDeps {
     chat: ChatMessage[];
@@ -44,7 +45,6 @@ export interface RefineDeps {
     locale?: string;
     t: TranslateFn;
     allSkills: Skill[] | null;
-    setAllSkills: Setter<Skill[] | null>;
     availableIntegrations: Array<{ id: string }>;
     tiers?: ModelTierMap;
     queueSave: (immediate?: boolean) => void;
@@ -59,7 +59,7 @@ export interface RefineDeps {
 // is called once per render (right after the derived values it needs are
 // computed), and the returned handler closes over the deps object properties
 // exactly as it closed over the parent scope before. No hooks in this module.
-export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills, availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules, currentPersona, noStoredPersona = false }: RefineDeps) {
+export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules, currentPersona, noStoredPersona = false }: RefineDeps) {
     const handleRefine = async (overrideText: unknown = null) => {
         // Callers pass either a string (programmatic refine from the wizard
         // hand-off) or nothing (button/Enter). React event objects and similar
@@ -150,27 +150,12 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
 
             // Resolve skills BEFORE the single save so attachedSkillIds are
             // valid. Base off stateRef (not the stale attachedSkillIds closure).
+            // Existing skills (by id or name) are attached now; NEW ones are
+            // only proposed: the person picks them in the skills turn below,
+            // and POST /api/skills/from-plan stores the chosen ones.
             const attach = new Set<string>(stateRef.current.config?.attachedSkillIds || []);
-            if (Array.isArray(updated.skills) && updated.skills.length > 0) {
-                for (const s of updated.skills) {
-                    if (s.id && (allSkills || []).some(x => x.id === s.id)) {
-                        attach.add(s.id); // reuse an existing skill
-                    } else if (!s.id && s.name) {
-                        try {
-                            const sres = await apiRequest('POST /api/skills', {
-                                body: { name: s.name, description: s.description || '', instructions: s.instructions || '', isShared: false, dynamicActivation: false, automationId: null },
-                            }).catch((err: unknown) => {
-                                if (err instanceof ApiError) return null;
-                                throw err;
-                            });
-                            if (sres) {
-                                const created = await sres.json();
-                                if (created?.id) { setAllSkills(prev => [...(prev || []), created]); attach.add(created.id); }
-                            }
-                        } catch (err) { logger.debug('non-fatal — a failed skill is simply not attached', err); }
-                    }
-                }
-            }
+            const { attachIds, proposals } = splitPlannedSkills(updated.skills, allSkills || []);
+            for (const id of attachIds) attach.add(id);
             const resolvedSkillIds = Array.from(attach);
 
             // The state AS IT IS NOW: one object, because it is at once the input of the
@@ -249,6 +234,9 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 undoVersionId,
                 undoState: 'idle',
             }]);
+            if (proposals.length > 0) {
+                setChat(prev => [...prev, { role: 'skills', skills: proposals, skillsState: 'pending' }]);
+            }
 
             // Schedule action: when the LLM detected a clear scheduling intent
             // and the user has the agent_routines beta, create the schedule

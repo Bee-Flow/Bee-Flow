@@ -5,6 +5,7 @@ import type { ModelTierMap } from '@/api/queries/modelTiers';
 import type { Skill } from '@/api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
+import type { PlannedSkill } from './plannedSkills';
 
 /** Whether a source could be read: not yet, read, or unreadable. */
 export type ReadState = (typeof READ)[keyof typeof READ];
@@ -29,6 +30,12 @@ export interface ChatMessage {
     changes?: RefineChange[];
     undoVersionId?: string | null;
     undoState?: string;
+    /** `role: 'skills'`: the NEW skills a refinement proposed, not stored until the person adds them. */
+    skills?: PlannedSkill[];
+    /** pending | busy | added | skipped | failed */
+    skillsState?: string;
+    /** How many skills the add attached. */
+    addedCount?: number;
 }
 
 /** An automation as the skill picker lists it; the server row may lack an id or a title. */

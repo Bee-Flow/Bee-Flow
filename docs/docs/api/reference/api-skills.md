@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/skills`
 
-15 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
+18 routes, 18 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -36,6 +36,8 @@ toc_max_heading_level: 2
 | `icon` | string |  |  |
 | `isShared` | boolean |  |  |
 | `dynamicActivation` | boolean |  |  |
+| `agentOnly` | boolean |  |  |
+| `category` | string or null |  |  |
 | `sharedGroups` | array of string or null |  |  |
 | `automationId` | string or null |  |  |
 | `enabledIntegrations` | array of string or null |  |  |
@@ -69,6 +71,8 @@ toc_max_heading_level: 2
 | `icon` | string |  |  |
 | `isShared` | boolean |  |  |
 | `dynamicActivation` | boolean |  |  |
+| `agentOnly` | boolean |  |  |
+| `category` | string or null |  |  |
 | `sharedGroups` | array of string or null |  |  |
 | `automationId` | string or null |  |  |
 | `enabledIntegrations` | array of string or null |  |  |
@@ -104,6 +108,16 @@ toc_max_heading_level: 2
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `note` | string |  |  |
+
+### `POST /api/skills/:id/copy`
+
+**Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string |  |  |
 
 ### `POST /api/skills/:id/examples/from-message`
 
@@ -163,6 +177,32 @@ toc_max_heading_level: 2
 ### `GET /api/skills/examples/conversations/:conversationId/messages`
 
 **Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Query:** object (no other keys)
+
+## `from-plan`
+
+### `POST /api/skills/from-plan`
+
+**Access:** Signed-in user · Permission `manage_skills` · Capability `skills` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `skills` | array of object | yes | max items 20 |
+| `skills[].id` | string or null |  |  |
+| `skills[].name` | string | yes | min length 1 |
+| `skills[].description` | string |  |  |
+| `skills[].instructions` | string |  | max length 4000 |
+| `skills[].activation` | one of `"static"`, `"dynamic"` |  |  |
+| `skills[].draft` | object or null |  |  |
+
+## `store-stats`
+
+### `GET /api/skills/store-stats`
+
+**Access:** Signed-in user · Capability `skills` · middleware `trainingGate`
 
 **Query:** object (no other keys)
 

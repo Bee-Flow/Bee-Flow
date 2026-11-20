@@ -29,6 +29,8 @@ const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./tool
 const log = require('../../telemetry/log');
 const { REPLY_IN_THREAD_TOOLS } = require('./toolPolicy/mailAccess');
 const { withholdIncognitoTools } = require('../conversation/incognito.mts');
+const { applyToolCeiling, noteOfferedTools, coworkRunOf } = require('../cowork/runActivity.mts');
+const { addReviewTool } = require('../cowork/reviewTool.mts');
 
 /**
  * The agent fields tool assembly reads.
@@ -202,6 +204,9 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
     // The fixed values themselves can be an address or a name an admin pinned: only their keys go to the log.
     log.info('[AgentRuntime] Tool params map:', JSON.stringify(Object.fromEntries(Object.entries(toolParamsMap).map(([k, v]) => [k, Object.keys(v && typeof v === 'object' ? v : {})]))));
 
+    // ── Cowork run: the structured "a person has to decide" signal (core/cowork/reviewTool.mts) ──
+    addReviewTool(tools, coworkRunOf(messageMetadata));
+
     const unattended = isUnattended(messageMetadata);
     const narrowed = narrowToolsForTurn({ tools, agent, agentId, messageMetadata });
     tools = narrowed.tools;
@@ -253,6 +258,10 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     let out = Array.isArray(tools) ? tools : [];
     /** @type {string[]} */
     let unattendedWithheld = [];
+
+    // ── A follow-up Cowork run: never more than the run it continues (core/cowork/runActivity.mts) ──
+    const coworkRun = coworkRunOf(messageMetadata);
+    out = applyToolCeiling(coworkRun, out);
 
     // ── Headless: withhold the tools that would need approval ────
     // Inert for an agent without a stored `config.tools` map — buildToolPolicy
@@ -320,6 +329,9 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
             out = [];
         }
     }
+
+    // What a Cowork run was offered: the ceiling of a follow-up that continues it.
+    noteOfferedTools(coworkRun, out);
 
     return { tools: out, sandboxWithheld, unattendedWithheld };
 }

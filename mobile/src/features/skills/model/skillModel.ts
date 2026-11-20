@@ -25,6 +25,7 @@ import type {
     SkillDraft,
     SkillExample,
     SkillRule,
+    SkillSavePayload,
     SkillStep,
     UsageSummary,
     UsageSummaryEntry,
@@ -184,7 +185,7 @@ export function sortSkills<T extends SkillLike>(skills: readonly T[] | null | un
 }
 
 /** The autosave body: the STRUCTURE, never `workflow` / `rules` / `examples`. */
-export function buildSavePayload(draft: SkillDraft): SkillDraft {
+export function buildSavePayload(draft: SkillDraft): SkillSavePayload {
     return {
         name: draft.name,
         description: draft.description,
@@ -192,6 +193,8 @@ export function buildSavePayload(draft: SkillDraft): SkillDraft {
         icon: draft.icon,
         isShared: draft.isShared,
         dynamicActivation: draft.dynamicActivation,
+        agentOnly: draft.agentOnly === true,
+        category: String(draft.category || '').trim() || null,
         sharedGroups: draft.sharedGroups,
         enabledIntegrations: draft.enabledIntegrations,
         steps: draft.steps,
@@ -213,6 +216,8 @@ export function draftOf(skill: SkillLike): SkillDraft {
         icon: text(raw.icon) || '⚡',
         isShared: !!raw.isShared,
         dynamicActivation: !!raw.dynamicActivation,
+        agentOnly: raw.agentOnly === true,
+        category: typeof raw.category === 'string' ? raw.category : '',
         sharedGroups: idsOf(skill, 'sharedGroups'),
         enabledIntegrations: idsOf(skill, 'enabledIntegrations'),
         steps: stepsOf(skill),

@@ -44,6 +44,7 @@ const state = {
     // Welke schema's een open run hebben, per id → starttijd.
     openRuns: {},
     schedules: [],
+    openReviews: {}, reviewCalls: [], // runs waiting for review per id; what the review use case was asked
 };
 
 function reset() {
@@ -56,6 +57,7 @@ function reset() {
     state.count = 0;
     state.openRuns = {};
     state.schedules = [];
+    state.openReviews = {}; state.reviewCalls = [];
 }
 
 // Owned by 'u1'. Anything else asking for it must get a 403.
@@ -99,7 +101,12 @@ const mockCoworkStore = {
         return [{ id: 'run-1', status: 'success', result: 'private output' }];
     },
     async getRunCount() { return 1; },
+    async getOpenReviewCounts() { return { ...state.openReviews }; },
+    async countOpenReviews(id) { return state.openReviews[id] || 0; },
 };
+
+// The review use case has its own tests (usecases/coworkReview.test.js): here only what the route hands it.
+const mockReview = { async handleRunReview(args) { state.reviewCalls.push(args); return { run: null, followUpRunId: args.action === 'answer' ? 'f1' : null }; } };
 
 const composeCalls = [];
 const mockCompose = {
@@ -112,6 +119,7 @@ const mockCompose = {
 const MOCKS = {
     '../stores/coworkStore': mockCoworkStore,
     '../core/cowork/coworkCompose': mockCompose,
+    '../usecases/coworkReview.mts': mockReview,
     // routes/cowork.js requires this lazily inside the handler.
     './coworkCompose': mockCompose,
     '../stores/agentStore': {
@@ -957,4 +965,35 @@ test('mail-providers: the connected mail apps of the caller, not an item called 
     const r = await call('/mail-providers');
     assert.strictEqual(r.status, 200);
     assert.deepStrictEqual(r.json, { providers: ['msgraph'] });
+});
+
+// ── The review queue (./coworkReviewRoutes.js) ─────────────────────
+
+const review = (body, user = 'u1') => call('/cw-1/runs/run-1/review', { method: 'POST', body, user });
+
+test('GET / and GET /:id carry how many runs wait for review, 0 when none', async () => {
+    reset();
+    state.schedules = [{ ...OWNED, id: 'cw-1' }, { ...OWNED, id: 'cw-2' }];
+    state.openReviews = { 'cw-1': 2 };
+    assert.deepStrictEqual((await call('')).json.schedules.map(s => s.openReviewCount), [2, 0]);
+    assert.strictEqual((await call('/cw-1')).json.openReviewCount, 2);
+});
+
+test('a review is the owner\'s to handle: the use case gets the item, the run, who and what, after the ownership check', async () => {
+    reset();
+    assert.strictEqual((await review({ action: 'not_needed' }, 'someone-else')).status, 403);
+    assert.strictEqual((await review({ action: 'not_needed' }, null)).status, 401);
+    assert.deepStrictEqual(state.reviewCalls, []);
+    const r = await review({ action: 'answer', answer: 'Make a draft anyway.' });
+    assert.deepStrictEqual([r.status, r.json.followUpRunId], [200, 'f1']);
+    const [a] = state.reviewCalls;
+    assert.deepStrictEqual([a.schedule.id, a.runId, a.userId, a.action, a.answer], ['cw-1', 'run-1', 'u1', 'answer', 'Make a draft anyway.']);
+});
+
+test('the review body: a known action, an answer only as text within its limit, nothing else', async () => {
+    reset();
+    for (const body of [{}, { action: 'approve' }, { action: 'answer' }, { action: 'not_needed', extra: 1 }, { action: 'answer', answer: 'x'.repeat(4001) }, { action: 'answer', answer: 7 }]) {
+        assert.strictEqual((await review(body)).status, 400, JSON.stringify(body));
+    }
+    assert.deepStrictEqual(state.reviewCalls, []);
 });

@@ -86,6 +86,7 @@ const MOCKS = {
         listSkillUsage: async (id, orgId) => { rec('listSkillUsage', { id, orgId }); return { rows: fx.usage, unchecked: fx.uncheckedKinds }; },
         getUsageSummary: async (orgId, ids) => { rec('getUsageSummary', { orgId, ids }); return Object.fromEntries(ids.map(i => [i, { agents: 0, automations: 0, lastUsedAt: null }])); },
         listTestRuns: async (id) => { rec('listTestRuns', { id }); return [{ id: 'tr1', skillId: id, status: 'warning' }]; },
+        getStoreStats: async (ids, userId) => { rec('getStoreStats', { ids, userId }); return Object.fromEntries(ids.map(i => [i, { uses: 3, lastUsedByMeAt: null }])); },
     },
     '../auth': {
         requirePermission: gate,
@@ -513,4 +514,110 @@ test('POST / and PUT /:id ask whether the caller may link the automation, and wr
     fx.linkRole = 'run';
     assert.strictEqual((await call('post', '/', { body: { name: 'Runner', automationId: 'au-x' } })).statusCode, 201);
     assert.strictEqual((await call('put', '/:id', { params: { id: 'sk1' }, body: { name: 'x', automationId: 'au-x' } })).statusCode, 200);
+});
+
+// ── POST /from-plan: the skills an agent plan proposes ──────────────
+//
+// The refine rail of the agent editor saves the skills a plan proposed
+// through here, with the SAME mapping POST /agents/wizard/commit uses
+// (usecases/agents/wizardSkills). Structure and activation come along; refs,
+// grants and audience never do.
+
+test('POST /from-plan is registered before /:id and demands manage_skills', () => {
+    const paths = router.stack.filter(l => l.route).map(l => l.route.path);
+    assert.ok(paths.includes('/from-plan'));
+    assert.ok(paths.indexOf('/from-plan') < paths.indexOf('/:id'));
+    assert.deepStrictEqual(routeStack('post', '/from-plan').map(h => h.permission).filter(Boolean), ['manage_skills']);
+});
+
+test('POST /from-plan creates the planned skills with their structure, and reuses one that exists', async () => {
+    fx.list = [SKILL({ id: 'sk-known', name: 'Known' })];
+    const res = await call('post', '/from-plan', {
+        body: {
+            skills: [
+                { id: 'sk-known', name: 'Known' },
+                {
+                    id: null, name: 'Reply drafts', description: 'Writes a draft reply', activation: 'dynamic',
+                    draft: { steps: [{ text: 'Read the e-mail', refs: [{ kind: 'kb', id: 'kb-x' }] }], rulesV2: [{ polarity: 'never', text: 'Never send it' }] },
+                },
+            ],
+        },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body.attachedSkillIds, ['sk-known', 'new1']);
+    assert.strictEqual(res.body.createdSkills.length, 1);
+    assert.strictEqual(res.body.createdSkills[0].canEdit, true);
+    const args = lastCall('createSkill').args;
+    assert.strictEqual(args.orgId, 'org1');
+    assert.strictEqual(args.userId, 'owner');
+    assert.strictEqual(args.dynamicActivation, true);
+    assert.strictEqual(args.isShared, false);
+    assert.deepStrictEqual(args.steps.map(s => s.text), ['Read the e-mail']);
+    assert.deepStrictEqual(args.steps[0].refs, [], 'a ref is a grant: never from a plan');
+    assert.ok(!('knowledgeBaseIds' in args) && !('enabledIntegrations' in args));
+});
+
+test('POST /from-plan refuses grants and unknown keys on a planned skill', async () => {
+    const res = await call('post', '/from-plan', { body: { skills: [{ name: 'X', knowledgeBaseIds: ['kb1'] }] } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(lastCall('createSkill'), undefined);
+});
+
+// ── agent-only, category, the Skill store (2026-11) ──────────────────
+test('POST / and PUT /:id forward agentOnly and category; a wrong type is refused', async () => {
+    await call('post', '/', { body: { name: 'N', agentOnly: true, category: 'Sales' } });
+    assert.strictEqual(lastCall('createSkill').args.agentOnly, true);
+    assert.strictEqual(lastCall('createSkill').args.category, 'Sales');
+    await call('put', '/:id', { params: { id: 'sk1' }, body: { agentOnly: false, category: null } });
+    assert.strictEqual(lastCall('updateSkill').args.updates.agentOnly, false);
+    assert.strictEqual(lastCall('updateSkill').args.updates.category, null);
+    fx.calls.length = 0;
+    assert.strictEqual((await call('put', '/:id', { params: { id: 'sk1' }, body: { agentOnly: 'true' } })).statusCode, 400);
+    assert.strictEqual((await call('put', '/:id', { params: { id: 'sk1' }, body: { category: 'x'.repeat(61) } })).statusCode, 400);
+    assert.strictEqual(lastCall('updateSkill'), undefined, 'nothing written');
+});
+
+test('GET /store-stats comes before /:id and answers only for the skills the caller can see', async () => {
+    const paths = router.stack.filter(l => l.route).map(l => l.route.path);
+    assert.ok(paths.indexOf('/store-stats') > -1 && paths.indexOf('/store-stats') < paths.indexOf('/:id'));
+    fx.list = [SKILL(), SKILL({ id: 'sk2' })];
+    const res = await call('get', '/store-stats');
+    assert.deepStrictEqual(Object.keys(res.body.stats), ['sk1', 'sk2']);
+    assert.deepStrictEqual(lastCall('getStoreStats').args, { ids: ['sk1', 'sk2'], userId: 'owner' });
+});
+
+test('POST /:id/copy makes a private copy owned by the caller; the original is not written', async () => {
+    fx.userId = 'colleague';
+    fx.skill = SKILL({
+        userId: 'owner', isShared: true, sharedGroups: ['g1'], description: 'd', instructions: 'i', icon: '📄',
+        steps: [{ id: 's1', text: 'Read', refs: [] }], rulesV2: [], examplesV2: [], outputSchema: null,
+        knowledgeBaseIds: ['kb1'], allowedAutomationIds: [], enabledIntegrations: ['gmail'],
+        dynamicActivation: true, agentOnly: true, category: 'Sales', automationId: null, projectId: 'p1',
+    });
+    const res = await call('post', '/:id/copy', { params: { id: 'sk1' }, body: { name: 'My copy' } });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(res.body.canEdit, true);
+    const args = lastCall('createSkill').args;
+    assert.strictEqual(args.userId, 'colleague');
+    assert.strictEqual(args.name, 'My copy');
+    assert.strictEqual(args.isShared, false, 'a copy starts private');
+    assert.deepStrictEqual(args.sharedGroups, []);
+    assert.deepStrictEqual(args.steps, [{ id: 's1', text: 'Read', refs: [] }]);
+    assert.strictEqual(args.agentOnly, true);
+    assert.strictEqual(args.category, 'Sales');
+    assert.ok(!('projectId' in args), 'a copy is filed nowhere');
+    assert.strictEqual(lastCall('updateSkill'), undefined);
+});
+
+test('POST /:id/copy: an invisible skill is a 404, a link to an automation the caller may not start is dropped', async () => {
+    fx.skill = null;
+    assert.strictEqual((await call('post', '/:id/copy', { params: { id: 'sk1' }, body: {} })).statusCode, 404);
+    fx.skill = SKILL({ automationId: 'au-x' });
+    fx.linkRole = 'view';
+    const res = await call('post', '/:id/copy', { params: { id: 'sk1' }, body: {} });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(lastCall('createSkill').args.automationId, null);
+    assert.strictEqual(lastCall('createSkill').args.name, 'Quote helper', 'no name sent keeps the original name');
+    const gates = routeStack('post', '/:id/copy').map(h => h.permission).filter(Boolean);
+    assert.deepStrictEqual(gates, ['manage_skills'], 'copying is creating a skill');
 });

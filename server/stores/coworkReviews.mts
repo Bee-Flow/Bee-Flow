@@ -1,0 +1,105 @@
+/**
+ * The review queue of Cowork, on `cowork_runs` (next to stores/coworkStore.js, which re-exports these):
+ *
+ *   - a run waits for review while its status is 'needs_review' and nobody handled it (review_resolved_at NULL);
+ *   - handling one is ONCE: the UPDATE only matches a waiting run, so a double click or two tabs resolve it once;
+ *   - an answer opens the follow-up run in the same transaction: a 'running' row with trigger_kind 'review', the run
+ *     it continues as its parent, one answer deeper, in the same conversation and with the same run context (the
+ *     tools it was offered, a mail run's ids), and the schedule flips to 'running' with it.
+ *
+ * Who may handle a run is the route's question (the item's owner, routes/cowork.js loadOwned); every statement here
+ * is also keyed on the schedule, so a run of another item never matches.
+ */
+
+import { createRequire } from 'node:module';
+import crypto from 'node:crypto';
+
+const nodeRequire = createRequire(import.meta.url);
+
+type Row = Record<string, unknown>;
+type Client = { query: (sql: string, params?: unknown[]) => Promise<{ rows: Row[] }> };
+type Db = {
+    getOne: (sql: string, params?: unknown[]) => Promise<Row | null>;
+    getAll: (sql: string, params?: unknown[]) => Promise<Row[]>;
+    withTransaction: <T>(fn: (client: Client) => Promise<T>) => Promise<T>;
+};
+
+type Rows = typeof import('./coworkRows.js');
+const { rowToRun: rowToRunTyped, safeParseJSON } = nodeRequire('./coworkRows.js') as Rows;
+/** One history row in the API's shape (stores/coworkRows.js). */
+export type CoworkRun = NonNullable<ReturnType<Rows['rowToRun']>>;
+const rowToRun = (r: Row | null | undefined): CoworkRun | null => rowToRunTyped((r ?? null) as Parameters<Rows['rowToRun']>[0]);
+
+/** How the owner handled a run that asked for review. */
+export const REVIEW_RESOLUTIONS: ReadonlySet<string> = new Set(['answered', 'done_myself', 'not_needed']);
+
+export function makeCoworkReviews({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
+    /** `{ scheduleId: number of runs waiting for review }`, for every item of one user; only items that have some. */
+    async function getOpenReviewCounts(userId: string): Promise<Record<string, number>> {
+        await ready();
+        const rows = await db.getAll(
+            `SELECT schedule_id, COUNT(*)::int AS n FROM cowork_runs
+              WHERE user_id = $1 AND status = 'needs_review' AND review_resolved_at IS NULL
+              GROUP BY schedule_id`,
+            [userId],
+        );
+        const out: Record<string, number> = {};
+        for (const r of rows) if (typeof r.schedule_id === 'string') out[r.schedule_id] = Number(r.n) || 0;
+        return out;
+    }
+
+    async function countOpenReviews(scheduleId: string): Promise<number> {
+        await ready();
+        const r = await db.getOne(
+            `SELECT COUNT(*)::int AS n FROM cowork_runs
+              WHERE schedule_id = $1 AND status = 'needs_review' AND review_resolved_at IS NULL`,
+            [scheduleId],
+        );
+        return Number(r?.n) || 0;
+    }
+
+    /** One run of one item with the server-side run context a follow-up needs; null when it is not that item's. */
+    async function getRunForReview(scheduleId: string, runId: string): Promise<(CoworkRun & { runContext: unknown }) | null> {
+        await ready();
+        const row = await db.getOne('SELECT * FROM cowork_runs WHERE id = $1 AND schedule_id = $2', [runId, scheduleId]);
+        if (!row) return null;
+        const run = rowToRun(row);
+        if (!run) return null;
+        return { ...run, runContext: row.run_context_json ? safeParseJSON<unknown>(row.run_context_json as string, null) : null };
+    }
+
+    /**
+     * Handle a waiting run, once. With `followUp` the follow-up row opens in the same transaction. Null when the run
+     * is not (or no longer) waiting for review on this item.
+     */
+    async function resolveReview({ scheduleId, runId, userId, resolution, followUp }: {
+        scheduleId: string; runId: string; userId: string; resolution: string; followUp: boolean;
+    }): Promise<{ run: CoworkRun | null; followUpRunId: string | null } | null> {
+        if (!REVIEW_RESOLUTIONS.has(resolution)) throw new Error(`Unknown review resolution: ${resolution}`);
+        await ready();
+        return db.withTransaction(async (client) => {
+            const { rows } = await client.query(
+                `UPDATE cowork_runs
+                    SET review_resolution = $3, review_resolved_by = $4, review_resolved_at = NOW()
+                  WHERE id = $1 AND schedule_id = $2 AND status = 'needs_review' AND review_resolved_at IS NULL
+                  RETURNING *`,
+                [runId, scheduleId, resolution, userId],
+            );
+            const resolved = rows[0];
+            if (!resolved) return null;
+            if (!followUp) return { run: rowToRun(resolved), followUpRunId: null };
+            const followUpRunId = crypto.randomUUID();
+            await client.query(
+                `INSERT INTO cowork_runs
+                    (id, schedule_id, user_id, status, trigger_kind, parent_run_id, followup_depth, conversation_id, run_context_json, mail_subject)
+                 VALUES ($1, $2, $3, 'running', 'review', $4, $5, $6, $7, $8)`,
+                [followUpRunId, scheduleId, resolved.user_id, runId, (Number(resolved.followup_depth) || 0) + 1,
+                    resolved.conversation_id ?? null, resolved.run_context_json ?? null, resolved.mail_subject ?? null],
+            );
+            await client.query(`UPDATE cowork_schedules SET last_status = 'running' WHERE id = $1`, [scheduleId]);
+            return { run: rowToRun(resolved), followUpRunId };
+        });
+    }
+
+    return { getOpenReviewCounts, countOpenReviews, getRunForReview, resolveReview };
+}

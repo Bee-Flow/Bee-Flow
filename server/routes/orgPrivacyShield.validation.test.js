@@ -47,8 +47,27 @@ const MOCKS = {
     '../license': { resolveTier: async () => 'enterprise', tiers: { tierHasFeature: () => true } },
     '../core/dlp/customTerms': { invalidate() {} },
     '../compliance/events': { EVENTS: { DLP_CONFIG_CHANGED: 'x' }, emit() {} },
-    '../core/privacy/orgShield': { resolveOrgShield: async () => null },
+    '../core/privacy/orgShield': {
+        resolveOrgShield: async () => null,
+        classifyToolClass: (name) => (name.startsWith('nextcloud') ? 'internal' : 'external'),
+    },
+    // The per-app exceptions: their audit lines, and which apps the org has.
+    '../telemetry/log': { info: (...a) => logLines.push(a.join(' ')), warn() {}, error() {}, debug() {} },
+    '../usecases/integrations/orgIntegrationAvailability.mts': {
+        resolveOrgIntegrationAvailability: async () => ({ integrations: { gmail: { available: false }, outlook: { available: true } } }),
+    },
 };
+const logLines = [];
+
+// The tool registry the exceptions are checked against (a feature module): three synthetic apps.
+const { installResolveStub } = require('../testUtils/stubRequire');
+const REGISTRY_TOOLS = { outlook: 'outlook_compose', gmail: 'gmail_compose', 'nextcloud-mail': 'nextcloud_mail_send' };
+const restoreRegistry = installResolveStub({
+    '../automation/toolRegistry': {
+        ALL_TOOL_APPS: Object.keys(REGISTRY_TOOLS).map(app => ({ app, label: `Label ${app}` })),
+        loadToolsResult: (entry) => ({ ok: true, tools: [{ function: { name: REGISTRY_TOOLS[entry.app] } }] }),
+    },
+});
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -58,7 +77,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]orgPrivacyShield\.js$/.test(parent.filename)
+    if (parent && /routes[\\/]orgPrivacyShield(Apps)?\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -66,7 +85,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
 };
 
 const router = require('./orgPrivacyShield');
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(() => { Module._resolveFilename = originalResolve; restoreRegistry(); });
 
 // A schema refusal travels as an error to the terminal handler, so the
 // harness has to answer one the way index.js does.
@@ -229,6 +248,69 @@ test('a non-admin is still answered 403 for a well-formed body', async () => {
     const res = await dispatch({ method: 'PUT', url: '/org1', body: pageBody(), orgAdmin: false });
     assert.strictEqual(res.statusCode, 403);
     assert.deepStrictEqual(touched, []);
+});
+
+// ═══ Per-app exceptions (core/privacy/toolPiiExemptions.mts) ═══════
+
+const IBAN = 'InternationalBankingAccountNumber';
+const withExemptions = (appExemptions, blockCategories = ['Person', 'Email', IBAN]) => pageBody({
+    toolPiiPolicy: { external: { blockCategories, appExemptions }, internal: { blockCategories: [] } },
+});
+
+test('an exception for a known app is stored, keeping only categories the class blocks', async () => {
+    logLines.length = 0;
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: withExemptions({ outlook: ['Person', 'Email', 'Medication'] }) });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(rows[ORG_KEY].toolPiiPolicy.external, { blockCategories: ['Person', 'Email', IBAN], appExemptions: { outlook: ['Person', 'Email'] } });
+    assert.deepStrictEqual(rows[ORG_KEY].toolPiiPolicy.internal, { blockCategories: [] });
+    const audit = logLines.filter(l => l.includes('app exception'));
+    assert.deepStrictEqual(audit, ['[OrgPrivacyShield] app exception changed org=org1 by=u1 class=external app=outlook added=Email,Person removed=-']);
+});
+
+test('a save without exceptions writes no appExemptions key at all', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: withExemptions(undefined) });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(JSON.stringify(rows[ORG_KEY].toolPiiPolicy), JSON.stringify({ external: { blockCategories: ['Person', 'Email', IBAN] }, internal: { blockCategories: [] } }));
+});
+
+test('a client that does not send exceptions (an older page, the mobile app) keeps the stored ones', async () => {
+    rows[ORG_KEY] = { toolPiiPolicy: { external: { blockCategories: ['Person', 'Email'], appExemptions: { outlook: ['Person', 'Email'] } } } };
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: withExemptions(undefined, ['Email', IBAN]) });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(rows[ORG_KEY].toolPiiPolicy.external.appExemptions, { outlook: ['Email'] }, 'kept, narrowed to what is still blocked');
+});
+
+test('an empty exception list removes the stored ones', async () => {
+    rows[ORG_KEY] = { toolPiiPolicy: { external: { blockCategories: ['Email'], appExemptions: { outlook: ['Email'] } } } };
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: withExemptions({}) });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.ok(!('appExemptions' in rows[ORG_KEY].toolPiiPolicy.external));
+});
+
+test('a secret or an identity-document number can never be exempted', async () => {
+    const field = 'body.toolPiiPolicy.external.appExemptions.outlook';
+    for (const hard of ['ApiKeyOrSecret', 'PassportNumber', 'DriversLicenseNumber']) {
+        rows[ORG_KEY] = undefined;
+        const res = await refused({ method: 'PUT', url: '/org1', body: withExemptions({ outlook: [hard] }, [hard]) }, field);
+        assert.match(res.body.error, /stays blocked for every tool/);
+    }
+});
+
+test('an unknown app, an unknown category or an id that is not one of the org\'s types is refused', async () => {
+    await refused({ method: 'PUT', url: '/org1', body: withExemptions({ 'no-such-app': ['Person'] }) }, 'body.toolPiiPolicy.external.appExemptions.no-such-app');
+    await refused({ method: 'PUT', url: '/org1', body: withExemptions({ outlook: ['Nonsense'] }) }, 'body.toolPiiPolicy.external.appExemptions.outlook');
+    await refused({ method: 'PUT', url: '/org1', body: withExemptions({ outlook: ['cdt_0123456789'] }) }, 'body.toolPiiPolicy.external.appExemptions.outlook');
+});
+
+test('the apps an exception can be made for: admins only, without the apps the org does not have', async () => {
+    const res = await dispatch({ method: 'GET', url: '/org1/app-exemption-apps' });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(res.body.apps, [
+        { id: 'nextcloud-mail', label: 'Label nextcloud-mail', classes: ['internal'] },
+        { id: 'outlook', label: 'Label outlook', classes: ['external'] },
+    ]);
+    const denied = await dispatch({ method: 'GET', url: '/org1/app-exemption-apps', orgAdmin: false });
+    assert.strictEqual(denied.statusCode, 403);
 });
 
 // ═══ The personal shield ════════════════════════════════════════════

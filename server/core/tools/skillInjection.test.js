@@ -31,6 +31,9 @@ const {
     mergeSkillIds,
     sanitizeEnabledIntegrations,
     resolveSkillAppAllowlist,
+    resolveSkillGrants,
+    buildSkillInjection,
+    loadSkillsForIds,
     executeActivateSkill,
     SKILL_CAP,
 } = require('./skillInjection');
@@ -172,6 +175,45 @@ const dynamicSkill = (id, apps = []) => ({ ...staticSkill(id, apps), dynamicActi
         assert.deepStrictEqual(calledWith, ['d1'], 'dispatcher forwarded the callback');
         assert.ok(typeof out === 'string' && out.includes('SKILL — "S-d1"'));
         console.log('✓ toolDispatcher forwards onSkillsActivated');
+    }
+
+    // ── "Only through agents" (skills.agent_only, core/skills/agentOnlySkills.mts) ──
+    // Ignored as a SESSION skill (the composer's picker, activeSkillIds) unless
+    // an agent brings it in; enforced in every reader the turn goes through.
+    {
+        const kept = { ...staticSkill('kept', ['gmail']), instructions: 'body of kept', knowledgeBaseIds: ['kb-kept'], steps: [], allowedAutomationIds: [], agentOnly: true };
+        const open = { ...staticSkill('open'), instructions: 'body of open' };
+        mockSkills = [open, kept];
+        const direct = await buildSkillInjection({ sessionSkillIds: ['open', 'kept'], attachedSkillIds: [], orgId: 'o1', userId: 'u1' });
+        assert.ok(direct.systemPromptAddendum.includes('body of open') && !direct.systemPromptAddendum.includes('body of kept'), 'direct chat: agent-only session skill left out');
+        assert.strictEqual(direct.staticCount, 1);
+        const attached = await buildSkillInjection({ sessionSkillIds: [], attachedSkillIds: ['kept'], orgId: 'o1', userId: 'u1', agentId: 'a1' });
+        assert.ok(attached.systemPromptAddendum.includes('body of kept'), 'an agent that attaches it keeps it');
+        const otherAgent = await buildSkillInjection({ sessionSkillIds: ['kept'], attachedSkillIds: ['open'], orgId: 'o1', userId: 'u1', agentId: 'a1' });
+        assert.ok(!otherAgent.systemPromptAddendum.includes('body of kept'), 'an agent that does NOT attach it: still a session skill, ignored');
+        const preloaded = await buildSkillInjection({ sessionSkillIds: ['kept'], attachedSkillIds: [], orgId: 'o1', userId: 'u1', preloadedSkills: [kept] });
+        assert.strictEqual(preloaded.systemPromptAddendum, '', 'preloaded rows: same rule');
+        const viaAgent = await buildSkillInjection({ sessionSkillIds: ['kept'], attachedSkillIds: [], agentSkillIds: ['kept'], orgId: 'o1', userId: 'u1' });
+        assert.ok(viaAgent.systemPromptAddendum.includes('body of kept'), 'agentSkillIds (an AI step bound to an agent) widens the rule');
+
+        mockSkills = [{ ...kept, dynamicActivation: true }];
+        const dyn = await buildSkillInjection({ sessionSkillIds: ['kept'], attachedSkillIds: [], orgId: 'o1', userId: 'u1' });
+        assert.deepStrictEqual([dyn.systemPromptAddendum, dyn.tools, dyn.dynamicSkillIds], ['', [], []], 'not in the on-demand manifest either');
+
+        mockSkills = [open, kept];
+        assert.deepStrictEqual((await resolveSkillAppAllowlist({ sessionSkillIds: ['kept'], attachedSkillIds: [], orgId: 'o1', userId: 'u1' })).allowedApps, [], 'no apps from it');
+        assert.deepStrictEqual((await resolveSkillGrants({ sessionSkillIds: ['kept'], attachedSkillIds: [], orgId: 'o1', userId: 'u1' })).kbIds, [], 'no grants from it');
+        assert.deepStrictEqual((await resolveSkillGrants({ sessionSkillIds: [], attachedSkillIds: ['kept'], orgId: 'o1', userId: 'u1' })).kbIds, ['kb-kept'], 'grants when attached');
+        const loaded = await loadSkillsForIds({ sessionSkillIds: ['kept', 'open'], attachedSkillIds: [], orgId: 'o1', userId: 'u1' });
+        assert.deepStrictEqual(loaded.skills.map(s => s.id), ['open'], 'loadSkillsForIds: same rule');
+        const loadedViaAgent = await loadSkillsForIds({ sessionSkillIds: ['kept'], attachedSkillIds: [], agentSkillIds: ['kept'], orgId: 'o1', userId: 'u1' });
+        assert.deepStrictEqual(loadedViaAgent.skills.map(s => s.id), ['kept']);
+
+        const noAgent = await executeActivateSkill({ args: { skill_ids: ['kept'] }, orgId: 'o1', userId: 'u1', onSkillsActivated: null });
+        assert.ok(!noAgent.includes('body of kept'), 'activate_skill without an agent does not load it by id');
+        const withAgent = await executeActivateSkill({ args: { skill_ids: ['kept'] }, orgId: 'o1', userId: 'u1', agentId: 'a1', onSkillsActivated: null });
+        assert.ok(withAgent.includes('body of kept'), 'with an agent it does');
+        console.log('✓ agent-only skills are ignored as session skills without an agent');
     }
 
     console.log('\nALL SKILL INJECTION TESTS PASSED');

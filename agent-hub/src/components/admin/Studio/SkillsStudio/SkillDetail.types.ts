@@ -31,7 +31,9 @@ import type { TranslateFn } from '@/hooks/useTranslation';
  * rejected for interactive elements.
  *
  * ── DELETE LIVES UNDER "USED BY" ────────────────────────────────────
- * Not in the list, not in a ⋯ menu: `DangerZone` sits at the bottom of the
+ * And, since 2026-11, behind the header's ⋯ menu and the list row's ⋯ menu
+ * too (people could not find it here), through SkillDeleteDialog, which
+ * shows that same list first. `DangerZone` sits at the bottom of the
  * tab that shows what deleting would break, and it confirms against the
  * SAME list the tab renders — the rows AND the kinds nobody could check.
  * Both, or the card contradicts the tab it is standing under. The server's 409 `in_use` guard stays the
@@ -45,6 +47,10 @@ export interface SkillDetailProps {
     onSaved: (patch: { id: string; }) => void;
     onDeleted?: (id: string) => void;
     onNavigate?: ((to: string) => void) | null;
+    /** The categories the other skills carry (skillModel.categoriesOf). */
+    categorySuggestions?: string[];
+    /** Opens the delete dialog (SkillDeleteDialog) for this skill; absent = this account may not delete it. */
+    onRequestDelete?: (() => void) | null;
 }
 
 /** The "Method" body: two cards on top, then steps beside the right rail. */
@@ -60,6 +66,7 @@ export interface MethodTabProps {
     unchecked: readonly string[];
     onFillIn: (sentence: string) => void;
     drafting: boolean;
+    categorySuggestions?: string[];
     t: TranslateFn;
 }
 

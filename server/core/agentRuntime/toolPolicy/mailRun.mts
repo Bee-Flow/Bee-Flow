@@ -8,8 +8,8 @@
  *   - the Gmail / Outlook tools, as the app's `mailAccess` says (./mailAccess.js);
  *   - tools that only read inside Bee Flow or the owner's own connected apps (`reads` in the side-effect map), except
  *     the ones that fetch an address or a query on the open web, or mint a link that opens without signing in;
- *   - `kb_fetch` (it serves the run's own `kb_search` results) and `activate_skill` (text only in such a run, see
- *     core/tools/skillInjection.js);
+ *   - `kb_fetch` (it serves the run's own `kb_search` results), `activate_skill` (text only in such a run, see
+ *     core/tools/skillInjection.js) and `cowork_request_review` (the run's own review request, core/cowork/reviewTool.mts);
  *   - every other tool only for an app whose owner switched it on for these runs (`mailRuns: true` on the app entry
  *     in `config.tools`), and then never one that would ask for a confirmation: there is nobody to ask.
  *
@@ -38,12 +38,15 @@ export const OUTSIDE_READS: ReadonlySet<string> = new Set([
     'nextcloud_direct_link', 'slides_export_pdf',
 ]);
 
-/** Tools that are not in the side-effect map but only work on what the run itself has: kept. */
-export const RUN_LOCAL_TOOLS: ReadonlySet<string> = new Set(['kb_fetch', 'activate_skill']);
+/**
+ * Tools that are not in the side-effect map but only work on what the run itself has: kept. `cowork_request_review`
+ * (core/cowork/reviewTool.mts) only writes a review request onto the run's own history row.
+ */
+export const RUN_LOCAL_TOOLS: ReadonlySet<string> = new Set(['kb_fetch', 'activate_skill', 'cowork_request_review']);
 
 /** Tools whose use does not take the run outside the triggering thread. */
 const THREAD_TOOLS: ReadonlySet<string> = new Set([
-    'activate_skill',
+    'activate_skill', 'cowork_request_review',
     ...Object.values(MAIL_APPS).flatMap((a) => [a.draft, a.reply]),
 ]);
 /** Mail reads that stay in the thread when what they read belongs to it. */

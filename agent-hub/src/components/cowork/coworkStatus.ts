@@ -45,11 +45,24 @@ const NEEDS_REAUTH_TOKEN: StatusToken = {
 };
 
 /**
+ * `needs_review`: a run that finished and asked its owner to decide (the agent's
+ * cowork_request_review). The tone of a run waiting for approval, because that is
+ * what it is: nothing broke, a person is needed.
+ */
+const NEEDS_REVIEW_TOKEN: StatusToken = {
+    ...tokenFor('awaiting_approval'),
+    labelKey: 'cowork_review.status.needs_review',
+    labelEn: 'Needs review',
+};
+
+/**
  * The token for ONE run row's status — the same lookup as `tokenFor`, plus
- * cowork's own `needs_reauth`.
+ * cowork's own `needs_reauth` and `needs_review`.
  */
 export function runStatusToken(status: string | null | undefined): StatusToken {
-    return status === 'needs_reauth' ? NEEDS_REAUTH_TOKEN : tokenFor(status);
+    if (status === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
+    if (status === 'needs_review') return NEEDS_REVIEW_TOKEN;
+    return tokenFor(status);
 }
 
 /** True while an item is running or has not produced its first run yet. */

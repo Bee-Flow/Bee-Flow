@@ -84,6 +84,11 @@ const restore = installResolveStub({
     '../privacy/piiDetection': { validateInputForPii: async () => null },
     // — the real orgShield, loaded by the gate for the tool classification —
     '../../stores/configStore': { getConfig: async () => null, getSecret: async () => '', getAllConfig: async () => ({}) },
+    // — the registry the per-app exceptions attribute a tool name with (a feature module) —
+    '../automation/toolRegistry': {
+        ALL_TOOL_APPS: [{ app: 'outlook' }, { app: 'gmail' }],
+        loadToolsResult: (entry) => ({ ok: true, tools: [{ function: { name: `${entry.app}_compose` } }] }),
+    },
 });
 test.after(() => restore());
 
@@ -121,6 +126,20 @@ test('flag off: the run is as before, and the shield is never resolved for the t
     assert.ok(fx.toolMessages[0].content.includes(SYNTH_EMAIL));
     assert.strictEqual(fx.shieldCalls, 0);
     assert.deepStrictEqual(fx.guardrailRows, []);
+});
+
+test('flag on: a per-app exception holds in this loop too, for that app only', async () => {
+    const shield = {
+        enabled: true, privacyAction: 'redact',
+        toolPiiPolicy: { external: { blockCategories: ['Email'], appExemptions: { outlook: ['Email'] } }, internal: { blockCategories: [] } },
+    };
+    await run({ shield, toolCall: { name: 'outlook_compose', args: { to: SYNTH_EMAIL } }, dispatchResult: { draftFor: SYNTH_EMAIL } });
+    assert.strictEqual(fx.dispatched.length, 1, 'the exempt app is called');
+    assert.ok(fx.toolMessages[0].content.includes(SYNTH_EMAIL), 'and its result keeps the released category');
+
+    await run({ shield, toolCall: { name: 'gmail_compose', args: { to: SYNTH_EMAIL } } });
+    assert.strictEqual(fx.dispatched.length, 0, 'another outside app is still refused');
+    assert.match(fx.toolMessages[0].content, REFUSED_FOR_EMAIL);
 });
 
 test('flag on, outside tool: the own-server list does not reach it', async () => {

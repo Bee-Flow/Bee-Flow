@@ -51,6 +51,8 @@ const {
 } = require('../skills/skillStructure');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { keepUsableSkills, keepActivatableSkills } = require('../skills/agentOnlySkills.mts');
+const { injectionSkills } = require('../skills/injectionSkills.mts');
 
 const SKILL_CAP = 5;
 const ACTIVATE_SKILL_TOOL_NAME = 'activate_skill';
@@ -115,7 +117,7 @@ function sanitizeEnabledIntegrations(list) {
  *                      skills (used by the onSkillsActivated callback)
  *   mergedIds        — the capped merged skill id list (diagnostics)
  */
-async function resolveSkillAppAllowlist(/** @type {{ attachedSkillIds?: string[], sessionSkillIds?: string[], activatedSkillIds?: string[], orgId?: string | null, userId?: string | null, forceDynamicSkills?: boolean }} */ { attachedSkillIds = [], sessionSkillIds = [], activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
+async function resolveSkillAppAllowlist(/** @type {{ attachedSkillIds?: string[], sessionSkillIds?: string[], agentSkillIds?: string[] | null, activatedSkillIds?: string[], orgId?: string | null, userId?: string | null, forceDynamicSkills?: boolean }} */ { attachedSkillIds = [], sessionSkillIds = [], agentSkillIds = null, activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
     const empty = { allowedApps: [], dynamicSkillApps: new Map(), mergedIds: [] };
     if (!orgId) return empty;
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
@@ -128,7 +130,9 @@ async function resolveSkillAppAllowlist(/** @type {{ attachedSkillIds?: string[]
         log.warn('[skillInjection] resolveSkillAppAllowlist getSkillsByIds failed:', err.message);
         return empty;
     }
-    if (!skills || skills.length === 0) return empty;
+    // "Only through agents": an agent-only skill that no agent brought in is ignored.
+    skills = keepUsableSkills(skills || [], agentSkillIds ?? attachedSkillIds);
+    if (skills.length === 0) return empty;
 
     const activatedSet = new Set(activatedSkillIds);
     const allowed = new Set();
@@ -201,7 +205,7 @@ function emptyGrants() {
  *
  * Same inputs and same static/dynamic partition as resolveSkillAppAllowlist.
  */
-async function resolveSkillGrants({ attachedSkillIds = [], sessionSkillIds = [], activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
+async function resolveSkillGrants({ attachedSkillIds = [], sessionSkillIds = [], agentSkillIds = null, activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
     const empty = emptyGrants();
     if (!orgId) return empty;
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
@@ -214,7 +218,8 @@ async function resolveSkillGrants({ attachedSkillIds = [], sessionSkillIds = [],
         log.warn('[skillInjection] resolveSkillGrants getSkillsByIds failed:', err.message);
         return empty;
     }
-    if (!skills || skills.length === 0) return empty;
+    skills = keepUsableSkills(skills || [], agentSkillIds ?? attachedSkillIds);
+    if (skills.length === 0) return empty;
 
     const activatedSet = new Set(activatedSkillIds);
     const automationIds = new Set();
@@ -279,8 +284,9 @@ function recordSkillActivations(skillIds, { agentId = null, conversationId = nul
  * Resolve merged skill ids into prompt text + tool registration data.
  *
  * @param {{ sessionSkillIds: string[], attachedSkillIds: string[], orgId: string, userId: string,
- *   agentId?: string, conversationId?: string, forceDynamicSkills?: boolean, preloadedSkills?: Array<NonNullable<ReturnType<typeof import('../../stores/skill/rows').mapRow>>> | null }} opts `sessionSkillIds`: user-toggled skills
- *   (activeSkillIds); `attachedSkillIds`: agent.config.attachedSkillIds; `agentId`: for the
+ *   agentSkillIds?: string[] | null, agentId?: string, conversationId?: string, forceDynamicSkills?: boolean, preloadedSkills?: Array<NonNullable<ReturnType<typeof import('../../stores/skill/rows').mapRow>>> | null }} opts `sessionSkillIds`: user-toggled skills
+ *   (activeSkillIds); `attachedSkillIds`: agent.config.attachedSkillIds; `agentSkillIds`: the ids an
+ *   agent brings in (defaults to `attachedSkillIds`; an agent-only skill outside it is ignored); `agentId`: for the
  *   skill_activations row ("last used by"); `conversationId`: dedupes the static write to one per
  *   conversation
  * @returns {Promise<{
@@ -291,27 +297,15 @@ function recordSkillActivations(skillIds, { agentId = null, conversationId = nul
  *   staticCount: number,
  * }>}
  */
-async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = [], orgId, userId, forceDynamicSkills = false, agentId = null, conversationId = null, preloadedSkills = null }) {
+async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = [], agentSkillIds = null, orgId, userId, forceDynamicSkills = false, agentId = null, conversationId = null, preloadedSkills = null }) {
     if (!orgId) return { systemPromptAddendum: '', tools: [], dynamicSkillIds: [], automationSkillIds: [], staticCount: 0 };
 
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
     if (mergedIds.length === 0) return { systemPromptAddendum: '', tools: [], dynamicSkillIds: [], automationSkillIds: [], staticCount: 0 };
 
-    let skills;
-    if (Array.isArray(preloadedSkills)) {
-        // Rows the caller already loaded with loadSkillsForIds (same ids, same
-        // org and asker), so one AI step does not read the same skills twice.
-        // Kept to the merged ids, in the caller's order.
-        const wanted = new Set(mergedIds);
-        skills = preloadedSkills.filter(s => s && wanted.has(s.id));
-    } else {
-        try {
-            skills = await skillStore.getSkillsByIds(mergedIds, orgId, userId);
-        } catch (err) {
-            log.warn('[skillInjection] getSkillsByIds failed:', err.message);
-            return { systemPromptAddendum: '', tools: [], dynamicSkillIds: [], automationSkillIds: [], staticCount: 0 };
-        }
-    }
+    // "Only through agents" (core/skills/agentOnlySkills.mts): a session skill
+    // its owner keeps for agents is ignored here, whatever the client sent.
+    const skills = await injectionSkills({ mergedIds, preloadedSkills, orgId, userId, agentIds: agentSkillIds ?? attachedSkillIds });
     if (!skills || skills.length === 0) return { systemPromptAddendum: '', tools: [], dynamicSkillIds: [], automationSkillIds: [], staticCount: 0 };
 
     // Flow tier (forceDynamicSkills) treats every skill as dynamic so the
@@ -392,13 +386,14 @@ async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = []
  *
  * @returns {Promise<{ mergedIds: string[], skills: Object[] }>}
  */
-async function loadSkillsForIds({ attachedSkillIds = [], sessionSkillIds = [], orgId, userId, deps = /** @type {{ skillStore?: Pick<typeof skillStore, 'getSkillsByIds'> }} */ ({}) }) {
+async function loadSkillsForIds({ attachedSkillIds = [], sessionSkillIds = [], agentSkillIds = null, orgId, userId, deps = /** @type {{ skillStore?: Pick<typeof skillStore, 'getSkillsByIds'> }} */ ({}) }) {
     const store = deps.skillStore || skillStore;
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
     if (mergedIds.length === 0) return { mergedIds, skills: [] };
     const rows = await store.getSkillsByIds(mergedIds, orgId, userId);
     const byId = new Map((Array.isArray(rows) ? rows : []).filter(r => r && r.id).map(r => [r.id, r]));
-    return { mergedIds, skills: mergedIds.map(id => byId.get(id)).filter(Boolean) };
+    const ordered = mergedIds.map(id => byId.get(id)).filter(Boolean);
+    return { mergedIds, skills: keepUsableSkills(ordered, agentSkillIds ?? attachedSkillIds) };
 }
 
 /**
@@ -417,6 +412,8 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
     } catch (err) {
         return `Failed to load skills: ${err.message}`;
     }
+    // No agent runs the turn (direct chat): an agent-only skill is not loaded by id either.
+    skills = keepActivatableSkills(skills || [], !!(agentId || callerAgentId));
     if (!skills || skills.length === 0) {
         return `None of the requested skill ids were found or accessible: ${ids.join(', ')}`;
     }

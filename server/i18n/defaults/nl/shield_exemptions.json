@@ -1,0 +1,20 @@
+{
+  "translations": {
+    "shield_exemptions.add": "App toevoegen",
+    "shield_exemptions.category_for_app": "{kind} voor {app}",
+    "shield_exemptions.class_external": "Tools buiten je organisatie",
+    "shield_exemptions.class_internal": "Eigen server",
+    "shield_exemptions.empty": "Nog geen uitzonderingen: elke app in deze kolom houdt zich aan de hele lijst.",
+    "shield_exemptions.except": "behalve {apps}",
+    "shield_exemptions.explain": "Met een uitzondering mag één app soorten gegevens ontvangen die deze kolom voor alle andere tools tegenhoudt. De AI ziet nog steeds alleen plaatshouders; de echte waarden gaan alleen naar die app.",
+    "shield_exemptions.hard_note": "API-sleutels en geheimen, paspoortnummers en rijbewijsnummers blijven voor elke app tegengehouden.",
+    "shield_exemptions.load_error": "De lijst met apps kon niet worden geladen. Bestaande uitzonderingen blijven gelden.",
+    "shield_exemptions.may_receive": "{app} mag ontvangen",
+    "shield_exemptions.no_apps": "Geen van de apps van je organisatie kan in deze kolom een uitzondering krijgen.",
+    "shield_exemptions.none_blocked": "In deze kolom wordt niets tegengehouden, dus er is niets om een uitzondering voor te maken.",
+    "shield_exemptions.pick_app": "Kies een app",
+    "shield_exemptions.remove": "Verwijder de uitzondering voor {app}",
+    "shield_exemptions.title": "Uitzonderingen per app"
+  },
+  "sameAsEnglish": []
+}

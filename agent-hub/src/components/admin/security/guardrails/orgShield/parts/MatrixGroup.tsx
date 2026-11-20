@@ -1,5 +1,5 @@
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { MatrixColumn, MatrixGroup as Group, MatrixKind, MatrixSelection } from './categoryMatrixModel';
+import type { MatrixColumn, MatrixExceptions, MatrixGroup as Group, MatrixKind, MatrixSelection, ToolColumn } from './categoryMatrixModel';
 import {
     COLUMN_NAME, GROUP_DOT, GROUP_KEYS, OTHER_GROUP_DOT, hiddenInGroup, leftWithTools,
 } from './categoryMatrixModel';
@@ -20,6 +20,7 @@ interface MatrixGroupProps {
     /** Canonical id → tool calls that carried it in the last 30 days; null = unknown. */
     toolKinds: Record<string, number> | null;
     days: number;
+    exceptions?: MatrixExceptions | null;
     onToggle: (col: MatrixColumn, id: string, on: boolean) => void;
     t: TranslateFn;
 }
@@ -41,7 +42,18 @@ function LeftWithTools({ n, days, t }: { n: number; days: number; t: TranslateFn
     );
 }
 
-function KindRow({ kind, sel, canBlockExternal, allowPublicOrgs, readOnly, toolKinds, days, onToggle, t }: RowProps) {
+/** "except Outlook" under a tool box: the apps a per-app exception releases this kind to. */
+function ExceptLabel({ apps, t }: { apps: string[] | undefined; t: TranslateFn }) {
+    if (!apps || apps.length === 0) return null;
+    return (
+        <span className="text-[11px] text-[var(--text-tertiary)] whitespace-nowrap">
+            {t('shield_exemptions.except', 'except {apps}', { apps: apps.join(', ') })}
+        </span>
+    );
+}
+
+function KindRow({ kind, sel, canBlockExternal, allowPublicOrgs, readOnly, toolKinds, days, exceptions, onToggle, t }: RowProps) {
+    const except = (col: ToolColumn) => (sel[col].has(kind.id) ? exceptions?.[col]?.[kind.id] : undefined);
     const cell = (col: MatrixColumn) => (
         <MatrixCell
             checked={sel[col].has(kind.id)}
@@ -71,9 +83,15 @@ function KindRow({ kind, sel, canBlockExternal, allowPublicOrgs, readOnly, toolK
                 <span className="flex items-center gap-2">
                     {cell('external')}
                     {left !== null && <LeftWithTools n={left} days={days} t={t} />}
+                    <ExceptLabel apps={except('external')} t={t} />
                 </span>
             </td>
-            <td className="pl-1.5 pr-[18px] py-[7px]">{cell('internal')}</td>
+            <td className="pl-1.5 pr-[18px] py-[7px]">
+                <span className="flex items-center gap-2">
+                    {cell('internal')}
+                    <ExceptLabel apps={except('internal')} t={t} />
+                </span>
+            </td>
         </tr>
     );
 }

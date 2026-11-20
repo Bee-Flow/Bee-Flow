@@ -8,14 +8,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { createSkill, deleteSkill, draftSkill, improveSkill } from '../api/endpoints';
 import { skillKeys } from '../api/keys';
-import type { Skill, SkillDraft, SkillProposal } from '../model/types';
+import type { Skill, SkillProposal, SkillSavePayload } from '../model/types';
 
 interface Handlers<D, V> {
     onSuccess?: (data: D, vars: V) => void;
     onError?: (error: Error, vars: V) => void;
 }
 
-export type NewSkill = Partial<SkillDraft> & { name: string };
+export type NewSkill = Partial<SkillSavePayload> & { name: string };
 
 export function useCreateSkill(handlers: Handlers<Skill | null, NewSkill> = {}) {
     const queryClient = useQueryClient();

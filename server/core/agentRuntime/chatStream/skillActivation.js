@@ -16,6 +16,7 @@
 const agentStore = require('../../../stores/agentStore');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { noteActivatedSkills } = require('../../cowork/runActivity.mts');
 
 /**
  * @param {{ agent: import('./turnState').AgentRow, agentId: string, userId: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, onEvent: import('./turnState').OnEvent, conversation: import('./turnState').ConversationRow, isEphemeral: boolean } & Pick<Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>, 'tools' | 'disableExternalTools' | 'skillApps' | 'activatedSkillIds' | 'baseIntegrationToolNames'>} opts
@@ -34,6 +35,8 @@ function createSkillActivationHandler({
     // subsequent turns rebuild the same allowlist.
     const onSkillsActivated = async (/** @type {string[]} */ justActivatedIds) => {
         const result = { addedTools: /** @type {string[]} */ ([]), unavailableApps: /** @type {string[]} */ ([]) };
+        // A Cowork run records which skills took part (core/cowork/runActivity.mts).
+        noteActivatedSkills(messageMetadata?.coworkRun, justActivatedIds);
         if (disableExternalTools) return result;
 
         /** @type {string[]} */
