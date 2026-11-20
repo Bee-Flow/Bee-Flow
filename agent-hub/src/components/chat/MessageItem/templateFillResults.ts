@@ -10,7 +10,7 @@
  * (DocumentLinkCard) is what stays.
  */
 
-export const TEMPLATE_FILL_RESULT_TOOLS = new Set(['template_fill_start', 'template_fill_set_values', 'template_fill_finish']);
+const TEMPLATE_FILL_RESULT_TOOLS = new Set(['template_fill_start', 'template_fill_set_values', 'template_fill_finish']);
 
 export interface TemplateFillState {
     documentId: string;
