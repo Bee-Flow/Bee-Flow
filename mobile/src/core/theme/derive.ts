@@ -18,9 +18,18 @@ import {
 import { RADII, type Palette, type PaletteSource, type ThemeName } from './tokens';
 import type { Branding, Elevation, Theme } from './types';
 
+/**
+ * The stored default accent, which means "the theme's own accent" (the web's
+ * applyTheme.ts THEME_DEFAULT_ACCENT): painting it would replace the ink of
+ * light and the colour of high-contrast, paper and sepia with a grey.
+ */
+const THEME_DEFAULT_ACCENT = '#9ca3af';
+
 /** The org's accent, when it is one the phone can paint. */
 function brandAccent(branding: Branding): string | null {
-    return isHexColor(branding.accentColor) ? branding.accentColor.trim() : null;
+    if (!isHexColor(branding.accentColor)) return null;
+    const accent = branding.accentColor.trim();
+    return accent.toLowerCase() === THEME_DEFAULT_ACCENT ? null : accent;
 }
 
 /**
