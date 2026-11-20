@@ -43,7 +43,7 @@ interface BeeEditorViewProps {
 
 export default function BeeEditorView({ s, props, sync, ix, tableView, uploadImage, dragLayer }: BeeEditorViewProps) {
   const {
-    onAIAction, onAIFill, onImportClick, saving, generating, aiFilling, askAiEnabled = true, collab: collabHandle = null,
+    onAIAction, onAIFill, onImportClick, saving, generating, generatingLabel, aiFilling, askAiEnabled = true, collab: collabHandle = null,
   } = props;
   const {
     t, hostRef, viewInst, setWrapEl, wrapEl, tick, linkEdit, findOpen, setFindOpen, findFocus, setFindFocus,
@@ -102,7 +102,7 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
         />
       )}
 
-      {generating && <GeneratingOverlay label={generating} t={t} />}
+      {(generating || generatingLabel) && <GeneratingOverlay label={generating || ''} text={generatingLabel} t={t} />}
 
       {collab.loading && (
         <div role="status" className="bf-collab-loading">
@@ -144,7 +144,8 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
           view={view}
           editor={editor}
           t={t}
-          askAiEnabled={askAiEnabled}
+          // No handler, no AI buttons: a button that does nothing is worse than none.
+          askAiEnabled={askAiEnabled && !!onAIAction}
           onAction={aiAction}
           onAsk={(anchor, from, to, text) => { setAsk({ anchor, from, to, text }); setAskQuery(''); }}
           askOpen={!!ask || !!linkEdit}
