@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-64 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
+66 routes, 41 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -349,6 +349,24 @@ No request schema.
 |-------|------|:--------:|-------|
 | `values` | object or null |  |  |
 | `sectionOverrides` | object or null |  |  |
+
+### `POST /api/studio-documents/:id/value-requests`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fields` | array of string | yes | min items 1; max items 100 |
+| `assigneeIds` | array of string | yes | min items 1; max items 10 |
+| `message` | string |  | max length 500 |
+
+### `POST /api/studio-documents/:id/value-requests/:requestId/close`
+
+**Access:** Signed-in user
+
+**Body:** object (no other keys)
 
 ### `PUT /api/studio-documents/:id/values`
 

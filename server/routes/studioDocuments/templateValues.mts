@@ -28,6 +28,8 @@ import {
     applyTemplateValues, MAX_VALUES, saveSettings, type ContractModule, type TemplateDoc, type ValuesStore,
 } from '../../core/documents/templateValues.mts';
 import { fillLinkOf, finishedSettings } from '../../integrations/templateFillActive.mts';
+import { filledByOf, requestsOf } from '../../core/documents/valueRequests.mts';
+import { notifyCompleted, requestAnnotator } from './valueRequests.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');
@@ -44,7 +46,8 @@ const ValuesBody = bodyOf({
 }, 'Saving template values');
 
 type Body = { values: Record<string, unknown>, finish?: boolean };
-type Deps = { store?: () => ValuesStore, requireAuth?: RequestHandler, contract?: () => ContractModule };
+type Notify = (n: { userId: string, category: string, title: string, message: string, link: string }) => Promise<unknown>;
+type Deps = { store?: () => ValuesStore, requireAuth?: RequestHandler, contract?: () => ContractModule, notify?: Notify };
 
 const isReadOnly = (doc: TemplateDoc): boolean => doc.projectRole === 'viewer' || doc.sharingRole === 'viewer';
 
@@ -68,10 +71,13 @@ export function makeTemplateValuesRouter(deps: Deps = {}): Router {
         if (doc.kind && doc.kind !== 'document') throw badRequest('document_not_fillable', 'Only a document made from a template is filled in, not a template itself.');
         if (isReadOnly(doc)) throw forbidden('document_read_only', 'You can read this document, but only its editors can change it.');
         let out;
+        // Who filled in what, and the colleagues' requests this save answers (routes/studioDocuments/valueRequests.mts).
+        const requests = requestAnnotator(userId);
         try {
-            out = await applyTemplateValues({ store: store(), doc, given: values, userId, origin: 'user', ...(deps.contract ? { contract: deps.contract } : {}) });
+            out = await applyTemplateValues({ store: store(), doc, given: values, userId, origin: 'user', annotate: requests.annotate, ...(deps.contract ? { contract: deps.contract } : {}) });
         } catch (e) { throw storeRefusal(e); }
         if (!out) throw notFound('document_not_found', 'Document not found or read-only');
+        if (requests.completed().length) await notifyCompleted(out.doc, requests.completed(), deps.notify ? { notify: deps.notify } : {});
         let saved = out.doc;
         let finished = !!fillLinkOf(saved)?.finishedAt;
         if (finish === true && out.complete && !finished) {
@@ -81,6 +87,7 @@ export function makeTemplateValuesRouter(deps: Deps = {}): Router {
         res.json({
             documentId: saved.id, values: out.values, missingRequired: out.missingRequired, issues: out.issues, rejected: out.rejected,
             complete: out.complete, filled: out.filled, total: out.total, finished, versionId: saved.versionId ?? null,
+            requests: requestsOf(saved.settings), filledBy: filledByOf(saved.settings),
         });
     });
 

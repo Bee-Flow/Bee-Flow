@@ -223,7 +223,7 @@ function FieldLabel({ id, field, inline, children }: { id: string; field: Templa
     );
 }
 
-function FieldRow({ field, value, issue, onChange }: { field: TemplateFillField; value: unknown; issue?: string; onChange: OnChange }) {
+function FieldRow({ field, value, issue, note, onChange }: { field: TemplateFillField; value: unknown; issue?: string; note?: string; onChange: OnChange }) {
     const id = useId();
     const helpId = `${id}-help`;
     const issueId = `${id}-issue`;
@@ -239,6 +239,7 @@ function FieldRow({ field, value, issue, onChange }: { field: TemplateFillField;
         <div className={`flex min-w-0 flex-col gap-1 ${isWide(field, value) ? 'sm:col-span-2' : ''}`} data-testid={`template-fill-field-${field.key}`}>
             <FieldLabel id={id} field={field} inline={inline}>{inline && input}</FieldLabel>
             {field.help && <p id={helpId} className="m-0 text-xs text-[var(--text-tertiary)]">{field.help}</p>}
+            {note && <p className="m-0 text-[11px] text-[var(--accent-primary)]" data-testid={`template-fill-note-${field.key}`}>{note}</p>}
             {offer && <Suggestion field={field} onChange={onChange} />}
             {!inline && input}
             {issue && <p id={issueId} className="m-0 text-xs text-[var(--error)]">{issue}</p>}
@@ -271,8 +272,10 @@ function groupOf(field: TemplateFillField, values: Record<string, unknown>): Gro
     return field.required ? 'missing' : 'optional';
 }
 
-export default function TemplateFillFields({ fields, values, issues, saving, onChange }: {
+export default function TemplateFillFields({ fields, values, issues, saving, notes, onChange }: {
     fields: TemplateFillField[]; values: Record<string, unknown>; issues: Record<string, string>; saving?: boolean;
+    /** A line per field about who filled it in or was asked for it (filling in together in a project). */
+    notes?: Record<string, string>;
     onChange: (key: string, value: unknown) => void;
 }) {
     const { t } = useTranslation();
@@ -298,7 +301,7 @@ export default function TemplateFillFields({ fields, values, issues, saving, onC
                 <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length}
                     collapsible={g.id !== 'missing' && groups.some((other) => other.id === 'missing')}>
                     {g.fields.map((f) => (
-                        <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} onChange={onChange} />
+                        <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} note={notes?.[f.key]} onChange={onChange} />
                     ))}
                 </FieldGroup>
             ))}

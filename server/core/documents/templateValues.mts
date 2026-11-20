@@ -149,18 +149,32 @@ export type ApplyResult = { doc: TemplateDoc, contract: Contract, values: Settin
  * merged once more on the fresh document. Null when the caller may not
  * change the document; a store refusal below 500 is thrown to the caller.
  */
+/** Extra settings written in the same save as the values (who filled what, requests answered). */
+export type Annotate = (settings: Settings, values: Settings, changedKeys: string[]) => Settings;
+
+/** The keys whose stored value this save changes (accepted, and different from before). */
+function changedKeysOf(stored: Settings, values: Settings, given: Settings, rejected: Rejected[]): string[] {
+    const refused = new Set(rejected.map((r) => r.key));
+    return Object.keys(given).filter((k) => !refused.has(k) && JSON.stringify(values[k]) !== JSON.stringify(stored[k]));
+}
+
 export async function applyTemplateValues(
-    { store, doc, given, userId, origin, guard, contract = contractModule }:
-    { store: ValuesStore, doc: TemplateDoc, given: Settings, userId: string, origin: Origin, guard?: ValueGuard, contract?: () => ContractModule },
+    { store, doc, given, userId, origin, guard, annotate, contract = contractModule }:
+    { store: ValuesStore, doc: TemplateDoc, given: Settings, userId: string, origin: Origin, guard?: ValueGuard, annotate?: Annotate, contract?: () => ContractModule },
 ): Promise<ApplyResult | null> {
     const c = contract();
     let current = doc;
     for (let attempt = 0; ; attempt += 1) {
         const fields = c.getContract(current);
-        const { values, rejected, changed } = mergeValues(fields, valuesOf(current), given, c, guard);
+        const stored = valuesOf(current);
+        const { values, rejected, changed } = mergeValues(fields, stored, given, c, guard);
         let saved: TemplateDoc | null = current;
         try {
-            if (changed) saved = await saveSettings(store, current, { ...(current.settings || {}), sampleValues: values }, userId, origin);
+            if (changed) {
+                const base = { ...(current.settings || {}), sampleValues: values };
+                const next = annotate ? annotate(base, values, changedKeysOf(stored, values, given, rejected)) : base;
+                saved = await saveSettings(store, current, next, userId, origin);
+            }
         } catch (e) {
             if (attempt === 0 && isConflict(e)) {
                 const fresh = await store.getDocument(current.id, userId);

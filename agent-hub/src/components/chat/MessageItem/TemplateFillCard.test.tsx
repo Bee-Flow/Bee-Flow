@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 import type { FillDocument, FillProgress, TemplateFillApi } from '@/api/templateFillApi';
 import TemplateFillCard from './TemplateFillCard';
+import TemplateFillForm from './TemplateFillForm';
 import { templateFillRefs } from './templateFillResults';
 
 /**
@@ -95,5 +96,24 @@ describe('<TemplateFillCard>', () => {
     it('renders nothing for a turn without template results', () => {
         const { container } = renderCard(<TemplateFillCard toolResults={[{ name: 'web_search', result: {} }]} />);
         expect(container).toBeEmptyDOMElement();
+    });
+});
+
+describe('<TemplateFillForm> filling in together', () => {
+    it('takes a colleague\'s value from the next read, and keeps the field this person is saving', async () => {
+        const user = userEvent.setup();
+        const empty: FillDocument = { ...DOC, values: {} };
+        const api = fakeApi({
+            load: vi.fn().mockResolvedValue({ ...empty, values: { client: 'Remote BV', amount: 99 } }),
+            // The save stays on its way: the poll must not put the old amount back meanwhile.
+            save: vi.fn().mockReturnValue(new Promise(() => {})),
+        });
+        renderCard(<TemplateFillForm doc={empty} api={api} live={{ pollMs: 40 }} notes={{ client: 'Asked of Bob' }} />);
+        await user.type(screen.getByLabelText(/Amount/), '12');
+        await user.tab();
+        await waitFor(() => expect(api.save).toHaveBeenCalled(), { timeout: 2000 });
+        await waitFor(() => expect(screen.getByLabelText(/Client name/)).toHaveValue('Remote BV'), { timeout: 2000 });
+        expect(screen.getByLabelText(/Amount/)).toHaveValue(12);
+        expect(screen.getByTestId('template-fill-note-client').textContent).toBe('Asked of Bob');
     });
 });

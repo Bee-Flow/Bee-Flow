@@ -6325,6 +6325,12 @@
     "POST /api/studio-documents/:id/validate": {
       "gate": "auth"
     },
+    "POST /api/studio-documents/:id/value-requests": {
+      "gate": "auth"
+    },
+    "POST /api/studio-documents/:id/value-requests/:requestId/close": {
+      "gate": "auth"
+    },
     "POST /api/studio-documents/:id/versions": {
       "gate": "handler",
       "via": "route"

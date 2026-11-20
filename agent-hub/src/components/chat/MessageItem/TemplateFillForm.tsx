@@ -6,7 +6,7 @@
  * "Open in Documents", and "Done", which finishes it as template_fill_finish
  * does (refused, with what is missing, while a required field is empty).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CheckCircle2, Download, FilePen } from 'lucide-react';
 
 import type { FillDocument, TemplateFillApi } from '@/api/templateFillApi';
@@ -15,7 +15,7 @@ import { logger } from '@/utils/logger';
 import DocumentLinkCard from '../../documents/DocumentLinkCard';
 import TemplateFillFields from './TemplateFillFields';
 import { formField } from './templateFillModel';
-import useTemplateFillForm, { type SaveStatus } from './useTemplateFillForm';
+import useTemplateFillForm, { type LiveOptions, type SaveStatus } from './useTemplateFillForm';
 
 /** Tailwind width steps for the progress bar (a class per tenth, no inline style). */
 const WIDTHS = ['w-0', 'w-[10%]', 'w-[20%]', 'w-[30%]', 'w-[40%]', 'w-1/2', 'w-[60%]', 'w-[70%]', 'w-[80%]', 'w-[90%]', 'w-full'];
@@ -69,9 +69,17 @@ function useDownload(doc: FillDocument, api: TemplateFillApi) {
     return { busy, failed, run };
 }
 
-export default function TemplateFillForm({ doc, api }: { doc: FillDocument; api: TemplateFillApi }) {
+export default function TemplateFillForm({ doc, api, live, notes, children }: {
+    doc: FillDocument; api: TemplateFillApi;
+    /** Filling in together: poll for the others' values (useTemplateFillForm). */
+    live?: LiveOptions;
+    /** A line per field: who filled it in, who was asked. */
+    notes?: Record<string, string>;
+    /** Shown above the fields: the colleagues' requests, in a project. */
+    children?: ReactNode;
+}) {
     const { t } = useTranslation();
-    const form = useTemplateFillForm(doc, api);
+    const form = useTemplateFillForm(doc, api, live);
     const download = useDownload(doc, api);
     const { state } = form;
     const readOnly = !doc.editable;
@@ -102,7 +110,8 @@ export default function TemplateFillForm({ doc, api }: { doc: FillDocument; api:
                         {t('chat_templates.form_accept_all', 'Accept all {count} suggestions', { count: suggestions.length })}
                     </button>
                 )}
-                <TemplateFillFields fields={doc.fields.map(formField)} values={form.values} issues={form.issues} onChange={readOnly ? () => {} : form.onChange} />
+                {children}
+                <TemplateFillFields fields={doc.fields.map(formField)} values={form.values} issues={form.issues} notes={notes} onChange={readOnly ? () => {} : form.onChange} />
                 {state.issues.length > 0 && (
                     <ul className="m-0 pl-4 text-xs text-[var(--warning)]" data-testid="template-fill-issues">
                         {state.issues.map((issue) => <li key={issue}>{issue}</li>)}
