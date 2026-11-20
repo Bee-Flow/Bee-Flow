@@ -61,9 +61,12 @@ async function copySheet(cellsApi, documentsApi, doc, { userId, name, ctx, table
     try {
         const { newTabs, tabIds } = await copyTabs(cellsApi, doc, userId, made, tableName);
         const charts = copiedCharts(/** @type {{ charts?: unknown } | undefined} */ (doc.settings?.sheet)?.charts, tabIds);
+        const locale = /** @type {{ locale?: unknown }} */ (doc.settings?.sheet || {}).locale;
         const copy = await documentsApi.createDocument({
             userId, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
             sheetTableId: newTabs[0].datatableId,
+            // The copy reads typed numbers the way the original does.
+            ...(typeof locale === 'string' ? { sheetLocale: locale } : {}),
         });
         // The copy owns its first tab's table from here on.
         made.splice(made.indexOf(newTabs[0].datatableId), 1);

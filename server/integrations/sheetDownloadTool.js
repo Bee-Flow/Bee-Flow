@@ -15,7 +15,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { sheetTabsOf } = require('../stores/lib/sheetDocument');
+const { sheetTabsOf, sheetLocaleOf } = require('../stores/lib/sheetDocument');
 
 const DOCUMENT_DOWNLOAD_TOOL = {
     type: 'function',
@@ -52,7 +52,7 @@ function csvTab(tabs, wanted) {
  *   settings?: { sheet?: import('./sheetDocumentTools').SheetSettings } }} doc   the document, already looked up and scope-checked
  * @param {{ format?: string, tab?: string }} args
  * @param {{ userId: string }} ctx
- * @param {{ cells?: any, storage?: any, evaluate?: (cells: Record<string, string>) => Record<string, { display: string }> }} [deps]
+ * @param {{ cells?: any, storage?: any, evaluate?: (cells: Record<string, string>, options?: { locale?: string }) => Record<string, { display: string }> }} [deps]
  */
 async function downloadSheetDocument(doc, args, ctx, deps = {}) {
     if (doc.docType !== 'spreadsheet') {
@@ -72,7 +72,7 @@ async function downloadSheetDocument(doc, args, ctx, deps = {}) {
         const { cells } = await sheetCells.readSheet(doc.userId, tab.datatableId);
         const evaluate = deps.evaluate || require('../shared/expr/sheet.mjs').evaluateSheet;
         file = {
-            buffer: Buffer.from('﻿' + exporter.sheetCsv(cells, evaluate), 'utf8'),
+            buffer: Buffer.from('﻿' + exporter.sheetCsv(cells, (c) => evaluate(c, { locale: sheetLocaleOf(doc) })), 'utf8'),
             contentType: CSV_MIME,
             filename: exporter.xlsxFileName(doc.name).replace(/\.xlsx$/, '.csv'),
         };

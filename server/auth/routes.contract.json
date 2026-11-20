@@ -461,6 +461,10 @@
     "DELETE /api/studio-documents/folders/:folderId": {
       "gate": "auth"
     },
+    "DELETE /api/studio-documents/notebooks/:id": {
+      "gate": "middleware",
+      "via": "requireNotebooks"
+    },
     "DELETE /api/subscriptions/orgs/:orgId": {
       "gate": "handler",
       "via": "mount"
@@ -6334,6 +6338,14 @@
     },
     "POST /api/studio-documents/house-style/preview-theme": {
       "gate": "auth"
+    },
+    "POST /api/studio-documents/notebooks/:id/archive": {
+      "gate": "middleware",
+      "via": "requireNotebooks"
+    },
+    "POST /api/studio-documents/notebooks/:id/unarchive": {
+      "gate": "middleware",
+      "via": "requireNotebooks"
     },
     "POST /api/studio-documents/sheets": {
       "gate": "middleware",

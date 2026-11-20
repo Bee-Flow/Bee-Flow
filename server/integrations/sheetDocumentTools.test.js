@@ -204,3 +204,12 @@ test('reads list the tab\'s charts; a write can update a chart by id and remove 
     assert.strictEqual(gone.chartsRemoved, 1);
     assert.deepStrictEqual(updates[1].settings.sheet.charts.map((c) => c.id), ['k1']);
 });
+
+test('a Dutch sheet is computed the Dutch way for the chat too (1,5 is a number)', async () => {
+    const dutch = { ...doc, settings: { sheet: { ...doc.settings.sheet, locale: 'nl' } } };
+    const typed = { async readSheet() { return { cells: { A1: '1,5', A2: '€ 10', A3: '=SUM(A1;A2)' }, rows: 3, columns: 26 }; } };
+    const out = await readSheetDocument(dutch, { cells: typed, evaluate: evaluateSheet });
+    assert.strictEqual(out.computed.A3, '11.5');
+    const en = await readSheetDocument(doc, { cells: typed, evaluate: evaluateSheet });
+    assert.strictEqual(en.computed.A3, '10', 'an en sheet leaves 1,5 as text');
+});

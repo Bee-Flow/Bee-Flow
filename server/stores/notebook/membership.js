@@ -37,9 +37,12 @@ const notebookFileCrypto = dep('notebookFileCrypto');
  */
 async function resolveNotebookRole(id, userId) {
     if (!id || !userId) return null;
-    const row = await getOne('SELECT user_id, project_id, sharing_audience FROM notebooks WHERE id = $1', [id]);
+    const row = await getOne('SELECT user_id, project_id, sharing_audience, archived FROM notebooks WHERE id = $1', [id]);
     if (!row) return null;
     if (row.user_id === userId) return 'owner';
+    // An archived notebook is its owner's alone until restored, like an
+    // archived document: no project member and no share recipient reaches it.
+    if (row.archived === true) return null;
     const { projectRoleOf } = projectRole();
     const role = row.project_id ? await projectRoleOf(userId, row.project_id) : null;
     if (role) return role;
@@ -135,7 +138,7 @@ function mapProjectNotebookCard(r) {
 }
 
 /**
- * Notebooks filed into a project, CARD-shaped: counts and the cached preview,
+ * Notebooks filed into a project (not the archived ones), CARD-shaped: counts and the cached preview,
  * never the document bodies (a project page lists up to 200 of these, and the
  * full row carries every notebook's whole document twice, HTML and Markdown).
  * @param {string} projectId
@@ -152,7 +155,7 @@ async function listProjectNotebooks(projectId, { limit = 50, offset = 0, type = 
                 (SELECT COUNT(*) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'error') AS failed_count,
                 (SELECT COALESCE(SUM(ns.word_count),0) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'ready') AS source_word_count
            FROM notebooks n
-          WHERE n.project_id = $1 AND COALESCE(n.type, 'notebook') = $2
+          WHERE n.project_id = $1 AND COALESCE(n.type, 'notebook') = $2 AND n.archived = false
           ORDER BY COALESCE(n.last_activity_at, n.updated_at) DESC, n.id
           LIMIT $3 OFFSET $4`,
         [projectId, type, Math.min(Math.max(1, limit), MAX_CARD_LIMIT), Math.max(0, offset)]
@@ -178,7 +181,7 @@ async function countProjectNotebooks(projectIds, { type = 'notebook' } = {}) {
     if (!ids.length) return new Map();
     const rows = await getAll(
         `SELECT project_id, COUNT(*)::int AS n FROM notebooks
-          WHERE project_id = ANY($1) AND COALESCE(type, 'notebook') = $2
+          WHERE project_id = ANY($1) AND COALESCE(type, 'notebook') = $2 AND archived = false
           GROUP BY project_id`,
         [ids, type]
     );

@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "doc_archive.archive_notebook_desc": "\"{name}\" verdwijnt uit je bibliotheek en uit het project waarin het staat, en de mensen met wie je het deelde kunnen het niet meer openen. Je kunt het terugzetten vanuit Gearchiveerd.",
+    "doc_archive.archive_notebook_title": "Dit notitieboek archiveren?",
+    "doc_archive.delete_confirm": "Definitief verwijderen",
+    "doc_archive.delete_desc": "\"{name}\" wordt verwijderd met de bronnen, de chat en de versies. Dit kun je niet ongedaan maken.",
+    "doc_archive.delete_for_good": "{name} definitief verwijderen",
+    "doc_archive.delete_title": "Dit notitieboek definitief verwijderen?",
+    "doc_archive.notebook_not_found_body": "Het is misschien gearchiveerd of verwijderd, of het wordt niet meer met je gedeeld.",
+    "doc_archive.sharing_notebook": "Ontvangers kunnen dit notitieboek lezen, maar niet wijzigen. Alleen jij kunt het delen of de map wijzigen, of het archiveren."
+  },
+  "sameAsEnglish": []
+}

@@ -4,7 +4,7 @@
  * routes/studioDocuments.js under /api/studio-documents.
  *
  *   POST  /sheets             { name?, folderId? }  → 201 { document }   start one
- *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, refTabs: { Tab: cells }, readOnly }
+ *   GET   /:id/sheet          → { columns, rows, cells: { A1: raw }, refTabs: { Tab: cells }, readOnly, locale }
  *   PATCH /:id/sheet          { cells: { B3: '12', C3: '=SUM(B1:B3)', D4: '' } } → { ok, cells }
  *   GET   /:id/sheet.csv      the computed values, as a CSV download
  *   GET   /:id/sheet.xlsx     every tab as one Excel workbook, formulas kept (core/documents/sheetExport)
@@ -36,7 +36,7 @@ const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
-const { sheetTabsOf, newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
+const { sheetTabsOf, newTabId, settingsWithTabs, sheetLocaleOf } = require('../../stores/lib/sheetDocument');
 const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -125,18 +125,19 @@ async function attachTab(cellsApi, documentsApi, doc, ctx, nextTabs, tableId) {
  * @param {{ documents?: typeof import('../../stores/documentStore'),
  *   cells?: typeof import('../../core/documents/sheetCells'),
  *   gate?: import('./sheetGate').Middleware, // the datatables gates as one middleware
- *   evaluate?: (cells: Record<string, string>) => any, // shared/expr/sheet.mjs evaluateSheet
+ *   evaluate?: (cells: Record<string, string>, options?: { locale?: string }) => any, // shared/expr/sheet.mjs evaluateSheet
  *   requireAuth?: import('express').RequestHandler,
  *   assistant?: Pick<typeof import('../../core/documents/sheetAssist/sheetAssistant'), 'ask'>,
  *   checkLimits?: (orgId: string|null, userId: string) => Promise<string|null>,
  *   assistantLimiter?: import('express').RequestHandler,
- *   serverName?: (userId: string, key: string, vars: Record<string, unknown>) => Promise<string> }} [deps]
+ *   serverName?: (userId: string, key: string, vars: Record<string, unknown>) => Promise<string>,
+ *   readerLocale?: (userId: string) => Promise<string> }} [deps]
  */
 function makeSheetRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const documents = () => deps.documents || require('../../stores/documentStore');
     const cells = () => deps.cells || require('../../core/documents/sheetCells');
-    const evaluate = (/** @type {Record<string, string>} */ c) => (deps.evaluate || require('../../shared/expr/sheet.mjs').evaluateSheet)(c);
+    const evaluate = (/** @type {Record<string, string>} */ c, /** @type {{ locale?: string }} */ options = {}) => (deps.evaluate || require('../../shared/expr/sheet.mjs').evaluateSheet)(c, options);
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
     /** @type {Function|null} */
     let boundGate = null;
@@ -148,6 +149,8 @@ function makeSheetRouter(deps = {}) {
     const assistant = () => deps.assistant || require('../../core/documents/sheetAssist/sheetAssistant');
     // A name the person did not give (a new sheet, a tab, a copy), in their own language.
     const nameFor = deps.serverName || ((/** @type {string} */ userId, /** @type {string} */ key, /** @type {Record<string, unknown>} */ vars) => require('../../core/documents/serverNames.mts').serverName(userId, key, vars));
+    // The creator's language decides how a new sheet reads typed numbers (1,5 or 1.5), for every reader after.
+    const readerLocale = deps.readerLocale || ((/** @type {string} */ userId) => require('../../core/documents/serverNames.mts').readerLocale(userId));
     const checkLimits = deps.checkLimits || ((orgId, userId) => require('../../core/entitlements/limits').checkSubscriptionLimits(orgId, 'chat', userId));
     // An answer is several model calls; this is well above a person working
     // with the panel and still stops a runaway loop.
@@ -185,6 +188,7 @@ function makeSheetRouter(deps = {}) {
             return await documents().createDocument({
                 userId, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId,
                 sheetTableId: table.id, sheetTabName: await nameFor(userId, 'doc_server.sheet_tab_name', { n: 1 }),
+                sheetLocale: await readerLocale(userId),
             });
         } catch (e) {
             await cells().dropSheetTable(userId, table.id).catch((e) => bestEffort('routes/studioDocuments/sheet:startSheet', e));
@@ -203,7 +207,7 @@ function makeSheetRouter(deps = {}) {
         const sheet = await cells().readSheet(doc.userId, tab.datatableId);
         // The tabs its formulas point at, so the editor computes `Klanten!A1` instead of #REF!.
         const refTabs = await require('../../core/documents/sheetWorkbook').readReferencedTabs(doc, tabs, tab.id, sheet.cells, cells());
-        res.json({ ...sheet, refTabs, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
+        res.json({ ...sheet, refTabs, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer'), locale: sheetLocaleOf(doc) });
     }));
 
     router.patch('/:id/sheet', requireAuth, validate({ body: WriteBody }), handle(async (req, res) => {
@@ -224,7 +228,7 @@ function makeSheetRouter(deps = {}) {
         res.setHeader('Content-Disposition', contentDisposition(fileNameOf(doc.name)));
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // A BOM so spreadsheet apps read the file as UTF-8.
-        res.send('\uFEFF' + sheetCsv(raw, evaluate));
+        res.send('\uFEFF' + sheetCsv(raw, (c) => evaluate(c, { locale: sheetLocaleOf(doc) })));
     }));
 
     router.get('/:id/sheet.xlsx', requireAuth, handle(async (req, res) => {

@@ -73,3 +73,30 @@ test('an old single-table sheet answers to its implicit default tab', () => {
     assert.deepStrictEqual(next.settings.sheet.tabs, [{ id: 'default', name: 'Renamed', datatableId: 'dt1' }]);
     assert.strictEqual(next.settings.sheet.datatableId, 'dt1');
 });
+
+// ═══ locale: how the sheet reads typed numbers, fixed at creation ═══
+
+const { sheetSettingsForCreate, sheetLocaleOf } = require('./sheetDocument');
+
+test('a new sheet takes its creator\'s language for reading numbers; none given stays without one (en)', () => {
+    const nl = sheetSettingsForCreate({}, 'spreadsheet', 'dt1', failure, { tabName: 'Blad1', locale: 'nl-NL' });
+    assert.strictEqual(nl.sheet.locale, 'nl');
+    assert.strictEqual(nl.sheet.tabs[0].name, 'Blad1');
+    assert.strictEqual(sheetSettingsForCreate({}, 'spreadsheet', 'dt1', failure, { locale: 'de' }).sheet.locale, 'en');
+    const none = sheetSettingsForCreate({}, 'spreadsheet', 'dt1', failure);
+    assert.strictEqual(none.sheet.locale, undefined);
+    assert.strictEqual(sheetLocaleOf({ settings: none }), 'en', 'a sheet without a locale reads as en');
+    assert.strictEqual(sheetLocaleOf({ settings: nl }), 'nl');
+    assert.strictEqual(sheetLocaleOf(null), 'en');
+});
+
+test('saves and tab writes keep the sheet\'s locale', () => {
+    const current = { docType: 'spreadsheet', settings: { sheet: { tabs, locale: 'nl' } } };
+    const next = { settings: { sheet: { tabs: [tabs[1], tabs[0]], charts: [] } } };
+    keepSheetOnUpdate(current, next, 'spreadsheet', failure);
+    assert.strictEqual(next.settings.sheet.locale, 'nl');
+    const noSheet = /** @type {any} */ ({ settings: { houseStyle: true } });
+    keepSheetOnUpdate(current, noSheet, 'spreadsheet', failure);
+    assert.strictEqual(noSheet.settings.sheet.locale, 'nl');
+    assert.strictEqual(settingsWithTabs(current.settings, [tabs[0]]).sheet.locale, 'nl');
+});

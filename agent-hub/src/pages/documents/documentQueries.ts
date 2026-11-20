@@ -61,6 +61,8 @@ export interface LibraryRow {
     updatedBy?: string | null;
     updatedAt?: string;
     archived?: boolean;
+    /** A template a Solution stage manages: the server refuses its archive, so the library offers no archive or selection. */
+    managed?: boolean;
     /** Notebook rows only: how many sources it reads. */
     sourceCount?: number;
 }

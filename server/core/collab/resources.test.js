@@ -112,3 +112,13 @@ test('an archived page is still a row to fold back into: not co-edited, but neve
     assert.strictEqual(archived.projectId, 'p1');
     assert.strictEqual(await r.load('document', 'd-tpl'), null, 'a template is never project content');
 });
+
+test('an archived notebook is not co-edited either, and is still its own row', async () => {
+    await insertRow(pg, 'notebooks', { id: 'n-arch', user_id: 'u1', name: 'A', project_id: 'p1', organization_id: 'o1', document_content: '<p>x</p>', archived: true });
+    const r = makeResources({ getOne: realGetOne(), log: quiet });
+    const archived = await r.load('notebook', 'n-arch');
+    assert.strictEqual(archived.supported, false, 'nobody edits it live');
+    assert.strictEqual(archived.archived, true);
+    assert.strictEqual(archived.projectId, 'p1');
+    assert.strictEqual((await r.load('notebook', 'n1')).archived, undefined, 'a live notebook carries no flag');
+});

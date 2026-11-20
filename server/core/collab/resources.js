@@ -81,13 +81,13 @@ function makeResources(deps = {}) {
         const share = lock ? ' FOR SHARE' : '';
         if (kind === 'notebook') {
             const r = await getOne(
-                `SELECT id, user_id, project_id, organization_id, document_content, document_md FROM notebooks WHERE id = $1${share}`,
+                `SELECT id, user_id, project_id, organization_id, document_content, document_md, archived FROM notebooks WHERE id = $1${share}`,
                 [id],
             );
             if (!r) return null;
-            return {
+            return { // an archived notebook is not co-edited, as an archived page is not
                 id: r.id, kind, projectId: r.project_id || null, ownerId: r.user_id || null, orgId: r.organization_id || null,
-                html: r.document_content || '', markdown: r.document_md ?? null, supported: true,
+                html: r.document_content || '', markdown: r.document_md ?? null, supported: r.archived !== true, ...(r.archived === true ? { archived: true } : {}),
             };
         }
         if (kind === 'document') {

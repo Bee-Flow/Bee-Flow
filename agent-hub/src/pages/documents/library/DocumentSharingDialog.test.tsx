@@ -119,3 +119,12 @@ it('sends can edit for a document, keeps the select off while private, and hides
     await screen.findByRole('combobox', { name: 'Who has access' });
     expect(screen.queryByRole('combobox', { name: 'What they can do' })).toBeNull();
 });
+
+it('says a notebook is read, not edited, by its recipients; a document says they may also edit', async () => {
+    const { unmount } = render(withQueryClient(<DocumentSharingDialog row={{ id: 'n1', userId: 'alice', name: 'Research', docType: 'notebook' }} onClose={vi.fn()} />));
+    expect(await screen.findByText('Recipients can read this notebook but not change it. Only you can change its sharing or folder, or archive it.')).toBeInTheDocument();
+    expect(screen.queryByText(/also edit its content/)).not.toBeInTheDocument();
+    unmount();
+    render(withQueryClient(<DocumentSharingDialog row={{ id: 'd1', userId: 'alice', name: 'Plan', docType: 'page' }} onClose={vi.fn()} />));
+    expect(await screen.findByText(/also edit its content/)).toBeInTheDocument();
+});

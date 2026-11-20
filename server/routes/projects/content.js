@@ -192,7 +192,7 @@ function makeContentRouter(deps = {}) {
             });
             const table = await cells().createSheetTable({ ownerUserId: userId, name });
             try {
-                document = await documents().createDocument({ ...base, docType: 'spreadsheet', sheetTableId: table.id });
+                document = await documents().createDocument({ ...base, docType: 'spreadsheet', sheetTableId: table.id, ...(typeof locale === 'string' ? { sheetLocale: locale } : {}) });
             } catch (err) {
                 await cells().dropSheetTable(userId, table.id).catch((e) => bestEffort('routes/projects/content:makeContentRouter', e));
                 throw fromStoreError(err);

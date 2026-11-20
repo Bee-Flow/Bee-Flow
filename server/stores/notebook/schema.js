@@ -114,6 +114,10 @@ async function _initDB() {
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS folder_id TEXT DEFAULT NULL`,
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS categories JSONB NOT NULL DEFAULT '[]'::jsonb`,
         `CREATE INDEX IF NOT EXISTS idx_notebooks_user_updated ON notebooks(user_id, updated_at DESC)`,
+        // Archived like every other document (stores/notebookLibrary.js): out of
+        // the library, its projects and its shares until the owner restores it;
+        // deleting for good is only offered for an archived notebook.
+        `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT false`,
     ]);
 
     await exec(sharingDdl('notebooks'));

@@ -110,7 +110,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                 ]} />
             <button type="button" className={usesHouseStyle ? TOOL_BUTTON : `${TOOL_BUTTON} bg-transparent border border-[var(--border-subtle)] text-[var(--text-tertiary)]`}
                 onClick={props.onToggleHouseStyle} disabled={readOnly} data-testid="document-house-style-toggle" data-on={String(usesHouseStyle)}
-                title={usesHouseStyle ? t('documents.house_style_on_hint', 'This document uses the organisation\'s house style. Click to turn it off for this document only.') : t('documents.house_style_off_hint', 'This document ignores the house style. Click to turn it back on.')}>
+                title={usesHouseStyle ? t('doc_house_style.toggle_on_hint', 'This document follows the organisation\'s current house style. Click to turn it off for this document only.') : t('doc_house_style.toggle_off_hint', 'This document does not use the house style. Click to follow the organisation\'s current house style again.')}>
                 <Stamp size={14} aria-hidden="true" />{usesHouseStyle ? t('documents.house_style_on', 'House style') : t('documents.house_style_off', 'No house style')}
             </button>
             <SideButtons side={props.side} onSide={props.onSide} canComment={props.canComment} findOpen={props.findOpen} onFind={props.onFind} isDeck={isDeck} />

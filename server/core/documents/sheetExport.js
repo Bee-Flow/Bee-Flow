@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { sheetTabsOf } = require('../../stores/lib/sheetDocument');
+const { sheetTabsOf, sheetLocaleOf } = require('../../stores/lib/sheetDocument');
 const { buildXlsxWorkbook, sanitizeSheetName } = require('./office/xlsxWorkbook');
 const { chartProblem } = require('./sheetChartSpec');
 
@@ -123,10 +123,29 @@ function xlsxFileName(raw, fallback = 'spreadsheet') {
  * @param {string[]} names
  * @param {number} i
  * @param {Record<string, string>[]} raws
+ * @param {{ evaluate?: Function }} deps
+ * @param {'nl'|'en'} locale  how the sheet reads typed numbers
  */
-function computedFor(raws, names, i, deps) {
+function computedFor(raws, names, i, deps, locale) {
     const evaluate = deps.evaluate || require('../../shared/expr/sheet.mjs').evaluateSheet;
-    return evaluate(raws[i], { workbook: Object.fromEntries(names.map((n, k) => [n, raws[k]])), activeSheet: names[i] });
+    return evaluate(raws[i], { workbook: Object.fromEntries(names.map((n, k) => [n, raws[k]])), activeSheet: names[i], locale });
+}
+
+/**
+ * One typed cell as Excel stores it: a formula with `,` between its arguments
+ * (we also take `;`) and the tabs it names quoted; a number typed the sheet's
+ * way (`1,5`, `€ 10` in a Dutch sheet) as that number; anything else as typed.
+ * A value that is not text (a stored cell never is) goes through as it is.
+ * @param {string} v
+ * @param {string[]} names
+ * @param {'nl'|'en'} locale
+ * @returns {string | { formula: string }}
+ */
+function excelCell(v, names, locale) {
+    if (typeof v !== 'string') return v;
+    if (/^=.+/.test(v)) return { formula: quoteSheetRefs(require('../../shared/expr/sheet.mjs').canonicalFormula(v), names) };
+    const read = require('../../shared/expr/sheetValues.mjs').readConstant(v, locale);
+    return read.shown !== undefined && typeof read.value === 'number' ? String(read.value) : v;
 }
 
 /**
@@ -144,17 +163,15 @@ async function buildSheetWorkbook(doc, deps = {}) {
     const charts = (Array.isArray(doc.settings?.sheet?.charts) ? doc.settings.sheet.charts : []).filter((c) => !chartProblem(c));
     /** @type {Record<string, string>[]} */
     const raws = [];
+    const locale = sheetLocaleOf(doc);
     for (let i = 0; i < tabs.length; i++) raws.push((await sheetCells.readSheet(doc.userId, tabs[i].datatableId)).cells || {});
     const sheets = raws.map((cells, i) => {
         /** @type {Record<string, string | { formula: string; }>} */
         const quoted = {};
-        for (const [k, v] of Object.entries(cells)) {
-            // The document sheet's own convention: "=…" text is a formula.
-            const text = typeof v === 'string' ? quoteSheetRefs(v, names) : v;
-            quoted[k] = typeof text === 'string' && /^=.+/.test(text) ? { formula: text } : text;
-        }
+        // The document sheet's own convention: "=…" text is a formula.
+        for (const [k, v] of Object.entries(cells)) quoted[k] = excelCell(v, names, locale);
         const mine = charts.filter((c) => (c.tab ? c.tab === tabs[i].id : i === 0));
-        const values = mine.length ? computedFor(raws, names, i, deps) : undefined;
+        const values = mine.length ? computedFor(raws, names, i, deps, locale) : undefined;
         return { name: names[i], matrix: cellsToMatrix(quoted), charts: mine, values };
     });
     const buffer = await buildXlsxWorkbook(sheets, { formulas: true });

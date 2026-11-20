@@ -93,6 +93,7 @@ const router = makeSheetRouter({
     assistantLimiter: (req, res, next) => next(),
     // The reader's language: Dutch when the test says so, otherwise the English defaults.
     serverName: async (_userId, key, vars) => fill((state.dutch ? NL : GUI_DEFAULTS)[key], vars),
+    readerLocale: async () => (state.dutch ? 'nl' : 'en'),
 });
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
@@ -108,7 +109,7 @@ const expectedTabs = [{ id: 't1', name: 'Budget', datatableId: 'dt1' }];
 test('the owner reads the cells; a project viewer reads them read-only', async () => {
     const mine = await as('owner', 'GET', '/s1/sheet');
     assert.strictEqual(mine.status, 200, mine.text);
-    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, refTabs: {}, tabs: expectedTabs, activeTab: 't1', readOnly: false });
+    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, refTabs: {}, tabs: expectedTabs, activeTab: 't1', readOnly: false, locale: 'en' });
     const theirs = await as('viewer', 'GET', '/s1/sheet');
     assert.strictEqual(theirs.body.readOnly, true);
     assert.deepStrictEqual(theirs.body.tabs, expectedTabs);
@@ -180,7 +181,7 @@ test('starting a sheet makes its table, then the document that names it', async 
     assert.strictEqual(res.status, 201, res.text);
     assert.deepStrictEqual(state.created, [{
         userId: 'owner', name: 'Q3 numbers', docType: 'spreadsheet', kind: 'document', visibility: 'private',
-        folderId: 'f1', sheetTableId: 'dt-owner-Q3 numbers', sheetTabName: 'Sheet1',
+        folderId: 'f1', sheetTableId: 'dt-owner-Q3 numbers', sheetTabName: 'Sheet1', sheetLocale: 'en',
     }]);
 });
 
@@ -215,6 +216,7 @@ test('what the server names itself is in the reader\'s language: a new sheet, a 
     assert.strictEqual(started.status, 201, started.text);
     assert.strictEqual(state.created[0].name, 'Naamloze spreadsheet');
     assert.strictEqual(state.created[0].sheetTabName, 'Blad1', 'its first tab too');
+    assert.strictEqual(state.created[0].sheetLocale, 'nl', 'and it reads numbers the Dutch way (1,5)');
     const tab = await as('owner', 'POST', '/s1/sheet/tabs', {});
     assert.strictEqual(tab.status, 201, tab.text);
     assert.strictEqual(tab.body.tab.name, 'Blad2');
@@ -406,4 +408,22 @@ test('a directly shared spreadsheet is read-only even without a project role', a
     assert.strictEqual(write.status, 403);
     assert.strictEqual(write.body.code, 'document_read_only');
     assert.strictEqual(state.writes.length, previousWrites);
+});
+
+test('a Dutch sheet: the editor learns its locale, and the CSV sums numbers typed the Dutch way', async () => {
+    DOCS.s1.settings = { sheet: { ...baseSettings().sheet, locale: 'nl' } };
+    state.cells = { A1: '1,5', A2: '€ 10', A3: '=SUM(A1;A2)' };
+    const read = await as('owner', 'GET', '/s1/sheet');
+    assert.strictEqual(read.body.locale, 'nl');
+    const csv = await as('owner', 'GET', '/s1/sheet.csv');
+    assert.strictEqual(csv.status, 200, csv.text);
+    assert.strictEqual(csv.text.replace('\uFEFF', ''), '"1,5"\r\n€ 10\r\n11.5\r\n');
+});
+
+test('a copy reads typed numbers the way the original does', async () => {
+    DOCS.s1.settings = { sheet: { ...baseSettings().sheet, locale: 'nl' } };
+    const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    await router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1);
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(state.created[0].sheetLocale, 'nl');
 });

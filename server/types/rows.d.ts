@@ -2145,6 +2145,7 @@ declare namespace DbRow {
     }
     /** Row of `notebooks`. */
     interface Notebooks {
+        archived: boolean;
         categories: Json;
         created_at: Date;
         description: string | null;

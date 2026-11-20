@@ -88,7 +88,7 @@ function deckFromDocument(doc, values = null, { sectionOverrides = {} } = {}) {
  * @typedef {{ document: import('../../stores/documentStore').DocumentView, values?: any|null, format?: 'pptx'|'pdf'|'html',
  *   orgId?: string|null, marking?: any|null, resolveImage?: ((ref: unknown) => Promise<string|null>) | null,
  *   draft?: { bodyHtml?: unknown, settings?: Record<string, unknown> } | null,
- *   sectionOverrides?: Record<string, any>, assertFilled?: boolean }} RenderDeckArgs
+ *   sectionOverrides?: Record<string, any>, assertFilled?: boolean, placeholders?: boolean }} RenderDeckArgs
  */
 
 /**
@@ -100,18 +100,21 @@ function deckFromDocument(doc, values = null, { sectionOverrides = {} } = {}) {
  *   `resolveImage` how image references become bytes (presentationRenderer.makeUserImageResolver);
  *   `draft` unsaved settings to preview with (the editor's look tab), merged over the stored ones;
  *   `sectionOverrides` per-section overrides for this render; `assertFilled` refuses to render
- *   with unfilled required placeholders (default true)
+ *   with unfilled required placeholders (default true); `placeholders` prints a value nobody gave as
+ *   its label in brackets instead (a template's download, core/documents/templatePlaceholders.mts)
  * @returns {Promise<any>} presentationRenderer's result plus `fill` and `deck`
  */
 async function renderDeckDocument({
     document: doc, values = null, sectionOverrides = {}, format = 'pptx', orgId = null, marking = null,
-    resolveImage = null, draft = null, assertFilled = true,
+    resolveImage = null, draft = null, assertFilled = true, placeholders = false,
 } = /** @type {RenderDeckArgs} */ ({})) {
     const source = draft && typeof draft === 'object'
         ? { ...doc, ...(typeof draft.bodyHtml === 'string' ? { bodyHtml: draft.bodyHtml } : {}), settings: { ...(doc.settings || {}), ...(draft.settings || {}) } }
         : doc;
-    const { deck, fill } = deckFromDocument(source, values, { sectionOverrides });
-    if (fill && assertFilled) require('./documentContract').assertFinal(fill);
+    const preview = placeholders ? require('./templatePlaceholders.mts').templatePreviewValues(source, values || {}) : null;
+    const { deck, fill } = deckFromDocument(source, preview ? preview.values : values, { sectionOverrides });
+    const checked = fill && preview ? require('./templatePlaceholders.mts').tolerateTemplateGaps(fill, preview.filled) : fill;
+    if (checked && assertFilled) require('./documentContract').assertFinal(checked);
 
     const { renderPresentation } = featureModule('services/presentationRenderer');
     const out = await renderPresentation({

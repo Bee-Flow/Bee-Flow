@@ -33,7 +33,9 @@ export default function DocumentSharingDialog({ row, onClose }: { row: LibraryRo
         <Modal open onClose={() => { if (!save.isPending) onClose(); }} title={t('documents.sharing.title', 'Share {name}', { name: row.name })} size="md"
             footer={<div className="flex justify-end gap-2"><button type="button" className={CONTROL} onClick={onClose} disabled={save.isPending}>{t('documents.cancel', 'Cancel')}</button><button type="button" className={`${CONTROL} bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]`} disabled={!value || sharing.isError || directory.isError || save.isPending || empty} onClick={() => save.mutate()}>{save.isPending ? t('documents.saving', 'Saving…') : t('common.save', 'Save')}</button></div>}>
             <div className="space-y-4">
-                <p className="text-sm text-[var(--text-secondary)]">{t('documents.sharing.read_access', 'Choose whether recipients can only read this document or also edit its content. Only you can change its sharing, type or folder, or delete it.')}</p>
+                <p className="text-sm text-[var(--text-secondary)]">{isNotebookRow(row)
+                    ? t('doc_archive.sharing_notebook', 'Recipients can read this notebook but not change it. Only you can change its sharing or folder, or archive it.')
+                    : t('documents.sharing.read_access', 'Choose whether recipients can only read this document or also edit its content. Only you can change its sharing, type or folder, or delete it.')}</p>
                 {sharing.isPending && <p role="status">{t('documents.sharing.loading', 'Loading sharing settings…')}</p>}
                 {error && <p role="alert" className="text-sm text-[var(--error)]">{error.message}</p>}
                 {value && <>

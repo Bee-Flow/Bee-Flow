@@ -38,6 +38,7 @@
                 "sheet.mjs",
                 "sheetDates.mjs",
                 "sheetFill.mjs",
+                "sheetValues.mjs",
                 "corpusLists.mjs",
                 "corpusCollections.mjs",
                 "regexEngine.mjs"

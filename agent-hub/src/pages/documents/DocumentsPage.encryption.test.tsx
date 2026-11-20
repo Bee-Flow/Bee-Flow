@@ -24,7 +24,7 @@ vi.mock('../EncryptionSetup', () => ({ default: ({ onComplete }: { onComplete: (
 
 const { default: DocumentsPage } = await import('./DocumentsPage');
 
-const starter = { id: 'security', name: 'Security policy / report', docType: 'security', kind: 'template', settings: { contract: { parameters: [{}, {}] } } };
+const starter = { id: 'security', name: 'Security statement', docType: 'security', kind: 'template', settings: { contract: { parameters: [{}, {}] } } };
 const locked = () => Object.assign(new Error('The encryption key for this document is unavailable. Unlock encryption before continuing.'), { status: 423, code: 'document_encryption_key_unavailable' });
 
 beforeEach(() => {
@@ -41,7 +41,7 @@ const start = async () => {
     render(withQueryClient(<DocumentsPage />));
     const u = userEvent.setup();
     await u.click(await screen.findByTestId('documents-new'));
-    await u.click(await screen.findByRole('button', { name: /Security policy/ }));
+    await u.click(await screen.findByRole('button', { name: /Security statement/ }));
     return u;
 };
 

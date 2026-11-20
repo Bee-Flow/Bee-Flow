@@ -1,13 +1,16 @@
 // The library's controls, in Studio's overview language (the Agents and
 // Automations overviews): a compact search box for the header, counted-style
 // pills for the view and the type, small selects for the rest, and the bar
-// that acts on the selected documents (move to a folder, categorise).
+// that acts on the selected documents (move to a folder, add categories, or
+// clear them after a confirmation).
 
 import { Archive, Search } from 'lucide-react';
 import { useState } from 'react';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import FilterPillsJs from '@/components/shared/FilterPills';
 import useTranslation from '@/hooks/useTranslation';
 import type { Folder } from '../documentQueries';
+import { parseCategories } from './categoryFiling';
 import { formatApplies, type LibraryFormat, type LibraryKind, type useLibraryFilters } from './useLibrary';
 
 const FilterPills = FilterPillsJs;
@@ -64,7 +67,7 @@ export function LibraryFilterBar({ f, notebooks, spreadsheets }: { f: ReturnType
         { value: 'page', label: t('documents.library.type_pages', 'Pages') },
         ...(notebooks ? [{ value: 'notebook' as const, label: t('documents.notebook.type_filter', 'Notebooks') }] : []),
         ...(spreadsheets ? [{ value: 'spreadsheet' as const, label: t('documents.sheet.type_filter', 'Spreadsheets') }] : []),
-        { value: 'designed', label: t('documents.library.type_designed', 'Designed documents') },
+        { value: 'designed', label: t('doc_gallery.type_filter_customer', 'Customer documents') },
         { value: 'presentation', label: t('documents.library.type_presentations', 'Presentations') },
     ];
     const shown = types.filter((x) => formatApplies(x.value, f.kind, f.archived));
@@ -73,9 +76,10 @@ export function LibraryFilterBar({ f, notebooks, spreadsheets }: { f: ReturnType
             <FilterPills value={formatApplies(f.format, f.kind, f.archived) ? f.format : ''} onChange={(value) => f.setFormat(value as LibraryFormat)} options={shown} ariaLabel={t('documents.library.type', 'Document type')} testId="documents-format-filter" />
             <div className="ml-auto flex flex-wrap items-center gap-2">
                 <select className={CONTROL} value={f.visibility} onChange={(e) => f.setVisibility(e.target.value)} aria-label={t('documents.library.visibility', 'Visibility')}>
-                    <option value="">{t('documents.library.visibility_all', 'Private and team')}</option>
+                    <option value="">{t('doc_gallery.visibility_all', 'Private and shared')}</option>
                     <option value="private">{t('documents.library.visibility_private', 'Private')}</option>
-                    <option value="team">{t('documents.library.team', 'Team')}</option>
+                    {/* The server's "team" is every shared document: with some people or with everyone. */}
+                    <option value="team">{t('doc_gallery.visibility_shared', 'Shared')}</option>
                 </select>
                 <input className={`${CONTROL} w-40`} value={f.category} onChange={(e) => f.setCategory(e.target.value)} placeholder={t('documents.library.category_placeholder', 'Filter by category')} aria-label={t('documents.library.category', 'Category')} />
                 <select className={CONTROL} value={f.sort} onChange={(e) => f.setSort(e.target.value as 'updated' | 'name')} aria-label={t('documents.library.sort', 'Sort')}>
@@ -87,13 +91,39 @@ export function LibraryFilterBar({ f, notebooks, spreadsheets }: { f: ReturnType
     );
 }
 
-export function BulkBar({ count, folders, busy, onMove, onCategorise, onClear }: {
+/** Clearing categories takes them off every selected document: it asks first. */
+function ClearCategories({ count, busy, onClear }: { count: number; busy: boolean; onClear: () => void }) {
+    const { t } = useTranslation();
+    const [asking, setAsking] = useState(false);
+    return (
+        <>
+            <button type="button" className={BUTTON} disabled={busy} onClick={() => setAsking(true)}>{t('doc_gallery.clear_categories', 'Clear categories')}</button>
+            <ConfirmDialog
+                open={asking}
+                title={t('doc_gallery.clear_categories_title', 'Clear the categories?')}
+                description={t('doc_gallery.clear_categories_desc', 'Every category is taken off the {count} selected documents. The documents themselves stay as they are.', { count })}
+                confirmLabel={t('doc_gallery.clear_categories', 'Clear categories')}
+                cancelLabel={t('documents.cancel', 'Cancel')}
+                destructive
+                onConfirm={() => { setAsking(false); onClear(); }}
+                onCancel={() => setAsking(false)}
+            />
+        </>
+    );
+}
+
+export function BulkBar({ count, folders, busy, onMove, onAddCategories, onClearCategories, onClear }: {
     count: number; folders: Folder[]; busy: boolean;
-    onMove: (folderId: string | null) => void; onCategorise: (categories: string[]) => void; onClear: () => void;
+    onMove: (folderId: string | null) => void;
+    /** Adds to each document's own categories; never replaces them. */
+    onAddCategories: (categories: string[]) => void;
+    onClearCategories: () => void;
+    onClear: () => void;
 }) {
     const { t } = useTranslation();
     const [categories, setCategories] = useState('');
     if (!count) return null;
+    const added = parseCategories(categories);
     return (
         <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="library-bulk">
             <span className="text-xs font-medium text-[var(--text-primary)]">{t('documents.library.selected', '{count} selected', { count })}</span>
@@ -103,7 +133,8 @@ export function BulkBar({ count, folders, busy, onMove, onCategorise, onClear }:
                 {folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
             </select>
             <input className={`${CONTROL} w-56`} value={categories} onChange={(e) => setCategories(e.target.value)} placeholder={t('documents.library.categories_placeholder', 'Categories, separated by commas')} aria-label={t('documents.library.categories', 'Categories')} />
-            <button type="button" className={BUTTON} disabled={busy} onClick={() => onCategorise(categories.split(',').map((x) => x.trim()).filter(Boolean))}>{t('documents.library.set_categories', 'Set categories')}</button>
+            <button type="button" className={BUTTON} disabled={busy || !added.length} onClick={() => { onAddCategories(added); setCategories(''); }}>{t('doc_gallery.add_categories', 'Add categories')}</button>
+            <ClearCategories count={count} busy={busy} onClear={onClearCategories} />
             <button type="button" className="text-xs underline ml-auto text-[var(--text-secondary)]" onClick={onClear}>{t('documents.library.clear_selection', 'Clear selection')}</button>
         </div>
     );

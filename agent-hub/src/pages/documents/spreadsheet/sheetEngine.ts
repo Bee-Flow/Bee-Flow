@@ -14,6 +14,8 @@ interface EvaluateOptions {
     workbook?: Record<string, Record<string, string>>;
     /** The name of the tab `cells` belongs to, within `workbook`. */
     activeSheet?: string;
+    /** How typed numbers are read: 'nl' takes 1,5 and € 10 (shared/expr/sheetValues.mjs). */
+    locale?: 'nl' | 'en';
 }
 interface EngineApi {
     evaluateSheet: (cells: Record<string, string>, options?: EvaluateOptions) => Computed;

@@ -25,6 +25,27 @@ function singleTabSettings(datatableId, name = 'Sheet1') {
 }
 
 /**
+ * How a sheet reads typed numbers (shared/expr/sheetValues.mjs): 'nl' reads
+ * 1,5 and 1.234,56, 'en' reads 1,234.56. Set once when the sheet is made, from
+ * its creator's language, so every reader computes the same values; a sheet
+ * from before the setting existed is 'en'.
+ * @param {unknown} locale
+ * @returns {'nl'|'en'}
+ */
+function normaliseSheetLocale(locale) {
+    return typeof locale === 'string' && locale.trim().toLowerCase().startsWith('nl') ? 'nl' : 'en';
+}
+
+/**
+ * The locale a spreadsheet's formulas read typed numbers with.
+ * @param {{ settings?: any } | null | undefined} doc
+ * @returns {'nl'|'en'}
+ */
+function sheetLocaleOf(doc) {
+    return normaliseSheetLocale(doc?.settings?.sheet?.locale);
+}
+
+/**
  * Backward-compatible read of a spreadsheet's tabs. Old documents stored a
  * single `{ datatableId }`; they are treated as one unnamed tab named Sheet1.
  * @param {{ settings?: { sheet?: { tabs?: any[], datatableId?: string } } }} doc
@@ -145,19 +166,22 @@ function pinnedTabs(current, sent, mayAddOrRemove, failure) {
  * @param {string} docType  normalised
  * @param {unknown} sheetTableId
  * @param {(message: string, status: number, errorClass: string) => Error} failure
- * @param {unknown} [tabName]  the first tab's name, in the creator's language (the sheet route); Sheet1 otherwise
+ * @param {{ tabName?: unknown, locale?: unknown }} [made]  the first tab's name, in the creator's language (the
+ *   sheet route; Sheet1 otherwise), and the creator's language for reading typed numbers (left out: 'en')
  */
-function sheetSettingsForCreate(settings, docType, sheetTableId, failure, tabName) {
+function sheetSettingsForCreate(settings, docType, sheetTableId, failure, made = {}) {
     const { sheet: _ignored, ...rest } = settings || {};
     if (docType !== SHEET_DOC_TYPE) return rest;
     if (typeof sheetTableId !== 'string' || !sheetTableId) {
         throw failure('A spreadsheet is started from Documents → New document → Spreadsheet.', 422, 'sheet_needs_table');
     }
+    const { tabName, locale } = made;
     const name = typeof tabName === 'string' && tabName.trim() ? tabName.trim().slice(0, 100) : undefined;
-    return { ...rest, sheet: singleTabSettings(sheetTableId, name) };
+    const reads = typeof locale === 'string' && locale ? { locale: normaliseSheetLocale(locale) } : {};
+    return { ...rest, sheet: { ...singleTabSettings(sheetTableId, name), ...reads } };
 }
 
 module.exports = {
     SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate,
-    newTabId, singleTabSettings, sheetTabsOf, settingsWithTabs,
+    newTabId, singleTabSettings, sheetTabsOf, settingsWithTabs, sheetLocaleOf, normaliseSheetLocale,
 };

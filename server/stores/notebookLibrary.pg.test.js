@@ -8,7 +8,8 @@
  *     listed, searched, sorted and counted together with the documents;
  *   - only for a reader the route let through the notebook gates
  *     (`includeNotebooks`), only the owner's own, and only where the filters
- *     leave room for a notebook (never a template, team, archived view);
+ *     leave room for a notebook (never a template or team view); archived
+ *     like a document, into its owner's Archived view only;
  *   - filed in a folder and under categories by its owner; a deleted folder's
  *     notebooks move up to its parent, as its documents do.
  *
@@ -120,4 +121,65 @@ test('the owner files a notebook in a folder and under categories; nobody else c
 test('somebody else\'s notebook is never in my library', async () => {
     const list = await documents.listDocumentsPage('alice', { kind: 'document', includeNotebooks: true });
     assert.ok(!ids(list).includes(draft.id));
+});
+
+test('an archived notebook leaves the library, its shares and its project, and waits in its owner\'s Archived view', async () => {
+    const shelf = await notebooks.createNotebook({ userId: 'alice', name: 'Shelved study', organizationId: 'org1' });
+    await pg.query(`INSERT INTO projects (id, owner_id, organization_id) VALUES ('p-shelf', 'alice', 'org1')`);
+    await pg.query(`UPDATE notebooks SET sharing_audience = 'organisation', project_id = 'p-shelf' WHERE id = $1`, [shelf.id]);
+    // Shared with the organisation: bob reads it, in his library too.
+    assert.strictEqual(await notebooks.resolveNotebookRole(shelf.id, 'bob'), 'viewer');
+    assert.ok(ids(await documents.listDocumentsPage('bob', { kind: 'document', includeNotebooks: true })).includes(shelf.id));
+    assert.strictEqual((await notebooks.countProjectNotebooks(['p-shelf'])).get('p-shelf'), 1);
+
+    const archived = await library.setNotebookArchived('alice', shelf.id, true);
+    assert.strictEqual(archived.id, shelf.id);
+    assert.deepStrictEqual(await library.ownNotebookState('alice', shelf.id), { archived: true });
+    // Out of every live list, the owner's included.
+    assert.ok(!ids(await documents.listDocumentsPage('alice', { kind: 'document', includeNotebooks: true })).includes(shelf.id));
+    assert.ok(!ids(await documents.listDocumentsPage('bob', { kind: 'document', includeNotebooks: true })).includes(shelf.id));
+    await require('./notebookConversationStore').initDB();
+    assert.ok(!(await notebooks.listNotebookCards('alice')).some((c) => c.id === shelf.id));
+    assert.deepStrictEqual((await notebooks.listProjectNotebooks('p-shelf')).map((c) => c.id), []);
+    assert.strictEqual((await notebooks.countProjectNotebooks(['p-shelf'])).get('p-shelf'), undefined);
+    // Its recipients and project members no longer reach it; its owner still does.
+    assert.strictEqual(await notebooks.resolveNotebookRole(shelf.id, 'bob'), null);
+    assert.strictEqual(await notebooks.getNotebook(shelf.id, 'bob'), null);
+    assert.strictEqual((await notebooks.getNotebook(shelf.id, 'alice')).role, 'owner');
+    // The owner's Archived view lists it (also under the notebook type); nobody else's does.
+    const view = await documents.listDocumentsPage('alice', { archived: true, includeNotebooks: true });
+    const row = view.documents.find((d) => d.id === shelf.id);
+    assert.ok(row, 'in the Archived view');
+    assert.strictEqual(row.archived, true);
+    assert.deepStrictEqual(ids(await documents.listDocumentsPage('alice', { archived: true, docType: 'notebook', includeNotebooks: true })), [shelf.id]);
+    assert.ok(!ids(await documents.listDocumentsPage('bob', { archived: true, includeNotebooks: true })).includes(shelf.id));
+    // Only the owner archives or restores.
+    assert.strictEqual(await library.setNotebookArchived('bob', shelf.id, false), null);
+    assert.strictEqual(await library.ownNotebookState('bob', shelf.id), null);
+
+    // Restored: back in the library, its project and its shares.
+    assert.ok(await library.setNotebookArchived('alice', shelf.id, false));
+    assert.strictEqual(await library.setNotebookArchived('alice', shelf.id, false), null, 'a live notebook is not restored');
+    assert.ok(ids(await documents.listDocumentsPage('alice', { kind: 'document', includeNotebooks: true })).includes(shelf.id));
+    assert.strictEqual(await notebooks.resolveNotebookRole(shelf.id, 'bob'), 'viewer');
+    assert.deepStrictEqual((await notebooks.listProjectNotebooks('p-shelf')).map((c) => c.id), [shelf.id]);
+});
+
+test('a library row says whether a Solution stage manages it', async () => {
+    const managed = await documents.createDocument({ userId: 'alice', name: 'Stage offer', kind: 'template' });
+    const free = await documents.createDocument({ userId: 'alice', name: 'Dev offer', kind: 'template' });
+    await pg.query(`INSERT INTO projects (id, owner_id, organization_id) VALUES ('p-uat', 'alice', 'org1'), ('p-dev', 'alice', 'org1')`);
+    await pg.query('UPDATE studio_documents SET solution_project_id = $2 WHERE id = $1', [managed.id, 'p-uat']);
+    await pg.query('UPDATE studio_documents SET solution_project_id = $2 WHERE id = $1', [free.id, 'p-dev']);
+    // Without a stages table nothing is managed.
+    let list = await documents.listDocumentsPage('alice', { kind: 'template' });
+    assert.ok(list.documents.every((d) => d.managed === false));
+    await pg.exec(`CREATE TABLE solution_stages (project_id TEXT PRIMARY KEY, solution_id TEXT, stage TEXT, current_release_seq INT);
+        INSERT INTO solution_stages VALUES ('p-uat', 'p-dev', 'uat', 1);`);
+    list = await documents.listDocumentsPage('alice', { kind: 'template', includeNotebooks: true });
+    const byId = Object.fromEntries(list.documents.map((d) => [d.id, d.managed]));
+    assert.strictEqual(byId[managed.id], true);
+    assert.strictEqual(byId[free.id], false);
+    const notebookRows = (await documents.listDocumentsPage('alice', { kind: 'document', includeNotebooks: true })).documents.filter((d) => d.docType === 'notebook');
+    assert.ok(notebookRows.length && notebookRows.every((d) => d.managed === false));
 });

@@ -738,7 +738,7 @@ router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (r
         const { renderFilledDocument } = require('../core/documents/renderFilledDocument');
         const out = await renderFilledDocument({ document: doc, values: doc.settings.sampleValues || {},
             sectionOverrides: doc.settings.sectionOverrides || {}, orgId: orgIdOf(req), marking, format: 'pptx',
-            resolveImage: imageResolverFor(req, doc) });
+            resolveImage: imageResolverFor(req, doc), placeholders: doc.kind === 'template' });
         res.set('Content-Type', out.contentType);
         res.set('Content-Disposition', `attachment; filename="${pdfFilename(doc.name, 'pptx')}"`);
         res.send(out.buffer);
@@ -787,7 +787,8 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
         const { renderFilledDocument } = require('../core/documents/renderFilledDocument');
         const out = await renderFilledDocument({ document: doc, values: doc.settings.sampleValues || {},
             sectionOverrides: doc.settings.sectionOverrides || {}, orgId: orgIdOf(req), marking, format: 'pdf',
-            resolveImage: imageResolverFor(req, doc) });
+            // A template keeps no sample values: its gaps print as "[Label]" instead of refusing the file.
+            resolveImage: imageResolverFor(req, doc), placeholders: doc.kind === 'template' });
 
         res.set('Content-Type', out.contentType);
         res.set('Content-Disposition', `attachment; filename="${pdfFilename(doc.name)}"`);

@@ -7,7 +7,10 @@ import { withQueryClient } from '../../test/queryWrapper';
  * The library: loading, failed and empty are different screens; the list on
  * screen stays while the next page or search loads; totals and a pager;
  * archiving and deleting a folder ask first; the archive has a way back;
- * owner and last editor are named; a new page is one click.
+ * owner and last editor are named; a new page is one click. The intro names
+ * only what this reader can make; the gallery copies one of the reader's own
+ * templates; a shared row says "Shared"; categories are added, and cleared
+ * only after a confirmation.
  */
 
 const { api, client } = vi.hoisted(() => ({
@@ -25,14 +28,18 @@ vi.mock('./HouseStylePanel', () => ({ default: () => <div data-testid="house-sty
 const { default: DocumentsPage } = await import('./DocumentsPage');
 
 const row = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: `Doc ${id}`, userId: 'me', docType: 'letter', versionId: `v-${id}`, updatedAt: new Date().toISOString(), ...extra });
+const TEMPLATE = { id: 'tpl-1', name: 'Welcome letter', docType: 'letter', kind: 'template' };
 const deferred = <T,>() => { let resolve!: (v: T) => void; const promise = new Promise<T>((r) => { resolve = r; }); return { promise, resolve }; };
 
 beforeEach(() => {
     for (const fn of Object.values(api)) fn.mockReset();
-    client.get.mockReset().mockResolvedValue({ user: { id: 'me', displayName: 'Me' } });
+    client.get.mockReset().mockImplementation(async (path: string) => (path === '/api/studio-documents'
+        ? { documents: [TEMPLATE], spreadsheets: false }
+        : { user: { id: 'me', displayName: 'Me' } }));
     api.documentRequest.mockImplementation(async (path: string) => {
         if (path === '/folders') return { folders: [{ id: 'f1', name: 'Customers', parentId: null }] };
         if (path.startsWith('/starters')) return { starters: [] };
+        if (path === '/tpl-1/duplicate') return { document: { id: 'from-tpl' } };
         return {};
     });
     api.listDocumentsPage.mockResolvedValue({ documents: [row('a'), row('b', { userId: 'anna', updatedBy: 'ben', docType: 'page' })], total: 2, people: { anna: { name: 'Anna' }, ben: {} } });
@@ -251,5 +258,104 @@ describe('DocumentsPage: what each row offers', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Folder not found');
         expect(screen.getByRole('button', { name: 'Delete folder Customers' })).toBeInTheDocument();
         expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ folderId: 'f1' }));
+    });
+});
+
+describe('DocumentsPage: the intro names what this reader can make', () => {
+    it('without notebooks and spreadsheets', async () => {
+        renderPage();
+        expect(await screen.findByText('Make pages, customer documents and presentations here, on your own or together.')).toBeInTheDocument();
+    });
+
+    it('with notebooks and spreadsheets', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('a')], total: 1, people: {}, notebooks: true, spreadsheets: true });
+        renderPage();
+        expect(await screen.findByText('Make pages, notebooks, spreadsheets, customer documents and presentations here, on your own or together.')).toBeInTheDocument();
+    });
+
+    it('calls the designed type "Customer documents" in the type filter', async () => {
+        renderPage();
+        await screen.findByTestId('library-row-a');
+        expect(within(screen.getByTestId('documents-format-filter')).getByRole('button', { name: /Customer documents/ })).toBeInTheDocument();
+    });
+});
+
+describe('DocumentsPage: own templates in the gallery', () => {
+    it('offers them, and choosing one copies it into a new document in the open folder', async () => {
+        api.updateDocument.mockResolvedValue({});
+        renderPage();
+        const u = userEvent.setup();
+        await screen.findByTestId('library-row-a');
+        await u.click(screen.getByRole('button', { name: /Customers/ }));
+        await u.click(screen.getByTestId('documents-new'));
+        await u.click(await screen.findByTestId('documents-new-template-tpl-1'));
+        await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/tpl-1/duplicate', { kind: 'document', name: 'Welcome letter' }));
+        expect(api.createDocument).not.toHaveBeenCalled();
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('from-tpl', { folderId: 'f1' }));
+        expect(await screen.findByTestId('editor-stub')).toHaveTextContent('editor from-tpl');
+    });
+
+    it('offers only what can be a template in the Templates view, and no own templates there', async () => {
+        renderPage();
+        const u = userEvent.setup();
+        await screen.findByTestId('library-row-a');
+        await u.click(within(screen.getByTestId('documents-view')).getByRole('button', { name: /Templates/ }));
+        await u.click(screen.getByTestId('documents-new'));
+        const gallery = await screen.findByTestId('document-gallery');
+        expect(within(gallery).getByText('Pages, notebooks and spreadsheets are made in Documents.')).toBeInTheDocument();
+        expect(within(gallery).queryByTestId('documents-new-page')).not.toBeInTheDocument();
+        expect(within(gallery).queryByTestId('documents-new-template-tpl-1')).not.toBeInTheDocument();
+        expect(within(gallery).getByTestId('documents-new-presentation')).toBeInTheDocument();
+    });
+});
+
+describe('DocumentsPage: sharing as the row says it', () => {
+    it('says Shared, not Team, and the filter offers Private and Shared', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('s', { visibility: 'team' }), row('p', { visibility: 'private' })], total: 2, people: {} });
+        renderPage();
+        expect(await screen.findByTestId('library-row-s')).toHaveTextContent('· Shared');
+        expect(screen.getByTestId('library-row-s')).not.toHaveTextContent('Team');
+        expect(screen.getByTestId('library-row-p')).not.toHaveTextContent('Shared');
+        const filter = screen.getByRole('combobox', { name: 'Visibility' });
+        expect(within(filter).getAllByRole('option').map((o) => o.textContent)).toEqual(['Private and shared', 'Private', 'Shared']);
+        expect(within(filter).getByRole('option', { name: 'Shared' })).toHaveValue('team');
+    });
+});
+
+describe('DocumentsPage: categories on several at once', () => {
+    it('adds categories to what each row already has', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('a', { categories: ['Legal'] }), row('c')], total: 2, people: {} });
+        api.updateDocument.mockResolvedValue({});
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole('checkbox', { name: 'Select Doc a' }));
+        await u.click(screen.getByRole('checkbox', { name: 'Select Doc c' }));
+        await u.type(screen.getByRole('textbox', { name: 'Categories' }), 'Sales, Q3');
+        await u.click(screen.getByRole('button', { name: 'Add categories' }));
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('a', { categories: ['Legal', 'Sales', 'Q3'] }));
+        expect(api.updateDocument).toHaveBeenCalledWith('c', { categories: ['Sales', 'Q3'] });
+    });
+
+    it('does not add an empty list', async () => {
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole('checkbox', { name: 'Select Doc a' }));
+        expect(screen.getByRole('button', { name: 'Add categories' })).toBeDisabled();
+    });
+
+    it('clears categories only after a confirmation', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('a', { categories: ['Legal'] })], total: 1, people: {} });
+        api.updateDocument.mockResolvedValue({});
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole('checkbox', { name: 'Select Doc a' }));
+        await u.click(screen.getByRole('button', { name: 'Clear categories' }));
+        const dialog = await screen.findByRole('dialog');
+        expect(api.updateDocument).not.toHaveBeenCalled();
+        await u.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+        expect(api.updateDocument).not.toHaveBeenCalled();
+        await u.click(screen.getByRole('button', { name: 'Clear categories' }));
+        await u.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Clear categories' }));
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('a', { categories: [] }));
     });
 });

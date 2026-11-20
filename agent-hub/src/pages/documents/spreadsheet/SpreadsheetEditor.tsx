@@ -161,7 +161,7 @@ export default function SpreadsheetEditor({ initial, variant, onBack, onRenamed,
             {ready && (
                 <div className="flex-1 min-h-0 flex">
                     <div className="flex-1 min-w-0 min-h-0 flex flex-col" onBlur={onBlur}>
-                        {formulaBarVisible && <FormulaBar grid={grid} readOnly={sheet.readOnly} onDone={() => gridRef.current?.focus()} />}
+                        {formulaBarVisible && <FormulaBar grid={grid} readOnly={sheet.readOnly} locale={sheet.locale} onDone={() => gridRef.current?.focus()} />}
                         {Object.keys(sheet.cells).length === 0 && !sheet.readOnly && (
                             <p className="shrink-0 m-0 px-4 py-2 text-[13px] text-[var(--text-tertiary)]" data-testid="sheet-empty-hint">
                                 {t('spreadsheet.empty_hint', 'Type a value or a formula such as =SUM(A1:A5)')}

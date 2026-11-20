@@ -45,6 +45,21 @@ describe('useSheet', () => {
         expect(result.current.computed.B2.error).toBeTruthy();
     });
 
+    it('computes a Dutch sheet the Dutch way: 1,5 and € 10 are numbers, ; separates arguments', async () => {
+        api.getSheet.mockResolvedValue({ ...sheet({ A1: '1,5', A2: '€ 10', A3: '=SUM(A1;A2)' }), locale: 'nl' });
+        const { result } = renderHook(() => useSheet('doc-1'), { wrapper: queryWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.computed.A3.value).toBe(11.5);
+        expect(result.current.computed.A1.display).toBe('1,5');
+        expect(result.current.locale).toBe('nl');
+    });
+
+    it('a sheet without a locale reads numbers the English way', async () => {
+        const { result } = await mount({ A1: '1,5', A2: '1,234.5', A3: '=SUM(A1:A2)' });
+        expect(result.current.computed.A3.value).toBe(1234.5);
+        expect(result.current.locale).toBe('en');
+    });
+
     it('reads the sheet again once a typed formula names a tab the server did not send', async () => {
         const first = {
             ...sheet({ A1: '1' }), tabs: [{ id: 't1', name: 'Klanten' }, { id: 't2', name: 'Test' }], activeTab: 't2', refTabs: {},

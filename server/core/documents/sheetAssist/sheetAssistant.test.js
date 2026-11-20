@@ -353,3 +353,13 @@ test('the assistant can create a pivot summary with create_pivot', async () => {
     assert.strictEqual(out.changes.F3?.after, '40');
     assert.strictEqual(out.changes.F4?.after, '20');
 });
+
+test('a Dutch sheet is computed the Dutch way: 1,5 typed in a cell is a number', async () => {
+    let computed;
+    const { assistant } = world(async (run) => {
+        computed = await run('evaluate', { formulas: ['=SUM(C2;C3)'] });
+        return 'ok';
+    }, { start: { ...START, C2: '1,5', C3: '€ 4' } });
+    await assistant.ask({ ...DOC, settings: { sheet: { datatableId: 'dt1', locale: 'nl' } } }, { message: 'Total?', userId: 'u1', orgId: 'org1' });
+    assert.strictEqual(computed, '=SUM(C2;C3) → 5.5');
+});

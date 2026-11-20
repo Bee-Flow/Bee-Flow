@@ -24,6 +24,8 @@ export interface SheetData {
     activeTab?: string;
     /** The typed cells of the other tabs this tab's formulas refer to (`Klanten!A1`), by tab name. */
     refTabs?: Record<string, Record<string, string>>;
+    /** How the sheet reads typed numbers: 'nl' takes 1,5 and € 10, 'en' 1,234.5. The same for every reader. */
+    locale: 'nl' | 'en';
 }
 
 /** The server may take this many cells in one PATCH. */
@@ -65,6 +67,7 @@ export async function getSheet(id: string, tabId?: string): Promise<SheetData> {
         tabs: Array.isArray(body.tabs) ? body.tabs : undefined,
         activeTab: typeof body.activeTab === 'string' ? body.activeTab : undefined,
         refTabs: body.refTabs && typeof body.refTabs === 'object' ? body.refTabs : undefined,
+        locale: body.locale === 'nl' ? 'nl' : 'en',
     };
 }
 

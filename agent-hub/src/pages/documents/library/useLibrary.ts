@@ -21,15 +21,13 @@ export const isNotebookRow = (row: Pick<LibraryRow, 'docType'>) => row.docType =
 
 /**
  * Whether a type filter means anything in a view. Templates and reusable
- * sections are designed documents or decks, so no page or notebook is one; a
- * notebook is never archived (deleting one is for good). The archive is one
- * view over documents, templates and sections together.
+ * sections are designed documents or decks, so no page, notebook or
+ * spreadsheet is one. The archive is one view over documents (notebooks
+ * among them), templates and sections together, so every type filters it.
  */
 export function formatApplies(format: LibraryFormat, kind: LibraryKind, archived: boolean): boolean {
-    if (format === 'notebook') return kind === 'document' && !archived;
     if (archived) return true;
-    // A page or a spreadsheet is never a template or a section.
-    if (format === 'page' || format === 'spreadsheet') return kind === 'document';
+    if (format === 'page' || format === 'spreadsheet' || format === 'notebook') return kind === 'document';
     return true;
 }
 
@@ -106,8 +104,8 @@ export function useLibraryActions() {
     const archive = useMutation({ mutationFn: (id: string) => deleteDocument(id) as Promise<boolean>, onSuccess: refresh });
     const unarchive = useMutation({ mutationFn: (id: string) => unarchiveDocument(id) as Promise<StudioDocument>, onSuccess: refresh });
     const bulk = useMutation({ mutationFn: fileRows, onSettled: refresh });
-    // A notebook: made in the folder the library shows, deleted for good (a
-    // notebook has no archive; the confirmation says so).
+    // A notebook: made in the folder the library shows; archived and restored
+    // through its own routes, and deleted for good only from the archive.
     const createNotebook = useMutation({
         mutationFn: async ({ name, folderId }: { name: string; folderId?: string }) => {
             const { notebook } = (await notebookApi('/', { method: 'POST', body: JSON.stringify({ name }) })) as { notebook: { id: string } };
@@ -120,10 +118,9 @@ export function useLibraryActions() {
         mutationFn: (input: { name: string; folderId?: string }) => createSpreadsheet(input) as Promise<StudioDocument>,
         onSuccess: refresh,
     });
-    const deleteNotebook = useMutation({
-        mutationFn: (id: string) => notebookApi(`/${encodeURIComponent(id)}`, { method: 'DELETE' }) as Promise<unknown>,
-        onSuccess: refresh,
-    });
+    const archiveNotebook = useMutation({ mutationFn: (id: string) => documentRequest(`/notebooks/${encodeURIComponent(id)}/archive`, {}, 'POST'), onSuccess: refresh });
+    const unarchiveNotebook = useMutation({ mutationFn: (id: string) => documentRequest(`/notebooks/${encodeURIComponent(id)}/unarchive`, {}, 'POST'), onSuccess: refresh });
+    const deleteNotebook = useMutation({ mutationFn: (id: string) => documentRequest(`/notebooks/${encodeURIComponent(id)}`, undefined, 'DELETE'), onSuccess: refresh });
     const createFolder = useMutation({
         mutationFn: ({ name, parentId }: { name: string; parentId: string | null }) => documentRequest('/folders', { name, parentId }),
         onSuccess: refresh,
@@ -132,5 +129,5 @@ export function useLibraryActions() {
         mutationFn: (id: string) => documentRequest(`/folders/${encodeURIComponent(id)}`, undefined, 'DELETE'),
         onSuccess: refresh,
     });
-    return { create, createNotebook, createSheet, duplicate, archive, unarchive, deleteNotebook, bulk, createFolder, deleteFolder };
+    return { create, createNotebook, createSheet, duplicate, archive, unarchive, archiveNotebook, unarchiveNotebook, deleteNotebook, bulk, createFolder, deleteFolder };
 }

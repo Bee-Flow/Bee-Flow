@@ -235,7 +235,7 @@ describe('DocumentsTab: new document gallery', () => {
         expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' });
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-spreadsheet'));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet', locale: 'en' }));
     });
 
     it('copies one of my own templates', async () => {

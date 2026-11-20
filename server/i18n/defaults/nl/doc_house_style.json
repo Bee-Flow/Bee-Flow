@@ -1,0 +1,9 @@
+{
+  "translations": {
+    "doc_house_style.enable": "Deze huisstijl gebruiken voor elk document",
+    "doc_house_style.saved": "Opgeslagen. Elk document dat de huisstijl gebruikt, volgt hem nu.",
+    "doc_house_style.toggle_off_hint": "Dit document gebruikt de huisstijl niet. Klik om weer de huidige huisstijl van de organisatie te volgen.",
+    "doc_house_style.toggle_on_hint": "Dit document volgt de huidige huisstijl van de organisatie. Klik om hem alleen voor dit document uit te schakelen."
+  },
+  "sameAsEnglish": []
+}

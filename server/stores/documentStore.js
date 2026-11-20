@@ -180,8 +180,10 @@ const initDB = makeStoreInit('DocumentStore', async () => { // stepwise: a boot 
     if (ddl.failures.length > 0) {
         throw new Error(`${ddl.failures.length} document migration(s) failed; retrying on the next call`);
     }
-    // Complete legacy history and freeze branding during migration, before an
-    // organization can change it. Later reads must never mutate a pinned version.
+    // Complete legacy history during migration. Later reads must never mutate a
+    // pinned version. resolvedHouseStyleCss records the house style a version
+    // saw; renders read the organisation's current one and use this copy only
+    // as a fallback (core/documents/renderFilledDocument.js houseStyleCssFor).
     let afterId = '';
     for (;;) {
         const revisions = await getAll(`SELECT v.id, v.body_html, v.css, v.snapshot,
@@ -301,7 +303,7 @@ async function createDocument(input) {
     const doc = { id, userId: d.userId, organizationId: org, name: d.name || 'Untitled document',
         docType, description: d.description || '',
         bodyHtml: isPage ? sanitizePageBody(d.bodyHtml) : (d.bodyHtml || ''), css: isPage ? '' : (d.css || ''),
-        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure, input.sheetTabName), kind: d.kind || 'document', visibility: d.visibility || 'private',
+        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure, { tabName: input.sheetTabName, locale: input.sheetLocale }), kind: d.kind || 'document', visibility: d.visibility || 'private',
         folderId: d.folderId || null, categories: d.categories, versionId, baselineVersionId: versionId };
     doc.settings = { ...doc.settings, resolvedHouseStyleCss: await require('../core/documents/renderFilledDocument').houseStyleCssFor(doc,org) };
     return withTransaction(async client => {
@@ -329,7 +331,7 @@ function accessSql(alias = 'd', write = false) {
 // answers them, so the two halves of the library UNION line up.
 const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, ${visibilitySql('d')} AS visibility, d.folder_id, d.categories,
     d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
-    NULL::int AS source_count`;
+    NULL::int AS source_count, d.solution_project_id`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
 
 /**
@@ -385,7 +387,7 @@ async function listDocumentsPage(context, options = {}) {
     const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
-    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility };
+    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility, archived };
     const search = librarySearch(query, options.onlyFillable === true, bind);
     where.push(...search.clauses);
     shared.query = search.phrase;
@@ -427,7 +429,10 @@ async function listDocumentsPage(context, options = {}) {
         const count = await getOne(`SELECT COUNT(*)::int AS n FROM (${from}) u WHERE $1::int IS NULL`, [null, ...params.slice(1, -1)]);
         total = Number(count?.n) || 0;
     }
-    return { documents: rows.map(mapListRow), total };
+    // `managed`: a template a Solution stage manages, whose archive the server refuses (document/libraryManaged.mts).
+    /** @type {Array<NonNullable<ReturnType<typeof mapListRow>>>} */
+    const listed = rows.map(mapListRow);
+    return { documents: await require('./document/libraryManaged.mts').withManagedFlag(getAll, listed), total };
 }
 async function listDocuments(context, options = {}) {
     return (await listDocumentsPage(context, options)).documents;
@@ -762,7 +767,7 @@ module.exports = {
  * @typedef {{ id?: string, userId?: string, name?: string, docType?: string, description?: string, bodyHtml?: string,
  *   css?: string, settings?: DocSettings, organizationId?: string|null, kind?: string, visibility?: string,
  *   folderId?: string|null, categories?: string[], versionId?: string|null, baselineVersionId?: string|null,
- *   projectId?: string|null, projectOrgChecked?: boolean, sheetTableId?: string, sheetTabName?: string,
+ *   projectId?: string|null, projectOrgChecked?: boolean, sheetTableId?: string, sheetTabName?: string, sheetLocale?: string,
  *   sharing?: { audience: string, sharedGroups: string[], sharedUserIds: string[] } }} DocumentInput
  * @typedef {'name'|'docType'|'description'|'bodyHtml'|'css'|'settings'|'kind'|'visibility'|'folderId'|'categories'} ContentKey
  * @typedef {{ expectedVersionId?: string|null, mergeWith?: (base: string, mine: string, theirs: string) => MergeResult,

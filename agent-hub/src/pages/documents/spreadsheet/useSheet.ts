@@ -54,12 +54,14 @@ export default function useSheet(id: string) {
     const cellsRef = useRef(cells);
     useLayoutEffect(() => { cellsRef.current = cells; });
     // Formulas over another tab (`Klanten!A1`) compute against that tab's cells, which the server sends along.
+    // Typed numbers are read with the sheet's own locale, so every reader computes the same values.
+    const locale = data?.locale ?? 'en';
     const computed = useMemo(() => {
         const refTabs = data?.refTabs;
         const name = data?.tabs?.find((t) => t.id === data.activeTab)?.name;
-        if (!refTabs || !name || !Object.keys(refTabs).length) return evaluateSheet(cells);
-        return evaluateSheet(cells, { workbook: { ...refTabs, [name]: cells }, activeSheet: name });
-    }, [cells, data]);
+        if (!refTabs || !name || !Object.keys(refTabs).length) return evaluateSheet(cells, { locale });
+        return evaluateSheet(cells, { workbook: { ...refTabs, [name]: cells }, activeSheet: name, locale });
+    }, [cells, data, locale]);
     const usedRows = useMemo(() => usedRowsOf(cells, data?.rows ?? 0), [cells, data]);
 
     const historyRef = useRef<ReturnType<typeof useSheetHistory> | null>(null);
@@ -164,7 +166,7 @@ export default function useSheet(id: string) {
         loadError: query.isError ? (query.error as Error) : null,
         reload: () => { query.refetch().catch(() => undefined); },
         readOnly, columns: data?.columns ?? 26,
-        cells, computed, usedRows,
+        cells, computed, usedRows, locale,
         tabs: data?.tabs,
         activeTab: tab,
         status: queue.status, error: queue.error, savedAt: queue.savedAt,

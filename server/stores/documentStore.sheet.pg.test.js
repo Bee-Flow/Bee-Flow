@@ -50,6 +50,14 @@ test('the first tab is named as the sheet route says (the creator\'s language), 
     for (const d of [dutch, blank]) await documents.deleteDocument(d.id, 'alice');
 });
 
+test('a sheet keeps the locale it was made with (how typed numbers are read), through a later save', async () => {
+    const made = await documents.createDocument({ userId: 'alice', name: 'Kosten', docType: 'spreadsheet', sheetTableId: 'dt-loc', sheetLocale: 'nl' });
+    assert.strictEqual(made.settings.sheet.locale, 'nl');
+    const saved = await documents.updateDocument(made.id, 'alice', { settings: { sheet: { tabs: made.settings.sheet.tabs } }, expectedVersionId: made.versionId });
+    assert.strictEqual(saved.settings.sheet.locale, 'nl');
+    await documents.deleteDocument(made.id, 'alice');
+});
+
 test('a spreadsheet is never made from settings alone, nor as a template', async () => {
     await assert.rejects(documents.createDocument({ userId: 'alice', name: 'X', docType: 'spreadsheet', settings: { sheet: { datatableId: 'someone-elses' } } }),
         (e) => e.status === 422 && e.errorClass === 'sheet_needs_table');

@@ -216,7 +216,7 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
                         </button>
                         {saved && (
                             <span className="text-sm text-[var(--text-muted)]">
-                                {t('documents.style.saved', 'Saved. New documents will use it.')}
+                                {t('doc_house_style.saved', 'Saved. Every document that uses the house style now follows it.')}
                             </span>
                         )}
                     </div>
@@ -260,7 +260,7 @@ function HouseStylePanelCard3({ style, disabled, set, t }: { style: HouseStyle; 
                 data-testid="house-style-enabled" />
             <span>
                 <span className="block text-sm font-semibold text-[var(--text-primary)]">
-                    {t('documents.style.enable', 'Use this house style on new documents')}
+                    {t('doc_house_style.enable', 'Use this house style on every document')}
                 </span>
                 <span className="block text-sm text-[var(--text-muted)]">
                     {t('documents.style.enable_hint', 'Off means nothing is applied and every document is whatever its own styling says. This is the default until you fill the letterhead in.')}

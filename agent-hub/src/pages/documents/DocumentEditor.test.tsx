@@ -173,6 +173,11 @@ describe('DocumentEditor: saving', () => {
         await user().click(await screen.findByTestId('document-house-style-toggle'));
         await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { settings: { design: { preset: 'formal' }, houseStyle: false }, expectedVersionId: 'v1' }));
     });
+
+    it('says the house style it follows is the organisation\'s current one', async () => {
+        open({ settings: {} as never });
+        expect(await screen.findByTestId('document-house-style-toggle')).toHaveAttribute('title', 'This document follows the organisation\'s current house style. Click to turn it off for this document only.');
+    });
 });
 
 describe('DocumentEditor: somebody else in the same section', () => {

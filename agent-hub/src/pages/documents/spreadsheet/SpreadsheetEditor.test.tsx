@@ -246,6 +246,28 @@ describe('SpreadsheetEditor formula bar', () => {
         await user.click(screen.getByRole('button', { name: 'SUM' }));
         expect(screen.getByRole('textbox', { name: 'Formula bar' })).toHaveValue('=SUM(');
     });
+
+    it('in a Dutch sheet, says how to separate arguments while a formula is typed', async () => {
+        sheetApi.getSheet.mockResolvedValue({ columns: 26, rows: 0, cells: { A1: '1,5', A2: '2,5' }, readOnly: false, locale: 'nl' });
+        const { user, cell } = await open();
+        await user.click(screen.getByRole('button', { name: 'Show formula bar' }));
+        await user.click(cell('A3'));
+        const hint = /Use ; or , between arguments; function names are English/;
+        expect(screen.queryByText(hint)).not.toBeInTheDocument();
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=SUM(A1;A2){Enter}');
+        expect(cell('A3')).toHaveTextContent('4');
+        await user.click(cell('A4'));
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=');
+        expect(screen.getByText(hint)).toBeInTheDocument();
+    });
+
+    it('in an English sheet, shows no separator hint', async () => {
+        const { user, cell } = await open();
+        await user.click(screen.getByRole('button', { name: 'Show formula bar' }));
+        await user.click(cell('A1'));
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=');
+        expect(screen.queryByText(/between arguments/)).not.toBeInTheDocument();
+    });
 });
 
 describe('SpreadsheetEditor saving', () => {

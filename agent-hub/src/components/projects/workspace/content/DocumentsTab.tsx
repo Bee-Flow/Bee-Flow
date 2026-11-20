@@ -56,7 +56,8 @@ type Translate = ReturnType<typeof useTranslation>['t'];
 function documentVars(choice: Exclude<NewChoice, { type: 'notebook' }>, t: Translate, locale: string): NewDocumentVars {
     switch (choice.type) {
         case 'page': return { name: t('documents.untitled_page', 'Untitled page'), docType: 'page' };
-        case 'spreadsheet': return { name: t('documents.sheet.untitled', 'Untitled spreadsheet'), docType: 'spreadsheet' };
+        // The language decides how the new sheet reads typed numbers (1,5 or 1.5).
+        case 'spreadsheet': return { name: t('documents.sheet.untitled', 'Untitled spreadsheet'), docType: 'spreadsheet', locale };
         case 'template': return { name: choice.template.name, templateId: choice.template.id };
         case 'deck':
             return choice.starter

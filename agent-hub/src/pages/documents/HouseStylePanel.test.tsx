@@ -98,7 +98,8 @@ describe('HouseStylePanel — the master switch', () => {
         const user = userEvent.setup();
         await renderPanel();
         await user.click(screen.getByTestId('house-style-save'));
-        expect(await screen.findByText(/Saved\. New documents will use it\./i)).toBeTruthy();
+        expect(await screen.findByText('Saved. Every document that uses the house style now follows it.')).toBeTruthy();
+        expect(screen.getByText('Use this house style on every document')).toBeTruthy();
     });
 
     it('surfaces a failed save and keeps the edits on screen', async () => {
