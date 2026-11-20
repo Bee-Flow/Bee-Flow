@@ -28,6 +28,8 @@ export interface BeeEditorProps {
   saving?: boolean;
   onImportClick?: () => void;
   generating?: string;
+  /** A full line for the busy veil instead of "Generating {generating}…"; shows the veil on its own. */
+  generatingLabel?: string;
   aiFilling?: boolean;
   onTocUpdate?: (items: TocItem[]) => void;
   onWordCountChange?: (n: number) => void;

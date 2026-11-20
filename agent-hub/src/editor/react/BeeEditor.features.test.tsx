@@ -61,6 +61,27 @@ describe('mounting', () => {
     });
 });
 
+describe('the AI busy veil', () => {
+    it('reads "Generating {what}…" for an id, and a full label as given', () => {
+        const first = mount({ generating: 'meeting_notes' });
+        expect(screen.getByText('Generating meeting notes…')).toBeInTheDocument();
+        first.unmount();
+        mount({ generatingLabel: 'Rewriting…' });
+        expect(screen.getByText('Rewriting…')).toBeInTheDocument();
+        expect(screen.queryByText(/Generating/)).not.toBeInTheDocument();
+    });
+});
+
+describe('the AI menu', () => {
+    it('is offered with an AI action handler and hidden when Ask AI is off', () => {
+        const first = mount({ onAIAction: vi.fn() });
+        expect(screen.getByTitle('AI')).toBeInTheDocument();
+        first.unmount();
+        mount({ onAIAction: vi.fn(), askAiEnabled: false });
+        expect(screen.queryByTitle('AI')).not.toBeInTheDocument();
+    });
+});
+
 describe('links', () => {
     it('Ctrl+K opens an inline link editor instead of the browser prompt, and applies the address', async () => {
         const prompt = vi.spyOn(window, 'prompt').mockImplementation(() => null);

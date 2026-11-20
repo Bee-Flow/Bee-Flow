@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "doc_notebook_panel.busy_ask": "Bezig met je vraag…",
+    "doc_notebook_panel.busy_expand": "Uitbreiden…",
+    "doc_notebook_panel.busy_rewrite": "Herschrijven…",
+    "doc_notebook_panel.busy_shorten": "Inkorten…",
+    "doc_notebook_panel.failed": "De AI kon dit niet afmaken. Probeer het opnieuw.",
+    "doc_notebook_panel.read_in_studio": "Alles lezen in Studio"
+  },
+  "sameAsEnglish": []
+}

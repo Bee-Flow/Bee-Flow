@@ -19,6 +19,10 @@ const h = vi.hoisted(() => ({
     notebookApi: vi.fn(),
     chatProps: null as null | Record<string, unknown>,
     historyProps: null as null | Record<string, unknown>,
+    // The chat engine: what was sent, its options, and a way to end the running turn.
+    sent: [] as Array<{ text: string; payload: Record<string, unknown> }>,
+    engineOpts: null as null | Record<string, any>,
+    finishTurn: null as null | ((messages: unknown[]) => void),
 }));
 
 vi.mock('@/editor/react/RichTextEditor.jsx', () => ({
@@ -56,9 +60,23 @@ vi.mock('@/components/versions/VersionHistoryPanel', () => ({
 }));
 vi.mock('@/components/versions/VersionCompare', () => ({ default: () => <div data-testid="compare" /> }));
 vi.mock('@/components/comments/CommentsPanel', () => ({ default: () => <aside data-testid="comments" /> }));
-vi.mock('@/hooks/useChatEngine', () => ({
-    default: () => ({ messages: [], setMessages: vi.fn(), isLoading: false, sendMessage: vi.fn(), stopGenerating: vi.fn(), retryMessage: vi.fn(), editAndRegenerate: vi.fn() }),
-}));
+vi.mock('@/hooks/useChatEngine', async () => {
+    const { useCallback, useState } = await import('react');
+    return {
+        // A turn starts loading when sent and ends when the test calls h.finishTurn.
+        default: (opts: Record<string, any>) => {
+            h.engineOpts = opts;
+            const [isLoading, setIsLoading] = useState(false);
+            const [messages, setMessages] = useState<unknown[]>([]);
+            h.finishTurn = (next) => { setMessages(next); setIsLoading(false); };
+            const sendMessage = useCallback(async (text: string) => {
+                h.sent.push({ text, payload: opts.directMode.getExtraPayload() });
+                setIsLoading(true);
+            }, [opts.directMode]);
+            return { messages, setMessages, isLoading, sendMessage, stopGenerating: vi.fn(), retryMessage: vi.fn(), editAndRegenerate: vi.fn() };
+        },
+    };
+});
 vi.mock('../NotebookChat', () => ({
     default: (props: Record<string, unknown>) => { h.chatProps = props; return <div data-testid="chat">{props.privateHint ? 'Only you see this chat.' : null}</div>; },
 }));
@@ -115,6 +133,9 @@ beforeEach(() => {
     h.editorProps = null;
     h.chatProps = null;
     h.historyProps = null;
+    h.sent = [];
+    h.engineOpts = null;
+    h.finishTurn = null;
     h.editorHtml = '<p>Hello</p>';
     h.setContent.mockReset();
     h.replaceDocument.mockReset();
@@ -317,24 +338,114 @@ describe('an empty notebook', () => {
     });
 });
 
+type AIAction = (key: string, text: string, range: { from: number; to: number }, customQuery: string | null) => void;
+/** Run an editor AI action the way the bubble menu does. */
+const runAIAction = (key: string, text: string, query: string | null = null) => act(() => {
+    (h.editorProps?.onAIAction as AIAction)(key, text, { from: 1, to: 1 + text.length }, query);
+});
+const endTurn = (answer: string) => act(() => {
+    h.finishTurn?.([{ id: 'u1', role: 'user', content: 'the prompt' }, { id: 'a1', role: 'assistant', content: answer }]);
+});
+
+function renderPanel(data: NotebookDetailData, over: { onOpenInStudio?: () => void; onBack?: () => void } = {}) {
+    return render(withQueryClient(
+        <NotebookEditorView data={data} user={{ id: 'erin', name: 'Erin' }} variant="panel" onOpenInStudio={over.onOpenInStudio ?? vi.fn()}
+            onBack={over.onBack ?? vi.fn()} onListChanged={vi.fn()} onOpenProject={vi.fn()} onReload={vi.fn()} />,
+    ));
+}
+
 describe('beside the main chat (panel)', () => {
-    it('is the editor alone: no sources, no notebook chat, no AI actions that answer there; Close and Open in Studio', async () => {
+    it('is the editor alone: no sources, no notebook chat; Close and Open in Studio', async () => {
         const user = userEvent.setup();
         const onBack = vi.fn();
         const onOpenInStudio = vi.fn();
-        render(withQueryClient(
-            <NotebookEditorView data={detail()} user={{ id: 'erin', name: 'Erin' }} variant="panel" onOpenInStudio={onOpenInStudio}
-                onBack={onBack} onListChanged={vi.fn()} onOpenProject={vi.fn()} onReload={vi.fn()} />,
-        ));
+        renderPanel(detail(), { onBack, onOpenInStudio });
         expect(screen.getByTestId('editor').dataset.editable).toBe('true');
         expect(screen.queryByTestId('chat')).not.toBeInTheDocument();
         expect(screen.queryByText('Report.pdf')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Toggle AI Chat' })).not.toBeInTheDocument();
-        expect(h.editorProps?.onAIAction).toBeUndefined();
 
         await user.click(screen.getByRole('button', { name: 'Open in Studio' }));
         expect(onOpenInStudio).toHaveBeenCalled();
         await user.click(screen.getByRole('button', { name: 'Close' }));
         expect(onBack).toHaveBeenCalled();
+    });
+
+    it('Rewrite asks the notebook AI to change the selection in place and veils the editor until the run ends', async () => {
+        renderPanel(detail());
+        expect(h.editorProps?.askAiEnabled).toBe(true);
+        expect(h.editorProps?.generatingLabel).toBeUndefined();
+
+        await runAIAction('rewrite', 'Old text');
+        expect(h.sent).toHaveLength(1);
+        expect(h.sent[0].text).toBe('Rewrite the selected text. Use notebook_doc_replace to apply the change in place.');
+        expect(h.sent[0].payload.notebookSelection).toEqual({ text: 'Old text', from: 1, to: 9, action: 'rewrite' });
+        expect(h.editorProps?.generatingLabel).toBe('Rewriting…');
+
+        // The change arrives as a document update; the answer stays in the chat history.
+        await act(() => { h.engineOpts?.onNotebookDocUpdate('<p>New text</p>', null, 4); });
+        await endTurn('Done: rewrote the selection.');
+        expect(h.editorProps?.generatingLabel).toBeUndefined();
+        expect(screen.queryByTestId('notebook-notice')).not.toBeInTheDocument();
+    });
+
+    it('Ask AI sends the question as an in-place change; an answer that changed nothing is shown in the notice', async () => {
+        renderPanel(detail());
+
+        await runAIAction('ask', 'The quarterly figures', 'Who wrote this?');
+        expect(h.sent[0].text).toBe(
+            '**Selected text:**\n> The quarterly figures\n\nChange the selected text as asked: Who wrote this?. '
+            + 'Use notebook_doc_replace to apply the change in place. If the question cannot be answered by changing the text, answer briefly instead.',
+        );
+        expect(h.sent[0].payload.notebookSelection).toMatchObject({ action: 'ask' });
+        expect(h.editorProps?.generatingLabel).toBe('Working on your question…');
+
+        await endTurn('The finance team wrote it.');
+        expect(h.editorProps?.generatingLabel).toBeUndefined();
+        const notice = screen.getByTestId('notebook-notice');
+        expect(notice).toHaveAttribute('role', 'status');
+        expect(notice).toHaveTextContent('The finance team wrote it.');
+        // A short answer is complete: no hint to read the rest in Studio.
+        expect(screen.queryByRole('button', { name: 'Read it all in Studio' })).not.toBeInTheDocument();
+    });
+
+    it('a long answer is cut short in the notice, with a way to read it all in Studio', async () => {
+        const user = userEvent.setup();
+        const onOpenInStudio = vi.fn();
+        renderPanel(detail(), { onOpenInStudio });
+        await runAIAction('ask', 'The quarterly figures', 'Explain this');
+        await endTurn('word '.repeat(200));
+        const notice = screen.getByTestId('notebook-notice');
+        expect(notice.textContent!.length).toBeLessThan(600);
+        expect(notice).toHaveTextContent('…');
+        await user.click(screen.getByRole('button', { name: 'Read it all in Studio' }));
+        expect(onOpenInStudio).toHaveBeenCalled();
+    });
+
+    it('a run that failed says so in the notice and lifts the veil', async () => {
+        renderPanel(detail());
+        await runAIAction('shorten', 'Some long text');
+        expect(h.editorProps?.generatingLabel).toBe('Shortening…');
+        await act(() => { h.finishTurn?.([{ id: 'a1', role: 'assistant', content: 'The model is not available.', isError: true }]); });
+        expect(h.editorProps?.generatingLabel).toBeUndefined();
+        expect(screen.getByRole('alert')).toHaveTextContent('The model is not available.');
+    });
+
+    it('a viewer gets no AI actions at all', () => {
+        renderPanel(detail({ role: 'viewer', projectRole: 'viewer' }, { project: { ...PROJECT, role: 'viewer' } }));
+        expect(h.editorProps?.onAIAction).toBeUndefined();
+        expect(h.editorProps?.askAiEnabled).toBe(false);
+    });
+});
+
+describe('the AI actions in Studio', () => {
+    it('answer in the notebook chat as before: the question goes as asked, no veil, no notice', async () => {
+        renderView(detail());
+        expect(h.editorProps?.askAiEnabled).toBe(true);
+        await runAIAction('ask', 'The quarterly figures', 'Who wrote this?');
+        expect(h.sent[0].text).toBe('**Selected text:**\n> The quarterly figures\n\nWho wrote this?');
+        expect(h.editorProps?.generatingLabel).toBeUndefined();
+        await endTurn('The finance team wrote it.');
+        expect(screen.queryByTestId('notebook-notice')).not.toBeInTheDocument();
     });
 });
