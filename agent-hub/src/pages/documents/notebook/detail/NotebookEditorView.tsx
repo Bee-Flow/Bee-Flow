@@ -32,7 +32,7 @@ import NotebookNotice, { type NoticeWithAction } from './NotebookNotice';
 import SessionEndedNotice from './SessionEndedNotice';
 import { NotebookChatPanel, NotebookOverlays, NotebookSourcesPanel } from './NotebookPanels';
 import useNotebookDocument from './useNotebookDocument';
-import useNotebookChat from './useNotebookChat';
+import useNotebookChat, { type EditorRunOutcome } from './useNotebookChat';
 import useNotebookExports from './useNotebookExports';
 import useAiFill from './useAiFill';
 import { isEmptyDocument, useMarkNotebookSeen, useNotebookShortcuts } from './notebookBehaviour';
@@ -50,8 +50,10 @@ export interface NotebookEditorViewProps {
     onReload: () => void;
     /**
      * 'page' (Studio, a project) | 'panel' (beside the main chat). In the panel
-     * the chat next to it is the AI: no sources drawer, no notebook chat and
-     * none of the AI actions that answer in that chat; those stay in Studio.
+     * the chat next to it is the AI: no sources drawer and no notebook chat.
+     * The editor's AI actions still work there: they change the selected text
+     * in place, the editor is veiled while they run, and an answer that changed
+     * nothing is shown in the notice bar (there is no notebook chat to read it in).
      */
     variant?: 'page' | 'panel';
     /** Panel only: hand the notebook over to its full page. */
@@ -59,6 +61,8 @@ export interface NotebookEditorViewProps {
 }
 
 const TOC_AUTO_OPEN_AT = 3;
+/** How much of an AI answer the panel's notice bar shows. */
+const ANSWER_NOTICE_CHARS = 500;
 // Untyped JS components: their props are documented where they are defined (NotebookTOC is typed).
 const NotebookWorkspace = NotebookWorkspaceJs as unknown as React.ComponentType<any>;
 const RichTextEditor = RichTextEditorJs;
@@ -104,6 +108,21 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         docRef.current = docState.autosave.documentContent;
     });
 
+    // Beside the main chat: what an editor AI action came to, in the notice bar.
+    const onPanelRunEnd = useCallback(({ docUpdated, answer, failed }: EditorRunOutcome) => {
+        if (failed) {
+            showError(answer || t('doc_notebook_panel.failed', 'The AI could not finish this. Try again.'));
+            return;
+        }
+        if (docUpdated || !answer) return;
+        const cut = answer.length > ANSWER_NOTICE_CHARS;
+        setNotice({
+            kind: 'info',
+            message: cut ? `${answer.slice(0, ANSWER_NOTICE_CHARS).trimEnd()}…` : answer,
+            action: cut && onOpenInStudio ? { label: t('doc_notebook_panel.read_in_studio', 'Read it all in Studio'), onClick: onOpenInStudio } : null,
+        });
+    }, [showError, t, onOpenInStudio]);
+
     const chat = useNotebookChat({
         notebookId: nb.id,
         selectedTier,
@@ -113,7 +132,17 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         bound,
         onDocUpdate: docState.onAiDocUpdate,
         onSourceAdded: (source) => sources.setSources((prev) => [...prev, source as NotebookSource]),
+        askInPlace: inPanel,
+        onEditorRunEnd: inPanel ? onPanelRunEnd : undefined,
     });
+    const busyLabels: Record<string, string> = {
+        rewrite: t('doc_notebook_panel.busy_rewrite', 'Rewriting…'),
+        shorten: t('doc_notebook_panel.busy_shorten', 'Shortening…'),
+        expand: t('doc_notebook_panel.busy_expand', 'Expanding…'),
+        ask: t('doc_notebook_panel.busy_ask', 'Working on your question…'),
+    };
+    // In Studio the notebook chat shows the run; in the panel the editor is veiled instead.
+    const aiBusyLabel = inPanel && chat.editorBusy ? busyLabels[chat.editorBusy] ?? busyLabels.ask : undefined;
     const exportsApi = useNotebookExports({ notebookId: nb.id, title: nb.name, getContent: () => docRef.current, onNotice: setNotice });
     const aiFill = useAiFill({
         notebookId: nb.id, modelTier: selectedTier, editorRef, onError: showError,
@@ -339,7 +368,9 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                     collab={docState.collab.handle}
                     onChange={docState.onEditorChange}
                     onSave={docState.autosave.handleDocSave}
-                    onAIAction={readOnly || inPanel ? undefined : chat.onEditorAIAction}
+                    onAIAction={readOnly ? undefined : chat.onEditorAIAction}
+                    askAiEnabled={!readOnly}
+                    generatingLabel={aiBusyLabel}
                     onAIFill={readOnly ? undefined : aiFill.handleAIFill}
                     aiFilling={aiFill.aiFilling}
                     saving={docState.autosave.docSaving}
