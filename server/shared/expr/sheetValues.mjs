@@ -27,10 +27,10 @@
 
 /** The plain numeric literal every locale reads. */
 const NUMERIC_RE = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
-/** The number part of a typed value, per locale: grouped thousands, or none. */
+/** How each locale groups thousands and marks decimals in a typed value. */
 const BODIES = {
-    nl: { grouped: /^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/, plain: /^(?:\d+(?:,\d+)?|,\d+)$/, group: '.', decimal: ',' },
-    en: { grouped: /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/, plain: /^(?:\d+(?:\.\d+)?|\.\d+)$/, group: ',', decimal: '.' },
+    nl: { group: '.', decimal: ',' },
+    en: { group: ',', decimal: '.' },
 };
 const CURRENCY = new Set(['€', '$', '£']);
 
@@ -88,13 +88,58 @@ function peel(t) {
  */
 function bodyNumber(body, locale) {
     const rule = BODIES[locale];
-    let plain = null;
-    if (rule.grouped.test(body)) plain = body.split(rule.group).join('').replace(rule.decimal, '.');
-    else if (rule.plain.test(body)) plain = body.replace(rule.decimal, '.');
-    else if (/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(body)) plain = body; // `€1.50` in an nl sheet
+    // Plain string checks, no regular expression over what a person typed.
+    const plain = groupedBody(body, rule.group, rule.decimal)
+        ?? decimalBody(body, rule.decimal)
+        ?? decimalBody(body, '.'); // `€1.50` in an nl sheet
     if (plain === null) return null;
     const n = Number(plain);
     return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Only the digits 0-9, at least one.
+ * @param {string} s
+ */
+function isDigits(s) {
+    if (!s) return false;
+    for (const c of s) if (c < '0' || c > '9') return false;
+    return true;
+}
+
+/**
+ * `12`, `12<decimal>5` or `<decimal>5` as plain numeric text; null otherwise.
+ * @param {string} body
+ * @param {string} decimal
+ * @returns {string|null}
+ */
+function decimalBody(body, decimal) {
+    const parts = body.split(decimal);
+    if (parts.length === 1) return isDigits(parts[0]) ? parts[0] : null;
+    if (parts.length !== 2) return null;
+    const [whole, fraction] = parts;
+    if (!isDigits(fraction) || (whole !== '' && !isDigits(whole))) return null;
+    return `${whole || '0'}.${fraction}`;
+}
+
+/**
+ * Grouped thousands (`1.234`, `1.234.567,5` in nl; `1,234.5` in en) as plain numeric text; null otherwise.
+ * @param {string} body
+ * @param {string} group
+ * @param {string} decimal
+ * @returns {string|null}
+ */
+function groupedBody(body, group, decimal) {
+    const parts = body.split(decimal);
+    if (parts.length > 2) return null;
+    const [whole, fraction] = parts;
+    if (fraction !== undefined && !isDigits(fraction)) return null;
+    const groups = whole.split(group);
+    if (groups.length < 2) return null;
+    const [first, ...rest] = groups;
+    if (!isDigits(first) || first.length > 3) return null;
+    if (rest.some((g) => g.length !== 3 || !isDigits(g))) return null;
+    return groups.join('') + (fraction === undefined ? '' : `.${fraction}`);
 }
 
 /**

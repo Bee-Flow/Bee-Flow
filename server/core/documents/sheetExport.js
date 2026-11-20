@@ -143,7 +143,7 @@ function computedFor(raws, names, i, deps, locale) {
  */
 function excelCell(v, names, locale) {
     if (typeof v !== 'string') return v;
-    if (/^=.+/.test(v)) return { formula: quoteSheetRefs(require('../../shared/expr/sheet.mjs').canonicalFormula(v), names) };
+    if (v.length > 1 && v.startsWith('=')) return { formula: quoteSheetRefs(require('../../shared/expr/sheet.mjs').canonicalFormula(v), names) };
     const read = require('../../shared/expr/sheetValues.mjs').readConstant(v, locale);
     return read.shown !== undefined && typeof read.value === 'number' ? String(read.value) : v;
 }

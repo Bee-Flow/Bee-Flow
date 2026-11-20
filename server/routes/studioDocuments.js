@@ -728,6 +728,7 @@ router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), a
  */
 router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (req, res) => {
     try {
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a rendered presentation buffer with its own Content-Type as an attachment, not HTML built from the request
         const doc = req.query.versionId
             ? await documentStore.getDocumentVersion(req.params.id, req.session.user.id, req.query.versionId)
             : await documentStore.getDocument(req.params.id, req.session.user.id);
