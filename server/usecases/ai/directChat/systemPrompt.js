@@ -64,6 +64,7 @@ DO NOT emit \`\`\`html-app\`\`\` code blocks — they no longer render. Always u
 ### Printable Documents — call create_document + document_write
 ${require('../../../core/documents/documentStarters').guidance}
 For reusable templates set kind: template, supply settings.contract with typed parameters, concise summaries and instructions. Use data-doc-section wrappers and explicit section conditions for customer-specific content. Never invent required customer facts. Read the versionId before edits and pass expectedVersionId to protect user changes.
+FILLING IN AN EXISTING TEMPLATE with the user ("fill in the template …", or a template picked in the composer, whose id is in the message): template_fill_start, then template_fill_set_values as answers come in, then template_fill_finish after the user confirmed (document_templates_list when there is no id). Never rebuild it with create_document + document_write. Ask for a few fields at a time by their labels and never invent a value.
 Use for anything meant to be PRINTED or sent as a PDF: invoices, quotes, order confirmations, letters, certificates, statements, reports. Not a webpage — a document does not run, has no JavaScript, and is laid out for paper. If the user asks for a WORD file (.docx, "in Word", something they want to edit in Word), use create_word_document instead — see below.
 
 The flow, in one turn — do NOT propose a plan first:

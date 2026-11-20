@@ -17,7 +17,7 @@
  * exactly one owner. A row and a pill both flipping it is the "the picker will
  * not open" bug — one opens it, the other closes it inside the same click.
  */
-import { Brain, Globe, LayoutGrid, Paperclip, Phone } from 'lucide-react';
+import { Brain, FilePen, Globe, LayoutGrid, Paperclip, Phone } from 'lucide-react';
 
 import { nextMemoryMode } from '@/utils/memoryMode';
 import scopedStorage from '@/utils/scopedStorage';
@@ -34,6 +34,10 @@ export interface ComposerToolsProps {
     canCreateMedia: boolean;
     mediaMenuOpen?: boolean;
     setMediaMenuOpen?: (open: boolean) => void;
+    /** "Fill in a template": pick a template and fill it in with the assistant (useTemplateFill). */
+    canFillTemplate?: boolean;
+    templatesOpen?: boolean;
+    setTemplatesOpen?: (open: boolean) => void;
     canPickApps: boolean;
     appsOpen?: boolean;
     setAppsOpen?: (open: boolean) => void;
@@ -74,6 +78,16 @@ function incognitoAttach(t: TranslateFn, incognito: boolean): Partial<ComposerTo
     return { disabled: true, hint: t('incognito.attachments_off', 'Attachments are off in an incognito chat: a file would have to be stored to be read.') };
 }
 
+/** "Fill in a template" (useTemplateFill), or false where the composer may not offer it. */
+function fillTemplateRow(t: TranslateFn, { canFillTemplate, templatesOpen, setTemplatesOpen }: Pick<ComposerToolsProps, 'canFillTemplate' | 'templatesOpen' | 'setTemplatesOpen'>): ComposerTool | false {
+    return !!canFillTemplate && {
+        id: 'fill-template', group: 'add', kind: 'panel', icon: FilePen,
+        label: t('chat_templates.menu_label', 'Fill in a template'),
+        hint: t('chat_templates.menu_hint', 'Pick one of your templates and fill it in together with the assistant'),
+        open: templatesOpen, onOpenChange: setTemplatesOpen,
+    };
+}
+
 export function buildComposerTools({
     t,
     onAttachClick,
@@ -96,7 +110,7 @@ export function buildComposerTools({
     memoryLock = null,
     voiceReady,
     voiceMode,
-    setVoiceMode,
+    setVoiceMode, ...fill
 }: ComposerToolsProps): (ComposerTool | false)[] {
     return [
         {
@@ -110,6 +124,7 @@ export function buildComposerTools({
             label: t('chat.composer.tools_media', 'Create image, music, video'),
             open: mediaMenuOpen, onOpenChange: setMediaMenuOpen,
         },
+        fillTemplateRow(t, fill),
         // Knowledge bases are NOT a row here any more — they are a pill of
         // their own (C3), for the same reason Skills is: `showKBPicker` may
         // have exactly one owner. A row and a pill both flipping it is the

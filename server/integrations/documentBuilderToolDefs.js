@@ -112,6 +112,8 @@ for (const tool of DOCUMENT_TOOLS) {
 }
 
 DOCUMENT_TOOLS.push(require('./sheetDownloadTool').DOCUMENT_DOWNLOAD_TOOL);
+// Filling in a template with the user (templateFillTools.mts), offered wherever create_document is.
+DOCUMENT_TOOLS.push(...require('./templateFillToolDefs.mts').TEMPLATE_FILL_TOOLS);
 const DOCUMENT_TOOL_NAMES = new Set(DOCUMENT_TOOLS.map(t => t.function.name));
 
 module.exports = { DOCUMENT_TOOLS, DOCUMENT_TOOL_NAMES };

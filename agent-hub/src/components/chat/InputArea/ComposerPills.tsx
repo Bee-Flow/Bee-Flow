@@ -34,8 +34,10 @@ import ComposerPill from '../ComposerPill';
 import ComposerToolsMenu from '../ComposerToolsMenu';
 
 import MediaCreationPanel from './MediaCreationPanel';
+import TemplateFillPicker from './TemplateFillPicker';
 import type { ComposerTool } from './composerTools';
 import type { AppDef } from '../../apps/AppsPicker';
+import type { MyTemplate } from '@/api/queries/projectContent';
 import type { TierClaim } from '../composerClaims';
 import type { KbClaim } from '../knowledgeBaseClaim';
 
@@ -48,6 +50,9 @@ interface ComposerPillsProps {
     showMusicGen: boolean;
     showElevenLabs: boolean;
     showVideoGen: boolean;
+    canFillTemplate?: boolean;
+    templatesOpen?: boolean;
+    onPickTemplate?: (template: MyTemplate) => void;
     canPickApps: boolean;
     availableApps: AppDef[];
     isAppEnabled: (appId: string) => boolean;
@@ -94,6 +99,9 @@ const ComposerPills = ({
     showMusicGen,
     showElevenLabs,
     showVideoGen,
+    canFillTemplate = false,
+    templatesOpen = false,
+    onPickTemplate,
     canPickApps,
     availableApps,
     isAppEnabled,
@@ -157,6 +165,8 @@ const ComposerPills = ({
                 showElevenLabs={showElevenLabs}
                 showVideoGen={showVideoGen}
             />
+            {/* Fill in a template — the picker; useTemplateFill sends the message */}
+            <TemplateFillPicker enabled={canFillTemplate && !!onPickTemplate} open={templatesOpen} onPick={(tpl) => onPickTemplate?.(tpl)} />
             {/* Knowledge bases are not here either — the picker moved out
                 with its pill (C3), so it opens under the thing that was
                 clicked instead of beside the "+". */}

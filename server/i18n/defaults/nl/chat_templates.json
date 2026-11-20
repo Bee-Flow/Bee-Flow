@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "chat_templates.card_download_failed": "Het downloaden is mislukt. Probeer het opnieuw.",
+    "chat_templates.card_download_pdf": "PDF downloaden",
+    "chat_templates.card_download_pptx": "PowerPoint downloaden",
+    "chat_templates.card_missing": "Nog nodig: {fields}",
+    "chat_templates.card_open": "Openen in Documenten",
+    "chat_templates.card_progress": "{filled} van {total} velden ingevuld",
+    "chat_templates.card_ready": "Klaar om te downloaden",
+    "chat_templates.empty": "Nog geen sjablonen. Maak er een in Studio → Documenten.",
+    "chat_templates.fill_message": "Vul het sjabloon “{name}” samen met mij in. (sjabloon {id})",
+    "chat_templates.load_error": "Je sjablonen konden niet worden geladen.",
+    "chat_templates.loading": "Sjablonen laden…",
+    "chat_templates.menu_hint": "Kies een van je sjablonen en vul het samen met de assistent in",
+    "chat_templates.menu_label": "Sjabloon invullen",
+    "chat_templates.no_match": "Geen sjabloon past bij je zoekopdracht.",
+    "chat_templates.search_placeholder": "Sjablonen zoeken…",
+    "chat_templates.type_presentation": "Presentatie"
+  },
+  "sameAsEnglish": [
+    "chat_templates.type_document"
+  ]
+}
