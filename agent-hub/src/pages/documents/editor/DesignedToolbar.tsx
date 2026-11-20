@@ -2,9 +2,12 @@
 // here, Viewing / Editing, house style, the side panels, print and download.
 
 import {
-    ArrowLeft, Download, Eye, History, Keyboard, ListTree, Loader2, Maximize2, MessageSquare, Pencil, Presentation, Printer, Search, Stamp, X,
+    ArrowLeft, Download, Eye, FileDown, History, Keyboard, ListTree, Loader2, Maximize2, MessageSquare, Pencil, Presentation, Printer, Search, Stamp, X,
 } from 'lucide-react';
+import { useState } from 'react';
+import { exportTemplateFile } from '@/api/templateFileApi';
 import SegmentedControl from '@/components/shared/SegmentedControl';
+import { logger } from '@/utils/logger';
 import useTranslation from '@/hooks/useTranslation';
 import type { People, StudioDocument } from '../documentQueries';
 import type { PresencePeer } from '../useSectionPresence';
@@ -69,6 +72,29 @@ function SideButtons({ side, onSide, canComment, findOpen, onFind, isDeck }: Pic
     );
 }
 
+/** The document as a .bftemplate file (body, stylesheet, fields, design), to import in another Bee Flow or library. */
+function TemplateFileButton({ id, name }: { id: string; name: string }) {
+    const { t } = useTranslation();
+    const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
+    const run = async () => {
+        setState('busy');
+        try {
+            await exportTemplateFile(id, name);
+            setState('idle');
+        } catch (err) {
+            logger.debug('template file export failed', err);
+            setState('failed');
+        }
+    };
+    return (
+        <button type="button" className={TOOL_BUTTON} onClick={() => { void run(); }} disabled={state === 'busy'} data-testid="document-export-template"
+            title={t('doc_template_file.export_hint', 'Download as a .bftemplate file: the layout, styling and fields, to import elsewhere')}>
+            {state === 'busy' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <FileDown size={14} aria-hidden="true" />}
+            <span aria-live="polite">{state === 'failed' ? t('doc_template_file.export_failed_short', 'Export failed') : t('doc_template_file.export_button', 'Template file')}</span>
+        </button>
+    );
+}
+
 function Downloads({ isDeck, downloading, onPrint, onDownload }: { isDeck: boolean; downloading: boolean; onPrint: () => void; onDownload: (f: 'pdf' | 'pptx') => void }) {
     const { t } = useTranslation();
     const spin = <Loader2 size={14} className="animate-spin" aria-hidden="true" />;
@@ -120,6 +146,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                     <Maximize2 size={15} />
                 </button>
             )}
+            {!isPanel && <TemplateFileButton id={doc.id} name={doc.name} />}
             <Downloads isDeck={isDeck} downloading={props.downloading} onPrint={props.onPrint} onDownload={props.onDownload} />
         </div>
     );

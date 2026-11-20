@@ -57,7 +57,8 @@ export type TemplateFillStore = {
     updateDocument: (id: string, userId: string, updates: Record<string, unknown>) => Promise<TemplateDoc | null>,
 };
 type Scope = FillScope & { createdInChat?: (id: string) => boolean };
-type Ctx = { documentScope?: Scope | null, conversationId?: string | null };
+/** `project`: a project's team chat, whose fills are documents of that project, shared by its members. */
+type Ctx = { documentScope?: Scope | null, conversationId?: string | null, project?: { id: string } | null };
 type Args = { query?: unknown, templateId?: unknown, name?: unknown, documentId?: unknown, values?: unknown, fresh?: unknown };
 type Handler = (args: Args, ctx: Ctx, userId: string) => Promise<Record<string, unknown>>;
 
@@ -88,7 +89,7 @@ async function fillableDocument(store: TemplateFillStore, args: Args, ctx: Ctx, 
     const scope = ctx.documentScope;
     let doc: TemplateDoc | null;
     if (!documentId) {
-        doc = await findActiveFill(store, scope, { conversationId: ctx.conversationId, userId });
+        doc = await findActiveFill(store, scope, { conversationId: ctx.conversationId, userId, projectId: ctx.project?.id ?? null });
         if (!doc) return { error: NO_ACTIVE_FILL };
     } else if (scope && typeof scope.has === 'function' && scope.has(documentId)) {
         doc = await store.getDocument(documentId, userId);
@@ -96,7 +97,7 @@ async function fillableDocument(store: TemplateFillStore, args: Args, ctx: Ctx, 
     } else {
         // Not in scope by the conversation's history: still this conversation's own fill when the document says so.
         doc = await store.getDocument(documentId, userId);
-        if (!isLinkedTo(doc, ctx.conversationId, userId)) return { error: notShared() };
+        if (!isLinkedTo(doc, ctx.conversationId, userId, ctx.project?.id ?? null)) return { error: notShared() };
         scope?.markCreated?.(documentId);
     }
     if (!doc) return { error: notShared() };
@@ -144,11 +145,11 @@ const ASK_MISSING = 'Ask only for what is still missing (missingRequired), a few
 function startFill({ db, contract }: Deps): Handler {
     return async (args, ctx, userId) => {
         const c = contract();
-        const template = await db().getDocument(str(args.templateId), userId);
-        if (!template || template.kind !== 'template' || template.docType === 'spreadsheet') return { error: NOT_FOUND };
-        try { c.getContract(template); } catch (e) { return { error: `This template cannot be filled in: ${(e as Error).message}` }; }
-        if (args.fresh !== true) {
-            const going = await findActiveFill(db(), ctx.documentScope, { conversationId: ctx.conversationId, userId, templateId: template.id });
+        const templateId = str(args.templateId);
+        // The fill already going comes first: in a team chat a colleague goes on with it even when the
+        // template itself is in someone else's library (the document is the project's, they may read it).
+        if (args.fresh !== true && templateId) {
+            const going = await findActiveFill(db(), ctx.documentScope, { conversationId: ctx.conversationId, userId, templateId, projectId: ctx.project?.id ?? null });
             if (going) {
                 return fillState(going, c, {
                     resumed: true,
@@ -156,10 +157,15 @@ function startFill({ db, contract }: Deps): Handler {
                 });
             }
         }
+        const template = await db().getDocument(templateId, userId);
+        if (!template || template.kind !== 'template' || template.docType === 'spreadsheet') return { error: NOT_FOUND };
+        try { c.getContract(template); } catch (e) { return { error: `This template cannot be filled in: ${(e as Error).message}` }; }
         const conversationId = str(ctx.conversationId);
-        // As the duplicate route copies it: an allow-list, the caller's own private document, filed nowhere.
+        // As the duplicate route copies it: an allow-list, the caller's own private document, filed nowhere;
+        // in a team chat filed in the project, so every member fills it in (the caller checked the project role).
         const doc = await db().createDocument({
             userId, name: str(args.name).slice(0, 200) || template.name, kind: 'document', visibility: 'private', folderId: null,
+            ...(ctx.project ? { projectId: ctx.project.id, projectOrgChecked: true } : {}),
             docType: template.docType, description: template.description, bodyHtml: template.bodyHtml, css: template.css,
             settings: { ...copySettings(template, 'document'), ...(conversationId ? { templateFill: newFillLink(conversationId, template.id) } : {}) },
             categories: template.projectRole ? [] : template.categories,

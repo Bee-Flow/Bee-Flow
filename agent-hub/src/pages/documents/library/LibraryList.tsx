@@ -93,7 +93,7 @@ function RowActions({ row, props, onAsk }: { row: LibraryRow; props: LibraryList
             {copyable && (
                 <button type="button" className={ACTION} disabled={busy} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
             )}
-            {props.onExport && (row.kind === 'template' || row.kind === 'section') && (
+            {props.onExport && !notebook && row.docType !== 'page' && row.docType !== 'spreadsheet' && (
                 <button type="button" className={ACTION} disabled={busy} onClick={() => props.onExport?.(row)} data-testid={`library-export-${row.id}`}
                     aria-label={t('doc_template_file.export', 'Download {name} as a template file', { name: row.name })}>
                     <FileDown size={15} aria-hidden="true" />

@@ -13,4 +13,7 @@ export default {
     "doc_template_file.import_hint": "Import a .bftemplate file as a new template",
     "doc_template_file.not_a_file": "This is not a Bee Flow template file (.bftemplate).",
     "doc_template_file.skipped_images": "Downloaded. {count} picture(s) could not be put in the file; add them again after importing.",
+    "doc_template_file.export_hint": "Download as a .bftemplate file: the layout, styling and fields, to import elsewhere",
+    "doc_template_file.export_button": "Template file",
+    "doc_template_file.export_failed_short": "Export failed",
 };
