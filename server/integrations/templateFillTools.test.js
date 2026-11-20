@@ -66,15 +66,18 @@ function fakeStore() {
 
 function scope() {
     const ids = new Set();
-    return { ids, has: (id) => ids.has(id), add: (id) => ids.add(id), markCreated: (id) => ids.add(id) };
+    return { has: (id) => ids.has(id), add: (id) => ids.add(id), markCreated: (id) => ids.add(id), ids: () => [...ids] };
 }
 
-function setup() {
+function setup(conversationId = 'conv-1') {
     const store = fakeStore();
-    return { store, handlers: makeTemplateFillHandlers({ store }), ctx: { documentScope: scope() } };
+    return { store, handlers: makeTemplateFillHandlers({ store }), ctx: { documentScope: scope(), conversationId } };
 }
 
-test('the four tools are offered wherever the document tools are, with a handler each', () => {
+/** A later turn of the same conversation: a new scope that knows nothing of earlier tool results. */
+const laterTurn = (conversationId = 'conv-1') => ({ documentScope: scope(), conversationId });
+
+test('the five tools are offered wherever the document tools are, with a handler each', () => {
     for (const t of TEMPLATE_FILL_TOOLS) {
         assert.ok(DOCUMENT_TOOL_NAMES.has(t.function.name), t.function.name);
         assert.equal(typeof TEMPLATE_FILL_HANDLERS[t.function.name], 'function');
@@ -189,4 +192,109 @@ test('a presentation from a team template downloads as PowerPoint', async () => 
     const done = await handlers.template_fill_finish({ documentId }, ctx, 'alice');
     assert.equal(done.format, 'pptx');
     assert.equal(done.downloadUrl, `/api/studio-documents/${documentId}/pptx`);
+});
+
+// ── The fill keeps its document ─────────────────────────────────────
+
+const keysOf = (list) => list.map((item) => item.key);
+
+test('template_fill_start links the copy to this conversation, and continues it instead of making a second copy', async () => {
+    const { handlers, ctx, store } = setup();
+    const first = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const link = store.docs.get(first.documentId).settings.templateFill;
+    assert.equal(link.conversationId, 'conv-1');
+    assert.equal(link.templateId, 'tpl-own');
+    assert.ok(!Number.isNaN(Date.parse(link.startedAt)));
+    await handlers.template_fill_set_values({ documentId: first.documentId, values: { client_name: 'Van Dijk' } }, ctx, 'alice');
+
+    const again = await handlers.template_fill_start({ templateId: 'tpl-own' }, laterTurn(), 'alice');
+    assert.equal(again.documentId, first.documentId, 'the same document, not a new copy');
+    assert.equal(again.resumed, true);
+    assert.deepStrictEqual(again.values, { client_name: 'Van Dijk' }, 'with what is already filled in');
+    assert.equal(store.calls.filter((c) => c.op === 'create').length, 1);
+
+    const fresh = await handlers.template_fill_start({ templateId: 'tpl-own', fresh: true }, laterTurn(), 'alice');
+    assert.notEqual(fresh.documentId, first.documentId, 'fresh: true makes a second document');
+    const other = await handlers.template_fill_start({ templateId: 'tpl-own' }, laterTurn('conv-2'), 'alice');
+    assert.equal(other.resumed, undefined, 'another conversation never continues this one\'s fill');
+});
+
+test('set_values, status and finish without a documentId use this conversation\'s fill, in a later turn too', async () => {
+    const { handlers, ctx } = setup();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const set = await handlers.template_fill_set_values({ values: { client_name: 'Van Dijk', amount: 10 } }, laterTurn(), 'alice');
+    assert.ifError(set.error);
+    assert.equal(set.documentId, documentId);
+    const status = await handlers.template_fill_status({}, laterTurn(), 'alice');
+    assert.equal(status.documentId, documentId);
+    assert.deepStrictEqual(status.values, { client_name: 'Van Dijk', amount: 10 });
+    assert.deepStrictEqual(keysOf(status.missingRequired), ['date']);
+    assert.equal(status.fields.length, 5);
+
+    const turn = laterTurn();
+    await handlers.template_fill_set_values({ values: { date: '2026-03-01' } }, turn, 'alice');
+    assert.ok(turn.documentScope.has(documentId), 'the found fill joins the turn\'s scope as the chat\'s own');
+    const done = await handlers.template_fill_finish({}, laterTurn(), 'alice');
+    assert.equal(done.finished, true);
+    assert.equal(done.documentId, documentId);
+});
+
+test('a finished fill is not continued, and without an active fill the tools say what to do', async () => {
+    const { handlers, ctx, store } = setup();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-team' }, ctx, 'alice');
+    await handlers.template_fill_set_values({ values: { title: 'Kick-off' } }, ctx, 'alice');
+    await handlers.template_fill_finish({}, ctx, 'alice');
+    assert.ok(store.docs.get(documentId).settings.templateFill.finishedAt, 'finishing marks the link');
+    const none = await handlers.template_fill_set_values({ values: { title: 'x' } }, laterTurn(), 'alice');
+    assert.match(none.error, /No template is being filled in/);
+    const next = await handlers.template_fill_start({ templateId: 'tpl-team' }, laterTurn(), 'alice');
+    assert.notEqual(next.documentId, documentId);
+    assert.equal((await handlers.template_fill_status({}, laterTurn('conv-9'), 'alice')).error, none.error);
+});
+
+test('a document id outside the scope: this conversation\'s own fill is reached, anyone else\'s is not', async () => {
+    const { handlers, ctx, store } = setup();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const own = await handlers.template_fill_set_values({ documentId, values: { notes: 'ok' } }, laterTurn(), 'alice');
+    assert.ifError(own.error);
+    const otherConversation = await handlers.template_fill_set_values({ documentId, values: { notes: 'no' } }, laterTurn('conv-2'), 'alice');
+    assert.equal(otherConversation.error, NOT_SHARED);
+    const otherUser = await handlers.template_fill_status({ documentId }, laterTurn(), 'bob');
+    assert.equal(otherUser.error, NOT_SHARED);
+    assert.equal(store.docs.get(documentId).settings.sampleValues.notes, 'ok');
+});
+
+test('every answer about a document starts with its documentId, so a cut-off preview keeps it', async () => {
+    const { handlers, ctx } = setup();
+    const start = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const answers = [
+        start,
+        await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice'),
+        await handlers.template_fill_set_values({ values: { notes: 'x' } }, ctx, 'alice'),
+        await handlers.template_fill_set_values({ values: 'nope' }, ctx, 'alice'),
+        await handlers.template_fill_status({}, ctx, 'alice'),
+        await handlers.template_fill_finish({}, ctx, 'alice'),
+    ];
+    for (const a of answers) assert.ok(JSON.stringify(a).startsWith(`{"documentId":"${start.documentId}"`), JSON.stringify(a).slice(0, 60));
+});
+
+// ── Privacy Shield ──────────────────────────────────────────────────
+
+test('a Privacy Shield placeholder the conversation could not restore is refused, never stored', async () => {
+    const { handlers, ctx, store } = setup();
+    await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const out = await handlers.template_fill_set_values({ values: { client_name: '[person_223]', notes: 'Contact: [organization_32] BV', amount: 5 } }, ctx, 'alice');
+    assert.deepStrictEqual(out.values, { amount: 5 });
+    assert.deepStrictEqual(keysOf(out.rejected).sort(), ['client_name', 'notes']);
+    assert.match(out.rejected[0].message, /masked by the Privacy Shield \(\[person_223\]\).*Ask the user/);
+    const saved = [...store.docs.values()].find((d) => d.kind === 'document' && d.settings.sampleValues);
+    assert.ok(!JSON.stringify(saved.settings.sampleValues).includes('[person_'), 'no placeholder in the document');
+    const plain = await handlers.template_fill_set_values({ values: { notes: 'Room [B12] on floor 3' } }, ctx, 'alice');
+    assert.deepStrictEqual(plain.rejected, [], 'brackets that are no placeholder are ordinary text');
+});
+
+test('a copy of a filled-in document is no fill: the conversation link is not copied', () => {
+    const { copySettings } = require('../core/documents/documentCopy.mts');
+    const kept = copySettings({ id: 'd', kind: 'document', settings: { templateFill: { conversationId: 'c' }, sampleValues: { a: 1 }, contract: {} } }, 'document');
+    assert.deepStrictEqual(kept, { contract: {} });
 });

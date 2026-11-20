@@ -143,8 +143,8 @@ export function GeneratedMediaBlock({ msg, setLightboxImage }: { msg: ChatMessag
             {msg.videoFiles && msg.videoFiles.length > 0 && <GeneratedVideos msg={msg} />}
             {/* Files a tool built — a deck to open in Nextcloud Office or download */}
             {msg.files && msg.files.length > 0 && <GeneratedFiles msg={msg} />}
-            {/* A template being filled in with the user: progress, then the download */}
-            {msg.toolResults && msg.toolResults.length > 0 && <TemplateFillCard toolResults={msg.toolResults} />}
+            {/* A template being filled in with the user: the form, then the download */}
+            <TemplateFillCard toolResults={msg.toolResults} toolHistory={msg.toolHistory} />
         </>
     );
 }

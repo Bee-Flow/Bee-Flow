@@ -50,6 +50,8 @@ const FIXTURES = [
             'GET /api/studio-documents/:id/stream', 'POST /api/studio-documents/:id/presence',
             'GET /api/studio-documents/:id/sharing', 'GET /api/studio-documents/:id/sharing/principals',
             'PUT /api/studio-documents/:id/sharing',
+            // The chat's form for a filled-in template: the owner's empty save is a 200.
+            'PUT /api/studio-documents/:id/values',
             'GET /api/studio-documents/:id/suggestions', 'POST /api/studio-documents/:id/suggestions/:sid/accept',
             'POST /api/studio-documents/:id/suggestions/:sid/reject', 'POST /api/studio-documents/:id/suggestions/batch/:batchId/accept',
             'POST /api/studio-documents/:id/suggestions/batch/:batchId/reject',
@@ -67,6 +69,7 @@ const FIXTURES = [
             'POST /api/studio-documents/:id/versions': { name: 'Matrix version' },
             'PUT /api/studio-documents/:id/versions/:ref/name': { name: 'Matrix version' },
             'PATCH /api/studio-documents/:id': { name: NO_TEXT },
+            'PUT /api/studio-documents/:id/values': { values: { title: NO_TEXT } },
         },
     },
     {

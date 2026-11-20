@@ -1,81 +1,51 @@
 /**
- * Where each template being filled in this turn stands, read off the turn's
- * tool results (template_fill_start / _set_values / _finish, answered by
- * server/integrations/templateFillTools.mts). One entry per document, the
- * latest answer winning: the card shows where the filling ended up, not every
- * step on the way.
+ * Which documents an answer filled in from a template, read off the turn's
+ * template-fill tools (server/integrations/templateFillTools.mts). Every
+ * answer of those tools starts with `{"documentId":"…"`, so the id survives
+ * both the live result (`toolResults`) and the short preview a reloaded
+ * message keeps (`toolHistory[].resultPreview`). The form under the answer
+ * (TemplateFillCard) reads the document itself from that id.
  *
- * A reloaded message has no `toolResults` (only 200-character previews), so the
- * card is a live-turn affordance; the assistant's closing "[name](url)" link
- * (DocumentLinkCard) is what stays.
+ * `revision` counts the results per document: a new one in a live turn makes
+ * the form read the document again.
  */
 
-const TEMPLATE_FILL_RESULT_TOOLS = new Set(['template_fill_start', 'template_fill_set_values', 'template_fill_finish']);
+const TEMPLATE_FILL_TOOLS = new Set(['template_fill_start', 'template_fill_set_values', 'template_fill_status', 'template_fill_finish']);
+const ID_MARK = '"documentId":"';
+const MAX_ID = 100;
 
-export interface TemplateFillState {
+export interface TemplateFillRef {
     documentId: string;
-    name: string;
-    url: string;
-    filled: number;
-    total: number;
-    missing: string[];
-    finished: boolean;
-    format: 'pdf' | 'pptx';
+    revision: number;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
 
-/** The result as an object: a tool result may arrive as its JSON text. */
-function resultObject(result: unknown): Record<string, unknown> | null {
-    if (isObject(result)) return result;
-    if (typeof result !== 'string') return null;
-    try {
-        const parsed: unknown = JSON.parse(result);
-        return isObject(parsed) ? parsed : null;
-    } catch {
-        return null;
-    }
+/** The id after `"documentId":"` in a (possibly cut-off) JSON text, or null. */
+function idInText(text: string): string | null {
+    const at = text.indexOf(ID_MARK);
+    if (at === -1) return null;
+    const start = at + ID_MARK.length;
+    const end = text.indexOf('"', start);
+    if (end === -1 || end - start > MAX_ID || end === start) return null;
+    return text.slice(start, end);
 }
 
-/** The labels of the fields still required (the key when a field has no label). */
-function missingLabels(v: unknown): string[] {
-    if (!Array.isArray(v)) return [];
-    return v.map((field: unknown) => {
-        if (!isObject(field)) return '';
-        const label = field.label ?? field['key'];
-        return typeof label === 'string' ? label : '';
-    }).filter(Boolean);
+/** The document a template-fill entry answered about, or null (another tool, an error without a document). */
+function documentIdOf(entry: unknown, resultField: 'result' | 'resultPreview'): string | null {
+    if (!isObject(entry) || typeof entry.name !== 'string' || !TEMPLATE_FILL_TOOLS.has(entry.name)) return null;
+    const result = entry[resultField];
+    if (isObject(result)) return typeof result.documentId === 'string' && result.documentId ? result.documentId : null;
+    return typeof result === 'string' ? idInText(result) : null;
 }
 
-/** A template-fill result that names its document, or null for any other entry (an error, another tool). */
-function fillResult(entry: unknown): (Record<string, unknown> & { documentId: string }) | null {
-    if (!isObject(entry) || typeof entry.name !== 'string' || !TEMPLATE_FILL_RESULT_TOOLS.has(entry.name)) return null;
-    const r = resultObject(entry.result);
-    if (!r || r.error || typeof r.documentId !== 'string' || !r.documentId) return null;
-    return r as Record<string, unknown> & { documentId: string };
-}
-
-const text = (v: unknown, fallback: string): string => (typeof v === 'string' && v ? v : fallback);
-
-export function templateFillStates(toolResults: unknown): TemplateFillState[] {
-    const byDoc = new Map<string, TemplateFillState>();
-    for (const entry of Array.isArray(toolResults) ? toolResults : []) {
-        const r = fillResult(entry);
-        if (!r) continue;
-        const before = byDoc.get(r.documentId);
-        // Re-inserted, so a document keeps the place of its latest answer.
-        byDoc.delete(r.documentId);
-        byDoc.set(r.documentId, {
-            documentId: r.documentId,
-            name: text(r.name, before?.name ?? ''),
-            url: text(r.url, `/app/studio/documents/${r.documentId}`),
-            filled: count(r.filled),
-            total: count(r.total),
-            missing: missingLabels(r.missingRequired),
-            finished: r.finished === true,
-            format: r.format === 'pptx' ? 'pptx' : 'pdf',
-        });
-    }
-    return [...byDoc.values()];
+export function templateFillRefs(toolResults: unknown, toolHistory: unknown): TemplateFillRef[] {
+    const live = Array.isArray(toolResults) ? toolResults : [];
+    // A live turn has both lists; the results are the full answers, so they count when there are any.
+    const entries = live.length > 0
+        ? live.map((e) => documentIdOf(e, 'result'))
+        : (Array.isArray(toolHistory) ? toolHistory : []).map((e) => documentIdOf(e, 'resultPreview'));
+    const byDoc = new Map<string, number>();
+    for (const id of entries) if (id) byDoc.set(id, (byDoc.get(id) ?? 0) + 1);
+    return [...byDoc].map(([documentId, revision]) => ({ documentId, revision }));
 }

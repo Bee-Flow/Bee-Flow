@@ -38,6 +38,9 @@ const { fallback, bestEffort } = require('../../../utils/bestEffort');
  * @typedef {{ toolResult: ToolAnswer, outboundProbe: object | null, toolError: unknown }} Ran
  */
 
+// Document tools that only read: the open editor is not told to reload.
+const READ_ONLY_DOCUMENT_TOOLS = new Set(['document_read', 'template_fill_status']);
+
 // A search keeps its DLP tokens: the query (or the address of a page read)
 // leaves Bee Flow, so the real value is not restored into it.
 // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored alternation of fixed names, no repetition: linear
@@ -194,7 +197,7 @@ async function runDocumentTool(toolName, toolArgs, ctx) {
     if (toolResult && toolResult.suggested > 0 && toolResult.batchId && !toolResult.error) {
         ctx.send('document_suggestions', { documentId: toolResult.documentId, batchId: toolResult.batchId, count: toolResult.suggested });
     }
-    if (toolName !== 'document_read' && toolResult && toolResult.documentId && !toolResult.error && !toolResult.batchId) {
+    if (!READ_ONLY_DOCUMENT_TOOLS.has(toolName) && toolResult && toolResult.documentId && !toolResult.error && !toolResult.batchId) {
         ctx.send('document_update', {
             documentId: toolResult.documentId,
             name: toolResult.name,

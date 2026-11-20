@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1936 operations. */
+/** 1937 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -5426,6 +5426,10 @@ export interface ApiOperations {
     'POST /api/studio-documents/{id}/validate': Op<{ id: string | number }, UndeclaredQuery, {
         sectionOverrides?: Record<string, unknown> | null;
         values?: Record<string, unknown> | null;
+    }>;
+    'PUT /api/studio-documents/{id}/values': Op<{ id: string | number }, UndeclaredQuery, {
+        finish?: boolean;
+        values: Record<string, unknown>;
     }>;
     'GET /api/studio-documents/{id}/versions': Op<{ id: string | number }, {
         cursor?: string;

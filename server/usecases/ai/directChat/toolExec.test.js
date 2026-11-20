@@ -20,7 +20,7 @@ const usage = { rows: [] };
 const activity = { rows: [] };
 const pii = { impl: async () => ({ hasPii: false, entities: [] }) };
 const dlp = { map: {} };
-const untok = { calls: [] };
+const untok = { calls: [], impl: null };
 
 function resetStubs() {
     dispatcher.calls = [];
@@ -33,6 +33,7 @@ function resetStubs() {
     pii.impl = async () => ({ hasPii: false, entities: [] });
     dlp.map = {};
     untok.calls = [];
+    untok.impl = null;
     Object.assign(kinds, { builder: null, db: null, plan: null, integration: null, usageThrows: false, egressThrows: false, calls: [], marked: [], egress: [] });
 }
 
@@ -69,8 +70,8 @@ const restore = installResolveStub({
     // requires documentStore, which fires initDB() at require time. A DB-free
     // test that pulls that in hangs on pool retries instead of failing.
     '../../../integrations/documentBuilderTools': {
-        isDocumentTool: (name) => documentTools.on && /^(create_document|document_(read|write|edit))$/.test(name),
-        executeDocumentTool: async (_n, _a, dctx) => { documentTools.lastCtx = dctx; return documentTools.result || { documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' }; },
+        isDocumentTool: (name) => documentTools.on && /^(create_document|document_(read|write|edit)|template_fill_set_values)$/.test(name),
+        executeDocumentTool: async (_n, args, dctx) => { documentTools.lastCtx = dctx; documentTools.lastArgs = args; return documentTools.result || { documentId: 'd1', name: 'Plan', url: '/app/studio/documents/d1' }; },
     },
     '../../../integrations/webpageDbTools': {
         isDbTool: (name) => !!kinds.db && name === 'webpage_db_exec',
@@ -80,7 +81,7 @@ const restore = installResolveStub({
     '../../../core/dlp/applyTokenMapToOutbound': {
         untokeniseToolArgs: (args, map) => {
             untok.calls.push({ args, map });
-            return args;
+            return untok.impl ? untok.impl(args, map) : args;
         },
     },
     '../../../stores/guardrailEventStore': {
@@ -704,6 +705,22 @@ test('the turn\'s document scope reaches the document tools through the call con
         const { ctx } = mkCtx({ documentScope: scope });
         await executeDirectChatToolCall(mkToolCall('document_read', { documentId: 'd1' }), ctx);
         assert.strictEqual(documentTools.lastCtx.documentScope, scope);
+    } finally {
+        documentTools.on = false;
+    }
+});
+
+test('Privacy Shield: template_fill_set_values gets the real values of this conversation\'s tokens, not the placeholders', async () => {
+    documentTools.on = true;
+    try {
+        dlp.map = { '[person_1]': 'Jan Jansen' };
+        // The real restore walks every string of the arguments (applyTokenMapToOutbound.untokeniseToolArgs).
+        untok.impl = (args, map) => JSON.parse(JSON.stringify(args).split('[person_1]').join(map['[person_1]']));
+        const { ctx } = mkCtx();
+        await executeDirectChatToolCall(mkToolCall('template_fill_set_values', { values: { client_name: '[person_1]', items: [{ who: '[person_1]' }] } }), ctx);
+        assert.deepStrictEqual(untok.calls[0].map, { '[person_1]': 'Jan Jansen' }, 'the conversation\'s own map');
+        assert.deepStrictEqual(documentTools.lastArgs, { values: { client_name: 'Jan Jansen', items: [{ who: 'Jan Jansen' }] } });
+        assert.strictEqual(documentTools.lastCtx.conversationId, 'conv-1', 'the tool knows its conversation, for the active fill');
     } finally {
         documentTools.on = false;
     }

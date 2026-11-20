@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-61 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
+62 routes, 38 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -343,6 +343,17 @@ No request schema.
 |-------|------|:--------:|-------|
 | `values` | object or null |  |  |
 | `sectionOverrides` | object or null |  |  |
+
+### `PUT /api/studio-documents/:id/values`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `values` | object | yes |  |
+| `finish` | boolean |  |  |
 
 ### `GET /api/studio-documents/:id/versions`
 

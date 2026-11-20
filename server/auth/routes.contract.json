@@ -7555,6 +7555,9 @@
     "PUT /api/studio-documents/:id/sharing": {
       "gate": "auth"
     },
+    "PUT /api/studio-documents/:id/values": {
+      "gate": "auth"
+    },
     "PUT /api/studio-documents/:id/versions/:ref/name": {
       "gate": "handler",
       "via": "route,handler"
