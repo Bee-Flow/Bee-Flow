@@ -1,0 +1,12 @@
+{
+  "translations": {
+    "doc_template_file.export": "{name} downloaden als sjabloonbestand",
+    "doc_template_file.export_failed": "Het sjabloonbestand kon niet worden gemaakt. Probeer het opnieuw.",
+    "doc_template_file.import": "Sjabloon importeren",
+    "doc_template_file.import_failed": "Het sjabloon kon niet worden geïmporteerd. Probeer het opnieuw.",
+    "doc_template_file.import_hint": "Een .bftemplate-bestand importeren als nieuw sjabloon",
+    "doc_template_file.not_a_file": "Dit is geen Bee Flow-sjabloonbestand (.bftemplate).",
+    "doc_template_file.skipped_images": "Gedownload. {count} afbeelding(en) konden niet in het bestand; voeg ze na het importeren opnieuw toe."
+  },
+  "sameAsEnglish": []
+}

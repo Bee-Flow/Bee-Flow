@@ -813,6 +813,7 @@ router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', require('./studioDocuments/stream'));
 router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter);
+router.use('/', require('./studioDocuments/templateFile.mts').templateFileRouter); // .bftemplate export and import
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 

@@ -9,7 +9,7 @@
 // Loading, empty and failed are three different screens; while the next page
 // or search loads, the current list stays.
 
-import { Archive, ArchiveRestore, BookOpen, Copy, FilePenLine, FileText, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, BookOpen, Copy, FileDown, FilePenLine, FileText, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
@@ -32,6 +32,8 @@ export interface LibraryListProps {
     onOpen: (row: LibraryRow) => void;
     onShare?: (row: LibraryRow) => void;
     onDuplicate: (row: LibraryRow) => void;
+    /** Downloads a template or reusable section as a .bftemplate file. */
+    onExport?: (row: LibraryRow) => void;
     /** Archives a document or a notebook (the row says which it is). */
     onArchive: (row: LibraryRow) => Promise<unknown>;
     onUnarchive: (row: LibraryRow) => void;
@@ -90,6 +92,12 @@ function RowActions({ row, props, onAsk }: { row: LibraryRow; props: LibraryList
             {row.userId === props.currentUserId && props.onShare && <button type="button" className={ACTION} onClick={() => props.onShare?.(row)} aria-label={t('documents.sharing.title', 'Share {name}', { name: row.name })}><Share2 size={15} aria-hidden="true" /></button>}
             {copyable && (
                 <button type="button" className={ACTION} disabled={busy} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
+            )}
+            {props.onExport && (row.kind === 'template' || row.kind === 'section') && (
+                <button type="button" className={ACTION} disabled={busy} onClick={() => props.onExport?.(row)} data-testid={`library-export-${row.id}`}
+                    aria-label={t('doc_template_file.export', 'Download {name} as a template file', { name: row.name })}>
+                    <FileDown size={15} aria-hidden="true" />
+                </button>
             )}
             {mayArchive(row, props) && (
                 <button type="button" className={ACTION} disabled={busy} onClick={() => onAsk(row, 'archive')} aria-label={t('documents.library.archive', 'Archive {name}', { name: row.name })}>

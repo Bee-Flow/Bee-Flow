@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1937 operations. */
+/** 1939 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -5299,6 +5299,10 @@ export interface ApiOperations {
         name?: string;
     }>;
     'POST /api/studio-documents/house-style/preview-theme': Op;
+    'POST /api/studio-documents/import': Op<NoParams, UndeclaredQuery, {
+        file: Record<string, unknown>;
+        folderId?: string;
+    }>;
     'DELETE /api/studio-documents/notebooks/{id}': Op<{ id: string | number }>;
     'POST /api/studio-documents/notebooks/{id}/archive': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'PATCH /api/studio-documents/notebooks/{id}/filing': Op<{ id: string | number }, UndeclaredQuery, {
@@ -5351,6 +5355,7 @@ export interface ApiOperations {
         kind?: 'document' | 'template' | 'section';
         name?: string;
     }>;
+    'GET /api/studio-documents/{id}/export': Op<{ id: string | number }>;
     'POST /api/studio-documents/{id}/insert-section': Op<{ id: string | number }, UndeclaredQuery, {
         expectedVersionId?: string;
         sourceId: string;

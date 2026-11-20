@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-62 routes, 38 with a request schema. Back to the [endpoint reference](../reference.md).
+64 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -91,6 +91,12 @@ No request schema.
 |-------|------|:--------:|-------|
 | `name` | string |  | max length 200 |
 | `kind` | one of `"document"`, `"template"`, `"section"` |  |  |
+
+### `GET /api/studio-documents/:id/export`
+
+**Access:** Signed-in user
+
+No request schema.
 
 ### `POST /api/studio-documents/:id/insert-section`
 
@@ -464,6 +470,19 @@ No request schema.
 **Access:** Signed-in user
 
 No request schema.
+
+## `import`
+
+### `POST /api/studio-documents/import`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `file` | object | yes |  |
+| `folderId` | string |  | max length 200 |
 
 ## `notebooks`
 

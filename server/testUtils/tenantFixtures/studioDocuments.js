@@ -52,6 +52,8 @@ const FIXTURES = [
             'PUT /api/studio-documents/:id/sharing',
             // The chat's form for a filled-in template: the owner's empty save is a 200.
             'PUT /api/studio-documents/:id/values',
+            // The document as a .bftemplate file.
+            'GET /api/studio-documents/:id/export',
             'GET /api/studio-documents/:id/suggestions', 'POST /api/studio-documents/:id/suggestions/:sid/accept',
             'POST /api/studio-documents/:id/suggestions/:sid/reject', 'POST /api/studio-documents/:id/suggestions/batch/:batchId/accept',
             'POST /api/studio-documents/:id/suggestions/batch/:batchId/reject',

@@ -2859,6 +2859,9 @@
     "GET /api/studio-documents/:id/contract": {
       "gate": "auth"
     },
+    "GET /api/studio-documents/:id/export": {
+      "gate": "auth"
+    },
     "GET /api/studio-documents/:id/pdf": {
       "gate": "auth"
     },
@@ -6337,6 +6340,9 @@
       "gate": "auth"
     },
     "POST /api/studio-documents/house-style/preview-theme": {
+      "gate": "auth"
+    },
+    "POST /api/studio-documents/import": {
       "gate": "auth"
     },
     "POST /api/studio-documents/notebooks/:id/archive": {

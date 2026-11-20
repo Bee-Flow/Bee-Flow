@@ -183,7 +183,8 @@ function documentFileName(raw, fallback = 'document', extension = 'pdf') {
         .replace(/^\.+/, '')
         .slice(0, 120)
         .trim();
-    const ext = /^[a-z0-9]{1,8}$/i.test(String(extension || '')) ? String(extension).toLowerCase() : 'pdf';
+    // Letters and digits only, up to 12 (`bftemplate`, Bee Flow's template file, is 10).
+    const ext = /^[a-z0-9]{1,12}$/i.test(String(extension || '')) ? String(extension).toLowerCase() : 'pdf';
     return `${(cleaned || fallback).replace(new RegExp(`\\.${ext}$`, 'i'), '')}.${ext}`;
 }
 

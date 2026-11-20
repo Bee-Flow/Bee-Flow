@@ -8,7 +8,7 @@
 // overviews): an 18px title with its count and a one-line intro, the search
 // box and the actions on the same row, pills for the views and the types.
 
-import { Plus, Stamp } from 'lucide-react';
+import { Plus, Stamp, Upload } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Suspense, useEffect, useState } from 'react';
 import PagerJs from '../../components/shared/Pager';
@@ -20,6 +20,8 @@ import DocumentEditor from './DocumentEditor';
 import HouseStylePanel from './HouseStylePanel';
 import { docKeys, useFolders, useLibrary, useSessionUser, type LibraryRow } from './documentQueries';
 import FolderSidebar from './library/FolderSidebar';
+import useTemplateFile from './library/useTemplateFile';
+import { TEMPLATE_FILE_ACCEPT } from '@/api/templateFileApi';
 import { BulkBar, LibraryFilterBar, LibrarySearch, LibraryViews } from './library/LibraryControls';
 import LibraryList from './library/LibraryList';
 import DocumentSharingDialog from './library/DocumentSharingDialog';
@@ -125,7 +127,7 @@ function useLibraryPage(user: unknown) {
     return { t, locale, orgAdmin: isOrgAdminUser(user), f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, spreadsheets, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
 }
 
-function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle?: () => void; onNew: () => void }) {
+function LibraryHeader({ p, onHouseStyle, onNew, onImport, importing }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle?: () => void; onNew: () => void; onImport: () => void; importing: boolean }) {
     const { t } = p;
     const typesText = useLibraryTypesText();
     const total = p.list.data?.total;
@@ -142,6 +144,10 @@ function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLib
             </div>
             <LibrarySearch value={p.f.query} onChange={p.f.setQuery} />
             {onHouseStyle && <button type="button" className={SECONDARY} data-testid="documents-house-style" onClick={onHouseStyle}><Stamp size={14} aria-hidden="true" />{t('documents.style.button', 'House style')}</button>}
+            <button type="button" className={SECONDARY} onClick={onImport} disabled={importing} data-testid="documents-import-template"
+                title={t('doc_template_file.import_hint', 'Import a .bftemplate file as a new template')}>
+                <Upload size={14} aria-hidden="true" />{t('doc_template_file.import', 'Import template')}
+            </button>
             <button type="button" className={PRIMARY} onClick={onNew} data-testid="documents-new">
                 <Plus size={14} aria-hidden="true" />{t('documents.new_button', 'New document')}
             </button>
@@ -156,7 +162,7 @@ function busyRow(actions: ReturnType<typeof useLibraryActions>): string | null {
 }
 
 /** The list column: bulk actions, the rows, the pager. */
-function LibraryMain({ p, onOpen, onCreate }: { p: ReturnType<typeof useLibraryPage>; onOpen: (row: LibraryRow) => void; onCreate: () => void }) {
+function LibraryMain({ p, onOpen, onCreate, onExport }: { p: ReturnType<typeof useLibraryPage>; onOpen: (row: LibraryRow) => void; onCreate: () => void; onExport: (row: LibraryRow) => void }) {
     const { f, list, actions } = p;
     const rows: LibraryRow[] = list.data?.documents || [];
     const [sharingRow, setSharingRow] = useState<LibraryRow | null>(null);
@@ -178,7 +184,7 @@ function LibraryMain({ p, onOpen, onCreate }: { p: ReturnType<typeof useLibraryP
                 rows={rows} people={list.data?.people || {}} currentUserId={p.me.data?.id || null} spreadsheets={p.spreadsheets} orgAdmin={p.orgAdmin}
                 status={status} refreshing={list.isFetching && !list.isPending}
                 archivedView={f.archived} filtered={filtered} selection={p.selection} onSelect={p.setSelection} busyId={busyRow(actions)}
-                onShare={setSharingRow} onOpen={onOpen} onRetry={() => list.refetch()} onCreate={onCreate}
+                onShare={setSharingRow} onOpen={onOpen} onRetry={() => list.refetch()} onCreate={onCreate} onExport={onExport}
                 onDuplicate={(row) => actions.duplicate.mutate(row.id, { onSuccess: (doc) => onOpen({ ...row, id: doc.id }), onError: p.fail })}
                 onArchive={(row) => (isNotebookRow(row) ? actions.archiveNotebook : actions.archive).mutateAsync(row.id).catch(p.fail)}
                 onUnarchive={(row) => (isNotebookRow(row) ? actions.unarchiveNotebook : actions.unarchive).mutate(row.id, { onError: p.fail })}
@@ -240,6 +246,7 @@ export default function DocumentsPage({ mode = 'workspace', initialDocumentId = 
         create(choice).catch((e) => { if (isKeyUnavailable(e)) setLocked(choice); });
     };
 
+    const { inputRef: importInputRef, importing, pick: pickTemplateFile, exportRow, importFile } = useTemplateFile({ folderId: f.folderId || undefined, onImported: (id) => { p.refresh(); select(id); }, onMessage: p.setError });
     const openGallery = () => { actions.create.reset(); actions.createNotebook.reset(); actions.createSheet.reset(); fromTemplate.reset(); setGalleryOpen(true); };
 
     if (mode === 'studio' && showHouseStyle) return <HouseStylePanel onBack={() => setShowHouseStyle(false)} />;
@@ -257,7 +264,10 @@ export default function DocumentsPage({ mode = 'workspace', initialDocumentId = 
     return (
         <div className="h-full overflow-auto text-[var(--text-primary)] bg-[var(--bg-primary)]" data-testid="documents-library">
             <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-4">
-                <LibraryHeader p={p} onHouseStyle={mode === 'studio' ? () => setShowHouseStyle(true) : undefined} onNew={openGallery} />
+                <LibraryHeader p={p} onHouseStyle={mode === 'studio' ? () => setShowHouseStyle(true) : undefined} onNew={openGallery}
+                    onImport={pickTemplateFile} importing={importing} />
+                <input ref={importInputRef} type="file" accept={TEMPLATE_FILE_ACCEPT} className="hidden" data-testid="documents-import-input"
+                    onChange={(e) => { void importFile(e.target.files?.[0]); }} />
                 <LibraryViews kind={f.kind} archived={f.archived} onView={(kind, archived) => { f.setArchived(archived); if (kind) f.setKind(kind); }} />
                 <LibraryFilterBar f={f} notebooks={p.notebooks} spreadsheets={p.spreadsheets} />
                 {p.error && <div role="alert" className="flex gap-3 p-3 rounded-xl text-sm border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)]"><span className="flex-1">{p.error}</span><button type="button" className="underline" onClick={() => p.setError(null)}>{t('documents.dismiss', 'Dismiss')}</button></div>}
@@ -265,7 +275,7 @@ export default function DocumentsPage({ mode = 'workspace', initialDocumentId = 
                     <FolderSidebar folders={p.folders.data || []} folderId={f.folderId} onFolder={f.setFolderId} busy={actions.createFolder.isPending}
                         onCreate={(name) => actions.createFolder.mutateAsync({ name, parentId: f.folderId || null }).catch((e) => { p.fail(e); throw e; })}
                         onDelete={(folder) => actions.deleteFolder.mutateAsync(folder.id).catch((e) => { p.fail(e); throw e; })} />
-                    <LibraryMain p={p} onOpen={open} onCreate={openGallery} />
+                    <LibraryMain p={p} onOpen={open} onCreate={openGallery} onExport={(row) => { void exportRow(row); }} />
                 </div>
                 <StarterGallery open={galleryOpen} busy={actions.create.isPending || actions.createNotebook.isPending || actions.createSheet.isPending || fromTemplate.isPending}
                     notebooks={p.notebooks} spreadsheets={p.spreadsheets} view={f.kind} templates={f.kind === 'document' ? ownTemplates.data?.templates : undefined} onClose={() => setGalleryOpen(false)}
