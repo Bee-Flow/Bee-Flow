@@ -28,7 +28,7 @@ function ownerOf(/** @type {string} */ toolName) {
 test('the walk keeps the order of the former dispatcher chain', () => {
     assert.deepEqual(listToolFamilies().map(f => f.name), [
         'custom_integration',
-        'activate_skill', 'session_skills', 'generate_image',
+        'activate_skill', 'cowork_review', 'session_skills', 'generate_image',
         'create_presentation', 'create_word_document',
         'generate_video', 'elevenlabs',
         'fireflies', 'regex_generator', 'youtrack', 'signrequest', 'gamma', 'afas', 'nmbrs', 'vplan', 'firebird', 'frappe_crm', 'twoba',

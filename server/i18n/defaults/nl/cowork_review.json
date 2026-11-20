@@ -7,7 +7,7 @@
     "cowork_review.activity.refused": "{count}× geweigerd",
     "cowork_review.activity.skill_activated": "{name} (geladen wanneer nodig)",
     "cowork_review.activity.skill_static": "{name} (altijd aan)",
-    "cowork_review.activity.skills": "Skills: {list}",
+    "cowork_review.activity.skills": "Vaardigheden: {list}",
     "cowork_review.history.asked": "De agent vroeg om je beoordeling",
     "cowork_review.history.open_conversation": "Open het gesprek van deze run",
     "cowork_review.history.started_by_answer": "Verder gegaan na je antwoord op een beoordeling",
@@ -20,7 +20,6 @@
     "cowork_review.queue.explainer": "De agent is gestopt en vraagt jou om een beslissing.",
     "cowork_review.queue.failed": "Dat lukte niet. Probeer het opnieuw.",
     "cowork_review.queue.heading": "Te beoordelen",
-    "cowork_review.queue.mail_subject": "E-mail: {subject}",
     "cowork_review.queue.not_needed": "Niet nodig",
     "cowork_review.queue.question": "De agent vraagt",
     "cowork_review.queue.reason": "Waarom het stopte",
@@ -41,5 +40,7 @@
     "cowork_review.resolved.waiting": "Wacht op je beoordeling.",
     "cowork_review.status.needs_review": "Te beoordelen"
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "cowork_review.queue.mail_subject"
+  ]
 }

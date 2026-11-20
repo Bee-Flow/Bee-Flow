@@ -66,7 +66,7 @@ export interface CoworkItem {
 }
 
 /** How the owner handled a run that asked for review. */
-export type CoworkReviewResolution = 'answered' | 'done_myself' | 'not_needed';
+type CoworkReviewResolution = 'answered' | 'done_myself' | 'not_needed';
 
 /** What the agent asked for (cowork_request_review), and how its owner handled it. */
 export interface CoworkRunReview {
@@ -89,7 +89,7 @@ export interface CoworkRunTool {
 }
 
 /** What one run did, in names and counts only. */
-export interface CoworkRunActivity {
+interface CoworkRunActivity {
     tools: CoworkRunTool[];
     skills: Array<{ id: string; name: string; how: 'static' | 'activated' }>;
     toolCalls: number;

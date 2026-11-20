@@ -16,7 +16,7 @@ import { guardedDelete } from '@/core/api/deleteGuard';
 import { readUsageAnswer, type UsageAnswer } from '@/core/api/usage';
 
 import { readImproved, readProposal, readSkillOrNull, readSkills, readUsageSummary } from './readers';
-import type { Skill, SkillDraft, SkillProposal, UsageSummary } from '../model/types';
+import type { Skill, SkillProposal, SkillSavePayload, UsageSummary } from '../model/types';
 
 export const skillPath = (id: string) => `/api/skills/${encodeURIComponent(id)}`;
 
@@ -39,7 +39,7 @@ export async function getSkillUsage(id: string, signal?: AbortSignal): Promise<U
 }
 
 /** 201 with the created row. Requires `manage_skills`. */
-export async function createSkill(draft: Partial<SkillDraft> & { name: string }): Promise<Skill | null> {
+export async function createSkill(draft: Partial<SkillSavePayload> & { name: string }): Promise<Skill | null> {
     return readSkillOrNull(await api.post<unknown>('/api/skills', draft));
 }
 
@@ -48,7 +48,7 @@ export async function createSkill(draft: Partial<SkillDraft> & { name: string })
  * skill that is visible but not editable, which the autosave treats as a stop
  * rather than a retry. Answers `{ success: true }` — refetch for the row.
  */
-export async function updateSkill(id: string, payload: Partial<SkillDraft>): Promise<void> {
+export async function updateSkill(id: string, payload: Partial<SkillSavePayload>): Promise<void> {
     await api.put(skillPath(id), payload);
 }
 

@@ -667,8 +667,8 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
         for (const token of IN_USE_BODY) expect(slice).toContain(token);
         expect(slice).toContain('confirmedBreaking(req)');
         expect(functionSlice(source, 'confirmedBreaking')).toContain("req.query?.confirmBreaking === 'true'");
-        // The strict query schema is why `confirm=1` cannot be used here.
-        expect(source).toMatch(/confirmBreaking: z\.enum\(\['true', 'false'\]/);
+        // The strict query schema is why `confirm=1` cannot be used here (the schemas live in routes/skills/skillSchemas.mts).
+        expect(read('routes/skills/skillSchemas.mts')).toMatch(/confirmBreaking: z\.enum\(\['true', 'false'\]/);
     });
 
     it('webpages: the in_use body, and ?confirm=1 read as a flag', () => {

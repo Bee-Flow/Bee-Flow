@@ -29,7 +29,7 @@ export interface ToolPiiPolicy {
 }
 
 /** A stored `appExemptions` as the page edits it: string lists only. Always an object, so the save always states it. */
-export function normaliseAppExemptions(v: unknown): AppExemptions {
+function normaliseAppExemptions(v: unknown): AppExemptions {
     if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
     const out: AppExemptions = {};
     for (const [appId, cats] of Object.entries(v as Record<string, unknown>)) {

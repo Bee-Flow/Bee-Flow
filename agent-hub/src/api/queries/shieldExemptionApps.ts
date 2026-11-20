@@ -17,7 +17,7 @@ interface ExemptionAppsAnswer {
     apps?: ExemptionApp[];
 }
 
-export const shieldExemptionAppsKey = (orgId: string | null | undefined) => ['shield-exemption-apps', orgId ?? null] as const;
+const shieldExemptionAppsKey = (orgId: string | null | undefined) => ['shield-exemption-apps', orgId ?? null] as const;
 
 /** Disabled without an organisation, or when the caller cannot edit (`enabled: false`). */
 export function useShieldExemptionAppsQuery(orgId: string | null | undefined, enabled = true) {

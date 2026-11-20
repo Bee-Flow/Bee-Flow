@@ -7,7 +7,7 @@
 export type SkillActivation = 'static' | 'dynamic';
 
 /** The structured draft of a new skill, as `skillDraft.parseSkillDraft` returns it. */
-export interface PlannedSkillDraft {
+interface PlannedSkillDraft {
     description?: string;
     instructions?: string;
     steps?: Array<{ id?: string; text: string }>;
@@ -26,7 +26,7 @@ export interface PlannedSkill {
 }
 
 /** One skill of the plan as the server sent it; only a named skill counts. */
-export function toPlannedSkill(raw: unknown): PlannedSkill | null {
+function toPlannedSkill(raw: unknown): PlannedSkill | null {
     if (!raw || typeof raw !== 'object') return null;
     const s = raw as Record<string, unknown>;
     const name = typeof s.name === 'string' ? s.name.trim() : '';
