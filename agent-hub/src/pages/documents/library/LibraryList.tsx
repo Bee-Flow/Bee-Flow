@@ -1,11 +1,13 @@
 // One page of the library: rows with their type, owner and last editor,
-// selection for moving and categorising, copy, archive (after a confirmation)
-// or, in the archive, restore. A notebook row says how many sources it reads,
-// is not copied, and is deleted for good rather than archived (a notebook has
-// no archive), after a confirmation that says so. Loading, empty and failed are three different
+// selection for moving and categorising (the rows the reader owns), copy,
+// archive (after a confirmation) or, in the archive, restore. The archive holds
+// documents, templates and sections together; a template or section says so.
+// A notebook row says how many sources it reads, is not copied, and is deleted
+// for good rather than archived (a notebook has no archive), after a
+// confirmation that says so. Loading, empty and failed are three different
 // screens; while the next page or search loads, the current list stays.
 
-import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
@@ -34,6 +36,10 @@ export interface LibraryListProps {
     onRetry: () => void;
     onCreate: () => void;
     busyId: string | null;
+    /** Whether this reader may start spreadsheets (and so copy one). */
+    spreadsheets?: boolean;
+    /** An organisation admin, who may also archive the organisation's team templates and sections. */
+    orgAdmin?: boolean;
 }
 
 const ACTION = 'p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
@@ -44,6 +50,46 @@ function rowIcon(docType: string) {
     if (docType === 'notebook') return BookOpen;
     if (docType === 'spreadsheet') return Sheet;
     return FileText;
+}
+
+/** Archive (or, for a notebook, delete): the owner; an organisation admin also a team template or section. */
+function mayArchive(row: LibraryRow, props: LibraryListProps): boolean {
+    if (row.userId === props.currentUserId) return true;
+    if (isNotebookRow(row) || !props.orgAdmin) return false;
+    return row.visibility === 'team' && (row.kind === 'template' || row.kind === 'section');
+}
+
+/** In the archive, which rows are templates or reusable sections (documents need no label). */
+function KindLabel({ row }: { row: LibraryRow }) {
+    const { t } = useTranslation();
+    if (row.kind !== 'template' && row.kind !== 'section') return null;
+    return (
+        <span className="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)]" data-testid={`library-kind-${row.id}`}>
+            {row.kind === 'template' ? t('doc_library.kind_template', 'Template') : t('doc_library.kind_section', 'Reusable section')}
+        </span>
+    );
+}
+
+/** The actions at the end of a row outside the archive: share, copy, archive or delete. */
+function RowActions({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryListProps; onAskArchive: (row: LibraryRow) => void }) {
+    const { t } = useTranslation();
+    const notebook = isNotebookRow(row);
+    const copyable = !notebook && (row.docType !== 'spreadsheet' || props.spreadsheets === true);
+    const busy = props.busyId === row.id;
+    return (
+        <>
+            {row.userId === props.currentUserId && props.onShare && <button type="button" className={ACTION} onClick={() => props.onShare?.(row)} aria-label={t('documents.sharing.title', 'Share {name}', { name: row.name })}><Share2 size={15} aria-hidden="true" /></button>}
+            {copyable && (
+                <button type="button" className={ACTION} disabled={busy} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
+            )}
+            {mayArchive(row, props) && (
+                <button type="button" className={ACTION} disabled={busy} onClick={() => onAskArchive(row)}
+                    aria-label={notebook ? t('doc_library.delete_for_good', 'Delete {name} for good', { name: row.name }) : t('documents.library.archive', 'Archive {name}', { name: row.name })}>
+                    {notebook ? <Trash2 size={15} aria-hidden="true" /> : <Archive size={15} aria-hidden="true" />}
+                </button>
+            )}
+        </>
+    );
 }
 
 function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryListProps; onAskArchive: (row: LibraryRow) => void }) {
@@ -60,7 +106,7 @@ function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryList
     const edited = row.updatedBy && row.updatedBy !== row.userId ? t('documents.library.edited_by', 'edited by {name}', { name: person(row.updatedBy) }) : null;
     return (
         <li className="group flex gap-3 items-center px-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm hover:border-[var(--accent-primary)] transition-colors" data-testid={`library-row-${row.id}`}>
-            {!props.archivedView && (
+            {!props.archivedView && row.userId === props.currentUserId && (
                 <input type="checkbox" checked={selected} aria-label={t('documents.library.select', 'Select {name}', { name: row.name })}
                     onChange={(e) => props.onSelect(e.target.checked ? [...props.selection, row.id] : props.selection.filter((x) => x !== row.id))} />
             )}
@@ -74,24 +120,12 @@ function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryList
                 </span>
                 {!!row.categories?.length && <span className="block text-xs mt-1 text-[var(--text-secondary)]">{row.categories.join(' · ')}</span>}
             </button>
+            {props.archivedView && <KindLabel row={row} />}
             {props.archivedView ? (
                 <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => props.onUnarchive(row)} aria-label={t('documents.library.unarchive', 'Restore {name}', { name: row.name })} data-testid={`library-unarchive-${row.id}`}>
                     <ArchiveRestore size={15} aria-hidden="true" />
                 </button>
-            ) : (
-                <>
-                    {row.userId === props.currentUserId && props.onShare && <button type="button" className={ACTION} onClick={() => props.onShare?.(row)} aria-label={t('documents.sharing.title', 'Share {name}', { name: row.name })}><Share2 size={15} aria-hidden="true" /></button>}
-                    {!notebook && (
-                        <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => props.onDuplicate(row)} aria-label={t('documents.library.duplicate', 'Make a copy of {name}', { name: row.name })}><Copy size={15} aria-hidden="true" /></button>
-                    )}
-                    {row.userId === props.currentUserId && (
-                        <button type="button" className={ACTION} disabled={props.busyId === row.id} onClick={() => onAskArchive(row)}
-                            aria-label={notebook ? t('documents.notebook.delete', 'Delete {name}', { name: row.name }) : t('documents.library.archive', 'Archive {name}', { name: row.name })}>
-                            <Trash2 size={15} aria-hidden="true" />
-                        </button>
-                    )}
-                </>
-            )}
+            ) : <RowActions row={row} props={props} onAskArchive={onAskArchive} />}
         </li>
     );
 }
@@ -139,7 +173,7 @@ export default function LibraryList(props: LibraryListProps) {
                 description={notebook
                     ? t('documents.notebook.delete_desc', '"{name}" is deleted for good, with its sources, its chat and its versions. A notebook cannot be restored.', { name })
                     : t('documents.library.archive_desc', '"{name}" leaves your library and every project it is filed in. You can restore it from Archived; automations that use a saved version keep working.', { name })}
-                confirmLabel={notebook ? t('documents.notebook.delete_confirm', 'Delete notebook') : t('documents.library.archive_confirm', 'Archive')}
+                confirmLabel={notebook ? t('doc_library.delete_for_good_confirm', 'Delete for good') : t('documents.library.archive_confirm', 'Archive')}
                 cancelLabel={t('documents.cancel', 'Cancel')}
                 destructive
                 onConfirm={async () => { if (confirming) await props.onArchive(confirming).catch(() => undefined); setConfirming(null); }}

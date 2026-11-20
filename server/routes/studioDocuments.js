@@ -72,7 +72,7 @@ const houseStyle = require('../core/documents/documentHouseStyle');
 const { prepareDocument, getContract } = require('../core/documents/documentContract');
 const { extractSection, insertSection } = require('../core/documents/documentSections');
 const { houseStyleCssFor: houseStyleCssForDocument } = require('../core/documents/renderFilledDocument');
-const { isDeckDocument, renderDeckDocument } = require('../core/documents/deckDocument');
+const { isDeckDocument, renderDeckDocument, emptyDeckHtml } = require('../core/documents/deckDocument');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
@@ -530,16 +530,16 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
         if (!doc) return res.status(404).json({ error:'Document not found' });
         if (doc.docType === 'spreadsheet') return await sheetRouter.duplicateSheet(req, res, doc);
         const kind = req.body?.kind || 'document';
-        const settings = { ...doc.settings, source: { documentId:doc.id,versionId:doc.versionId },
-            resolvedHouseStyleCss:await houseStyleCssFor(req,doc) };
-        delete /** @type {{ sampleValues?: unknown }} */ (settings).sampleValues; delete /** @type {{ sectionOverrides?: unknown }} */ (settings).sectionOverrides;
+        const { copyName, copySettings } = require('../core/documents/documentCopy.mts');
+        // Only a copy made FROM a template or a section keeps its "Update available" link (documentCopy.copySettings).
+        const settings = { ...copySettings(doc, kind), resolvedHouseStyleCss:await houseStyleCssFor(req,doc) };
         // A copy is the caller's own private library document, built from an
         // allow-list and never filed into the source's project: reading a
         // project document (a viewer too) must not add content to the project,
         // and a template or section cannot be filed there at all. Someone
         // else's library filing (categories) stays theirs.
         res.status(201).json({ document:await documentStore.createDocument({
-            userId:req.session.user.id, name:req.body?.name || `${doc.name} — copy`, kind, visibility:'private', folderId:null,
+            userId:req.session.user.id, name:req.body?.name || await copyName(req.session.user.id, doc.name), kind, visibility:'private', folderId:null,
             docType:doc.docType, description:doc.description, bodyHtml:doc.bodyHtml, css:doc.css, settings,
             categories: doc.projectRole ? [] : doc.categories }) });
     } catch(e) { sendStoreError(res,e,'Failed to copy document'); }
@@ -591,7 +591,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
         const existing = await documentStore.getDocument(req.params.id, userId);
         if (!existing) return res.status(404).json({ error: 'Document not found' });
         if (refuseReadOnly(res, existing)) return;
-        if (!req.body?.expectedVersionId) return res.status(428).json({error:'Read the document revision before saving changes.',code:'document_revision_required'});
+        // Filing (a folder, categories) is no edit: it needs no revision and writes none (documentStore.fileDocument).
+        if (!req.body?.expectedVersionId && !documentStore.isFilingOnly(req.body)) return res.status(428).json({error:'Read the document revision before saving changes.',code:'document_revision_required'});
         const body = { ...(req.body || {}) };
         const wantsMerge = body.merge === true;
         for (const key of INTERNAL_KEYS) delete body[key];
@@ -719,12 +720,6 @@ router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), a
         sendStoreError(res, err, 'Failed to render the presentation');
     }
 });
-
-/** What the viewer shows for a presentation without slides yet. */
-function emptyDeckHtml() {
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Presentation</title><style>html{background:#23262b}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font:14px/1.5 system-ui,sans-serif;color:rgba(255,255,255,.6)}</style></head>'
-        + '<body><p data-deck-empty="1">No slides yet — write the outline: one "## " heading per slide.</p></body></html>';
-}
 
 /**
  * A presentation as a real PowerPoint file. The PDF route below serves the

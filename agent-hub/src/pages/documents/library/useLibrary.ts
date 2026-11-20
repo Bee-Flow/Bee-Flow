@@ -22,10 +22,12 @@ export const isNotebookRow = (row: Pick<LibraryRow, 'docType'>) => row.docType =
 /**
  * Whether a type filter means anything in a view. Templates and reusable
  * sections are designed documents or decks, so no page or notebook is one; a
- * notebook is never archived (deleting one is for good).
+ * notebook is never archived (deleting one is for good). The archive is one
+ * view over documents, templates and sections together.
  */
 export function formatApplies(format: LibraryFormat, kind: LibraryKind, archived: boolean): boolean {
     if (format === 'notebook') return kind === 'document' && !archived;
+    if (archived) return true;
     // A page or a spreadsheet is never a template or a section.
     if (format === 'page' || format === 'spreadsheet') return kind === 'document';
     return true;
@@ -66,6 +68,28 @@ export function useLibraryFilters() {
     };
 }
 
+/** What a bulk move or categorise did: the rows filed and the rows the server refused. */
+export interface FilingResult { done: string[]; failed: string[] }
+
+/**
+ * File rows one after another (a folder, categories). Filing is not an edit:
+ * no revision check, and a notebook goes through its own route. A row the
+ * server refuses does not stop the rest; the result says which ones.
+ */
+async function fileRows({ rows, patch }: { rows: LibraryRow[]; patch: Pick<StudioDocument, 'folderId' | 'categories'> }): Promise<FilingResult> {
+    const result: FilingResult = { done: [], failed: [] };
+    for (const row of rows) {
+        try {
+            if (isNotebookRow(row)) await documentRequest(`/notebooks/${encodeURIComponent(row.id)}/filing`, patch, 'PATCH');
+            else await updateDocument(row.id, { ...patch });
+            result.done.push(row.id);
+        } catch {
+            result.failed.push(row.id);
+        }
+    }
+    return result;
+}
+
 export interface NewDocumentInput { name: string; docType?: string; starterId?: string; bodyHtml?: string; css?: string; locale?: string; kind: LibraryKind; folderId?: string }
 
 export function useLibraryActions() {
@@ -81,17 +105,7 @@ export function useLibraryActions() {
     });
     const archive = useMutation({ mutationFn: (id: string) => deleteDocument(id) as Promise<boolean>, onSuccess: refresh });
     const unarchive = useMutation({ mutationFn: (id: string) => unarchiveDocument(id) as Promise<StudioDocument>, onSuccess: refresh });
-    const bulk = useMutation({
-        // One after another: each is its own revision check. A notebook is
-        // filed through its own route (no revision: filing is not an edit).
-        mutationFn: async ({ rows, patch }: { rows: LibraryRow[]; patch: Pick<StudioDocument, 'folderId' | 'categories'> }) => {
-            for (const row of rows) {
-                if (isNotebookRow(row)) await documentRequest(`/notebooks/${encodeURIComponent(row.id)}/filing`, patch, 'PATCH');
-                else await updateDocument(row.id, { ...patch, expectedVersionId: row.versionId });
-            }
-        },
-        onSettled: refresh,
-    });
+    const bulk = useMutation({ mutationFn: fileRows, onSettled: refresh });
     // A notebook: made in the folder the library shows, deleted for good (a
     // notebook has no archive; the confirmation says so).
     const createNotebook = useMutation({

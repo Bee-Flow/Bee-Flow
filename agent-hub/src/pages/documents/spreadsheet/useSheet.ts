@@ -2,30 +2,29 @@
 // edits laid over them at once (nothing waits for the network), and a save
 // queue that sends what changed in batches.
 //
-// The queue keeps the LATEST value per cell. Edits wait 600 ms (or until the
-// grid loses focus, the page is left or closed), then go out in PATCHes of at
-// most 500 cells. A failed save keeps everything queued and says so ("error");
-// retry() or the next edit sends it again. Nothing is rolled back: what was
-// typed stays on screen until it is saved.
+// The queue (useSheetSaveQueue) keeps the LATEST value per cell, per tab.
+// Edits wait 600 ms (or until the grid loses focus, the page is left or
+// closed), then go out in PATCHes of at most 500 cells. A failed save keeps
+// everything queued and says so ("error"); retry() or the next edit sends it
+// again, and switching tab waits until it is saved (setActiveTab resolves
+// false). Nothing is rolled back: what was typed stays on screen until it is
+// saved, or until discardPending() drops it on the person's word.
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-    createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, renameSheetTab,
-} from '@/api/sheetApi';
-import { useSheetCellsMutation } from '@/api/queries/sheetCellsWrite';
+import { getSheet } from '@/api/sheetApi';
 import { evaluateSheet } from './sheetEngine';
 import { missingRefTabs, usedRowsOf } from './sheetModel';
 import useServerCells, { overlay } from './useServerCells';
 import useSheetHistory from './useSheetHistory';
+import useSheetSaveQueue from './useSheetSaveQueue';
+import useSheetTabOps from './useSheetTabOps';
 
-export type SheetSaveState = 'saved' | 'saving' | 'unsaved' | 'error';
+export { SAVE_DEBOUNCE_MS, type SheetSaveState } from './useSheetSaveQueue';
 
-export const SAVE_DEBOUNCE_MS = 600;
 const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
 
 export default function useSheet(id: string) {
-    const queryClient = useQueryClient();
     const [activeTab, setActiveTabState] = useState<string | undefined>(undefined);
     const activeTabRef = useRef(activeTab);
     useEffect(() => { activeTabRef.current = activeTab; });
@@ -39,20 +38,14 @@ export default function useSheet(id: string) {
     });
     const data = query.data;
     const readOnly = data?.readOnly === true;
-
-    // The first load tells us which tab is active; after that the user drives it.
-    useEffect(() => {
-        if (activeTab === undefined && data?.activeTab) setActiveTabState(data.activeTab);
-    }, [activeTab, data?.activeTab]);
+    // The tab on screen: the one picked, else the one the server answered with (until a tab is
+    // picked, the query asks for the server's default tab).
+    const tab = activeTab || data?.activeTab;
+    const tabRef = useRef(tab);
+    const tabsRef = useRef(data?.tabs);
+    useLayoutEffect(() => { tabRef.current = tab; tabsRef.current = data?.tabs; });
 
     const [edits, setEdits] = useState<Record<string, string>>({});
-    const [status, setStatus] = useState<SheetSaveState>('saved');
-    const [error, setError] = useState<Error | null>(null);
-    const [savedAt, setSavedAt] = useState<Date | null>(null);
-
-    const pending = useRef<Record<string, string>>({});
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const running = useRef<Promise<void> | null>(null);
     const idRef = useRef(id);
     const readOnlyRef = useRef(readOnly);
     useEffect(() => { idRef.current = id; readOnlyRef.current = readOnly; });
@@ -73,87 +66,66 @@ export default function useSheet(id: string) {
     // The AI changed this sheet while a cell edit was unsaved: read it again once that edit is saved.
     const staleRef = useRef(false);
     const refreshRef = useRef<() => Promise<void>>(() => Promise.resolve());
+    const queue = useSheetSaveQueue(idRef, () => {
+        if (staleRef.current) { staleRef.current = false; refreshRef.current().catch(() => undefined); }
+    });
+    const { flush, enqueue, queued, discard } = queue;
 
-    const { mutateAsync: saveCells } = useSheetCellsMutation();
-    const flush = useCallback((): Promise<void> => {
-        if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-        // A running loop re-reads the queue until it is empty, so it also takes what arrived meanwhile.
-        if (running.current) return running.current;
-        if (!Object.keys(pending.current).length) return Promise.resolve();
-        const run = (async () => {
-            setStatus('saving');
-            setError(null);
-            try {
-                for (;;) {
-                    const keys = Object.keys(pending.current).slice(0, MAX_CELLS_PER_REQUEST);
-                    if (!keys.length) break;
-                    const batch: Record<string, string> = {};
-                    for (const k of keys) batch[k] = pending.current[k];
-                    await saveCells({ documentId: idRef.current, cells: batch, tabId: activeTabRef.current || null });
-                    // A cell edited again while its batch was in flight stays queued.
-                    for (const k of keys) if (pending.current[k] === batch[k]) delete pending.current[k];
-                }
-                setStatus('saved');
-                setSavedAt(new Date());
-                if (staleRef.current) { staleRef.current = false; refreshRef.current().catch(() => undefined); }
-            } catch (e) {
-                setStatus('error');
-                setError(e instanceof Error ? e : new Error(String(e)));
-            } finally {
-                running.current = null;
-            }
-        })();
-        running.current = run;
-        return run;
-    }, [saveCells]);
-
-    /** Edit cells: `{ B3: '12', C3: '=SUM(A1:B3)', D4: '' }` ("" clears). */
-    const setCells = useCallback((changes: Record<string, string>) => {
+    /**
+     * Edit cells: `{ B3: '12', C3: '=SUM(A1:B3)', D4: '' }` ("" clears). `onTab` names the tab
+     * they belong to; cells of a tab not on screen are only queued for it (the assistant's Undo).
+     */
+    const setCells = useCallback((changes: Record<string, string>, onTab?: string) => {
         if (readOnlyRef.current || !Object.keys(changes).length) return;
+        if (onTab !== undefined && onTab !== tabRef.current) { enqueue(onTab, changes); return; }
         if (!historyRef.current?.isApplying) historyRef.current?.push(changes, cellsRef.current);
         setEdits((prev) => ({ ...prev, ...changes }));
-        Object.assign(pending.current, changes);
-        if (!running.current) setStatus('unsaved');
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(() => { timer.current = null; flush().catch(() => undefined); }, SAVE_DEBOUNCE_MS);
-    }, [flush]);
+        enqueue(tabRef.current, changes);
+    }, [enqueue]);
 
     const history = useSheetHistory(setCells, readOnlyRef);
-    historyRef.current = history;
 
-    const { applySaved, refresh } = useServerCells(idRef, activeTabRef, pending, setEdits, setSavedAt, query.refetch);
-
-    refreshRef.current = refresh;
+    const queuedHere = useCallback(() => queued(tabRef.current), [queued]);
+    const server = useServerCells(idRef, activeTabRef, queuedHere, setEdits, queue.setSavedAt, query.refetch);
+    const { refresh } = server;
+    useLayoutEffect(() => { historyRef.current = history; refreshRef.current = refresh; });
+    /** Take cells ALREADY saved on the server; cells saved on a tab no longer on screen are left alone. */
+    const applySaved = useCallback((saved: Record<string, string>, onTab?: string) => {
+        if (onTab !== undefined && onTab !== tabRef.current) return;
+        server.applySaved(saved);
+    }, [server]);
 
     // A formula typed here may name a tab the server did not send along (`=Omzet!B2`): once the
     // edit is saved, read the sheet again so `refTabs` carries it. Once per set of names, so a
     // name the server cannot resolve never loops.
     const askedRefs = useRef('');
     useEffect(() => {
-        if (status !== 'saved' || !data?.tabs) return;
+        if (queue.status !== 'saved' || !data?.tabs) return;
         const missing = missingRefTabs(cells, data.tabs, data.activeTab, data.refTabs);
         const key = missing.join('\u0000');
         if (!missing.length || key === askedRefs.current) return;
         askedRefs.current = key;
         refreshRef.current().catch(() => undefined);
-    }, [status, cells, data]);
+    }, [queue.status, cells, data]);
 
     // The AI wrote to this document (chat tool): take its cells, but never under an unsaved edit.
+    const idle = queue.idle;
     useEffect(() => {
         const onUpdated = (e: Event) => {
             if ((e as CustomEvent).detail?.documentId !== idRef.current) return;
-            if (timer.current || running.current || Object.keys(pending.current).length) { staleRef.current = true; return; }
+            if (!idle()) { staleRef.current = true; return; }
             refreshRef.current().catch(() => undefined);
         };
         window.addEventListener('beeflow:document-updated', onUpdated);
         return () => window.removeEventListener('beeflow:document-updated', onUpdated);
-    }, []);
+    }, [idle]);
 
-    // Leaving or closing the page sends what is still queued.
+    // Closing the page sends what is still queued as requests that outlive it; leaving the editor saves it.
+    const { hasPending, sendOnUnload } = queue;
     useEffect(() => {
         const onUnload = (e: BeforeUnloadEvent) => {
-            if (!Object.keys(pending.current).length) return;
-            flush().catch(() => undefined);
+            if (!hasPending()) return;
+            sendOnUnload();
             e.preventDefault();
             e.returnValue = '';
         };
@@ -162,31 +134,30 @@ export default function useSheet(id: string) {
             window.removeEventListener('beforeunload', onUnload);
             flush().catch(() => undefined);
         };
-    }, [flush]);
+    }, [flush, hasPending, sendOnUnload]);
 
-    const setActiveTab = useCallback(async (tabId: string) => {
-        if (tabId === activeTabRef.current) return;
-        await flush();
+    const showTab = useCallback((tabId: string) => {
         setActiveTabState(tabId);
         setEdits({});
-    }, [flush]);
+        historyRef.current?.reset();
+    }, []);
 
-    const createTab = useCallback(async (name?: string) => {
-        const res = await createSheetTab(idRef.current, name);
-        await queryClient.invalidateQueries({ queryKey: sheetQueryKey(idRef.current) });
-        setActiveTabState(res.tab.id);
-        setEdits({});
-    }, [queryClient]);
+    /** Show another tab once what is queued is saved. Resolves false (and stays) when that save failed. */
+    const setActiveTab = useCallback(async (tabId: string): Promise<boolean> => {
+        if (tabId === tabRef.current) return true;
+        if (!(await flush())) return false;
+        showTab(tabId);
+        return true;
+    }, [flush, showTab]);
 
-    const renameTab = useCallback(async (tabId: string, name: string) => {
-        await renameSheetTab(idRef.current, tabId, name);
-        await queryClient.invalidateQueries({ queryKey: sheetQueryKey(idRef.current) });
-    }, [queryClient]);
+    /** Drop every cell that could not be saved (the person chose to leave anyway); this tab shows the saved values again. */
+    const discardPending = useCallback(() => {
+        const here = { ...queued(tabRef.current) };
+        discard();
+        setEdits((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !(k in here))));
+    }, [discard, queued]);
 
-    const deleteTab = useCallback(async (tabId: string) => {
-        await deleteSheetTab(idRef.current, tabId);
-        await queryClient.invalidateQueries({ queryKey: sheetQueryKey(idRef.current) });
-    }, [queryClient]);
+    const tabOps = useSheetTabOps({ idRef, tabRef, tabsRef, queue, showTab });
 
     return {
         loading: query.isPending,
@@ -195,16 +166,14 @@ export default function useSheet(id: string) {
         readOnly, columns: data?.columns ?? 26,
         cells, computed, usedRows,
         tabs: data?.tabs,
-        activeTab: activeTab || data?.activeTab,
-        status, error, savedAt,
-        setCells, flush, applySaved, refresh,
+        activeTab: tab,
+        status: queue.status, error: queue.error, savedAt: queue.savedAt,
+        setCells, flush, applySaved, refresh, discardPending,
         retry: () => { flush().catch(() => undefined); },
         undo: history.undo,
         redo: history.redo,
         setActiveTab,
-        createTab,
-        renameTab,
-        deleteTab,
+        ...tabOps,
     };
 }
 

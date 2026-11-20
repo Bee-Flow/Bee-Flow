@@ -83,7 +83,7 @@ async function addTab(doc, name, deps) {
         updated = await documents.updateDocument(doc.id, deps.actorUserId || doc.userId, {
             settings: settingsWithTabs(doc.settings, nextTabs),
             expectedVersionId: doc.versionId,
-        });
+        }, { tabsChangedByServer: true });  // the new tab's table was made just above
     } catch (e) {
         // A refusal the model can act on (no right to change it, a conflict) comes back as text.
         if (!(e && Number(e.status) >= 400 && Number(e.status) < 500)) throw e;

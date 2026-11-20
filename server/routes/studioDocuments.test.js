@@ -21,6 +21,7 @@ const restore = installResolveStub({
     },
     '../stores/documentStore': {
         MAX_HTML_BYTES: 512 * 1024,
+        isFilingOnly:(updates)=>Object.keys(updates || {}).every(k=>k==='folderId' || k==='categories'),
         getDocument:async(id,user)=>byId[id] && user === byId[id].userId ? structuredClone(byId[id]) : null,
         getDocumentVersion:async(id,user,version)=>{requestedVersion=version;return byId[id] && user===byId[id].userId && version==='v1'?structuredClone(byId[id]):null;},
     },

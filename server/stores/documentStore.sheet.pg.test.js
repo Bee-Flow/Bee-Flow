@@ -42,6 +42,14 @@ test('a spreadsheet keeps its table in settings and nothing in the body', async 
     assert.strictEqual(sheet.bodyHtml, '');
 });
 
+test('the first tab is named as the sheet route says (the creator\'s language), Sheet1 otherwise', async () => {
+    const dutch = await documents.createDocument({ userId: 'alice', name: 'Begroting', docType: 'spreadsheet', sheetTableId: 'dt-nl', sheetTabName: 'Blad1' });
+    assert.strictEqual(sheetTabsOf(dutch)[0].name, 'Blad1');
+    const blank = await documents.createDocument({ userId: 'alice', name: 'X', docType: 'spreadsheet', sheetTableId: 'dt-blank', sheetTabName: '  ' });
+    assert.strictEqual(sheetTabsOf(blank)[0].name, 'Sheet1');
+    for (const d of [dutch, blank]) await documents.deleteDocument(d.id, 'alice');
+});
+
 test('a spreadsheet is never made from settings alone, nor as a template', async () => {
     await assert.rejects(documents.createDocument({ userId: 'alice', name: 'X', docType: 'spreadsheet', settings: { sheet: { datatableId: 'someone-elses' } } }),
         (e) => e.status === 422 && e.errorClass === 'sheet_needs_table');

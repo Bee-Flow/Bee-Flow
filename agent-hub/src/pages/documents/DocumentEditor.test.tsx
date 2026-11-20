@@ -46,6 +46,7 @@ vi.mock('../../components/versions/VersionHistoryPanel', () => ({ default: () =>
 vi.mock('../../components/comments/CommentsPanel', () => ({ default: () => <div data-testid="comments-stub" /> }));
 
 const { default: DocumentEditor } = await import('./DocumentEditor');
+const { default: DesignedEditor } = await import('./editor/DesignedEditor');
 
 const DOC = { id: 'd1', userId: 'me', name: 'Offer', docType: 'report', bodyHtml: '<p>a</p>', css: '', settings: {}, versionId: 'v1', editable: true, projectId: null as string | null };
 const ME = { id: 'me', name: 'Me' };
@@ -254,5 +255,135 @@ describe('DocumentEditor: a presentation', () => {
         expect(canvas.flush).not.toHaveBeenCalled();
         expect(screen.getByTestId('document-download-pdf')).toHaveTextContent('PDF');
         expect(screen.queryByTestId('document-outline-toggle')).not.toBeInTheDocument();
+    });
+});
+
+/**
+ * The designed editor rendered on its own, where it used to go wrong: a
+ * reviewed proposal saved over newer work, Back that did nothing after a
+ * failed save, a rename that looked done but was not, a deck preview stuck on
+ * an old outline, a download refused for missing values without a way to fill
+ * them in, and one read-only sentence for every reason a reader cannot edit.
+ * Same module fakes as above.
+ */
+const BASE = { id: 'd1', userId: 'me', name: 'Offer', docType: 'report', bodyHtml: '<p>a</p>', css: '', settings: {}, versionId: 'v1', editable: true, deletable: true, projectId: null };
+
+function show(doc: Record<string, unknown> = {}, onBack = vi.fn()) {
+    render(withQueryClient(<DesignedEditor initial={{ ...BASE, ...doc } as never} people={{}} variant="page" currentUser={{ id: 'me' }} onBack={onBack} />));
+    return onBack;
+}
+const conflict = () => Object.assign(new Error('This document changed while you were editing.'), { status: 409, code: 'document_conflict' });
+
+describe('DesignedEditor', () => {
+    beforeEach(() => {
+        api.updateDocument.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({ ...BASE, ...patch, versionId: 'v2' }));
+        api.getDocument.mockResolvedValue({ ...BASE });
+        api.documentRequest.mockResolvedValue({ documents: [], updates: [] });
+        api.getHouseStyle.mockResolvedValue({ style: {}, deck: null });
+    });
+
+    describe('a reviewed proposal', () => {
+        it('is saved on the revision it was made from, and a newer save refuses it plainly', async () => {
+            api.documentRequest.mockResolvedValue({ explanation: 'Serif', expectedVersionId: 'v0', patch: { settings: { design: { font: 'serif' } } }, html: '<p>x</p>' });
+            api.updateDocument.mockRejectedValueOnce(conflict());
+            show();
+            const u = user();
+            await u.click(screen.getByRole('button', { name: 'Design' }));
+            await u.click(await screen.findByText('Preview design changes'));
+            await u.click(await screen.findByText('Apply reviewed changes'));
+            await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', expect.objectContaining({ expectedVersionId: 'v0' })));
+            expect(await screen.findByTestId('document-error')).toHaveTextContent('Nothing was applied');
+        });
+    });
+
+    describe('leaving after a failed save', () => {
+        it('asks: leave without saving, or stay', async () => {
+            api.updateDocument.mockRejectedValue(Object.assign(new Error('Offline'), { status: 503 }));
+            const onBack = show();
+            const u = user();
+            await u.click(screen.getByRole('button', { name: 'type in the frame' }));
+            await u.click(screen.getByRole('button', { name: 'Back to Documents' }));
+            const dialog = await screen.findByRole('dialog');
+            expect(dialog).toHaveTextContent('Offline');
+            await u.click(within(dialog).getByRole('button', { name: 'Stay' }));
+            expect(onBack).not.toHaveBeenCalled();
+            await u.click(screen.getByRole('button', { name: 'Back to Documents' }));
+            await u.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Leave without saving' }));
+            expect(onBack).toHaveBeenCalledTimes(1);
+        });
+
+        it('leaves straight away when everything saved', async () => {
+            const onBack = show();
+            await user().click(screen.getByRole('button', { name: 'Back to Documents' }));
+            await waitFor(() => expect(onBack).toHaveBeenCalled());
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('rename', () => {
+        it('sends only the name, on the newest revision', async () => {
+            api.getDocument.mockResolvedValue({ ...BASE, versionId: 'v3' });
+            show();
+            const u = user();
+            const name = screen.getByRole('textbox', { name: 'Document name' });
+            await u.clear(name);
+            await u.type(name, 'Quote{Enter}');
+            await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { name: 'Quote', expectedVersionId: 'v3' }));
+        });
+
+        it('a refused rename puts the saved name back and says why', async () => {
+            api.updateDocument.mockRejectedValueOnce(conflict());
+            show();
+            const u = user();
+            const name = screen.getByRole('textbox', { name: 'Document name' });
+            await u.clear(name);
+            await u.type(name, 'Quote{Enter}');
+            expect(await screen.findByTestId('document-error')).toHaveTextContent('Rename failed: the document changed meanwhile. Try again.');
+            expect(screen.getByRole('textbox', { name: 'Document name' })).toHaveValue('Offer');
+        });
+    });
+
+    describe('a presentation', () => {
+        it('drops a pending outline preview once the stored deck changed', async () => {
+            api.previewDeckDraft.mockResolvedValue('<html>old</html>');
+            show({ docType: 'presentation', bodyHtml: '' });
+            const u = user();
+            await u.type(await screen.findByTestId('deck-outline'), '# Old');
+            await act(async () => { window.dispatchEvent(new CustomEvent('beeflow:document-updated', { detail: { documentId: 'd1' } })); });
+            await waitFor(() => expect(api.getDocument).toHaveBeenCalled());
+            await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+            expect(canvas.setDraft).not.toHaveBeenCalled();
+        });
+
+        it('has no "Insert into document" for its values', async () => {
+            show({ docType: 'presentation', bodyHtml: '# Deck', settings: { contract: { parameters: [{ key: 'client', type: 'text' }] } } });
+            await user().click(screen.getByRole('button', { name: 'Parameters' }));
+            expect(await screen.findByLabelText('Parameter key')).toBeInTheDocument();
+            expect(screen.queryByText('Insert into document')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('a download that needs values', () => {
+        it('says what is missing and opens the place to fill it in', async () => {
+            api.downloadPdf.mockRejectedValue(Object.assign(new Error('Customer name is required'), { status: 422, code: 'document_validation_failed' }));
+            show();
+            const u = user();
+            await u.click(screen.getByTestId('document-download-pdf'));
+            const notice = await screen.findByTestId('document-input-needed');
+            expect(notice).toHaveTextContent('Customer name is required');
+            await u.click(within(notice).getByRole('button', { name: 'Fill in & preview' }));
+            expect(screen.getByRole('button', { name: 'Fill in & preview', pressed: true })).toBeInTheDocument();
+        });
+    });
+
+    describe('why it is read-only', () => {
+        it.each([
+            [{ projectId: 'p1', projectRole: 'viewer' }, 'project\'s editors'],
+            [{ sharingRole: 'viewer', sharing: { audience: 'restricted', access: 'view' } }, 'shared with you to read'],
+            [{ managed: { solutionId: 's1' } }, 'Solution'],
+        ])('%o', (extra, text) => {
+            show({ editable: false, deletable: false, ...extra });
+            expect(screen.getByTestId('document-read-only')).toHaveTextContent(text);
+        });
     });
 });

@@ -166,9 +166,15 @@ async function keepDeckInLibrary({ userId, deck, title = '', theme = null, house
     }
 }
 
+/** What the viewer shows for a presentation without slides yet. */
+function emptyDeckHtml() {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Presentation</title><style>html{background:#23262b}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font:14px/1.5 system-ui,sans-serif;color:rgba(255,255,255,.6)}</style></head>'
+        + '<body><p data-deck-empty="1">No slides yet — write the outline: one "## " heading per slide.</p></body></html>';
+}
+
 /**
  * @typedef {{ userId?: string, title?: string, description?: string, source?: string,
  *   deck: ReturnType<typeof import('./deckModel').normalizeDeck>, theme?: object | null, houseStyle?: boolean }} KeepDeckArgs
  */
 
-module.exports = { DECK_DOC_TYPE, isDeckDocument, deckOverridesOf, deckFromDocument, renderDeckDocument, keepDeckInLibrary, deckDocumentUrl };
+module.exports = { DECK_DOC_TYPE, isDeckDocument, deckOverridesOf, deckFromDocument, renderDeckDocument, keepDeckInLibrary, deckDocumentUrl, emptyDeckHtml };

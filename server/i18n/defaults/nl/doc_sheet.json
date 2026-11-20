@@ -1,0 +1,30 @@
+{
+  "translations": {
+    "doc_sheet.chart.failed": "De grafieken van deze spreadsheet konden niet worden opgeslagen of geladen. Probeer het opnieuw.",
+    "doc_sheet.chart.save_failed": "De grafiek kon niet worden opgeslagen. Probeer het opnieuw.",
+    "doc_sheet.error.busy": "Iemand anders wijzigt nu dezelfde rij. Probeer het zo opnieuw.",
+    "doc_sheet.error.cell_too_long": "Een cel bevat te veel tekst. Maak de tekst korter en probeer het opnieuw.",
+    "doc_sheet.error.cells_missing": "De cellen van deze spreadsheet zijn er niet meer. Ze zijn misschien verwijderd.",
+    "doc_sheet.error.last_tab": "Een spreadsheet heeft minstens één tabblad nodig, dus het laatste tabblad kan niet worden verwijderd.",
+    "doc_sheet.error.not_found": "Deze spreadsheet bestaat niet meer.",
+    "doc_sheet.error.out_of_range": "Een spreadsheet heeft de kolommen A tot en met Z en hooguit 2.000 rijen. Sommige cellen vallen daarbuiten.",
+    "doc_sheet.error.read_only": "Je kunt deze spreadsheet lezen, maar alleen de bewerkers kunnen hem wijzigen.",
+    "doc_sheet.error.tab_not_found": "Dit tabblad bestaat niet meer. Laad de spreadsheet opnieuw om de huidige tabbladen te zien.",
+    "doc_sheet.error.too_many_cells": "Er zijn te veel cellen tegelijk gewijzigd. Wijzig een kleiner deel per keer.",
+    "doc_sheet.error.usage_limit": "Je gebruikslimiet is bereikt. Probeer het later opnieuw of vraag het je beheerder.",
+    "doc_sheet.limit.paste_columns": "Een spreadsheet heeft de kolommen A tot en met Z; {count} kolommen zijn niet geplakt.",
+    "doc_sheet.limit.paste_rows": "Een spreadsheet heeft hooguit 2.000 rijen; {count} rijen zijn niet geplakt.",
+    "doc_sheet.limit.rows": "Een spreadsheet heeft hooguit 2.000 rijen.",
+    "doc_sheet.tab.add_failed": "Het tabblad kon niet worden toegevoegd.",
+    "doc_sheet.tab.delete_body": "Het tabblad \"{name}\" en alles wat erop staat, ook de grafieken, worden verwijderd. Dit kun je niet ongedaan maken.",
+    "doc_sheet.tab.delete_confirm": "Tabblad verwijderen",
+    "doc_sheet.tab.delete_failed": "Het tabblad kon niet worden verwijderd.",
+    "doc_sheet.tab.delete_title": "Dit tabblad verwijderen?",
+    "doc_sheet.tab.rename_failed": "De naam van het tabblad kon niet worden gewijzigd.",
+    "doc_sheet.unsaved.body": "{reason} Als je doorgaat, gaan de wijzigingen die niet zijn opgeslagen verloren.",
+    "doc_sheet.unsaved.leave": "Toch verlaten",
+    "doc_sheet.unsaved.stay": "Blijven",
+    "doc_sheet.unsaved.title": "Je laatste wijzigingen zijn niet opgeslagen"
+  },
+  "sameAsEnglish": []
+}

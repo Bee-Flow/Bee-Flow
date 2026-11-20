@@ -47,4 +47,23 @@ describe('SheetChartCreator', () => {
         expect(screen.getByText('A scatter chart needs the x values as categories range.')).toBeInTheDocument();
         expect(onCreate).not.toHaveBeenCalled();
     });
+
+    test('stays open and says so when the chart cannot be saved', async () => {
+        const user = userEvent.setup();
+        const onClose = vi.fn();
+        const onCreate = vi.fn(() => Promise.reject(Object.assign(new Error('This document changed.'), { code: 'document_conflict' })));
+        render(<SheetChartCreator open onClose={onClose} onCreate={onCreate} selection="A1:C4" selectionKind="range" activeCell="A1" columns={26} />);
+        await user.click(screen.getByRole('button', { name: 'Add chart' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the chart. Try again.');
+        expect(screen.queryByText('This document changed.')).not.toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+    });
+
+    test('closes once the chart is saved', async () => {
+        const user = userEvent.setup();
+        const onClose = vi.fn();
+        render(<SheetChartCreator open onClose={onClose} onCreate={() => Promise.resolve()} selection="A1:C4" selectionKind="range" activeCell="A1" columns={26} />);
+        await user.click(screen.getByRole('button', { name: 'Add chart' }));
+        expect(onClose).toHaveBeenCalled();
+    });
 });

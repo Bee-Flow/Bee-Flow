@@ -18,7 +18,8 @@ export function overlay(base: Cells | undefined, edits: Cells): Cells {
 
 export default function useServerCells(
     idRef: MutableRefObject<string>, tabRef: MutableRefObject<string | undefined>,
-    pending: MutableRefObject<Cells>,
+    /** The cells of the tab on screen still waiting to be saved. */
+    queued: () => Cells,
     setEdits: Dispatch<SetStateAction<Cells>>, setSavedAt: Dispatch<SetStateAction<Date | null>>,
     refetch: () => Promise<unknown>,
 ) {
@@ -33,17 +34,19 @@ export default function useServerCells(
         queryClient.setQueryData<SheetData>(queryKey(), (old) => (old ? { ...old, cells: overlay(old.cells, saved) } : old));
         setEdits((prev) => {
             const next = { ...prev };
-            for (const k of names) if (!(k in pending.current)) delete next[k];
+            const waiting = queued();
+            for (const k of names) if (!(k in waiting)) delete next[k];
             return next;
         });
         setSavedAt(new Date());
-    }, [queryClient, queryKey, pending, setEdits, setSavedAt]);
+    }, [queryClient, queryKey, queued, setEdits, setSavedAt]);
 
     /** Read the server's cells again; only what is still queued stays laid over them. */
     const refresh = useCallback(async () => {
         await refetch();
-        setEdits((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k in pending.current)));
-    }, [refetch, pending, setEdits]);
+        const waiting = queued();
+        setEdits((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k in waiting)));
+    }, [refetch, queued, setEdits]);
 
     return { applySaved, refresh };
 }

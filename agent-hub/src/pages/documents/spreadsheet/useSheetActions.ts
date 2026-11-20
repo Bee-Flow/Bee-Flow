@@ -1,5 +1,7 @@
-// What the page does besides editing cells: rename, download as CSV or Excel, leave
-// (after the queued cells were sent).
+// What the page does besides editing cells: rename, download as CSV or Excel,
+// add / rename / delete tabs (a refusal is said in a notice), and leave, switch
+// tab or open in Studio once the queued cells are saved (useSheetGuard asks
+// first when that save failed).
 
 import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
@@ -7,6 +9,8 @@ import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
 import { downloadSheetCsv, downloadSheetXlsx } from '@/api/sheetApi';
 import type { SheetState } from './useSheet';
+import useSheetGuard from './useSheetGuard';
+import { sheetErrorText } from './sheetErrorText';
 import { messageOf } from '@/utils/caughtError';
 
 export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
@@ -16,6 +20,7 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
     const [name, setName] = useState(initial.name);
     const [notice, setNotice] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
+    const unsaved = useSheetGuard(sheet);
 
     const rename = async (next: string) => {
         const trimmed = next.trim();
@@ -44,9 +49,18 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
                 : t('spreadsheet.download_failed', 'Could not download the CSV.')));
         } finally { setDownloading(false); }
     };
-    const leave = async () => {
-        await sheet.flush();
-        onBack?.();
+    /** A tab change; a refusal (tab cap, storage limit, the last tab) is said in the notice. */
+    const tabAction = (run: () => Promise<unknown>, fallback: string) => {
+        setNotice(null);
+        return run().catch((e: unknown) => { setNotice(sheetErrorText(e, t, fallback)); });
     };
-    return { name, notice, downloading, rename, download, leave };
+    const tabs = {
+        add: () => tabAction(() => sheet.createTab(), t('doc_sheet.tab.add_failed', 'Could not add a tab.')),
+        rename: (tabId: string, next: string) => tabAction(() => sheet.renameTab(tabId, next), t('doc_sheet.tab.rename_failed', 'Could not rename the tab.')),
+        remove: (tabId: string) => tabAction(() => sheet.deleteTab(tabId), t('doc_sheet.tab.delete_failed', 'Could not delete the tab.')),
+        show: (tabId: string) => unsaved.guard(() => sheet.setActiveTab(tabId)),
+    };
+    const leave = () => unsaved.guard(() => onBack?.());
+    const openIn = (go: () => void) => unsaved.guard(go);
+    return { name, notice, downloading, rename, download, leave, openIn, tabs, unsaved };
 }

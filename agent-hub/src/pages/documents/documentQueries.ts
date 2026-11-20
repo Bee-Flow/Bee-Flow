@@ -113,15 +113,19 @@ export function useDocumentView(id: string | null | undefined) {
     });
 }
 
-/** One library page; the previous page stays on screen while the next loads. */
+/**
+ * One library page; the previous page stays on screen while the next loads.
+ * The archive is one view over every kind (documents, templates, sections), so
+ * it is asked for without one.
+ */
 export function useLibrary(filters: LibraryFilters) {
     return useQuery({
         queryKey: docKeys.library(filters),
         queryFn: async () => {
-            const { archived, ...rest } = filters;
+            const { archived, kind, ...rest } = filters;
             return listDocumentsPage({
                 ...rest,
-                ...(archived ? { archived: '1' } : {}),
+                ...(archived ? { archived: '1' } : { kind }),
                 folderId: rest.folderId,
             }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean; spreadsheets?: boolean }>;
         },

@@ -1,0 +1,12 @@
+{
+  "translations": {
+    "doc_library.bulk_categorised_partial": "{done} van {total} ingedeeld; {failed} kon niet worden ingedeeld.",
+    "doc_library.bulk_moved_partial": "{done} van {total} verplaatst; {failed} kon niet worden verplaatst.",
+    "doc_library.delete_for_good": "{name} definitief verwijderen",
+    "doc_library.delete_for_good_confirm": "Definitief verwijderen",
+    "doc_library.kind_section": "Herbruikbare sectie",
+    "doc_library.kind_template": "Sjabloon",
+    "doc_library.open_document": "Document openen"
+  },
+  "sameAsEnglish": []
+}

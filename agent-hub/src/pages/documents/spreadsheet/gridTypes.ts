@@ -59,9 +59,14 @@ export interface Latest {
     onRedo: () => boolean;
 }
 
+/** A paste or "add rows" that ran into the sheet's size: what was left out. */
+export type GridLimit = { kind: 'paste'; rows: number; columns: number } | { kind: 'rows' };
+
 export interface Env {
     ui: MutableRefObject<Ui>;
     setUi: (next: Ui) => void;
     latest: MutableRefObject<Latest>;
     addRows: () => void;
+    /** Tell the person what did not fit. */
+    notify: (limit: GridLimit) => void;
 }

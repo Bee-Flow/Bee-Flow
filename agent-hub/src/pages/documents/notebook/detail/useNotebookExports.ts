@@ -7,7 +7,7 @@
  * page's one notice (`onNotice`): a failure says why, a Nextcloud save links
  * to its folder. Signing reports inside its own dialog.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { apiFetch } from '@/api/typedRequest';
 import { embedImagesAsBase64 } from '@/utils/imageEmbedding';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../MermaidBlock';
@@ -22,7 +22,19 @@ interface Options {
     /** The content to export: the document, or (for an empty one) the last answer. */
     getContent: () => string;
     onNotice: (notice: NotebookNotice | null) => void;
+    /** What the exports call outside the hook; tests pass fakes, the page leaves it out. */
+    deps?: Partial<ExportDeps>;
 }
+
+/** The network call, image inlining and diagram rendering every export goes through. */
+export interface ExportDeps {
+    apiFetch: typeof apiFetch;
+    embedImagesAsBase64: typeof embedImagesAsBase64;
+    renderMermaidToSVG: typeof renderMermaidToSVG;
+    svgToPngDataUrl: typeof svgToPngDataUrl;
+}
+
+const DEFAULT_DEPS: ExportDeps = { apiFetch, embedImagesAsBase64, renderMermaidToSVG, svgToPngDataUrl };
 
 const MERMAID_DIV = /<div[^>]*data-type="mermaid-diagram"[^>]*data-code="([^"]*?)"[^>]*>.*?<\/div>/gi;
 
@@ -63,6 +75,31 @@ async function readError(res: Response, t: TranslateFn, fallback: string): Promi
     return new Error(exportErrorText(body, t, fallback));
 }
 
+/**
+ * The content as every export sends it: each Mermaid diagram rendered to an
+ * image (or its SVG when the image fails), then every image inlined. Used by
+ * the download, signing and Nextcloud paths alike, so no export carries a
+ * diagram as code. `failures` counts diagrams that could not be rendered.
+ */
+async function prepareExportContent(raw: string, deps: ExportDeps): Promise<{ content: string; failures: number }> {
+    let content = raw;
+    let failures = 0;
+    for (const match of [...raw.matchAll(MERMAID_DIV)]) {
+        try {
+            const svg = await deps.renderMermaidToSVG(decodeMermaid(match[1]));
+            if (!svg) continue;
+            const png = await deps.svgToPngDataUrl(svg);
+            content = content.replace(match[0], png
+                ? `<div style="text-align:center;margin:16px 0;"><img src="${png}" style="max-width:100%;border-radius:8px;" alt="Diagram" /></div>`
+                : `<div style="text-align:center;margin:16px 0;">${svg}</div>`);
+        } catch (err) {
+            console.error('[Notebooks] Mermaid export render failed:', err);
+            failures += 1;
+        }
+    }
+    return { content: await deps.embedImagesAsBase64(content), failures };
+}
+
 /** The notebook's export routes; each takes the content as a raw JSON body. */
 type ExportKey =
     | 'POST /api/notebooks/{id}/export/pdf'
@@ -70,38 +107,29 @@ type ExportKey =
     | 'POST /api/notebooks/{id}/export/signrequest'
     | 'POST /api/notebooks/{id}/export/nextcloud';
 
-export default function useNotebookExports({ notebookId, title, getContent, onNotice }: Options) {
+function postExport(deps: ExportDeps, notebookId: string, key: ExportKey, body: unknown) {
+    return deps.apiFetch(key, {
+        params: { id: notebookId },
+        init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+    });
+}
+
+export default function useNotebookExports({ notebookId, title, getContent, onNotice, deps }: Options) {
     const { t } = useTranslation();
+    const io = useMemo<ExportDeps>(() => ({ ...DEFAULT_DEPS, ...deps }), [deps]);
     const [exporting, setExporting] = useState<string | null>(null);
     const [signSending, setSignSending] = useState(false);
     const [signError, setSignError] = useState<string | null | undefined>(null);
     const [nextcloudExporting, setNextcloudExporting] = useState(false);
 
-    const post = useCallback((key: ExportKey, body: unknown) => apiFetch(key, {
-        params: { id: notebookId },
-        init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
-    }), [notebookId]);
+    const post = useCallback((key: ExportKey, body: unknown) => postExport(io, notebookId, key, body), [notebookId, io]);
 
     const handleExport = useCallback(async (format: 'pdf' | 'docx') => {
-        let content = getContent();
-        if (!content) return;
+        const raw = getContent();
+        if (!raw) return;
         setExporting(format);
         try {
-            let failures = 0;
-            for (const match of [...content.matchAll(MERMAID_DIV)]) {
-                try {
-                    const svg = await renderMermaidToSVG(decodeMermaid(match[1]));
-                    if (!svg) continue;
-                    const png = await svgToPngDataUrl(svg);
-                    content = content.replace(match[0], png
-                        ? `<div style="text-align:center;margin:16px 0;"><img src="${png}" style="max-width:100%;border-radius:8px;" alt="Diagram" /></div>`
-                        : `<div style="text-align:center;margin:16px 0;">${svg}</div>`);
-                } catch (err) {
-                    console.error('[Notebooks] Mermaid export render failed:', err);
-                    failures += 1;
-                }
-            }
-            content = await embedImagesAsBase64(content);
+            const { content, failures } = await prepareExportContent(raw, io);
             const res = await post(format === 'pdf' ? 'POST /api/notebooks/{id}/export/pdf' : 'POST /api/notebooks/{id}/export/docx', { content, title });
             if (!res.ok) throw await readError(res, t, t('notebooks.export_failed_status', 'Export failed ({status})', { status: res.status }));
             const blob = await res.blob();
@@ -123,14 +151,14 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         } finally {
             setExporting(null);
         }
-    }, [getContent, post, title, onNotice, t]);
+    }, [getContent, post, title, onNotice, t, io]);
 
     const handleSendForSigning = useCallback(async ({ signers, subject, message }: { signers: unknown; subject?: string; message?: string }) => {
         const raw = getContent();
         if (!raw) return null;
         setSignSending(true);
         try {
-            const content = await embedImagesAsBase64(raw);
+            const { content } = await prepareExportContent(raw, io);
             const res = await post('POST /api/notebooks/{id}/export/signrequest', { content, title, signers, subject, message });
             if (!res.ok) throw await readError(res, t, t('notebooks.sign_failed_status', 'Sending for signing failed ({status})', { status: res.status }));
             return await res.json();
@@ -141,7 +169,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         } finally {
             setSignSending(false);
         }
-    }, [getContent, post, title, t]);
+    }, [getContent, post, title, t, io]);
 
     const handleNextcloudExport = useCallback(async () => {
         const raw = getContent();
@@ -149,7 +177,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         setNextcloudExporting(true);
         onNotice(null);
         try {
-            const content = await embedImagesAsBase64(raw);
+            const { content } = await prepareExportContent(raw, io);
             const res = await post('POST /api/notebooks/{id}/export/nextcloud', { content, title });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(exportErrorText(data, t, t('notebooks.nextcloud_failed_status', 'Saving to Nextcloud failed ({status})', { status: res.status })));
@@ -163,7 +191,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         } finally {
             setNextcloudExporting(false);
         }
-    }, [getContent, post, title, onNotice, t]);
+    }, [getContent, post, title, onNotice, t, io]);
 
     return {
         exporting, handleExport,

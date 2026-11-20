@@ -32,3 +32,44 @@ test('a single-table sheet keeps the charts pinned to its implicit default tab',
     assert.deepStrictEqual(out.sheet.charts.map((c) => c.id), ['c1']);
     assert.strictEqual(out.sheet.datatableId, 'dt1');
 });
+
+// ═══ keepSheetOnUpdate: a save may rename and reorder tabs, never re-point them ═══
+
+const { keepSheetOnUpdate } = require('./sheetDocument');
+const failure = (message, status, errorClass) => Object.assign(new Error(message), { status, errorClass });
+const sheetDoc = () => ({ docType: 'spreadsheet', settings: { sheet: { tabs: tabs.map((t) => ({ ...t })), charts: [{ id: 'c1', tab: 't1' }] } } });
+
+test('a save renames and reorders the existing tabs; each keeps its own table, whatever was sent', () => {
+    const next = { settings: { sheet: { tabs: [{ id: 't2', name: 'Kosten', datatableId: 'owners-other-table' }, { id: 't1', name: 'Main', datatableId: 'dt1' }] } } };
+    keepSheetOnUpdate(sheetDoc(), next, 'spreadsheet', failure);
+    assert.deepStrictEqual(next.settings.sheet.tabs, [{ id: 't2', name: 'Kosten', datatableId: 'dt2' }, { id: 't1', name: 'Main', datatableId: 'dt1' }]);
+    assert.deepStrictEqual(next.settings.sheet.charts, [{ id: 'c1', tab: 't1' }], 'the rest of the sheet stays');
+});
+
+test('a save cannot add or drop a tab: unknown or missing tab ids are refused', () => {
+    const refused = (e) => e.status === 422 && e.errorClass === 'sheet_tabs_fixed';
+    assert.throws(() => keepSheetOnUpdate(sheetDoc(), { settings: { sheet: { tabs: [...tabs, { id: 'evil', name: 'X', datatableId: 'owners-other-table' }] } } }, 'spreadsheet', failure), refused);
+    assert.throws(() => keepSheetOnUpdate(sheetDoc(), { settings: { sheet: { tabs: [tabs[0]] } } }, 'spreadsheet', failure), refused);
+    assert.throws(() => keepSheetOnUpdate(sheetDoc(), { settings: { sheet: { tabs: [tabs[0], tabs[0]] } } }, 'spreadsheet', failure), refused);
+    assert.throws(() => keepSheetOnUpdate(sheetDoc(), { settings: { sheet: { tabs: 'all' } } }, 'spreadsheet', failure), refused);
+});
+
+test('a save without tabs keeps the tabs as they are', () => {
+    const next = { settings: { sheet: { charts: [] } } };
+    keepSheetOnUpdate(sheetDoc(), next, 'spreadsheet', failure);
+    assert.deepStrictEqual(next.settings.sheet.tabs, tabs);
+});
+
+test('server code that made or dropped the tables itself may add and remove tabs; existing tabs still keep their table', () => {
+    const next = { settings: { sheet: { tabs: [{ id: 't1', name: 'Main', datatableId: 'elsewhere' }, { id: 't3', name: 'New', datatableId: 'dt3' }] } } };
+    keepSheetOnUpdate(sheetDoc(), next, 'spreadsheet', failure, { tabsChangedByServer: true });
+    assert.deepStrictEqual(next.settings.sheet.tabs, [{ id: 't1', name: 'Main', datatableId: 'dt1' }, { id: 't3', name: 'New', datatableId: 'dt3' }]);
+});
+
+test('an old single-table sheet answers to its implicit default tab', () => {
+    const current = { docType: 'spreadsheet', settings: { sheet: { datatableId: 'dt1' } } };
+    const next = { settings: { sheet: { tabs: [{ id: 'default', name: 'Renamed', datatableId: 'other' }] } } };
+    keepSheetOnUpdate(current, next, 'spreadsheet', failure);
+    assert.deepStrictEqual(next.settings.sheet.tabs, [{ id: 'default', name: 'Renamed', datatableId: 'dt1' }]);
+    assert.strictEqual(next.settings.sheet.datatableId, 'dt1');
+});

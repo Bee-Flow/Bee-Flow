@@ -21,7 +21,8 @@ import DesignedToolbar from './DesignedToolbar';
 import DocumentFindBar from './DocumentFindBar';
 import DocumentShortcuts from './DocumentShortcuts';
 import DocumentSidePanels from './DocumentSidePanels';
-import EditorNotices from './EditorNotices';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import EditorNotices, { readOnlyReasonOf } from './EditorNotices';
 import EditorStatusBar from './EditorStatusBar';
 import { slideAt } from './useDeckDraft';
 import type { WorkspaceHandle } from './useDesignedDocument';
@@ -69,7 +70,7 @@ function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: bo
             {e.tab && (
                 <DocumentWorkspacePanel ref={e.workspaceRef} key={`${s.doc.id}:${s.panelEpoch}`} doc={s.doc} tab={e.tab} onSave={s.savePatch}
                     onPreviewDraft={isDeck ? e.deck.previewDraft : undefined}
-                    onInsert={(key: string) => { e.setMode('editing'); if (!isDeck) canvasRef.current?.insert(key); }}
+                    onInsert={(key: string) => { e.setMode('editing'); canvasRef.current?.insert(key); }}
                     onSection={(id: string) => canvasRef.current?.section(id)} onBeforeAction={s.flushEditor}
                     onRefresh={e.guarded(s.reload)} />
             )}
@@ -101,13 +102,27 @@ function Dialogs({ e }: { e: DesignedEditorState }) {
                     onDiscardMine={() => { s.discardDraft(); conflicts.closeDraft(); }} onClose={conflicts.closeDraft} />
             )}
             <DocumentShortcuts open={e.shortcutsOpen} onClose={() => e.setShortcutsOpen(false)} />
+            <UnsavedLeaveDialog e={e} />
         </>
     );
 }
 
+/** A save failed on the way out: leave without it, or stay and fix it. */
+function UnsavedLeaveDialog({ e }: { e: DesignedEditorState }) {
+    const { t } = useTranslation();
+    const pending = e.leaving.pending;
+    return (
+        <ConfirmDialog open={!!pending} destructive
+            title={t('doc_editor.unsaved_title', 'Your latest changes could not be saved')}
+            description={t('doc_editor.unsaved_reason', 'The reason: {reason}', { reason: pending?.reason || '' })}
+            confirmLabel={pending?.kind === 'switch' ? t('doc_editor.switch_without_saving', 'Continue without saving') : t('doc_editor.leave_without_saving', 'Leave without saving')}
+            cancelLabel={t('doc_editor.stay', 'Stay')}
+            onConfirm={e.leaving.leaveAnyway} onCancel={e.leaving.stay} />
+    );
+}
+
 function Header({ e, isPanel, onBack, onOpenInStudio }: { e: DesignedEditorState; isPanel: boolean; onBack?: () => void; onOpenInStudio?: (id: string) => void }) {
-    const { s, frame, conflicts } = e;
-    const leave = async () => { await e.workspaceRef.current?.flush?.(); await s.flushEditor(); onBack?.(); };
+    const { s, frame, conflicts, leaving } = e;
     return (
         <>
             <DesignedToolbar
@@ -115,13 +130,14 @@ function Header({ e, isPanel, onBack, onOpenInStudio }: { e: DesignedEditorState
                 save={{ state: s.autosave.saveState, lastSavedAt: s.autosave.lastSavedAt, onRetry: e.guarded(s.autosave.flush), onResolve: () => conflicts.setOpen(true) }}
                 presence={{ peers: frame.presence.peers, people: frame.people, sectionLabel: frame.sectionLabel }}
                 side={e.side} onSide={e.setSide} canComment={e.canComment} findOpen={e.find.open} onFind={e.openFind} onShortcuts={() => e.setShortcutsOpen(true)}
-                downloading={s.downloading} onLeave={e.guarded(leave)} onRename={s.rename} onToggleHouseStyle={s.toggleHouseStyle}
-                onOpenInStudio={onOpenInStudio ? e.guarded(async () => { await s.flushEditor(); onOpenInStudio(s.doc.id); }) : undefined}
+                downloading={s.downloading} onLeave={leaving.attempt(() => onBack?.())} onRename={s.rename} nameKey={s.nameKey} onToggleHouseStyle={s.toggleHouseStyle}
+                onOpenInStudio={onOpenInStudio ? leaving.attempt(() => onOpenInStudio(s.doc.id)) : undefined}
                 onPrint={s.print} onDownload={s.download}
             />
-            <WorkspaceTabs isDeck={s.isDeck} tab={e.tab} slideCount={e.slideCount} onTab={(next) => e.guarded(async () => { await e.workspaceRef.current?.flush?.(); e.setTab(next); })()} />
+            <WorkspaceTabs isDeck={s.isDeck} tab={e.tab} slideCount={e.slideCount} onTab={(next) => { leaving.attempt(() => e.setTab(next), 'switch')(); }} />
             <EditorNotices
-                readOnly={s.readOnly} error={s.error} onDismissError={s.clearError}
+                readOnly={s.readOnly} readOnlyReason={readOnlyReasonOf(s.doc)} error={s.error} onDismissError={s.clearError}
+                inputNeeded={s.inputNeeded ? { reason: s.inputNeeded, onFill: () => { s.clearInputNeeded(); e.setTab('preview'); }, onDismiss: s.clearInputNeeded } : null}
                 draft={s.draft} onRestoreDraft={s.restoreDraft} onCompareDraft={conflicts.compareDraft} onDiscardDraft={s.discardDraft}
                 conflict={!!s.autosave.conflict} onOpenConflict={() => conflicts.setOpen(true)}
                 sharing={frame.sharing} merged={s.mergedUnseen} onShowMerged={e.guarded(s.reload)} onDismissMerged={s.dismissMerged}

@@ -16,8 +16,12 @@ const h = require('../../testUtils/routeHarness');
 const { HttpError } = require('../../core/http/errors');
 const { makeSheetRouter, sheetCsv } = require('./sheet');
 const { makeSheetGate, sheetsVisible } = require('./sheetGate');
+const { keepSheetOnUpdate } = require('../../stores/lib/sheetDocument');
+const { fill } = require('../../i18n/translate');
+const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
+const NL = require('../../i18n/defaults/nl/doc_server.json').translations;
 
-const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false };
+const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false, dutch: false };
 const baseSettings = () => ({ sheet: { tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }] } });
 const DOCS = {
     s1: { id: 's1', userId: 'owner', name: 'Budget', docType: 'spreadsheet', settings: baseSettings() },
@@ -39,14 +43,20 @@ const router = makeSheetRouter({
             state.created.push(input);
             return { id: 'new-doc', ...input };
         },
-        async updateDocument(id, _ctx, { settings }) {
+        async updateDocument(id, _ctx, { settings }, options = {}) {
             if (state.failUpdate) throw new HttpError(409, 'document_conflict', 'The document changed meanwhile.');
             // Like a plain column write: the settings sent ARE the settings (no merge to lean on).
             state.updates.push([id, settings]);
-            if (id === 'new-doc') return { id, settings, versionId: 'v-copy-2' };
+            if (id === 'new-doc') {
+                assert.strictEqual(options.tabsChangedByServer, true, 'a copy adds the tabs whose tables it made');
+                return { id, settings, versionId: 'v-copy-2' };
+            }
             const doc = DOCS[id];
             if (!doc) return null;
-            doc.settings = settings;
+            // The store's own tab rule: only a save that made or dropped the tables may add or remove a tab.
+            const next = { settings };
+            keepSheetOnUpdate(doc, next, 'spreadsheet', (message, status, errorClass) => new HttpError(status, errorClass, message), options);
+            doc.settings = next.settings;
             return doc;
         },
     },
@@ -81,11 +91,13 @@ const router = makeSheetRouter({
     },
     checkLimits: async () => (state.overLimit ? 'You have used this month\'s AI budget.' : null),
     assistantLimiter: (req, res, next) => next(),
+    // The reader's language: Dutch when the test says so, otherwise the English defaults.
+    serverName: async (_userId, key, vars) => fill((state.dutch ? NL : GUI_DEFAULTS)[key], vars),
 });
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
 test.beforeEach(() => {
-    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false });
+    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false, dutch: false });
     DOCS.s1.settings = baseSettings();
 });
 
@@ -168,7 +180,7 @@ test('starting a sheet makes its table, then the document that names it', async 
     assert.strictEqual(res.status, 201, res.text);
     assert.deepStrictEqual(state.created, [{
         userId: 'owner', name: 'Q3 numbers', docType: 'spreadsheet', kind: 'document', visibility: 'private',
-        folderId: 'f1', sheetTableId: 'dt-owner-Q3 numbers',
+        folderId: 'f1', sheetTableId: 'dt-owner-Q3 numbers', sheetTabName: 'Sheet1',
     }]);
 });
 
@@ -195,6 +207,25 @@ test('a copy is a new sheet in the copier\'s own table, with the cells copied', 
     assert.deepStrictEqual(state.copies, [['owner', 'dt1', 'dt-editor-Budget — copy', 'editor']]);
     assert.strictEqual(state.created[0].sheetTableId, 'dt-editor-Budget — copy');
     assert.strictEqual(state.created[0].userId, 'editor');
+});
+
+test('what the server names itself is in the reader\'s language: a new sheet, a new tab, a copy', async () => {
+    state.dutch = true;
+    const started = await as('owner', 'POST', '/sheets', {});
+    assert.strictEqual(started.status, 201, started.text);
+    assert.strictEqual(state.created[0].name, 'Naamloze spreadsheet');
+    assert.strictEqual(state.created[0].sheetTabName, 'Blad1', 'its first tab too');
+    const tab = await as('owner', 'POST', '/s1/sheet/tabs', {});
+    assert.strictEqual(tab.status, 201, tab.text);
+    assert.strictEqual(tab.body.tab.name, 'Blad2');
+    const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    await router.duplicateSheet({ session: { user: { id: 'owner' } }, body: {} }, res, DOCS.s1);
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(state.created[1].name, 'Budget — kopie');
+    assert.deepStrictEqual(state.copies.map((c) => c[2]), ['dt-owner-Budget — kopie', 'dt-owner-Blad2 — kopie']);
+
+    state.dutch = false;
+    assert.strictEqual((await as('owner', 'POST', '/s1/sheet/tabs', {})).body.tab.name, 'Sheet3');
 });
 
 test('the sheet gate runs the datatables gates in order and says no without throwing', async () => {

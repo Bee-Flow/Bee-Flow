@@ -8,6 +8,7 @@ import type { StudioDocument } from './documentQueries';
 import type { MegaItem } from '../../components/admin/product-website/blockEditors/HeaderEditor.types';
 import type { FeatureOption } from '../../shared/featureCatalog';
 import { logger } from '../../utils/logger';
+import { contractSavable, keyProblems, ruleIncomplete, type KeyProblem } from './editor/contractCheck';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
@@ -81,18 +82,32 @@ function readDraft(id: string): DraftState | null {
 }
 interface ParameterProps {
     parameter: ParameterDef;
+    problem?: KeyProblem | null;
     onChange: (next: ParameterDef) => void;
     onInsert?: (p: ParameterDef) => unknown;
     onDelete: React.MouseEventHandler<HTMLButtonElement>;
     nested?: boolean;
 }
 
-function Parameter({ parameter:p, onChange, onDelete, onInsert, nested=false }: ParameterProps) {
+/** What is wrong with a field's key, in plain words; nothing when it is fine. */
+function KeyHint({ problem }: { problem?: KeyProblem | null }) {
+    const { t } = useTranslation();
+    if (!problem) return null;
+    const text = {
+        missing: t('doc_editor.key_missing', 'Give it a key: the short name used in the document, like customer_name.'),
+        unsafe: t('doc_editor.key_unsafe', 'Use only letters, digits, _ . and -, and start with a letter, a digit or _.'),
+        duplicate: t('doc_editor.key_duplicate', 'Another item already uses this key. Choose a different one.'),
+    }[problem];
+    return <span role="alert" className="block text-xs font-normal text-[var(--error)]">{text}</span>;
+}
+
+function Parameter({ parameter:p, problem, onChange, onDelete, onInsert, nested=false }: ParameterProps) {
     const { t } = useTranslation(); const set = (key: string,value: unknown)=>onChange({...p,[key]:value});
-    return <details className="rounded-lg border border-[var(--border-subtle)] p-3" open={!p.key}>
+    const fieldProblems = keyProblems(p.fields || []);
+    return <details className="rounded-lg border border-[var(--border-subtle)] p-3" open={!p.key || !!problem}>
         <summary className="cursor-pointer text-sm font-medium">{p.label || p.key || t('documents.workspace.new_parameter', 'New parameter')} {p.required?'*':''}<span className="block text-xs font-normal text-[var(--text-muted)]">{p.summary || p.key}</span>{!p.instructions && <span className="block text-xs font-normal text-amber-600">{t('documents.workspace.instructions_need_review', 'Instructions need review')}</span>}</summary>
         <div className="space-y-3 mt-3">
-            {field(t('documents.workspace.parameter_key', 'Parameter key'),<input className={input} value={p.key} onChange={e=>set('key',e.target.value)}/>)}
+            {field(t('documents.workspace.parameter_key', 'Parameter key'),<input className={input} value={p.key} aria-invalid={!!problem} onChange={e=>set('key',e.target.value)}/>)}<KeyHint problem={problem}/>
             {field(t('documents.workspace.label', 'Label'),<input className={input} value={p.label || ''} onChange={e=>set('label',e.target.value)}/>)}
             {field(t('documents.workspace.type', 'Type'),<select className={input} value={p.type} onChange={e=>onChange({...p,type:e.target.value,...(e.target.value==='choice'?{options:['Option 1']}:{}),...(e.target.value==='list'?{fields:[]}: {})})}>{TYPES.filter(t=>!nested || t!=='list').map(t=><option key={t}>{t}</option>)}</select>)}
             <label className="flex gap-2 items-center text-sm"><input type="checkbox" checked={!!p.required} onChange={e=>set('required',e.target.checked)}/>{t('documents.workspace.required_when_applicable', 'Required when applicable')}</label>
@@ -101,7 +116,7 @@ function Parameter({ parameter:p, onChange, onDelete, onInsert, nested=false }: 
             {p.type==='choice' && field(t('documents.workspace.choices_one_per_line', 'Choices (one per line)'),<textarea className={input} value={(p.options || []).join('\n')} onChange={e=>set('options',e.target.value.split('\n'))}/>)}
             {field(t('documents.workspace.example', 'Example'),<input className={input} value={typeof p.example==='object'?JSON.stringify(p.example):p.example ?? ''} onChange={e=>set('example',e.target.value)}/>)}
             {p.type!=='list' && field(t('documents.workspace.default_optional', 'Default (optional)'),p.type==='boolean'?<select className={input} value={p.default===undefined?'':String(p.default)} onChange={e=>set('default',e.target.value===''?undefined:e.target.value==='true')}><option value="">—</option><option value="true">{t('documents.workspace.yes', 'Yes')}</option><option value="false">{t('documents.workspace.no', 'No')}</option></select>:<input className={input} type={p.type==='number'?'number':p.type==='date'?'date':'text'} value={(p.default ?? '') as string | number} onChange={e=>set('default',e.target.value===''?undefined:p.type==='number'?Number(e.target.value):e.target.value)}/>)}
-            {p.type==='list' && <div className="space-y-2">{(p.fields || []).map((f,i)=><Parameter key={i} nested parameter={f} onChange={next=>set('fields',p.fields?.map((x,j)=>j===i?next:x))} onDelete={()=>set('fields',p.fields?.filter((_,j)=>i!==j))}/>)}<button className={button} onClick={()=>set('fields',[...(p.fields || []),{key:'',type:'text',label:'',required:false}])}>{t('documents.workspace.add_list_field', 'Add list field')}</button></div>}
+            {p.type==='list' && <div className="space-y-2">{(p.fields || []).map((f,i)=><Parameter key={i} nested parameter={f} problem={fieldProblems[i]}onChange={next=>set('fields',p.fields?.map((x,j)=>j===i?next:x))} onDelete={()=>set('fields',p.fields?.filter((_,j)=>i!==j))}/>)}<button className={button} onClick={()=>set('fields',[...(p.fields || []),{key:'',type:'text',label:'',required:false}])}>{t('documents.workspace.add_list_field', 'Add list field')}</button></div>}
             <div className="flex gap-2">{onInsert && <button className={button} disabled={!p.key} onClick={()=>onInsert(p)}>{t('documents.workspace.insert_into_document', 'Insert into document')}</button>}<button className={button} onClick={onDelete} aria-label={t('documents.workspace.remove_parameter', 'Remove parameter')}><Trash2 size={14}/></button></div>
         </div>
     </details>;
@@ -117,7 +132,10 @@ function Rule({rule,onChange,parameters,depth=0}: RuleProps) {
     const { t } = useTranslation();
     const first = parameters[0];
     const newRule = () => ({parameter:first?.key || '',operator:'equals',value:first?.type==='boolean'?true:first?.type==='number'?0:''});
-    if (!rule) return <button className={button} onClick={()=>onChange({all:[newRule()]})}>{t('documents.workspace.add_condition', 'Add condition')}</button>;
+    if (!rule) return <div className="space-y-1">
+        <button className={button} disabled={!first} onClick={()=>onChange({all:[newRule()]})}>{t('documents.workspace.add_condition', 'Add condition')}</button>
+        {!first && <p className="text-xs text-[var(--text-muted)]">{t('doc_editor.condition_needs_value', 'A condition checks a value that gets filled in. Add one on the Parameters tab first.')}</p>}
+    </div>;
     if (rule.all || rule.any) {
         const key = rule.all?'all':'any'; const rows = rule[key]; if (!rows) return null;
         return <div className="border-l-2 border-[var(--border-subtle)] pl-2 space-y-2">
@@ -127,7 +145,7 @@ function Rule({rule,onChange,parameters,depth=0}: RuleProps) {
         </div>;
     }
     const p = parameters.find(x=>x.key===rule.parameter);
-    return <div className="space-y-1"><select aria-label={t('documents.workspace.condition_parameter', 'Condition parameter')} className={input} value={rule.parameter} onChange={e=>{const next=parameters.find(x=>x.key===e.target.value);onChange({...rule,parameter:e.target.value,value:next?.type==='boolean'?true:next?.type==='number'?0:''});}}><option value="">{t('documents.workspace.choose_parameter', 'Choose parameter')}</option>{parameters.map(p=><option key={p.key} value={p.key}>{p.label || p.key}</option>)}</select><select aria-label={t('documents.workspace.comparison', 'Comparison')} className={input} value={rule.operator} onChange={e=>onChange({...rule,operator:e.target.value})}>{[['equals',t('documents.workspace.equals', 'Equals')],['not_equals',t('documents.workspace.does_not_equal', 'Does not equal')],['contains',t('documents.workspace.contains', 'Contains')],['greater_than',t('documents.workspace.greater_than', 'Greater than')],['less_than',t('documents.workspace.less_than', 'Less than')],['is_set',t('documents.workspace.is_set', 'Is set')]].map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>{rule.operator!=='is_set' && <ValueInput parameter={p || {type:'text'}} value={rule.value} onChange={value=>onChange({...rule,value})}/>}</div>;
+    return <div className="space-y-1"><select aria-label={t('documents.workspace.condition_parameter', 'Condition parameter')} className={input} value={rule.parameter} onChange={e=>{const next=parameters.find(x=>x.key===e.target.value);onChange({...rule,parameter:e.target.value,value:next?.type==='boolean'?true:next?.type==='number'?0:''});}}><option value="">{t('documents.workspace.choose_parameter', 'Choose parameter')}</option>{parameters.map(p=><option key={p.key} value={p.key}>{p.label || p.key}</option>)}</select><select aria-label={t('documents.workspace.comparison', 'Comparison')} className={input} value={rule.operator} onChange={e=>onChange({...rule,operator:e.target.value})}>{[['equals',t('documents.workspace.equals', 'Equals')],['not_equals',t('documents.workspace.does_not_equal', 'Does not equal')],['contains',t('documents.workspace.contains', 'Contains')],['greater_than',t('documents.workspace.greater_than', 'Greater than')],['less_than',t('documents.workspace.less_than', 'Less than')],['is_set',t('documents.workspace.is_set', 'Is set')]].map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>{rule.operator!=='is_set' && <ValueInput parameter={p || {type:'text'}} value={rule.value} onChange={value=>onChange({...rule,value})}/>}{ruleIncomplete(rule) && <p role="alert" className="text-xs text-[var(--error)]">{t('doc_editor.condition_pick_value', 'Choose what this condition checks.')}</p>}</div>;
 }
 interface ValueInputProps {
     parameter: Partial<ParameterDef>;
@@ -213,6 +231,10 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     const [result,setResult]=useState<WorkspaceResult | null>(null); const [message,setMessage]=useState(''); const [mode,setMode]=useState('design'); const [proposal,setProposal]=useState<Proposal | null>(null);
     const [library,setLibrary]=useState<LibraryEntry[]>([]); const [updates,setUpdates]=useState<UpdateEntry[]>([]); const [kind,setKind]=useState(recovered?.kind || doc.kind || 'document'); const [visibility,setVisibility]=useState(recovered?.visibility || doc.visibility || 'private');
     const contract=settings.contract; const parameters=contract.parameters || []; const sections=contract.sections || [];
+    const problems=keyProblems(parameters);
+    const readOnly=doc.editable===false;
+    // The library place (type, sharing) is the owner's: the server refuses it from a project editor or a share.
+    const ownsDocument=doc.deletable!==false;
     const setContract=(next: Partial<Contract>)=>setSettings(s=>({...s,contract:{...s.contract,...next}}));
     const setDesign=(key: string | number,value: string | number | boolean)=>setSettings(s=>({...s,design:{...PRESETS.neutral,...s.design,[key]:value}}));
     const action=async (fn: () => Promise<unknown>)=>{setBusy(true);setError('');try{await fn();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
@@ -231,6 +253,8 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             let expectedVersionId=recovered && recovered.versionId!==openedVersion.current ? recovered.versionId : undefined;
             while(JSON.stringify(latestState.current)!==savedState.current) {
                 const snapshot=latestState.current;
+                // The server refuses a field without a usable key or a rule that checks nothing: never send one.
+                if(snapshot && !contractSavable(snapshot.settings.contract)) throw new Error(t('doc_editor.fix_marked_fields', 'Not saved yet: fix the fields marked in red first.'));
                 result=await onSave({...snapshot,...(expectedVersionId?{expectedVersionId}:{})});
                 savedState.current=JSON.stringify(snapshot);expectedVersionId=undefined;setRecovered(null);
             }
@@ -241,6 +265,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         try{return await saving.current;}finally{saving.current=null;}
     };
     useImperativeHandle(ref,()=>({flush:save}));
+    const copyAsTemplate=<button className={button} onClick={()=>action(async()=>{if(!readOnly)await save();const r=await documentRequest(`/${doc.id}/duplicate`,{kind:'template'});setResult({message:t('documents.workspace.template_saved', 'Template saved')+': '+r.document.name});})}>{t('documents.workspace.save_a_copy_as_template', 'Save a copy as template')}</button>;
     useEffect(()=>{
         if (JSON.stringify({settings,kind,visibility})!==savedState.current) {
             try {sessionStorage.setItem(`document-settings-draft:${doc.id}`,JSON.stringify({settings,kind,visibility,versionId:recovered?.versionId || doc.versionId,bodyHtml:doc.bodyHtml,css:doc.css}));}catch (err) { logger.debug('memory draft remains', err); }
@@ -250,20 +275,20 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     },[settings,kind,visibility,doc.id,doc.bodyHtml,doc.css,doc.versionId,recovered?.versionId]);
     useEffect(()=>{if(tab==='sections') {documentRequest('?kind=section&limit=200').then(r=>setLibrary(r.documents)).catch(e=>setError(e.message));documentRequest(`/${doc.id}/updates`).then(r=>setUpdates(r.updates || [])).catch(e=>setError(e.message));}},[tab,doc.id]);
     return <aside className="w-full sm:w-80 shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]">
-        <h2 className="font-semibold">{({parameters:t('documents.workspace.parameters', 'Parameters'),sections:t('documents.workspace.sections', 'Sections'),design:isDeck?t('documents.workspace.look', 'Look'):t('documents.workspace.design', 'Design'),assistant:t('documents.workspace.ai_assistant', 'AI assistant'),preview:t('documents.workspace.customer_preview', 'Customer preview')})[tab]}</h2>
+        <h2 className="font-semibold">{({parameters:t('documents.workspace.parameters', 'Parameters'),sections:t('documents.workspace.sections', 'Sections'),design:isDeck?t('documents.workspace.look', 'Look'):t('documents.workspace.design', 'Design'),assistant:t('documents.workspace.ai_assistant', 'AI assistant'),preview:t('doc_editor.tab_fill_in', 'Fill in & preview')})[tab]}</h2>
         {error && <p role="alert" className="text-sm bg-red-500/10 p-2 rounded">{error}</p>}
         {recovered && <div className="text-xs bg-amber-500/10 p-3 rounded space-y-2"><p>{t('documents.workspace.unsaved_settings_recovered_review', 'Unsaved settings recovered. Review them before saving.')}</p>
-            <button className={button} onClick={()=>action(async()=>{const r=await documentRequest('',{name:doc.name+' — recovered',kind:'document',bodyHtml:recovered.bodyHtml || doc.bodyHtml,css:recovered.css || doc.css,settings});setResult({message:t('documents.workspace.recovered_copy_saved', 'Recovered copy saved')+': '+r.document.name});})}>{t('documents.workspace.save_recovered_copy', 'Save recovered copy')}</button>
+            <button className={button} onClick={()=>action(async()=>{const r=await documentRequest('',{name:t('doc_editor.recovered_name', '{name} (recovered)', {name:doc.name}),kind:'document',docType:doc.docType,bodyHtml:recovered.bodyHtml || doc.bodyHtml,css:recovered.css || doc.css,settings});setResult({message:t('documents.workspace.recovered_copy_saved', 'Recovered copy saved')+': '+r.document.name});})}>{t('documents.workspace.save_recovered_copy', 'Save recovered copy')}</button>
             <button className={button} onClick={()=>{const next=currentSettings();setSettings(next);setKind(doc.kind || 'document');setVisibility(doc.visibility || 'private');savedState.current=JSON.stringify({settings:next,kind:doc.kind || 'document',visibility:doc.visibility || 'private'});setRecovered(null);try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch (err) { logger.debug('unavailable', err); }}}>{t('documents.workspace.discard_recovered_changes', 'Discard recovered changes')}</button>
         </div>}
-        <fieldset disabled={busy || doc.editable===false} className="space-y-4 min-w-0">
+        <fieldset disabled={busy || readOnly} className="space-y-4 min-w-0">
         {tab==='parameters' && <>
             {field(t('documents.workspace.document_instructions', 'Document instructions'),<textarea className={input} rows={4} value={contract.instructions || ''} onChange={e=>setContract({instructions:e.target.value})}/>)}
-            {parameters.map((p,i)=><Parameter key={i} parameter={p} onChange={next=>setContract({parameters:parameters.map((x,j)=>j===i?next:x)})} onDelete={()=>setContract({parameters:parameters.filter((_,j)=>i!==j)})} onInsert={key=>action(async()=>{await save();onInsert(key);})}/>)}
+            {parameters.map((p,i)=><Parameter key={i} parameter={p} problem={problems[i]} onChange={next=>setContract({parameters:parameters.map((x,j)=>j===i?next:x)})} onDelete={()=>setContract({parameters:parameters.filter((_,j)=>i!==j)})} onInsert={isDeck?undefined:key=>action(async()=>{await save();onInsert(key);})}/>)}
             <button className={button} onClick={()=>setContract({parameters:[...parameters,{key:'',type:'text',label:'',summary:'',instructions:'',required:false}]})}><Plus size={14} className="inline"/> {t('documents.workspace.add_parameter', 'Add parameter')}</button>
-            {field(t('documents.workspace.library_type', 'Library type'),<select className={input} value={kind} onChange={e=>{setKind(e.target.value);if(e.target.value==='document')setVisibility('private');}}><option value="document">{isDeck?t('documents.workspace.presentation', 'Presentation'):t('documents.workspace.document', 'Document')}</option><option value="template">{t('documents.workspace.template', 'Template')}</option>{!isDeck && <option value="section">{t('documents.workspace.reusable_section', 'Reusable section')}</option>}</select>)}
-            {kind!=='document' && field(t('documents.workspace.visibility', 'Visibility'),<select className={input} value={visibility} onChange={e=>setVisibility(e.target.value)}><option value="private">{t('documents.workspace.private', 'Private')}</option><option value="team">{t('documents.workspace.team_library', 'Team library')}</option></select>)}
-            <button className={button} onClick={()=>action(async()=>{await save();const r=await documentRequest(`/${doc.id}/duplicate`,{kind:'template'});setResult({message:t('documents.workspace.template_saved', 'Template saved')+': '+r.document.name});})}>{t('documents.workspace.save_a_copy_as_template', 'Save a copy as template')}</button>
+            {ownsDocument && field(t('documents.workspace.library_type', 'Library type'),<select className={input} value={kind} onChange={e=>{setKind(e.target.value);if(e.target.value==='document')setVisibility('private');}}><option value="document">{isDeck?t('documents.workspace.presentation', 'Presentation'):t('documents.workspace.document', 'Document')}</option><option value="template">{t('documents.workspace.template', 'Template')}</option>{!isDeck && <option value="section">{t('documents.workspace.reusable_section', 'Reusable section')}</option>}</select>)}
+            {ownsDocument && kind!=='document' && field(t('documents.workspace.visibility', 'Visibility'),<select className={input} value={visibility} onChange={e=>setVisibility(e.target.value)}><option value="private">{t('documents.workspace.private', 'Private')}</option><option value="team">{t('documents.workspace.team_library', 'Team library')}</option></select>)}
+            {!readOnly && copyAsTemplate}
         </>}
         {tab==='sections' && <>
             <p className="text-xs text-[var(--text-muted)]">{t('documents.workspace.choose_when_each_section_applies', 'Choose when each section applies. Unknown customer data needs input before a final PDF.')}</p>
@@ -298,7 +323,9 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         </>}
         {tab!=='assistant' && <button className={button+' w-full font-semibold'} onClick={()=>action(save)}>{busy?<Loader2 size={15} className="animate-spin mx-auto"/>:t('documents.workspace.save_changes', 'Save changes')}</button>}
         </fieldset>
-        {result && <div className="space-y-2"><p role="status" className="text-sm font-medium">{result.message || (result.valid?t('documents.workspace.ready_to_generate', 'Ready to generate'):t('documents.workspace.draft_input_required', 'Draft — input required'))}</p>{result.issues?.map((issue,i)=><p key={i} className="text-xs text-red-600">{issue.message}</p>)}{result.sections?.map(s=><p key={s.id} className="text-xs"><strong>{s.title}: {({included:t('documents.workspace.included', 'Included'),excluded:t('documents.workspace.excluded', 'Excluded'),unresolved:t('documents.workspace.needs_input', 'Needs input')})[s.state]}</strong><br/>{s.reason}</p>)}{result.html && <button className={button} onClick={()=>setProposal({html:result.html,previewOnly:true,validation:result,explanation:result.valid?t('documents.workspace.customer_preview', 'Customer preview'):t('documents.workspace.draft_input_required', 'Draft — input required')})}>{t('documents.workspace.open_preview', 'Open preview')}</button>}</div>}
+        {/* Copying is open to everyone who may read the document, so a reader keeps this one action. */}
+        {readOnly && tab==='parameters' && <fieldset disabled={busy}>{copyAsTemplate}</fieldset>}
+        {result &&<div className="space-y-2"><p role="status" className="text-sm font-medium">{result.message || (result.valid?t('documents.workspace.ready_to_generate', 'Ready to generate'):t('documents.workspace.draft_input_required', 'Draft — input required'))}</p>{result.issues?.map((issue,i)=><p key={i} className="text-xs text-red-600">{issue.message}</p>)}{result.sections?.map(s=><p key={s.id} className="text-xs"><strong>{s.title}: {({included:t('documents.workspace.included', 'Included'),excluded:t('documents.workspace.excluded', 'Excluded'),unresolved:t('documents.workspace.needs_input', 'Needs input')})[s.state]}</strong><br/>{s.reason}</p>)}{result.html && <button className={button} onClick={()=>setProposal({html:result.html,previewOnly:true,validation:result,explanation:result.valid?t('documents.workspace.customer_preview', 'Customer preview'):t('documents.workspace.draft_input_required', 'Draft — input required')})}>{t('documents.workspace.open_preview', 'Open preview')}</button>}</div>}
         {proposal && <Modal open onClose={()=>setProposal(null)} title={t('documents.workspace.review_proposal', 'Review proposal')} size="xl"><div className="space-y-3"><p className="font-medium">{proposal.explanation}</p>{proposal.html && <iframe title={t('documents.workspace.proposed_document', 'Proposed document')} sandbox={isDeck?'allow-scripts':''} srcDoc={proposal.html} className="w-full h-[55vh] border rounded"/>}{proposal.suggestions?.map(s=><p key={s.sectionId} className="text-sm">{s.sectionId}: {s.choice} — {s.reason}</p>)}{proposal.validation?.issues?.map((i,n)=><p className="text-xs text-red-600" key={n}>{i.message}</p>)}<div className="flex gap-2"><button className={button} onClick={()=>setProposal(null)}>{t('documents.workspace.close', 'Close')}</button>{!proposal.previewOnly && <button className={button} disabled={busy} onClick={()=>action(async()=>{const patch={...proposal.patch};if(proposal.suggestions?.length)patch.settings={...(patch.settings || settings),sectionOverrides:{...settings.sectionOverrides,...Object.fromEntries(proposal.suggestions.map(s=>[s.sectionId,s.choice]))}};await onSave({...patch,expectedVersionId:proposal.expectedVersionId,summary:'Applied reviewed proposal'});if(patch.settings)acceptSettings(patch.settings);setProposal(null);setUpdates([]);})}>{t('documents.workspace.apply_reviewed_changes', 'Apply reviewed changes')}</button>}</div></div></Modal>}
     </aside>;
 });

@@ -3,7 +3,7 @@ import { useViewport } from '@/hooks/useViewport';
 // somebody else changed it since the reader last looked), type, owner, and
 // when and by whom it was last changed.
 
-import { FileText, NotebookPen, Presentation } from 'lucide-react';
+import { FileText, NotebookPen, Presentation, Sheet } from 'lucide-react';
 import React from 'react';
 import type { ProjectDocument } from '@/api/queries/projectContent';
 import useRelativeTime from '@/hooks/useRelativeTime';
@@ -40,7 +40,8 @@ function useColumns(): TableColumn[] {
     ];
 }
 
-const iconOf = (docType: string | undefined) => (docType === 'presentation' ? Presentation : docType === 'page' ? NotebookPen : FileText);
+const ICONS: Record<string, typeof FileText> = { presentation: Presentation, page: NotebookPen, spreadsheet: Sheet };
+const iconOf = (docType: string | undefined) => (docType && ICONS[docType]) || FileText;
 
 export default function DocumentsTable({ documents, loading, empty, ownerName, mayRemove, removingId, onOpen, onRemove, isUnread }: DocumentsTableProps) {
     const { t } = useTranslation();

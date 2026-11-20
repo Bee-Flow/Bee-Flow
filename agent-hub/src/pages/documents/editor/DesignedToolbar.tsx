@@ -33,6 +33,8 @@ export interface DesignedToolbarProps {
     downloading: boolean;
     onLeave: () => void;
     onRename: (name: string) => void;
+    /** Moves when the saved name should be shown again (a refused rename). */
+    nameKey?: number;
     onToggleHouseStyle: () => void;
     onOpenInStudio?: () => void;
     onPrint: () => void;
@@ -96,7 +98,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
     return (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="document-toolbar">
             <button type="button" onClick={props.onLeave} className={ICON_BUTTON} aria-label={backLabel}>{isPanel ? <X size={17} /> : <ArrowLeft size={17} />}</button>
-            <input key={doc.name} disabled={readOnly} defaultValue={doc.name} aria-label={t('documents.name', 'Document name')}
+            <input key={`${doc.name}:${props.nameKey ?? 0}`} disabled={readOnly} defaultValue={doc.name} aria-label={t('documents.name', 'Document name')}
                 onBlur={(e) => props.onRename(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                 className="flex-1 min-w-[8rem] bg-transparent text-sm font-semibold px-1.5 py-1 rounded outline-none focus:ring-1 focus:ring-[var(--accent-primary)] text-[var(--text-primary)]" />
             <SaveStatusChip state={props.save.state} lastSavedAt={props.save.lastSavedAt} onRetry={props.save.onRetry} onResolve={props.save.onResolve} />

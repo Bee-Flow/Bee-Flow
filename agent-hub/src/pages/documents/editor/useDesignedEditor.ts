@@ -3,7 +3,7 @@
 // The document itself is useDesignedDocument's; the frame's reports are
 // useFrameState's.
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FrameKey } from '../canvasBridge';
 import type { CanvasHandle } from '../DocumentCanvas';
 import type { People, StudioDocument } from '../documentQueries';
@@ -99,11 +99,47 @@ export default function useDesignedEditor({ initial, people, currentUserId, onRe
         s.setPanelEpoch((k) => k + 1);
     };
     const guarded = (fn: () => Promise<unknown>) => () => { fn().catch((e) => s.setError(e)); };
+    useDeckSettles(s.reloadKey, deck.settled);
+    const leaving = useLeaveGuard(async (kind) => {
+        await workspaceRef.current?.flush?.();
+        // Another tab of the panel keeps the frame open: only leaving saves the text too.
+        if (kind === 'leave') await s.flushEditor();
+    }, s.describeError);
 
     return {
         s, canvasRef, workspaceRef, mode, setMode, editing, frame, deck, conflicts, tab, setTab, side, setSide,
         find, setFind, openFind, closeFind, onFind, shortcutsOpen, setShortcutsOpen, slideCount, setSlideCount,
-        canComment, onKey, onRestored, guarded,
+        canComment, onKey, onRestored, guarded, leaving,
+    };
+}
+
+/** Every time the frame shows the stored state again, a deck's unsaved preview draft is over. */
+function useDeckSettles(reloadKey: number, settled: () => void) {
+    const seen = useRef(reloadKey);
+    useEffect(() => {
+        if (seen.current === reloadKey) return;
+        seen.current = reloadKey;
+        settled();
+    }, [reloadKey, settled]);
+}
+
+export interface PendingLeave { reason: string; kind: 'leave' | 'switch'; go: () => void }
+
+/**
+ * Leave, switch a tab or open in Studio after saving what is typed. When the
+ * save fails the person is asked, never stuck: leave without saving (the
+ * unsaved text stays in this browser tab, offered back on reopening), or stay.
+ */
+function useLeaveGuard(save: (kind: PendingLeave['kind']) => Promise<void>, describe: (e: unknown) => string) {
+    const [pending, setPending] = useState<PendingLeave | null>(null);
+    const attempt = (go: () => void, kind: PendingLeave['kind'] = 'leave') => async () => {
+        try { await save(kind); } catch (e) { setPending({ reason: describe(e), kind, go }); return; }
+        go();
+    };
+    return {
+        pending, attempt,
+        leaveAnyway: () => { const p = pending; setPending(null); p?.go(); },
+        stay: () => setPending(null),
     };
 }
 

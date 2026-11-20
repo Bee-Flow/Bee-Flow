@@ -25,14 +25,14 @@ export function SheetSkeleton() {
     );
 }
 
-export function SheetLoadError({ onRetry, onBack }: { onRetry: () => void; onBack?: () => void }) {
+export function SheetLoadError({ message, onRetry, onBack, backLabel }: { message?: string; onRetry: () => void; onBack?: () => void; backLabel?: string }) {
     const { t } = useTranslation();
     return (
         <div role="alert" className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center" data-testid="sheet-load-error">
-            <p className="m-0 text-[14px] text-[var(--text-primary)]">{t('spreadsheet.load_failed', 'Could not load the spreadsheet.')}</p>
+            <p className="m-0 text-[14px] text-[var(--text-primary)]">{message ?? t('spreadsheet.load_failed', 'Could not load the spreadsheet.')}</p>
             <div className="flex gap-2">
                 <button type="button" className={BUTTON} onClick={onRetry}>{t('spreadsheet.retry', 'Retry')}</button>
-                {onBack && <button type="button" className={BUTTON} onClick={onBack}>{t('documents.back', 'Back to Documents')}</button>}
+                {onBack && <button type="button" className={BUTTON} onClick={onBack}>{backLabel ?? t('documents.back', 'Back to Documents')}</button>}
             </div>
         </div>
     );

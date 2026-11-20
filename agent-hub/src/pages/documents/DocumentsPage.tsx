@@ -28,6 +28,8 @@ import StarterGallery, { type NewChoice } from './library/StarterGallery';
 import { PAGE_SIZE, isNotebookRow, useLibraryActions, useLibraryFilters, type LibraryKind, type NewDocumentInput } from './library/useLibrary';
 import { notebookIdOf, notebookRef } from './notebookRef';
 import { messageOf } from '../../utils/caughtError';
+import { isOrgAdminRole, isPlatformAdmin } from '@/utils/adminAccess';
+import type { FilingResult } from './library/useLibrary';
 
 const Pager = PagerJs;
 // The notebook workspace carries the editor, the sources and the chat: loaded
@@ -49,6 +51,23 @@ const PRIMARY = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-x
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
+/** Whether the signed-in user administers the organisation (the server's org_admin permission). */
+export function isOrgAdminUser(user: unknown): boolean {
+    if (!user || typeof user !== 'object') return false;
+    const u = user as { isAdmin?: boolean | null; role?: string | null; orgRole?: string | null; permissions?: unknown };
+    const perms = Array.isArray(u.permissions) ? u.permissions : [];
+    return isPlatformAdmin(u) || isOrgAdminRole(u.orgRole) || perms.includes('org_admin') || perms.includes('all');
+}
+
+/** What a bulk filing that the server partly refused says; null when every row was filed. */
+function filingNotice(result: FilingResult, what: 'move' | 'categorise', t: Translate): string | null {
+    if (!result.failed.length) return null;
+    const counts = { done: result.done.length, total: result.done.length + result.failed.length, failed: result.failed.length };
+    return what === 'move'
+        ? t('doc_library.bulk_moved_partial', 'Moved {done} of {total}; {failed} could not be moved.', counts)
+        : t('doc_library.bulk_categorised_partial', 'Categorised {done} of {total}; {failed} could not be categorised.', counts);
+}
+
 /** What a choice in the gallery creates, in the library view it was made from. */
 function newDocumentInput(choice: Exclude<NewChoice, { type: 'notebook' } | { type: 'spreadsheet' }>, view: LibraryKind, t: Translate): Omit<NewDocumentInput, 'locale' | 'folderId'> {
     // Own templates are offered in a project only; here one would be a copy by name.
@@ -67,7 +86,7 @@ function openProjectInApp(projectId: string) {
     window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-function useLibraryPage() {
+function useLibraryPage(user: unknown) {
     const { t, locale: preferred, strings } = useTranslation();
     // Templates follow the language on screen, not the stored preference.
     const locale = readingLocale(preferred, strings, ['documents.new.title']);
@@ -84,6 +103,13 @@ function useLibraryPage() {
         setPrevFilters(f.filters);
         setSelection([]);
     }
+    // A page that emptied (its last row archived, moved or deleted) steps back
+    // to the last page that still has rows, rather than saying the library is empty.
+    const settled = list.data && !list.isPlaceholderData ? list.data : null;
+    if (settled && !settled.documents.length && f.offset > 0) {
+        const last = Math.max(0, Math.floor((settled.total - 1) / PAGE_SIZE) * PAGE_SIZE);
+        if (last < f.offset) f.setOffset(last);
+    }
     // The assistant made or changed a document in a chat: the list may be stale.
     const qc = useQueryClient();
     useEffect(() => {
@@ -94,7 +120,7 @@ function useLibraryPage() {
     // Whether this reader may have notebooks: the server answers with the list.
     const notebooks = list.data?.notebooks === true;
     const spreadsheets = list.data?.spreadsheets === true;
-    return { t, locale, f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, spreadsheets, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
+    return { t, locale, orgAdmin: isOrgAdminUser(user), f, list, folders, actions, me, selection, setSelection, error, setError, fail, notebooks, spreadsheets, refresh: () => qc.invalidateQueries({ queryKey: docKeys.all }) };
 }
 
 function LibraryHeader({ p, onHouseStyle, onNew }: { p: ReturnType<typeof useLibraryPage>; onHouseStyle?: () => void; onNew: () => void }) {
@@ -134,15 +160,18 @@ function LibraryMain({ p, onOpen, onCreate }: { p: ReturnType<typeof useLibraryP
     const rows: LibraryRow[] = list.data?.documents || [];
     const [sharingRow, setSharingRow] = useState<LibraryRow | null>(null);
     const selectedRows = rows.filter((r) => p.selection.includes(r.id));
+    const file = (patch: { folderId?: string | null; categories?: string[] }, what: 'move' | 'categorise') => actions.bulk.mutate({ rows: selectedRows, patch }, {
+        onSuccess: (result) => { p.setSelection(result.failed); p.setError(filingNotice(result, what, p.t)); },
+        onError: p.fail,
+    });
     const filtered = !!(f.query || f.category || f.visibility || f.format || f.folderId !== undefined);
     const status = list.isError && !list.data ? 'error' : list.isPending ? 'loading' : 'ok';
     return (
         <main className="space-y-3 min-w-0">
             <BulkBar count={selectedRows.length} folders={p.folders.data || []} busy={actions.bulk.isPending} onClear={() => p.setSelection([])}
-                onMove={(folderId) => actions.bulk.mutate({ rows: selectedRows, patch: { folderId } }, { onError: p.fail })}
-                onCategorise={(categories) => actions.bulk.mutate({ rows: selectedRows, patch: { categories } }, { onError: p.fail })} />
+                onMove={(folderId) => file({ folderId }, 'move')} onCategorise={(categories) => file({ categories }, 'categorise')} />
             <LibraryList
-                rows={rows} people={list.data?.people || {}} currentUserId={p.me.data?.id || null}
+                rows={rows} people={list.data?.people || {}} currentUserId={p.me.data?.id || null} spreadsheets={p.spreadsheets} orgAdmin={p.orgAdmin}
                 status={status} refreshing={list.isFetching && !list.isPending}
                 archivedView={f.archived} filtered={filtered} selection={p.selection} onSelect={p.setSelection} busyId={busyRow(actions)}
                 onShare={setSharingRow} onOpen={onOpen} onRetry={() => list.refetch()} onCreate={onCreate}
@@ -162,7 +191,7 @@ function OpeningNotebook() {
 }
 
 export default function DocumentsPage({ mode = 'workspace', initialDocumentId = null, onDocumentChange, user }: DocumentsPageProps) {
-    const p = useLibraryPage();
+    const p = useLibraryPage(user);
     const { t, f, actions } = p;
     const [selectedId, setSelectedId] = useState<string | null>(initialDocumentId);
     const [showHouseStyle, setShowHouseStyle] = useState(false);

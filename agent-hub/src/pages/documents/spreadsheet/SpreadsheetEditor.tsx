@@ -2,10 +2,10 @@
 // ("=SUM(A1:A5)"), shown as their results. Saved cell by cell as it is typed
 // (useSheet); a viewer reads and copies, nothing more.
 
-import { BarChart3, Download, Sparkles, Table2 } from 'lucide-react';
+import { BarChart3, Download, Maximize2, Sparkles, Table2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { StudioSectionHeader } from '@/components/projects/workspace/studioParts';
-import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { People, StudioDocument } from '../documentQueries';
 import SaveStatusChip from '../editor/SaveStatusChip';
 import FormulaBar from './FormulaBar';
@@ -16,14 +16,15 @@ import { chartsOnTab, type SheetChartConfig } from './sheetCharts';
 import SheetGrid from './SheetGrid';
 import SheetStatusBar from './SheetStatusBar';
 import SheetTabs from './SheetTabs';
-import { BUTTON, Notice, SheetLoadError, SheetSkeleton } from './SheetStates';
-import { SheetApiError } from '@/api/sheetApi';
+import SheetEditorNotices from './SheetEditorNotices';
+import { BUTTON, SheetLoadError, SheetSkeleton } from './SheetStates';
+import { sheetErrorText } from './sheetErrorText';
 import { selectionFor } from './sheetModel';
 import useAssistantTier from './useAssistantTier';
 import useGridState from './useGridState';
 import useSheetAsk from './useSheetAsk';
 import useSheetAssistant from './useSheetAssistant';
-import useSheet, { type SheetState } from './useSheet';
+import useSheet from './useSheet';
 import useSheetActions from './useSheetActions';
 import { logger } from '@/utils/logger';
 
@@ -34,6 +35,8 @@ export interface SpreadsheetEditorProps {
     currentUser: { id: string; name?: string } | null;
     onBack?: () => void;
     onRenamed?: (doc: StudioDocument) => void;
+    /** Beside the chat: open this spreadsheet in Studio. */
+    onOpenInStudio?: (id: string) => void;
 }
 
 const OPEN_KEY = 'sheetAssistantOpen';
@@ -46,15 +49,7 @@ function storedFormulaBar(): boolean {
     try { return localStorage.getItem(FORMULA_BAR_KEY) === '1'; } catch { return false; }
 }
 
-/** The sentence for a failed save. */
-function saveFailureText(sheet: SheetState, t: TranslateFn): string | null {
-    const e = sheet.error;
-    if (!e || sheet.status !== 'error') return null;
-    if (e instanceof SheetApiError && e.code === 'sheet_too_large') return t('spreadsheet.too_large', 'This spreadsheet is too large to hold more cells.');
-    return e.message || t('spreadsheet.save_failed', 'Could not save your changes.');
-}
-
-export default function SpreadsheetEditor({ initial, onBack, onRenamed }: SpreadsheetEditorProps) {
+export default function SpreadsheetEditor({ initial, variant, onBack, onRenamed, onOpenInStudio }: SpreadsheetEditorProps) {
     const { t } = useTranslation();
     const sheet = useSheet(initial.id);
     const grid = useGridState({
@@ -85,8 +80,10 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
     const onBlur = (e: React.FocusEvent<HTMLElement>) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) sheet.flush().catch(() => undefined);
     };
-    const saveFailure = saveFailureText(sheet, t);
     const ready = !sheet.loading && !sheet.loadError;
+    const isPanel = variant === 'panel';
+    // Beside the chat the back button closes the panel.
+    const backLabel = isPanel ? t('documents.close', 'Close') : t('documents.back', 'Back to Documents');
 
     return (
         <div className="relative flex flex-col h-full min-h-0 bg-[var(--bg-primary)]" data-testid="spreadsheet-editor">
@@ -115,25 +112,38 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                         >
                             <span className="font-mono italic text-[12px]" aria-hidden="true">fx</span>
                         </button>
-                        <button
-                            type="button" className={BUTTON} onClick={() => setChartCreatorOpen((o) => !o)} aria-pressed={chartCreatorOpen}
-                            title={t('spreadsheet.chart.add', 'Add chart')}
-                            disabled={!ready}
-                        >
-                            <BarChart3 size={14} aria-hidden="true" />{t('spreadsheet.chart.add', 'Add chart')}
-                        </button>
+                        {!sheet.readOnly && (
+                            <button
+                                type="button" className={BUTTON} onClick={() => setChartCreatorOpen((o) => !o)} aria-pressed={chartCreatorOpen}
+                                title={t('spreadsheet.chart.add', 'Add chart')}
+                                disabled={!ready}
+                            >
+                                <BarChart3 size={14} aria-hidden="true" />{t('spreadsheet.chart.add', 'Add chart')}
+                            </button>
+                        )}
                         <button type="button" className={BUTTON} onClick={toggleAssistant} aria-pressed={assistantOpen} disabled={!ready}>
                             <Sparkles size={14} aria-hidden="true" />{t('spreadsheet.assistant.open', 'Assistant')}
                         </button>
+                        {isPanel && onOpenInStudio && (
+                            <button
+                                type="button" className={BUTTON} data-testid="sheet-open-in-studio"
+                                onClick={() => { page.openIn(() => onOpenInStudio(initial.id)).catch(() => undefined); }}
+                                aria-label={t('documents.open_in_studio', 'Open in Studio')} title={t('documents.open_in_studio', 'Open in Studio')}
+                            >
+                                <Maximize2 size={14} aria-hidden="true" />
+                            </button>
+                        )}
                     </>
                 )}
                 onBack={onBack ? () => { page.leave().catch(() => undefined); } : undefined}
-                backLabel={t('documents.back', 'Back to Documents')}
+                backLabel={backLabel}
             />
-            {page.notice && <Notice>{page.notice}</Notice>}
-            {saveFailure && <Notice action={<button type="button" className={BUTTON} onClick={sheet.retry}>{t('spreadsheet.retry', 'Retry')}</button>}>{saveFailure}</Notice>}
+            <SheetEditorNotices
+                sheet={sheet} notice={page.notice} chartError={chartCreatorOpen ? null : charts.error}
+                limit={grid.limit} onDismissLimit={grid.clearLimit} unsaved={page.unsaved}
+            />
             <SheetChartCreator
-                open={chartCreatorOpen}
+                open={chartCreatorOpen && !sheet.readOnly}
                 onClose={() => setChartCreatorOpen(false)}
                 onCreate={(config: SheetChartConfig) => charts.addChart({ ...config, tab: sheet.activeTab })}
                 selection={selection}
@@ -142,7 +152,12 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                 columns={sheet.columns}
             />
             {sheet.loading && <SheetSkeleton />}
-            {sheet.loadError && <SheetLoadError onRetry={sheet.reload} onBack={onBack} />}
+            {sheet.loadError && (
+                <SheetLoadError
+                    message={sheetErrorText(sheet.loadError, t, t('spreadsheet.load_failed', 'Could not load the spreadsheet.'))}
+                    onRetry={sheet.reload} onBack={onBack} backLabel={backLabel}
+                />
+            )}
             {ready && (
                 <div className="flex-1 min-h-0 flex">
                     <div className="flex-1 min-w-0 min-h-0 flex flex-col" onBlur={onBlur}>
@@ -152,17 +167,17 @@ export default function SpreadsheetEditor({ initial, onBack, onRenamed }: Spread
                                 {t('spreadsheet.empty_hint', 'Type a value or a formula such as =SUM(A1:A5)')}
                             </p>
                         )}
-                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} ask={ask} containerRef={gridRef} onToggleFormulaBar={toggleFormulaBar} charts={chartsOnTab(charts.charts, sheet.activeTab)} onRemoveChart={charts.removeChart} />
+                        <SheetGrid grid={grid} cells={sheet.cells} computed={sheet.computed} readOnly={sheet.readOnly} flashed={assistant.flashed} ask={ask} containerRef={gridRef} onToggleFormulaBar={toggleFormulaBar} charts={chartsOnTab(charts.charts, sheet.activeTab)} onRemoveChart={(chartId) => { charts.removeChart(chartId).catch(() => undefined); }} />
                         <SheetStatusBar range={grid.range} kind={grid.kind} computed={sheet.computed} usedRows={sheet.usedRows} usedCols={grid.usedCols} />
                         <SheetTabs
                             tabs={sheet.tabs}
                             activeTab={sheet.activeTab}
                             readOnly={sheet.readOnly}
-                            onChange={sheet.setActiveTab}
-                            onAdd={sheet.createTab}
-                            onRename={sheet.renameTab}
+                            onChange={page.tabs.show}
+                            onAdd={page.tabs.add}
+                            onRename={page.tabs.rename}
                             // a removed tab takes its charts along on the server: show that list
-                            onDelete={(tabId) => { void sheet.deleteTab(tabId).then(charts.reload); }}
+                            onDelete={async (tabId) => { await page.tabs.remove(tabId); await charts.reload(); }}
                         />
                     </div>
                     {assistantOpen && <SheetAssistantPanel assistant={assistant} selection={selection} selectionKind={grid.kind} tier={tier} readOnly={sheet.readOnly} onClose={toggleAssistant} />}

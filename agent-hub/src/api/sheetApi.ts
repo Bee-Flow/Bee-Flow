@@ -68,12 +68,18 @@ export async function getSheet(id: string, tabId?: string): Promise<SheetData> {
     };
 }
 
-/** Save cells ("" clears one). At most MAX_CELLS_PER_REQUEST per call. */
-export async function patchSheet(id: string, cells: Record<string, string>, tabId?: string): Promise<Record<string, string>> {
+/**
+ * Save cells ("" clears one). At most MAX_CELLS_PER_REQUEST per call.
+ * `keepalive`: the request outlives the page (sent while the page is being closed).
+ */
+export async function patchSheet(
+    id: string, cells: Record<string, string>, tabId?: string, init?: { keepalive?: boolean },
+): Promise<Record<string, string>> {
     const res = await authFetch(sheetUrl(id) + tabQuery(tabId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cells }),
+        ...(init?.keepalive ? { keepalive: true } : {}),
     });
     const body = await asJson<{ cells?: Record<string, string> }>(res, 'Failed to save the spreadsheet');
     return body.cells || {};

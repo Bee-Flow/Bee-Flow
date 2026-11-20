@@ -79,11 +79,11 @@ describe('DocumentsPage: notebooks in the library', () => {
         notebookApi.mockResolvedValue({ success: true });
         renderPage();
         const u = userEvent.setup();
-        await u.click(await screen.findByRole('button', { name: 'Delete Market research' }));
+        await u.click(await screen.findByRole('button', { name: 'Delete Market research for good' }));
         const dialog = await screen.findByRole('dialog');
         expect(dialog).toHaveTextContent('cannot be restored');
         expect(notebookApi).not.toHaveBeenCalled();
-        await u.click(within(dialog).getByRole('button', { name: 'Delete notebook' }));
+        await u.click(within(dialog).getByRole('button', { name: 'Delete for good' }));
         await waitFor(() => expect(notebookApi).toHaveBeenCalledWith('/nb1', { method: 'DELETE' }));
         expect(api.deleteDocument).not.toHaveBeenCalled();
     });
@@ -96,7 +96,7 @@ describe('DocumentsPage: notebooks in the library', () => {
         await u.click(screen.getByRole('checkbox', { name: 'Select Offer' }));
         await u.selectOptions(screen.getByRole('combobox', { name: 'Move to folder' }), 'f1');
         await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/notebooks/nb1/filing', { folderId: 'f1' }, 'PATCH'));
-        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { folderId: 'f1', expectedVersionId: 'v1' }));
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { folderId: 'f1' }));
     });
 
     it('filters on the Notebook type', async () => {

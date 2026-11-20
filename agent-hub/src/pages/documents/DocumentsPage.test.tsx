@@ -163,3 +163,93 @@ describe('DocumentsPage: starting one', () => {
         expect(await screen.findByTestId('editor-stub')).toHaveTextContent('editor new-page');
     });
 });
+
+describe('DocumentsPage: the archive is one view', () => {
+    it('lists every kind when archived, and labels templates and sections', async () => {
+        renderPage();
+        const u = userEvent.setup();
+        await screen.findByTestId('library-row-a');
+        await u.click(within(screen.getByTestId('documents-view')).getByRole('button', { name: /Templates/ }));
+        await waitFor(() => expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'template' })));
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('t', { kind: 'template' }), row('s', { kind: 'section' }), row('d', { kind: 'document' })], total: 3, people: {} });
+        await u.click(screen.getByTestId('documents-archived-view'));
+        await waitFor(() => expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ archived: '1' })));
+        expect(api.listDocumentsPage.mock.lastCall?.[0]).not.toHaveProperty('kind');
+        expect(await screen.findByTestId('library-kind-t')).toHaveTextContent('Template');
+        expect(screen.getByTestId('library-kind-s')).toHaveTextContent('Reusable section');
+        expect(screen.queryByTestId('library-kind-d')).not.toBeInTheDocument();
+    });
+});
+
+describe('DocumentsPage: filing several at once', () => {
+    it('offers a checkbox only on rows the reader owns', async () => {
+        renderPage();
+        await screen.findByTestId('library-row-b');
+        expect(screen.getByRole('checkbox', { name: 'Select Doc a' })).toBeInTheDocument();
+        expect(screen.queryByRole('checkbox', { name: 'Select Doc b' })).not.toBeInTheDocument();
+    });
+
+    it('moves without a revision check, goes on past a refusal and says how many moved', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('a'), row('c')], total: 2, people: {} });
+        api.updateDocument.mockImplementation(async (id: string) => { if (id === 'a') throw new Error('nope'); return {}; });
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole('checkbox', { name: 'Select Doc a' }));
+        await u.click(screen.getByRole('checkbox', { name: 'Select Doc c' }));
+        await u.selectOptions(screen.getByRole('combobox', { name: 'Move to folder' }), 'f1');
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('c', { folderId: 'f1' }));
+        expect(api.updateDocument).toHaveBeenCalledWith('a', { folderId: 'f1' });
+        expect(await screen.findByRole('alert')).toHaveTextContent('Moved 1 of 2; 1 could not be moved.');
+    });
+});
+
+describe('DocumentsPage: what each row offers', () => {
+    it('offers no copy of a spreadsheet to a reader who may not start spreadsheets', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('s', { docType: 'spreadsheet' }), row('a')], total: 2, people: {}, spreadsheets: false });
+        renderPage();
+        await screen.findByTestId('library-row-s');
+        expect(screen.queryByRole('button', { name: 'Make a copy of Doc s' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Make a copy of Doc a' })).toBeInTheDocument();
+    });
+
+    it('offers an organisation admin to archive a team template of someone else', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [row('t', { userId: 'anna', kind: 'template', visibility: 'team' }), row('p', { userId: 'anna', kind: 'document', visibility: 'team' })], total: 2, people: {} });
+        render(withQueryClient(<DocumentsPage user={{ id: 'me', orgRole: 'org_admin' }} />));
+        await screen.findByTestId('library-row-t');
+        expect(screen.getByRole('button', { name: 'Archive Doc t' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Archive Doc p' })).not.toBeInTheDocument();
+    });
+
+    it('steps back a page when archiving empties the last one', async () => {
+        let archived = false;
+        api.deleteDocument.mockImplementation(async () => { archived = true; return true; });
+        api.listDocumentsPage.mockImplementation(async ({ offset }: { offset: number }) => (offset === 30
+            ? { documents: archived ? [] : [row('z')], total: archived ? 30 : 31, people: {} }
+            : { documents: [row('a')], total: archived ? 30 : 31, people: {} }));
+        renderPage();
+        const u = userEvent.setup();
+        await screen.findByTestId('library-row-a');
+        await u.click(screen.getByTestId('documents-pager-next'));
+        await u.click(await screen.findByRole('button', { name: 'Archive Doc z' }));
+        await u.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Archive' }));
+        expect(await screen.findByTestId('library-row-a')).toBeInTheDocument();
+        expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0 }));
+        expect(screen.queryByText('No documents here yet')).not.toBeInTheDocument();
+    });
+
+    it('stays in a folder whose delete failed', async () => {
+        api.documentRequest.mockImplementation(async (path: string, _data: unknown, method?: string) => {
+            if (path === '/folders') return { folders: [{ id: 'f1', name: 'Customers', parentId: null }] };
+            if (method === 'DELETE') throw new Error('Folder not found');
+            return {};
+        });
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByRole('button', { name: /Customers/ }));
+        await u.click(screen.getByRole('button', { name: 'Delete folder Customers' }));
+        await u.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete folder' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Folder not found');
+        expect(screen.getByRole('button', { name: 'Delete folder Customers' })).toBeInTheDocument();
+        expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ folderId: 'f1' }));
+    });
+});

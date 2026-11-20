@@ -54,12 +54,15 @@ async function asJson(res: Response, fallback: string) {
     return body;
 }
 
+/** A list filter worth sending: an empty folderId means "the root folder", any other empty value means no filter. */
+const sentFilter = ([key, value]: [string, unknown]) => value !== undefined && value !== null && (value !== '' || key === 'folderId');
+
 /**
  * One page of the library with the total and the names of the people on it
  * (owner, last editor). `archived: '1'` lists the caller's archive.
  */
 export async function listDocumentsPage(filters: Partial<Omit<LibraryFilters, 'archived'>> & { archived?: string } = {}) {
-    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)]));
+    const query = new URLSearchParams(Object.entries(filters).filter(sentFilter).map(([k, v]) => [k, String(v)]));
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
     const body = await asJson(res, 'Failed to load documents');
     // `notebooks` / `spreadsheets`: whether this reader may have (and start) them.

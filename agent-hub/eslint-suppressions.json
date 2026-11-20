@@ -9801,11 +9801,6 @@
       "count": 1
     }
   },
-  "src/pages/documents/library/LibraryList.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/pages/documents/notebook/CitationChips.tsx": {
     "jsx-a11y/no-interactive-element-to-noninteractive-role": {
       "count": 1
@@ -9895,14 +9890,6 @@
   },
   "src/pages/documents/notebook/detail/useNotebookDocument.ts": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/pages/documents/notebook/detail/useNotebookExports.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     }
   },

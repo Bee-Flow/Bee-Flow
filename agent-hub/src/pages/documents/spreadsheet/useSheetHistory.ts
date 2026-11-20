@@ -1,6 +1,8 @@
 // Undo/redo history for manual edits. Each frame captures the before/after of
 // one setCells call. undo()/redo() apply the opposite direction through the
 // same commit path, so the save queue still sends the restored value.
+// The history belongs to the tab on screen: reset() empties it when the tab
+// changes, so Ctrl+Z never writes one tab's old values into another.
 
 import { useCallback, useRef } from 'react';
 
@@ -15,6 +17,8 @@ export interface SheetHistory {
     /** Apply the previous frame in the opposite direction. Returns true if there was a frame. */
     undo: () => boolean;
     redo: () => boolean;
+    /** Forget every frame (another tab is shown). */
+    reset: () => void;
 }
 
 const MAX_HISTORY = 100;
@@ -57,10 +61,13 @@ export default function useSheetHistory(
     const undo = useCallback(() => popFrame('before'), [popFrame]);
     const redo = useCallback(() => popFrame('after'), [popFrame]);
 
+    const reset = useCallback(() => { stack.current = []; pointer.current = -1; }, []);
+
     return {
         get isApplying() { return applying.current; },
         push,
         undo,
         redo,
+        reset,
     };
 }

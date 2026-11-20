@@ -1,11 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '@/test/queryWrapper';
 import scopedStorage from '@/utils/scopedStorage';
 import type { StudioDocument } from '../documentQueries';
 import SpreadsheetEditor from './SpreadsheetEditor';
-import { SAVE_DEBOUNCE_MS } from './useSheet';
+import { SAVE_DEBOUNCE_MS, type SheetState } from './useSheet';
+import useSheetAssistant from './useSheetAssistant';
 
 const { sheetApi, assistantApi, tiers } = vi.hoisted(() => ({
     sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn() },
@@ -147,5 +148,31 @@ describe('sheet assistant panel errors and states', () => {
         expect(localStorage.getItem('sheetAssistantOpen')).toBe('1');
         await user.click(screen.getByRole('button', { name: 'Close the assistant' }));
         expect(localStorage.getItem('sheetAssistantOpen')).toBe('0');
+    });
+});
+
+describe('useSheetAssistant tabs', () => {
+    /** Just what the assistant uses of the sheet. */
+    const fakeSheet = (activeTab: string) => ({
+        activeTab,
+        flush: vi.fn(() => Promise.resolve(true)),
+        applySaved: vi.fn(),
+        setCells: vi.fn(),
+        refresh: vi.fn(() => Promise.resolve()),
+    });
+
+    it('undoes the changes on the tab the assistant changed, also when another tab is shown', async () => {
+        assistantApi.askSheetAssistant.mockResolvedValue({ reply: 'Done.', changes: { A1: { before: '1', after: '2' } }, rounds: 1, tier: null });
+        let sheet = fakeSheet('t1');
+        const { result, rerender } = renderHook(() => useSheetAssistant('doc-1', sheet as unknown as SheetState));
+        let reply = null as Awaited<ReturnType<typeof result.current.send>>;
+        await act(async () => { reply = await result.current.send('Change A1', 'A1', 'fast'); });
+        expect(sheet.applySaved).toHaveBeenCalledWith({ A1: '2' }, 't1');
+        const first = sheet;
+        sheet = fakeSheet('t2');
+        rerender();
+        act(() => result.current.undo(reply!.id));
+        expect(first.setCells).not.toHaveBeenCalled();
+        expect(sheet.setCells).toHaveBeenCalledWith({ A1: '1' }, 't1');
     });
 });
