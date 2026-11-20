@@ -159,25 +159,32 @@
     --wallpaper-overlay: rgba(255, 255, 255, 0.10);
 }
 
-/* Light Theme */
+/* Light Theme — the default. Crisp white: the page and every card are pure
+   white, structure comes from clear borders and one faint grey for the side
+   rails, and the accent is ink, so a primary button, a selected row and a
+   focus ring each read at a glance. It used to be grey on grey (#fafafa page,
+   #9ca3af accent at 2.5:1), and nothing told the user what was clickable or
+   selected. The stored default accent (#9ca3af) means "the theme's own
+   accent" (applyTheme.ts THEME_DEFAULT_ACCENT), so this ink is what an
+   organisation that never chose an accent sees. */
 [data-theme="light"] {
-    --bg-primary: #fafafa;
-    --bg-secondary: #f3f3f3;
-    --bg-tertiary: #e5e5e5;
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #eef2f6;
     --bg-card: #ffffff;
-    --bg-card-hover: #fafafa;
+    --bg-card-hover: #f8fafc;
 
-    --accent-primary: #9ca3af;
+    --accent-primary: #111827;
     --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
-    --accent-secondary: #d1d5db;
-    --accent-primary-hover: #6b7280;
-    --accent-primary-fg: #111827;
-    --accent-glow: rgba(156, 163, 175, 0.12);
+    --accent-secondary: #e5e7eb;
+    --accent-primary-hover: #374151;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(17, 24, 39, 0.08);
 
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #64748b;
-    --text-tertiary: #55606d;
+    --text-primary: #0b1220;
+    --text-secondary: #1f2937;
+    --text-muted: #5b6575;
+    --text-tertiary: #4b5563;
 
     --success: #059669;
     --warning: #d97706;
@@ -186,22 +193,22 @@
     --error: #dc2626;
     --pinned: #0891b2;
 
-    --border-subtle: rgba(0, 0, 0, 0.06);
-    --border-default: rgba(0, 0, 0, 0.12);
+    --border-subtle: rgba(15, 23, 42, 0.08);
+    --border-default: rgba(15, 23, 42, 0.16);
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-card-hover: 0 8px 20px rgba(0, 0, 0, 0.12);
-    --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.16);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.02);
+    --shadow-card-hover: 0 6px 16px rgba(15, 23, 42, 0.10);
+    --shadow-popover: 0 12px 32px rgba(15, 23, 42, 0.16);
     --shadow-glow: 0 0 20px var(--accent-glow);
 
     --brand-primary: var(--accent-primary);
     --brand-primary-hover: var(--accent-primary-hover);
     --brand-secondary: var(--accent-secondary);
     --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
-    --brand-gradient-soft: linear-gradient(135deg, rgba(156, 163, 175, 0.10), rgba(107, 114, 128, 0.06));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(17, 24, 39, 0.05), rgba(17, 24, 39, 0.02));
 
     --surface-1: var(--bg-primary);
     --surface-2: var(--bg-secondary);

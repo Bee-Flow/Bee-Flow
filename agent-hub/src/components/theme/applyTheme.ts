@@ -36,11 +36,22 @@ export function applyThemeToDocument(state: ThemeInput, root: HTMLElement = docu
     applyGlassTierOverrides(root, state);
 }
 
+/**
+ * The stored default accent. It means "the theme's own accent", not a colour:
+ * written inline it would beat every theme's `--accent-primary` (the ink of
+ * light, the yellow of high-contrast, the clay of paper, the terracotta of
+ * sepia), because a style attribute on <html> outranks `[data-theme]`.
+ */
+export const THEME_DEFAULT_ACCENT = '#9ca3af';
+
 function applyCoreVars(root: HTMLElement, state: ThemeInput): void {
     root.setAttribute('data-theme', state.preset || 'light');
-    if (state.accent) {
+    if (state.accent && state.accent.toLowerCase() !== THEME_DEFAULT_ACCENT) {
         root.style.setProperty('--accent-primary', state.accent);
         root.style.setProperty('--accent-primary-fg', readableForeground(state.accent));
+    } else {
+        root.style.removeProperty('--accent-primary');
+        root.style.removeProperty('--accent-primary-fg');
     }
     if (state.radiusScale) {
         root.style.setProperty('--radius-scale', String(state.radiusScale));

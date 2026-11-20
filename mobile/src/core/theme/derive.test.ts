@@ -93,6 +93,10 @@ describe('applyBranding', () => {
         expect(applyBranding(PALETTES.light, { accentColor: 'orange' })).toBe(PALETTES.light);
     });
 
+    it("keeps the preset's own accent when the org accent is the stored default grey", () => {
+        expect(applyBranding(PALETTES.light, { accentColor: '#9CA3AF' })).toBe(PALETTES.light);
+    });
+
     it('sets the accent, its foreground and its tint, as applyTheme and index.css do', () => {
         const pale = applyBranding(PALETTES.light, { accentColor: ' #fde68a ' });
         expect(pale.accentPrimary).toBe('#fde68a');
