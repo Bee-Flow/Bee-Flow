@@ -44,4 +44,6 @@ export default {
     "chat_templates.fields_yes": "Yes",
     "chat_templates.fields_no": "No",
     "chat_templates.form_accept_all": "Accept all {count} suggestions",
+    "chat_templates.team_button": "Template",
+    "chat_templates.team_hint": "Fill in one of your templates together with the AI and your colleagues",
 };

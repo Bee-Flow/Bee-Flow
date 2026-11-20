@@ -19,7 +19,6 @@ import { apiJson } from '@/api/typedRequest';
 import TemplateFillForm from '@/components/chat/MessageItem/TemplateFillForm';
 import useTranslation from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
-import { useSessionUser } from '../documentQueries';
 import { colleaguesOf, fieldNotes, nameFor, type Colleague } from './projectFillModel';
 
 const POLL_MS = 8000;
@@ -129,12 +128,16 @@ function RequestRow({ r, meId, labelOf, nameOf, onClose }: {
     );
 }
 
-export default function ProjectFillPanel({ documentId, projectId }: { documentId: string; projectId: string }) {
+export default function ProjectFillPanel({ documentId, projectId, meId }: {
+    documentId: string; projectId: string;
+    /** Who is reading: their own requests come first and say "you". */
+    meId: string | null;
+}) {
     const { t } = useTranslation();
     const [team, setTeam] = useState<TeamState>({ projectId, requests: [], filledBy: {} });
     const api = useTeamApi(setTeam);
     const query = useFillDocumentQuery(documentId, 0, api.load);
-    const me = useSessionUser(true).data?.id || null;
+    const me = meId;
     const members = useProjectMembersQuery(projectId).data;
     const [asking, setAsking] = useState(false);
     const [error, setError] = useState<string | null>(null);

@@ -21,6 +21,8 @@
 import { createRequire } from 'node:module';
 
 const nodeRequire = createRequire(import.meta.url);
+const { featureModule } = nodeRequire('../core/featureModules.js') as { featureModule: (name: string) => unknown };
+const log = nodeRequire('../telemetry/log.js') as { warn: (...a: unknown[]) => void };
 
 type Project = { id: string, kind?: string | null, organizationId?: string, ownerId?: string };
 type Role = 'owner' | 'editor' | 'viewer' | null;
@@ -53,8 +55,9 @@ function inProject(out: Record<string, unknown>, projectId: string, id: string):
 const TEAM_NOTE =' In this team chat the document is the project\'s: every member who may edit the project fills it in, here or in the form under your answer.';
 
 export function makeProjectTemplateFillTools(deps: Deps) {
-    const handlers = deps.handlers || (() => (nodeRequire('../integrations/templateFillTools.mts') as { TEMPLATE_FILL_HANDLERS: Record<string, Handler> }).TEMPLATE_FILL_HANDLERS);
-    const definitions = deps.definitions || (() => (nodeRequire('../integrations/templateFillToolDefs.mts') as { TEMPLATE_FILL_TOOLS: ToolDef[] }).TEMPLATE_FILL_TOOLS);
+    // The chat's template tools, looked up by name (boot/featureModules.js): a project does not require an integration.
+    const handlers = deps.handlers || (() => (featureModule('integrations/templateFillTools') as { TEMPLATE_FILL_HANDLERS: Record<string, Handler> }).TEMPLATE_FILL_HANDLERS);
+    const definitions = deps.definitions || (() => (featureModule('integrations/templateFillToolDefs') as { TEMPLATE_FILL_TOOLS: ToolDef[] }).TEMPLATE_FILL_TOOLS);
 
     /** The definitions for a member who may edit a project that holds documents; none otherwise. */
     async function offered(project: Project, userId: string): Promise<ToolDef[]> {
@@ -84,7 +87,13 @@ export function makeProjectTemplateFillTools(deps: Deps) {
             if (!PROJECT_TEMPLATE_FILL_TOOL_NAMES.includes(name)) return JSON.stringify({ ok: false, error: 'That tool is not available in a team chat.' });
             const refused = await gate();
             if (refused) return JSON.stringify({ ok: false, error: refused });
-            const out = await handlers()[name](args, ctx, userId);
+            let out: Record<string, unknown>;
+            try {
+                out = await handlers()[name](args, ctx, userId);
+            } catch (err) {
+                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${(err as Error).message}`);
+                return JSON.stringify({ ok: false, error: 'The template could not be filled in.' });
+            }
             const id = typeof out.documentId === 'string' ? out.documentId : null;
             if (id && !out.error && !touched.some((t) => t.id === id)) touched.push({ kind: 'templateFill', id, name: String(out.name || '') });
             return JSON.stringify(id ? inProject(out, project.id, id) : out);

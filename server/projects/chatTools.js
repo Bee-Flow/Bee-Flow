@@ -301,7 +301,7 @@ function makeProjectChatTools(deps = {}) {
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');
             const input = args && typeof args === 'object' ? args : {};
             if (ITEM_TOOL_NAMES.includes(name)) return items.execute(name, input);
-            if (PROJECT_TEMPLATE_FILL_TOOL_NAMES.includes(name)) return runFill(name, /** @type {Record<string, unknown>} */ (input));
+            if (PROJECT_TEMPLATE_FILL_TOOL_NAMES.includes(name)) return fills.execute(name, /** @type {Record<string, unknown>} */ (input));
             if (name === SEARCH_TOOL) {
                 try {
                     return await search(input);
@@ -317,16 +317,6 @@ function makeProjectChatTools(deps = {}) {
                 // A refusal the store states on purpose is a sentence; anything else stays generic.
                 const status = Number(err && err.status);
                 return refuse(status >= 400 && status < 500 && /** @type {Error} */ (err).message ? String(/** @type {Error} */ (err).message).slice(0, 200) : 'It could not be made.');
-            }
-        }
-
-        /** @param {string} name @param {Record<string, unknown>} input */
-        async function runFill(name, input) {
-            try {
-                return await fills.execute(name, input);
-            } catch (err) {
-                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${err && /** @type {Error} */ (err).message}`);
-                return refuse('The template could not be filled in.');
             }
         }
 

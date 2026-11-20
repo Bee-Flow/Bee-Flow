@@ -36,6 +36,8 @@
     "chat_templates.menu_label": "Sjabloon invullen",
     "chat_templates.no_match": "Geen sjabloon past bij je zoekopdracht.",
     "chat_templates.search_placeholder": "Sjablonen zoeken…",
+    "chat_templates.team_button": "Sjabloon",
+    "chat_templates.team_hint": "Vul een van je sjablonen samen met de AI en je collega's in",
     "chat_templates.type_presentation": "Presentatie"
   },
   "sameAsEnglish": [
