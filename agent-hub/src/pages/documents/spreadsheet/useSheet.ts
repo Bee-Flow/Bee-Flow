@@ -20,7 +20,7 @@ import useSheetHistory from './useSheetHistory';
 import useSheetSaveQueue from './useSheetSaveQueue';
 import useSheetTabOps from './useSheetTabOps';
 
-export { SAVE_DEBOUNCE_MS, type SheetSaveState } from './useSheetSaveQueue';
+export { SAVE_DEBOUNCE_MS } from './useSheetSaveQueue';
 
 const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
 

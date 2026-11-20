@@ -52,7 +52,7 @@ const PRIMARY = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-x
 type Translate = ReturnType<typeof useTranslation>['t'];
 
 /** Whether the signed-in user administers the organisation (the server's org_admin permission). */
-export function isOrgAdminUser(user: unknown): boolean {
+function isOrgAdminUser(user: unknown): boolean {
     if (!user || typeof user !== 'object') return false;
     const u = user as { isAdmin?: boolean | null; role?: string | null; orgRole?: string | null; permissions?: unknown };
     const perms = Array.isArray(u.permissions) ? u.permissions : [];

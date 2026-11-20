@@ -13,7 +13,7 @@ const RESERVED = new Set(['__proto__', 'prototype', 'constructor']);
 const SAFE = /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/;
 
 /** The server's safePath: letters, digits, _ . and -, not starting with . or -, no empty or reserved part. */
-export function isSafeKey(key: string): boolean {
+function isSafeKey(key: string): boolean {
     return SAFE.test(key) && key.split('.').every((part) => part && !RESERVED.has(part));
 }
 
