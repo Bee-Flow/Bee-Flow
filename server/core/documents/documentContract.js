@@ -126,7 +126,7 @@ function getContract(doc) {
     }
     if (parameters.length > 200) throw bad('Maximum 200 parameters, including inferred inputs.');
     if (explicit.sections.length) {
-        const $ = require('cheerio').load(doc.bodyHtml || '',{xmlMode:true},false);
+        const $ = require('cheerio').load(doc.bodyHtml || '',{ xml: { xmlMode: false, decodeEntities: false } },false);
         for (const s of explicit.sections) s.parentId = $(`[data-doc-section="${s.id}"]`).parents('[data-doc-section]').first().attr('data-doc-section') || null;
         const sectionKeys = new Map(explicit.sections.map(s => {
             const content = $(`[data-doc-section="${s.id}"]`).clone();
@@ -238,9 +238,12 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
     let bodyHtml = doc.bodyHtml || '';
     /** @type {CheerioAPI} */
     let $;
-    // A variable, not a literal: `decodeEntities` is passed through to the parser
-    // but is not a declared CheerioOptions key (excess-property check).
-    const loadOptions = { xmlMode: true, decodeEntities: false };
+    // htmlparser2 in HTML mode (as core/documents/sectionMerge.js): no table
+    // foster-parenting, so `{{#each}}` markers inside a table stay put, and an
+    // HTML serialiser, so an empty `<div></div>` stays closed. XML mode wrote
+    // `<div/>`, which an HTML parser reads as an OPEN div that swallows the
+    // elements after it (a logo next to a header line ended up on top of it).
+    const loadOptions = { xml: { xmlMode: false, decodeEntities: false } };
     if (contract.sections.length) $ = require('cheerio').load(bodyHtml, loadOptions, false);
     const originalCounts = new Map(contract.sections.map(s=>[s.id,$(`[data-doc-section="${s.id}"]`).length]));
     const sections = contract.sections.map(s => {
