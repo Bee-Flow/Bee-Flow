@@ -1,6 +1,6 @@
 /**
  * A notebook's header actions: add a source, and a menu with what the web's
- * card menu offers (NotebookCard.jsx) — pin, rename, delete.
+ * card menu offers (NotebookCard.jsx) — pin, rename, archive.
  */
 
 import React, { useState } from 'react';
@@ -17,14 +17,14 @@ export function NotebookHeaderActions({
     name,
     onAdd,
     onRename,
-    onDelete,
+    onArchive,
 }: {
     notebookId: string;
     /** Null until the notebook has loaded; the menu waits for it. */
     name: string | null;
     onAdd: () => void;
     onRename: () => void;
-    onDelete: () => void;
+    onArchive: () => void;
 }) {
     const t = useTranslation();
     const theme = useTheme();
@@ -63,7 +63,7 @@ export function NotebookHeaderActions({
                         onPress: () => pin.mutate(!pinned),
                     },
                     { id: 'rename', label: t('notebooks.rename', 'Rename'), icon: 'PenLine', onPress: onRename },
-                    { id: 'delete', label: t('notebooks.delete', 'Delete'), icon: 'Trash2', destructive: true, onPress: onDelete },
+                    { id: 'archive', label: t('doc_followups.archive_notebook', 'Archive'), icon: 'Archive', onPress: onArchive },
                 ]}
             />
         </>

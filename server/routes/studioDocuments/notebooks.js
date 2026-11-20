@@ -32,6 +32,7 @@ const { notFound, conflict } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
+const { archiveOwnNotebook, realNotebookLifecycle } = require('../../usecases/notebookArchive.mts');
 
 const FOLDER_TEXT = 'folderId is the id of one of your document folders, or null for none.';
 const CATEGORY_TEXT = 'categories is a list of up to 30 short names.';
@@ -45,24 +46,7 @@ const Empty = (/** @type {string} */ what) => bodyOf({}, what);
 /** @typedef {import('../projects/notebookGate').Middleware} Middleware */
 /** @typedef {import('express').Request<{ id: string }>} IdReq */
 
-/**
- * @typedef {{
- *   beforeDelete: (kind: string, id: string, userId: string) => Promise<unknown>,
- *   dropTaskLinks: (kind: string, id: string) => Promise<unknown>,
- *   deleteForGood: (id: string, userId: string) => Promise<{ deleted: boolean, sources: number, kbs: number }>,
- *   forgetTokens: (id: string) => void,
- * }} Lifecycle  what happens around an archive and a delete for good
- */
-
-/** The lifecycle over the real modules, each required on use. @returns {Lifecycle} */
-function realLifecycle() {
-    return {
-        beforeDelete: (kind, id, userId) => require('../../core/projectContent/itemLifecycle').beforeDelete(kind, id, userId),
-        dropTaskLinks: (kind, id) => require('../../stores/projectTaskStore').dropLinksTo(null, kind, id),
-        deleteForGood: (id, userId) => require('../../core/kb/notebookCascade').deleteNotebookCascade(id, userId),
-        forgetTokens: (id) => require('../../core/dlp/dlpRunner').clearConversationState(id),
-    };
-}
+/** @typedef {import('../../usecases/notebookArchive.mts').NotebookLifecycle} Lifecycle  what happens around an archive and a delete for good */
 
 /**
  * @param {{ library?: Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling' | 'setNotebookArchived' | 'ownNotebookState'>, // stores/notebookLibrary surface
@@ -75,7 +59,7 @@ function makeNotebookLibraryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const library = () => deps.library || require('../../stores/notebookLibrary');
     const documents = () => deps.documents || require('../../stores/documentStore');
-    const lifecycle = () => deps.lifecycle || realLifecycle();
+    const lifecycle = () => deps.lifecycle || realNotebookLifecycle();
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
     /** @type {Middleware | null} */
     let boundGate = null;
@@ -104,14 +88,10 @@ function makeNotebookLibraryRouter(deps = {}) {
     });
 
     router.post('/notebooks/:id/archive', requireAuth, requireNotebooks, validate({ body: Empty('Archiving a notebook') }), async (/** @type {IdReq} */ req, res) => {
-        const userId = sessionUser(req).id;
-        // A co-edited project notebook is folded back into its own row first,
-        // as a page is: once archived nobody co-edits it.
-        await lifecycle().beforeDelete('notebook', req.params.id, userId);
-        if (!await library().setNotebookArchived(userId, req.params.id, true)) throw notFound('notebook_not_found', 'Notebook not found');
-        // A task that linked it keeps existing; the link goes, as for an archived document.
-        try { await lifecycle().dropTaskLinks('notebook', req.params.id); }
-        catch (err) { log.warn(`[Documents] task links to notebook ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
+        // Folded back from co-editing first, task links dropped after (usecases/notebookArchive.mts).
+        if (!await archiveOwnNotebook(sessionUser(req).id, req.params.id, { library: library(), lifecycle: lifecycle() })) {
+            throw notFound('notebook_not_found', 'Notebook not found');
+        }
         res.json({ success: true });
     });
 

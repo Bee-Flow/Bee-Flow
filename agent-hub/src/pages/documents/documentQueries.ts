@@ -55,6 +55,8 @@ export interface LibraryRow {
     docType: string;
     kind?: string;
     visibility?: string;
+    /** Who it is shared with: some people or groups ('restricted'), everyone ('organisation'), or nobody. */
+    audience?: 'private' | 'organisation' | 'restricted';
     categories?: string[];
     versionId?: string;
     projectId?: string | null;

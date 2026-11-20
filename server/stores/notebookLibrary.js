@@ -29,7 +29,7 @@
 'use strict';
 
 const { getOne } = require('../db');
-const { sharingSql } = require('./lib/documentSharing');
+const { sharingSql, audienceSql, audienceFilterSql } = require('./lib/documentSharing');
 
 /** The library's docType for a notebook row; not a studio_documents type. */
 const NOTEBOOK_DOC_TYPE = 'notebook';
@@ -64,7 +64,9 @@ function notebookBranchSql(bound) {
         : [`(${own} OR ${sharingSql('n')})`, 'n.archived = false'];
     where.push(`n.type = '${NOTEBOOK_DOC_TYPE}'`);
     const visibility = `CASE WHEN n.sharing_audience IN ('organisation','restricted') THEN 'team' ELSE 'private' END`;
-    if (bound.visibility) where.push(`${visibility} = '${bound.visibility === 'team' ? 'team' : 'private'}'`);
+    // A notebook has no legacy visibility column: no stored audience is private.
+    const audience = audienceSql('n', false);
+    if (bound.visibility) where.push(audienceFilterSql(audience, bound.visibility));
     if (bound.query) where.push(`(n.name ILIKE ${bound.query} OR n.description ILIKE ${bound.query})`);
     if (bound.folderSet) where.push(bound.folder ? `n.folder_id = ${bound.folder}` : 'n.folder_id IS NULL');
     if (bound.category) where.push(`COALESCE(n.categories, '[]'::jsonb) @> ${bound.category}::jsonb`);
@@ -72,7 +74,8 @@ function notebookBranchSql(bound) {
             'document'::text AS kind, ${visibility}::text AS visibility, n.folder_id, COALESCE(n.categories, '[]'::jsonb) AS categories,
             NULL::text AS version_id, 0 AS html_size, n.project_id, n.last_edited_by AS updated_by, n.archived,
             n.created_at, n.updated_at,
-            (SELECT COUNT(*)::int FROM notebook_sources s WHERE s.notebook_id = n.id) AS source_count, NULL::text AS solution_project_id
+            (SELECT COUNT(*)::int FROM notebook_sources s WHERE s.notebook_id = n.id) AS source_count, NULL::text AS solution_project_id,
+            ${audience}::text AS audience
         FROM notebooks n WHERE ${where.join(' AND ')}`;
 }
 

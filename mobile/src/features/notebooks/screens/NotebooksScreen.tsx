@@ -18,7 +18,7 @@ import { QueryList } from '@/shared/patterns';
 import { Screen, ScreenHeader, SearchField } from '@/shared/ui';
 
 import type { NotebookFilter } from '../api/endpoints';
-import { DeleteNotebookSheet } from '../components/DeleteNotebookSheet';
+import { ArchiveNotebookSheet } from '../components/ArchiveNotebookSheet';
 import { NewNotebookSheet } from '../components/NewNotebookSheet';
 import { NotebookFilterChips } from '../components/NotebookFilterChips';
 import { NotebookRow } from '../components/NotebookRow';
@@ -38,7 +38,7 @@ export function NotebooksScreen() {
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<NotebookFilter>('all');
     const [creating, setCreating] = useState(false);
-    const [pendingDelete, setPendingDelete] = useState<NotebookCard | null>(null);
+    const [pendingArchive, setPendingArchive] = useState<NotebookCard | null>(null);
 
     const query = useNotebooks(search.trim(), filter);
     const notebooks = {
@@ -69,7 +69,7 @@ export function NotebooksScreen() {
                     <NotebookRow
                         notebook={item}
                         onPress={() => router.push(`/notebooks/${item.id}`)}
-                        onLongPress={() => setPendingDelete(item)}
+                        onLongPress={() => setPendingArchive(item)}
                     />
                 )}
                 empty={{
@@ -97,7 +97,7 @@ export function NotebooksScreen() {
                 }}
             />
 
-            <DeleteNotebookSheet notebook={pendingDelete} onDone={() => setPendingDelete(null)} />
+            <ArchiveNotebookSheet notebook={pendingArchive} onDone={() => setPendingArchive(null)} />
         </Screen>
     );
 }

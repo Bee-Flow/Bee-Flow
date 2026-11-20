@@ -14,6 +14,7 @@ import { api } from '@/core/api/client';
 import {
     addTextSource,
     addUrlSource,
+    archiveNotebook,
     cancelSource,
     deleteSource,
     getNotebook,
@@ -51,7 +52,6 @@ describe('every call is a route on the server', () => {
     it.each([
         ['get', '/:id'],
         ['put', '/:id'],
-        ['delete', '/:id'],
         ['get', '/:id/conversation'],
         ['post', '/:id/sources/file'],
         ['post', '/:id/sources/url'],
@@ -105,6 +105,15 @@ describe('saving the notes', () => {
         mocked.put.mockResolvedValue({ success: true, version: 3 });
         await updateNotebook('nb1', { name: 'Q3' });
         expect(mocked.put).toHaveBeenCalledWith('/api/notebooks/nb1', { name: 'Q3' });
+    });
+});
+
+describe('archiving', () => {
+    it('archives through the library route the server types, and never deletes', async () => {
+        mocked.post.mockResolvedValue({ success: true });
+        await archiveNotebook('nb 1');
+        expect(mocked.post).toHaveBeenCalledWith('/api/studio-documents/notebooks/nb%201/archive', {});
+        expect(mocked.delete).not.toHaveBeenCalled();
     });
 });
 

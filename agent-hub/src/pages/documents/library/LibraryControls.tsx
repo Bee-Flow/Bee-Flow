@@ -80,6 +80,8 @@ export function LibraryFilterBar({ f, notebooks, spreadsheets }: { f: ReturnType
                     <option value="private">{t('documents.library.visibility_private', 'Private')}</option>
                     {/* The server's "team" is every shared document: with some people or with everyone. */}
                     <option value="team">{t('doc_gallery.visibility_shared', 'Shared')}</option>
+                    <option value="restricted">{t('doc_followups.visibility_restricted', 'Shared with people')}</option>
+                    <option value="organisation">{t('doc_followups.visibility_organisation', 'Whole organisation')}</option>
                 </select>
                 <input className={`${CONTROL} w-40`} value={f.category} onChange={(e) => f.setCategory(e.target.value)} placeholder={t('documents.library.category_placeholder', 'Filter by category')} aria-label={t('documents.library.category', 'Category')} />
                 <select className={CONTROL} value={f.sort} onChange={(e) => f.setSort(e.target.value as 'updated' | 'name')} aria-label={t('documents.library.sort', 'Sort')}>

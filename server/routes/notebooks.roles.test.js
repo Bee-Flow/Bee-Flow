@@ -32,6 +32,9 @@ const { makeSwaps } = require('../testUtils/swaps');
 const notebookStore = require('../stores/notebookStore');
 const notebookCascade = require('../core/kb/notebookCascade');
 const notebookConversationStore = require('../stores/notebookConversationStore');
+const notebookLibrary = require('../stores/notebookLibrary');
+const itemLifecycle = require('../core/projectContent/itemLifecycle');
+const projectTaskStore = require('../stores/projectTaskStore');
 
 const { swap, restore } = makeSwaps();
 
@@ -53,13 +56,15 @@ const state = {
     // A colleague opened it live between the route's check and the store's write.
     coEditedAtWrite: false,
     deleted: [],
+    // What an archive and a delete for good did, in order.
+    lifecycle: [],
 };
 
 function reset() {
     state.notebook = {
         id: 'nb1', userId: 'alice', name: 'Research', projectId: 'p1', organizationId: 'org1',
         documentContent: '<p>Hello</p>', documentMd: 'Hello', version: 3, knowledgeBaseIds: [],
-        lastEditedBy: 'alice', lastEditedAt: null, updatedAt: '2026-09-01T00:00:00.000Z',
+        lastEditedBy: 'alice', lastEditedAt: null, updatedAt: '2026-09-01T00:00:00.000Z', archived: false,
     };
     state.sources = [{ id: 's1', notebookId: 'nb1', name: 'Notes', type: 'text', status: 'ready' }];
     state.versions = [];
@@ -67,6 +72,7 @@ function reset() {
     state.collabActive = false;
     state.coEditedAtWrite = false;
     state.deleted = [];
+    state.lifecycle = [];
 }
 
 /** The store's own role rule, over the fixture. */
@@ -132,7 +138,19 @@ test.before(() => {
     swap(notebookStore, 'listVersions', async () => ({ versions: [], nextCursor: null }));
     swap(notebookStore, 'deleteVersion', async (vid) => { state.deleted.push(vid); return true; });
     swap(notebookCascade, 'cleanupSourceArtifacts', async () => {});
-    swap(notebookCascade, 'deleteNotebookCascade', async (id, userId) => ({ deleted: userId === 'alice', sources: 0, kbs: 0 }));
+    swap(notebookCascade, 'deleteNotebookCascade', async (id, userId) => {
+        state.lifecycle.push(['deleteForGood', id, userId]);
+        return { deleted: userId === 'alice', sources: 0, kbs: 0 };
+    });
+    swap(notebookLibrary, 'ownNotebookState', async (userId, id) => (id === state.notebook.id && userId === state.notebook.userId ? { archived: state.notebook.archived } : null));
+    swap(notebookLibrary, 'setNotebookArchived', async (userId, id, archived) => {
+        if (id !== state.notebook.id || userId !== state.notebook.userId) return null;
+        state.notebook.archived = archived;
+        state.lifecycle.push(['archived', id, archived]);
+        return { id, name: state.notebook.name, folderId: null, categories: [], updatedAt: state.notebook.updatedAt };
+    });
+    swap(itemLifecycle, 'beforeDelete', async (kind, id, userId) => { state.lifecycle.push(['beforeDelete', kind, id, userId]); return 0; });
+    swap(projectTaskStore, 'dropLinksTo', async (projectId, kind, id) => { state.lifecycle.push(['dropTaskLinks', projectId, kind, id]); return 0; });
     swap(notebookConversationStore, 'getMessagesWithMeta', async () => ({ messages: [], locked: false }));
     swap(notebookConversationStore, 'deleteForNotebook', async () => true);
 });
@@ -229,11 +247,25 @@ test('the project owner edits a colleague\'s notebook like an editor, and does n
     assert.strictEqual((await call('olga', 'DELETE', '')).status, 403);
 });
 
-test('the owner deletes the notebook and its versions', async () => {
+test('the owner deletes a version; deleting a live notebook archives it, as the library does', async () => {
     assert.strictEqual((await call('alice', 'DELETE', '/versions/v9')).status, 200);
     assert.deepStrictEqual(state.deleted, ['v9']);
+    // An app version that still "deletes" can no longer lose a notebook in one tap.
     const del = await call('alice', 'DELETE', '');
     assert.strictEqual(del.status, 200, del.text);
+    assert.deepStrictEqual(del.body, { success: true, archived: true });
+    assert.deepStrictEqual(state.lifecycle, [
+        ['beforeDelete', 'notebook', 'nb1', 'alice'], ['archived', 'nb1', true], ['dropTaskLinks', null, 'notebook', 'nb1'],
+    ], 'folded back from co-editing first, task links dropped after; nothing deleted');
+    assert.strictEqual(state.notebook.archived, true);
+});
+
+test('deleting an archived notebook deletes it for good, as before', async () => {
+    state.notebook.archived = true;
+    const del = await call('alice', 'DELETE', '');
+    assert.strictEqual(del.status, 200, del.text);
+    assert.deepStrictEqual(del.body, { success: true });
+    assert.deepStrictEqual(state.lifecycle, [['deleteForGood', 'nb1', 'alice']]);
 });
 
 test('a save that lost a race is a 409 for an editor too, and the losing copy is kept as a version', async () => {
