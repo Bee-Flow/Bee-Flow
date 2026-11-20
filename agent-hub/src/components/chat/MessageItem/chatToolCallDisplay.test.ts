@@ -10,6 +10,10 @@ describe('visibleToolHistory', () => {
     it('drops sequentialthinking and junk, keeps order', () => {
         const msg = { toolHistory: [entry('agent_search'), entry('sequentialthinking'), null, 'x', entry('file_read')] };
         expect(visibleToolHistory(msg).map(e => e.name)).toEqual(['agent_search', 'file_read']);
+    });
+    it('leaves the template-fill tools to the form under the answer', () => {
+        const msg = { toolHistory: [entry('template_fill_start'), entry('agent_search'), entry('template_fill_set_values'), entry('template_fill_status')] };
+        expect(visibleToolHistory(msg).map(e => e.name)).toEqual(['agent_search']);
         expect(visibleToolHistory({})).toEqual([]);
     });
 });

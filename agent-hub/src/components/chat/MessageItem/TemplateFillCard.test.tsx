@@ -55,6 +55,9 @@ describe('<TemplateFillCard>', () => {
         expect(api.load).toHaveBeenCalledWith('d1');
         expect(screen.getByTestId('template-fill-progress').textContent).toBe('1 of 3 fields filled in');
         expect(screen.getByLabelText(/Amount/)).toBeInTheDocument();
+        // What is filled in or optional waits folded away while something is still needed.
+        expect(screen.queryByLabelText(/Notes/)).not.toBeInTheDocument();
+        await userEvent.setup().click(screen.getByRole('button', { name: /Optional/ }));
         expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
         expect(screen.getByTestId('template-fill-download')).toBeDisabled();
         expect(screen.getByTestId('document-link-card').textContent).toContain('Open in Documents');

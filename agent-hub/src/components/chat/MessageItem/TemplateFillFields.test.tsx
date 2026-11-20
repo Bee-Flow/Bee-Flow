@@ -98,4 +98,34 @@ describe('<TemplateFillFields>', () => {
         expect(input).toHaveAccessibleDescription('In euros Not a number');
         expect(screen.getByText('Not a number').className).toContain('text-[var(--error)]');
     });
+
+    it('offers the template default as a suggestion, filled in only when accepted', async () => {
+        const user = userEvent.setup();
+        const onChange = vi.fn();
+        render(<Harness fields={[f('authority', 'text', { required: true, suggestion: 'Data protection authority' })]} onChange={onChange} />);
+        const offer = screen.getByTestId('template-fill-suggestion-authority');
+        expect(offer.textContent).toContain('Data protection authority');
+        await user.click(within(offer).getByRole('button', { name: 'Accept' }));
+        expect(onChange).toHaveBeenCalledWith('authority', 'Data protection authority');
+        expect(screen.queryByTestId('template-fill-suggestion-authority')).not.toBeInTheDocument();
+    });
+
+    it('keeps the long instructions behind the "i" and the short help in view', async () => {
+        const user = userEvent.setup();
+        render(<Harness fields={[f('name', 'text', { help: 'The legal name.', details: 'Use the name from the trade register, without a full stop.' })]} onChange={() => {}} />);
+        expect(screen.getByText('The legal name.')).toBeInTheDocument();
+        expect(screen.queryByText(/trade register/)).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'More about this field' }));
+        expect(screen.getByText(/trade register/)).toBeInTheDocument();
+    });
+
+    it('folds what is filled in away while something is still needed, and marks required with a star', async () => {
+        const user = userEvent.setup();
+        render(<Harness fields={[f('done', 'text', { required: true }), f('need', 'text', { required: true })]} initial={{ done: 'x' }} onChange={() => {}} />);
+        expect(screen.queryByLabelText(/DONE/)).not.toBeInTheDocument();
+        expect(screen.getByLabelText(/NEED/)).toBeInTheDocument();
+        expect(screen.getByText('*')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /Filled in \(1\)/ }));
+        expect(screen.getByLabelText(/DONE/)).toBeInTheDocument();
+    });
 });

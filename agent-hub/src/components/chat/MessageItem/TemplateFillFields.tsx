@@ -4,7 +4,7 @@
  * on blur (or Enter on a single line); a select, switch, date or list reports
  * at once. A list is a small table with one row per item.
  */
-import { useId, useState, type KeyboardEvent } from 'react';
+import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 import type { TemplateFillField } from './templateFillTypes';
@@ -160,8 +160,70 @@ const INPUTS = {
     text: TextLikeInput, number: TextLikeInput, date: DateInput, boolean: SwitchInput, choice: ChoiceInput, list: ListInput,
 } as const;
 
-function FieldRow({ field, value, issue, onChange }: { field: TemplateFillField; value: unknown; issue?: string; onChange: OnChange }) {
+/** The template's default for an empty field: shown, and filled in only when the person accepts it. */
+function Suggestion({ field, onChange }: { field: TemplateFillField; onChange: OnChange }) {
     const { t } = useTranslation();
+    const shown = typeof field.suggestion === 'boolean'
+        ? (field.suggestion ? t('chat_templates.fields_yes', 'Yes') : t('chat_templates.fields_no', 'No'))
+        : asText(field.suggestion);
+    return (
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-1 text-xs"
+            data-testid={`template-fill-suggestion-${field.key}`}>
+            <span className="shrink-0 text-[var(--text-tertiary)]">{t('chat_templates.fields_suggestion', 'Suggestion')}:</span>
+            <span className="min-w-0 truncate text-[var(--text-secondary)]">{shown}</span>
+            <button type="button" onClick={() => onChange(field.key, field.suggestion)}
+                className="ml-auto shrink-0 rounded px-1.5 py-0.5 font-medium text-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
+                {t('chat_templates.fields_accept', 'Accept')}
+            </button>
+        </div>
+    );
+}
+
+/** The full instructions of a field, behind a small "i" so the form stays short. */
+function Details({ id, text }: { id: string; text: string }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const label = t('chat_templates.fields_more', 'More about this field');
+    return (
+        <>
+            <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)} title={label}
+                className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--border-default)] text-[10px] leading-none text-[var(--text-tertiary)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
+                <span aria-hidden="true">i</span><span className="sr-only">{label}</span>
+            </button>
+            {open && <p id={id} className="m-0 basis-full whitespace-pre-line text-xs text-[var(--text-secondary)]">{text}</p>}
+        </>
+    );
+}
+
+/** Long text and lists take the whole width; the short fields share a row on a wide card. */
+const isWide = (field: TemplateFillField, value: unknown): boolean => field.type === 'list'
+    || (field.type === 'text' && asText(value).length > LONG_TEXT);
+
+function RequiredMark() {
+    const { t } = useTranslation();
+    return (
+        <>
+            <span aria-hidden="true" className="ml-0.5 text-[var(--accent-primary)]">*</span>
+            <span className="sr-only">{t('chat_templates.fields_required', 'required')}</span>
+        </>
+    );
+}
+
+/** The label line: name, required mark, the "i" for the full instructions, and a switch beside it. */
+function FieldLabel({ id, field, inline, children }: { id: string; field: TemplateFillField; inline: boolean; children?: ReactNode }) {
+    return (
+        <div className={inline ? 'flex items-center justify-between gap-2' : 'flex flex-wrap items-center'}>
+            <label htmlFor={id} className="text-sm font-medium text-[var(--text-primary)]">
+                {field.label}
+                {field.required && <RequiredMark />}
+            </label>
+            {field.details && <Details id={`${id}-details`} text={field.details} />}
+            {children}
+        </div>
+    );
+}
+
+function FieldRow({ field, value, issue, onChange }: { field: TemplateFillField; value: unknown; issue?: string; onChange: OnChange }) {
     const id = useId();
     const helpId = `${id}-help`;
     const issueId = `${id}-issue`;
@@ -171,23 +233,38 @@ function FieldRow({ field, value, issue, onChange }: { field: TemplateFillField;
     const Input = INPUTS[field.type] ?? TextLikeInput;
     const className = `${inputBase} ${borderClass(missing, Boolean(issue))}`;
     const inline = field.type === 'boolean';
+    const offer = isEmpty(value) && field.suggestion !== undefined;
+    const input = <Input id={id} field={field} value={value} className={className} aria={aria} onChange={onChange} />;
     return (
-        <div className="flex flex-col gap-1" data-testid={`template-fill-field-${field.key}`}>
-            <div className={inline ? 'flex items-center justify-between gap-2' : 'flex flex-col gap-1'}>
-                <label htmlFor={id} className="text-sm font-medium text-[var(--text-primary)]">
-                    {field.label}
-                    {field.required && <span className="ml-1 text-xs font-normal text-[var(--accent-primary)]">{t('chat_templates.fields_required', 'required')}</span>}
-                </label>
-                {inline && <Input id={id} field={field} value={value} className={className} aria={aria} onChange={onChange} />}
-            </div>
-            {field.help && <p id={helpId} className="m-0 text-xs text-[var(--text-secondary)]">{field.help}</p>}
-            {!inline && <Input id={id} field={field} value={value} className={className} aria={aria} onChange={onChange} />}
+        <div className={`flex min-w-0 flex-col gap-1 ${isWide(field, value) ? 'sm:col-span-2' : ''}`} data-testid={`template-fill-field-${field.key}`}>
+            <FieldLabel id={id} field={field} inline={inline}>{inline && input}</FieldLabel>
+            {field.help && <p id={helpId} className="m-0 text-xs text-[var(--text-tertiary)]">{field.help}</p>}
+            {offer && <Suggestion field={field} onChange={onChange} />}
+            {!inline && input}
             {issue && <p id={issueId} className="m-0 text-xs text-[var(--error)]">{issue}</p>}
         </div>
     );
 }
 
 type GroupId = 'missing' | 'filled' | 'optional';
+
+/** A group of fields; "Filled in" and "Optional" start folded away while something is still needed. */
+function FieldGroup({ id, title, count, collapsible, children }: { id: GroupId; title: string; count: number; collapsible: boolean; children: ReactNode }) {
+    const [open, setOpen] = useState(!collapsible);
+    const bodyId = useId();
+    const heading = 'm-0 text-xs font-semibold text-[var(--text-secondary)]';
+    return (
+        <section aria-label={title} data-testid={`template-fill-group-${id}`} className="flex flex-col gap-3">
+            {collapsible ? (
+                <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}
+                    className={`${heading} flex items-center gap-1 self-start rounded hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]`}>
+                    <span aria-hidden="true">{open ? '▾' : '▸'}</span>{title} ({count})
+                </button>
+            ) : <h4 className={heading}>{title}</h4>}
+            {open && <div id={bodyId} className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>}
+        </section>
+    );
+}
 
 function groupOf(field: TemplateFillField, values: Record<string, unknown>): GroupId {
     if (!isEmpty(values[field.key])) return 'filled';
@@ -218,12 +295,12 @@ export default function TemplateFillFields({ fields, values, issues, saving, onC
                 </span>
             )}
             {groups.map((g) => (
-                <section key={g.id} aria-label={titles[g.id]} data-testid={`template-fill-group-${g.id}`} className="flex flex-col gap-3">
-                    <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{titles[g.id]}</h4>
+                <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length}
+                    collapsible={g.id !== 'missing' && groups.some((other) => other.id === 'missing')}>
                     {g.fields.map((f) => (
                         <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} onChange={onChange} />
                     ))}
-                </section>
+                </FieldGroup>
             ))}
         </div>
     );

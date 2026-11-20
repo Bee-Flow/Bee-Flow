@@ -13,8 +13,13 @@ export interface FillField {
     type: string;
     label: string;
     required: boolean;
+    /** One short line for under the label (the contract's summary). */
     help?: string;
+    /** The full instructions, shown on request. */
+    details?: string;
     example?: unknown;
+    /** The contract's default: offered as a suggestion, never counted as filled in. */
+    suggestion?: unknown;
     options?: string[];
     fields?: FillField[];
 }
@@ -50,15 +55,40 @@ export interface TemplateFillApi {
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const text = (v: unknown): string => (typeof v === 'string' ? v : '');
 
+const HELP_MAX = 140;
+
+/** The first sentence of a long instruction, cut at a word when it runs on. */
+function firstSentence(textValue: string): string {
+    const flat = textValue.split('\n').join(' ').trim();
+    const stop = flat.indexOf('. ');
+    const sentence = stop > 0 ? flat.slice(0, stop + 1) : flat;
+    if (sentence.length <= HELP_MAX) return sentence;
+    const cut = sentence.slice(0, HELP_MAX);
+    const space = cut.lastIndexOf(' ');
+    return `${cut.slice(0, space > 40 ? space : HELP_MAX).trimEnd()}…`;
+}
+
+/** The short line under the label, the full instructions behind it, and the default to offer. */
+function guidanceOf(raw: Record<string, unknown>): Pick<FillField, 'help' | 'details' | 'suggestion'> {
+    const instructions = text(raw.instructions) || text(raw.help);
+    const help = text(raw.summary) || firstSentence(instructions);
+    const details = instructions && instructions !== help ? instructions : '';
+    const hasDefault = raw.default !== undefined && raw.default !== null && raw.default !== '';
+    return {
+        ...(help ? { help } : {}),
+        ...(details ? { details } : {}),
+        ...(hasDefault ? { suggestion: raw.default } : {}),
+    };
+}
+
 function fieldOf(raw: unknown): FillField | null {
     if (!isObject(raw) || typeof raw.key !== 'string' || !raw.key) return null;
-    const help = text(raw.instructions) || text(raw.summary) || text(raw.help);
     return {
         key: raw.key,
         type: text(raw.type) || 'text',
         label: text(raw.label) || raw.key,
         required: raw.required === true,
-        ...(help ? { help } : {}),
+        ...guidanceOf(raw),
         ...(raw.example !== undefined ? { example: raw.example } : {}),
         ...(Array.isArray(raw.options) ? { options: raw.options.filter((o): o is string => typeof o === 'string') } : {}),
         ...(Array.isArray(raw.fields) ? { fields: raw.fields.map(fieldOf).filter((f): f is FillField => !!f) } : {}),

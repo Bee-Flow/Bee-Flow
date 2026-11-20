@@ -12,6 +12,10 @@ export interface TemplateFillField {
     required: boolean;
     options?: string[];
     help?: string;
+    /** The full instructions, behind an ⓘ toggle. */
+    details?: string;
     example?: string;
+    /** A value to offer (the template's default): shown, accepted with one click, not filled in until then. */
+    suggestion?: unknown;
     fields?: TemplateFillField[];
 }

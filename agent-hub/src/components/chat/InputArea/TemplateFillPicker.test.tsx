@@ -49,7 +49,7 @@ describe('useTemplateFill', () => {
         const { result } = renderHook(() => useTemplateFill({ ...base, send }));
         act(() => result.current.setTemplatesOpen(true));
         act(() => result.current.onPickTemplate(TEMPLATES[0]));
-        expect(send).toHaveBeenCalledWith('Fill in the template “Engagement letter” with me. (template tpl-1)');
+        expect(send).toHaveBeenCalledWith('Fill in the template “Engagement letter” with me.\n\n[template:tpl-1]');
         expect(result.current.templatesOpen).toBe(false);
     });
 

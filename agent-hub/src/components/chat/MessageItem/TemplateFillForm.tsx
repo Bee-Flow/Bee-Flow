@@ -34,15 +34,21 @@ function Progress({ filled, total }: { filled: number; total: number }) {
     const { t } = useTranslation();
     const step = total > 0 ? Math.round((filled / total) * 10) : 0;
     return (
-        <>
-            <p className="m-0 text-xs text-[var(--text-secondary)]" data-testid="template-fill-progress">
-                {t('chat_templates.card_progress', '{filled} of {total} fields filled in', { filled, total })}
-            </p>
-            <div className="h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden" aria-hidden="true">
+        <div className="flex items-center gap-2">
+            <div className="h-1 flex-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden" aria-hidden="true">
                 <div className={`h-full bg-[var(--accent-primary)] ${WIDTHS[Math.min(Math.max(step, 0), 10)]}`} />
             </div>
-        </>
+            <p className="m-0 shrink-0 text-xs tabular-nums text-[var(--text-secondary)]" data-testid="template-fill-progress">
+                {t('chat_templates.card_progress', '{filled} of {total} fields filled in', { filled, total })}
+            </p>
+        </div>
     );
+}
+
+/** Empty fields the template has a default for: what "Accept all suggestions" fills in. */
+function openSuggestions(doc: FillDocument, values: Record<string, unknown>) {
+    return doc.fields.filter((f) => f.suggestion !== undefined
+        && (values[f.key] === undefined || values[f.key] === null || values[f.key] === ''));
 }
 
 function useDownload(doc: FillDocument, api: TemplateFillApi) {
@@ -69,34 +75,46 @@ export default function TemplateFillForm({ doc, api }: { doc: FillDocument; api:
     const download = useDownload(doc, api);
     const { state } = form;
     const readOnly = !doc.editable;
+    const suggestions = readOnly ? [] : openSuggestions(doc, form.values);
     return (
         <section
             aria-label={doc.name}
             data-testid="template-fill-card"
-            className="flex flex-col gap-3 max-w-[560px] p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+            className="flex flex-col max-w-[640px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden"
         >
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
-                <FilePen size={15} className="text-[var(--accent-primary)] shrink-0" aria-hidden="true" />
-                <span className="truncate">{doc.name}</span>
-                {state.finished && <CheckCircle2 size={15} className="text-[var(--success)] shrink-0" aria-label={t('chat_templates.form_finished', 'Finished')} />}
-                <span className="ml-auto"><SaveState status={form.status} /></span>
+            <div className="flex flex-col gap-2 px-3 pt-3 pb-2 border-b border-[var(--border-subtle)]">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
+                    <FilePen size={15} className="text-[var(--accent-primary)] shrink-0" aria-hidden="true" />
+                    <span className="truncate" title={doc.name}>{doc.name}</span>
+                    {state.finished && <CheckCircle2 size={15} className="text-[var(--success)] shrink-0" aria-label={t('chat_templates.form_finished', 'Finished')} />}
+                    <span className="ml-auto shrink-0"><SaveState status={form.status} /></span>
+                </div>
+                <Progress filled={state.filled} total={state.total} />
             </div>
-            <Progress filled={state.filled} total={state.total} />
-            {readOnly
-                ? <p className="m-0 text-xs text-[var(--text-secondary)]">{t('chat_templates.form_read_only', 'You can read this document, but not change it.')}</p>
-                : <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('chat_templates.form_hint', 'Fill in the fields here, or tell the assistant in the chat.')}</p>}
-            <TemplateFillFields fields={doc.fields.map(formField)} values={form.values} issues={form.issues} onChange={readOnly ? () => {} : form.onChange} />
-            {state.issues.length > 0 && (
-                <ul className="m-0 pl-4 text-xs text-[var(--warning)]" data-testid="template-fill-issues">
-                    {state.issues.map((issue) => <li key={issue}>{issue}</li>)}
-                </ul>
-            )}
+            <div className="flex flex-col gap-3 px-3 py-3 max-h-[60vh] overflow-y-auto">
+                {readOnly
+                    ? <p className="m-0 text-xs text-[var(--text-secondary)]">{t('chat_templates.form_read_only', 'You can read this document, but not change it.')}</p>
+                    : <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('chat_templates.form_hint', 'Fill in the fields here, or tell the assistant in the chat.')}</p>}
+                {suggestions.length > 1 && (
+                    <button type="button" data-testid="template-fill-accept-all"
+                        onClick={() => suggestions.forEach((f) => form.onChange(f.key, f.suggestion))}
+                        className="self-start rounded-md border border-dashed border-[var(--border-default)] px-2 py-1 text-xs font-medium text-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
+                        {t('chat_templates.form_accept_all', 'Accept all {count} suggestions', { count: suggestions.length })}
+                    </button>
+                )}
+                <TemplateFillFields fields={doc.fields.map(formField)} values={form.values} issues={form.issues} onChange={readOnly ? () => {} : form.onChange} />
+                {state.issues.length > 0 && (
+                    <ul className="m-0 pl-4 text-xs text-[var(--warning)]" data-testid="template-fill-issues">
+                        {state.issues.map((issue) => <li key={issue}>{issue}</li>)}
+                    </ul>
+                )}
+            </div>
             {form.refusedFor && form.refusedFor.length > 0 && (
-                <p role="alert" className="m-0 text-xs text-[var(--error)]">
+                <p role="alert" className="m-0 px-3 pt-2 text-xs text-[var(--error)]">
                     {t('chat_templates.form_done_missing', 'Still needed before it is done: {fields}', { fields: form.refusedFor.join(', ') })}
                 </p>
             )}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                 <button
                     type="button"
                     onClick={download.run}
@@ -118,7 +136,7 @@ export default function TemplateFillForm({ doc, api }: { doc: FillDocument; api:
                 )}
             </div>
             {download.failed && (
-                <p role="alert" className="m-0 text-xs text-[var(--text-secondary)]">
+                <p role="alert" className="m-0 px-3 pb-2 text-xs text-[var(--text-secondary)]">
                     {t('chat_templates.card_download_failed', 'The download failed. Try again.')}
                 </p>
             )}

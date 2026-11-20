@@ -42,8 +42,15 @@ interface DescribeOptions {
     streaming?: boolean;
 }
 
-/** The tool whose calls the thinking panel already narrates; never a row here. */
-const HIDDEN_TOOLS = new Set<string | undefined>(['sequentialthinking']);
+/**
+ * Tools that never get a row here: the one the thinking panel already
+ * narrates, and the template-fill tools, whose form under the answer
+ * (TemplateFillCard) shows what they did in the person's own terms.
+ */
+const HIDDEN_TOOLS = new Set<string | undefined>([
+    'sequentialthinking',
+    'document_templates_list', 'template_fill_start', 'template_fill_set_values', 'template_fill_status', 'template_fill_finish',
+]);
 
 const SESSION_SKILL_TOOL_NAMES = new Set<string | undefined>(['activate_session_skill', 'activate_skill']);
 

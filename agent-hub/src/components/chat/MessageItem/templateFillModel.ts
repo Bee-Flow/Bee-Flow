@@ -52,7 +52,9 @@ export function formField(f: FillField): TemplateFillField {
         required: f.required,
         ...(f.options ? { options: f.options } : {}),
         ...(f.help ? { help: f.help } : {}),
+        ...(f.details ? { details: f.details } : {}),
         ...(example !== undefined ? { example } : {}),
+        ...(f.suggestion !== undefined ? { suggestion: f.suggestion } : {}),
         ...(f.fields ? { fields: f.fields.map(formField) } : {}),
     };
 }

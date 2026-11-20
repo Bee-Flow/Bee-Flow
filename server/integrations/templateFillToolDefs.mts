@@ -24,7 +24,7 @@ export const TEMPLATE_FILL_TOOLS: ToolDef[] = [
         type: 'function',
         function: {
             name: 'document_templates_list',
-            description: 'List the document templates this user may fill in (their own, and the templates shared with them or their team). Returns { templates: [{ templateId, name, docType, fieldCount, requiredCount, description }] }.\n\nUse it when the user wants to fill in a template but did not name one exactly, or names one you have no id for. When the user picked a template in the composer, its id is in their message: go straight to template_fill_start.',
+            description: 'List the document templates this user may fill in (their own, and the templates shared with them or their team). Returns { templates: [{ templateId, name, docType, fieldCount, requiredCount, description }] }.\n\nUse it when the user wants to fill in a template but did not name one exactly, or names one you have no id for. When the user picked a template in the composer, its id is on the last line of their message as [template:<id>]: go straight to template_fill_start.',
             parameters: {
                 type: 'object',
                 properties: {
