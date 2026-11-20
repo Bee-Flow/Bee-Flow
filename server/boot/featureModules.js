@@ -55,4 +55,6 @@ registerFeatureModules({
     // agents, projects
     'agents/memory/extractor': () => require('../agents/memory/extractor'),
     'projects/chatModel': () => require('../projects/chatModel'),
+    // a filled-in document filed into a project from the chat (integrations/templateFillTools.mts)
+    'projects/documentFiling': () => require('../projects/documentFiling.mts'),
 });

@@ -57,6 +57,24 @@ function storeRefusal(e: unknown): unknown {
     return err.status && err.status < 500 ? new HttpError(err.status, err.errorClass || 'document_values_refused', String(err.message)) : e;
 }
 
+/** The document the values go into, or the refusal: missing, a template, or read-only for this person. */
+async function writableDocument(store: ValuesStore, id: string, userId: string): Promise<TemplateDoc> {
+    const doc = await store.getDocument(id, userId);
+    if (!doc) throw notFound('document_not_found', 'Document not found');
+    if (doc.kind && doc.kind !== 'document') throw badRequest('document_not_fillable', 'Only a document made from a template is filled in, not a template itself.');
+    if (isReadOnly(doc)) throw forbidden('document_read_only', 'You can read this document, but only its editors can change it.');
+    return doc;
+}
+
+/** Mark the fill finished when asked and nothing required is missing; the saved document and whether it is finished. */
+async function finishIfAsked(store: ValuesStore, saved: TemplateDoc, userId: string, wanted: boolean, complete: boolean) {
+    const finished = !!fillLinkOf(saved)?.finishedAt;
+    if (!wanted || !complete || finished) return { saved, finished };
+    try {
+        return { saved: (await saveSettings(store, saved, finishedSettings(saved), userId, 'user')) || saved, finished: true };
+    } catch (e) { throw storeRefusal(e); }
+}
+
 export function makeTemplateValuesRouter(deps: Deps = {}): Router {
     const router = express.Router({ mergeParams: true });
     const store = deps.store || ((): ValuesStore => nodeRequire('../../stores/documentStore.js') as ValuesStore);
@@ -66,10 +84,7 @@ export function makeTemplateValuesRouter(deps: Deps = {}): Router {
     router.put('/:id/values', requireAuth, validate({ body: ValuesBody }), async (req: Request<{ id: string }>, res: Response) => {
         const userId = String((req.session as unknown as { user: { id: string } }).user.id);
         const { values, finish } = req.body as Body;
-        const doc = await store().getDocument(req.params.id, userId);
-        if (!doc) throw notFound('document_not_found', 'Document not found');
-        if (doc.kind && doc.kind !== 'document') throw badRequest('document_not_fillable', 'Only a document made from a template is filled in, not a template itself.');
-        if (isReadOnly(doc)) throw forbidden('document_read_only', 'You can read this document, but only its editors can change it.');
+        const doc = await writableDocument(store(), req.params.id, userId);
         let out;
         // Who filled in what, and the colleagues' requests this save answers (routes/studioDocuments/valueRequests.mts).
         const requests = requestAnnotator(userId);
@@ -78,12 +93,7 @@ export function makeTemplateValuesRouter(deps: Deps = {}): Router {
         } catch (e) { throw storeRefusal(e); }
         if (!out) throw notFound('document_not_found', 'Document not found or read-only');
         if (requests.completed().length) await notifyCompleted(out.doc, requests.completed(), deps.notify ? { notify: deps.notify } : {});
-        let saved = out.doc;
-        let finished = !!fillLinkOf(saved)?.finishedAt;
-        if (finish === true && out.complete && !finished) {
-            try { saved = (await saveSettings(store(), saved, finishedSettings(saved), userId, 'user')) || saved; } catch (e) { throw storeRefusal(e); }
-            finished = true;
-        }
+        const { saved, finished } = await finishIfAsked(store(), out.doc, userId, finish === true, out.complete);
         res.json({
             documentId: saved.id, values: out.values, missingRequired: out.missingRequired, issues: out.issues, rejected: out.rejected,
             complete: out.complete, filled: out.filled, total: out.total, finished, versionId: saved.versionId ?? null,

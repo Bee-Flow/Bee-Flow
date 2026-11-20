@@ -13,6 +13,7 @@ import type { FillDocument, TemplateFillApi } from '@/api/templateFillApi';
 import useTranslation from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
 import DocumentLinkCard from '../../documents/DocumentLinkCard';
+import AddToProjectButton from './AddToProjectButton';
 import TemplateFillFields from './TemplateFillFields';
 import { formField } from './templateFillModel';
 import useTemplateFillForm, { type LiveOptions, type SaveStatus } from './useTemplateFillForm';
@@ -69,6 +70,38 @@ function useDownload(doc: FillDocument, api: TemplateFillApi) {
     return { busy, failed, run };
 }
 
+/** The footer: download, open, add to a project, and "Done". */
+function FillActions({ doc, complete, finished, readOnly, download, onDone }: {
+    doc: FillDocument; complete: boolean; finished: boolean; readOnly: boolean;
+    download: ReturnType<typeof useDownload>; onDone: () => void;
+}) {
+    const { t } = useTranslation();
+    return (
+    <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+        <button
+            type="button"
+            onClick={download.run}
+            disabled={!complete || download.busy}
+            data-testid="template-fill-download"
+            className={`${BUTTON} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`}
+        >
+            <Download size={14} aria-hidden="true" />
+            {doc.format === 'pptx'
+                ? t('chat_templates.card_download_pptx', 'Download PowerPoint')
+                : t('chat_templates.card_download_pdf', 'Download PDF')}
+        </button>
+        <DocumentLinkCard href={doc.url} label={t('chat_templates.card_open', 'Open in Documents')} />
+        {doc.canFile && <AddToProjectButton documentId={doc.id} />}
+        {!readOnly && !finished && (
+            <button type="button" onClick={onDone} data-testid="template-fill-done"
+                className={`${BUTTON} border border-[var(--border-subtle)] text-[var(--text-primary)] bg-[var(--bg-primary)]`}>
+                {t('chat_templates.form_done', 'Done')}
+            </button>
+        )}
+    </div>
+    );
+}
+
 export default function TemplateFillForm({ doc, api, live, notes, children }: {
     doc: FillDocument; api: TemplateFillApi;
     /** Filling in together: poll for the others' values (useTemplateFillForm). */
@@ -123,27 +156,7 @@ export default function TemplateFillForm({ doc, api, live, notes, children }: {
                     {t('chat_templates.form_done_missing', 'Still needed before it is done: {fields}', { fields: form.refusedFor.join(', ') })}
                 </p>
             )}
-            <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                <button
-                    type="button"
-                    onClick={download.run}
-                    disabled={!state.complete || download.busy}
-                    data-testid="template-fill-download"
-                    className={`${BUTTON} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`}
-                >
-                    <Download size={14} aria-hidden="true" />
-                    {doc.format === 'pptx'
-                        ? t('chat_templates.card_download_pptx', 'Download PowerPoint')
-                        : t('chat_templates.card_download_pdf', 'Download PDF')}
-                </button>
-                <DocumentLinkCard href={doc.url} label={t('chat_templates.card_open', 'Open in Documents')} />
-                {!readOnly && !state.finished && (
-                    <button type="button" onClick={form.onDone} data-testid="template-fill-done"
-                        className={`${BUTTON} border border-[var(--border-subtle)] text-[var(--text-primary)] bg-[var(--bg-primary)]`}>
-                        {t('chat_templates.form_done', 'Done')}
-                    </button>
-                )}
-            </div>
+            <FillActions doc={doc} complete={state.complete} finished={state.finished} readOnly={readOnly} download={download} onDone={form.onDone} />
             {download.failed && (
                 <p role="alert" className="m-0 px-3 pb-2 text-xs text-[var(--text-secondary)]">
                     {t('chat_templates.card_download_failed', 'The download failed. Try again.')}

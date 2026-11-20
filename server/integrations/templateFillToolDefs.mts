@@ -90,6 +90,21 @@ export const TEMPLATE_FILL_TOOLS: ToolDef[] = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'document_add_to_project',
+            description: 'Add a document the user made (usually the one just filled in) to one of their projects, so the project\'s members see and edit it there. Only when the user asks for it. Without projectId it returns { projects: [{ id, name }] }: the projects this user may add to; ask which one unless the user named it. With projectId it files the document and returns { project, url }: end your reply with the clickable link "[<name>](<url>)".',
+            parameters: {
+                type: 'object',
+                required: ['documentId'],
+                properties: {
+                    documentId: { type: 'string', description: 'The document\'s id, from template_fill_start or template_fill_finish.' },
+                    projectId: { type: 'string', description: 'The id of the project, from the projects this tool listed. Leave out to list them.' },
+                },
+            },
+        },
+    },
 ];
 
 export const TEMPLATE_FILL_TOOL_NAMES: ReadonlySet<string> = new Set(TEMPLATE_FILL_TOOLS.map((t) => t.function.name));

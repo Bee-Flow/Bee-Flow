@@ -1,5 +1,9 @@
 {
   "translations": {
+    "chat_templates.add_to_project": "Toevoegen aan project",
+    "chat_templates.add_to_project_failed": "Toevoegen aan het project is mislukt. Probeer het opnieuw.",
+    "chat_templates.add_to_project_none": "Je hebt geen project waaraan je documenten kunt toevoegen.",
+    "chat_templates.added_to_project": "Staat in project {name}",
     "chat_templates.card_download_failed": "Het downloaden is mislukt. Probeer het opnieuw.",
     "chat_templates.card_download_pdf": "PDF downloaden",
     "chat_templates.card_download_pptx": "PowerPoint downloaden",

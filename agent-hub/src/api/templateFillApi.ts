@@ -33,6 +33,8 @@ export interface FillDocument {
     fields: FillField[];
     values: Record<string, unknown>;
     finished: boolean;
+    /** The person's own document, not in a project yet: it can be added to one. */
+    canFile?: boolean;
 }
 
 export interface FillProgress {
@@ -110,6 +112,7 @@ export function fillDocumentOf(body: unknown, id: string): FillDocument {
         fields: (Array.isArray(contract.parameters) ? contract.parameters : []).map(fieldOf).filter((f): f is FillField => !!f),
         values: isObject(settings.sampleValues) ? { ...settings.sampleValues } : {},
         finished: typeof link.finishedAt === 'string',
+        canFile: doc.deletable === true && !doc.projectId && doc.kind === 'document',
     };
 }
 

@@ -43,4 +43,8 @@ module.exports = {
     "chat_templates.form_accept_all": "Accept all {count} suggestions",
     "chat_templates.team_button": "Template",
     "chat_templates.team_hint": "Fill in one of your templates together with the AI and your colleagues",
+    "chat_templates.add_to_project": "Add to project",
+    "chat_templates.add_to_project_failed": "Could not add it to the project. Try again.",
+    "chat_templates.add_to_project_none": "You have no project you can add documents to.",
+    "chat_templates.added_to_project": "In project {name}",
 };

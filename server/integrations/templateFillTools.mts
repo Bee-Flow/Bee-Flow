@@ -59,7 +59,7 @@ export type TemplateFillStore = {
 type Scope = FillScope & { createdInChat?: (id: string) => boolean };
 /** `project`: a project's team chat, whose fills are documents of that project, shared by its members. */
 type Ctx = { documentScope?: Scope | null, conversationId?: string | null, project?: { id: string } | null };
-type Args = { query?: unknown, templateId?: unknown, name?: unknown, documentId?: unknown, values?: unknown, fresh?: unknown };
+type Args = { query?: unknown, templateId?: unknown, name?: unknown, documentId?: unknown, values?: unknown, fresh?: unknown, projectId?: unknown };
 type Handler = (args: Args, ctx: Ctx, userId: string) => Promise<Record<string, unknown>>;
 
 const MAX_LISTED = 25;
@@ -83,26 +83,28 @@ function head(doc: TemplateDoc): Record<string, unknown> {
     return { documentId: doc.id, name: doc.name, url: documentUrl(doc.id), docType: doc.docType };
 }
 
+const projectOf = (ctx: Ctx): string | null => ctx.project?.id ?? null;
+const inScope = (scope: Scope | null | undefined, id: string): boolean => !!scope && typeof scope.has === 'function' && scope.has(id);
+
+/** The document `documentId` names, as far as this conversation may reach it, or the tool's error. */
+async function namedDocument(store: TemplateFillStore, documentId: string, ctx: Ctx, userId: string): Promise<TemplateDoc | { error: string }> {
+    const doc = await store.getDocument(documentId, userId);
+    if (inScope(ctx.documentScope, documentId)) return doc || { error: 'Document not found.' };
+    // Not in scope by the conversation's history: still this conversation's own fill when the document says so.
+    if (!doc || !isLinkedTo(doc, ctx.conversationId, userId, projectOf(ctx))) return { error: notShared() };
+    ctx.documentScope?.markCreated?.(documentId);
+    return doc;
+}
+
 /** The document a fill tool works on, or the tool's error. */
 async function fillableDocument(store: TemplateFillStore, args: Args, ctx: Ctx, userId: string): Promise<TemplateDoc | { error: string }> {
     const documentId = str(args.documentId);
-    const scope = ctx.documentScope;
-    let doc: TemplateDoc | null;
-    if (!documentId) {
-        doc = await findActiveFill(store, scope, { conversationId: ctx.conversationId, userId, projectId: ctx.project?.id ?? null });
-        if (!doc) return { error: NO_ACTIVE_FILL };
-    } else if (scope && typeof scope.has === 'function' && scope.has(documentId)) {
-        doc = await store.getDocument(documentId, userId);
-        if (!doc) return { error: 'Document not found.' };
-    } else {
-        // Not in scope by the conversation's history: still this conversation's own fill when the document says so.
-        doc = await store.getDocument(documentId, userId);
-        if (!isLinkedTo(doc, ctx.conversationId, userId, ctx.project?.id ?? null)) return { error: notShared() };
-        scope?.markCreated?.(documentId);
-    }
-    if (!doc) return { error: notShared() };
-    if (doc.kind && doc.kind !== 'document') return { error: 'This is a template itself, not a document made from one. Call template_fill_start with its id to make a document to fill in.' };
-    return doc;
+    const found = documentId
+        ? await namedDocument(store, documentId, ctx, userId)
+        : (await findActiveFill(store, ctx.documentScope, { conversationId: ctx.conversationId, userId, projectId: projectOf(ctx) })) || { error: NO_ACTIVE_FILL };
+    if ('error' in found) return found;
+    if (found.kind && found.kind !== 'document') return { error: 'This is a template itself, not a document made from one. Call template_fill_start with its id to make a document to fill in.' };
+    return found;
 }
 
 type Deps = { db: () => TemplateFillStore, contract: () => ContractModule };
@@ -141,6 +143,23 @@ function fillState(doc: TemplateDoc, c: ContractModule, extra: Record<string, un
 
 const ASK_MISSING = 'Store the template defaults (fields[].default) and anything the conversation states with template_fill_set_values first. Then reply in one or two sentences: what you stored, and that the rest can be filled in in the form under your reply or told to you. Do NOT list the missing fields: the form shows them.';
 
+/** The fill of this template this conversation already has going, as the answer that continues it; null when none. */
+async function resumedFill(store: TemplateFillStore, templateId: string, ctx: Ctx, userId: string, c: ContractModule): Promise<Record<string, unknown> | null> {
+    const going = await findActiveFill(store, ctx.documentScope, { conversationId: ctx.conversationId, userId, templateId, projectId: projectOf(ctx) });
+    return going ? fillState(going, c, {
+        resumed: true,
+        message: `This conversation is already filling in "${going.name}" from this template: continuing with it (no new copy). ${ASK_MISSING} Pass fresh: true only when the user asks for a second, separate document.`,
+    }) : null;
+}
+
+/** The template to copy, or the tool's error. */
+async function fillableTemplate(store: TemplateFillStore, templateId: string, userId: string, c: ContractModule): Promise<TemplateDoc | { error: string }> {
+    const template = await store.getDocument(templateId, userId);
+    if (!template || template.kind !== 'template' || template.docType === 'spreadsheet') return { error: NOT_FOUND };
+    try { c.getContract(template); } catch (e) { return { error: `This template cannot be filled in: ${(e as Error).message}` }; }
+    return template;
+}
+
 /** template_fill_start: the user's own copy of the template, as the duplicate route makes it; or the fill already going. */
 function startFill({ db, contract }: Deps): Handler {
     return async (args, ctx, userId) => {
@@ -148,18 +167,10 @@ function startFill({ db, contract }: Deps): Handler {
         const templateId = str(args.templateId);
         // The fill already going comes first: in a team chat a colleague goes on with it even when the
         // template itself is in someone else's library (the document is the project's, they may read it).
-        if (args.fresh !== true && templateId) {
-            const going = await findActiveFill(db(), ctx.documentScope, { conversationId: ctx.conversationId, userId, templateId, projectId: ctx.project?.id ?? null });
-            if (going) {
-                return fillState(going, c, {
-                    resumed: true,
-                    message: `This conversation is already filling in "${going.name}" from this template: continuing with it (no new copy). ${ASK_MISSING} Pass fresh: true only when the user asks for a second, separate document.`,
-                });
-            }
-        }
-        const template = await db().getDocument(templateId, userId);
-        if (!template || template.kind !== 'template' || template.docType === 'spreadsheet') return { error: NOT_FOUND };
-        try { c.getContract(template); } catch (e) { return { error: `This template cannot be filled in: ${(e as Error).message}` }; }
+        const resumed = args.fresh !== true && templateId ? await resumedFill(db(), templateId, ctx, userId, c) : null;
+        if (resumed) return resumed;
+        const template = await fillableTemplate(db(), templateId, userId, c);
+        if ('error' in template) return template;
         const conversationId = str(ctx.conversationId);
         // As the duplicate route copies it: an allow-list, the caller's own private document, filed nowhere;
         // in a team chat filed in the project, so every member fills it in (the caller checked the project role).
@@ -230,12 +241,49 @@ function finishFill({ db, contract }: Deps): Handler {
     };
 }
 
+/** Files a person's document into a project (projects/documentFiling.mts). */
+export type DocumentFiling = {
+    targets: (userId: string) => Promise<Array<{ id: string, name: string }>>,
+    fileDocument: (userId: string, documentId: string, projectId: string) => Promise<{ ok: true, project: { id: string, name: string } } | { ok: false, error: string }>,
+};
+
+/** document_add_to_project: list the projects the user may add to, or file the document into one. */
+function addToProject({ db }: Deps, filing: () => DocumentFiling): Handler {
+    return async (args, ctx, userId) => {
+        if (ctx.project) return { error: 'In a team chat the document is already the project\'s.' };
+        if (!str(args.documentId)) return { error: 'documentId is required: the id from template_fill_start or template_fill_finish.' };
+        const doc = await fillableDocument(db(), args, ctx, userId);
+        if ('error' in doc) return doc;
+        const projectId = str(args.projectId);
+        if (!projectId) {
+            const projects = await filing().targets(userId);
+            return projects.length
+                ? { ...head(doc), projects, message: 'Ask the user which project, unless they named one; then call this again with its projectId.' }
+                : { ...head(doc), projects, message: 'The user has no project they can add documents to.' };
+        }
+        const filed = await filing().fileDocument(userId, doc.id, projectId);
+        if (!filed.ok) return { ...head(doc), error: filed.error };
+        const url = `/app/projects/${encodeURIComponent(filed.project.id)}/documents/${encodeURIComponent(doc.id)}`;
+        return {
+            ...head(doc), url, project: filed.project, added: true,
+            message: `"${doc.name}" is now in the project "${filed.project.name}"; its members can open and edit it there. End your reply with the clickable link "[${doc.name}](${url})".`,
+        };
+    };
+}
+
+const realFiling = (): DocumentFiling => {
+    const { featureModule } = nodeRequire('../core/featureModules.js') as { featureModule: (name: string) => unknown };
+    return (featureModule('projects/documentFiling') as { documentFiling: DocumentFiling }).documentFiling;
+};
+
 /** The handlers on a store (and contract code) of the caller's choosing: the seam the tests use. */
-export function makeTemplateFillHandlers({ store, contract = realContract }: { store: TemplateFillStore | (() => TemplateFillStore), contract?: () => ContractModule }): Record<string, Handler> {
+export function makeTemplateFillHandlers({ store, contract = realContract, filing = realFiling }: {
+    store: TemplateFillStore | (() => TemplateFillStore), contract?: () => ContractModule, filing?: () => DocumentFiling,
+}): Record<string, Handler> {
     const deps: Deps = { db: () => (typeof store === 'function' ? store() : store), contract };
     return {
         document_templates_list: listTemplates(deps), template_fill_start: startFill(deps), template_fill_set_values: setValues(deps),
-        template_fill_status: fillStatus(deps), template_fill_finish: finishFill(deps),
+        template_fill_status: fillStatus(deps), template_fill_finish: finishFill(deps), document_add_to_project: addToProject(deps, filing),
     };
 }
 

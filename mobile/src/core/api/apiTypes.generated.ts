@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1941 operations. */
+/** 1946 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -4300,6 +4300,18 @@ export interface ApiOperations {
         clientId: number;
         updates: Array<string>;
     }>;
+    'GET /api/projects/{id}/document-folders': Op<{ id: string | number }>;
+    'POST /api/projects/{id}/document-folders': Op<{ id: string | number }, UndeclaredQuery, {
+        name: string;
+    }>;
+    'PUT /api/projects/{id}/document-folders/placement': Op<{ id: string | number }, UndeclaredQuery, {
+        documentId: string;
+        folderId: string | null;
+    }>;
+    'PATCH /api/projects/{id}/document-folders/{folderId}': Op<{ id: string | number; folderId: string | number }, UndeclaredQuery, {
+        name: string;
+    }>;
+    'DELETE /api/projects/{id}/document-folders/{folderId}': Op<{ id: string | number; folderId: string | number }>;
     'POST /api/projects/{id}/documents': Op<{ id: string | number }, UndeclaredQuery, {
         docType?: string;
         locale?: string;

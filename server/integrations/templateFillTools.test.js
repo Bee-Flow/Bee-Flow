@@ -77,7 +77,7 @@ function setup(conversationId = 'conv-1') {
 /** A later turn of the same conversation: a new scope that knows nothing of earlier tool results. */
 const laterTurn = (conversationId = 'conv-1') => ({ documentScope: scope(), conversationId });
 
-test('the five tools are offered wherever the document tools are, with a handler each', () => {
+test('the template tools are offered wherever the document tools are, with a handler each', () => {
     for (const t of TEMPLATE_FILL_TOOLS) {
         assert.ok(DOCUMENT_TOOL_NAMES.has(t.function.name), t.function.name);
         assert.equal(typeof TEMPLATE_FILL_HANDLERS[t.function.name], 'function');
@@ -297,4 +297,42 @@ test('a copy of a filled-in document is no fill: the conversation link is not co
     const { copySettings } = require('../core/documents/documentCopy.mts');
     const kept = copySettings({ id: 'd', kind: 'document', settings: { templateFill: { conversationId: 'c' }, sampleValues: { a: 1 }, contract: {} } }, 'document');
     assert.deepStrictEqual(kept, { contract: {} });
+});
+
+test('document_add_to_project lists the user\'s projects, then files this conversation\'s document into the chosen one', async () => {
+    const store = fakeStore();
+    const filed = [];
+    const filing = {
+        targets: async (userId) => (userId === 'alice' ? [{ id: 'p1', name: 'Van Dijk' }] : []),
+        fileDocument: async (userId, documentId, projectId) => {
+            filed.push({ userId, documentId, projectId });
+            return projectId === 'p1' ? { ok: true, project: { id: 'p1', name: 'Van Dijk' } } : { ok: false, error: 'Project not found.' };
+        },
+    };
+    const handlers = makeTemplateFillHandlers({ store, filing: () => filing });
+    const ctx = { documentScope: scope(), conversationId: 'conv-1' };
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+
+    const listed = await handlers.document_add_to_project({ documentId }, ctx, 'alice');
+    assert.deepStrictEqual(listed.projects, [{ id: 'p1', name: 'Van Dijk' }]);
+    assert.equal(filed.length, 0, 'listing files nothing');
+
+    const out = await handlers.document_add_to_project({ documentId, projectId: 'p1' }, ctx, 'alice');
+    assert.equal(out.added, true);
+    assert.equal(out.url, `/app/projects/p1/documents/${documentId}`);
+    assert.deepStrictEqual(filed, [{ userId: 'alice', documentId, projectId: 'p1' }]);
+
+    const refused = await handlers.document_add_to_project({ documentId, projectId: 'p2' }, ctx, 'alice');
+    assert.match(refused.error, /Project not found/);
+});
+
+test('document_add_to_project reaches no document outside the conversation, and needs an id', async () => {
+    const store = fakeStore();
+    const filing = { targets: async () => [], fileDocument: async () => assert.fail('nothing is filed') };
+    const handlers = makeTemplateFillHandlers({ store, filing: () => filing });
+    const ctx = { documentScope: scope(), conversationId: 'conv-1' };
+    assert.equal((await handlers.document_add_to_project({ documentId: 'doc-plain', projectId: 'p1' }, ctx, 'alice')).error, NOT_SHARED);
+    assert.match((await handlers.document_add_to_project({ projectId: 'p1' }, ctx, 'alice')).error, /documentId is required/);
+    const team = await handlers.document_add_to_project({ documentId: 'x' }, { ...ctx, project: { id: 'p1' } }, 'alice');
+    assert.match(team.error, /already the project/);
 });

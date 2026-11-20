@@ -39,7 +39,9 @@ function useDraft(value: string) {
     const [seen, setSeen] = useState(value);
     if (seen !== value) {
         setSeen(value);
-        setDraft(value);
+        // A value from elsewhere (a colleague, the assistant) replaces the field only while the person is
+        // not typing in it: unsaved typing stays, and is what the next save sends.
+        if (draft === seen) setDraft(value);
     }
     return [draft, setDraft] as const;
 }

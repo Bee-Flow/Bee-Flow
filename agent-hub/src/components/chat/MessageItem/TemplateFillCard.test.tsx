@@ -103,13 +103,20 @@ describe('<TemplateFillForm> filling in together', () => {
     it('takes a colleague\'s value from the next read, and keeps the field this person is saving', async () => {
         const user = userEvent.setup();
         const empty: FillDocument = { ...DOC, values: {} };
+        let remote: Record<string, unknown> = {};
         const api = fakeApi({
-            load: vi.fn().mockResolvedValue({ ...empty, values: { client: 'Remote BV', amount: 99 } }),
+            // The colleague saves only once this person has started typing (remote is set below).
+            load: vi.fn().mockImplementation(async () => ({ ...empty, values: remote })),
             // The save stays on its way: the poll must not put the old amount back meanwhile.
             save: vi.fn().mockReturnValue(new Promise(() => {})),
         });
         renderCard(<TemplateFillForm doc={empty} api={api} live={{ pollMs: 40 }} notes={{ client: 'Asked of Bob' }} />);
-        await user.type(screen.getByLabelText(/Amount/), '12');
+        await user.type(screen.getByLabelText(/Amount/), '1');
+        remote = { client: 'Remote BV', amount: 99 };
+        // A colleague's read arrives while the person is still typing in the field: their typing stays.
+        await waitFor(() => expect(screen.getByLabelText(/Client name/)).toHaveValue('Remote BV'), { timeout: 2000 });
+        expect(screen.getByLabelText(/Amount/)).toHaveValue(1);
+        await user.type(screen.getByLabelText(/Amount/), '2');
         await user.tab();
         await waitFor(() => expect(api.save).toHaveBeenCalled(), { timeout: 2000 });
         await waitFor(() => expect(screen.getByLabelText(/Client name/)).toHaveValue('Remote BV'), { timeout: 2000 });

@@ -2685,6 +2685,20 @@ declare namespace DbRow {
         seq: string;
         thread_id: string;
     }
+    /** Row of `project_document_folders`. */
+    interface ProjectDocumentFolders {
+        created_at: Date;
+        created_by: string;
+        id: string;
+        name: string;
+        project_id: string;
+    }
+    /** Row of `project_document_placements`. */
+    interface ProjectDocumentPlacements {
+        document_id: string;
+        folder_id: string;
+        project_id: string;
+    }
     /** Row of `project_events`. */
     interface ProjectEvents {
         actor_id: string | null;
