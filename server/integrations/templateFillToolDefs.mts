@@ -15,7 +15,7 @@ type ToolDef = {
     function: { name: string, description: string, parameters: { type: 'object', properties: Record<string, object>, required?: string[] } },
 };
 
-const ASK_HOW = 'Keep your chat text short: list only the fields still missing (by label, never the raw key), two to four per question, and say the user can also fill them in the form under your reply. Never ask for a field that already has a value. Fill in what the conversation or an attached file already says, and say that you did. NEVER invent a value: a required fact the user has not given is asked for, not guessed.';
+const ASK_HOW = 'Store right away, with template_fill_set_values, what the conversation or an attached file states and each field\'s template default (fields[].default). Only call a field filled in after template_fill_set_values stored it. The form under your reply lists every field with its explanation, so NEVER list the missing fields in your chat text: answer in one or two short sentences (what you just stored, then that they can fill in the rest in the form below or tell you here). Never ask for a field that already has a value. NEVER invent a value: a fact the user has not given is left for them to fill in, not guessed.';
 const DOC_ID = 'documentId may be left out: the document this conversation is filling in is used.';
 const DOC_ID_PARAM = 'Optional: the document from template_fill_start. Left out, the one this conversation is filling in.';
 

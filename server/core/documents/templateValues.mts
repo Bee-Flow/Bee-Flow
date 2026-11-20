@@ -64,6 +64,8 @@ export function describeField(p: Field): Record<string, unknown> {
         ...(p.options ? { options: p.options } : {}),
         ...(p.instructions || p.summary ? { help: p.instructions || p.summary } : {}),
         ...(p.example !== undefined ? { example: p.example } : {}),
+        // The template's own default: the assistant may store it right away (it is not an invented value).
+        ...((p as { default?: unknown }).default !== undefined ? { default: (p as { default?: unknown }).default } : {}),
         ...(p.fields ? { fields: p.fields.map((f) => ({ key: f.key, label: f.label || f.key, type: f.type, required: f.required === true })) } : {}),
     };
 }

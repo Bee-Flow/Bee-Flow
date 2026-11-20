@@ -139,7 +139,7 @@ function fillState(doc: TemplateDoc, c: ContractModule, extra: Record<string, un
     };
 }
 
-const ASK_MISSING = 'Ask only for what is still missing (missingRequired), a few fields at a time by their labels, and say they can also fill them in the form under your reply.';
+const ASK_MISSING = 'Store the template defaults (fields[].default) and anything the conversation states with template_fill_set_values first. Then reply in one or two sentences: what you stored, and that the rest can be filled in in the form under your reply or told to you. Do NOT list the missing fields: the form shows them.';
 
 /** template_fill_start: the user's own copy of the template, as the duplicate route makes it; or the fill already going. */
 function startFill({ db, contract }: Deps): Handler {
