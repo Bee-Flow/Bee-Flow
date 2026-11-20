@@ -96,7 +96,7 @@ export default function DocumentEditor({ documentId, onBack, onRenamed, variant 
         editor = (
             <Suspense fallback={<EditorLoading />}>
                 <SpreadsheetEditor key={doc.id} initial={doc} people={people} variant={variant} currentUser={me}
-                    onBack={onBack} onRenamed={onRenamed} />
+                    onBack={onBack} onRenamed={onRenamed} onOpenInStudio={onOpenInStudio} />
             </Suspense>
         );
     } else if (doc.docType === 'page') {

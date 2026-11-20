@@ -24,6 +24,8 @@ export interface SheetData {
     activeTab?: string;
     /** The typed cells of the other tabs this tab's formulas refer to (`Klanten!A1`), by tab name. */
     refTabs?: Record<string, Record<string, string>>;
+    /** How the sheet reads typed numbers: 'nl' takes 1,5 and € 10, 'en' 1,234.5. The same for every reader. */
+    locale: 'nl' | 'en';
 }
 
 /** The server may take this many cells in one PATCH. */
@@ -65,15 +67,22 @@ export async function getSheet(id: string, tabId?: string): Promise<SheetData> {
         tabs: Array.isArray(body.tabs) ? body.tabs : undefined,
         activeTab: typeof body.activeTab === 'string' ? body.activeTab : undefined,
         refTabs: body.refTabs && typeof body.refTabs === 'object' ? body.refTabs : undefined,
+        locale: body.locale === 'nl' ? 'nl' : 'en',
     };
 }
 
-/** Save cells ("" clears one). At most MAX_CELLS_PER_REQUEST per call. */
-export async function patchSheet(id: string, cells: Record<string, string>, tabId?: string): Promise<Record<string, string>> {
+/**
+ * Save cells ("" clears one). At most MAX_CELLS_PER_REQUEST per call.
+ * `keepalive`: the request outlives the page (sent while the page is being closed).
+ */
+export async function patchSheet(
+    id: string, cells: Record<string, string>, tabId?: string, init?: { keepalive?: boolean },
+): Promise<Record<string, string>> {
     const res = await authFetch(sheetUrl(id) + tabQuery(tabId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cells }),
+        ...(init?.keepalive ? { keepalive: true } : {}),
     });
     const body = await asJson<{ cells?: Record<string, string> }>(res, 'Failed to save the spreadsheet');
     return body.cells || {};

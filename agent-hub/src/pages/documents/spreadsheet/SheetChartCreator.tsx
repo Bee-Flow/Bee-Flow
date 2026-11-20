@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { ChartArea, ChartBar, ChartColumn, ChartColumnStacked, ChartLine, ChartPie, ChartScatter, Donut, Gauge } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import { cellName } from './sheetEngine';
+import { sheetErrorText } from './sheetErrorText';
 import { COL_PX, ROW_PX, parseA1Range, type ChartFormat, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
 import type { SelectionKind } from './sheetModel';
 
 export interface SheetChartCreatorProps {
     open: boolean;
     onClose: () => void;
-    onCreate: (config: SheetChartConfig) => void;
+    /** Save the chart; the creator stays open with the reason when this rejects. */
+    onCreate: (config: SheetChartConfig) => unknown;
     selection: string | null;
     selectionKind: SelectionKind | null;
     activeCell: string;
@@ -70,6 +72,18 @@ function TypePicker({ type, onPick }: { type: ChartType; onPick: (t: ChartType) 
     );
 }
 
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    return (
+        <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
+            {label}
+            <input
+                value={value} onChange={(e) => onChange(e.target.value)}
+                className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+            />
+        </label>
+    );
+}
+
 export default function SheetChartCreator({ open, onClose, onCreate, selection, selectionKind, activeCell, columns }: SheetChartCreatorProps) {
     const { t } = useTranslation();
     const defaults = useMemo(() => suggestRanges(selection, selectionKind, activeCell, columns), [selection, selectionKind, activeCell, columns]);
@@ -80,10 +94,11 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
     const [anchor, setAnchor] = useState(defaults.anchor);
     const [format, setFormat] = useState<ChartFormat | ''>('');
     const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
 
     if (!open) return null;
 
-    const submit = () => {
+    const submit = async () => {
         const config: SheetChartConfig = {
             // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local chart id for React keys, not a secret
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -100,8 +115,13 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
         const err = validateChart(config);
         if (err) { setError(err); return; }
         setError(null);
-        onCreate(config);
-        onClose();
+        setSaving(true);
+        try {
+            await onCreate(config);
+            onClose();
+        } catch (e) {
+            setError(sheetErrorText(e, t, t('doc_sheet.chart.save_failed', 'Could not save the chart. Try again.')));
+        } finally { setSaving(false); }
     };
 
     return (
@@ -113,20 +133,8 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
                 placeholder={t('spreadsheet.chart.title_placeholder', 'Chart title (optional)')}
                 className="w-full px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
             />
-            <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
-                {t('spreadsheet.chart.data_range', 'Data range')}
-                <input
-                    value={dataRange} onChange={(e) => setDataRange(e.target.value)}
-                    className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-                />
-            </label>
-            <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
-                {t('spreadsheet.chart.categories_range', 'Categories range (optional)')}
-                <input
-                    value={categoriesRange} onChange={(e) => setCategoriesRange(e.target.value)}
-                    className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-                />
-            </label>
+            <TextField label={t('spreadsheet.chart.data_range', 'Data range')} value={dataRange} onChange={setDataRange} />
+            <TextField label={t('spreadsheet.chart.categories_range', 'Categories range (optional)')} value={categoriesRange} onChange={setCategoriesRange} />
             <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
                 {t('spreadsheet.chart.format', 'Number format')}
                 <select
@@ -136,17 +144,11 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
                     {FORMATS.map((f) => <option key={f.value} value={f.value}>{t(f.labelKey, f.defaultLabel)}</option>)}
                 </select>
             </label>
-            <label className="text-[11px] text-[var(--text-secondary)] flex flex-col gap-0.5">
-                {t('spreadsheet.chart.anchor', 'Anchor cell')}
-                <input
-                    value={anchor} onChange={(e) => setAnchor(e.target.value)}
-                    className="px-2 py-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
-                />
-            </label>
-            {error && <div className="text-[11px] text-[var(--error)]">{error}</div>}
+            <TextField label={t('spreadsheet.chart.anchor', 'Anchor cell')} value={anchor} onChange={setAnchor} />
+            {error && <div role="alert" className="text-[11px] text-[var(--error)]">{error}</div>}
             <div className="flex justify-end gap-2">
                 <button type="button" onClick={onClose} className="px-2 py-1 text-[12px] rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('common.cancel', 'Cancel')}</button>
-                <button type="button" onClick={submit} className="px-3 py-1 text-[12px] rounded bg-[var(--accent-primary)] text-white hover:opacity-90">{t('spreadsheet.chart.add', 'Add')}</button>
+                <button type="button" onClick={() => { submit().catch(() => undefined); }} disabled={saving} className="px-3 py-1 text-[12px] rounded bg-[var(--accent-primary)] text-white hover:opacity-90 disabled:opacity-50">{t('spreadsheet.chart.add', 'Add')}</button>
             </div>
         </div>
     );

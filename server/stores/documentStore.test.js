@@ -172,6 +172,49 @@ test('a multi-word library query matches every word, in any order', async () => 
     assert.deepStrictEqual(await ids('acme invoice'), [hit.id], 'only the caller\'s own and shared documents');
 });
 
+test('the archive lists every kind when no kind is asked for: documents, templates and sections together', async () => {
+    await pg.exec(`INSERT INTO users VALUES ('arch','org1')`);
+    const doc = await make('arch', { name: 'Old letter' });
+    const tpl = await make('arch', { name: 'Old template', kind: 'template' });
+    const sec = await make('arch', { name: 'Old section', kind: 'section' });
+    await make('arch', { name: 'Still here', kind: 'template' });
+    for (const d of [doc, tpl, sec]) await store.deleteDocument(d.id, 'arch');
+    const archived = await store.listDocumentsPage('arch', { archived: true });
+    assert.deepStrictEqual(archived.documents.map(d => d.kind).sort(), ['document', 'section', 'template']);
+    assert.strictEqual(archived.total, 3);
+    assert.deepStrictEqual((await store.listDocumentsPage('arch', { archived: true, kind: 'template' })).documents.map(d => d.id), [tpl.id], 'a kind still narrows it');
+});
+
+// ═══ Filing ═════════════════════════════════════════════════════════════
+
+test('filing is not editing: a folder or categories change writes no revision and keeps the last edit as it was', async () => {
+    await pg.exec(`INSERT INTO users VALUES ('filer','org1')`);
+    const doc = await make('filer');
+    const folder = await store.createFolder('filer', 'Clients');
+    await pg.query(`UPDATE studio_documents SET updated_at = '2026-01-02T03:04:05Z', updated_by = 'someone-else' WHERE id = $1`, [doc.id]);
+    const before = await rows(doc.id);
+
+    assert.strictEqual(store.isFilingOnly({ folderId: folder.id, expectedVersionId: 'stale' }), true);
+    assert.strictEqual(store.isFilingOnly({ folderId: folder.id, name: 'Renamed' }), false);
+    assert.strictEqual(store.isFilingOnly({ expectedVersionId: 'v' }), false);
+
+    // A stale revision is no reason to refuse a filing.
+    const filed = await store.updateDocument(doc.id, 'filer', { folderId: folder.id, categories: [' Clients ', 'Clients', 'Q4'], expectedVersionId: 'stale-revision' });
+    assert.strictEqual(filed.folderId, folder.id);
+    assert.deepStrictEqual(filed.categories, ['Clients', 'Q4']);
+    assert.strictEqual(filed.versionId, doc.versionId, 'the same revision');
+    const row = (await pg.query('SELECT updated_at, updated_by FROM studio_documents WHERE id = $1', [doc.id])).rows[0];
+    assert.strictEqual(new Date(row.updated_at).toISOString(), '2026-01-02T03:04:05.000Z');
+    assert.strictEqual(row.updated_by, 'someone-else');
+    assert.deepStrictEqual(await rows(doc.id), before, 'no revision row');
+
+    const root = await store.fileDocument(doc.id, 'filer', { folderId: null });
+    assert.strictEqual(root.folderId, null);
+    assert.deepStrictEqual(root.categories, ['Clients', 'Q4'], 'what was not sent stays');
+    await assert.rejects(store.fileDocument(doc.id, 'filer', { folderId: 'not-a-folder' }), (e) => e.status === 404);
+    assert.strictEqual(await store.fileDocument(doc.id, 'ben', { folderId: null }), null, 'somebody else\'s document');
+});
+
 // ═══ Autosave sessions ════════════════════════════════════════════════
 
 test('saves by one person in one session are ONE history entry; every revision id stays readable', async () => {

@@ -11,7 +11,7 @@ import { extractSections } from '../canvasBridge';
 import { downloadPdf, downloadPptx, fetchPreviewHtml, fetchRendered, getDocument, updateDocument } from '../documentsApi';
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave, { readDraft, type Draft } from '../useDocumentAutosave';
-import { messageOf, errorStatus } from '@/utils/caughtError';
+import { errorCode, messageOf, errorStatus } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 
 export interface WorkspaceHandle { flush?: () => Promise<void> }
@@ -58,9 +58,14 @@ function useDocumentOutput({ id, docRef, before, setError, setNotice, errorText 
 }) {
     const { t } = useTranslation();
     const [downloading, setDownloading] = useState(false);
-    const failed = (e: unknown, format: 'pdf' | 'pptx') => setError(errorText(e) || (format === 'pptx' ? t('documents.pptx_failed', 'Could not build the presentation.') : t('documents.pdf_failed', 'Could not render the PDF.')));
+    // Values the final file needs are not filled in yet: what is missing, said where they are filled in.
+    const [inputNeeded, setInputNeeded] = useState<string | null>(null);
+    const failed = (e: unknown, format: 'pdf' | 'pptx') => {
+        if (errorCode(e) === 'document_validation_failed') { setInputNeeded(messageOf(e, '')); return; }
+        setError(errorText(e) || (format === 'pptx' ? t('documents.pptx_failed', 'Could not build the presentation.') : t('documents.pdf_failed', 'Could not render the PDF.')));
+    };
     const download = async (format: 'pdf' | 'pptx') => {
-        setDownloading(true); setError(null); setNotice(null);
+        setDownloading(true); setError(null); setNotice(null); setInputNeeded(null);
         try {
             // Persist first: a PDF without the sentence just typed is the bug
             // people never report and always notice.
@@ -72,7 +77,7 @@ function useDocumentOutput({ id, docRef, before, setError, setNotice, errorText 
     };
     /** Print: the rendered PDF, with its page breaks, in a tab of its own. */
     const print = async () => {
-        setDownloading(true); setError(null);
+        setDownloading(true); setError(null); setInputNeeded(null);
         try {
             await before();
             const { blob } = await fetchRendered(id, docRef.current?.versionId, 'pdf');
@@ -81,7 +86,7 @@ function useDocumentOutput({ id, docRef, before, setError, setNotice, errorText 
             setTimeout(() => URL.revokeObjectURL(url), PRINT_URL_TTL_MS);
         } catch (e) { failed(e, 'pdf'); } finally { setDownloading(false); }
     };
-    return { download, print, downloading };
+    return { download, print, downloading, inputNeeded, clearInputNeeded: () => setInputNeeded(null) };
 }
 
 /**
@@ -99,7 +104,45 @@ function useChatUpdates(id: string, reload: () => Promise<void>, onError: (e: un
     }, [id, reload, onError]);
 }
 
+type Autosave = ReturnType<typeof useDocumentAutosave>;
+
+/**
+ * Rename: only the name, on the newest revision (the name is never merged, so
+ * a stale base would only be refused). When it fails anyway, the name field
+ * goes back to the saved name (`nameKey`) and the reason is said plainly.
+ */
+function useRename({ id, docRef, autosave, apply, onRenamed, setError, errorText }: {
+    id: string; docRef: React.MutableRefObject<StudioDocument | null>; autosave: Autosave; apply: (d: StudioDocument) => void;
+    onRenamed?: (doc: StudioDocument) => void; setError: (e: string | null) => void; errorText: (e: unknown) => string;
+}) {
+    const { t } = useTranslation();
+    const [nameKey, setNameKey] = useState(0);
+    const rename = useCallback(async (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed || trimmed === docRef.current?.name) { setNameKey((k) => k + 1); return; }
+        try {
+            // Read in the save queue: a body save still out would otherwise make "newest" stale at once.
+            const { latest, saved } = await autosave.enqueue(async () => {
+                const newest = await getDocument(id) as StudioDocument;
+                return { latest: newest, saved: await updateDocument(id, { name: trimmed, expectedVersionId: newest.versionId }) as StudioDocument };
+            });
+            // Somebody else saved meanwhile: keep the revision this editor has
+            // seen, so its next save is still merged with theirs, never over it.
+            const behind = latest.versionId !== docRef.current?.versionId;
+            apply({ ...docRef.current!, name: saved.name, ...(behind ? {} : { versionId: saved.versionId, updatedAt: saved.updatedAt }) });
+            onRenamed?.(docRef.current!);
+        } catch (e) {
+            setNameKey((k) => k + 1);
+            setError(errorStatus(e) === 409
+                ? t('doc_editor.rename_conflict', 'Rename failed: the document changed meanwhile. Try again.')
+                : t('doc_editor.rename_failed', 'Rename failed: {reason}', { reason: errorText(e) }));
+        }
+    }, [id, docRef, autosave, apply, onRenamed, setError, errorText, t]);
+    return { rename, nameKey };
+}
+
 export default function useDesignedDocument({ initial, canvasRef, workspaceRef, onRenamed }: DesignedDocumentOptions) {
+    const { t } = useTranslation();
     const errorText = useErrorText();
     const docRef = useRef<StudioDocument | null>(initial);
     const [doc, setDocState] = useState<StudioDocument>(initial);
@@ -150,11 +193,17 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         setPanelEpoch((k) => k + 1);
     }, [workspaceRef, flushEditor, initial.id, apply, autosave]);
 
-    /** A settings / name / reviewed-proposal save, one after the pending body. */
-    const savePatch = useCallback(async (patch: Partial<StudioDocument>) => {
+    /**
+     * A settings / reviewed-proposal save, one after the pending body. A
+     * caller that passes `expectedVersionId` (a proposal, recovered settings)
+     * is saved on THAT revision: when the document moved on since, the server
+     * refuses it instead of the proposal silently replacing newer work.
+     */
+    const savePatch = useCallback(async (patch: Partial<StudioDocument> & { expectedVersionId?: string }) => {
+        const { expectedVersionId: pinned, ...changes } = patch;
         await flushEditor().catch(() => undefined);
         try {
-            const saved = await autosave.enqueue(() => updateDocument(initial.id, { ...patch, expectedVersionId: docRef.current?.versionId }) as Promise<StudioDocument>);
+            const saved = await autosave.enqueue(() => updateDocument(initial.id, { ...changes, expectedVersionId: pinned || docRef.current?.versionId }) as Promise<StudioDocument>);
             apply({ ...docRef.current, ...saved });
             if (['bodyHtml', 'css', 'settings'].some((k) => Object.hasOwn(patch, k))) {
                 canvasRef.current?.invalidate();
@@ -168,17 +217,14 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
             if (e?.status === 409) {
                 const latest = await getDocument(initial.id).catch(() => null) as StudioDocument | null;
                 if (latest) { apply({ ...docRef.current, ...latest }); setPanelEpoch((k) => k + 1); }
+                // The panel that asked starts again on the newest state, so the reason is said here.
+                if (pinned) setError(t('doc_editor.stale_not_applied', 'Nothing was applied: the document changed after these changes were prepared, and your newer work is kept. Look at the current version and try again.'));
             }
             throw e;
         }
-    }, [flushEditor, autosave, initial.id, apply, canvasRef]);
+    }, [flushEditor, autosave, initial.id, apply, canvasRef, t]);
 
-    const rename = useCallback(async (name: string) => {
-        const trimmed = name.trim();
-        if (!trimmed || trimmed === docRef.current?.name) return;
-        try { onRenamed?.(await savePatch({ name: trimmed })); }
-        catch (e) { setError(errorText(e)); }
-    }, [savePatch, onRenamed, errorText]);
+    const { rename, nameKey } = useRename({ id: initial.id, docRef, autosave, apply, onRenamed, setError, errorText });
 
     const toggleHouseStyle = useCallback(async () => {
         const settings = docRef.current?.settings || {};
@@ -198,10 +244,12 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
     const autosaveError = autosave.error ? errorText(autosave.error) : null;
     return {
         doc, docRef, apply, isDeck, readOnly, reloadKey, panelEpoch, setPanelEpoch, setReloadKey,
-        autosave, flushEditor, reload, savePatch, rename, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
+        autosave, flushEditor, reload, savePatch, rename, nameKey, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
+        inputNeeded: output.inputNeeded, clearInputNeeded: output.clearInputNeeded,
         error: error || autosaveError, notice,
         clearError: () => { setError(null); setNotice(null); autosave.clearError(); },
         setError: (e: unknown) => setError(errorText(e)),
+        describeError: errorText,
         mergedUnseen, dismissMerged: () => setMergedUnseen(false),
         draft,
         /** The kept draft back into this document (merged like a late save), then shown. */

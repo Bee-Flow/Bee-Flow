@@ -1,8 +1,10 @@
 // Tab bar for a multi-sheet spreadsheet. Kept minimal: click to switch,
-// double-click to rename, a small × on hover to delete, and a + to add.
+// double-click to rename, a small × on hover to delete (after a confirmation),
+// and a + to add.
 
 import { Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import useTranslation from '@/hooks/useTranslation';
 import type { SheetTab } from '@/api/sheetApi';
 
@@ -10,10 +12,11 @@ interface SheetTabsProps {
     tabs?: SheetTab[];
     activeTab?: string;
     readOnly?: boolean;
-    onChange: (tabId: string) => void;
-    onAdd: () => void;
-    onRename: (tabId: string, name: string) => void;
-    onDelete: (tabId: string) => void;
+    onChange: (tabId: string) => unknown;
+    onAdd: () => unknown;
+    onRename: (tabId: string, name: string) => unknown;
+    /** Called once the person confirmed; may resolve once the tab is gone. */
+    onDelete: (tabId: string) => unknown;
 }
 
 export default function SheetTabs({
@@ -21,6 +24,7 @@ export default function SheetTabs({
 }: SheetTabsProps) {
     const { t } = useTranslation();
     const [renaming, setRenaming] = useState<string | null>(null);
+    const [confirming, setConfirming] = useState<SheetTab | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -82,7 +86,7 @@ export default function SheetTabs({
                                         className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                                         title={t('spreadsheet.tab.delete', 'Delete tab')}
                                         aria-label={t('spreadsheet.tab.delete', 'Delete tab')}
-                                        onClick={(e) => { e.stopPropagation(); onDelete(tab.id); }}
+                                        onClick={(e) => { e.stopPropagation(); setConfirming(tab); }}
                                     >
                                         <X size={12} aria-hidden="true" />
                                     </button>
@@ -103,6 +107,16 @@ export default function SheetTabs({
                     <Plus size={14} aria-hidden="true" />
                 </button>
             )}
+            <ConfirmDialog
+                open={confirming !== null}
+                title={t('doc_sheet.tab.delete_title', 'Delete this tab?')}
+                description={t('doc_sheet.tab.delete_body', 'The tab "{name}" and everything on it, its charts included, are deleted. This cannot be undone.', { name: confirming?.name ?? '' })}
+                confirmLabel={t('doc_sheet.tab.delete_confirm', 'Delete tab')}
+                cancelLabel={t('common.cancel', 'Cancel')}
+                destructive
+                onConfirm={async () => { const tab = confirming; setConfirming(null); if (tab) await onDelete(tab.id); }}
+                onCancel={() => setConfirming(null)}
+            />
         </div>
     );
 }

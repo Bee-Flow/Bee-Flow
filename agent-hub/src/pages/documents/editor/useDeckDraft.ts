@@ -39,10 +39,19 @@ export default function useDeckDraft(documentId: string, canvasRef: React.RefObj
         }, DECK_PREVIEW_MS);
     }, [documentId, canvasRef]);
 
-    /** What was drafted is saved now: the next preview starts from the stored state. */
+    /**
+     * The stored deck changed (a save, a restore, the assistant's edit, a
+     * discard): forget the draft, and drop a preview still waiting or out,
+     * so neither the next look change nor a late answer brings back an old
+     * outline. The canvas shows the stored deck again on its own.
+     */
     const settled = useCallback(() => {
-        draft.current.settings = undefined;
+        draft.current = {};
         if (timer.current) clearTimeout(timer.current);
+        timer.current = null;
+        seq.current += 1;
+        abort.current?.abort();
+        setPreviewError('');
     }, []);
 
     useEffect(() => () => { if (timer.current) clearTimeout(timer.current); abort.current?.abort(); }, []);

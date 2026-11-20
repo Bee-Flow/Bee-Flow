@@ -127,6 +127,17 @@ test('a page that went live between the check and the write: the store refuses, 
     assert.deepStrictEqual(seen.feed, [], 'nothing was saved, nothing is reported');
 });
 
+test('filing needs no revision: a folder or categories change without expectedVersionId goes through, and is no edit', async () => {
+    updateImpl = async (_id, _ctx, updates) => ({ ...DOC, folderId: updates.folderId ?? null, categories: updates.categories ?? [] });
+    const res = await api.call('PATCH', '/api/studio-documents/d1', { user: as('owner'), body: { folderId: 'f1', categories: ['Q4'] } });
+    assert.strictEqual(res.status, 200, res.text);
+    assert.strictEqual(res.body.document.folderId, 'f1');
+    assert.deepStrictEqual(seen.updates[0].updates.folderId, 'f1');
+    assert.deepStrictEqual(seen.feed, [], 'filing is not reported as an edit');
+    const withContent = await api.call('PATCH', '/api/studio-documents/d1', { user: as('owner'), body: { folderId: 'f1', name: 'Renamed' } });
+    assert.strictEqual(withContent.status, 428, 'anything else still needs the revision it was read at');
+});
+
 test('an unchanged save reports nothing to the feed', async () => {
     updateImpl = async () => ({ ...DOC });
     await api.call('PATCH', '/api/studio-documents/d1', { user: as('owner'), body: { bodyHtml: '<p>one</p>', expectedVersionId: 'v1' } });

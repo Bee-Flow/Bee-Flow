@@ -26,6 +26,35 @@ export interface EditorNoticesProps {
     readOnly: boolean;
     /** A page went live while a save was out: its text is kept in the history. */
     keptLive?: { onOpen: () => void; onDismiss: () => void } | null;
+    /** Why this reader cannot change the document (readOnlyReasonOf); the project sentence when left out. */
+    readOnlyReason?: ReadOnlyReason;
+    /** A download or print was refused because values are still missing: what, and where to fill them in. */
+    inputNeeded?: { reason: string; onFill: () => void; onDismiss: () => void } | null;
+}
+
+export type ReadOnlyReason = 'project' | 'shared' | 'managed' | 'other';
+
+/** Why a document opens read-only for this reader, from what the server says about it. */
+export function readOnlyReasonOf(doc: { managed?: unknown; projectRole?: string; sharingRole?: string; sharing?: { access?: string } }): ReadOnlyReason {
+    if (doc.managed) return 'managed';
+    if (doc.projectRole === 'viewer') return 'project';
+    if (doc.sharingRole === 'viewer' || doc.sharing?.access === 'view') return 'shared';
+    return 'other';
+}
+
+function ReadOnlyLine({ reason = 'project' }: { reason?: ReadOnlyReason }) {
+    const { t } = useTranslation();
+    const text = {
+        project: t('documents.read_only', 'You can read this document. Only its owner and the project\'s editors can change it.'),
+        shared: t('doc_editor.read_only_shared', 'This document was shared with you to read. Only its owner, or someone they let edit it, can change it.'),
+        managed: t('doc_editor.read_only_managed', 'This document comes from a Solution, so it is changed there and not here.'),
+        other: t('doc_editor.read_only_other', 'You can read this document, but you cannot change it.'),
+    }[reason];
+    return (
+        <Line tone="info" icon={<Info size={14} aria-hidden="true" />} testId="document-read-only">
+            <span>{text}</span>
+        </Line>
+    );
 }
 
 function Line({ tone, icon, children, testId }: { tone: 'error' | 'warning' | 'info'; icon: React.ReactNode; children: React.ReactNode; testId: string }) {
@@ -50,9 +79,12 @@ export default function EditorNotices(props: EditorNoticesProps) {
     const { t } = useTranslation();
     return (
         <>
-            {props.readOnly && (
-                <Line tone="info" icon={<Info size={14} aria-hidden="true" />} testId="document-read-only">
-                    <span>{t('documents.read_only', 'You can read this document. Only its owner and the project\'s editors can change it.')}</span>
+            {props.readOnly && <ReadOnlyLine reason={props.readOnlyReason} />}
+            {props.inputNeeded && (
+                <Line tone="warning" icon={<Info size={14} aria-hidden="true" />} testId="document-input-needed">
+                    <span className="flex-1">{t('doc_editor.input_needed', 'Some values still have to be filled in before the file can be made: {reason}', { reason: props.inputNeeded.reason })}</span>
+                    <button type="button" className={LINK_BUTTON} onClick={props.inputNeeded.onFill}>{t('doc_editor.tab_fill_in', 'Fill in & preview')}</button>
+                    <button type="button" className={LINK_BUTTON} onClick={props.inputNeeded.onDismiss}>{t('documents.dismiss', 'Dismiss')}</button>
                 </Line>
             )}
             {props.error && (

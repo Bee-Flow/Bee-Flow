@@ -250,8 +250,8 @@ const FIXTURES = [
         },
     },
     {
-        // The same notebook in the Documents library (routes/studioDocuments: its sharing and its filing), where
-        // the store answers the owner only; a member of org A gets the notebook's 404.
+        // The same notebook in the Documents library (routes/studioDocuments: its sharing, its filing, its archive
+        // and its delete for good), where the store answers the owner only; a member of org A gets the notebook's 404.
         kind: 'notebookLibrary',
         mount: '/api/studio-documents',
         router: () => require('../routes/studioDocuments'),
@@ -263,6 +263,8 @@ const FIXTURES = [
         routes: [
             'GET /api/studio-documents/notebooks/:id/sharing', 'GET /api/studio-documents/notebooks/:id/sharing/principals',
             'PUT /api/studio-documents/notebooks/:id/sharing', 'PATCH /api/studio-documents/notebooks/:id/filing',
+            'POST /api/studio-documents/notebooks/:id/archive', 'POST /api/studio-documents/notebooks/:id/unarchive',
+            'DELETE /api/studio-documents/notebooks/:id',
         ],
         bodies: {
             'PUT /api/studio-documents/notebooks/:id/sharing': { audience: 'private' },

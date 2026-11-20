@@ -1,0 +1,8 @@
+{
+  "translations": {
+    "doc_server.copy_name": "{name} — kopie",
+    "doc_server.sheet_tab_name": "Blad{n}",
+    "doc_server.untitled_spreadsheet": "Naamloze spreadsheet"
+  },
+  "sameAsEnglish": []
+}

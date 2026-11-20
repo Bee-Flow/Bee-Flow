@@ -4,7 +4,8 @@
 // Order of a question: the queued edits are sent first (so the server reads
 // the latest cells), then the question. The answer's changes are ALREADY saved
 // on the server, so they are laid over the local cells without a save; Undo
-// writes the old values back through the normal edit path.
+// writes the old values back through the normal edit path, to the tab the
+// assistant changed (also when another tab is on screen by then).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
@@ -29,6 +30,8 @@ export interface AssistantMessage {
     content: string;
     error?: boolean;
     changes?: Record<string, AssistantChange>;
+    /** The tab the changes were made on. */
+    tab?: string;
     undone?: boolean;
     /** The tier asked for and the one the server says answered. */
     requestedTier?: string;
@@ -95,13 +98,14 @@ export default function useSheetAssistant(docId: string, sheet: SheetState, char
             const names = Object.keys(answer.changes).filter((k) => answer.changes[k].before !== answer.changes[k].after);
             const changes = Object.fromEntries(names.map((k) => [k, answer.changes[k]]));
             if (names.length) {
-                sheetRef.current.applySaved(Object.fromEntries(names.map((k) => [k, changes[k].after])));
-                flash(names);
+                // Only onto the tab asked about: another tab may be on screen by now.
+                sheetRef.current.applySaved(Object.fromEntries(names.map((k) => [k, changes[k].after])), tab);
+                if (tab === sheetRef.current.activeTab) flash(names);
             }
             if (answer.charts?.length) {
                 applyCharts?.(answer.charts).catch(() => undefined);
             }
-            reply = push({ role: 'assistant', content: answer.reply, changes: names.length ? changes : undefined, requestedTier: modelTier, tier: answer.tier });
+            reply = push({ role: 'assistant', content: answer.reply, changes: names.length ? changes : undefined, tab, requestedTier: modelTier, tier: answer.tier });
         } catch (e) {
             if (ctrl.signal.aborted) {
                 // The server may have finished and saved: show what it holds.
@@ -122,7 +126,7 @@ export default function useSheetAssistant(docId: string, sheet: SheetState, char
     const undo = useCallback((id: number) => {
         const msg = log.current.find((m) => m.id === id);
         if (!msg?.changes || msg.undone) return;
-        sheetRef.current.setCells(Object.fromEntries(Object.entries(msg.changes).map(([k, c]) => [k, c.before])));
+        sheetRef.current.setCells(Object.fromEntries(Object.entries(msg.changes).map(([k, c]) => [k, c.before])), msg.tab);
         log.current = log.current.map((m) => (m.id === id ? { ...m, undone: true } : m));
         setMessages(log.current);
     }, []);

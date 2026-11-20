@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-58 routes, 35 with a request schema. Back to the [endpoint reference](../reference.md).
+61 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -456,6 +456,18 @@ No request schema.
 
 ## `notebooks`
 
+### `DELETE /api/studio-documents/notebooks/:id`
+
+**Access:** middleware `requireNotebooks`
+
+No request schema.
+
+### `POST /api/studio-documents/notebooks/:id/archive`
+
+**Access:** middleware `requireNotebooks`
+
+**Body:** object (no other keys)
+
 ### `PATCH /api/studio-documents/notebooks/:id/filing`
 
 **Access:** middleware `requireNotebooks`
@@ -491,6 +503,12 @@ No request schema.
 **Access:** Signed-in user · middleware `requireNotebooksMw`
 
 No request schema.
+
+### `POST /api/studio-documents/notebooks/:id/unarchive`
+
+**Access:** middleware `requireNotebooks`
+
+**Body:** object (no other keys)
 
 ## `sheets`
 

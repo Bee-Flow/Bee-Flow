@@ -1,5 +1,6 @@
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { exportErrorText } from './useNotebookExports';
+import useNotebookExports, { exportErrorText, type ExportDeps } from './useNotebookExports';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 // A translator that marks what it translated, so the test can see which path ran.
@@ -35,5 +36,37 @@ describe('exportErrorText', () => {
             .toBe('[notebooks.export_error_ref] {message} (ref: {ref})');
         expect(t).toHaveBeenLastCalledWith('notebooks.export_error_ref', '{message} (ref: {ref})',
             { message: 'Internal server error', ref: 'abc123' });
+    });
+});
+
+describe('useNotebookExports: diagrams in every export', () => {
+    const diagram = `<p>Intro</p><div data-type="mermaid-diagram" data-code="${btoa('graph TD; A-->B')}"></div>`;
+    const apiFetch = vi.fn();
+    // Fakes through the hook's seam: no network, no Mermaid, images left as they are.
+    const deps: Partial<ExportDeps> = {
+        apiFetch: apiFetch as unknown as ExportDeps['apiFetch'],
+        embedImagesAsBase64: async (html: string) => html,
+        renderMermaidToSVG: async (code: string) => `<svg>${code}</svg>`,
+        svgToPngDataUrl: async () => 'data:image/png;base64,AAAA',
+    };
+    const sentContent = () => JSON.parse(apiFetch.mock.lastCall?.[1].init.body).content as string;
+    const setup = () => renderHook(() => useNotebookExports({ notebookId: 'nb1', title: 'Plan', getContent: () => diagram, onNotice: vi.fn(), deps })).result;
+
+    it('renders a diagram to an image before sending for signing', async () => {
+        apiFetch.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+        const result = setup();
+        await act(async () => { await result.current.handleSendForSigning({ signers: [] }); });
+        expect(apiFetch.mock.lastCall?.[0]).toBe('POST /api/notebooks/{id}/export/signrequest');
+        expect(sentContent()).toContain('<img src="data:image/png;base64,AAAA"');
+        expect(sentContent()).not.toContain('mermaid-diagram');
+    });
+
+    it('renders a diagram to an image before saving to Nextcloud', async () => {
+        apiFetch.mockResolvedValue(new Response(JSON.stringify({ path: '/Plan.pdf' }), { status: 200 }));
+        const result = setup();
+        await act(async () => { await result.current.handleNextcloudExport(); });
+        expect(apiFetch.mock.lastCall?.[0]).toBe('POST /api/notebooks/{id}/export/nextcloud');
+        expect(sentContent()).toContain('<img src="data:image/png;base64,AAAA"');
+        expect(sentContent()).not.toContain('mermaid-diagram');
     });
 });

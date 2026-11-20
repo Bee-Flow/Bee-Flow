@@ -11,8 +11,8 @@ export type SelectionKind = 'cell' | 'range' | 'rows' | 'columns';
 export type Whole = 'rows' | 'columns' | null;
 
 export const COLUMNS = 26;
-/** The server takes selections inside A1:Z{MAX_ROWS}. */
-const MAX_ROWS = 2000;
+/** The server holds cells inside A1:Z{MAX_ROWS} (server/core/documents/sheetCells.js LIMITS). */
+export const MAX_ROWS = 2000;
 /** Never show fewer rows than this, and always this many beyond the last used one. */
 export const MIN_ROWS = 50;
 export const ROWS_MARGIN = 20;

@@ -50,7 +50,7 @@ function buildListCardsQuery(userId, { limit = 50, offset = 0, type = 'notebook'
             (SELECT COALESCE(SUM(ns.word_count),0) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'ready') AS source_word_count,
             COALESCE((SELECT nc.message_count FROM notebook_conversations nc WHERE nc.notebook_id = n.id AND nc.user_id = n.user_id), 0) AS message_count
         FROM notebooks n
-        WHERE n.user_id = $1 AND n.type = $2`;
+        WHERE n.user_id = $1 AND n.type = $2 AND n.archived = false`;
     const q = String(search || '').trim();
     if (q) {
         // ILIKE wildcards in user input must match literally.

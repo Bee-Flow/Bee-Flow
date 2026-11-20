@@ -148,8 +148,34 @@ test('a copy of a project document is the copier\'s own private document, never 
     assert.deepStrictEqual(copy.categories, [], "the owner's library filing stays theirs");
     assert.deepStrictEqual(Object.keys(copy).sort(), ['bodyHtml', 'categories', 'css', 'description', 'docType', 'folderId', 'kind', 'name', 'settings', 'userId', 'visibility']);
     assert.strictEqual(copy.bodyHtml, '<p>v1</p>');
-    assert.deepStrictEqual(copy.settings.source, { documentId: 'd1', versionId: 'v1' });
+    assert.strictEqual(copy.name, 'Launch plan — copy', 'named in the copier\'s language (English here)');
+    assert.strictEqual(copy.settings.source, undefined, 'a plain copy is no update channel: it offers no "Update available"');
     assert.strictEqual(viewer.body.document.projectId, null);
+});
+
+test('only a document made from a template or a section remembers where it came from', async () => {
+    const original = structuredClone(DOC);
+    try {
+        // A document that was itself made from a template: its copy does not inherit that link.
+        DOC.settings = { source: { documentId: 'tpl0', versionId: 'tv0' } };
+        await api.call('POST', '/api/studio-documents/d1/duplicate', { user: as('owner'), body: { kind: 'document' } });
+        assert.strictEqual(calls.create[0].settings.source, undefined, 'a copy of a document');
+        await api.call('POST', '/api/studio-documents/d1/duplicate', { user: as('owner'), body: { kind: 'template' } });
+        assert.strictEqual(calls.create[1].settings.source, undefined, 'a copy saved as a template');
+
+        DOC.kind = 'template';
+        DOC.projectId = null;
+        await api.call('POST', '/api/studio-documents/d1/duplicate', { user: as('owner'), body: { kind: 'document' } });
+        assert.deepStrictEqual(calls.create[2].settings.source, { documentId: 'd1', versionId: 'v1' }, 'a document made from a template');
+        await api.call('POST', '/api/studio-documents/d1/duplicate', { user: as('owner'), body: { kind: 'template' } });
+        assert.strictEqual(calls.create[3].settings.source, undefined, 'a copy of a template is a template of its own');
+
+        DOC.kind = 'section';
+        await api.call('POST', '/api/studio-documents/d1/duplicate', { user: as('owner'), body: {} });
+        assert.deepStrictEqual(calls.create[4].settings.source, { documentId: 'd1', versionId: 'v1' }, 'a document made from a section');
+    } finally {
+        Object.assign(DOC, original);
+    }
 });
 
 test('"Save a copy as template" works on a project document: the template is not filed into the project', async () => {

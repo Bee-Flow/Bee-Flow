@@ -1,7 +1,8 @@
 // The bar above the grid: the name of the selected cell and its raw content
 // (the formula, not the result). Typing here edits the same draft as typing in
 // the cell. While a formula is being typed, the functions that match the word
-// under the cursor are offered.
+// under the cursor are offered, and in a Dutch sheet a line says that ; works
+// between arguments and that function names stay English.
 
 import React, { useMemo, useRef } from 'react';
 import useTranslation from '@/hooks/useTranslation';
@@ -13,18 +14,22 @@ export interface FormulaBarProps {
     readOnly: boolean;
     /** The edit ended with a key: give focus back to the grid. */
     onDone: () => void;
+    /** How the sheet reads typed numbers; 'nl' shows the separator hint while a formula is typed. */
+    locale?: 'nl' | 'en';
 }
 
 const MAX_HINTS = 6;
 
-export default function FormulaBar({ grid, readOnly, onDone }: FormulaBarProps) {
+export default function FormulaBar({ grid, readOnly, onDone, locale = 'en' }: FormulaBarProps) {
     const { t } = useTranslation();
     const inputRef = useRef<HTMLInputElement>(null);
     const { editing, actions } = grid;
     const value = editing ? editing.draft : grid.activeRaw;
     const functions = useMemo(() => functionNames(), []);
 
-    const word = editing && editing.draft.startsWith('=') ? /[A-Za-z][A-Za-z0-9.]*$/.exec(editing.draft)?.[0] ?? '' : '';
+    const formulaDraft = editing && editing.draft.startsWith('=') ? editing.draft : null;
+    const typingFormula = formulaDraft !== null;
+    const word = formulaDraft !== null ? /[A-Za-z][A-Za-z0-9.]*$/.exec(formulaDraft)?.[0] ?? '' : '';
     const hints = word ? functions.filter((f) => f.startsWith(word.toUpperCase()) && f !== word.toUpperCase()).slice(0, MAX_HINTS) : [];
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -57,6 +62,11 @@ export default function FormulaBar({ grid, readOnly, onDone }: FormulaBarProps) 
                     className="flex-1 min-w-0 px-2 py-1 text-[13px] font-mono rounded border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
             </div>
+            {typingFormula && locale === 'nl' && (
+                <p className="px-3 pb-1.5 m-0 text-[11px] text-[var(--text-tertiary)]" data-testid="formula-bar-separator-hint">
+                    {t('doc_formulas.separator_hint', 'Use ; or , between arguments; function names are English (SUM, AVERAGE).')}
+                </p>
+            )}
             {hints.length > 0 && (
                 <ul className="flex flex-wrap gap-1 px-3 pb-1.5 m-0 list-none" aria-label={t('spreadsheet.functions', 'Functions')}>
                     {hints.map((fn) => (

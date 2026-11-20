@@ -6,14 +6,25 @@ import { autoSumChanges, fillChanges } from './gridFill';
 import { createSelectionActions } from './gridSelection';
 import type { After, Env, GridActions } from './gridTypes';
 import { cellName } from './sheetEngine';
-import { clipToUsed, parseTsv, toTsv, type Range } from './sheetModel';
+import { MAX_ROWS, clipToUsed, parseTsv, toTsv, type Range } from './sheetModel';
 
-export type {   Env, GridActions, Latest, Ui } from './gridTypes';
+export type {   Env, GridActions, GridLimit, Latest, Ui } from './gridTypes';
 
 const STEPS: Record<After, [number, number]> = { down: [0, 1], up: [0, -1], right: [1, 0], left: [-1, 0], none: [0, 0] };
 
 function eachCell(r: Range, fn: (col: number, row: number) => void) {
     for (let row = r.r1; row <= r.r2; row++) for (let col = r.c1; col <= r.c2; col++) fn(col, row);
+}
+
+/** The part of a pasted block that fits from (c1, r1), and how many rows / columns did not. */
+export function fitPaste(grid: string[][], c1: number, r1: number, columns: number) {
+    const rows = grid.slice(0, Math.max(0, MAX_ROWS - r1));
+    const widest = grid.reduce((n, line) => Math.max(n, line.length), 0);
+    return {
+        grid: rows.map((line) => line.slice(0, Math.max(0, columns - c1))),
+        droppedRows: grid.length - rows.length,
+        droppedColumns: Math.max(0, c1 + widest - columns),
+    };
 }
 
 export function createGridActions(env: Env): GridActions {
@@ -58,19 +69,22 @@ export function createGridActions(env: Env): GridActions {
         return toTsv(out);
     };
     const paste = (text: string) => {
-        const grid = parseTsv(text);
-        if (latest.current.readOnly || !grid.length) return;
+        const pasted = parseTsv(text);
+        if (latest.current.readOnly || !pasted.length) return;
         const r = rangeNow();
+        // Rows past the last one and columns past Z would be refused by the server: left out, and said.
+        const { grid, droppedRows, droppedColumns } = fitPaste(pasted, r.c1, r.r1, latest.current.columns);
         const changes: Record<string, string> = {};
         let lastCol = r.c1;
         grid.forEach((line, i) => line.forEach((value, j) => {
             const col = r.c1 + j;
-            if (col >= latest.current.columns) return;
             lastCol = Math.max(lastCol, col);
             if (value !== rawAt(col, r.r1 + i)) changes[cellName(col, r.r1 + i)] = value;
         }));
         emit(changes);
-        setUi({ anchor: { col: r.c1, row: r.r1 }, focus: { col: lastCol, row: r.r1 + grid.length - 1 }, editing: null, whole: null });
+        if (droppedRows || droppedColumns) env.notify({ kind: 'paste', rows: droppedRows, columns: droppedColumns });
+        const lastRow = r.r1 + Math.max(grid.length, 1) - 1;
+        setUi({ anchor: { col: r.c1, row: r.r1 }, focus: { col: lastCol, row: lastRow }, editing: null, whole: null });
     };
     // Fill and AutoSum work on what holds data: whole columns / rows are cut to the used part.
     const usedRange = () => clipToUsed(rangeNow(), ui.current.whole, latest.current.usedRows, latest.current.usedCols);

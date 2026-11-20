@@ -1,5 +1,5 @@
 // The row of a designed document's own tools: parameters, sections, design
-// (or a deck's look), the customer preview and the assistant.
+// (or a deck's look), filling in values with a preview, and the assistant.
 
 import useTranslation from '@/hooks/useTranslation';
 
@@ -15,8 +15,8 @@ export interface WorkspaceTabsProps {
 export default function WorkspaceTabs({ isDeck, tab, onTab, slideCount }: WorkspaceTabsProps) {
     const { t } = useTranslation();
     const tabs: Array<[WorkspaceTab, string]> = isDeck
-        ? [['design', t('documents.tools.look', 'Look')], ['parameters', t('documents.tools.parameters', 'Parameters')], ['preview', t('documents.tools.preview', 'Customer preview')], ['assistant', t('documents.tools.assistant', 'AI assistant')]]
-        : [['parameters', t('documents.tools.parameters', 'Parameters')], ['sections', t('documents.tools.sections', 'Sections')], ['design', t('documents.tools.design', 'Design')], ['preview', t('documents.tools.preview', 'Customer preview')], ['assistant', t('documents.tools.assistant', 'AI assistant')]];
+        ? [['design', t('documents.tools.look', 'Look')], ['parameters', t('documents.tools.parameters', 'Parameters')], ['preview', t('doc_editor.tab_fill_in', 'Fill in & preview')], ['assistant', t('documents.tools.assistant', 'AI assistant')]]
+        : [['parameters', t('documents.tools.parameters', 'Parameters')], ['sections', t('documents.tools.sections', 'Sections')], ['design', t('documents.tools.design', 'Design')], ['preview', t('doc_editor.tab_fill_in', 'Fill in & preview')], ['assistant', t('documents.tools.assistant', 'AI assistant')]];
     return (
         <nav className="flex flex-wrap items-center gap-1 px-4 py-1.5 border-b border-[var(--border-subtle)]" aria-label={t('documents.tools.label', 'Document tools')}>
             {tabs.map(([key, label]) => (

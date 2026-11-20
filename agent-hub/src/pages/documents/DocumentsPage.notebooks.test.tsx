@@ -7,8 +7,9 @@ import { withQueryClient } from '../../test/queryWrapper';
  * A notebook is a document type: it is a row in the library (with its source
  * count), a type to filter on and a tile in the gallery, but only for a reader
  * the server lists notebooks for; it opens the notebook workspace in place,
- * is filed through its own route, and is deleted (never archived) after a
- * confirmation that says so.
+ * is filed through its own route, and is archived like any document (after a
+ * confirmation that says it leaves its project). Only in the Archived view is
+ * it restored or deleted for good, again after a confirmation that says so.
  */
 
 const { api, notebookApi, client } = vi.hoisted(() => ({
@@ -75,17 +76,49 @@ describe('DocumentsPage: notebooks in the library', () => {
         expect(await screen.findByTestId('notebook-stub')).toHaveTextContent('notebook nb9');
     });
 
-    it('deletes a notebook for good, only after a confirmation that says so', async () => {
-        notebookApi.mockResolvedValue({ success: true });
+    it('archives a notebook like a document, after a confirmation that says it leaves its project', async () => {
         renderPage();
         const u = userEvent.setup();
-        await u.click(await screen.findByRole('button', { name: 'Delete Market research' }));
+        const row = await screen.findByTestId('library-row-nb1');
+        // No delete for good from the live list.
+        expect(within(row).queryByRole('button', { name: 'Delete Market research for good' })).not.toBeInTheDocument();
+        await u.click(within(row).getByRole('button', { name: 'Archive Market research' }));
         const dialog = await screen.findByRole('dialog');
-        expect(dialog).toHaveTextContent('cannot be restored');
-        expect(notebookApi).not.toHaveBeenCalled();
-        await u.click(within(dialog).getByRole('button', { name: 'Delete notebook' }));
-        await waitFor(() => expect(notebookApi).toHaveBeenCalledWith('/nb1', { method: 'DELETE' }));
+        expect(dialog).toHaveTextContent('Archive this notebook?');
+        expect(dialog).toHaveTextContent('the project it is filed in');
+        expect(api.documentRequest).not.toHaveBeenCalledWith('/notebooks/nb1/archive', {}, 'POST');
+        await u.click(within(dialog).getByRole('button', { name: 'Archive' }));
+        await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/notebooks/nb1/archive', {}, 'POST'));
         expect(api.deleteDocument).not.toHaveBeenCalled();
+        expect(notebookApi).not.toHaveBeenCalled();
+    });
+
+    it('in the Archived view a notebook is restored, or deleted for good after a confirmation that says so', async () => {
+        api.listDocumentsPage.mockResolvedValue({ documents: [{ ...notebookRow, archived: true }], total: 1, people: {}, notebooks: true });
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByTestId('documents-archived-view'));
+        const row = await screen.findByTestId('library-row-nb1');
+        await u.click(within(row).getByRole('button', { name: 'Restore Market research' }));
+        await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/notebooks/nb1/unarchive', {}, 'POST'));
+        expect(api.unarchiveDocument).not.toHaveBeenCalled();
+
+        await u.click(within(row).getByRole('button', { name: 'Delete Market research for good' }));
+        const dialog = await screen.findByRole('dialog');
+        expect(dialog).toHaveTextContent('sources, its chat and its versions');
+        expect(dialog).toHaveTextContent('cannot be undone');
+        expect(api.documentRequest).not.toHaveBeenCalledWith('/notebooks/nb1', undefined, 'DELETE');
+        await u.click(within(dialog).getByRole('button', { name: 'Delete for good' }));
+        await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/notebooks/nb1', undefined, 'DELETE'));
+        expect(notebookApi).not.toHaveBeenCalled();
+    });
+
+    it('the Notebook type filters the Archived view too', async () => {
+        renderPage();
+        const u = userEvent.setup();
+        await u.click(await screen.findByTestId('documents-archived-view'));
+        await u.click(await screen.findByTestId('documents-format-filter-notebook'));
+        await waitFor(() => expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ archived: '1', docType: 'notebook' })));
     });
 
     it('files a notebook through its own route when documents are moved together', async () => {
@@ -96,7 +129,7 @@ describe('DocumentsPage: notebooks in the library', () => {
         await u.click(screen.getByRole('checkbox', { name: 'Select Offer' }));
         await u.selectOptions(screen.getByRole('combobox', { name: 'Move to folder' }), 'f1');
         await waitFor(() => expect(api.documentRequest).toHaveBeenCalledWith('/notebooks/nb1/filing', { folderId: 'f1' }, 'PATCH'));
-        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { folderId: 'f1', expectedVersionId: 'v1' }));
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('d1', { folderId: 'f1' }));
     });
 
     it('filters on the Notebook type', async () => {

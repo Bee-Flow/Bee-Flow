@@ -245,7 +245,7 @@ function makeSheetImport(deps = {}) {
                     await documents().updateDocument(doc.id, { userId }, {
                         settings: settingsWithTabs(doc.settings || {}, tabs),
                         ...(doc.versionId ? { expectedVersionId: doc.versionId } : {}),
-                    });
+                    }, { tabsChangedByServer: true });  // every tab's table was made by this import
                 } catch (e) {
                     // The document exists and owns the first table: keep it
                     // with that one tab and give the others back.

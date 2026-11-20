@@ -1,0 +1,25 @@
+{
+  "translations": {
+    "doc_editor.condition_needs_value": "Een voorwaarde kijkt naar een waarde die wordt ingevuld. Voeg er eerst een toe op het tabblad Parameters.",
+    "doc_editor.condition_pick_value": "Kies waar deze voorwaarde naar kijkt.",
+    "doc_editor.fix_marked_fields": "Nog niet opgeslagen: pas eerst de rood gemarkeerde velden aan.",
+    "doc_editor.input_needed": "Er moeten nog waarden worden ingevuld voordat het bestand gemaakt kan worden: {reason}",
+    "doc_editor.key_duplicate": "Deze sleutel wordt al gebruikt. Kies een andere.",
+    "doc_editor.key_missing": "Geef een sleutel op: de korte naam die in het document staat, zoals klant_naam.",
+    "doc_editor.key_unsafe": "Gebruik alleen letters, cijfers, _ . en -, en begin met een letter, een cijfer of _.",
+    "doc_editor.leave_without_saving": "Verlaten zonder opslaan",
+    "doc_editor.read_only_managed": "Dit document komt uit een Solution, dus je past het daar aan en niet hier.",
+    "doc_editor.read_only_other": "Je kunt dit document lezen, maar niet aanpassen.",
+    "doc_editor.read_only_shared": "Dit document is met je gedeeld om te lezen. Alleen de eigenaar, of iemand die het van hen mag bewerken, kan het aanpassen.",
+    "doc_editor.recovered_name": "{name} (hersteld)",
+    "doc_editor.rename_conflict": "Naam wijzigen mislukt: het document is intussen veranderd. Probeer het opnieuw.",
+    "doc_editor.rename_failed": "Naam wijzigen mislukt: {reason}",
+    "doc_editor.stale_not_applied": "Er is niets toegepast: het document is veranderd nadat deze wijzigingen zijn voorbereid, en je nieuwere werk blijft bewaard. Bekijk de huidige versie en probeer het opnieuw.",
+    "doc_editor.stay": "Blijven",
+    "doc_editor.switch_without_saving": "Doorgaan zonder opslaan",
+    "doc_editor.tab_fill_in": "Invullen & voorbeeld",
+    "doc_editor.unsaved_reason": "De reden: {reason}",
+    "doc_editor.unsaved_title": "Je laatste wijzigingen konden niet worden opgeslagen"
+  },
+  "sameAsEnglish": []
+}

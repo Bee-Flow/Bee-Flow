@@ -60,7 +60,7 @@ async function previewHtml(doc: StudioDoc, app: AppLike): Promise<string> {
 
 /** Every tab's raw cells and what each cell shows (formulas computed across tabs). */
 async function readSheet(doc: StudioDoc): Promise<SheetSide> {
-    const { sheetTabsOf } = nodeRequire('../../stores/lib/sheetDocument.js');
+    const { sheetTabsOf, sheetLocaleOf } = nodeRequire('../../stores/lib/sheetDocument.js');
     const cells = nodeRequire('../../core/documents/sheetCells.js');
     const { evaluateSheet } = nodeRequire('../../shared/expr/sheet.mjs');
     const tabs = (sheetTabsOf(doc) as Array<{ name: string; datatableId: string }>).slice(0, appDocumentLimits().sheetTabs);
@@ -68,7 +68,7 @@ async function readSheet(doc: StudioDoc): Promise<SheetSide> {
     for (const t of tabs) workbook[t.name] = (await cells.readSheet(doc.userId, t.datatableId)).cells || {};
     return {
         tabs: tabs.map((t) => {
-            const shown = evaluateSheet(workbook[t.name], { workbook, activeSheet: t.name }) as Record<string, { display?: string }>;
+            const shown = evaluateSheet(workbook[t.name], { workbook, activeSheet: t.name, locale: sheetLocaleOf(doc) }) as Record<string, { display?: string }>;
             const display: Record<string, string> = {};
             for (const [name, r] of Object.entries(shown)) if (r && r.display) display[name] = String(r.display);
             return { name: t.name, cells: workbook[t.name], display };

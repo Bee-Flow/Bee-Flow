@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, ArrowRight } from 'lucide-react';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * Renders a clickable card for /app/studio/documents/:id links inside chat
@@ -26,6 +27,7 @@ export function extractDocumentId(href: unknown): string | null {
 }
 
 export default function DocumentLinkCard({ href, label }: { href: string; label?: string }) {
+    const { t } = useTranslation();
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         const id = extractDocumentId(href);
@@ -55,7 +57,7 @@ export default function DocumentLinkCard({ href, label }: { href: string; label?
             >
                 <FileText size={14} color="white" />
             </div>
-            <span className="flex-1 text-sm font-medium truncate">{label || 'Open document'}</span>
+            <span className="flex-1 text-sm font-medium truncate">{label || t('doc_library.open_document', 'Open document')}</span>
             <ArrowRight size={13} className="[color:var(--text-tertiary)] [flex-shrink:0]" />
         </button>
     );

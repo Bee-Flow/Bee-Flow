@@ -1,6 +1,7 @@
-// A document's type, and a person, as the library and the project tables say them.
+// A document's type, its sharing, a person, and what this reader can make, as
+// the library and the project tables say them.
 
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { readingLocale } from '@/hooks/useTranslation';
 import type { People } from '../documentQueries';
 
 export function useDocTypeLabel() {
@@ -16,8 +17,45 @@ export function useDocTypeLabel() {
             case 'letter': return t('documents.type.letter', 'Letter');
             case 'report': return t('documents.type.report', 'Report');
             case 'security': return t('documents.type.security', 'Security statement');
-            default: return t('documents.type.document', 'Document');
+            // A laid-out document with fields filled in per customer (the gallery's "Blank customer document").
+            default: return t('doc_gallery.type_customer', 'Customer document');
         }
+    };
+}
+
+/**
+ * How a row is shared. `audience` is the sharing the server stored
+ * ('restricted': some people or groups; 'organisation': everyone); a row that
+ * carries only `visibility: 'team'` is shared without saying with whom.
+ */
+interface SharedRow { visibility?: string; audience?: string }
+
+/** "Shared", "Organisation", or null for a private document. */
+export function useVisibilityLabel() {
+    const { t } = useTranslation();
+    return (row: SharedRow): string | null => {
+        if (row.audience === 'organisation') return t('doc_gallery.visibility_organisation', 'Organisation');
+        if (row.audience === 'restricted' || row.visibility === 'team') return t('doc_gallery.visibility_shared', 'Shared');
+        return null;
+    };
+}
+
+/** The library's one-line intro, naming only the types this reader can make. */
+export function useLibraryTypesText() {
+    const { t, locale, strings } = useTranslation();
+    // British English, as the rest of the product: "a, b and c", no serial comma.
+    const reading = readingLocale(locale, strings, ['doc_gallery.subtitle']);
+    const listLocale = reading === 'en' ? 'en-GB' : reading;
+    return ({ notebooks, spreadsheets }: { notebooks: boolean; spreadsheets: boolean }): string => {
+        const types = [
+            t('doc_gallery.subtitle_pages', 'pages'),
+            ...(notebooks ? [t('doc_gallery.subtitle_notebooks', 'notebooks')] : []),
+            ...(spreadsheets ? [t('doc_gallery.subtitle_spreadsheets', 'spreadsheets')] : []),
+            t('doc_gallery.subtitle_customer', 'customer documents'),
+            t('doc_gallery.subtitle_presentations', 'presentations'),
+        ];
+        const list = new Intl.ListFormat(listLocale, { style: 'long', type: 'conjunction' }).format(types);
+        return t('doc_gallery.subtitle', 'Make {types} here, on your own or together.', { types: list });
     };
 }
 

@@ -10,7 +10,10 @@ const doc = { ...starters().find(s => s.id === 'security'), id:'security', userI
 // A presentation beside the page: its body is an outline, its look settings.deck.
 const deck = { id:'deck', userId:'owner', versionId:'v1', kind:'document', docType:'presentation', name:'Kick-off',
     bodyHtml:'# Kick-off {{customer.name}}\n\n## Goals\n- a\n- b\n\n## Thanks\n<!-- layout: closing -->\nSee you', css:'', settings:{ deck:{ preset:'dark' }, sampleValues:{ customer:{ name:'ACME' } } } };
-const byId = { [doc.id]: doc, [deck.id]: deck };
+// A template keeps no sample values; its download asks for placeholders instead.
+const offer = { id:'offer', userId:'owner', versionId:'v1', kind:'template', docType:'designed', name:'Offer', bodyHtml:'<p>{{customer}}</p>', css:'',
+    settings:{ contract:{ parameters:[{ key:'customer', label:'Customer name', type:'text', required:true }] } } };
+const byId = { [doc.id]: doc, [deck.id]: deck, [offer.id]: offer };
 let renderCalls = [];
 let rendererUnavailable = false;
 let requestedVersion;
@@ -21,6 +24,7 @@ const restore = installResolveStub({
     },
     '../stores/documentStore': {
         MAX_HTML_BYTES: 512 * 1024,
+        isFilingOnly:(updates)=>Object.keys(updates || {}).every(k=>k==='folderId' || k==='categories'),
         getDocument:async(id,user)=>byId[id] && user === byId[id].userId ? structuredClone(byId[id]) : null,
         getDocumentVersion:async(id,user,version)=>{requestedVersion=version;return byId[id] && user===byId[id].userId && version==='v1'?structuredClone(byId[id]):null;},
     },
@@ -29,8 +33,9 @@ const restore = installResolveStub({
     '../core/documents/documentHouseStyle': { deckThemeFor: async (_org, { overrides } = {}) => require('../core/documents/deckThemeOptions').resolveDeckTheme(null, null, require('../core/documents/deckThemeOptions').normaliseDeckOverrides(overrides)) },
     '../core/documents/renderFilledDocument': {
         houseStyleCssFor:async()=>'',
-        renderFilledDocument:async({document,values,sectionOverrides,format})=>{
-            renderCalls.push({ id: document.id, format });
+        renderFilledDocument:async({document,values,sectionOverrides,format,placeholders})=>{
+            renderCalls.push({ id: document.id, format, ...(placeholders ? { placeholders } : {}) });
+            if (placeholders) return {buffer:Buffer.from('%PDF-template'),contentType:'application/pdf',extension:'pdf'};
             const fill=prepareDocument(document,values,sectionOverrides);assertFinal(fill);
             if(rendererUnavailable)throw Object.assign(new Error('Styled PDF rendering is unavailable. Please retry.'),{status:503,errorClass:'document_renderer_unavailable'});
             if (document.docType === 'presentation' && format !== 'pdf') return {buffer:Buffer.from('PK-'+fill.bodyHtml),contentType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',extension:'pptx'};
@@ -111,4 +116,13 @@ test('the customer preview of a presentation fills the outline into the viewer',
     const res=await dispatch('POST','/deck/validate',{body:{values:{customer:{name:'Van Dijk'}}}});
     assert.equal(res.statusCode,200);assert.equal(res.body.valid,true);
     assert.match(res.body.html,/Kick-off Van Dijk/);assert.match(res.body.html,/class="deck-frame"/);
+});
+
+test('a template downloads with its gaps shown; a document is not asked for placeholders', async () => {
+    renderCalls = [];
+    const res = await dispatch('GET', '/offer/pdf');
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    doc.settings.sampleValues = { ...base, remoteAccess: false, cloudServices: false };
+    await dispatch('GET', '/security/pdf');
+    assert.deepEqual(renderCalls.map((c) => [c.id, c.placeholders === true]), [['offer', true], ['security', false]]);
 });

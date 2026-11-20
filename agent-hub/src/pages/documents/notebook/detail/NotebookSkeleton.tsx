@@ -62,7 +62,7 @@ export function NotebookLoadError({ status, message, onBack, onRetry }: { status
                 </h2>
                 <p className="m-0 text-[13px] text-[var(--text-secondary)]">
                     {missing
-                        ? t('notebooks.not_found_body', 'It may have been deleted, or it is no longer shared with you.')
+                        ? t('doc_archive.notebook_not_found_body', 'It may have been archived or deleted, or it is no longer shared with you.')
                         : (message || t('notebooks.load_failed_body', 'Check your connection and try again.'))}
                 </p>
                 <div className="flex justify-center gap-2 pt-1">

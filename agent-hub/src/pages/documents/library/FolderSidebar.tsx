@@ -57,7 +57,14 @@ export default function FolderSidebar({ folders, folderId, onFolder, onCreate, o
                 confirmLabel={t('documents.library.delete_folder_confirm', 'Delete folder')}
                 cancelLabel={t('documents.cancel', 'Cancel')}
                 destructive
-                onConfirm={async () => { const f = confirming; if (!f) return; await onDelete(f).catch(() => undefined); setConfirming(null); onFolder(f.parentId || ''); }}
+                onConfirm={async () => {
+                    const f = confirming;
+                    if (!f) return;
+                    // Only a folder that is gone is left; a refused delete stays where it is (the page says why).
+                    const deleted = await onDelete(f).then(() => true, () => false);
+                    setConfirming(null);
+                    if (deleted) onFolder(f.parentId || '');
+                }}
                 onCancel={() => setConfirming(null)}
             />
         </aside>

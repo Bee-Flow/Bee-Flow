@@ -1,0 +1,26 @@
+// @typecheck strict
+// English GUI defaults — namespace "doc_editor": every key whose part before the first "." is "doc_editor".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    "doc_editor.condition_needs_value": "A condition checks a value that gets filled in. Add one on the Parameters tab first.",
+    "doc_editor.condition_pick_value": "Choose what this condition checks.",
+    "doc_editor.fix_marked_fields": "Not saved yet: fix the fields marked in red first.",
+    "doc_editor.input_needed": "Some values still have to be filled in before the file can be made: {reason}",
+    "doc_editor.key_duplicate": "Another item already uses this key. Choose a different one.",
+    "doc_editor.key_missing": "Give it a key: the short name used in the document, like customer_name.",
+    "doc_editor.key_unsafe": "Use only letters, digits, _ . and -, and start with a letter, a digit or _.",
+    "doc_editor.leave_without_saving": "Leave without saving",
+    "doc_editor.read_only_managed": "This document comes from a Solution, so it is changed there and not here.",
+    "doc_editor.read_only_other": "You can read this document, but you cannot change it.",
+    "doc_editor.read_only_shared": "This document was shared with you to read. Only its owner, or someone they let edit it, can change it.",
+    "doc_editor.recovered_name": "{name} (recovered)",
+    "doc_editor.rename_conflict": "Rename failed: the document changed meanwhile. Try again.",
+    "doc_editor.rename_failed": "Rename failed: {reason}",
+    "doc_editor.stale_not_applied": "Nothing was applied: the document changed after these changes were prepared, and your newer work is kept. Look at the current version and try again.",
+    "doc_editor.stay": "Stay",
+    "doc_editor.switch_without_saving": "Continue without saving",
+    "doc_editor.tab_fill_in": "Fill in & preview",
+    "doc_editor.unsaved_reason": "The reason: {reason}",
+    "doc_editor.unsaved_title": "Your latest changes could not be saved",
+};

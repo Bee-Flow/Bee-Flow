@@ -64,3 +64,11 @@ test('only spreadsheets, and a storage that is off is explained', async () => {
     const off = await downloadSheetDocument(doc, {}, { userId: 'u' }, { ...deps, storage: { ...storage, isAvailable: () => false } });
     assert.match(off.error, /storage is not available/);
 });
+
+test('csv of a Dutch sheet computes numbers typed the Dutch way', async () => {
+    uploads.length = 0;
+    const dutch = { ...doc, settings: { sheet: { tabs: [{ id: 't9', name: 'NL', datatableId: 'dt9' }], locale: 'nl' } } };
+    const nlCells = { async readSheet() { return { cells: { A1: '1,5', A2: '=A1*2' }, rows: 2 }; } };
+    await downloadSheetDocument(dutch, { format: 'csv' }, { userId: 'viewer1' }, { ...deps, cells: nlCells });
+    assert.strictEqual(uploads[0].buffer.toString('utf8').replace(/^﻿/, ''), '"1,5"\r\n3\r\n');
+});

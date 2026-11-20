@@ -11,8 +11,8 @@
  * from end users, so every input is bounded (see the LIMITS below).
  *
  * Raw cell input is a string. `=...` is a formula; otherwise '' is empty, a
- * numeric literal is a number, TRUE/FALSE (any case) is a boolean, anything
- * else is text.
+ * number is a number (`options.locale` 'nl' also reads 1,5 / € 10 / 10%, see
+ * sheetValues.mjs), TRUE/FALSE (any case) is a boolean, anything else is text.
  *
  * Grammar (function names and TRUE/FALSE are case-insensitive):
  *   comparison     := concat (('='|'<>'|'<'|'>'|'<='|'>=') concat)*
@@ -23,7 +23,7 @@
  *   unary          := ('-'|'+') unary | postfix  so =-2^2 is 4, like Excel
  *   postfix        := primary '%'*               percent divides by 100
  *   primary        := number | "string" | TRUE | FALSE | cell | range
- *                   | FUNC '(' (comparison (',' comparison)*)? ')'
+ *                   | FUNC '(' (comparison ((','|';') comparison)*)? ')'
  *                   | '(' comparison ')'
  * A range is only meaningful as a function argument; anywhere else it is #VALUE!.
  *
@@ -42,6 +42,7 @@
  * @module sheet
  */
 import { EXCEL_EPOCH, isoDateSerial, makeSerial, serialParts } from './sheetDates.mjs';
+import { numericText, readConstant } from './sheetValues.mjs';
 
 /** Longest formula body we parse (characters, without the leading '='). */
 const MAX_FORMULA_LENGTH = 2000;
@@ -159,41 +160,29 @@ export function isFormula(raw) {
     return typeof raw === 'string' && raw.charCodeAt(0) === 61;
 }
 
+/**
+ * A formula with every `;` between arguments written as `,` (what Excel stores);
+ * string literals and non-formula input are left alone.
+ * @param {string} raw
+ * @returns {string}
+ */
+export function canonicalFormula(raw) {
+    if (!isFormula(raw) || !raw.includes(';')) return raw;
+    let out = '';
+    let inString = false;
+    for (const ch of raw) {
+        if (ch === '"') inString = !inString;
+        out += ch === ';' && !inString ? ',' : ch;
+    }
+    return out;
+}
+
 // ---------------------------------------------------------------------------
 // Values and coercion
 // ---------------------------------------------------------------------------
 
-const NUMERIC_RE = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
-
-/**
- * Number from text, or null when the text is not a (finite) numeric literal.
- * @param {string} s
- * @returns {number|null}
- */
-function numericText(s) {
-    const t = s.trim();
-    if (!NUMERIC_RE.test(t)) return null;
-    const n = Number(t);
-    return Number.isFinite(n) ? n : null;
-}
-
 /** A number for a comparison criterion: numeric text, or an ISO date's serial (sheetDates.mjs). */
 const numberOrDate = (s) => numericText(s) ?? isoDateSerial(s);
-
-/**
- * Interpret raw non-formula input.
- * @param {string} raw
- * @returns {number|string|boolean|null}
- */
-function classifyConstant(raw) {
-    if (raw === '') return null;
-    const n = numericText(raw);
-    if (n !== null) return n;
-    const up = raw.trim().toUpperCase();
-    if (up === 'TRUE') return true;
-    if (up === 'FALSE') return false;
-    return raw;
-}
 
 /**
  * Render a value for display: numbers with up to 10 decimals (trailing zeros
@@ -334,7 +323,8 @@ function tokenize(src) {
         }
         const two = src.slice(i, i + 2);
         if (two === '<>' || two === '<=' || two === '>=') { toks.push({ t: 'op', v: two }); i += 2; continue; }
-        if ('+-*/^&=<>(),:%!'.includes(ch)) { toks.push({ t: 'op', v: ch }); i++; continue; }
+        // `;` separates arguments like `,` (how Dutch Excel writes them); a string literal never gets here.
+        if ('+-*/^&=<>(),:%!;'.includes(ch)) { toks.push({ t: 'op', v: ch === ';' ? ',' : ch }); i++; continue; }
         throw fail(E_ERROR);
     }
     return toks;
@@ -504,7 +494,7 @@ function rawString(raw) {
  * Evaluate the given targets (all cells when omitted) of a sheet.
  * @param {Record<string,unknown>} cells
  * @param {string[]|null} targets normalised names to resolve
- * @returns {{done: Map<string,{value:any,error:string|null}>, order: string[]}}
+ * @returns {{done: Map<string,{value:any,error:string|null,shown?:string}>, order: string[]}}
  */
 function run(cells, targets, options = {}) {
     const now = options.now ? new Date(options.now) : new Date();
@@ -513,7 +503,7 @@ function run(cells, targets, options = {}) {
 
     /** @type {Map<string,string>} active-sheet names unqualified, others `Sheet!A1` -> raw */
     const raws = new Map();
-    /** @type {Map<string,{value:any,error:string|null}>} finished cells */
+    /** @type {Map<string,{value:any,error:string|null,shown?:string}>} finished cells */
     const done = new Map();
     /** @type {Set<string>} formula cells still to compute */
     const formulas = new Set();
@@ -547,7 +537,7 @@ function run(cells, targets, options = {}) {
             positions.push({ name, col: ref.col, row: ref.row });
             order.push(name);
             if (isFormula(s)) formulas.add(q);
-            else done.set(q, { value: classifyConstant(s), error: null });
+            else done.set(q, readConstant(s, options.locale));
         }
         positions.sort((p, q) => p.row - q.row || p.col - q.col);
         sheets.set(sheetName, { byPos, positions, order });
@@ -1096,7 +1086,7 @@ export function evaluateSheet(cells, options = {}) {
     const out = {};
     for (const name of order) {
         const r = done.get(name);
-        out[name] = { value: r.value, error: r.error, display: formatValue(r.value, r.error) };
+        out[name] = { value: r.value, error: r.error, display: r.shown ?? formatValue(r.value, r.error) };
     }
     return out;
 }
@@ -1114,7 +1104,7 @@ export function evaluateCell(cells, name, options = {}) {
     const { done } = run(cells, [key], options);
     const r = done.get(key);
     return r
-        ? { value: r.value, error: r.error, display: formatValue(r.value, r.error) }
+        ? { value: r.value, error: r.error, display: r.shown ?? formatValue(r.value, r.error) }
         : { value: null, error: null, display: '' };
 }
 

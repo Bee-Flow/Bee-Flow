@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { sheetTabsOf, newTabId, settingsWithTabs } = require('../stores/lib/sheetDocument');
+const { sheetTabsOf, newTabId, settingsWithTabs, sheetLocaleOf } = require('../stores/lib/sheetDocument');
 
 /** Cells per document_write call; the store takes 500 at a time, so a call is written in chunks. */
 const MAX_CELLS_PER_CALL = 5000;
@@ -47,17 +47,19 @@ function pickTab(doc, wanted) {
 }
 
 /**
- * Evaluation options for a tab whose formulas point at other tabs
- * (`Klanten!A1`): those tabs' typed cells by name (core/documents/sheetWorkbook.js).
- * @param {{ userId: string; }} doc
+ * Evaluation options for a tab: how the sheet reads typed numbers (its
+ * locale), and when its formulas point at other tabs (`Klanten!A1`), those
+ * tabs' typed cells by name (core/documents/sheetWorkbook.js).
+ * @param {{ userId: string; settings?: any }} doc
  * @param {{ tabs: any[], tab: any }} picked
  * @param {Record<string, string>} cells  the read tab's cells
  * @param {SheetCellsReader} sheetCells
  */
 async function workbookFor(doc, picked, cells, sheetCells) {
+    const locale = sheetLocaleOf(doc);
     const refTabs = await require('../core/documents/sheetWorkbook').readReferencedTabs(doc, picked.tabs, picked.tab.id, cells, sheetCells);
-    if (!Object.keys(refTabs).length) return undefined;
-    return { workbook: { ...refTabs, [picked.tab.name]: cells }, activeSheet: picked.tab.name };
+    if (!Object.keys(refTabs).length) return { locale };
+    return { workbook: { ...refTabs, [picked.tab.name]: cells }, activeSheet: picked.tab.name, locale };
 }
 
 /**
@@ -83,7 +85,7 @@ async function addTab(doc, name, deps) {
         updated = await documents.updateDocument(doc.id, deps.actorUserId || doc.userId, {
             settings: settingsWithTabs(doc.settings, nextTabs),
             expectedVersionId: doc.versionId,
-        });
+        }, { tabsChangedByServer: true });  // the new tab's table was made just above
     } catch (e) {
         // A refusal the model can act on (no right to change it, a conflict) comes back as text.
         if (!(e && Number(e.status) >= 400 && Number(e.status) < 500)) throw e;

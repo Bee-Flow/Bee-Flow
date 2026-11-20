@@ -19,7 +19,7 @@ import type { NotebookEditorHandle } from './notebook/detail/editorHandle';
 import ConflictDialog from './editor/ConflictDialog';
 import DocumentSidePanels from './editor/DocumentSidePanels';
 import type { SidePanel } from './editor/DesignedToolbar';
-import EditorNotices from './editor/EditorNotices';
+import EditorNotices, { readOnlyReasonOf } from './editor/EditorNotices';
 import EditorStatusBar from './editor/EditorStatusBar';
 import PageToolbar from './editor/PageToolbar';
 import usePageDocument from './editor/usePageDocument';
@@ -52,7 +52,7 @@ function PageNotices({ p, onOpenConflict, onOpenHistory }: { p: ReturnType<typeo
     return (
         <>
             <EditorNotices
-                readOnly={p.readOnly} error={p.error} onDismissError={p.clearError}
+                readOnly={p.readOnly} readOnlyReason={readOnlyReasonOf(p.doc)} error={p.error} onDismissError={p.clearError}
                 draft={p.draft} onRestoreDraft={() => { p.restoreDraft().catch(() => undefined); }} onCompareDraft={compare} onDiscardDraft={p.discardDraft}
                 conflict={!!p.autosave.conflict} onOpenConflict={onOpenConflict} sharing={null}
                 merged={p.mergedUnseen} onShowMerged={() => { p.showLatest().catch(() => undefined); }} onDismissMerged={p.dismissMerged}

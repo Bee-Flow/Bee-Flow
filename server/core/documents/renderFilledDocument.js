@@ -30,27 +30,72 @@ const { prepareDocument, assertFinal } = require('./documentContract');
 const houseStyle = require('./documentHouseStyle');
 
 /**
+ * The two dependencies a test replaces (`_setDepsForTests`) so a render runs
+ * without Chromium or a database: the PDF renderer and the house-style read.
+ * The composer and the deck renderer are feature modules, which a test swaps
+ * through core/featureModules. null means the real modules.
+ * @typedef {{ renderStyledHtmlToPdf?: typeof import('./render/documentRenderer').renderStyledHtmlToPdf,
+ *   getHouseStyle?: typeof houseStyle.getHouseStyle }} RenderDeps
+ * @type {RenderDeps | null}
+ */
+let depsOverride = null;
+
+/** @param {RenderDeps | null} [over]  null puts the real modules back */
+function _setDepsForTests(over = null) {
+    depsOverride = over;
+}
+
+/**
+ * What the house-style lookup reads of a document.
+ * @typedef {{ docType?: string | null, organizationId?: string | null,
+ *   settings?: { houseStyle?: unknown, resolvedHouseStyleCss?: unknown } | null } | null | undefined} HouseStyleDoc
+ */
+
+/**
+ * The copy of the house style the document last saw on save, or null.
+ * @param {HouseStyleDoc} doc
+ */
+function storedHouseStyleCss(doc) {
+    const css = doc?.settings?.resolvedHouseStyleCss;
+    return typeof css === 'string' ? css : null;
+}
+
+/**
  * The CSS layer a document wears, or ''.
  *
  * `settings.houseStyle === false` is the opt-out, and it is checked STRICTLY:
  * an absent key means "nobody decided", which is the default ON — a document
  * made before the letterhead existed must not lose it by having no opinion.
  *
- * A failed lookup is actionable: freezing an empty style after a transient
- * failure would permanently change a reviewed document's printed layout.
- * @param {string} orgId
+ * CURRENT, NOT FROZEN. A document that uses the house style follows the
+ * organisation's house style as it is NOW, read at render time, exactly like a
+ * presentation's deck theme: change the letterhead and every document, page,
+ * preview, download, automation PDF and app render follows it.
+ * `getHouseStyle` keeps a short per-org cache, the same one the deck path
+ * reads, so this is not a query per render.
+ *
+ * `settings.resolvedHouseStyleCss` (written on save by stores/documentStore.js)
+ * is the style the document last saw. It is read ONLY when there is no
+ * organisation to ask (neither the caller nor the document names one) or the
+ * read itself fails. It is NOT used when the organisation switched its house
+ * style off: the documents follow that too, as decks do, or "I turned the
+ * letterhead off" would leave the old logo on every older document.
+ * @param {HouseStyleDoc} doc
+ * @param {string | null | undefined} orgId  the caller's organisation; the document's own when absent
  */
 async function houseStyleCssFor(doc, orgId) {
     if (doc?.settings?.houseStyle === false) return '';
     // A presentation wears the house style as a resolved deck THEME at render
-    // time (core/documents/deckDocument.js), never as a CSS layer; there is
-    // nothing to freeze on it.
+    // time (core/documents/deckDocument.js), never as a CSS layer.
     if (doc?.docType === 'presentation') return '';
-    if (typeof doc?.settings?.resolvedHouseStyleCss === 'string') return doc.settings.resolvedHouseStyleCss;
-    if (!orgId) return '';
+    const stored = storedHouseStyleCss(doc);
+    const org = orgId || doc?.organizationId || null;
+    if (!org) return stored ?? '';
     try {
-        return houseStyle.houseStyleCss(await houseStyle.getHouseStyle(orgId));
+        const getHouseStyle = depsOverride?.getHouseStyle || houseStyle.getHouseStyle;
+        return houseStyle.houseStyleCss(await getHouseStyle(org));
     } catch (e) {
+        if (stored !== null) return stored;
         throw Object.assign(new Error('Document house styling is unavailable. Please retry.'), {
             status: 503, errorClass: 'document_style_unavailable', cause: e,
         });
@@ -62,9 +107,11 @@ async function houseStyleCssFor(doc, orgId) {
  *
  * @param {{ document: import('../../stores/documentStore').DocumentView, values?: Record<string, unknown>, orgId?: string | null,
  *   marking?: import('./render/documentRenderer').AiMarking | null, sectionOverrides?: Record<string, any>, format?: 'pptx'|'pdf'|'html'|null,
- *   resolveImage?: ((ref: unknown) => Promise<string|null>) | null }} args  `document` is a documentStore
+ *   resolveImage?: ((ref: unknown) => Promise<string|null>) | null, placeholders?: boolean }} args  `document` is a documentStore
  *   document (both slots); `values` the run's data for the placeholders; `orgId` whose letterhead applies;
- *   `marking` the resolved AI-content marking, or null; `format` a presentation's output format
+ *   `marking` the resolved AI-content marking, or null; `format` a presentation's output format;
+ *   `placeholders` prints a value nobody gave as its label in brackets instead of refusing (the
+ *   editor's download of a TEMPLATE only, core/documents/templatePlaceholders.mts)
  * @returns {Promise<{buffer: Buffer, contentType: string, degraded: boolean,
  *                    marking: any|null, fill: any, empty?: boolean, extension?: string}>}
  *
@@ -73,7 +120,7 @@ async function houseStyleCssFor(doc, orgId) {
  * than being logged here, because only the caller knows where a person will
  * read it: a run log line, a step output, a toast.
  */
-async function renderFilledDocument({ document: doc, values = {}, orgId = null, marking = null, sectionOverrides = {}, format = null, resolveImage = null }) {
+async function renderFilledDocument({ document: doc, values = {}, orgId = null, marking = null, sectionOverrides = {}, format = null, resolveImage = null, placeholders = false }) {
     if (!doc || typeof doc !== 'object') {
         throw Object.assign(new Error('There is no document to render.'), { errorClass: 'document_missing' });
     }
@@ -84,12 +131,14 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
     if (doc.docType === 'presentation') {
         const { renderDeckDocument } = require('./deckDocument');
         const out = await renderDeckDocument({
-            document: doc, values, sectionOverrides, orgId, marking, resolveImage,
+            document: doc, values, sectionOverrides, orgId, marking, resolveImage, placeholders,
             format: format === 'pdf' ? 'pdf' : 'pptx',
         });
         return { ...out, extension: out.format === 'pdf' ? 'pdf' : 'pptx' };
     }
-    const fill = prepareDocument(doc, values, sectionOverrides);
+    const fill = placeholders
+        ? require('./templatePlaceholders.mts').prepareTemplateForDownload(doc, values, sectionOverrides)
+        : prepareDocument(doc, values, sectionOverrides);
     assertFinal(fill);
 
     // An empty template renders an empty page — a PDF nobody wants and every
@@ -104,7 +153,7 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
     }
 
     const { composeDocument } = featureModule('services/documentCompose');
-    const { renderStyledHtmlToPdf } = require('./render/documentRenderer');
+    const renderStyledHtmlToPdf = depsOverride?.renderStyledHtmlToPdf || require('./render/documentRenderer').renderStyledHtmlToPdf;
 
     // A page has no stylesheet of its own; it prints with the page sheet
     // (core/documents/pageDocument.js) under the same house style.
@@ -138,4 +187,4 @@ function documentFileName(raw, fallback = 'document', extension = 'pdf') {
     return `${(cleaned || fallback).replace(new RegExp(`\\.${ext}$`, 'i'), '')}.${ext}`;
 }
 
-module.exports = { renderFilledDocument, houseStyleCssFor, documentFileName };
+module.exports = { renderFilledDocument, houseStyleCssFor, documentFileName, _setDepsForTests };

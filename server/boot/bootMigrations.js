@@ -291,10 +291,10 @@ const NL_TRANSLATIONS = [
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
     'update-nl-learn-action-limits-2026-11', // App actions lesson quiz: the corrected step, nesting and action limits (old shipped text only)
     'update-nl-admin-dashboard-2026-11', // Admin dashboard round: provider-neutral AI configuration texts, the context lesson's model example and the relabelled admin panels; data in data/admin-dashboard-2026-11/*.json (old shipped text only)
+    'update-nl-document-sharing-2026-11', // Document sharing dialog: recipients read or also edit, as the English says (old shipped text only)
     // After every catalogue file above: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
-    // Dutch for new namespaces, one data file per namespace (i18n/defaults/nl/<namespace>.json): a new
-    // namespace adds a file there and no line here. Its checksum covers those files (migrationChecksum.js).
+    // Dutch for new namespaces (i18n/defaults/nl/<namespace>.json): no line here; its checksum covers those files.
     'add-nl-namespace-files',
 ];
 

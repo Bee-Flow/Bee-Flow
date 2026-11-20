@@ -180,8 +180,10 @@ const initDB = makeStoreInit('DocumentStore', async () => { // stepwise: a boot 
     if (ddl.failures.length > 0) {
         throw new Error(`${ddl.failures.length} document migration(s) failed; retrying on the next call`);
     }
-    // Complete legacy history and freeze branding during migration, before an
-    // organization can change it. Later reads must never mutate a pinned version.
+    // Complete legacy history during migration. Later reads must never mutate a
+    // pinned version. resolvedHouseStyleCss records the house style a version
+    // saw; renders read the organisation's current one and use this copy only
+    // as a fallback (core/documents/renderFilledDocument.js houseStyleCssFor).
     let afterId = '';
     for (;;) {
         const revisions = await getAll(`SELECT v.id, v.body_html, v.css, v.snapshot,
@@ -258,8 +260,12 @@ function metadata(input) {
     if (normaliseType(input.docType) === SHEET_DOC_TYPE) applySheetRules(input, failure);
     const cap = isDeck ? MAX_DECK_SETTINGS_BYTES : MAX_SETTINGS_BYTES;
     if (Buffer.byteLength(JSON.stringify(input.settings || {})) > cap) throw failure(`Document settings exceed ${Math.round(cap / 1024)} KB`);
-    input.categories = [...new Set((Array.isArray(input.categories) ? input.categories : []).map(x => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30);
+    input.categories = normaliseCategories(input.categories);
     return input;
+}
+/** At most 30 distinct, trimmed categories of at most 80 characters. */
+function normaliseCategories(list) {
+    return [...new Set((Array.isArray(list) ? list : []).map(x => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30);
 }
 /**
  * Create a document. `input.projectId` files it into a project at birth; the
@@ -297,7 +303,7 @@ async function createDocument(input) {
     const doc = { id, userId: d.userId, organizationId: org, name: d.name || 'Untitled document',
         docType, description: d.description || '',
         bodyHtml: isPage ? sanitizePageBody(d.bodyHtml) : (d.bodyHtml || ''), css: isPage ? '' : (d.css || ''),
-        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure), kind: d.kind || 'document', visibility: d.visibility || 'private',
+        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure, { tabName: input.sheetTabName, locale: input.sheetLocale }), kind: d.kind || 'document', visibility: d.visibility || 'private',
         folderId: d.folderId || null, categories: d.categories, versionId, baselineVersionId: versionId };
     doc.settings = { ...doc.settings, resolvedHouseStyleCss: await require('../core/documents/renderFilledDocument').houseStyleCssFor(doc,org) };
     return withTransaction(async client => {
@@ -325,7 +331,7 @@ function accessSql(alias = 'd', write = false) {
 // answers them, so the two halves of the library UNION line up.
 const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, ${visibilitySql('d')} AS visibility, d.folder_id, d.categories,
     d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
-    NULL::int AS source_count`;
+    NULL::int AS source_count, d.solution_project_id`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
 
 /**
@@ -381,7 +387,7 @@ async function listDocumentsPage(context, options = {}) {
     const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
-    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility };
+    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility, archived };
     const search = librarySearch(query, options.onlyFillable === true, bind);
     where.push(...search.clauses);
     shared.query = search.phrase;
@@ -423,7 +429,10 @@ async function listDocumentsPage(context, options = {}) {
         const count = await getOne(`SELECT COUNT(*)::int AS n FROM (${from}) u WHERE $1::int IS NULL`, [null, ...params.slice(1, -1)]);
         total = Number(count?.n) || 0;
     }
-    return { documents: rows.map(mapListRow), total };
+    // `managed`: a template a Solution stage manages, whose archive the server refuses (document/libraryManaged.mts).
+    /** @type {Array<NonNullable<ReturnType<typeof mapListRow>>>} */
+    const listed = rows.map(mapListRow);
+    return { documents: await require('./document/libraryManaged.mts').withManagedFlag(getAll, listed), total };
 }
 async function listDocuments(context, options = {}) {
     return (await listDocumentsPage(context, options)).documents;
@@ -439,6 +448,15 @@ async function listTemplates(context, options = {}) {
 // kind and sharing, and where it sits in their own library.
 const OWNER_ONLY_KEYS = Object.freeze(['kind', 'visibility', 'folderId', 'categories']);
 const CONTENT_KEYS = Object.freeze(['name','docType','description','bodyHtml','css','settings','kind','visibility','folderId','categories']);
+// Where a document sits in its owner's library: filing, not editing (fileDocument).
+const FILING_KEYS = Object.freeze(['folderId', 'categories']);
+
+/** Whether `updates` only files the document (a folder, categories) and changes nothing in it. */
+function isFilingOnly(updates) {
+    if (!updates || typeof updates !== 'object') return false;
+    return FILING_KEYS.some(k => updates[k] !== undefined)
+        && CONTENT_KEYS.every(k => FILING_KEYS.includes(k) || updates[k] === undefined);
+}
 
 /**
  * The project through which `userId` may EDIT this document, or null: the
@@ -511,8 +529,15 @@ async function mergeStale(client, current, updates) {
  * VERSION_SOURCES, 'autosave' by default), `contributors`, `summary`,
  * `restoredFrom`; and `mergeWith` for a stale body save (see mergeStale).
  * The answer carries `merge` when a stale save was merged.
+ *
+ * `options` is for server code only, never filled from a request body:
+ * `tabsChangedByServer` lets a caller that made or dropped a spreadsheet's
+ * tables itself add or remove tabs (stores/lib/sheetDocument.keepSheetOnUpdate).
+ *
+ * @param {{ tabsChangedByServer?: boolean }} [options]
  */
-async function updateDocument(documentId, context, updates = {}) {
+async function updateDocument(documentId, context, updates = {}, options = {}) {
+    if (isFilingOnly(updates)) return fileDocument(documentId, context, updates);
     await initDB(); const a = actor(context); assertWithinCaps(updates);
     return withTransaction(async client => {
         // Order-independent (jsonb returns its own key order): a resent, unchanged settings object is no change.
@@ -535,7 +560,7 @@ async function updateDocument(documentId, context, updates = {}) {
         if (wasPage !== (normaliseType(next.docType) === PAGE_DOC_TYPE)) {
             throw failure('A page stays a page, and a designed document cannot become one. Make a new page instead.', 422, 'document_type_fixed');
         }
-        keepSheetOnUpdate(current, next, normaliseType(next.docType), failure);
+        keepSheetOnUpdate(current, next, normaliseType(next.docType), failure, options);
         if (wasPage) { next.bodyHtml = sanitizePageBody(next.bodyHtml); next.css = ''; }
         // A page edited live: its body is the live state's (lib/coEditGuard.js), never this save's.
         if (wasPage && next.bodyHtml !== current.bodyHtml && await isCoEdited(client, 'document', documentId)) {
@@ -573,6 +598,39 @@ async function updateDocument(documentId, context, updates = {}) {
             contributors: updates.contributors, restoredFrom: updates.restoredFrom || null,
         }, current);
         return merge ? { ...saved, merge } : saved;
+    });
+}
+
+/**
+ * File a document in its owner's library: a folder (null for the root) and/or
+ * categories. Filing is not an edit (as for a notebook, notebookLibrary.setNotebookFiling):
+ * no revision check, no new revision, and the version, `updated_at` and
+ * `updated_by` stay as they were. The owner's act only (an org admin's too, for
+ * a team template or section): a project or sharing editor is refused, as for
+ * every owner-only key. Null when the caller may not change the document.
+ *
+ * @param {string} documentId
+ * @param {string | { userId: string, isAdmin?: boolean }} context
+ * @param {{ folderId?: string|null, categories?: unknown }} filing
+ */
+async function fileDocument(documentId, context, filing) {
+    await initDB(); const a = actor(context);
+    const sent = Object.fromEntries(FILING_KEYS.filter(k => filing[k] !== undefined).map(k => [k, filing[k]]));
+    return withTransaction(async client => {
+        const changedKeysOf = (row) => managedParts.changedKeysOf(mapRow(row), sent);
+        const locked = await lockForWrite(client, documentId, { ...a, changedKeysOf });
+        if (!locked) return null;
+        const current = mapRow(locked.row);
+        const next = {
+            folderId: 'folderId' in sent ? sent.folderId || null : current.folderId,
+            categories: 'categories' in sent ? normaliseCategories(sent.categories) : current.categories,
+        };
+        if (FILING_KEYS.every(k => JSON.stringify(current[k]) === JSON.stringify(next[k]))) return current;
+        if (locked.asMember) throw failure('Only the owner of this document can change its type, sharing, folder or categories', 403, 'document_owner_only');
+        if (next.folderId) await assertFolder(next.folderId, current.userId);
+        const { rows } = await client.query('UPDATE studio_documents SET folder_id = $2, categories = $3 WHERE id = $1 RETURNING *',
+            [documentId, next.folderId, JSON.stringify(next.categories)]);
+        return mapRow(rows[0]);
     });
 }
 
@@ -626,97 +684,15 @@ async function deleteFolder(userId, id) {
 }
 
 // ── Project membership ───────────────────────────────────────────────
+//
+// Filing into a project, taking out, the project's cards and counts: in
+// document/projectDocuments.mts, over this store's database wrappers.
 
-/**
- * File a document into a project (projects/membership.js, kind 'document').
- *
- * Owner-only: filing exposes the document to every member of the project, and
- * that is the owner's call. The route checks the caller's role on the TARGET
- * project; this checks the rest in the statement itself, so there is no gap
- * between a check and the write: the caller owns it, it is a plain document
- * (not a template or section, which have their own team sharing), it is not
- * archived, and the project exists in the document's own organisation.
- */
-async function setDocumentProject(documentId, userId, projectId, callerOrgIds = []) {
-    await initDB();
-    if (!documentId || !userId || !projectId) return false;
-    // `callerOrgIds`: the organisations the owner belongs to (auth/orgScope), so a document of someone whose
-    // organisation only comes from a group (none on the document) can be filed into that organisation's project.
-    return withTransaction(async (client) => {
-        const { rows } = await client.query(
-            `UPDATE studio_documents d SET project_id = $1
-              WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
-                AND EXISTS (SELECT 1 FROM projects p
-                    WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(d.organization_id, '')
-                        OR (COALESCE(d.organization_id, '') = '' AND p.organization_id = ANY($4::text[])))) RETURNING d.*`,
-            [projectId, documentId, userId, [...callerOrgIds]]);
-        if (!rows[0]) return false;
-        await require('./lib/documentSharingCrypto').transition(client, 'document', rows[0], rows[0].sharing_audience || 'private');
-        return true;
-    });
-}
-
-/**
- * Take a document out of ONE project. With `userId`, only when that person
- * owns it; with null, whoever owns it, which projects/membership.js allows
- * only the owner of that project. Scoped to `projectId` either way, so a
- * removal can never reach a document filed somewhere else.
- */
-async function detachDocumentFromProject(documentId, projectId, userId = null) {
-    await initDB();
-    if (!documentId || !projectId) return false;
-    const { rowCount } = await run(
-        `UPDATE studio_documents SET project_id = NULL
-          WHERE id = $1 AND project_id = $2 AND ($3::text IS NULL OR user_id = $3)`,
-        [documentId, projectId, userId]
-    );
-    return (rowCount || 0) > 0;
-}
-
-/** The documents filed into a project, as cards (no slots), newest first. */
-async function listProjectDocuments(projectId, { limit = 100, offset = 0 } = {}) {
-    await initDB();
-    if (!projectId) return [];
-    const rows = await getAll(
-        `SELECT d.id, d.name, d.doc_type, d.kind, d.user_id, d.project_id, d.updated_by, d.created_at, d.updated_at
-           FROM studio_documents d
-          WHERE d.project_id = $1 AND ${PROJECT_DOCUMENT_SQL}
-          ORDER BY d.updated_at DESC, d.id
-          LIMIT $2 OFFSET $3`,
-        [projectId, Math.min(Math.max(Number(limit) || 100, 1), 200), Math.max(Number(offset) || 0, 0)]
-    );
-    return rows.map(mapProjectCard);
-}
-
-/**
- * How many documents each of these projects holds, in ONE query. A project
- * missing from the map holds none; a failed read rejects, so a caller can
- * tell "none" from "could not count".
- */
-async function countProjectDocuments(projectIds) {
-    await initDB();
-    const ids = (Array.isArray(projectIds) ? projectIds : []).filter(id => typeof id === 'string' && id);
-    if (!ids.length) return new Map();
-    const rows = await getAll(
-        `SELECT d.project_id, COUNT(*)::int AS n FROM studio_documents d
-          WHERE d.project_id = ANY($1::text[]) AND ${PROJECT_DOCUMENT_SQL}
-          GROUP BY d.project_id`,
-        [ids]
-    );
-    return new Map(rows.map(r => [r.project_id, Number(r.n) || 0]));
-}
-
-/**
- * Detach every document from a deleted project. They go back to being their
- * owners' private documents; deleting a project never deletes what its members
- * wrote in it.
- */
-async function clearProjectFromDocuments(projectId) {
-    await initDB();
-    if (!projectId) return 0;
-    const { rowCount } = await run('UPDATE studio_documents SET project_id = NULL WHERE project_id = $1', [projectId]);
-    return rowCount || 0;
-}
+const projectDocuments = require('./document/projectDocuments.mts').makeProjectDocuments({
+    initDB, run, getAll, withTransaction, mapProjectCard, projectDocumentSql: PROJECT_DOCUMENT_SQL,
+    transitionSharing: (/** @type {import('./lib/documentCrypto').QueryClient} */ client, row, audience) => require('./lib/documentSharingCrypto').transition(client, 'document', row, audience),
+});
+const { setDocumentProject, detachDocumentFromProject, listProjectDocuments, countProjectDocuments, clearProjectFromDocuments } = projectDocuments;
 
 // ── Versions ─────────────────────────────────────────────────────────
 //
@@ -758,6 +734,8 @@ module.exports = {
     listTemplates,
     getDocument,
     updateDocument,
+    fileDocument,
+    isFilingOnly,
     deleteDocument,
     unarchiveDocument,
     listVersions: history.listVersions,
@@ -789,7 +767,7 @@ module.exports = {
  * @typedef {{ id?: string, userId?: string, name?: string, docType?: string, description?: string, bodyHtml?: string,
  *   css?: string, settings?: DocSettings, organizationId?: string|null, kind?: string, visibility?: string,
  *   folderId?: string|null, categories?: string[], versionId?: string|null, baselineVersionId?: string|null,
- *   projectId?: string|null, projectOrgChecked?: boolean, sheetTableId?: string,
+ *   projectId?: string|null, projectOrgChecked?: boolean, sheetTableId?: string, sheetTabName?: string, sheetLocale?: string,
  *   sharing?: { audience: string, sharedGroups: string[], sharedUserIds: string[] } }} DocumentInput
  * @typedef {'name'|'docType'|'description'|'bodyHtml'|'css'|'settings'|'kind'|'visibility'|'folderId'|'categories'} ContentKey
  * @typedef {{ expectedVersionId?: string|null, mergeWith?: (base: string, mine: string, theirs: string) => MergeResult,

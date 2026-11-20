@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '@/test/queryWrapper';
 import type { StudioDocument } from '../documentQueries';
+import { SheetApiError } from '@/api/sheetApi';
 import SpreadsheetEditor from './SpreadsheetEditor';
 import { SAVE_DEBOUNCE_MS } from './useSheet';
 
@@ -14,7 +15,10 @@ import { SAVE_DEBOUNCE_MS } from './useSheet';
  */
 
 const { sheetApi, docApi } = vi.hoisted(() => ({
-    sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn(), downloadSheetXlsx: vi.fn() },
+    sheetApi: {
+        getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn(), downloadSheetXlsx: vi.fn(),
+        createSheetTab: vi.fn(), renameSheetTab: vi.fn(), deleteSheetTab: vi.fn(),
+    },
     docApi: { getDocument: vi.fn(), updateDocument: vi.fn() },
 }));
 vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), ...sheetApi }));
@@ -35,10 +39,10 @@ function copiedText(): string {
     return store['text/plain'];
 }
 
-async function open(onBack?: () => void) {
+async function open(onBack?: () => void, extra: { variant?: 'page' | 'panel'; onOpenInStudio?: (id: string) => void } = {}) {
     const user = userEvent.setup();
     const view = render(withQueryClient(
-        <SpreadsheetEditor key={DOC.id} initial={DOC} people={{}} variant="page" currentUser={{ id: 'u1' }} onBack={onBack} />,
+        <SpreadsheetEditor key={DOC.id} initial={DOC} people={{}} variant={extra.variant ?? 'page'} currentUser={{ id: 'u1' }} onBack={onBack} onOpenInStudio={extra.onOpenInStudio} />,
     ));
     await screen.findByRole('grid');
     const cell = (name: string) => view.container.querySelector(`[data-cell="${name}"]`) as HTMLElement;
@@ -242,6 +246,28 @@ describe('SpreadsheetEditor formula bar', () => {
         await user.click(screen.getByRole('button', { name: 'SUM' }));
         expect(screen.getByRole('textbox', { name: 'Formula bar' })).toHaveValue('=SUM(');
     });
+
+    it('in a Dutch sheet, says how to separate arguments while a formula is typed', async () => {
+        sheetApi.getSheet.mockResolvedValue({ columns: 26, rows: 0, cells: { A1: '1,5', A2: '2,5' }, readOnly: false, locale: 'nl' });
+        const { user, cell } = await open();
+        await user.click(screen.getByRole('button', { name: 'Show formula bar' }));
+        await user.click(cell('A3'));
+        const hint = /Use ; or , between arguments; function names are English/;
+        expect(screen.queryByText(hint)).not.toBeInTheDocument();
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=SUM(A1;A2){Enter}');
+        expect(cell('A3')).toHaveTextContent('4');
+        await user.click(cell('A4'));
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=');
+        expect(screen.getByText(hint)).toBeInTheDocument();
+    });
+
+    it('in an English sheet, shows no separator hint', async () => {
+        const { user, cell } = await open();
+        await user.click(screen.getByRole('button', { name: 'Show formula bar' }));
+        await user.click(cell('A1'));
+        await user.type(screen.getByRole('textbox', { name: 'Formula bar' }), '=');
+        expect(screen.queryByText(/between arguments/)).not.toBeInTheDocument();
+    });
 });
 
 describe('SpreadsheetEditor saving', () => {
@@ -277,7 +303,9 @@ describe('SpreadsheetEditor saving', () => {
         await user.keyboard('7{Enter}');
         await user.click(document.body);
         const chip = await screen.findByRole('button', { name: /Not saved/ });
-        expect(screen.getByRole('alert')).toHaveTextContent('Server is down');
+        // The server's own (English, technical) text is never shown: a sentence in the reader's language.
+        expect(screen.getByRole('alert')).toHaveTextContent('Could not save your changes.');
+        expect(screen.getByRole('alert')).not.toHaveTextContent('Server is down');
         expect(cell('A1')).toHaveTextContent('7');
         await user.click(chip);
         await waitFor(() => expect(sheetApi.patchSheet).toHaveBeenCalledTimes(2));
@@ -379,9 +407,95 @@ describe('SpreadsheetEditor view only', () => {
         expect(sheetApi.patchSheet).not.toHaveBeenCalled();
     });
 
+    it('offers no chart to add', async () => {
+        await open();
+        expect(screen.queryByRole('button', { name: 'Add chart' })).not.toBeInTheDocument();
+    });
+
     it('still copies', async () => {
         const { user, cell } = await open();
         await user.click(cell('A1'));
         expect(copiedText()).toBe('locked');
+    });
+});
+
+/** A refusal as the sheet API throws it: the server's (English) text plus its code. */
+const refusal = (code: string, message = 'English text from the server') => new SheetApiError(message, 409, code);
+
+describe('SpreadsheetEditor save failures', () => {
+    async function failOnce(error: Error) {
+        sheetApi.patchSheet.mockRejectedValueOnce(error);
+        const onBack = vi.fn();
+        const view = await open(onBack);
+        await view.user.click(view.cell('A1'));
+        await view.user.keyboard('7{Enter}');
+        await view.user.click(document.body);
+        await screen.findByRole('button', { name: /Not saved/ });
+        return { ...view, onBack };
+    }
+
+    it('says what a known refusal means, in plain words', async () => {
+        await failOnce(refusal('sheet_busy'));
+        expect(screen.getByRole('alert')).toHaveTextContent('Someone else is changing the same row right now.');
+        expect(screen.getByRole('alert')).not.toHaveTextContent('English text from the server');
+    });
+
+    it('asks before leaving when the last changes could not be saved; Stay keeps the editor', async () => {
+        sheetApi.patchSheet.mockRejectedValue(new Error('offline'));
+        const { user, onBack } = await failOnce(new Error('offline'));
+        await user.click(screen.getByRole('button', { name: 'Back to Documents' }));
+        expect(await screen.findByText('Your last changes are not saved')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Stay' }));
+        expect(onBack).not.toHaveBeenCalled();
+        await waitFor(() => expect(screen.queryByText('Your last changes are not saved')).not.toBeInTheDocument());
+    });
+
+    it('leaves anyway on the person\'s word, without saving again', async () => {
+        sheetApi.patchSheet.mockRejectedValue(new Error('offline'));
+        const { user, onBack } = await failOnce(new Error('offline'));
+        await user.click(screen.getByRole('button', { name: 'Back to Documents' }));
+        await user.click(await screen.findByRole('button', { name: 'Leave anyway' }));
+        await waitFor(() => expect(onBack).toHaveBeenCalled());
+    });
+});
+
+describe('SpreadsheetEditor tabs', () => {
+    const TABS = [{ id: 't1', name: 'One' }, { id: 't2', name: 'Two' }];
+    beforeEach(() => {
+        sheetApi.getSheet.mockImplementation(async (_id: string, tab?: string) => ({ columns: 26, rows: 0, cells: {}, readOnly: false, tabs: TABS, activeTab: tab ?? 't1' }));
+    });
+
+    it('asks before deleting a tab, and says why the server refused', async () => {
+        sheetApi.deleteSheetTab.mockRejectedValue(refusal('sheet_last_tab'));
+        const { user } = await open();
+        await user.click(screen.getAllByRole('button', { name: 'Delete tab' })[1]);
+        expect(sheetApi.deleteSheetTab).not.toHaveBeenCalled();
+        expect(await screen.findByText('Delete this tab?')).toBeInTheDocument();
+        await user.click(screen.getByTestId('confirm-dialog-confirm'));
+        await waitFor(() => expect(sheetApi.deleteSheetTab).toHaveBeenCalledWith('doc-1', 't2'));
+        expect(await screen.findByText('A spreadsheet needs at least one tab, so the last one cannot be deleted.')).toBeInTheDocument();
+    });
+
+    it('says so when a tab cannot be added', async () => {
+        sheetApi.createSheetTab.mockRejectedValue(new Error('boom'));
+        const { user } = await open();
+        await user.click(screen.getByRole('button', { name: 'Add tab' }));
+        expect(await screen.findByText('Could not add a tab.')).toBeInTheDocument();
+    });
+});
+
+describe('SpreadsheetEditor beside the chat', () => {
+    it('closes instead of going back, and opens in Studio once the cells are saved', async () => {
+        const onBack = vi.fn();
+        const onOpenInStudio = vi.fn();
+        const { user, cell } = await open(onBack, { variant: 'panel', onOpenInStudio });
+        expect(screen.queryByRole('button', { name: 'Back to Documents' })).not.toBeInTheDocument();
+        await user.click(cell('B2'));
+        await user.keyboard('x{Enter}');
+        await user.click(screen.getByRole('button', { name: 'Open in Studio' }));
+        await waitFor(() => expect(onOpenInStudio).toHaveBeenCalledWith('doc-1'));
+        expect(sheetApi.patchSheet).toHaveBeenCalledWith('doc-1', { B2: 'x' });
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(onBack).toHaveBeenCalled());
     });
 });

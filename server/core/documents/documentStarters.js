@@ -2,15 +2,15 @@
 'use strict';
 
 const TYPES = [
-    ['security', 'Security policy / report', 'security', 'Describe the customer environment, applicable controls, responsibilities and open actions. Never claim certification or implemented controls without supplied evidence.'],
-    ['proposal', 'Proposal', 'quote', 'Describe the customer need, proposed scope, deliverables, exclusions, price and next steps.'],
+    ['security', 'Security statement', 'security', 'Describe the customer environment, applicable controls, responsibilities and open actions. Never claim certification or implemented controls without supplied evidence.'],
+    ['proposal', 'Quote', 'quote', 'Describe the customer need, proposed scope, deliverables, exclusions, price and next steps.'],
     ['invoice', 'Invoice', 'invoice', 'Use supplied invoice identifiers, dates, line items, tax and totals. Never invent banking or tax details.'],
     ['letter', 'Letter', 'letter', 'Use a clear salutation, concise purpose, body and closing.'],
     ['report', 'General report', 'report', 'Start with an executive summary, then findings, evidence and recommendations.'],
 ];
 /** @type {Record<string, string>} */
 const DUTCH = {
-    'Security policy / report':'Beveiligingsbeleid / rapport', Proposal:'Voorstel', Invoice:'Factuur', Letter:'Brief', 'General report':'Algemeen rapport',
+    'Security statement':'Beveiligingsverklaring', Quote:'Offerte', Invoice:'Factuur', Letter:'Brief', 'General report':'Algemeen rapport',
     'Customer name':'Klantnaam', 'Document date':'Documentdatum', Summary:'Samenvatting', Overview:'Overzicht',
     'Customer and document summary':'Samenvatting van klant en document', 'Uses remote access':'Gebruikt externe toegang',
     'Uses cloud services':'Gebruikt clouddiensten', 'Verified remote-access controls':'Geverifieerde maatregelen voor externe toegang',

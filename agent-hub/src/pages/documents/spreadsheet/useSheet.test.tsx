@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { queryWrapper } from '@/test/queryWrapper';
 import useSheet, { SAVE_DEBOUNCE_MS } from './useSheet';
 
-const { api } = vi.hoisted(() => ({ api: { getSheet: vi.fn(), patchSheet: vi.fn() } }));
-vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), getSheet: api.getSheet, patchSheet: api.patchSheet }));
+const { api } = vi.hoisted(() => ({
+    api: { getSheet: vi.fn(), patchSheet: vi.fn(), createSheetTab: vi.fn(), renameSheetTab: vi.fn(), deleteSheetTab: vi.fn() },
+}));
+vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), ...api }));
 
 const sheet = (cells: Record<string, string> = {}, readOnly = false) => ({ columns: 26, rows: 0, cells, readOnly });
 
@@ -17,8 +19,7 @@ async function mount(cells: Record<string, string> = {}, readOnly = false) {
 
 describe('useSheet', () => {
     beforeEach(() => {
-        api.getSheet.mockReset();
-        api.patchSheet.mockReset();
+        for (const fn of Object.values(api)) fn.mockReset();
         api.patchSheet.mockResolvedValue({});
     });
 
@@ -42,6 +43,21 @@ describe('useSheet', () => {
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.computed.B1.display).toBe('2');
         expect(result.current.computed.B2.error).toBeTruthy();
+    });
+
+    it('computes a Dutch sheet the Dutch way: 1,5 and € 10 are numbers, ; separates arguments', async () => {
+        api.getSheet.mockResolvedValue({ ...sheet({ A1: '1,5', A2: '€ 10', A3: '=SUM(A1;A2)' }), locale: 'nl' });
+        const { result } = renderHook(() => useSheet('doc-1'), { wrapper: queryWrapper() });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.computed.A3.value).toBe(11.5);
+        expect(result.current.computed.A1.display).toBe('1,5');
+        expect(result.current.locale).toBe('nl');
+    });
+
+    it('a sheet without a locale reads numbers the English way', async () => {
+        const { result } = await mount({ A1: '1,5', A2: '1,234.5', A3: '=SUM(A1:A2)' });
+        expect(result.current.computed.A3.value).toBe(1234.5);
+        expect(result.current.locale).toBe('en');
     });
 
     it('reads the sheet again once a typed formula names a tab the server did not send', async () => {
@@ -151,5 +167,125 @@ describe('useSheet', () => {
             await waitFor(() => expect(api.getSheet).toHaveBeenCalledTimes(2));
             await waitFor(() => expect(result.current.cells.A1).toBe('9'));
         });
+    });
+});
+
+describe('useSheet tabs', () => {
+    const TABS = [{ id: 't1', name: 'One' }, { id: 't2', name: 'Two' }, { id: 't3', name: 'Three' }];
+    /** The server answers for the tab asked (the first one by default). */
+    function serveTabs(tabs = TABS, cellsOf: Record<string, Record<string, string>> = {}) {
+        api.getSheet.mockImplementation(async (_id: string, tab?: string) => ({
+            ...sheet(cellsOf[tab ?? tabs[0].id] ?? {}), tabs, activeTab: tab ?? tabs[0].id,
+        }));
+    }
+    async function mountTabs(...args: Parameters<typeof serveTabs>) {
+        serveTabs(...args);
+        const hook = renderHook(() => useSheet('doc-1'), { wrapper: queryWrapper() });
+        await waitFor(() => expect(hook.result.current.loading).toBe(false));
+        return hook;
+    }
+
+    beforeEach(() => {
+        for (const fn of Object.values(api)) fn.mockReset();
+        api.patchSheet.mockResolvedValue({});
+    });
+
+    it('stays on the tab when its save failed, and the retry still writes to that tab', async () => {
+        const { result } = await mountTabs();
+        api.patchSheet.mockRejectedValueOnce(new Error('offline'));
+        act(() => result.current.setCells({ A1: 'typed on one' }));
+        let switched = true;
+        await act(async () => { switched = await result.current.setActiveTab('t2'); });
+        expect(switched).toBe(false);
+        expect(result.current.activeTab).toBe('t1');
+        expect(result.current.status).toBe('error');
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).toHaveBeenLastCalledWith('doc-1', { A1: 'typed on one' }, 't1');
+        expect(api.patchSheet.mock.calls.every((c) => c[2] === 't1')).toBe(true);
+    });
+
+    it('sends cells queued on a tab to that tab after another tab is shown', async () => {
+        const { result } = await mountTabs();
+        api.createSheetTab.mockResolvedValue({ tab: { id: 't4', name: 'Four' }, tabs: [...TABS, { id: 't4', name: 'Four' }] });
+        act(() => result.current.setCells({ B2: 'one' }));
+        await act(async () => { await result.current.createTab(); });
+        await waitFor(() => expect(result.current.activeTab).toBe('t4'));
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).toHaveBeenCalledWith('doc-1', { B2: 'one' }, 't1');
+        expect(api.patchSheet).not.toHaveBeenCalledWith('doc-1', expect.anything(), 't4');
+    });
+
+    it('drops the unsaved cells on discardPending, so the tab can be left', async () => {
+        const { result } = await mountTabs();
+        api.patchSheet.mockRejectedValue(new Error('offline'));
+        act(() => result.current.setCells({ A1: 'lost' }));
+        await act(async () => { await result.current.flush(); });
+        act(() => result.current.discardPending());
+        expect(result.current.status).toBe('saved');
+        expect(result.current.cells.A1).toBeUndefined();
+        let switched = false;
+        await act(async () => { switched = await result.current.setActiveTab('t2'); });
+        expect(switched).toBe(true);
+        await waitFor(() => expect(result.current.activeTab).toBe('t2'));
+    });
+
+    it('does not undo the edits of the previous tab on another tab', async () => {
+        const { result } = await mountTabs();
+        act(() => result.current.setCells({ A1: 'one' }));
+        await act(async () => { await result.current.setActiveTab('t2'); });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        api.patchSheet.mockClear();
+        act(() => { result.current.undo(); });
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).not.toHaveBeenCalled();
+        expect(result.current.cells.A1).toBeUndefined();
+    });
+
+    it('queues cells for a tab not on screen without showing them here', async () => {
+        const { result } = await mountTabs();
+        await act(async () => { await result.current.setActiveTab('t2'); });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        act(() => result.current.setCells({ C3: 'back' }, 't1'));
+        expect(result.current.cells.C3).toBeUndefined();
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).toHaveBeenCalledWith('doc-1', { C3: 'back' }, 't1');
+    });
+
+    it('shows a neighbour once the tab on screen is deleted', async () => {
+        const { result } = await mountTabs(TABS, { t2: { A1: 'two' } });
+        await act(async () => { await result.current.setActiveTab('t2'); });
+        await waitFor(() => expect(result.current.cells.A1).toBe('two'));
+        const rest = TABS.filter((t) => t.id !== 't2');
+        api.deleteSheetTab.mockResolvedValue({ tabs: rest });
+        serveTabs(rest, { t3: { A1: 'three' } });
+        await act(async () => { await result.current.deleteTab('t2'); });
+        await waitFor(() => expect(result.current.activeTab).toBe('t3'));
+        await waitFor(() => expect(result.current.cells.A1).toBe('three'));
+        expect(result.current.tabs?.map((t) => t.id)).toEqual(['t1', 't3']);
+    });
+
+    it('reads the tab list again after a rename', async () => {
+        const { result } = await mountTabs();
+        const renamed = TABS.map((t) => (t.id === 't1' ? { ...t, name: 'Renamed' } : t));
+        api.renameSheetTab.mockResolvedValue({ tabs: renamed });
+        serveTabs(renamed);
+        await act(async () => { await result.current.renameTab('t1', 'Renamed'); });
+        await waitFor(() => expect(result.current.tabs?.[0].name).toBe('Renamed'));
+    });
+
+    it('keeps the cells of a tab whose delete the server refused', async () => {
+        const { result } = await mountTabs();
+        api.deleteSheetTab.mockRejectedValue(new Error('refused'));
+        act(() => result.current.setCells({ A1: 'kept' }));
+        await expect(act(() => result.current.deleteTab('t1'))).rejects.toThrow('refused');
+        await act(async () => { await result.current.flush(); });
+        expect(api.patchSheet).toHaveBeenCalledWith('doc-1', { A1: 'kept' }, 't1');
+    });
+
+    it('sends what is queued as a request that outlives the page when it is closed', async () => {
+        const { result } = await mountTabs();
+        act(() => result.current.setCells({ D4: 'late' }));
+        act(() => { window.dispatchEvent(new Event('beforeunload')); });
+        await waitFor(() => expect(api.patchSheet).toHaveBeenCalledWith('doc-1', { D4: 'late' }, 't1', { keepalive: true }));
     });
 });

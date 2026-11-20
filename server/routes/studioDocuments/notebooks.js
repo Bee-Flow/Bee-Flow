@@ -3,12 +3,16 @@
  * Notebooks in the Documents library (stores/notebookLibrary.js). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
  *
- *   PATCH /notebooks/:id/filing  { folderId?: string|null, categories?: string[] }
- *                                → { folderId, categories }
+ *   PATCH  /notebooks/:id/filing     { folderId?: string|null, categories?: string[] }
+ *                                    → { folderId, categories }
+ *   POST   /notebooks/:id/archive    archive (out of the library, its project and its shares) → { success }
+ *   POST   /notebooks/:id/unarchive  back from the archive → { document }
+ *   DELETE /notebooks/:id            delete an ARCHIVED notebook for good → { success };
+ *                                    a live one is a 409 notebook_not_archived
  *
- * Filing a notebook in a folder or under categories is the owner's, like a
- * document's filing. The notebook itself (content, sources, chat) is still
- * read and written through /api/notebooks.
+ * Filing, archiving, restoring and deleting a notebook are the owner's, like a
+ * document's. The notebook itself (content, sources, chat) is still read and
+ * written through /api/notebooks.
  *
  * `notebooksVisible(req)` is the question the library list asks before it
  * includes notebook rows: the four gates every /api/notebooks route sits
@@ -24,7 +28,8 @@
 
 const express = require('express');
 const { validate } = require('../../core/http/validate');
-const { notFound } = require('../../core/http/errors');
+const { notFound, conflict } = require('../../core/http/errors');
+const log = require('../../telemetry/log');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 
@@ -35,11 +40,34 @@ const Filing = bodyOf({
     categories: z.array(worded(CATEGORY_TEXT).max(80, CATEGORY_TEXT), { error: typeError({ invalid: CATEGORY_TEXT }) }).max(30, CATEGORY_TEXT).optional(),
 }, 'Filing a notebook');
 
+const Empty = (/** @type {string} */ what) => bodyOf({}, what);
+
 /** @typedef {import('../projects/notebookGate').Middleware} Middleware */
+/** @typedef {import('express').Request<{ id: string }>} IdReq */
 
 /**
- * @param {{ library?: Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling'>, // stores/notebookLibrary surface
+ * @typedef {{
+ *   beforeDelete: (kind: string, id: string, userId: string) => Promise<unknown>,
+ *   dropTaskLinks: (kind: string, id: string) => Promise<unknown>,
+ *   deleteForGood: (id: string, userId: string) => Promise<{ deleted: boolean, sources: number, kbs: number }>,
+ *   forgetTokens: (id: string) => void,
+ * }} Lifecycle  what happens around an archive and a delete for good
+ */
+
+/** The lifecycle over the real modules, each required on use. @returns {Lifecycle} */
+function realLifecycle() {
+    return {
+        beforeDelete: (kind, id, userId) => require('../../core/projectContent/itemLifecycle').beforeDelete(kind, id, userId),
+        dropTaskLinks: (kind, id) => require('../../stores/projectTaskStore').dropLinksTo(null, kind, id),
+        deleteForGood: (id, userId) => require('../../core/kb/notebookCascade').deleteNotebookCascade(id, userId),
+        forgetTokens: (id) => require('../../core/dlp/dlpRunner').clearConversationState(id),
+    };
+}
+
+/**
+ * @param {{ library?: Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling' | 'setNotebookArchived' | 'ownNotebookState'>, // stores/notebookLibrary surface
  *   documents?: Pick<typeof import('../../stores/documentStore'), 'assertFolder'>, // stores/documentStore surface
+ *   lifecycle?: Lifecycle, // co-editing fold-back, task links, the delete cascade
  *   gate?: Middleware, // the notebook gates as one middleware
  *   requireAuth?: import('express').RequestHandler }} [deps]
  */
@@ -47,6 +75,7 @@ function makeNotebookLibraryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const library = () => deps.library || require('../../stores/notebookLibrary');
     const documents = () => deps.documents || require('../../stores/documentStore');
+    const lifecycle = () => deps.lifecycle || realLifecycle();
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
     /** @type {Middleware | null} */
     let boundGate = null;
@@ -72,6 +101,39 @@ function makeNotebookLibraryRouter(deps = {}) {
             (folderId, userId) => documents().assertFolder(folderId, userId));
         if (!filed) throw notFound('notebook_not_found', 'Notebook not found');
         res.json(filed);
+    });
+
+    router.post('/notebooks/:id/archive', requireAuth, requireNotebooks, validate({ body: Empty('Archiving a notebook') }), async (/** @type {IdReq} */ req, res) => {
+        const userId = sessionUser(req).id;
+        // A co-edited project notebook is folded back into its own row first,
+        // as a page is: once archived nobody co-edits it.
+        await lifecycle().beforeDelete('notebook', req.params.id, userId);
+        if (!await library().setNotebookArchived(userId, req.params.id, true)) throw notFound('notebook_not_found', 'Notebook not found');
+        // A task that linked it keeps existing; the link goes, as for an archived document.
+        try { await lifecycle().dropTaskLinks('notebook', req.params.id); }
+        catch (err) { log.warn(`[Documents] task links to notebook ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
+        res.json({ success: true });
+    });
+
+    router.post('/notebooks/:id/unarchive', requireAuth, requireNotebooks, validate({ body: Empty('Restoring a notebook') }), async (/** @type {IdReq} */ req, res) => {
+        const restored = await library().setNotebookArchived(sessionUser(req).id, req.params.id, false);
+        if (!restored) throw notFound('notebook_not_found', 'Notebook not found');
+        res.json({ document: { ...restored, docType: 'notebook', kind: 'document', archived: false } });
+    });
+
+    // For good: its sources (and their stored files), chat, versions and the
+    // knowledge base it made. Only from the archive, so nothing is lost in one click.
+    router.delete('/notebooks/:id', requireAuth, requireNotebooks, async (/** @type {IdReq} */ req, res) => {
+        const userId = sessionUser(req).id;
+        const state = await library().ownNotebookState(userId, req.params.id);
+        if (!state) throw notFound('notebook_not_found', 'Notebook not found');
+        if (!state.archived) throw conflict('notebook_not_archived', 'Archive this notebook first. Only an archived notebook can be deleted for good.');
+        const result = await lifecycle().deleteForGood(req.params.id, userId);
+        if (!result.deleted) throw notFound('notebook_not_found', 'Notebook not found');
+        log.info(`[Documents] notebook ${req.params.id} deleted for good (${result.sources} sources, ${result.kbs} auto-KBs)`);
+        try { lifecycle().forgetTokens(req.params.id); }
+        catch (err) { log.warn(`[Documents] token map of notebook ${req.params.id} not cleared: ${/** @type {Error} */ (err).message}`); }
+        res.json({ success: true });
     });
 
     return Object.assign(router, { notebooksVisible });

@@ -41,7 +41,7 @@ const { HttpError } = require('../../http/errors');
 const { parseRange, cellsIn, fillRange } = require('./sheetRefs');
 const { pivotWrites } = require('./sheetPivot');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
-const { sheetTabsOf } = require('../../../stores/lib/sheetDocument');
+const { sheetTabsOf, sheetLocaleOf } = require('../../../stores/lib/sheetDocument');
 const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields');
 const { bestEffort } = require('../../../utils/bestEffort');
 
@@ -186,7 +186,7 @@ function makeSheetAssistant(deps = {}) {
         }
         /** @param {SheetEntry} entry */
         function refreshShown(entry) {
-            entry.shown = evaluate(entry.staged, { workbook: workbook(), activeSheet: entry.name });
+            entry.shown = evaluate(entry.staged, { workbook: workbook(), activeSheet: entry.name, locale: sheetLocaleOf(doc) });
         }
         /**
          * @param {SheetTab} tab
@@ -326,7 +326,7 @@ function makeSheetAssistant(deps = {}) {
                 });
                 const wb = workbook();
                 wb[entry.name] = scratch;
-                const out = evaluate(scratch, { workbook: wb, activeSheet: entry.name });
+                const out = evaluate(scratch, { workbook: wb, activeSheet: entry.name, locale: sheetLocaleOf(doc) });
                 return outbound(names.map((/** @type {string} */ cell) => `${scratch[cell]} → ${out[cell]?.display ?? ''}`).join('\n'));
             }),
             set_cells: onTab('Error: cells can only be written on the active sheet.', (_entry, args) => {

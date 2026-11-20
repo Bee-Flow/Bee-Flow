@@ -91,6 +91,14 @@ describe('documentsApi — writes', () => {
         expect((await listDocumentsPage()).notebooks).toBe(true);
     });
 
+    it('keeps an empty folderId (the root, "Not in a folder") and drops other empty filters', async () => {
+        fetchMock.mockResolvedValue(ok({ documents: [], total: 0, people: {} }));
+        await listDocumentsPage({ folderId: '', query: '', category: '', kind: 'document' });
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/studio-documents?folderId=&kind=document');
+        await listDocumentsPage({ folderId: undefined, kind: 'document' });
+        expect(fetchMock.mock.calls[1][0]).toBe('/api/studio-documents?kind=document');
+    });
+
     it('asks for the archive, unarchives and beats presence on their own paths', async () => {
         fetchMock.mockResolvedValue(ok({ documents: [], total: 3, people: {} }));
         expect((await listDocumentsPage({ archived: '1', query: '', offset: 30 })).total).toBe(3);

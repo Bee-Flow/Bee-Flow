@@ -1,0 +1,33 @@
+{
+  "translations": {
+    "doc_gallery.add_categories": "Categorieën toevoegen",
+    "doc_gallery.blank_customer": "Leeg klantdocument",
+    "doc_gallery.clear_categories": "Categorieën wissen",
+    "doc_gallery.clear_categories_desc": "Alle categorieën gaan van de {count} geselecteerde documenten af. De documenten zelf blijven zoals ze zijn.",
+    "doc_gallery.clear_categories_title": "Categorieën wissen?",
+    "doc_gallery.customer_hint": "Een opgemaakt document, zoals een offerte of brief, met velden die je per klant invult.",
+    "doc_gallery.fields": "{count} velden om in te vullen",
+    "doc_gallery.fields_one": "1 veld om in te vullen",
+    "doc_gallery.group_calculate": "Rekenen",
+    "doc_gallery.group_customers": "Voor klanten",
+    "doc_gallery.group_present": "Presenteren",
+    "doc_gallery.group_write": "Schrijven",
+    "doc_gallery.only_in_documents": "Pagina’s, notitieboeken en spreadsheets maak je bij Documenten.",
+    "doc_gallery.only_in_documents_section": "Pagina’s, notitieboeken en spreadsheets maak je bij Documenten. Een presentatie kan geen herbruikbare sectie zijn.",
+    "doc_gallery.page_hint": "Schrijf vrij, alleen of samen tegelijk. Wordt afgedrukt in de huisstijl.",
+    "doc_gallery.sheet_hint": "Rijen, kolommen en formules zoals =SUM(A1:A9). Apps en automatiseringen kunnen het lezen.",
+    "doc_gallery.subtitle": "Maak hier {types}, alleen of samen.",
+    "doc_gallery.subtitle_customer": "klantdocumenten",
+    "doc_gallery.subtitle_notebooks": "notitieboeken",
+    "doc_gallery.subtitle_pages": "pagina’s",
+    "doc_gallery.subtitle_presentations": "presentaties",
+    "doc_gallery.type_customer": "Klantdocument",
+    "doc_gallery.type_filter_customer": "Klantdocumenten",
+    "doc_gallery.visibility_all": "Privé en gedeeld",
+    "doc_gallery.visibility_organisation": "Organisatie",
+    "doc_gallery.visibility_shared": "Gedeeld"
+  },
+  "sameAsEnglish": [
+    "doc_gallery.subtitle_spreadsheets"
+  ]
+}
