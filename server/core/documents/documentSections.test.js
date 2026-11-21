@@ -52,3 +52,10 @@ test('removed source fields and rules no longer demand obsolete required inputs'
     assert.equal(getContract(updated).parameters.length, 0);
     assert.equal(prepareDocument(updated, {}).valid, true);
 });
+
+test('inserting a section keeps empty elements closed in the stored body', () => {
+    const withLogo = { bodyHtml: '<header><div class="doc-logo"></div><p>Tag</p></header>', css: '', settings: {} };
+    const out = insertSection(withLogo, source, 'copy');
+    assert.match(out.bodyHtml, /<div class="doc-logo"><\/div><p>Tag<\/p>/);
+    assert.doesNotMatch(out.bodyHtml, /<div class="doc-logo"\s*\/>/);
+});
