@@ -5283,7 +5283,7 @@ export interface ApiOperations {
         offset?: number;
         query?: string;
         sort?: 'updated' | 'name';
-        visibility?: 'private' | 'team';
+        visibility?: 'private' | 'team' | 'restricted' | 'organisation';
     }>;
     'POST /api/studio-documents': Op;
     'GET /api/studio-documents/folders': Op;
@@ -5329,7 +5329,7 @@ export interface ApiOperations {
         limit?: number;
         query?: string;
         sort?: 'updated' | 'name';
-        visibility?: 'private' | 'team';
+        visibility?: 'private' | 'team' | 'restricted' | 'organisation';
     }>;
     'GET /api/studio-documents/{id}': Op<{ id: string | number }>;
     'PATCH /api/studio-documents/{id}': Op<{ id: string | number }>;

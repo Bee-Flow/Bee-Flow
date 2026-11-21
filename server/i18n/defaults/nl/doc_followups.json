@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "doc_followups.archive_notebook": "Archiveren",
+    "doc_followups.archive_notebook_body": "\"{name}\" gaat naar het archief, met de bronnen, de versiegeschiedenis en de chat. Je kunt het terugzetten in Bee Flow op het web.",
+    "doc_followups.archive_notebook_title": "Notitieboek archiveren?",
+    "doc_followups.notebook_archived": "Notitieboek gearchiveerd",
+    "doc_followups.visibility_organisation": "Hele organisatie",
+    "doc_followups.visibility_restricted": "Gedeeld met personen"
+  },
+  "sameAsEnglish": []
+}

@@ -310,14 +310,14 @@ describe('DocumentsPage: own templates in the gallery', () => {
 });
 
 describe('DocumentsPage: sharing as the row says it', () => {
-    it('says Shared, not Team, and the filter offers Private and Shared', async () => {
+    it('says Shared, not Team, and the filter offers Private, Shared, and who it is shared with', async () => {
         api.listDocumentsPage.mockResolvedValue({ documents: [row('s', { visibility: 'team' }), row('p', { visibility: 'private' })], total: 2, people: {} });
         renderPage();
         expect(await screen.findByTestId('library-row-s')).toHaveTextContent('· Shared');
         expect(screen.getByTestId('library-row-s')).not.toHaveTextContent('Team');
         expect(screen.getByTestId('library-row-p')).not.toHaveTextContent('Shared');
         const filter = screen.getByRole('combobox', { name: 'Visibility' });
-        expect(within(filter).getAllByRole('option').map((o) => o.textContent)).toEqual(['Private and shared', 'Private', 'Shared']);
+        expect(within(filter).getAllByRole('option').map((o) => o.textContent)).toEqual(['Private and shared', 'Private', 'Shared', 'Shared with people', 'Whole organisation']);
         expect(within(filter).getByRole('option', { name: 'Shared' })).toHaveValue('team');
     });
 });

@@ -40,7 +40,7 @@ const { isCoEdited } = require('./lib/coEditGuard');
 const solutionTemplates = require('./document/solutionTemplates');
 const managedParts = require('./managedPartsDefault');
 const notebookLibrary = require('./notebookLibrary');
-const { sharingDdl, sharingSql, editSharingSql, visibilitySql } = require('./lib/documentSharing');
+const { sharingDdl, sharingSql, editSharingSql, visibilitySql, audienceSql, audienceFilterSql } = require('./lib/documentSharing');
 const { SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate } = require('./lib/sheetDocument');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
@@ -331,7 +331,7 @@ function accessSql(alias = 'd', write = false) {
 // answers them, so the two halves of the library UNION line up.
 const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, ${visibilitySql('d')} AS visibility, d.folder_id, d.categories,
     d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
-    NULL::int AS source_count, d.solution_project_id`;
+    NULL::int AS source_count, d.solution_project_id, ${audienceSql('d')} AS audience`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
 
 /**
@@ -401,7 +401,8 @@ async function listDocumentsPage(context, options = {}) {
         where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`, `d.doc_type <> ${bind(SHEET_DOC_TYPE)}`);
     } else if (options.docType === notebookLibrary.NOTEBOOK_DOC_TYPE) where.push('false');
     else if (options.docType && DOC_TYPES.includes(options.docType)) where.push(`d.doc_type = ${bind(options.docType)}`);
-    if (visibility) where.push(`${visibilitySql('d')} = ${bind(visibility)}`);
+    // private | team (shared with anybody) | restricted (some people) | organisation (everyone).
+    if (visibility) where.push(audienceFilterSql(audienceSql('d'), visibility));
     if (shared.folderSet) {
         if (folderId) shared.folder = bind(folderId);
         where.push(folderId ? `d.folder_id = ${shared.folder}` : 'd.folder_id IS NULL');

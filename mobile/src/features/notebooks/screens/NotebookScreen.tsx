@@ -63,7 +63,7 @@ export function NotebookScreen({ notebookId }: { notebookId: string }) {
                         name={name}
                         onAdd={() => flow.setAddOpen(true)}
                         onRename={() => sheets.setRenaming(true)}
-                        onDelete={() => sheets.setDeleting(true)}
+                        onArchive={() => sheets.setArchiving(true)}
                     />
                 }
             />

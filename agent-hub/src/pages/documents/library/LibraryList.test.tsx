@@ -35,3 +35,12 @@ it('an organisation admin sees no Archive on a managed team template either', ()
     render(<LibraryList {...props([{ ...managed, userId: 'someone', visibility: 'team' }])} orgAdmin />);
     expect(screen.queryByRole('button', { name: 'Archive Stage offer' })).not.toBeInTheDocument();
 });
+
+it('a row says Shared for some people and Organisation for everyone, from the audience the server sends', () => {
+    const doc = (id: string, audience: LibraryRow['audience']): LibraryRow => ({ id, name: `Doc ${id}`, userId: 'me', docType: 'page', kind: 'document', visibility: audience === 'private' ? 'private' : 'team', audience, updatedAt: now });
+    render(<LibraryList {...props([doc('a', 'restricted'), doc('b', 'organisation'), doc('c', 'private')])} />);
+    expect(screen.getByTestId('library-row-a')).toHaveTextContent('Shared');
+    expect(screen.getByTestId('library-row-a')).not.toHaveTextContent('Organisation');
+    expect(screen.getByTestId('library-row-b')).toHaveTextContent('Organisation');
+    expect(screen.getByTestId('library-row-c')).not.toHaveTextContent(/Shared|Organisation/);
+});
