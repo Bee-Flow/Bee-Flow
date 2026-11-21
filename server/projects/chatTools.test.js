@@ -67,11 +67,11 @@ const ask = { project: PROJECT, userId: 'ann', orgId: 'org1', session: null };
 test('an editor is offered documents and notebooks, and the tools to find, read and change what exists; nobody else, and nothing else', async () => {
     const { tools } = kit();
     assert.deepStrictEqual((await tools.offered(ask)).map((t) => t.function.name),
-        ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook']);
+        ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook', 'document_templates_list', 'template_fill_start', 'template_fill_status', 'template_fill_set_values', 'template_fill_finish']);
     assert.deepStrictEqual(await tools.offered({ ...ask, userId: 'vic' }), [], 'a viewer cannot add to the project');
     assert.deepStrictEqual(await tools.offered({ ...ask, userId: 'zed' }), [], 'not a member');
     assert.deepStrictEqual((await kit({ notebooks: false }).tools.offered(ask)).map((t) => t.function.name),
-        ['create_document', 'list_project_items', 'read_project_item'], 'no notebooks without the permission: documents can be found and read, nothing edited');
+        ['create_document', 'list_project_items', 'read_project_item', 'document_templates_list', 'template_fill_start', 'template_fill_status', 'template_fill_set_values', 'template_fill_finish'], 'no notebooks without the permission: documents can be found, read and filled in from a template, no notebook edited');
     assert.deepStrictEqual(await tools.offered({ ...ask, project: { ...PROJECT, kind: 'solution' } }), [], 'a Studio Solution holds neither');
 });
 
@@ -200,7 +200,7 @@ test('a web search is offered to an editor only where a search is set up, and ne
     assert.ok(!(await kit().tools.offered(ask)).some((t) => t.function.name === 'agent_search'), 'no search configured');
     const on = kit({ search: true }).tools;
     assert.deepStrictEqual((await on.offered(ask)).map((t) => t.function.name),
-        ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook', 'agent_search']);
+        ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook', 'document_templates_list', 'template_fill_start', 'template_fill_status', 'template_fill_set_values', 'template_fill_finish', 'agent_search']);
     assert.deepStrictEqual(await on.offered({ ...ask, userId: 'vic' }), [], 'a viewer gets no tools');
 });
 
@@ -233,7 +233,7 @@ test('a search that fails answers a refusal, not the error', async () => {
 });
 
 test('the allow-list names the search and nothing that is not a project tool', () => {
-    assert.deepStrictEqual([...TOOL_NAMES], ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook', 'agent_search']);
+    assert.deepStrictEqual([...TOOL_NAMES], ['create_document', 'create_notebook', 'list_project_items', 'read_project_item', 'edit_notebook', 'document_templates_list', 'template_fill_start', 'template_fill_set_values', 'template_fill_status', 'template_fill_finish', 'agent_search']);
 });
 
 // ── What the project already holds (BFSF-489) ────────────────────────────

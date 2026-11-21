@@ -20,7 +20,9 @@ import EmptyState from '@/components/shared/EmptyState';
 import { GhostButton, LoadingRow, Notice, PrimaryButton, ViewerNote, SecondaryButton, WorkspaceColumn } from '../workspaceUi';
 import SectionToolbar from '../SectionToolbar';
 import DocumentsTable, { type DocumentsTableProps } from './DocumentsTable';
+import DocumentFolderBar, { MoveToFolderButton } from './DocumentFolderBar';
 import { DocumentPicker } from './pickers';
+import { useDocumentFolderView } from './useDocumentFolderView';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
@@ -90,7 +92,7 @@ function useDocumentCreate(projectId: string, onCreated: (doc: ProjectDocument) 
     };
 }
 
-type TableHandlers = Pick<DocumentsTableProps, 'ownerName' | 'mayRemove' | 'removingId' | 'onOpen' | 'onRemove' | 'isUnread'>;
+type TableHandlers = Pick<DocumentsTableProps, 'ownerName' | 'mayRemove' | 'removingId' | 'onOpen' | 'onRemove' | 'isUnread' | 'renderMove'>;
 
 /** Loading, could-not-load, nothing-yet, or the table: four different things. */
 function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
@@ -119,6 +121,31 @@ function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
     );
 }
 
+type FolderView = ReturnType<typeof useDocumentFolderView<ProjectDocument>>;
+
+/** The folder tabs, and what went wrong with the last folder action. */
+function FolderSection({ folders, total, canEdit }: { folders: FolderView; total: number; canEdit: boolean }) {
+    const { t } = useTranslation();
+    return (
+        <>
+            <DocumentFolderBar
+                folders={folders.folders} counts={folders.counts} total={total} current={folders.current}
+                onSelect={folders.select} canEdit={canEdit} busy={folders.busy}
+                onCreate={folders.create} onRename={folders.rename} onDelete={folders.remove}
+            />
+            {folders.failed && <Notice tone="error" role="alert" icon={AlertTriangle}>{t('doc_folders.folder_failed', 'That did not work. Try again.')}</Notice>}
+        </>
+    );
+}
+
+/** "Move to folder" on a row, for an editor only. */
+const moveButton = (folders: FolderView, canEdit: boolean) => (canEdit ? function MoveButton(doc: ProjectDocument) {
+    return (
+        <MoveToFolderButton folders={folders.folders} currentFolderId={folders.placements[doc.id] || null}
+            documentName={doc.name} onMove={(folderId) => folders.move(doc.id, folderId)} />
+    );
+} : undefined);
+
 function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpenTab, intent, notebooksEnabled }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role);
@@ -135,10 +162,11 @@ function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpe
     // Own templates, and whether the reader may make a spreadsheet, are asked only once the gallery is open.
     const mine = useMyTemplatesQuery(createOpen);
     const inProject = useMemo(() => new Set(items.map(d => d.id)), [items]);
+    const folders = useDocumentFolderView(projectId, items);
     const visible = useMemo(() => {
         const q = search.trim().toLowerCase();
-        return q ? items.filter(d => (d.name || '').toLowerCase().includes(q)) : items;
-    }, [items, search]);
+        return q ? folders.shown.filter(d => (d.name || '').toLowerCase().includes(q)) : folders.shown;
+    }, [folders.shown, search]);
     const openCreate = () => { create.reset(); setCreateOpen(true); };
 
     const onRemove = (doc: ProjectDocument) => removal.remove(doc.id, {
@@ -163,6 +191,7 @@ function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpe
                 searchLabel={t('project_content.documents_search', 'Search documents')}
                 primary={primary} extras={extras}
             />
+            {!emptyProject && <FolderSection folders={folders} total={items.length} canEdit={canEdit} />}
             {!canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.documents_viewer_note', 'You can read the documents in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>}
             <DocumentsBody
                 status={section.status} documents={visible} total={items.length} onRetry={section.refetch}
@@ -174,6 +203,7 @@ function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpe
                     onOpen: (doc) => onOpenSub(doc.id),
                     onRemove,
                     isUnread: (doc) => unread.isUnread('document', doc.id),
+                    renderMove: moveButton(folders, canEdit),
                 }}
             />
             <StarterGallery

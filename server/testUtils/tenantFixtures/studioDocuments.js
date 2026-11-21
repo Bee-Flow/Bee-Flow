@@ -50,6 +50,12 @@ const FIXTURES = [
             'GET /api/studio-documents/:id/stream', 'POST /api/studio-documents/:id/presence',
             'GET /api/studio-documents/:id/sharing', 'GET /api/studio-documents/:id/sharing/principals',
             'PUT /api/studio-documents/:id/sharing',
+            // The chat's form for a filled-in template: the owner's empty save is a 200.
+            'PUT /api/studio-documents/:id/values',
+            // The document as a .bftemplate file.
+            'GET /api/studio-documents/:id/export',
+            // Asking colleagues in a project for a filled-in template's fields, and closing that request.
+            'POST /api/studio-documents/:id/value-requests', 'POST /api/studio-documents/:id/value-requests/:requestId/close',
             'GET /api/studio-documents/:id/suggestions', 'POST /api/studio-documents/:id/suggestions/:sid/accept',
             'POST /api/studio-documents/:id/suggestions/:sid/reject', 'POST /api/studio-documents/:id/suggestions/batch/:batchId/accept',
             'POST /api/studio-documents/:id/suggestions/batch/:batchId/reject',
@@ -58,7 +64,7 @@ const FIXTURES = [
         ],
         // The revision is `current`: reading one reads the document and the revision in one query, so for an
         // unknown revision the owner's 404 would be org A's; for `current` the owner gets a 200.
-        params: { ref: 'current' },
+        params: { ref: 'current', requestId: 'matrix-request' },
         // The routes whose schema runs before the document is looked up, with a body it accepts.
         bodies: {
             'POST /api/studio-documents/:id/ai-proposal': { message: 'A change that must not land here.' },
@@ -67,6 +73,8 @@ const FIXTURES = [
             'POST /api/studio-documents/:id/versions': { name: 'Matrix version' },
             'PUT /api/studio-documents/:id/versions/:ref/name': { name: 'Matrix version' },
             'PATCH /api/studio-documents/:id': { name: NO_TEXT },
+            'PUT /api/studio-documents/:id/values': { values: { title: NO_TEXT } },
+            'POST /api/studio-documents/:id/value-requests': { fields: ['title'], assigneeIds: ['matrix-colleague'] },
         },
     },
     {

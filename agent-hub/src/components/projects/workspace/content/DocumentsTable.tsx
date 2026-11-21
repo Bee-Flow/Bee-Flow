@@ -27,6 +27,8 @@ export interface DocumentsTableProps {
     onRemove: (doc: ProjectDocumentRow) => void;
     /** Somebody else changed it since the reader last saw it. */
     isUnread?: (doc: ProjectDocumentRow) => boolean;
+    /** "Move to folder" for one document (DocumentFolderBar), for an editor of a project with folders. */
+    renderMove?: (doc: ProjectDocumentRow) => React.ReactNode;
 }
 
 function useColumns(): TableColumn[] {
@@ -36,14 +38,14 @@ function useColumns(): TableColumn[] {
         { id: 'type', label: t('project_content.col_type', 'Type'), width: '130px' },
         { id: 'owner', label: t('project_content.col_owner', 'Owner'), width: '160px', foldBelow: 1180 },
         { id: 'updated', label: t('documents.project.col_changed', 'Last changed'), width: '170px' },
-        { id: 'actions', label: '', width: '32px' },
+        { id: 'actions', label: '', width: '64px' },
     ];
 }
 
 const ICONS: Record<string, typeof FileText> = { presentation: Presentation, page: NotebookPen, spreadsheet: Sheet };
 const iconOf = (docType: string | undefined) => (docType && ICONS[docType]) || FileText;
 
-export default function DocumentsTable({ documents, loading, empty, ownerName, mayRemove, removingId, onOpen, onRemove, isUnread }: DocumentsTableProps) {
+export default function DocumentsTable({ documents, loading, empty, ownerName, mayRemove, removingId, onOpen, onRemove, isUnread, renderMove }: DocumentsTableProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const typeLabel = useDocTypeLabel();
@@ -60,6 +62,7 @@ export default function DocumentsTable({ documents, loading, empty, ownerName, m
                     <span className="block text-sm font-medium text-[var(--text-primary)] break-words">{doc.name}</span>
                     <span className="block text-xs text-[var(--text-secondary)]">{typeLabel(doc.docType)} · {ownerName(doc.userId)} · {rel(doc.updatedAt || doc.createdAt)}</span>
                 </button>
+                {renderMove?.(doc)}
                 {mayRemove(doc) && <RemoveButton label={t('project_content.remove_from_project', 'Remove from project')} disabled={removingId === doc.id} onClick={() => onRemove(doc)} />}
             </div>}
             loading={loading}
@@ -89,7 +92,8 @@ export default function DocumentsTable({ documents, loading, empty, ownerName, m
                         <TableCell column={updatedCol} className="truncate text-[var(--text-tertiary)]">
                             {editor ? t('documents.project.changed_by', '{time} · {name}', { time: when, name: editor }) : when}
                         </TableCell>
-                        <TableCell column={actionsCol} align="right">
+                        <TableCell column={actionsCol} align="right" className="flex items-center justify-end gap-0.5">
+                            {renderMove?.(doc)}
                             {mayRemove(doc) && (
                                 <RemoveButton
                                     label={t('project_content.remove_named', 'Remove {name} from the project', { name: doc.name })}

@@ -84,3 +84,13 @@ describe('the box', () => {
         expect(shell.className).toContain('max-w-[760px]');
     });
 });
+
+describe('ChatComposer: filling in a template together', () => {
+    it('offers Template next to Ask AI only while the AI may answer in this chat', () => {
+        const { unmount } = render(<ChatComposer {...props()} />);
+        expect(screen.getByTestId('team-chat-fill-template')).toBeInTheDocument();
+        unmount();
+        render(<ChatComposer {...props({ aiEnabled: false })} />);
+        expect(screen.queryByTestId('team-chat-fill-template')).not.toBeInTheDocument();
+    });
+});

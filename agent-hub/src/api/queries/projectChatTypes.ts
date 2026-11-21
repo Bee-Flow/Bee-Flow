@@ -49,6 +49,8 @@ export interface TeamChatAiPolicy { autoAllowed: boolean; alwaysAllowed: boolean
 /** How an AI answer was made: the depth it ran on, and what the Privacy Shield replaced (a count and kinds, never values). */
 export interface TeamChatAiMeta {
     usedSources?: TeamChatRef[];
+    /** Documents this answer filled in from a template: the chat shows their shared form under it. */
+    templateFills?: string[];
     tier: string | null; requestedTier: string | null; redacted: number; categories: string[];
     /** The Privacy Shield replaced values, so there is a trace to open. */
     trace?: boolean;

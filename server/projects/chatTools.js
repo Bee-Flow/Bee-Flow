@@ -54,8 +54,9 @@ const DESIGNED_TYPES = Object.freeze(['document', 'invoice', 'quote', 'letter', 
 const DESCRIPTION_MAX = 1000;
 
 const { ITEM_TOOL_NAMES, ITEM_DEFINITIONS, makeProjectItemTools } = require('./chatItemTools.mts');
+const { PROJECT_TEMPLATE_FILL_TOOL_NAMES, makeProjectTemplateFillTools } = require('./chatTemplateFillTools.mts');
 
-const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook', ...ITEM_TOOL_NAMES, 'agent_search']);
+const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook', ...ITEM_TOOL_NAMES, ...PROJECT_TEMPLATE_FILL_TOOL_NAMES, 'agent_search']);
 const SEARCH_TOOL = 'agent_search';
 const MAX_SEARCHES = 4;
 const QUERY_MAX = 300;
@@ -130,7 +131,8 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
  *   searchAvailable?: () => Promise<boolean>,
  *   runSearch?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
  *   notebooksAllowed?: (p: { userId: string, orgId?: string|null, session?: unknown }) => Promise<boolean>,
- *   items?: Partial<import('./chatItemTools.mts').ItemToolDeps> }} [deps]
+ *   items?: Partial<import('./chatItemTools.mts').ItemToolDeps>,
+ *   templateFill?: Partial<Parameters<typeof import('./chatTemplateFillTools.mts').makeProjectTemplateFillTools>[0]> }} [deps]
  */
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
@@ -161,6 +163,8 @@ function makeProjectChatTools(deps = {}) {
     });
     // The tools on what the project already holds run behind the same gates.
     const itemTools = makeProjectItemTools({ getProjectRole, membership, notebooksAllowed, projectOrg, markdownToHtml, ...(deps.items || {}) });
+    // Filling in a template together: the document is the project's (projects/chatTemplateFillTools.mts).
+    const fillTools = makeProjectTemplateFillTools({ getProjectRole, membership, projectOrg, ...(deps.templateFill || {}) });
 
     /** The tool definitions this asker may be offered right now. */
     async function offered({ project, userId, orgId, session }) {
@@ -174,6 +178,7 @@ function makeProjectChatTools(deps = {}) {
             // Whatever can be made can first be looked for; only a notebook can be changed.
             if (out.length) out.push(ITEM_DEFINITIONS.list_project_items, ITEM_DEFINITIONS.read_project_item);
             if (notebooksHere) out.push(ITEM_DEFINITIONS.edit_notebook);
+            out.push(...await fillTools.offered(project, userId));
             if (await searchAvailable()) out.push(searchDefinition());
         } catch (err) {
             log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && /** @type {Error} */ (err).message}`);
@@ -186,12 +191,14 @@ function makeProjectChatTools(deps = {}) {
      * One run of tools for one answer: `execute(name, args)` for the loop, and
      * `created` and `edited` (`{ kind, id, name }` in order) for the message
      * that follows. An edit has its own budget: it never uses up the one for
-     * making things.
+     * making things. `chatId`: the team chat answered in (a template filled in there is that chat's).
+     * @param {{ project: any, userId: string, orgId?: string|null, session?: any, chatId?: string|null }} a
      */
-    function forAnswer({ project, userId, orgId, session: authSession }) {
+    function forAnswer({ project, userId, orgId, session: authSession, chatId = null }) {
         /** @type {{ kind: 'document'|'notebook'|'template', id: string, name: string }[]} */
         const created = [];
         const items = itemTools.forAnswer({ project, userId, orgId, session: authSession });
+        const fills = fillTools.forAnswer({ project, userId, chatId });
         let searches = 0;
         /**
          * @param {string} error
@@ -294,6 +301,7 @@ function makeProjectChatTools(deps = {}) {
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');
             const input = args && typeof args === 'object' ? args : {};
             if (ITEM_TOOL_NAMES.includes(name)) return items.execute(name, input);
+            if (PROJECT_TEMPLATE_FILL_TOOL_NAMES.includes(name)) return fills.execute(name, /** @type {Record<string, unknown>} */ (input));
             if (name === SEARCH_TOOL) {
                 try {
                     return await search(input);
@@ -312,7 +320,8 @@ function makeProjectChatTools(deps = {}) {
             }
         }
 
-        return { execute, created, edited: items.edited };
+        // What was filled in counts as changed: the answer gets its chip and its form.
+        return { execute, created, get edited() { return [...items.edited, ...fills.touched]; } };
     }
 
     return { offered, forAnswer };

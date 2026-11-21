@@ -2,7 +2,7 @@
 // opens a menu of the people in the project and the AI; "Ask AI" sends and
 // asks the AI to answer even when nobody mentions it.
 
-import { Bot, BookOpen, CheckSquare, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
+import { Bot, BookOpen, CheckSquare, CornerUpLeft, FilePen, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
 import type { TeamChatRef } from '@/api/queries/projectChatTypes';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -16,6 +16,9 @@ import { Avatar, PrimaryButton, SecondaryButton } from '../workspaceUi';
 import {
     findMentionQuery, insertMention, matchCandidates, mentions, resolveMentions, type MentionCandidate, type MentionQuery,
 } from './mentions';
+import TemplateFillPicker from '@/components/chat/InputArea/TemplateFillPicker';
+import { templatePickMessage } from '@/components/chat/templatePick';
+import type { MyTemplate } from '@/api/queries/projectContent';
 
 export const MAX_MESSAGE_LENGTH = 20_000;
 
@@ -209,6 +212,29 @@ function useComposerState(props: ChatComposerProps) {
     return { text, inputRef, menu, pick, submit, onChange, onKeyDown, onSelect };
 }
 
+/**
+ * Fill in a template with the team: pick one of your templates, and the AI starts a document from it in this
+ * project (the form under its answer is the same for every member). The template id rides along, unseen.
+ */
+function TemplatePickButton({ tier, onSend }: { tier?: string; onSend: ChatComposerProps['onSend'] }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const pick = (template: MyTemplate) => {
+        setOpen(false);
+        const content = templatePickMessage(t('chat_templates.fill_message', 'Fill in the template “{name}” with me.', { name: template.name }), template.id);
+        onSend({ content, mentions: [], refs: [], askAi: true, ...(tier ? { modelTier: tier } : {}) });
+    };
+    return (
+        <div className="relative">
+            <SecondaryButton onClick={() => setOpen(!open)} aria-expanded={open} data-testid="team-chat-fill-template"
+                title={t('chat_templates.team_hint', 'Fill in one of your templates together with the AI and your colleagues')}>
+                <FilePen className="w-3.5 h-3.5" aria-hidden="true" />{t('chat_templates.team_button', 'Template')}
+            </SecondaryButton>
+            <div className="absolute bottom-full right-0 mb-2 w-72"><TemplateFillPicker enabled open={open} onPick={pick} /></div>
+        </div>
+    );
+}
+
 export default function ChatComposer(props: ChatComposerProps) {
     const { t } = useTranslation();
     const menuId = useId();
@@ -242,6 +268,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                     {props.tier && props.aiEnabled && (
                         <TierSlider tiers={props.tier.tiers} value={props.tier.value} onChange={props.tier.onChange} variant="input" />
                     )}
+                    {props.aiEnabled && <TemplatePickButton tier={props.tier?.value} onSend={props.onSend} />}
                     <SecondaryButton onClick={() => s.submit(true)} disabled={empty || !props.aiEnabled}
                         title={props.aiEnabled ? t('project_chat.ask_ai_hint', 'Send and ask the AI to answer') : t('project_chat.ai_is_off', 'The AI is off in this chat')}>
                         <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />{t('project_chat.ask_ai', 'Ask AI')}

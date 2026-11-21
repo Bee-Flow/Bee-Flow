@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/projects`
 
-143 routes, 103 with a request schema. Back to the [endpoint reference](../reference.md).
+148 routes, 106 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -549,6 +549,49 @@ No request schema.
 | `clientId` | integer | yes | min 0; max 4294967295 |
 | `updates` | array of string | yes | min items 1; max items 32 |
 | `awareness` | string |  | max length 4000 |
+
+### `GET /api/projects/:id/document-folders`
+
+**Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
+
+No request schema.
+
+### `POST /api/projects/:id/document-folders`
+
+**Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string | yes | min length 1; max length 120 |
+
+### `PATCH /api/projects/:id/document-folders/:folderId`
+
+**Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string | yes | min length 1; max length 120 |
+
+### `DELETE /api/projects/:id/document-folders/:folderId`
+
+**Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
+
+No request schema.
+
+### `PUT /api/projects/:id/document-folders/placement`
+
+**Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `documentId` | string | yes | min length 1; max length 200 |
+| `folderId` | string or null | yes |  |
 
 ### `POST /api/projects/:id/documents`
 

@@ -19,6 +19,7 @@ import type { SkillSummary } from '@/hooks/useChatEngine/types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import SessionSkillsSection from './SessionSkillsSection';
 import SwarmTimeline from './SwarmTimeline';
+import TemplateFillCard from './TemplateFillCard';
 import TestChatNotice from './TestChatNotice';
 import { ThinkingPanel } from './ThinkingPanel';
 import { SequentialThinking } from './ThinkingSteps';
@@ -142,6 +143,8 @@ export function GeneratedMediaBlock({ msg, setLightboxImage }: { msg: ChatMessag
             {msg.videoFiles && msg.videoFiles.length > 0 && <GeneratedVideos msg={msg} />}
             {/* Files a tool built — a deck to open in Nextcloud Office or download */}
             {msg.files && msg.files.length > 0 && <GeneratedFiles msg={msg} />}
+            {/* A template being filled in with the user: the form, then the download */}
+            <TemplateFillCard toolResults={msg.toolResults} toolHistory={msg.toolHistory} />
         </>
     );
 }

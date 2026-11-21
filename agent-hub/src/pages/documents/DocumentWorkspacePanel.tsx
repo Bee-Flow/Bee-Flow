@@ -9,6 +9,7 @@ import type { MegaItem } from '../../components/admin/product-website/blockEdito
 import type { FeatureOption } from '../../shared/featureCatalog';
 import { logger } from '../../utils/logger';
 import { contractSavable, keyProblems, ruleIncomplete, type KeyProblem } from './editor/contractCheck';
+import ProjectFillTab from './editor/ProjectFillTab';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
@@ -311,7 +312,10 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         </>}
         {tab==='preview' && <>
             <p className="text-xs">{doc.kind==='document'?t('documents.workspace.customer_values_are_stored_on_this', 'Customer values are stored on this private document.'):t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>
-            {parameters.map(p=><div key={p.key}>{field((p.label || p.key)+(p.required?' *':''),<ValueInput parameter={p} value={settings.sampleValues?.[p.key]} onChange={v=>setSettings(s=>({...s,sampleValues:{...s.sampleValues,[p.key]:v}}))}/>)}<p className="text-xs text-[var(--text-muted)] mt-1">{p.summary}</p>{p.instructions && <details className="text-xs mt-1"><summary>{t('documents.workspace.instructions', 'Instructions')}</summary>{p.instructions}</details>}</div>)}
+            {/* In a project people fill it in together: the shared form, who filled what, and requests to colleagues. */}
+            {doc.kind==='document' && doc.projectId
+                ? <ProjectFillTab documentId={doc.id} projectId={doc.projectId}/>
+                : parameters.map(p=><div key={p.key}>{field((p.label || p.key)+(p.required?' *':''),<ValueInput parameter={p} value={settings.sampleValues?.[p.key]} onChange={v=>setSettings(s=>({...s,sampleValues:{...s.sampleValues,[p.key]:v}}))}/>)}<p className="text-xs text-[var(--text-muted)] mt-1">{p.summary}</p>{p.instructions && <details className="text-xs mt-1"><summary>{t('documents.workspace.instructions', 'Instructions')}</summary>{p.instructions}</details>}</div>)}
             {sections.map(s=>field(s.title,<select key={s.id} className={input} value={settings.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>setSettings(x=>({...x,sectionOverrides:{...x.sectionOverrides,[s.id]:e.target.value}}))}><option value="automatic">{t('documents.workspace.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('documents.workspace.include', 'Include')}</option><option value="exclude">{t('documents.workspace.exclude', 'Exclude')}</option></select>))}
             <button className={button} onClick={()=>action(async()=>{await save();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>
         </>}

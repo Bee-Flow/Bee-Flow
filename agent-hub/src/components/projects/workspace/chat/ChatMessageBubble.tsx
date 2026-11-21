@@ -18,6 +18,8 @@ import { AI_TONE, type AiTone } from '../projectVisuals';
 import { isImeEnter } from './ime';
 import { excerptOf, formatMessageTime, type ChatItem, type ThreadSummary } from './messageGroups';
 import { splitMentions } from './mentions';
+import ProjectFillPanel from '@/components/documents/fill/ProjectFillPanel';
+import { withoutTemplatePick } from '@/components/chat/templatePick';
 
 /** What a bubble needs from the chat around it. */
 export interface MessageContext {
@@ -272,7 +274,8 @@ function MessageBody({ message, ctx }: { message: TeamChatMessage; ctx: MessageC
             </div>
         );
     }
-    return <MentionText text={message.content} tokens={ctx.mentionTokens} query={ctx.highlight?.query} />;
+    // A template picked in the composer travels as a last `[template:<id>]` line: not for anyone's eyes.
+    return <MentionText text={withoutTemplatePick(message.content)} tokens={ctx.mentionTokens} query={ctx.highlight?.query} />;
 }
 
 /**
@@ -320,6 +323,10 @@ function ConfirmedBubble({ message, ctx }: { message: TeamChatMessage; ctx: Mess
                     onSave={async (next) => { await ctx.onEdit(message, next); setEditing(false); }} />
                 : <MessageBody message={message} ctx={ctx} />}
             {!message.deleted && !editing && <RefChips refs={message.refs || []} ctx={ctx} />}
+            {!message.deleted && !editing && ctx.traceScope?.projectId && (message.aiMeta?.templateFills || []).map((id) => (
+                // The template this answer filled in, as the form every member of the project fills in together.
+                <div key={id} className="mt-2" data-testid={`team-chat-fill-${id}`}><ProjectFillPanel documentId={id} projectId={ctx.traceScope!.projectId} meId={ctx.currentUserId} /></div>
+            ))}
             {!message.deleted && !editing && !!message.aiMeta?.usedSources?.length && <div className="text-xs text-[var(--text-secondary)]">
                 <span>{t('project_chat.context_used', 'Sources provided to AI')}</span>
                 <RefChips refs={message.aiMeta.usedSources.filter(ref => !!ctx.refTitle?.(ref))} ctx={ctx} />

@@ -403,7 +403,7 @@ const HANDLERS = {
     document_download: downloadDocument,
     document_read: readDocument,
     document_write: writeDocument,
-    document_edit: editDocument,
+    document_edit: editDocument, ...require('./templateFillTools.mts').TEMPLATE_FILL_HANDLERS,
 };
 
 /**

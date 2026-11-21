@@ -70,6 +70,14 @@ test('documents created in this conversation: create tool history counts, an ass
     assert.ok(!s.has(D), 'a read result does not grant scope');
 });
 
+test('a document made from a template in this conversation stays in scope, and counts as made by the chat', () => {
+    const s = createDocumentScope({ history: [{ role: 'assistant', content: 'ok', toolHistory: [
+        { name: 'template_fill_start', resultPreview: JSON.stringify({ documentId: A, name: 'Offer' }) },
+    ] }] });
+    assert.ok(s.has(A));
+    assert.ok(s.createdInChat(A));
+});
+
 test('add() grows the scope; junk ids are ignored', () => {
     const s = createDocumentScope();
     s.add(A); s.add(5); s.add(''); s.add('x'.repeat(101));

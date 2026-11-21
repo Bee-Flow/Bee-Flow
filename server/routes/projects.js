@@ -674,7 +674,7 @@ router.use('/', require('./projects/memberColors'));
 router.use('/', require('./projects/workspace'));
 router.use('/', require('./projects/discovery'));
 router.use('/', require('./projects/board'));
-router.use('/', require('./projects/content'));
+router.use('/', require('./projects/content'), require('./projects/documentFolders.mts').documentFoldersRouter);
 // Real-time co-editing of notebooks and project pages (the HTTP half of the
 // sync; the other half rides on GET /:id/stream above).
 router.use('/', require('./projects/collab'));

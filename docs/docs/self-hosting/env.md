@@ -200,6 +200,7 @@ The storage envelope of datatables, per organisation (or per account, for person
 | `DATATABLE_MAX_ROWS_PER_TABLE` | `100000` | Rows in one table. `0` = unlimited. |
 | `DATATABLE_MAX_ROWS_PER_SCOPE` | `500000` | Rows across all tables, spreadsheet tabs included. `0` = unlimited. |
 | `DATATABLE_MAX_MB_PER_SCOPE` | `256` | On-disk storage of all tables, spreadsheet tabs included, in MB. Once reached, no new rows, tables or spreadsheet tabs are added until something is deleted. `0` = unlimited. |
+| `PROJECT_DOCUMENT_FOLDERS_MAX` | `500` | Folders in the Documents tab of one project. `0` = unlimited. |
 
 The hourly datatable sweep (switched off with `DATATABLE_RETENTION_DISABLED`) also removes a spreadsheet tab's table that no document points at any more, a day after it was made: what is left when creating a spreadsheet or tab failed half-way. Tables people make, and the tabs of a deleted (archived) spreadsheet, are never removed by it.
 

@@ -20,6 +20,7 @@
  *   *      /:id/suggestions  AI suggestions: list, accept, reject (documentSuggestions.js)
  *   POST   /:id/presence     who else is here, and in which section (studioDocuments/presence.js)
  *   *      /:id/versions     the history: list, read, name, restore, delete (studioDocuments/versions.js)
+ *   PUT    /:id/values       a filled-in template's field values, from the chat's form (studioDocuments/templateValues.mts)
  *
  * A PAGE (doc_type 'page') is a document written in the rich-text editor: its
  * body is stored sanitised, it prints with the page sheet of
@@ -811,6 +812,8 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', require('./studioDocuments/stream'));
+router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter);
+router.use('/', require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter);
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 

@@ -346,6 +346,9 @@
     "DELETE /api/projects/:id/comments/:threadId/replies/:commentId": {
       "gate": "auth"
     },
+    "DELETE /api/projects/:id/document-folders/:folderId": {
+      "gate": "auth"
+    },
     "DELETE /api/projects/:id/files/:fileId": {
       "gate": "auth"
     },
@@ -2499,6 +2502,9 @@
     "GET /api/projects/:id/deployments/:depId": {
       "gate": "auth"
     },
+    "GET /api/projects/:id/document-folders": {
+      "gate": "auth"
+    },
     "GET /api/projects/:id/files": {
       "gate": "auth"
     },
@@ -2857,6 +2863,9 @@
       "gate": "auth"
     },
     "GET /api/studio-documents/:id/contract": {
+      "gate": "auth"
+    },
+    "GET /api/studio-documents/:id/export": {
       "gate": "auth"
     },
     "GET /api/studio-documents/:id/pdf": {
@@ -4073,6 +4082,9 @@
       "gate": "auth"
     },
     "PATCH /api/projects/:id/comments/:threadId/replies/:commentId": {
+      "gate": "auth"
+    },
+    "PATCH /api/projects/:id/document-folders/:folderId": {
       "gate": "auth"
     },
     "PATCH /api/projects/:id/parts/:ref/options": {
@@ -5875,6 +5887,9 @@
     "POST /api/projects/:id/docs/:docId/updates": {
       "gate": "auth"
     },
+    "POST /api/projects/:id/document-folders": {
+      "gate": "auth"
+    },
     "POST /api/projects/:id/documents": {
       "gate": "auth"
     },
@@ -6322,6 +6337,12 @@
     "POST /api/studio-documents/:id/validate": {
       "gate": "auth"
     },
+    "POST /api/studio-documents/:id/value-requests": {
+      "gate": "auth"
+    },
+    "POST /api/studio-documents/:id/value-requests/:requestId/close": {
+      "gate": "auth"
+    },
     "POST /api/studio-documents/:id/versions": {
       "gate": "handler",
       "via": "route"
@@ -6337,6 +6358,9 @@
       "gate": "auth"
     },
     "POST /api/studio-documents/house-style/preview-theme": {
+      "gate": "auth"
+    },
+    "POST /api/studio-documents/import": {
       "gate": "auth"
     },
     "POST /api/studio-documents/notebooks/:id/archive": {
@@ -7464,6 +7488,9 @@
     "PUT /api/projects/:id/conversations": {
       "gate": "auth"
     },
+    "PUT /api/projects/:id/document-folders/placement": {
+      "gate": "auth"
+    },
     "PUT /api/projects/:id/kind": {
       "gate": "auth"
     },
@@ -7553,6 +7580,9 @@
       "gate": "auth"
     },
     "PUT /api/studio-documents/:id/sharing": {
+      "gate": "auth"
+    },
+    "PUT /api/studio-documents/:id/values": {
       "gate": "auth"
     },
     "PUT /api/studio-documents/:id/versions/:ref/name": {

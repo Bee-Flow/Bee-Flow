@@ -184,7 +184,9 @@ async function recordUsage(ctx, { result, userId, orgId, persona, model, auto, s
 function answerRefs(made, edited) {
     const seen = new Set();
     const refs = [];
-    for (const { kind, id } of [...made, ...edited]) {
+    for (const { kind: raw, id } of [...made, ...edited]) {
+        // A template filled in together is a project document: its chip is a document's.
+        const kind = raw === 'templateFill' ? 'document' : raw;
         if ((kind !== 'document' && kind !== 'notebook') || seen.has(`${kind}:${id}`)) continue;
         seen.add(`${kind}:${id}`);
         refs.push({ kind, id });
@@ -218,6 +220,9 @@ async function storeAnswer(ctx, {
     const messageId = ctx.newId();
     const { aiMeta, aiTrace } = answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId: chat.id, messageId });
     if (usedSources.length) /** @type {Record<string, any>} */ (aiMeta).usedSources = usedSources;
+    // The templates this answer filled in: the chat shows their shared form under it.
+    const fills = [...new Set([...made, ...edited].filter((m) => m.kind === 'templateFill').map((m) => m.id))];
+    if (fills.length) /** @type {Record<string, any>} */ (aiMeta).templateFills = fills;
     const saved = await ctx.store().appendMessage({
         id: messageId,
         projectId: project.id,

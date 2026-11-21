@@ -131,6 +131,17 @@ Ask for "a presentation", "slides" or "a deck" and the assistant calls `create_p
 - **AI-content marking**: when the organisation has EU AI Act Art. 50(2) marking switched on, the deck carries the marking line in every slide's footer and the same machine-readable keywords in its file properties that PDFs and Word files get.
 - **Caps**: 60 slides, 10 bullets per slide (overflow becomes a continuation slide), 4 MB per image.
 
+## Filling in a template
+
+**+ → Fill in a template** in the direct chat lists your document templates (your own and those shared with you; **Studio → Documents**, kind *Template*) with a search box. Picking one sends "Fill in the template “…” with me." and the assistant takes it from there:
+
+- `template_fill_start` makes your own private copy, exactly as *Use template* in the library does (so *Update available* still works), and reads the template's typed fields: label, type, required, options, help text.
+- The assistant asks for what is missing a few fields at a time, in plain language, fills in what the conversation or an attachment already says, and never invents a value. `template_fill_set_values` stores the answers as they come in; a number given as "12,5" becomes 12.5, a wrong type (a date that does not exist, an option that is not on the list) or an unknown field is refused with the reason, not stored.
+- After you confirm the summary, `template_fill_finish` checks every required field (it refuses while one is missing) and the card under the reply offers **Download PDF** (or **Download PowerPoint** for a presentation) and **Open in Documents**.
+- `document_templates_list` finds a template by name when you ask in words ("fill in our engagement letter") instead of picking one.
+
+Only templates you can read are offered, another organisation's never; values are written only to the document made in this chat (or one you opened beside it), never to the template itself.
+
 ## Memory
 
 Per-user memory is automatically populated by the **Memory Extractor** agent — facts like preferred timezone, current project, recurring tasks. The user manages it under **Settings → Account → Memory** (delete individual entries or clear all). Memory is injected into the system prompt for every conversation that opts in.
