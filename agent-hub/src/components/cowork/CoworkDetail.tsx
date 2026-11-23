@@ -27,6 +27,7 @@
 import { CalendarClock, Clock, LayoutGrid, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
 import CoworkEditForm from './CoworkEditForm';
+import CoworkPlanPanel from './CoworkPlanPanel';
 import CoworkReviewQueue from './CoworkReviewQueue';
 import CoworkRunHistory from './CoworkRunHistory';
 import { describeMoment, repeatLabel } from './coworkSchedule';
@@ -289,6 +290,8 @@ export default function CoworkDetail({
                 {/* What needs a person now comes before the brief and the figures. */}
                 <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} />
                 <AssignmentCard item={item} agents={agents} t={t} />
+                {/* The plan this work follows, or the way to give it one. */}
+                <CoworkPlanPanel coworkId={item.id} mailTriggered={isMailTriggerItem(item)} />
                 <CoworkStats coworkId={item.id} reloadKey={reloadKey} />
                 <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} agentId={item.agentId} title={item.title} />
             </div>

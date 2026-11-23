@@ -1,0 +1,40 @@
+{
+  "translations": {
+    "cowork_plan.approve": "Dit plan goedkeuren",
+    "cowork_plan.approving": "Goedkeuren…",
+    "cowork_plan.attach.heading": "Geef dit werk een plan",
+    "cowork_plan.attach.hint": "Een plan doet de vaste onderdelen elke run op dezelfde manier, zonder AI. Het wordt gemaakt van een van je automatiseringen en draait pas nadat je het hebt goedgekeurd.",
+    "cowork_plan.attach.select": "Automatisering",
+    "cowork_plan.attach.use": "Als plan gebruiken",
+    "cowork_plan.count.ask": "{count} om zelf te beslissen",
+    "cowork_plan.count.deliver": "{count} resultaat voor jou",
+    "cowork_plan.count.fixed": "{count} vast",
+    "cowork_plan.failed": "Dat lukte niet. Probeer het opnieuw.",
+    "cowork_plan.findings.heading": "Waarom het niet kan draaien",
+    "cowork_plan.heading": "Het plan",
+    "cowork_plan.kind.ask": "Vraagt jou",
+    "cowork_plan.kind.deliver": "Resultaat",
+    "cowork_plan.kind.fixed": "Vast",
+    "cowork_plan.may.heading": "Wat het mag doen",
+    "cowork_plan.may.nothing": "Niets",
+    "cowork_plan.may.reads": "Mag lezen",
+    "cowork_plan.may.sends": "Mag versturen",
+    "cowork_plan.may.sends_none": "Niets verlaat dit plan",
+    "cowork_plan.may.sends_others": "Naar andere mensen",
+    "cowork_plan.may.sends_owner": "Alleen naar jou",
+    "cowork_plan.may.writes": "Mag wijzigen",
+    "cowork_plan.outside_text": "Leest tekst van buiten",
+    "cowork_plan.outside_text_hint": "Deze stap leest tekst die iemand van buiten schreef, dus de AI krijgt hier geen apps.",
+    "cowork_plan.remove": "Het plan eraf halen",
+    "cowork_plan.status.approved": "Goedgekeurd, versie {version}. Runs volgen dit plan.",
+    "cowork_plan.status.blocked": "Dit plan kan zo niet draaien.",
+    "cowork_plan.status.changed": "Het plan is veranderd sinds je het goedkeurde. Runs volgen nog versie {version}.",
+    "cowork_plan.status.first": "Nog niet goedgekeurd. Het draait als plan zodra je het goedkeurt.",
+    "cowork_plan.status.gone": "De automatisering achter dit plan bestaat niet meer.",
+    "cowork_plan.widens.heading": "Nieuw ten opzichte van wat je goedkeurde"
+  },
+  "sameAsEnglish": [
+    "cowork_plan.count.ai",
+    "cowork_plan.kind.ai"
+  ]
+}
