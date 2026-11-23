@@ -49,6 +49,13 @@ describe('CoworkRunDetails', () => {
         expect(screen.queryByTestId('cowork-run-cost-line')).toBeNull();
     });
 
+    it('says when the run read text from outside, and why a send was then held back', () => {
+        const held = run({ activity: { tools: [{ name: 'outlook_compose', app: 'outlook', ok: 0, failed: 0, refused: 1, reasons: ['outside_text'] }], skills: [], toolCalls: 1, readOutsideText: true } });
+        render(<CoworkRunDetails run={held} agentId="a1" title="Supplier radar" t={t} />);
+        expect(screen.getByTestId('cowork-run-outside-text').textContent).toContain('It read text from outside');
+        expect(screen.getByText(/the run had read text from outside/)).toBeTruthy();
+    });
+
     it('names the skills that took part and how', () => {
         render(<CoworkRunDetails run={run()} agentId="a1" title="Mail desk" t={t} />);
         expect(screen.getByText('Skills: Tone of voice (always on), Offer letter (loaded when needed)')).toBeInTheDocument();

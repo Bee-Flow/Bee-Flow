@@ -17,6 +17,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { createOutsideTextMark, holdCall, type OutsideTextMark } from './outsideTextGuard.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -26,7 +27,7 @@ export const REVIEW_TOOL_NAME = 'cowork_request_review';
 /** The refusal codes a stored activity may carry; anything else is stored as 'other'. */
 export const REFUSAL_REASONS: ReadonlySet<string> = new Set([
     'privacy_shield', 'privacy_shield_unavailable', 'guardrail', 'not_offered',
-    'needs_confirmation', 'declined', 'invalid_arguments', 'aborted', 'other',
+    'needs_confirmation', 'declined', 'invalid_arguments', 'aborted', 'outside_text', 'other',
 ]);
 
 export interface ReviewRequest { reason: string; question: string | null; summary: string | null }
@@ -43,6 +44,8 @@ export interface CoworkRunContext {
     offered: Set<string>;
     review: ReviewRequest | null;
     appOf: (toolName: string) => string | null;
+    /** Whether the run has read text written outside the workspace (./outsideTextGuard.mts). */
+    outsideText: OutsideTextMark;
 }
 
 /** A settled tool call as the tool round hands it over (core/agentRuntime/toolRoundExecutor.js ToolCallOutcome). */
@@ -60,6 +63,8 @@ export interface StoredActivity {
     tools: Array<{ name: string; app: string | null; ok: number; failed: number; refused: number; reasons: string[] }>;
     skills: Array<{ id: string; name: string; how: 'static' | 'activated' }>;
     toolCalls: number;
+    /** The run read text written outside the workspace; from then on it sent nothing to other people. */
+    readOutsideText?: boolean;
 }
 
 type ToolDef = { function?: { name?: unknown } | null } | null | undefined;
@@ -83,12 +88,23 @@ export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf }: 
         offered: new Set(),
         review: null,
         appOf,
+        outsideText: createOutsideTextMark(),
     };
 }
 
 /** The run context of a Cowork run on a turn's message metadata, or undefined for any other turn. */
 export function coworkRunOf(messageMetadata: Record<string, unknown> | null | undefined): unknown {
     return messageMetadata ? messageMetadata.coworkRun : undefined;
+}
+
+/**
+ * The outside-text rule for one call of a Cowork run (./outsideTextGuard.mts): the sentence the model reads when the
+ * call is held, else null. Not a Cowork run, or a run a new mail started (its own allow-list): never held here.
+ */
+export function outsideTextRefusal(ctx: unknown, toolName: string, { mailRun = false }: { mailRun?: boolean } = {}): string | null {
+    if (!isRunActivity(ctx) || mailRun) return null;
+    if (!ctx.outsideText) ctx.outsideText = createOutsideTextMark();
+    return holdCall(ctx.outsideText, toolName);
 }
 
 export function isRunActivity(ctx: unknown): ctx is CoworkRunContext {
@@ -188,5 +204,5 @@ export function summariseActivity(ctx: CoworkRunContext, skillNames: Map<string,
         if (name) skills.push({ id, name: name.slice(0, 200), how: 'activated' });
     }
     const toolCalls = tools.reduce((n, t) => n + t.ok + t.failed + t.refused, 0);
-    return { tools, skills, toolCalls };
+    return { tools, skills, toolCalls, ...(ctx.outsideText?.seen ? { readOutsideText: true } : {}) };
 }

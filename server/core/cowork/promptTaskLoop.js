@@ -10,6 +10,7 @@
  * from the server's stores.
  */
 const log = require('../../telemetry/log');
+const { createOutsideTextMark, holdCall } = require('./outsideTextGuard.mts');
 
 // Schedules that fan out across several topics (news digests, multi-source
 // research) routinely chain 6-8 tool calls before producing a final answer.
@@ -63,9 +64,9 @@ function stopIfAborted(signal) {
  * Execute one round's tool calls in order, pushing a `tool` message for each.
  * A call the shield refuses is never dispatched.
  * @param {LoopToolCall[]} toolCalls
- * @param {{ messages: object[], shieldGate: ShieldGate, dispatchTool: DispatchTool, signal?: AbortSignal }} opts
+ * @param {{ messages: object[], shieldGate: ShieldGate, dispatchTool: DispatchTool, signal?: AbortSignal, outsideText?: import('./outsideTextGuard.mts').OutsideTextMark }} opts
  */
-async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool, signal }) {
+async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool, signal, outsideText }) {
     for (const tc of toolCalls) {
         // Past the run's deadline no further tool call starts.
         stopIfAborted(signal);
@@ -80,6 +81,13 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool, sig
         }
 
         log.info(`[AITaskRunner]   Tool call: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
+
+        // Once the run read outside text it sends nothing more (./outsideTextGuard.mts).
+        const held = outsideText ? holdCall(outsideText, toolName) : null;
+        if (held) {
+            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ error: held }) });
+            continue;
+        }
 
         const refusal = await shieldGate.refuse(toolName, toolArgs);
         if (refusal) {
@@ -128,6 +136,8 @@ async function runPromptToolLoop({ adapter, config, modelId, messages, tools, ti
     let finalResponse = '';
     let lastAssistantContent = ''; // tracks any non-empty assistant text seen across iterations
     let hitIterationCap = true;    // flipped to false if the loop exits via `break`
+    // Whether this run has read outside text: from then on it sends nothing to other people (./outsideTextGuard.mts).
+    const outsideText = createOutsideTextMark();
 
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
         run.lastIter = iter + 1;
@@ -159,7 +169,7 @@ async function runPromptToolLoop({ adapter, config, modelId, messages, tools, ti
         // Handle tool calls if present
         if (response.toolCalls && response.toolCalls.length > 0) {
             messages.push(toolCallMessage(response));
-            await runToolCalls(response.toolCalls, { messages, shieldGate, dispatchTool, signal });
+            await runToolCalls(response.toolCalls, { messages, shieldGate, dispatchTool, signal, outsideText });
             // Continue the loop to let the model process tool results
             continue;
         }

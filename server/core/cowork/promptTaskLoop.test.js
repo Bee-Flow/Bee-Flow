@@ -85,3 +85,20 @@ test('an abort without an Error as its reason still stops the loop with an error
         /The run was stopped/,
     );
 });
+
+test('once the run read a web page it sends nothing to other people: the send is held, the model is told, a draft still runs', async () => {
+    const dispatched = [];
+    let toldTheModel = null;
+    const replies = [
+        { content: null, toolCalls: [toolCall('outlook_compose', 'c0')] },
+        { content: null, toolCalls: [toolCall('read_url', 'r1'), toolCall('outlook_compose', 'c1'), toolCall('outlook_create_draft', 'd1')] },
+        { content: 'Saved a draft.' },
+    ];
+    const out = await runPromptToolLoop(loopOpts({
+        adapter: { chat: async (key, url, model, messages) => { toldTheModel = messages.find((m) => m.tool_call_id === 'c1') ?? toldTheModel; return replies.shift(); } },
+        dispatchTool: async (name) => { dispatched.push(name); return 'ok'; },
+    }));
+    assert.strictEqual(out.finalResponse, 'Saved a draft.');
+    assert.deepStrictEqual(dispatched, ['outlook_compose', 'read_url', 'outlook_create_draft'], 'the first send ran: nothing outside was read yet');
+    assert.match(toldTheModel.content, /no longer sends anything to other people/);
+});

@@ -93,6 +93,8 @@ interface CoworkRunActivity {
     tools: CoworkRunTool[];
     skills: Array<{ id: string; name: string; how: 'static' | 'activated' }>;
     toolCalls: number;
+    /** The run read text written outside the workspace; from then on it sent nothing to other people. */
+    readOutsideText?: boolean;
 }
 
 /** One execution of a cowork item. */

@@ -43,6 +43,8 @@ export function refusalReasonText(code: string, t: TranslateFn): string {
             return t('cowork_review.reason.invalid_arguments', 'Not run: the agent called it in a way it could not be read.');
         case 'aborted':
             return t('cowork_review.reason.aborted', 'Not run: the run was stopped first.');
+        case 'outside_text':
+            return t('cowork_plan.reason.outside_text', 'Held back: the run had read text from outside (a mail or a web page), so it sent nothing more to other people.');
         default:
             return t('cowork_review.reason.other', 'Stopped by a policy.');
     }

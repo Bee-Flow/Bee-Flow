@@ -1,5 +1,6 @@
 {
   "translations": {
+    "cowork_plan.activity.outside_text": "Het las tekst van buiten, dus het stuurde daarna niets meer naar anderen.",
     "cowork_plan.approve": "Dit plan goedkeuren",
     "cowork_plan.approving": "Goedkeuren…",
     "cowork_plan.attach.heading": "Of gebruik een van je eigen automatiseringen",
@@ -35,6 +36,7 @@
     "cowork_plan.may.writes": "Mag wijzigen",
     "cowork_plan.outside_text": "Leest tekst van buiten",
     "cowork_plan.outside_text_hint": "Deze stap leest tekst die iemand van buiten schreef, dus de AI krijgt hier geen apps.",
+    "cowork_plan.reason.outside_text": "Tegengehouden: de run had tekst van buiten gelezen (een mail of een webpagina), dus stuurde het niets meer naar anderen.",
     "cowork_plan.remove": "Het plan eraf halen",
     "cowork_plan.status.approved": "Goedgekeurd, versie {version}. Runs volgen dit plan.",
     "cowork_plan.status.blocked": "Dit plan kan zo niet draaien.",

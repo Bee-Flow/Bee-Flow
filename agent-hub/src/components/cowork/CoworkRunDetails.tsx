@@ -6,7 +6,7 @@
  * The server keeps names, outcomes and counts only (server/core/cowork/runActivity.mts): no tool arguments, no mail
  * text. A run from before that was kept has no activity, and then this block says nothing about it.
  */
-import { MessageSquare, ShieldAlert } from 'lucide-react';
+import { Lock, MessageSquare, ShieldAlert } from 'lucide-react';
 import { fullTimestamp } from './coworkFormat';
 import { openRunConversation, refusalReasonText, resolutionText } from './coworkReview';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -45,6 +45,12 @@ function Activity({ run, t }: { run: CoworkRun; t: TranslateFn }) {
             <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                 {t('cowork_review.activity.heading', 'What it used')}
             </span>
+            {activity.readOutsideText && (
+                <p data-testid="cowork-run-outside-text" className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
+                    <Lock aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" />
+                    {t('cowork_plan.activity.outside_text', 'It read text from outside, so it sent nothing more to other people.')}
+                </p>
+            )}
             {tools.length === 0
                 ? <p className="text-[12px] text-[var(--text-tertiary)]">{t('cowork_review.activity.no_tools', 'No actions: it only wrote an answer.')}</p>
                 : <ul className="flex flex-col gap-1">{tools.map((tool) => <ToolLine key={tool.name} tool={tool} t={t} />)}</ul>}

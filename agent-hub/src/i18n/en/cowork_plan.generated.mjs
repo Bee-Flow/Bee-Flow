@@ -6,6 +6,7 @@
  */
 
 export default {
+    "cowork_plan.activity.outside_text": "It read text from outside, so it sent nothing more to other people.",
     "cowork_plan.approve": "Approve this plan",
     "cowork_plan.approving": "Approving…",
     "cowork_plan.attach.heading": "Or use one of your own automations",
@@ -44,6 +45,7 @@ export default {
     "cowork_plan.may.writes": "May change",
     "cowork_plan.outside_text": "Reads outside text",
     "cowork_plan.outside_text_hint": "This step reads text someone outside wrote, so the AI gets no apps here.",
+    "cowork_plan.reason.outside_text": "Held back: the run had read text from outside (a mail or a web page), so it sent nothing more to other people.",
     "cowork_plan.remove": "Take the plan off",
     "cowork_plan.status.approved": "Approved, version {version}. Runs follow this plan.",
     "cowork_plan.status.blocked": "This plan cannot run as it is.",
