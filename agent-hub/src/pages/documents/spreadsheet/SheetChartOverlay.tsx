@@ -4,7 +4,7 @@ import type { Computed } from './sheetEngine';
 import SheetChartKpi from './SheetChartKpi';
 import SheetChartPlot from './SheetChartPlot';
 import { chartSeriesFrom, type ChartSeriesData } from './sheetChartSeries';
-import { chartSize, type SheetChartConfig } from './sheetCharts';
+import { chartSize, normalizeRef, type SheetChartConfig } from './sheetCharts';
 
 interface SheetChartOverlayProps {
     contentRef: React.RefObject<HTMLElement | null>;
@@ -59,7 +59,9 @@ function ChartItem({ chart, computed, layout, readOnly, onRemove }: {
     const data = useMemo(() => chartSeriesFrom(chart, computed), [chart, computed]);
     if (chart.type !== 'kpi' && !data.series.some((s) => s.values.some((v) => v !== null))) return null;
     return (
-        <div className="absolute" style={{ top: layout.top, left: layout.left }}>
+        // z-[1] like the active cell (SheetCell) but later in the DOM, so a chart covers the cells
+        // and stays below the sticky headers (z-[2], SheetRows/SheetGrid)
+        <div className="absolute z-[1]" style={{ top: layout.top, left: layout.left }}>
             <ChartCard chart={chart} data={data} computed={computed} onRemove={readOnly ? undefined : () => onRemove?.(chart.id)} />
         </div>
     );
@@ -69,7 +71,7 @@ function ChartItem({ chart, computed, layout, readOnly, onRemove }: {
 function measure(content: HTMLElement, charts: SheetChartConfig[]): Record<string, Layout | null> {
     const next: Record<string, Layout | null> = {};
     for (const chart of charts) {
-        const cell = content.querySelector<HTMLElement>(`[data-cell="${chart.anchor}"]`);
+        const cell = content.querySelector<HTMLElement>(`[data-cell="${CSS.escape(normalizeRef(chart.anchor || ''))}"]`);
         next[chart.id] = cell ? { top: cell.offsetTop, left: cell.offsetLeft, ...chartSize(chart) } : null;
     }
     return next;

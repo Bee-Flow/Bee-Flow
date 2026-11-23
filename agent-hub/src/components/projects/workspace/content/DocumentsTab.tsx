@@ -95,8 +95,8 @@ function useDocumentCreate(projectId: string, onCreated: (doc: ProjectDocument) 
 type TableHandlers = Pick<DocumentsTableProps, 'ownerName' | 'mayRemove' | 'removingId' | 'onOpen' | 'onRemove' | 'isUnread' | 'renderMove'>;
 
 /** Loading, could-not-load, nothing-yet, or the table: four different things. */
-function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
-    status: 'loading' | 'error' | 'ok'; documents: ProjectDocument[]; total: number; onRetry: () => void;
+function DocumentsBody({ status, documents, total, searching, onRetry, onCreate, table }: {
+    status: 'loading' | 'error' | 'ok'; documents: ProjectDocument[]; total: number; searching: boolean; onRetry: () => void;
     onCreate: (() => void) | null; table: TableHandlers;
 }) {
     const { t } = useTranslation();
@@ -115,7 +115,7 @@ function DocumentsBody({ status, documents, total, onRetry, onCreate, table }: {
         <DocumentsTable
             documents={documents}
             loading={status === 'loading'}
-            empty={<p className="text-sm text-[var(--text-tertiary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p>}
+            empty={<p className="text-sm text-[var(--text-tertiary)]">{searching ? t('project_content.no_matches', 'Nothing matches your search.') : t('documents.folder_empty', 'This folder has no documents yet.')}</p>}
             {...table}
         />
     );
@@ -194,7 +194,7 @@ function DocumentsList({ projectId, project, role, currentUser, onOpenSub, onOpe
             {!emptyProject && <FolderSection folders={folders} total={items.length} canEdit={canEdit} />}
             {!canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.documents_viewer_note', 'You can read the documents in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>}
             <DocumentsBody
-                status={section.status} documents={visible} total={items.length} onRetry={section.refetch}
+                status={section.status} documents={visible} total={items.length} searching={search.trim() !== ''} onRetry={section.refetch}
                 onCreate={canEdit ? openCreate : null}
                 table={{
                     ownerName,

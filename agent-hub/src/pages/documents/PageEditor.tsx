@@ -123,7 +123,7 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                 onOpenInStudio={onOpenInStudio ? () => { leave().then(() => onOpenInStudio(initial.id)); } : undefined}
             />
             <PageNotices p={p} onOpenConflict={() => setConflictOpen(true)} onOpenHistory={() => setSide('history')} />
-            <div className="flex-1 min-h-0 flex">
+            <div className="relative flex-1 min-h-0 flex">
                 <div className="flex-1 min-w-0 min-h-0 overflow-auto" data-testid="page-body"
                     onClick={(e) => {
                         // A click on a passage the AI proposes to change focuses its suggestion.
@@ -145,7 +145,7 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                         />
                     </div>
                 </div>
-                <DocumentSidePanels
+                <DocumentSidePanels placement={isPanel ? 'over' : 'over-narrow'}
                     side={side} onClose={() => setSide(null)} doc={p.doc} canEdit={!p.readOnly} currentUser={currentUser} people={people}
                     outline={{ items: outline, activeSection: null, busySections: {}, onGo: (item) => editorRef.current?.scrollToHeading?.(item.index) }}
                     onRestored={p.onRestored}

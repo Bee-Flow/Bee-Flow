@@ -432,4 +432,10 @@ module.exports = {
     'notebooks.mermaid_code': 'Code',
     'notebooks.mermaid_copied': 'Copied',
     'notebooks.mermaid_fullscreen_title': 'Diagram — Fullscreen',
+    'notebooks.all_n_sources_ready_one': 'The source is ready',
+    'notebooks.n_words_one': '{count} word',
+    'notebooks.confirm_bulk_delete_body_one': "This permanently removes the source and its indexed content. This can't be undone.",
+    'notebooks.n_sources': '{count} sources',
+    'notebooks.n_sources_one': '{count} source',
+    'notebooks.detail_meta_counts': '{sources} · {words} · Created {when}',
 };

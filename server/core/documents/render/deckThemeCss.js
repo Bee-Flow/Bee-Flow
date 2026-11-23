@@ -228,4 +228,34 @@ ${tableCss}
 `;
 }
 
-module.exports = { ensureResolvedTheme, deckThemeCss, slideVariantStyle, slidesCss };
+/** A deck page: 16:9 like the .pptx (10 × 5.625 in) and the editor preview, 297 mm wide. */
+const DECK_PAGE_MM = Object.freeze({ w: 297, h: 167.0625 });
+
+/**
+ * The page rules a NORMALISED deck adds on top of slidesCss (print and
+ * viewer alike): a fixed 16:9 slide that clips rather than spills onto a
+ * second page, the chrome placed inside each slide (see deckHtml
+ * slideChromeHtml), and the cover and visuals scaled to the shorter page.
+ * The markdown "slides" layout keeps the A4 flow, where a long section may
+ * run over.
+ */
+function deckPageCss(theme) {
+    const t = deckThemeCss(theme);
+    const { w, h } = DECK_PAGE_MM;
+    // A corner logo sits below a title band, as the .pptx places it.
+    const corner = t.titleStyle === 'band' ? 'right: 14mm; top: 25mm;' : 'right: 14mm; top: 5mm;';
+    return `
+  @page { size: ${w}mm ${h}mm; margin: 0; }
+  .slide, .cover { width: ${w}mm; height: ${h}mm; min-height: 0; overflow: hidden; box-sizing: border-box; }
+  .cover-canvas { height: 95mm; }
+  .cover-block { bottom: 18mm; }
+  .deck-chart { height: 100mm; }
+  .deck-image { max-height: 110mm; }
+  .slide-body { padding-bottom: 12mm; }
+  .deck-footer { position: absolute; left: 14mm; right: auto; bottom: 4mm; max-width: 200mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .deck-logo { position: absolute; ${t.logoPlacement === 'corner' ? corner : 'left: 14mm; bottom: 3.5mm;'} height: 7mm; width: auto; }
+  .deck-number { position: absolute; right: 14mm; bottom: 4mm; font-size: 8pt; color: var(--deck-muted); }
+`;
+}
+
+module.exports = { ensureResolvedTheme, deckThemeCss, slideVariantStyle, slidesCss, deckPageCss, DECK_PAGE_MM };

@@ -35,7 +35,7 @@ export default function SourceCard({
     selectable = false, selected = false, onToggleSelect,
     onDragStart, onDragOver, onDrop, dragging = false, readOnly = false,
 }: SourceCardProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const meta = metaFor(source.type);
     const { Icon } = meta;
     const isProcessing = source.status === 'processing';
@@ -137,7 +137,9 @@ export default function SourceCard({
                     {isReady && (source.wordCount ?? 0) > 0 && (
                         <span className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
                             <Check className="w-3 h-3 text-[var(--success)]" aria-hidden="true" />
-                            {t('notebooks.n_words', { count: (source.wordCount ?? 0).toLocaleString() })}
+                            {source.wordCount === 1
+                                ? t('notebooks.n_words_one', '{count} word', { count: (1).toLocaleString(resolvedLocale) })
+                                : t('notebooks.n_words', { count: (source.wordCount ?? 0).toLocaleString(resolvedLocale) })}
                         </span>
                     )}
                     {isDuplicate && (

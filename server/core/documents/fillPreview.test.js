@@ -68,3 +68,20 @@ test('with nothing needed left it is the document the download makes', async () 
 test('a presentation is refused: it has its own viewer', async () => {
     await assert.rejects(filledPreview({ ...DOC, docType: 'presentation' }, null, kit().deps), (e) => e.status === 422 && e.errorClass === 'fill_preview_unsupported');
 });
+
+test('a filled dotted value stays next to a dotted gap in the same object', async () => {
+    const doc = {
+        id: 'd2', name: 'Letter', kind: 'document', docType: 'designed',
+        bodyHtml: '<p>{{client.name}} {{client.city}}</p>',
+        settings: {
+            contract: { parameters: [
+                { key: 'client.name', type: 'text', label: 'Name', required: true },
+                { key: 'client.city', type: 'text', label: 'City', required: true },
+            ] },
+            sampleValues: { 'client.name': 'Acme' },
+        },
+    };
+    const out = await filledPreview(doc, null, kit().deps);
+    assert.match(out.html, /<p>Acme \[City\]<\/p>/);
+    assert.deepEqual(out.gaps, ['client.city']);
+});

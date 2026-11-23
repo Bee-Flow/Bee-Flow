@@ -62,13 +62,13 @@ function Remark({ remark, readOnly, onAccept, onDismiss }: {
                 : 'border-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]'}`}>
             <p className="m-0 flex items-start gap-1.5 text-[var(--text-primary)]">
                 <Icon size={13} className={`mt-px shrink-0 ${rewrite ? 'text-[var(--accent-primary)]' : 'text-[var(--warning)]'}`} aria-hidden="true" />
-                <span>
+                <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span className="font-semibold">{rewrite ? t('chat_templates.remark_rewrite', 'Suggested wording') : t('chat_templates.remark_doubt', 'Is this right?')}</span>
                     {remark.reason && <span className="text-[var(--text-secondary)]"> {remark.reason}</span>}
                 </span>
             </p>
             {rewrite && (
-                <p className="m-0 whitespace-pre-line rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[13px] text-[var(--text-primary)]">{remark.suggestion}</p>
+                <p className="m-0 min-w-0 whitespace-pre-line rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[13px] text-[var(--text-primary)] [overflow-wrap:anywhere]">{remark.suggestion}</p>
             )}
             {!readOnly && (
                 <div className="flex flex-wrap gap-1.5">
@@ -98,7 +98,7 @@ export function NoteList({ notes, nameOf, meId, onRemove }: {
             {notes.map((note) => (
                 <li key={note.id} className="flex items-start gap-1.5 text-xs text-[var(--text-secondary)]">
                     <StickyNote size={12} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
-                    <span className="min-w-0 flex-1"><span className="font-medium text-[var(--text-primary)]">{nameOf(note.userId)}:</span> {note.text}</span>
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere]"><span className="font-medium text-[var(--text-primary)]">{nameOf(note.userId)}:</span> {note.text}</span>
                     {onRemove && note.userId === meId && (
                         <button type="button" onClick={() => { void onRemove(note.id); }} aria-label={remove} title={remove}
                             className="shrink-0 rounded p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]">

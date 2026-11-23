@@ -39,49 +39,7 @@ const STATS_LIMITS = Object.freeze({ maxTiles: 4, maxValueChars: 24, maxLabelCha
 const STEPS_LIMITS = Object.freeze({ maxSteps: 6, maxTitleChars: 60, maxTextChars: 160 });
 const SLIDE_STYLES = Object.freeze(['accent', 'dark']);
 
-// ── Numbers ─────────────────────────────────────────────────────────────
-
-const NUMBER_SUFFIX = Object.freeze({ k: 1e3, K: 1e3, m: 1e6, M: 1e6, mln: 1e6, mrd: 1e9, b: 1e9, B: 1e9 });
-
-/**
- * A number out of human text. Handles currency signs, thousands separators in
- * either convention, a trailing %, and k/M/B suffixes. Returns null when the
- * text is not a number at all.
- */
-function parseNumber(value) {
-    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-    if (typeof value === 'boolean') return value ? 1 : 0;
-    if (value === null || value === undefined) return null;
-    let s = String(value).trim();
-    if (!s) return null;
-    s = s.replace(/[€$£¥]/g, '').replace(/\s+/g, '').replace(/%$/, '');
-    let mult = 1;
-    const suffix = /([a-zA-Z]+)$/.exec(s);
-    if (suffix && NUMBER_SUFFIX[suffix[1]] !== undefined) { mult = NUMBER_SUFFIX[suffix[1]]; s = s.slice(0, -suffix[1].length); }
-    if (!/^[-+]?[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
-    const lastComma = s.lastIndexOf(',');
-    const lastDot = s.lastIndexOf('.');
-    if (lastComma !== -1 && lastDot !== -1) {
-        // Both present: the later one is the decimal mark.
-        s = lastComma > lastDot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-    } else if (lastComma !== -1) {
-        // Only commas: "1,234,567" (groups of three) is thousands; "1,5" is decimal.
-        const parts = s.replace(/^[-+]/, '').split(',');
-        s = parts.length > 1 && parts.slice(1).every((p) => p.length === 3) && parts[0].length <= 3 ? s.replace(/,/g, '') : s.replace(',', '.');
-    } else if (lastDot !== -1) {
-        const parts = s.replace(/^[-+]/, '').split('.');
-        s = parts.length > 1 && parts.slice(1).every((p) => p.length === 3) && parts[0].length <= 3 ? s.replace(/\./g, '') : s;
-        if ((s.match(/\./g) || []).length > 1) return null;
-    }
-    const n = Number(s);
-    return Number.isFinite(n) ? n * mult : null;
-}
-
-/** True when the cell reads as a number (a blank cell is neither). */
-function isNumeric(value) {
-    if (value === null || value === undefined || value === '') return false;
-    return parseNumber(value) !== null;
-}
+const { parseNumber, decimalComma, isNumeric, splitList, splitCells } = require('./deckNumbers');
 
 /**
  * @param {string} text
@@ -116,13 +74,6 @@ function toBool(value, fallback = false) {
 /**
  * @param {string} text
  */
-function splitList(text) {
-    return String(text).split(/[,;|\t]/).map((s) => s.trim()).filter((s) => s !== '');
-}
-
-/**
- * @param {string} text
- */
 function namedColumns(text) {
     if (Array.isArray(text)) return text.map((t) => String(t).trim()).filter(Boolean);
     return typeof text === 'string' && text.trim() ? splitList(text) : [];
@@ -150,7 +101,10 @@ function fromRows(rows, { labels: labelCol = null, values: valueCols = [] } = {}
     if (!seriesKeys.length) return null;
 
     const labels = list.map((r, i) => (labelKey ? clip(r[labelKey] ?? '', CHART_LIMITS.maxLabelChars) : String(i + 1)));
-    const series = seriesKeys.map((k) => ({ name: clip(k, CHART_LIMITS.maxNameChars), values: list.map((r) => parseNumber(r[k])) }));
+    const series = seriesKeys.map((k) => {
+        const dotThousands = list.some((r) => decimalComma(r[k]));
+        return { name: clip(k, CHART_LIMITS.maxNameChars), values: list.map((r) => parseNumber(r[k], { dotThousands })) };
+    });
     return { labels, series };
 }
 
@@ -189,15 +143,15 @@ function fromSpec(spec, _warnings) {
     let series = [];
     if (Array.isArray(spec.series)) {
         series = spec.series.map((s, i) => {
-            if (Array.isArray(s)) return { name: `Series ${i + 1}`, values: s.map(parseNumber) };
+            if (Array.isArray(s)) return { name: `Series ${i + 1}`, values: s.map((v) => parseNumber(v)) };
             if (s && typeof s === 'object') {
                 const vals = Array.isArray(s.values) ? s.values : (Array.isArray(s.data) ? s.data : []);
-                return { name: clip(s.name ?? s.label ?? s.key ?? `Series ${i + 1}`, CHART_LIMITS.maxNameChars), values: vals.map(parseNumber) };
+                return { name: clip(s.name ?? s.label ?? s.key ?? `Series ${i + 1}`, CHART_LIMITS.maxNameChars), values: vals.map((v) => parseNumber(v)) };
             }
             return null;
         }).filter(Boolean);
     } else if (Array.isArray(spec.values)) {
-        series = [{ name: clip(spec.name ?? spec.title ?? '', CHART_LIMITS.maxNameChars), values: spec.values.map(parseNumber) }];
+        series = [{ name: clip(spec.name ?? spec.title ?? '', CHART_LIMITS.maxNameChars), values: spec.values.map((v) => parseNumber(v)) }];
     } else if (spec.values && typeof spec.values === 'object') {
         // { values: { Q1: 10, Q2: 20 } }
         const entries = Object.entries(spec.values);
@@ -252,7 +206,7 @@ function fromText(text, opts, warnings) {
         const key = m[1].trim();
         const val = m[2].trim();
         const lower = key.toLowerCase();
-        if (lower === 'labels') { labels = splitList(val); continue; }
+        if (lower === 'labels') { labels = splitCells(val); continue; }
         if (['type', 'title', 'unit', 'stacked', 'showvalues'].includes(lower)) { settings[lower] = val; continue; }
         pairs.push([key, val]);
     }
@@ -261,11 +215,13 @@ function fromText(text, opts, warnings) {
     let data;
     if (labels) {
         // Series lines: "Name: 1, 2, 3"
-        data = { labels: labels.map((l) => clip(l, CHART_LIMITS.maxLabelChars)), series: pairs.map(([k, v]) => ({ name: clip(k, CHART_LIMITS.maxNameChars), values: splitList(v).map(parseNumber) })) };
-    } else if (pairs.every(([, v]) => splitList(v).length > 1)) {
+        const expected = labels.length;
+        data = { labels: labels.map((l) => clip(l, CHART_LIMITS.maxLabelChars)), series: pairs.map(([k, v]) => ({ name: clip(k, CHART_LIMITS.maxNameChars), values: splitCells(v, { numbers: true, expected }).map((v) => parseNumber(v)) })) };
+    } else if (pairs.every(([, v]) => splitCells(v, { numbers: true }).length > 1)) {
         // Several values per line and no labels: the lines are series, labels are 1..n
-        const n = Math.max(...pairs.map(([, v]) => splitList(v).length));
-        data = { labels: Array.from({ length: n }, (_, i) => String(i + 1)), series: pairs.map(([k, v]) => ({ name: clip(k, CHART_LIMITS.maxNameChars), values: splitList(v).map(parseNumber) })) };
+        const cells = pairs.map(([, v]) => splitCells(v, { numbers: true }));
+        const n = Math.max(...cells.map((c) => c.length));
+        data = { labels: Array.from({ length: n }, (_, i) => String(i + 1)), series: pairs.map(([k], i) => ({ name: clip(k, CHART_LIMITS.maxNameChars), values: cells[i].map((v) => parseNumber(v)) })) };
     } else {
         // "Label: value" lines — one series
         data = { labels: pairs.map(([k]) => clip(k, CHART_LIMITS.maxLabelChars)), series: [{ name: '', values: pairs.map(([, v]) => parseNumber(v)) }] };
@@ -284,7 +240,7 @@ function fromAny(value, opts, warnings) {
         if (!value.length) return null;
         if (value.every((r) => Array.isArray(r))) return fromMatrix(value, opts, warnings);
         if (value.every((r) => typeof r === 'number' || (typeof r === 'string' && isNumeric(r)))) {
-            return { labels: value.map((_, i) => String(i + 1)), series: [{ name: '', values: value.map(parseNumber) }] };
+            return { labels: value.map((_, i) => String(i + 1)), series: [{ name: '', values: value.map((v) => parseNumber(v)) }] };
         }
         // A list wrapped by a step ({ rows }, { results }) or plain rows
         return fromRows(value.map((r) => (r && typeof r === 'object' && r.output && typeof r.output === 'object' && !Array.isArray(r.output) ? r.output : r)), opts, warnings);

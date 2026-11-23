@@ -69,19 +69,47 @@ function neededKeys(fill: Fill): Set<string> {
     return keys;
 }
 
-/** The picture of `doc` with its values filled in. A presentation has its own viewer and is refused. */
-export async function filledPreview(doc: TemplateDoc, orgId: string | null, deps: FillPreviewDeps = realDeps()): Promise<FillPreview> {
-    if (doc.docType === 'presentation') {
-        throw refusal('A presentation is previewed in its own slide viewer.', 422, 'fill_preview_unsupported');
-    }
+/**
+ * The values a picture of `doc` is drawn with: the stored ones, and each
+ * value still needed as its label in brackets. Also what a presentation's
+ * slide viewer fills its outline with (routes/studioDocuments.js), so a deck
+ * made from a template shows "[Title]", not "{{title}}".
+ */
+export function previewValues(doc: TemplateDoc, deps: Pick<FillPreviewDeps, 'prepare' | 'setPath'> = realDeps()): { values: Settings, gaps: string[], overrides: Settings } {
     const stored = valuesOf(doc);
     const overrides = isObject(doc.settings?.sectionOverrides) ? doc.settings.sectionOverrides : {};
     // What the download would refuse on: only those get a label. The rest prints as the download prints it.
     const needed = neededKeys(deps.prepare(doc, stored, overrides));
     const labelled = templatePreviewValues(doc, stored);
     const gaps = labelled.filled.filter((key) => needed.has(key));
-    const values = structuredClone(stored);
+    // Nested first: a flat stored "client.name" next to a gap "client.city" would
+    // otherwise be replaced by the gap's { city } object when prepare replays them.
+    const values: Settings = {};
+    for (const [key, value] of Object.entries(stored)) deps.setPath(values, key, structuredClone(value));
     for (const key of gaps) deps.setPath(values, key, valueAt(labelled.values, key));
+    return { values, gaps, overrides };
+}
+
+/**
+ * What a presentation's slide viewer fills its outline with
+ * (routes/studioDocuments.js GET /:id/preview): values filled in, a value
+ * still needed as "[Label]", never the outline's {{tokens}}. A deck without
+ * declared fields keeps its tokens: with nothing to label them by, filling
+ * would print them empty.
+ */
+export function deckViewerValues(doc: TemplateDoc): { values?: Settings, sectionOverrides?: Settings } {
+    const declared = (doc.settings?.contract as { parameters?: unknown } | undefined)?.parameters;
+    if (!Array.isArray(declared) || declared.length === 0) return {};
+    const { values, overrides } = previewValues(doc);
+    return { values, sectionOverrides: overrides };
+}
+
+/** The picture of `doc` with its values filled in. A presentation has its own viewer and is refused. */
+export async function filledPreview(doc: TemplateDoc, orgId: string | null, deps: FillPreviewDeps = realDeps()): Promise<FillPreview> {
+    if (doc.docType === 'presentation') {
+        throw refusal('A presentation is previewed in its own slide viewer.', 422, 'fill_preview_unsupported');
+    }
+    const { values, gaps, overrides } = previewValues(doc, deps);
     const fill = deps.prepare(doc, values, overrides);
     const html = deps.compose({ ...doc, bodyHtml: fill.bodyHtml }, { mode: 'preview', houseStyleCss: await deps.houseStyleCss(doc, orgId) });
     return { html, gaps };

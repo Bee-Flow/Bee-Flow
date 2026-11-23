@@ -6,6 +6,7 @@ const log = require('../../../telemetry/log');
 const { blockContextNetwork } = require('../../http/browserRouteGuard');
 const { AI_MARK_SUBJECT, AI_MARK_PRODUCER, markingText, markingKeywords } = require('./documentMarking');
 const { deckToSlidesHtml, deckToPlainText } = require('./deckHtml');
+const { DECK_PAGE_MM } = require('./deckThemeCss');
 
 const CONTENT_TYPES = Object.freeze({
     pdf: 'application/pdf',
@@ -29,7 +30,7 @@ async function renderDeckPdf({ deck, theme = null, title = '', marking = null, d
     const html = deckToSlidesHtml(deck, { theme, marking: mark, date, title });
     let rendered;
     try {
-        rendered = await renderPdfViaBrowser(html, { layout: 'slides', marking: mark });
+        rendered = await renderPdfViaBrowser(html, { layout: 'deck', marking: mark });
     } catch (e) {
         log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${/** @type {Error} */ (e).message}`);
         const buffer = await renderPdfViaPdfkit(deckToPlainText(deck), { title: title || deck.title, marking: mark });
@@ -115,6 +116,17 @@ async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'documen
         // by the sanitiser, so there is no network to go idle — waiting for it
         // only buys a guaranteed timeout.
         await page.setContent(html, { waitUntil: 'load', timeout: timeoutMs });
+        if (layout === 'deck') {
+            // A normalised deck: 16:9 pages like the .pptx, zero margin; the
+            // footer, logo and number sit inside each slide.
+            return page.pdf({
+                width: `${DECK_PAGE_MM.w}mm`,
+                height: `${DECK_PAGE_MM.h}mm`,
+                margin: { top: '0', right: '0', bottom: '0', left: '0' },
+                printBackground: true,
+                displayHeaderFooter: false,
+            });
+        }
         if (layout === 'slides') {
             // Landscape, zero margin, no header/footer chrome: the slide's own
             // band is the header, and Chromium draws header/footer INSIDE the

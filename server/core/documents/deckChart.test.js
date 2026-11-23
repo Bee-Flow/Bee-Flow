@@ -20,7 +20,14 @@ test('parseNumber reads currencies, both thousands conventions, percentages and 
     assert.strictEqual(dc.parseNumber('12%'), 12);
     assert.strictEqual(dc.parseNumber('1,5'), 1.5);
     assert.strictEqual(dc.parseNumber('1.5'), 1.5);
-    assert.strictEqual(dc.parseNumber('2.795'), 2795, 'a lone dot with three digits after it is a thousands separator');
+    assert.strictEqual(dc.parseNumber('€ 2.795'), 2795, 'money with a lone dot and three digits after it: a thousands separator');
+    assert.strictEqual(dc.parseNumber('2.795.000'), 2795000, 'two groups of three: thousands');
+    assert.strictEqual(dc.parseNumber('1.234'), 1.234, 'a lone dot without a currency is a decimal mark');
+    assert.strictEqual(dc.parseNumber('0.125'), 0.125, 'an integer part of 0 is never thousands');
+    assert.strictEqual(dc.parseNumber('-0.250'), -0.25);
+    assert.strictEqual(dc.parseNumber('0,125'), 0.125);
+    assert.strictEqual(dc.parseNumber('1,234'), 1234, 'a lone comma with three digits is still thousands');
+    assert.strictEqual(dc.parseNumber('1.234,5'), 1234.5, 'both separators: the later one is the decimal mark');
     assert.strictEqual(dc.parseNumber('1,2M'), 1.2e6);
     assert.strictEqual(dc.parseNumber('3k'), 3000);
     assert.strictEqual(dc.parseNumber('-7'), -7);
@@ -112,4 +119,16 @@ test('steps: bullets become "Title — text" pairs, sub-bullets fold into the te
     assert.strictEqual(dc.stepsFromAny('- 1\n- 2\n- 3\n- 4\n- 5\n- 6\n- 7').length, 6);
     assert.strictEqual(dc.slideStyle('Accent'), 'accent');
     assert.strictEqual(dc.slideStyle('neon'), null);
+});
+
+test('the ```chart line grammar keeps a Dutch decimal comma, gaps and labels with commas', () => {
+    const nl = dc.chartFromAny('Q1: 1,5\nQ2: 2,25', {}, []);
+    assert.deepStrictEqual(nl.labels, ['Q1', 'Q2']);
+    assert.deepStrictEqual(nl.series[0].values, [1.5, 2.25], '"1,5" is one value, not two');
+    const withLabels = dc.chartFromAny('labels: a, b, c\nX: 1,5', {}, []);
+    assert.deepStrictEqual(withLabels.series[0].values, [1.5, null, null], 'two comma pieces against three labels: one decimal value');
+    const gaps = dc.chartFromAny('labels: a; b; c\nX: 1; ; 3', {}, []);
+    assert.deepStrictEqual(gaps.series[0].values, [1, null, 3], 'an empty cell is a gap, not a shift');
+    const commaLabels = dc.chartFromAny('labels: Noord, Oost; Zuid\nX: 1; 2', {}, []);
+    assert.deepStrictEqual(commaLabels.labels, ['Noord, Oost', 'Zuid'], 'a ";" in the line: split on ";" alone');
 });

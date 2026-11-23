@@ -373,3 +373,30 @@ test('a storage image reference with a ".." segment is rejected with a warning',
         assert.ok(d.warnings.some((w) => /was skipped/.test(w)), d.warnings.join('|'));
     }
 });
+
+test('a chart survives deckToMarkdown → normalizeDeck: labels with commas, gaps and decimals stay put', () => {
+    const { deckToMarkdown } = require('./deckModel');
+    const deck = normalizeDeck({
+        title: 'T',
+        slides: [
+            { title: 'c', layout: 'chart', chart: { type: 'line', labels: ['Noord, Oost', 'Zuid', 'West; Midden'], series: [{ name: 'Omzet', values: [1.234, null, -0.25] }, { name: 'Kosten', values: [1234567.5, 0.125, 2] }] } },
+            { title: 'd', layout: 'chart', chart: { type: 'column', labels: ['a', 'b', 'c'], series: [{ name: 's', values: [1.5, null, 3] }] } },
+        ],
+    });
+    const again = normalizeDeck(deckToMarkdown(deck));
+    const [c, d] = again.slides;
+    assert.deepStrictEqual(c.chart.labels, ['Noord, Oost', 'Zuid', 'West, Midden']);
+    assert.deepStrictEqual(c.chart.series.map((s) => s.values), [[1.234, null, -0.25], [1234567.5, 0.125, 2]]);
+    assert.deepStrictEqual(d.chart.series[0].values, [1.5, null, 3]);
+});
+
+test('a heading or a rule inside a fenced code block is content, not a slide break', () => {
+    const deck = normalizeDeck(['# D', '## Code', '```', '## not a slide', '---', 'x', '```', '## Next', '- a'].join('\n'));
+    assert.deepStrictEqual(deck.slides.map((s) => s.title), ['Code', 'Next']);
+    assert.match(JSON.stringify(deck.slides[0]), /## not a slide/);
+});
+
+test('a JSON table whose columns are { key, label } finds each cell by key and heads it with the label', () => {
+    const deck = normalizeDeck({ title: 'T', slides: [{ title: 't', table: { columns: [{ key: 'naam', label: 'Naam' }, { key: 'n', label: 'Aantal' }, 'x'], rows: [{ naam: 'A', n: 3, x: 'y' }] } }] });
+    assert.deepStrictEqual(deck.slides[0].table, { columns: ['Naam', 'Aantal', 'x'], rows: [['A', 3, 'y']] });
+});

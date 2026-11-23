@@ -3,7 +3,7 @@ import { ChartArea, ChartBar, ChartColumn, ChartColumnStacked, ChartLine, ChartP
 import useTranslation from '@/hooks/useTranslation';
 import { cellName } from './sheetEngine';
 import { sheetErrorText } from './sheetErrorText';
-import { COL_PX, ROW_PX, parseA1Range, type ChartFormat, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
+import { COL_PX, ROW_PX, normalizeRef, parseA1Range, type ChartFormat, type ChartProblem, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
 import type { SelectionKind } from './sheetModel';
 
 export interface SheetChartCreatorProps {
@@ -56,6 +56,18 @@ function suggestRanges(selection: string | null, selectionKind: SelectionKind | 
     };
 }
 
+const PROBLEM_TEXT: Record<ChartProblem, [key: string, fallback: string]> = {
+    type: ['doc_sheet.chart.problem_type', 'Chart needs a valid type.'],
+    data_range: ['doc_sheet.chart.problem_data_range', 'Chart needs a valid data range.'],
+    kpi_one_cell: ['doc_sheet.chart.problem_kpi_one_cell', 'A KPI takes one cell.'],
+    scatter_categories: ['doc_sheet.chart.problem_scatter_categories', 'A scatter chart needs the x values as categories range.'],
+    compare_range: ['doc_sheet.chart.problem_compare_range', 'Compare cell is not valid.'],
+    colors: ['doc_sheet.chart.problem_colors', 'Colours must be hex like #4e79a7.'],
+    categories_range: ['doc_sheet.chart.problem_categories_range', 'Categories range is not valid.'],
+    anchor: ['doc_sheet.chart.problem_anchor', 'Chart needs a valid anchor cell.'],
+    size: ['doc_sheet.chart.problem_size', 'Chart needs a size.'],
+};
+
 function TypePicker({ type, onPick }: { type: ChartType; onPick: (t: ChartType) => void }) {
     const { t } = useTranslation();
     return (
@@ -104,16 +116,17 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             type,
             title: title.trim() || undefined,
-            dataRange: dataRange.trim(),
-            categoriesRange: categoriesRange.trim() || undefined,
-            anchor: anchor.trim() || activeCell,
+            dataRange: normalizeRef(dataRange),
+            categoriesRange: normalizeRef(categoriesRange) || undefined,
+            // the overlay finds the anchor by the grid's cell name ("B12", never "b12" or "$B$12")
+            anchor: normalizeRef(anchor) || activeCell,
             ...(format ? { format } : {}),
             // the default size of a chart is 6 x 14 cells, a KPI tile 3 x 4
             width: (type === 'kpi' ? 3 : 6) * COL_PX,
             height: (type === 'kpi' ? 4 : 14) * ROW_PX,
         };
         const err = validateChart(config);
-        if (err) { setError(err); return; }
+        if (err) { setError(t(...PROBLEM_TEXT[err])); return; }
         setError(null);
         setSaving(true);
         try {
@@ -148,7 +161,7 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
             {error && <div role="alert" className="text-[11px] text-[var(--error)]">{error}</div>}
             <div className="flex justify-end gap-2">
                 <button type="button" onClick={onClose} className="px-2 py-1 text-[12px] rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('common.cancel', 'Cancel')}</button>
-                <button type="button" onClick={() => { submit().catch(() => undefined); }} disabled={saving} className="px-3 py-1 text-[12px] rounded bg-[var(--accent-primary)] text-white hover:opacity-90 disabled:opacity-50">{t('spreadsheet.chart.add', 'Add')}</button>
+                <button type="button" onClick={() => { submit().catch(() => undefined); }} disabled={saving} className="px-3 py-1 text-[12px] rounded bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 disabled:opacity-50">{t('spreadsheet.chart.add', 'Add')}</button>
             </div>
         </div>
     );

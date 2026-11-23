@@ -79,6 +79,8 @@ test('the theme built on a template: white text on the blue, no band, the templa
     assert.strictEqual(t.titleStyle, 'plain');
     assert.strictEqual(t.bandColor, null);
     assert.strictEqual(t.logoPlacement, 'none', 'the template brings its own logo');
+    const asked = opts.resolveDeckTheme(org, opts.normaliseDeckStyle({ template: tpl, logoPlacement: 'corner' }));
+    assert.strictEqual(asked.logoPlacement, 'corner', 'a house style that chose a placement keeps its logo on the template');
     assert.strictEqual(t.brandOnSlides, false);
     assert.ok(t.template && t.template.cover.image && t.template.content.overlays.length === 1);
     assert.strictEqual(t.glass, true);

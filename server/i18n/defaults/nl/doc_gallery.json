@@ -25,7 +25,8 @@
     "doc_gallery.type_filter_customer": "Klantdocumenten",
     "doc_gallery.visibility_all": "Privé en gedeeld",
     "doc_gallery.visibility_organisation": "Organisatie",
-    "doc_gallery.visibility_shared": "Gedeeld"
+    "doc_gallery.visibility_shared": "Gedeeld",
+    "doc_gallery.clear_categories_desc_one": "Alle categorieën gaan van het geselecteerde document af. Het document zelf blijft zoals het is."
   },
   "sameAsEnglish": [
     "doc_gallery.subtitle_spreadsheets"

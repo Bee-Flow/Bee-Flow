@@ -4142,7 +4142,7 @@
   },
   "core/documents/deckChart.js": {
     "complexity": {
-      "count": 5
+      "count": 4
     }
   },
   "core/documents/deckChartSvg.js": {
@@ -4161,6 +4161,11 @@
     }
   },
   "core/documents/deckJson.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/deckNumbers.js": {
     "complexity": {
       "count": 1
     }

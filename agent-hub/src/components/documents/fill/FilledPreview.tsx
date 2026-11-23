@@ -49,6 +49,38 @@ function deskColour(): string {
     }
 }
 
+/**
+ * Call `onChange` whenever the app's theme may have changed: applyTheme writes
+ * `data-theme`, `class` and `style` on <html>.
+ */
+function useThemeChange(onChange: () => void) {
+    const changed = useEffectEvent(onChange);
+    useEffect(() => {
+        if (typeof MutationObserver === 'undefined') return undefined;
+        const observer = new MutationObserver(() => changed());
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+        return () => observer.disconnect();
+    }, []);
+}
+
+/**
+ * The form field that has the focus (`data-fill-field` on its row), read in
+ * the capture phase so it is known before the form reports the new spot.
+ */
+function useFocusedField() {
+    const field = useRef<string | null>(null);
+    useEffect(() => {
+        const onFocus = (e: FocusEvent) => {
+            const target = e.target instanceof Element ? e.target : null;
+            const row = target?.closest<HTMLElement>('[data-fill-field]');
+            if (row?.dataset.fillField) field.current = row.dataset.fillField;
+        };
+        window.addEventListener('focusin', onFocus, true);
+        return () => window.removeEventListener('focusin', onFocus, true);
+    }, []);
+    return field;
+}
+
 function post(frame: HTMLIFrameElement | undefined, message: Record<string, unknown>) {
     // '*' is the only usable target for a frame without an origin.
     try { frame?.contentWindow?.postMessage(message, '*'); } catch (err) { logger.debug('preview frame gone', err); } // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- sandboxed srcDoc frame has an opaque origin
@@ -74,7 +106,7 @@ function useLayers(html: string | undefined) {
 }
 
 /** The two frames, what they report, and what is sent to them. */
-function useFrames(html: string | undefined, spot: string) {
+function useFrames(html: string | undefined, spot: string, onEscape?: () => void) {
     const { layers, promote } = useLayers(html);
     const frames = useRef(new Map<number, HTMLIFrameElement>());
     const scrollY = useRef(0);
@@ -88,13 +120,17 @@ function useFrames(html: string | undefined, spot: string) {
         return () => { pending.forEach(clearTimeout); pending.clear(); };
     }, []);
 
+    const theme = () => ({ __beeflowDocTheme: true, desk: deskColour(), fit: true });
     const onReady = useEffectEvent((id: number, frame: HTMLIFrameElement) => {
-        post(frame, { __beeflowDocTheme: true, desk: deskColour(), fit: true });
+        post(frame, theme());
         if (scrollY.current) post(frame, { __beeflowDocScroll: true, y: scrollY.current });
         pointAt(frame, spot, false);
         // The first page has nothing to wait behind; a later one first settles at the reader's place.
         later(layers.front ? SWAP_MS : 0, () => promote(id));
     });
+    // A key the frame passed on: Escape inside the page closes the dialog it is in.
+    const onFrameKey = useEffectEvent((key: unknown) => { if (key === 'escape') onEscape?.(); });
+    useThemeChange(() => frames.current.forEach((frame) => post(frame, theme())));
     useEffect(() => {
         const onMessage = (e: MessageEvent) => {
             const data: unknown = e.data;
@@ -105,6 +141,7 @@ function useFrames(html: string | undefined, spot: string) {
                 if (e.source !== frame.contentWindow) continue;
                 if (d.__beeflowDocReady) onReady(id, frame);
                 else if (d.__beeflowDocScrolled) scrollY.current = Number(d.y) || 0;
+                else if (d.__beeflowDocKey === true) onFrameKey(d.key);
                 return;
             }
         };
@@ -121,11 +158,17 @@ function useFrames(html: string | undefined, spot: string) {
         return () => clearTimeout(timer);
     }, [backId]);
 
-    // The field the person moved to: shown in the page that is on screen.
-    // Only a move to another field scrolls: a new page keeps the reader's place (onReady marks it there).
+    // The field the person is at: marked in the page that is on screen. Only a
+    // move to another field scrolls; its text changing (a value typed in) marks
+    // it again where the reader is, and a new page keeps the reader's place (onReady marks it there).
     const frontId = layers.front?.id;
+    const focused = useFocusedField();
+    const scrolledFor = useRef<string | null | undefined>(undefined);
     const showSpot = useEffectEvent((text: string) => {
-        if (frontId !== undefined) pointAt(frames.current.get(frontId), text, true);
+        if (frontId === undefined) return;
+        const moved = !!text && focused.current !== scrolledFor.current;
+        if (moved) scrolledFor.current = focused.current;
+        pointAt(frames.current.get(frontId), text, moved);
     });
     useEffect(() => { showSpot(spot); }, [spot]);
     const attach = (id: number) => (frame: HTMLIFrameElement | null) => {
@@ -144,6 +187,8 @@ interface FilledPreviewProps {
     spot?: string;
     /** What the host puts at the right of the caption (the editor: back to the text). */
     actions?: ReactNode;
+    /** Escape pressed inside the page (the frame has the keyboard then): a dialog closes on it. */
+    onEscape?: () => void;
 }
 
 function Caption({ gaps, known, actions }: { gaps: number; known: boolean; actions?: ReactNode }) {
@@ -165,10 +210,10 @@ function Caption({ gaps, known, actions }: { gaps: number; known: boolean; actio
     );
 }
 
-export default function FilledPreview({ documentId, revision, load, spot = '', actions }: FilledPreviewProps) {
+export default function FilledPreview({ documentId, revision, load, spot = '', actions, onEscape }: FilledPreviewProps) {
     const { t } = useTranslation();
     const query = useFilledPreviewQuery(documentId, revision, load);
-    const { layers, attach } = useFrames(query.data?.html, spot);
+    const { layers, attach } = useFrames(query.data?.html, spot, onEscape);
     const failed = query.isError && !layers.front && !layers.back;
     return (
         <div className="flex h-full min-h-0 w-full flex-col" data-testid="filled-preview">

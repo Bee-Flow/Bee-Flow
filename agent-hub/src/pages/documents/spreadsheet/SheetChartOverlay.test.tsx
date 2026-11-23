@@ -54,6 +54,12 @@ describe('SheetChartOverlay', () => {
         expect(screen.queryByRole('button', { name: 'Remove chart' })).toBeNull();
     });
 
+    test('an anchor typed in lower case or with $ still finds its cell', () => {
+        renderCharts([one('bar', { id: 'lc', title: 'lower', anchor: 'h2' }), one('line', { id: 'abs', title: 'absolute', anchor: '$H$2' })]);
+        expect(screen.getByText('lower')).toBeInTheDocument();
+        expect(screen.getByText('absolute')).toBeInTheDocument();
+    });
+
     test('no card for a chart whose anchor is not on screen or whose range holds no numbers', () => {
         const { container } = renderCharts([one('bar', { id: 'far', anchor: 'Z900' }), one('line', { id: 'empty', dataRange: 'A2:A3' })]);
         expect(container.querySelector('[data-chart-type]')).toBeNull();

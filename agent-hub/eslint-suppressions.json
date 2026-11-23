@@ -9973,12 +9973,6 @@
     }
   },
   "src/pages/documents/spreadsheet/SheetTabs.tsx": {
-    "jsx-a11y/click-events-have-key-events": {
-      "count": 1
-    },
-    "jsx-a11y/interactive-supports-focus": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }

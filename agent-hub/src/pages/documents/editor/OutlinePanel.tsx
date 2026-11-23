@@ -12,14 +12,16 @@ export interface OutlinePanelProps {
     busySections: Record<string, string>;
     onGo: (item: OutlineItem) => void;
     onClose: () => void;
+    /** Fill the frame it is put in (an overlay) instead of its own column. */
+    fill?: boolean;
 }
 
 const INDENT = ['pl-2', 'pl-2', 'pl-5', 'pl-8'];
 
-export default function OutlinePanel({ items, activeSection, busySections, onGo, onClose }: OutlinePanelProps) {
+export default function OutlinePanel({ items, activeSection, busySections, onGo, onClose, fill = false }: OutlinePanelProps) {
     const { t } = useTranslation();
     return (
-        <aside className="w-64 shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)]" aria-label={t('documents.outline.title', 'Outline')} data-testid="document-outline">
+        <aside className={`${fill ? 'h-full w-full' : 'w-64 shrink-0 border-l border-[var(--border-subtle)]'} overflow-y-auto bg-[var(--bg-secondary)]`} aria-label={t('documents.outline.title', 'Outline')} data-testid="document-outline">
             <div className="flex items-center gap-2 px-3 py-2.5">
                 <ListTree size={14} aria-hidden="true" className="text-[var(--text-tertiary)]" />
                 <h2 className="flex-1 m-0 text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{t('documents.outline.title', 'Outline')}</h2>

@@ -67,6 +67,8 @@ interface Ctx {
     reported: { current: number };
     base: { current: string | null };
     inFlight: { current: Promise<void> | null };
+    /** The body of the save that is out now, if any. */
+    sending: { current: string | null };
     queue: { current: Promise<unknown> };
     cb: { current: Pick<AutosaveOptions, 'onSaved' | 'onMerged' | 'onReadOnly' | 'reread' | 'onLive'> };
     set: { state: (s: SaveState | ((prev: SaveState) => SaveState)) => void; error: (e: Error | null) => void; conflict: (c: Conflict | null) => void; savedAt: (d: Date) => void };
@@ -180,12 +182,13 @@ async function drainPending(ctx: Ctx) {
         ctx.pending.current = null;
         if (html === ctx.docRef.current?.bodyHtml && baseOf(ctx) === ctx.docRef.current?.versionId) continue;
         ctx.set.state('saving');
+        ctx.sending.current = html;
         try {
             await saveOnce(ctx, html);
         } catch (e) {
             await failed(ctx, e, html);
             throw e;
-        }
+        } finally { ctx.sending.current = null; }
         if (ctx.pending.current == null) writeDraft(ctx.documentId, null);
         ctx.set.error(null);
         ctx.set.savedAt(new Date());
@@ -243,7 +246,7 @@ function useCtx(options: AutosaveOptions) {
     // renders build one that useRef ignores: a few small objects).
     const ctxRef = useRef<Ctx>({
         documentId: options.documentId, docRef: options.docRef,
-        pending: { current: null }, reported: { current: 0 }, base: { current: null }, inFlight: { current: null }, queue: { current: Promise.resolve() },
+        pending: { current: null }, reported: { current: 0 }, base: { current: null }, inFlight: { current: null }, sending: { current: null }, queue: { current: Promise.resolve() },
         cb: { current: options },
         set: { state: setSaveState, error: setError, conflict: setConflict, savedAt: setLastSavedAt },
     });
@@ -261,7 +264,10 @@ export default function useDocumentAutosave(options: AutosaveOptions) {
         const ctx = ctxRef.current;
         if (ctx.docRef.current?.editable === false) return;
         ctx.reported.current += 1;
-        if (html === ctx.docRef.current?.bodyHtml && ctx.pending.current == null) return;
+        // Nothing new: the body already saved, or the one being saved now. While a save is out, the saved
+        // body is NOT nothing new: an undo back to it must still be saved after the request in flight.
+        const settled = ctx.sending.current ?? ctx.docRef.current?.bodyHtml;
+        if (html === settled && ctx.pending.current == null) return;
         ctx.pending.current = html;
         writeDraft(ctx.documentId, { html, base: baseOf(ctx), at: Date.now() });
         // "Unsaved changes" until the save starts: never "Saving…" per keystroke.

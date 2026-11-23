@@ -24,15 +24,25 @@ function initialMode(doc: StudioDocument): EditorMode {
     return 'editing';
 }
 
+/** Below Tailwind's `sm` (640px) the form and the picture do not fit side by side. */
+function wideEnough(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+    return !window.matchMedia('(max-width: 639.98px)').matches;
+}
+
 /**
  * A document made from a template opens on its values, full screen: the sheet
  * itself shows {{placeholders}}, which is the template's text, not what the
  * document says. Beside a chat there is no room for the form next to it (the
- * chat has the form), and a presentation opens on its slides.
+ * chat has the form), on a phone there is no room for both, and a
+ * presentation opens on its slides.
  */
 function initialTab(doc: StudioDocument, fullScreen: boolean): WorkspaceTab | null {
-    if (!fullScreen || doc.kind !== 'document' || doc.docType === 'presentation') return null;
-    const fields: unknown = doc.settings?.contract?.parameters;
+    if (!fullScreen || doc.kind !== 'document' || doc.docType === 'presentation' || !wideEnough()) return null;
+    // The GET's contract carries the inferred fields too; the stored one only those written down.
+    const contract = doc.contract as { parameters?: unknown } | undefined;
+    const stored = doc.settings?.contract as { parameters?: unknown } | undefined;
+    const fields = contract?.parameters ?? stored?.parameters;
     return Array.isArray(fields) && fields.length > 0 ? 'preview' : null;
 }
 

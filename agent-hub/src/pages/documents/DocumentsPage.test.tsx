@@ -142,6 +142,20 @@ describe('DocumentsPage: actions that ask first', () => {
         await waitFor(() => expect(api.unarchiveDocument).toHaveBeenCalledWith('a'));
     });
 
+    it('switching to the archive shows loading, not the active rows with archive actions', async () => {
+        renderPage();
+        const u = userEvent.setup();
+        await screen.findByTestId('library-row-a');
+        const pending = deferred<unknown>();
+        api.listDocumentsPage.mockImplementation(() => pending.promise);
+        await u.click(screen.getByTestId('documents-archived-view'));
+        await waitFor(() => expect(api.listDocumentsPage).toHaveBeenLastCalledWith(expect.objectContaining({ archived: '1' })));
+        expect(screen.queryByTestId('library-row-a')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('library-unarchive-a')).not.toBeInTheDocument();
+        await act(async () => { pending.resolve({ documents: [row('z')], total: 1, people: {} }); });
+        expect(await screen.findByTestId('library-unarchive-z')).toBeInTheDocument();
+    });
+
     it('deleting a folder asks first and says its documents move up', async () => {
         api.documentRequest.mockImplementation(async (path: string, _data: unknown, method?: string) => {
             if (path === '/folders') return { folders: [{ id: 'f1', name: 'Customers', parentId: null }] };

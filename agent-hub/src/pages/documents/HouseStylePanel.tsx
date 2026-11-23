@@ -208,7 +208,7 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 [background:var(--accent-primary)] [color:#fff]!"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-60 [background:var(--accent-primary)] text-[var(--accent-primary-fg)]!"
                             data-testid="house-style-save"
                         >
                             {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
@@ -231,7 +231,7 @@ function HouseStylePanelCard4({ t, style, disabled, set }: { t: (key: string | u
         <p className="text-sm mb-3 text-[var(--text-muted)]">
             {t('documents.style.details_hint', 'The assistant writes these into the document itself, so you can still correct them by hand on a single invoice.')}
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {TEXT_FIELDS.map((f) => (
                 <label key={f.key} className="text-xs text-[var(--text-muted)]">
                     {t(f.labelKey, f.fallback)}
@@ -294,7 +294,11 @@ function HouseStylePanelCard({ t, style, disabled, handleLogo, set }: { t: (key:
                         accept="image/png,image/jpeg,image/webp,image/svg+xml"
                         className="hidden"
                         disabled={disabled}
-                        onChange={(e) => handleLogo(e.target.files?.[0])}
+                        onChange={(e) => {
+                            handleLogo(e.target.files?.[0]);
+                            // Cleared, so choosing the same file again (after Remove) still reports a change.
+                            e.target.value = '';
+                        }}
                         data-testid="house-style-logo-input" />
                 </label>
                 {style.logoDataUrl && !disabled && (

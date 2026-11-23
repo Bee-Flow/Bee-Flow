@@ -33,6 +33,13 @@ describe('NotebookSources', () => {
         expect(screen.getByRole('alert')).toHaveTextContent('Could not reach the URL');
     });
 
+    it('says one word and one ready source in the singular', () => {
+        const one = [{ ...SOURCES[0], wordCount: 1 }];
+        render(<NotebookSources {...baseProps({ sources: one, totalWords: 1, readyCount: 1 })} />);
+        expect(within(screen.getByTestId('source-card')).getByText('1 word')).toBeTruthy();
+        expect(screen.getByText('The source is ready')).toBeTruthy();
+    });
+
     it('renames a source via the inline editor', async () => {
         const user = userEvent.setup();
         const onRenameSource = vi.fn();

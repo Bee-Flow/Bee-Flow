@@ -693,9 +693,9 @@ router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async
         if (!doc) return res.status(404).json({ error: 'Document not found' });
         // `edit=1` asks for the hand-editing bridge. The bytes are identical
         // otherwise, so a reader never carries the editor's script. A
-        // presentation has no bridge: its outline is edited as text.
+        // presentation has no bridge, and its viewer shows values ("[Label]" for a gap), not {{tokens}}.
         const mode = req.query.edit === '1' ? 'preview' : 'print';
-        sendPreview(res, await previewHtmlFor(req, doc, { mode }));
+        sendPreview(res, await previewHtmlFor(req, doc, { mode, ...(isDeckDocument(doc) ? require('../core/documents/fillPreview.mts').deckViewerValues(doc) : {}) }));
     } catch (err) {
         if (err && err.errorClass === 'document_empty') return sendPreview(res, emptyDeckHtml());
         sendStoreError(res, err, 'Failed to render document');

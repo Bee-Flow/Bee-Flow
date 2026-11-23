@@ -24,11 +24,12 @@ const nodeRequire = createRequire(import.meta.url);
 type Values = Record<string, unknown>;
 type Field = { key: string; label?: string; type?: string };
 type Parameter = Field & { fields?: Field[] };
+type Rule = { parameter?: string; all?: Rule[]; any?: Rule[] } | null | undefined;
 type Issue = { code: string; key?: string; message?: string };
 type Fill = { valid: boolean; issues: Issue[]; bodyHtml: string } & Record<string, unknown>;
 
 const contract = () => nodeRequire('./documentContract') as {
-    getContract: (doc: unknown) => { parameters: Parameter[] };
+    getContract: (doc: unknown) => { parameters: Parameter[]; sections?: Array<{ condition?: Rule }> };
     setPath: (target: Values, key: string, value: unknown) => void;
     prepareDocument: (doc: unknown, values: Values, overrides?: Record<string, unknown>) => Fill;
 };
@@ -51,10 +52,29 @@ function hasValue(values: Values, key: string): boolean {
     return cur !== null && cur !== undefined && cur !== '';
 }
 
-/** Deep enough a copy that writing a placeholder never touches the caller's values. */
+/**
+ * A nested copy of the values, as prepareDocument reads them: a flat stored
+ * key ("client.name") is written as client.name, so a label written next to it
+ * ("client.city") lands in the same object instead of replacing it. Deep
+ * enough that writing a placeholder never touches the caller's values.
+ */
 function copyValues(values: unknown): Values {
-    if (!values || typeof values !== 'object' || Array.isArray(values)) return {};
-    return structuredClone(values) as Values;
+    const out: Values = {};
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return out;
+    for (const [key, value] of Object.entries(values)) contract().setPath(out, key, structuredClone(value));
+    return out;
+}
+
+/** The keys a section rule reads (all/any included): a label there would decide the section. */
+function ruleKeys(sections: Array<{ condition?: Rule }> = []): Set<string> {
+    const keys = new Set<string>();
+    const walk = (rule: Rule): void => {
+        if (!rule) return;
+        if (rule.parameter) keys.add(rule.parameter);
+        for (const r of rule.all || rule.any || []) walk(r);
+    };
+    for (const s of sections) walk(s.condition);
+    return keys;
 }
 
 /**
@@ -65,10 +85,12 @@ function copyValues(values: unknown): Values {
 export function templatePreviewValues(doc: { bodyHtml?: string }, values: unknown): { values: Values; filled: string[] } {
     const out = copyValues(values);
     const filled: string[] = [];
-    const parameters = new Map(contract().getContract(doc).parameters.map((p) => [p.key, p]));
+    const { parameters: list, sections } = contract().getContract(doc);
+    const parameters = new Map(list.map((p) => [p.key, p]));
+    const decides = ruleKeys(sections);
     for (const shown of template().listPlaceholders(doc.bodyHtml || '')) {
         const p = parameters.get(shown.key);
-        if (!p || shown.kind === 'condition' || p.type === 'boolean' || hasValue(out, p.key)) continue;
+        if (!p || shown.kind === 'condition' || p.type === 'boolean' || decides.has(p.key) || hasValue(out, p.key)) continue;
         const value = shown.kind === 'list'
             ? [Object.fromEntries((p.fields || []).map((f) => [f.key, placeholderText(f)]))]
             : placeholderText(p);

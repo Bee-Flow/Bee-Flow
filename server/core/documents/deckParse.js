@@ -9,6 +9,22 @@ const RE_H2 = /^##\s+(.*)$/;
 
 const RE_HR = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
 
+const RE_FENCE = /^\s*(`{3,}|~{3,})\s*([a-zA-Z0-9_-]*)\s*$/;
+
+/**
+ * The fence a line opens or closes, given the one that is open: a heading or
+ * a rule inside a fenced block is content, not a slide break.
+ * @param {string} line
+ * @param {string | null} open  the opening marker, or null
+ * @returns {string | null} the marker that is open after this line
+ */
+function nextFence(line, open) {
+    const m = RE_FENCE.exec(line);
+    if (!m) return open;
+    if (!open) return m[1];
+    return m[1][0] === open[0] && m[1].length >= open.length && !m[2] ? null : open;
+}
+
 /** Turn a heading-free, line-based markdown fragment into slide fields (used for JSON `content` too). */
 function fieldsFromContent(content) {
     const lines = String(content ?? '').replace(/\r\n?/g, '\n').split('\n');
@@ -28,7 +44,12 @@ function deckFromMarkdown(markdown, warnings) {
     const sections = [];
     let cur = null;
     let pendingBreak = false;
+    /** @type {string | null} */
+    let fence = null;
     for (const line of lines) {
+        const inFence = fence !== null;
+        fence = nextFence(line, fence);
+        if (inFence) { (cur ? cur.lines : cover).push(line); continue; }
         let m;
         if ((m = RE_H1.exec(line)) && !deck.title && !cur) { deck.title = stripInlineMarkdown(m[1]); continue; }
         if ((m = RE_H2.exec(line)) || ((m = RE_H1.exec(line)) && (deck.title || cur))) {

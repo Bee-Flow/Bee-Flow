@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "notebooks.all_n_sources_ready_one": "De bron is klaar",
+    "notebooks.confirm_bulk_delete_body_one": "Hiermee worden de bron en de geïndexeerde inhoud ervan definitief verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "notebooks.detail_meta_counts": "{sources} · {words} · Gemaakt {when}",
+    "notebooks.n_sources": "{count} bronnen",
+    "notebooks.n_sources_one": "{count} bron",
+    "notebooks.n_words_one": "{count} woord"
+  },
+  "sameAsEnglish": []
+}
