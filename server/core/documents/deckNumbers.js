@@ -11,6 +11,31 @@
 
 const NUMBER_SUFFIX = /** @type {Readonly<Record<string, number>>} */ (Object.freeze({ k: 1e3, K: 1e3, m: 1e6, M: 1e6, mln: 1e6, mrd: 1e9, b: 1e9, B: 1e9 }));
 
+const CURRENCY_SIGNS = Object.freeze(['€', '$', '£', '¥']);
+const isAsciiLetter = (/** @type {string} */ c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+
+/**
+ * The run of ASCII letters at the end of `s` ("12k" → "k"), or ''. Plain
+ * string work: the cell text is the author's (semgrep regex_dos).
+ * @param {string} s
+ */
+function trailingLetters(s) {
+    let i = s.length;
+    while (i > 0 && isAsciiLetter(s[i - 1])) i -= 1;
+    return s.slice(i);
+}
+
+/**
+ * True when a comma is followed by whitespace ("1, 2" is a list).
+ * @param {string} s
+ */
+function commaThenSpace(s) {
+    for (let i = s.indexOf(','); i !== -1 && i < s.length - 1; i = s.indexOf(',', i + 1)) {
+        if (s[i + 1].trim() === '') return true;
+    }
+    return false;
+}
+
 /**
  * A number out of human text. Handles currency signs, thousands separators in
  * either convention, a trailing %, and k/M/B suffixes. Returns null when the
@@ -25,11 +50,11 @@ function parseNumber(value, { dotThousands = false } = {}) {
     if (value === null || value === undefined) return null;
     let s = String(value).trim();
     if (!s) return null;
-    const money = /[€$£¥]/.test(s);
+    const money = CURRENCY_SIGNS.some((sign) => s.includes(sign));
     s = s.replace(/[€$£¥]/g, '').replace(/\s+/g, '').replace(/%$/, '');
     let mult = 1;
-    const suffix = /([a-zA-Z]+)$/.exec(s);
-    if (suffix && NUMBER_SUFFIX[suffix[1]] !== undefined) { mult = NUMBER_SUFFIX[suffix[1]]; s = s.slice(0, -suffix[1].length); }
+    const suffix = trailingLetters(s);
+    if (suffix && NUMBER_SUFFIX[suffix] !== undefined) { mult = NUMBER_SUFFIX[suffix]; s = s.slice(0, -suffix.length); }
     if (!/^[-+]?[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
     const lastComma = s.lastIndexOf(',');
     const lastDot = s.lastIndexOf('.');
@@ -100,7 +125,7 @@ function splitNumberCommas(s, expected) {
     const cells = s.split(',');
     if (cells.length < 2) return cells;
     const allNumbers = cells.every((c) => c.trim() === '' || isNumeric(c));
-    const listLike = /,\s/.test(s) || (expected !== null && expected > 1 && cells.length === expected) || parseNumber(s) === null;
+    const listLike = commaThenSpace(s) || (expected !== null && expected > 1 && cells.length === expected) || parseNumber(s) === null;
     return allNumbers && listLike ? cells : [s];
 }
 
