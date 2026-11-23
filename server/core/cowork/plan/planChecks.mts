@@ -19,6 +19,8 @@
  *               - it never picks what is changed (a file, folder, table or document id of such a step).
  *             It MAY fill the text of a message, a cell, a digest, and it may decide which of the plan's own branches
  *             runs: both branches were approved with the plan.
+ *   ASK       a step that waits for a decision asks the plan's owner. It names no other approver, panel, stage or
+ *             escalation: what the plan shows a person is on its card as "only to you", and that has to be true.
  */
 
 import { createRequire } from 'node:module';
@@ -77,6 +79,16 @@ function aiFindings(s: WalkedStep, outside: OutsideText): PlanFinding[] {
     return out;
 }
 
+/** The fields of an approval step that put someone other than the owner on the decision. */
+const OTHER_APPROVER_FIELDS = ['assignee', 'approvers', 'finalApprover', 'escalateTo', 'stages'];
+
+const names = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== '');
+
+function askFindings(s: WalkedStep): PlanFinding[] {
+    if (!OTHER_APPROVER_FIELDS.some((field) => names(s.step[field]))) return [];
+    return [finding('ask.other_people', s.id, 'A step that waits for a decision asks the owner of the plan. This one names other people to decide.')];
+}
+
 /** Outside text in the fields of a step that say where it goes: a recipient, or the thing that is changed. */
 function fieldFindings(s: WalkedStep, effect: Effect, outside: OutsideText): PlanFinding[] {
     if (effect === 'reads') return [];
@@ -97,7 +109,7 @@ function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText)
     if (isAnnotation(s.type)) return [];
     const kind = kindOfStepType(s.type);
     if (kind === null) return [finding('step.not_allowed', s.id, refusalOfStepType(s.type))];
-    const out: PlanFinding[] = kind === 'ai' ? aiFindings(s, outside) : [];
+    const out: PlanFinding[] = kind === 'ai' ? aiFindings(s, outside) : kind === 'ask' ? askFindings(s) : [];
     const tool = typeof s.step.tool === 'string' ? s.step.tool : '';
     if (s.type === 'integration_action' && tool && lookups.isOpenWebRead(tool) && outside.refsReadIt(refsOfStep(s.step), s)) {
         out.push(finding('web.input_from_outside', s.id, 'This step goes to the open web with an address or a query built from text written outside the workspace. That would carry the text out.'));

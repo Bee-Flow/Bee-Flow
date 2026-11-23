@@ -32,6 +32,7 @@ function world({ automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organiz
             getApprovedPlan: async () => state.approved,
         },
         getAutomation: async (id) => automations[id] ?? null,
+        isManaged: async (a) => a.projectId === 'stage-project',
         ownerRefusal: async () => refusal,
         lookups,
     };
@@ -77,6 +78,15 @@ test('naming an automation needs one the caller owns; a missing one and someone 
     assert.strictEqual(state.attached, 'mine');
     assert.strictEqual(after.automationId, 'mine');
     assert.strictEqual(after.approved, null, 'naming it approves nothing');
+});
+
+test('an automation a Solution stage manages is no plan: it cannot be named, and one that became managed reads as gone', async () => {
+    const managed = { id: 'auto-1', userId: 'u1', kind: 'automation', projectId: 'stage-project', definition: supplierRadar() };
+    const { deps } = world({ automations: { 'auto-1': managed } });
+    await assert.rejects(attachPlan({ item: ITEM, automationId: 'auto-1' }, deps), httpError(404, 'cowork_plan_refused'));
+    const state = await planStateOf({ ...ITEM, planAutomationId: 'auto-1' }, deps);
+    assert.deepStrictEqual([state.automationId, state.draft], ['auto-1', null]);
+    await assert.rejects(approvePlan({ item: { ...ITEM, planAutomationId: 'auto-1' }, fingerprint: 'f'.repeat(64) }, deps), httpError(409, 'cowork_plan_refused'));
 });
 
 test('a building block is no plan, and an item that starts on a mail carries none yet', async () => {

@@ -13,6 +13,7 @@ const assert = require('node:assert');
 
 const { executePlanRun, resultTextOf } = require('./planRun.mts');
 const { planFingerprint } = require('./plan/planPermissions.mts');
+const { OWNER_ONLY_NOTIFICATIONS } = require('./plan/planRunCopy.mts');
 const { fakeLookups, planOf, supplierRadar, literal } = require('./plan/plan.testkit');
 
 const task = { id: 's1', userId: 'u1', title: 'Supplier radar', repeatInterval: 'daily', nextRunAt: '2026-11-23T07:30:00.000Z' };
@@ -34,6 +35,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         advance: async (t, opts) => { seen.advanced.push(opts); },
         NOTIFICATION: { category: 'cowork', link: null, prefix: '' },
         getAutomation: async () => automation,
+        isManaged: async (a) => a.projectId === 'stage-project',
         executeAutomation: async (a, opts) => { seen.executed.push({ automation: a, opts }); await opts.onRunCreated({ id: run.id }); return run; },
         createNotification: async (n) => { seen.notes.push(n); },
         lookups: fakeLookups(),
@@ -46,7 +48,9 @@ test('it runs the approved copy, live, as the owner: never the automation\'s own
     await executePlanRun(task, { store: h.store, due: true }, h.deps);
     assert.strictEqual(h.seen.executed.length, 1);
     const { automation, opts } = h.seen.executed[0];
-    assert.deepStrictEqual(automation.definition, supplierRadar(), 'the plan as approved');
+    const { notificationSettings, ...steps } = automation.definition;
+    assert.deepStrictEqual(steps, supplierRadar(), 'the plan as approved');
+    assert.strictEqual(notificationSettings, OWNER_ONLY_NOTIFICATIONS);
     assert.deepStrictEqual([automation.id, automation.userId, automation.version], ['auto-1', 'u1', 7], 'the automation lends its identity');
     assert.deepStrictEqual([opts.triggerKind, opts.mode, opts.startedByUserId], ['manual', 'live', 'u1']);
 });
@@ -117,12 +121,24 @@ test('an item whose plan was taken off between the tick and the run does not run
 });
 
 test('an automation that is gone, or that is someone else\'s now, lends its identity to nobody', async () => {
-    for (const automation of [null, { id: 'auto-1', userId: 'someone-else' }]) {
+    // The last one is the owner's, but a Solution stage manages it: its runs are the stage's (./plan/planSource.mts).
+    for (const automation of [null, { id: 'auto-1', userId: 'someone-else' }, { id: 'auto-1', userId: 'u1', kind: 'block' }, { id: 'auto-1', userId: 'u1', projectId: 'stage-project' }]) {
         const h = harness({ automation });
         await executePlanRun(task, { store: h.store, due: true }, h.deps);
         assert.strictEqual(h.seen.executed.length, 0, JSON.stringify(automation));
         assert.match(h.seen.failed[0].err.message, /gone or is no longer yours/);
     }
+});
+
+test('a plan run never uses the automation\'s own notification settings: nothing about it reaches another person or a room', async () => {
+    const withSettings = { ...supplierRadar(), notificationSettings: { onError: { enabled: true, channels: ['talk'], recipients: [{ type: 'group', id: 'g1' }], talkRoom: 'ops' }, onSuccess: { enabled: true, channels: ['email'], recipients: [{ type: 'user', id: 'u9' }] } } };
+    const h = harness({ plan: approved(withSettings) });
+    await executePlanRun(task, { store: h.store, due: true }, h.deps);
+    const settings = h.seen.executed[0].automation.definition.notificationSettings;
+    assert.deepStrictEqual([settings.onError.enabled, settings.onSuccess.enabled], [false, false], 'Cowork tells the owner itself, once');
+    assert.deepStrictEqual([settings.onApproval.channels, settings.onApproval.recipients], [['bell'], [{ type: 'owner' }]]);
+    assert.ok(!JSON.stringify(settings).includes('ops') && !JSON.stringify(settings).includes('g1') && !JSON.stringify(settings).includes('u9'));
+    assert.strictEqual(h.seen.failed.length, 0, 'the approved plan itself still has its fingerprint');
 });
 
 test('a run the runner ended in an error fails with the runner\'s reason', async () => {

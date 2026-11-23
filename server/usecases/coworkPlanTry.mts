@@ -21,6 +21,7 @@ import type { RunStepRow, TraceStep } from '../core/cowork/plan/planTrace.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
+import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -29,11 +30,13 @@ const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new 
 const log = nodeRequire('../telemetry/log.js') as { warn: (msg: string) => void };
 
 interface Item { id: string; userId: string; planAutomationId?: string | null }
-interface AutomationRow { id: string; userId: string; organizationId?: string | null; kind?: string | null; definition?: unknown }
+type AutomationRow = SourceRow;
 interface RunRow { id?: string; automationId?: string; mode?: string; status?: string; summary?: string | null; error?: string | null; durationMs?: number | null }
 
 export interface TryDeps {
     getAutomation: (id: string) => Promise<AutomationRow | null>;
+    /** The automation is managed by a Solution stage: no plan source (core/cowork/plan/planSource.mts). */
+    isManaged: (automation: AutomationRow) => Promise<boolean>;
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     executeAutomation: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<RunRow | null | undefined>;
     getRun: (runId: string) => Promise<RunRow | null>;
@@ -47,6 +50,7 @@ function defaultDeps(): TryDeps {
         getAutomation: (id) => store().getAutomation(id),
         getRun: (id) => store().getRun(id),
         getRunSteps: (id) => store().getRunSteps(id),
+        isManaged: isManagedByStage,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: TryDeps['ownerRefusal'] }).ownerRefusal(owner),
         executeAutomation: (a, o) => (nodeRequire('../core/automationRunner') as { executeAutomation: TryDeps['executeAutomation'] }).executeAutomation(a, o),
         lookups: toolLookups(),
@@ -66,8 +70,8 @@ export interface TryState {
 
 /** The automation this item's plan is made from, when it is still the owner's. */
 async function planAutomation(item: Item, deps: TryDeps): Promise<AutomationRow> {
-    const automation = item.planAutomationId ? await deps.getAutomation(item.planAutomationId) : null;
-    if (!automation || automation.userId !== item.userId) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to try.');
+    const automation = await planSourceOf(item.planAutomationId, item.userId, deps);
+    if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to try.');
     return automation;
 }
 

@@ -12,10 +12,14 @@
  *   - the stored copy still has the fingerprint it was approved with (a row changed behind the plan's back);
  *   - it is still a plan Cowork runs (core/cowork/plan/planChecks.mts: the rules may be stricter than when it was
  *     approved);
- *   - the automation behind it still exists and still belongs to the item's owner.
+ *   - the automation behind it still exists, still belongs to the item's owner, and is not managed by a Solution
+ *     stage (./plan/planSource.mts).
  *
  * A run that fails one of them does not start, and says which. The runner then applies its own gates (the owner's
  * account and organisation, the run policy, the Privacy Shield), as for any automation.
+ *
+ * The run's own notifications are held to the owner (./plan/planRunCopy.mts): the automation's notification settings
+ * are not used, so nothing about the run reaches another person or a shared room, and the owner hears once.
  */
 
 import { createRequire } from 'node:module';
@@ -24,6 +28,8 @@ import { checkPlan } from './plan/planChecks.mts';
 import { planFingerprint } from './plan/planPermissions.mts';
 import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
+import { runCopyOf } from './plan/planRunCopy.mts';
+import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -37,7 +43,7 @@ export interface PlanTask {
 }
 
 interface ApprovedPlan { id: string; automationId: string; definition: unknown; fingerprint: string }
-interface AutomationRow { id: string; userId: string; [key: string]: unknown }
+type AutomationRow = SourceRow;
 /** The terminal row the automation runner answers with. */
 export interface AutomationRunRow { id?: string; status?: string; summary?: string | null; error?: string | null; lastOutput?: unknown }
 
@@ -54,6 +60,8 @@ export interface PlanRunDeps {
     advance: (task: PlanTask, opts: { manual: boolean; store: PlanRunStore; startTime: number }) => Promise<unknown>;
     NOTIFICATION: { category: string; link: string | null; prefix: string };
     getAutomation?: (id: string) => Promise<AutomationRow | null>;
+    /** The automation is managed by a Solution stage (./plan/planSource.mts). */
+    isManaged?: (automation: AutomationRow) => Promise<boolean>;
     executeAutomation?: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<AutomationRunRow | null | undefined>;
     createNotification?: (n: Record<string, unknown>) => Promise<unknown>;
     lookups?: ToolLookups;
@@ -88,7 +96,7 @@ function firstFinding(findings: PlanFinding[]): string {
 }
 
 /** The approved plan, if it may still run; throws PlanRefusedError with the reason when it may not. */
-async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLookups, getAutomation: NonNullable<PlanRunDeps['getAutomation']>) {
+async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLookups, source: { getAutomation: NonNullable<PlanRunDeps['getAutomation']>; isManaged: NonNullable<PlanRunDeps['isManaged']> }) {
     const plan = await store.getApprovedPlan(task.id);
     if (!plan) throw new PlanRefusedError('This item has no approved plan any more.');
     const definition = plan.definition as Definition;
@@ -99,8 +107,8 @@ async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLo
     if (findings.length > 0) {
         throw new PlanRefusedError(`This plan may not run as it is: ${firstFinding(findings)} Change the plan and approve it again.`);
     }
-    const automation = await getAutomation(plan.automationId);
-    if (!automation || automation.userId !== task.userId) {
+    const automation = await planSourceOf(plan.automationId, task.userId, source);
+    if (!automation) {
         throw new PlanRefusedError('The automation behind this plan is gone or is no longer yours. Make a new plan for this item.');
     }
     return { plan, definition, automation };
@@ -109,6 +117,7 @@ async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLo
 function defaults(deps: PlanRunDeps) {
     return {
         getAutomation: deps.getAutomation ?? ((id: string) => (nodeRequire('../../stores/automationStore') as { getAutomation: (id: string) => Promise<AutomationRow | null> }).getAutomation(id)),
+        isManaged: deps.isManaged ?? isManagedByStage,
         executeAutomation: deps.executeAutomation ?? ((a: AutomationRow, o: Record<string, unknown>) => (nodeRequire('../automationRunner') as { executeAutomation: (a: AutomationRow, o: Record<string, unknown>) => Promise<AutomationRunRow> }).executeAutomation(a, o)),
         createNotification: deps.createNotification ?? ((n: Record<string, unknown>) => (nodeRequire('../../stores/notificationStore') as { createNotification: (n: Record<string, unknown>) => Promise<unknown> }).createNotification(n)),
         lookups: deps.lookups ?? toolLookups(),
@@ -152,11 +161,11 @@ export async function executePlanRun(
     if (!attempt) return;
     log.info(`[AITaskRunner] Executing ${task.id} as its plan`);
     try {
-        const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d.getAutomation);
+        const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d);
         await store.linkPlanRun(attempt.runId, { planId: plan.id });
         // A spread without the row's own copies: the runner executes exactly the definition handed in
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.
-        const row = await d.executeAutomation({ ...automation, definition }, {
+        const row = await d.executeAutomation({ ...automation, definition: runCopyOf(definition) }, {
             triggerKind: 'manual',
             mode: 'live',
             startedByUserId: task.userId,

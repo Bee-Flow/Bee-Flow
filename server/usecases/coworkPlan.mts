@@ -24,13 +24,14 @@ import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { permissionsOf, planFingerprint, widens } from '../core/cowork/plan/planPermissions.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
+import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
 
 interface Item { id: string; userId: string; triggerKind?: string | null; planAutomationId?: string | null; planId?: string | null }
-interface AutomationRow { id: string; userId: string; organizationId?: string | null; kind?: string | null; definition?: unknown }
+type AutomationRow = SourceRow;
 interface ApprovedPlan { id: string; version: number; fingerprint: string; approvedAt: string | null; permissions: unknown }
 
 export interface Deps {
@@ -41,6 +42,8 @@ export interface Deps {
         getApprovedPlan: (scheduleId: string) => Promise<ApprovedPlan | null>;
     };
     getAutomation: (id: string) => Promise<AutomationRow | null>;
+    /** The automation is managed by a Solution stage: no plan source (core/cowork/plan/planSource.mts). */
+    isManaged: (automation: AutomationRow) => Promise<boolean>;
     /** Why the automation runner would refuse this owner, or null (core/automationRunner/ownerGate.mts). */
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     lookups: ToolLookups;
@@ -50,6 +53,7 @@ function defaultDeps(): Deps {
     return {
         store: nodeRequire('../stores/coworkStore.js'),
         getAutomation: (id) => (nodeRequire('../stores/automationStore') as { getAutomation: (id: string) => Promise<AutomationRow | null> }).getAutomation(id),
+        isManaged: isManagedByStage,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: Deps['ownerRefusal'] }).ownerRefusal(owner),
         lookups: toolLookups(),
     };
@@ -87,13 +91,8 @@ function draftOf(automation: AutomationRow, lookups: ToolLookups): PlanDraft {
     };
 }
 
-/** The automation, when it exists, is an automation (not a building block) and belongs to `userId`. */
-async function ownAutomation(automationId: string | null | undefined, userId: string, deps: Deps): Promise<AutomationRow | null> {
-    if (!automationId) return null;
-    const automation = await deps.getAutomation(automationId);
-    if (!automation || automation.userId !== userId) return null;
-    return automation.kind && automation.kind !== 'automation' ? null : automation;
-}
+/** The automation a plan of `userId` can be made from (core/cowork/plan/planSource.mts), else null. */
+const ownAutomation = (automationId: string | null | undefined, userId: string, deps: Deps): Promise<AutomationRow | null> => planSourceOf(automationId, userId, deps);
 
 /** The plan of an item, as its owner sees it. */
 export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promise<PlanState> {

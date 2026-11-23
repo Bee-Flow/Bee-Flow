@@ -20,6 +20,7 @@ function world({ automation = { id: 'auto-1', userId: 'u1', organizationId: 'org
     const seen = { executed: [] };
     const deps = {
         getAutomation: async () => automation,
+        isManaged: async (a) => a.projectId === 'stage-project',
         ownerRefusal: async () => refusal,
         executeAutomation: async (a, opts) => {
             seen.executed.push({ automation: a, opts });
@@ -74,7 +75,8 @@ test('a plan with a finding is not tried, an owner the runner refuses neither, a
 });
 
 test('an item without a plan, or whose automation is gone or someone else\'s, has nothing to try', async () => {
-    for (const w of [world({ automation: null }), world({ automation: { id: 'auto-1', userId: 'someone-else', definition: supplierRadar() } })]) {
+    const managed = { id: 'auto-1', userId: 'u1', projectId: 'stage-project', definition: supplierRadar() };
+    for (const w of [world({ automation: null }), world({ automation: { id: 'auto-1', userId: 'someone-else', definition: supplierRadar() } }), world({ automation: managed })]) {
         await assert.rejects(startTry({ item: ITEM }, w.deps), httpError(409, 'cowork_plan_refused'));
     }
     await assert.rejects(startTry({ item: { ...ITEM, planAutomationId: null } }, world().deps), httpError(409, 'cowork_plan_refused'));

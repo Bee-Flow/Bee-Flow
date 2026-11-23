@@ -339,6 +339,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/windmill-import',
             'contributing/decisions/cowork-plan-closed-step-list',
             'contributing/decisions/outside-text-informs-never-instructs',
+            'contributing/decisions/cowork-plan-reaches-its-owner',
           ],
         },
       ],

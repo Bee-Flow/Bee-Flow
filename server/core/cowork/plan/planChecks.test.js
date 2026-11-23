@@ -152,6 +152,18 @@ test('a mail trigger marks its own output: an AI step that reads the new mail ge
     assert.deepStrictEqual(codes(plan), ['ai.outside_text_with_tools']);
 });
 
+test('a step that waits for a decision asks the owner: another approver, a panel, a final say, an escalation or stages are refused', () => {
+    const ask = (over) => planOf([{ id: 'ok', type: 'approval', prompt: 'Send these?', ...over }]);
+    assert.deepStrictEqual(codes(ask({})), []);
+    assert.deepStrictEqual(codes(ask({ assignee: null, approvers: [], stages: [] })), [], 'empty is nobody');
+    for (const over of [
+        { assignee: { userId: 'u2' } }, { assignee: { groupId: 'g1' } }, { approvers: [{ userId: 'u2' }] },
+        { finalApprover: { userId: 'u3' } }, { escalateTo: { userId: 'u4' }, escalateAfterHours: 4 }, { stages: [{ name: 'Finance', approvers: [{ groupId: 'g1' }] }] },
+    ]) {
+        assert.deepStrictEqual(codes(ask(over)), ['ask.other_people'], JSON.stringify(over));
+    }
+});
+
 test('every finding is a sentence that names its step', () => {
     const plan = planOf([mailStep, { id: 'a', type: 'ai_step', prompt: '{{steps.mail.output.body}}', tools: ['drive_search'] }, { id: 'c', type: 'code' }]);
     for (const f of checkPlan(plan, lookups)) {
