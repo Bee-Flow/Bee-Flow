@@ -12,18 +12,9 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { executeAgentRun } = require('./agentScheduleRun');
 const { noteToolOutcome, noteStaticSkills } = require('./runActivity.mts');
+const { fakeStore, fakeDeps } = require('./agentScheduleRun.testkit');
 
 const task = { id: 's1', userId: 'u1', agentId: 'a1', title: 'Mail desk', prompt: 'Answer new mail.', conversationId: null, timezone: 'Europe/Amsterdam' };
-
-function fakeStore() {
-    const calls = [];
-    const rec = (name, answer) => async (...a) => { calls.push([name, ...a]); return answer; };
-    return {
-        calls,
-        markRunning: rec('markRunning', 'run-1'), markCompleted: rec('markCompleted'), markError: rec('markError'),
-        updateTask: rec('updateTask'), advanceSchedule: rec('advanceSchedule'),
-    };
-}
 
 /** A runtime that does what the tool round would: note a call and, when asked, a review. */
 const chatThat = (seen, { review = null, offered = ['outlook_read', 'outlook_create_draft'] } = {}) => async (agentId, userId, prompt, auth, onEvent, history, metadata) => {
@@ -36,18 +27,11 @@ const chatThat = (seen, { review = null, offered = ['outlook_read', 'outlook_cre
     return { message: 'I could not finish this.', conversationId: 'conv-7' };
 };
 
-const deps = (seen, chat, failed = []) => ({
-    scheduleText: 'x', resolveUserSession: async () => null, isRepeating: () => true,
-    failRun: async (t, err, o) => { failed.push({ err: err.message, ...o }); },
-    NOTIFICATION: { category: 'cowork', link: null, prefix: '' },
-    services: {
-        agentStore: { getForRuntime: async () => ({ id: 'a1', name: 'Mail agent', owner_id: 'u1', organization_id: null, config: {} }) },
-        notificationStore: { createNotification: async (n) => { seen.notes.push(n); } },
-        terminationStore: { logTermination: async () => {} },
-        buildUserAuth: async () => ({ accessToken: 't', userId: 'u1' }),
-        chatWithAgentStream: chat,
-        skillNames: async (ids) => new Map(ids.filter((id) => id === 'sk1').map((id) => [id, 'Tone of voice'])),
-    },
+const deps = (seen, chat, failed = []) => fakeDeps({
+    chat,
+    onFail: (err, opts) => { failed.push({ err: err.message, ...opts }); },
+    onNote: (n) => { seen.notes.push(n); },
+    services: { skillNames: async (ids) => new Map(ids.filter((id) => id === 'sk1').map((id) => [id, 'Tone of voice'])) },
 });
 
 const REVIEW = { reason: 'The discount is not agreed.', question: 'Which discount applies?', summary: null };

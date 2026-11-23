@@ -75,3 +75,36 @@ test('stop() calls every timer off, and start() arms them again', async () => {
     await timers.advance(10_000);
     assert.deepEqual(calls, ['reap', 'due']);
 });
+
+test('the tick claims each due item as a due claim, and an item another replica claimed first runs nothing here', async () => {
+    /** @type {unknown[]} */
+    const asked = [];
+    const due = { id: 's1', userId: 'u1', title: 'Supplier radar', prompt: 'Summarise.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
+    mock.method(coworkStore, 'getDueSchedules', async () => [due]);
+    // null: the other replica that read the same due row holds it.
+    mock.method(coworkStore, 'markRunning', async (/** @type {string} */ id, /** @type {unknown} */ opts) => { asked.push([id, opts]); return null; });
+    const completed = mock.method(coworkStore, 'markCompleted', async () => {});
+    const failed = mock.method(coworkStore, 'markError', async () => {});
+    const advanced = mock.method(coworkStore, 'advanceSchedule', async () => null);
+
+    await runner.processDueCowork();
+
+    assert.deepEqual(asked, [['s1', { triggerKind: 'schedule', due: true }]]);
+    assert.equal(completed.mock.callCount() + failed.mock.callCount() + advanced.mock.callCount(), 0, 'nothing is written for a run that never started');
+});
+
+test('the reaper waits ten minutes longer than a run may take, and never less than thirty', async () => {
+    /** @type {unknown[]} */
+    const windows = [];
+    mock.method(coworkStore, 'reapStaleRuns', async (/** @type {unknown} */ opts) => { windows.push(opts); return 0; });
+
+    await runner.processDueCowork();
+    process.env.COWORK_RUN_MAX_MINUTES = '45';
+    try {
+        await runner.processDueCowork();
+    } finally {
+        delete process.env.COWORK_RUN_MAX_MINUTES;
+    }
+
+    assert.deepEqual(windows, [{ olderThanMs: 30 * 60_000 }, { olderThanMs: 55 * 60_000 }]);
+});

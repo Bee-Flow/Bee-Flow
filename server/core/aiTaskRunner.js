@@ -26,10 +26,13 @@ const { sanitizeError } = require('./privacy/errorSanitizer');
 const log = require('../telemetry/log');
 const { createUsageAccumulator } = require('./providers/usageNormalizer');
 // The run id of the ledger row and the one usage row per run (aiTaskRunnerUsage.js).
-const { SOURCE, historyRunId, logRunUsage } = require('./aiTaskRunnerUsage');
+const { SOURCE, logRunUsage } = require('./aiTaskRunnerUsage');
 
 const { executeAgentRun } = require('./cowork/agentScheduleRun');
-const { runPromptToolLoop, MAX_TOOL_ITERATIONS } = require('./cowork/promptTaskLoop');
+const { runPromptToolLoop, promptRunOutcome, MAX_TOOL_ITERATIONS } = require('./cowork/promptTaskLoop');
+const { NOTIFICATION, isRepeating } = require('./cowork/runShared.mts');
+const { startRunDeadline } = require('./cowork/runDeadline.mts');
+const { claimAttempt } = require('./cowork/runClaim.mts');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** @type {Record<string, string>} */
@@ -155,37 +158,6 @@ async function resolveUserSession(userId) {
 }
 
 /**
- * How a finished (or failed) run announces itself.
- *
- * Its own notification category so the bell can label it "Cowork" and link
- * back to /app/cowork/<id> — the run notification was the one place a user
- * could see their cowork and have no way to reach it.
- */
-const NOTIFICATION = Object.freeze({
-    category: 'cowork',
-    // No link: the notification IS the result, and the one thing you
-    // want next is to talk about it. The client offers "Open result in
-    // chat" instead of bouncing you to the schedule you already know
-    // about. Failures are the exception — see below.
-    link: null,
-    failureTitle: 'Cowork failed',
-    noun: 'cowork item',
-    // Titles carry no 🤖: the emoji said "a robot did this" on every
-    // single result, which is the one thing the user already knew.
-    prefix: '',
-});
-
-/**
- * A schedule repeats either via repeatInterval or via a daysOfWeek list —
- * cowork composes "every Monday at 09:00" as daysOfWeek with a null interval,
- * so keying repeat-vs-one-off on repeatInterval alone silently turns those
- * into one-shots.
- */
-function isRepeating(task) {
-    return !!(task.repeatInterval || (Array.isArray(task.daysOfWeek) && task.daysOfWeek.length > 0));
-}
-
-/**
  * Execute one Cowork schedule.
  *
  * Two execution modes:
@@ -201,13 +173,19 @@ function isRepeating(task) {
  * history row per attempt; a test hands in a fake.
  *
  * `trigger` (agent runs only): the run was started by an event, see core/cowork/mailTriggerRun.mts.
+ *
+ * `due`: the scheduler tick started this run for a due moment; the claim then
+ * also requires that the schedule is still due (stores/coworkStore.js markRunning).
+ *
+ * `maxMs`: this run's own time limit; without it the configured one
+ * (COWORK_RUN_MAX_MINUTES, ./cowork/runDeadline.mts).
  */
-async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null } = {}) {
+async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null, due = false, maxMs = undefined } = {}) {
     if (task.agentId) {
         // Same reason as buildTaskSystemPrompt's schedule section: an agent
         // that doesn't know the repeat is already in place tends to close
         // every run by advising the user to set one up.
-        return executeAgentRun(task, { manual, store, trigger }, {
+        return executeAgentRun(task, { manual, store, trigger, due, maxMs }, {
             scheduleText: describeTaskSchedule(task), resolveUserSession, isRepeating, failRun, NOTIFICATION,
         });
     }
@@ -220,12 +198,18 @@ async function executeTask(task, { manual = false, store = require('../stores/co
     // every round of the loop (providers/usageNormalizer.js): tokens, cache
     // read/write (with the 5m/1h split), tier and tool counts.
     const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false, runId: null };
+    // The time limit of this run (./cowork/runDeadline.mts): past it the model
+    // call in flight is cancelled and no further round or tool call starts.
+    const deadline = startRunDeadline(maxMs);
 
     try {
-        // coworkStore labels the history row it opens for this attempt with it.
-        // The id of that row is the run the ledger row names (run_id), when
-        // the store hands it back.
-        run.runId = historyRunId(await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' }));
+        // The claim (./cowork/runClaim.mts): refused when another attempt holds
+        // the schedule or (`due`, the tick) its moment was already run. Nothing
+        // ran here then. The id of the row it opened is the run the ledger row
+        // names (run_id), when the store hands it back.
+        const attempt = await claimAttempt(store, task, { manual, due });
+        if (!attempt) return;
+        run.runId = attempt.runId;
 
         const prep = await prepareTaskRun(task, run);
         const terminationBase = () => ({
@@ -245,7 +229,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         // Tool-calling loop (max iterations) — see ./cowork/promptTaskLoop.
         const tierDefaults = TIER_DEFAULTS[task.modelTier] || TIER_DEFAULTS.thinking;
         const loop = await runPromptToolLoop({
-            ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run,
+            ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run, signal: deadline.signal,
             dispatchTool: (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs),
             logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch((e) => fallback('core/aiTaskRunner:logTermination', e)),
         });
@@ -281,23 +265,35 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         });
 
         await advanceAfterTaskRun(task, { manual, store, startTime });
-    } catch (err) {
-        log.error(`[AITaskRunner] Task ${task.id} failed:`, /** @type {Error} */ (err).message);
-        // The tokens spent before the failure are still spent — account for
-        // them (no-op when the run never reached the model, or already logged).
-        logRunUsage(task, run, startTime);
-        terminationStore.logTermination({
-            user_id: task.userId || null,
-            agent_id: task.agentId || null,
-            agent_name: task.title || null,
-            source: 'schedule',
-            conversation_id: task.id || null,
-            duration_ms: Date.now() - startTime,
-            termination_type: 'error',
-            ...sanitizeError(err),
-        }).catch((e) => bestEffort('core/aiTaskRunner:executeTask#2', e));
-        await failRun(task, err, { manual, store });
+    } catch (caught) {
+        // A run stopped by its deadline fails with the SDK's abort error; the
+        // owner reads why it stopped, not how.
+        await failTaskRun(task, run, /** @type {Error} */ (deadline.reasonFor(caught)), { manual, store, startTime });
+    } finally {
+        deadline.clear();
     }
+}
+
+/**
+ * A plain-prompt run that failed: account for what it spent, write its
+ * termination row, and hand it to failRun (mark, move on, notify).
+ */
+async function failTaskRun(task, run, err, { manual, store, startTime }) {
+    log.error(`[AITaskRunner] Task ${task.id} failed:`, err.message);
+    // The tokens spent before the failure are still spent — account for
+    // them (no-op when the run never reached the model, or already logged).
+    logRunUsage(task, run, startTime);
+    terminationStore.logTermination({
+        user_id: task.userId || null,
+        agent_id: task.agentId || null,
+        agent_name: task.title || null,
+        source: 'schedule',
+        conversation_id: task.id || null,
+        duration_ms: Date.now() - startTime,
+        termination_type: 'error',
+        ...sanitizeError(err),
+    }).catch((e) => bestEffort('core/aiTaskRunner:failTaskRun', e));
+    await failRun(task, err, { manual, store });
 }
 
 /**
@@ -446,27 +442,6 @@ async function dispatchTaskTool(task, run, session, toolName, toolArgs) {
     return result;
 }
 
-/** The result text of a plain-prompt run: never empty, at most 50,000 chars. */
-function promptRunOutcome(task, { finalResponse, lastAssistantContent, hitIterationCap }, { messages, tools }) {
-    if (!finalResponse || !finalResponse.trim()) {
-        log.warn(`[AITaskRunner] Schedule ${task.id} produced no outcome text. ` +
-            `hitIterationCap=${hitIterationCap}, ` +
-            `messages=${messages.length}, ` +
-            `tools=${tools.length}, ` +
-            `lastInterim=${lastAssistantContent.length} chars`);
-        finalResponse = hitIterationCap
-            ? `_(Deze cowork bereikte de limiet van ${MAX_TOOL_ITERATIONS} tool-aanroepen voordat een eindresultaat werd geproduceerd. Splits de prompt op of koppel een agent met grotere context.)_`
-            : `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_`;
-    }
-
-    // Truncate if needed (safety net — ignore task.maxResultLength since DB defaults to 2000)
-    const maxLen = 50000;
-    if (finalResponse.length > maxLen) {
-        finalResponse = finalResponse.substring(0, maxLen) + '\n\n… (truncated)';
-    }
-    return finalResponse;
-}
-
 /** Advance the schedule after a successful plain-prompt run (not for a manual run-now). */
 async function advanceAfterTaskRun(task, { manual, store, startTime }) {
     if (isRepeating(task) && !manual) {
@@ -579,5 +554,5 @@ module.exports = {
  */
 
 /**
- * @typedef {{ manual?: boolean, store?: typeof import('../stores/coworkStore') }} RunOpts
+ * @typedef {{ manual?: boolean, store?: typeof import('../stores/coworkStore'), due?: boolean, maxMs?: number }} RunOpts
  */

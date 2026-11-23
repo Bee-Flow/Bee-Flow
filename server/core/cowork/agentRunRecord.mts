@@ -23,9 +23,6 @@ type Trigger = {
 } | null;
 type SkillNames = (ids: string[], orgId: string | null, userId: string) => Promise<Map<string, string>>;
 
-/** A store's answer for the row it opened (null for an unknown schedule). */
-export const rowIdOf = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
-
 /**
  * The names of the skills a run noted, as the item's user may see them (a deleted or hidden one has none and is left
  * out of the activity). Read-only on the skill store.

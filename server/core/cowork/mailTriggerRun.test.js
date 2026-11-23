@@ -201,6 +201,8 @@ test('an automatic mail (Auto-Submitted other than no, or a list / bulk Preceden
         const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: headers }) });
         await mod.runForEvent(sub, { messageId: `auto-${headers.autoSubmitted}${headers.precedence}` }, deps);
         assert.strictEqual(state.ran.length, 0, JSON.stringify(headers));
+        // Decided before the claim: the claim opens a history row and marks the item running, and nothing closes it.
+        assert.strictEqual(state.claims.size, 0, `no run row is opened for it: ${JSON.stringify(headers)}`);
     }
     const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: { autoSubmitted: 'no', precedence: '' } }) });
     await mod.runForEvent(sub, { messageId: 'human-1' }, deps);

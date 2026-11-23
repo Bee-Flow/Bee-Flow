@@ -231,3 +231,53 @@ test('a store that hands back no run id leaves run_id null', async () => {
     await flush();
     assert.strictEqual(logged[0].run_id, null);
 });
+
+// ── The claim and the time limit of a plain-prompt run ──────────────────
+// (in this file because it has the runner's harness: the store is handed in,
+// the adapter answers from `script`.)
+
+test('a refused claim (null) runs nothing: no model call, no outcome, no failure, no usage', async () => {
+    resetScenario();
+    script = []; // an adapter call would throw 'unexpected adapter call' and end in markError
+    const store = { ...fakeStore, markRunning: async () => { storeCalls.push('markRunning'); return null; } };
+
+    await executeTask({ id: 'cw11', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store, due: true });
+    await flush();
+
+    assert.deepStrictEqual(storeCalls, ['markRunning'], 'another attempt holds this schedule: nothing is written here');
+    assert.strictEqual(logged.length, 0);
+});
+
+test('the tick asks for a schedule that is still due; a run-now does not', async () => {
+    resetScenario();
+    const asked = [];
+    const store = { ...fakeStore, markRunning: async (id, opts) => { asked.push(opts); return null; } };
+
+    await executeTask({ id: 'cw12', userId: 'u1', title: 'T', prompt: 'Do it.' }, { store, due: true });
+    await executeTask({ id: 'cw12', userId: 'u1', title: 'T', prompt: 'Do it.' }, { store, manual: true });
+
+    assert.deepStrictEqual(asked, [{ triggerKind: 'schedule', due: true }, { triggerKind: 'manual', due: false }]);
+});
+
+test('a run past its time limit starts no further tool call or model round, and fails with the reason', async () => {
+    resetScenario();
+    const errors = [];
+    const store = { ...fakeStore, markError: async (id, err) => { storeCalls.push('markError'); errors.push(err); } };
+    // The first model round outlives the limit and then asks for a tool; the second round must never be asked for.
+    const slow = new Promise((resolve) => setTimeout(() => resolve({
+        content: null, toolCalls: [{ id: 'c1', function: { name: 'outlook_search', arguments: '{}' } }],
+        usage: { prompt_tokens: 4, completion_tokens: 2 },
+    }), 60));
+    script = [slow, { content: 'Too late.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+
+    await executeTask({ id: 'cw13', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store, due: true, maxMs: 20 });
+    await flush();
+
+    assert.strictEqual(script.length, 1, 'the second model round was never started');
+    assert.strictEqual(errors.length, 1);
+    assert.strictEqual(errors[0].name, 'RunDeadlineError');
+    assert.match(errors[0].message, /it took longer than a run may take/);
+    assert.ok(!storeCalls.includes('markCompleted'));
+    assert.ok(storeCalls.includes('advanceSchedule'), 'a repeating item still moves on to its next moment');
+    assert.strictEqual(logged.length, 1, 'the tokens of the round that did run are still accounted for');
+});

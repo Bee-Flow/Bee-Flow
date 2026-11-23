@@ -17,17 +17,30 @@ const coworkStore = require('../../stores/coworkStore');
 const { executeTask } = require('../aiTaskRunner');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { runMaxMs } = require('./runDeadline.mts');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
 
 /**
- * Run one schedule now. `manual` leaves next_run_at alone.
+ * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
+ * own: the run is for a moment that was due when the tick read it, and the
+ * claim then requires that it still is (two replicas read the same due row).
  * @param {Parameters<typeof executeTask>[0]} schedule
- * @param {{ manual?: boolean }} [opts]
+ * @param {{ manual?: boolean, due?: boolean }} [opts]
  */
-async function executeCowork(schedule, { manual = false } = {}) {
-    return executeTask(schedule, { manual, store: coworkStore });
+async function executeCowork(schedule, { manual = false, due = false } = {}) {
+    return executeTask(schedule, { manual, due, store: coworkStore });
+}
+
+/**
+ * How long a run may be open before the reaper closes it as interrupted: at
+ * least thirty minutes, and always ten minutes more than a run may take
+ * (./runDeadline.mts), so the reaper only ever closes what a stopped server
+ * left behind and never a run its own deadline is about to end.
+ */
+function staleAfterMs() {
+    return Math.max(30 * 60_000, runMaxMs() + 10 * 60_000);
 }
 
 async function processDueCowork() {
@@ -36,7 +49,7 @@ async function processDueCowork() {
         // an open history row behind, and getDueSchedules skips 'running' — so
         // without this sweep that schedule never runs again. Reaping before
         // the query means a wedged item recovers on the very next tick.
-        await coworkStore.reapStaleRuns().catch((e) => bestEffort('core/cowork/coworkRunner:processDueCowork', e));
+        await coworkStore.reapStaleRuns({ olderThanMs: staleAfterMs() }).catch((e) => bestEffort('core/cowork/coworkRunner:processDueCowork', e));
 
         const due = await coworkStore.getDueSchedules();
         if (due.length === 0) return;
@@ -45,7 +58,7 @@ async function processDueCowork() {
 
         for (let i = 0; i < due.length; i += MAX_CONCURRENT) {
             const batch = due.slice(i, i + MAX_CONCURRENT);
-            await Promise.allSettled(batch.map(s => executeCowork(s)));
+            await Promise.allSettled(batch.map(s => executeCowork(s, { due: true })));
         }
     } catch (err) {
         log.error('[CoworkRunner] Background checker error:', /** @type {Error} */ (err).message);
@@ -138,6 +151,7 @@ module.exports = {
     processDueCowork,
     executeCowork,
     pruneOldRuns,
+    staleAfterMs,
     start,
     stop,
     // Exposed so a settings/UI surface can state the real window instead of

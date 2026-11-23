@@ -28,20 +28,6 @@ const SOURCE = 'cowork';
  */
 
 /**
- * The id of the history row markRunning opened: a string id, or a row with
- * one; null when the store returns nothing (an older store, a test fake).
- * @param {unknown} opened
- * @returns {string | null}
- */
-function historyRunId(opened) {
-    if (typeof opened === 'string' && opened) return opened;
-    if (opened && typeof opened === 'object' && typeof (/** @type {{ id?: unknown }} */ (opened)).id === 'string') {
-        return /** @type {{ id: string }} */ (opened).id;
-    }
-    return null;
-}
-
-/**
  * Log this run's spend through the SAME sink as interactive chats
  * (usageStore.logUsage → ai_usage_log; it derives cost, FX and PAYG itself),
  * so scheduled work shows up on the org dashboard and counts against quota
@@ -81,4 +67,4 @@ function logRunUsage(task, run, startTime) {
     }
 }
 
-module.exports = { SOURCE, historyRunId, logRunUsage };
+module.exports = { SOURCE, logRunUsage };

@@ -321,12 +321,16 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
         return;
     }
 
+    // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start. Decided before
+    // the claim: the claim opens a history row and marks the schedule running, and a mail that starts no run must
+    // leave neither behind. An open row with nothing behind it reads "Running" until the reaper closes it as a
+    // failure, half an hour later.
+    if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
+
     // A duplicate (redelivery, overlapping poll) stops here, silently.
     const runId = await deps.claim({ scheduleId, userId, triggerRef: messageId });
     if (!runId) return;
 
-    // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start.
-    if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
     const mail = shapeMessage(payload, fetched, messageId, mailbox);
 
     const mailTrigger = {

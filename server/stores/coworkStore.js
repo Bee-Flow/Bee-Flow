@@ -22,10 +22,13 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const { runDdl } = require('./lib/_ddl');
 const { advanceNextRun } = require('./aiTaskStore');
+const { nextRunAfter } = require('./coworkNextRun.mts');
 const log = require('../telemetry/log');
 const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
 const coworkReviews = require('./coworkReviews.mts').makeCoworkReviews({ ready: () => initDB() });
 const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => initDB() });
+// The claim of one attempt, and giving it back (./coworkClaims.mts).
+const { markRunning, releaseRun } = require('./coworkClaims.mts').makeCoworkClaims({ ready: () => initDB() });
 const { RUN_COLUMNS } = require('./ddl/cowork-review-2026-11');
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
@@ -444,23 +447,6 @@ async function getDueSchedules() {
 }
 
 /**
- * Opens a history row as well as flipping the schedule to 'running', once per
- * attempt (the granularity the history wants), and answers the row's id (null
- * for an unknown schedule) so the runner can stamp `run_id` on its ledger rows.
- * @returns {Promise<string | null>}
- */
-async function markRunning(id, { triggerKind = 'schedule' } = {}) {
-    await initDB();
-    const res = await run(
-        `WITH flipped AS (UPDATE cowork_schedules SET last_status = 'running' WHERE id = $2 RETURNING user_id)
-         INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind)
-         SELECT $1, $2, user_id, 'running', $3 FROM flipped RETURNING id`,
-        [crypto.randomUUID(), id, triggerKind],
-    );
-    return res?.rows?.[0]?.id ?? null;
-}
-
-/**
  * `producedOutput` is optional and overrides the inference from `result` —
  * meant for a caller that knows for certain. The runner does not pass it along today;
  * that extra parameter therefore remains purely additive (the shared
@@ -515,11 +501,19 @@ async function markError(id, error, close = {}) {
 }
 
 /**
+ * Move a repeating schedule to its next moment, or switch a one-off off.
+ *
+ * The next moment is the first one still ahead (./coworkNextRun.mts): after
+ * downtime the item has just run once, and the moments it missed are skipped
+ * rather than replayed one per minute tick.
+ * @param {string} id
  * @param {string | number | Date} currentNextRun
+ * @param {string | null | undefined} interval
+ * @param {string[] | null} [daysOfWeek]
  */
 async function advanceSchedule(id, currentNextRun, interval, daysOfWeek = null) {
     await initDB();
-    const next = advanceNextRun(currentNextRun, interval, daysOfWeek);
+    const next = nextRunAfter(currentNextRun, interval, daysOfWeek, advanceNextRun);
     if (next) {
         await run('UPDATE cowork_schedules SET next_run_at = $1 WHERE id = $2', [next, id]);
         return next;
@@ -554,6 +548,7 @@ module.exports = {
     resolveReview: coworkReviews.resolveReview,
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
+    releaseRun,
     markCompleted,
     markError,
     advanceSchedule,
