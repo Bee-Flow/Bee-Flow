@@ -6,237 +6,40 @@
  * created it lived under a different name in the sidebar. It is now the detail
  * half of the Cowork page itself.
  *
- * Four layers in one scrolling column, in the order someone reads them
- * (CW-06, CW-08, CW-11, CW-13): who this is and what it is doing right now →
- * the brief in the user's own words, with the context it runs under → the
- * figures → every run.
+ * Calm by construction: one obvious place for each thing, and nothing on
+ * screen until it has something to say. Top to bottom:
  *
- * TWO PILLS THE ARTBOARD DRAWS ARE NOT HERE, deliberately:
+ *   1. The header (./CoworkDetailHeader.tsx): title, status, a "Needs you"
+ *      badge while something waits, Run now, Pause/Resume, and a small menu.
+ *   2. "Needs you" (./CoworkNeedsStrip.tsx), only while something waits: the
+ *      one slot for whatever asks its owner to act.
+ *   3. The brief (./CoworkBrief.tsx), in the user's own words.
+ *   4. Three tabs (./CoworkTabs.tsx): Runs (the figures and every run), Plan,
+ *      and Settings (./CoworkSettings.tsx). Only the chosen tab renders, so
+ *      its panels read their data when it is shown.
  *
- *   - "Prijslijst 2026" and "Offertes" (a knowledge base and a table). A
- *     cowork item has no knowledge-base or datatable binding at all — that is
- *     new datamodel, CW-09 — so those pills could only ever name a source
- *     this run will not read.
- *   - "Privacyschild aan". The non-agent run path calls the adapter directly
- *     with no shield in it (CW-10). The pill is a runtime claim, and on a
- *     privacy product a claim you cannot keep is worse than a missing pill.
- *     It arrives with the shield itself, not before it.
- *
- * Every pill that IS here states something the item actually carries.
+ * A new feature finds its place in one of these; it does not get a box of its
+ * own at the bottom of the column.
  */
-import { CalendarClock, Clock, LayoutGrid, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
-import type { ComponentType, CSSProperties, ReactNode } from 'react';
+import { useRef } from 'react';
+import AssignmentCard from './CoworkBrief';
+import DetailHeader from './CoworkDetailHeader';
 import CoworkEditForm from './CoworkEditForm';
+import CoworkNeedsStrip, { needsCount } from './CoworkNeedsStrip';
+import type { NeedsEntry } from './CoworkNeedsStrip';
 import CoworkPlanPanel from './CoworkPlanPanel';
 import CoworkReviewQueue from './CoworkReviewQueue';
 import CoworkRunHistory from './CoworkRunHistory';
-import CoworkTrail from './CoworkTrail';
-import CoworkHandOver from './CoworkHandOver';
-import CoworkShare from './CoworkShare';
-import CoworkStartPanel from './CoworkStartPanel';
-import { describeMoment, repeatLabel } from './coworkSchedule';
-import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
+import CoworkSettings from './CoworkSettings';
 import CoworkStats from './CoworkStats';
+import CoworkTabs from './CoworkTabs';
+import { isMailTriggerItem } from './mailTrigger';
 import { coworkStatus } from './coworkStatus';
-import { useTranslation } from '../../hooks/useTranslation';
-import { TIER_META, tierLabel } from '../licensing/tierMeta';
-import { kindColorVar, kindIcon, kindTileStyle } from '../shared/kindColors';
-import { statusLabel } from '../shared/statusTokens';
-import type { CoworkAgent, CoworkItem } from '../../api/cowork.types';
-import type { CoworkUpdate } from '../../api/cowork.types';
-import type { TranslateFn } from '../../hooks/useTranslation';
-import type { StatusToken } from '../shared/statusTokens/statusTokens.types';
-
-const AgentIcon = kindIcon('agent');
-
-interface PillProps {
-    icon: ComponentType<{ 'aria-hidden'?: boolean | 'true' | 'false'; className?: string; style?: CSSProperties }>;
-    tone: string;
-    children: ReactNode;
-}
-
-/**
- * One context pill. The colour is always a kind/type token from index.css
- * (through kindColors), never a colour picked here — a clock pill is the same
- * teal as a trigger node in the Builder because it means the same thing.
- */
-function Pill(props: PillProps) {
-    const Glyph = props.icon;
-    const { tone, children } = props;
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] max-w-full bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
-        >
-            <Glyph aria-hidden="true" className="w-3 h-3 flex-shrink-0" style={{ color: tone }} />
-            <span className="truncate">{children}</span>
-        </span>
-    );
-}
-
-/** "Every weekday 08:00", "Every week", or "Runs once". */
-function cadenceText(item: CoworkItem, t: TranslateFn) {
-    if (isMailTriggerItem(item)) return describeMailTrigger(item.trigger, t);
-    if (!item.repeatInterval) return t('cowork.detail.runs_once', 'Runs once');
-    const label = repeatLabel(item.repeatInterval, t);
-    return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
-}
-
-/** "Running since 08:00:04" — the clock the artboard puts in the header. */
-function startedAtClock(value: string | null | undefined) {
-    if (!value) return '';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(undefined, {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-    });
-}
-
-interface DetailHeaderProps {
-    item: CoworkItem;
-    status: StatusToken;
-    t: TranslateFn;
-    busy?: boolean;
-    onEdit: () => void;
-    onToggle: (id: string) => void;
-    onDelete: (item: CoworkItem) => void;
-    onRunNow: (id: string) => void;
-}
-
-/**
- * The header: who this is, what it is doing right now, and the actions.
- *
- * Split out so the pane below it reads as four layers rather than one long
- * function — and so the "running since" decision has one place to live.
- */
-function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRunNow }: DetailHeaderProps) {
-    const tile = kindTileStyle('agent', 26);
-    // The status word carries the pill on its own EXCEPT while a run is in
-    // flight and the server told us when it started. That is the one moment
-    // the word alone is not enough: "Running" says nothing about whether this
-    // started four seconds or four hours ago (CW-06). The open run's start
-    // time comes from the run row, not from lastStatus — see routes/cowork.js.
-    const runningSince = status.labelKey === 'run_status.running'
-        ? startedAtClock(item.currentRunStartedAt)
-        : '';
-    const tone = status.cssVar || 'var(--text-tertiary)';
-    const secondary = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[12px] font-medium disabled:opacity-50';
-    const secondaryStyle = { borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' };
-
-    return (
-        <div
-            className="flex items-center gap-2.5 px-5 py-2.5 border-b flex-wrap border-[var(--border-subtle)]"
-        >
-            <div style={tile.tile}><AgentIcon aria-hidden="true" style={tile.glyph} /></div>
-            <h2 className="text-[14px] font-semibold truncate min-w-0 text-[var(--text-primary)]">
-                {item.title || t('cowork.detail.untitled', 'Untitled cowork')}
-            </h2>
-            <span
-                data-testid="cowork-status"
-                data-status-key={status.labelKey}
-                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11.5px] flex-shrink-0 border-[var(--border-subtle)] text-[var(--text-secondary)]"
-            >
-                <span aria-hidden="true" className="w-[7px] h-[7px] rounded-full" style={{ background: tone }} />
-                {runningSince
-                    ? t('cowork.detail.running_since', 'Running since {time}', { time: runningSince })
-                    : statusLabel(t, status)}
-            </span>
-
-            <div className="ml-auto flex items-center gap-1.5">
-                <button
-                    type="button" onClick={onEdit} disabled={busy}
-                    data-testid="cowork-edit" className={secondary} style={secondaryStyle}
-                >
-                    <Pencil className="w-3.5 h-3.5" />{t('cowork.detail.edit', 'Edit')}
-                </button>
-                <button
-                    type="button" onClick={() => onToggle(item.id)} disabled={busy}
-                    data-testid="cowork-toggle" className={secondary} style={secondaryStyle}
-                >
-                    {item.isActive ? <Pause className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
-                    {item.isActive ? t('cowork.detail.pause', 'Pause') : t('cowork.detail.resume', 'Resume')}
-                </button>
-                <button
-                    type="button" onClick={() => onDelete(item)} disabled={busy}
-                    data-testid="cowork-delete"
-                    aria-label={t('cowork.detail.delete', 'Delete this cowork')}
-                    className="p-1.5 rounded-lg border text-red-600 dark:text-red-400 disabled:opacity-50 border-[var(--border-subtle)]"
-                >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
-                {/* The one primary action on the pane. Accent tokens, not the
-                    artboard's ink fill: the fill is a hex, and this product
-                    follows the admin's accent through eight themes
-                    (COMPLETED-STAGES.md:412). */}
-                {!isMailTriggerItem(item) && (
-                <button
-                    type="button"
-                    onClick={() => onRunNow(item.id)}
-                    disabled={busy || item.lastStatus === 'running'}
-                    data-testid="cowork-run-now"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                >
-                    <Play className="w-3.5 h-3.5" />{t('cowork.detail.run_now', 'Run now')}
-                </button>
-                )}
-            </div>
-        </div>
-    );
-}
-
-/** The brief in the user's own words, and the context it runs under. */
-function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: CoworkAgent[]; t: TranslateFn }) {
-    const agent = item.agentId && Array.isArray(agents)
-        ? agents.find(a => a.id === item.agentId)
-        : null;
-    const tierKey = item.modelTier || null;
-    const TierIcon = (tierKey && TIER_META[tierKey]?.Icon) || null;
-    const appCount = Array.isArray(item.enabledApps) ? item.enabledApps.length : 0;
-
-    return (
-        <section
-            className="rounded-[10px] border px-[18px] py-4 flex flex-col gap-2.5 [background:var(--bg-card)] [border-color:var(--border-subtle)] [box-shadow:var(--shadow-sm)]"
-            data-testid="cowork-brief"
-        >
-            <h3
-                className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
-            >
-                {t('cowork.detail.assignment', 'The assignment')}
-            </h3>
-            {/* Still plain text, still not Markdown: this is what the user
-                typed, and a brief that opened with "# Weekly" is a sentence,
-                not a heading. */}
-            <p
-                className="text-[13px] leading-[21px] max-w-[820px] whitespace-pre-wrap break-words text-[var(--text-secondary)]"
-            >
-                {item.prompt}
-            </p>
-            <div className="flex gap-1.5 flex-wrap pt-0.5">
-                <Pill icon={Clock} tone="var(--type-trigger)">{cadenceText(item, t)}</Pill>
-                {item.isActive && item.nextRunAt && (
-                    <Pill icon={CalendarClock} tone="var(--type-trigger)">
-                        {t('cowork.detail.next_run', 'next {when}', { when: describeMoment(item.nextRunAt) })}
-                    </Pill>
-                )}
-                {agent && <Pill icon={AgentIcon} tone={kindColorVar('agent')}>{agent.name}</Pill>}
-                {TierIcon && (
-                    // The TIER, not a model name. Models are bound to tiers on
-                    // purpose, and under `auto` no model has been chosen yet
-                    // when this renders (B4).
-                    <Pill icon={TierIcon} tone="var(--type-ai)">{tierLabel(tierKey)}</Pill>
-                )}
-                {appCount > 0 && (
-                    <Pill icon={LayoutGrid} tone={kindColorVar('app')}>
-                        {t(
-                            appCount === 1 ? 'cowork.detail.app_count' : 'cowork.detail.app_count_plural',
-                            appCount === 1 ? '{count} app' : '{count} apps',
-                            { count: appCount },
-                        )}
-                    </Pill>
-                )}
-            </div>
-        </section>
-    );
-}
+import { waitingRuns } from './coworkReview';
+import { useCoworkRunsQuery } from '@/api/queries/coworkReads';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { CoworkAgent, CoworkItem, CoworkUpdate } from '@/api/cowork.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface CoworkDetailProps {
     item: CoworkItem;
@@ -253,12 +56,98 @@ interface CoworkDetailProps {
     saveError?: string | null;
 }
 
+type ViewProps = Omit<CoworkDetailProps, 'onSave' | 'editing' | 'onCancelEdit' | 'saveError'> & { t: TranslateFn };
+
+/**
+ * What waits for the owner, as entries of the "Needs you" strip. The runs come from the same query as the review
+ * queue and the history (one request); a plan to approve or a repair that is ready becomes one more entry here.
+ */
+function useNeedsEntries(item: CoworkItem, reloadKey: number | undefined): NeedsEntry[] {
+    const runs = useCoworkRunsQuery(item.id, reloadKey).data?.runs;
+    const reviews = waitingRuns(runs).length;
+    return reviews > 0
+        ? [{ key: 'review', count: reviews, content: <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} runs={runs} /> }]
+        : [];
+}
+
+/** The pane while it is not being edited. Split from the editor so its reads stop while the form is open. */
+function DetailView({ item, agents, onRunNow, onToggle, onDelete, busy, reloadKey, onEdit, t }: ViewProps) {
+    const status = coworkStatus(item);
+    const needs = useNeedsEntries(item, reloadKey);
+    const strip = useRef<HTMLElement>(null);
+    const showNeeds = () => {
+        const el = strip.current;
+        if (!el) return;
+        el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        el.focus({ preventScroll: true });
+    };
+    const mailTriggered = isMailTriggerItem(item);
+
+    return (
+        <div className="h-full flex flex-col min-h-0" data-testid="cowork-detail">
+            <DetailHeader
+                item={item}
+                status={status}
+                t={t}
+                busy={busy}
+                needsCount={needsCount(needs)}
+                onShowNeeds={showNeeds}
+                onEdit={onEdit}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onRunNow={onRunNow}
+            />
+            <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 sm:px-[26px] py-[22px] flex flex-col gap-[18px]">
+                <CoworkNeedsStrip entries={needs} ref={strip} />
+                <AssignmentCard item={item} agents={agents} t={t} />
+                <CoworkTabs
+                    scope={item.id}
+                    label={t('cowork_detail.tabs.label', 'This work')}
+                    tabs={[
+                        {
+                            id: 'runs',
+                            label: t('cowork_detail.tabs.runs', 'Runs'),
+                            render: () => (
+                                <>
+                                    <CoworkStats coworkId={item.id} reloadKey={reloadKey} />
+                                    <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} agentId={item.agentId} title={item.title} />
+                                </>
+                            ),
+                        },
+                        {
+                            id: 'plan',
+                            label: t('cowork_detail.tabs.plan', 'Plan'),
+                            render: () => (
+                                <CoworkPlanPanel
+                                    coworkId={item.id}
+                                    mailTriggered={mailTriggered}
+                                    fallback={(
+                                        <p className="text-[12.5px] text-[var(--text-secondary)]" data-testid="cowork-plan-unavailable">
+                                            {mailTriggered
+                                                ? t('cowork_detail.plan.none_mail', 'Work that starts on a new mail runs without a plan: the AI does it each time.')
+                                                : t('cowork_detail.plan.none', 'This work runs without a plan: the AI does it each time.')}
+                                        </p>
+                                    )}
+                                />
+                            ),
+                        },
+                        {
+                            id: 'settings',
+                            label: t('cowork_detail.tabs.settings', 'Settings'),
+                            render: () => <CoworkSettings item={item} busy={busy} onEdit={onEdit} />,
+                        },
+                    ]}
+                />
+            </div>
+        </div>
+    );
+}
+
 export default function CoworkDetail({
     item, agents, onRunNow, onToggle, onDelete, onSave, busy, reloadKey,
     editing, onEdit, onCancelEdit, saveError,
 }: CoworkDetailProps) {
     const { t } = useTranslation();
-    const status = coworkStatus(item);
 
     if (editing) {
         return (
@@ -279,30 +168,16 @@ export default function CoworkDetail({
     }
 
     return (
-        <div className="h-full flex flex-col min-h-0" data-testid="cowork-detail">
-            <DetailHeader
-                item={item}
-                status={status}
-                t={t}
-                busy={busy}
-                onEdit={onEdit}
-                onToggle={onToggle}
-                onDelete={onDelete}
-                onRunNow={onRunNow}
-            />
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-[26px] py-[22px] flex flex-col gap-[18px]">
-                {/* What needs a person now comes before the brief and the figures. */}
-                <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} />
-                <AssignmentCard item={item} agents={agents} t={t} />
-                {/* The plan this work follows, or the way to give it one. */}
-                <CoworkPlanPanel coworkId={item.id} mailTriggered={isMailTriggerItem(item)} />
-                <CoworkStats coworkId={item.id} reloadKey={reloadKey} />
-                <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} agentId={item.agentId} title={item.title} />
-                <CoworkTrail coworkId={item.id} />
-                <CoworkStartPanel item={item} />
-                <CoworkShare coworkId={item.id} />
-                <CoworkHandOver coworkId={item.id} />
-            </div>
-        </div>
+        <DetailView
+            item={item}
+            agents={agents}
+            onRunNow={onRunNow}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            busy={busy}
+            reloadKey={reloadKey}
+            onEdit={onEdit}
+            t={t}
+        />
     );
 }

@@ -1,8 +1,9 @@
 /**
- * The figures under the assignment card (CW-11): how often this work has run,
- * how much of that went well, and how long a run takes.
+ * The figures of the Runs tab (CW-11), as one line above the history: how
+ * often this work has run, how much of that went well, and how long a run
+ * takes.
  *
- * Three cards, not the four the artboard draws. The fourth is "Kosten deze
+ * Three figures, not the four the artboard draws. The fourth is "Kosten deze
  * maand € 3,18 · 1,4 mln tokens", and the run path records no tokens and no
  * cost at all (CW-12): every euro that card could show would be invented. A
  * missing card is a gap; a fabricated amount on a page about someone's money
@@ -48,24 +49,20 @@ interface StatsRead {
     failed: boolean;
 }
 
-/** One card: a small label, a big tabular number, a quiet line under it. */
+/** One figure in the line: a small label, the tabular number, a quiet word after it. */
 function Figure({ label, value, sub, tone }: FigureProps) {
     return (
-        <div
-            className="flex-1 min-w-0 rounded-[10px] border px-4 py-3.5 flex flex-col gap-1 [background:var(--bg-card)] [border-color:var(--border-subtle)] [box-shadow:var(--shadow-sm)]"
-        >
-            <div
-                className="text-[10.5px] font-semibold uppercase tracking-wide truncate text-[var(--text-tertiary)]"
-            >
+        <div className="inline-flex items-baseline gap-1.5 min-w-0">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                 {label}
-            </div>
-            <div
-                className="text-[20px] font-semibold tabular-nums truncate"
+            </span>
+            <span
+                className="text-[13.5px] font-semibold tabular-nums"
                 style={{ color: tone || 'var(--text-primary)' }}
             >
                 {value}
-            </div>
-            <div className="text-[11px] truncate text-[var(--text-tertiary)]">{sub}</div>
+            </span>
+            <span className="text-[11px] truncate text-[var(--text-tertiary)]">{sub}</span>
         </div>
     );
 }
@@ -103,9 +100,9 @@ function failureLine(stats: CoworkStatsData, t: TranslateFn): string {
 }
 
 /**
- * The three cards, as data. `stats` is null while the request is in flight,
- * and then every value is an em dash and every subtitle is empty: the cards
- * keep their height so the history below them does not jump when the numbers
+ * The three figures, as data. `stats` is null while the request is in flight,
+ * and then every value is an em dash and every subtitle is empty: the line
+ * keeps its height so the history below it does not jump when the numbers
  * land, and an em dash cannot be misread as a measurement.
  */
 /**
@@ -189,7 +186,7 @@ export default function CoworkStats({ coworkId, reloadKey }: CoworkStatsProps) {
     }
 
     return (
-        <div className="flex gap-3.5 flex-wrap" data-testid="cowork-stats">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1.5 min-h-[20px]" data-testid="cowork-stats">
             {[...figures(settled ? state.stats : null, t), ...costFigures(settled ? state.stats : null, t, locale)].map(card => (
                 <Figure key={card.label} label={card.label} value={card.value} sub={card.sub} tone={card.tone} />
             ))}

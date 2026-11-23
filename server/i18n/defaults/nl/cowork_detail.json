@@ -1,0 +1,31 @@
+{
+  "translations": {
+    "cowork_detail.autonomy.asks_before_sending": "Vraagt vóór het versturen",
+    "cowork_detail.autonomy.asks_everything": "Vraagt je over alles",
+    "cowork_detail.autonomy.cannot_run": "Kan zo niet draaien",
+    "cowork_detail.autonomy.change": "Wijzigen",
+    "cowork_detail.autonomy.on_its_own": "Gaat zelfstandig",
+    "cowork_detail.autonomy.trusted": "{count} stap gaat zelfstandig",
+    "cowork_detail.autonomy.trusted_plural": "{count} stappen gaan zelfstandig",
+    "cowork_detail.budget.amount": "{amount} per maand aan AI. Bij dat bedrag pauzeert het zichzelf en laat het je dat weten.",
+    "cowork_detail.budget.change": "Wijzig het via Bewerken",
+    "cowork_detail.budget.none": "Geen limiet op wat het aan AI mag uitgeven.",
+    "cowork_detail.menu.delete": "Verwijderen",
+    "cowork_detail.menu.label": "Meer acties",
+    "cowork_detail.needs.badge": "Wacht op jou ({count})",
+    "cowork_detail.needs.heading": "Wacht op jou",
+    "cowork_detail.plan.more_ways": "Andere manieren",
+    "cowork_detail.plan.none": "Dit werk draait zonder plan: de AI doet het elke keer zelf.",
+    "cowork_detail.plan.none_mail": "Werk dat start op een nieuwe mail draait zonder plan: de AI doet het elke keer zelf.",
+    "cowork_detail.settings.changes": "Wijzigingen",
+    "cowork_detail.settings.people": "Mensen",
+    "cowork_detail.settings.start": "Hoe het start",
+    "cowork_detail.tabs.label": "Dit werk",
+    "cowork_detail.tabs.settings": "Instellingen"
+  },
+  "sameAsEnglish": [
+    "cowork_detail.settings.budget",
+    "cowork_detail.tabs.plan",
+    "cowork_detail.tabs.runs"
+  ]
+}

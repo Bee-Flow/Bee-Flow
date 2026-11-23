@@ -16,6 +16,11 @@ export interface RoutineComparison {
     beforeText: string; afterText: string; beforeMs: number | null; afterMs: number | null;
 }
 
+/** Whether the past runs say "make it routine": then it is the first way to a plan the item offers. */
+export function isRoutineWorthIt(advice: RoutineAdvice | undefined): boolean {
+    return !!advice?.applicable && !!advice.signals?.worthIt;
+}
+
 export function useCoworkRoutine(coworkId: string, enabled: boolean) {
     return useQuery<RoutineAdvice, Error>({
         queryKey: ['cowork', 'routine', coworkId],

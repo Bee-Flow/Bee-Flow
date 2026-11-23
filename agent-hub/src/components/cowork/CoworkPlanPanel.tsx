@@ -5,21 +5,26 @@
  * A plan nothing blocks can be tried first (./CoworkPlanTry.tsx): one run on the owner's real data in which nothing is
  * changed or sent, followed step by step.
  *
- * An item without a plan shows two ways to give it one, to someone whose organisation has automations: let Cowork
- * make the plan from the brief (./CoworkPlanMake.tsx), or use one of their own automations. Everyone else sees
- * nothing here, and their items run as before.
+ * An item without a plan shows ONE way to give it one in sight, to someone whose organisation has automations: "Make
+ * it routine" (./CoworkRoutine.tsx) when its past runs say so, otherwise "Make a plan" from the brief
+ * (./CoworkPlanMake.tsx). The other ways, one of their own automations among them, wait under "More ways". Everyone
+ * else sees the `fallback` here (one sentence), and their items run as before.
+ *
+ * An approved plan says how independent it is in one line (./CoworkIndependenceLine.tsx) that opens to the choice.
  *
  * A failure to read the plan costs this card and nothing else: the brief, the figures and the history still render.
  */
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import CoworkPlanCard from './CoworkPlanCard';
 import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
-import CoworkIndependence from './CoworkIndependence';
+import CoworkIndependenceLine from './CoworkIndependenceLine';
 import CoworkRoutine from './CoworkRoutine';
 import CoworkRoutineCompare from './CoworkRoutineCompare';
 import { canTry } from './coworkPlanModel';
 import { useCoworkPlanActions, useCoworkPlanQuery, useCoworkPlanTry, usePlanAutomations } from '../../api/queries/coworkPlan';
+import { isRoutineWorthIt, useCoworkRoutine } from '../../api/coworkRoutine';
 import useCoworkPlanMaker from '../../hooks/useCoworkPlanMaker';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -35,17 +40,17 @@ interface AttachProps {
     onAttach: (automationId: string) => void;
 }
 
-/** The other way to a plan: one of your own automations. */
+/** Another way to a plan, under "More ways": one of your own automations. */
 function AttachPlan({ automations, busy, error, t, onAttach }: AttachProps) {
     const [choice, setChoice] = useState('');
     if (automations.length === 0) return null;
     const selected = choice || automations[0]?.id || '';
     return (
-        <details data-testid="cowork-plan-attach" className="pt-2 border-t border-[var(--border-subtle)]">
-            <summary className="cursor-pointer text-[12px] text-[var(--text-secondary)] marker:text-[var(--text-tertiary)]">
+        <div data-testid="cowork-plan-attach" className="flex flex-col gap-2">
+            <h4 className="text-[12.5px] font-medium text-[var(--text-primary)]">
                 {t('cowork_plan.attach.heading', 'Or use one of your own automations')}
-            </summary>
-            <div className="flex flex-col gap-2 pt-2">
+            </h4>
+            <div className="flex flex-col gap-2">
                 <p className="text-[12px] text-[var(--text-secondary)]">
                     {t('cowork_plan.attach.hint', 'An automation you built in Studio can be the plan. It runs only after you approve it here.')}
                 </p>
@@ -71,7 +76,7 @@ function AttachPlan({ automations, busy, error, t, onAttach }: AttachProps) {
                 </div>
                 {error && <p role="alert" className="text-[12.5px] text-[var(--error-ink)]">{error}</p>}
             </div>
-        </details>
+        </div>
     );
 }
 
@@ -82,24 +87,56 @@ function failureOf(error: unknown, t: TranslateFn): string | null {
 
 type Maker = ReturnType<typeof useCoworkPlanMaker>;
 
-/** An item without a plan: the two ways to give it one, for someone whose organisation has automations. */
-function PlanAttachGate({ coworkId, mailTriggered, maker, t }: { coworkId: string; mailTriggered: boolean; maker: Maker; t: TranslateFn }) {
+/** The ways that are not the first one, folded: nothing when there is none. */
+function MoreWays({ t, children }: { t: TranslateFn; children: ReactNode[] }) {
+    const ways = children.filter(Boolean);
+    if (ways.length === 0) return null;
+    return (
+        <details data-testid="cowork-plan-more" className="pt-2 border-t border-[var(--border-subtle)]">
+            <summary className="cursor-pointer text-[12px] font-medium text-[var(--text-secondary)] marker:text-[var(--text-tertiary)]">
+                {t('cowork_detail.plan.more_ways', 'More ways')}
+            </summary>
+            <div className="flex flex-col gap-4 pt-3">{ways}</div>
+        </details>
+    );
+}
+
+interface GateProps { coworkId: string; mailTriggered: boolean; maker: Maker; t: TranslateFn; fallback: ReactNode }
+
+/**
+ * An item without a plan, for someone whose organisation has automations: one way in sight, the others under "More
+ * ways". "Make it routine" goes first when the past runs say so. While a plan is being made, or when making it
+ * failed, its progress or its error is in sight whichever way started it.
+ */
+function PlanAttachGate({ coworkId, mailTriggered, maker, t, fallback }: GateProps) {
     const ent = useEntitlements() as { loading: boolean; can: (id: string) => boolean };
     const { attach } = useCoworkPlanActions(coworkId);
     // An item that starts on a new mail carries no plan yet; the server refuses it too.
     const mayPlan = !mailTriggered && !ent.loading && ent.can('automations');
     const automations = usePlanAutomations(mayPlan);
-    if (!mayPlan) return null;
+    const routineFirst = isRoutineWorthIt(useCoworkRoutine(coworkId, mayPlan).data);
+    // A mail start never takes a plan; otherwise the licence decides, and says nothing while it is still read.
+    if (!mayPlan) return <>{mailTriggered || !ent.loading ? fallback : null}</>;
+    const { running } = maker.making;
+    const makeInSight = !routineFirst || running || maker.making.error !== null;
+    const make = <CoworkPlanMake key="make" t={t} making={maker.making} onMake={() => { void maker.start(); }} onCancel={maker.cancel} />;
     return (
         <section
             aria-label={t('cowork_plan.heading', 'The plan')}
             data-testid="cowork-plan-none"
             className="rounded-[10px] border border-dashed px-[18px] py-3.5 flex flex-col gap-3 [border-color:var(--border-default)]"
         >
-            <CoworkRoutine coworkId={coworkId} busy={maker.making.running} onPropose={() => { void maker.start(true); }} t={t} />
-            <CoworkPlanMake t={t} making={maker.making} onMake={() => { void maker.start(); }} onCancel={maker.cancel} />
-            {!maker.making.running && (
-                <AttachPlan automations={automations} busy={attach.isPending} error={failureOf(attach.error, t)} t={t} onAttach={(id) => attach.mutate(id)} />
+            {routineFirst && <CoworkRoutine coworkId={coworkId} busy={running} onPropose={() => { void maker.start(true); }} t={t} />}
+            {makeInSight && make}
+            {!running && (
+                <MoreWays t={t}>
+                    {[
+                        makeInSight ? null : make,
+                        automations.length > 0
+                            ? <AttachPlan key="attach" automations={automations} busy={attach.isPending} error={failureOf(attach.error, t)} t={t} onAttach={(id) => attach.mutate(id)} />
+                            : null,
+                    ]}
+                </MoreWays>
             )}
         </section>
     );
@@ -124,13 +161,20 @@ function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: 
     );
 }
 
-export default function CoworkPlanPanel({ coworkId, mailTriggered = false }: { coworkId: string; mailTriggered?: boolean }) {
+interface CoworkPlanPanelProps {
+    coworkId: string;
+    mailTriggered?: boolean;
+    /** What shows instead when this item cannot be given a plan here (a mail start, or no automations). */
+    fallback?: ReactNode;
+}
+
+export default function CoworkPlanPanel({ coworkId, mailTriggered = false, fallback = null }: CoworkPlanPanelProps) {
     const { t } = useTranslation();
     const { data: state } = useCoworkPlanQuery(coworkId);
     const { approve, remove } = useCoworkPlanActions(coworkId);
     const maker = useCoworkPlanMaker(coworkId);
     if (!state) return null;
-    if (!state.automationId) return <PlanAttachGate coworkId={coworkId} mailTriggered={mailTriggered} maker={maker} t={t} />;
+    if (!state.automationId) return <PlanAttachGate coworkId={coworkId} mailTriggered={mailTriggered} maker={maker} t={t} fallback={fallback} />;
     const busy = approve.isPending ? 'approve' : remove.isPending ? 'remove' : null;
     const tryOut = state.draft && canTry(state) ? <PlanTry coworkId={coworkId} fingerprint={state.draft.fingerprint} t={t} /> : null;
     return (
@@ -139,7 +183,7 @@ export default function CoworkPlanPanel({ coworkId, mailTriggered = false }: { c
             t={t}
             busy={busy}
             tryOut={tryOut}
-            independence={state.approved ? <CoworkIndependence coworkId={coworkId} t={t} /> : null}
+            independence={state.approved ? <CoworkIndependenceLine coworkId={coworkId} t={t} /> : null}
             note={maker.making.summary || null}
             error={failureOf(approve.error || remove.error, t)}
             onApprove={(fingerprint) => { remove.reset(); approve.mutate(fingerprint); }}
