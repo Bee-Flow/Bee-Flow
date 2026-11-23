@@ -70,7 +70,7 @@ export function AskForm({ doc, values, colleagues, preselect, onSend, onCancel }
             <CheckList legend={t('doc_value_requests.which_fields', 'Which fields?')} picked={fields} onToggle={(id) => setFields((l) => toggle(l, id))}
                 items={doc.fields.map((f) => ({ id: f.key, label: f.label }))} />
             <label className="flex flex-col gap-1 text-xs font-semibold text-[var(--text-secondary)]">
-                {t('doc_value_requests.note', 'What should they know? (optional)')}
+                {t('doc_value_requests.note_what', 'What should they know? (optional)')}
                 <textarea rows={2} maxLength={MAX_MESSAGE} value={note} onChange={(e) => setNote(e.target.value)}
                     className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1 text-sm font-normal text-[var(--text-primary)]" />
             </label>

@@ -6,7 +6,6 @@
  */
 
 export default {
-    "doc_value_requests.ask": "Ask a colleague",
     "doc_value_requests.ask_failed": "The request could not be sent. Please try again.",
     "doc_value_requests.ask_message": "{person} asks you to fill in: {fields}.{note}",
     "doc_value_requests.ask_title": "Information needed for {document}",
@@ -19,7 +18,6 @@ export default {
     "doc_value_requests.done_title": "Filled in: {document}",
     "doc_value_requests.filled_by": "Filled in by {name}",
     "doc_value_requests.no_colleagues": "Nobody else may edit this project yet. Invite someone as an editor first.",
-    "doc_value_requests.note": "What should they know? (optional)",
     "doc_value_requests.send": "Send request",
     "doc_value_requests.someone": "a colleague",
     "doc_value_requests.waiting_for": "Waiting for {person}: {fields}",
@@ -30,4 +28,5 @@ export default {
     "doc_value_requests.show": "Go to field",
     "doc_value_requests.filled_by_ai": "Filled in by {name}, with the assistant",
     "doc_value_requests.asked_by": "{names} is waiting for this",
+    "doc_value_requests.note_what": "What should they know? (optional)",
 };

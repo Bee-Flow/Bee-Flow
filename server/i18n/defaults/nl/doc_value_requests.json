@@ -1,6 +1,5 @@
 {
   "translations": {
-    "doc_value_requests.ask": "Een collega vragen",
     "doc_value_requests.ask_explained": "Ze krijgen een melding die dit document opent, en de velden staan als aan hen gevraagd totdat ze zijn ingevuld.",
     "doc_value_requests.ask_failed": "Het verzoek kon niet worden verstuurd. Probeer het opnieuw.",
     "doc_value_requests.ask_message": "{person} vraagt je om in te vullen: {fields}.{note}",
@@ -16,7 +15,7 @@
     "doc_value_requests.filled_by": "Ingevuld door {name}",
     "doc_value_requests.filled_by_ai": "Ingevuld door {name}, met de assistent",
     "doc_value_requests.no_colleagues": "Nog niemand anders mag dit project bewerken. Nodig eerst iemand uit als bewerker.",
-    "doc_value_requests.note": "Wat moeten ze weten? (optioneel)",
+    "doc_value_requests.note_what": "Wat moeten ze weten? (optioneel)",
     "doc_value_requests.send": "Verzoek versturen",
     "doc_value_requests.show": "Naar het veld",
     "doc_value_requests.someone": "een collega",

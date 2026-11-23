@@ -73,7 +73,7 @@ export type TeamActions = ReturnType<typeof useTeamActions>;
 /** The two things to do with colleagues, at the right of the section's title. */
 function HeadActions({ actions, compact }: { actions: TeamActions; compact: boolean }) {
     const { t } = useTranslation();
-    const askLabel = t('doc_value_requests.ask', 'Ask a colleague');
+    const askLabel = t('chat_templates.field_ask', 'Ask a colleague');
     const noteLabel = t('chat_templates.note_document', 'Note for everyone');
     const wording = compact ? 'sr-only' : '';
     return (

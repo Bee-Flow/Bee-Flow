@@ -3490,3 +3490,13 @@ compliance.nav_dsr
 compliance.rail_subtitle
 compliance.rail_title
 knowledge.system_knowledge_bases_no_system_knowledge_bases_have_been
+
+# The fill-in form of a template (2026-11): "Done" became "Check and finish" / "Finish", the hint became the
+# one-thing-to-do-next line (chat_templates.guide_*), "Add to project" became "Save in project" with a folder;
+# the two request texts were reworded under new keys (chat_templates.field_ask, doc_value_requests.note_what),
+# so the Dutch already seeded for the old keys is not silently out of step with new English.
+chat_templates.add_to_project
+chat_templates.form_done
+chat_templates.form_hint
+doc_value_requests.ask
+doc_value_requests.note
