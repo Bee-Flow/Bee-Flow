@@ -15,7 +15,7 @@ const { blogSitemapEntries } = require('../core/seo/blog');
 async function blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod }) {
     if (!snapshot?.posts || !Object.keys(snapshot.posts).length) return [];
     // A legacy page slugged "blog" owns /blog; the posts below it still list.
-    const { posts } = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: 50_000 });
+    const { posts } = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, all: true });
     const { localesForPost } = require('../stores/cms/blogEffective');
     const overrides = snapshot.postLocaleOverrides || {};
     /** @type {Record<string, string[]>} */
