@@ -72,7 +72,7 @@ function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: bo
                     onPreviewDraft={isDeck ? e.deck.previewDraft : undefined}
                     onInsert={(key: string) => { e.setMode('editing'); canvasRef.current?.insert(key); }}
                     onSection={(id: string) => canvasRef.current?.section(id)} onBeforeAction={s.flushEditor}
-                    onRefresh={e.guarded(s.reload)} />
+                    onRefresh={e.guarded(s.reload)} onFillSynced={s.fillSynced} />
             )}
             <DocumentSidePanels
                 side={e.side} onClose={() => e.setSide(null)} doc={s.doc} canEdit={!s.readOnly} currentUser={currentUser} people={frame.people}

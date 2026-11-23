@@ -8,7 +8,8 @@
  *
  *   settings.valueRequests = [{ id, fields: [key], assigneeId, requestedBy,
  *                               message, createdAt, doneAt?, cancelledAt? }]
- *   settings.filledBy      = { <key>: { userId, at } }
+ *   settings.filledBy      = { <key>: { userId, at, via? } }   via 'ai': stored by the
+ *                            assistant for that person, in the chat
  *
  * A request is DONE when every field it asks for has a value; whoever filled
  * the last one does not matter (a colleague may answer for the assignee). The
@@ -29,7 +30,9 @@ export interface ValueRequest {
     cancelledAt?: string;
 }
 
-export type FilledBy = Record<string, { userId: string, at: string }>;
+export type FilledBy = Record<string, { userId: string, at: string, via?: 'ai' }>;
+/** Who saved, when, and whether the assistant stored it for them. */
+export type Filler = { userId: string, now: string, via?: 'ai' };
 
 /** At most this many open requests on one document, and fields per request. */
 export const MAX_OPEN_REQUESTS = 50;
@@ -86,20 +89,20 @@ export function cancelRequest(settings: Settings, requestId: string, userId: str
 }
 
 /**
- * The settings after `userId` saved `changedKeys`: who filled them in, and the
+ * The settings after `who` saved `changedKeys`: who filled them in, and the
  * open requests whose fields now all have a value marked done (returned, for
  * the caller to tell the requester).
  */
-export function recordFilled(settings: Settings, values: Settings, changedKeys: string[], userId: string, now: string): { settings: Settings, completed: ValueRequest[] } {
+export function recordFilled(settings: Settings, values: Settings, changedKeys: string[], who: Filler): { settings: Settings, completed: ValueRequest[] } {
     const filledBy = { ...filledByOf(settings) };
     for (const key of changedKeys) {
         if (isEmpty(values[key])) delete filledBy[key];
-        else filledBy[key] = { userId, at: now };
+        else filledBy[key] = { userId: who.userId, at: who.now, ...(who.via ? { via: who.via } : {}) };
     }
     const completed: ValueRequest[] = [];
     const requests = requestsOf(settings).map((r) => {
         if (!isOpen(r) || !r.fields.every((k) => !isEmpty(values[k]))) return r;
-        const done = { ...r, doneAt: now };
+        const done = { ...r, doneAt: who.now };
         completed.push(done);
         return done;
     });

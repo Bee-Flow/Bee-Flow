@@ -21,11 +21,11 @@ test('a request names known fields of the document, once each', () => {
 
 test('a request is done once every field it asks for has a value, whoever filled it in', () => {
     let s = ask(base);
-    const first = recordFilled(s, { iban: 'NL91ABNA0417164300' }, ['iban'], 'bob', later);
+    const first = recordFilled(s, { iban: 'NL91ABNA0417164300' }, ['iban'], { userId: 'bob', now: later });
     assert.equal(first.completed.length, 0);
     assert.deepEqual(filledByOf(first.settings).iban, { userId: 'bob', at: later });
     s = first.settings;
-    const second = recordFilled(s, { iban: 'NL91ABNA0417164300', kvk: '12345678' }, ['kvk'], 'carol', later);
+    const second = recordFilled(s, { iban: 'NL91ABNA0417164300', kvk: '12345678' }, ['kvk'], { userId: 'carol', now: later });
     assert.equal(second.completed.length, 1);
     assert.equal(second.completed[0].doneAt, later);
     assert.equal(isOpen(requestsOf(second.settings)[0]), false);
@@ -33,8 +33,8 @@ test('a request is done once every field it asks for has a value, whoever filled
 });
 
 test('clearing a field forgets who filled it in', () => {
-    const s = recordFilled(base, { name: 'X' }, ['name'], 'bob', now).settings;
-    assert.equal(filledByOf(recordFilled(s, { name: '' }, ['name'], 'bob', later).settings).name, undefined);
+    const s = recordFilled(base, { name: 'X' }, ['name'], { userId: 'bob', now: now }).settings;
+    assert.equal(filledByOf(recordFilled(s, { name: '' }, ['name'], { userId: 'bob', now: later }).settings).name, undefined);
 });
 
 test('only who asked, or who was asked, closes a request', () => {

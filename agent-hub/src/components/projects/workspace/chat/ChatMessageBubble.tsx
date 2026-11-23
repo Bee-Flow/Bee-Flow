@@ -18,7 +18,8 @@ import { AI_TONE, type AiTone } from '../projectVisuals';
 import { isImeEnter } from './ime';
 import { excerptOf, formatMessageTime, type ChatItem, type ThreadSummary } from './messageGroups';
 import { splitMentions } from './mentions';
-import ProjectFillPanel from '@/components/documents/fill/ProjectFillPanel';
+import DocumentFillPanel from '@/components/documents/fill/DocumentFillPanel';
+import FillSlot from '@/components/documents/fill/FillSlot';
 import { withoutTemplatePick } from '@/components/chat/templatePick';
 
 /** What a bubble needs from the chat around it. */
@@ -323,9 +324,12 @@ function ConfirmedBubble({ message, ctx }: { message: TeamChatMessage; ctx: Mess
                     onSave={async (next) => { await ctx.onEdit(message, next); setEditing(false); }} />
                 : <MessageBody message={message} ctx={ctx} />}
             {!message.deleted && !editing && <RefChips refs={message.refs || []} ctx={ctx} />}
-            {!message.deleted && !editing && ctx.traceScope?.projectId && (message.aiMeta?.templateFills || []).map((id) => (
-                // The template this answer filled in, as the form every member of the project fills in together.
-                <div key={id} className="mt-2" data-testid={`team-chat-fill-${id}`}><ProjectFillPanel documentId={id} projectId={ctx.traceScope!.projectId} meId={ctx.currentUserId} /></div>
+            {!message.deleted && !editing && (message.aiMeta?.templateFills || []).map((id) => (
+                // The template this answer filled in, as the form every member of the project fills in together:
+                // under the last answer about it only (FillSlot), so a long chat has one form per document.
+                <div key={id} className="mt-2" data-testid={`team-chat-fill-${id}`}>
+                    <FillSlot documentId={id}><DocumentFillPanel documentId={id} meId={ctx.currentUserId} /></FillSlot>
+                </div>
             ))}
             {!message.deleted && !editing && !!message.aiMeta?.usedSources?.length && <div className="text-xs text-[var(--text-secondary)]">
                 <span>{t('project_chat.context_used', 'Sources provided to AI')}</span>

@@ -19,9 +19,9 @@ const doc={id:'d',kind:'document',versionId:'v1',settings:{},contract:{instructi
 const props=()=>({doc,onSave:vi.fn(async patch=>({...doc,...patch,versionId:'v2'})),onBeforeAction:vi.fn(),onRefresh:vi.fn(),onInsert:vi.fn(),onSection:vi.fn()});
 beforeEach(()=>{sessionStorage.clear();state.locale='en';state.request.mockReset().mockResolvedValue({documents:[],updates:[]});});
 
-it('sends typed false and zero to the same validation endpoint and shows exclusion reasons',async()=>{
+it('a template takes sample data for its preview: typed false and zero go to the validation endpoint, with the exclusion reasons',async()=>{
     const user = userEvent.setup();
-    const p=props();state.request.mockResolvedValue({valid:true,sections:[{id:'cloud-section',title:'Cloud controls',state:'excluded',reason:'cloud equals false'}],html:'<p>Customer</p>'});
+    const p={...props(),doc:{...doc,kind:'template'}};state.request.mockResolvedValue({valid:true,sections:[{id:'cloud-section',title:'Cloud controls',state:'excluded',reason:'cloud equals false'}],html:'<p>Customer</p>'});
     render(<DocumentWorkspacePanel {...p} tab="preview"/>);
     await user.selectOptions(screen.getByLabelText('Cloud services'), 'false');
     await user.clear(screen.getByLabelText('Device count *'));
@@ -31,6 +31,22 @@ it('sends typed false and zero to the same validation endpoint and shows exclusi
     expect(state.request).toHaveBeenCalledWith('/d/validate',{values:{cloud:false,count:0},sectionOverrides:undefined});
     expect(screen.getByText('Cloud controls: Excluded')).toBeInTheDocument();
     expect(screen.getByText('cloud equals false')).toBeInTheDocument();
+});
+it('a document is filled in with the form every place shows, and what that form saved is what this panel works with',async()=>{
+    const user = userEvent.setup();
+    const p=props();state.request.mockResolvedValue({valid:true,sections:[],html:'<p>Customer</p>'});
+    const filled={...doc,settings:{sampleValues:{count:3}}};
+    const {rerender}=render(<DocumentWorkspacePanel {...p} doc={filled} tab="preview"/>);
+    // The shared form (it reads the document itself; no query client in this test, so it stays at its first line).
+    expect(screen.getByText('Loading the form…')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Device count *')).not.toBeInTheDocument();
+    // The form saved through its own route; the editor hands the panel the document as it is now.
+    rerender(<DocumentWorkspacePanel {...p} doc={{...filled,versionId:'v2',settings:{sampleValues:{count:4,cloud:true},filledBy:{count:{userId:'u1',at:'now'}}}}} tab="preview"/>);
+    await user.click(screen.getByText('Validate & preview'));
+    await screen.findByText('Ready to generate');
+    expect(state.request).toHaveBeenCalledWith('/d/validate',{values:{count:4,cloud:true},sectionOverrides:undefined});
+    // Nothing of the panel's own changed: it has nothing to save, so it cannot put older values back.
+    expect(p.onSave).not.toHaveBeenCalled();
 });
 it('keeps a proposed design unapplied until review, then pins its expected revision',async()=>{
     const user = userEvent.setup();

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -36,14 +36,81 @@ describe('<TemplateFillFields>', () => {
         expect(screen.getByRole('status').textContent).toBe('Saving…');
     });
 
-    it('keeps the groups of when the form opened while values change, so a field does not jump away mid-edit', () => {
-        const fields = [f('done', 'text', { required: true }), f('need', 'text', { required: true })];
-        const { rerender, unmount } = render(<TemplateFillFields fields={fields} values={{ done: 'x' }} issues={{}} onChange={() => {}} />);
-        rerender(<TemplateFillFields fields={fields} values={{ done: 'x', need: 'y' }} issues={{}} onChange={() => {}} />);
-        expect(within(screen.getByTestId('template-fill-group-missing')).getByLabelText(/NEED/)).toBeInTheDocument();
-        unmount();
-        render(<TemplateFillFields fields={fields} values={{ done: 'x', need: 'y' }} issues={{}} onChange={() => {}} />);
-        expect(screen.getAllByRole('region').map((s) => s.getAttribute('data-testid'))).toEqual(['template-fill-group-filled']);
+    it('a field the person is working in stays where it is; one that someone else fills in moves to "Filled in"', async () => {
+        const user = userEvent.setup();
+        const fields = [f('mine', 'text', { required: true }), f('theirs', 'text', { required: true }), f('later', 'text', { required: true })];
+        const groupOf = (label: RegExp) => screen.getByLabelText(label).closest('section')?.getAttribute('data-testid');
+        const { rerender } = render(<TemplateFillFields fields={fields} values={{}} issues={{}} onChange={() => {}} />);
+        // The person clicks into MINE; meanwhile the assistant (or a colleague) fills in THEIRS, and then MINE too.
+        await user.click(screen.getByLabelText(/MINE/));
+        rerender(<TemplateFillFields fields={fields} values={{ mine: 'typed elsewhere', theirs: 'filled in' }} issues={{}} onChange={() => {}} />);
+        expect(groupOf(/MINE/)).toBe('template-fill-group-missing');
+        expect(groupOf(/LATER/)).toBe('template-fill-group-missing');
+        // THEIRS moved to "Filled in", which is folded away while something is still needed: its count says so.
+        expect(screen.queryByLabelText(/THEIRS/)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Filled in \(1\)/ })).toBeInTheDocument();
+    });
+
+    it('leaving the fields with a click regroups them only after the click has landed, so the button clicked does not move away', async () => {
+        const user = userEvent.setup();
+        const fields = [f('mine', 'text', { required: true }), f('later', 'text', { required: true })];
+        const onClick = vi.fn();
+        render(
+            <>
+                <Harness fields={fields} onChange={() => {}} />
+                <button type="button" onClick={onClick}>Below the fields</button>
+            </>,
+        );
+        const missing = () => within(screen.getByTestId('template-fill-group-missing'));
+        await user.type(screen.getByLabelText(/MINE/), 'filled in');
+        const below = screen.getByRole('button', { name: 'Below the fields' });
+        // Pressed, not let go yet: the typed value is committed (blur), and nothing has moved.
+        await user.pointer({ keys: '[MouseLeft>]', target: below });
+        expect(missing().getByLabelText(/MINE/)).toHaveValue('filled in');
+        await user.pointer({ keys: '[/MouseLeft]', target: below });
+        expect(onClick).toHaveBeenCalledTimes(1);
+        // The click landed: now the field joins the filled-in ones.
+        await waitFor(() => expect(missing().queryByLabelText(/MINE/)).not.toBeInTheDocument());
+        expect(missing().getByLabelText(/LATER/)).toBeInTheDocument();
+    });
+
+    it('leaving the fields with the keyboard regroups them at once', async () => {
+        const user = userEvent.setup();
+        const fields = [f('mine', 'text', { required: true }), f('later', 'text', { required: true })];
+        render(
+            <>
+                <Harness fields={fields} onChange={() => {}} />
+                <button type="button">Below the fields</button>
+            </>,
+        );
+        await user.type(screen.getByLabelText(/MINE/), 'filled in');
+        await user.tab();
+        // Still inside the fields: MINE stays where the person left it.
+        expect(within(screen.getByTestId('template-fill-group-missing')).getByLabelText(/MINE/)).toBeInTheDocument();
+        await user.tab();
+        expect(screen.getByRole('button', { name: 'Below the fields' })).toHaveFocus();
+        expect(within(screen.getByTestId('template-fill-group-missing')).queryByLabelText(/MINE/)).not.toBeInTheDocument();
+    });
+
+    it('what a colleague asked for comes first, then what the final check remarked on, and what belongs to a field shows under it', () => {
+        const fields = [f('plain', 'text', { required: true }), f('asked', 'text'), f('checked', 'text')];
+        render(<TemplateFillFields fields={fields} values={{ checked: 'tbd' }} issues={{}} onChange={() => {}}
+            asked={new Set(['asked'])} remarked={new Set(['checked'])}
+            extras={(field) => (field.key === 'checked' ? <p>Is this right?</p> : null)} />);
+        expect(screen.getAllByRole('region').map((s) => s.getAttribute('data-testid')))
+            .toEqual(['template-fill-group-asked', 'template-fill-group-remarked', 'template-fill-group-missing']);
+        expect(within(screen.getByTestId('template-fill-group-asked')).getByLabelText('ASKED')).toBeInTheDocument();
+        expect(within(screen.getByTestId('template-fill-field-checked')).getByText('Is this right?')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Asked of you (1)' })).toBeInTheDocument();
+    });
+
+    it('once nothing is left to do, "Filled in" opens by itself', () => {
+        const fields = [f('a', 'text', { required: true }), f('b', 'text')];
+        const { rerender } = render(<TemplateFillFields fields={fields} values={{ b: 'x' }} issues={{}} onChange={() => {}} />);
+        expect(screen.queryByLabelText('B')).not.toBeInTheDocument();
+        rerender(<TemplateFillFields fields={fields} values={{ a: 'y', b: 'x' }} issues={{}} onChange={() => {}} />);
+        expect(screen.getByLabelText('B')).toBeInTheDocument();
+        expect(screen.getByLabelText(/^A/)).toBeInTheDocument();
     });
 
     it('text reports on blur, number reports a number on Enter', async () => {

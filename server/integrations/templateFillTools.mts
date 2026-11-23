@@ -35,6 +35,16 @@
  * What goes back to the model passes the same result filters as every other
  * tool's answer.
  *
+ * THE FINAL CHECK. template_fill_finish finishes only a fill that was
+ * checked: the assistant hands its remarks in with template_fill_review (the
+ * form's "Check and finish" asks a model for the same,
+ * core/documents/fillReviewer.mts), and the form shows them at the fields.
+ *
+ * TOGETHER. A value the assistant stores in a project's document counts as
+ * one typed in the form: it says who filled the field in, closes the requests
+ * it answers and tells who asked (core/documents/fillTogether.mts). The tools
+ * about other people and places are templateFillTeamTools.mts.
+ *
  * Definitions: templateFillToolDefs.mts. Dispatched by documentBuilderTools.js.
  */
 
@@ -45,8 +55,11 @@ import {
     applyTemplateValues, contractModule as realContract, describeField, isObject, MAX_VALUES, progress, saveSettings, valuesOf,
     type Contract, type ContractModule, type Settings, type TemplateDoc, type ValueGuard,
 } from '../core/documents/templateValues.mts';
+import { openFindings, reviewOf } from '../core/documents/fillReview.mts';
+import { fillAnnotator, notifyCompleted, type AskDeps } from '../core/documents/fillTogether.mts';
 import { findMaskedToken } from '../core/privacy/maskedTokens.mts';
-import { findActiveFill, fillLinkOf, finishedSettings, isLinkedTo, newFillLink, type FillScope } from './templateFillActive.mts';
+import { findActiveFill, finishedSettings, isFinished, isLinkedTo, newFillLink, type FillScope } from './templateFillActive.mts';
+import { makeTeamHandlers, teamState, type DocumentFiling, type TeamCtx } from './templateFillTeamTools.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -58,8 +71,9 @@ export type TemplateFillStore = {
 };
 type Scope = FillScope & { createdInChat?: (id: string) => boolean };
 /** `project`: a project's team chat, whose fills are documents of that project, shared by its members. */
-type Ctx = { documentScope?: Scope | null, conversationId?: string | null, project?: { id: string } | null };
+type Ctx = TeamCtx & { documentScope?: Scope | null, conversationId?: string | null };
 type Args = { query?: unknown, templateId?: unknown, name?: unknown, documentId?: unknown, values?: unknown, fresh?: unknown, projectId?: unknown };
+type Doc = TemplateDoc & { projectId?: string | null };
 type Handler = (args: Args, ctx: Ctx, userId: string) => Promise<Record<string, unknown>>;
 
 const MAX_LISTED = 25;
@@ -107,7 +121,7 @@ async function fillableDocument(store: TemplateFillStore, args: Args, ctx: Ctx, 
     return found;
 }
 
-type Deps = { db: () => TemplateFillStore, contract: () => ContractModule };
+type Deps = { db: () => TemplateFillStore, contract: () => ContractModule, ask?: AskDeps };
 
 /** document_templates_list: the templates this user may fill in, with how many fields each has. */
 function listTemplates({ db, contract }: Deps): Handler {
@@ -129,15 +143,15 @@ function listTemplates({ db, contract }: Deps): Handler {
     };
 }
 
-/** Everything the model needs to go on with a fill: fields, values, what is missing. */
-function fillState(doc: TemplateDoc, c: ContractModule, extra: Record<string, unknown> = {}): Record<string, unknown> {
+/** Everything the model needs to go on with a fill: fields, values, what is missing, and what the others asked or noted. */
+async function fillState(doc: TemplateDoc, c: ContractModule, ctx: Ctx, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     const fields = c.getContract(doc);
     const values = valuesOf(doc);
     const state = progress(doc, fields, values, c);
     return {
-        ...head(doc), ...state, finished: !!fillLinkOf(doc)?.finishedAt,
+        ...head(doc), ...state, finished: isFinished(doc), checked: !!reviewOf(doc.settings),
         ...(fields.instructions ? { instructions: fields.instructions } : {}),
-        values, fields: fields.parameters.map(describeField), ...extra,
+        values, fields: fields.parameters.map(describeField), ...await teamState(doc, ctx), ...extra,
     };
 }
 
@@ -146,7 +160,7 @@ const ASK_MISSING = 'Store the template defaults (fields[].default) and anything
 /** The fill of this template this conversation already has going, as the answer that continues it; null when none. */
 async function resumedFill(store: TemplateFillStore, templateId: string, ctx: Ctx, userId: string, c: ContractModule): Promise<Record<string, unknown> | null> {
     const going = await findActiveFill(store, ctx.documentScope, { conversationId: ctx.conversationId, userId, templateId, projectId: projectOf(ctx) });
-    return going ? fillState(going, c, {
+    return going ? fillState(going, c, ctx, {
         resumed: true,
         message: `This conversation is already filling in "${going.name}" from this template: continuing with it (no new copy). ${ASK_MISSING} Pass fresh: true only when the user asks for a second, separate document.`,
     }) : null;
@@ -183,31 +197,37 @@ function startFill({ db, contract }: Deps): Handler {
         });
         if (ctx.documentScope?.markCreated) ctx.documentScope.markCreated(doc.id);
         else ctx.documentScope?.add?.(doc.id);
-        return fillState(doc, c, {
+        return fillState(doc, c, ctx, {
             message: `Made "${doc.name}" from the template. ${ASK_MISSING} Store answers with template_fill_set_values.`,
         });
     };
 }
 
+const COMPLETE = 'Every required field is filled in. Now do the final check: call template_fill_review with your remarks on the filled-in values (an empty list when all are fine).';
+
 /** template_fill_set_values: merge, check and save field values. */
-function setValues({ db, contract }: Deps): Handler {
+function setValues({ db, contract, ask }: Deps): Handler {
     return async (args, ctx, userId) => {
-        const doc = await fillableDocument(db(), args, ctx, userId);
+        const doc = await fillableDocument(db(), args, ctx, userId) as Doc | { error: string };
         if ('error' in doc) return doc;
         if (!isObject(args.values) || Object.keys(args.values).length > MAX_VALUES) return { documentId: doc.id, error: `Pass values as an object of at most ${MAX_VALUES} fields by key.` };
+        // As the form: who filled what (here: the assistant, for this person), the requests it answers, the remarks it makes moot.
+        const marks = fillAnnotator(userId, { via: 'ai' });
         let out;
         try {
-            out = await applyTemplateValues({ store: db(), doc, given: args.values, userId, origin: 'ai', guard: refuseMasked, contract });
+            out = await applyTemplateValues({ store: db(), doc, given: args.values, userId, origin: 'ai', guard: refuseMasked, annotate: marks.annotate, contract });
         } catch (e) {
             const status = (e as { status?: number }).status;
             if (status && status < 500) return { documentId: doc.id, error: (e as Error).message };
             throw e;
         }
         if (!out) return { documentId: doc.id, error: 'Document is read-only.' };
+        if (marks.completed().length && doc.projectId) await notifyCompleted(out.doc as Doc, marks.completed(), ask || {});
         const { doc: saved, values, rejected, contract: _fields, ...state } = out;
         return {
             ...head(saved), values, rejected, ...state,
-            message: state.complete ? 'Every required field is filled in. Sum up the values, let the user confirm, then call template_fill_finish.' : `Saved. ${ASK_MISSING}`,
+            ...(marks.completed().length ? { requestsAnswered: marks.completed().length } : {}),
+            message: state.complete ? (reviewOf(saved.settings) ? 'Saved; every required field is filled in.' : COMPLETE) : `Saved. ${ASK_MISSING}`,
         };
     };
 }
@@ -217,11 +237,13 @@ function fillStatus({ db, contract }: Deps): Handler {
     return async (args, ctx, userId) => {
         const doc = await fillableDocument(db(), args, ctx, userId);
         if ('error' in doc) return doc;
-        return fillState(doc, contract(), { message: `Current values, including what the user filled in the form. Never ask again for a field that has a value. ${ASK_MISSING}` });
+        return fillState(doc, contract(), ctx, { message: `Current values, including what the user and their colleagues filled in the form. Never ask again for a field that has a value. ${ASK_MISSING}` });
     };
 }
 
-/** template_fill_finish: refuse while something required is missing, else mark it finished and hand over the download. */
+const CHECK_FIRST = 'Not finished yet: do the final check first. Call template_fill_review with your remarks on the filled-in values (an empty list when all are fine), tell the user what it found, and call this again when they agree.';
+
+/** template_fill_finish: refuse while something required is missing or it was never checked, else mark it finished and hand over the download. */
 function finishFill({ db, contract }: Deps): Handler {
     return async (args, ctx, userId) => {
         const c = contract();
@@ -232,41 +254,14 @@ function finishFill({ db, contract }: Deps): Handler {
         if (!state.complete) {
             return { ...base, message: 'Not finished yet: ask the user for the missing fields (missingRequired) and resolve the issues, then call this again.' };
         }
-        if (fillLinkOf(doc) && !fillLinkOf(doc)?.finishedAt) await saveSettings(db(), doc, finishedSettings(doc), userId, 'ai');
+        if (!reviewOf(doc.settings)) return { ...base, finished: false, needsCheck: true, message: CHECK_FIRST };
+        if (!isFinished(doc)) await saveSettings(db(), doc, finishedSettings(doc), userId, 'ai');
         const format = formatOf(doc);
+        const open = openFindings(doc.settings, valuesOf(doc)).length;
         return {
             ...base, finished: true, format, downloadUrl: `${API_BASE}/${encodeURIComponent(doc.id)}/${format}`,
-            message: `"${doc.name}" is ready. End your reply with the clickable link "[${doc.name}](${documentUrl(doc.id)})"; the card under your reply downloads it as ${format === 'pptx' ? 'PowerPoint' : 'PDF'}.`,
-        };
-    };
-}
-
-/** Files a person's document into a project (projects/documentFiling.mts). */
-export type DocumentFiling = {
-    targets: (userId: string) => Promise<Array<{ id: string, name: string }>>,
-    fileDocument: (userId: string, documentId: string, projectId: string) => Promise<{ ok: true, project: { id: string, name: string } } | { ok: false, error: string }>,
-};
-
-/** document_add_to_project: list the projects the user may add to, or file the document into one. */
-function addToProject({ db }: Deps, filing: () => DocumentFiling): Handler {
-    return async (args, ctx, userId) => {
-        if (ctx.project) return { error: 'In a team chat the document is already the project\'s.' };
-        if (!str(args.documentId)) return { error: 'documentId is required: the id from template_fill_start or template_fill_finish.' };
-        const doc = await fillableDocument(db(), args, ctx, userId);
-        if ('error' in doc) return doc;
-        const projectId = str(args.projectId);
-        if (!projectId) {
-            const projects = await filing().targets(userId);
-            return projects.length
-                ? { ...head(doc), projects, message: 'Ask the user which project, unless they named one; then call this again with its projectId.' }
-                : { ...head(doc), projects, message: 'The user has no project they can add documents to.' };
-        }
-        const filed = await filing().fileDocument(userId, doc.id, projectId);
-        if (!filed.ok) return { ...head(doc), error: filed.error };
-        const url = `/app/projects/${encodeURIComponent(filed.project.id)}/documents/${encodeURIComponent(doc.id)}`;
-        return {
-            ...head(doc), url, project: filed.project, added: true,
-            message: `"${doc.name}" is now in the project "${filed.project.name}"; its members can open and edit it there. End your reply with the clickable link "[${doc.name}](${url})".`,
+            ...(open ? { openRemarks: open } : {}),
+            message: `"${doc.name}" is ready${open ? ` (${open} remark(s) of the final check are still open in the form: mention that in a few words)` : ''}. End your reply with the clickable link "[${doc.name}](${documentUrl(doc.id)})"; the card under your reply downloads it as ${format === 'pptx' ? 'PowerPoint' : 'PDF'}, and saves it in a project or a project folder.`,
         };
     };
 }
@@ -277,13 +272,16 @@ const realFiling = (): DocumentFiling => {
 };
 
 /** The handlers on a store (and contract code) of the caller's choosing: the seam the tests use. */
-export function makeTemplateFillHandlers({ store, contract = realContract, filing = realFiling }: {
-    store: TemplateFillStore | (() => TemplateFillStore), contract?: () => ContractModule, filing?: () => DocumentFiling,
+export function makeTemplateFillHandlers({ store, contract = realContract, filing = realFiling, ask }: {
+    store: TemplateFillStore | (() => TemplateFillStore), contract?: () => ContractModule, filing?: () => DocumentFiling, ask?: AskDeps,
 }): Record<string, Handler> {
-    const deps: Deps = { db: () => (typeof store === 'function' ? store() : store), contract };
+    const deps: Deps = { db: () => (typeof store === 'function' ? store() : store), contract, ...(ask ? { ask } : {}) };
+    const team = makeTeamHandlers<Ctx>({
+        ...deps, filing, head, fillable: (args, ctx, userId) => fillableDocument(deps.db(), args, ctx, userId),
+    });
     return {
         document_templates_list: listTemplates(deps), template_fill_start: startFill(deps), template_fill_set_values: setValues(deps),
-        template_fill_status: fillStatus(deps), template_fill_finish: finishFill(deps), document_add_to_project: addToProject(deps, filing),
+        template_fill_status: fillStatus(deps), template_fill_finish: finishFill(deps), ...team,
     };
 }
 

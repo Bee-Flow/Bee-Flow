@@ -1,9 +1,16 @@
 /**
- * The form under a chat answer that fills in a template: save field values of
- * a document made from a template. Mounted by routes/studioDocuments.js.
+ * The fill-in form of a document made from a template (in the chat, in a
+ * project's team chat and in the document editor): save field values, look at
+ * the final check's remarks, and let the assistant do that check. Mounted by
+ * routes/studioDocuments.js.
  *
- *   PUT /:id/values  { values: { <key>: value | null }, finish?: true }
- *                    → { documentId, values, missingRequired, issues, rejected, complete, filled, total, finished, versionId }
+ *   PUT  /:id/values         { values: { <key>: value | null }, finish?: true, dismiss?: [key] }
+ *   POST /:id/values/review  the assistant checks what is filled in (core/documents/fillReviewer.mts)
+ *
+ * Both answer the same: where the filling stands and what is shown next to it
+ * (`fillAnswer`): { documentId, values, missingRequired, issues, complete,
+ * filled, total, finished, versionId, requests, filledBy, notes, review }; the
+ * PUT adds `rejected`.
  *
  * The values are merged, coerced and type-checked by the same code the chat's
  * template_fill_set_values uses (core/documents/templateValues.mts), so the
@@ -12,6 +19,9 @@
  * field; the others are saved. `finish: true` does what template_fill_finish
  * does: when every required field is filled in, the fill is marked finished;
  * otherwise nothing is finished and `missingRequired` says what is missing.
+ * `dismiss` takes the final check's remark off those fields (the person read
+ * it and keeps their value); taking a suggested wording over is a plain save
+ * of that value.
  *
  * ACCESS. The store reads only a document the caller may see (owner, shared,
  * project); a stranger, another organisation included, gets the 404. A reader
@@ -25,11 +35,12 @@
 import { createRequire } from 'node:module';
 import type { Request, RequestHandler, Response, Router } from 'express';
 import {
-    applyTemplateValues, MAX_VALUES, saveSettings, type ContractModule, type TemplateDoc, type ValuesStore,
+    applyTemplateValues, contractModule, MAX_VALUES, progress, saveSettings, valuesOf,
+    type ContractModule, type Rejected, type TemplateDoc, type ValuesStore,
 } from '../../core/documents/templateValues.mts';
-import { fillLinkOf, finishedSettings } from '../../integrations/templateFillActive.mts';
-import { filledByOf, requestsOf } from '../../core/documents/valueRequests.mts';
-import { notifyCompleted, requestAnnotator } from './valueRequests.mts';
+import { finishedSettings, isFinished } from '../../integrations/templateFillActive.mts';
+import { withoutFindings, withReview, type FillReview } from '../../core/documents/fillReview.mts';
+import { annotationsOf, fillAnnotator, notifyCompleted, type Notify } from '../../core/documents/fillTogether.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');
@@ -40,25 +51,38 @@ const { lazyGate } = nodeRequire('../../auth/gateMeta.js') as { lazyGate: (load:
 const { HttpError, notFound, forbidden, badRequest } = nodeRequire('../../core/http/errors.js') as typeof import('../../shared/httpErrors.js');
 
 const VALUES_TEXT = `values is an object of at most ${MAX_VALUES} field values by key.`;
+const DISMISS_TEXT = `dismiss is a list of at most ${MAX_VALUES} field keys.`;
 const ValuesBody = bodyOf({
     values: z.record(z.string(), z.unknown(), { error: VALUES_TEXT }).refine((v) => Object.keys(v).length <= MAX_VALUES, VALUES_TEXT),
     finish: z.boolean({ error: 'finish is true or false.' }).optional(),
+    dismiss: z.array(z.string().max(200), { error: DISMISS_TEXT }).max(MAX_VALUES, DISMISS_TEXT).optional(),
 }, 'Saving template values');
+/** The check takes no fields: the document is in the path. */
+const ReviewBody = bodyOf({}, 'Checking the filled-in values');
 
-type Body = { values: Record<string, unknown>, finish?: boolean };
-type Notify = (n: { userId: string, category: string, title: string, message: string, link: string }) => Promise<unknown>;
-type Deps = { store?: () => ValuesStore, requireAuth?: RequestHandler, contract?: () => ContractModule, notify?: Notify };
+type Body = { values: Record<string, unknown>, finish?: boolean, dismiss?: string[] };
+type Who = { userId: string, orgId: string | null };
+type Deps = {
+    store?: () => ValuesStore, requireAuth?: RequestHandler, contract?: () => ContractModule, notify?: Notify,
+    /** The model's check (core/documents/fillReviewer.mts). */
+    reviewer?: (doc: TemplateDoc, who: Who) => Promise<FillReview>,
+    /** A reason the person may not use the AI now (their plan's limit), or null. */
+    limit?: (who: Who) => Promise<string | null>,
+    limiter?: RequestHandler,
+};
+type Session = { user: { id: string, organizationId?: string | null }, connectorOrgId?: string | null };
 
-const isReadOnly = (doc: TemplateDoc): boolean => doc.projectRole === 'viewer' || doc.sharingRole === 'viewer';
+export const isReadOnly = (doc: TemplateDoc): boolean => doc.projectRole === 'viewer' || doc.sharingRole === 'viewer';
 
-/** A refusal of the store (a conflict, a cap) as the client's error; anything else stays a 500. */
-function storeRefusal(e: unknown): unknown {
+/** A refusal of the store or of the fill rules (a conflict, a cap) as the client's error; anything else stays a 500. */
+export function storeRefusal(e: unknown): unknown {
+    if (e instanceof HttpError) return e;
     const err = e as { status?: number, errorClass?: string, message?: string };
     return err.status && err.status < 500 ? new HttpError(err.status, err.errorClass || 'document_values_refused', String(err.message)) : e;
 }
 
 /** The document the values go into, or the refusal: missing, a template, or read-only for this person. */
-async function writableDocument(store: ValuesStore, id: string, userId: string): Promise<TemplateDoc> {
+export async function writableDocument(store: ValuesStore, id: string, userId: string): Promise<TemplateDoc> {
     const doc = await store.getDocument(id, userId);
     if (!doc) throw notFound('document_not_found', 'Document not found');
     if (doc.kind && doc.kind !== 'document') throw badRequest('document_not_fillable', 'Only a document made from a template is filled in, not a template itself.');
@@ -66,39 +90,96 @@ async function writableDocument(store: ValuesStore, id: string, userId: string):
     return doc;
 }
 
-/** Mark the fill finished when asked and nothing required is missing; the saved document and whether it is finished. */
-async function finishIfAsked(store: ValuesStore, saved: TemplateDoc, userId: string, wanted: boolean, complete: boolean) {
-    const finished = !!fillLinkOf(saved)?.finishedAt;
-    if (!wanted || !complete || finished) return { saved, finished };
-    try {
-        return { saved: (await saveSettings(store, saved, finishedSettings(saved), userId, 'user')) || saved, finished: true };
-    } catch (e) { throw storeRefusal(e); }
+/** Where the filling stands and what is shown next to it: the answer of every route of the form. */
+export function fillAnswer(doc: TemplateDoc, c: ContractModule = contractModule()): Record<string, unknown> {
+    const values = valuesOf(doc);
+    return {
+        documentId: doc.id, values, ...progress(doc, c.getContract(doc), values, c),
+        finished: isFinished(doc), versionId: doc.versionId ?? null, ...annotationsOf(doc),
+    };
 }
+
+/** One more settings write on the saved document, or the document as it is when nothing changes. */
+async function resave(store: ValuesStore, doc: TemplateDoc, settings: Record<string, unknown>, userId: string): Promise<TemplateDoc> {
+    if (settings === doc.settings) return doc;
+    try { return (await saveSettings(store, doc, settings, userId, 'user')) || doc; } catch (e) { throw storeRefusal(e); }
+}
+
+/** After the values: the remarks the person dismissed are taken off, and the fill is finished when asked and complete. */
+async function afterValues(store: ValuesStore, saved: TemplateDoc, userId: string, body: Body, complete: boolean): Promise<TemplateDoc> {
+    const kept = await resave(store, saved, withoutFindings(saved.settings || {}, body.dismiss || []), userId);
+    const finish = body.finish === true && complete && !isFinished(kept);
+    return finish ? resave(store, kept, finishedSettings(kept), userId) : kept;
+}
+
+/** Store the review; when the document moved on meanwhile, on its newest state (a remark on a changed value is dropped on reading). */
+async function storeReview(store: ValuesStore, doc: TemplateDoc, review: FillReview, userId: string): Promise<TemplateDoc> {
+    let current = doc;
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            const saved = await saveSettings(store, current, withReview(current.settings || {}, review), userId, 'user');
+            if (!saved) throw notFound('document_not_found', 'Document not found or read-only');
+            return saved;
+        } catch (e) {
+            const fresh = attempt === 0 && (e as { status?: number }).status === 409 ? await store.getDocument(current.id, userId) : null;
+            if (!fresh) throw storeRefusal(e);
+            current = fresh;
+        }
+    }
+}
+
+/** The check's own refusal as it is (no model, the privacy policy); anything the model call threw as one upstream failure. */
+function reviewRefusal(e: unknown): Error {
+    const err = e as { status?: number, errorClass?: string, message?: string };
+    if (err.status && String(err.errorClass || '').startsWith('fill_review_')) return new HttpError(err.status, String(err.errorClass), String(err.message));
+    (nodeRequire('../../telemetry/log.js') as { warn: (...a: unknown[]) => void }).warn('[Documents] fill review failed:', err.message);
+    return new HttpError(502, 'fill_review_failed', 'The AI check could not run. Please try again.');
+}
+
+const realLimit = ({ orgId, userId }: Who): Promise<string | null> => (nodeRequire('../../core/entitlements/limits.js') as {
+    checkSubscriptionLimits: (orgId: string | null, kind: string, userId: string) => Promise<string | null> }).checkSubscriptionLimits(orgId, 'chat', userId);
+const realReviewer = (doc: TemplateDoc, who: Who): Promise<FillReview> => (nodeRequire('../../core/documents/fillReviewer.mts') as {
+    reviewFill: (doc: TemplateDoc, who: Who) => Promise<FillReview> }).reviewFill(doc, who);
 
 export function makeTemplateValuesRouter(deps: Deps = {}): Router {
     const router = express.Router({ mergeParams: true });
     const store = deps.store || ((): ValuesStore => nodeRequire('../../stores/documentStore.js') as ValuesStore);
+    const contract = deps.contract || contractModule;
     // Looked up at the first request, so loading this router does not load the auth and user stores.
     const requireAuth = deps.requireAuth || lazyGate(() => (nodeRequire('../../auth/permissions.js') as { requireAuth: RequestHandler }).requireAuth, { axis: 'auth' });
+    // A check is one model call: a person finishing a document asks for a few, never for a stream of them.
+    const limiter = deps.limiter || (nodeRequire('../../utils/perUserRateLimit.js') as {
+        perUserRateLimit: (o: { windowMs: number, max: number, name: string }) => RequestHandler }).perUserRateLimit({ windowMs: 60_000, max: 10, name: 'document-fill-review' });
+    const who = (req: Request): Who => {
+        const session = req.session as unknown as Session;
+        return { userId: String(session.user.id), orgId: session.connectorOrgId || session.user.organizationId || null };
+    };
 
     router.put('/:id/values', requireAuth, validate({ body: ValuesBody }), async (req: Request<{ id: string }>, res: Response) => {
-        const userId = String((req.session as unknown as { user: { id: string } }).user.id);
-        const { values, finish } = req.body as Body;
+        const { userId } = who(req);
+        const body = req.body as Body;
         const doc = await writableDocument(store(), req.params.id, userId);
         let out;
-        // Who filled in what, and the colleagues' requests this save answers (routes/studioDocuments/valueRequests.mts).
-        const requests = requestAnnotator(userId);
+        // Who filled in what, the colleagues' requests this save answers, and the remarks it makes moot (core/documents/fillTogether.mts).
+        const marks = fillAnnotator(userId);
         try {
-            out = await applyTemplateValues({ store: store(), doc, given: values, userId, origin: 'user', annotate: requests.annotate, ...(deps.contract ? { contract: deps.contract } : {}) });
+            out = await applyTemplateValues({ store: store(), doc, given: body.values, userId, origin: 'user', annotate: marks.annotate, contract });
         } catch (e) { throw storeRefusal(e); }
         if (!out) throw notFound('document_not_found', 'Document not found or read-only');
-        if (requests.completed().length) await notifyCompleted(out.doc, requests.completed(), deps.notify ? { notify: deps.notify } : {});
-        const { saved, finished } = await finishIfAsked(store(), out.doc, userId, finish === true, out.complete);
-        res.json({
-            documentId: saved.id, values: out.values, missingRequired: out.missingRequired, issues: out.issues, rejected: out.rejected,
-            complete: out.complete, filled: out.filled, total: out.total, finished, versionId: saved.versionId ?? null,
-            requests: requestsOf(saved.settings), filledBy: filledByOf(saved.settings),
-        });
+        if (marks.completed().length) await notifyCompleted(out.doc, marks.completed(), deps.notify ? { notify: deps.notify } : {});
+        const saved = await afterValues(store(), out.doc, userId, body, out.complete);
+        const rejected: Rejected[] = out.rejected;
+        res.json({ ...fillAnswer(saved, contract()), rejected });
+    });
+
+    router.post('/:id/values/review', requireAuth, limiter, validate({ body: ReviewBody }), async (req: Request<{ id: string }>, res: Response) => {
+        const person = who(req);
+        const doc = await writableDocument(store(), req.params.id, person.userId);
+        const refused = await (deps.limit || realLimit)(person);
+        if (refused) throw new HttpError(402, 'ai_limit_reached', refused);
+        let review: FillReview;
+        try { review = await (deps.reviewer || realReviewer)(doc, person); } catch (e) { throw reviewRefusal(e); }
+        res.json(fillAnswer(await storeReview(store(), doc, review, person.userId), contract()));
     });
 
     return router;

@@ -1,21 +1,24 @@
 /**
- * The fields of a template being filled in, grouped as "Still needed",
- * "Filled in" and "Optional" as they stood when the form opened. Text-like inputs keep a local draft and report
- * on blur (or Enter on a single line); a select, switch, date or list reports
- * at once. A list is a small table with one row per item.
+ * The fields of a template being filled in, grouped by what there is to do:
+ * "Asked of you" (a colleague waits for it), "To look at" (the final check has
+ * a remark), "Still needed", "Filled in" and "Optional". A field follows its
+ * value from group to group when someone else fills it in (the assistant, a
+ * colleague), but stays where it is while this person works in the fields: no
+ * jump under the cursor, focus kept; once they leave the fields, every field
+ * is where its value puts it again. Text-like inputs keep a local draft and report on
+ * blur (or Enter on a single line); a select, switch, date or list reports at
+ * once. A list is a small table with one row per item.
  */
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
+import { isEmpty, TO_DO, useGrouping, useReleaseOnLeave, type GroupId } from './templateFillGrouping';
 import type { TemplateFillField } from './templateFillTypes';
 
 type OnChange = (key: string, value: unknown) => void;
 type Row = Record<string, unknown>;
 
 const LONG_TEXT = 80;
-
-const isEmpty = (v: unknown): boolean => v === undefined || v === null || v === ''
-    || (Array.isArray(v) && v.length === 0);
 
 const asText = (v: unknown): string => (v === undefined || v === null ? '' : String(v));
 
@@ -225,7 +228,9 @@ function FieldLabel({ id, field, inline, children }: { id: string; field: Templa
     );
 }
 
-function FieldRow({ field, value, issue, note, onChange }: { field: TemplateFillField; value: unknown; issue?: string; note?: string; onChange: OnChange }) {
+function FieldRow({ field, value, issue, extra, onChange, onTouch }: {
+    field: TemplateFillField; value: unknown; issue?: string; extra?: ReactNode; onChange: OnChange; onTouch: (key: string) => void;
+}) {
     const id = useId();
     const helpId = `${id}-help`;
     const issueId = `${id}-issue`;
@@ -238,72 +243,78 @@ function FieldRow({ field, value, issue, note, onChange }: { field: TemplateFill
     const offer = isEmpty(value) && field.suggestion !== undefined;
     const input = <Input id={id} field={field} value={value} className={className} aria={aria} onChange={onChange} />;
     return (
-        <div className={`flex min-w-0 flex-col gap-1 ${isWide(field, value) ? 'sm:col-span-2' : ''}`} data-testid={`template-fill-field-${field.key}`}>
-            <FieldLabel id={id} field={field} inline={inline}>{inline && input}</FieldLabel>
-            {field.help && <p id={helpId} className="m-0 text-xs text-[var(--text-tertiary)]">{field.help}</p>}
-            {note && <p className="m-0 text-[11px] text-[var(--accent-primary)]" data-testid={`template-fill-note-${field.key}`}>{note}</p>}
-            {offer && <Suggestion field={field} onChange={onChange} />}
-            {!inline && input}
-            {issue && <p id={issueId} className="m-0 text-xs text-[var(--error)]">{issue}</p>}
+        <div className={`flex min-w-0 flex-col gap-1 ${isWide(field, value) || extra ? 'sm:col-span-2' : ''}`} data-testid={`template-fill-field-${field.key}`}
+            data-fill-field={field.key}>
+            {/* Working in the field itself holds it in place; the buttons under it (a remark, a note) do not. */}
+            <div className="flex min-w-0 flex-col gap-1" onFocusCapture={() => onTouch(field.key)}>
+                <FieldLabel id={id} field={field} inline={inline}>{inline && input}</FieldLabel>
+                {field.help && <p id={helpId} className="m-0 text-xs text-[var(--text-tertiary)]">{field.help}</p>}
+                {offer && <Suggestion field={field} onChange={onChange} />}
+                {!inline && input}
+                {issue && <p id={issueId} className="m-0 text-xs text-[var(--error)]">{issue}</p>}
+            </div>
+            {extra}
         </div>
     );
 }
 
-type GroupId = 'missing' | 'filled' | 'optional';
-
-/** A group of fields; "Filled in" and "Optional" start folded away while something is still needed. */
-function FieldGroup({ id, title, count, collapsible, children }: { id: GroupId; title: string; count: number; collapsible: boolean; children: ReactNode }) {
-    const [open, setOpen] = useState(!collapsible);
+/** A group of fields; "Filled in" and "Optional" are folded away while something is still to do, until the person opens them. */
+function FieldGroup({ id, title, count, collapsible, narrow, children }: {
+    id: GroupId; title: string; count: number; collapsible: boolean; narrow: boolean; children: ReactNode;
+}) {
+    const [toggled, setToggled] = useState<boolean | null>(null);
+    const open = toggled ?? !collapsible;
     const bodyId = useId();
     const heading = 'm-0 text-xs font-semibold text-[var(--text-secondary)]';
     return (
         <section aria-label={title} data-testid={`template-fill-group-${id}`} className="flex flex-col gap-3">
             {collapsible ? (
-                <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}
+                <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setToggled(!open)}
                     className={`${heading} flex items-center gap-1 self-start rounded hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]`}>
                     <span aria-hidden="true">{open ? '▾' : '▸'}</span>{title} ({count})
                 </button>
-            ) : <h4 className={heading}>{title}</h4>}
-            {open && <div id={bodyId} className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>}
+            ) : <h4 className={heading}>{title} ({count})</h4>}
+            {open && <div id={bodyId} className={`grid grid-cols-1 gap-3 ${narrow ? '' : 'sm:grid-cols-2'}`}>{children}</div>}
         </section>
     );
 }
 
-function groupOf(field: TemplateFillField, values: Record<string, unknown>): GroupId {
-    if (!isEmpty(values[field.key])) return 'filled';
-    return field.required ? 'missing' : 'optional';
-}
-
-export default function TemplateFillFields({ fields, values, issues, saving, notes, onChange }: {
+export default function TemplateFillFields({ fields, values, issues, saving, asked, remarked, extras, narrow = false, onChange }: {
     fields: TemplateFillField[]; values: Record<string, unknown>; issues: Record<string, string>; saving?: boolean;
-    /** A line per field about who filled it in or was asked for it (filling in together in a project). */
-    notes?: Record<string, string>;
+    /** One field per row, whatever the width of the window: the form sits in a narrow column (the editor's side panel). */
+    narrow?: boolean;
+    /** The fields a colleague asked this person for: shown first. */
+    asked?: ReadonlySet<string>;
+    /** The fields the final check has a remark on: shown next. */
+    remarked?: ReadonlySet<string>;
+    /** What is shown under a field: the remark, who filled it in, notes, asking a colleague. */
+    extras?: (field: TemplateFillField) => ReactNode;
     onChange: (key: string, value: unknown) => void;
 }) {
     const { t } = useTranslation();
     const titles: Record<GroupId, string> = {
+        asked: t('chat_templates.fields_group_asked', 'Asked of you'),
+        remarked: t('chat_templates.fields_group_remarked', 'To look at'),
         missing: t('chat_templates.fields_group_missing', 'Still needed'),
         filled: t('chat_templates.fields_group_filled', 'Filled in'),
         optional: t('chat_templates.fields_group_optional', 'Optional'),
     };
-    // The groups as they stood when the form opened: a field that gets a value stays where it is
-    // (no jump, no remount, focus kept) until the form is opened again from the server.
-    const [opened] = useState(() => new Map(fields.map((f) => [f.key, groupOf(f, values)])));
-    const groups = (['missing', 'filled', 'optional'] as const)
-        .map((id) => ({ id, fields: fields.filter((f) => (opened.get(f.key) ?? groupOf(f, values)) === id) }))
-        .filter((g) => g.fields.length > 0);
+    const { groups, touch, release } = useGrouping(fields, values, { asked, remarked });
+    // Focus that leaves the fields altogether (to a button of the form, to the chat) ends the holding in place.
+    const leave = useReleaseOnLeave(release);
+    const toDo = groups.some((g) => TO_DO.has(g.id));
+    const change = (key: string, value: unknown) => { touch(key); onChange(key, value); };
     return (
-        <div className="relative flex flex-col gap-4" data-testid="template-fill-fields">
+        <div className="relative flex flex-col gap-4" data-testid="template-fill-fields" onBlur={leave.onBlur} onFocus={leave.onFocus}>
             {saving && (
                 <span className="absolute right-0 top-0 text-xs text-[var(--text-tertiary)]" role="status">
                     {t('chat_templates.fields_saving', 'Saving…')}
                 </span>
             )}
             {groups.map((g) => (
-                <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length}
-                    collapsible={g.id !== 'missing' && groups.some((other) => other.id === 'missing')}>
+                <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length} collapsible={!TO_DO.has(g.id) && toDo} narrow={narrow}>
                     {g.fields.map((f) => (
-                        <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} note={notes?.[f.key]} onChange={onChange} />
+                        <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} extra={extras?.(f)} onChange={change} onTouch={touch} />
                     ))}
                 </FieldGroup>
             ))}
