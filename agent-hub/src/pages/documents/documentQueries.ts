@@ -121,7 +121,7 @@ export function useDocumentView(id: string | null | undefined) {
  * Whether two library filters show the same view: both the archive (one view
  * over every kind), or both the same kind outside it.
  */
-export function sameLibraryView(a: LibraryFilters, b: LibraryFilters): boolean {
+function sameLibraryView(a: LibraryFilters, b: LibraryFilters): boolean {
     if (!!a.archived !== !!b.archived) return false;
     return !!a.archived || a.kind === b.kind;
 }

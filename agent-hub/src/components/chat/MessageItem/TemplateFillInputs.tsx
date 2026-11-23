@@ -11,7 +11,7 @@ import useTranslation from '@/hooks/useTranslation';
 import type { TemplateFillField } from './templateFillTypes';
 
 export type OnChange = (key: string, value: unknown) => void;
-export type Row = Record<string, unknown>;
+type Row = Record<string, unknown>;
 
 /** From this length a text is several lines high, where the browser does not size the box to its content itself. */
 const LONG_TEXT = 80;
