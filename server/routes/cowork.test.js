@@ -624,6 +624,8 @@ test('enabledApps: PUT can set a list and hand it back to the workspace default'
     reset();
     await call('/cw-1', { method: 'PUT', body: { enabledApps: null } });
     assert.strictEqual(state.updates[0].patch.enabledApps, null);
+    reset(); await call('/cw-1', { method: 'PUT', body: { monthlyBudget: 5 } }); // the item budget is saved too
+    assert.strictEqual(state.updates[0].patch.monthlyBudget, 5);
 
     // Untouched by a PUT that says nothing about apps.
     reset();
@@ -995,13 +997,4 @@ test('the review body: a known action, an answer only as text within its limit, 
         assert.strictEqual((await review(body)).status, 400, JSON.stringify(body));
     }
     assert.deepStrictEqual(state.reviewCalls, []);
-});
-
-test('monthlyBudget: PUT saves the item\'s budget, and null takes it off', async () => {
-    reset();
-    await call('/cw-1', { method: 'PUT', body: { monthlyBudget: 5 } });
-    assert.strictEqual(state.updates[0].patch.monthlyBudget, 5);
-    reset();
-    await call('/cw-1', { method: 'PUT', body: { monthlyBudget: null } });
-    assert.strictEqual(state.updates[0].patch.monthlyBudget, null);
 });
