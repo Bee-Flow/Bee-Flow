@@ -1,5 +1,6 @@
 /**
- * "Hand over to a colleague", folded under an item's trail (./CoworkDetail.tsx). The colleague gets a new, paused item
+ * "Hand over to a colleague", in the People section of an item's Settings tab (./CoworkSettings.tsx), read once that
+ * tab is shown. The colleague gets a new, paused item
  * with the plan to approve; this one goes, with its history, which stays the owner's own.
  */
 import { useState } from 'react';
@@ -10,18 +11,17 @@ import { errorMessage } from '../../utils/caughtError';
 
 export default function CoworkHandOver({ coworkId }: { coworkId: string }) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
     const [to, setTo] = useState('');
-    const colleagues = useCoworkColleagues(coworkId, open);
+    const colleagues = useCoworkColleagues(coworkId, true);
     const handOver = useCoworkHandOver(coworkId);
     const list = colleagues.data ?? [];
     return (
-        <details className="rounded-[10px] border px-[18px] py-3 [border-color:var(--border-subtle)]" data-testid="cowork-hand-over" onToggle={(e) => setOpen(e.currentTarget.open)}>
-            <summary className="cursor-pointer inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)]">
-                <UserRoundPlus aria-hidden="true" className="w-3.5 h-3.5" />
+        <div data-testid="cowork-hand-over" className="flex flex-col gap-2">
+            <h4 className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-primary)]">
+                <UserRoundPlus aria-hidden="true" className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                 {t('cowork.hand_over.heading', 'Hand over to a colleague')}
-            </summary>
-            <div className="pt-2 flex flex-col gap-2">
+            </h4>
+            <div className="flex flex-col gap-2">
                 <p className="text-[12px] text-[var(--text-secondary)]">
                     {t('cowork.hand_over.hint', 'Your colleague gets this work paused, with its plan to approve. Its history stays yours and goes with this item.')}
                 </p>
@@ -40,6 +40,6 @@ export default function CoworkHandOver({ coworkId }: { coworkId: string }) {
                 )}
                 {handOver.error && <p role="alert" className="text-[12px] text-[var(--error-ink)]">{errorMessage(handOver.error) || t('cowork_plan.failed', 'That did not work. Try again.')}</p>}
             </div>
-        </details>
+        </div>
     );
 }

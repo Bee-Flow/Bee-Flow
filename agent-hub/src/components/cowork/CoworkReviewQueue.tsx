@@ -6,7 +6,8 @@
  * did. The owner then either answers (the agent continues in the same conversation, as a follow-up run in Cowork with
  * the same tools as before, never more) or closes it: "I did it myself" or "Not needed". Both stay in the run history.
  *
- * Reads the same run query as the history below (one request), and says nothing when nothing waits.
+ * Reads the same run query as the history (one request), or takes the runs its parent already read (the "Needs you"
+ * strip, ./CoworkNeedsStrip.tsx, which mounts it only once something waits), and says nothing when nothing waits.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { ClipboardCheck } from 'lucide-react';
@@ -109,12 +110,14 @@ interface CoworkReviewQueueProps {
     reloadKey: number | undefined;
     /** After a run was handled (the Cowork queries are read again first). */
     onReviewed?: () => void;
+    /** The runs, when the parent already read them: then this reads nothing itself. */
+    runs?: CoworkRun[];
 }
 
-export default function CoworkReviewQueue({ coworkId, reloadKey, onReviewed }: CoworkReviewQueueProps) {
+export default function CoworkReviewQueue({ coworkId, reloadKey, onReviewed, runs }: CoworkReviewQueueProps) {
     const { t } = useTranslation();
-    const runsQuery = useCoworkRunsQuery(coworkId, reloadKey);
-    const waiting = waitingRuns(runsQuery.data?.runs);
+    const runsQuery = useCoworkRunsQuery(runs ? null : coworkId, reloadKey);
+    const waiting = waitingRuns(runs ?? runsQuery.data?.runs);
     if (waiting.length === 0) return null;
 
     return (

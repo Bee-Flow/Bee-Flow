@@ -1,5 +1,5 @@
-// "Share with your team": nothing is read until the section opens; the saved shares show as chosen, a change is saved
-// as the full list, and two deciders cannot be saved. The network is the seam (a recording fetch), no module is mocked.
+// "Share with your team": read when the panel is shown (its Settings tab, see CoworkSettings.test.tsx); the saved
+// shares show as chosen, a change is saved as the full list, and two deciders cannot be saved. The network is the seam (a recording fetch), no module is mocked.
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -19,12 +19,10 @@ function serve() {
 }
 
 describe('CoworkShare', () => {
-    it('shows who it is shared with once opened, and saves the whole list', async () => {
+    it('shows who it is shared with, and saves the whole list', async () => {
         serve();
         renderWithClient(<CoworkShare coworkId="w1" />);
-        expect(calls).toHaveLength(0);
         const user = userEvent.setup();
-        await user.click(screen.getByText('Share with your team'));
         const bob = await screen.findByLabelText('What Bob may do');
         await waitFor(() => expect(bob).toHaveValue('viewer'));
         await user.selectOptions(screen.getByLabelText('What Eve may do'), 'approver');
@@ -39,7 +37,6 @@ describe('CoworkShare', () => {
         serve();
         renderWithClient(<CoworkShare coworkId="w1" />);
         const user = userEvent.setup();
-        await user.click(screen.getByText('Share with your team'));
         await user.selectOptions(await screen.findByLabelText('What Bob may do'), 'approver');
         await user.selectOptions(screen.getByLabelText('What Eve may do'), 'approver');
         expect(screen.getByRole('alert')).toHaveTextContent('One colleague decides the questions');

@@ -1,11 +1,10 @@
 /**
- * "How it starts", folded in an item (./CoworkDetail.tsx): on its schedule, after another cowork, when another system
+ * "How it starts", under an item's Settings tab (./CoworkSettings.tsx), read once that tab is shown: on its schedule, after another cowork, when another system
  * calls its address, when rows of a table change, or when a new file arrives in a folder. A new mail is chosen in the
  * edit form. A webhook's address and token are shown once, right after they are made. Choosing a start takes the
  * plan's approval away: the plan is checked again for what the new start brings.
  */
 import { useState } from 'react';
-import { Zap } from 'lucide-react';
 import { useCoworkStart, useOwnCoworks, useReadableTables, type HookAddress, type StartChoice, type StartKind } from '../../api/coworkStart';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -69,21 +68,16 @@ function StartTarget({ kind, value, onChange, itemId, t }: { kind: StartKind; va
 
 export default function CoworkStartPanel({ item }: { item: CoworkItem }) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const { query, choose } = useCoworkStart(item.id, open);
+    const { query, choose } = useCoworkStart(item.id, true);
     const [kind, setKind] = useState<StartKind | null>(null);
     const [value, setValue] = useState('');
     const current = kind ?? query.data?.kind ?? 'schedule';
     const ready = choiceOf(current, value);
     const failed = choose.error ? errorMessage(choose.error) || t('cowork_plan.failed', 'That did not work. Try again.') : null;
     return (
-        <details className="rounded-[10px] border px-[18px] py-3 [border-color:var(--border-subtle)]" data-testid="cowork-start" onToggle={(e) => setOpen(e.currentTarget.open)}>
-            <summary className="cursor-pointer inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)]">
-                <Zap aria-hidden="true" className="w-3.5 h-3.5" />
-                {t('cowork.start.heading', 'How it starts')}
-            </summary>
+        <div data-testid="cowork-start">
             {query.data && (
-                <div className="pt-2 flex flex-col gap-2">
+                <div className="flex flex-col gap-2">
                     {query.data.kind === 'app_event' && <p className="text-[12px] text-[var(--text-secondary)]">{t('cowork.start.mail', 'It starts on a new mail; change that in the edit form.')}</p>}
                     <label htmlFor={`cowork-start-${item.id}`} className="text-[12px] font-medium text-[var(--text-primary)]">{t('cowork.start.label', 'Starts')}</label>
                     <select id={`cowork-start-${item.id}`} className={FIELD} value={current} onChange={(e) => { setKind(e.target.value as StartKind); setValue(''); }}>
@@ -102,6 +96,6 @@ export default function CoworkStartPanel({ item }: { item: CoworkItem }) {
                     {failed && <p role="alert" className="text-[12px] text-[var(--error-ink)]">{failed}</p>}
                 </div>
             )}
-        </details>
+        </div>
     );
 }

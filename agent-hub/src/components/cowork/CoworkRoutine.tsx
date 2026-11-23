@@ -4,13 +4,13 @@
  * is approved. ./CoworkRoutineCompare.tsx is the proof, after a try-out.
  */
 import { Repeat } from 'lucide-react';
-import { useCoworkRoutine } from '../../api/coworkRoutine';
+import { isRoutineWorthIt, useCoworkRoutine } from '../../api/coworkRoutine';
 import type { TranslateFn } from '../../hooks/useTranslation';
 
 export default function CoworkRoutine({ coworkId, busy, onPropose, t }: { coworkId: string; busy: boolean; onPropose: () => void; t: TranslateFn }) {
     const advice = useCoworkRoutine(coworkId, true).data;
     const signals = advice?.signals;
-    if (!advice?.applicable || !signals?.worthIt) return null;
+    if (!isRoutineWorthIt(advice) || !signals) return null;
     return (
         <div className="flex flex-col gap-1.5" data-testid="cowork-routine">
             <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-primary)]">
@@ -27,7 +27,7 @@ export default function CoworkRoutine({ coworkId, busy, onPropose, t }: { cowork
                 {t('cowork.routine.hint', 'Cowork can make that fixed steps, with AI only where it has to judge or write. It looked at app actions and counts only, never at what they read. Nothing changes until you approve the plan.')}
             </span>
             <div>
-                <button type="button" className="px-3 py-1.5 rounded-lg border text-[12px] font-medium [border-color:var(--border-default)] disabled:opacity-50" disabled={busy} onClick={onPropose}>
+                <button type="button" className="px-3 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)]" disabled={busy} onClick={onPropose}>
                     {t('cowork.routine.propose', 'Propose fixed steps')}
                 </button>
             </div>

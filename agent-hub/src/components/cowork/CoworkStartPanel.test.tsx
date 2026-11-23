@@ -1,4 +1,4 @@
-// "How it starts": the start is read when the section opens, a choice is saved, and a webhook's address and token are
+// "How it starts": the start is read when the panel is shown (its Settings tab, see CoworkSettings.test.tsx), a choice is saved, and a webhook's address and token are
 // shown once. The network is the seam (a recording fetch), no module is mocked.
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -31,7 +31,6 @@ describe('CoworkStartPanel', () => {
         serve();
         renderWithClient(<CoworkStartPanel item={ITEM} />);
         const user = userEvent.setup();
-        await user.click(screen.getByText('How it starts'));
         await user.selectOptions(await screen.findByLabelText('Starts'), 'after_cowork');
         await user.selectOptions(await screen.findByLabelText('After which cowork'), 'w2');
         await user.click(screen.getByRole('button', { name: 'Save how it starts' }));
@@ -43,7 +42,6 @@ describe('CoworkStartPanel', () => {
         serve();
         renderWithClient(<CoworkStartPanel item={ITEM} />);
         const user = userEvent.setup();
-        await user.click(screen.getByText('How it starts'));
         await user.selectOptions(await screen.findByLabelText('Starts'), 'webhook');
         await user.click(screen.getByRole('button', { name: 'Save how it starts' }));
         const address = await screen.findByTestId('cowork-start-address');
@@ -55,7 +53,6 @@ describe('CoworkStartPanel', () => {
         serve();
         renderWithClient(<CoworkStartPanel item={ITEM} />);
         const user = userEvent.setup();
-        await user.click(screen.getByText('How it starts'));
         await user.selectOptions(await screen.findByLabelText('Starts'), 'file');
         await user.type(screen.getByLabelText('Folder in Nextcloud, such as /Invoices'), 'Invoices');
         expect(screen.getByRole('button', { name: 'Save how it starts' })).toBeDisabled();

@@ -1,5 +1,6 @@
 /**
- * "Share with your team", folded in an item (./CoworkDetail.tsx): colleagues of the owner's organisation who may see
+ * "Share with your team", in the People section of an item's Settings tab (./CoworkSettings.tsx), read once that tab
+ * is shown: colleagues of the owner's organisation who may see
  * it, and at most one who also decides its runs' questions. The item stays the owner's: it runs as them, and only
  * they change it.
  */
@@ -14,21 +15,20 @@ const FIELD = 'rounded-lg border px-2 py-1 text-[12px] bg-[var(--bg-primary)] [b
 
 export default function CoworkShare({ coworkId }: { coworkId: string }) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const colleagues = useCoworkColleagues(coworkId, open).data ?? [];
-    const { query, save } = useCoworkShares(coworkId, open);
+    const colleagues = useCoworkColleagues(coworkId, true).data ?? [];
+    const { query, save } = useCoworkShares(coworkId, true);
     // What the owner changed since the last save, on top of what is saved.
     const [edits, setEdits] = useState<Record<string, ShareRole | ''>>({});
     const draft: Record<string, ShareRole | ''> = { ...Object.fromEntries((query.data ?? []).map((s) => [s.userId, s.role])), ...edits };
     const deciders = Object.values(draft).filter((r) => r === 'approver').length;
     const shares: Share[] = Object.entries(draft).filter(([, role]) => role).map(([userId, role]) => ({ userId, role: role as ShareRole }));
     return (
-        <details className="rounded-[10px] border px-[18px] py-3 [border-color:var(--border-subtle)]" data-testid="cowork-share" onToggle={(e) => setOpen(e.currentTarget.open)}>
-            <summary className="cursor-pointer inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)]">
-                <Users aria-hidden="true" className="w-3.5 h-3.5" />
+        <div data-testid="cowork-share" className="flex flex-col gap-2">
+            <h4 className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-primary)]">
+                <Users aria-hidden="true" className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                 {t('cowork.share.heading', 'Share with your team')}
-            </summary>
-            <div className="pt-2 flex flex-col gap-2">
+            </h4>
+            <div className="flex flex-col gap-2">
                 <p className="text-[12px] text-[var(--text-secondary)]">
                     {t('cowork.share.hint', 'Colleagues can see this work and its runs; one of them can decide its questions. It keeps running as you, and only you change it.')}
                 </p>
@@ -52,6 +52,6 @@ export default function CoworkShare({ coworkId }: { coworkId: string }) {
                 </div>
                 {save.error && <p role="alert" className="text-[12px] text-[var(--error-ink)]">{errorMessage(save.error) || t('cowork_plan.failed', 'That did not work. Try again.')}</p>}
             </div>
-        </details>
+        </div>
     );
 }
