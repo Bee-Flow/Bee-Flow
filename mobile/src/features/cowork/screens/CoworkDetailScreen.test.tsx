@@ -12,6 +12,7 @@ import { ApiError, api } from '@/core/api/client';
 import { renderScreen } from '@/shared/testing/renderWithProviders';
 
 import { CoworkDetailScreen } from './CoworkDetailScreen';
+import { SharedDetailScreen } from './SharedDetailScreen';
 
 jest.setTimeout(60_000);
 
@@ -89,5 +90,92 @@ describe('CoworkDetailScreen', () => {
         expect(screen.getByText('Pause')).toBeTruthy();
         expect(screen.getByText('Run now')).toBeTruthy();
         expect(screen.getByText('Changing what this asks for is desktop work — open it in the web app.')).toBeTruthy();
+    });
+
+    describe('a run that asked its owner', () => {
+        const RUNS = [
+            {
+                id: 'r1',
+                status: 'needs_review',
+                startedAt: '2026-09-02T10:00:00Z',
+                review: { reason: 'Needs a discount', question: 'May I offer 10%?', summary: null, resolution: null },
+            },
+            { id: 'r0', status: 'completed', result: 'Sent the digest.', startedAt: '2026-09-01T10:00:00Z', review: null },
+        ];
+        const noReceipt = () => Promise.reject(new ApiError('HTTP 404', { status: 404 }));
+        const serve = (receipt: () => Promise<unknown>) =>
+            (api.get as jest.Mock).mockImplementation((path: string) => {
+                if (path === '/api/cowork/c1') return Promise.resolve(SCHEDULE);
+                if (path === '/api/cowork/c1/runs') return Promise.resolve({ runs: RUNS });
+                if (path === '/api/cowork/c1/runs/r0/receipt') return receipt();
+                return Promise.resolve([]);
+            });
+
+        it('shows the question on top, and sends the answer to that run', async () => {
+            serve(noReceipt);
+            (api.post as jest.Mock).mockResolvedValue({ ok: true });
+            await open();
+            expect(await screen.findByText('May I offer 10%?')).toBeTruthy();
+            expect(screen.getByText('Needs a discount')).toBeTruthy();
+            await fireEvent.changeText(screen.getByTestId('cowork-review-answer'), '  Yes, 10%  ');
+            await fireEvent.press(screen.getByTestId('cowork-review-send'));
+            await waitFor(() =>
+                expect(api.post).toHaveBeenCalledWith('/api/cowork/c1/runs/r1/review', { action: 'answer', answer: 'Yes, 10%' }),
+            );
+        });
+
+        it('closes it as done by hand without an answer', async () => {
+            serve(noReceipt);
+            (api.post as jest.Mock).mockResolvedValue({ ok: true });
+            await open();
+            await screen.findByText('May I offer 10%?');
+            await fireEvent.press(screen.getByTestId('cowork-review-done'));
+            await waitFor(() =>
+                expect(api.post).toHaveBeenCalledWith('/api/cowork/c1/runs/r1/review', { action: 'done_myself' }),
+            );
+        });
+
+        it('reads a receipt only when a run is opened', async () => {
+            serve(() => Promise.resolve({ seq: 7, runId: 'r0', at: null, signed: true }));
+            await open();
+            await screen.findByText('Sent the digest.');
+            expect(api.get).not.toHaveBeenCalledWith('/api/cowork/c1/runs/r0/receipt', expect.anything());
+            await fireEvent.press(screen.getByLabelText('Completed'));
+            expect(await screen.findByText('Receipt #7 · signed')).toBeTruthy();
+        });
+
+        it('shows no receipt line for a 404', async () => {
+            serve(noReceipt);
+            await open();
+            await screen.findByText('Sent the digest.');
+            await fireEvent.press(screen.getByLabelText('Completed'));
+            await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/cowork/c1/runs/r0/receipt', expect.anything()));
+            expect(screen.queryByTestId('cowork-receipt')).toBeNull();
+        });
+    });
+});
+
+describe('SharedDetailScreen', () => {
+    it('shows what it does and its runs, and nothing to pause, run or delete', async () => {
+        (api.get as jest.Mock).mockImplementation((path: string) => {
+            if (path === '/api/cowork/shared') {
+                return Promise.resolve({ items: [{ id: 's1', ownerId: 'u2', ownerName: 'Ann', title: 'Weekly digest', role: 'viewer' }] });
+            }
+            if (path === '/api/cowork/shared/s1') {
+                return Promise.resolve({
+                    role: 'viewer',
+                    item: { id: 's1', title: 'Weekly digest', prompt: 'Summarise the week.', isActive: true, nextRunAt: null },
+                    runs: [{ id: 'r1', status: 'completed', result: 'Sent it.', startedAt: null, durationMs: 10 }],
+                });
+            }
+            return Promise.resolve([]);
+        });
+        await renderScreen(<SharedDetailScreen id="s1" />);
+        expect(await screen.findByText('Summarise the week.')).toBeTruthy();
+        expect(screen.getByText('Sent it.')).toBeTruthy();
+        expect(await screen.findByText('Ann’s, you can see it')).toBeTruthy();
+        expect(screen.getByText('You can look along here. Changing it is up to Ann.')).toBeTruthy();
+        for (const label of ['Pause', 'Resume', 'Run now', 'Delete']) expect(screen.queryByLabelText(label)).toBeNull();
+        expect(api.post).not.toHaveBeenCalled();
     });
 });

@@ -11,13 +11,31 @@
  * `/api/cowork` in server/index.js.
  */
 
-import { api } from '@/core/api/client';
+import { ApiError, api } from '@/core/api/client';
 import { nullable } from '@/core/api/contract';
 import { withId } from '@/shared/lib/withId';
 
-import { readComposed, readNeeds, readRuns, readSchedule, readSchedules } from './readers';
+import {
+    readComposed,
+    readNeeds,
+    readReceipt,
+    readRuns,
+    readSchedule,
+    readSchedules,
+    readShared,
+    readSharedView,
+} from './readers';
 import type { CoworkPayload } from '../model/schedule';
-import type { ComposedCowork, CoworkNeed, CoworkRun, CoworkSchedule } from '../model/types';
+import type {
+    ComposedCowork,
+    CoworkNeed,
+    CoworkReceipt,
+    CoworkRun,
+    CoworkSchedule,
+    ReviewAction,
+    SharedItem,
+    SharedView,
+} from '../model/types';
 
 const path = (id: string) => `/api/cowork/${encodeURIComponent(id)}`;
 
@@ -73,4 +91,35 @@ export async function runNow(id: string): Promise<void> {
 
 export async function deleteSchedule(id: string): Promise<void> {
     await api.delete(path(id));
+}
+
+/** Someone else's work that is shared with the caller, as a viewer or as the one who decides its questions. */
+export async function listShared(signal?: AbortSignal): Promise<SharedItem[]> {
+    return readShared(await api.get<unknown>('/api/cowork/shared', { signal }));
+}
+
+/** One shared item, read only (the owner's own edit routes refuse anyone else). */
+export async function getShared(id: string, signal?: AbortSignal): Promise<SharedView | null> {
+    return readSharedView(await api.get<unknown>(`/api/cowork/shared/${encodeURIComponent(id)}`, { signal }));
+}
+
+/**
+ * One run's receipt. A 404 is the answer "no receipt yet" (the sweep writes it
+ * a few minutes after the run closed), not a failure: it reads as null.
+ */
+export async function getRunReceipt(id: string, runId: string, signal?: AbortSignal): Promise<CoworkReceipt | null> {
+    try {
+        return readReceipt(await api.get<unknown>(`${path(id)}/runs/${encodeURIComponent(runId)}/receipt`, { signal }));
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+    }
+}
+
+/** Handle a run that asked its owner: answer it (the agent continues), or close it as done by hand or not needed. */
+export async function resolveReview(id: string, runId: string, action: ReviewAction, answer?: string): Promise<void> {
+    await api.post(
+        `${path(id)}/runs/${encodeURIComponent(runId)}/review`,
+        action === 'answer' ? { action, answer: (answer ?? '').trim() } : { action },
+    );
 }
