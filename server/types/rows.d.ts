@@ -1227,9 +1227,22 @@ declare namespace DbRow {
         project_id: string | null;
         run_id: string;
     }
+    /** Row of `cowork_plans`. */
+    interface CoworkPlans {
+        approved_at: Date;
+        approved_by: string;
+        automation_id: string;
+        definition_json: string;
+        fingerprint: string;
+        id: string;
+        permissions_json: string;
+        schedule_id: string;
+        version: number;
+    }
     /** Row of `cowork_runs`. */
     interface CoworkRuns {
         activity_json: string | null;
+        automation_run_id: string | null;
         conversation_id: string | null;
         duration_ms: number | null;
         error: string | null;
@@ -1238,6 +1251,7 @@ declare namespace DbRow {
         id: string;
         mail_subject: string | null;
         parent_run_id: string | null;
+        plan_id: string | null;
         produced_output: boolean | null;
         result: string | null;
         review_question: string | null;
@@ -1269,6 +1283,8 @@ declare namespace DbRow {
         max_result_length: number | null;
         model_tier: string | null;
         next_run_at: Date | null;
+        plan_automation_id: string | null;
+        plan_id: string | null;
         prompt: string;
         repeat_interval: string | null;
         run_count: number | null;

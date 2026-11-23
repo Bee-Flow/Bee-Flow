@@ -12,6 +12,7 @@
  * GET    /:id/runs      → execution history, newest first
  * GET    /:id/stats     → the aggregate behind the figure cards
  * POST   /:id/runs/:runId/review → handle a run that asked for review (./coworkReviewRoutes.js)
+ * GET, PUT, DELETE /:id/plan and POST /:id/plan/approve → the item's plan (./coworkPlanRoutes.js)
  *
  * An item is started by its clock (`triggerKind: 'schedule'`, the default) or by
  * an event (`triggerKind: 'app_event'` + `trigger: { provider, event, filter? }`,
@@ -72,6 +73,7 @@ const { requireAuth } = require('../auth/permissions');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
 const { mountReviewRoutes, withReviewCounts, reviewCountOf } = require('./coworkReviewRoutes');
+const { mountPlanRoutes } = require('./coworkPlanRoutes');
 const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
 
 const DEFAULT_MAX_SCHEDULES = 10;
@@ -383,6 +385,7 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
 });
 
 mountReviewRoutes(router); // POST /:id/runs/:runId/review
+mountPlanRoutes(router); // GET, PUT, DELETE /:id/plan and POST /:id/plan/approve
 
 // GET /:id/stats — the figures behind the four cards (CW-11).
 //

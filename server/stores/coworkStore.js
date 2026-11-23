@@ -30,6 +30,8 @@ const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => ini
 // The claim of one attempt, and giving it back (./coworkClaims.mts).
 const { markRunning, releaseRun } = require('./coworkClaims.mts').makeCoworkClaims({ ready: () => initDB() });
 const { RUN_COLUMNS } = require('./ddl/cowork-review-2026-11');
+const { PLAN_DDL } = require('./ddl/cowork-plans-2026-11');
+const coworkPlans = require('./coworkPlans.mts').makeCoworkPlans({ ready: () => initDB() }); // the plan of an item, as approved
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
 // (same convention as studioAppStore) so a plain `npm run db:migrate` — which
@@ -58,6 +60,7 @@ async function _initDB() {
         `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS produced_output BOOLEAN`,
         // The review queue and the per-run activity.
         ...RUN_COLUMNS,
+        ...PLAN_DDL, // plans: the approved plan of an item, the automation run behind a run of one
     ]);
     log.info('[CoworkStore] PostgreSQL initialized');
 }
@@ -546,6 +549,12 @@ module.exports = {
     countOpenReviews: coworkReviews.countOpenReviews,
     getRunForReview: coworkReviews.getRunForReview,
     resolveReview: coworkReviews.resolveReview,
+    // Plans (./coworkPlans.mts).
+    attachPlanAutomation: coworkPlans.attachPlanAutomation,
+    detachPlan: coworkPlans.detachPlan,
+    approvePlan: coworkPlans.approvePlan,
+    getApprovedPlan: coworkPlans.getApprovedPlan,
+    linkPlanRun: coworkPlans.linkPlanRun,
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
     releaseRun,

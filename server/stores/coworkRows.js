@@ -55,6 +55,10 @@ function rowToSchedule(r) {
         // `trigger` is { provider, event, filter? } for the latter, else null.
         triggerKind: r.trigger_kind || 'schedule',
         trigger: r.trigger_json ? safeParseJSON(r.trigger_json, NO_TRIGGER) : null,
+        // A plan (core/cowork/plan): the automation it is made from, and the approved
+        // plan a run executes. Both null: the item runs as a prompt or as its agent.
+        planAutomationId: r.plan_automation_id || null,
+        planId: r.plan_id || null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
     };
 }

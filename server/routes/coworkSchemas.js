@@ -162,4 +162,11 @@ const ReviewBody = z.object({
     }
 });
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+// PUT /:id/plan and POST /:id/plan/approve (usecases/coworkPlan.mts): the automation a plan is made
+// from, and the fingerprint of the plan its owner looked at (SHA-256, core/cowork/plan/planPermissions.mts).
+const AUTOMATION_ID_TEXT = 'automationId is the id of one of your automations.';
+const PlanAttachBody = z.object({ automationId: worded(AUTOMATION_ID_TEXT).trim().min(1, AUTOMATION_ID_TEXT).max(200, AUTOMATION_ID_TEXT) }).strict();
+const FINGERPRINT_TEXT = 'fingerprint is the fingerprint of the plan you looked at.';
+const PlanApproveBody = z.object({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }).strict();
+
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

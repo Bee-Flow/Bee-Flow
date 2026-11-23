@@ -180,6 +180,9 @@
     "DELETE /api/cowork/:id": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
     "DELETE /api/datatables/:id": {
       "gate": "permission",
       "anyOf": [
@@ -1803,6 +1806,9 @@
       "gate": "auth"
     },
     "GET /api/cowork/:id": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan": {
       "gate": "auth"
     },
     "GET /api/cowork/:id/runs": {
@@ -5172,6 +5178,9 @@
     "POST /api/cowork": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/plan/approve": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/run-now": {
       "gate": "auth"
     },
@@ -7315,6 +7324,9 @@
       ]
     },
     "PUT /api/cowork/:id": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan": {
       "gate": "auth"
     },
     "PUT /api/datatables/:id/nextcloud": {

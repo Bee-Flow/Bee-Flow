@@ -281,3 +281,17 @@ test('a run past its time limit starts no further tool call or model round, and 
     assert.ok(storeCalls.includes('advanceSchedule'), 'a repeating item still moves on to its next moment');
     assert.strictEqual(logged.length, 1, 'the tokens of the round that did run are still accounted for');
 });
+
+test('an item with an approved plan runs as its plan: no model call of the prompt path, and the plan path claims it', async () => {
+    resetScenario();
+    script = []; // the prompt path would call the adapter and fail on 'unexpected adapter call'
+    const asked = [];
+    // The plan path asks the store for the approved plan after the claim; a refused claim ends it there.
+    const store = { ...fakeStore, markRunning: async (id, opts) => { asked.push([id, opts]); return null; } };
+
+    await executeTask({ id: 'cw14', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1', agentId: 'agent-1' }, { store, due: true });
+    await flush();
+
+    assert.deepStrictEqual(asked, [['cw14', { triggerKind: 'schedule', due: true }]], 'claimed once, by the plan path');
+    assert.strictEqual(logged.length, 0);
+});

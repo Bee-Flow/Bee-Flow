@@ -5,15 +5,21 @@ description: Why a Cowork plan is stored and run as an automation instead of on 
 
 # 0030: A Cowork plan is an automation held to a short list of steps, and may do only what its steps name
 
-**Status:** accepted, in effect for the plan core; the routes and the runner that use it follow.
+**Status:** accepted, in effect: the plan core, the routes that name and approve a plan, and the
+run of an approved plan. The planner that writes a plan from one sentence follows.
 **Supersedes:** no earlier record. It builds on [0023](./unattended-runs-act-as-the-owner.md).
 **Code:** `server/core/cowork/plan/coworkStepList.mts` (the list), `planChecks.mts` (the rules, one
 pure function), `planPermissions.mts` (permissions, fingerprint, `widens`), `planView.mts` (the
 plan as a person reads it), `planLookups.mts` (the registry, the side-effect map and the open-web
-list behind them). **Enforced by:** `server/core/cowork/plan/coworkStepList.test.js` (every step
-type the engine runs is allowed, refused with a reason, or an annotation: none is undecided),
-`planChecks.test.js`, `planPermissions.test.js` (the layout keys are the automation diff's own)
-and `planLookups.test.js` (the tool names the tests use are real).
+list behind them); `server/stores/coworkPlans.mts` (the plan as approved, a version per approval),
+`server/usecases/coworkPlan.mts` and `server/routes/coworkPlanRoutes.js` (look, name, approve, take
+off), `server/core/cowork/planRun.mts` (the run). **Enforced by:**
+`server/core/cowork/plan/coworkStepList.test.js` (every step type the engine runs is allowed,
+refused with a reason, or an annotation: none is undecided), `planChecks.test.js`,
+`planPermissions.test.js` (the layout keys are the automation diff's own), `planLookups.test.js`
+(the tool names the tests use are real), `server/usecases/coworkPlan.test.js` (nobody approves a
+plan they did not see), `server/core/cowork/planRun.test.js` (a run executes the approved copy, and
+only while it still has its fingerprint) and `server/stores/coworkStore.plans.pg.test.js`.
 
 ## Context
 
@@ -42,8 +48,13 @@ who typed one sentence should be handed: free web addresses, code, sub-flows, pu
 - **Permissions come from the plan.** `permissionsOf` lists each app the steps touch, as reads,
   writes or sends, with the tool names behind it, whether a model is called and whether text from
   outside the workspace is read. That list is what a person approves.
-- **A fingerprint says which plan was approved.** One SHA-256 over the plan without its layout. A
-  run compares it with the plan of that moment.
+- **A fingerprint says which plan was approved.** One SHA-256 over the plan without its layout.
+  To approve, a person sends the fingerprint of the plan they looked at; if the automation changed
+  since, nothing is approved.
+- **A run executes the approved copy.** Approving stores the plan as it is at that moment. A run
+  executes that copy on the automation runner, never the automation of the moment, and first checks
+  that the copy still has its fingerprint, is still a plan Cowork runs, and that the automation
+  behind it still belongs to the item's owner. The automation only lends its identity.
 - **Only a wider plan asks again.** `widens` names what a changed plan may do that the approved one
   may not: a new app, a stronger effect, a new tool, a first send to other people, a first model
   call, a first read of outside text. A plan that does less does not need approval again.
@@ -56,6 +67,14 @@ who typed one sentence should be handed: free web addresses, code, sub-flows, pu
   wait) is a deliberate gap. Someone who needs it opens the plan in Studio, where it is an
   automation like any other and the automation rules apply.
 - Scripts are refused for now. They arrive when the code sandbox runs outside the server process.
+- A plan runs on the automation runner, so the runner's own gate applies: its owner's account is
+  active and their organisation has automations. A plan for anyone else is refused when it is
+  approved, not at its first run. An item without a plan runs as a prompt or as its agent, as
+  before, for everyone.
+- A change to the automation does nothing to the item until its owner approves it. Cowork shows
+  what the changed plan may do that the approved one may not.
+- A run that pauses for an approval closes in Cowork as waiting; the automation's own approval
+  flow continues it. Cowork's own queue for held actions is a later step.
 - Moving a step on a canvas does not change a fingerprint; anything else does, including a field
   this code has never heard of. A harmless change that is not layout therefore needs no approval
   only when it also does not widen the permissions.

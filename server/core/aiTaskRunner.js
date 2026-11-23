@@ -33,6 +33,7 @@ const { runPromptToolLoop, promptRunOutcome, MAX_TOOL_ITERATIONS } = require('./
 const { NOTIFICATION, isRepeating } = require('./cowork/runShared.mts');
 const { startRunDeadline } = require('./cowork/runDeadline.mts');
 const { claimAttempt } = require('./cowork/runClaim.mts');
+const { executePlanRun } = require('./cowork/planRun.mts');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** @type {Record<string, string>} */
@@ -160,7 +161,9 @@ async function resolveUserSession(userId) {
 /**
  * Execute one Cowork schedule.
  *
- * Two execution modes:
+ * Three execution modes:
+ *   - Its plan (`task.planId` set): the approved plan runs on the automation
+ *     runner, see core/cowork/planRun.mts.
  *   - A plain prompt (`task.agentId == null`): inline LLM loop with the
  *     user's integration tools, no agent context.
  *   - Run as an agent (`task.agentId` set): dispatch through the full agent
@@ -181,6 +184,11 @@ async function resolveUserSession(userId) {
  * (COWORK_RUN_MAX_MINUTES, ./cowork/runDeadline.mts).
  */
 async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null, due = false, maxMs = undefined } = {}) {
+    if (task.planId) {
+        // An item with an approved plan runs as that plan (./cowork/planRun.mts),
+        // whatever else it carries: the plan is what its owner approved.
+        return executePlanRun(task, { manual, store, due }, { failRun, advance: advanceAfterTaskRun, NOTIFICATION });
+    }
     if (task.agentId) {
         // Same reason as buildTaskSystemPrompt's schedule section: an agent
         // that doesn't know the repeat is already in place tends to close
@@ -545,7 +553,7 @@ module.exports = {
 
 /**
  * The schedule fields a run reads (coworkStore's rowToSchedule shape).
- * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null }} CoworkTask
+ * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null, planId?: string | null }} CoworkTask
  */
 
 /**

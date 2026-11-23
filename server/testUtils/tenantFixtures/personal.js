@@ -78,10 +78,15 @@ const FIXTURES = [
         routes: [
             'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
             'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
+            'GET /api/cowork/:id/plan', 'PUT /api/cowork/:id/plan', 'POST /api/cowork/:id/plan/approve', 'DELETE /api/cowork/:id/plan',
             'DELETE /api/cowork/:id',
         ],
-        // The review body is validated before the ownership check.
-        bodies: { 'POST /api/cowork/:id/runs/:runId/review': { action: 'not_needed' } },
+        // The review and plan bodies are validated before the ownership check.
+        bodies: {
+            'POST /api/cowork/:id/runs/:runId/review': { action: 'not_needed' },
+            'PUT /api/cowork/:id/plan': { automationId: 'an-automation-of-the-caller' },
+            'POST /api/cowork/:id/plan/approve': { fingerprint: 'a'.repeat(64) },
+        },
     },
     {
         // A reminder of user B (routes/reminders.js): the owner's alone.
