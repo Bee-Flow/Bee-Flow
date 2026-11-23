@@ -32,10 +32,11 @@ export default function TaskPlanning({ projectId, tasks, canEdit, busy, people, 
     const timeline = useTimeline();
     const ids = useId();
     const backlog = tasks.filter(task => task.status !== 'done' && !task.sprintId && !sprintName(task));
+    // Timeline first: it is the tab Planning opens on.
     const tabs: [Mode, string, number | null][] = [
+        ['timeline', t('project_tasks.planning_timeline', 'Timeline'), null],
         ['backlog', t('project_tasks.planning_backlog', 'Backlog'), backlog.length],
         ['sprints', t('project_tasks.planning_sprints', 'Sprints'), null],
-        ['timeline', t('project_tasks.planning_timeline', 'Timeline'), null],
         ['poker', t('project_tasks.planning_poker', 'Poker'), null],
     ];
     const controls = mode === 'timeline' ? <TimelineControls timeline={timeline} />
@@ -60,7 +61,7 @@ export default function TaskPlanning({ projectId, tasks, canEdit, busy, people, 
                                     document.getElementById(tabId(next))?.focus();
                                 }}>
                                 {label}
-                                {count !== null && <span className="font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>}
+                                {count !== null && <span className="font-normal text-[var(--text-tertiary)] tabular-nums" title={t('project_counts.backlog_hint', 'Open tasks that are not in a sprint')}>{count}</span>}
                             </button>
                         ))}
                     </div>

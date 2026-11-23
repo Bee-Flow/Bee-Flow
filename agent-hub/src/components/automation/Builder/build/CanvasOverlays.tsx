@@ -19,7 +19,7 @@ export function ProposalPreviewOverlay({ proposal, catalog, running, onReview, o
     const { t } = useTranslation();
     return (
         <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
-            <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={running} onClick={onReview} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={onClose} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={running} onClick={onReview} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--text-on-ink)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={onClose} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
             <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={proposal.definition} catalog={previewCatalog(catalog, proposal)} editable={false} /></div>
         </div>
     );
@@ -59,9 +59,10 @@ export function ExternalDraftBanner({ onAccept, onDismiss }: {
  * left edge re-opens it (pulses while building). It lives in the canvas, not
  * the column, so an open step drawer pushes it up with the canvas instead of
  * it landing on the drawer's first column. Vertically centred, but never under
- * the top-left chips (52px) and never on the zoom stack below it (15 + 182 + 8
- * px of it, then the tab's own 40px); on a short canvas the stack lies down as
- * one row and the tab keeps to the top.
+ * the top-left chips (52px) and never on the zoom stack below it (15 + ~225 +
+ * 8 px of it since it gained the wrap and presenter buttons, then the tab's own
+ * 40px); on a short canvas the stack lies down as one row and the tab keeps to
+ * the top.
  */
 export function AssistantLauncher({ running, onOpen }: { running?: boolean; onOpen: () => void }) {
     const { t } = useTranslation();
@@ -70,7 +71,7 @@ export function AssistantLauncher({ running, onOpen }: { running?: boolean; onOp
             onClick={onOpen}
             title={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
             aria-label={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
-            className={`absolute left-0 top-[clamp(52px,50%_-_20px,100%_-_245px)] z-20 flex items-center px-1.5 py-3 rounded-r-lg bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/25 shadow-sm transition ${running ? 'animate-pulse' : ''}`}
+            className={`absolute left-0 top-[clamp(52px,50%_-_20px,100%_-_290px)] z-20 flex items-center px-1.5 py-3 rounded-r-lg bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/25 shadow-sm transition ${running ? 'animate-pulse' : ''}`}
         >
             <Sparkles size={16} />
         </button>

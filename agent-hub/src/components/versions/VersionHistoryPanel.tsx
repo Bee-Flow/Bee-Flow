@@ -11,10 +11,12 @@
 //
 // It never interrupts: no modal except the restore confirmation, no toasts; a
 // failure is said in place. Escape closes it (unless a field inside has
-// focus and uses Escape itself).
+// focus and uses Escape itself). It starts below the page's header (the
+// element marked `data-drawer-anchor`), so the toggles that open it stay
+// visible and clickable.
 
 import { Bookmark, History, X } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useProjectMembersQuery } from '../../api/queries/projects';
 import {
     CURRENT, isVersionGone, peopleOfPages, useNameCurrentVersion, useVersionQuery, useVersionsQuery,
@@ -173,6 +175,29 @@ function useDrawerKeys(onClose: () => void) {
     return heading;
 }
 
+/**
+ * Keep the drawer's top at the bottom of the page header that opened it (the
+ * `data-drawer-anchor` element furthest to the right, the side the drawer
+ * opens on), following that header when it resizes or wraps. Without an
+ * anchor the drawer keeps the full height.
+ */
+function useBelowAnchor() {
+    const panel = useRef<HTMLElement>(null);
+    useLayoutEffect(() => {
+        const el = panel.current;
+        const anchors = Array.from(document.querySelectorAll<HTMLElement>('[data-drawer-anchor]'));
+        const anchor = anchors.sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0];
+        if (!el || !anchor) return undefined;
+        const place = () => { el.style.top = `${Math.max(0, Math.round(anchor.getBoundingClientRect().bottom))}px`; };
+        place();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
+        observer?.observe(anchor);
+        window.addEventListener('resize', place);
+        return () => { observer?.disconnect(); window.removeEventListener('resize', place); };
+    }, []);
+    return panel;
+}
+
 /** The newest listed version from `at` or before (the list is newest first), or null. */
 function newestAtOrBefore(versions: VersionMeta[], at: string | null | undefined): VersionMeta | null {
     const limit = at ? Date.parse(at) : Number.NaN;
@@ -241,6 +266,7 @@ function HistoryPanel({
     const [naming, setNaming] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
     const heading = useDrawerKeys(onClose);
+    const panelRef = useBelowAnchor();
 
     const restored = (current: unknown) => {
         select(null);
@@ -255,9 +281,12 @@ function HistoryPanel({
 
     return (
         <aside
+            ref={panelRef}
             aria-labelledby="version-history-title"
             className={`fixed top-0 right-0 bottom-0 z-40 flex flex-col bg-[var(--bg-card)] border-l border-[var(--border-subtle)] shadow-xl w-full ${selectedId ? WIDE : NARROW}`}
             data-testid="version-history-panel"
+            // Glass themes make --bg-card translucent: the modal tier keeps the history legible.
+            data-surface="opaque"
         >
             <PanelHeader title={title} canName={canEdit && !naming} onName={() => { setNaming(true); setNotice(null); }} onClose={onClose} headingRef={heading} />
             {naming && (

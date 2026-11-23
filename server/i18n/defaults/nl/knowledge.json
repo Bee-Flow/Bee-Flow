@@ -1,0 +1,9 @@
+{
+  "translations": {
+    "knowledge.subline.text_anonymous": "geplakte tekst",
+    "knowledge.doc_pill_one": "{total} bestand · {done} verwerkt",
+    "knowledge.docs.error_too_little_text": "Te weinig tekst om te doorzoeken. Voeg liever een langere tekst toe.",
+    "knowledge.docs.error_generic": "Dit kon niet worden toegevoegd. Probeer het opnieuw of verwijder het."
+  },
+  "sameAsEnglish": []
+}

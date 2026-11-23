@@ -194,7 +194,8 @@ export default function AgentHero({
                         value={name}
                         onChange={(e) => updateName(e.target.value)}
                         onBlur={flushNow}
-                        className="w-full text-3xl font-semibold bg-transparent outline-none text-[var(--text-primary)] py-1 px-2 -mx-2 rounded-lg hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] transition"
+                        title={name || undefined}
+                        className="w-full text-3xl font-semibold bg-transparent outline-none text-[var(--text-primary)] py-1 px-2 -mx-2 rounded-lg text-ellipsis hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] transition"
                         placeholder={t('agent_wizard.builder.name_placeholder')}
                     />
                     {(showCategory || categoryUnreadable || tierLabel || languageLabel) && (
@@ -250,14 +251,14 @@ export default function AgentHero({
                     aria-label={t('agent_wizard.builder.role_description_label', 'Role description')}
                     rows={2}
                     data-testid="agent-hero-description"
-                    className="w-full bg-transparent border-none outline-none rounded-xl px-4 py-3 pb-6 -mx-4 text-[15px] leading-6 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/40 focus:bg-[var(--bg-secondary)]/40 transition resize-none overflow-hidden"
+                    className="block w-full bg-transparent border-none outline-none rounded-xl px-3 py-3 pb-7 text-[15px] leading-6 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/40 focus:bg-[var(--bg-secondary)]/40 transition resize-none overflow-hidden"
                 />
                 {/* Counter and destination in one line: the number says how much still fits,
                     the sentence says why it matters. See the docblock for what that
                     sentence is based on. */}
                 <span
                     data-testid="agent-hero-description-counter"
-                    className="absolute bottom-1.5 right-3 text-[10px] text-[var(--text-tertiary)] pointer-events-none"
+                    className="absolute bottom-2 right-3 text-[10px] text-[var(--text-tertiary)] pointer-events-none"
                 >
                     {t('agent_studio.hero.description_counter', '{count}/300 · Shown in the agent picker', {
                         count: (description || '').length,

@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "builder_polish.binding_choose_source": "Kies waar dit vandaan komt…",
+    "builder_polish.binding_source_for": "Waar {label} vandaan komt",
+    "builder_polish.fill_condition_hint": "Bepaalt of het bijbehorende blok überhaupt wordt afgedrukt.",
+    "builder_polish.fill_document_instructions": "Wat dit document vraagt",
+    "builder_polish.fill_example": "Voorbeeld:",
+    "builder_polish.fill_filename_hint": "Zonder .pdf, dat wordt toegevoegd. Laat het leeg om de eigen naam van het document te gebruiken.",
+    "builder_polish.fill_filename_hint_presentation": "Zonder extensie, die wordt toegevoegd. Laat het leeg om de eigen naam van de presentatie te gebruiken.",
+    "builder_polish.fill_list_hint": "Een lijst. Koppel er een hele lijst aan: één waarde en verder niets eromheen.",
+    "builder_polish.fill_list_hint_fields": "Een lijst, één blok per item met {fields}. Koppel er een hele lijst aan: één waarde en verder niets eromheen.",
+    "builder_polish.fill_list_placeholder": "Klik op een lijst in het rechterpaneel",
+    "builder_polish.fill_load_failed": "Je documenten konden niet worden geladen.",
+    "builder_polish.fill_loading_documents": "Je documenten worden geladen…",
+    "builder_polish.fill_no_placeholders": "geen plaatshouders",
+    "builder_polish.fill_pick_document": "Kies een document…",
+    "builder_polish.fill_placeholder_count_one": "{count} plaatshouder",
+    "builder_polish.fill_placeholder_count_other": "{count} plaatshouders",
+    "builder_polish.fill_revision": "Versie",
+    "builder_polish.fill_value_placeholder": "Typ een waarde, of klik er een aan in het rechterpaneel"
+  },
+  "sameAsEnglish": []
+}

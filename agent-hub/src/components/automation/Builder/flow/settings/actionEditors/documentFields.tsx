@@ -9,6 +9,7 @@ import KeepDaysInput from './KeepDaysInput';
 import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../formPrimitives';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { StepEditorProps } from '../collectionEditors';
+import { duplicateNameSuffix } from './documentOptionLabel';
 
 /**
  * Make a document — PDF or Word from an upstream step's text.
@@ -112,7 +113,13 @@ function GenerateDocumentFields({ draft, set, onFocusField, previewSample, error
  */
 type FillDocumentFieldsProps = StepEditorProps;
 
-/** One placeholder of a document, as the server computes it from the body markup. */
+/**
+ * One placeholder of a document. Two shapes reach this editor: the template
+ * list's `placeholders` (from the body markup: `kind` 'list' | 'condition',
+ * `fields` as names) and the contract's `parameters` (`type` 'list' |
+ * 'boolean' | ..., `fields` as parameters, a condition is a boolean that
+ * decides `conditionForSections`).
+ */
 interface DocumentParameter {
     key: string;
     label?: string;
@@ -121,14 +128,20 @@ interface DocumentParameter {
     kind?: string;
     summary?: string;
     instructions?: string;
-    fields?: string[];
+    fields?: Array<string | { key: string; label?: string }>;
+    conditionForSections?: string[];
     example?: unknown;
 }
+
+const isListParameter = (p: DocumentParameter) => p.type === 'list' || p.kind === 'list';
+const isConditionParameter = (p: DocumentParameter) => p.kind === 'condition' || (p.type === 'boolean' && (p.conditionForSections?.length ?? 0) > 0);
+const fieldNames = (p: DocumentParameter) => (p.fields || []).map((f) => (typeof f === 'string' ? f : f.label || f.key));
 
 /** A document of the template library. */
 interface DocumentTemplate {
     id: string;
     name?: string;
+    updatedAt?: string;
     versionId?: string;
     docType?: string;
     parameters?: DocumentParameter[];
@@ -146,7 +159,7 @@ interface DocumentContract {
 }
 
 function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }: FillDocumentFieldsProps) {
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     // A separate run per item (under a field's More) sets this step's forEach.
     const forEach = useForEachRequest(draft, set);
     const [templates, setTemplates] = useState<DocumentTemplate[] | null>(null);   // null = still loading
@@ -167,9 +180,9 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
         let alive = true;
         listTemplates({query,limit:200})
             .then((list) => { if (alive) setTemplates(Array.isArray(list) ? list : []); })
-            .catch((e) => { if (alive) { setTemplates([]); setLoadError(e?.message || 'Could not load your documents.'); } });
+            .catch((e) => { if (alive) { setTemplates([]); setLoadError(e?.message || t('builder_polish.fill_load_failed', 'Could not load your documents.')); } });
         return () => { alive = false; };
-    }, [query]);
+    }, [query, t]);
 
     const picked = useMemo(
         () => (templates || []).find(d => d.id === draft.documentId) || null,
@@ -178,6 +191,22 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
     const placeholders = contract?.parameters || picked?.parameters || picked?.placeholders || [];
 
     const setValue = (key: string, next: unknown) => set('values', { ...(draft.values || {}), [key]: next });
+    const placeholderCount = (count: number) => (count === 0
+        ? t('builder_polish.fill_no_placeholders', 'no placeholders')
+        : count === 1
+            ? t('builder_polish.fill_placeholder_count_one', '{count} placeholder', { count })
+            : t('builder_polish.fill_placeholder_count_other', '{count} placeholders', { count }));
+    const valueHint = (p: DocumentParameter) => {
+        if (p.summary || p.instructions) return p.summary || p.instructions;
+        if (isListParameter(p)) {
+            const names = fieldNames(p);
+            return names.length
+                ? t('builder_polish.fill_list_hint_fields', 'A list, one block per item with {fields}. Bind it to a whole list — one value and nothing else around it.', { fields: names.join(', ') })
+                : t('builder_polish.fill_list_hint', 'A list. Bind it to a whole list — one value and nothing else around it.');
+        }
+        if (isConditionParameter(p)) return t('builder_polish.fill_condition_hint', 'Decides whether its block is printed at all.');
+        return undefined;
+    };
 
     return (
         <>
@@ -200,10 +229,10 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                         className={inputClass()}
                         data-testid="fill-document-picker"
                     >
-                        <option value="">{templates === null ? 'Loading your documents…' : 'Pick a document…'}</option>
+                        <option value="">{templates === null ? t('builder_polish.fill_loading_documents', 'Loading your documents…') : t('builder_polish.fill_pick_document', 'Pick a document…')}</option>
                         {draft.documentId && !picked && <option value={draft.documentId}>{draft.documentName || contract?.name || draft.documentId}</option>}
                         {(templates || []).map(d => (
-                            <option key={d.id} value={d.id}>{d.name}{d.placeholders?.length ? ` · ${d.placeholders.length} placeholder(s)` : ' · no placeholders'}</option>
+                            <option key={d.id} value={d.id}>{d.name}{duplicateNameSuffix(d, templates || [], locale)} · {placeholderCount(d.placeholders?.length ?? 0)}</option>
                         ))}
                     </select>
                 </FormRow>
@@ -221,8 +250,8 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                 )}
             </AccordionSection>
 
-            {contract?.instructions && <p className={hintTextClass()}>{contract.instructions}</p>}
-            {contract?.versionId && <p className={hintTextClass()}>{t('automations.document_fields.pinned_revision', 'Pinned revision:')} {contract.versionId.slice(0,8)}{picked?.versionId && contract.versionId !== picked.versionId && <button type="button" className="underline ml-2" onClick={async()=>{try{const r=await documentRequest(`/${draft.documentId}/contract`);setReview(r.contract);}catch(e){setLoadError((e as Error).message);}}}>{t('automations.document_fields.review_available_update', 'Review available update')}</button>}</p>}
+            {contract?.instructions && <FormRow label={t('builder_polish.fill_document_instructions', 'What this document asks for')}><p className={hintTextClass()}>{contract.instructions}</p></FormRow>}
+            {contract?.versionId && <FormRow label={t('builder_polish.fill_revision', 'Revision')}><p className={hintTextClass()}>{t('automations.document_fields.pinned_revision', 'Pinned revision:')} <span className="font-mono" title={contract.versionId}>{contract.versionId.slice(0,8)}</span>{picked?.versionId && contract.versionId !== picked.versionId && <button type="button" className="underline ml-2" onClick={async()=>{try{const r=await documentRequest(`/${draft.documentId}/contract`);setReview(r.contract);}catch(e){setLoadError((e as Error).message);}}}>{t('automations.document_fields.review_available_update', 'Review available update')}</button>}</p></FormRow>}
             {review && <div className={cardClass()}><h4>{t('automations.document_fields.review_template_update', 'Review template update')}</h4><p className={hintTextClass()}>{review.instructions}</p>{review.parameters.map(p=><p key={p.key} className={hintTextClass()}>{p.key}{p.required?' *':''} — {p.summary || p.instructions}</p>)}{review.sections.map(s=><p key={s.id} className={hintTextClass()}>{s.title}: {s.summary}</p>)}<button type="button" className="underline text-xs" onClick={()=>{set('documentVersionId',review.versionId);setReview(null);}}>{t('automations.document_fields.apply_reviewed_revision', 'Apply reviewed revision')}</button><button type="button" className="underline text-xs ml-3" onClick={()=>setReview(null)}>{t('automations.document_fields.cancel', 'Cancel')}</button></div>}
             {contract?.sections?.map(s=><FormRow key={s.id} label={s.title} hint={s.summary}><select className={inputClass()} value={draft.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>set('sectionOverrides',{...draft.sectionOverrides,[s.id]:e.target.value})}><option value="automatic">{t('automations.document_fields.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('automations.document_fields.include', 'Include')}</option><option value="exclude">{t('automations.document_fields.exclude', 'Exclude')}</option></select></FormRow>)}
 
@@ -232,9 +261,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                     <FormRow
                         key={p.key}
                         label={(p.label || p.key) + (p.required ? ' *' : '')}
-                        hint={p.summary || p.instructions || (p.kind === 'list'
-                            ? `A list${p.fields?.length ? `, one block per item with ${p.fields.join(', ')}` : ''}. Bind it to a whole list — one value and nothing else around it.`
-                            : (p.kind === 'condition' ? 'Decides whether its block is printed at all.' : undefined))}
+                        hint={valueHint(p)}
                     >
                         <TemplateField
                             onRequestForEach={forEach.request}
@@ -244,9 +271,11 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                             rows={1}
                             onFocusField={onFocusField}
                             previewSample={previewSample}
-                            placeholder={p.kind === 'list' ? '{{steps.rows.output.rows}}' : '{{steps.extract.output.naam}}'}
+                            placeholder={isListParameter(p)
+                                ? t('builder_polish.fill_list_placeholder', 'Click a list in the right panel')
+                                : t('builder_polish.fill_value_placeholder', 'Type a value, or click one in the right panel')}
                         />
-                        {p.instructions && <details className={hintTextClass()}><summary>{t('automations.document_fields.instructions', 'Instructions')}</summary><p>{p.instructions}</p>{p.example !== undefined && <p>Example: {typeof p.example==='object'?JSON.stringify(p.example):String(p.example)}</p>}</details>}
+                        {p.instructions && <details className={hintTextClass()}><summary>{t('automations.document_fields.instructions', 'Instructions')}</summary><p>{p.instructions}</p>{p.example !== undefined && <p>{t('builder_polish.fill_example', 'Example:')} {typeof p.example==='object'?JSON.stringify(p.example):String(p.example)}</p>}</details>}
                     </FormRow>
                 ))}
             </AccordionSection>
@@ -260,7 +289,7 @@ function FillDocumentFields({ draft, set, onFocusField, previewSample, errorSect
                         </select>
                     </FormRow>
                 )}
-                <FormRow label={t('automations.document_fields.filename', 'Filename')} hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? "Without the extension — that is added. Leave it blank to use the presentation's own name." : "Without the .pdf — that is added. Leave it blank to use the document's own name."}>
+                <FormRow label={t('automations.document_fields.filename', 'Filename')} hint={(picked?.docType === 'presentation' || contract?.docType === 'presentation') ? t('builder_polish.fill_filename_hint_presentation', "Without the extension — that is added. Leave it blank to use the presentation's own name.") : t('builder_polish.fill_filename_hint', "Without the .pdf — that is added. Leave it blank to use the document's own name.")}>
                     <TemplateField
                         onRequestForEach={forEach.request}
                         canForEach={forEach.allowed}

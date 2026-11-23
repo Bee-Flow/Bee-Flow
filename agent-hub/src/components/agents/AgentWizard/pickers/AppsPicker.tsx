@@ -105,7 +105,7 @@ export default function AppsPicker({ items, enabled, onClose, onToggle, t }: {
                                     onClick={() => onToggle(focused.id)}
                                     className={`w-full py-3 rounded-full text-sm font-medium transition ${focusedSelected
                                         ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
-                                        : 'bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90'}`}
+                                        : 'bg-[var(--text-primary)] text-[var(--text-on-ink)] hover:opacity-90'}`}
                                 >
                                     {focusedSelected
                                         ? (t('agent_wizard.apps.disable', 'Disable'))

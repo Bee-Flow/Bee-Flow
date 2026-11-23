@@ -123,13 +123,14 @@ function RuleRow({ rule, readOnly, onText, onFlip, onRemove, t }: RuleRowProps) 
             >
                 <Icon size={13} aria-hidden="true" style={{ color }} />
             </button>
+            {/* The `!` classes undo the glass themes' boxed field (app.css): the card is the field here. */}
             <input
                 value={rule.text}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => onText(e.target.value)}
                 readOnly={readOnly}
                 aria-label={t('skills_studio.rules.text', 'Rule')}
                 placeholder={t('skills_studio.rules.placeholder', 'One sentence — what always holds?')}
-                className="flex-1 min-w-0 bg-transparent outline-none text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
+                className="flex-1 min-w-0 bg-transparent! border-0! shadow-none! [backdrop-filter:none]! outline-none text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
             />
             {!readOnly && (
                 <button

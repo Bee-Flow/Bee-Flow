@@ -28,6 +28,8 @@ export function FlowBodySection({ rfNodes, rfEdges, nodeTypes, disabled, onConne
             // drag canConnect could receive is one it must refuse.
             onPaneClick={() => { setSelectedId(null); setAdding(null); } }
             fitView
+            // One step must not be blown up to fill the dialog: never zoom past 100%.
+            fitViewOptions={{ maxZoom: 1, padding: 0.2 }}
             proOptions={{ hideAttribution: true }}
             nodesDraggable={false}
             nodesConnectable={false}

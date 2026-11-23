@@ -38,6 +38,35 @@ export const TABS = Object.freeze(['sources', 'ask', 'settings', 'usage', 'searc
  * make it look freshly filled. That distinction is the reason the column
  * exists rather than reusing `updated_at`.
  */
+/** How often, and how long, the page reloads while added content is being read. */
+const SETTLE_POLL_MS = 2000;
+const SETTLE_POLLS = 15;
+
+/**
+ * A source still at work: a refresh running, or files parked as `skipped`
+ * while they wait to be read (the upload route's "Queued for processing").
+ */
+export function hasUnsettledSources(list: readonly KbSource[]): boolean {
+    return list.some((s) => s.status === 'refreshing' || Number(s.skippedCount) > 0);
+}
+
+/**
+ * Files and pasted text are read after the request returns (202): reload
+ * until they settle, so the header chip, the counts and the rows show what
+ * was added instead of the state from before it was read.
+ */
+function useReloadUntilSettled(loadSources: () => Promise<KbSource[]>, loadKb: () => Promise<void>) {
+    const alive = useRef(true);
+    useEffect(() => () => { alive.current = false; }, []);
+    return useCallback(async () => {
+        for (let i = 0; i < SETTLE_POLLS && alive.current; i += 1) {
+            const [list] = await Promise.all([loadSources(), loadKb()]);
+            if (!hasUnsettledSources(list)) return;
+            await new Promise((resolve) => { setTimeout(resolve, SETTLE_POLL_MS); });
+        }
+    }, [loadSources, loadKb]);
+}
+
 interface KnowledgeDetailProps {
     kbId: string;
     tab?: string;
@@ -56,7 +85,7 @@ interface SourceRowActionsArgs {
     kbId: string;
     confirm: ReturnType<typeof useConfirm>['confirm'];
     t: TranslateFn;
-    loadSources: () => Promise<void>;
+    loadSources: () => Promise<unknown>;
     loadKb: () => Promise<void>;
     setSourcesError: (message: string | null) => void;
     setError: (message: string | null) => void;
@@ -186,13 +215,15 @@ export default function KnowledgeDetail({
         }
     }, [kbId, t]);
 
-    const loadSources = useCallback(async () => {
-        if (!kbId) return;
+    const loadSources = useCallback(async (): Promise<KbSource[]> => {
+        if (!kbId) return [];
         try {
             const body = await knowledgeApi.listSources(kbId);
-            setSources(Array.isArray(body?.sources) ? body.sources : []);
+            const list: KbSource[] = Array.isArray(body?.sources) ? body.sources : [];
+            setSources(list);
             setTotals(body?.totals || null);
             setSourcesError(null);
+            return list;
         } catch (e) {
             // A sources failure is NOT a KB failure: the header, the audience
             // capsule and the other tabs all still work, and replacing the
@@ -200,6 +231,7 @@ export default function KnowledgeDetail({
             // needs to fix whatever went wrong.
             setSourcesError((e as Error).message || t('studio_misc.errors.load_sources', 'Could not load the sources'));
             setSources([]);
+            return [];
         }
     }, [kbId, t]);
 
@@ -210,15 +242,18 @@ export default function KnowledgeDetail({
         return () => { alive = false; };
     }, [loadKb, loadSources]);
 
+    const reloadUntilSettled = useReloadUntilSettled(loadSources, loadKb);
+
     const createSource = useCallback(async (payload: NewSource) => {
         setBusy(true);
         try {
             await knowledgeApi.createSource(kbId, payload);
             await Promise.all([loadSources(), loadKb()]);
+            void reloadUntilSettled();
         } finally {
             setBusy(false);
         }
-    }, [kbId, loadSources, loadKb]);
+    }, [kbId, loadSources, loadKb, reloadUntilSettled]);
 
     /**
      * Uploading needs a source to hang the files on. The wrappers always
@@ -239,12 +274,13 @@ export default function KnowledgeDetail({
             }
             await knowledgeApi.uploadFiles(kbId, bucket.id, files);
             await Promise.all([loadSources(), loadKb()]);
+            void reloadUntilSettled();
         } catch (e) {
             setSourcesError(messageFor(t, e));
         } finally {
             setBusy(false);
         }
-    }, [kbId, sources, loadSources, loadKb, t]);
+    }, [kbId, sources, loadSources, loadKb, reloadUntilSettled, t]);
 
     const { removeSource, renameSource, addPanelRef, focusAddSource, refreshSource, setSchedule, setAudience } = useSourceRowActions({
         kbId, confirm, t, loadSources, loadKb, setSourcesError, setError, onOpenSource,

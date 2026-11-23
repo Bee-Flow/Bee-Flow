@@ -78,6 +78,27 @@ describe('the readers', () => {
         expect(readDocumentTemplates(null)).toEqual([]);
     });
 
+    it('reads a list field by its label, a condition’s sections, and when a document last changed', () => {
+        const [d] = readDocumentTemplates({
+            templates: [
+                {
+                    id: 'd1',
+                    name: 'Quote',
+                    updatedAt: '2026-11-23T17:22:00Z',
+                    parameters: [
+                        { key: 'lines', type: 'list', fields: [{ key: 'qty', label: 'Quantity' }, { key: 'price' }, 'note'] },
+                        { key: 'new', type: 'boolean', conditionForSections: ['terms', 7] },
+                        { key: 'plain', type: 'boolean', conditionForSections: [] },
+                    ],
+                },
+            ],
+        });
+        expect(d?.updatedAt).toBe('2026-11-23T17:22:00Z');
+        expect(d?.parameters?.[0]?.fields).toEqual(['Quantity', 'price', 'note']);
+        expect(d?.parameters?.[1]?.conditionForSections).toEqual(['terms']);
+        expect(d?.parameters?.[2]).not.toHaveProperty('conditionForSections');
+    });
+
     it('reads a contract, keeping an example of any shape and nothing it does not use', () => {
         const contract = readDocumentContract({
             contract: {

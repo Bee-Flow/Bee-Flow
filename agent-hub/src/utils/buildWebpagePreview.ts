@@ -98,9 +98,11 @@ function overlayDoc({ headBridges, importMap, message, isInfo }: OverlayDocArgs)
  */
 function emptyStateDoc({ hasSource }: { hasSource: boolean }) {
     const heading = hasSource ? 'Almost there…' : 'Your webpage will appear here';
+    // The AI chat lives in the editor's Code section (the Preview section has
+    // none), so the hint names where it is rather than "the chat on the right".
     const sub = hasSource
-        ? 'Ask the assistant in the chat to finish setting up your page.'
-        : "Describe what you'd like to build in the chat on the right, and I'll create it for you.";
+        ? 'Open Code and ask the AI chat there to finish setting up your page.'
+        : "Open Code and describe what you'd like to build in the AI chat there. The page appears here as it is built.";
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;background:#fff;color:#475569;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
   <div style="width:52px;height:52px;border-radius:14px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin-bottom:18px">

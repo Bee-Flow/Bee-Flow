@@ -333,6 +333,7 @@ export default function ComposerToolsMenu({ items = [], className = '', children
                     role="menu"
                     aria-label={t('chat.composer.tools_menu', 'Message tools')}
                     data-testid="composer-tools-panel"
+                    data-solid-popover
                     onMouseLeave={() => clearTimeout(hoverTimer.current)}
                     style={{
                         position: 'absolute', bottom: '100%', left: 0, marginBottom: `${FLYOUT_GAP}px`,

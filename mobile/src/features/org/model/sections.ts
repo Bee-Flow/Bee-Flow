@@ -56,7 +56,7 @@ export interface OrgSection {
 
 /** orgInfoShared.jsx SECTIONS, then BASE_ORG_SUB_ITEMS, then AZURE_SUB_ITEM. */
 export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
-    { id: 'license', labelKey: 'settings.license_usage', labelFallback: 'License & Usage', icon: 'CreditCard', color: '#3b82f6', href: '/org/billing' },
+    { id: 'license', labelKey: 'settings.license_usage', labelFallback: 'Licence & usage', icon: 'CreditCard', color: '#3b82f6', href: '/org/billing' },
     { id: 'auth', labelKey: 'settings.signin_method', labelFallback: 'Sign-in Method', icon: 'KeyRound', color: '#10b981', href: '/org/sign-in' },
     { id: 'privacy', labelKey: 'settings.privacy_shield', labelFallback: 'Privacy Shield', icon: 'Shield', color: '#ef4444', href: '/org/shield' },
     { id: 'encryption', labelKey: 'settings.encryption', labelFallback: 'Encryption', icon: 'Lock', color: '#8b5cf6', href: '/org/encryption' },

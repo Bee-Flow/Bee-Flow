@@ -461,13 +461,12 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         expect(screen.getByTestId('rail-agents').getAttribute('aria-current')).toBeNull();
     });
 
-    it('keeps the ordinary sidebar on the Approvals slice, which is a member screen', () => {
-        // /app/studio/approvals is a Studio address with a non-Studio
-        // audience: an approval bell is the way in, the section is
-        // hiddenFromNav, and the rail would not even list it.
+    it('keeps the Studio rail on the Approvals slice, which the rail lists', () => {
+        // The rail has its own Approvals row: opening it from there used to
+        // swap the rail for the chat sidebar, so the page left Studio.
         renderSidebar({ currentPage: 'studio', studioRoute: { section: 'approvals', id: null } });
-        expect(screen.queryByTestId('studio-rail')).toBeNull();
-        expect(screen.getByTestId('sidebar')).toBeTruthy();
+        expect(screen.getByTestId('studio-rail')).toBeTruthy();
+        expect(screen.queryByTestId('sidebar')).toBeNull();
     });
 
     it('keeps the ordinary sidebar for someone who never had a Studio row', () => {
@@ -613,8 +612,18 @@ describe('Sidebar — the top-level Approvals row', () => {
         // the whole organisation's record, and that is the row's whole point
         // for them.
         serve({ facets: { status: {} }, orgFacets: { status: { approved: 4 } } });
-        renderSidebar({ user: { orgRole: 'org_admin', permissions: [] } });
+        renderSidebar({ user: { orgRole: 'org_admin', organizationId: 'org-1', permissions: [] } });
         expect(await screen.findByTestId('nav-approvals')).toBeTruthy();
+    });
+
+    it('does not ask org-wide for an admin without an organisation (the org scope would answer 403)', async () => {
+        serve({ facets: { status: {} }, orgFacets: { status: { approved: 4 } } });
+        const seen = [];
+        const base = fetchMock.impl;
+        fetchMock.impl = (url) => { seen.push(String(url)); return base(url); };
+        renderSidebar({ user: { isAdmin: true, permissions: ['all'] } });
+        await waitFor(() => expect(seen.some(u => u.includes('scope=mine'))).toBe(true));
+        expect(seen.some(u => u.includes('scope=org'))).toBe(false);
     });
 
     it('does not ask org-wide for an ordinary member', async () => {

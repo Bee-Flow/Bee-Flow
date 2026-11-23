@@ -118,7 +118,7 @@ export function AddAfterButton({ nodeId, onAddAfter, chromeVisibility }: { nodeI
             type="button"
             onClick={(e: ClickEvent) => { e.stopPropagation(); onAddAfter(nodeId); }}
             onMouseDown={stopDown}
-            className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility} [background:var(--text-primary)] [color:var(--bg-primary)]`}
+            className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm border border-[var(--border-default)] ${chromeVisibility} [background:var(--bg-card)] [color:var(--text-primary)]`}
             title={t('automations.step_node_base.add_next_step', 'Add next step')}
             aria-label={t('automations.step_node_base.add_next_step', 'Add next step')}
         >

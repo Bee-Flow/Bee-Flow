@@ -161,7 +161,7 @@ function AskFirst({ onSendBrief, onOpenAssistant, building }: { onSendBrief: ((t
                 <button
                     type="button"
                     onClick={onOpenAssistant}
-                    className="self-start px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--text-primary)] text-[var(--bg-primary)]"
+                    className="self-start px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--text-primary)] text-[var(--text-on-ink)]"
                 >
                     {t('automations.canvas.empty_open_assistant', 'Describe it to the assistant')}
                 </button>

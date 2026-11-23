@@ -20,6 +20,7 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
                 definition={definition}
                 node={node}
                 disabled={disabled}
+                compact
             />
         );
     }

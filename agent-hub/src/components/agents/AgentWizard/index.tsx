@@ -124,9 +124,9 @@ export default function AgentWizard({ user, onClose, onPublished, onSwitchToManu
                                 onClick={() => submitPromptInstant(`${ex.title}: ${ex.sub}`)}
                                 className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card,#fff)] hover:bg-[var(--bg-secondary)] transition shadow-sm"
                             >
-                                <span className="text-[var(--text-tertiary)]">{ex.icon}</span>
-                                <span className="text-sm text-[var(--text-primary)] font-medium">{ex.title}</span>
-                                <span className="text-sm text-[var(--text-tertiary)] truncate">{ex.sub}</span>
+                                <span className="shrink-0 text-[var(--text-tertiary)]">{ex.icon}</span>
+                                <span className="shrink-0 whitespace-nowrap text-sm text-[var(--text-primary)] font-medium">{ex.title}</span>
+                                <span className="min-w-0 text-sm text-[var(--text-tertiary)] truncate" title={ex.sub}>{ex.sub}</span>
                             </button>
                         ))}
                     </div>
@@ -169,7 +169,7 @@ function PromptInput({ value, onChange, onSubmit, busy, placeholder, tiers, tier
                 <button
                     onClick={onSubmit}
                     disabled={busy || !value.trim()}
-                    className="w-9 h-9 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] flex items-center justify-center disabled:opacity-30"
+                    className="w-9 h-9 rounded-full bg-[var(--text-primary)] text-[var(--text-on-ink)] flex items-center justify-center disabled:opacity-30"
                 >
                     <ArrowUp size={16} />
                 </button>

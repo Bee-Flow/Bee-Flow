@@ -27,3 +27,13 @@ test('a placeholder-shaped string in the document itself does not crash the chun
     const inline = chunkText(`${body} see __ATOMIC_BLOCK_3__ for details. ${body}`);
     assert.ok(inline.some(c => c.text.includes('__ATOMIC_BLOCK_3__')));
 });
+
+test('a short document as a whole keeps its one chunk instead of producing none', () => {
+    const chunks = chunkText('Quotes are valid for 30 days after the date of issue.');
+    assert.strictEqual(chunks.length, 1);
+    assert.match(chunks[0].text, /Quotes are valid/);
+});
+
+test('blank text still produces no chunks', () => {
+    assert.deepStrictEqual(chunkText('   '), []);
+});

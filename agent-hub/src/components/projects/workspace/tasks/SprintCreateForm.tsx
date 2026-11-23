@@ -52,7 +52,7 @@ export default function SprintCreateForm({ projectId, canEdit, onCreated, onCanc
                     aria-label={t('project_tasks.start_label', 'Start date')} title={t('project_tasks.start_label', 'Start date')} />
                 <SelectField bare className={`${SMALL_INPUT} !w-auto`} value={weeks} onChange={e => setWeeks(Number(e.target.value))}
                     aria-label={t('project_tasks.sprint_length', 'Length')}>
-                    {SPRINT_WEEKS.map(w => <option key={w} value={w}>{t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
+                    {SPRINT_WEEKS.map(w => <option key={w} value={w}>{w === 1 ? t('project_counts.weeks_one', '{count} week', { count: w }) : t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
                 </SelectField>
             </div>
             <input className={SMALL_INPUT} type="number" min={0} inputMode="numeric" value={capacity} onChange={e => setCapacity(e.target.value)}

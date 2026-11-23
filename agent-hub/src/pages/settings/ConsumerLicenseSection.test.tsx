@@ -1,5 +1,5 @@
 // Settings → Account → License & Usage for a consumer account. Pinned: the
-// AI-usage percentage is shown once, as the "Usage This Period" bar; the
+// AI-usage percentage is shown once, as the "Usage this period" bar; the
 // plan card no longer repeats it as a quick stat.
 import { screen } from '@testing-library/react';
 import { renderWithClient as render } from '../../test/render';
@@ -31,7 +31,7 @@ describe('ConsumerLicenseSection', () => {
 
     it('shows the AI-usage percentage once, in the usage bar', async () => {
         render(<ConsumerLicenseSection user={{}} />);
-        expect(await screen.findByText('Usage This Period')).toBeInTheDocument();
+        expect(await screen.findByText(/^Usage this period$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/25%/)).toHaveLength(1);
         expect(screen.queryByText(/AI usage of cap this period/i)).not.toBeInTheDocument();
     });

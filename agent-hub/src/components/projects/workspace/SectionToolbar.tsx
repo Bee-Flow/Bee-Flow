@@ -32,7 +32,10 @@ export default function SectionToolbar({ kind, icon, title, count, search, onSea
         <div>
             <StudioSectionHeader
                 kind={kind} icon={icon} title={title} testId={testId}
-                statusChip={count == null ? undefined : <span data-testid="content-count">{count}</span>}
+                statusChip={count == null ? undefined : (
+                    // The header's own chip, so a bare count reads like the other tabs' "2 open" pills.
+                    <span data-testid="content-count" className="text-[11px] whitespace-nowrap flex-shrink-0 px-2 py-[3px] rounded-full border border-[var(--border-default)] text-[var(--text-tertiary)]">{count}</span>
+                )}
                 primary={isDesktop ? primary : undefined}
                 extras={isDesktop ? extras : undefined}
             />

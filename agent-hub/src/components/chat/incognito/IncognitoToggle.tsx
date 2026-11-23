@@ -32,7 +32,7 @@ export default function IncognitoToggle({ on, onChange, locked }: IncognitoToggl
                 onClick={() => onChange(!on)}
                 className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)] ${
                     on
-                        ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                        ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--text-on-ink)]'
                         : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
                 }`}
             >

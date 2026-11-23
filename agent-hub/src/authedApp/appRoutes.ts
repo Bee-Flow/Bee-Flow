@@ -120,14 +120,12 @@ export function isApprovalsStudioPath(pathname: unknown): boolean {
 // offered at all and the ordinary sidebar + Studio flyout stays.
 export function usesStudioRail(page: string, section: string | null = null): boolean {
     if (page !== 'studio') return false;
-    // ONE Studio address does NOT get the rail: Approvals. It is a Studio URL
-    // with a non-Studio audience — deciding is a member act, not a builder
-    // one, which is why the section is `hiddenFromNav` and has its own
-    // top-level sidebar row instead. An approval bell is the usual way in, so
-    // swapping a decider's sidebar for a builder's rail that does not even
-    // list the screen they are standing on would strand them one tap from
-    // everything they came for.
-    if (section === 'approvals') return false;
+    // Approvals included: the rail lists it (its own row, StudioRail), and the
+    // rail is only offered to someone who can see Studio (Sidebar.helpers), so
+    // a builder who opens Approvals from the rail stays in Studio, and a member
+    // who cannot use Studio still gets the ordinary sidebar there. `section` is
+    // kept in the signature for the caller that passes it.
+    void section;
     return true;
 }
 

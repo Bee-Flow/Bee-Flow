@@ -195,7 +195,7 @@ const DirectChatView = ({
                                         <IncognitoToggle on={incognito} onChange={onIncognitoChange} locked={conversationStarted} />
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 relative">
+                                <div className="flex items-center gap-2 relative shrink-0 whitespace-nowrap">
                                     {!isMobile && !inCoworkMode && !incognito && (
                                         <DocumentsHeaderButton
                                             sidePanelDocumentId={sidePanelDocumentId}

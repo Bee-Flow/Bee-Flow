@@ -64,6 +64,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
     return (
         <div
             ref={popoverRef}
+            data-solid-popover
             className="absolute z-30 right-0 top-full mt-1 w-[320px] rounded-xl border shadow-xl overflow-hidden bg-[var(--bg-primary)] border-[var(--border-default)]"
         >
             <div className="px-3 py-2 border-b border-[var(--border-subtle)]">

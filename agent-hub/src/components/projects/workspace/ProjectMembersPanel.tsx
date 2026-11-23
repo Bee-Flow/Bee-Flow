@@ -75,9 +75,11 @@ function Identity({ subject, isGroup, you, online, color }: { subject: Subject; 
                     {subject.name}
                     {you && <span className="text-[var(--text-tertiary)] font-normal"> {t('project_home.members.you', '(you)')}</span>}
                 </p>
-                <p className="text-[11.5px] text-[var(--text-tertiary)] truncate m-0">
-                    {isGroup ? t('project_home.members.group', 'Group') : ' '}
-                </p>
+                {isGroup && (
+                    <p className="text-[11.5px] text-[var(--text-tertiary)] truncate m-0">
+                        {t('project_home.members.group', 'Group')}
+                    </p>
+                )}
             </div>
         </div>
     );
@@ -269,7 +271,7 @@ export default function ProjectMembersPanel({ projectId, role, currentUserId, in
         <div className="space-y-4" data-testid="project-members-panel">
             {(canInvite ?? isOwner) && <MemberInviteForm projectId={projectId} members={data} focusRequest={inviteFocusRequest} />}
             <ErrorText testId="members-action-error">{error}</ErrorText>
-            <ul className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden m-0 p-0 list-none" aria-label={t('project_home.members.list', 'Members')}>
+            <ul className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden p-0 list-none" aria-label={t('project_home.members.list', 'Members')}>
                 <OwnerRow data={data} currentUserId={currentUserId} online={online} canColor={isOwner} onColor={actions.onColor} />
                 {data.members.filter(share => !removed.has(share.id)).map((share) => (
                     <MemberRow
@@ -286,7 +288,7 @@ export default function ProjectMembersPanel({ projectId, role, currentUserId, in
                 ))}
             </ul>
             {data.members.every(share => removed.has(share.id)) && (
-                <p className="text-[12.5px] text-[var(--text-tertiary)] m-0" data-testid="members-empty">
+                <p className="text-[12.5px] text-[var(--text-tertiary)]" data-testid="members-empty">
                     {isOwner
                         ? t('project_home.members.empty_owner', 'Nobody else is in this project yet. Invite people to work on it together.')
                         : t('project_home.members.empty', 'Nobody else is in this project yet.')}

@@ -85,7 +85,7 @@ function KbList({ kbs, linkedIds, onToggle, onCreate, t }: {
                 </div>
             )}
             {kbs.length === 0 && (
-                <div className="text-xs text-[var(--text-tertiary)] py-2">{t('agent_wizard.knowledge.no_kbs')}</div>
+                <div className="text-xs text-[var(--text-tertiary)] py-2">{t('agent_wizard.knowledge.no_kbs_action', 'No knowledge bases yet — add one with “{action}”.', { action: t('agent_wizard.knowledge.create_kb') })}</div>
             )}
             <div className="divide-y divide-[var(--border-default)] border-t border-b border-[var(--border-default)]">
                 {kbs.map(kb => {

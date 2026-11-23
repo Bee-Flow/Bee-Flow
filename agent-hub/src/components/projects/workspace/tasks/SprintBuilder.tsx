@@ -124,7 +124,7 @@ function BuilderSummary({ projectId, canEdit, backlog, picked, setPicked, unesti
                         <input className={SMALL_INPUT} type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
                     <label className={FIELD_LABEL}><span>{t('project_tasks.sprint_length', 'Length')}</span>
                         <SelectField bare wrapperClassName="relative block" className={SMALL_INPUT} value={weeks} onChange={e => setWeeks(Number(e.target.value))}>
-                            {SPRINT_WEEKS.map(w => <option key={w} value={w}>{t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
+                            {SPRINT_WEEKS.map(w => <option key={w} value={w}>{w === 1 ? t('project_counts.weeks_one', '{count} week', { count: w }) : t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
                         </SelectField></label>
                 </div>
             </div>

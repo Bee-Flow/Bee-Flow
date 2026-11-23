@@ -27,16 +27,22 @@ export function useMountedRef() {
     return mountedRef;
 }
 
-/** Closes the skill picker when the mouse goes down outside the action bar. */
+/** Closes the skill picker when the mouse goes down outside the action bar, or on Escape. */
 export function useSkillPickerOutsideClose(skillPickerOpen: boolean, setSkillPickerOpen: (open: boolean) => void, actionBarRef: RefObject<HTMLDivElement | null>) {
     useEffect(() => {
+        if (!skillPickerOpen) return undefined;
         const onDoc = (e: MouseEvent) => {
-            if (skillPickerOpen && actionBarRef.current && !actionBarRef.current.contains(e.target as Node)) {
+            if (actionBarRef.current && !actionBarRef.current.contains(e.target as Node)) {
                 setSkillPickerOpen(false);
             }
         };
+        const onEscape = ({ key }: KeyboardEvent) => { if (key === 'Escape') setSkillPickerOpen(false); };
         document.addEventListener('mousedown', onDoc);
-        return () => document.removeEventListener('mousedown', onDoc);
+        document.addEventListener('keydown', onEscape);
+        return () => {
+            document.removeEventListener('mousedown', onDoc);
+            document.removeEventListener('keydown', onEscape);
+        };
     }, [actionBarRef, setSkillPickerOpen, skillPickerOpen]);
 }
 

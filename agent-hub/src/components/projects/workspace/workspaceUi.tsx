@@ -23,7 +23,7 @@ const PRIMARY_CLASS =
     + 'disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]';
 
 const SECONDARY_CLASS =
-    'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[13px] whitespace-nowrap border border-[var(--border-default)] '
+    'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[13px] leading-4 whitespace-nowrap border border-[var(--border-default)] '
     + 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] transition-colors '
     + 'disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
 
@@ -240,10 +240,12 @@ export function Avatar({ name, size = 'md', online = false, onlineLabel, classNa
     const box = size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-[11px]';
     // Without a picture a person gets a colour of their own, the same one everywhere, instead of a grey disc.
     const hue = hueOf(name);
+    // The initials are the colour mixed with the theme's text colour, so they
+    // stay readable on the tint in a dark theme as well as a light one.
     const tint = !picture && name
         ? (color
-            ? { background: `color-mix(in srgb, ${color} 20%, transparent)`, color: `color-mix(in srgb, ${color} 72%, var(--text-primary))` }
-            : { background: `hsl(${hue} 70% 50% / 0.18)`, color: `hsl(${hue} 55% 42%)` })
+            ? { background: `color-mix(in srgb, ${color} 20%, transparent)`, color: `color-mix(in srgb, ${color} 45%, var(--text-primary))` }
+            : { background: `hsl(${hue} 70% 50% / 0.18)`, color: `color-mix(in srgb, hsl(${hue} 60% 50%) 45%, var(--text-primary))` })
         : undefined;
     return (
         <span

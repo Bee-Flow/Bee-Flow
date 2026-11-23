@@ -38,7 +38,7 @@ export default function LearningHeader({ onBack, backLabel, tile, title, chips, 
     const options = (tabs || []).map((tab) => ({ value: tab.id, label: tab.label, badge: tab.count != null ? { count: tab.count, tone: tab.tone } : undefined }));
     return (
         <div
-            className="flex items-center gap-2.5 px-3 h-12 flex-nowrap min-w-0 flex-shrink-0 [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-default)]"
+            className="flex items-center gap-x-2.5 gap-y-1.5 px-3 py-2 min-h-12 flex-wrap min-w-0 flex-shrink-0 [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-default)]"
             data-testid="learning-header"
         >
             {onBack && (

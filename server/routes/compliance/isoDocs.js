@@ -73,7 +73,14 @@ function _policySeeds() {
 // Member-facing routes FIRST — '/iso/docs/published/…' would otherwise be
 // swallowed by the '/iso/docs/:slug' admin route (slug = 'published').
 router.get('/iso/docs/published/me', requireAuth, async (req, res) => {
-    const orgId = await resolveOrgId(req);
+    // A signed-in user without a home organisation (a platform admin on a
+    // shared instance) has no policies to acknowledge: an empty list, not a
+    // 403 on every visit to the security settings.
+    const orgId = await resolveOrgId(req).catch((/** @type {{ code?: string }} */ e) => {
+        if (e?.code === 'org_required') return null;
+        throw e;
+    });
+    if (!orgId) return res.json([]);
     const userId = req.session?.user?.id;
     res.json(await ismsDocStore.listPublishedForUser(orgId, userId));
 });

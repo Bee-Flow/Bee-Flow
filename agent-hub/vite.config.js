@@ -61,6 +61,27 @@ function monacoSelfHost() {
     }
 }
 
+/**
+ * /beeflow-runtime.js is written by the image at container start
+ * (docker-entrypoint.d/19-beeflow-runtime-config.sh) and index.html loads it
+ * before the app. The dev server has no such file, so it answers an empty
+ * script instead of a 404 in the console on every page: the readers treat a
+ * missing window.__BEEFLOW_RUNTIME__ as "no runtime opinion", as before.
+ */
+function devRuntimeConfigStub() {
+    return {
+        name: 'beeflow-dev-runtime-config',
+        apply: 'serve',
+        configureServer(server) {
+            server.middlewares.use(`${server.config.base}beeflow-runtime.js`, (req, res) => {
+                res.setHeader('Content-Type', 'application/javascript')
+                res.setHeader('Cache-Control', 'no-store')
+                res.end('/* Dev server: no runtime config (written by the image at container start). */\n')
+            })
+        },
+    }
+}
+
 // https://vite.dev/config/
 // The vendor chunk table. Lives at module scope so the manualChunks
 // function below can consult it; the entries are unchanged from the
@@ -150,6 +171,7 @@ export default defineConfig(({ mode }) => {
         plugins: [
             react(),
             monacoSelfHost(),
+            devRuntimeConfigStub(),
             // `virtual:cms-react-runtime`: the self-hosted React of the CMS's
             // react-component block, inlined into its sandboxed frame.
             cmsReactRuntime(),

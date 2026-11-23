@@ -263,7 +263,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                 <div className="flex items-center justify-between mb-3">
                     <div>
                         <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('store.title')}</h1>
-                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('store.count', { visible: filtered.length, total: marketplaceAgents.length })}</p>
+                        {marketplaceAgents.length > 0 && <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('store.count', { visible: filtered.length, total: marketplaceAgents.length })}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                         {canManageAgents && onEditAgent && (
@@ -360,10 +360,10 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
 
                     {/* Grid */}
                     <div>
-                        <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-3 text-[var(--text-muted)]">
+                        {marketplaceAgents.length > 0 && <h2 className="text-[11px] font-semibold uppercase tracking-wider mb-3 text-[var(--text-muted)]">
                             {isSearching ? t('store.results') : activeCategory === 'all' ? t('store.all_agents') : CATEGORIES.find(c => c.key === activeCategory)?.label || t('store.badge_agent')}
                             <span className="font-normal ml-1 normal-case tracking-normal">({filtered.length})</span>
-                        </h2>
+                        </h2>}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                             {cardData.map(d => (
@@ -377,15 +377,19 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                             ))}
                         </div>
 
-                        {filtered.length === 0 && (
-                            <div className="py-16 flex flex-col items-center justify-center">
-                                <div className="text-3xl mb-3">📭</div>
-                                <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{t('store.no_agents')}</h3>
-                                <p className="text-xs text-center max-w-xs text-[var(--text-muted)]">{t('store.no_agents_hint')}</p>
-                                <button onClick={() => { setActiveCategory('popular'); setActiveJobs([]); setSearch(''); }}
-                                    className="mt-4 px-4 py-1.5 rounded-lg text-white text-xs font-semibold hover:opacity-90 bg-[var(--accent-primary)]">{t('store.clear_filters')}</button>
-                            </div>
-                        )}
+                        {filtered.length === 0 && (() => { // no agents at all is not an empty search: no "Clear filters"
+                            const none = marketplaceAgents.length === 0;
+                            const action = none ? (canManageAgents && onEditAgent ? { label: t('agent_studio.new_agent', 'New agent'), run: () => onEditAgent() } : null)
+                                : { label: t('store.clear_filters'), run: () => { setActiveCategory('popular'); setActiveJobs([]); setSearch(''); } };
+                            return (
+                                <div className="py-16 flex flex-col items-center justify-center" data-testid={none ? 'marketplace-no-agents' : undefined}>
+                                    <div className="text-3xl mb-3">{none ? '🤖' : '📭'}</div>
+                                    <h3 className="text-sm font-semibold mb-1 text-[var(--text-primary)]">{none ? t('agent_studio.empty_title', 'No agents yet') : t('store.no_agents')}</h3>
+                                    <p className="text-xs text-center max-w-xs text-[var(--text-muted)]">{none ? t('agent_studio.empty_body', 'An agent answers questions in your own words, using the knowledge and tools you give it.') : t('store.no_agents_hint')}</p>
+                                    {action && <button onClick={action.run} className="mt-4 px-4 py-1.5 rounded-lg text-white text-xs font-semibold hover:opacity-90 bg-[var(--accent-primary)]">{action.label}</button>}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

@@ -62,7 +62,7 @@ describe('FillDocumentEditor', () => {
         const h = await renderEditor(step());
         expect(screen.getByText('Pick a document first — its placeholders appear here.')).toBeTruthy();
         await fireEvent.press(await screen.findByTestId('fill-document-select'));
-        expect(await screen.findByText('2 placeholder(s)')).toBeTruthy();
+        expect(await screen.findByText('2 placeholders')).toBeTruthy();
         expect(screen.getByText('no placeholders')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('fill-document-option-inv'));
         expect(h.patch()).toMatchObject({ documentId: 'inv', documentName: 'Invoice', documentVersionId: 'v2', sectionOverrides: {} });
@@ -76,7 +76,8 @@ describe('FillDocumentEditor', () => {
         expect(await screen.findByText('Amounts in euro.')).toBeTruthy();
         expect(screen.getByText('The amount due')).toBeTruthy();
         expect(screen.getByText('A list, one block per item with qty. Bind it to a whole list — one value and nothing else around it.')).toBeTruthy();
-        await fireEvent.changeText(screen.getByPlaceholderText('‹Previous step ▸ Naam›'), '42');
+        expect(screen.getByPlaceholderText('Tap Insert data to pick a whole list')).toBeTruthy();
+        await fireEvent.changeText(screen.getByPlaceholderText('Type a value, or tap Insert data to pick one'), '42');
         expect(h.patch()).toMatchObject({ values: { total: 42 } });
     });
 

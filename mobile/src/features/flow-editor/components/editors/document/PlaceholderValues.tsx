@@ -14,7 +14,6 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import type { DocumentParameter } from '@/features/flow-editor/api';
 import { BindingInput } from '@/features/flow-editor/components/fields';
-import { readableExample } from '@/features/flow-editor/components/outline/readableText';
 
 import { exampleText, placeholderHint, placeholderPrompt, shownValue, typedPlaceholderValue } from './fillDocumentModel';
 import { say } from '../declarative/runtime';
@@ -31,7 +30,7 @@ function Instructions({ p }: { p: DocumentParameter }) {
     return (
         <>
             {instructions ? <Note>{`${t('mobile.flow.fill.instructions', 'Instructions')}: ${instructions}`}</Note> : null}
-            {p.example !== undefined ? <Note>{t('mobile.flow.fill.example', 'Example: {value}', { value: exampleText(p.example) })}</Note> : null}
+            {p.example !== undefined ? <Note>{`${t('builder_polish.fill_example', 'Example:')} ${exampleText(p.example)}`}</Note> : null}
         </>
     );
 }
@@ -53,7 +52,7 @@ export function PlaceholderValues({ editor, placeholders }: { editor: StepEditor
                         hint={say(t, placeholderHint(p)) || null}
                         value={shownValue(values[p.key])}
                         onChange={(next) => set('values', { ...values, [p.key]: typedPlaceholderValue(p, String(next)) })}
-                        prompt={readableExample(placeholderPrompt(p))}
+                        prompt={say(t, placeholderPrompt(p))}
                         disabled={ctx.disabled}
                         testID={`fill-value-${p.key}`}
                     />

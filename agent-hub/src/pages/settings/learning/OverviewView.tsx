@@ -76,11 +76,15 @@ export default function OverviewView({
         : (columns.some((c) => colKey(c) === pickedCol) ? pickedCol : null);
 
     return (
-        <div className="flex flex-col gap-6 [padding:28px] [font-size:13px] [color:var(--text-primary)]">
+        <div className="@container flex flex-col gap-6 [padding:28px] [font-size:13px] [color:var(--text-primary)]">
             <ContinueHero t={t} target={continueTarget} reviewDue={reviewDue} reviewBuilding={reviewBuilding}
                 onStartLesson={onStartLesson} onStartReview={onStartReview} />
 
-            <div className="grid gap-4 items-start" style={{ gridTemplateColumns: `repeat(${Math.max(1, columns.length)}, minmax(0, 1fr))` }} data-testid="curriculum-map">
+            {/* One column per path only where each still fits its title and course
+                names (the pane beside the rail is often ~600px): stacked below
+                that, two side by side from 36rem, all of them from 56rem. */}
+            <div className="grid gap-4 items-start [grid-template-columns:minmax(0,1fr)] @xl:[grid-template-columns:repeat(var(--cols-md),minmax(0,1fr))] @4xl:[grid-template-columns:repeat(var(--cols),minmax(0,1fr))]"
+                style={{ '--cols': Math.max(1, columns.length), '--cols-md': Math.min(2, Math.max(1, columns.length)) } as React.CSSProperties} data-testid="curriculum-map">
                 {columns.map((col) => {
                     const pathDef = getLearningPath(col.pathId);
                     const done = col.courses.filter(isComplete).length;
@@ -294,7 +298,7 @@ function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedRe
             className="w-full flex items-center gap-2.5 text-left rounded-xl transition hover:bg-[var(--bg-secondary)] [padding:12px_14px] [color:var(--text-tertiary)]! [background:var(--bg-card)]! [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]">
                 <Crown className="w-[16px] h-[16px] [flex-shrink:0]" aria-hidden="true" />
                 <span className="font-medium flex-shrink-0 text-[var(--text-primary)]">{title}</span>
-                <span className="text-[12px] truncate">{t('learn.capstone.short', 'No lessons — prove it in your own workspace.')}</span>
+                <span className="text-[12px] min-w-0 line-clamp-2">{t('learn.capstone.short', 'No lessons — prove it in your own workspace.')}</span>
                 <span className="ml-auto flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0">
                     {complete ? (
                         <Check className="w-[15px] h-[15px] [color:var(--learn-complete)]" aria-label={t('learn.state.complete', 'complete')} />

@@ -133,7 +133,7 @@ export default function BuilderConfigPanel({
                     icon={<Sparkles size={14} />}
                     label={t('agent_wizard.builder.skills', 'Skills')}
                     count={attachedSkillIds.length}
-                    onClick={() => setSkillPickerOpen(v => !v)}
+                    onClick={() => { setSchedulesPickerOpen(false); setSkillPickerOpen(v => !v); }}
                     active={skillPickerOpen}
                 />
                 {agent?.id && schedulesAllowed && (
@@ -141,7 +141,7 @@ export default function BuilderConfigPanel({
                         icon={<Clock size={14} />}
                         label={t('agent_schedules.title', 'Schedules')}
                         count={agentSchedules.filter(r => r.isActive).length}
-                        onClick={() => setSchedulesPickerOpen(v => !v)}
+                        onClick={() => { setSkillPickerOpen(false); setSchedulesPickerOpen(v => !v); }}
                         active={schedulesPickerOpen}
                         popoverTrigger="schedules"
                     />

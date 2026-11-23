@@ -134,7 +134,7 @@ const PINNED = {
         vanillaNoHead: '4f0fff26e6dbfbc2',
         reactLive: 'a9e279f3086cc9a2',
         reactBroken: '9b5680e09f627f47',
-        reactEmpty: '5ca6d14a9ca5aba5',
+        reactEmpty: 'ba0ca51d1aeb102b',
         reactStreaming: '7af19c87d23833d3',
     },
     server: {

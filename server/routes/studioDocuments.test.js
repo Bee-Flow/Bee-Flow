@@ -111,6 +111,8 @@ test('a presentation with fields shows its values in the viewer, and a value sti
         deck.settings={ deck:{ preset:'dark' }, contract:fields };
         res=await dispatch('GET','/deck/preview');
         assert.match(res.body,/Kick-off \[Customer name\]/);
+        const draft=await dispatch('POST','/deck/preview',{body:{settings:{deck:{preset:'band'}}}});
+        assert.match(draft.body,/Kick-off \[Customer name\]/,'the Look tab\'s draft preview fills the same way');
     } finally { deck.settings=original; }
 });
 test('a presentation downloads as .pptx, and as the PDF deck; a page cannot become a .pptx',async()=>{

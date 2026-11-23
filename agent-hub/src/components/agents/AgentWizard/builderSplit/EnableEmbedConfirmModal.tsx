@@ -26,7 +26,7 @@ export default function EnableEmbedConfirmModal({ t, agent, onConfirm, onCancel 
                     <button onClick={onCancel} className="px-4 py-2 rounded-full text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition">
                         {t('agent_wizard.embed.confirm_cancel', 'Cancel')}
                     </button>
-                    <button onClick={onConfirm} className="px-4 py-2 rounded-full text-sm bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition">
+                    <button onClick={onConfirm} className="px-4 py-2 rounded-full text-sm bg-[var(--text-primary)] text-[var(--text-on-ink)] hover:opacity-90 transition">
                         {t('agent_wizard.embed.confirm_enable', 'Enable public access')}
                     </button>
                 </>

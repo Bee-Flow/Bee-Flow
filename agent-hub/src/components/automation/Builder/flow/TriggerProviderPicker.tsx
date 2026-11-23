@@ -156,7 +156,7 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
                                     type="button"
                                     onClick={() => { onPick(focused.id); onClose(); }}
                                     disabled={focused.id === selected}
-                                    className="w-full py-3 rounded-full text-sm font-medium transition bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 disabled:opacity-40"
+                                    className="w-full py-3 rounded-full text-sm font-medium transition bg-[var(--text-primary)] text-[var(--text-on-ink)] hover:opacity-90 disabled:opacity-40"
                                 >
                                     {focused.id === selected ? `Already using ${focused.label}` : `Use ${focused.label}`}
                                 </button>

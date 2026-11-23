@@ -262,7 +262,7 @@ export default function SkillsPopover({
             )}
 
             {open && (
-                <div
+                <div data-solid-popover
                     className="absolute bottom-full left-0 mb-2 w-80 rounded-xl border shadow-2xl overflow-hidden z-50 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [animation:appsOverlayIn_.15s_ease-out]"
                 >
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">

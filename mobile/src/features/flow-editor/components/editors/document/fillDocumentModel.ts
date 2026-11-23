@@ -1,10 +1,11 @@
 /**
  * The pure half of "Fill in a document" — the web's FillDocumentFields
- * (actionEditors/documentFields.jsx) without its JSX: which placeholders the
+ * (actionEditors/documentFields.tsx, with actionEditors/documentOptionLabel.ts) without its JSX: which placeholders the
  * step binds, how a typed value is stored, what the picker and the rows say.
  * fillDocument.lockstep.test.ts holds each rule to the web source.
  */
 
+import { formatDate } from '@/core/i18n';
 import type { DocumentContract, DocumentParameter, DocumentTemplate } from '@/features/flow-editor/api';
 import type { FormDraft } from '@/features/flow-editor/formState';
 
@@ -25,23 +26,34 @@ export function pickDocument(id: string, doc: DocumentTemplate | null): FormDraf
     return { documentId: id, documentName: doc?.name ?? '', documentVersionId: doc?.versionId ?? '', sectionOverrides: {} };
 }
 
-const isList = (p: DocumentParameter) => p.kind === 'list' || p.type === 'list';
+/** A list: `type: 'list'` on a contract parameter, `kind: 'list'` on a bare placeholder. */
+export const isListPlaceholder = (p: DocumentParameter): boolean => p.type === 'list' || p.kind === 'list';
+
+/** A condition: a bare placeholder of that kind, or a yes/no parameter that decides sections. */
+export const isConditionPlaceholder = (p: DocumentParameter): boolean =>
+    p.kind === 'condition' || (p.type === 'boolean' && (p.conditionForSections?.length ?? 0) > 0);
 
 /** Under a value row: the contract's own words, else what a list or a condition asks of its binding. */
 export function placeholderHint(p: DocumentParameter): Msg | string | null {
     if (p.summary || p.instructions) return p.summary || p.instructions;
-    if (isList(p)) {
+    if (isListPlaceholder(p)) {
         return p.fields.length
-            ? msg('mobile.flow.fill.list_with_fields', 'A list, one block per item with {fields}. Bind it to a whole list — one value and nothing else around it.', { fields: p.fields.join(', ') })
-            : msg('mobile.flow.fill.list_whole', 'A list. Bind it to a whole list — one value and nothing else around it.');
+            ? msg('builder_polish.fill_list_hint_fields', 'A list, one block per item with {fields}. Bind it to a whole list — one value and nothing else around it.', { fields: p.fields.join(', ') })
+            : msg('builder_polish.fill_list_hint', 'A list. Bind it to a whole list — one value and nothing else around it.');
     }
-    if (p.kind === 'condition') return msg('mobile.flow.fill.condition_hint', 'Decides whether its block is printed at all.');
+    if (isConditionPlaceholder(p)) return msg('builder_polish.fill_condition_hint', 'Decides whether its block is printed at all.');
     return null;
 }
 
-/** The empty row's example: a whole list for a list, one value otherwise. */
-export function placeholderPrompt(p: DocumentParameter): string {
-    return isList(p) ? '{{steps.rows.output.rows}}' : '{{steps.extract.output.naam}}';
+/**
+ * The empty row's prompt: a whole list for a list, one value otherwise. The
+ * web's words point at its right panel; a phone has Insert data instead, so
+ * the choice is the web's and the words are the phone's.
+ */
+export function placeholderPrompt(p: DocumentParameter): Msg {
+    return isListPlaceholder(p)
+        ? msg('mobile.flow.fill.list_prompt', 'Tap Insert data to pick a whole list')
+        : msg('mobile.flow.fill.value_prompt', 'Type a value, or tap Insert data to pick one');
 }
 
 /** A number typed into a number parameter is stored as one, and so is true / false into a yes/no. */
@@ -88,8 +100,26 @@ export function exampleText(example: unknown): string {
 
 /** A picker row's second line: how many placeholders the document has. */
 export function placeholderCount(doc: DocumentTemplate): Msg {
-    const n = doc.placeholders?.length ?? 0;
-    return n ? msg('mobile.flow.fill.placeholder_count', '{n} placeholder(s)', { n }) : msg('mobile.flow.fill.no_placeholders', 'no placeholders');
+    const count = doc.placeholders?.length ?? 0;
+    if (count === 0) return msg('builder_polish.fill_no_placeholders', 'no placeholders');
+    return count === 1
+        ? msg('builder_polish.fill_placeholder_count_one', '{count} placeholder', { count })
+        : msg('builder_polish.fill_placeholder_count_other', '{count} placeholders', { count });
+}
+
+/** The web's when-it-changed format for a duplicate name: `23 Nov, 17:22`. */
+const CHANGED_AT: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+
+/**
+ * ` · 23 Nov, 17:22` (when it was last changed) for a document whose name
+ * another one in the list shares; '' for a unique name — copies made from one
+ * starter ("Quote", "Quote", "Quote") are otherwise indistinguishable options.
+ */
+export function duplicateNameSuffix(doc: DocumentTemplate, all: readonly DocumentTemplate[]): string {
+    const name = (doc.name || '').trim();
+    if (!all.some((other) => other.id !== doc.id && (other.name || '').trim() === name)) return '';
+    const when = formatDate(doc.updatedAt, CHANGED_AT);
+    return when ? ` · ${when}` : '';
 }
 
 /**

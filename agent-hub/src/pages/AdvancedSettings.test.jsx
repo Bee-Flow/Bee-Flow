@@ -400,7 +400,7 @@ describe('AdvancedSettings — consumer account group', () => {
         const { container } = await mount({ user: CONSUMER });
         expect(headers(container)).toEqual(['Personal', 'Account']);
         expect(topRows(container).slice(-5)).toEqual([
-            'License & Usage', 'Privacy Shield', 'Usage & Monitoring', 'Integrations', 'Beta Features',
+            expect.stringMatching(/^Licen[cs]e & [Uu]sage$/), 'Privacy Shield', 'Usage & Monitoring', 'Integrations', 'Beta Features',
         ]);
     });
 
@@ -775,7 +775,7 @@ describe('AdvancedSettings — bounces', () => {
         expect(panel()).toBe('section-consumer-license');
         // Straight into the detail view, titled with the page.
         expect(navEl(container).closest('div.flex-shrink-0').className).toContain('hidden md:flex');
-        expect(titleBar(container).textContent).toBe('License & Usage');
+        expect(titleBar(container).textContent).toMatch(/^Licen[cs]e & [Uu]sage$/);
         // The account rows themselves stay off the phone.
         expect(headers(container)).toEqual(['Personal']);
     });

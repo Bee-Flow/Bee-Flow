@@ -104,7 +104,9 @@ function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: bo
         <div className={`relative flex-1 min-h-0 flex ${isPanel && isDeck ? 'flex-col' : 'flex-col sm:flex-row'}`}>
             {isDeck && e.editing && <DeckPane e={e} isPanel={isPanel} />}
             <div className="relative flex-1 min-w-0 min-h-0">
-                <div className="h-full w-full" inert={filled}>
+                {/* Under the filled view the sheet stays alive (unsaved typing included) but is not painted: a
+                    translucent theme background would otherwise show the {{placeholders}} through it. */}
+                <div className={`h-full w-full ${filled ? 'invisible' : ''}`} inert={filled}>
                 <DocumentCanvas
                     ref={canvasRef} documentId={s.doc.id} editing={e.editing && !isDeck} reloadKey={s.reloadKey} peers={frame.framePeers}
                     onDirty={s.autosave.markDirty} onError={(m) => s.setError(m)} onDeckReady={e.setSlideCount}

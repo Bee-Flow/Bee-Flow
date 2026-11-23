@@ -28,7 +28,7 @@ const segmentLabel = (text: string) => <span className="@max-6xl/edhead:sr-only"
 export function ViewSegments({ view, onSelect, isManaged, streamLock, editing, logicCount }: ViewSegmentsProps) {
     const { t } = useTranslation();
     return (
-        <div className="flex min-w-0 flex-1 justify-center">
+        <div className="flex flex-1 justify-center">
             <SegmentedControl<HeaderView>
                 size="sm"
                 ariaLabel={t('app_studio.header.view_aria', 'Editor view')}

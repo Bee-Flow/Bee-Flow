@@ -38,6 +38,7 @@ export function TemplateFillList({ templates, loading, failed, onPick }: Templat
             role="dialog"
             aria-label={t('chat_templates.menu_label', 'Fill in a template')}
             data-testid="template-fill-picker"
+            data-solid-popover
             className="absolute bottom-full left-0 mb-2 w-[300px] max-h-[380px] flex flex-col bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-xl p-1.5 z-50"
         >
             <label className="flex items-center gap-2 px-2 py-1.5 mb-1 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">

@@ -7,7 +7,9 @@
  * remain as shortcuts. Every action goes through the shared editor facade
  * (`editor.chain().focus()…run()`) — no engine coupling — so it works unchanged
  * for any engine. Below desktop width the marks + Align + Colour collapse into a
- * single "Format" dropdown; the row also scrolls horizontally as a last resort.
+ * single "Format" dropdown. In a narrow editor column (a notebook with its
+ * sources and chat open) the row wraps onto a second line instead of
+ * scrolling, so every tool (AI, Find, Shortcuts, the word count) stays visible.
  */
 import React, { useState } from 'react';
 import {
@@ -149,7 +151,7 @@ export default function EditorToolbar({
   };
 
   return (
-    <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto custom-scrollbar [border-color:var(--border-subtle)]! [background:var(--bg-secondary)]"
+    <div className="shrink-0 flex flex-wrap items-center gap-1 px-3 py-1.5 border-b [border-color:var(--border-subtle)]! [background:var(--bg-secondary)]"
       role="toolbar" aria-label={tt('notebooks.toolbar', 'Editor toolbar')}>
       {/* undo / redo */}
       <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg shrink-0 [background:var(--bg-tertiary)]">

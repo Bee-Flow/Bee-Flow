@@ -132,15 +132,18 @@ function bubbleClass(msg: ChatMessage, isUser: boolean, isTool: boolean): string
         // is in all eight themes (index.css). NOT --bg-tertiary, however the
         // artboard draws it: EmbedChat rewrites exactly these two properties to
         // pass an embedder's bubble colour through (EmbedChat.jsx).
-        shape = 'p-4 max-w-[85%] bg-[var(--user-bubble-bg)] text-[var(--user-bubble-fg)] rounded-br-none';
+        shape = 'p-4 max-w-[85%] overflow-hidden bg-[var(--user-bubble-bg)] text-[var(--user-bubble-fg)] rounded-br-none';
     } else if (isTool) {
-        shape = 'p-4 bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-xl w-full max-w-full';
+        shape = 'p-4 overflow-hidden bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-xl w-full max-w-full';
     } else {
         // C9 — the answer has no bubble: no surface, and so no inner margin
         // pushing the text away from its own tile. The vertical space stays.
-        shape = 'py-0.5 w-full text-[var(--text-primary)] rounded-bl-none';
+        // Its text starts on the very edge, so a hidden overflow cut the left of
+        // a glyph ("Ik" read "ık") and the fill card's shadow: wide content is
+        // still clipped sideways, with a few pixels of room.
+        shape = 'py-0.5 w-full overflow-x-clip [overflow-clip-margin:6px] text-[var(--text-primary)] rounded-bl-none';
     }
-    return `relative rounded-2xl transition-all duration-200 overflow-hidden
+    return `relative rounded-2xl transition-all duration-200
                     ${shape}
                 ${msg.isGuardrailViolation ? 'opacity-60 scale-95' : ''}
                 ${msg.isDeleted ? 'opacity-50 italic' : ''}`;

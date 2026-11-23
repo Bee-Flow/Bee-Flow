@@ -35,7 +35,7 @@ export default function MediaSettingsPopover({
     useOutsideDismiss(panelRef, onClose, { enabled: isOpen });
     if (!isOpen) return null;
     return (
-        <div ref={panelRef}
+        <div ref={panelRef} data-solid-popover
             className={`absolute bottom-full mb-2 left-0 ${width} rounded-xl border shadow-2xl overflow-hidden z-50 [background:var(--bg-secondary)] [border-color:var(--border-subtle)]`}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">

@@ -715,7 +715,7 @@ router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), a
         const draft = {};
         if (typeof req.body?.bodyHtml === 'string') draft.bodyHtml = req.body.bodyHtml.slice(0, documentStore.MAX_HTML_BYTES);
         if (req.body?.settings && typeof req.body.settings === 'object') draft.settings = req.body.settings;
-        sendPreview(res, await previewHtmlFor(req, doc, { draft }));
+        sendPreview(res, await previewHtmlFor(req, doc, { draft, ...require('../core/documents/fillPreview.mts').deckViewerValues({ ...doc, ...draft, settings: { ...doc.settings, ...draft.settings } }) }));
     } catch (err) {
         if (err && err.errorClass === 'document_empty') return sendPreview(res, emptyDeckHtml());
         if (err && /^deck_/.test(err.errorClass || '')) return res.status(422).json({ error: /** @type {Error} */ (err).message, code: err.errorClass });

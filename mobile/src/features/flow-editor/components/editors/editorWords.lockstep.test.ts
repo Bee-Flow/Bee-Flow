@@ -132,8 +132,8 @@ const OWN_WORDS: Record<string, string> = {
     'mobile.flow.trigger.input_parameters_hint': 'same',
     'mobile.flow.filter.nc_forms_note': 'the web says "bound to trigger.output.formId and …submissionId"; the phone names the pills',
     'mobile.flow.filter.nc_tag_note': 'the web says "bound to trigger.output.fileId"; the phone names the pill',
-    'mobile.flow.fill.list_with_fields': 'the web assembles the sentence from a template literal; the phone words each case whole, so each can be translated',
-    'mobile.flow.fill.list_whole': 'same',
+    'mobile.flow.fill.list_prompt': 'the web says "Click a list in the right panel"; the phone has Insert data',
+    'mobile.flow.fill.value_prompt': 'the web says "or click one in the right panel"; the phone has Insert data',
 };
 
 // ── Reading the words ──────────────────────────────────────────────────

@@ -18,7 +18,7 @@ type Translate = (key: string, fallback?: string, params?: Record<string, unknow
 // O1: the default --accent-primary is a mid grey (#9ca3af) that reads as a
 // disabled button at this size; the inverted text colours are a filled button
 // with full contrast in the light and the dark theme alike.
-export const PRIMARY_BUTTON_CLASS = 'px-2.5 py-1 text-[11px] font-semibold rounded border border-transparent bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition';
+export const PRIMARY_BUTTON_CLASS = 'px-2.5 py-1 text-[11px] font-semibold rounded border border-transparent bg-[var(--text-primary)] text-[var(--text-on-ink)] hover:opacity-90 transition';
 
 /**
  * A rule as the sentence the canvas shows; "a custom rule" for a formula the

@@ -56,6 +56,9 @@ import type { HeaderCtx } from './header/registerSpecs';
 import type { HubHeaderCtx } from './ComplianceHeader';
 import type ComplianceMobile from './ComplianceMobile';
 import { useShellProps } from '@/authedApp/useShellProps';
+import { Scale } from 'lucide-react';
+import EmptyState from '@/components/shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The hub's one way to move: a section, an optional item and tab; `replace` rewrites the history entry. */
 type NavigateTo = (sectionId: string, subId?: string | null, nextTab?: string | null, opts?: { replace?: boolean }) => void;
@@ -80,7 +83,33 @@ function HubLadder({ ladder, onClose }: { ladder: LadderState; onClose: () => vo
     return <AiActLadderModal open kind={ladder.kind} target={ladder.target} onClose={onClose} />;
 }
 
-export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate: onNavigateProp, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
+/**
+ * The Compliance Center works on the signed-in account's own organisation
+ * (the server reads the home organisation and answers 403 `no_organisation`
+ * without one). An account outside any organisation, a platform admin on a
+ * shared server, gets that said once instead of a hub of failed reads.
+ */
+function NoOrganisation() {
+    const { t } = useTranslation();
+    return (
+        <div className="h-full grid place-items-center p-6" data-testid="compliance-no-org">
+            <EmptyState
+                icon={<Scale className="w-10 h-10 opacity-30" aria-hidden="true" />}
+                title={t('admin_no_org.compliance_title', 'No organisation to check')}
+                description={t('admin_no_org.compliance_desc', 'The Compliance Center works on your own organisation, and this account is not in one. Open it with an account of the organisation you want to check.')}
+            />
+        </div>
+    );
+}
+
+export default function ComplianceHub(props: ComplianceHubProps) {
+    const { user } = useShellProps<{ organizationId?: string | null }, never>({});
+    // No session user (a test or kit host) keeps the hub: only a known account without an organisation is refused.
+    if (user && !user.organizationId) return <NoOrganisation />;
+    return <ComplianceHubInner {...props} />;
+}
+
+function ComplianceHubInner({ activeSection = 'overview', focusCheckId = null, onNavigate: onNavigateProp, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
     // Inside the app shell the navigation comes from context; a host outside
     // it (a test, a kit) still hands it as a prop.
     const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
