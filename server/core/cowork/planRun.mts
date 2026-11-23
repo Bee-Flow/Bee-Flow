@@ -218,6 +218,8 @@ export async function executePlanRun(
     // An event already claimed its run (./eventRun.mts); the clock and Run now claim one here.
     const attempt = trigger?.runId ? { runId: trigger.runId } : await claimAttempt(store, task, { manual, due });
     if (!attempt) return;
+    // A run an event started is not the item's moment: it neither moves the clock nor switches a one-off item off.
+    const byHand = manual || !!trigger;
     log.info(`[AITaskRunner] Executing ${task.id} as its plan`);
     try {
         const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d);
@@ -239,7 +241,7 @@ export async function executePlanRun(
         const { text, paused } = outcomeOf(row);
         // The schedule moves on before the run closes: once the item stops saying 'running', a tick must not find
         // this moment still due. A run that waits for a decision closes as 'waiting' (./planRunFollowUp.mts).
-        await deps.advance(task, { manual, store, startTime });
+        await deps.advance(task, { manual: byHand, store, startTime });
         await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: paused });
         // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
         // before its result step, is announced here.
@@ -247,6 +249,6 @@ export async function executePlanRun(
     } catch (caught) {
         const err = caught instanceof Error ? caught : new Error(String(caught));
         log.error(`[AITaskRunner] Plan run of ${task.id} failed:`, err.message);
-        await deps.failRun(task, err, { manual, store, close: { runId: attempt.runId } });
+        await deps.failRun(task, err, { manual: byHand, store, close: { runId: attempt.runId } });
     }
 }

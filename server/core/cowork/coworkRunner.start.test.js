@@ -180,3 +180,20 @@ test('over the organisation\'s budget: the first due run of an item fails with t
     assert.ok(errors.every((m) => m.includes('budget of €50.00')));
     assert.ok(advanced.length >= 2, 'both due moments moved on');
 });
+
+test('a refused mail or event run of a one-off item leaves the item on, and one told this month closes without a second notice', async () => {
+    const item = { id: 's6', userId: 'u1', title: 'Mail desk', prompt: 'Answer.', repeatInterval: null, nextRunAt: null };
+    /** @type {any[]} */
+    const updates = [];
+    /** @type {any[]} */
+    const errors = [];
+    mock.method(coworkStore, 'updateTask', async (/** @type {string} */ _id, /** @type {any} */ patch) => { updates.push(patch); });
+    mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {any} */ message, /** @type {any} */ close) => { errors.push([String(message), close]); });
+    mock.method(coworkStore, 'advanceSchedule', async () => null);
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 10 });
+    await runner.executeCowork(item, { trigger: { runId: 'mail-1' } }, { policyOf: readOnly });
+    await runner.executeCowork(item, { trigger: { runId: 'hook-1' } }, { policyOf: open, orgRefusal: async () => ({ reason: 'Budget used up.', quiet: true }) });
+    assert.ok(!updates.some((u) => u.isActive === false), 'the item stays on');
+    assert.deepEqual(errors.map((e) => e[1].runId), ['mail-1', 'hook-1'], 'each refused run closes its own row');
+});

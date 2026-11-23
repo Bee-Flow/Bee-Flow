@@ -91,3 +91,12 @@ test('the follow-up limit: default 5 answers deep, 0 is unlimited, and closing i
 test('an answer while the item is running waits for that run', async () => {
     await assert.rejects(review.handleRunReview({ schedule: { ...schedule, lastStatus: 'running' }, runId: 'r1', userId: 'u1', action: 'answer', answer: 'x' }, fakeDeps().deps), { status: 409, code: 'cowork_running' });
 });
+
+test('a follow-up of a run that had outside text starts marked: a mail, an event start, or a read of a mailbox on the way', () => {
+    const { hadOutsideText } = require('./coworkReview.mts');
+    const base = { id: 'r1', status: 'needs_review', review: null, runContext: null };
+    assert.strictEqual(hadOutsideText({ ...base, triggerKind: 'schedule' }), false);
+    assert.strictEqual(hadOutsideText({ ...base, triggerKind: 'webhook' }), true);
+    assert.strictEqual(hadOutsideText({ ...base, triggerKind: 'schedule', runContext: { mail: { provider: 'gmail', messageId: 'm1' } } }), true);
+    assert.strictEqual(hadOutsideText({ ...base, triggerKind: 'manual', activity: { readOutsideText: true } }), true);
+});

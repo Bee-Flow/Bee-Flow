@@ -29,13 +29,16 @@ const MAX_CONCURRENT = 5;
  * the owner sees why. A mail run already holds its row (`runId`).
  * @param {Parameters<typeof executeTask>[0]} task
  * @param {string} reason
- * @param {{ manual: boolean, due: boolean, runId: string | null }} opts
+ * @param {{ manual: boolean, due: boolean, runId: string | null, quiet?: boolean }} opts
  */
-async function refuseTask(task, reason, { manual, due, runId }) {
+async function refuseTask(task, reason, { manual, due, runId, quiet = false }) {
+    // A run that holds its own row (a mail, an event, a follow-up) is not the item's moment: refusing it neither moves
+    // the clock nor switches a one-off item off. Told before this month: its row closes without a second notice.
+    if (runId && quiet) return coworkStore.markError(task.id, reason, { runId });
     const attempt = runId ? { runId } : await claimAttempt(coworkStore, task, { manual, due });
     // failRun is untyped JavaScript; this is the shape its `close` option takes.
     const fail = /** @type {(t: typeof task, e: Error, o: { manual: boolean, store: typeof coworkStore, close: { runId: string | null } }) => Promise<unknown>} */ (/** @type {unknown} */ (failRun));
-    if (attempt) await fail(task, new Error(reason), { manual, store: coworkStore, close: { runId: attempt.runId } });
+    if (attempt) await fail(task, new Error(reason), { manual: manual || !!runId, store: coworkStore, close: { runId: attempt.runId } });
 }
 
 /**
@@ -87,7 +90,7 @@ async function executeCowork(schedule, { manual = false, due = false, trigger = 
     const { ownerPolicy, refusal, quiet } = await startRefusal(schedule, deps);
     const silent = quiet && due && !trigger && isRepeating(schedule);
     if (silent) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
-    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
+    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null, quiet });
     // The apps it may use while nobody watches travel with the run (./runApps.mts), so no runner reads the policy again.
     const task = { ...schedule, unattendedApps: ownerPolicy.unattendedApps };
     await (deps.executeTask || executeTask)(task, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });

@@ -104,3 +104,14 @@ test('a shared agent the item\'s user may chat with runs as that user', async ()
     await executeAgentRun(task, { store: fakeStore() }, d);
     assert.strictEqual(seen.runtime.userId, 'u1');
 });
+
+test('the conversation of a run a mail or an event started never becomes the item\'s: its outside text stays out of later runs', async () => {
+    for (const t of [trigger, { prompt: 'Webhook data', outsideText: true, metadata: { unattended: true } }]) {
+        const store = fakeStore();
+        await executeAgentRun({ ...task, conversationId: null }, { store, trigger: t }, deps([]));
+        assert.ok(!store.calls.some((c) => c[0] === 'updateTask' && c[2] && 'conversationId' in c[2]), 'no conversation is stored on the item');
+    }
+    const store = fakeStore();
+    await executeAgentRun({ ...task, conversationId: null }, { store, manual: true }, deps([]));
+    assert.ok(store.calls.some((c) => c[0] === 'updateTask' && c[2] && c[2].conversationId === 'c-new'), 'an ordinary run keeps its thread');
+});

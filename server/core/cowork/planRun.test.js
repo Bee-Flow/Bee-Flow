@@ -249,3 +249,12 @@ test('a colleague the owner named to decide gets the questions: they are assigne
     const question = h.seen.executed[0].automation.definition.steps.find((/** @type {any} */ st) => st.id === 'cowork_ask__send');
     assert.deepStrictEqual(question.approval, { assignee: { userId: 'u-colleague' } });
 });
+
+test('a run an event started is not the item\'s moment: it moves no clock and never switches a one-off item off, also when it fails', async () => {
+    const h = harness();
+    await executePlanRun(task, { store: h.store, trigger: { runId: 'ev-1', plan: true, payload: { start: 'webhook' } } }, h.deps);
+    assert.deepStrictEqual(h.seen.advanced.map((o) => o.manual), [true]);
+    const failing = harness({ plan: null });
+    await executePlanRun(task, { store: failing.store, trigger: { runId: 'ev-2', plan: true, payload: {} } }, failing.deps);
+    assert.deepStrictEqual(failing.seen.failed.map((f) => f.opts.manual), [true]);
+});

@@ -114,3 +114,9 @@ test('a new file starts its item with the file\'s name and path; an event for an
     assert.deepStrictEqual(started[0], { kind: 'file', ref: '991', label: 'a new file in a folder', data: { file: { id: '991', name: 'march.pdf', path: '/Invoices/march.pdf' } } });
     assert.strictEqual(await runForEvent({ coworkScheduleId: 'w1', userId: 'someone-else' }, { id: '992', path: '/x' }, deps), false);
 });
+
+test('an event run starts in a conversation of its own: the item\'s earlier conversation is not continued', async () => {
+    const w = runWorld();
+    await runOnEvent({ ...agentItem, conversationId: 'c-item' }, EVENT, w.deps);
+    assert.strictEqual(w.started[0].item.conversationId, null);
+});

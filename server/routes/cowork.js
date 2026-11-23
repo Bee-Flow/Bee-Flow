@@ -240,7 +240,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
         const ok = await coworkStore.updateSchedule(req.params.id, {
             title, prompt, modelTier, isActive,
             timezone: norm.timezone,
-            enabledApps: norm.enabledApps,
+            enabledApps: norm.enabledApps, monthlyBudget: norm.monthlyBudget,
             ...(resolvedAgentId !== undefined ? { agentId: resolvedAgentId } : {}),
             ...plan.patch,
         });

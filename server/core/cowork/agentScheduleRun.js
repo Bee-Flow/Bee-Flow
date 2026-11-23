@@ -17,7 +17,7 @@ const { extractCoverageTopics } = require('./coverageTopics');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { createRunActivity } = require('./runActivity.mts');
 const { appsOfRun } = require('./runApps.mts');
-const { skillNamesOf, conversationForRun, runCloseOf, runNotification } = require('./agentRunRecord.mts');
+const { skillNamesOf, conversationForRun, runCloseOf, runNotification, startedOutside } = require('./agentRunRecord.mts');
 const { startRunDeadline } = require('./runDeadline.mts');
 const { claimAttempt } = require('./runClaim.mts');
 const { agentRoutinesAllowed } = require('./agentRoutinesGate.mts');
@@ -89,8 +89,9 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             : finalResponse;
 
         // Persist conversation id back onto the task so future runs append to
-        // the same chat thread.
-        if (result?.conversationId && result.conversationId !== task.conversationId) {
+        // the same chat thread. Not the conversation of a run a mail or an event
+        // started: its outside text would sit unmarked in the next run's context.
+        if (result?.conversationId && result.conversationId !== task.conversationId && !startedOutside(trigger)) {
             try { await store.updateTask(task.id, { conversationId: result.conversationId }); }
             catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun', err); /* non-fatal */ }
         }

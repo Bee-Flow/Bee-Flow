@@ -66,3 +66,24 @@ test('the run\'s history says it read outside text, and only then', () => {
     read.outsideText.seen = true;
     assert.strictEqual(summariseActivity(read, new Map()).readOutsideText, true);
 });
+
+test('after outside text, the open web and a tool nobody classified are held too: they could carry what the run read away', () => {
+    const classified = { ...lookups, isClassified: (n) => n in TOOLS || n === 'cowork_request_review' };
+    const mark = createOutsideTextMark();
+    assert.strictEqual(holdCall(mark, 'read_url', classified), null, 'the first web read runs, and marks the run');
+    assert.strictEqual(mark.seen, true);
+    assert.strictEqual(holdCall(mark, 'read_url', classified), OUTSIDE_TEXT_REFUSAL, 'a second address is picked by a run that read outside text');
+    assert.strictEqual(holdCall(mark, 'mcp__slack__post_message', classified), OUTSIDE_TEXT_REFUSAL, 'an MCP tool of unknown effect');
+    assert.strictEqual(holdCall(mark, 'custom_crm_push', classified), OUTSIDE_TEXT_REFUSAL, 'a custom integration of unknown effect');
+    assert.strictEqual(holdCall(mark, 'cowork_request_review', classified), null, 'asking the owner stays possible');
+    assert.strictEqual(holdCall(mark, 'outlook_create_draft', classified), null, 'a draft for the owner stays possible');
+});
+
+test('with the real side-effect map: once marked, http_request, read_url, web_search and a public link are held', () => {
+    const real = require('./outsideTextGuard.mts').defaultLookups();
+    const mark = { seen: true };
+    for (const n of ['http_request', 'read_url', 'web_search', 'nextcloud_direct_link', 'mcp__slack__post_message', 'gmail_compose']) {
+        assert.strictEqual(holdCall(mark, n, real), OUTSIDE_TEXT_REFUSAL, n);
+    }
+    assert.strictEqual(holdCall(mark, 'cowork_request_review', real), null);
+});

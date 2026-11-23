@@ -7,7 +7,11 @@
  *
  *   - a call that reads outside text (a mailbox or a group conversation, a read on the open web) marks the run;
  *   - from then on a call that SENDS (the side-effect map's `sends`: a mail, a chat message, a share) is refused
- *     before it runs, with a sentence the model reads: save it as a draft, or ask the owner.
+ *     before it runs, with a sentence the model reads: save it as a draft, or ask the owner;
+ *   - and so is a call to the open web (a page, a search, an HTTP request, a public link): its address or query is
+ *     picked by the run, so it can carry what the run read to whoever wrote the outside text;
+ *   - and so is a tool nobody classified (an MCP server's, a custom integration's, a name the side-effect map does
+ *     not know): what it does is unknown, so it counts as sending. The tools that only touch the run itself stay.
  *
  * Writing inside the owner's own apps (a draft, a row, a file) stays possible: the owner looks at it. A run started by
  * a new mail has its own, stricter allow-list (core/agentRuntime/toolPolicy/mailRun.mts) and is not held here.
@@ -26,13 +30,20 @@ export interface GuardLookups {
     appOf: (toolName: string) => string | null;
     effectOf: (toolName: string) => Effect;
     isOpenWebRead: (toolName: string) => boolean;
+    /** Does the side-effect map know this tool (reads, writes inside the owner's apps, or sends)? */
+    isClassified?: (toolName: string) => boolean;
 }
 
 export function defaultLookups(): GuardLookups {
-    const { effectOf } = nodeRequire('../automationModel/sideEffectMap.js') as { effectOf: (n: string) => Effect };
-    const { OUTSIDE_READS } = nodeRequire('../agentRuntime/toolPolicy/mailRun.mts') as { OUTSIDE_READS: ReadonlySet<string> };
+    const map = nodeRequire('../automationModel/sideEffectMap.js') as { effectOf: (n: string) => Effect; READ_ONLY: ReadonlySet<string>; SENDS: ReadonlySet<string>; SIDE_EFFECTS: ReadonlySet<string> };
+    const { OUTSIDE_READS, RUN_LOCAL_TOOLS } = nodeRequire('../agentRuntime/toolPolicy/mailRun.mts') as { OUTSIDE_READS: ReadonlySet<string>; RUN_LOCAL_TOOLS: ReadonlySet<string> };
     const { appIdForTool } = nodeRequire('../agentRuntime/toolPolicy/appIndex.js') as { appIdForTool: (n: string) => string | null };
-    return { appOf: (n) => appIdForTool(n), effectOf: (n) => effectOf(n), isOpenWebRead: (n) => OUTSIDE_READS.has(n) };
+    return {
+        appOf: (n) => appIdForTool(n),
+        effectOf: (n) => map.effectOf(n),
+        isOpenWebRead: (n) => OUTSIDE_READS.has(n),
+        isClassified: (n) => RUN_LOCAL_TOOLS.has(n) || map.READ_ONLY.has(n) || map.SENDS.has(n) || map.SIDE_EFFECTS.has(n),
+    };
 }
 
 /** Does this tool read text an outside party wrote? */
@@ -43,7 +54,7 @@ export function readsOutsideText(toolName: string, lookups: GuardLookups): boole
     return app !== null && OUTSIDE_TEXT_APPS.has(app) && lookups.effectOf(toolName) === 'reads';
 }
 
-export const OUTSIDE_TEXT_REFUSAL = 'This run has read text written outside the workspace (a mail or a web page), so it no longer sends anything to other people. Save it as a draft for the owner, or ask the owner for a review.';
+export const OUTSIDE_TEXT_REFUSAL = 'This run has read text written outside the workspace (a mail or a web page), so it no longer sends anything to other people, goes to the open web or uses a tool whose effect is unknown. Save it as a draft for the owner, or ask the owner for a review.';
 
 /** What a run keeps: whether it read outside text. */
 export interface OutsideTextMark { seen: boolean }
@@ -57,6 +68,7 @@ export function createOutsideTextMark(): OutsideTextMark {
  * marked and the call sends. Null: the call may run.
  */
 export function holdCall(mark: OutsideTextMark, toolName: string, lookups: GuardLookups = defaultLookups()): string | null {
+    if (mark.seen && (lookups.isOpenWebRead(toolName) || !(lookups.isClassified?.(toolName) ?? true))) return OUTSIDE_TEXT_REFUSAL;
     if (readsOutsideText(toolName, lookups)) {
         mark.seen = true;
         return null;

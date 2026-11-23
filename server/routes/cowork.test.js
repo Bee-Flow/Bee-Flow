@@ -996,3 +996,12 @@ test('the review body: a known action, an answer only as text within its limit, 
     }
     assert.deepStrictEqual(state.reviewCalls, []);
 });
+
+test('monthlyBudget: PUT saves the item\'s budget, and null takes it off', async () => {
+    reset();
+    await call('/cw-1', { method: 'PUT', body: { monthlyBudget: 5 } });
+    assert.strictEqual(state.updates[0].patch.monthlyBudget, 5);
+    reset();
+    await call('/cw-1', { method: 'PUT', body: { monthlyBudget: null } });
+    assert.strictEqual(state.updates[0].patch.monthlyBudget, null);
+});

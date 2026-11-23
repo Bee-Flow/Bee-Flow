@@ -43,6 +43,12 @@ export async function skillNamesOf(ids: string[], orgId: string | null, userId: 
  * turnSetup marks as Cowork's). An item that was pointed at a chat, or whose old conversation a person went on
  * chatting in (the migration cowork-conversation-origin-2026-11 leaves those as chats), writes no run into it.
  */
+/** A run a mail or an event started: it has outside text in its conversation from its first step. */
+export function startedOutside(trigger: unknown): boolean {
+    const t = trigger && typeof trigger === 'object' ? trigger as { outsideText?: unknown; metadata?: { mailTrigger?: unknown } | null } : null;
+    return t?.outsideText === true || !!t?.metadata?.mailTrigger;
+}
+
 export async function conversationForRun(task: Task, agentStore: { getConversationOrigin?: (id: string) => Promise<string | null> }): Promise<string | null> {
     if (!task.conversationId) return null;
     if (typeof agentStore.getConversationOrigin !== 'function') return task.conversationId;

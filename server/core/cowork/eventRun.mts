@@ -95,6 +95,7 @@ export async function runOnEvent(item: Item, event: CoworkEvent, deps: EventRunD
             notification: ({ agentName }: { agentName: string }) => ({ title: `${agentName}: ran on ${event.label}`, message: `Ran on ${event.label}.` }),
         };
     log.info(`[Cowork] ${item.id} starts on ${event.kind}`);
-    await deps.executeCowork(item, { trigger });
+    // A fresh conversation per event, as for a mail: one caller's text never sits in the context of another run.
+    await deps.executeCowork({ ...item, conversationId: null }, { trigger });
     return true;
 }
