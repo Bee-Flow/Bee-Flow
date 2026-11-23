@@ -743,6 +743,29 @@
         "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
         ".github/security/audit-baseline.json"
       ]
+    },
+    {
+      "images": [
+        "server"
+      ],
+      "reviewedAt": "2026-11-23",
+      "expires": "2026-12-23",
+      "requiredUser": "node",
+      "id": "CVE-2026-124709",
+      "packages": [
+        "libssl3t64",
+        "openssl",
+        "openssl-provider-legacy"
+      ],
+      "versions": [
+        "3.5.9-1~deb13u1"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision (urgency not yet assigned; unstable is unfixed too, bookworm is not affected). The leak is in libssl's QUIC server: a stream the server rejects and the peer then resets is never collected, so a client that keeps a QUIC connection open can grow the server's memory. OpenSSL rates it Low. Short expiry: revisit when Debian ships the trixie fix.",
+      "reachability": "Exposure needs a process that accepts QUIC connections through the system libssl. The image starts one process, node index.js, which serves HTTP on TCP 3001. No server code uses QUIC or HTTP/3, opens a UDP socket, or starts the openssl command (checked in server/ on 2026-11-23), and the only Debian packages the runtime stage adds to the Node base image are ca-certificates and the Docker CLI, neither of which listens on the network. The default process is UID 1000.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-124709",
+        "https://openssl-library.org/news/secadv/20261117.txt"
+      ]
     }
   ]
 }
