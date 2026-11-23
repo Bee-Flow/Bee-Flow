@@ -80,7 +80,10 @@ export async function filledPreview(doc: TemplateDoc, orgId: string | null, deps
     const needed = neededKeys(deps.prepare(doc, stored, overrides));
     const labelled = templatePreviewValues(doc, stored);
     const gaps = labelled.filled.filter((key) => needed.has(key));
-    const values = structuredClone(stored);
+    // Nested first: a flat stored "client.name" next to a gap "client.city" would
+    // otherwise be replaced by the gap's { city } object when prepare replays them.
+    const values: Settings = {};
+    for (const [key, value] of Object.entries(stored)) deps.setPath(values, key, structuredClone(value));
     for (const key of gaps) deps.setPath(values, key, valueAt(labelled.values, key));
     const fill = deps.prepare(doc, values, overrides);
     const html = deps.compose({ ...doc, bodyHtml: fill.bodyHtml }, { mode: 'preview', houseStyleCss: await deps.houseStyleCss(doc, orgId) });

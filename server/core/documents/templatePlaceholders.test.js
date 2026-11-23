@@ -111,3 +111,27 @@ test('a presentation template downloads as .pptx with its gaps shown; a presenta
     assert.match(JSON.stringify(decks[0]), /\[Customer name\]/);
     await assert.rejects(renderFilledDocument({ document: deck('document'), values: {}, format: 'pptx' }), (e) => e.errorClass === 'document_validation_failed');
 });
+
+test('a value a section rule reads is not given a label, so the rule is not decided by it', () => {
+    const doc = {
+        bodyHtml: '<p>{{kind}} {{name}}</p><div data-doc-section="extra">Extra</div>',
+        settings: { contract: {
+            parameters: [{ key: 'kind', label: 'Kind', type: 'choice', options: ['A', 'B'], required: true }, { key: 'name', label: 'Name', type: 'text' }],
+            sections: [{ id: 'extra', condition: { any: [{ all: [{ parameter: 'kind', operator: 'equals', value: 'A' }] }] } }],
+        } },
+    };
+    const { values, filled } = templatePreviewValues(doc, {});
+    assert.deepEqual(filled, ['name']);
+    assert.equal(values.kind, undefined);
+});
+
+test('a flat stored dotted value and a dotted label end up in one object', () => {
+    const doc = {
+        bodyHtml: '<p>{{client.name}} {{client.city}}</p>',
+        settings: { contract: { parameters: [{ key: 'client.name', label: 'Name', type: 'text' }, { key: 'client.city', label: 'City', type: 'text' }] } },
+    };
+    const { values, filled } = templatePreviewValues(doc, { 'client.name': 'Acme' });
+    assert.deepEqual(filled, ['client.city']);
+    assert.match(prepareTemplateForDownload(doc, { 'client.name': 'Acme' }).bodyHtml, /<p>Acme \[City\]<\/p>/);
+    assert.equal(values.client.name, 'Acme');
+});

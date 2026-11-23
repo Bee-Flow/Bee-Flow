@@ -45,14 +45,14 @@ function docTypeIcon(docType: string | undefined): LucideIcon {
     return (docType && ICONS[docType]) || LayoutTemplate;
 }
 
-const TILE = 'flex flex-col items-start gap-1 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-left hover:border-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
+const TILE = 'flex min-w-0 flex-col items-start gap-1 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-left hover:border-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
 
 function Tile({ docType, title, hint, onClick, busy, testId }: { docType: string | undefined; title: string; hint?: string; onClick: () => void; busy: boolean; testId?: string }) {
     return (
         <button type="button" className={TILE} disabled={busy} onClick={onClick} data-testid={testId}>
             <span className="text-[var(--accent-primary)]" aria-hidden="true">{React.createElement(docTypeIcon(docType), { size: 20 })}</span>
-            <strong className="text-sm text-[var(--text-primary)]">{title}</strong>
-            {hint && <span className="text-xs text-[var(--text-tertiary)]">{hint}</span>}
+            <strong className="max-w-full text-sm text-[var(--text-primary)] [overflow-wrap:anywhere]">{title}</strong>
+            {hint && <span className="max-w-full text-xs text-[var(--text-tertiary)] [overflow-wrap:anywhere]">{hint}</span>}
         </button>
     );
 }

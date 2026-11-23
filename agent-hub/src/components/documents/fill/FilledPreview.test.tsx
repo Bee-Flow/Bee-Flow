@@ -104,6 +104,36 @@ describe('the document with what is filled in', () => {
         expect(nextPost).not.toHaveBeenCalledWith(expect.objectContaining({ __beeflowDocReveal: true }), '*');
     });
 
+    it('scrolls only when the person moves to another field; a value typed in is marked where the reader is', async () => {
+        const load = vi.fn().mockResolvedValue(page(FIRST, ['client']));
+        const { frame, again } = await firstPageShown(load);
+        const row = document.createElement('div');
+        row.dataset.fillField = 'client';
+        const input = document.createElement('input');
+        row.appendChild(input);
+        document.body.appendChild(row);
+        const post = heard(frame);
+        act(() => { input.focus(); });
+        again('v1', '[Client name]');
+        await waitFor(() => expect(post).toHaveBeenCalledWith({ __beeflowDocReveal: true, quote: '[Client name]' }, '*'));
+        post.mockClear();
+        again('v1', 'Van Dijk');
+        await waitFor(() => expect(post).toHaveBeenCalledWith(expect.objectContaining({ __beeflowDocAnchors: true, anchors: [{ id: 'spot', quote: 'Van Dijk' }] }), '*'));
+        expect(post).not.toHaveBeenCalledWith(expect.objectContaining({ __beeflowDocReveal: true }), '*');
+        row.remove();
+    });
+
+    it('sends the desk colour again when the app theme changes', async () => {
+        const load = vi.fn().mockResolvedValue(page(FIRST));
+        const { frame } = await firstPageShown(load);
+        const post = heard(frame);
+        const before = document.documentElement.getAttribute('data-theme');
+        act(() => { document.documentElement.setAttribute('data-theme', 'dark'); });
+        await waitFor(() => expect(post).toHaveBeenCalledWith(expect.objectContaining({ __beeflowDocTheme: true }), '*'));
+        if (before === null) document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', before);
+    });
+
     it('says so when the page cannot be read, and reads it again on request', async () => {
         const load = vi.fn().mockRejectedValueOnce(new Error('503')).mockResolvedValueOnce(page(FIRST));
         render(within(client(), <FilledPreview documentId="d1" revision="v1" load={load} />));
@@ -134,5 +164,16 @@ describe('"Preview" under a form in a chat', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Preview' }));
         await loading();
         expect(order).toEqual(['saved', 'read', 'saved', 'read']);
+    });
+
+    it('closes on Escape pressed inside the page (the frame passes the key on)', async () => {
+        const load = vi.fn(async () => page(FIRST));
+        render(within(client(), <PreviewButton doc={DOC} load={load} flush={vi.fn(async () => undefined)} />));
+        await userEvent.click(screen.getByRole('button', { name: 'Preview' }));
+        const frame = await loading();
+        frameSays(frame, { __beeflowDocKey: true, key: 'save' });
+        expect(screen.getByTestId('template-fill-preview-dialog')).toBeInTheDocument();
+        frameSays(frame, { __beeflowDocKey: true, key: 'escape' });
+        await waitFor(() => expect(screen.queryByTestId('template-fill-preview-dialog')).not.toBeInTheDocument());
     });
 });

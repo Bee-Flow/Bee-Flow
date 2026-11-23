@@ -14,8 +14,9 @@
  * table with one row per item.
  */
 import { createContext, useContext, useId, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 
+import { FILL_SMALL } from '@/components/documents/fill/fillStyles';
 import useTranslation from '@/hooks/useTranslation';
 import { isEmpty, TO_DO, useGrouping, useReleaseOnLeave, type GroupId } from './templateFillGrouping';
 import type { TemplateFillField } from './templateFillTypes';
@@ -136,8 +137,10 @@ function ListInput({ id, field, value, aria, onChange }: InputProps) {
         send(rows.map((r, j) => (j === i ? { ...r, [col.key]: cell } : r)));
     };
     const cellClass = `${inputBase} border-[var(--border-default)]`;
+    // A frame round the rows, dashed while there are none, so an empty list still reads as a place to fill in.
+    const frame = rows.length > 0 ? 'border-[var(--border-default)]' : 'border-dashed border-[var(--border-default)]';
     return (
-        <div id={id} role="group" aria-label={field.label} {...aria} className="flex flex-col gap-1">
+        <div id={id} role="group" aria-label={field.label} {...aria} className={`flex min-w-0 flex-col gap-2 rounded-lg border p-2 ${frame}`}>
             {rows.length > 0 && (
                 <table className="w-full border-collapse text-sm">
                     <thead>
@@ -165,8 +168,8 @@ function ListInput({ id, field, value, aria, onChange }: InputProps) {
                 </table>
             )}
             <button type="button" onClick={() => send([...rows, plain ? { value: '' } : {}])}
-                className="self-start rounded px-1 text-xs text-[var(--accent-primary)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
-                {t('chat_templates.fields_add_row', 'Add row')}
+                className={`${FILL_SMALL} inline-flex items-center gap-1 self-start border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]`}>
+                <Plus size={13} aria-hidden="true" />{t('chat_templates.fields_add_row', 'Add row')}
             </button>
         </div>
     );
@@ -229,6 +232,29 @@ function DetailsText({ id, text }: { id: string; text: string }) {
 const isWide = (field: TemplateFillField, value: unknown): boolean => field.type === 'list'
     || (field.type === 'text' && asText(value).length > WIDE_TEXT);
 
+/**
+ * Which fields of a group take the whole width: the wide ones, and a short
+ * field with no short neighbour to share its row with (the last of an odd
+ * run), so no field sits at half width next to an empty half.
+ */
+function wideFields(fields: TemplateFillField[], wideAlone: (field: TemplateFillField) => boolean): Set<string> {
+    const wide = new Set(fields.filter(wideAlone).map((f) => f.key));
+    let run: TemplateFillField[] = [];
+    const close = () => { if (run.length % 2 === 1) wide.add(run[run.length - 1].key); run = []; };
+    for (const f of fields) {
+        if (wide.has(f.key)) close();
+        else run.push(f);
+    }
+    close();
+    return wide;
+}
+
+/** The line of help under a field, unless it only repeats the label. */
+const helpOf = (field: TemplateFillField): string => {
+    const help = field.help?.trim() ?? '';
+    return help.toLowerCase() === field.label.trim().toLowerCase() ? '' : help;
+};
+
 function RequiredMark() {
     const { t } = useTranslation();
     return (
@@ -281,29 +307,32 @@ function FieldBody({ field, value, issue, ids, input, onChange, onTouch }: {
     input: ReactNode | null; onChange: OnChange; onTouch: () => void;
 }) {
     const offer = isEmpty(value) && field.suggestion !== undefined;
-    if (!field.help && !offer && !input && !issue) return null;
+    const help = helpOf(field);
+    if (!help && !offer && !input && !issue) return null;
     return (
         <div className="flex min-w-0 flex-col gap-1.5" onFocusCapture={onTouch}>
             {input}
             {issue && <p id={ids.issue} className="m-0 text-xs text-[var(--error)]">{issue}</p>}
-            {field.help && <p id={ids.help} className="m-0 text-xs text-[var(--text-tertiary)]">{field.help}</p>}
+            {help && <p id={ids.help} className="m-0 text-xs text-[var(--text-tertiary)] [overflow-wrap:anywhere]">{help}</p>}
             {offer && <Suggestion field={field} onChange={onChange} />}
         </div>
     );
 }
 
-function FieldRow({ field, value, issue, adornment, onChange, onTouch }: {
-    field: TemplateFillField; value: unknown; issue?: string; adornment?: FieldAdornment | null; onChange: OnChange; onTouch: (key: string) => void;
+function FieldRow({ field, value, issue, adornment, wide, onChange, onTouch }: {
+    field: TemplateFillField; value: unknown; issue?: string; adornment?: FieldAdornment | null;
+    /** The whole width of a two-column card (wideFields). */
+    wide: boolean;
+    onChange: OnChange; onTouch: (key: string) => void;
 }) {
     const id = useId();
     const ids = { help: `${id}-help`, issue: `${id}-issue`, details: `${id}-details` };
-    const describedBy = [field.help ? ids.help : '', issue ? ids.issue : ''].filter(Boolean).join(' ') || undefined;
+    const describedBy = [helpOf(field) ? ids.help : '', issue ? ids.issue : ''].filter(Boolean).join(' ') || undefined;
     const aria = { 'aria-invalid': issue ? true : undefined, 'aria-describedby': describedBy };
     const Input = INPUTS[field.type] ?? TextLikeInput;
     const inline = field.type === 'boolean';
     const touch = () => onTouch(field.key);
     const input = <Input id={id} field={field} value={value} className={`${inputBase} ${borderClass(Boolean(issue))}`} aria={aria} onChange={onChange} />;
-    const wide = isWide(field, value) || !!adornment?.below;
     return (
         <div className={`flex min-w-0 flex-col gap-1.5 ${wide ? 'sm:col-span-2' : ''}`} data-testid={`template-fill-field-${field.key}`}
             data-fill-field={field.key}>
@@ -385,13 +414,18 @@ export default function TemplateFillFields({ fields, values, issues, saving, ask
                     {t('chat_templates.fields_saving', 'Saving…')}
                 </span>
             )}
-            {groups.map((g) => (
-                <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length} collapsible={settled || (!TO_DO.has(g.id) && toDo)} narrow={narrow}>
-                    {g.fields.map((f) => (
-                        <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} adornment={adornments?.(f)} onChange={change} onTouch={touch} />
-                    ))}
-                </FieldGroup>
-            ))}
+            {groups.map((g) => {
+                const extras = new Map(g.fields.map((f) => [f.key, adornments?.(f) ?? null]));
+                const wide = wideFields(g.fields, (f) => isWide(f, values[f.key]) || !!extras.get(f.key)?.below);
+                return (
+                    <FieldGroup key={g.id} id={g.id} title={titles[g.id]} count={g.fields.length} collapsible={settled || (!TO_DO.has(g.id) && toDo)} narrow={narrow}>
+                        {g.fields.map((f) => (
+                            <FieldRow key={f.key} field={f} value={values[f.key]} issue={issues[f.key]} adornment={extras.get(f.key)} wide={wide.has(f.key)}
+                                onChange={change} onTouch={touch} />
+                        ))}
+                    </FieldGroup>
+                );
+            })}
         </div>
     );
 }

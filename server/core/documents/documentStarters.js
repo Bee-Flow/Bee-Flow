@@ -46,7 +46,8 @@ function pageStarters(locale = 'en') {
      * @param {string} [type]
      * @param {boolean} [required]
      */
-    const p = (key, label, type = 'text', required = true) => ({ key, label:t(label), type, required, summary:t(label),
+    // No summary: one that repeats the label printed as a help line saying nothing; the form takes the instructions' first sentence.
+    const p = (key, label, type = 'text', required = true) => ({ key, label:t(label), type, required,
         instructions:nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
     return TYPES.map(([id, englishName, docType, englishInstructions]) => {
         const name = t(englishName), instructions = nl ? DUTCH_INSTRUCTIONS[id] : englishInstructions;
@@ -61,11 +62,11 @@ function pageStarters(locale = 'en') {
             }
         } else if (id === 'invoice' || id === 'proposal') {
             parameters.push({ ...p('lines', 'Line items', 'list'), fields: [p('description', 'Description'), p('amount', 'Amount', 'number')] }, p('total', 'Verified total', 'number'));
-            bodyHtml += `<table><thead><tr><th>${t('Description')}</th><th>${t('Amount')}</th></tr></thead><tbody>{{#each lines}}<tr><td>{{description}}</td><td>{{amount}}</td></tr>{{/each}}</tbody></table><p>${t('Total')}: {{total}}</p>`;
+            bodyHtml += `<table><thead><tr><th>${t('Description')}</th><th>${t('Amount')}</th></tr></thead><tbody>{{#each lines}}<tr><td>{{description}}</td><td>{{amount}}</td></tr>{{/each}}</tbody></table><p class="doc-total">${t('Total')}: {{total}}</p>`;
         }
         bodyHtml += '<footer class="doc-footer">{{customer.name}} · {{date}}</footer>';
         return { id, name, docType, description: instructions, kind: 'template', bodyHtml,
-            css: 'h1 { font-size: 28pt; border-bottom: 3px solid var(--doc-accent); padding-bottom: 12pt; } section { margin: 20pt 0; } th,td { padding: 8pt; text-align:left; border-bottom:1px solid #ddd; } .doc-footer { margin-top:24pt; font-size:9pt; color:var(--doc-muted); }',
+            css: 'h1 { font-size: 28pt; border-bottom: 3px solid var(--doc-accent); padding-bottom: 12pt; } section { margin: 20pt 0; } table { width: 100%; border-collapse: collapse; margin: 12pt 0; } th,td { padding: 8pt; text-align:left; border-bottom:1px solid #ddd; } .doc-total { margin-top: 12pt; text-align: right; font-weight: 600; } .doc-footer { margin-top:24pt; font-size:9pt; color:var(--doc-muted); }',
             settings: { locale:nl?'nl':'en', contract: { schemaVersion: 1, instructions, parameters, sections }, design: { preset: 'neutral' } } };
     });
 }
@@ -114,7 +115,7 @@ function deckStarters(locale = 'en') {
      * @param {string} [type]
      * @param {boolean} [required]
      */
-    const p = (key, label, type = 'text', required = true) => ({ key, label: t(label), type, required, summary: t(label),
+    const p = (key, label, type = 'text', required = true) => ({ key, label: t(label), type, required,
         instructions: nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
     const cover = `# {{title}}\n\n{{subtitle}}\n\n`;
     const closing = `## ${t('Thank you')}\n<!-- layout: closing -->\n{{customer.name}} \u00b7 {{date}}\n`;

@@ -16,3 +16,22 @@ test('in Dutch: Offerte and Beveiligingsverklaring', () => {
     assert.strictEqual(nameOf('nl', 'proposal'), 'Offerte');
     assert.strictEqual(nameOf('nl', 'security'), 'Beveiligingsverklaring');
 });
+
+test('no field repeats its label as its help line', () => {
+    for (const locale of ['en', 'nl']) {
+        for (const s of starters(locale)) {
+            for (const field of s.settings.contract.parameters) {
+                assert.notStrictEqual(String(field.summary || '').trim().toLowerCase(), String(field.label).trim().toLowerCase(), `${s.id}.${field.key}`);
+            }
+        }
+    }
+});
+
+test('the total of a quote and an invoice stands apart from the table above it', () => {
+    for (const id of ['proposal', 'invoice']) {
+        const s = starters('en').find((x) => x.id === id);
+        assert.match(s.bodyHtml, /<\/table><p class="doc-total">/);
+        assert.match(s.css, /table \{[^}]*margin: 12pt 0/);
+        assert.match(s.css, /\.doc-total \{[^}]*margin-top: 12pt/);
+    }
+});

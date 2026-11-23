@@ -26,15 +26,16 @@ export default function PreviewButton({ doc, load, flush }: {
         await flush();
         setView((v) => ({ open: true, round: v.round + 1 }));
     };
+    const close = () => setView((v) => ({ ...v, open: false }));
     const label = t('chat_templates.preview_title', 'Preview');
     return (
         <>
             <button type="button" onClick={() => { void open(); }} data-testid="template-fill-preview" className={FILL_SECONDARY}>
                 <Eye size={15} aria-hidden="true" />{label}
             </button>
-            <Modal open={view.open} onClose={() => setView((v) => ({ ...v, open: false }))} title={doc.name} size="xl" data-testid="template-fill-preview-dialog">
+            <Modal open={view.open} onClose={close} title={doc.name} size="xl" data-testid="template-fill-preview-dialog">
                 <div className="h-[70vh] overflow-hidden rounded-lg border border-[var(--border-subtle)]">
-                    <FilledPreview documentId={doc.id} revision={String(view.round)} load={load} />
+                    <FilledPreview documentId={doc.id} revision={String(view.round)} load={load} onEscape={close} />
                 </div>
             </Modal>
         </>

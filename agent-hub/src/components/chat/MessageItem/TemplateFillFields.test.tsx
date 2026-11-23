@@ -227,4 +227,18 @@ describe('<TemplateFillFields>', () => {
         await user.click(screen.getByRole('button', { name: /Filled in \(1\)/ }));
         expect(screen.getByLabelText(/DONE/)).toBeInTheDocument();
     });
+    it('shows no help line that only repeats the label', () => {
+        render(<Harness fields={[f('name', 'text', { label: 'Customer name', help: ' customer NAME ' }), f('city', 'text', { help: 'Where they are.' })]} onChange={() => {}} />);
+        expect(screen.getAllByText('Customer name')).toHaveLength(1);
+        expect(screen.getByLabelText(/Customer name/)).not.toHaveAttribute('aria-describedby');
+        expect(screen.getByText('Where they are.')).toBeInTheDocument();
+    });
+
+    it('gives a short field without a short neighbour the whole width', () => {
+        const fields = [f('a', 'text', { required: true }), f('b', 'date', { required: true }), f('c', 'text', { required: true }),
+            f('d', 'list', { required: true }), f('e', 'number', { required: true })];
+        render(<Harness fields={fields} onChange={() => {}} />);
+        const wide = (key: string) => screen.getByTestId(`template-fill-field-${key}`).className.includes('sm:col-span-2');
+        expect(['a', 'b', 'c', 'd', 'e'].map(wide)).toEqual([false, false, true, true, true]);
+    });
 });
