@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "cowork_mobile.receipt.signed": "Ontvangstbewijs #{seq} · ondertekend",
+    "cowork_mobile.receipt.unsigned": "Ontvangstbewijs #{seq} · niet ondertekend",
+    "cowork_mobile.shared.heading": "Met jou gedeeld",
+    "cowork_mobile.shared.line_approver": "Van {name}, jij beslist over de vragen",
+    "cowork_mobile.shared.line_viewer": "Van {name}, je kunt het bekijken",
+    "cowork_mobile.shared.read_only": "Je kijkt hier alleen mee. Wijzigen is aan {name}.",
+    "cowork_mobile.shared.read_only_owner": "Dit is de weergave, alleen-lezen, van wat je hebt gedeeld.",
+    "cowork_mobile.shared.unknown_owner": "Een collega"
+  },
+  "sameAsEnglish": []
+}

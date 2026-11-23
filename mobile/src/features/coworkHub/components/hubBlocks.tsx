@@ -12,7 +12,7 @@ import React from 'react';
 
 import { translate } from '@/core/i18n';
 import type { ActiveRun } from '@/features/automations';
-import { NeedsYouRow, ScheduleRow } from '@/features/cowork';
+import { NeedsYouRow, ScheduleRow, SharedRow } from '@/features/cowork';
 import { cardRows, type Block } from '@/shared/patterns';
 import { Section } from '@/shared/ui';
 
@@ -61,6 +61,16 @@ function coworkNeedBlocks(hub: CoworkHub): Block[] {
     ];
 }
 
+/** "Shared with you": other people's work the caller may look along on; nothing at all when there is none. */
+function sharedBlocks(hub: CoworkHub): Block[] {
+    const items = hub.shared.data ?? [];
+    if (items.length === 0) return [];
+    return [
+        block('shared', 'section', () => <Section title={translate('cowork_mobile.shared.heading', 'Shared with you')}>{null}</Section>),
+        ...items.map((item) => block(`shared:${item.id}`, 'inner', () => <SharedRow item={item} />)),
+    ];
+}
+
 function scheduleBlocks(hub: CoworkHub): Block[] {
     const schedules = hub.schedules.data ?? [];
     if (schedules.length === 0) return [];
@@ -100,6 +110,7 @@ export function hubBlocks(hub: CoworkHub, actions: HubActions): Block[] {
         ...noticeBlocks(hub),
         ...coworkNeedBlocks(hub),
         ...scheduleBlocks(hub),
+        ...sharedBlocks(hub),
         ...(hub.needsYou.length > 0
             ? [
                   block('needs-you', 'section', () => (

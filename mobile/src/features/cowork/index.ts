@@ -6,10 +6,12 @@
  */
 
 export { CoworkDetailScreen } from './screens/CoworkDetailScreen';
+export { SharedDetailScreen } from './screens/SharedDetailScreen';
 
 export { ComposeCowork } from './components/ComposeCowork';
 export { NeedsYouRow } from './components/NeedsYouRow';
 export { ScheduleRow } from './components/ScheduleRow';
-export { useNeedsYou, useSchedules } from './hooks/queries';
+export { SharedRow } from './components/SharedRow';
+export { useNeedsYou, useSchedules, useSharedWithMe } from './hooks/queries';
 
 export { listSchedules } from './api/endpoints';
