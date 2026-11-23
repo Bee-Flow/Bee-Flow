@@ -50,7 +50,7 @@ export interface AutomationRunRow { id?: string; status?: string; summary?: stri
 export interface PlanRunStore extends ClaimStore {
     getApprovedPlan: (scheduleId: string) => Promise<ApprovedPlan | null>;
     linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null }) => Promise<unknown>;
-    markCompleted: (id: string, result: string, close?: { runId?: string | null }) => Promise<unknown>;
+    markCompleted: (id: string, result: string, close?: { runId?: string | null; waiting?: boolean }) => Promise<unknown>;
 }
 
 export interface PlanRunDeps {
@@ -172,7 +172,8 @@ export async function executePlanRun(
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),
         });
         const { text, paused } = outcomeOf(row);
-        await store.markCompleted(task.id, text, { runId: attempt.runId });
+        // A run that waits for a decision closes as 'waiting'; ./planRunFollowUp.mts closes it for good when it ends.
+        await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: paused });
         // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
         // before its result step, is announced here.
         if (paused || planViewOf(definition, d.lookups).makeUp.deliver === 0) await announce(task, text, deps, d.createNotification);

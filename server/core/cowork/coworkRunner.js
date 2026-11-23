@@ -136,6 +136,8 @@ function start() {
         setTimeout(pruneOldRuns, 30_000),
     ];
     for (const timer of _timers) timer.unref?.();
+    // A plan run that waited for its owner's decision is closed when its journey ends (./planRunFollowUp.mts).
+    require('./planRunFollowUp.mts').start();
     log.info('[CoworkRunner] Background runner started (60s interval)');
     return true;
 }
@@ -145,6 +147,7 @@ function stop() {
     // clearTimeout cancels an interval as well: both are the same kind of handle.
     for (const timer of _timers || []) clearTimeout(timer);
     _timers = null;
+    require('./planRunFollowUp.mts').stop();
 }
 
 module.exports = {

@@ -145,3 +145,24 @@ test('a run that followed no plan has none, a run that never started its automat
     assert.strictEqual(await store.getPlanRun(id, 'no-such-run'), null);
     assert.strictEqual((await store.listRuns(other)).length, 0);
 });
+
+test('a plan run that waits for a decision closes as waiting: not counted as a failure, listed for the follow-up, closed once', async () => {
+    const id = await item();
+    const plan = await approve(id);
+    const runId = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
+    await store.linkPlanRun(runId, { planId: plan.id, automationRunId: 'arun-wait' });
+    await store.markCompleted(id, 'This run is waiting for a decision.', { runId, waiting: true });
+
+    assert.strictEqual((await store.listRuns(id))[0]?.status, 'waiting');
+    assert.deepStrictEqual(await store.getRunStats(id).then((st) => [st.total, st.success, st.failed]), [1, 0, 0]);
+    assert.ok((await store.listWaitingRuns(100)).some((w) => w.id === runId && w.automationRunId === 'arun-wait'));
+    const found = await store.getPlanOfAutomationRun('arun-wait');
+    assert.deepStrictEqual([found?.runId, found?.userId, found?.title, found?.id], [runId, USER, 'Supplier radar', plan.id]);
+    assert.strictEqual(await store.getPlanOfAutomationRun('arun-unknown'), null);
+
+    assert.strictEqual(await store.closeWaitingRun(runId, { status: 'success', result: 'Sent the digest.', error: null }), true);
+    assert.strictEqual(await store.closeWaitingRun(runId, { status: 'error', result: null, error: 'late' }), false, 'closed once');
+    const [closed] = await store.listRuns(id);
+    assert.deepStrictEqual([closed?.status, closed?.result, closed?.error, closed?.producedOutput], ['success', 'Sent the digest.', null, true]);
+    assert.ok(!(await store.listWaitingRuns(100)).some((w) => w.id === runId));
+});

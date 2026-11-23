@@ -18,6 +18,7 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 // and the default decision has the one approval output shape (approvalOutput.mts).
 const { profileOfRun } = require('../automationModel/runProfile.mts');
 const { approvalOutput } = require('../automationModel/approvalOutput.mts');
+const { heldDefinitionOf } = require('./heldDefinitions');
 
 /**
  * Continue a paused run from its awaiting step.
@@ -48,6 +49,9 @@ const PAUSED_STATUSES = new Set(['awaiting_form', 'awaiting_approval', 'awaiting
 async function automationToResume(original) {
     const stored = await automationStore.getAutomation(original.automationId);
     if (!stored) throw new Error(`Automation ${original.automationId} not found`);
+    // A feature that started this journey on a definition of its own keeps it to the end (./heldDefinitions.js).
+    const held = await heldDefinitionOf(original);
+    if (held) return { ...automationForRun(stored, { mode: 'live', triggerKind: original.triggerKind, isTest: !!original.isTest }), definition: held, version: original.version ?? null };
     // A resumed run finishes on the definition of the version it STARTED on
     // (handoff 5). Since the live split, the stored row can hold two copies,
     // and either may have moved on while the run waited for an approver or a

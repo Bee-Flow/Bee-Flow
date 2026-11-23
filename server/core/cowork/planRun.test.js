@@ -74,7 +74,7 @@ test('the run records which plan it ran and, once the runner made its row, the a
 test('a finished run closes its row with what it produced and moves the schedule on', async () => {
     const h = harness({ run: { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.', lastOutput: { body: '9 orders, 2 overdue.' } } });
     await executePlanRun(task, { store: h.store, due: true }, h.deps);
-    assert.deepStrictEqual(h.calls.find((c) => c[0] === 'markCompleted'), ['markCompleted', 's1', '9 orders, 2 overdue.', { runId: 'run-1' }]);
+    assert.deepStrictEqual(h.calls.find((c) => c[0] === 'markCompleted'), ['markCompleted', 's1', '9 orders, 2 overdue.', { runId: 'run-1', waiting: false }]);
     assert.strictEqual(h.seen.advanced.length, 1);
     assert.strictEqual(h.seen.advanced[0].manual, false);
     assert.deepStrictEqual(h.seen.failed, []);
@@ -159,8 +159,9 @@ test('a run that the runner could not start at all fails the same way', async ()
 test('a run that waits for a decision closes as waiting, and tells its owner where to decide', async () => {
     const h = harness({ run: { id: 'arun-1', status: 'awaiting_approval', summary: 'Waiting for approval.' } });
     await executePlanRun(task, { store: h.store, due: true }, h.deps);
-    const [, , text] = h.calls.find((c) => c[0] === 'markCompleted');
+    const [, , text, close] = h.calls.find((c) => c[0] === 'markCompleted');
     assert.match(text, /waiting for a decision/);
+    assert.deepStrictEqual(close, { runId: 'run-1', waiting: true }, 'closed as waiting, for the follow-up to close for good');
     assert.strictEqual(h.seen.notes.length, 1, 'the plan did not reach its own result step yet');
     assert.deepStrictEqual(h.seen.failed, []);
 });

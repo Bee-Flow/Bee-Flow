@@ -341,6 +341,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/outside-text-informs-never-instructs',
             'contributing/decisions/cowork-plan-reaches-its-owner',
             'contributing/decisions/cowork-planner-builds-with-builder-tools',
+            'contributing/decisions/held-definition-across-a-pause',
           ],
         },
       ],

@@ -63,6 +63,7 @@ const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout
 /** The one line the closed row shows: what came out of this run. */
 function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (run.status === 'running') return t('cowork.history.still_running', 'Still running…');
+    if (run.status === 'waiting') return t('cowork_plan.history.waiting_line', 'Waiting for your decision, under Approvals');
     // A run that asked for review says so first: that is what the reader has to act on.
     if (isWaitingForReview(run)) return t('cowork_review.history.waiting_line', 'Waiting for your review: {reason}', { reason: firstMeaningfulLine(run.review?.reason) });
     // The error comes FIRST, and stays first. The server writes

@@ -12,6 +12,7 @@
  *   integrations/runnerPorts.js    the Nextcloud admin bell and image reads, KB ingest, custom-integration auth
  *   services/runnerPorts.js        the presentation renderer
  *   core/meetingNotes/runnerPorts.js  the Meet/Teams/Talk passes the scheduler drives
+ *   core/cowork/runnerPorts.js     a Cowork plan's journey keeps its approved copy across a pause
  *                                  (all five -> core/automationRunner/featurePorts.js)
  *   integrations/integrationClients.js  the provider clients meeting notes and datatable
  *                                  sources use -> core/integrations/integrationClients.js
@@ -32,6 +33,7 @@ require('../jobs/runnerPorts');
 require('../integrations/runnerPorts');
 require('../services/runnerPorts');
 require('../core/meetingNotes/runnerPorts');
+require('../core/cowork/runnerPorts');
 require('../integrations/integrationClients');
 require('../jobs/datatableChangePorts');
 require('../projects/erasurePorts');

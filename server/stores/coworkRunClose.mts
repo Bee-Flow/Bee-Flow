@@ -30,6 +30,8 @@ export type RunClose = {
     conversationId?: string | null;
     runContext?: unknown;
     mailSubject?: string | null;
+    /** A plan run that waits for its owner's decision: closed as 'waiting', and closed for good when the decision is made. */
+    waiting?: boolean;
 };
 
 export type CloseOpts = RunClose & { status: string; result?: unknown; error?: unknown; producedOutput?: boolean };

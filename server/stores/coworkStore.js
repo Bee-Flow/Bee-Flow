@@ -31,7 +31,9 @@ const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => ini
 const { markRunning, releaseRun } = require('./coworkClaims.mts').makeCoworkClaims({ ready: () => initDB() });
 const { RUN_COLUMNS } = require('./ddl/cowork-review-2026-11');
 const { PLAN_DDL } = require('./ddl/cowork-plans-2026-11');
-const coworkPlans = require('./coworkPlans.mts').makeCoworkPlans({ ready: () => initDB() }); // the plan of an item, as approved
+const { makeCoworkPlans, makeCoworkPlanJourneys } = require('./coworkPlans.mts');
+const coworkPlans = makeCoworkPlans({ ready: () => initDB() }); // the plan of an item, as approved
+const coworkJourneys = makeCoworkPlanJourneys({ ready: () => initDB() }); // the journeys of its runs
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
 // (same convention as studioAppStore) so a plain `npm run db:migrate` — which
@@ -314,7 +316,7 @@ async function getRunStats(scheduleId) {
     const r = await getOne(
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE status = 'success')::int AS success,
-                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status NOT IN ('success', 'needs_review'))::int AS failed,
+                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status NOT IN ('success', 'needs_review', 'waiting'))::int AS failed,
                 COUNT(*) FILTER (WHERE status = 'needs_review')::int AS needs_review,
                 AVG(duration_ms) FILTER (WHERE finished_at IS NOT NULL) AS avg_duration_ms
            FROM cowork_runs
@@ -475,7 +477,8 @@ async function markCompleted(id, result, { producedOutput, ...close } = {}) {
          WHERE id = $2`,
         [result, id],
     );
-    await _closeOpenRun(id, { status: close.review?.reason ? 'needs_review' : 'success', result, producedOutput, ...close });
+    const status = close.waiting ? 'waiting' : close.review?.reason ? 'needs_review' : 'success';
+    await _closeOpenRun(id, { status, result, producedOutput, ...close });
 }
 
 /**
@@ -551,6 +554,7 @@ module.exports = {
     resolveReview: coworkReviews.resolveReview,
     // Plans (./coworkPlans.mts): attach, detach, approve, the approved plan, and the plan a run followed.
     ...coworkPlans,
+    ...coworkJourneys,
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
     releaseRun,

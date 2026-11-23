@@ -45,6 +45,16 @@ const NEEDS_REAUTH_TOKEN: StatusToken = {
 };
 
 /**
+ * `waiting`: a plan run that reached a step where its owner decides, under Approvals. Closed for good once the
+ * decision is made and the rest of the plan ran (server core/cowork/planRunFollowUp.mts).
+ */
+const WAITING_TOKEN: StatusToken = {
+    ...tokenFor('awaiting_approval'),
+    labelKey: 'cowork_plan.status.run_waiting',
+    labelEn: 'Waiting for your decision',
+};
+
+/**
  * `needs_review`: a run that finished and asked its owner to decide (the agent's
  * cowork_request_review). The tone of a run waiting for approval, because that is
  * what it is: nothing broke, a person is needed.
@@ -57,11 +67,12 @@ const NEEDS_REVIEW_TOKEN: StatusToken = {
 
 /**
  * The token for ONE run row's status — the same lookup as `tokenFor`, plus
- * cowork's own `needs_reauth` and `needs_review`.
+ * cowork's own `needs_reauth`, `needs_review` and `waiting`.
  */
 export function runStatusToken(status: string | null | undefined): StatusToken {
     if (status === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
     if (status === 'needs_review') return NEEDS_REVIEW_TOKEN;
+    if (status === 'waiting') return WAITING_TOKEN;
     return tokenFor(status);
 }
 

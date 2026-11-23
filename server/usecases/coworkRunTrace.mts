@@ -4,7 +4,9 @@
  * preview of what it got or what it wrote or sent (core/cowork/plan/planTrace.mts).
  *
  * A run is read through its item, and its steps through the plan it followed: the automation run that holds them
- * must be a run of the automation that plan was made from. A run that followed no plan has no trace (404). A run
+ * must be a run of the automation that plan was made from. A plan that waited for its owner's decision ran in more
+ * than one leg; the steps are read over the whole journey (the later leg wins for a step both recorded), and its state
+ * is the newest leg's. A run that followed no plan has no trace (404). A run
  * whose plan was refused before it started, or whose steps are no longer kept (the automation was deleted), answers
  * the plan's steps as never reached, and says the steps are not kept.
  */
@@ -25,17 +27,19 @@ interface RunRow { id?: string; automationId?: string; status?: string; duration
 
 export interface TraceDeps {
     store: { getPlanRun: (scheduleId: string, runId: string) => Promise<PlanRun | null> };
-    getRun: (runId: string) => Promise<RunRow | null>;
-    getRunSteps: (runId: string) => Promise<RunStepRow[]>;
+    /** The newest leg of the journey this run started (stores/automationStore getLatestRunInChain). */
+    getLatestRunInChain: (runId: string) => Promise<RunRow | null>;
+    /** The journey's step rows as one timeline (stores/automationStore getRunStepsForChain). */
+    getRunStepsForChain: (runId: string) => Promise<RunStepRow[]>;
     lookups: ToolLookups;
 }
 
 function defaultDeps(): TraceDeps {
-    const automations = () => nodeRequire('../stores/automationStore') as { getRun: TraceDeps['getRun']; getRunSteps: TraceDeps['getRunSteps'] };
+    const automations = () => nodeRequire('../stores/automationStore') as Pick<TraceDeps, 'getLatestRunInChain' | 'getRunStepsForChain'>;
     return {
         store: nodeRequire('../stores/coworkStore.js') as TraceDeps['store'],
-        getRun: (id) => automations().getRun(id),
-        getRunSteps: (id) => automations().getRunSteps(id),
+        getLatestRunInChain: (id) => automations().getLatestRunInChain(id),
+        getRunStepsForChain: (id) => automations().getRunStepsForChain(id),
         lookups: toolLookups(),
     };
 }
@@ -52,10 +56,10 @@ export interface RunTrace {
     steps: TraceStep[];
 }
 
-/** The automation run that holds this run's steps, when it is still there and is a run of the plan's automation. */
+/** The newest leg of the journey that holds this run's steps, when it is still there and runs the plan's automation. */
 async function recordedRun(link: PlanRun, deps: TraceDeps): Promise<RunRow | null> {
     if (!link.automationRunId) return null;
-    const run = await deps.getRun(link.automationRunId);
+    const run = await deps.getLatestRunInChain(link.automationRunId);
     return run && run.automationId === link.plan.automationId ? run : null;
 }
 
@@ -68,7 +72,7 @@ export async function runTraceOf({ item, runId }: { item: Item; runId: string },
         return { runId, planVersion: link.plan.version, recorded: false, done: true, durationMs: null, steps: traceSteps(definition, [], { done: true, simulated: false }, deps.lookups) };
     }
     const done = runIsOver(run.status);
-    const rows = await deps.getRunSteps(link.automationRunId as string);
+    const rows = await deps.getRunStepsForChain(link.automationRunId as string);
     return {
         runId, planVersion: link.plan.version, recorded: true, done,
         durationMs: run.durationMs ?? null,

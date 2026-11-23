@@ -26,8 +26,8 @@ function world({ link = { runId: 'run-1', automationRunId: 'arun-1', plan: PLAN 
         asked,
         deps: {
             store: { getPlanRun: async (scheduleId, runId) => { asked.push([scheduleId, runId]); return link; } },
-            getRun: async (id) => (run && run.id === id ? run : null),
-            getRunSteps: async () => rows,
+            getLatestRunInChain: async (id) => (run && id === 'arun-1' ? run : null),
+            getRunStepsForChain: async () => rows,
             lookups: fakeLookups(),
         },
     };
@@ -57,6 +57,16 @@ test('a run that is still going says so, and its later steps are still to come',
     const trace = await runTraceOf({ item: ITEM, runId: 'run-1' }, world({ run: { id: 'arun-1', automationId: 'auto-1', status: 'running' }, rows: [ROWS[0]] }).deps);
     assert.deepStrictEqual([trace.done, trace.durationMs], [false, null]);
     assert.deepStrictEqual(trace.steps.slice(0, 2).map((s) => s.status), ['success', 'pending']);
+});
+
+test('a run that waited for a decision is read over its whole journey: the newest leg says how it stands', async () => {
+    const legs = { id: 'arun-2', automationId: 'auto-1', status: 'success', durationMs: 900 };
+    const journey = [ROWS[0], { stepId: 'draft', attempts: 1, status: 'success', input: { to: 'orders@hoekstra-staal.example' } }];
+    const w = world({ run: legs, rows: journey });
+    w.deps.getLatestRunInChain = async (id) => (id === 'arun-1' ? legs : null);
+    const trace = await runTraceOf({ item: ITEM, runId: 'run-1' }, w.deps);
+    assert.deepStrictEqual([trace.recorded, trace.done, trace.durationMs], [true, true, 900]);
+    assert.deepStrictEqual(trace.steps.filter((s) => s.status === 'success').map((s) => s.id), ['mail', 'draft']);
 });
 
 test('a run that followed no plan has no trace', async () => {

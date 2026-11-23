@@ -91,6 +91,8 @@ describe('runStatusToken', () => {
         expect(runStatusToken('success')).toBe(STATUS_TOKENS.success);
         expect(runStatusToken('error')).toBe(STATUS_TOKENS.error);
         expect(runStatusToken('running')).toBe(STATUS_TOKENS.running);
+        const waiting = runStatusToken('waiting');
+        expect([waiting.labelKey, waiting.labelEn, waiting.cssVar]).toEqual(['cowork_plan.status.run_waiting', 'Waiting for your decision', STATUS_TOKENS.awaiting_approval.cssVar]);
         expect(runStatusToken('who-knows')).toBe(STATUS_TOKENS.idle);
     });
 

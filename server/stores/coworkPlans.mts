@@ -21,6 +21,7 @@ type Row = Record<string, unknown>;
 type Client = { query: (sql: string, params?: unknown[]) => Promise<{ rows: Row[] }> };
 type Db = {
     getOne: (sql: string, params?: unknown[]) => Promise<Row | null>;
+    getAll: (sql: string, params?: unknown[]) => Promise<Row[]>;
     run: (sql: string, params?: unknown[]) => Promise<unknown>;
     withTransaction: <T>(fn: (client: Client) => Promise<T>) => Promise<T>;
 };
@@ -142,4 +143,61 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     }
 
     return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun, getPlanRun };
+}
+
+/**
+ * The journeys of plan runs (core/cowork/planHeldDefinition.mts, core/cowork/planRunFollowUp.mts): which approved plan
+ * a journey of the engine runs, and the runs that wait for their owner's decision.
+ */
+export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
+    /**
+     * The approved plan a journey of the automation engine is running, by the engine's run id of its first leg: what
+     * the run continues on after a pause. Null for a run no Cowork run started.
+     */
+    async function getPlanOfAutomationRun(automationRunId: string): Promise<(ApprovedPlan & { runId: string; userId: string; title: string | null }) | null> {
+        await ready();
+        const row = await db.getOne(
+            `SELECT p.*, r.id AS cowork_run_id, s.user_id AS owner_id, s.title AS item_title
+               FROM cowork_runs r
+               JOIN cowork_plans p ON p.id = r.plan_id AND p.schedule_id = r.schedule_id
+               JOIN cowork_schedules s ON s.id = r.schedule_id
+              WHERE r.automation_run_id = $1
+              ORDER BY r.started_at DESC LIMIT 1`,
+            [automationRunId],
+        );
+        const plan = rowToPlan(row);
+        if (!row || !plan) return null;
+        return { ...plan, runId: String(row.cowork_run_id), userId: String(row.owner_id), title: row.item_title ? String(row.item_title) : null };
+    }
+
+    /**
+     * Close a Cowork run that was waiting for a decision, once its journey ended. Only a run that is still waiting is
+     * changed (a second report of the same end changes nothing); answers whether it was.
+     */
+    async function closeWaitingRun(runId: string, end: { status: 'success' | 'error'; result: string | null; error: string | null }): Promise<boolean> {
+        await ready();
+        const closed = await db.getOne(
+            `UPDATE cowork_runs
+                SET status = $2, result = COALESCE($3, result), error = $4, produced_output = $5,
+                    duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int, finished_at = NOW()
+              WHERE id = $1 AND status = 'waiting'
+          RETURNING id`,
+            [runId, end.status, end.result, end.error, end.status === 'success' && !!end.result],
+        );
+        return !!closed;
+    }
+
+    /** Plan runs that wait for a decision, oldest first, with the journey each belongs to. */
+    async function listWaitingRuns(limit: number): Promise<Array<{ id: string; automationRunId: string }>> {
+        await ready();
+        const rows = await db.getAll(
+            `SELECT id, automation_run_id FROM cowork_runs
+              WHERE status = 'waiting' AND automation_run_id IS NOT NULL
+              ORDER BY started_at ASC LIMIT $1`,
+            [Math.max(1, Math.min(500, Math.floor(limit) || 1))],
+        );
+        return rows.map((r) => ({ id: String(r.id), automationRunId: String(r.automation_run_id) }));
+    }
+
+    return { getPlanOfAutomationRun, closeWaitingRun, listWaitingRuns };
 }
