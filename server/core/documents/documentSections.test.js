@@ -59,3 +59,18 @@ test('inserting a section keeps empty elements closed in the stored body', () =>
     assert.match(out.bodyHtml, /<div class="doc-logo"><\/div><p>Tag<\/p>/);
     assert.doesNotMatch(out.bodyHtml, /<div class="doc-logo"\s*\/>/);
 });
+
+test('an inserted section brings its source stylesheet scoped to itself, never restyling the document', () => {
+    const styled = { ...source, css: ':root { --doc-accent: #f00; } body { font-size: 20pt; } h1, h2 { color: red; } @page { margin: 0; } @media print { p { margin: 0; } } [data-doc-section="remote"] { color: blue; }' };
+    const out = insertSection(blank, styled, 'copy');
+    const scope = '[data-doc-section="copy"]';
+    assert.ok(out.css.includes(`${scope} { --doc-accent: #f00; }`), out.css);
+    assert.ok(out.css.includes(`${scope} { font-size: 20pt; }`));
+    assert.ok(out.css.includes(`${scope} h1, ${scope} h2 { color: red; }`));
+    assert.ok(out.css.includes(`@media print {\n${scope} p { margin: 0; }\n}`));
+    assert.match(out.css, /\[data-doc-section="copy"\] \[data-doc-section="copy-[\da-f]{16}"\] \{ color: blue; \}/);
+    assert.doesNotMatch(out.css, /@page/, 'page geometry is the document\'s');
+    // Every remaining rule is under the section.
+    const rules = out.css.split('\n').filter(l => l.includes('{') && !l.startsWith('@'));
+    for (const r of rules) assert.ok(r.startsWith(scope), r);
+});

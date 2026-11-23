@@ -12,6 +12,7 @@ import { downloadPdf, fetchRendered, getDocument, updateDocument } from '../docu
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave from '../useDocumentAutosave';
 import usePageRecovery from './usePageRecovery';
+import { closePrintTab, openPrintTab, showInPrintTab } from './printTab';
 import { errorMessage } from '@/utils/caughtError';
 
 // A page embeds its pictures (the PDF renderer fetches nothing), so each is
@@ -20,7 +21,6 @@ import { errorMessage } from '@/utils/caughtError';
 // update as base64 (300 KB is about 410 KB), and the server takes a single
 // update of up to 576 KB (core/collab/limits maxUpdateBytes), sized for it.
 const MAX_IMAGE_BYTES = 300 * 1024;
-const PRINT_URL_TTL_MS = 60_000;
 
 export interface PageEditorHandle {
     setContent?: (html: string) => void;
@@ -133,24 +133,29 @@ export default function usePageDocument({ initial, currentUser, editorRef, onRen
         const trimmed = name.trim();
         if (!trimmed || trimmed === docRef.current?.name) return;
         try {
-            // A live page moves its revision with every checkpoint: rename on the newest.
-            const latest = await getDocument(initial.id) as StudioDocument;
-            const saved = await autosave.enqueue(() => updateDocument(initial.id, { name: trimmed, expectedVersionId: latest.versionId }) as Promise<StudioDocument>);
+            // A live page moves its revision with every checkpoint: rename on the newest, read in the
+            // save queue (a body save still out would otherwise make "newest" stale at once).
+            const saved = await autosave.enqueue(async () => {
+                const latest = await getDocument(initial.id) as StudioDocument;
+                return updateDocument(initial.id, { name: trimmed, expectedVersionId: latest.versionId }) as Promise<StudioDocument>;
+            });
             apply({ ...docRef.current, ...saved });
             onRenamed?.(saved);
         } catch (e) { setError(errorText(e)); }
     }, [initial.id, autosave, apply, onRenamed, errorText]);
 
     const render = useCallback(async (how: 'print' | 'download') => {
+        // Opened in the click, before anything is awaited: see printTab.ts.
+        const tab = how === 'print' ? openPrintTab() : null;
         setDownloading(true); setError(null);
         try {
             if (!live) await autosave.flush();
-            if (how === 'download') { await downloadPdf(initial.id, docRef.current?.name, null); return; }
+            // No tab (the browser blocked it): the PDF is downloaded instead, to print from there.
+            if (how === 'download' || !tab) { await downloadPdf(initial.id, docRef.current?.name, null); return; }
             const { blob } = await fetchRendered(initial.id, null, 'pdf');
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), PRINT_URL_TTL_MS);
+            showInPrintTab(tab, blob);
         } catch (e) {
+            closePrintTab(tab);
             setError(errorText(e) || t('documents.pdf_failed', 'Could not render the PDF.'));
         } finally { setDownloading(false); }
     }, [live, autosave, initial.id, errorText, t]);

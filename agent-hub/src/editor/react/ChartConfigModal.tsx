@@ -121,7 +121,7 @@ export default function ChartConfigModal({ columns, rows, t, onCreate, onClose }
 
         <div className="flex justify-end gap-2 px-4 py-3 border-t [border-color:var(--border-subtle)]!">
           <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-[12px] font-medium hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{tt('notebooks.cancel', 'Cancel')}</button>
-          <button onClick={create} disabled={!valid} className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-40 [background:var(--accent-primary)]">{tt('notebooks.create', 'Create')}</button>
+          <button onClick={create} disabled={!valid} className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[var(--accent-primary-fg)] disabled:opacity-40 [background:var(--accent-primary)]">{tt('notebooks.create', 'Create')}</button>
         </div>
       </div>
     </Modal>

@@ -47,6 +47,23 @@ describe('useDocumentAutosave', () => {
         expect(readDraft('d1')).toBeNull();
     });
 
+    it('an undo back to the saved text while a save is out is saved after it', async () => {
+        let answer!: (doc: unknown) => void;
+        api.updateDocument
+            .mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }))
+            .mockResolvedValue({ ...DOC, versionId: 'v3' });
+        const { hook } = setup();
+        act(() => hook.result.current.markDirty('<p>ab</p>'));
+        let first!: Promise<void>;
+        act(() => { first = hook.result.current.flush(); });
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledTimes(1));
+        // Undo to what the server held before this save: not "nothing new".
+        act(() => hook.result.current.markDirty(DOC.bodyHtml));
+        await act(async () => { answer({ ...DOC, bodyHtml: '<p>ab</p>', versionId: 'v2' }); await first; await hook.result.current.flush(); });
+        expect(api.updateDocument).toHaveBeenCalledTimes(2);
+        expect(api.updateDocument.mock.calls[1][1].bodyHtml).toBe(DOC.bodyHtml);
+    });
+
     it('keeps saving from the old revision until the frame shows what others saved', async () => {
         const onMerged = vi.fn(async () => false);
         api.updateDocument

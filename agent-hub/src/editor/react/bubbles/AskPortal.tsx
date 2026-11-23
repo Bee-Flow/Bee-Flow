@@ -47,7 +47,7 @@ export default function AskPortal({ ask, query, setQuery, onSubmit, onClose, t }
         <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tt('notebooks.ask_ai_placeholder', 'Ask me…')}
           onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } else if (e.key === 'Escape') onClose(); }}
           className="bg-transparent border-none outline-none text-[11px] w-[200px] text-[var(--text-primary)]" />
-        <button onMouseDown={(e) => { e.preventDefault(); onSubmit(); }} className="px-2 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-primary)] text-white" disabled={!query.trim()}>{tt('notebooks.send', 'Send')}</button>
+        <button onMouseDown={(e) => { e.preventDefault(); onSubmit(); }} className="px-2 py-1 rounded-lg text-[10px] font-bold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]" disabled={!query.trim()}>{tt('notebooks.send', 'Send')}</button>
         <button onMouseDown={(e) => { e.preventDefault(); onClose(); }} className="px-1.5 py-1 text-[var(--text-tertiary)]">×</button>
       </div>
     </div>

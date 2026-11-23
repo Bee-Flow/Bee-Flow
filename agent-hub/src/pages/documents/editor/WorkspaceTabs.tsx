@@ -21,7 +21,7 @@ export default function WorkspaceTabs({ isDeck, tab, onTab, slideCount }: Worksp
         <nav className="flex flex-wrap items-center gap-1 px-4 py-1.5 border-b border-[var(--border-subtle)]" aria-label={t('documents.tools.label', 'Document tools')}>
             {tabs.map(([key, label]) => (
                 <button key={key} type="button" aria-pressed={tab === key} onClick={() => onTab(tab === key ? null : key)}
-                    className={`text-xs rounded px-3 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] ${tab === key ? 'bg-[var(--bg-tertiary)] font-semibold text-[var(--text-primary)]' : ''}`}>
+                    className={`text-xs rounded px-3 py-1.5 hover:bg-[var(--item-hover-bg)] ${tab === key ? 'bg-[var(--bg-tertiary)] font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     {label}
                 </button>
             ))}

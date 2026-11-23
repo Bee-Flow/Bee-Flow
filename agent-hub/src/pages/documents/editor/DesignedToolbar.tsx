@@ -14,7 +14,7 @@ import type { PresencePeer } from '../useSectionPresence';
 import type { SaveState } from '../useDocumentAutosave';
 import PresenceAvatars from './PresenceAvatars';
 import SaveStatusChip from './SaveStatusChip';
-import { ICON_BUTTON, PRIMARY_BUTTON, TOOL_BUTTON, TOOL_BUTTON_ACTIVE } from './ui';
+import { ICON_BUTTON, PRIMARY_BUTTON, TOOL_BUTTON, TOOL_BUTTON_ACTIVE, TOOL_BUTTON_OFF } from './ui';
 
 export type EditorMode = 'viewing' | 'editing';
 export type SidePanel = 'outline' | 'history' | 'comments' | 'suggestions' | null;
@@ -41,6 +41,8 @@ export interface DesignedToolbarProps {
     onToggleHouseStyle: () => void;
     onOpenInStudio?: () => void;
     onPrint: () => void;
+    /** Saves the settings and the typed text: the template file is built from the stored document. */
+    onBeforeExport?: () => Promise<void>;
     onDownload: (format: 'pdf' | 'pptx') => void;
 }
 
@@ -73,12 +75,14 @@ function SideButtons({ side, onSide, canComment, findOpen, onFind, isDeck }: Pic
 }
 
 /** The document as a .bftemplate file (body, stylesheet, fields, design), to import in another Bee Flow or library. */
-function TemplateFileButton({ id, name }: { id: string; name: string }) {
+function TemplateFileButton({ id, name, before }: { id: string; name: string; before?: () => Promise<void> }) {
     const { t } = useTranslation();
     const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
     const run = async () => {
         setState('busy');
         try {
+            // The file is built from the stored document: save what was typed first.
+            await before?.();
             await exportTemplateFile(id, name);
             setState('idle');
         } catch (err) {
@@ -134,7 +138,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                     { value: 'viewing', label: t('documents.mode.viewing', 'Viewing'), icon: <Eye size={13} aria-hidden="true" /> },
                     { value: 'editing', label: isDeck ? t('documents.mode.editing_outline', 'Outline') : t('documents.mode.editing', 'Editing'), icon: <Pencil size={13} aria-hidden="true" />, disabled: readOnly },
                 ]} />
-            <button type="button" className={usesHouseStyle ? TOOL_BUTTON : `${TOOL_BUTTON} bg-transparent border border-[var(--border-subtle)] text-[var(--text-tertiary)]`}
+            <button type="button" className={usesHouseStyle ? TOOL_BUTTON : TOOL_BUTTON_OFF}
                 onClick={props.onToggleHouseStyle} disabled={readOnly} data-testid="document-house-style-toggle" data-on={String(usesHouseStyle)}
                 title={usesHouseStyle ? t('doc_house_style.toggle_on_hint', 'This document follows the organisation\'s current house style. Click to turn it off for this document only.') : t('doc_house_style.toggle_off_hint', 'This document does not use the house style. Click to follow the organisation\'s current house style again.')}>
                 <Stamp size={14} aria-hidden="true" />{usesHouseStyle ? t('documents.house_style_on', 'House style') : t('documents.house_style_off', 'No house style')}
@@ -146,7 +150,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                     <Maximize2 size={15} />
                 </button>
             )}
-            {!isPanel && <TemplateFileButton id={doc.id} name={doc.name} />}
+            {!isPanel && <TemplateFileButton id={doc.id} name={doc.name} before={props.onBeforeExport} />}
             <Downloads isDeck={isDeck} downloading={props.downloading} onPrint={props.onPrint} onDownload={props.onDownload} />
         </div>
     );

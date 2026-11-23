@@ -122,6 +122,8 @@ describe('HouseStylePanel — the logo', () => {
         await user.upload(screen.getByTestId('house-style-logo-input'), [file]);
         await waitFor(() => expect(api.fileToDataUrl).toHaveBeenCalledWith(file));
         await waitFor(() => expect(screen.getByTestId('house-style-logo')).toBeTruthy());
+        // Cleared after reading: the same file chosen again (after Remove) is a change again.
+        expect((screen.getByTestId('house-style-logo-input') as HTMLInputElement).value).toBe('');
     });
 
     it('refuses an oversized file before reading it, with the sizes named', async () => {

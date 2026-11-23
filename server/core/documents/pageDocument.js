@@ -31,8 +31,12 @@ ul, ol { margin: 0 0 .7em; padding-left: 1.4em; }
 li { margin: .15em 0; }
 li > p { margin: 0; }
 ul[data-type="taskList"] { list-style: none; padding-left: .2em; }
-li[data-type="taskItem"]::before { content: "\\2610"; display: inline-block; width: 1.3em; }
+li[data-type="taskItem"] { display: flex; align-items: baseline; gap: .1em; }
+li[data-type="taskItem"]::before { content: "\\2610"; flex: none; width: 1.3em; }
 li[data-type="taskItem"][data-checked="true"]::before { content: "\\2611"; }
+li[data-type="taskItem"] > label { display: none; }
+li[data-type="taskItem"] > div { flex: 1; min-width: 0; }
+li[data-type="taskItem"][data-checked="true"] > div { text-decoration: line-through; color: var(--doc-muted); }
 blockquote { margin: 0 0 .8em; padding: .2em 0 .2em .9em; border-left: 3px solid var(--doc-accent); color: var(--doc-muted); }
 pre { margin: 0 0 .8em; padding: .6em .8em; background: #f5f6f8; border-radius: 4px; font-size: 9.5pt; white-space: pre-wrap; }
 code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: .92em; }
@@ -46,6 +50,7 @@ img { display: block; margin: .3em 0 .8em; }
 mark { background: #fff3a3; padding: 0 .1em; }
 a { color: var(--doc-accent); text-decoration: underline; }
 div[data-type="mermaid-diagram"] { display: none; }
+figure.doc-diagram > pre { margin: 0; }
 `.trim();
 
 /** @param {{ docType?: string }|null|undefined} doc */
@@ -62,7 +67,28 @@ function isPage(doc) {
  * @returns {T}
  */
 function forCompose(doc) {
-    return isPage(doc) ? { ...doc, css: PAGE_CSS } : doc;
+    if (!isPage(doc)) return doc;
+    const bodyHtml = /** @type {{ bodyHtml?: string }} */ (doc).bodyHtml;
+    return { ...doc, css: PAGE_CSS, ...(typeof bodyHtml === 'string' ? { bodyHtml: diagramsAsText(bodyHtml) } : {}) };
+}
+
+/**
+ * A diagram is drawn by script in the editor, and nothing runs on paper: it prints as its source text under
+ * a caption, rather than as nothing. The code travels base64 in data-code (editor/serialization/util.ts).
+ * @param {string} html
+ */
+function diagramsAsText(html) {
+    if (!html.includes('mermaid-diagram')) return html;
+    const cheerio = require('cheerio');
+    const $ = cheerio.load(html, { xml: { xmlMode: false, decodeEntities: false } }, false);
+    $('div[data-type="mermaid-diagram"]').each((_, el) => {
+        const raw = String($(el).attr('data-code') || '');
+        const code = /^[A-Za-z0-9+/=\s]*$/.test(raw) ? Buffer.from(raw, 'base64').toString('utf8') : raw;
+        // Escaped by hand: with decodeEntities off, cheerio's .text() writes text unescaped.
+        const text = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        $(el).replaceWith(`<figure class="doc-diagram"><figcaption>Diagram</figcaption><pre>${text}</pre></figure>`);
+    });
+    return $.html();
 }
 
 module.exports = { PAGE_DOC_TYPE, PAGE_CSS, isPage, forCompose };

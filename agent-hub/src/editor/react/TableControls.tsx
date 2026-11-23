@@ -116,7 +116,7 @@ export function TableControls({ view, info, t, collapsed, onToggleCollapse, head
   if (!rect) return null;
   const run = (cmd: string) => view.chain().focus()[cmd]().run();
   const dispatch = (fn: (s: any) => any, kind = 'structural') => view.dispatch(fn, { kind });
-  const btn = 'fixed z-[60] flex items-center justify-center rounded-md border shadow-sm transition-colors hover:text-white hover:bg-[var(--accent-primary)] hover:border-[var(--accent-primary)]';
+  const btn = 'fixed z-[60] flex items-center justify-center rounded-md border shadow-sm transition-colors hover:text-[var(--accent-primary-fg)] hover:bg-[var(--accent-primary)] hover:border-[var(--accent-primary)]';
   const style = { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' };
   const rows = info.node?.content?.length || 0;
   return (

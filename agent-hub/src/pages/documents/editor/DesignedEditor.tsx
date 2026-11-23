@@ -32,6 +32,7 @@ import { slideAt } from './useDeckDraft';
 import type { WorkspaceHandle } from './useDesignedDocument';
 import useDesignedEditor, { type DesignedEditorState } from './useDesignedEditor';
 import WorkspaceTabs from './WorkspaceTabs';
+import type { PanelPlacement } from './ui';
 
 // The panel is plain JS (untyped props): typed here for what the editor passes.
 const DocumentWorkspacePanel = DocumentWorkspacePanelJs as unknown as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<WorkspaceHandle> }>;
@@ -97,8 +98,10 @@ function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: bo
     const isDeck = s.isDeck;
     const view = useFilledView(s);
     const filled = showsFilled(e);
+    // Beside a chat the editor is too narrow to share: the panels open over the sheet. On a small screen too.
+    const placement: PanelPlacement = isPanel ? 'over' : 'over-narrow';
     return (
-        <div className={`flex-1 min-h-0 flex ${isPanel && isDeck ? 'flex-col' : 'flex-col sm:flex-row'}`}>
+        <div className={`relative flex-1 min-h-0 flex ${isPanel && isDeck ? 'flex-col' : 'flex-col sm:flex-row'}`}>
             {isDeck && e.editing && <DeckPane e={e} isPanel={isPanel} />}
             <div className="relative flex-1 min-w-0 min-h-0">
                 <div className="h-full w-full" inert={filled}>
@@ -116,10 +119,10 @@ function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: bo
                     onPreviewDraft={isDeck ? e.deck.previewDraft : undefined}
                     onInsert={(key: string) => { e.setMode('editing'); canvasRef.current?.insert(key); }}
                     onSection={(id: string) => canvasRef.current?.section(id)} onBeforeAction={s.flushEditor}
-                    onRefresh={e.guarded(s.reload)} onFillSynced={view.onSynced} onFillSpot={view.setSpot} wide={!isPanel && filled} />
+                    onRefresh={e.guarded(s.reload)} onFillSynced={view.onSynced} onFillSpot={view.setSpot} wide={!isPanel && filled} placement={placement} />
             )}
             <DocumentSidePanels
-                side={e.side} onClose={() => e.setSide(null)} doc={s.doc} canEdit={!s.readOnly} currentUser={currentUser} people={frame.people}
+                placement={placement} side={e.side} onClose={() => e.setSide(null)} doc={s.doc} canEdit={!s.readOnly} currentUser={currentUser} people={frame.people}
                 outline={{ items: frame.outline, activeSection: frame.caretSection, busySections: frame.busySections, onGo: (item) => canvasRef.current?.scrollTo(item.index) }}
                 onRestored={e.onRestored}
                 comments={{
@@ -176,7 +179,7 @@ function Header({ e, isPanel, onBack, onOpenInStudio }: { e: DesignedEditorState
                 side={e.side} onSide={e.setSide} canComment={e.canComment} findOpen={e.find.open} onFind={e.openFind} onShortcuts={() => e.setShortcutsOpen(true)}
                 downloading={s.downloading} onLeave={leaving.attempt(() => onBack?.())} onRename={s.rename} nameKey={s.nameKey} onToggleHouseStyle={s.toggleHouseStyle}
                 onOpenInStudio={onOpenInStudio ? leaving.attempt(() => onOpenInStudio(s.doc.id)) : undefined}
-                onPrint={s.print} onDownload={s.download}
+                onPrint={s.print} onDownload={s.download} onBeforeExport={s.saveAll}
             />
             <WorkspaceTabs isDeck={s.isDeck} tab={e.tab} slideCount={e.slideCount} onTab={(next) => { leaving.attempt(() => e.setTab(next), 'switch')(); }} />
             <EditorNotices

@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 
-const state=vi.hoisted(()=>({locale:'en',request:vi.fn()}));
-vi.mock('./documentsApi',()=>({documentRequest:state.request}));
+const state=vi.hoisted(()=>({locale:'en',request:vi.fn(),houseStyle:vi.fn()}));
+vi.mock('./documentsApi',()=>({documentRequest:state.request,getHouseStyle:state.houseStyle}));
 // The panel's strings are catalogue keys (documents.workspace.*) now, not
 // inline English/Dutch pairs picked by locale: the Dutch comes from the i18n
 // catalogue. This stand-in plays that catalogue for the keys the Dutch test reads.
@@ -17,7 +17,7 @@ const doc={id:'d',kind:'document',versionId:'v1',settings:{},contract:{instructi
     {key:'count',label:'Device count',type:'number',required:true},
 ],sections:[{id:'cloud-section',title:'Cloud controls',condition:{all:[{parameter:'cloud',operator:'equals',value:true}]}}]}};
 const props=()=>({doc,onSave:vi.fn(async patch=>({...doc,...patch,versionId:'v2'})),onBeforeAction:vi.fn(),onRefresh:vi.fn(),onInsert:vi.fn(),onSection:vi.fn()});
-beforeEach(()=>{sessionStorage.clear();state.locale='en';state.request.mockReset().mockResolvedValue({documents:[],updates:[]});});
+beforeEach(()=>{sessionStorage.clear();state.locale='en';state.request.mockReset().mockResolvedValue({documents:[],updates:[]});state.houseStyle.mockReset().mockResolvedValue({style:{}});});
 
 it('a template takes sample data for its preview: typed false and zero go to the validation endpoint, with the exclusion reasons',async()=>{
     const user = userEvent.setup();
@@ -58,6 +58,26 @@ it('keeps a proposed design unapplied until review, then pins its expected revis
     expect(p.onSave).not.toHaveBeenCalled();
     await user.click(screen.getByText('Apply reviewed changes'));
     await waitFor(()=>expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({expectedVersionId:'v1',settings:{contract:doc.contract,design:{font:'serif'}}})));
+});
+it('the design tab shows the house style where the document chose nothing, and a change stores only that value',async()=>{
+    const user = userEvent.setup();
+    state.houseStyle.mockResolvedValue({style:{enabled:true,accent:'#c0f',ink:'#112233',font:'serif',logoWidthMm:30}});
+    const p=props();
+    render(<DocumentWorkspacePanel {...p} doc={{...doc,settings:{design:{preset:'neutral'}}}} tab="design"/>);
+    await waitFor(()=>expect(screen.getByLabelText('Accent color')).toHaveValue('#cc00ff'));
+    expect(screen.getByLabelText('Font')).toHaveValue('serif');
+    expect(screen.getByLabelText('Logo width (mm)')).toHaveValue(30);
+    await user.selectOptions(screen.getByLabelText('Font'), 'mono');
+    await user.click(screen.getByText('Preview design changes'));
+    expect(state.request).toHaveBeenCalledWith('/d/preview-changes',{design:{preset:'neutral',font:'mono'}});
+});
+it('saves the typed text before the server checks the stored document',async()=>{
+    const user = userEvent.setup();
+    const p={...props(),doc:{...doc,kind:'template'}};state.request.mockResolvedValue({valid:true,sections:[],html:''});
+    render(<DocumentWorkspacePanel {...p} tab="preview"/>);
+    await user.click(screen.getByText('Validate & preview'));
+    await waitFor(()=>expect(state.request).toHaveBeenCalledWith('/d/validate',expect.anything()));
+    expect(p.onBeforeAction.mock.invocationCallOrder[0]).toBeLessThan(state.request.mock.invocationCallOrder.at(-1));
 });
 it('offers Dutch controls and keyboard dismissal for the proposal dialog',async()=>{
     const user = userEvent.setup();

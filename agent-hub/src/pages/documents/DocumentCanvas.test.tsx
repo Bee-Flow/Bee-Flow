@@ -71,6 +71,18 @@ describe('DocumentCanvas', () => {
         expect(onCaret.mock.calls).toEqual([['pricing']]);
     });
 
+    it('sends the desk colour again when the app theme changes', async () => {
+        const { post } = await mount();
+        fromFrame({ __beeflowDocReady: true });
+        post.mockClear();
+        const root = document.documentElement;
+        root.style.setProperty('--bg-tertiary', 'rgb(20, 22, 26)');
+        root.setAttribute('data-theme', 'dark');
+        await waitFor(() => expect(post).toHaveBeenCalledWith({ __beeflowDocTheme: true, desk: 'rgb(20, 22, 26)' }, '*'));
+        root.removeAttribute('data-theme');
+        root.style.removeProperty('--bg-tertiary');
+    });
+
     it('sends other people\'s sections when they change, not on every render', async () => {
         const peers = [{ sectionId: 'pricing', label: 'Anna is editing', colour: '#0284c7' }];
         const client = (await import('../../test/queryWrapper')).testQueryClient();
