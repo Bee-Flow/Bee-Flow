@@ -2,7 +2,7 @@
 // one of them with what its plan may do (worked out by the server each time), adding one, and saving an item as one.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiJson } from './typedRequest';
+import { apiJson, apiUrl } from './typedRequest';
 import type { PlanDraft, PlanPermissions } from './coworkPlan.types';
 
 export interface TemplateCard { id: string; title: string; brief: string; repeatInterval: string | null; hasPlan: boolean; createdAt: string | null; mine: boolean }
@@ -57,5 +57,34 @@ export function useSaveCoworkTemplate(coworkId: string) {
             params: { id: coworkId }, body: title ? { title } : {},
         }),
         onSuccess: () => { void client.invalidateQueries({ queryKey: LIST_KEY }); },
+    });
+}
+
+// ── Packages (server/usecases/coworkPackages.mts): a template as a signed file ────────────────────────────────────
+
+export interface PackagePreview {
+    title: string;
+    brief: string;
+    repeatInterval: string | null;
+    plan: TemplatePlan | null;
+    signedBy: { keyId: string; thisInstallation: boolean };
+}
+
+/** Where a template downloads as a package file, signed by this installation. */
+export const packageUrl = (id: string): string => apiUrl('GET /api/cowork/templates/{id}/package', { params: { id } });
+
+/** What a package file holds and may do, after the server checked its signature. */
+export function usePreviewPackage() {
+    return useMutation<PackagePreview, Error, Record<string, unknown>>({
+        mutationFn: (pkg) => apiJson<'POST /api/cowork/packages/preview', PackagePreview>('POST /api/cowork/packages/preview', { body: { package: pkg } }),
+    });
+}
+
+/** Add a package file to my cowork: a new, paused item, its plan not approved. */
+export function useAddPackage() {
+    const client = useQueryClient();
+    return useMutation<UsedTemplate, Error, Record<string, unknown>>({
+        mutationFn: (pkg) => apiJson<'POST /api/cowork/packages/add', UsedTemplate>('POST /api/cowork/packages/add', { body: { package: pkg } }),
+        onSuccess: () => { void client.invalidateQueries({ queryKey: ['cowork', 'list'] }); },
     });
 }

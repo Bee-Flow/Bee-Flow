@@ -1895,6 +1895,9 @@
     "GET /api/cowork/templates/:id": {
       "gate": "auth"
     },
+    "GET /api/cowork/templates/:id/package": {
+      "gate": "auth"
+    },
     "GET /api/datatables": {
       "gate": "auth"
     },
@@ -5283,6 +5286,12 @@
     "POST /api/cowork/hooks": {
       "gate": "handler",
       "via": "mount"
+    },
+    "POST /api/cowork/packages/add": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/packages/preview": {
+      "gate": "auth"
     },
     "POST /api/cowork/templates/:id/use": {
       "gate": "auth"

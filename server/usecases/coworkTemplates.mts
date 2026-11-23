@@ -58,7 +58,7 @@ export interface TemplateDeps {
 const DEFAULT_MAX_ITEMS = 10; // the same ceiling as routes/cowork.js (config ai_tasks_max_per_user)
 const DAY_MS = 86_400_000;
 
-function defaultDeps(): TemplateDeps {
+export function defaultDeps(): TemplateDeps {
     const users = () => nodeRequire('../stores/userStore.js') as { getUser: TemplateDeps['getUser']; getAllGroups: () => Promise<unknown[]> };
     const cowork = () => nodeRequire('../stores/coworkStore.js') as {
         createSchedule: TemplateDeps['createSchedule']; updateSchedule: (id: string, patch: { isActive: boolean }) => Promise<unknown>;
@@ -217,6 +217,14 @@ export interface UsedTemplate { item: Item; planAttached: boolean; findings: Pla
 /** Start a new item of the caller's from a template: paused, with its plan unapproved. Runs nothing. */
 export async function useTemplate(userId: string, id: string, deps: TemplateDeps = defaultDeps()): Promise<UsedTemplate> {
     const { orgId, template } = await loadTemplate(userId, id, deps);
+    return startFrom(userId, orgId, template, deps);
+}
+
+/**
+ * A new, paused item of `userId` from a template's content (an org template, or a package file:
+ * ./coworkPackages.mts). Its plan, when it has no findings, is attached unapproved. Runs nothing.
+ */
+export async function startFrom(userId: string, orgId: string, template: CoworkTemplate, deps: TemplateDeps = defaultDeps()): Promise<UsedTemplate> {
     const max = await deps.maxItems();
     if (await deps.scheduleCount(userId) >= max) throw refuse(400, `Maximum number of cowork schedules reached (${max}). Delete or pause one to create another.`);
     const plan = templatePlanOf(template, deps.lookups);

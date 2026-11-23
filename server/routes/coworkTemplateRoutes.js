@@ -7,6 +7,9 @@
  *   POST   /:id/save-as-template → { title? }: save the caller's item as a template of their organisation (its owner)
  *   POST   /templates/:id/use  → a new item of the caller's from it: paused, its plan not approved. Runs nothing.
  *   DELETE /templates/:id      → delete it (the one who saved it, or an administrator of the organisation)
+ *   GET    /templates/:id/package → it as a package file, signed by this installation (usecases/coworkPackages.mts)
+ *   POST   /packages/preview  → { package }: what a package file holds and may do, after its signature is checked
+ *   POST   /packages/add      → { package }: a new, paused item of the caller's from it, its plan not approved
  *
  * A template of another organisation answers 404. Mounted by ./coworkSideRoutes.js, before the item routes and
  * behind routes/cowork.js's requireAuth.
@@ -22,6 +25,8 @@ const SaveBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z
 }).strict());
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 const IdParams = z.object({ id: z.string().min(1).max(200) }).strict();
+const PACKAGE_TEXT = 'package is the content of a Cowork package file.';
+const PackageBody = z.object({ package: z.object({}, { error: PACKAGE_TEXT }).passthrough() }).strict();
 
 /** Mounted behind routes/cowork.js's requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
@@ -44,6 +49,18 @@ function mountTemplateRoutes(router, overrides = {}) {
     });
     router.delete('/templates/:id', validate({ params: IdParams }), async (req, res) => {
         res.json(await useCase().deleteTemplate(userIdOf(req), req.params.id));
+    });
+    const packages = () => require('../usecases/coworkPackages.mts');
+    router.get('/templates/:id/package', validate({ params: IdParams }), async (req, res) => {
+        const pkg = await packages().packageOf(userIdOf(req), req.params.id);
+        res.setHeader('Content-Disposition', `attachment; filename="cowork-${req.params.id}.json"`);
+        res.json(pkg);
+    });
+    router.post('/packages/preview', validate({ body: PackageBody }), async (req, res) => {
+        res.json((await packages().previewPackage(req.body.package)).preview);
+    });
+    router.post('/packages/add', validate({ body: PackageBody }), async (req, res) => {
+        res.json(await packages().addPackage(userIdOf(req), req.body.package));
     });
     router.post('/:id/save-as-template', validate({ params: IdParams, body: SaveBody }), async (req, res) => {
         const userId = userIdOf(req);

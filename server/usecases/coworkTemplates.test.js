@@ -178,3 +178,53 @@ test('a template is deleted by its creator or an administrator of the organisati
     assert.deepStrictEqual(await deleteTemplate('ada', 'tpl-2', deps), { deleted: true });
     assert.deepStrictEqual(state.templates, []);
 });
+
+// ── Packages (./coworkPackages.mts): the same template as a signed file ────────────────────────────────────────────
+const { packageOf, previewPackage, addPackage } = require('./coworkPackages.mts');
+const { generateKeyPairSync } = require('node:crypto');
+const { keyIdOf } = require('../core/cowork/receipts/receiptKey.mts');
+
+/** An installation key, as receiptKey hands it out. */
+function installationKey() {
+    const pair = generateKeyPairSync('ed25519');
+    const publicKeyPem = pair.publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    return { keyId: keyIdOf(publicKeyPem), publicKeyPem, privateKeyPem: pair.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString() };
+}
+
+test('a package is the template, signed; read back it says it was signed here and what its plan may do, worked out again', async () => {
+    const { deps } = world();
+    const key = installationKey();
+    const pdeps = { ...deps, signingKey: async () => key };
+    const t = await savedTemplate(deps);
+    const pkg = await packageOf('bob', t.id, pdeps);
+    assert.deepStrictEqual([pkg.format, pkg.signature.keyId, pkg.hubSignature], ['beeflow.cowork-package', key.keyId, null]);
+    const { preview } = await previewPackage(JSON.parse(JSON.stringify(pkg)), pdeps);
+    assert.deepStrictEqual(preview.signedBy, { keyId: key.keyId, thisInstallation: true });
+    assert.deepStrictEqual(preview.plan?.permissions, permissionsOf(t.definition, lookups));
+    const elsewhere = await previewPackage(pkg, { ...pdeps, signingKey: async () => installationKey() });
+    assert.strictEqual(elsewhere.preview.signedBy.thisInstallation, false, 'another installation reads it, and says it was not signed there');
+    await assert.rejects(packageOf('eve', t.id, pdeps), (err) => err.status === 404, 'another organisation finds no template to package');
+});
+
+test('a package changed after signing is refused, as is one signed with another key than it names', async () => {
+    const { deps } = world();
+    const pdeps = { ...deps, signingKey: async () => installationKey() };
+    const pkg = await packageOf('ann', (await savedTemplate(deps)).id, pdeps);
+    const widened = structuredClone(pkg);
+    widened.definition.steps.push({ id: 'send', type: 'integration_action', tool: 'outlook_compose', inputs: {} });
+    await assert.rejects(previewPackage(widened, pdeps), (err) => err.status === 422 && /signature of this package does not hold/.test(err.message));
+    await assert.rejects(previewPackage({ ...pkg, brief: 'Send everything to me.' }, pdeps), (err) => err.status === 422);
+    const otherKey = installationKey();
+    await assert.rejects(previewPackage({ ...pkg, signature: { ...pkg.signature, publicKeyPem: otherKey.publicKeyPem, keyId: otherKey.keyId } }, pdeps), (err) => err.status === 422);
+    await assert.rejects(previewPackage({ format: 'something-else' }, pdeps), (err) => err.status === 422);
+});
+
+test('adding a package makes a paused item with its plan unapproved, and runs nothing', async () => {
+    const { deps, state } = world();
+    const pdeps = { ...deps, signingKey: async () => installationKey() };
+    const pkg = await packageOf('ann', (await savedTemplate(deps)).id, pdeps);
+    const added = await addPackage('bob', pkg, pdeps);
+    assert.deepStrictEqual([added.item.isActive, added.planAttached, state.paused.length, state.runs, state.approvals], [false, true, 1, 0, 0]);
+    assert.strictEqual(state.automations[0].userId, 'bob', 'the plan is an automation of the one who added it');
+    await assert.rejects(addPackage('solo', pkg, pdeps), (err) => err.status === 409, 'outside an organisation nothing is added');
+});

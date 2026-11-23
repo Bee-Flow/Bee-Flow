@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-54 routes, 31 with a request schema. Back to the [endpoint reference](../reference.md).
+57 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -391,6 +391,28 @@ No request schema.
 
 No request schema.
 
+## `packages`
+
+### `POST /api/cowork/packages/add`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `package` | object | yes |  |
+
+### `POST /api/cowork/packages/preview`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `package` | object | yes |  |
+
 ## `policy`
 
 ### `GET /api/cowork/policy/:orgId`
@@ -487,6 +509,16 @@ No request schema.
 | `id` | string | yes | min length 1; max length 200 |
 
 ### `DELETE /api/cowork/templates/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/templates/:id/package`
 
 **Access:** Signed-in user · middleware `trainingGate`
 

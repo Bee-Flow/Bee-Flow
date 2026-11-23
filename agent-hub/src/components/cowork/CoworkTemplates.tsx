@@ -6,12 +6,13 @@
  */
 import { useState } from 'react';
 import { LayoutTemplate } from 'lucide-react';
-import { useAddCoworkTemplate, useCoworkTemplate, useCoworkTemplates, useDeleteCoworkTemplate } from '../../api/coworkTemplates';
+import { packageUrl, useAddCoworkTemplate, useCoworkTemplate, useCoworkTemplates, useDeleteCoworkTemplate } from '../../api/coworkTemplates';
 import type { TemplateView } from '../../api/coworkTemplates';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { MayDo } from './CoworkPlanCard';
+import CoworkPackageImport from './CoworkPackageImport';
 import { repeatLabel } from './coworkSchedule';
 
 const LABEL = 'text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]';
@@ -60,6 +61,7 @@ function TemplateDetail({ id, onBack, onAdded, t }: { id: string; onBack: () => 
                     {t('cowork_templates.add', 'Add to my cowork')}
                 </button>
                 <button type="button" className={SECONDARY} onClick={onBack}>{t('cowork_templates.back', 'Back to the templates')}</button>
+                <a className={SECONDARY} href={packageUrl(id)} download>{t('cowork_templates.download', 'Download as a file')}</a>
                 {template.canDelete && (
                     <button type="button" className={SECONDARY} disabled={remove.isPending} onClick={() => remove.mutate(id, { onSuccess: onBack })}>
                         {t('cowork_templates.delete', 'Delete this template')}
@@ -109,6 +111,7 @@ export default function CoworkTemplates({ onAdded }: { onAdded: (coworkId: strin
                             </li>
                         ))}
                     </ul>
+                    <CoworkPackageImport onAdded={onAdded} />
                 </>
             )}
         </section>

@@ -19,7 +19,7 @@ const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const userOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user);
 
 /** Routes beside the items (their first part is no item id): a change there is not a change to an item. */
-const SIDE_ROUTES = new Set(['compose', 'daily-mail', 'shared', 'hooks', 'needs-you', 'home', 'policy', 'templates', 'receipts', 'shield']);
+const SIDE_ROUTES = new Set(['compose', 'daily-mail', 'shared', 'hooks', 'needs-you', 'home', 'policy', 'templates', 'receipts', 'shield', 'packages']);
 
 /**
  * The action a request is, from its method and its path below /api/cowork; null for one that changes nothing.

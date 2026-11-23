@@ -24,6 +24,7 @@ const FIXTURES = [
         },
         routes: [
             'GET /api/cowork/templates/:id', 'POST /api/cowork/templates/:id/use', 'DELETE /api/cowork/templates/:id',
+            'GET /api/cowork/templates/:id/package',
         ],
         orgAdminCaller: true,
     },
