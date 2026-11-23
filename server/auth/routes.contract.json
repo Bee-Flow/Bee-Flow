@@ -1829,6 +1829,9 @@
     "GET /api/cowork/mail-providers": {
       "gate": "auth"
     },
+    "GET /api/cowork/shield/:orgId": {
+      "gate": "auth"
+    },
     "GET /api/datatables": {
       "gate": "auth"
     },
@@ -7342,6 +7345,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/shield/:orgId": {
       "gate": "auth"
     },
     "PUT /api/datatables/:id/nextcloud": {

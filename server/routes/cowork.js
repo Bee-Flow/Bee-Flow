@@ -161,6 +161,7 @@ function withCurrentRun(schedule, startedAt) {
 
 router.use(requireAuth);
 require('./coworkAuditRoutes').mountAuditRoutes(router); // the trail of every change, and GET /:id/audit
+router.use(require('./coworkShieldSettings')); // GET, PUT /shield/:orgId: the Privacy Shield on prompt runs
 
 // GET / — every schedule, newest first, enriched with the linked agent's
 // name/avatar so the overview can render a row without an extra round-trip.
