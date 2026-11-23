@@ -35,3 +35,11 @@ test('the total of a quote and an invoice stands apart from the table above it',
         assert.match(s.css, /\.doc-total \{[^}]*margin-top: 12pt/);
     }
 });
+
+test('a label that already says Verified is not called "the verified verified total"', () => {
+    for (const locale of ['en', 'nl']) {
+        const text = JSON.stringify(starters(locale));
+        assert.doesNotMatch(text, /verified verified|geverifieerde waarde voor geverifieerd/i, locale);
+    }
+    assert.match(JSON.stringify(starters('en')), /Supply the verified total\./);
+});

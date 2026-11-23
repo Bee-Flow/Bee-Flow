@@ -33,4 +33,5 @@ export default {
     "doc_gallery.visibility_all": "Private and shared",
     "doc_gallery.visibility_organisation": "Organisation",
     "doc_gallery.visibility_shared": "Shared",
+    "doc_gallery.clear_categories_desc_one": "Every category is taken off the selected document. The document itself stays as it is.",
 };

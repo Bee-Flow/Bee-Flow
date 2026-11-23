@@ -113,8 +113,8 @@ function CoverSlide({ theme, title, subtitle }: { theme: DeckTheme; title?: stri
             {showLogo && light && <Logo theme={theme} style={{ position: 'absolute', left: '6%', top: '9%', width: '22%', height: '16%' }} />}
             {showLogo && accent && <Logo theme={theme} style={{ position: 'absolute', left: '6%', bottom: '9%', width: '14%', height: '10%' }} />}
             <div className={`[position:absolute] [right:6%] ${split ? '[left:42%]' : '[left:6%]'} ${light ? '[top:38%]' : '[top:30%]'}`}>
-                <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: '1.05em', lineHeight: 1.15, color: titleColor }}>{title ?? t('documents.deck.sample_cover_title', 'Quarterly review')}</div>
-                <div style={{ marginTop: '0.35em', fontSize: '0.5em', color: subColor, opacity: accent ? 0.9 : 1 }}>{subtitle ?? t('documents.deck.sample_cover_subtitle', 'Board meeting · Q3')}</div>
+                <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: '1.05em', lineHeight: 1.15, color: titleColor }}>{title ?? t('documents.deck_sample.cover_title', 'Quarterly review')}</div>
+                <div style={{ marginTop: '0.35em', fontSize: '0.5em', color: subColor, opacity: accent ? 0.9 : 1 }}>{subtitle ?? t('documents.deck_sample.cover_subtitle', 'Board meeting · Q3')}</div>
             </div>
         </Slide>
     );
@@ -136,9 +136,9 @@ function ContentSlide({ theme, title }: { theme: DeckTheme; title?: string }) {
     const band = theme.titleStyle === 'band' && !theme.template;
     const cornerLogo = theme.logoPlacement === 'corner' && !!theme.logoDataUrl;
     const headers = [
-        t('documents.deck.sample_col_supplier', 'Supplier'),
-        t('documents.deck.sample_col_invoice', 'Invoice'),
-        t('documents.deck.sample_col_total', 'Total'),
+        t('documents.deck_sample.col_supplier', 'Supplier'),
+        t('documents.deck_sample.col_invoice', 'Invoice'),
+        t('documents.deck_sample.col_total', 'Total'),
     ];
     const cell = (text: string, i: number, header = false): React.CSSProperties => {
         const base: React.CSSProperties = { padding: '0.12em 0.3em', fontSize: '0.36em', textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' };
@@ -163,7 +163,7 @@ function ContentSlide({ theme, title }: { theme: DeckTheme; title?: string }) {
                 padding: band ? '0 4%' : `3.5% 5% 0 ${theme.titleInset ? `${Math.max(5, theme.titleInset * 100 + 2).toFixed(1)}%` : '5%'}`,
             }}>
                 <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: band ? '0.62em' : '0.7em', color: theme.titleColor }}>
-                    {title ?? t('documents.deck.sample_content_title', 'Overview of invoices')}
+                    {title ?? t('documents.deck_sample.content_title', 'Overview of invoices')}
                     {theme.titleStyle === 'rule' && <div style={{ width: '18%', height: 2, background: theme.accentOnSlide, marginTop: '0.25em', minWidth: 24 }} />}
                 </div>
                 {/* As in the .pptx: the brand stays in a band; on a band-less slide a corner logo replaces it. */}

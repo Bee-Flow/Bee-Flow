@@ -28,6 +28,17 @@ const DUTCH_INSTRUCTIONS = {
 /**
  * @param {string} [locale]
  */
+
+/**
+ * What the assistant is told about a starter field. A label that already
+ * says "Verified" is not prefixed again ("the verified verified total").
+ * @param {string} label  in the starter's language
+ * @param {boolean} nl
+ */
+function fieldInstructions(label, nl) {
+    const what = label.toLowerCase().replace(/^(verified|geverifieerde?)\s+/, '');
+    return nl ? `Geef de geverifieerde waarde voor ${what}. Verzin geen klantgegevens.` : `Supply the verified ${what}. Do not invent customer facts.`;
+}
 function starters(locale = 'en') {
     return [...pageStarters(locale), ...deckStarters(locale)];
 }
@@ -48,7 +59,7 @@ function pageStarters(locale = 'en') {
      */
     // No summary: one that repeats the label printed as a help line saying nothing; the form takes the instructions' first sentence.
     const p = (key, label, type = 'text', required = true) => ({ key, label:t(label), type, required,
-        instructions:nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
+        instructions: fieldInstructions(nl ? t(label) : label, nl) });
     return TYPES.map(([id, englishName, docType, englishInstructions]) => {
         const name = t(englishName), instructions = nl ? DUTCH_INSTRUCTIONS[id] : englishInstructions;
         const parameters = [p('customer.name', 'Customer name'), p('date', 'Document date', 'date'), p('summary', 'Summary')];
@@ -116,7 +127,7 @@ function deckStarters(locale = 'en') {
      * @param {boolean} [required]
      */
     const p = (key, label, type = 'text', required = true) => ({ key, label: t(label), type, required,
-        instructions: nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
+        instructions: fieldInstructions(nl ? t(label) : label, nl) });
     const cover = `# {{title}}\n\n{{subtitle}}\n\n`;
     const closing = `## ${t('Thank you')}\n<!-- layout: closing -->\n{{customer.name}} \u00b7 {{date}}\n`;
     const decks = [
