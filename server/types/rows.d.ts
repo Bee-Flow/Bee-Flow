@@ -1309,6 +1309,14 @@ declare namespace DbRow {
         trigger_kind: string;
         user_id: string;
     }
+    /** Row of `cowork_shares`. */
+    interface CoworkShares {
+        added_by: string;
+        created_at: Date;
+        role: string;
+        schedule_id: string;
+        user_id: string;
+    }
     /** Row of `cowork_trust`. */
     interface CoworkTrust {
         let_through: number;

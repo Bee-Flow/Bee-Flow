@@ -22,7 +22,7 @@ function approved(definition = supplierRadar(), over = {}) {
     return { id: 'plan-1', automationId: 'auto-1', definition, fingerprint: planFingerprint(definition), ...over };
 }
 
-function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false, policy = { ceiling: 'on_its_own', readOnly: false, unattendedApps: null } } = {}) {
+function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false, policy = { ceiling: 'on_its_own', readOnly: false, unattendedApps: null }, approver = null } = {}) {
     const calls = [];
     const rec = (name, answer) => async (...a) => { calls.push([name, ...a]); return answer; };
     const store = {
@@ -42,6 +42,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         mayAsk: async () => mayAsk,
         policyOf: async () => policy,
         trustOf: async () => [],
+        approverOf: async () => approver,
     };
     return { store, calls, seen, deps, names: () => calls.map((c) => c[0]) };
 }
@@ -239,4 +240,12 @@ test('a plan\'s scripts are marked to run outside the API process, inside loops 
     await executePlanRun(task, { store: h.store, manual: true }, h.deps);
     const steps = h.seen.executed[0].automation.definition.steps;
     assert.deepStrictEqual([steps[0].isolated, steps[1].body[0].isolated], [true, true]);
+});
+
+test('a colleague the owner named to decide gets the questions: they are assigned to them', async () => {
+    const sends = planOf([...supplierRadar().steps.slice(0, 6), { id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('x@supplier.example') } }]);
+    const h = harness({ plan: approved(sends), mayAsk: true, approver: 'u-colleague' });
+    await executePlanRun(task, { store: h.store, manual: true }, h.deps);
+    const question = h.seen.executed[0].automation.definition.steps.find((/** @type {any} */ st) => st.id === 'cowork_ask__send');
+    assert.deepStrictEqual(question.approval, { assignee: { userId: 'u-colleague' } });
 });

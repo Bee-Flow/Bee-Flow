@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1975 operations. */
+/** 1979 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2581,6 +2581,8 @@ export interface ApiOperations {
         unattendedApps?: Array<string> | null;
     }>;
     'GET /api/cowork/policy/{orgId}/audit': Op<{ orgId: string | number }>;
+    'GET /api/cowork/shared': Op;
+    'GET /api/cowork/shared/{id}': Op<{ id: string | number }>;
     'GET /api/cowork/shield/{orgId}': Op<{ orgId: string | number }>;
     'PUT /api/cowork/shield/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
         enabled: boolean;
@@ -2647,6 +2649,13 @@ export interface ApiOperations {
         answer?: string;
     }>;
     'GET /api/cowork/{id}/runs/{runId}/trace': Op<{ id: string | number; runId: string | number }>;
+    'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {
+        shares: Array<{
+            role: 'viewer' | 'approver';
+            userId: string;
+        }>;
+    }>;
     'GET /api/cowork/{id}/start': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/start': Op<{ id: string | number }, UndeclaredQuery, {
         kind: 'schedule';

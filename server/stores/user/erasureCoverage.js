@@ -85,6 +85,8 @@ const ERASURE_COVERAGE = Object.freeze({
     cowork_schedules: { mode: 'deleted', column: 'user_id' },
     cowork_runs: { mode: 'cascade', parent: 'cowork_schedules' },
     cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
+    // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
+    cowork_shares: { mode: 'deleted', column: 'user_id' },
     studio_documents: { mode: 'deleted', column: 'user_id' },
     studio_document_versions: { mode: 'cascade', parent: 'studio_documents' },
     studio_document_folders: { mode: 'deleted', column: 'user_id' },

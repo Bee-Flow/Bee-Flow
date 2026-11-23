@@ -1838,6 +1838,9 @@
     "GET /api/cowork/:id/runs/:runId/trace": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/shares": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/start": {
       "gate": "auth"
     },
@@ -1860,6 +1863,12 @@
       "gate": "auth"
     },
     "GET /api/cowork/policy/:orgId/audit": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/shared": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/shared/:id": {
       "gate": "auth"
     },
     "GET /api/cowork/shield/:orgId": {
@@ -7391,6 +7400,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan/trust": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/shares": {
       "gate": "auth"
     },
     "PUT /api/cowork/:id/start": {

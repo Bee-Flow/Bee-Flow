@@ -86,6 +86,9 @@ const FIXTURES = [
             'GET /api/cowork/:id/start', 'PUT /api/cowork/:id/start',
             'GET /api/cowork/:id/plan/trust', 'PUT /api/cowork/:id/plan/trust',
             'GET /api/cowork/:id/routine', 'GET /api/cowork/:id/plan/try/:tryId/compare',
+            // Shared coworks: only the owner manages the shares, and only the owner and the people it is shared with
+            // see it; a member of another organisation gets nothing (usecases/coworkShares.mts).
+            'GET /api/cowork/:id/shares', 'PUT /api/cowork/:id/shares', 'GET /api/cowork/shared/:id',
             'GET /api/cowork/:id/audit',
             'DELETE /api/cowork/:id',
         ],
@@ -98,6 +101,7 @@ const FIXTURES = [
             'POST /api/cowork/:id/hand-over': { toUserId: 'a-colleague' },
             'PUT /api/cowork/:id/start': { kind: 'webhook' },
             'PUT /api/cowork/:id/plan/trust': { stepId: 'send', recipient: '*', trusted: false },
+            'PUT /api/cowork/:id/shares': { shares: [] },
         },
     },
     {

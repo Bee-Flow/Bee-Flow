@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-41 routes, 24 with a request schema. Back to the [endpoint reference](../reference.md).
+45 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -247,6 +247,24 @@ No request schema.
 | `id` | string | yes | min length 1; max length 200 |
 | `runId` | string | yes | min length 1; max length 200 |
 
+### `GET /api/cowork/:id/shares`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/shares`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `shares` | array of object | yes | max items 50 |
+| `shares[].userId` | string | yes | min length 1; max length 200 |
+| `shares[].role` | one of `"viewer"`, `"approver"` | yes |  |
+
 ### `GET /api/cowork/:id/start`
 
 **Access:** Signed-in user · middleware `trainingGate`
@@ -365,6 +383,24 @@ No request schema.
 **Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
+
+## `shared`
+
+### `GET /api/cowork/shared`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/shared/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
 
 ## `shield`
 

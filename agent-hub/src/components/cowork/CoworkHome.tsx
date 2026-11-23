@@ -4,6 +4,7 @@
  */
 import { CalendarDays } from 'lucide-react';
 import CoworkNeedsYou from './CoworkNeedsYou';
+import CoworkSharedWithMe from './CoworkSharedWithMe';
 import { todayWords } from './coworkHomeModel';
 import { useCoworkHome } from '../../api/coworkHome';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -47,6 +48,7 @@ export default function CoworkHome({ onOpen, reloadKey = 0 }: { onOpen: (itemId:
         <>
             <CoworkNeedsYou onOpen={onOpen} reloadKey={reloadKey} />
             {home && <Today entries={home.today} onOpen={onOpen} locale={lang} />}
+            <CoworkSharedWithMe />
             {home?.cost && home.cost.calls > 0 && (
                 <p className="mb-4 px-[18px] text-[12px] text-[var(--text-tertiary)]" data-testid="cowork-cost-month">
                     {t('cowork.home.cost_month', 'AI this month: {cost}', { cost: formatCost(home.cost.byCurrency, lang) })}

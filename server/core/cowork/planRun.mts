@@ -85,6 +85,8 @@ export interface PlanRunDeps {
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
     /** What the owner trusts per step and recipient (./planTrust.mts). */
     trustOf?: (scheduleId: string) => Promise<TrustRow[]>;
+    /** The colleague who decides the item's questions (usecases/coworkShares.mts), or null. */
+    approverOf?: (scheduleId: string) => Promise<string | null>;
 }
 
 /** An event a plan starts on (./eventRun.mts): the run it claimed, and its data (outside text). */
@@ -157,6 +159,7 @@ function defaults(deps: PlanRunDeps) {
         mayAsk: deps.mayAsk ?? mayAskByLicence,
         policyOf: deps.policyOf ?? ((userId: string) => policyOfOwner(userId)),
         trustOf: deps.trustOf ?? ((id: string) => (nodeRequire('../../stores/coworkTrust.mts') as typeof import('../../stores/coworkTrust.mts')).coworkTrust().listTrust(id)),
+        approverOf: deps.approverOf ?? ((id: string) => (nodeRequire('../../stores/coworkShares.mts') as typeof import('../../stores/coworkShares.mts')).coworkShares().approverOf(id)),
     };
 }
 
@@ -225,7 +228,7 @@ export async function executePlanRun(
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.
         // The row's own time limit is held to Cowork's as well (./plan/planRunCopy.mts holds the run policy's).
         const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
-        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups, trusted)) }, {
+        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups, trusted, await d.approverOf(task.id))) }, {
             triggerKind: 'manual',
             // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts); an event adds its data.
             triggerPayload: { ...sinceTriggerData(task), ...(trigger?.payload ?? {}) },

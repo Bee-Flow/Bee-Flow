@@ -57,6 +57,17 @@ const PLAN_DDL = Object.freeze([
         PRIMARY KEY (schedule_id, step_id, recipient)
     )`,
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS trusted_steps TEXT`,
+    // Sharing (usecases/coworkShares.mts): colleagues of the owner's organisation who may see the item (viewer) or
+    // also decide its runs' questions (approver, at most one). The owner keeps the item; a share never runs it.
+    `CREATE TABLE IF NOT EXISTS cowork_shares (
+        schedule_id TEXT NOT NULL REFERENCES cowork_schedules(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        added_by TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (schedule_id, user_id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_cowork_shares_user ON cowork_shares (user_id)`,
 ]);
 
 module.exports = { PLAN_DDL };

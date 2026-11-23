@@ -11,6 +11,7 @@
  *   GET, PUT /policy/:orgId, GET /policy/:orgId/audit → the organisation's Cowork policy (./coworkPolicyRoutes.js)
  *   GET /:id/hand-over/colleagues, POST /:id/hand-over → hand an item to a colleague (./coworkHandOverRoutes.js)
  *   GET, PUT /:id/start     → how an item starts: the clock or an event (./coworkStartRoutes.js)
+ *   GET /shared, GET /shared/:id, GET/PUT /:id/shares → sharing with a team (./coworkShareRoutes.js)
  *
  * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
  * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
@@ -71,6 +72,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     router.use(require('./coworkPolicyRoutes'));
     require('./coworkHandOverRoutes').mountHandOverRoutes(router);
     require('./coworkStartRoutes').mountStartRoutes(router);
+    require('./coworkShareRoutes').mountShareRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

@@ -17,7 +17,7 @@ export const TARGET_TYPE = 'cowork_item';
 export type AuditAction =
     | 'cowork.created' | 'cowork.updated' | 'cowork.toggled' | 'cowork.deleted'
     | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made'
-    | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over' | 'cowork.start_set' | 'cowork.trust_set';
+    | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over' | 'cowork.start_set' | 'cowork.trust_set' | 'cowork.shares_set';
 
 /** Fields whose values may be kept: they say when and how the work runs, not what it is about. */
 const VALUE_FIELDS: readonly string[] = Object.freeze([

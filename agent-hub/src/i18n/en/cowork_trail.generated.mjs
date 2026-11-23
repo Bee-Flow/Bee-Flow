@@ -15,6 +15,7 @@ export default {
     "cowork_trail.action.plan_made": "had Cowork make a plan",
     "cowork_trail.action.plan_removed": "took the plan off",
     "cowork_trail.action.review_handled": "handled a review",
+    "cowork_trail.action.shares_set": "changed who it is shared with",
     "cowork_trail.action.start_set": "changed how it starts",
     "cowork_trail.action.toggled": "switched it {state}",
     "cowork_trail.action.trust_set": "changed what may go on its own",

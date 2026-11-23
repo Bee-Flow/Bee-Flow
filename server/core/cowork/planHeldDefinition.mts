@@ -17,8 +17,16 @@ import { toolLookups } from './plan/planLookups.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-interface PlanOfRun { automationId: string; definition: unknown; fingerprint: string; independence?: string | null; trustedSteps?: string[] }
-export interface HeldDeps { getPlanOfAutomationRun: (automationRunId: string) => Promise<PlanOfRun | null> }
+interface PlanOfRun { automationId: string; definition: unknown; fingerprint: string; independence?: string | null; trustedSteps?: string[]; scheduleId?: string }
+export interface HeldDeps {
+    getPlanOfAutomationRun: (automationRunId: string) => Promise<PlanOfRun | null>;
+    /** The colleague who decides the item's questions (usecases/coworkShares.mts), or null. */
+    approverOf?: (scheduleId: string) => Promise<string | null>;
+}
+
+const defaultApprover = (scheduleId: string): Promise<string | null> => (scheduleId
+    ? (nodeRequire('../../stores/coworkShares.mts') as typeof import('../../stores/coworkShares.mts')).coworkShares().approverOf(scheduleId)
+    : Promise.resolve(null));
 
 const defaults = (): HeldDeps => ({
     getPlanOfAutomationRun: (id) => (nodeRequire('../../stores/coworkStore.js') as HeldDeps).getPlanOfAutomationRun(id),
@@ -33,5 +41,6 @@ export async function heldPlanDefinition(run: { id?: string | null; rootRunId?: 
     const definition = plan.definition as Definition;
     if (planFingerprint(definition) !== plan.fingerprint) throw new Error('The stored plan is not the one that was approved, so this run does not continue.');
     // With the questions the first leg ran with: a run from before levels asked nothing more.
-    return runCopyOf(withAsks(definition, isIndependence(plan.independence) ? plan.independence : 'on_its_own', toolLookups(), new Set(plan.trustedSteps ?? [])));
+    const approver = await (deps.approverOf ?? defaultApprover)(plan.scheduleId ?? '');
+    return runCopyOf(withAsks(definition, isIndependence(plan.independence) ? plan.independence : 'on_its_own', toolLookups(), new Set(plan.trustedSteps ?? []), approver));
 }

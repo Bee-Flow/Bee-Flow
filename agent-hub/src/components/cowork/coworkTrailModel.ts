@@ -18,6 +18,7 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.handed_over': 'handed it over to a colleague',
     'cowork.start_set': 'changed how it starts',
     'cowork.trust_set': 'changed what may go on its own',
+    'cowork.shares_set': 'changed who it is shared with',
 };
 
 const FIELD_FALLBACK: Record<string, string> = {
