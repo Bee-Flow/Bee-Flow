@@ -5574,8 +5574,7 @@
       "chart": {
        "type": "column",
        "labels": [
-        "a",
-        "b",
+        "a, b",
         "c"
        ],
        "series": [
@@ -5583,16 +5582,14 @@
          "name": "One, two",
          "values": [
           1,
-          2,
-          null
+          2
          ]
         },
         {
          "name": "Three",
          "values": [
           3,
-          4,
-          null
+          4
          ]
         }
        ],
@@ -5611,7 +5608,7 @@
     "warnings": []
    },
    "normalized": true,
-   "markdown": "## C\n```chart\ntype: column\nstacked: true\nshowValues: false\nlabels: a, b, c\nOne, two: 1, 2, \nThree: 3, 4, \n```\n"
+   "markdown": "## C\n```chart\ntype: column\nstacked: true\nshowValues: false\nlabels: a, b; c\nOne, two: 1, 2\nThree: 3, 4\n```\n"
   },
   "tight": {
    "deck": {
@@ -5632,8 +5629,7 @@
       "chart": {
        "type": "column",
        "labels": [
-        "a",
-        "b",
+        "a, b",
         "c"
        ],
        "series": [
@@ -5641,16 +5637,14 @@
          "name": "One, two",
          "values": [
           1,
-          2,
-          null
+          2
          ]
         },
         {
          "name": "Three",
          "values": [
           3,
-          4,
-          null
+          4
          ]
         }
        ],
@@ -5669,7 +5663,7 @@
     "warnings": []
    },
    "normalized": true,
-   "markdown": "## C\n```chart\ntype: column\nstacked: true\nshowValues: false\nlabels: a, b, c\nOne, two: 1, 2, \nThree: 3, 4, \n```\n"
+   "markdown": "## C\n```chart\ntype: column\nstacked: true\nshowValues: false\nlabels: a, b; c\nOne, two: 1, 2\nThree: 3, 4\n```\n"
   }
  },
  "whitespaceOnly": {
@@ -11482,7 +11476,7 @@
     ]
    },
    "normalized": true,
-   "markdown": "## type+table\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## type no table\n\n## type text table\n| m | v |\n| --- | --- |\n| a | x |\n\n## text\n```chart\ntype: column\nlabels: A, B\nSeries 1: 1, 2\n```\n\n## spec\n```chart\ntype: line\ntitle: T\nunit: %\nshowValues: false\nlabels: a, b\nS: 1, 2\nSeries 2: 3, 4\n```\n\n## data rows\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## empty\n\n## null\n\n## no numbers\n\n## explicit beats fence\n```chart\ntype: column\nlabels: A\nSeries 1: 5\n```\n\n## comma labels\n```chart\ntype: column\nlabels: a, b; c\nx  y: 1, \n```\n"
+   "markdown": "## type+table\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## type no table\n\n## type text table\n| m | v |\n| --- | --- |\n| a | x |\n\n## text\n```chart\ntype: column\nlabels: A, B\nSeries 1: 1, 2\n```\n\n## spec\n```chart\ntype: line\ntitle: T\nunit: %\nshowValues: false\nlabels: a, b\nS: 1, 2\nSeries 2: 3, 4\n```\n\n## data rows\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## empty\n\n## null\n\n## no numbers\n\n## explicit beats fence\n```chart\ntype: column\nlabels: A\nSeries 1: 5\n```\n\n## comma labels\n```chart\ntype: column\nlabels: a, b; c\nx  y: 1; \n```\n"
   },
   "tight": {
    "deck": {
@@ -11810,7 +11804,7 @@
     ]
    },
    "normalized": true,
-   "markdown": "## type+table\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## type no t…\n\n## type text…\n| m | v |\n| --- | --- |\n| a | x |\n\n## text\n```chart\ntype: column\nlabels: A, B\nSeries 1: 1, 2\n```\n\n## spec\n```chart\ntype: line\ntitle: T\nunit: %\nshowValues: false\nlabels: a, b\nS: 1, 2\nSeries 2: 3, 4\n```\n\n## data rows\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## empty\n\n## null\n\n## no numbers\n\n## explicit…\n```chart\ntype: column\nlabels: A\nSeries 1: 5\n```\n\n## comma lab…\n```chart\ntype: column\nlabels: a, b; c\nx  y: 1, \n```\n"
+   "markdown": "## type+table\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## type no t…\n\n## type text…\n| m | v |\n| --- | --- |\n| a | x |\n\n## text\n```chart\ntype: column\nlabels: A, B\nSeries 1: 1, 2\n```\n\n## spec\n```chart\ntype: line\ntitle: T\nunit: %\nshowValues: false\nlabels: a, b\nS: 1, 2\nSeries 2: 3, 4\n```\n\n## data rows\n```chart\ntype: bar\nlabels: a, b\nv: 1, 2\n```\n\n## empty\n\n## null\n\n## no numbers\n\n## explicit…\n```chart\ntype: column\nlabels: A\nSeries 1: 5\n```\n\n## comma lab…\n```chart\ntype: column\nlabels: a, b; c\nx  y: 1; \n```\n"
   }
  },
  "json:stats": {

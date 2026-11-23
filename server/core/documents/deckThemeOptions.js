@@ -410,9 +410,10 @@ function hueFamily(hex, dark) {
 }
 
 /**
- * Six series colours for a chart on `background`: the brand accent first
- * (its hue kept, lightness and chroma snapped into the categorical band),
- * then the validated order for its hue family. Each is checked to show on
+ * Eight series colours (CHART_LIMITS.maxSeries) for a chart on `background`:
+ * the brand accent first (its hue kept, lightness and chroma snapped into the
+ * categorical band), then the validated order for its hue family, then the
+ * families that order leaves out. Each is checked to show on
  * the surface; the sub-3:1 ones rely on the value labels the charts carry.
  * @param {string} text
  * @param {string | null} accent
@@ -423,13 +424,18 @@ function chartColorsFor(accent, background, text) {
     const dark = isDark(bg);
     const first = snapToBand(normHex(accent, '#123A5E'), dark);
     const pal = dark ? CATEGORICAL_DARK : CATEGORICAL_LIGHT;
-    const order = CATEGORICAL_ORDERS[dark ? 'dark' : 'light'][hueFamily(first, dark)];
-    const base = [first, ...order.map((i) => pal[i])];
+    const family = hueFamily(first, dark);
+    const validated = CATEGORICAL_ORDERS[dark ? 'dark' : 'light'][family];
+    const rest = pal.map((_, i) => i).filter((i) => !validated.includes(i) && i !== family);
+    /** @type {number[]} */
+    const order = [...validated, ...rest].slice(0, 7);
+    /** @type {string[]} */
+    const base = [first || '#123A5E', ...order.map((i) => pal[i])];
     // A mid-tone surface (a brand blue, a photo) swallows most of the band;
     // charts there are drawn in the text colour and light tints of the same
     // ordered hues — the "on colour" variant of the palette.
     if (base.filter((c) => contrastRatio(c, bg) >= 1.5).length < 3) {
-        const ink = normHex(text, SAFE_LIGHT);
+        const ink = normHex(text, SAFE_LIGHT) || SAFE_LIGHT;
         return [ink, ...order.map((i) => mix(pal[i], ink, 0.55))].map((c) => (contrastRatio(c, bg) < 1.5 ? mix(c, ink, 0.5) : c));
     }
     return base.map((c) => (contrastRatio(c, bg) < 1.5 ? mix(c, text, 0.5) : c));
@@ -558,7 +564,10 @@ function resolveDeckTheme(base, deck = null, overrides = null) {
     const muted = mutedOn(background, text);
 
     const titleStyle = template ? 'plain' : preset.titleStyle;
-    const bandColor = titleStyle === 'band' ? accent : null;
+    // A slide painted in the accent (bold, or a custom background) cannot
+    // carry an accent band or header: those take a tint of the text instead.
+    const accentIsSurface = contrastRatio(accent, background) < 1.5;
+    const bandColor = titleStyle === 'band' ? (accentIsSurface ? mix(background, text, 0.18) : accent) : null;
     // A title in a band reads on the band; a plain/rule title reads on the slide
     // and prefers the accent, unless the slide IS the accent.
     /** @type {string} */
@@ -585,7 +594,10 @@ function resolveDeckTheme(base, deck = null, overrides = null) {
     // With a template that brings its own overlays (a logo), the letterhead
     // logo stays off unless the deck asked for a placement explicitly.
     const templateHasLogo = !!(template && (template.cover.overlays.length || template.content.overlays.length));
-    const hasLogo = !!(logoDataUrl || logoRef) && !(templateHasLogo && !(overrides && overrides.logoPlacement));
+    // The house style "asks" when it stores a placement other than the default.
+    const askedPlacement = !!(overrides && overrides.logoPlacement)
+        || !!(deck && typeof deck.logoPlacement === 'string' && pickEnum(deck.logoPlacement, LOGO_PLACEMENTS, DEFAULT_DECK_STYLE.logoPlacement) !== DEFAULT_DECK_STYLE.logoPlacement);
+    const hasLogo = !!(logoDataUrl || logoRef) && !(templateHasLogo && !askedPlacement);
 
     return {
         enabled,
@@ -609,8 +621,8 @@ function resolveDeckTheme(base, deck = null, overrides = null) {
         tableStyle: d.tableStyle,
         // On a template's picture the table is frosted like the cards: a
         // header in the text tint, never a solid block of the brand colour.
-        tableHeaderFill: template ? mix(background, text, 0.24) : accent,
-        tableHeaderText: template ? text : onAccent,
+        tableHeaderFill: template ? mix(background, text, 0.24) : (accentIsSurface ? mix(background, text, 0.18) : accent),
+        tableHeaderText: template || accentIsSurface ? text : onAccent,
         tableBand: template ? mix(background, text, 0.08) : mix(background, accent, isDark(background) ? 0.18 : 0.08),
         tableLine: template ? mix(background, text, 0.3) : mix(background, text, 0.18),
         logoPlacement: hasLogo ? d.logoPlacement : 'none',
@@ -660,7 +672,7 @@ function slideVariant(theme, style) {
         tableBand: mix(background, text, 0.08),
         tableLine: mix(background, text, 0.25),
         chartColors: style === 'accent'
-            ? [text, mix(text, background, 0.3), mix(text, background, 0.5), rotateHue(theme.accent, 150), mix(text, background, 0.65), rotateHue(theme.accent, 60)].map((c) => (contrastRatio(c, background) < 1.5 ? mix(text, background, 0.4) : c))
+            ? [text, mix(text, background, 0.3), mix(text, background, 0.5), rotateHue(theme.accent, 150), mix(text, background, 0.65), rotateHue(theme.accent, 60), rotateHue(theme.accent, 240), mix(rotateHue(theme.accent, 150), text, 0.5)].map((c) => (contrastRatio(c, background) < 1.5 ? mix(text, background, 0.4) : c))
             : chartColorsFor(theme.accent, background, text),
         statFill: mix(background, text, 0.1),
     };

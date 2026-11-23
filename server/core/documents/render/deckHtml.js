@@ -1,7 +1,7 @@
 // @typecheck
 const { sanitizeContentForExport, escapeHtml } = require('../../../templates/exportTemplate');
 const { markingText, markingFooterHtml } = require('./documentMarking');
-const { ensureResolvedTheme, deckThemeCss, slideVariantStyle, slidesCss } = require('./deckThemeCss');
+const { ensureResolvedTheme, deckThemeCss, slideVariantStyle, slidesCss, deckPageCss, DECK_PAGE_MM } = require('./deckThemeCss');
 const { resolveDeckTheme, slideVariant } = require('../deckThemeOptions');
 const { chartSvg } = require('../deckChartSvg');
 const { iconSvg } = require('../deckIcons');
@@ -15,7 +15,10 @@ function templateOverlaysHtml(side) {
 
 function slideSectionHtml({ bandTitle, body, style = null }, theme) {
     const t = deckThemeCss(theme);
-    const brand = t.brandOnSlides && t.brandName ? `<div class="brand">${escapeHtml(t.brandName)}</div>` : '';
+    // As in the .pptx: the brand sits in a band; on a band-less slide a
+    // corner logo takes its place.
+    const cornerLogo = !!t.logoDataUrl && t.logoPlacement === 'corner' && t.titleStyle !== 'band';
+    const brand = t.brandOnSlides && t.brandName && !cornerLogo ? `<div class="brand">${escapeHtml(t.brandName)}</div>` : '';
     const cls = style === 'accent' || style === 'dark' ? ` slide-${style}` : '';
     const overlays = t.template ? templateOverlaysHtml(t.template.content) : '';
     return `
@@ -181,10 +184,8 @@ const SCREEN_DECK_CSS = `
   .deck-frame { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.35); background: var(--deck-bg); flex: none; }
   .deck-frame > .slide { transform-origin: top left; }
   .deck-frame:focus { outline: 2px solid rgba(255,255,255,.6); outline-offset: 2px; }
-  .slide, .cover { width: 297mm; height: 210mm; min-height: 0; overflow: hidden; page-break-after: auto; }
+  .slide, .cover { page-break-after: auto; }
   .deck-footer, .deck-logo, .ai-mark { position: absolute; }
-  .deck-footer { left: 14mm; right: auto; bottom: 5mm; max-width: 200mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .deck-number { position: absolute; right: 14mm; bottom: 5mm; font-size: 8pt; color: var(--deck-muted); }
   .deck-count { color: rgba(255,255,255,.55); font: 12px/1.4 system-ui, sans-serif; letter-spacing: .3px; }
 `;
 
@@ -195,7 +196,7 @@ const SCREEN_DECK_CSS = `
  * external script — and there is nothing here worth a file.
  */
 const SCREEN_DECK_SCRIPT = `<script>(function(){
-  var W = 297 / 25.4 * 96, H = 210 / 25.4 * 96;
+  var W = ${DECK_PAGE_MM.w} / 25.4 * 96, H = ${DECK_PAGE_MM.h} / 25.4 * 96;
   var frames = Array.prototype.slice.call(document.querySelectorAll('.deck-frame'));
   function fit() {
     var avail = Math.max(120, document.documentElement.clientWidth - 32);
@@ -228,12 +229,19 @@ const SCREEN_DECK_SCRIPT = `<script>(function(){
   try { parent.postMessage({ __beeflowDeckReady: true, slideCount: frames.length }, '*'); } catch (_) { console.debug("parent gone", _); }
 })();<\/script>`;
 
-/** The per-slide chrome of the viewer: logo, footer line, marking, the number. */
-function screenChromeHtml(theme, marking, index, _total) {
+/**
+ * The per-slide chrome, inside each section (print and screen alike), the
+ * way the .pptx masters place it: the footer line (footer text, else the
+ * brand, plus the marking) on every slide; the footer/corner logo and the
+ * number on content slides only — a cover carries its own logo.
+ * @param {number} index  0 = the cover
+ * @param {boolean} isCover  a cover-like slide (the cover, a closing slide)
+ */
+function slideChromeHtml(theme, marking, index, isCover) {
     const t = deckThemeCss(theme);
     /** @type {string[]} */
     const parts = [];
-    const logo = t.logoDataUrl && (t.logoPlacement === 'footer' || t.logoPlacement === 'corner');
+    const logo = !isCover && !t.template && !!t.logoDataUrl && (t.logoPlacement === 'footer' || t.logoPlacement === 'corner');
     if (logo) parts.push(`<img class="deck-logo" src="${t.logoDataUrl}" alt="">`);
     const line = [t.footerText || t.brandName, markingText(marking)].filter(Boolean).join('  ·  ');
     // The footer line starts after the logo when the logo sits in the footer:
@@ -241,10 +249,10 @@ function screenChromeHtml(theme, marking, index, _total) {
     const left = logo && t.logoPlacement === 'footer' ? `left:${(14 + 7 * (t.logoAspect || 2.5) + 3).toFixed(1)}mm;` : '';
     // On an accent-block cover the line is written in the on-accent colour,
     // as the .pptx cover master does; a template cover keeps its own text.
-    const onAccent = index === 0 && !t.template && t.coverStyle === 'accent' ? `color:${t.onAccent};opacity:.75;` : '';
+    const onAccent = isCover && !t.template && t.coverStyle === 'accent' ? `color:${t.onAccent};opacity:.75;` : '';
     const style = left || onAccent ? ` style="${left}${onAccent}"` : '';
     if (line) parts.push(`<div class="deck-footer"${style}>${escapeHtml(line)}</div>`);
-    if (t.slideNumbers && index > 0) parts.push(`<div class="deck-number">${index + 1}</div>`);
+    if (t.slideNumbers && !isCover && index > 0) parts.push(`<div class="deck-number">${index + 1}</div>`);
     return parts.join('');
 }
 
@@ -266,34 +274,33 @@ function deckToSlidesHtml(deck, { theme = /** @type {Record<string, unknown> | n
         date: stamp,
     }, theme);
     const t = deckThemeCss(theme);
-    const slides = deck.slides.map((s) => {
+    /** @type {{ html: string, isCover: boolean }[]} */
+    const all = [{ html: cover, isCover: true }, ...deck.slides.map((s) => {
         if (s.layout === 'section') {
-            return `<section class="slide"><div class="slide-body" style="padding-top:70mm"><h2 style="color:var(--deck-accent);font-size:26pt;margin:0 0 4mm">${escapeHtml(s.title)}</h2>`
-                + `${s.body ? `<p style="color:var(--deck-muted);font-size:13pt">${escapeHtml(s.body)}</p>` : ''}</div></section>`;
+            // The title in the accent only where the accent reads on the slide (not on bold).
+            const cls = s.style === 'accent' || s.style === 'dark' ? ` slide-${s.style}` : '';
+            return { isCover: false, html: `<section class="slide slide-section${cls}"${slideVariantStyle(theme, s.style)}><div class="slide-body" style="padding-top:52mm"><h2 style="color:var(--deck-accent-on-slide);font-size:26pt;margin:0 0 4mm">${escapeHtml(s.title)}</h2>`
+                + `${s.body ? `<p style="color:var(--deck-muted);font-size:13pt">${escapeHtml(s.body)}</p>` : ''}</div></section>` };
         }
         if (s.layout === 'closing' || s.layout === 'title') {
-            return coverSectionHtml({ titleHtml: escapeHtml(s.title || 'Thank you'), subtitle: [s.body, ...s.bullets.map((b) => b.text)].filter(Boolean).join(' · '), date: '' }, theme);
+            return { isCover: true, html: coverSectionHtml({ titleHtml: escapeHtml(s.title || 'Thank you'), subtitle: [s.body, ...s.bullets.map((b) => b.text)].filter(Boolean).join(' · '), date: '' }, theme) };
         }
-        return slideSectionHtml({ bandTitle: escapeHtml(s.title || ''), body: deckSlideBodyHtml(s, theme), style: s.style }, theme);
-    });
+        return { isCover: false, html: slideSectionHtml({ bandTitle: escapeHtml(s.title || ''), body: deckSlideBodyHtml(s, theme), style: s.style }, theme) };
+    })];
+    // The chrome goes INSIDE each section (before its closing tag) so it is
+    // positioned against the slide: a number per page, no logo on a cover.
+    const withChrome = all.map(({ html, isCover }, i) => html.replace(/<\/section>\s*$/, () => `${slideChromeHtml(t, marking, i, isCover)}</section>`));
     if (!screen) {
         return slidesDocument({
             title: title || deck.title,
-            css: slidesCss(t),
-            body: `${cover}${slides.join('')}${deckFooterHtml(t)}${markingFooterHtml(marking)}`,
+            css: slidesCss(t) + deckPageCss(t),
+            body: withChrome.join(''),
         });
     }
-    const all = [cover, ...slides];
-    // The chrome goes INSIDE each section (before its closing tag) so it is
-    // positioned against the slide, not the desk.
-    const framed = all.map((html, i) => {
-        const chrome = screenChromeHtml(t, marking, i, all.length);
-        const withChrome = html.replace(/<\/section>\s*$/, () => `${chrome}</section>`);
-        return `<div class="deck-frame" tabindex="0" data-slide="${i + 1}" aria-label="Slide ${i + 1} of ${all.length}">${withChrome}</div>`;
-    });
+    const framed = withChrome.map((html, i) => `<div class="deck-frame" tabindex="0" data-slide="${i + 1}" aria-label="Slide ${i + 1} of ${all.length}">${html}</div>`);
     return slidesDocument({
         title: title || deck.title,
-        css: slidesCss(t) + SCREEN_DECK_CSS,
+        css: slidesCss(t) + deckPageCss(t) + SCREEN_DECK_CSS,
         body: `<div class="deck-viewer">${framed.join('')}<div class="deck-count">${all.length} ${all.length === 1 ? 'slide' : 'slides'}</div></div>${SCREEN_DECK_SCRIPT}`,
     });
 }

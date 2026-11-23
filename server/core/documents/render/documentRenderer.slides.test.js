@@ -150,3 +150,24 @@ test('deck visuals in the PDF deck: an inline SVG chart beside the text, KPI til
     assert.match(_test.deckToPlainText(deck), /€ 1,2M Omzet \(\+12%\)/);
     assert.match(_test.deckToPlainText(deck), /1\. Kick-off — start/);
 });
+
+test('the PDF deck: 16:9 pages that clip, a number and the footer line (else the brand) inside every slide, no small logo on the cover, a readable section title', () => {
+    const { normalizeDeck } = require('../deckModel');
+    const { resolveDeckTheme } = require('../deckThemeOptions');
+    const logo = 'data:image/png;base64,iVBORw0KGgo=';
+    const theme = resolveDeckTheme({ enabled: true, accent: '#F5A623', ink: '#1A1A1A', companyName: 'Bee Flow', logoDataUrl: logo }, { preset: 'bold', logoPlacement: 'corner' });
+    const deck = normalizeDeck({ title: 'D', slides: [{ title: 'One', bullets: ['a'] }, { title: 'Part two', layout: 'section' }] });
+    const html = _test.deckToSlidesHtml(deck, { theme });
+    assert.match(html, /@page \{ size: 297mm 167\.0625mm; margin: 0; \}/);
+    assert.match(html, /\.slide, \.cover \{ width: 297mm; height: 167\.0625mm; min-height: 0; overflow: hidden;/);
+    const sections = html.split('<section').slice(1);
+    assert.strictEqual(sections.length, 3);
+    assert.ok(sections.every((x) => x.includes('class="deck-footer"') && x.includes('>Bee Flow</div>')), 'footer line on every page, the brand standing in for footer text');
+    assert.doesNotMatch(sections[0], /deck-logo|deck-number/, 'the cover has its own logo and no number');
+    assert.match(sections[1], /class="deck-number">2</);
+    assert.match(sections[2], /class="deck-number">3</);
+    assert.match(sections[1], /class="deck-logo"/);
+    assert.doesNotMatch(sections[1], /class="brand"/, 'a corner logo replaces the brand on a band-less slide');
+    assert.match(sections[2], /color:var\(--deck-accent-on-slide\)/, 'the section title is not painted in the accent on an accent slide');
+    assert.strictEqual(theme.accentOnSlide, theme.text);
+});

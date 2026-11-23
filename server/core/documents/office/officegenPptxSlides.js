@@ -167,8 +167,15 @@ function addChartSlide(pptx, slide, s, th, top) {
     const order = overlapArea
         ? c.series.map((ser, i) => ({ i, peak: Math.max(...ser.values.filter((v) => typeof v === 'number'), 0) })).sort((/** @type {{ peak: number; }} */ a, /** @type {{ peak: number; }} */ b) => b.peak - a.peak).map((x) => x.i)
         : c.series.map((_, i) => i);
-    const data = order.map((i) => ({ name: c.series[i].name || `Series ${i + 1}`, labels: c.labels, values: c.series[i].values.map((v) => (typeof v === 'number' ? v : 0)) }));
-    const colours = order.map((i) => th.chartColors[i % th.chartColors.length]);
+    // A gap stays a gap (null, drawn as one by displayBlanksAs); a pie has no
+    // negative slice, the same clamp as the SVG chart.
+    /** @param {unknown} v */
+    const cell = (v) => (typeof v !== 'number' ? null : (circular ? Math.max(0, v) : v));
+    const data = order.map((i) => ({ name: c.series[i].name || `Series ${i + 1}`, labels: c.labels, values: c.series[i].values.map(cell) }));
+    // A pie colours its slices, every other chart its series.
+    const colours = circular
+        ? c.labels.map((_, i) => th.chartColors[i % th.chartColors.length])
+        : order.map((i) => th.chartColors[i % th.chartColors.length]);
     const font = th.bodyFont;
     // The marks follow the data-viz spec: recessive hairline grid, no axis
     // lines, thin bars with a surface gap between neighbours, 2pt lines with
@@ -179,6 +186,7 @@ function addChartSlide(pptx, slide, s, th, top) {
     const opts = {
         ...box,
         chartColors: colours,
+        displayBlanksAs: 'gap',
         // On a template's picture the chart has no plate of its own.
         chartArea: { ...(th.template ? {} : { fill: { color: th.background } }), roundedCorners: false },
         plotArea: th.template ? {} : { fill: { color: th.background } },

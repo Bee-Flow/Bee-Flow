@@ -96,7 +96,8 @@ function Footer({ theme, onDark = false }: { theme: DeckTheme; onDark?: boolean 
     );
 }
 
-function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeting · Q3' }: { theme: DeckTheme; title?: string; subtitle?: string }) {
+function CoverSlide({ theme, title, subtitle }: { theme: DeckTheme; title?: string; subtitle?: string }) {
+    const { t } = useTranslation();
     const tpl = !!theme.template;
     const accent = !tpl && theme.coverStyle === 'accent';
     const split = !tpl && theme.coverStyle === 'split';
@@ -112,8 +113,8 @@ function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeti
             {showLogo && light && <Logo theme={theme} style={{ position: 'absolute', left: '6%', top: '9%', width: '22%', height: '16%' }} />}
             {showLogo && accent && <Logo theme={theme} style={{ position: 'absolute', left: '6%', bottom: '9%', width: '14%', height: '10%' }} />}
             <div className={`[position:absolute] [right:6%] ${split ? '[left:42%]' : '[left:6%]'} ${light ? '[top:38%]' : '[top:30%]'}`}>
-                <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: '1.05em', lineHeight: 1.15, color: titleColor }}>{title}</div>
-                <div style={{ marginTop: '0.35em', fontSize: '0.5em', color: subColor, opacity: accent ? 0.9 : 1 }}>{subtitle}</div>
+                <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: '1.05em', lineHeight: 1.15, color: titleColor }}>{title ?? t('documents.deck.sample_cover_title', 'Quarterly review')}</div>
+                <div style={{ marginTop: '0.35em', fontSize: '0.5em', color: subColor, opacity: accent ? 0.9 : 1 }}>{subtitle ?? t('documents.deck.sample_cover_subtitle', 'Board meeting · Q3')}</div>
             </div>
         </Slide>
     );
@@ -130,10 +131,15 @@ function MiniChart({ theme }: { theme: DeckTheme }) {
     );
 }
 
-function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTheme; title?: string }) {
+function ContentSlide({ theme, title }: { theme: DeckTheme; title?: string }) {
     const { t } = useTranslation();
     const band = theme.titleStyle === 'band' && !theme.template;
-    const cornerLogo = theme.logoPlacement === 'corner';
+    const cornerLogo = theme.logoPlacement === 'corner' && !!theme.logoDataUrl;
+    const headers = [
+        t('documents.deck.sample_col_supplier', 'Supplier'),
+        t('documents.deck.sample_col_invoice', 'Invoice'),
+        t('documents.deck.sample_col_total', 'Total'),
+    ];
     const cell = (text: string, i: number, header = false): React.CSSProperties => {
         const base: React.CSSProperties = { padding: '0.12em 0.3em', fontSize: '0.36em', textAlign: i ? 'right' : 'left', whiteSpace: 'nowrap' };
         if (theme.tableStyle === 'banded') {
@@ -157,10 +163,11 @@ function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTh
                 padding: band ? '0 4%' : `3.5% 5% 0 ${theme.titleInset ? `${Math.max(5, theme.titleInset * 100 + 2).toFixed(1)}%` : '5%'}`,
             }}>
                 <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: band ? '0.62em' : '0.7em', color: theme.titleColor }}>
-                    {title}
+                    {title ?? t('documents.deck.sample_content_title', 'Overview of invoices')}
                     {theme.titleStyle === 'rule' && <div style={{ width: '18%', height: 2, background: theme.accentOnSlide, marginTop: '0.25em', minWidth: 24 }} />}
                 </div>
-                {theme.brandOnSlides && theme.brandName && !cornerLogo && (
+                {/* As in the .pptx: the brand stays in a band; on a band-less slide a corner logo replaces it. */}
+                {theme.brandOnSlides && theme.brandName && (band || !cornerLogo) && (
                     <div style={{ fontSize: '0.3em', letterSpacing: '0.15em', color: band ? theme.titleColor : theme.muted, opacity: 0.85 }}>{theme.brandName}</div>
                 )}
             </div>
@@ -174,7 +181,7 @@ function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTh
                     <MiniChart theme={theme} />
                 </div>
                 <table className="[border-collapse:collapse] w-[100%] [align-self:start]">
-                    <thead><tr>{['Supplier', 'Invoice', 'Total'].map((h: string, i: number) => <th key={h} style={cell(h, i, true)}>{h}</th>)}</tr></thead>
+                    <thead><tr>{headers.map((h: string, i: number) => <th key={h} style={cell(h, i, true)}>{h}</th>)}</tr></thead>
                     <tbody>
                         {rows.map((r: string[], ri: number) => (
                             <tr key={ri}>{r.map((c: string, i: number) => <td key={i} style={{ ...cell(c, i), ...(theme.tableStyle === 'banded' && ri % 2 === 1 ? { background: theme.tableBand } : {}) }}>{c}</td>)}</tr>
@@ -198,10 +205,13 @@ export default function DeckPreview({ theme, loading = false }: { theme: DeckThe
             </div>
         );
     }
+    // The type scales with the preview's own width (a container), not the window's.
     return (
-        <div className={`grid grid-cols-2 gap-3 [font-size:clamp(9px,_1.6vw,_15px)] [transition:opacity_.15s] ${loading ? '[opacity:0.6]' : '[opacity:1]'}`} data-testid="deck-preview">
-            <CoverSlide theme={theme} />
-            <ContentSlide theme={theme} />
+        <div className="[container-type:inline-size]" data-testid="deck-preview">
+            <div className={`grid grid-cols-2 gap-3 [font-size:clamp(7px,_2.7cqw,_15px)] [transition:opacity_.15s] ${loading ? '[opacity:0.6]' : '[opacity:1]'}`}>
+                <CoverSlide theme={theme} />
+                <ContentSlide theme={theme} />
+            </div>
         </div>
     );
 }

@@ -31,12 +31,15 @@ function asTable(value) {
         return { columns: rows[0].map((c) => stripInlineMarkdown(c)), rows: rows.slice(1) };
     }
     if (typeof value === 'object') {
-        const columns = Array.isArray(value.columns) ? value.columns.map((c) => stripInlineMarkdown(typeof c === 'object' && c ? (c.label ?? c.name ?? c.key ?? '') : c)) : [];
+        const given = Array.isArray(value.columns) ? value.columns : [];
+        // A column is a name, or { key, label }: the key finds the cell, the label heads it.
+        const keys = given.map((c) => String(typeof c === 'object' && c ? (c.key ?? c.name ?? c.label ?? '') : (c ?? '')));
+        const columns = given.map((c) => stripInlineMarkdown(typeof c === 'object' && c ? (c.label ?? c.name ?? c.key ?? '') : c));
         let rows = Array.isArray(value.rows) ? value.rows : [];
         // Rows of objects are laid out under the columns (by key), like rowsToMatrix does.
         if (rows.length && rows.every((r) => r && typeof r === 'object' && !Array.isArray(r))) {
-            const cols = columns.length ? columns : [...new Set(rows.flatMap((r) => Object.keys(r)))];
-            return { columns: cols, rows: rows.map((r) => cols.map((c) => (r[c] === null || r[c] === undefined ? '' : r[c]))) };
+            const cols = keys.length ? keys : [...new Set(rows.flatMap((r) => Object.keys(r)))];
+            return { columns: keys.length ? columns : cols, rows: rows.map((r) => cols.map((c) => (r[c] === null || r[c] === undefined ? '' : r[c]))) };
         }
         rows = rows.filter(Array.isArray);
         if (!columns.length && !rows.length) return null;

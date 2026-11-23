@@ -174,10 +174,14 @@ function mdImageRef(image) {
     return null;
 }
 
-/** "a, b, c" — or "; "-separated when a label carries a comma. */
+/**
+ * "a, b, c" — or "; "-separated when a cell carries a comma, so the reader
+ * (deckChart splitCells) splits on ";" alone. A gap (null) stays an empty
+ * cell; a number is written as JavaScript prints it ("1.5", never "1,5").
+ */
 function mdList(values) {
-    const items = values.map((v) => mdLine(v === null || v === undefined ? '' : v));
-    const sep = items.some((/** @type {string | string[]} */ x) => x.includes(',')) ? '; ' : ', ';
+    const items = values.map((v) => (typeof v === 'number' ? String(v) : mdLine(v === null || v === undefined ? '' : v).replace(/;/g, ',')));
+    const sep = items.some((x) => x.includes(',')) || items.some((x) => x === '') ? '; ' : ', ';
     return items.join(sep);
 }
 
