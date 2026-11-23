@@ -26,7 +26,8 @@ function groupOf(field: TemplateFillField, values: Record<string, unknown>, mark
     if (marks.remarked?.has(field.key)) return 'remarked';
     if (!isEmpty(values[field.key])) return 'filled';
     if (marks.asked?.has(field.key)) return 'asked';
-    return field.required ? 'missing' : 'optional';
+    // Left empty, a field the template has a default for is filled with it: nothing is still needed there.
+    return field.required && field.suggestion === undefined ? 'missing' : 'optional';
 }
 
 /**

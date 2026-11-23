@@ -5,8 +5,9 @@
  * keeps in settings.sampleValues), save values the person types
  * (`PUT /api/studio-documents/:id/values`, the same merge and type checks as
  * the assistant's template_fill_set_values, server/core/documents/templateValues.mts),
- * and let the assistant check what is filled in
- * (`POST /api/studio-documents/:id/values/review`).
+ * let the assistant check what is filled in
+ * (`POST /api/studio-documents/:id/values/review`), and show the document with
+ * what is filled in so far (`GET /api/studio-documents/:id/values/preview`).
  *
  * Every answer carries what is shown next to the values (`FillTeam`): the
  * colleagues' requests, who filled in what, the notes people left each other
@@ -70,12 +71,21 @@ export interface SaveOptions {
     dismiss?: string[];
 }
 
+/** The document with what is filled in so far, as a page for a sandboxed frame. */
+export interface FilledPreviewPage {
+    html: string;
+    /** The keys of the fields that are still empty: the page shows their label in brackets. */
+    gaps: string[];
+}
+
 export interface TemplateFillApi {
     load: (id: string) => Promise<FillDocument>;
     save: (id: string, values: Record<string, unknown>, options?: SaveOptions) => Promise<FillProgress>;
     /** The assistant's final check of what is filled in; its remarks come back in `team.review`. */
     review?: (id: string) => Promise<FillProgress>;
     download: (id: string, name: string, format: FilledDocumentFormat) => Promise<void>;
+    /** The document with its values, to look at while filling in; not there for a presentation. */
+    preview?: (id: string) => Promise<FilledPreviewPage>;
     /** Tagging colleagues and notes, in a project. */
     team?: FillTeamApi;
     /** Saving the document in a project and a folder of it. */
@@ -179,6 +189,11 @@ export function progressOf(body: unknown): FillProgress {
     };
 }
 
+function previewOf(body: unknown): FilledPreviewPage {
+    const b = isObject(body) ? body : {};
+    return { html: text(b.html), gaps: Array.isArray(b.gaps) ? b.gaps.filter((k): k is string => typeof k === 'string') : [] };
+}
+
 export const templateFillApi: TemplateFillApi = {
     load: async (id) => fillDocumentOf(await apiJson('GET /api/studio-documents/{id}', { params: { id } }), id),
     save: async (id, values, options = {}) => progressOf(await apiJson('PUT /api/studio-documents/{id}/values', {
@@ -186,6 +201,7 @@ export const templateFillApi: TemplateFillApi = {
     })),
     review: async (id) => progressOf(await apiJson('POST /api/studio-documents/{id}/values/review', { params: { id }, body: {} })),
     download: downloadFilledDocument,
+    preview: async (id) => previewOf(await apiJson('GET /api/studio-documents/{id}/values/preview', { params: { id } })),
     team: fillTeamApi,
     filing: filingApi,
 };

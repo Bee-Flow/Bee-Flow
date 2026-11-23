@@ -43,6 +43,8 @@ interface PanelProps {
     api?: TemplateFillApi;
     /** Every answer of the server about this document: the editor keeps its own copy in step with it. */
     onSynced?: LiveOptions['onSynced'];
+    /** The passage of the document the person is filling in, for a preview next to the form. */
+    onSpot?: (text: string) => void;
 }
 
 /**
@@ -50,7 +52,7 @@ interface PanelProps {
  * project's people are only asked for where a document was read at all (a
  * headless mount without a query client stays at "Loading the form…").
  */
-function LoadedForm({ doc, meId, place, api, onSynced, onFiled }: Required<Pick<PanelProps, 'place' | 'api'>> & Pick<PanelProps, 'meId' | 'onSynced'> & {
+function LoadedForm({ doc, meId, place, api, onSynced, onSpot, onFiled }: Required<Pick<PanelProps, 'place' | 'api'>> & Pick<PanelProps, 'meId' | 'onSynced' | 'onSpot'> & {
     doc: FillDocument; onFiled: () => void;
 }) {
     const projectId = doc.projectId ?? null;
@@ -58,12 +60,12 @@ function LoadedForm({ doc, meId, place, api, onSynced, onFiled }: Required<Pick<
     const me = meId === undefined ? reader.data ?? null : meId;
     const people = useFillPeople(projectId, me);
     return (
-        <TemplateFillForm doc={doc} api={api} meId={me} people={people} place={place} onFiled={onFiled}
+        <TemplateFillForm doc={doc} api={api} meId={me} people={people} place={place} onFiled={onFiled} onSpot={onSpot}
             live={{ pollMs: projectId ? FILL_POLL_MS : undefined, onSynced }} />
     );
 }
 
-export default function DocumentFillPanel({ documentId, meId, revision = 0, place = 'chat', api = templateFillApi, onSynced }: PanelProps) {
+export default function DocumentFillPanel({ documentId, meId, revision = 0, place = 'chat', api = templateFillApi, onSynced, onSpot }: PanelProps) {
     const { t } = useTranslation();
     const query = useFillDocumentQuery(documentId, revision, api.load);
     if (query.isError && !query.data) {
@@ -74,5 +76,5 @@ export default function DocumentFillPanel({ documentId, meId, revision = 0, plac
     }
     // Filed into a project from here: read again, and it is the project's form from now on.
     const onFiled = () => { void query.refetch(); };
-    return <LoadedForm doc={query.data} meId={meId} place={place} api={api} onSynced={onSynced} onFiled={onFiled} />;
+    return <LoadedForm doc={query.data} meId={meId} place={place} api={api} onSynced={onSynced} onSpot={onSpot} onFiled={onFiled} />;
 }

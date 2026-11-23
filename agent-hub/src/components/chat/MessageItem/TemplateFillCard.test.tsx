@@ -235,3 +235,42 @@ describe('<TemplateFillForm> the final check', () => {
         expect(screen.queryByTestId('template-fill-done')).not.toBeInTheDocument();
     });
 });
+
+describe('the field the person is at, for a preview next to the form', () => {
+    const WITH_DEFAULT: FillDocument = {
+        ...DOC, values: {},
+        fields: [...DOC.fields, { key: 'plan', type: 'text', label: 'Plan', required: false, suggestion: 'Plus plan' }],
+    };
+
+    it('names the passage as the document prints it: the label in brackets while needed, the default, or nothing', async () => {
+        const user = userEvent.setup();
+        const onSpot = vi.fn();
+        renderCard(<TemplateFillForm doc={WITH_DEFAULT} api={fakeApi()} onSpot={onSpot} />);
+        await user.click(screen.getByLabelText(/Amount/));
+        expect(onSpot).toHaveBeenLastCalledWith('[Amount]');
+        await user.click(screen.getByRole('button', { name: /Optional/ }));
+        await user.click(screen.getByLabelText(/Plan/));
+        expect(onSpot).toHaveBeenLastCalledWith('Plus plan');
+        // An empty optional field without a default prints nothing: there is no passage to point at.
+        await user.click(screen.getByLabelText(/Notes/));
+        expect(onSpot).toHaveBeenLastCalledWith('');
+    });
+
+    it('follows the value once it is in the field for good (Enter), not every keystroke', async () => {
+        const user = userEvent.setup();
+        const onSpot = vi.fn();
+        renderCard(<TemplateFillForm doc={WITH_DEFAULT} api={fakeApi()} onSpot={onSpot} />);
+        await user.type(screen.getByLabelText(/Client name/), 'Van Dijk');
+        expect(onSpot).toHaveBeenLastCalledWith('[Client name]');
+        await user.keyboard('{Enter}');
+        await waitFor(() => expect(onSpot).toHaveBeenLastCalledWith('Van Dijk'));
+    });
+
+    it('leaves a value too short to find in the right place alone', async () => {
+        const user = userEvent.setup();
+        const onSpot = vi.fn();
+        renderCard(<TemplateFillForm doc={{ ...WITH_DEFAULT, values: { client: 'Van', amount: 5 } }} api={fakeApi()} onSpot={onSpot} />);
+        await user.click(screen.getByLabelText(/Client name/));
+        expect(onSpot).toHaveBeenLastCalledWith('');
+    });
+});

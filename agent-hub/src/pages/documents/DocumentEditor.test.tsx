@@ -287,6 +287,49 @@ describe('DesignedEditor', () => {
         api.getHouseStyle.mockResolvedValue({ style: {}, deck: null });
     });
 
+    describe('a document made from a template', () => {
+        const FIELDS = { contract: { parameters: [{ key: 'client', type: 'text', label: 'Client name', required: true }] } };
+        const TEMPLATED = { kind: 'document', settings: FIELDS };
+        const fillTab = () => screen.getByRole('button', { name: 'Fill in & preview' });
+        // The form and the preview read through the API client: answer its requests.
+        const answer = (url: string) => (url.includes('/values/preview')
+            ? { html: '<html><body><p>[Client name]</p></body></html>', gaps: ['client'] }
+            : { document: { ...BASE, ...TEMPLATED, contract: FIELDS.contract } });
+        let fetched: { mockRestore: () => void };
+        beforeEach(() => {
+            fetched = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => new Response(
+                JSON.stringify(answer(input instanceof Request ? input.url : String(input))), { status: 200, headers: { 'content-type': 'application/json' } },
+            ));
+        });
+        afterEach(() => fetched.mockRestore());
+
+        it('opens on its values: the form, and the document with them where the sheet is', async () => {
+            show(TEMPLATED);
+            expect(fillTab()).toHaveAttribute('aria-pressed', 'true');
+            expect(await screen.findByTestId('template-fill-card')).toBeInTheDocument();
+            expect(screen.getByTestId('document-filled-view')).toBeInTheDocument();
+            expect(await screen.findByTestId('filled-preview-caption')).toHaveTextContent('1 field that is still needed is shown as [its name].');
+            // The sheet stays as it is underneath, out of reach while it is covered, and is back with one click.
+            expect(screen.getByTestId('fake-canvas').parentElement).toHaveAttribute('inert');
+            await user().click(screen.getByTestId('document-filled-view-close'));
+            await waitFor(() => expect(screen.queryByTestId('document-filled-view')).not.toBeInTheDocument());
+            expect(fillTab()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('fake-canvas').parentElement).not.toHaveAttribute('inert');
+        });
+
+        it('opens on the sheet beside a chat, and for a document without fields or a template', () => {
+            const sheetFirst = (doc: Record<string, unknown>, variant: 'page' | 'panel' = 'page') => {
+                const view = render(withQueryClient(<DesignedEditor initial={{ ...BASE, ...doc } as never} people={{}} variant={variant} currentUser={{ id: 'me' }} />));
+                expect(fillTab()).toHaveAttribute('aria-pressed', 'false');
+                expect(screen.queryByTestId('document-filled-view')).not.toBeInTheDocument();
+                view.unmount();
+            };
+            sheetFirst(TEMPLATED, 'panel');
+            sheetFirst({ kind: 'document', settings: {} });
+            sheetFirst({ kind: 'template', settings: FIELDS });
+        });
+    });
+
     describe('a reviewed proposal', () => {
         it('is saved on the revision it was made from, and a newer save refuses it plainly', async () => {
             api.documentRequest.mockResolvedValue({ explanation: 'Serif', expectedVersionId: 'v0', patch: { settings: { design: { font: 'serif' } } }, html: '<p>x</p>' });

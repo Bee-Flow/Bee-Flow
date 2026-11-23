@@ -292,6 +292,8 @@ export default function useTemplateFillForm(doc: FillDocument, api: TemplateFill
         values, issues: saver.issues, state, status: saver.status, team, phase, check: final.check, refusedFor,
         onChange: saver.onChange, onDone, runCheck: final.runCheck, acceptRemark: final.acceptRemark, dismissRemark: final.dismissRemark,
         setTeam: core.setTeam,
+        /** Send what was typed and is not saved yet, now; done when the server has it. */
+        flush: () => saver.save(),
     };
 }
 

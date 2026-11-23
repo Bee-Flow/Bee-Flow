@@ -58,6 +58,8 @@ const FIXTURES = [
             'POST /api/studio-documents/:id/value-requests', 'POST /api/studio-documents/:id/value-requests/:requestId/close',
             // The assistant's final check of what is filled in, and the notes people leave each other at the fields.
             'POST /api/studio-documents/:id/values/review',
+            // The document with its values, as the fill-in form shows it next to the fields.
+            'GET /api/studio-documents/:id/values/preview',
             'POST /api/studio-documents/:id/field-notes', 'DELETE /api/studio-documents/:id/field-notes/:noteId',
             'GET /api/studio-documents/:id/suggestions', 'POST /api/studio-documents/:id/suggestions/:sid/accept',
             'POST /api/studio-documents/:id/suggestions/:sid/reject', 'POST /api/studio-documents/:id/suggestions/batch/:batchId/accept',

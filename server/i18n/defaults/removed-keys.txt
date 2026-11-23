@@ -3500,3 +3500,6 @@ chat_templates.form_done
 chat_templates.form_hint
 doc_value_requests.ask
 doc_value_requests.note
+# A template default is used when the field is left empty, so the form says that
+# (chat_templates.fields_default) instead of calling it a suggestion.
+chat_templates.fields_suggestion

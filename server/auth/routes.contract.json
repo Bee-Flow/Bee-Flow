@@ -2911,6 +2911,9 @@
     "GET /api/studio-documents/:id/updates": {
       "gate": "auth"
     },
+    "GET /api/studio-documents/:id/values/preview": {
+      "gate": "auth"
+    },
     "GET /api/studio-documents/:id/versions": {
       "gate": "handler",
       "via": "route"

@@ -76,13 +76,14 @@ async function withServer(store, fn, deps = {}) {
     const base = `http://127.0.0.1:${server.address().port}/api/studio-documents`;
     const send = async (method, path, body, user) => {
         const res = await fetch(`${base}/${path}`, {
-            method, headers: { 'content-type': 'application/json', ...(user ? { 'x-user': user } : {}) }, body: JSON.stringify(body),
+            method, headers: { 'content-type': 'application/json', ...(user ? { 'x-user': user } : {}) }, body: method === 'GET' ? undefined : JSON.stringify(body),
         });
-        return { status: res.status, body: await res.json() };
+        return { status: res.status, body: await res.json(), cache: res.headers.get('cache-control') };
     };
     const put = (id, body, user = 'alice') => send('PUT', `${id}/values`, body, user);
     const review = (id, user = 'alice') => send('POST', `${id}/values/review`, {}, user);
-    try { await fn(put, review); } finally { server.close(); }
+    const preview = (id, user = 'alice') => send('GET', `${id}/values/preview`, undefined, user);
+    try { await fn(put, review, preview); } finally { server.close(); }
 }
 
 test('saves what fits, answers what is missing, and names each value that does not fit', async () => {
@@ -235,4 +236,33 @@ test('the check is refused in words when the AI may not be used, and says so whe
         assert.equal((await review('tpl-1')).status, 400);
         assert.equal((await review('doc-1', 'mallory')).status, 404);
     }, { reviewer: async () => { throw Object.assign(new Error('401 from the provider: the account was rejected'), { status: 401 }); }, limit: async () => null, limiter: pass });
+});
+
+test('the preview is a read: anyone who may open the document gets it, never from a stored copy', async () => {
+    const asked = [];
+    const preview = async (doc, orgId) => { asked.push({ id: doc.id, orgId }); return { html: `<html>${doc.name}</html>`, gaps: ['amount'] }; };
+    await withServer(fakeStore(), async (_put, _review, get) => {
+        const own = await get('doc-1');
+        assert.equal(own.status, 200);
+        assert.deepEqual(own.body, { html: '<html>Offer</html>', gaps: ['amount'] });
+        assert.equal(own.cache, 'no-store');
+        assert.equal((await get('doc-viewer')).status, 200, 'a reader who may only view sees it too');
+        assert.equal((await get('tpl-1')).status, 400, 'a template itself is not filled in');
+        assert.equal((await get('doc-1', 'mallory')).status, 404);
+        assert.equal((await get('nope')).status, 404);
+        assert.equal((await get('doc-1', '')).status, 401);
+        assert.deepEqual(asked, [{ id: 'doc-1', orgId: null }, { id: 'doc-viewer', orgId: null }]);
+    }, { preview });
+});
+
+test('a preview that is refused answers the reason; one that breaks stays a plain 500', async () => {
+    const refused = Object.assign(new Error('A presentation is previewed in its own slide viewer.'), { status: 422, errorClass: 'fill_preview_unsupported' });
+    await withServer(fakeStore(), async (_put, _review, get) => {
+        const out = await get('doc-1');
+        assert.equal(out.status, 422);
+        assert.equal(out.body.code, 'fill_preview_unsupported');
+    }, { preview: async () => { throw refused; } });
+    await withServer(fakeStore(), async (_put, _review, get) => {
+        assert.equal((await get('doc-1')).status, 500);
+    }, { preview: async () => { throw new Error('the composer fell over'); } });
 });

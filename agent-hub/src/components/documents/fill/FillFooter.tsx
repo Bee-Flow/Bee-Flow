@@ -3,7 +3,8 @@
  * the actions. One main button that moves the form on, "Check and finish"
  * until the assistant's check has run (or cannot), then "Finish"; and beside
  * it, all in one quiet style: download (PDF, or PowerPoint for a
- * presentation), open the document, and where it is kept (SaveToProject).
+ * presentation), in a chat a preview of the document as it stands
+ * (PreviewButton) and opening it, and where it is kept (SaveToProject).
  */
 import { useState } from 'react';
 import { CheckCircle2, Download, ExternalLink, Sparkles } from 'lucide-react';
@@ -13,6 +14,7 @@ import { openLibraryDocument } from '@/components/chat/MessageItem/openLibraryDo
 import type { TemplateFillFormState } from '@/components/chat/MessageItem/useTemplateFillForm';
 import useTranslation from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
+import PreviewButton from './PreviewButton';
 import SaveToProject from './SaveToProject';
 import { FILL_LINK, FILL_PRIMARY, FILL_SECONDARY } from './fillStyles';
 
@@ -137,6 +139,8 @@ export default function FillFooter({ doc, form, place, download, api, onFiled }:
             <div className={`flex gap-2 ${narrow ? 'flex-col items-stretch' : 'flex-wrap items-center'}`} data-testid="template-fill-actions">
                 {editable && <FinishButton form={form} />}
                 {form.state.complete && <DownloadButton doc={doc} download={download} primary={!editable || form.phase === 'done'} />}
+                {/* The editor shows the same page next to the form; a presentation has its own viewer. */}
+                {place === 'chat' && api.preview && doc.format === 'pdf' && <PreviewButton doc={doc} load={api.preview} flush={form.flush} />}
                 {place === 'chat' && (
                     <button type="button" onClick={() => openDocument(doc)} data-testid="template-fill-open" className={FILL_SECONDARY}
                         title={inProject ? t('chat_templates.card_open_project', 'Open in the project') : t('chat_templates.card_open', 'Open in Documents')}>
