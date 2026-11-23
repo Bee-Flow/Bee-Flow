@@ -53,3 +53,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0038](./cowork-trust-per-step-and-recipient.md) | Trust in a Cowork plan grows per step and recipient after five approvals, is offered and never assumed, a single stop takes it away, and the organisation's ceiling wins |
 | [0039](./cowork-sharing.md) | A shared cowork stays its owner's: colleagues of the same organisation may see it, one may decide its questions, and every read checks current membership |
 | [0040](./cowork-budgets.md) | Cowork budgets are measured from the usage ledger in euros: an item pauses itself at its own budget, an organisation refuses runs at its budget without pausing anything, and an unreadable cost does not stop a run |
+| [0041](./cowork-run-receipts.md) | Every closed Cowork run gets a receipt of names and counts, chained per item by hash and signed with the installation's Ed25519 key, issued apart from closing the run so it can never stop one |

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-46 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
+49 routes, 27 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -202,6 +202,12 @@ No request schema.
 | `id` | string | yes | min length 1; max length 200 |
 | `tryId` | string | yes | min length 1; max length 200 |
 
+### `GET /api/cowork/:id/receipts`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
 ### `GET /api/cowork/:id/routine`
 
 **Access:** Signed-in user · middleware `trainingGate`
@@ -224,6 +230,17 @@ No request schema.
 |-------|------|:--------:|-------|
 | `limit` | integer |  | min 1; max 100 |
 | `offset` | integer |  | min 0; max 9007199254740991 |
+
+### `GET /api/cowork/:id/runs/:runId/receipt`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `runId` | string | yes | min length 1; max length 200 |
 
 ### `POST /api/cowork/:id/runs/:runId/review`
 
@@ -386,6 +403,14 @@ No request schema.
 No request schema.
 
 ### `GET /api/cowork/policy/mine`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+## `receipts`
+
+### `GET /api/cowork/receipts/key`
 
 **Access:** Signed-in user · middleware `trainingGate`
 

@@ -25,7 +25,7 @@ function world(letThrough, ceiling = 'on_its_own') {
             listTrust: async () => rows,
             setTrusted: async (/** @type {any[]} */ ...a) => { set.push(a); return true; },
             getApprovedPlan: async () => ({ definition: PLAN }),
-            policyOf: async () => ({ ceiling: /** @type {any} */ (ceiling), readOnly: false, unattendedApps: null }),
+            policyOf: async () => ({ ceiling: /** @type {any} */ (ceiling), readOnly: false, unattendedApps: null, monthlyBudget: null }),
             lookups: fakeLookups(),
         },
     };

@@ -257,6 +257,8 @@ function startSupportAndSyncJobs() {
     try { require('../jobs/sanctionsListRefresh.mts').start(); } catch (err) { log.warn('[Server] Sanctions list refresh load failed:', err.message); }
     // Coworks that start after another one hear the runs that end (core/cowork/afterCowork.mts).
     try { require('../core/cowork/afterCowork.mts').start(); } catch (err) { log.warn('[Server] Cowork after-cowork start failed:', err.message); }
+    // Every closed Cowork run gets a signed receipt (core/cowork/receipts/issueReceipts.mts).
+    try { require('../core/cowork/receipts/issueReceipts.mts').start(); } catch (err) { log.warn('[Server] Cowork receipts start failed:', err.message); }
     // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
     try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).

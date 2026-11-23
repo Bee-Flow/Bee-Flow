@@ -1829,10 +1829,16 @@
     "GET /api/cowork/:id/plan/try/:tryId/compare": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/receipts": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/routine": {
       "gate": "auth"
     },
     "GET /api/cowork/:id/runs": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/runs/:runId/receipt": {
       "gate": "auth"
     },
     "GET /api/cowork/:id/runs/:runId/trace": {
@@ -1866,6 +1872,9 @@
       "gate": "auth"
     },
     "GET /api/cowork/policy/mine": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/receipts/key": {
       "gate": "auth"
     },
     "GET /api/cowork/shared": {

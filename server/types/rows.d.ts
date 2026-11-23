@@ -1247,6 +1247,19 @@ declare namespace DbRow {
         schedule_id: string;
         version: number;
     }
+    /** Row of `cowork_receipts`. */
+    interface CoworkReceipts {
+        created_at: Date;
+        hash: string;
+        key_id: string | null;
+        payload_hash: string;
+        payload_json: string;
+        prev_hash: string;
+        run_id: string;
+        schedule_id: string;
+        seq: number;
+        signature: string | null;
+    }
     /** Row of `cowork_runs`. */
     interface CoworkRuns {
         activity_json: string | null;

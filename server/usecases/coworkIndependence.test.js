@@ -71,7 +71,7 @@ test('choosing: an open level is saved; a closed one is refused with why, and no
 
 test('the organisation\'s ceiling closes the levels above it and holds the level a run uses', async () => {
     const capped = world({ letThrough: 12 });
-    const deps = { ...capped.deps, policyOf: async () => ({ ceiling: /** @type {const} */ ('asks_before_sending'), readOnly: false, unattendedApps: null }) };
+    const deps = { ...capped.deps, policyOf: async () => ({ ceiling: /** @type {const} */ ('asks_before_sending'), readOnly: false, unattendedApps: null, monthlyBudget: null }) };
     const state = await independenceOf({ ...ITEM, independence: 'on_its_own' }, deps);
     assert.deepStrictEqual([state.ceiling, state.level], ['asks_before_sending', 'asks_before_sending']);
     assert.deepStrictEqual(open(state), { asks_everything: true, asks_before_sending: true, on_its_own: false });

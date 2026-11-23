@@ -73,6 +73,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkHandOverRoutes').mountHandOverRoutes(router);
     require('./coworkStartRoutes').mountStartRoutes(router);
     require('./coworkShareRoutes').mountShareRoutes(router);
+    require('./coworkReceiptRoutes').mountReceiptRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

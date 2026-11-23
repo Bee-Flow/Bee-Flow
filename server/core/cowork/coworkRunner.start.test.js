@@ -117,7 +117,7 @@ test('while the organisation has made Cowork read-only, a start runs nothing: th
     mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {string} */ message, /** @type {unknown} */ close) => { errors.push([message, close]); });
     mock.method(coworkStore, 'advanceSchedule', async () => null);
     mock.method(coworkStore, 'getSchedule', async () => item);
-    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
     await runner.executeCowork(item, { due: true }, { policyOf: readOnly });
     assert.equal(errors.length, 1);
     assert.match(String(/** @type {any[]} */ (errors[0])[0]), /read-only/);
@@ -127,7 +127,7 @@ test('the apps the organisation lets run while nobody watches travel with the ru
     const item = { id: 's3', userId: 'u1', title: 'Mail desk', prompt: 'Answer.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
     /** @type {any[]} */
     const started = [];
-    const policyOf = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: ['gmail'] });
+    const policyOf = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: ['gmail'], monthlyBudget: null });
     await runner.executeCowork(item, { manual: true }, { policyOf, budgetRefusal: async () => null, orgRefusal: async () => null, executeTask: /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); }) });
     assert.deepEqual(started.map((t) => [t.id, t.unattendedApps]), [['s3', ['gmail']]]);
 });
@@ -143,8 +143,8 @@ test('a follow-up after a review is refused like any start: by a read-only organ
     /** @type {any[]} */
     const started = [];
     const executeTask = /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); });
-    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null });
-    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: null });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
     await runner.executeCowork(item, { trigger: { runId: 'follow-1' } }, { policyOf: readOnly, budgetRefusal: async () => null, executeTask });
     await runner.executeCowork(item, { trigger: { runId: 'follow-2' } }, { policyOf: open, orgRefusal: async () => null, budgetRefusal: async () => 'This cowork reached its monthly budget.', executeTask });
     assert.equal(started.length, 0, 'nothing ran');

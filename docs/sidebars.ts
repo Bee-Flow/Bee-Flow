@@ -349,6 +349,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/cowork-trust-per-step-and-recipient',
             'contributing/decisions/cowork-sharing',
             'contributing/decisions/cowork-budgets',
+            'contributing/decisions/cowork-run-receipts',
           ],
         },
       ],
