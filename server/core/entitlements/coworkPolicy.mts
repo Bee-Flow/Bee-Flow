@@ -4,8 +4,11 @@
  *   ceiling         the most independent level any of its coworks may run at (core/cowork/plan/planIndependence.mts);
  *                   a run above it runs at the ceiling, a level above it cannot be chosen;
  *   readOnly        every cowork of the organisation is read-only: nothing runs, nothing is created or changed;
- *   unattendedApps  the apps a plan may use while nobody watches (null: every app). A plan that uses another app is
- *                   not approved, and an approved one that does no longer runs.
+ *   unattendedApps  the apps a cowork may use while nobody watches (null: every app). A plan that uses another app is
+ *                   not approved, and an approved one that does no longer runs; a prompt or agent run is not offered
+ *                   the tools of another app (core/cowork/runApps.mts).
+ *   monthlyBudget   what all coworks of the organisation may spend on AI in a calendar month, in euros (null: no
+ *                   limit). At it, runs do not start until the next month (core/cowork/orgBudget.mts).
  *
  * Stored under `org_cowork_policy_<orgId>` in configStore; nothing stored is the open policy. Reading fails CLOSED:
  * a policy that cannot be read is the strictest one (read-only), so an administrator's switch never stops counting
@@ -25,15 +28,20 @@ export interface CoworkPolicy {
     ceiling: Level;
     readOnly: boolean;
     unattendedApps: string[] | null;
+    monthlyBudget: number | null;
     /** The policy could not be read: it is the strictest one, and says so. */
     unreadable?: boolean;
 }
 
-export const OPEN_POLICY: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'on_its_own', readOnly: false, unattendedApps: null });
-const STRICTEST: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'asks_everything', readOnly: true, unattendedApps: [], unreadable: true });
+export const OPEN_POLICY: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null });
+const STRICTEST: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'asks_everything', readOnly: true, unattendedApps: [], monthlyBudget: null, unreadable: true });
 
 const keyOf = (orgId: string): string => `org_cowork_policy_${orgId}`;
 const isLevel = (v: unknown): v is Level => typeof v === 'string' && (ORDER as readonly string[]).includes(v);
+
+/** A budget in euros: a positive amount up to ten million, rounded to cents; anything else is no limit. */
+const budgetOf = (v: unknown): number | null =>
+    (typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 10_000_000 ? Math.round(v * 100) / 100 : null);
 
 /** A stored blob (or nothing) as a policy; what is not understood is the open value of that field. */
 export function normalizePolicy(stored: unknown): CoworkPolicy {
@@ -41,7 +49,7 @@ export function normalizePolicy(stored: unknown): CoworkPolicy {
     const apps = Array.isArray(s.unattendedApps)
         ? [...new Set(s.unattendedApps.filter((a): a is string => typeof a === 'string' && a.trim() !== '').map((a) => a.trim()))].sort()
         : null;
-    return { ceiling: isLevel(s.ceiling) ? s.ceiling : 'on_its_own', readOnly: s.readOnly === true, unattendedApps: apps };
+    return { ceiling: isLevel(s.ceiling) ? s.ceiling : 'on_its_own', readOnly: s.readOnly === true, unattendedApps: apps, monthlyBudget: budgetOf(s.monthlyBudget) };
 }
 
 /** The level a run uses under a ceiling: the lower of the two. */

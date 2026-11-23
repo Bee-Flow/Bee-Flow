@@ -11,7 +11,8 @@
  *   - an agent run writes its conversation: the calls in that conversation between the run's start and end.
  *
  * Amounts stay per currency, as the ledger keeps them: an organisation that changed plans has calls in two.
- * Read-only, and only ever for runs of one owner or one item the caller already checked.
+ * Read-only, and only ever for runs of one owner or one item the caller already checked, or for the organisation's
+ * monthly budget, which reads a total and nothing else.
  */
 
 import { createRequire } from 'node:module';
@@ -91,5 +92,20 @@ export function makeCoworkRunCosts({ db = nodeRequire('../db.js') as Db, ready =
         return { total: total.get('total') ?? { byCurrency: {}, calls: 0 }, byItem: Object.fromEntries(byItem) };
     }
 
-    return { costsOfRuns, costsSince };
+    /** What the runs of every member of one organisation cost since `since` (core/cowork/orgBudget.mts). */
+    async function orgCostSince(orgId: string, since: Date): Promise<RunCost> {
+        await ready();
+        const rows = await db.getAll(
+            `${costRowsSql(`SELECT r.id, r.schedule_id, r.automation_run_id, r.conversation_id, r.started_at, r.finished_at
+                               FROM cowork_runs r JOIN users u ON u.id = r.user_id
+                              WHERE u."organizationId" = $1 AND r.started_at >= $2`)}
+             SELECT currency, SUM(estimated_cost) AS amount, COUNT(*) AS calls FROM calls GROUP BY currency`,
+            [orgId, since.toISOString()],
+        );
+        const total = new Map<string, RunCost>();
+        for (const row of rows) add(total, 'total', row);
+        return total.get('total') ?? { byCurrency: {}, calls: 0 };
+    }
+
+    return { costsOfRuns, costsSince, orgCostSince };
 }

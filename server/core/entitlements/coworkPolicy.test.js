@@ -21,8 +21,13 @@ const memory = () => {
 beforeEach(() => { _clearCoworkPolicyCache(); });
 
 test('nothing stored is the open policy; what is not understood is the open value of that field', () => {
-    assert.deepStrictEqual(normalizePolicy(null), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null });
-    assert.deepStrictEqual(normalizePolicy({ ceiling: 'never', readOnly: 'yes', unattendedApps: ['outlook', ' outlook ', 3, 'datatables'] }), { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables', 'outlook'] });
+    assert.deepStrictEqual(normalizePolicy(null), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null });
+    assert.deepStrictEqual(normalizePolicy({ ceiling: 'never', readOnly: 'yes', unattendedApps: ['outlook', ' outlook ', 3, 'datatables'], monthlyBudget: -5 }), { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables', 'outlook'], monthlyBudget: null });
+});
+
+test('a monthly budget is a positive amount in euros, rounded to cents; anything else is no limit', () => {
+    assert.strictEqual(normalizePolicy({ monthlyBudget: 12.345 }).monthlyBudget, 12.35);
+    for (const v of [0, -1, '50', Number.NaN, Infinity, 20_000_000, null]) assert.strictEqual(normalizePolicy({ monthlyBudget: v }).monthlyBudget, null, String(v));
 });
 
 test('the ceiling caps a level; the apps outside the list are named once each', () => {
@@ -39,7 +44,7 @@ test('stored per organisation; a change is read at once; an unreadable policy is
     await setCoworkPolicy('org-1', { readOnly: true }, store);
     assert.strictEqual((await resolveCoworkPolicy('org-1', store)).readOnly, true);
     assert.match(runRefusalOf(await resolveCoworkPolicy('org-1', store)) ?? '', /read-only/);
-    assert.deepStrictEqual(await resolveCoworkPolicy(null, store), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null });
+    assert.deepStrictEqual(await resolveCoworkPolicy(null, store), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null });
     const broken = { getConfig: async () => { throw new Error('down'); }, setConfig: async () => {} };
     const strict = await resolveCoworkPolicy('org-2', broken);
     assert.deepStrictEqual([strict.readOnly, strict.ceiling, strict.unreadable], [true, 'asks_everything', true]);

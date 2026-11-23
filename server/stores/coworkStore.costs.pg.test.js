@@ -91,3 +91,19 @@ test('the month\'s cost of an owner is summed per item and in all', async () => 
     const none = await store.costsSince('nobody', since);
     assert.deepStrictEqual(none, { total: { byCurrency: {}, calls: 0 }, byItem: {} });
 });
+
+test('the month\'s cost of an organisation sums the runs of all its members, and of nobody else', async () => {
+    await pg.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, "organizationId" TEXT DEFAULT '');
+        INSERT INTO users (id, "organizationId") VALUES ('org-ann', 'org-x'), ('org-bob', 'org-x'), ('org-eve', 'org-y') ON CONFLICT (id) DO NOTHING`);
+    const since = new Date(Date.now() - 86_400_000);
+    for (const [userId, cost] of /** @type {Array<[string, number]>} */ ([['org-ann', 1.25], ['org-bob', 0.75], ['org-eve', 40]])) {
+        const s = /** @type {{ id: string }} */ (await store.createSchedule({ userId, title: 'Digest', prompt: 'P', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() }));
+        const run = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+        await store.markCompleted(s.id, 'Done.', { runId: run });
+        await call({ runId: run, cost });
+        await call({ runId: run, cost: 3, currency: 'USD' });
+    }
+    const x = await store.orgCostSince('org-x', since);
+    assert.deepStrictEqual([x.byCurrency.EUR, x.byCurrency.USD, x.calls], [2, 6, 4]);
+    assert.deepStrictEqual(await store.orgCostSince('org-z', since), { byCurrency: {}, calls: 0 });
+});

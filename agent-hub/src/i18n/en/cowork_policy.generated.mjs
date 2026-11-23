@@ -10,6 +10,9 @@ export default {
     "cowork_policy.apps_hint": "App ids, separated by commas, such as outlook, datatables. Empty: every app.",
     "cowork_policy.audit": "Download the trail (CSV)",
     "cowork_policy.audit_hint": "Every change to a cowork in this organisation: who, what and when; never what the work says.",
+    "cowork_policy.budget": "Monthly AI budget for all coworks",
+    "cowork_policy.budget_hint": "In euros, counted from the 1st of the month over every cowork of the organisation. At the budget, coworks stop running until the next month; you are told once. Empty: no limit.",
+    "cowork_policy.budget_invalid": "Fill in an amount above 0, or leave it empty.",
     "cowork_policy.ceiling": "How independent a cowork may be",
     "cowork_policy.ceiling.asks_before_sending": "At most: ask before anything leaves Bee Flow",
     "cowork_policy.ceiling.asks_everything": "At most: ask about everything",
@@ -18,4 +21,5 @@ export default {
     "cowork_policy.read_only": "Make every cowork read-only",
     "cowork_policy.read_only_desc": "Nothing runs, and nothing is created or changed, until you switch this off. Saved at once.",
     "cowork_policy.save_apps": "Save",
+    "cowork_policy.save_budget": "Save budget",
 };

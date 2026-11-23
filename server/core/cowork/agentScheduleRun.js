@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const { extractCoverageTopics } = require('./coverageTopics');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { createRunActivity } = require('./runActivity.mts');
+const { appsOfRun } = require('./runApps.mts');
 const { skillNamesOf, conversationForRun, runCloseOf, runNotification } = require('./agentRunRecord.mts');
 const { startRunDeadline } = require('./runDeadline.mts');
 const { claimAttempt } = require('./runClaim.mts');
@@ -36,7 +37,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
     log.info(`[AITaskRunner] Executing ${task.id} as agent ${task.agentId}`);
 
     // What the run does, in names and counts (./runActivity.mts); a follow-up carries the ceiling of the run it continues.
-    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null, startsWithOutsideText: trigger?.outsideText === true });
+    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null, appCeiling: appsOfRun(task), startsWithOutsideText: trigger?.outsideText === true });
     /** @type {{ runId: string | null, agent: RuntimeAgent | null, conversationId: string | null, parts: ReturnType<typeof eventRunParts> | null }} */
     const run = { runId: trigger?.runId ?? null, agent: null, conversationId: null, parts: null };
     // The time limit of this run (./runDeadline.mts): the agent runtime takes the signal and stops the turn on it.

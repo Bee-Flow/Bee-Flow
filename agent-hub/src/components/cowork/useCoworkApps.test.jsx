@@ -460,3 +460,23 @@ describe('useCoworkApps — what an unreadable workspace read may still OFFER', 
         expect(onChange.mock.calls[0][0]).toHaveLength(1);
     });
 });
+
+describe('useCoworkApps — the organisation\'s apps that may run while nobody watches', () => {
+    it('offers only the apps the policy names, once the policy has answered', async () => {
+        world.integrationStatus = { isGoogleUser: true, enabledApps: ['gmail', 'google-docs'] };
+        world.authFetch = vi.fn(async (url) => {
+            if (String(url).includes('/api/cowork/policy/mine')) {
+                return { ok: true, status: 200, headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ ceiling: 'on_its_own', readOnly: false, unattendedApps: ['gmail'] }) };
+            }
+            return { ok: false, status: 404, json: async () => ({}) };
+        });
+        const { api } = harness({ value: null, onChange: vi.fn() });
+        await waitFor(() => expect(ids(api.availableApps)).toEqual(['gmail']));
+    });
+
+    it('a policy that cannot be read hides nothing here: the run itself still leaves the apps out', async () => {
+        world.integrationStatus = { isGoogleUser: true, enabledApps: ['gmail', 'google-docs'] };
+        const { api } = harness({ value: null, onChange: vi.fn() });
+        await waitFor(() => expect(api.availableApps.length).toBeGreaterThan(1));
+    });
+});

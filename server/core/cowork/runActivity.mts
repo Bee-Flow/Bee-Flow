@@ -18,6 +18,7 @@
 
 import { createRequire } from 'node:module';
 import { createOutsideTextMark, holdCall, type OutsideTextMark } from './outsideTextGuard.mts';
+import { withinApps } from './runApps.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -38,6 +39,10 @@ export interface CoworkRunContext {
     kind: 'cowork_run';
     /** Tool names a follow-up run may be offered at most (null: no ceiling, an ordinary run). */
     toolCeiling: string[] | null;
+    /** The apps the organisation lets run while nobody watches (./runApps.mts); null: every app. */
+    appCeiling: string[] | null;
+    /** Which app a whole tool belongs to (./runApps.mts by default; a test hands its own). */
+    toolAppOf?: ToolAppOf;
     tools: Map<string, ToolTally>;
     staticSkills: Set<string>;
     activatedSkills: Set<string>;
@@ -68,6 +73,7 @@ export interface StoredActivity {
 }
 
 type ToolDef = { function?: { name?: unknown } | null } | null | undefined;
+type ToolAppOf = (tool: ToolDef) => string | null | undefined;
 
 function defaultAppOf(toolName: string): string | null {
     try {
@@ -78,8 +84,10 @@ function defaultAppOf(toolName: string): string | null {
     }
 }
 
-export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf, startsWithOutsideText = false }: {
+export function createRunActivity({ toolCeiling = null, appCeiling = null, toolAppOf, appOf = defaultAppOf, startsWithOutsideText = false }: {
     toolCeiling?: string[] | null;
+    appCeiling?: string[] | null;
+    toolAppOf?: ToolAppOf;
     appOf?: (toolName: string) => string | null;
     /** An event started the run with its data in the prompt (./eventRun.mts): it read outside text before its first step. */
     startsWithOutsideText?: boolean;
@@ -87,6 +95,8 @@ export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf, st
     return {
         kind: 'cowork_run',
         toolCeiling: Array.isArray(toolCeiling) ? toolCeiling.filter((n) => typeof n === 'string') : null,
+        appCeiling: Array.isArray(appCeiling) ? appCeiling.filter((n) => typeof n === 'string') : null,
+        ...(toolAppOf ? { toolAppOf } : {}),
         tools: new Map(),
         staticSkills: new Set(),
         activatedSkills: new Set(),
@@ -178,13 +188,16 @@ export function offeredToolNames(ctx: CoworkRunContext): string[] {
 }
 
 /**
- * A follow-up run is never offered a tool its original run was not: everything outside the ceiling is taken out.
- * The review tool stays (a follow-up may ask again). No ceiling (an ordinary run): the list as given.
+ * What a Cowork run is offered. A tool of an app the organisation does not let run while nobody watches is taken out
+ * (./runApps.mts). A follow-up run is never offered a tool its original run was not: everything outside the ceiling is
+ * taken out, and the review tool stays (a follow-up may ask again). No ceilings (an ordinary run): the list as given.
  */
 export function applyToolCeiling<T extends ToolDef>(ctx: unknown, tools: T[]): T[] {
-    if (!isRunActivity(ctx) || !ctx.toolCeiling || !Array.isArray(tools)) return tools;
+    if (!isRunActivity(ctx) || !Array.isArray(tools)) return tools;
+    const within = withinApps(tools, ctx.appCeiling, ctx.toolAppOf);
+    if (!ctx.toolCeiling) return within;
     const allowed = new Set([...ctx.toolCeiling, REVIEW_TOOL_NAME]);
-    return tools.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
+    return within.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
 }
 
 /** Every skill id the run noted (static and activated), for the one lookup of their names. */

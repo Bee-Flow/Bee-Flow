@@ -2,8 +2,11 @@
 /**
  * An organisation's Cowork policy, under /api/cowork (./coworkSideRoutes.js mounts it before the item routes):
  *
+ *   GET /policy/mine          → the policy of the caller's own organisation (the open one without an organisation),
+ *                               so the app picker offers only apps that may run while nobody watches
  *   GET /policy/:orgId        → the policy (members of the organisation)
- *   PUT /policy/:orgId        → change it: the ceiling on independence, read-only, the apps that may run unattended
+ *   PUT /policy/:orgId        → change it: the ceiling on independence, read-only, the apps that may run unattended,
+ *                               the monthly AI budget of all its coworks
  *                               (organisation administrators; recorded as `cowork_policy.set`)
  *   GET /policy/:orgId/audit  → the trail of every Cowork change in the organisation, as CSV (administrators).
  *                               Ids, actions, times and the names of the fields that changed: never what the work says.
@@ -23,10 +26,12 @@ const policyModule = () => require('../core/entitlements/coworkPolicy.mts');
 
 const LEVEL_TEXT = 'ceiling is asks_everything, asks_before_sending or on_its_own.';
 const APPS_TEXT = 'unattendedApps is a list of app ids, or null for every app.';
+const BUDGET_TEXT = 'monthlyBudget is an amount in euros above 0, or null for no limit.';
 const PolicyBody = z.object({
     ceiling: z.enum(['asks_everything', 'asks_before_sending', 'on_its_own'], { error: LEVEL_TEXT }).optional(),
     readOnly: flag('readOnly is true or false.').optional(),
     unattendedApps: z.array(z.string({ error: APPS_TEXT }).min(1, { error: APPS_TEXT }).max(100, { error: APPS_TEXT }), { error: APPS_TEXT }).max(200, { error: APPS_TEXT }).nullable().optional(),
+    monthlyBudget: z.number({ error: BUDGET_TEXT }).positive({ error: BUDGET_TEXT }).max(10_000_000, { error: BUDGET_TEXT }).nullable().optional(),
 }).strict();
 
 /** Members read; a platform admin (null) reads every organisation. @param {import('express').Request<{ orgId: string }>} req */
@@ -34,6 +39,10 @@ async function isMember(req) {
     const orgIds = await resolveUserOrgIds(req);
     return orgIds === null || orgIds.has(req.params.orgId);
 }
+
+router.get('/policy/mine', requireAuth, async (req, res) => {
+    res.json(await policyModule().policyOfOwner(sessionUser(req).id));
+});
 
 router.get('/policy/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     if (!(await isMember(req))) return res.status(403).json({ error: 'Not a member of this organization' });

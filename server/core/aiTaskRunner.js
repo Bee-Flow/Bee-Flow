@@ -34,6 +34,7 @@ const { NOTIFICATION, isRepeating } = require('./cowork/runShared.mts');
 const { startRunDeadline } = require('./cowork/runDeadline.mts');
 const { claimAttempt } = require('./cowork/runClaim.mts');
 const { executePlanRun } = require('./cowork/planRun.mts');
+const { withinRunApps } = require('./cowork/runApps.mts');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** @type {Record<string, string>} */
@@ -402,13 +403,12 @@ async function loadTaskTools(task, session) {
             userId: task.userId,
             session: session,
             isAdmin: false,
-            // A cowork item can carry its own, narrower app list — "this
-            // one may read my mail, that one may not". null (every prompt
-            // task, and any cowork that never set one) means the user's
-            // workspace-wide preference decides, as it always did.
+            // A cowork item can carry its own, narrower app list; null: the
+            // user's workspace-wide preference decides, as it always did.
             enabledAppsOverride: Array.isArray(task.enabledApps) ? task.enabledApps : null,
         });
-        tools = result.tools || [];
+        // The organisation's apps that may run while nobody watches (./cowork/runApps.mts); a plan checks its own.
+        tools = withinRunApps(task, result.tools || []);
         toolHint = await buildToolHint(tools, task.userId);
         log.info(`[AITaskRunner] Loaded ${tools.length} integration tools for user ${task.userId}`);
     } catch (err) {
@@ -567,7 +567,7 @@ module.exports = {
 
 /**
  * The schedule fields a run reads (coworkStore's rowToSchedule shape).
- * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null, planId?: string | null }} CoworkTask
+ * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null, planId?: string | null, unattendedApps?: string[] | null }} CoworkTask
  */
 
 /**

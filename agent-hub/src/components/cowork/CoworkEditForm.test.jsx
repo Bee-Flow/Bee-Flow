@@ -94,7 +94,7 @@ function setup(over = {}) {
         ...over,
     };
     delete props.itemOver;
-    const utils = render(<CoworkEditForm {...props} />);
+    const utils = render(withQueryClient(<CoworkEditForm {...props} />));
     return { ...utils, props };
 }
 

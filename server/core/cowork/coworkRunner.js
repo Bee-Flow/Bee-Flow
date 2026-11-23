@@ -19,6 +19,7 @@ const { claimAttempt } = require('./runClaim.mts');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { runMaxMs } = require('./runDeadline.mts');
+const { isRepeating } = require('./runShared.mts');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
@@ -38,27 +39,59 @@ async function refuseTask(task, reason, { manual, due, runId }) {
 }
 
 /**
- * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
- * own: the run is for a moment that was due when the tick read it, and the
- * claim then requires that it still is (two replicas read the same due row).
- * `trigger`: a run a new mail started (./mailTriggerRun.mts), which holds its row.
- * Every start goes through here, so the organisation's policy is asked first
- * (core/entitlements/coworkPolicy.mts): read-only runs nothing.
- * @param {Parameters<typeof executeTask>[0]} schedule
- * @param {{ manual?: boolean, due?: boolean, trigger?: any }} [opts]
- * @param {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy>, budgetRefusal?: (task: Parameters<typeof executeTask>[0]) => Promise<string | null> }} [deps]
+ * @typedef {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy>, budgetRefusal?: (task: Parameters<typeof executeTask>[0]) => Promise<string | null>, orgRefusal?: (task: Parameters<typeof executeTask>[0], budget: number | null) => Promise<{ reason: string, quiet: boolean } | null>, executeTask?: typeof executeTask }} StartDeps
  */
-async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
+
+/**
+ * What stops this start, in order: the organisation's policy (read-only, unreadable), its monthly budget and
+ * subscription limits (./orgBudget.mts, told once and then quiet), the item's own budget (./runBudget.mts, at which
+ * the item pauses itself).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {StartDeps} deps
+ * @returns {Promise<{ ownerPolicy: import('../entitlements/coworkPolicy.mts').CoworkPolicy, refusal: string | null, quiet: boolean }>}
+ */
+async function startRefusal(schedule, deps) {
     const policy = require('../entitlements/coworkPolicy.mts');
-    const refusal = policy.runRefusalOf(await (deps.policyOf || policy.policyOfOwner)(schedule.userId))
-        // The item's own monthly AI budget (./runBudget.mts): at it, the item pauses itself.
-        ?? await (deps.budgetRefusal || require('./runBudget.mts').budgetRefusal)(schedule);
-    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
-    await executeTask(schedule, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
-    // Say that a run ended (./runEnded.mts): the items that start after this one hear it (./afterCowork.mts).
+    const ownerPolicy = await (deps.policyOf || policy.policyOfOwner)(schedule.userId);
+    const policyRefusal = policy.runRefusalOf(ownerPolicy);
+    if (policyRefusal) return { ownerPolicy, refusal: policyRefusal, quiet: false };
+    const org = await (deps.orgRefusal || require('./orgBudget.mts').orgBudgetRefusal)(schedule, ownerPolicy.monthlyBudget ?? null);
+    if (org) return { ownerPolicy, refusal: org.reason, quiet: org.quiet };
+    return { ownerPolicy, refusal: await (deps.budgetRefusal || require('./runBudget.mts').budgetRefusal)(schedule), quiet: false };
+}
+
+/**
+ * Say that a run ended (./runEnded.mts): the items that start after this one hear it (./afterCowork.mts).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ */
+async function announceEnd(schedule) {
     const starts = require('../../stores/coworkStarts.mts').coworkStarts();
     const latest = await starts.latestRunId(schedule.id).catch((/** @type {unknown} */ e) => fallback('core/cowork/coworkRunner:latestRunId', e, null));
     require('./runEnded.mts').runEnded(schedule, latest);
+}
+
+/**
+ * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
+ * own: the run is for a moment that was due when the tick read it, and the
+ * claim then requires that it still is (two replicas read the same due row).
+ * `trigger`: a run a new mail started (./mailTriggerRun.mts) or a review's
+ * follow-up, which holds its row. Every start goes through here, so the
+ * organisation's policy and budgets are asked first (./startRefusal above).
+ * A refusal the owner already heard this month lets a due moment move on
+ * without a failed run.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ manual?: boolean, due?: boolean, trigger?: any }} [opts]
+ * @param {StartDeps} [deps]
+ */
+async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
+    const { ownerPolicy, refusal, quiet } = await startRefusal(schedule, deps);
+    const silent = quiet && due && !trigger && isRepeating(schedule);
+    if (silent) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
+    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
+    // The apps it may use while nobody watches travel with the run (./runApps.mts), so no runner reads the policy again.
+    const task = { ...schedule, unattendedApps: ownerPolicy.unattendedApps };
+    await (deps.executeTask || executeTask)(task, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
+    await announceEnd(schedule);
 }
 
 /**

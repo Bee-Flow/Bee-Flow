@@ -1,7 +1,7 @@
 /**
  * The organisation's Cowork policy, for its administrators (server/routes/coworkPolicyRoutes.js): the most independent
  * level a cowork may run at, one switch that makes every cowork read-only, the apps a plan may use while nobody
- * watches, and the trail of every change as a download. Saved at once, field by field, like the shield toggle above it.
+ * watches, the monthly AI budget of all its coworks, and the trail of every change as a download. Saved at once, field by field, like the shield toggle above it.
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import { apiJson, apiUrl } from '@/api/typedRequest';
 import type { TranslateFn } from '../tabs/checks/checksTypes';
 
 type Level = 'asks_everything' | 'asks_before_sending' | 'on_its_own';
-interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null }
+interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null; monthlyBudget?: number | null }
 
 const keyOf = (orgId: string) => ['cowork-policy', orgId] as const;
 const LEVELS: Array<[Level, string, string]> = [
@@ -24,6 +24,34 @@ const appsOf = (text: string): string[] | null => {
     const list = text.split(',').map((a) => a.trim()).filter(Boolean);
     return list.length > 0 ? list : null;
 };
+
+/** "50" or "12,50" as euros; empty is no limit, and anything else is not a budget (undefined). */
+const budgetOf = (text: string): number | null | undefined => {
+    const clean = text.trim().replace(',', '.');
+    if (clean === '') return null;
+    const n = Number(clean);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : undefined;
+};
+
+/** The monthly AI budget of all the organisation's coworks, in euros; saved with its own button. */
+function BudgetField({ current, disabled, onSave, t }: { current: number | null; disabled: boolean; onSave: (budget: number | null, done: () => void) => void; t: TranslateFn }) {
+    const [text, setText] = useState<string | null>(null);
+    const shown = text ?? (current === null ? '' : String(current));
+    const parsed = budgetOf(shown);
+    return (
+        <div className="px-4 py-3 flex flex-col gap-1.5 border-t [border-color:var(--border-subtle)]">
+            <label htmlFor="cowork-policy-budget" className="text-[13px] font-medium text-[var(--text-primary)]">{t('cowork_policy.budget', 'Monthly AI budget for all coworks')}</label>
+            <span className="text-[12px] text-[var(--text-secondary)]">{t('cowork_policy.budget_hint', 'In euros, counted from the 1st of the month over every cowork of the organisation. At the budget, coworks stop running until the next month; you are told once. Empty: no limit.')}</span>
+            <div className="flex gap-2">
+                <input id="cowork-policy-budget" inputMode="decimal" className="w-32 rounded-lg border px-2 py-1.5 text-[13px] bg-[var(--bg-primary)] [border-color:var(--border-default)]" value={shown} disabled={disabled} onChange={(e) => setText(e.target.value)} />
+                <button type="button" className="px-3 py-1.5 rounded-lg border text-[12px] font-medium [border-color:var(--border-default)] disabled:opacity-50" disabled={disabled || text === null || parsed === undefined} onClick={() => { if (parsed !== undefined) onSave(parsed, () => setText(null)); }}>
+                    {t('cowork_policy.save_budget', 'Save budget')}
+                </button>
+            </div>
+            {parsed === undefined && <span role="alert" className="text-[12px] text-[var(--error-ink)]">{t('cowork_policy.budget_invalid', 'Fill in an amount above 0, or leave it empty.')}</span>}
+        </div>
+    );
+}
 
 export default function CoworkPolicyPanel({ orgId, readOnly = false, t }: { orgId: string; readOnly?: boolean; t: TranslateFn }) {
     const client = useQueryClient();
@@ -67,6 +95,7 @@ export default function CoworkPolicyPanel({ orgId, readOnly = false, t }: { orgI
                     </button>
                 </div>
             </div>
+            <BudgetField current={current.monthlyBudget ?? null} disabled={disabled} t={t} onSave={(budget, done) => save.mutate({ monthlyBudget: budget }, { onSuccess: done })} />
             <div className="px-4 py-3 border-t [border-color:var(--border-subtle)] flex items-center justify-between gap-3">
                 <span className="text-[12px] text-[var(--text-secondary)]">{t('cowork_policy.audit_hint', 'Every change to a cowork in this organisation: who, what and when; never what the work says.')}</span>
                 <a className="text-[12px] font-medium text-[var(--accent)]" href={apiUrl('GET /api/cowork/policy/{orgId}/audit', { params: { orgId } })} download>{t('cowork_policy.audit', 'Download the trail (CSV)')}</a>

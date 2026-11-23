@@ -54,7 +54,8 @@ function defaultDeps(): Deps {
         store: nodeRequire('../stores/coworkStore.js'),
         startRun: (task, trigger) => {
             setImmediate(() => {
-                nodeRequire('../core/aiTaskRunner.js').executeTask(task, { trigger })
+                // Through executeCowork like every start: a read-only organisation or a spent budget refuses it too.
+                nodeRequire('../core/cowork/coworkRunner.js').executeCowork(task, { trigger })
                     .catch((e: Error) => log.error(`[Cowork] follow-up run of ${task.id} failed to start: ${e.message}`));
             });
         },

@@ -1865,6 +1865,9 @@
     "GET /api/cowork/policy/:orgId/audit": {
       "gate": "auth"
     },
+    "GET /api/cowork/policy/mine": {
+      "gate": "auth"
+    },
     "GET /api/cowork/shared": {
       "gate": "auth"
     },

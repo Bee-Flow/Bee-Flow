@@ -122,3 +122,61 @@ test('while the organisation has made Cowork read-only, a start runs nothing: th
     assert.equal(errors.length, 1);
     assert.match(String(/** @type {any[]} */ (errors[0])[0]), /read-only/);
 });
+
+test('the apps the organisation lets run while nobody watches travel with the run, so no runner reads the policy again', async () => {
+    const item = { id: 's3', userId: 'u1', title: 'Mail desk', prompt: 'Answer.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
+    /** @type {any[]} */
+    const started = [];
+    const policyOf = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: ['gmail'] });
+    await runner.executeCowork(item, { manual: true }, { policyOf, budgetRefusal: async () => null, orgRefusal: async () => null, executeTask: /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); }) });
+    assert.deepEqual(started.map((t) => [t.id, t.unattendedApps]), [['s3', ['gmail']]]);
+});
+
+test('a follow-up after a review is refused like any start: by a read-only organisation and by a spent budget, closing its own row', async () => {
+    const item = { id: 's4', userId: 'u1', title: 'Mail desk', prompt: 'Answer.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
+    /** @type {any[]} */
+    const errors = [];
+    mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {string} */ message, /** @type {unknown} */ close) => { errors.push([message, close]); });
+    mock.method(coworkStore, 'markRunning', async () => { throw new Error('a follow-up holds its own row and claims none'); });
+    mock.method(coworkStore, 'advanceSchedule', async () => null);
+    mock.method(coworkStore, 'getSchedule', async () => item);
+    /** @type {any[]} */
+    const started = [];
+    const executeTask = /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null });
+    await runner.executeCowork(item, { trigger: { runId: 'follow-1' } }, { policyOf: readOnly, budgetRefusal: async () => null, executeTask });
+    await runner.executeCowork(item, { trigger: { runId: 'follow-2' } }, { policyOf: open, orgRefusal: async () => null, budgetRefusal: async () => 'This cowork reached its monthly budget.', executeTask });
+    assert.equal(started.length, 0, 'nothing ran');
+    assert.match(String(errors[0][0]), /read-only/);
+    assert.deepEqual(errors[0][1].runId, 'follow-1');
+    assert.match(String(errors[1][0]), /monthly budget/);
+    assert.deepEqual(errors[1][1].runId, 'follow-2');
+});
+
+test('over the organisation\'s budget: the first due run of an item fails with the reason, a later due moment moves on quietly, a run by hand always says why', async () => {
+    const item = { id: 's5', userId: 'u1', title: 'Digest', prompt: 'Summarise.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
+    /** @type {any[]} */
+    const errors = [];
+    /** @type {any[]} */
+    const advanced = [];
+    mock.method(coworkStore, 'markRunning', async () => 'run-org');
+    mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {string} */ message) => { errors.push(String(message)); });
+    mock.method(coworkStore, 'advanceSchedule', async (/** @type {string} */ id) => { advanced.push(id); return null; });
+    mock.method(coworkStore, 'getSchedule', async () => item);
+    /** @type {any[]} */
+    const started = [];
+    const executeTask = /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 50 });
+    const reason = "Your organisation's Cowork budget of €50.00 for this month is used up";
+    let quiet = false;
+    const orgRefusal = async () => ({ reason, quiet });
+    await runner.executeCowork(item, { due: true }, { policyOf: open, orgRefusal, budgetRefusal: async () => null, executeTask });
+    quiet = true;
+    await runner.executeCowork(item, { due: true }, { policyOf: open, orgRefusal, budgetRefusal: async () => null, executeTask });
+    await runner.executeCowork(item, { manual: true }, { policyOf: open, orgRefusal, budgetRefusal: async () => null, executeTask });
+    assert.equal(started.length, 0, 'nothing ran');
+    assert.equal(errors.length, 2, 'the first due run and the run by hand fail with the reason; the quiet one writes nothing');
+    assert.ok(errors.every((m) => m.includes('budget of €50.00')));
+    assert.ok(advanced.length >= 2, 'both due moments moved on');
+});

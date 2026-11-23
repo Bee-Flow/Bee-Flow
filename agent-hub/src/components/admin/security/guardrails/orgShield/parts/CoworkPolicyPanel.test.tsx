@@ -34,6 +34,23 @@ describe('CoworkPolicyPanel', () => {
         expect(calls.every((c) => c.url.includes('/api/cowork/policy/org-1'))).toBe(true);
     });
 
+    it('saves the monthly budget in euros, empty as no limit, and refuses an amount that is none', async () => {
+        serve();
+        renderWithClient(<CoworkPolicyPanel orgId="org-1" t={t} />);
+        const user = userEvent.setup();
+        const field = await screen.findByLabelText('Monthly AI budget for all coworks');
+        await user.type(field, '12,50');
+        await user.click(screen.getByRole('button', { name: 'Save budget' }));
+        await waitFor(() => expect(puts()).toEqual([{ monthlyBudget: 12.5 }]));
+        await user.clear(field);
+        await user.type(field, 'lots');
+        expect(screen.getByRole('alert')).toHaveTextContent('Fill in an amount above 0');
+        expect(screen.getByRole('button', { name: 'Save budget' })).toBeDisabled();
+        await user.clear(field);
+        await user.click(screen.getByRole('button', { name: 'Save budget' }));
+        await waitFor(() => expect(puts()).toEqual([{ monthlyBudget: 12.5 }, { monthlyBudget: null }]));
+    });
+
     it('offers the trail as a download', async () => {
         serve();
         renderWithClient(<CoworkPolicyPanel orgId="org-1" t={t} />);
