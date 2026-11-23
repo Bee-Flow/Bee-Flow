@@ -206,7 +206,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         // that doesn't know the repeat is already in place tends to close
         // every run by advising the user to set one up.
         return executeAgentRun(task, { manual, store, trigger, due, maxMs }, {
-            scheduleText: describeTaskSchedule(task), resolveUserSession, isRepeating, failRun, NOTIFICATION,
+            scheduleText: describeTaskSchedule(task) + require('./cowork/sinceLastTime.mts').sinceLine(task), resolveUserSession, isRepeating, failRun, NOTIFICATION,
         });
     }
     const startTime = Date.now();
@@ -352,7 +352,7 @@ async function prepareTaskRun(task, run) {
     const { tools, toolHint } = await loadTaskTools(task, session);
 
     const messages = [
-        { role: 'system', content: buildTaskSystemPrompt(task, toolHint) },
+        { role: 'system', content: buildTaskSystemPrompt(task, toolHint) + require('./cowork/sinceLastTime.mts').sinceLine(task) },
         { role: 'user', content: task.prompt },
     ];
 

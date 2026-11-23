@@ -30,6 +30,7 @@ import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
 import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
+import { sinceTriggerData } from './sinceLastTime.mts';
 import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
 import { appsNotAllowed, capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
 import { permissionsOf, BUILT_IN_APP } from './plan/planPermissions.mts';
@@ -44,6 +45,9 @@ export interface PlanTask {
     id: string;
     userId: string;
     title?: string;
+    /** When the item last ran, and how that ended (the "since last time" of ./sinceLastTime.mts). */
+    lastRunAt?: string | null;
+    lastStatus?: string | null;
     [key: string]: unknown;
 }
 
@@ -208,6 +212,8 @@ export async function executePlanRun(
         const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
         const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups)) }, {
             triggerKind: 'manual',
+            // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts).
+            triggerPayload: sinceTriggerData(task),
             mode: 'live',
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),

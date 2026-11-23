@@ -103,6 +103,7 @@ RULES - follow exactly:
 ${approvals ? '- A step that waits for a decision (approval) asks the owner: never name another approver.' : '- There is NO approval step on this workspace: never add one. Save drafts instead, so the owner decides by sending them.'}
 - END with ONE notification step that gives the owner the result: a short title and a body built from the steps before it.
 - Do NOT add or change a trigger: the item's own schedule starts the plan.
+- Every run knows when the last good run was: {{trigger.output.since}} (an ISO time, empty on the first run). When the brief is about what is NEW, read only what came in since then (a search "newer than" it) instead of everything.
 - Use only actions from the catalog below. Never invent a tool name. If the brief needs an app that is not connected, build what can be built and say what is missing.
 - After each change you get a PLAN REPORT. Fix every error in it. When the report has no errors, STOP and reply with one or two plain sentences: what the plan does each run, and anything from the brief it could not do. Do not ask questions.
 

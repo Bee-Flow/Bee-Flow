@@ -220,3 +220,11 @@ test('the organisation\'s policy: its ceiling holds the level down, and an app i
     assert.deepStrictEqual(fenced.seen.executed, [], 'nothing ran');
     assert.match(fenced.seen.failed[0]?.err.message ?? '', /does not let outlook run while nobody watches/);
 });
+
+test('a plan run knows when the last good run was: {{trigger.output.since}}', async () => {
+    const h = harness();
+    await executePlanRun({ ...task, lastRunAt: '2026-11-22T06:30:00.000Z', lastStatus: 'success' }, { store: h.store, manual: true }, h.deps);
+    const payload = h.seen.executed[0].opts.triggerPayload;
+    assert.strictEqual(payload.since, '2026-11-22T06:30:00.000Z');
+    assert.ok(typeof payload.now === 'string' && payload.now.endsWith('Z'));
+});
