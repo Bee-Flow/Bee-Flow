@@ -176,7 +176,10 @@ const INPUTS = {
     text: TextLikeInput, number: TextLikeInput, date: DateInput, boolean: SwitchInput, choice: ChoiceInput, list: ListInput,
 } as const;
 
-/** The template's default for an empty field: shown, and filled in only when the person accepts it. */
+/**
+ * The template's default for an empty field. The document prints it when the field is left empty (the server
+ * fills a missing value with it), so it says that, and "Accept" puts it in the field to change it from there.
+ */
 function Suggestion({ field, onChange }: { field: TemplateFillField; onChange: OnChange }) {
     const { t } = useTranslation();
     const shown = typeof field.suggestion === 'boolean'
@@ -185,7 +188,7 @@ function Suggestion({ field, onChange }: { field: TemplateFillField; onChange: O
     return (
         <div className="flex items-center gap-2 rounded-md border border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-1 text-xs"
             data-testid={`template-fill-suggestion-${field.key}`}>
-            <span className="shrink-0 text-[var(--text-tertiary)]">{t('chat_templates.fields_suggestion', 'Suggestion')}:</span>
+            <span className="shrink-0 text-[var(--text-tertiary)]">{t('chat_templates.fields_default', 'Used if left empty')}:</span>
             <span className="min-w-0 truncate text-[var(--text-secondary)]">{shown}</span>
             <button type="button" onClick={() => onChange(field.key, field.suggestion)}
                 className="ml-auto shrink-0 rounded px-1.5 py-0.5 font-medium text-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">

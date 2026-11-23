@@ -25,7 +25,6 @@
     "chat_templates.fields_remove_row": "Verwijderen",
     "chat_templates.fields_required": "verplicht",
     "chat_templates.fields_saving": "Opslaan…",
-    "chat_templates.fields_suggestion": "Voorstel",
     "chat_templates.fields_yes": "Ja",
     "chat_templates.fill_message": "Vul het sjabloon “{name}” samen met mij in.",
     "chat_templates.folder_named": "Map: {folder}",
@@ -105,7 +104,17 @@
     "chat_templates.team_button": "Sjabloon",
     "chat_templates.team_hint": "Vul een van je sjablonen samen met de AI en je collega's in",
     "chat_templates.team_title": "Met je collega’s",
-    "chat_templates.type_presentation": "Presentatie"
+    "chat_templates.type_presentation": "Presentatie",
+    "chat_templates.preview_title": "Voorbeeld",
+    "chat_templates.preview_frame": "Het document met wat is ingevuld",
+    "chat_templates.preview_gaps": "1 veld dat nog nodig is, staat er als [de naam van het veld].",
+    "chat_templates.preview_gaps_plural": "{count} velden die nog nodig zijn, staan er als [de naam van het veld].",
+    "chat_templates.preview_complete": "Zo leest het document met wat is ingevuld.",
+    "chat_templates.preview_loading": "Het voorbeeld wordt geladen…",
+    "chat_templates.preview_failed": "Het voorbeeld kon niet worden getoond.",
+    "chat_templates.preview_show_text": "De tekst tonen",
+    "chat_templates.preview_edit_text": "De tekst bewerken",
+    "chat_templates.fields_default": "Wordt gebruikt als je dit leeg laat"
   },
   "sameAsEnglish": [
     "chat_templates.type_document"

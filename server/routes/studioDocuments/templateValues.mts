@@ -4,10 +4,12 @@
  * the final check's remarks, and let the assistant do that check. Mounted by
  * routes/studioDocuments.js.
  *
- *   PUT  /:id/values         { values: { <key>: value | null }, finish?: true, dismiss?: [key] }
- *   POST /:id/values/review  the assistant checks what is filled in (core/documents/fillReviewer.mts)
+ *   PUT  /:id/values          { values: { <key>: value | null }, finish?: true, dismiss?: [key] }
+ *   POST /:id/values/review   the assistant checks what is filled in (core/documents/fillReviewer.mts)
+ *   GET  /:id/values/preview  the document with its values filled in, to look at while filling in
+ *                             (core/documents/fillPreview.mts) → { html, gaps: [key] }
  *
- * Both answer the same: where the filling stands and what is shown next to it
+ * The first two answer the same: where the filling stands and what is shown next to it
  * (`fillAnswer`): { documentId, values, missingRequired, issues, complete,
  * filled, total, finished, versionId, requests, filledBy, notes, review }; the
  * PUT adds `rejected`.
@@ -25,8 +27,8 @@
  *
  * ACCESS. The store reads only a document the caller may see (owner, shared,
  * project); a stranger, another organisation included, gets the 404. A reader
- * who may only view gets 403, and only a plain document is filled in, never a
- * template itself.
+ * who may only view gets 403 on a write (they do get the preview: it is a
+ * read), and only a plain document is filled in, never a template itself.
  *
  * A FACTORY: `makeTemplateValuesRouter(deps)`; `templateValuesRouter` is over the
  * real document store.
@@ -41,6 +43,7 @@ import {
 import { finishedSettings, isFinished } from '../../integrations/templateFillActive.mts';
 import { withoutFindings, withReview, type FillReview } from '../../core/documents/fillReview.mts';
 import { annotationsOf, fillAnnotator, notifyCompleted, type Notify } from '../../core/documents/fillTogether.mts';
+import type { FillPreview } from '../../core/documents/fillPreview.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');
@@ -69,6 +72,8 @@ type Deps = {
     /** A reason the person may not use the AI now (their plan's limit), or null. */
     limit?: (who: Who) => Promise<string | null>,
     limiter?: RequestHandler,
+    /** The picture of the document with its values (core/documents/fillPreview.mts). */
+    preview?: (doc: TemplateDoc, orgId: string | null) => Promise<FillPreview>,
 };
 type Session = { user: { id: string, organizationId?: string | null }, connectorOrgId?: string | null };
 
@@ -136,6 +141,15 @@ function reviewRefusal(e: unknown): Error {
     return new HttpError(502, 'fill_review_failed', 'The AI check could not run. Please try again.');
 }
 
+const realPreview = (doc: TemplateDoc, orgId: string | null): Promise<FillPreview> => (nodeRequire('../../core/documents/fillPreview.mts') as {
+    filledPreview: (doc: TemplateDoc, orgId: string | null) => Promise<FillPreview> }).filledPreview(doc, orgId);
+
+/** A refusal with a status (a presentation, the house style not reachable) as the client's error; anything else stays a 500. */
+function previewRefusal(e: unknown): unknown {
+    const err = e as { status?: number, errorClass?: string, message?: string };
+    return err.status ? new HttpError(err.status, err.errorClass || 'fill_preview_failed', String(err.message)) : e;
+}
+
 const realLimit = ({ orgId, userId }: Who): Promise<string | null> => (nodeRequire('../../core/entitlements/limits.js') as {
     checkSubscriptionLimits: (orgId: string | null, kind: string, userId: string) => Promise<string | null> }).checkSubscriptionLimits(orgId, 'chat', userId);
 const realReviewer = (doc: TemplateDoc, who: Who): Promise<FillReview> => (nodeRequire('../../core/documents/fillReviewer.mts') as {
@@ -180,6 +194,18 @@ export function makeTemplateValuesRouter(deps: Deps = {}): Router {
         let review: FillReview;
         try { review = await (deps.reviewer || realReviewer)(doc, person); } catch (e) { throw reviewRefusal(e); }
         res.json(fillAnswer(await storeReview(store(), doc, review, person.userId), contract()));
+    });
+
+    router.get('/:id/values/preview', requireAuth, async (req: Request<{ id: string }>, res: Response) => {
+        const person = who(req);
+        const doc = await store().getDocument(req.params.id, person.userId);
+        if (!doc) throw notFound('document_not_found', 'Document not found');
+        if (doc.kind && doc.kind !== 'document') throw badRequest('document_not_fillable', 'Only a document made from a template is filled in, not a template itself.');
+        let out: FillPreview;
+        try { out = await (deps.preview || realPreview)(doc, person.orgId); } catch (e) { throw previewRefusal(e); }
+        // What it shows changes with every value saved: never a stored copy.
+        res.set('Cache-Control', 'no-store');
+        res.json(out);
     });
 
     return router;

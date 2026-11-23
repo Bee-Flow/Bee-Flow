@@ -16,9 +16,9 @@
  *     once, then it finishes as template_fill_finish does), download, open,
  *     and where it is kept (a project, and a folder of that project).
  */
-import { useRef, type RefObject } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type FocusEvent, type RefObject } from 'react';
 
-import type { FillDocument, TemplateFillApi } from '@/api/templateFillApi';
+import type { FillDocument, FillField, TemplateFillApi } from '@/api/templateFillApi';
 import useTranslation from '@/hooks/useTranslation';
 import { FieldActions, FieldBelow } from '../../documents/fill/FieldExtras';
 import FillFooter, { useDownload, type FillPlace } from '../../documents/fill/FillFooter';
@@ -47,6 +47,36 @@ function showField(root: RefObject<HTMLElement | null>, key: string) {
     if (!row) return;
     row.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
     row.querySelector<HTMLElement>('input, textarea, select, button[role="switch"]')?.focus({ preventScroll: true });
+}
+
+/** The shortest value worth looking for in the document: anything shorter is found in the wrong place too often. */
+const SPOT_MIN = 4;
+
+/**
+ * Where a field is in the document as the preview shows it: the first line of
+ * what was typed. An empty field prints the template's default when it has
+ * one, and while it is still needed its label in brackets (a list: the label
+ * of its first column).
+ */
+function spotOf(field: FillField | undefined, value: unknown): string {
+    if (!field) return '';
+    const printed = isBlank(value) ? field.suggestion : value;
+    if (isBlank(printed)) return field.required ? `[${field.type === 'list' ? field.fields?.[0]?.label ?? field.label : field.label}]` : '';
+    if (typeof printed !== 'string') return '';
+    const line = printed.split('\n')[0].trim().slice(0, 80);
+    return line.length >= SPOT_MIN ? line : '';
+}
+
+/** Tell the host which passage of the document the person is filling in (the preview brings it into view). */
+function useSpot(doc: FillDocument, values: Record<string, unknown>, onSpot?: (text: string) => void) {
+    const [at, setAt] = useState<string | null>(null);
+    const text = at ? spotOf(doc.fields.find((f) => f.key === at), values[at]) : '';
+    const report = useEffectEvent((spot: string) => onSpot?.(spot));
+    useEffect(() => { report(text); }, [text]);
+    return (e: FocusEvent<HTMLElement>) => {
+        const row = e.target.closest<HTMLElement>('[data-fill-field]');
+        if (row?.dataset.fillField) setAt(row.dataset.fillField);
+    };
 }
 
 interface AdornmentInput {
@@ -85,7 +115,7 @@ function useFieldAdornments({ doc, form, meId, people, actions }: AdornmentInput
     return { adornments, remarked: new Set(remarks.keys()) };
 }
 
-export default function TemplateFillForm({ doc, api, live, meId = null, people, place = 'chat', onFiled }: {
+export default function TemplateFillForm({ doc, api, live, meId = null, people, place = 'chat', onFiled, onSpot }: {
     doc: FillDocument; api: TemplateFillApi;
     /** Filling in together: poll for the others' values (useTemplateFillForm). */
     live?: LiveOptions;
@@ -96,9 +126,12 @@ export default function TemplateFillForm({ doc, api, live, meId = null, people, 
     place?: FillPlace;
     /** The person's own document was filed into a project from here. */
     onFiled?: (projectId: string) => void;
+    /** The passage of the document the person is at (a preview next to the form shows it). */
+    onSpot?: (text: string) => void;
 }) {
     const { t } = useTranslation();
     const form = useTemplateFillForm(doc, api, live);
+    const onFieldFocus = useSpot(doc, form.values, onSpot);
     const download = useDownload(doc, api);
     const actions = useTeamActions(doc.id, form.setTeam, api.team);
     const root = useRef<HTMLElement>(null);
@@ -114,7 +147,7 @@ export default function TemplateFillForm({ doc, api, live, meId = null, people, 
     // In the editor the form is the side panel's own content; in a chat it is a card of its own under the answer.
     const frame = inEditor ? 'rounded-lg border border-[var(--border-subtle)]' : 'max-w-[640px] rounded-xl border border-[var(--border-default)] shadow-sm';
     return (
-        <section ref={root} aria-label={doc.name} data-testid="template-fill-card" data-phase={form.phase}
+        <section ref={root} aria-label={doc.name} data-testid="template-fill-card" data-phase={form.phase} onFocus={onFieldFocus}
             className={`flex flex-col overflow-hidden bg-[var(--bg-primary)] ${frame}`}>
             <FillHeader name={doc.name} showName={!inEditor} finished={state.finished} status={form.status}
                 filled={state.filled} total={state.total} stage={stageOf(step)} />

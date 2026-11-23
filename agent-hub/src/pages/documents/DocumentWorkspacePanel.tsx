@@ -221,9 +221,13 @@ interface DocumentWorkspacePanelProps {
     onRefresh: () => void;
     /** The fill-in form saved through its own route: the editor takes the document as it is now. */
     onFillSynced?: (out: { versionId?: string | null }) => void;
+    /** The passage of the document the person is filling in: the preview next to the form shows it. */
+    onFillSpot?: (text: string) => void;
+    /** More room for the form, where the screen has it. */
+    wide?: boolean;
 }
 
-const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft,onFillSynced}: DocumentWorkspacePanelProps,ref) {
+const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft,onFillSynced,onFillSpot,wide=false}: DocumentWorkspacePanelProps,ref) {
     const { t } = useTranslation();
     const isDeck = doc.docType === 'presentation';
     const currentSettings=()=>({...doc.settings,contract:doc.contract || doc.settings?.contract || {parameters:[],sections:[],instructions:''}});
@@ -289,7 +293,10 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         setSettings(s=>adoptFillState(s,fillSettings));
     },[fillSettings]);
     useEffect(()=>{if(tab==='sections') {documentRequest('?kind=section&limit=200').then(r=>setLibrary(r.documents)).catch(e=>setError(e.message));documentRequest(`/${doc.id}/updates`).then(r=>setUpdates(r.updates || [])).catch(e=>setError(e.message));}},[tab,doc.id]);
-    return <aside className="w-full sm:w-80 shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]">
+    // A document's own form saves as it is typed and has the preview next to it: with no section to
+    // switch on or off there is nothing left on this tab to save or to validate by hand.
+    const formOnly=tab==='preview' && doc.kind==='document' && sections.length===0;
+    return <aside className={`w-full ${wide?'sm:w-80 lg:w-[26rem]':'sm:w-80'} shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]`}>
         <h2 className="font-semibold">{({parameters:t('documents.workspace.parameters', 'Parameters'),sections:t('documents.workspace.sections', 'Sections'),design:isDeck?t('documents.workspace.look', 'Look'):t('documents.workspace.design', 'Design'),assistant:t('documents.workspace.ai_assistant', 'AI assistant'),preview:t('doc_editor.tab_fill_in', 'Fill in & preview')})[tab]}</h2>
         {error && <p role="alert" className="text-sm bg-red-500/10 p-2 rounded">{error}</p>}
         {recovered && <div className="text-xs bg-amber-500/10 p-3 rounded space-y-2"><p>{t('documents.workspace.unsaved_settings_recovered_review', 'Unsaved settings recovered. Review them before saving.')}</p>
@@ -328,10 +335,10 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             {doc.kind!=='document' && <p className="text-xs">{t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>}
             {/* A document is filled in with the form every place shows (the chat, a project's team chat, here): saved as it is typed, checked by the assistant, and in a project filled in together. A template only takes sample data for its preview. */}
             {doc.kind==='document'
-                ? <DocumentFillPanel documentId={doc.id} place="editor" onSynced={onFillSynced}/>
+                ? <DocumentFillPanel documentId={doc.id} place="editor" onSynced={onFillSynced} onSpot={onFillSpot}/>
                 : parameters.map(p=><div key={p.key}>{field((p.label || p.key)+(p.required?' *':''),<ValueInput parameter={p} value={settings.sampleValues?.[p.key]} onChange={v=>setSettings(s=>({...s,sampleValues:{...s.sampleValues,[p.key]:v}}))}/>)}<p className="text-xs text-[var(--text-muted)] mt-1">{p.summary}</p>{p.instructions && <details className="text-xs mt-1"><summary>{t('documents.workspace.instructions', 'Instructions')}</summary>{p.instructions}</details>}</div>)}
             {sections.map(s=>field(s.title,<select key={s.id} className={input} value={settings.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>setSettings(x=>({...x,sectionOverrides:{...x.sectionOverrides,[s.id]:e.target.value}}))}><option value="automatic">{t('documents.workspace.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('documents.workspace.include', 'Include')}</option><option value="exclude">{t('documents.workspace.exclude', 'Exclude')}</option></select>))}
-            <button className={button} onClick={()=>action(async()=>{await save();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>
+            {!formOnly && <button className={button} onClick={()=>action(async()=>{await save();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>}
         </>}
         {tab==='assistant' && <>
             {history.map((m,i)=><p key={i} className={'text-sm p-2 rounded '+(m.role==='user'?'bg-[var(--bg-tertiary)]':'')}>{m.content}</p>)}
@@ -339,7 +346,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             <select className={input} value={mode} onChange={e=>setMode(e.target.value)} aria-label={t('documents.workspace.assistant_mode', 'Assistant mode')}><option value="design">{isDeck?t('documents.workspace.look_only', 'Look only'):t('documents.workspace.design_only', 'Design only')}</option><option value="content">{isDeck?t('documents.workspace.slides_and_outline', 'Slides and outline'):t('documents.workspace.content_and_template', 'Content and template')}</option>{!isDeck && <option value="applicability">{t('documents.workspace.suggest_applicable_sections', 'Suggest applicable sections')}</option>}</select>
             <button className={button} disabled={!message.trim() || busy} onClick={()=>action(async()=>{await save();await onBeforeAction();const next=await documentRequest(`/${doc.id}/ai-proposal`,{message,mode,values:settings.sampleValues,history});setProposal(next);setHistory(h=>[...h,{role:'user',content:message},{role:'assistant',content:next.explanation}]);setMessage('');})}>{t('documents.workspace.prepare_a_proposal', 'Prepare a proposal')}</button>
         </>}
-        {tab!=='assistant' && <button className={button+' w-full font-semibold'} onClick={()=>action(save)}>{busy?<Loader2 size={15} className="animate-spin mx-auto"/>:t('documents.workspace.save_changes', 'Save changes')}</button>}
+        {tab!=='assistant' && !formOnly && <button className={button+' w-full font-semibold'} onClick={()=>action(save)}>{busy?<Loader2 size={15} className="animate-spin mx-auto"/>:t('documents.workspace.save_changes', 'Save changes')}</button>}
         </fieldset>
         {/* Copying is open to everyone who may read the document, so a reader keeps this one action. */}
         {readOnly && tab==='parameters' && <fieldset disabled={busy}>{copyAsTemplate}</fieldset>}

@@ -195,6 +195,20 @@ describe('<TemplateFillFields>', () => {
         expect(screen.queryByTestId('template-fill-suggestion-authority')).not.toBeInTheDocument();
     });
 
+    it('a required field the template has a default for is not "still needed": left empty, the document prints the default', () => {
+        render(<TemplateFillFields fields={[f('need', 'text', { required: true }), f('plan', 'text', { required: true, suggestion: 'Plus' })]}
+            values={{}} issues={{}} onChange={() => {}} />);
+        expect(within(screen.getByTestId('template-fill-group-missing')).getByLabelText(/NEED/)).toBeInTheDocument();
+        expect(within(screen.getByTestId('template-fill-group-missing')).queryByLabelText(/PLAN/)).not.toBeInTheDocument();
+        // Folded away under "Optional" while something is still needed; it says what the document will print.
+        expect(screen.getByTestId('template-fill-group-optional')).toBeInTheDocument();
+    });
+
+    it('says a default is used when the field is left empty', () => {
+        render(<Harness fields={[f('plan', 'text', { suggestion: 'Plus' })]} onChange={() => {}} />);
+        expect(screen.getByTestId('template-fill-suggestion-plan')).toHaveTextContent(/Used if left empty:\s*Plus/);
+    });
+
     it('keeps the long instructions behind the "i" and the short help in view', async () => {
         const user = userEvent.setup();
         render(<Harness fields={[f('name', 'text', { help: 'The legal name.', details: 'Use the name from the trade register, without a full stop.' })]} onChange={() => {}} />);

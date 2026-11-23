@@ -5,7 +5,7 @@
 // new values in place: nothing a person is typing is thrown away).
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { FillDocument } from '../templateFillApi';
+import type { FillDocument, FilledPreviewPage } from '../templateFillApi';
 import { apiJson } from '../typedRequest';
 import { useOptionalQueryClient } from './optionalQueryClient';
 
@@ -21,6 +21,23 @@ export function useFillDocumentQuery(id: string, revision: number, load: (id: st
         placeholderData: keepPreviousData,
         // A form that opens again (another tab of the editor, an answer scrolled back into view) reads the
         // document anew: what an earlier form read is older than what that form itself saved since.
+        gcTime: 0,
+    }, client);
+}
+
+/**
+ * The document with what is filled in so far. `revision` is the document's
+ * revision as the form last heard it: each save of a value is another one, so
+ * the page is read again, and the one on screen stays until the new one is in.
+ */
+export function useFilledPreviewQuery(id: string, revision: string, load: ((id: string) => Promise<FilledPreviewPage>) | undefined) {
+    const { client, attached } = useOptionalQueryClient();
+    return useQuery<FilledPreviewPage, Error>({
+        queryKey: [...templateFillKey(id), 'preview', revision],
+        enabled: attached && !!id && !!load,
+        queryFn: () => (load ? load(id) : Promise.reject(new Error('no preview'))),
+        retry: false,
+        placeholderData: keepPreviousData,
         gcTime: 0,
     }, client);
 }
