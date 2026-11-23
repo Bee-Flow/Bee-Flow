@@ -135,11 +135,11 @@ test('a stored plan that no longer has its fingerprint does not run', async () =
 });
 
 test('a plan that was approved but is no longer one Cowork runs does not run, and says why', async () => {
-    const definition = planOf([{ id: 'c', type: 'code', code: 'function main() {}' }]);
+    const definition = planOf([{ id: 'c', type: 'parallel' }]);
     const h = harness({ plan: approved(definition) });
     await executePlanRun(task, { store: h.store, due: true }, h.deps);
     assert.strictEqual(h.seen.executed.length, 0);
-    assert.match(h.seen.failed[0].err.message, /may not run as it is: A plan cannot run a script yet/);
+    assert.match(h.seen.failed[0].err.message, /may not run as it is: A plan runs its steps one after another/);
 });
 
 test('an item whose plan was taken off between the tick and the run does not run', async () => {
@@ -228,4 +228,15 @@ test('a plan run knows when the last good run was: {{trigger.output.since}}', as
     const payload = h.seen.executed[0].opts.triggerPayload;
     assert.strictEqual(payload.since, '2026-11-22T06:30:00.000Z');
     assert.ok(typeof payload.now === 'string' && payload.now.endsWith('Z'));
+});
+
+test('a plan\'s scripts are marked to run outside the API process, inside loops too; the author\'s own value never decides', async () => {
+    const definition = planOf([
+        { id: 'sum', type: 'code', code: 'return 1', isolated: false },
+        { id: 'each', type: 'loop', items: literal([1, 2]), body: [{ id: 'inner', type: 'code', code: 'return 2' }] },
+    ]);
+    const h = harness({ plan: approved(definition) });
+    await executePlanRun(task, { store: h.store, manual: true }, h.deps);
+    const steps = h.seen.executed[0].automation.definition.steps;
+    assert.deepStrictEqual([steps[0].isolated, steps[1].body[0].isolated], [true, true]);
 });

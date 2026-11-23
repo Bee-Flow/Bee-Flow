@@ -50,13 +50,13 @@ test('a plan has no sub-flows', () => {
 
 test('a step type that is not on Cowork\'s list is refused with its own reason, wherever it sits', () => {
     const plan = planOf([
-        { id: 'c', type: 'code', code: 'function main() {}' },
+        { id: 'c', type: 'parallel' },
         { id: 'each', type: 'loop', items: literal([1]), body: [{ id: 'h', type: 'http_request', url: 'https://example.com' }] },
         { id: 'x', type: 'teleport' },
     ]);
     const found = checkPlan(plan, lookups);
     assert.deepStrictEqual(found.map((f) => [f.code, f.stepId]), [['step.not_allowed', 'c'], ['step.not_allowed', 'h'], ['step.not_allowed', 'x']]);
-    assert.match(found[0].message, /script/);
+    assert.match(found[0].message, /one after another/);
     assert.match(found[1].message, /free web address/);
     assert.match(found[2].message, /"teleport"/);
 });
@@ -182,7 +182,7 @@ test('a step that waits for a decision asks the owner: another approver, a panel
 });
 
 test('every finding is a sentence that names its step', () => {
-    const plan = planOf([mailStep, { id: 'a', type: 'ai_step', prompt: '{{steps.mail.output.body}}', tools: ['drive_search'] }, { id: 'c', type: 'code' }]);
+    const plan = planOf([mailStep, { id: 'a', type: 'ai_step', prompt: '{{steps.mail.output.body}}', tools: ['drive_search'] }, { id: 'c', type: 'parallel' }]);
     for (const f of checkPlan(plan, lookups)) {
         assert.ok(f.stepId, f.code);
         assert.ok(f.message.length > 20 && f.message.endsWith('.'), f.message);

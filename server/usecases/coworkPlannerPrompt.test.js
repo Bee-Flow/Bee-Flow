@@ -33,10 +33,10 @@ test('every tool on the planner\'s menu exists in the builder', () => {
 test('the batch builder names only step types a plan may hold; the builder\'s own schema is not touched', () => {
     const before = [...enumOf(addSteps(TOOL_SCHEMAS))];
     const offered = enumOf(addSteps(plannerTools(TOOL_SCHEMAS)));
-    for (const type of ['code', 'http_request', 'wait', 'form_page', 'call_layer', 'call_block', 'knowledge_write', 'kb_query_log', 'fill_document', 'slide', 'presentation', 'write_table']) {
+    for (const type of ['http_request', 'wait', 'form_page', 'call_layer', 'call_block', 'knowledge_write', 'kb_query_log', 'fill_document', 'slide', 'presentation', 'write_table']) {
         assert.ok(before.includes(type) && !offered.includes(type), type);
     }
-    for (const type of ['integration_action', 'ai_step', 'data_extraction', 'condition', 'notification', 'approval', 'datatable', 'filter', 'array_op']) {
+    for (const type of ['integration_action', 'ai_step', 'data_extraction', 'condition', 'notification', 'approval', 'datatable', 'filter', 'array_op', 'code']) {
         assert.ok(offered.includes(type), type);
     }
     assert.ok(offered.every(plannerMayAdd));
@@ -49,8 +49,8 @@ test('a call outside the menu is refused, and a batch that holds a step a plan m
     const ok = { tempId: 'a', type: 'integration_action', spec: { tool: 'outlook_search' } };
     assert.strictEqual(plannerRefusal('builder_add_steps', { steps: [ok] }), null);
     assert.strictEqual(plannerRefusal('builder_remove_step', { stepId: 'a' }), null);
-    const refused = plannerRefusal('builder_add_steps', { steps: [ok, { tempId: 'c', type: 'code', spec: { code: 'return 1' } }] });
-    assert.match(refused, /^Entry 1 was not added, and neither was the rest of this call: A plan cannot run a script yet/);
+    const refused = plannerRefusal('builder_add_steps', { steps: [ok, { tempId: 'c', type: 'parallel', spec: {} }] });
+    assert.match(refused, /^Entry 1 was not added, and neither was the rest of this call: A plan runs its steps one after another/);
     assert.match(plannerRefusal('builder_add_steps', { steps: [{ tempId: 'x' }] }), /Entry 0 .*a step without a type/);
     assert.match(plannerRefusal('builder_add_steps', { steps: ['no'] }), /Entry 0/);
     for (const empty of [{}, null, { steps: 'no' }, { steps: [] }]) assert.strictEqual(plannerRefusal('builder_add_steps', empty), null);

@@ -43,7 +43,8 @@ export function planViewOf(definition: Definition | null | undefined, lookups: T
             type: s.type,
             kind,
             title: titleOf(s.step, s.type),
-            effect: stepEffect(s.step),
+            // A plan's script runs with no network, no apps and no secrets (./planRunCopy.mts): it changes and sends nothing.
+            effect: s.type === 'code' ? 'reads' : stepEffect(s.step),
             app: tool ? lookups.appOfTool(tool) : null,
             tool,
             readsOutsideText: kind === 'ai' && outside.reads.has(s.id),

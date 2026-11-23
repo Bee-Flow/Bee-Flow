@@ -68,8 +68,8 @@ test('a run that never started is an error the caller sees', async () => {
 });
 
 test('a plan with a finding is not tried, an owner the runner refuses neither, and nothing runs', async () => {
-    const blocked = world({ automation: { id: 'auto-1', userId: 'u1', definition: planOf([{ id: 'c', type: 'code' }]) } });
-    await assert.rejects(startTry({ item: ITEM }, blocked.deps), (err) => err.status === 422 && /cannot be tried yet: A plan cannot run a script yet/.test(err.message));
+    const blocked = world({ automation: { id: 'auto-1', userId: 'u1', definition: planOf([{ id: 'c', type: 'parallel' }]) } });
+    await assert.rejects(startTry({ item: ITEM }, blocked.deps), (err) => err.status === 422 && /cannot be tried yet: A plan runs its steps one after another/.test(err.message));
     const refused = world({ refusal: 'not_entitled' });
     await assert.rejects(startTry({ item: ITEM }, refused.deps), httpError(403, 'cowork_plan_refused'));
     assert.strictEqual(blocked.seen.executed.length + refused.seen.executed.length, 0);

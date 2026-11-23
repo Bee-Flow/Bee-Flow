@@ -114,12 +114,12 @@ test('every round is booked as planner usage of its owner, and the page hears wh
 });
 
 test('a step a plan may not hold is refused before anything is built, in words the model can act on', async () => {
-    const withScript = [...BATCH.slice(0, 1), { tempId: 'calc', type: 'code', spec: { code: 'return 1' } }, ...BATCH.slice(1)];
+    const withScript = [...BATCH.slice(0, 1), { tempId: 'calc', type: 'http_request', spec: { url: 'https://example.com' } }, ...BATCH.slice(1)];
     const { deps, seen, input } = world({ script: [INSPECT, calls(['builder_add_steps', { steps: withScript }]), calls(['builder_add_steps', { steps: BATCH }]), DONE] });
     const made = await makePlan(input(), deps);
     const told = seen.chats[2].messages.at(-1);
     assert.strictEqual(told.role, 'tool');
-    assert.match(told.content, /Entry 1 was not added, and neither was the rest of this call: A plan cannot run a script yet/);
+    assert.match(told.content, /Entry 1 was not added, and neither was the rest of this call: A plan reaches the outside world through a connected app/);
     assert.deepStrictEqual(stepsOf(seen).map((s) => s.type), ['integration_action', 'ai_step', 'notification'], 'nothing of the refused batch was kept');
     assert.strictEqual(made.rounds, 4);
 });

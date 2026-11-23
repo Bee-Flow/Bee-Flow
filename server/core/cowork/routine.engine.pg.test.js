@@ -72,3 +72,24 @@ test('a routine that misses an item says which one', async () => {
     assert.deepStrictEqual([comparison.before, comparison.same], [4, 3]);
     assert.deepStrictEqual(comparison.onlyBefore, ['Dutch regulator answers questions on AI and personnel files']);
 });
+
+test('a plan with a script runs it outside the API process on the real engine, and hands its result to the next step', async () => {
+    const steps = [
+        { id: 'facts', type: 'set', label: 'The numbers', fields: { amounts: literal([120, 80, 45]) } },
+        { id: 'sum', type: 'code', label: 'Add them up', code: 'return { total: inputs.amounts.reduce((a, b) => a + b, 0) }', inputs: { amounts: { kind: 'ref', path: 'steps.facts.output.amounts' } } },
+        { id: 'tell', type: 'notification', label: 'Send me the total', title: 'Total', body: 'Total: {{steps.sum.output.result.total}}', channels: ['notification'] },
+    ];
+    const ids = ['trg', ...steps.map((s) => s.id)];
+    const definition = { schemaVersion: 1, trigger: { id: 'trg', type: 'trigger', kind: 'manual', output: {} }, steps, edges: ids.slice(1).map((to, i) => ({ from: ids[i], to })), vars: {} };
+    const s = await store.createSchedule({ userId: OWNER, title: 'Totals', prompt: 'Add up the amounts.', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const item = /** @type {any} */ (await store.getSchedule(/** @type {any} */ (s).id));
+    const automation = await automationStore.createAutomation({ userId: OWNER, title: 'Totals', definition, triggerType: 'manual' });
+    const attached = await attachPlan({ item, automationId: automation.id });
+    assert.deepStrictEqual(attached.draft.findings, [], 'a script is part of a plan');
+    const tryId = await triedOut(/** @type {any} */ (await store.getSchedule(item.id)));
+    const rows = await automationStore.getRunSteps(tryId);
+    const sum = rows.find((r) => r.stepId === 'sum');
+    assert.deepStrictEqual(sum?.output?.result, { total: 245 }, 'the script ran');
+    const tell = rows.find((r) => r.stepId === 'tell');
+    assert.match(JSON.stringify(tell?.output), /Total: 245/);
+});

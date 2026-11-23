@@ -35,6 +35,9 @@ const KINDS: Readonly<Record<string, StepKind>> = Object.freeze({
     generate_document: 'fixed',
     // The Privacy Shield as steps.
     guard: 'fixed',
+    // A script: a calculation on the data of earlier steps, run outside the API process with no network, no apps and
+    // no secrets (./planRunCopy.mts withIsolatedScripts, automation/codeSandboxProcess.js).
+    code: 'fixed',
     tokenize: 'fixed',
     untokenize: 'fixed',
     // A model reads, judges or writes.
@@ -47,7 +50,6 @@ const KINDS: Readonly<Record<string, StepKind>> = Object.freeze({
 });
 
 const REFUSED: Readonly<Record<string, string>> = Object.freeze({
-    code: 'A plan cannot run a script yet: scripts arrive with the sandbox that runs outside the server process.',
     http_request: 'A plan reaches the outside world through a connected app, not through a free web address.',
     call_block: 'A plan cannot call a building block: what the block does is not in the plan, so it cannot be shown or approved.',
     call_layer: 'A plan is one list of steps: sub-flows are for Studio automations.',

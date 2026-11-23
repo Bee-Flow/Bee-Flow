@@ -16,6 +16,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { withIsolatedScripts } from '../core/cowork/plan/planRunCopy.mts';
 import type { Definition, ToolLookups } from '../core/cowork/plan/planTypes.mts';
 import type { RunStepRow, TraceStep } from '../core/cowork/plan/planTrace.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
@@ -97,7 +98,8 @@ export async function startTry({ item }: { item: Item }, deps: TryDeps = default
 
     const tryId = await new Promise<string>((resolve, reject) => {
         // The plan that was read here is the one that is tried (a spread row with its own definition runs exactly that).
-        deps.executeAutomation({ ...automation, definition }, {
+        // Its scripts run outside the API process, as in a real run (core/cowork/plan/planRunCopy.mts).
+        deps.executeAutomation({ ...automation, definition: withIsolatedScripts(definition) }, {
             triggerKind: 'dry_run', mode: 'dry_run', startedByUserId: item.userId, origin: 'api',
             // Nobody answers a pause in a try-out: an approval is answered with a marked, made-up answer.
             pausesRequested: false,

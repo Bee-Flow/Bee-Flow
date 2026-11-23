@@ -126,10 +126,10 @@ test('nobody approves a plan they did not see: a fingerprint of another plan is 
 });
 
 test('a plan with a finding cannot be approved, and the answer says which', async () => {
-    const definition = planOf([{ id: 'c', type: 'code', code: 'function main() {}' }]);
+    const definition = planOf([{ id: 'c', type: 'parallel' }]);
     const { deps, state } = world({ automations: { 'auto-1': { id: 'auto-1', userId: 'u1', kind: 'automation', definition } } });
     await assert.rejects(approvePlan({ item: ITEM, fingerprint: planFingerprint(definition) }, deps),
-        (err) => err.status === 422 && err.code === 'cowork_plan_not_allowed' && /cannot run a script yet/.test(err.message));
+        (err) => err.status === 422 && err.code === 'cowork_plan_not_allowed' && /runs its steps one after another/.test(err.message));
     assert.strictEqual(state.approvals.length, 0);
 });
 

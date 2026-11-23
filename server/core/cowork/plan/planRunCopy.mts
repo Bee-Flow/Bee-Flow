@@ -13,6 +13,8 @@
  * Its run time is held to Cowork's too (COWORK_RUN_MAX_MINUTES, ../runDeadline.mts): a run policy that allows longer is
  * cut to that, so the engine stops the run before Cowork's reaper would take it for one the server lost.
  *
+ * Its scripts run outside the API process (withIsolatedScripts).
+ *
  * The approved plan and its fingerprint are not touched: this is what the runner is handed, derived at run time.
  */
 
@@ -48,9 +50,33 @@ function heldPolicy(policy: unknown, maxMinutes: number): unknown {
     return Number.isInteger(asked) && (asked as number) > maxMinutes ? { ...policy, maxDurationMin: maxMinutes } : policy;
 }
 
+type StepLike = Record<string, unknown>;
+
+/** Steps with every script marked to run outside the API process; loop bodies and branches included. */
+function isolatedSteps(steps: unknown): unknown {
+    if (!Array.isArray(steps)) return steps;
+    return steps.map((raw): unknown => {
+        if (!raw || typeof raw !== 'object') return raw;
+        const step = { ...(raw as StepLike) };
+        if (step.type === 'code') step.isolated = true;
+        if (Array.isArray(step.body)) step.body = isolatedSteps(step.body);
+        if (Array.isArray(step.branches)) step.branches = (step.branches as unknown[]).map((b) => (b && typeof b === 'object' && Array.isArray((b as StepLike).steps) ? { ...(b as StepLike), steps: isolatedSteps((b as StepLike).steps) } : b));
+        return step;
+    });
+}
+
+/**
+ * The plan with its scripts marked `isolated`: the engine runs them in a child process of their own, with no network,
+ * no apps and no secrets (automation/codeSandboxProcess.js). Set here, on every run and try-out, so an author's own
+ * value never decides it.
+ */
+export function withIsolatedScripts(definition: Definition): Definition {
+    return { ...definition, steps: isolatedSteps(definition.steps) };
+}
+
 /** The definition a plan run executes. */
 export function runCopyOf(definition: Definition, maxMinutes: number = runMaxMinutes()): Definition {
-    const copy: Definition = { ...definition, notificationSettings: OWNER_ONLY_NOTIFICATIONS };
+    const copy: Definition = { ...withIsolatedScripts(definition), notificationSettings: OWNER_ONLY_NOTIFICATIONS };
     if (definition.runPolicy !== undefined) copy.runPolicy = heldPolicy(definition.runPolicy, maxMinutes);
     return copy;
 }

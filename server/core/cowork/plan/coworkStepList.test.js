@@ -43,8 +43,8 @@ test('every step type that calls a model reads as AI, or is refused', () => {
     }
 });
 
-test('what the engine can do beyond a plan is refused with a sentence: code, a free web address, sub-flows', () => {
-    for (const type of ['code', 'http_request', 'call_block', 'call_layer', 'parallel', 'form_page']) {
+test('what the engine can do beyond a plan is refused with a sentence: a free web address, sub-flows', () => {
+    for (const type of ['http_request', 'call_block', 'call_layer', 'parallel', 'form_page']) {
         assert.strictEqual(kindOfStepType(type), null, type);
         assert.match(refusalOfStepType(type), /^A plan /, type);
     }
@@ -68,4 +68,8 @@ test('a canvas note and the trigger node are annotations, skipped rather than re
 
 test('a plan starts on the clock, by its owner, or on an app event', () => {
     assert.deepStrictEqual([...PLAN_TRIGGER_KINDS], ['schedule', 'manual', 'app_event']);
+});
+
+test('a script is on the list: it runs outside the API process with no network, no apps and no secrets', () => {
+    assert.strictEqual(kindOfStepType('code'), 'fixed');
 });

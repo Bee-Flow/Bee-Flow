@@ -272,6 +272,38 @@ function makeFetchHttpBridge(step, ctx, mode, guard) {
 }
 
 /**
+ * Run the step's code in the sandbox. A Cowork plan's script (`isolated`, set by its run copy, never by its author:
+ * core/cowork/plan/planRunCopy.mts) runs outside the API process with no bridges at all: a calculation on its inputs.
+ * @param {{ inputs: object, rehearsal: boolean, mode: string, allowedTools: unknown, guard: unknown }} run
+ */
+async function runInSandbox(step, ctx, run) {
+    const { inputs, rehearsal, mode, allowedTools, guard } = run;
+    if (step.isolated === true) {
+        const ran = await sandbox().runCodeIsolated({ code: step.code, inputs, limits: step.limits || {}, mode: rehearsal ? 'test' : 'live' });
+        return { ...ran, http: { calls: 0 }, calls: null };
+    }
+    return sandbox().runCode({
+        code: step.code,
+        inputs,
+        limits: step.limits || {},
+        // Fairness unit for the sandbox's concurrency cap (codeSandboxSlots.js).
+        concurrencyKey: ctx.orgId || ctx.userId || null,
+        // The bridges below are still BUILT in a rehearsal and simply never
+        // reached: the sandbox swaps them for recording stubs. Building them
+        // anyway keeps the permission re-resolve above on the rehearsal path
+        // too, so a dry run still refuses a tool the author has since lost
+        // access to — a rehearsal that permits more than the real run would
+        // teach exactly the wrong lesson.
+        mode: rehearsal ? 'test' : 'live',
+        bridges: {
+            executeTool: makeExecuteToolBridge(step, ctx, mode, allowedTools),
+            allowedTools,
+            fetchHttp: makeFetchHttpBridge(step, ctx, mode, guard),
+        },
+    });
+}
+
+/**
  * @param {string} mode
  */
 async function execCode(step, ctx, runState, mode) {
@@ -311,25 +343,7 @@ async function execCode(step, ctx, runState, mode) {
     refuseDeclaredSecrets(step);
     const allowedTools = await allowedCodeTools(step, ctx);
 
-    const { result, logs, http, calls } = await sandbox().runCode({
-        code: step.code,
-        inputs,
-        limits: step.limits || {},
-        // Fairness unit for the sandbox's concurrency cap (codeSandboxSlots.js).
-        concurrencyKey: ctx.orgId || ctx.userId || null,
-        // The bridges below are still BUILT in a rehearsal and simply never
-        // reached: the sandbox swaps them for recording stubs. Building them
-        // anyway keeps the permission re-resolve above on the rehearsal path
-        // too, so a dry run still refuses a tool the author has since lost
-        // access to — a rehearsal that permits more than the real run would
-        // teach exactly the wrong lesson.
-        mode: rehearsal ? 'test' : 'live',
-        bridges: {
-            executeTool: makeExecuteToolBridge(step, ctx, mode, allowedTools),
-            allowedTools,
-            fetchHttp: makeFetchHttpBridge(step, ctx, mode, guard),
-        },
-    });
+    const { result, logs, http, calls } = await runInSandbox(step, ctx, { inputs, rehearsal, mode, allowedTools, guard });
     // The sandbox's return value + logs go straight into runState and from
     // there into every downstream node — without an output
     // guard the code step would be a way around the toolOutput scope
