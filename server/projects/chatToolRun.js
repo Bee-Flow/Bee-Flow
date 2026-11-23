@@ -57,7 +57,7 @@ function toolsPrompt(definitions) {
  *   auditBase: Record<string, unknown> }} p
  */
 async function answerWithTools({ tools, definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session, modelId, messages, options, tokenMap, auditBase }) {
-    const run = tools.forAnswer({ project, userId, orgId, session });
+    const run = tools.forAnswer({ project, userId, orgId, session, chatId: typeof auditBase?.conversation_id === 'string' ? auditBase.conversation_id : null });
     const gate = shield.toolGate({ shield: shieldConfig, orgId, userId, auditBase });
     const guardSearch = shield.searchGuard({ shield: shieldConfig, orgId, userId, auditBase });
     /**

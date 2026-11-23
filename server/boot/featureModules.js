@@ -22,6 +22,9 @@ registerFeatureModules({
     'integrations/customIntegrationRunner': () => require('../integrations/customIntegrationRunner'),
     // every integration's tool arrays, for getIntegrationTools
     'integrations/coreToolsets': () => require('../integrations/coreToolsets'),
+    // filling in a template in a project's team chat (projects/chatTemplateFillTools.mts)
+    'integrations/templateFillTools': () => require('../integrations/templateFillTools.mts'),
+    'integrations/templateFillToolDefs': () => require('../integrations/templateFillToolDefs.mts'),
     // documents, webpages, KB
     'services/browserProvider': () => require('../services/browserProvider'),
     'services/email/draft': () => require('../services/email/draft.mts'),
@@ -52,4 +55,6 @@ registerFeatureModules({
     // agents, projects
     'agents/memory/extractor': () => require('../agents/memory/extractor'),
     'projects/chatModel': () => require('../projects/chatModel'),
+    // a filled-in document filed into a project from the chat (integrations/templateFillTools.mts)
+    'projects/documentFiling': () => require('../projects/documentFiling.mts'),
 });

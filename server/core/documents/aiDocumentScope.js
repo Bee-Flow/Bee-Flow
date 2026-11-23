@@ -7,7 +7,7 @@
  *   (a) it is the one open next to the chat (`sidePanelDocument`, the Documents
  *       button above the chat),
  *   (b) the chat itself created it: a `create_document` or
- *       `create_presentation` result recorded in the conversation's tool
+ *       `create_presentation` (or `template_fill_start`) result recorded in the conversation's tool
  *       history (`toolHistory[].resultPreview` holds the start of the result's
  *       JSON, with its `documentId`), or a `create_document` call made earlier
  *       in THIS turn (added live through `add`). A link in the ASSISTANT's text
@@ -26,7 +26,7 @@ const MAX_ID = 100;
 const MAX_NAME = 200;
 // Document ids are UUIDs (stores/documentStore.js).
 const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
-const CREATE_TOOLS = new Set(['create_document', 'create_presentation']);
+const CREATE_TOOLS = new Set(['create_document', 'create_presentation', 'template_fill_start']);
 const CREATED_RE = /"documentId"\s*:\s*"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"/i;
 
 const NOT_SHARED = 'This document has not been shared with this chat. Ask the user to open it with the Documents button above the chat, or to paste its link.';

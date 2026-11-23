@@ -18,6 +18,7 @@ import useComposerClaims from './useComposerClaims';
 import useFileIntake from './useFileIntake';
 import useKnowledgeBaseSelection from './useKnowledgeBaseSelection';
 import usePasteAttachments from './usePasteAttachments';
+import useTemplateFill from './useTemplateFill';
 import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import useTranslation from '@/hooks/useTranslation';
@@ -29,10 +30,6 @@ import VoiceInlinePanel from '../Voice/VoiceInlinePanel';
 import type { ComposerAttachment } from './useFileIntake';
 import type { VoiceTurn } from '../Voice/useVoiceSession.types';
 import type { InputAreaProps } from './index.types';
-
-// Moved to knowledgeBaseClaim.js, where the rest of the KB pill's reasoning
-// lives; still exported from here for the call sites that import it.
-;
 
 const InputArea = ({
     onSendMessage,
@@ -368,9 +365,10 @@ const InputArea = ({
     // callback rather than as the ref itself, so nothing outside the composer
     // can read `.current` while it renders.
     const openFilePicker = () => { fileInputRef.current?.click(); };
+    const fill = useTemplateFill({ t, directMode, simpleMode: _simpleMode, signedIn: !!user, incognito, isLoading, send: (text) => onSendMessage(text, [], activeThreadParent) });
     const composerTools = buildComposerTools({
         t, onAttachClick: openFilePicker, incognito,
-        canCreateMedia, mediaMenuOpen, setMediaMenuOpen,
+        canCreateMedia, mediaMenuOpen, setMediaMenuOpen, ...fill,
         canPickApps, appsOpen, setAppsOpen,
         canWebSearch, webSearchEnabled, webSearchBlocked, webSearchUnavailable, setWebSearchEnabled,
         simpleMode: _simpleMode, showTierSlider,
@@ -414,7 +412,7 @@ const InputArea = ({
             canCreateMedia={canCreateMedia} mediaMenuOpen={mediaMenuOpen} setMediaMenuOpen={setMediaMenuOpen}
             showImageGen={showImageGen} showMusicGen={showMusicGen} showElevenLabs={showElevenLabs} showVideoGen={showVideoGen}
             canPickApps={canPickApps} availableApps={availableApps} isAppEnabled={isAppEnabled} toggleApp={toggleApp}
-            appsOpen={appsOpen} setAppsOpen={setAppsOpen} onPickApp={onPickApp}
+            appsOpen={appsOpen} setAppsOpen={setAppsOpen} onPickApp={onPickApp} {...fill}
             tierClaim={tierClaim} tierPillLabel={tierPillLabel} directMode={directMode}
             canPickSkills={canPickSkills} activeSkillCount={activeSkillCount} skillsOpen={skillsOpen} setSkillsOpen={setSkillsOpen}
             user={user} activeSkillIds={activeSkillIds} agentAttachedSkillIds={agentAttachedSkillIds}

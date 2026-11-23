@@ -36,6 +36,15 @@ it('an organisation admin sees no Archive on a managed team template either', ()
     expect(screen.queryByRole('button', { name: 'Archive Stage offer' })).not.toBeInTheDocument();
 });
 
+it('offers a template file download on designed documents and templates, not on pages', async () => {
+    const onExport = vi.fn();
+    const doc: LibraryRow = { id: 'd1', name: 'Notes', userId: 'me', docType: 'page', kind: 'document', updatedAt: now };
+    render(<LibraryList {...props([free, doc])} onExport={onExport} />);
+    expect(screen.queryByTestId('library-export-d1')).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Download Own offer as a template file' }).click();
+    expect(onExport).toHaveBeenCalledWith(free);
+});
+
 it('a row says Shared for some people and Organisation for everyone, from the audience the server sends', () => {
     const doc = (id: string, audience: LibraryRow['audience']): LibraryRow => ({ id, name: `Doc ${id}`, userId: 'me', docType: 'page', kind: 'document', visibility: audience === 'private' ? 'private' : 'team', audience, updatedAt: now });
     render(<LibraryList {...props([doc('a', 'restricted'), doc('b', 'organisation'), doc('c', 'private')])} />);

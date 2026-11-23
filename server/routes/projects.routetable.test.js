@@ -279,6 +279,11 @@ const EXPECTED = [
     'PATCH /:id/board/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'POST /:id/documents [requireProjectRoleMw,rateLimiter,validateRequest]',
     'POST /:id/notebooks [requireProjectRoleMw,requireNotebooksMw,rateLimiter,validateRequest]',
+    'GET /:id/document-folders [requireProjectRoleMw]',
+    'POST /:id/document-folders [requireProjectRoleMw,validateRequest]',
+    'PUT /:id/document-folders/placement [requireProjectRoleMw,validateRequest]',
+    'PATCH /:id/document-folders/:folderId [requireProjectRoleMw,validateRequest]',
+    'DELETE /:id/document-folders/:folderId [requireProjectRoleMw]',
     // Real-time co-editing (routes/projects/collab.js). Opening, syncing and
     // presence are viewer+ (a viewer follows along read-only); posting
     // changes is editor+. `collabBodyGuard` refuses an oversized body before

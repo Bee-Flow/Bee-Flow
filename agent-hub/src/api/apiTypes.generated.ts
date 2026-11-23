@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1936 operations. */
+/** 1946 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -4300,6 +4300,18 @@ export interface ApiOperations {
         clientId: number;
         updates: Array<string>;
     }>;
+    'GET /api/projects/{id}/document-folders': Op<{ id: string | number }>;
+    'POST /api/projects/{id}/document-folders': Op<{ id: string | number }, UndeclaredQuery, {
+        name: string;
+    }>;
+    'PUT /api/projects/{id}/document-folders/placement': Op<{ id: string | number }, UndeclaredQuery, {
+        documentId: string;
+        folderId: string | null;
+    }>;
+    'PATCH /api/projects/{id}/document-folders/{folderId}': Op<{ id: string | number; folderId: string | number }, UndeclaredQuery, {
+        name: string;
+    }>;
+    'DELETE /api/projects/{id}/document-folders/{folderId}': Op<{ id: string | number; folderId: string | number }>;
     'POST /api/projects/{id}/documents': Op<{ id: string | number }, UndeclaredQuery, {
         docType?: string;
         locale?: string;
@@ -5299,6 +5311,10 @@ export interface ApiOperations {
         name?: string;
     }>;
     'POST /api/studio-documents/house-style/preview-theme': Op;
+    'POST /api/studio-documents/import': Op<NoParams, UndeclaredQuery, {
+        file: Record<string, unknown>;
+        folderId?: string;
+    }>;
     'DELETE /api/studio-documents/notebooks/{id}': Op<{ id: string | number }>;
     'POST /api/studio-documents/notebooks/{id}/archive': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'PATCH /api/studio-documents/notebooks/{id}/filing': Op<{ id: string | number }, UndeclaredQuery, {
@@ -5351,6 +5367,7 @@ export interface ApiOperations {
         kind?: 'document' | 'template' | 'section';
         name?: string;
     }>;
+    'GET /api/studio-documents/{id}/export': Op<{ id: string | number }>;
     'POST /api/studio-documents/{id}/insert-section': Op<{ id: string | number }, UndeclaredQuery, {
         expectedVersionId?: string;
         sourceId: string;
@@ -5426,6 +5443,16 @@ export interface ApiOperations {
     'POST /api/studio-documents/{id}/validate': Op<{ id: string | number }, UndeclaredQuery, {
         sectionOverrides?: Record<string, unknown> | null;
         values?: Record<string, unknown> | null;
+    }>;
+    'POST /api/studio-documents/{id}/value-requests': Op<{ id: string | number }, UndeclaredQuery, {
+        assigneeIds: Array<string>;
+        fields: Array<string>;
+        message?: string;
+    }>;
+    'POST /api/studio-documents/{id}/value-requests/{requestId}/close': Op<{ id: string | number; requestId: string | number }, UndeclaredQuery, Record<string, never>>;
+    'PUT /api/studio-documents/{id}/values': Op<{ id: string | number }, UndeclaredQuery, {
+        finish?: boolean;
+        values: Record<string, unknown>;
     }>;
     'GET /api/studio-documents/{id}/versions': Op<{ id: string | number }, {
         cursor?: string;

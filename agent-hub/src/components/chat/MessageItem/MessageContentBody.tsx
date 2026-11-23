@@ -1,4 +1,5 @@
 import { messageContentToText } from '@/utils/messageShape';
+import { withoutTemplatePick } from '../templatePick';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import ActivityIndicator, { type ToolRow } from './ActivityIndicator';
@@ -21,7 +22,9 @@ const MessageContentBody = ({ msg, reasoningVisible, sessionSkills }: MessageCon
     // NOT String(msg.content): on block content that yields the
     // literal "[object Object],[object Object]" users reported
     // in BFSF-307. Always read content through the walker.
-    const errText = messageContentToText(msg.content);
+    // A template picked in the composer travels as a last `[template:<id>]` line: not for the person's eyes.
+    const raw = messageContentToText(msg.content);
+    const errText = msg.role === 'user' ? withoutTemplatePick(raw) : raw;
     // BFSF-349: a turn that failed AFTER some of its tools ran keeps the reply
     // so far and the "done before the error" line, rendered as the answer they
     // are; the card below them holds only the error, and only the error decides

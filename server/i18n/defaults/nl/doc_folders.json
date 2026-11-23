@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "doc_folders.folder_cancel": "Annuleren",
+    "doc_folders.folder_delete": "Map {name} verwijderen",
+    "doc_folders.folder_failed": "Dat is niet gelukt. Probeer het opnieuw.",
+    "doc_folders.folder_move": "{name} naar een map verplaatsen",
+    "doc_folders.folder_move_short": "Naar map verplaatsen",
+    "doc_folders.folder_new": "Nieuwe map",
+    "doc_folders.folder_new_name": "Naam van de nieuwe map",
+    "doc_folders.folder_none": "Geen map",
+    "doc_folders.folder_rename": "Map {name} hernoemen",
+    "doc_folders.folder_rename_name": "Nieuwe naam van de map",
+    "doc_folders.folder_save": "Opslaan",
+    "doc_folders.folders_all": "Alle documenten",
+    "doc_folders.folders_label": "Mappen"
+  },
+  "sameAsEnglish": []
+}

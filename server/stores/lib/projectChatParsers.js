@@ -22,7 +22,7 @@ function parseMentions(v) {
  * @param {unknown} v
  */
 function parseAiMeta(v) {
-    let meta = /** @type {{ usedSources?: unknown[], tier?: string, requestedTier?: string, redacted?: number, categories?: unknown[] } | null} */ (v);
+    let meta = /** @type {{ usedSources?: unknown[], tier?: string, requestedTier?: string, redacted?: number, categories?: unknown[], templateFills?: unknown[] } | null} */ (v);
     if (typeof v === 'string') {
         try { meta = JSON.parse(v); } catch (_) { return null; }
     }
@@ -35,6 +35,8 @@ function parseAiMeta(v) {
         requestedTier: str(meta.requestedTier),
         redacted: typeof meta.redacted === 'number' && Number.isFinite(meta.redacted) ? Math.max(0, Math.floor(meta.redacted)) : 0,
         categories: Array.isArray(meta.categories) ? meta.categories.map(str).filter(Boolean).slice(0, 20) : [],
+        // The documents the answer filled in from a template (projects/chatTemplateFillTools.mts): ids only.
+        ...(Array.isArray(meta.templateFills) ? { templateFills: meta.templateFills.map(str).filter(Boolean).slice(0, 5) } : {}),
     };
 }
 
