@@ -9,7 +9,7 @@
 
 import { field, pick, shapeListOf, shapeOf } from '@/core/api/contract';
 
-import type { ComposedCowork, CoworkRun, CoworkSchedule } from '../model/types';
+import type { ComposedCowork, CoworkNeed, CoworkRun, CoworkSchedule } from '../model/types';
 
 const scheduleSpec = {
     id: field.str(''),
@@ -70,3 +70,15 @@ export const readComposed: (raw: unknown) => ComposedCowork = shapeOf({
     runOnce: field.optBool,
     agentId: field.strOrNull,
 });
+
+/** "Waiting for you": entries without an item have nowhere to go and are dropped. */
+const readNeedList: (raw: unknown) => CoworkNeed[] = shapeListOf({
+    kind: field.str(''),
+    itemId: field.str(''),
+    title: field.str(''),
+    plan: field.strOrNull,
+});
+
+export function readNeeds(raw: unknown): CoworkNeed[] {
+    return readNeedList(pick(raw, 'needs')).filter((n) => n.itemId && n.kind);
+}

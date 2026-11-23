@@ -15,15 +15,20 @@ import { api } from '@/core/api/client';
 import { nullable } from '@/core/api/contract';
 import { withId } from '@/shared/lib/withId';
 
-import { readComposed, readRuns, readSchedule, readSchedules } from './readers';
+import { readComposed, readNeeds, readRuns, readSchedule, readSchedules } from './readers';
 import type { CoworkPayload } from '../model/schedule';
-import type { ComposedCowork, CoworkRun, CoworkSchedule } from '../model/types';
+import type { ComposedCowork, CoworkNeed, CoworkRun, CoworkSchedule } from '../model/types';
 
 const path = (id: string) => `/api/cowork/${encodeURIComponent(id)}`;
 
 export async function listSchedules(signal?: AbortSignal): Promise<CoworkSchedule[]> {
     // An id-less row has no detail screen, no toggle and no delete — skip it.
     return withId(readSchedules(await api.get<unknown>('/api/cowork', { signal })));
+}
+
+/** Everything of the caller's Cowork work that waits for them, most urgent first. */
+export async function listNeedsYou(signal?: AbortSignal): Promise<CoworkNeed[]> {
+    return readNeeds(await api.get<unknown>('/api/cowork/needs-you', { signal }));
 }
 
 export async function getSchedule(id: string, signal?: AbortSignal): Promise<CoworkSchedule | null> {

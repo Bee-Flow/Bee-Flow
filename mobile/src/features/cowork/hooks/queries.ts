@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { getSchedule, listScheduleRuns, listSchedules } from '../api/endpoints';
+import { getSchedule, listNeedsYou, listScheduleRuns, listSchedules } from '../api/endpoints';
 import { coworkKeys } from '../api/keys';
 
 /** Every schedule. A licence or a plan can withhold this; the hub still works. */
@@ -11,6 +11,16 @@ export function useSchedules() {
         queryKey: coworkKeys.schedules,
         queryFn: ({ signal }) => listSchedules(signal),
         staleTime: 60_000,
+        retry: 1,
+    });
+}
+
+/** "Waiting for you": read when the hub opens and on every pull; a failure leaves the section out. */
+export function useNeedsYou() {
+    return useQuery({
+        queryKey: coworkKeys.needsYou,
+        queryFn: ({ signal }) => listNeedsYou(signal),
+        staleTime: 30_000,
         retry: 1,
     });
 }

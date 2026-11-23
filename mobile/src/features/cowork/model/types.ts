@@ -48,3 +48,15 @@ export interface ComposedCowork {
     runOnce?: boolean;
     agentId?: string | null;
 }
+
+/**
+ * One entry of "Waiting for you" (GET /api/cowork/needs-you, server/usecases/coworkNeedsYou.mts): something of the
+ * owner's own Cowork work that waits for them. `kind` is decision, review, sign_in or plan; `plan` says where a plan
+ * stands (first, changed, blocked, gone).
+ */
+export interface CoworkNeed {
+    kind: string;
+    itemId: string;
+    title: string;
+    plan: string | null;
+}

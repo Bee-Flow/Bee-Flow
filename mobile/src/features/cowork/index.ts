@@ -8,7 +8,8 @@
 export { CoworkDetailScreen } from './screens/CoworkDetailScreen';
 
 export { ComposeCowork } from './components/ComposeCowork';
+export { NeedsYouRow } from './components/NeedsYouRow';
 export { ScheduleRow } from './components/ScheduleRow';
-export { useSchedules } from './hooks/queries';
+export { useNeedsYou, useSchedules } from './hooks/queries';
 
 export { listSchedules } from './api/endpoints';

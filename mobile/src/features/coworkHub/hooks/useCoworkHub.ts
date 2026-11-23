@@ -18,7 +18,7 @@ import {
     useRunStream,
     type RunEvent,
 } from '@/features/automations';
-import { useSchedules } from '@/features/cowork';
+import { useNeedsYou, useSchedules } from '@/features/cowork';
 import { useReminders, useTasks } from '@/features/tasks';
 import { useUserRefresh } from '@/shared/patterns';
 
@@ -29,6 +29,8 @@ export function useCoworkHub() {
     // duplicating it here would be the two-doors-two-screens fault again.
     const pendingApprovals = useApprovals('pending', { staleTime: 60_000, retry: 1 });
     const schedules = useSchedules();
+    // "Waiting for you": what of the owner's Cowork work waits for them (a decision, a review, a sign-in, a plan).
+    const coworkNeeds = useNeedsYou();
     const automations = useAutomations();
     const active = useActiveRuns({ busyMs: 10_000, idleMs: 60_000 });
     const recent = useRecentRuns();
@@ -67,12 +69,13 @@ export function useCoworkHub() {
     // The person's pull only. Every run event invalidates the recent runs, so
     // their `isRefetching` would drop the refresh circle in by itself.
     const { refreshing, onRefresh: refreshAll } = useUserRefresh(() =>
-        Promise.all([automations.refetch(), active.refetch(), recent.refetch(), tasks.refetch(), reminders.refetch()]),
+        Promise.all([automations.refetch(), active.refetch(), recent.refetch(), tasks.refetch(), reminders.refetch(), coworkNeeds.refetch()]),
     );
 
     return {
         pendingApprovals,
         schedules,
+        coworkNeeds,
         automations,
         active,
         recent,

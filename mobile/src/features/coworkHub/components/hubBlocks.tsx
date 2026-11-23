@@ -12,7 +12,7 @@ import React from 'react';
 
 import { translate } from '@/core/i18n';
 import type { ActiveRun } from '@/features/automations';
-import { ScheduleRow } from '@/features/cowork';
+import { NeedsYouRow, ScheduleRow } from '@/features/cowork';
 import { cardRows, type Block } from '@/shared/patterns';
 import { Section } from '@/shared/ui';
 
@@ -49,6 +49,16 @@ function noticeBlocks(hub: CoworkHub): Block[] {
         out.push(block('approvals', 'section', () => <ApprovalsWaitingBanner count={pending} />));
     }
     return out;
+}
+
+/** "Waiting for you": the owner's Cowork work that waits for them, one row each, right under the notices. */
+function coworkNeedBlocks(hub: CoworkHub): Block[] {
+    const needs = hub.coworkNeeds.data ?? [];
+    if (needs.length === 0) return [];
+    return [
+        block('cowork-needs', 'section', () => <Section title={translate('cowork_needs.heading', 'Waiting for you')}>{null}</Section>),
+        ...needs.map((need) => block(`cowork-need:${need.kind}:${need.itemId}`, 'inner', () => <NeedsYouRow need={need} />)),
+    ];
 }
 
 function scheduleBlocks(hub: CoworkHub): Block[] {
@@ -88,6 +98,7 @@ export function hubBlocks(hub: CoworkHub, actions: HubActions): Block[] {
     const recent = hub.recent.data ?? [];
     return [
         ...noticeBlocks(hub),
+        ...coworkNeedBlocks(hub),
         ...scheduleBlocks(hub),
         ...(hub.needsYou.length > 0
             ? [
