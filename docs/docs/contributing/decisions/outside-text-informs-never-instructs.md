@@ -10,7 +10,9 @@ follows. **Supersedes:** no earlier record. It generalises the allow-list of a r
 mail (`server/core/agentRuntime/toolPolicy/mailRun.mts`) from that one kind of run to every plan.
 **Code:** `server/core/cowork/plan/outsideText.mts` (where outside text enters and where it
 travels), `planChecks.mts` (the rules), `planWalk.mts` (the reading of a definition both use).
-**Enforced by:** `server/core/cowork/plan/outsideText.test.js` and `planChecks.test.js`.
+**Enforced by:** `server/core/cowork/plan/outsideText.test.js` and `planChecks.test.js`, and on the real
+engine by `server/core/cowork/poisonedMail.engine.pg.test.js`: a catalogue of poisoned mails, read by a model
+that obeys them, changes no recipient, adds no step and reaches no tool outside the plan.
 
 ## Context
 
