@@ -19,6 +19,7 @@
 
 import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
+import { planTriggerOf } from './mailPlanStart.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -287,22 +288,6 @@ export async function followUpMailTrigger(mail: MailRunContext, userId: string, 
         participants: fetched ? addressesIn(shaped.from, shaped.to, shaped.cc) : [],
         outcomes: [] as Array<{ kind: string }>,
         ...(mail.readOutside === true ? { readOutside: true } : {}),
-    };
-}
-
-/**
- * The start data a plan gets from the mail that started it, as `{{trigger.output.mail.*}}`: who sent it, its subject,
- * its text and where it sits. The fields are the shaped (clipped) message; the run treats all of it as outside text.
- */
-export function planTriggerOf(runId: string, provider: 'gmail' | 'outlook', mail: MailMessage) {
-    return {
-        runId,
-        plan: true,
-        mailSubject: mail.subject.slice(0, MAX_STORED_SUBJECT),
-        payload: {
-            start: 'app_event',
-            mail: { provider, from: mail.from, to: mail.to, cc: mail.cc, subject: mail.subject, date: mail.date, body: mail.body, messageId: mail.messageId, threadId: mail.threadId },
-        },
     };
 }
 
