@@ -18,6 +18,9 @@ describe('CoworkHandOver', () => {
         const user = userEvent.setup();
         await user.selectOptions(await screen.findByLabelText('Colleague'), 'bob');
         await user.click(screen.getByRole('button', { name: 'Hand over' }));
+        expect(calls.some((c) => c.method === 'POST')).toBe(false);
+        expect(screen.getByRole('alertdialog')).toHaveTextContent('Hand it over to Bob? This item and its runs are deleted');
+        await user.click(screen.getByRole('button', { name: 'Yes, hand it over' }));
         await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
         const post = calls.find((c) => c.method === 'POST');
         expect(post?.url).toMatch(/\/api\/cowork\/w1\/hand-over$/);

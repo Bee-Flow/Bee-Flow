@@ -17,12 +17,12 @@ export default function CoworkSaveTemplate({ coworkId, title }: { coworkId: stri
     const save = useSaveCoworkTemplate(coworkId);
     const trimmed = name.trim();
     return (
-        <details className="rounded-[10px] border px-[18px] py-3 [border-color:var(--border-subtle)]" data-testid="cowork-save-template">
-            <summary className="cursor-pointer inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)]">
+        <div className="flex flex-col gap-2" data-testid="cowork-save-template">
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)]">
                 <LayoutTemplate aria-hidden="true" className="w-3.5 h-3.5" />
                 {t('cowork_templates.save_heading', 'Save as template')}
-            </summary>
-            <div className="pt-2 flex flex-col gap-2">
+            </span>
+            <div className="flex flex-col gap-2">
                 <p className="text-[12px] text-[var(--text-secondary)]">
                     {t('cowork_templates.save_hint', 'Colleagues in your organisation can start from it. It keeps the brief, the schedule and the approved plan, without your connections, approvers or runs.')}
                 </p>
@@ -43,6 +43,6 @@ export default function CoworkSaveTemplate({ coworkId, title }: { coworkId: stri
                 )}
                 {save.error && <p role="alert" className="text-[12px] text-[var(--error-ink)]">{errorMessage(save.error) || t('cowork_plan.failed', 'That did not work. Try again.')}</p>}
             </div>
-        </details>
+        </div>
     );
 }

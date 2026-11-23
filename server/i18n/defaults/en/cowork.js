@@ -227,4 +227,12 @@ module.exports = {
     'cowork.shared.heading': 'Shared with you',
     'cowork.shared.decides': '{owner}\'s, you decide its questions',
     'cowork.shared.sees': '{owner}\'s, you can see it',
+    'cowork.hand_over.what': 'Your colleague gets a copy of this work, paused, with its plan to approve. This item and its run history are then deleted.',
+    'cowork.hand_over.confirm': 'Hand it over to {name}? This item and its runs are deleted; {name} starts with a paused copy.',
+    'cowork.hand_over.confirm_go': 'Yes, hand it over',
+    'cowork.hand_over.cancel': 'Keep it',
+    'cowork.start.rotate': 'Make a new token',
+    'cowork.start.rotate_confirm': 'The current token stops working at once, so whatever calls this cowork needs the new one. Its plan is approved again.',
+    'cowork.start.rotate_go': 'Make a new token',
+    'cowork.start.keep': 'Keep the current one',
 };

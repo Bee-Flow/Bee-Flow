@@ -18,7 +18,6 @@ describe('CoworkSaveTemplate', () => {
         }));
         renderWithClient(<CoworkSaveTemplate coworkId="w1" title="Supplier radar" />);
         const user = userEvent.setup();
-        await user.click(screen.getByText('Save as template', { selector: 'summary' }));
         const name = screen.getByLabelText('Name of the template');
         expect(name).toHaveValue('Supplier radar');
         await user.clear(name);

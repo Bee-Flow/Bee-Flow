@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from 'react';
 import CoworkHandOver from './CoworkHandOver';
+import CoworkSaveTemplate from './CoworkSaveTemplate';
 import CoworkShare from './CoworkShare';
 import CoworkStartPanel from './CoworkStartPanel';
 import CoworkTrail from './CoworkTrail';
@@ -68,6 +69,7 @@ export default function CoworkSettings({ item, busy, onEdit }: CoworkSettingsPro
             <Section id="people" heading={t('cowork_detail.settings.people', 'People')}>
                 <CoworkShare coworkId={item.id} />
                 <CoworkHandOver coworkId={item.id} />
+                <CoworkSaveTemplate coworkId={item.id} title={item.title} />
             </Section>
             <Section id="budget" heading={t('cowork_detail.settings.budget', 'Budget')}>
                 <Budget amount={budget} t={t} locale={locale} busy={busy} onEdit={onEdit} />
