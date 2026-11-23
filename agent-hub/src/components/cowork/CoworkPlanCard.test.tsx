@@ -114,6 +114,14 @@ describe('CoworkPlanCard', () => {
         expect(order.indexOf('the-try-out')).toBeLessThan(order.indexOf('cowork-plan-approve'));
     });
 
+    it('a change that cannot be approved says so, keeps saying runs follow the approved version, and offers no approval', () => {
+        const draft = supplierRadarDraft();
+        renderCard(approvedState({ upToDate: false, approved: { version: 2, fingerprint: 'older', approvedAt: null, permissions: draft.permissions }, draft: { ...draft, findings: [{ code: 'step.not_allowed', stepId: 'c', message: 'A plan cannot run a script yet.' }] } }));
+        expect(screen.getByTestId('cowork-plan-status').textContent).toContain('Runs still follow version 2');
+        expect(screen.getByText('Why this change cannot be approved')).toBeTruthy();
+        expect(screen.queryByTestId('cowork-plan-approve')).toBeNull();
+    });
+
     it('shows what the planner said about the plan it made, as plain text', () => {
         renderCard(planState(), { note: 'Each run reads the supplier mail and tells you. **It could not** reach the ERP: <b>not connected</b>.' });
         const note = screen.getByTestId('cowork-plan-note');

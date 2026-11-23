@@ -188,3 +188,48 @@ test('every finding is a sentence that names its step', () => {
         assert.ok(f.message.length > 20 && f.message.endsWith('.'), f.message);
     }
 });
+
+test('other approvers are refused in the shape the engine reads them: under the step\'s approval', () => {
+    const ask = (approval) => planOf([{ id: 'ask', type: 'approval', prompt: 'Send?', approval }]);
+    assert.deepStrictEqual(codes(ask({ assignee: { userId: 'u-other' } })), ['ask.other_people']);
+    assert.deepStrictEqual(codes(ask({ escalateTo: { userId: 'u4' }, escalateAfterHours: 2 })), ['ask.other_people']);
+    assert.deepStrictEqual(codes(ask({ approvers: [{ groupId: 'g1' }], rule: 'all' })), ['ask.other_people']);
+    assert.deepStrictEqual(codes(ask({ details: 'The orders', fields: [] })), [], 'details and questions for the owner are fine');
+});
+
+test('an AI step offered a tool that reads mail reads outside text itself: it may hold no tool, and what it writes is marked', () => {
+    const reader = { id: 'a', type: 'ai_step', prompt: 'Reply to what my supplier mail asks', tools: ['outlook_search', 'outlook_compose'] };
+    assert.deepStrictEqual(codes(planOf([reader])), ['ai.outside_text_with_tools']);
+    const onlyReads = { id: 'a', type: 'ai_step', prompt: 'Summarise my supplier mail', tools: ['outlook_search'] };
+    assert.deepStrictEqual(codes(planOf([onlyReads])), ['ai.outside_text_with_tools'], 'the read itself is a tool it may not hold');
+    const send = { id: 's', type: 'integration_action', tool: 'outlook_compose', inputs: { to: template('{{steps.a.output.text}}'), body: literal('Hi') } };
+    assert.ok(codes(planOf([onlyReads, send])).includes('send.destination_from_outside'), 'its answer cannot pick a recipient');
+});
+
+test('outside text reaches a loop inside a loop: the outer item is in reach there too', () => {
+    const outer = (body) => planOf([mailStep, { id: 'outer', type: 'loop', overRef: '{{steps.mail.output.messages}}', itemVar: 'm', body: [
+        { id: 'inner', type: 'loop', overRef: '{{steps.mail.output.fixed}}', itemVar: 'x', body },
+    ] }]);
+    const fixedOnly = planOf([{ id: 'fixed', type: 'set', fields: {} }, { id: 'outer', type: 'loop', overRef: '{{steps.fixed.output.list}}', itemVar: 'm', body: [
+        { id: 'inner', type: 'loop', overRef: '{{steps.fixed.output.list}}', itemVar: 'x', body: [{ id: 'c', type: 'integration_action', tool: 'outlook_compose', inputs: { to: template('{{loop.m.from}}') } }] },
+    ] }]);
+    assert.ok(codes(outer([{ id: 'c', type: 'integration_action', tool: 'outlook_compose', inputs: { to: template('{{loop.m.from}}') } }])).includes('send.destination_from_outside'));
+    assert.ok(codes(outer([{ id: 'r', type: 'ai_step', prompt: '{{loop.m.body}}', tools: ['outlook_compose'] }])).includes('ai.outside_text_with_tools'));
+    assert.deepStrictEqual(codes(fixedOnly), [], 'loops over the owner\'s own data stay fine');
+});
+
+test('outside text never picks the Talk conversation a message goes to, nor the message a reply answers', () => {
+    const talk = fakeLookups({ nextcloud_talk_send_message: ['nextcloud-talk', 'sends'] });
+    const toRoom = planOf([mailStep, { id: 't', type: 'integration_action', tool: 'nextcloud_talk_send_message', inputs: { token: ref('steps.mail.output.subject'), message: template('{{steps.mail.output.body}}') } }]);
+    assert.deepStrictEqual(checkPlan(toRoom, talk).map((f) => f.code), ['send.destination_from_outside']);
+    const reply = planOf([mailStep, { id: 'r', type: 'integration_action', tool: 'outlook_compose', inputs: { replyToMessageId: ref('steps.mail.output.id'), body: literal('Thanks') } }]);
+    assert.deepStrictEqual(codes(reply), ['send.destination_from_outside']);
+});
+
+test('outside text never picks which rows of a table are changed or deleted; it may fill the values', () => {
+    const write = (over) => planOf([mailStep, { id: 'd', type: 'datatable', op: 'delete_rows', datatableId: 'dt-1', ...over }]);
+    assert.deepStrictEqual(codes(write({ where: [{ field: 'supplier', op: 'eq', value: '{{steps.mail.output.from}}' }] })), ['write.target_from_outside']);
+    assert.deepStrictEqual(codes(write({ where: [{ field: 'status', op: 'eq', value: 'done' }] })), []);
+    const add = planOf([mailStep, { id: 'd', type: 'datatable', op: 'add_row', datatableId: 'dt-1', values: { subject: template('{{steps.mail.output.subject}}') } }]);
+    assert.deepStrictEqual(codes(add), [], 'a row\'s content may come from the mail');
+});

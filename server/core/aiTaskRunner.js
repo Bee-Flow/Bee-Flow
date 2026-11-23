@@ -183,8 +183,20 @@ async function resolveUserSession(userId) {
  * `maxMs`: this run's own time limit; without it the configured one
  * (COWORK_RUN_MAX_MINUTES, ./cowork/runDeadline.mts).
  */
+/**
+ * Does this run follow the item's plan? Not a run a new mail started, and not when the plan was taken off since the
+ * tick read the item: it is read again. Only the Cowork store has plans (the older task store never hands a planId),
+ * hence the optional call.
+ * @param {CoworkTask} task
+ * @param {unknown} trigger
+ * @param {{ getApprovedPlan?: (id: string) => Promise<unknown> }} store
+ */
+async function followsPlan(task, trigger, store) {
+    return !!(task.planId && !trigger && await store.getApprovedPlan?.(task.id));
+}
+
 async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null, due = false, maxMs = undefined } = {}) {
-    if (task.planId && !trigger) {
+    if (await followsPlan(task, trigger, store)) {
         // An item with an approved plan runs as that plan (./cowork/planRun.mts):
         // the plan is what its owner approved. A run a new mail started is no plan run.
         return executePlanRun(task, { manual, store, due }, { failRun, advance: advanceAfterTaskRun, NOTIFICATION });
@@ -257,7 +269,9 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         }
         const finalResponse = promptRunOutcome(task, loop, { messages: prep.messages, tools: prep.tools });
 
-        // Store result
+        // Move the schedule on, then close the run: once the item stops saying 'running', a tick must not find
+        // this moment still due (the order the automation runner keeps too, runFinalize.js).
+        await advanceAfterTaskRun(task, { manual, store, startTime });
         await store.markCompleted(task.id, finalResponse);
 
         // Create notification
@@ -271,8 +285,6 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             message: finalResponse,
             link: shape.link,
         });
-
-        await advanceAfterTaskRun(task, { manual, store, startTime });
     } catch (caught) {
         // A run stopped by its deadline fails with the SDK's abort error; the
         // owner reads why it stopped, not how.
@@ -469,9 +481,8 @@ async function advanceAfterTaskRun(task, { manual, store, startTime }) {
  * tell the owner.
  */
 async function failRun(task, err, { manual, store, close = undefined }) { // close: an agent run's own row and activity
-    await store.markError(task.id, err, close);
-
-    // Still advance schedule on error (don't let errors block future runs) — but not for manual runs
+    // Still advance schedule on error (don't let errors block future runs) — but not for manual runs. Before the
+    // error is marked: once the item stops saying 'running', a tick must not find this moment still due.
     if (isRepeating(task) && !manual) {
         await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
     } else if (!manual) {
@@ -481,6 +492,7 @@ async function failRun(task, err, { manual, store, close = undefined }) { // clo
         // — forever. The failure notification below is the retry signal.
         await store.updateTask(task.id, { isActive: false });
     }
+    await store.markError(task.id, err, close);
 
     // Notify user about failure
     try {

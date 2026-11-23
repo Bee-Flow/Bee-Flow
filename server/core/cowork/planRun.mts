@@ -29,6 +29,7 @@ import { planFingerprint } from './plan/planPermissions.mts';
 import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
+import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
 
@@ -174,19 +175,22 @@ export async function executePlanRun(
         await store.linkPlanRun(attempt.runId, { planId: plan.id });
         // A spread without the row's own copies: the runner executes exactly the definition handed in
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.
-        const row = await d.executeAutomation({ ...automation, definition: runCopyOf(definition) }, {
+        // The row's own time limit is held to Cowork's as well (./plan/planRunCopy.mts holds the run policy's).
+        const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
+        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(definition) }, {
             triggerKind: 'manual',
             mode: 'live',
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),
         });
         const { text, paused } = outcomeOf(row);
-        // A run that waits for a decision closes as 'waiting'; ./planRunFollowUp.mts closes it for good when it ends.
+        // The schedule moves on before the run closes: once the item stops saying 'running', a tick must not find
+        // this moment still due. A run that waits for a decision closes as 'waiting' (./planRunFollowUp.mts).
+        await deps.advance(task, { manual, store, startTime });
         await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: paused });
         // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
         // before its result step, is announced here.
         if (paused || planViewOf(definition, d.lookups).makeUp.deliver === 0) await announce(task, text, deps, d.createNotification);
-        await deps.advance(task, { manual, store, startTime });
     } catch (caught) {
         const err = caught instanceof Error ? caught : new Error(String(caught));
         log.error(`[AITaskRunner] Plan run of ${task.id} failed:`, err.message);

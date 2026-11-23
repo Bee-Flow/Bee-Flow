@@ -10,10 +10,14 @@
  *   - failure and success: off. Cowork tells the owner itself (the item's own notification, once);
  *   - a waiting approval: the owner's bell, nothing else.
  *
+ * Its run time is held to Cowork's too (COWORK_RUN_MAX_MINUTES, ../runDeadline.mts): a run policy that allows longer is
+ * cut to that, so the engine stops the run before Cowork's reaper would take it for one the server lost.
+ *
  * The approved plan and its fingerprint are not touched: this is what the runner is handed, derived at run time.
  */
 
 import type { Definition } from './planTypes.mts';
+import { runMaxMs } from '../runDeadline.mts';
 
 const OFF = Object.freeze({ enabled: false, channels: Object.freeze([]), recipients: Object.freeze([]) });
 
@@ -32,7 +36,21 @@ export const OWNER_ONLY_NOTIFICATIONS = Object.freeze({
     digest: Object.freeze({ enabled: false }),
 });
 
+/** Cowork's run limit in whole minutes (at least one). */
+export function runMaxMinutes(): number {
+    return Math.max(1, Math.floor(runMaxMs() / 60_000));
+}
+
+/** The run policy with its time limit held to `maxMinutes`; the policy as it is when it asks for no more. */
+function heldPolicy(policy: unknown, maxMinutes: number): unknown {
+    if (!policy || typeof policy !== 'object' || Array.isArray(policy)) return policy;
+    const asked = (policy as { maxDurationMin?: unknown }).maxDurationMin;
+    return Number.isInteger(asked) && (asked as number) > maxMinutes ? { ...policy, maxDurationMin: maxMinutes } : policy;
+}
+
 /** The definition a plan run executes. */
-export function runCopyOf(definition: Definition): Definition {
-    return { ...definition, notificationSettings: OWNER_ONLY_NOTIFICATIONS };
+export function runCopyOf(definition: Definition, maxMinutes: number = runMaxMinutes()): Definition {
+    const copy: Definition = { ...definition, notificationSettings: OWNER_ONLY_NOTIFICATIONS };
+    if (definition.runPolicy !== undefined) copy.runPolicy = heldPolicy(definition.runPolicy, maxMinutes);
+    return copy;
 }

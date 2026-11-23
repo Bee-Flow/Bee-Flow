@@ -54,3 +54,11 @@ test('the owner-only settings mean, to the notifier itself: no failure or succes
     assert.deepStrictEqual(read.onApproval, { enabled: true, channels: ['bell'], recipients: [{ type: 'owner' }], urgency: 'normal', throttle: { maxPerHour: null }, delivery: 'direct' });
     assert.strictEqual('talkRoom' in read.onApproval, false);
 });
+
+test('a run copy holds the run time to Cowork\'s limit; a policy that asks for less, or nothing, is kept', () => {
+    const withPolicy = (runPolicy) => runCopyOf({ ...supplierRadar(), runPolicy }, 20).runPolicy;
+    assert.deepStrictEqual(withPolicy({ maxDurationMin: 45, retry: { max: 1 } }), { maxDurationMin: 20, retry: { max: 1 } });
+    assert.deepStrictEqual(withPolicy({ maxDurationMin: 10 }), { maxDurationMin: 10 });
+    assert.deepStrictEqual(withPolicy({ retry: { max: 2 } }), { retry: { max: 2 } });
+    assert.strictEqual('runPolicy' in runCopyOf(supplierRadar(), 20), false);
+});

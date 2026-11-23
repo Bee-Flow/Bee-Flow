@@ -128,3 +128,11 @@ test('the sweep pages past waiting runs whose decision is still pending', async 
     assert.strictEqual(await sweepWaiting(deps), 1);
     assert.deepStrictEqual(seen.closed.map((c) => c[0]), ['cw-run-1']);
 });
+
+test('a run that is no plan run costs one lookup: its steps are never read', async () => {
+    const { deps } = world();
+    let stepsRead = 0;
+    deps.getRunStepsForChain = async () => { stepsRead += 1; return []; };
+    assert.strictEqual(await onRunEnd({ runId: 'someone-elses-run', status: 'success' }, deps), false);
+    assert.strictEqual(stepsRead, 0);
+});

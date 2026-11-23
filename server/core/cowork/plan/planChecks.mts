@@ -38,6 +38,8 @@ const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { s
 const DESTINATION_FIELDS: ReadonlySet<string> = new Set([
     'to', 'cc', 'bcc', 'recipient', 'recipients', 'email', 'emails', 'address', 'addresses', 'attendees',
     'userid', 'userids', 'user', 'users', 'channel', 'room', 'roomtoken', 'sharewith', 'signer', 'signers', 'phone',
+    // A Talk conversation is named by its token; a reply goes to whoever wrote the message it answers.
+    'token', 'conversationtoken', 'replytomessageid', 'inreplyto', 'replyto',
 ]);
 
 /** Input names that say WHAT is changed. */
@@ -101,8 +103,21 @@ function aiFindings(s: WalkedStep, outside: OutsideText): PlanFinding[] {
 const OTHER_APPROVER_FIELDS = ['assignee', 'approvers', 'finalApprover', 'escalateTo', 'stages'];
 
 function askFindings(s: WalkedStep): PlanFinding[] {
-    if (!OTHER_APPROVER_FIELDS.some((field) => names(s.step[field]))) return [];
+    // The engine and the builder keep them under `approval` (core/automationRunner/execApproval.js); the top level is
+    // read too, so neither shape slips through.
+    const nested = s.step.approval && typeof s.step.approval === 'object' ? s.step.approval as Record<string, unknown> : {};
+    if (!OTHER_APPROVER_FIELDS.some((field) => names(s.step[field]) || names(nested[field]))) return [];
     return [finding('ask.other_people', s.id, 'A step that waits for a decision asks the owner of the plan. This one names other people to decide.')];
+}
+
+/** The fields of a table step that pick which table and which rows a write changes (not the values it writes). */
+const DATATABLE_TARGET_FIELDS = ['datatableId', 'where', 'rowId', 'rowIds', 'matchColumn'];
+
+/** Outside text choosing which rows of the organisation's tables a write changes or deletes. */
+function tableFindings(s: WalkedStep, effect: Effect, outside: OutsideText): PlanFinding[] {
+    if (s.type !== 'datatable' || effect === 'reads') return [];
+    const chosen = DATATABLE_TARGET_FIELDS.filter((field) => outside.refsReadIt(refsOfValue(s.step[field]), s));
+    return chosen.length === 0 ? [] : [finding('write.target_from_outside', s.id, `"${chosen[0]}" picks which rows are changed, and it is filled from text written outside the workspace. Which rows a plan changes comes from the plan or from the owner's own data.`)];
 }
 
 /** Outside text in the fields of a step that say where it goes: a recipient, or the thing that is changed. */
@@ -130,7 +145,8 @@ function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText)
     if (s.type === 'integration_action' && tool && lookups.isOpenWebRead(tool) && outside.refsReadIt(refsOfStep(s.step), s)) {
         out.push(finding('web.input_from_outside', s.id, 'This step goes to the open web with an address or a query built from text written outside the workspace. That would carry the text out.'));
     }
-    return out.concat(fieldFindings(s, stepEffect(s.step), outside));
+    const effect = stepEffect(s.step);
+    return out.concat(fieldFindings(s, effect, outside), tableFindings(s, effect, outside));
 }
 
 /** Why this definition is not a plan Cowork runs; an empty list when it is one. */

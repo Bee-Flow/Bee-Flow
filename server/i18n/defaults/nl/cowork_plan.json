@@ -11,6 +11,7 @@
     "cowork_plan.count.fixed": "{count} vast",
     "cowork_plan.failed": "Dat lukte niet. Probeer het opnieuw.",
     "cowork_plan.findings.heading": "Waarom het niet kan draaien",
+    "cowork_plan.findings.heading_changed": "Waarom deze wijziging niet kan worden goedgekeurd",
     "cowork_plan.heading": "Het plan",
     "cowork_plan.history.waiting_line": "Wacht op jouw besluit, onder Goedkeuringen",
     "cowork_plan.kind.ask": "Vraagt jou",

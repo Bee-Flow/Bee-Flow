@@ -81,6 +81,11 @@ describe('CoworkPlanTry', () => {
         expect(screen.getAllByText('Once per item')).toHaveLength(1);
     });
 
+    it('a failed read of a try-out that was still going gives the button back', () => {
+        renderTry({ state: supplierRadarTry({ done: false, status: 'running' }), error: 'Network error.' });
+        expect(screen.getByTestId('cowork-plan-try-start')).toHaveProperty('disabled', false);
+    });
+
     it('says when the plan changed since the try-out, and shows a refused request', () => {
         renderTry({ state: supplierRadarTry(), stale: true, error: 'Too many requests.' });
         expect(screen.getByTestId('cowork-plan-try-stale').textContent).toContain('The plan changed since this try-out');

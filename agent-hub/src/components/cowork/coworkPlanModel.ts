@@ -7,9 +7,10 @@ import type { PlanEffect, PlanPermissions, PlanState, PlanStepKind } from '../..
  * Where a plan stands:
  *   none      the item has no plan
  *   gone      it names an automation that no longer exists (or is no longer the owner's)
- *   blocked   the plan may not run as it is: its findings say why
+ *   blocked   the plan may not run as it is (nothing approved, or the approved plan itself): its findings say why
  *   first     a plan that was never approved
- *   changed   the plan differs from the approved one; runs still use the approved one
+ *   changed   the plan differs from the approved one; runs still use the approved one (also when the change has
+ *             findings: then it cannot be approved, and the findings say why)
  *   approved  the plan is exactly what was approved
  */
 export type PlanStatus = 'none' | 'gone' | 'blocked' | 'first' | 'changed' | 'approved';
@@ -17,7 +18,7 @@ export type PlanStatus = 'none' | 'gone' | 'blocked' | 'first' | 'changed' | 'ap
 export function planStatusOf(state: PlanState): PlanStatus {
     if (!state.automationId) return 'none';
     if (!state.draft) return 'gone';
-    if (state.draft.findings.length > 0) return 'blocked';
+    if (state.draft.findings.length > 0) return state.approved && !state.upToDate ? 'changed' : 'blocked';
     if (state.upToDate) return 'approved';
     return state.approved ? 'changed' : 'first';
 }
@@ -25,13 +26,13 @@ export function planStatusOf(state: PlanState): PlanStatus {
 /** A plan its owner can approve now: there is one, nothing blocks it, and it is not already the approved one. */
 export function canApprove(state: PlanState): boolean {
     const status = planStatusOf(state);
-    return status === 'first' || status === 'changed';
+    return (status === 'first' || status === 'changed') && (state.draft?.findings.length ?? 0) === 0;
 }
 
 /** A plan that can be tried: there is one and nothing blocks it (an approved plan can be tried again too). */
 export function canTry(state: PlanState): boolean {
     const status = planStatusOf(state);
-    return status === 'first' || status === 'changed' || status === 'approved';
+    return (status === 'first' || status === 'changed' || status === 'approved') && (state.draft?.findings.length ?? 0) === 0;
 }
 
 /** The kinds in the order a person reads them, with how many steps of each; kinds without a step are left out. */

@@ -287,7 +287,7 @@ test('an item with an approved plan runs as its plan: no model call of the promp
     script = []; // the prompt path would call the adapter and fail on 'unexpected adapter call'
     const asked = [];
     // The plan path asks the store for the approved plan after the claim; a refused claim ends it there.
-    const store = { ...fakeStore, markRunning: async (id, opts) => { asked.push([id, opts]); return null; } };
+    const store = { ...fakeStore, getApprovedPlan: async () => ({ id: 'plan-1' }), markRunning: async (id, opts) => { asked.push([id, opts]); return null; } };
 
     await executeTask({ id: 'cw14', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1', agentId: 'agent-1' }, { store, due: true });
     await flush();
@@ -304,4 +304,27 @@ test('a run a new mail started is no plan run, even on an item that still names 
     await executeTask({ id: 'cw15', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1' }, { store, trigger: { kind: 'mail', messageId: 'm1' } });
     await flush();
     assert.strictEqual(planAsked, false);
+});
+
+test('a scheduled run moves its schedule on before it says it is no longer running, on success and on failure', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+    await executeTask({ id: 'cw16', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store: fakeStore, due: true });
+    await flush();
+    assert.ok(storeCalls.indexOf('advanceSchedule') !== -1 && storeCalls.indexOf('advanceSchedule') < storeCalls.indexOf('markCompleted'), storeCalls.join(', '));
+
+    resetScenario();
+    script = [new Error('the provider is down')];
+    await executeTask({ id: 'cw17', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store: fakeStore, due: true });
+    await flush();
+    assert.ok(storeCalls.indexOf('advanceSchedule') !== -1 && storeCalls.indexOf('advanceSchedule') < storeCalls.indexOf('markError'), storeCalls.join(', '));
+});
+
+test('an item whose plan was taken off after the tick read it runs as its prompt, not as a failed plan', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+    const store = { ...fakeStore, getApprovedPlan: async () => null };
+    await executeTask({ id: 'cw18', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', planId: 'plan-gone' }, { store });
+    await flush();
+    assert.ok(storeCalls.includes('markCompleted') && !storeCalls.includes('markError'), storeCalls.join(', '));
 });

@@ -66,7 +66,8 @@ function startLabel(state: PlanTryState | null, starting: boolean, t: TranslateF
 }
 
 export default function CoworkPlanTry({ t, state, starting = false, stale = false, error = null, onStart }: CoworkPlanTryProps) {
-    const busy = tryIsRunning(state, starting);
+    // A failed read ends the following: the button comes back, whatever the last state said.
+    const busy = tryIsRunning(state, starting) && !error;
     return (
         <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-subtle)]" data-testid="cowork-plan-try">
             <div className="flex flex-wrap items-start gap-x-3 gap-y-2">

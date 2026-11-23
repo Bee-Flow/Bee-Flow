@@ -128,7 +128,7 @@ function Notes({ heading, lines, tone }: { heading: string; lines: string[]; ton
 }
 
 /** The plan itself: its steps, what it may do, and what stops it. */
-function PlanBody({ draft, t }: { draft: PlanDraft; t: TranslateFn }) {
+function PlanBody({ draft, changed, t }: { draft: PlanDraft; changed: boolean; t: TranslateFn }) {
     return (
         <>
             <ol className="flex flex-col">
@@ -138,7 +138,11 @@ function PlanBody({ draft, t }: { draft: PlanDraft; t: TranslateFn }) {
                 <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{t('cowork_plan.may.heading', 'What it may do')}</span>
                 <MayDo permissions={draft.permissions} t={t} />
             </div>
-            <Notes tone="error" heading={t('cowork_plan.findings.heading', 'Why it cannot run')} lines={draft.findings.map((f) => f.message)} />
+            <Notes
+                tone="error"
+                heading={changed ? t('cowork_plan.findings.heading_changed', 'Why this change cannot be approved') : t('cowork_plan.findings.heading', 'Why it cannot run')}
+                lines={draft.findings.map((f) => f.message)}
+            />
         </>
     );
 }
@@ -200,7 +204,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
             </div>
             <StatusLine status={status} state={state} t={t} />
             {note && <PlannerNote note={note} t={t} />}
-            {draft && <PlanBody draft={draft} t={t} />}
+            {draft && <PlanBody draft={draft} changed={status === 'changed'} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}
             {error && <p role="alert" className="text-[12.5px] text-[var(--error-ink)]">{error}</p>}

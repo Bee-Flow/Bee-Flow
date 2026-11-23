@@ -14,10 +14,10 @@ describe('where a plan stands', () => {
         expect(planStatusOf(planState({ draft: null }))).toBe('gone');
     });
 
-    it('a plan with a finding is blocked, whatever was approved before', () => {
+    it('a plan with a finding is blocked when nothing else runs: never approved, or the approved plan is this one', () => {
         const draft = { ...supplierRadarDraft(), findings: [{ code: 'step.not_allowed', stepId: 'c', message: 'A plan cannot run a script yet.' }] };
         expect(planStatusOf(planState({ draft }))).toBe('blocked');
-        expect(planStatusOf(planState({ draft, approved: { version: 1, fingerprint: 'x', approvedAt: null, permissions: draft.permissions } }))).toBe('blocked');
+        expect(planStatusOf(planState({ draft, approved: { version: 1, fingerprint: draft.fingerprint, approvedAt: null, permissions: draft.permissions }, upToDate: true }))).toBe('blocked');
     });
 
     it('a plan nobody approved is waiting for its first approval', () => {
@@ -85,5 +85,17 @@ describe('the apps a plan touches', () => {
 
     it('is empty without permissions', () => {
         expect(appsByEffect(null)).toEqual({ reads: [], writes: [], sends: [] });
+    });
+});
+
+describe('a change with findings while an approved plan runs', () => {
+    it('reads as changed, not blocked: runs still follow the approved version; it cannot be approved or tried', () => {
+        const draft = supplierRadarDraft();
+        const approved = { version: 2, fingerprint: 'older', approvedAt: null, permissions: draft.permissions };
+        const state = planState({ approved, upToDate: false, draft: { ...draft, findings: [{ code: 'step.not_allowed', stepId: 'c', message: 'A plan cannot run a script yet.' }] } });
+        expect(planStatusOf(state)).toBe('changed');
+        expect(canApprove(state)).toBe(false);
+        expect(canTry(state)).toBe(false);
+        expect(planStatusOf({ ...state, approved: null })).toBe('blocked');
     });
 });

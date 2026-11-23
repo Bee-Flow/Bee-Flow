@@ -16,7 +16,7 @@
  */
 
 import type { Definition, DefStep, ToolLookups } from './planTypes.mts';
-import { stepsOf, refsOfStep, type Refs, type WalkedStep } from './planWalk.mts';
+import { stepsOf, refsOfStep, aiToolsOf, type Refs, type WalkedStep } from './planWalk.mts';
 
 /** Apps whose reads return text other people wrote: mailboxes and group conversations. */
 export const OUTSIDE_TEXT_APPS: ReadonlySet<string> = new Set([
@@ -26,12 +26,23 @@ export const OUTSIDE_TEXT_APPS: ReadonlySet<string> = new Set([
 /** Trigger kinds whose output an outside party writes. An app event is one when its provider is a mailbox. */
 const OUTSIDE_TRIGGER_PROVIDERS: ReadonlySet<string> = new Set(['gmail', 'msgraph', 'nextcloud-mail']);
 
+/** Does this tool read text an outside party wrote (a mailbox, a group conversation, the open web)? */
+function readsOutside(tool: string, lookups: ToolLookups): boolean {
+    if (lookups.isOpenWebRead(tool)) return true;
+    const app = lookups.appOfTool(tool);
+    return app !== null && OUTSIDE_TEXT_APPS.has(app) && lookups.effectOfTool(tool) === 'reads';
+}
+
+/** An AI step offered a tool that reads outside text reads it itself, whatever its prompt refers to. */
+export function aiReadsOutsideText(step: DefStep, lookups: ToolLookups): boolean {
+    return step.type === 'ai_step' && aiToolsOf(step).some((tool) => readsOutside(tool, lookups));
+}
+
 /** Does this step, by what it is, bring outside text into the run? */
 export function bringsOutsideText(step: DefStep, lookups: ToolLookups): boolean {
+    if (aiReadsOutsideText(step, lookups)) return true;
     if (step.type !== 'integration_action' || typeof step.tool !== 'string' || !step.tool) return false;
-    if (lookups.isOpenWebRead(step.tool)) return true;
-    const app = lookups.appOfTool(step.tool);
-    return app !== null && OUTSIDE_TEXT_APPS.has(app) && lookups.effectOfTool(step.tool) === 'reads';
+    return readsOutside(step.tool, lookups);
 }
 
 /** Is the trigger's output written by an outside party (a new mail, a webhook call)? */
@@ -65,10 +76,12 @@ export function outsideTextOf(definition: Definition | null | undefined, lookups
     const refsReadIt = (refs: Refs, step: WalkedStep): boolean => {
         if (refs.trigger && triggerOutside) return true;
         for (const id of refs.steps) if (carries.has(id)) return true;
-        // The item of a loop is whatever the loop iterates over: it carries what the loop itself reads.
-        if (refs.loop && step.parentId !== null) {
-            const parent = byId.get(step.parentId);
-            if (parent && (reads.has(parent.id) || carries.has(parent.id))) return true;
+        // The item of a loop is whatever the loop iterates over: it carries what the loop itself reads. Inside a loop
+        // within a loop the outer items are in reach too (the engine merges them in), so every enclosing loop counts.
+        if (refs.loop) {
+            for (let at = step.parentId; at !== null; at = byId.get(at)?.parentId ?? null) {
+                if (reads.has(at) || carries.has(at)) return true;
+            }
         }
         return false;
     };
@@ -78,7 +91,7 @@ export function outsideTextOf(definition: Definition | null | undefined, lookups
     for (let pass = 0; pass <= steps.length; pass += 1) {
         let changed = false;
         for (const s of steps) {
-            const readsIt = refsReadIt(refsOf.get(s.id) as Refs, s);
+            const readsIt = refsReadIt(refsOf.get(s.id) as Refs, s) || aiReadsOutsideText(s.step, lookups);
             if (readsIt && !reads.has(s.id)) { reads.add(s.id); changed = true; }
             if ((readsIt || bringsOutsideText(s.step, lookups)) && !carries.has(s.id)) { carries.add(s.id); changed = true; }
         }

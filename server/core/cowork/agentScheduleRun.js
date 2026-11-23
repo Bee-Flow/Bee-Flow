@@ -94,15 +94,8 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun', err); /* non-fatal */ }
         }
 
-        await store.markCompleted(task.id, truncated, await runCloseOf(task, run, coworkRun, trigger, services.skillNames));
-        await storeScheduleCoverage(task, agent, truncated);
-
-        // The notification opens the run in Cowork, where its conversation, its activity and a review live.
-        try {
-            await services.notificationStore.createNotification(runNotification(task, agent, truncated, { trigger, review: coworkRun.review, shape: NOTIFICATION }));
-        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
-
-        // Schedule advance — same rules as legacy tasks; an event run touches neither the clock nor is_active.
+        // Schedule advance — same rules as legacy tasks; an event run touches neither the clock nor is_active. It comes
+        // BEFORE the row closes: once the item stops saying 'running', a tick must not find this moment still due.
         if (trigger) {
             log.info(`[AITaskRunner] Event run for ${task.id} completed (${Date.now() - startTime}ms)`);
         } else if (isRepeating(task) && !manual) {
@@ -114,6 +107,14 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             await store.updateTask(task.id, { isActive: false });
             log.info(`[AITaskRunner] Schedule ${task.id} completed (one-time, ${Date.now() - startTime}ms)`);
         }
+        await store.markCompleted(task.id, truncated, await runCloseOf(task, run, coworkRun, trigger, services.skillNames));
+        await storeScheduleCoverage(task, agent, truncated);
+
+        // The notification opens the run in Cowork, where its conversation, its activity and a review live.
+        try {
+            await services.notificationStore.createNotification(runNotification(task, agent, truncated, { trigger, review: coworkRun.review, shape: NOTIFICATION }));
+        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
+
     } catch (caught) {
         // A run stopped by its deadline surfaces as the runtime's abort error; the owner reads why it stopped.
         await failAgentRun(task, deadline.reasonFor(caught), caught, { run, coworkRun, trigger, manual, store, startTime, services, failRun });

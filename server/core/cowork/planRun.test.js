@@ -32,7 +32,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
     const seen = { executed: [], failed: [], notes: [], advanced: [] };
     const deps = {
         failRun: async (t, err, opts) => { seen.failed.push({ err, opts }); },
-        advance: async (t, opts) => { seen.advanced.push(opts); },
+        advance: async (t, opts) => { seen.advanced.push(opts); calls.push(['advance']); },
         NOTIFICATION: { category: 'cowork', link: null, prefix: '' },
         getAutomation: async () => automation,
         isManaged: async (a) => a.projectId === 'stage-project',
@@ -69,6 +69,18 @@ test('the run records which plan it ran and, once the runner made its row, the a
         ['linkPlanRun', 'run-1', { planId: 'plan-1' }],
         ['linkPlanRun', 'run-1', { planId: 'plan-1', automationRunId: 'arun-1' }],
     ]);
+});
+
+test('the automation\'s own time limit is held to Cowork\'s, so the engine ends the run before Cowork\'s reaper would', async () => {
+    const h = harness({ automation: { id: 'auto-1', userId: 'u1', runTimeoutMs: 45 * 60_000, version: 7 } });
+    await executePlanRun(task, { store: h.store, due: true }, h.deps);
+    assert.strictEqual(h.seen.executed[0].automation.runTimeoutMs, require('./runDeadline.mts').runMaxMs());
+});
+
+test('the schedule moves on before the run says it is no longer running', async () => {
+    const h = harness();
+    await executePlanRun(task, { store: h.store, due: true }, h.deps);
+    assert.ok(h.names().indexOf('advance') < h.names().indexOf('markCompleted'), h.names().join(', '));
 });
 
 test('a finished run closes its row with what it produced and moves the schedule on', async () => {

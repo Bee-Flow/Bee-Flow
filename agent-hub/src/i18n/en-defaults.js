@@ -39454,6 +39454,7 @@ const EN_DEFAULTS = {
     "cowork_plan.count.fixed": "{count} fixed",
     "cowork_plan.failed": "That did not work. Try again.",
     "cowork_plan.findings.heading": "Why it cannot run",
+    "cowork_plan.findings.heading_changed": "Why this change cannot be approved",
     "cowork_plan.heading": "The plan",
     "cowork_plan.history.waiting_line": "Waiting for your decision, under Approvals",
     "cowork_plan.kind.ai": "AI",

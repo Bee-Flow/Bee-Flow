@@ -31,6 +31,11 @@ const PLAN_DDL = Object.freeze([
     // The automation run behind a run of a plan: its step trace lives there (automation_run_steps).
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS automation_run_id TEXT`,
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS plan_id TEXT`,
+    // Asked on every end and every resume of any automation run (core/cowork/planRunFollowUp.mts,
+    // planHeldDefinition.mts): is it a plan run? Only the rows of plan runs are in the index.
+    `CREATE INDEX IF NOT EXISTS idx_cowork_runs_automation_run ON cowork_runs (automation_run_id) WHERE automation_run_id IS NOT NULL`,
+    // The sweep of runs that wait for a decision (core/cowork/planRunFollowUp.mts).
+    `CREATE INDEX IF NOT EXISTS idx_cowork_runs_waiting ON cowork_runs (started_at, id) WHERE status = 'waiting'`,
 ]);
 
 module.exports = { PLAN_DDL };

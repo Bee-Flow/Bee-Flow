@@ -103,10 +103,12 @@ async function producedBy(journeyId: string, deps: FollowUpDeps): Promise<string
 export async function closeJourney(journeyId: string, leg: Leg, deps: FollowUpDeps = defaults()): Promise<boolean> {
     const ended = endOf(leg);
     if (!ended) return false;
+    // Most runs that end are no plan runs at all: ask that first (an indexed lookup), and only then read the steps.
+    const plan = await deps.getPlanOfAutomationRun(journeyId);
+    if (!plan) return false;
     // The run's result is what it produced, not the engine's list of its steps.
     const end = ended.status === 'success' ? { ...ended, result: (await producedBy(journeyId, deps)) ?? 'Done, after your decision.' } : ended;
-    const plan = await deps.getPlanOfAutomationRun(journeyId);
-    if (!plan || !(await deps.closeWaitingRun(plan.runId, end))) return false;
+    if (!(await deps.closeWaitingRun(plan.runId, end))) return false;
     await tellOwner(plan, end, deps);
     log.info(`[Cowork] plan run ${plan.runId} closed as ${end.status} after its decision`);
     return true;
