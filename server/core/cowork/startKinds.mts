@@ -30,5 +30,7 @@ export const startsWithOutsideText = (kind: unknown): boolean => kind === 'app_e
 export function asStartedBy(definition: Definition, item: { triggerKind?: string | null }): Definition {
     if (!startsWithOutsideText(item.triggerKind)) return definition;
     const trigger = definition.trigger && typeof definition.trigger === 'object' ? definition.trigger : {};
-    return { ...definition, trigger: { ...trigger, kind: 'webhook' } };
+    // Marked, not renamed: the trigger keeps the kind the plan was made with, which the checks allow, and its output
+    // reads as outside text (./plan/outsideText.mts triggerBringsOutsideText).
+    return { ...definition, trigger: { ...trigger, startedFromOutside: true } };
 }

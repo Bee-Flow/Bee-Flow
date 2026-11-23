@@ -168,7 +168,6 @@ test('a scope the model names is dropped: a plan is one list of steps', async ()
 
 test('an item that may not get a plan made is refused before any model is asked', async () => {
     const cases = [
-        [{ item: { ...ITEM, triggerKind: 'app_event' } }, {}, httpError(409, 'cowork_plan_refused')],
         [{ item: { ...ITEM, planAutomationId: 'auto-1' } }, {}, httpError(409, 'cowork_plan_refused')],
         [{ item: { ...ITEM, prompt: '   ' } }, {}, httpError(422, 'cowork_plan_refused')],
         [{}, { refusal: 'not_entitled' }, httpError(403, 'cowork_plan_refused')],

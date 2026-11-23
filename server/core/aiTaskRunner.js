@@ -193,7 +193,7 @@ async function resolveUserSession(userId) {
  * @param {{ getApprovedPlan?: (id: string) => Promise<unknown> }} store
  */
 async function followsPlan(task, trigger, store) {
-    // A mail run is no plan run; an event a plan starts on hands its data as `trigger.plan` (./cowork/eventRun.mts).
+    // An event or a mail a plan starts on hands its data as `trigger.plan` (./cowork/eventRun.mts, mailTriggerRun.mts).
     return !!(task.planId && (!trigger || /** @type {{ plan?: boolean }} */ (trigger).plan === true) && await store.getApprovedPlan?.(task.id));
 }
 

@@ -33,7 +33,6 @@ import CoworkRunHistory from './CoworkRunHistory';
 import CoworkSettings from './CoworkSettings';
 import CoworkStats from './CoworkStats';
 import CoworkTabs from './CoworkTabs';
-import { isMailTriggerItem } from './mailTrigger';
 import { coworkStatus } from './coworkStatus';
 import { waitingRuns } from './coworkReview';
 import { useCoworkRunsQuery } from '@/api/queries/coworkReads';
@@ -81,7 +80,6 @@ function DetailView({ item, agents, onRunNow, onToggle, onDelete, busy, reloadKe
         el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         el.focus({ preventScroll: true });
     };
-    const mailTriggered = isMailTriggerItem(item);
 
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="cowork-detail">
@@ -120,12 +118,9 @@ function DetailView({ item, agents, onRunNow, onToggle, onDelete, busy, reloadKe
                             render: () => (
                                 <CoworkPlanPanel
                                     coworkId={item.id}
-                                    mailTriggered={mailTriggered}
                                     fallback={(
                                         <p className="text-[12.5px] text-[var(--text-secondary)]" data-testid="cowork-plan-unavailable">
-                                            {mailTriggered
-                                                ? t('cowork_detail.plan.none_mail', 'Work that starts on a new mail runs without a plan: the AI does it each time.')
-                                                : t('cowork_detail.plan.none', 'This work runs without a plan: the AI does it each time.')}
+                                            {t('cowork_detail.plan.none', 'This work runs without a plan: the AI does it each time.')}
                                         </p>
                                     )}
                                 />

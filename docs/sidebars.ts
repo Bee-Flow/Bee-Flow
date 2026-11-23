@@ -350,6 +350,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/cowork-sharing',
             'contributing/decisions/cowork-budgets',
             'contributing/decisions/cowork-run-receipts',
+            'contributing/decisions/cowork-mail-plans',
           ],
         },
       ],

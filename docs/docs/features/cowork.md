@@ -41,6 +41,8 @@ where judgement or writing is needed is there an AI step. You see in plain words
 read, change and send, and you approve it. A plan that later wants to do more asks again.
 
 - **Try it first** runs the plan on today's data without changing or sending anything.
+- Work that **starts on a new mail** can have a plan too. It saves a draft answer to the sender in your
+  mailbox; you read it and send it. A plan never sends an answer by itself.
 - **Make it routine**: after a few runs, Cowork can propose a plan from what those runs did, and shows
   side by side that the plan finds the same items.
 

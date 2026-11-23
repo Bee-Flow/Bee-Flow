@@ -131,9 +131,7 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
 
 /** Name the automation this item's plan is made from. Approves nothing. */
 export async function attachPlan({ item, automationId }: { item: Item; automationId: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
-    if (item.triggerKind === 'app_event') {
-        throw new HttpError(409, 'cowork_plan_refused', 'An item that starts on a new mail cannot carry a plan yet.');
-    }
+    // An item that starts on a new mail may carry a plan too: it drafts its replies, never sends them (decision 0044).
     const automation = await ownAutomation(automationId, item.userId, deps);
     if (!automation) throw new HttpError(404, 'cowork_plan_refused', 'That automation does not exist.');
     await deps.store.attachPlanAutomation(item.id, automation.id);

@@ -101,22 +101,22 @@ function MoreWays({ t, children }: { t: TranslateFn; children: ReactNode[] }) {
     );
 }
 
-interface GateProps { coworkId: string; mailTriggered: boolean; maker: Maker; t: TranslateFn; fallback: ReactNode }
+interface GateProps { coworkId: string; maker: Maker; t: TranslateFn; fallback: ReactNode }
 
 /**
  * An item without a plan, for someone whose organisation has automations: one way in sight, the others under "More
  * ways". "Make it routine" goes first when the past runs say so. While a plan is being made, or when making it
  * failed, its progress or its error is in sight whichever way started it.
  */
-function PlanAttachGate({ coworkId, mailTriggered, maker, t, fallback }: GateProps) {
+function PlanAttachGate({ coworkId, maker, t, fallback }: GateProps) {
     const ent = useEntitlements() as { loading: boolean; can: (id: string) => boolean };
     const { attach } = useCoworkPlanActions(coworkId);
-    // An item that starts on a new mail carries no plan yet; the server refuses it too.
-    const mayPlan = !mailTriggered && !ent.loading && ent.can('automations');
+    // An item that starts on a new mail may carry a plan too: it drafts its replies, never sends them.
+    const mayPlan = !ent.loading && ent.can('automations');
     const automations = usePlanAutomations(mayPlan);
     const routineFirst = isRoutineWorthIt(useCoworkRoutine(coworkId, mayPlan).data);
-    // A mail start never takes a plan; otherwise the licence decides, and says nothing while it is still read.
-    if (!mayPlan) return <>{mailTriggered || !ent.loading ? fallback : null}</>;
+    // The licence decides, and says nothing while it is still read.
+    if (!mayPlan) return <>{!ent.loading ? fallback : null}</>;
     const { running } = maker.making;
     const makeInSight = !routineFirst || running || maker.making.error !== null;
     const make = <CoworkPlanMake key="make" t={t} making={maker.making} onMake={() => { void maker.start(); }} onCancel={maker.cancel} />;
@@ -163,18 +163,17 @@ function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: 
 
 interface CoworkPlanPanelProps {
     coworkId: string;
-    mailTriggered?: boolean;
-    /** What shows instead when this item cannot be given a plan here (a mail start, or no automations). */
+    /** What shows instead when this item cannot be given a plan here (no automations). */
     fallback?: ReactNode;
 }
 
-export default function CoworkPlanPanel({ coworkId, mailTriggered = false, fallback = null }: CoworkPlanPanelProps) {
+export default function CoworkPlanPanel({ coworkId, fallback = null }: CoworkPlanPanelProps) {
     const { t } = useTranslation();
     const { data: state } = useCoworkPlanQuery(coworkId);
     const { approve, remove } = useCoworkPlanActions(coworkId);
     const maker = useCoworkPlanMaker(coworkId);
     if (!state) return null;
-    if (!state.automationId) return <PlanAttachGate coworkId={coworkId} mailTriggered={mailTriggered} maker={maker} t={t} fallback={fallback} />;
+    if (!state.automationId) return <PlanAttachGate coworkId={coworkId} maker={maker} t={t} fallback={fallback} />;
     const busy = approve.isPending ? 'approve' : remove.isPending ? 'remove' : null;
     const tryOut = state.draft && canTry(state) ? <PlanTry coworkId={coworkId} fingerprint={state.draft.fingerprint} t={t} /> : null;
     return (

@@ -49,7 +49,8 @@ export function bringsOutsideText(step: DefStep, lookups: ToolLookups): boolean 
 export function triggerBringsOutsideText(definition: Definition | null | undefined): boolean {
     const trigger = definition?.trigger;
     if (!trigger || typeof trigger !== 'object') return false;
-    if (trigger.kind === 'webhook') return true;
+    // A plan an event starts (a webhook, a row, a file, another cowork, a mail): ../startKinds.mts asStartedBy.
+    if (trigger.kind === 'webhook' || trigger.startedFromOutside === true) return true;
     if (trigger.kind !== 'app_event') return false;
     const provider = trigger.appEvent?.provider;
     return typeof provider === 'string' && OUTSIDE_TRIGGER_PROVIDERS.has(provider);

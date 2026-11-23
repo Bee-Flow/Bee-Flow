@@ -88,3 +88,13 @@ test('the report after a change lists what the builder and Cowork object to; not
         { code: 'ai.outside_text_with_tools', stepId: 'ai_1', message: 'This AI step reads text written outside the workspace.' },
     ]);
 });
+
+test('a plan that starts on a mail is told what the mail holds, that it is outside text, and to draft a reply only', () => {
+    const { plannerSystemPrompt } = require('./coworkPlannerPrompt.mts');
+    const parts = { title: 'Supplier desk', brief: 'Answer supplier mail.', catalog: '', datatables: '' };
+    const onMail = plannerSystemPrompt({ ...parts, startsOnMail: true });
+    assert.match(onMail, /\{\{trigger\.output\.mail\.from\}\} \(the sender\)/);
+    assert.match(onMail, /save a DRAFT reply with "to" set to exactly \{\{trigger\.output\.mail\.from\}\}/);
+    assert.match(onMail, /Never send a reply or any other mail yourself/);
+    assert.ok(!plannerSystemPrompt(parts).includes('trigger.output.mail'), 'a plan on the clock is not told about a mail');
+});

@@ -177,7 +177,6 @@ const REFUSAL_TEXT = Object.freeze({
 
 /** The brief of an item that may get a plan made for it; throws the reason when it may not. */
 function briefOf(item: Item): string {
-    if (item.triggerKind === 'app_event') throw new HttpError(409, 'cowork_plan_refused', 'An item that starts on a new mail cannot carry a plan yet.');
     if (item.planAutomationId) throw new HttpError(409, 'cowork_plan_refused', 'This item already has a plan. Take it off to make a new one.');
     const brief = typeof item.prompt === 'string' ? item.prompt.trim() : '';
     if (!brief) throw new HttpError(422, 'cowork_plan_refused', 'Write what this work should do first: a plan is made from that.');
@@ -341,7 +340,7 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = defaultDeps
     // What Cowork would not run, the licence included: what the model is told after each change, and what is returned.
     const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = plannerSystemPrompt({
-        title: draft.title, brief, approvals, hints: input.hints ?? null,
+        title: draft.title, brief, approvals, hints: input.hints ?? null, startsOnMail: item.triggerKind === 'app_event',
         catalog: deps.builder.renderCatalog(catalog),
         datatables: deps.builder.renderDatatables(catalog.datatables),
     });

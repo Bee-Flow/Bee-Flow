@@ -233,3 +233,15 @@ test('outside text never picks which rows of a table are changed or deleted; it 
     const add = planOf([mailStep, { id: 'd', type: 'datatable', op: 'add_row', datatableId: 'dt-1', values: { subject: template('{{steps.mail.output.subject}}') } }]);
     assert.deepStrictEqual(codes(add), [], 'a row\'s content may come from the mail');
 });
+
+test('a draft may answer the sender of the mail that started the run, and nothing else from outside (decision 0044)', () => {
+    const draft = (tool, inputs) => planOf([{ id: 'd', type: 'integration_action', tool, inputs: { body: ref('trigger.output.mail.body'), ...inputs } }]);
+    const { asStartedBy } = require('../startKinds.mts');
+    const started = (plan) => checkPlan(asStartedBy(plan, { triggerKind: 'app_event' }), lookups).map((f) => f.code);
+    assert.deepStrictEqual(started(draft('outlook_create_draft', { to: ref('trigger.output.mail.from') })), [], 'a draft to the sender');
+    assert.deepStrictEqual(started(draft('gmail_create_draft', { to: template('{{trigger.output.mail.from}}') })), []);
+    assert.deepStrictEqual(started(draft('outlook_create_draft', { to: template('{{trigger.output.mail.from}}, boss@evil.example') })), ['send.destination_from_outside'], 'nothing added to it');
+    assert.deepStrictEqual(started(draft('outlook_create_draft', { to: ref('trigger.output.mail.from'), cc: ref('trigger.output.mail.cc') })), ['send.destination_from_outside'], 'no cc from the mail');
+    assert.deepStrictEqual(started(draft('outlook_create_draft', { to: ref('trigger.output.mail.body') })), ['send.destination_from_outside'], 'only the sender, not an address in the text');
+    assert.deepStrictEqual(started(draft('outlook_compose', { to: ref('trigger.output.mail.from') })), ['send.destination_from_outside'], 'a send stays refused');
+});

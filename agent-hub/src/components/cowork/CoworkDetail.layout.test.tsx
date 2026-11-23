@@ -102,11 +102,12 @@ describe('CoworkDetail — the layout', () => {
         expect(menu).not.toHaveAttribute('open');
     });
 
-    it('a plan cannot be given here: the Plan tab says so in one sentence', async () => {
+    it('an item that starts on a new mail is offered a plan like any other (it drafts its replies)', async () => {
         serve();
         renderDetail({ triggerKind: 'app_event', trigger: { provider: 'gmail', event: 'mail.new', filter: {} } } as Partial<CoworkItem>);
         await userEvent.setup().click(screen.getByRole('tab', { name: 'Plan' }));
-        expect(await screen.findByTestId('cowork-plan-unavailable')).toHaveTextContent('Work that starts on a new mail runs without a plan');
-        expect(screen.queryByTestId('cowork-plan-none')).toBeNull();
+        // Its licence decides, as for any item: nothing says that a mail start rules a plan out.
+        await screen.findByRole('tabpanel');
+        expect(screen.queryByText(/starts on a new mail runs without a plan/)).toBeNull();
     });
 });

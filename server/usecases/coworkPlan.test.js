@@ -103,10 +103,10 @@ test('a step that waits for a decision needs approvals in the licence: without i
     assert.deepStrictEqual((await planStateOf(ITEM, world({ mayAsk: false }).deps)).draft.findings, [], 'a plan without such a step needs nothing');
 });
 
-test('a building block is no plan, and an item that starts on a mail carries none yet', async () => {
+test('a building block is no plan; an item that starts on a mail may carry one', async () => {
     const { deps } = world({ automations: { block: { id: 'block', userId: 'u1', kind: 'block', definition: supplierRadar() }, 'auto-1': { id: 'auto-1', userId: 'u1', kind: 'automation', definition: supplierRadar() } } });
     await assert.rejects(attachPlan({ item: ITEM, automationId: 'block' }, deps), httpError(404, 'cowork_plan_refused'));
-    await assert.rejects(attachPlan({ item: { ...ITEM, triggerKind: 'app_event' }, automationId: 'auto-1' }, deps), httpError(409, 'cowork_plan_refused'));
+    assert.strictEqual((await attachPlan({ item: { ...ITEM, triggerKind: 'app_event' }, automationId: 'auto-1' }, deps)).automationId, 'auto-1');
 });
 
 test('approving stores the plan as it is now, with what it may do, and the item is then up to date', async () => {

@@ -67,7 +67,7 @@ export function isAutomaticFetched(fetched: Row | null): boolean {
 }
 
 type Schedule = {
-    id: string; userId: string; agentId: string | null; isActive: boolean; title?: string; prompt?: string;
+    id: string; userId: string; agentId: string | null; planId?: string | null; isActive: boolean; title?: string; prompt?: string;
     triggerKind?: string; conversationId?: string | null;
 } & Row;
 
@@ -290,6 +290,22 @@ export async function followUpMailTrigger(mail: MailRunContext, userId: string, 
     };
 }
 
+/**
+ * The start data a plan gets from the mail that started it, as `{{trigger.output.mail.*}}`: who sent it, its subject,
+ * its text and where it sits. The fields are the shaped (clipped) message; the run treats all of it as outside text.
+ */
+export function planTriggerOf(runId: string, provider: 'gmail' | 'outlook', mail: MailMessage) {
+    return {
+        runId,
+        plan: true,
+        mailSubject: mail.subject.slice(0, MAX_STORED_SUBJECT),
+        payload: {
+            start: 'app_event',
+            mail: { provider, from: mail.from, to: mail.to, cc: mail.cc, subject: mail.subject, date: mail.date, body: mail.body, messageId: mail.messageId, threadId: mail.threadId },
+        },
+    };
+}
+
 /** Per-schedule chain: one run at a time, the rest wait their turn. */
 const tails = new Map<string, Promise<void>>();
 const queued = new Map<string, number>();
@@ -302,7 +318,7 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
     const schedule = await deps.getSchedule(scheduleId);
     if (!schedule || schedule.userId !== userId) { log.info(`[MailTrigger] schedule ${scheduleId} gone or not owned by the subscriber; skipping`); return; }
     if (!schedule.isActive) { log.info(`[MailTrigger] schedule ${scheduleId} is paused; skipping`); return; }
-    if (schedule.triggerKind !== 'app_event' || !schedule.agentId) { log.warn(`[MailTrigger] schedule ${scheduleId} is not an agent mail trigger; skipping`); return; }
+    if (schedule.triggerKind !== 'app_event' || (!schedule.agentId && !schedule.planId)) { log.warn(`[MailTrigger] schedule ${scheduleId} is neither an agent nor a plan on a mail; skipping`); return; }
     const provider = toolProvider(sub.provider);
     if (!provider) { log.warn(`[MailTrigger] schedule ${scheduleId}: unsupported provider; skipping`); return; }
 
@@ -333,6 +349,9 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
     if (!runId) return;
 
     const mail = shapeMessage(payload, fetched, messageId, mailbox);
+    // An item with an approved plan runs as that plan: the mail is its start data, text from outside
+    // (core/cowork/startKinds.mts asStartedBy). It drafts a reply; it never sends one (decision 0044).
+    if (schedule.planId) return deps.executeTask({ ...schedule, conversationId: null }, { trigger: planTriggerOf(runId, provider, mail) });
 
     const mailTrigger = {
         provider, messageId, threadId: mail.threadId, mailbox,

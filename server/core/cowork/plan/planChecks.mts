@@ -33,6 +33,28 @@ import { stepsOf, inputsOf, aiToolsOf, refsOfStep, refsOfValue, type WalkedStep 
 
 const nodeRequire = createRequire(import.meta.url);
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
+const { MAIL_APPS } = nodeRequire('../../agentRuntime/toolPolicy/mailAccess.js') as { MAIL_APPS: Record<string, { draft: string; reply: string }> };
+
+/**
+ * A mail draft never leaves the owner's mailbox: the owner reads it and sends it, or not. So the one person a draft
+ * may be addressed to from outside text is the sender of the mail that started the run, named exactly as
+ * `{{trigger.output.mail.from}}` in its `to` (decision 0044). Every other recipient field of a draft, any other
+ * outside value, and every step that sends stay refused (decision 0031).
+ */
+const DRAFT_TOOLS: ReadonlySet<string> = new Set(Object.values(MAIL_APPS).map((a) => a.draft));
+const START_SENDER = 'trigger.output.mail.from';
+
+/** Is this the `to` of a mail draft that answers the sender of the mail that started the run, and nothing else? */
+function answersStartSender(step: DefStep, key: string, value: unknown, effect: Effect): boolean {
+    if (key !== 'to' || effect !== 'writes' || !DRAFT_TOOLS.has(String(step.tool ?? ''))) return false;
+    const v = value as { kind?: unknown; path?: unknown; value?: unknown } | null;
+    if (v?.kind !== 'ref' && v?.kind !== 'template') return false;
+    const raw = (typeof v.path === 'string' ? v.path : typeof v.value === 'string' ? v.value : '').trim();
+    const wrapped = raw.startsWith('{{') && raw.endsWith('}}');
+    const bare = wrapped ? raw.slice(2, -2).trim() : raw;
+    // A template is exactly the one reference; a ref may be written with or without its braces.
+    return bare === START_SENDER && (v.kind === 'ref' || wrapped);
+}
 
 /** Input names that say WHO receives something. Compared without case, `_` and `-` (fieldKey). Trust per recipient (../planTrust.mts) reads the same list. */
 export const DESTINATION_FIELDS: ReadonlySet<string> = new Set([
@@ -128,6 +150,7 @@ function fieldFindings(s: WalkedStep, effect: Effect, outside: OutsideText): Pla
         const key = fieldKey(name);
         const isDestination = DESTINATION_FIELDS.has(key);
         if (!isDestination && !TARGET_FIELDS.has(key)) continue;
+        if (isDestination && answersStartSender(s.step, key, value, effect)) continue;
         if (!outside.refsReadIt(refsOfValue(value), s)) continue;
         out.push(isDestination
             ? finding('send.destination_from_outside', s.id, `"${name}" says who receives this, and it is filled from text written outside the workspace. A recipient comes from the plan or from the owner's own data.`)

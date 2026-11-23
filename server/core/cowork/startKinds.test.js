@@ -23,7 +23,14 @@ test('on the clock the trigger is Bee Flow\'s own; on any event its data is outs
     for (const kind of ['webhook', 'after_cowork', 'row', 'file', 'app_event']) {
         assert.ok(startsWithOutsideText(kind), kind);
         const findings = checkPlan(asStartedBy(plan, { triggerKind: kind }), lookups);
-        assert.ok(findings.length > 0, `refused when it starts on ${kind}`);
+        assert.deepStrictEqual(findings.map((f) => f.code), ['send.destination_from_outside'], `refused for the recipient, and only for that, when it starts on ${kind}`);
     }
     assert.strictEqual(asStartedBy(plan, { triggerKind: 'webhook' }).steps, plan.steps, 'the plan itself is not changed');
+});
+
+test('a plan that does nothing wrong may start on any event: its trigger stays one the checks allow', () => {
+    const harmless = planOf([{ id: 'tell', type: 'notification', title: 'New call', body: { kind: 'ref', path: 'trigger.output.body.note' } }]);
+    for (const kind of ['webhook', 'after_cowork', 'row', 'file', 'app_event']) {
+        assert.deepStrictEqual(checkPlan(asStartedBy(harmless, { triggerKind: kind }), lookups), [], kind);
+    }
 });
