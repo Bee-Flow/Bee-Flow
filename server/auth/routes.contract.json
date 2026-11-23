@@ -1811,6 +1811,9 @@
     "GET /api/cowork/:id/plan": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/plan/try/:tryId": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/runs": {
       "gate": "auth"
     },
@@ -5179,6 +5182,9 @@
       "gate": "auth"
     },
     "POST /api/cowork/:id/plan/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/try": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/run-now": {

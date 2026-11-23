@@ -2,7 +2,7 @@
  * What the plan card says, worked out from the plan the server sent (./coworkPlanModel.ts).
  */
 import { describe, it, expect } from 'vitest';
-import { appLabel, appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPlanModel';
+import { appLabel, appsByEffect, canApprove, canTry, makeUpParts, planStatusOf } from './coworkPlanModel';
 import { planState, supplierRadarDraft } from './coworkPlan.fixture';
 
 describe('where a plan stands', () => {
@@ -40,6 +40,12 @@ describe('what can be approved', () => {
         expect(canApprove(planState({ approved: { ...approved, fingerprint: 'older' } }))).toBe(true);
         expect(canApprove(planState({ approved, upToDate: true }))).toBe(false);
         expect(canApprove(planState({ draft: { ...draft, findings: [{ code: 'x', stepId: null, message: 'No.' }] } }))).toBe(false);
+        // Trying is open to every plan nothing blocks: the approved one can be tried again.
+        expect(canTry(planState())).toBe(true);
+        expect(canTry(planState({ approved, upToDate: true }))).toBe(true);
+        expect(canTry(planState({ draft: { ...draft, findings: [{ code: 'x', stepId: null, message: 'No.' }] } }))).toBe(false);
+        expect(canTry(planState({ draft: null }))).toBe(false);
+        expect(canTry(planState({ automationId: null, draft: null }))).toBe(false);
         expect(canApprove(planState({ draft: null }))).toBe(false);
         expect(canApprove(planState({ automationId: null, draft: null }))).toBe(false);
     });

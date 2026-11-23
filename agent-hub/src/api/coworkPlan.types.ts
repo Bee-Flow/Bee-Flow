@@ -82,3 +82,38 @@ export interface PlanAutomation {
     id: string;
     title: string;
 }
+
+/** A try-out that was started: its id, and the fingerprint of the plan that is being tried. */
+export interface PlanTryStart {
+    tryId: string;
+    fingerprint: string;
+}
+
+/** One plan step of a try-out (server/usecases/coworkPlanTry.mts). */
+export interface PlanTryStep {
+    id: string;
+    title: string;
+    kind: PlanStepKind;
+    effect: PlanEffect;
+    /** 'pending' until the try-out reaches the step, then how it went; 'not_reached' when it ended before the step. */
+    status: string;
+    /** 0 at the top level, 1 inside a loop: such a step runs once per item. */
+    depth: number;
+    durationMs: number | null;
+    /** The step would change or send something, so the try-out held it back. */
+    held: boolean;
+    error: string | null;
+    /** What the step read, or what a held step would have written or sent. */
+    preview: string | null;
+}
+
+/** A try-out so far: nothing in it was changed or sent. */
+export interface PlanTryState {
+    tryId: string;
+    status: string;
+    done: boolean;
+    summary: string | null;
+    error: string | null;
+    durationMs: number | null;
+    steps: PlanTryStep[];
+}

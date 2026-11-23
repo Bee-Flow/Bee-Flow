@@ -2,6 +2,9 @@
  * The plan of one Cowork item in its detail view: reads the plan, shows it as a card (./CoworkPlanCard.tsx) and
  * carries out what its owner does with it: approve the plan that is on screen, or take it off.
  *
+ * A plan nothing blocks can be tried first (./CoworkPlanTry.tsx): one run on the owner's real data in which nothing is
+ * changed or sent, followed step by step.
+ *
  * An item without a plan shows a way to give it one, to someone whose organisation has automations: a plan is made
  * from one of their own automations. Everyone else sees nothing here, and their items run as before.
  *
@@ -10,7 +13,9 @@
 import { useState } from 'react';
 import { ListChecks } from 'lucide-react';
 import CoworkPlanCard from './CoworkPlanCard';
-import { useCoworkPlanActions, useCoworkPlanQuery, usePlanAutomations } from '../../api/queries/coworkPlan';
+import CoworkPlanTry from './CoworkPlanTry';
+import { canTry } from './coworkPlanModel';
+import { useCoworkPlanActions, useCoworkPlanQuery, useCoworkPlanTry, usePlanAutomations } from '../../api/queries/coworkPlan';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -83,6 +88,21 @@ function PlanAttachGate({ coworkId, mailTriggered, t }: { coworkId: string; mail
     return <AttachPlan automations={automations} busy={attach.isPending} error={failureOf(attach.error, t)} t={t} onAttach={(id) => attach.mutate(id)} />;
 }
 
+/** The try-out of the plan on screen: started here, followed until it is over. */
+function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: string; t: TranslateFn }) {
+    const { start, started, state, error } = useCoworkPlanTry(coworkId);
+    return (
+        <CoworkPlanTry
+            t={t}
+            state={state}
+            starting={start.isPending}
+            stale={started !== null && started.fingerprint !== fingerprint}
+            error={failureOf(error, t)}
+            onStart={() => start.mutate()}
+        />
+    );
+}
+
 export default function CoworkPlanPanel({ coworkId, mailTriggered = false }: { coworkId: string; mailTriggered?: boolean }) {
     const { t } = useTranslation();
     const { data: state } = useCoworkPlanQuery(coworkId);
@@ -90,11 +110,13 @@ export default function CoworkPlanPanel({ coworkId, mailTriggered = false }: { c
     if (!state) return null;
     if (!state.automationId) return <PlanAttachGate coworkId={coworkId} mailTriggered={mailTriggered} t={t} />;
     const busy = approve.isPending ? 'approve' : remove.isPending ? 'remove' : null;
+    const tryOut = state.draft && canTry(state) ? <PlanTry coworkId={coworkId} fingerprint={state.draft.fingerprint} t={t} /> : null;
     return (
         <CoworkPlanCard
             state={state}
             t={t}
             busy={busy}
+            tryOut={tryOut}
             error={failureOf(approve.error || remove.error, t)}
             onApprove={(fingerprint) => { remove.reset(); approve.mutate(fingerprint); }}
             onRemove={() => { approve.reset(); remove.mutate(); }}

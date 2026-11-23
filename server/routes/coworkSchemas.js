@@ -168,5 +168,7 @@ const AUTOMATION_ID_TEXT = 'automationId is the id of one of your automations.';
 const PlanAttachBody = z.object({ automationId: worded(AUTOMATION_ID_TEXT).trim().min(1, AUTOMATION_ID_TEXT).max(200, AUTOMATION_ID_TEXT) }).strict();
 const FINGERPRINT_TEXT = 'fingerprint is the fingerprint of the plan you looked at.';
 const PlanApproveBody = z.object({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }).strict();
+// GET /:id/plan/try/:tryId (usecases/coworkPlanTry.mts): the item and the try-out that was started for it.
+const PlanTryParams = z.object({ id: z.string().min(1).max(200), tryId: z.string().min(1).max(200) });
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

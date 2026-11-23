@@ -79,6 +79,7 @@ const FIXTURES = [
             'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
             'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
             'GET /api/cowork/:id/plan', 'PUT /api/cowork/:id/plan', 'POST /api/cowork/:id/plan/approve', 'DELETE /api/cowork/:id/plan',
+            'POST /api/cowork/:id/plan/try', 'GET /api/cowork/:id/plan/try/:tryId',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.

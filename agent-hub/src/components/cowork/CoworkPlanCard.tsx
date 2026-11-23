@@ -10,6 +10,7 @@
  */
 import { ListChecks, Lock, Sparkles, Square, Hand, Bell } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPlanModel';
 import type { PlanStatus } from './coworkPlanModel';
 import { fullTimestamp } from './coworkFormat';
@@ -23,6 +24,8 @@ interface CoworkPlanCardProps {
     busy?: 'approve' | 'remove' | null;
     /** The sentence of a refused request. */
     error?: string | null;
+    /** The try-out of this plan (./CoworkPlanTry.tsx), shown between the plan and what its owner can do with it. */
+    tryOut?: ReactNode;
     onApprove: (fingerprint: string) => void;
     onRemove: () => void;
 }
@@ -179,7 +182,7 @@ function StatusLine({ status, state, t }: { status: PlanStatus; state: PlanState
     );
 }
 
-export default function CoworkPlanCard({ state, t, busy = null, error = null, onApprove, onRemove }: CoworkPlanCardProps) {
+export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, onApprove, onRemove }: CoworkPlanCardProps) {
     const status = planStatusOf(state);
     if (status === 'none') return null;
     const draft = state.draft;
@@ -200,6 +203,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, on
             <StatusLine status={status} state={state} t={t} />
             {draft && <PlanBody draft={draft} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
+            {tryOut}
             {error && <p role="alert" className="text-[12.5px] text-[var(--error-ink)]">{error}</p>}
             <PlanActions state={state} t={t} busy={busy} onApprove={onApprove} onRemove={onRemove} />
         </section>

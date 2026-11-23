@@ -3,7 +3,7 @@
 // A refusal throws with the server's sentence (mutate.ts RefusedError), which the plan card shows.
 
 import { apiJson } from './typedRequest';
-import type { PlanAutomation, PlanState } from './coworkPlan.types';
+import type { PlanAutomation, PlanState, PlanTryStart, PlanTryState } from './coworkPlan.types';
 
 export function getCoworkPlan(id: string): Promise<PlanState> {
     return apiJson<'GET /api/cowork/{id}/plan', PlanState>('GET /api/cowork/{id}/plan', { params: { id } });
@@ -22,6 +22,16 @@ export function approveCoworkPlan(id: string, fingerprint: string): Promise<Plan
 /** Take the plan off: the item runs as a prompt or as its agent again. */
 export function removeCoworkPlan(id: string): Promise<PlanState> {
     return apiJson<'DELETE /api/cowork/{id}/plan', PlanState>('DELETE /api/cowork/{id}/plan', { params: { id } });
+}
+
+/** Try the plan once: reads run for real, nothing is changed or sent. Answers as soon as the try-out started. */
+export function startCoworkPlanTry(id: string): Promise<PlanTryStart> {
+    return apiJson<'POST /api/cowork/{id}/plan/try', PlanTryStart>('POST /api/cowork/{id}/plan/try', { params: { id } });
+}
+
+/** How a try-out is going, step by step. */
+export function getCoworkPlanTry(id: string, tryId: string): Promise<PlanTryState> {
+    return apiJson<'GET /api/cowork/{id}/plan/try/{tryId}', PlanTryState>('GET /api/cowork/{id}/plan/try/{tryId}', { params: { id, tryId } });
 }
 
 /** The automations of a list response that the caller owns: a plan is made from one of your own. */

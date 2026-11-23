@@ -106,6 +106,14 @@ describe('CoworkPlanCard', () => {
         expect(onRemove).toHaveBeenCalledOnce();
     });
 
+    it('shows the try-out it is given between the plan and what its owner can do with it', () => {
+        renderCard(planState(), { tryOut: <div data-testid="the-try-out">Try it first</div> });
+        const card = screen.getByTestId('cowork-plan');
+        const order = [...card.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid'));
+        expect(order.indexOf('the-try-out')).toBeGreaterThan(order.indexOf('cowork-plan-may-sends'));
+        expect(order.indexOf('the-try-out')).toBeLessThan(order.indexOf('cowork-plan-approve'));
+    });
+
     it('shows the sentence of a refused request, and holds both buttons while a request is on its way', () => {
         renderCard(planState(), { error: 'The plan changed since you looked at it. Look at it again, then approve it.', busy: 'approve' });
         expect(screen.getByRole('alert').textContent).toContain('changed since you looked');

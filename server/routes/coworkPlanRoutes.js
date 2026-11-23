@@ -7,14 +7,21 @@
  *   PUT    /:id/plan          → name the automation the plan is made from (one the caller owns); approves nothing
  *   POST   /:id/plan/approve  → approve the plan the caller looked at (its fingerprint); a run executes that copy
  *   DELETE /:id/plan          → take the plan off; the item runs as a prompt or as its agent again
+ *   POST   /:id/plan/try      → try the plan once without it changing or sending anything; answers 202 with the
+ *                               try-out's id as soon as it started
+ *   GET    /:id/plan/try/:tryId → how that try-out is going, step by step
  *
  * Ownership first (usecases/coworkItems.mts), the same rule as viewing and editing the item. What a plan is and when
- * it may be approved is the use case's (usecases/coworkPlan.mts) and the plan core's (core/cowork/plan).
+ * it may be approved is the use case's (usecases/coworkPlan.mts) and the plan core's (core/cowork/plan); a try-out is
+ * usecases/coworkPlanTry.mts.
+ *
+ * A try-out reads the owner's real data and runs the plan's AI steps for real, so starting one is limited per person.
  */
 
 const { validate } = require('../core/http/validate');
-const { PlanAttachBody, PlanApproveBody, NoBody } = require('./coworkSchemas');
+const { PlanAttachBody, PlanApproveBody, PlanTryParams, NoBody } = require('./coworkSchemas');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
+const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
 /** Mounted behind routes/cowork.js's requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
@@ -23,18 +30,27 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  * @typedef {{
  *   loadItem: typeof loadOwnedItem,
  *   plan: () => Pick<typeof import('../usecases/coworkPlan.mts'), 'planStateOf' | 'attachPlan' | 'approvePlan' | 'removePlan'>,
+ *   tryOut: () => Pick<typeof import('../usecases/coworkPlanTry.mts'), 'startTry' | 'tryStateOf'>,
+ *   tryLimit: import('express').RequestHandler<{ id: string }>,
  * }} PlanRouteDeps
  */
 
-/** The item loader and the use case; a test hands in its own. @type {PlanRouteDeps} */
-const DEFAULTS = { loadItem: loadOwnedItem, plan: () => require('../usecases/coworkPlan.mts') };
+const TRIES_PER_MINUTE = 6;
+
+/** The item loader, the use cases and the try-out limit; a test hands in its own. @returns {PlanRouteDeps} */
+const defaults = () => ({
+    loadItem: loadOwnedItem,
+    plan: () => require('../usecases/coworkPlan.mts'),
+    tryOut: () => require('../usecases/coworkPlanTry.mts'),
+    tryLimit: perUserRateLimit({ windowMs: 60_000, max: TRIES_PER_MINUTE, name: 'cowork-plan-try' }),
+});
 
 /**
  * @param {import('express').Router} router
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan } = { ...DEFAULTS, ...overrides };
+    const { loadItem, plan, tryOut, tryLimit } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
@@ -54,6 +70,16 @@ function mountPlanRoutes(router, overrides = {}) {
     router.delete('/:id/plan', validate({ body: NoBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         res.json(await plan().removePlan({ item }));
+    });
+
+    router.post('/:id/plan/try', tryLimit, validate({ body: NoBody }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        res.status(202).json(await tryOut().startTry({ item }));
+    });
+
+    router.get('/:id/plan/try/:tryId', validate({ params: PlanTryParams }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        res.json(await tryOut().tryStateOf({ item, tryId: req.params.tryId }));
     });
 }
 

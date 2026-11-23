@@ -1,6 +1,6 @@
 // The plan the Cowork plan tests share: "Supplier radar", as /api/cowork/:id/plan answers it for the running
 // example of the server's plan tests (server/core/cowork/plan/plan.testkit.js).
-import type { PlanDraft, PlanState, PlanStep } from '../../api/coworkPlan.types';
+import type { PlanDraft, PlanState, PlanStep, PlanTryState, PlanTryStep } from '../../api/coworkPlan.types';
 import type { TranslateFn } from '../../hooks/useTranslation';
 
 /** The English fallback with its {params} filled in, as the real hook answers without a dictionary. */
@@ -48,4 +48,25 @@ export function supplierRadarDraft(): PlanDraft {
 /** A plan state: by default a plan that was never approved. */
 export function planState(over: Partial<PlanState> = {}): PlanState {
     return { automationId: 'auto-1', draft: supplierRadarDraft(), approved: null, widens: ['This plan has not been approved yet.'], upToDate: false, ...over };
+}
+
+const tried = (id: string, title: string, over: Partial<PlanTryStep> = {}): PlanTryStep => ({
+    id, title, kind: 'fixed', effect: 'reads', status: 'success', depth: 0, durationMs: 400, held: false, error: null, preview: null, ...over,
+});
+
+/** A finished try-out of "Supplier radar": what only reads ran for real, the table, the drafts and the digest were held back. */
+export function supplierRadarTry(over: Partial<PlanTryState> = {}): PlanTryState {
+    return {
+        tryId: 'try-1', status: 'success', done: true, summary: null, error: null, durationMs: 4200,
+        steps: [
+            tried('mail', 'Get the new supplier mail', { durationMs: 1200, preview: '{\n "messages": 9\n}' }),
+            tried('orders', 'Read each mail and pick out the order', { kind: 'ai', durationMs: 2100, preview: '{\n "order": "24-1187"\n}' }),
+            tried('overdue', 'Keep what is overdue', { durationMs: 12 }),
+            tried('table', 'Update the Open orders table', { effect: 'writes', held: true, preview: '{\n "amount": 12480\n}' }),
+            tried('reply', 'Write a reply for each overdue order', { kind: 'ai', durationMs: 800 }),
+            tried('draft', 'Save the replies as drafts', { effect: 'writes', held: true, preview: '{\n "to": "orders@hoekstra-staal.example"\n}' }),
+            tried('digest', 'Send me the digest', { kind: 'deliver', effect: 'sends', held: true, preview: '{\n "title": "3 orders are overdue"\n}' }),
+        ],
+        ...over,
+    };
 }

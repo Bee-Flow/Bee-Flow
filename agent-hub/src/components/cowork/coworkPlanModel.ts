@@ -28,6 +28,12 @@ export function canApprove(state: PlanState): boolean {
     return status === 'first' || status === 'changed';
 }
 
+/** A plan that can be tried: there is one and nothing blocks it (an approved plan can be tried again too). */
+export function canTry(state: PlanState): boolean {
+    const status = planStatusOf(state);
+    return status === 'first' || status === 'changed' || status === 'approved';
+}
+
 /** The kinds in the order a person reads them, with how many steps of each; kinds without a step are left out. */
 export function makeUpParts(makeUp: Record<PlanStepKind, number> | null | undefined): Array<{ kind: PlanStepKind; count: number }> {
     const order: PlanStepKind[] = ['fixed', 'ai', 'ask', 'deliver'];
