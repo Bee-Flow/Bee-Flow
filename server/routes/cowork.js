@@ -74,6 +74,7 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
 const { mountReviewRoutes, withReviewCounts, reviewCountOf } = require('./coworkReviewRoutes');
 const { mountPlanRoutes } = require('./coworkPlanRoutes');
+const { mountPlannerRoutes } = require('./coworkPlannerRoutes');
 const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
 
 const DEFAULT_MAX_SCHEDULES = 10;
@@ -386,6 +387,7 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
 
 mountReviewRoutes(router); // POST /:id/runs/:runId/review
 mountPlanRoutes(router); // GET, PUT, DELETE /:id/plan and POST /:id/plan/approve
+mountPlannerRoutes(router); // POST /:id/plan/make
 
 // GET /:id/stats — the figures behind the four cards (CW-11).
 //

@@ -129,3 +129,16 @@ export interface PlanRunTrace {
     durationMs: number | null;
     steps: PlanTryStep[];
 }
+
+/** What the planner says while it drafts a plan (server/usecases/coworkPlanner.mts). */
+export type PlanMakeProgress =
+    | { phase: 'thinking'; round: number }
+    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'>> }
+    | { phase: 'saving' };
+
+/** How making a plan ended: the plan as its owner now sees it with what the planner said about it, or a sentence. */
+export interface PlanMakeOutcome {
+    state: PlanState | null;
+    summary: string;
+    error: string | null;
+}

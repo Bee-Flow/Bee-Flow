@@ -18,6 +18,7 @@ const SOURCE_PURPOSES: Readonly<Record<string, { key: string; fallback: string }
     agent_chat: { key: 'admin_polish.source_agent_chat', fallback: 'answer' },
     agent_test_chat: { key: 'admin_polish.source_agent_test_chat', fallback: 'test chat' },
     automation_builder: { key: 'admin_polish.source_automation_builder', fallback: 'building with AI' },
+    cowork_planner: { key: 'cowork_plan.usage.planner', fallback: 'making a plan' },
     knowledge_embedding: { key: 'admin_polish.source_knowledge_embedding', fallback: 'indexing documents' },
     kb_summary: { key: 'admin_polish.source_kb_summary', fallback: 'summarising documents' },
     meeting_summary: { key: 'admin_polish.source_meeting_summary', fallback: 'summary' },

@@ -5,7 +5,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { approveCoworkPlan, attachCoworkPlan, getCoworkPlan, getCoworkPlanTry, getCoworkRunTrace, listPlanAutomations, removeCoworkPlan, startCoworkPlanTry } from '../coworkPlanApi';
 import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState } from '../coworkPlan.types';
 
-const planKey = (coworkId: string) => ['cowork', 'plan', coworkId] as const;
+/** Where the plan of an item is kept: what replaces it (an approval, a plan Cowork just made) writes here. */
+export const coworkPlanKey = (coworkId: string) => ['cowork', 'plan', coworkId] as const;
+const planKey = coworkPlanKey;
 
 export function useCoworkPlanQuery(coworkId: string | null | undefined) {
     return useQuery<PlanState, Error>({

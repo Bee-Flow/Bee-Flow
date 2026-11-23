@@ -8,9 +8,9 @@
  * Presentation only. What it shows comes in as props (./CoworkPlanPanel.tsx reads and acts), so the card can be
  * rendered with any plan.
  */
-import { ListChecks, Lock, Sparkles, Square, Hand, Bell } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ListChecks, Lock, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import CoworkPlanKindTile, { KIND_FALLBACK } from './CoworkPlanKindTile';
 import { appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPlanModel';
 import type { PlanStatus } from './coworkPlanModel';
 import { fullTimestamp } from './coworkFormat';
@@ -26,21 +26,12 @@ interface CoworkPlanCardProps {
     error?: string | null;
     /** The try-out of this plan (./CoworkPlanTry.tsx), shown between the plan and what its owner can do with it. */
     tryOut?: ReactNode;
+    /** What the planner said about the plan it just made: what it does each run, and what it could not do. */
+    note?: string | null;
     onApprove: (fingerprint: string) => void;
     onRemove: () => void;
 }
 
-const KIND_ICON: Record<PlanStepKind, LucideIcon> = { fixed: Square, ai: Sparkles, ask: Hand, deliver: Bell };
-
-/** The tile and the badge of each kind: ink for fixed work, the AI blue for a model, the waiting amber for a person. */
-const KIND_TILE: Record<PlanStepKind, string> = {
-    fixed: 'bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-primary)]',
-    ai: 'bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)] text-[var(--type-ai)]',
-    ask: 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]',
-    deliver: 'bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-primary)]',
-};
-
-const KIND_FALLBACK: Record<PlanStepKind, string> = { fixed: 'Fixed', ai: 'AI', ask: 'Asks you', deliver: 'Result' };
 const COUNT_FALLBACK: Record<PlanStepKind, string> = { fixed: '{count} fixed', ai: '{count} AI', ask: '{count} for you to decide', deliver: '{count} result for you' };
 const EFFECT_FALLBACK: Record<PlanEffect, string> = { reads: 'May read', writes: 'May change', sends: 'May send' };
 const SENDS_FALLBACK: Record<PlanPermissions['sends'], string> = { none: 'Nothing leaves this plan', owner: 'Only to you', others: 'To other people' };
@@ -72,12 +63,9 @@ function MakeUpBar({ draft, t }: { draft: PlanDraft; t: TranslateFn }) {
 }
 
 function StepRow({ step, t }: { step: PlanStep; t: TranslateFn }) {
-    const Icon = KIND_ICON[step.kind];
     return (
         <li className={`flex items-start gap-2.5 py-1.5 ${step.depth > 0 ? 'pl-6' : ''}`} data-testid={`cowork-plan-step-${step.id}`}>
-            <span className={`flex-shrink-0 w-6 h-6 rounded-md inline-flex items-center justify-center ${KIND_TILE[step.kind]}`}>
-                <Icon aria-hidden="true" className="w-3.5 h-3.5" />
-            </span>
+            <CoworkPlanKindTile kind={step.kind} />
             <span className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-[13px] font-medium break-words text-[var(--text-primary)]">{step.title}</span>
                 <span className={PILL}>{t(`cowork_plan.kind.${step.kind}`, KIND_FALLBACK[step.kind])}</span>
@@ -182,7 +170,17 @@ function StatusLine({ status, state, t }: { status: PlanStatus; state: PlanState
     );
 }
 
-export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, onApprove, onRemove }: CoworkPlanCardProps) {
+/** What the planner said about the plan it just made. Its words are shown as text, never rendered. */
+function PlannerNote({ note, t }: { note: string; t: TranslateFn }) {
+    return (
+        <p className="flex items-start gap-1.5 text-[12.5px] whitespace-pre-wrap break-words text-[var(--text-secondary)]" data-testid="cowork-plan-note">
+            <Sparkles aria-hidden="true" className="mt-0.5 w-3.5 h-3.5 flex-shrink-0 text-[var(--type-ai)]" />
+            <span><span className="font-medium text-[var(--text-primary)]">{t('cowork_plan.make.note_label', 'Cowork')}: </span>{note}</span>
+        </p>
+    );
+}
+
+export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, note = null, onApprove, onRemove }: CoworkPlanCardProps) {
     const status = planStatusOf(state);
     if (status === 'none') return null;
     const draft = state.draft;
@@ -201,6 +199,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
                 {draft && <div className="ml-auto"><MakeUpBar draft={draft} t={t} /></div>}
             </div>
             <StatusLine status={status} state={state} t={t} />
+            {note && <PlannerNote note={note} t={t} />}
             {draft && <PlanBody draft={draft} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}

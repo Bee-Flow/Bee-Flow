@@ -54,6 +54,14 @@ test('the tools an AI step is offered are part of what the plan may do', () => {
     ]);
 });
 
+test('a knowledge base an AI step is grounded on is something the plan reads, and a new one widens', () => {
+    const grounded = (ids) => permissionsOf(planOf([{ id: 'a', type: 'ai_step', prompt: 'x', knowledgeBaseIds: ids }]), lookups);
+    assert.deepStrictEqual(grounded(['kb-1', 'kb-2', '', 7]).grants, [{ app: 'knowledge-bases', effect: 'reads', tools: ['knowledge_base:kb-1', 'knowledge_base:kb-2'] }]);
+    assert.deepStrictEqual(grounded([]).grants, []);
+    assert.deepStrictEqual(widens(grounded(['kb-1', 'kb-2']), grounded(['kb-1'])).length, 1);
+    assert.deepStrictEqual(widens(grounded(['kb-1']), grounded(['kb-1', 'kb-2'])), []);
+});
+
 test('a table step reads or writes the organisation\'s tables by its operation; a document step writes a document', () => {
     const plan = planOf([
         { id: 'find', type: 'datatable', datatableId: 't1', op: 'find_rows' },

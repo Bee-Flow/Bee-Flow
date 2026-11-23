@@ -45,6 +45,9 @@ who typed one sentence should be handed: free web addresses, code, sub-flows, pu
 - **An AI step is offered tools by name.** Never the whole catalogue of its owner, never the grants
   of an agent. An item that should run as an agent runs as that agent as a whole, on the other
   engine.
+- **An AI step uses no skills and no memory.** A skill brings instructions and tools the plan does
+  not show; memory is text the plan did not fetch. A knowledge base an AI step is grounded on is
+  listed on the card as something the plan reads.
 - **Permissions come from the plan.** `permissionsOf` lists each app the steps touch, as reads,
   writes or sends, with the tool names behind it, whether a model is called and whether text from
   outside the workspace is read. That list is what a person approves.

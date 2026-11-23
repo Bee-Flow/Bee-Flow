@@ -9,8 +9,10 @@
  *
  *   SHAPE     a plan is one list of steps: a trigger from the short list, no sub-flows, at least one step.
  *   STEPS     every step type is on Cowork's list (./coworkStepList.mts).
- *   AI        an AI step is offered tools by name only: never the whole catalogue (`allowTools`), never an agent's
- *             grants (an item that runs as an agent is the other engine).
+ *   AI        an AI step is offered tools by name only: never the whole catalogue (the tools switch on with no list
+ *             to narrow it), never an agent's grants (an item that runs as an agent is the other engine). It uses no
+ *             skills and no memory: a skill brings instructions and tools the plan does not show, and memory is text
+ *             the plan did not fetch.
  *   OUTSIDE   outside text (./outsideText.mts) can inform, never instruct:
  *               - an AI step that reads it gets no tools at all, so it can only write its answer;
  *               - a step that goes to the open web takes nothing from it (an address or a query built from a mail is
@@ -48,6 +50,9 @@ const fieldKey = (name: string): string => name.toLowerCase().replaceAll('_', ''
 
 const finding = (code: string, stepId: string | null, message: string): PlanFinding => ({ code, stepId, message });
 
+/** A field that names something: a non-empty list, or any value that is not blank. */
+const names = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== '');
+
 function shapeFindings(definition: Definition | null | undefined, steps: WalkedStep[]): PlanFinding[] {
     const out: PlanFinding[] = [];
     if (!definition || typeof definition !== 'object' || !Array.isArray(definition.steps)) {
@@ -65,15 +70,28 @@ function shapeFindings(definition: Definition | null | undefined, steps: WalkedS
     return out;
 }
 
+/**
+ * The step is offered every tool its owner has: the tools switch is on and no list narrows it. (With a list the
+ * runner offers exactly the list, and an empty list offers nothing: core/automationRunner/aiStepTools.js.)
+ */
+const offersEveryTool = (step: DefStep): boolean => step.allowTools === true && !Array.isArray(step.tools);
+
 function aiFindings(s: WalkedStep, outside: OutsideText): PlanFinding[] {
     const out: PlanFinding[] = [];
-    if (s.step.allowTools === true) {
+    const everyTool = offersEveryTool(s.step);
+    if (everyTool) {
         out.push(finding('ai.open_tools', s.id, 'An AI step in a plan is offered tools by name, never every tool its owner has.'));
+    }
+    if (names(s.step.skillIds)) {
+        out.push(finding('ai.skills', s.id, 'An AI step in a plan uses no skills yet: a skill brings instructions and tools that the plan does not show.'));
+    }
+    if (s.step.useMemory === true) {
+        out.push(finding('ai.memory', s.id, 'An AI step in a plan does not use memory yet: it works from what the plan fetched.'));
     }
     if (typeof s.step.agentId === 'string' && s.step.agentId.trim()) {
         out.push(finding('ai.agent', s.id, 'An AI step in a plan does not run as an agent: an item that should, runs as that agent as a whole.'));
     }
-    if (outside.reads.has(s.id) && (aiToolsOf(s.step).length > 0 || s.step.allowTools === true)) {
+    if (outside.reads.has(s.id) && (everyTool || aiToolsOf(s.step).length > 0)) {
         out.push(finding('ai.outside_text_with_tools', s.id, 'This AI step reads text written outside the workspace, so it may not be offered any tool: it can only write its answer.'));
     }
     return out;
@@ -81,8 +99,6 @@ function aiFindings(s: WalkedStep, outside: OutsideText): PlanFinding[] {
 
 /** The fields of an approval step that put someone other than the owner on the decision. */
 const OTHER_APPROVER_FIELDS = ['assignee', 'approvers', 'finalApprover', 'escalateTo', 'stages'];
-
-const names = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== '');
 
 function askFindings(s: WalkedStep): PlanFinding[] {
     if (!OTHER_APPROVER_FIELDS.some((field) => names(s.step[field]))) return [];

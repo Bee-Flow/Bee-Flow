@@ -114,6 +114,18 @@ describe('CoworkPlanCard', () => {
         expect(order.indexOf('the-try-out')).toBeLessThan(order.indexOf('cowork-plan-approve'));
     });
 
+    it('shows what the planner said about the plan it made, as plain text', () => {
+        renderCard(planState(), { note: 'Each run reads the supplier mail and tells you. **It could not** reach the ERP: <b>not connected</b>.' });
+        const note = screen.getByTestId('cowork-plan-note');
+        expect(note.textContent).toBe('Cowork: Each run reads the supplier mail and tells you. **It could not** reach the ERP: <b>not connected</b>.');
+        expect(note.querySelector('b')).toBeNull();
+    });
+
+    it('has no note for a plan that was not just made', () => {
+        renderCard(planState());
+        expect(screen.queryByTestId('cowork-plan-note')).toBeNull();
+    });
+
     it('shows the sentence of a refused request, and holds both buttons while a request is on its way', () => {
         renderCard(planState(), { error: 'The plan changed since you looked at it. Look at it again, then approve it.', busy: 'approve' });
         expect(screen.getByRole('alert').textContent).toContain('changed since you looked');

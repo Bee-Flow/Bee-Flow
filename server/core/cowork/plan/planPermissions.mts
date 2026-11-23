@@ -32,6 +32,8 @@ export const BUILT_IN_APP = 'bee-flow';
 /** The organisation's own tables and documents, as apps of a plan. */
 export const DATATABLES_APP = 'datatables';
 export const DOCUMENTS_APP = 'documents';
+/** The knowledge bases an AI step is grounded on. */
+export const KNOWLEDGE_APP = 'knowledge-bases';
 
 const RANK: Readonly<Record<Effect, number>> = Object.freeze({ reads: 0, writes: 1, sends: 2 });
 
@@ -39,7 +41,10 @@ const RANK: Readonly<Record<Effect, number>> = Object.freeze({ reads: 0, writes:
 function triplesOf(step: DefStep, type: string, lookups: ToolLookups): Array<[string, Effect, string]> {
     const ofTool = (tool: string): [string, Effect, string] => [lookups.appOfTool(tool) ?? BUILT_IN_APP, lookups.effectOfTool(tool), tool];
     if (type === 'integration_action') return typeof step.tool === 'string' && step.tool ? [ofTool(step.tool)] : [];
-    if (type === 'ai_step') return aiToolsOf(step).map(ofTool);
+    if (type === 'ai_step') {
+        const bases = Array.isArray(step.knowledgeBaseIds) ? step.knowledgeBaseIds.filter((id): id is string => typeof id === 'string' && id !== '') : [];
+        return [...aiToolsOf(step).map(ofTool), ...bases.map((id): [string, Effect, string] => [KNOWLEDGE_APP, 'reads', `knowledge_base:${id}`])];
+    }
     if (type === 'datatable') {
         const op = typeof step.op === 'string' && step.op ? step.op : 'read';
         return [[DATATABLES_APP, DATATABLE_WRITE_OPS.has(step.op) ? 'writes' : 'reads', `datatable.${op}`]];

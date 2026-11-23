@@ -68,6 +68,23 @@ test('an AI step is offered tools by name: not the whole catalogue, not an agent
     assert.deepStrictEqual(codes(planOf([{ id: 'a', type: 'ai_step', prompt: 'x', tools: ['drive_search'] }])), [], 'named tools on trusted input are fine');
 });
 
+test('the tools switch with a list is the list: that is how the builder stores named tools, and an empty list is no tools', () => {
+    assert.deepStrictEqual(codes(planOf([{ id: 'a', type: 'ai_step', prompt: 'x', allowTools: true, tools: ['drive_search'] }])), []);
+    assert.deepStrictEqual(codes(planOf([{ id: 'a', type: 'ai_step', prompt: 'x', allowTools: true, tools: [] }])), []);
+    assert.deepStrictEqual(codes(planOf([{ id: 'a', type: 'ai_step', prompt: 'x', allowTools: true, tools: null }])), ['ai.open_tools']);
+    const onMail = (over) => planOf([mailStep, { id: 'a', type: 'ai_step', prompt: 'Answer {{steps.mail.output.body}}', ...over }]);
+    assert.deepStrictEqual(codes(onMail({ allowTools: true, tools: ['drive_search'] })), ['ai.outside_text_with_tools']);
+    assert.deepStrictEqual(codes(onMail({ allowTools: true, tools: [] })), [], 'the switch on with nothing to offer');
+    assert.deepStrictEqual(codes(onMail({ allowTools: false, tools: null })), []);
+});
+
+test('an AI step in a plan uses no skills and no memory', () => {
+    const ai = (over) => planOf([{ id: 'a', type: 'ai_step', prompt: 'x', ...over }]);
+    assert.deepStrictEqual(codes(ai({ skillIds: ['skill-1'] })), ['ai.skills']);
+    assert.deepStrictEqual(codes(ai({ useMemory: true })), ['ai.memory']);
+    assert.deepStrictEqual(codes(ai({ skillIds: [], useMemory: false, knowledgeBaseIds: [], agentId: null })), [], 'as the builder stores a plain AI step');
+});
+
 test('an AI step that reads outside text gets no tool at all', () => {
     const withTools = planOf([mailStep, { id: 'a', type: 'ai_step', prompt: 'Answer {{steps.mail.output.body}}', tools: ['drive_search'] }]);
     assert.deepStrictEqual(codes(withTools), ['ai.outside_text_with_tools']);
