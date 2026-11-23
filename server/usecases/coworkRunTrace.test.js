@@ -69,6 +69,14 @@ test('a run that waited for a decision is read over its whole journey: the newes
     assert.deepStrictEqual(trace.steps.filter((s) => s.status === 'success').map((s) => s.id), ['mail', 'draft']);
 });
 
+test('while the journey waits for a decision, the steps after it are still to come, not "not reached"', async () => {
+    const w = world({ run: { id: 'arun-1', automationId: 'auto-1', status: 'awaiting_approval' }, rows: [ROWS[0]] });
+    const trace = await runTraceOf({ item: ITEM, runId: 'run-1' }, w.deps);
+    assert.strictEqual(trace.done, true, 'nothing changes by itself: no need to keep reading');
+    assert.deepStrictEqual(trace.steps.slice(0, 3).map((x) => x.status), ['success', 'pending', 'pending']);
+    assert.ok(trace.steps.every((x) => x.status !== 'not_reached'));
+});
+
 test('a run that followed no plan has no trace', async () => {
     await assert.rejects(runTraceOf({ item: ITEM, runId: 'run-1' }, world({ link: null }).deps), (err) => err.status === 404 && err.code === 'cowork_run_no_plan');
 });

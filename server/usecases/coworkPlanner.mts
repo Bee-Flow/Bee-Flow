@@ -79,7 +79,7 @@ export interface BuilderPort {
 }
 
 export interface PlannerDeps {
-    store: { attachPlanAutomation: (scheduleId: string, automationId: string) => Promise<unknown> };
+    store: { attachPlanAutomation: (scheduleId: string, automationId: string, opts?: { onlyIfNone?: boolean }) => Promise<boolean> };
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     /** The model the planner thinks with, or null when the workspace has none. */
     resolveModel: (who: { userOrgId: string | null; userId: string }) => Promise<string | null>;
@@ -318,7 +318,10 @@ async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps): Pro
     const stored = await deps.builder.persistDraft(draft, { finalize: true });
     const automationId = stored?.id ?? draft.automationId;
     if (!automationId || stored?.error) throw new Error(`the planner could not store its draft: ${stored?.error ?? 'no automation id'}`);
-    await deps.store.attachPlanAutomation(item.id, automationId);
+    // Only onto an item that still has no plan: a second making at the same time does not replace the first.
+    if (!(await deps.store.attachPlanAutomation(item.id, automationId, { onlyIfNone: true }))) {
+        throw new HttpError(409, 'cowork_plan_refused', 'This item got a plan while this one was being made. The new draft is kept among your automations.');
+    }
     return automationId;
 }
 

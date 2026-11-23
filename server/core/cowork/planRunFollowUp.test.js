@@ -16,15 +16,19 @@ const { planOf, supplierRadar } = require('./plan/plan.testkit');
 
 const PLAN = { runId: 'cw-run-1', userId: 'u1', title: 'Supplier radar', scheduleId: 's1', definition: supplierRadar() };
 
-function world({ plan = PLAN, waiting = true, legs = {}, waitingRuns = [] } = {}) {
+function world({ plan = PLAN, waiting = true, legs = {}, waitingRuns = [], steps = {} } = {}) {
     const seen = { closed: [], notes: [] };
     let open = waiting;
     const handlers = new Map();
     const deps = {
         getPlanOfAutomationRun: async (id) => (id === 'leg-1' ? plan : null),
         closeWaitingRun: async (runId, end) => { if (!open) return false; open = false; seen.closed.push([runId, end]); return true; },
-        listWaitingRuns: async () => waitingRuns,
+        listWaitingRuns: async (limit, after) => {
+            const start = after ? waitingRuns.findIndex((w) => w.id === after.id) + 1 : 0;
+            return waitingRuns.slice(start, start + limit);
+        },
         getLatestRunInChain: async (id) => legs[id] ?? null,
+        getRunStepsForChain: async (id) => steps[id] ?? [],
         createNotification: async (n) => { seen.notes.push(n); },
         onRunEvent: (type, handler) => { handlers.set(type, handler); return () => handlers.delete(type); },
     };
@@ -34,7 +38,7 @@ function world({ plan = PLAN, waiting = true, legs = {}, waitingRuns = [] } = {}
 test('a journey that ended well closes its waiting run with what it did; a plan with a result step told its owner itself', async () => {
     const { deps, seen } = world();
     assert.strictEqual(await onRunEnd({ runId: 'leg-2', rootRunId: 'leg-1', status: 'success', summary: 'Ran 3 steps.' }, deps), true);
-    assert.deepStrictEqual(seen.closed, [['cw-run-1', { status: 'success', result: 'Ran 3 steps.', error: null }]]);
+    assert.deepStrictEqual(seen.closed, [['cw-run-1', { status: 'success', result: 'Done, after your decision.', error: null }]], 'the engine\'s list of steps is no result');
     assert.deepStrictEqual(seen.notes, []);
 });
 
@@ -103,4 +107,24 @@ test('start listens to the engine\'s ends once, and stop lets go', async () => {
     assert.strictEqual(seen.closed.length, 1);
     stop();
     assert.strictEqual(handlers.size, 0);
+});
+
+test('the result of a journey is the message its last step delivered', async () => {
+    const { deps, seen } = world({ steps: { 'leg-1': [
+        { status: 'success', output: { overdue: 3 } },
+        { status: 'success', output: { delivered: { title: 'Supplier radar', body: '3 orders are overdue' } } },
+        { status: 'error', output: null },
+    ] } });
+    await onRunEnd({ runId: 'leg-2', rootRunId: 'leg-1', status: 'success' }, deps);
+    assert.strictEqual(seen.closed[0][1].result, '3 orders are overdue');
+});
+
+test('the sweep pages past waiting runs whose decision is still pending', async () => {
+    const pending = Array.from({ length: 150 }, (_, i) => ({ id: `w-${i}`, automationRunId: `pending-${i}`, startedAt: new Date(1_795_000_000_000 + i).toISOString() }));
+    const { deps, seen } = world({
+        waitingRuns: [...pending, { id: 'cw-run-1', automationRunId: 'leg-1', startedAt: new Date(1_795_000_001_000).toISOString() }],
+        legs: { ...Object.fromEntries(pending.map((w) => [w.automationRunId, { status: 'awaiting_approval' }])), 'leg-1': { id: 'leg-2', status: 'success' } },
+    });
+    assert.strictEqual(await sweepWaiting(deps), 1);
+    assert.deepStrictEqual(seen.closed.map((c) => c[0]), ['cw-run-1']);
 });

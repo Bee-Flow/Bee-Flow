@@ -166,3 +166,49 @@ test('a plan run that waits for a decision closes as waiting: not counted as a f
     assert.deepStrictEqual([closed?.status, closed?.result, closed?.error, closed?.producedOutput], ['success', 'Sent the digest.', null, true]);
     assert.ok(!(await store.listWaitingRuns(100)).some((w) => w.id === runId));
 });
+
+test('a waiting run that fails after the decision makes the item say so, unless a newer run started since', async () => {
+    const id = await item();
+    const plan = await approve(id);
+    const waitingRun = async (automationRunId) => {
+        const runId = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
+        await store.linkPlanRun(runId, { planId: plan.id, automationRunId });
+        await store.markCompleted(id, 'Waiting.', { runId, waiting: true });
+        return runId;
+    };
+    const first = await waitingRun('arun-a');
+    await store.closeWaitingRun(first, { status: 'error', result: null, error: 'Outlook did not answer.' });
+    let s = await store.getSchedule(id);
+    assert.deepStrictEqual([s?.lastStatus, s?.lastResult], ['error', 'Outlook did not answer.']);
+
+    const older = await waitingRun('arun-b');
+    await new Promise((resolve) => { setTimeout(resolve, 5); });
+    const newer = await waitingRun('arun-c');
+    await store.closeWaitingRun(newer, { status: 'success', result: 'Sent.', error: null });
+    await store.closeWaitingRun(older, { status: 'error', result: null, error: 'late failure' });
+    s = await store.getSchedule(id);
+    assert.deepStrictEqual([s?.lastStatus, s?.lastResult], ['success', 'Sent.'], 'the older run does not overwrite the newer one');
+});
+
+test('the waiting runs are read page by page, in start order', async () => {
+    const id = await item();
+    const plan = await approve(id);
+    for (const automationRunId of ['arun-p1', 'arun-p2']) {
+        const runId = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
+        await store.linkPlanRun(runId, { planId: plan.id, automationRunId });
+        await store.markCompleted(id, 'Waiting.', { runId, waiting: true });
+    }
+    const all = await store.listWaitingRuns(500);
+    assert.ok(all.length >= 2);
+    const firstPage = await store.listWaitingRuns(1);
+    const second = await store.listWaitingRuns(1, firstPage[0]);
+    assert.deepStrictEqual([firstPage[0]?.id, second[0]?.id], all.slice(0, 2).map((w) => w.id));
+});
+
+test('a drafted plan is named only on an item that still has none', async () => {
+    const id = await item();
+    assert.strictEqual(await store.attachPlanAutomation(id, 'auto-x', { onlyIfNone: true }), true);
+    assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y', { onlyIfNone: true }), false);
+    assert.strictEqual((await store.getSchedule(id))?.planAutomationId, 'auto-x');
+    assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y'), true, 'naming one by hand replaces it');
+});

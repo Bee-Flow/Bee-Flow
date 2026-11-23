@@ -76,10 +76,18 @@ function rowToPlan(r: Row | null | undefined): ApprovedPlan | null {
 }
 
 export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
-    /** Name the automation this item's plan is made from. An approved plan, if any, stays until a new one is approved. */
-    async function attachPlanAutomation(scheduleId: string, automationId: string): Promise<void> {
+    /**
+     * Name the automation this item's plan is made from. An approved plan, if any, stays until a new one is approved.
+     * `onlyIfNone`: only when the item names none yet (the planner, which drafted for an item without a plan). Answers
+     * whether the item now names it.
+     */
+    async function attachPlanAutomation(scheduleId: string, automationId: string, { onlyIfNone = false }: { onlyIfNone?: boolean } = {}): Promise<boolean> {
         await ready();
-        await db.run('UPDATE cowork_schedules SET plan_automation_id = $2 WHERE id = $1', [scheduleId, automationId]);
+        const row = await db.getOne(
+            `UPDATE cowork_schedules SET plan_automation_id = $2 WHERE id = $1 AND (NOT $3 OR plan_automation_id IS NULL) RETURNING id`,
+            [scheduleId, automationId, onlyIfNone],
+        );
+        return !!row;
     }
 
     /** Take the plan off the item: it runs as a prompt or as its agent again. */
@@ -181,22 +189,31 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
                 SET status = $2, result = COALESCE($3, result), error = $4, produced_output = $5,
                     duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int, finished_at = NOW()
               WHERE id = $1 AND status = 'waiting'
-          RETURNING id`,
+          RETURNING id, schedule_id`,
             [runId, end.status, end.result, end.error, end.status === 'success' && !!end.result],
         );
-        return !!closed;
+        if (!closed) return false;
+        // The item says how its latest run went: this one, unless a newer run has started since.
+        await db.run(
+            `UPDATE cowork_schedules SET last_status = $2, last_result = COALESCE($3, $4, last_result)
+              WHERE id = $1 AND NOT EXISTS (
+                  SELECT 1 FROM cowork_runs n WHERE n.schedule_id = $1 AND n.started_at > (SELECT started_at FROM cowork_runs WHERE id = $5))`,
+            [closed.schedule_id, end.status, end.result, end.error, runId],
+        );
+        return true;
     }
 
-    /** Plan runs that wait for a decision, oldest first, with the journey each belongs to. */
-    async function listWaitingRuns(limit: number): Promise<Array<{ id: string; automationRunId: string }>> {
+    /** Plan runs that wait for a decision, oldest first, after the cursor `after`, with the journey each belongs to. */
+    async function listWaitingRuns(limit: number, after: { startedAt: string; id: string } | null = null): Promise<Array<{ id: string; automationRunId: string; startedAt: string }>> {
         await ready();
         const rows = await db.getAll(
-            `SELECT id, automation_run_id FROM cowork_runs
+            `SELECT id, automation_run_id, started_at FROM cowork_runs
               WHERE status = 'waiting' AND automation_run_id IS NOT NULL
-              ORDER BY started_at ASC LIMIT $1`,
-            [Math.max(1, Math.min(500, Math.floor(limit) || 1))],
+                AND ($2::timestamptz IS NULL OR (started_at, id) > ($2::timestamptz, $3::text))
+              ORDER BY started_at ASC, id ASC LIMIT $1`,
+            [Math.max(1, Math.min(500, Math.floor(limit) || 1)), after?.startedAt ?? null, after?.id ?? null],
         );
-        return rows.map((r) => ({ id: String(r.id), automationRunId: String(r.automation_run_id) }));
+        return rows.map((r) => ({ id: String(r.id), automationRunId: String(r.automation_run_id), startedAt: new Date(r.started_at as string).toISOString() }));
     }
 
     return { getPlanOfAutomationRun, closeWaitingRun, listWaitingRuns };

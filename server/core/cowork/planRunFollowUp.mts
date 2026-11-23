@@ -20,6 +20,7 @@ import type { Definition } from './plan/planTypes.mts';
 import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { NOTIFICATION } from './runShared.mts';
+import { resultTextOf } from './planRun.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
@@ -27,13 +28,17 @@ const log = nodeRequire('../../telemetry/log.js') as { info: (m: string) => void
 /** A run of the engine as far as this module reads it. */
 interface Leg { id?: string; status?: string | null; error?: string | null; summary?: string | null }
 interface PlanOfRun { runId: string; userId: string; title: string | null; scheduleId: string; definition: unknown }
-interface WaitingRun { id: string; automationRunId: string }
+interface WaitingRun { id: string; automationRunId: string; startedAt: string }
+interface StepRow { status?: string; output?: unknown }
 
 export interface FollowUpDeps {
     getPlanOfAutomationRun: (automationRunId: string) => Promise<PlanOfRun | null>;
     closeWaitingRun: (runId: string, end: { status: 'success' | 'error'; result: string | null; error: string | null }) => Promise<boolean>;
-    listWaitingRuns: (limit: number) => Promise<WaitingRun[]>;
+    /** Waiting runs in start order, after `after` (a cursor of the last one read), at most `limit`. */
+    listWaitingRuns: (limit: number, after?: { startedAt: string; id: string } | null) => Promise<WaitingRun[]>;
     getLatestRunInChain: (runId: string) => Promise<Leg | null>;
+    /** The journey's step rows as one timeline (stores/automationStore getRunStepsForChain). */
+    getRunStepsForChain: (runId: string) => Promise<StepRow[]>;
     createNotification: (n: Record<string, unknown>) => Promise<unknown>;
     onRunEvent: (type: string, handler: (event: RunEnd) => void) => () => void;
 }
@@ -46,8 +51,9 @@ const defaults = (): FollowUpDeps => {
     return {
         getPlanOfAutomationRun: (id) => cowork().getPlanOfAutomationRun(id),
         closeWaitingRun: (id, end) => cowork().closeWaitingRun(id, end),
-        listWaitingRuns: (limit) => cowork().listWaitingRuns(limit),
+        listWaitingRuns: (limit, after) => cowork().listWaitingRuns(limit, after),
         getLatestRunInChain: (id) => (nodeRequire('../../stores/automationStore') as { getLatestRunInChain: FollowUpDeps['getLatestRunInChain'] }).getLatestRunInChain(id),
+        getRunStepsForChain: (id) => (nodeRequire('../../stores/automationStore') as { getRunStepsForChain: FollowUpDeps['getRunStepsForChain'] }).getRunStepsForChain(id),
         createNotification: (n) => (nodeRequire('../../stores/notificationStore') as { createNotification: FollowUpDeps['createNotification'] }).createNotification(n),
         onRunEvent: (type, handler) => (nodeRequire('../runEventBus.js') as { onRunEvent: FollowUpDeps['onRunEvent'] }).onRunEvent(type, handler),
     };
@@ -64,7 +70,7 @@ interface End { status: 'success' | 'error'; result: string | null; error: strin
 function endOf(leg: Leg): End | null {
     const status = leg.status ?? '';
     if (!status || NOT_OVER.has(status)) return null;
-    if (status === 'success') return { status: 'success', result: text(leg.summary) ?? 'Done, after your decision.', error: null };
+    if (status === 'success') return { status: 'success', result: null, error: null };
     return { status: 'error', result: null, error: text(leg.error) ?? `The plan ended as "${status}" after your decision.` };
 }
 
@@ -84,10 +90,21 @@ async function tellOwner(plan: PlanOfRun, end: End, deps: FollowUpDeps): Promise
     }
 }
 
+/** What the journey produced: the text of its last step that gave one (a result step's message), else null. */
+async function producedBy(journeyId: string, deps: FollowUpDeps): Promise<string | null> {
+    const done = (await deps.getRunStepsForChain(journeyId)).filter((r) => r.status === 'success' && r.output !== null && r.output !== undefined);
+    const last = done.at(-1);
+    if (!last) return null;
+    const textOf = resultTextOf({ lastOutput: last.output, summary: null });
+    return textOf === 'Done.' ? null : textOf;
+}
+
 /** Close the Cowork run of one journey that ended with `leg`'s status; answers whether a waiting run was closed. */
 export async function closeJourney(journeyId: string, leg: Leg, deps: FollowUpDeps = defaults()): Promise<boolean> {
-    const end = endOf(leg);
-    if (!end) return false;
+    const ended = endOf(leg);
+    if (!ended) return false;
+    // The run's result is what it produced, not the engine's list of its steps.
+    const end = ended.status === 'success' ? { ...ended, result: (await producedBy(journeyId, deps)) ?? 'Done, after your decision.' } : ended;
     const plan = await deps.getPlanOfAutomationRun(journeyId);
     if (!plan || !(await deps.closeWaitingRun(plan.runId, end))) return false;
     await tellOwner(plan, end, deps);
@@ -107,11 +124,18 @@ export const SWEEP_LIMIT = 100;
 /** Waiting runs whose journey ended unheard: read how it ended, and close them. Answers how many were closed. */
 export async function sweepWaiting(deps: FollowUpDeps = defaults()): Promise<number> {
     let closed = 0;
-    for (const waiting of await deps.listWaitingRuns(SWEEP_LIMIT)) {
-        const leg = await deps.getLatestRunInChain(waiting.automationRunId);
-        if (leg && await closeJourney(waiting.automationRunId, leg, deps)) closed += 1;
+    // Page by cursor through every waiting run: runs whose decision is still pending must not hide the later ones.
+    let after: { startedAt: string; id: string } | null = null;
+    for (;;) {
+        const page = await deps.listWaitingRuns(SWEEP_LIMIT, after);
+        for (const waiting of page) {
+            const leg = await deps.getLatestRunInChain(waiting.automationRunId);
+            if (leg && await closeJourney(waiting.automationRunId, leg, deps)) closed += 1;
+        }
+        const last = page.at(-1);
+        if (page.length < SWEEP_LIMIT || !last) return closed;
+        after = { startedAt: last.startedAt, id: last.id };
     }
-    return closed;
 }
 
 const SWEEP_EVERY_MS = 5 * 60_000;

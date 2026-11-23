@@ -295,3 +295,13 @@ test('an item with an approved plan runs as its plan: no model call of the promp
     assert.deepStrictEqual(asked, [['cw14', { triggerKind: 'schedule', due: true }]], 'claimed once, by the plan path');
     assert.strictEqual(logged.length, 0);
 });
+
+test('a run a new mail started is no plan run, even on an item that still names a plan', async () => {
+    resetScenario();
+    script = [];
+    let planAsked = false;
+    const store = { ...fakeStore, markRunning: async () => null, getApprovedPlan: async () => { planAsked = true; return null; } };
+    await executeTask({ id: 'cw15', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1' }, { store, trigger: { kind: 'mail', messageId: 'm1' } });
+    await flush();
+    assert.strictEqual(planAsked, false);
+});

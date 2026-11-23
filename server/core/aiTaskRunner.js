@@ -184,9 +184,9 @@ async function resolveUserSession(userId) {
  * (COWORK_RUN_MAX_MINUTES, ./cowork/runDeadline.mts).
  */
 async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null, due = false, maxMs = undefined } = {}) {
-    if (task.planId) {
-        // An item with an approved plan runs as that plan (./cowork/planRun.mts),
-        // whatever else it carries: the plan is what its owner approved.
+    if (task.planId && !trigger) {
+        // An item with an approved plan runs as that plan (./cowork/planRun.mts):
+        // the plan is what its owner approved. A run a new mail started is no plan run.
         return executePlanRun(task, { manual, store, due }, { failRun, advance: advanceAfterTaskRun, NOTIFICATION });
     }
     if (task.agentId) {

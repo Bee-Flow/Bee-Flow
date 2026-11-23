@@ -78,9 +78,18 @@ export class PlanRefusedError extends Error {
 const PAUSED: ReadonlySet<string> = new Set(['awaiting_approval', 'awaiting_form', 'awaiting_confirm']);
 const TEXT_KEYS = ['body', 'text', 'message', 'content'];
 
-/** What the run produced, in words: the text of its last step when it has one, else the runner's summary. */
+/** The message a result step delivered (its output is { delivered: { title, body } }), else the output itself. */
+function messageOf(out: unknown): unknown {
+    const delivered = out && typeof out === 'object' ? (out as { delivered?: unknown }).delivered : undefined;
+    return delivered && typeof delivered === 'object' ? delivered : out;
+}
+
+/**
+ * What the run produced, in words: the text of its last step when it has one (the message a result step delivered
+ * included), else the runner's summary.
+ */
 export function resultTextOf(row: AutomationRunRow | null | undefined): string {
-    const out = row?.lastOutput;
+    const out = messageOf(row?.lastOutput);
     if (typeof out === 'string' && out.trim()) return out;
     if (out && typeof out === 'object') {
         for (const key of TEXT_KEYS) {

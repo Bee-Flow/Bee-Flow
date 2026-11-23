@@ -166,6 +166,12 @@ test('a run that waits for a decision closes as waiting, and tells its owner whe
     assert.deepStrictEqual(h.seen.failed, []);
 });
 
+test('a plan that ends in a result step produced the message it delivered, not the engine\'s list of its steps', () => {
+    const row = { lastOutput: { delivered: { title: 'Supplier radar', body: '3 orders are overdue', channels: ['notification'] } }, summary: '**Trigger:** When run manually.' };
+    assert.strictEqual(resultTextOf(row), '3 orders are overdue');
+    assert.strictEqual(resultTextOf({ lastOutput: { delivered: 'odd' }, summary: 'Ran.' }), 'Ran.');
+});
+
 test('what a run produced is the text of its last step, else the runner\'s summary, never nothing', () => {
     assert.strictEqual(resultTextOf({ lastOutput: { body: 'A digest.' }, summary: 'Ran.' }), 'A digest.');
     assert.strictEqual(resultTextOf({ lastOutput: { text: 'An answer.' } }), 'An answer.');

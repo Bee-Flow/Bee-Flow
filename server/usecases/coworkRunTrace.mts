@@ -23,6 +23,8 @@ const nodeRequire = createRequire(import.meta.url);
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
 
 interface Item { id: string; userId: string }
+
+const WAITS_FOR_A_PERSON: ReadonlySet<string> = new Set(['awaiting_approval', 'awaiting_form', 'awaiting_confirm']);
 interface RunRow { id?: string; automationId?: string; status?: string; durationMs?: number | null }
 
 export interface TraceDeps {
@@ -72,10 +74,12 @@ export async function runTraceOf({ item, runId }: { item: Item; runId: string },
         return { runId, planVersion: link.plan.version, recorded: false, done: true, durationMs: null, steps: traceSteps(definition, [], { done: true, simulated: false }, deps.lookups) };
     }
     const done = runIsOver(run.status);
+    // A journey that waits for a person is not over for its steps: the ones after the decision are still to come.
+    const waiting = WAITS_FOR_A_PERSON.has(run.status ?? '');
     const rows = await deps.getRunStepsForChain(link.automationRunId as string);
     return {
         runId, planVersion: link.plan.version, recorded: true, done,
         durationMs: run.durationMs ?? null,
-        steps: traceSteps(definition, rows, { done, simulated: false }, deps.lookups),
+        steps: traceSteps(definition, rows, { done: done && !waiting, simulated: false }, deps.lookups),
     };
 }

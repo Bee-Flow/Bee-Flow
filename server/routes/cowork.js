@@ -242,6 +242,8 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
             ...(resolvedAgentId !== undefined ? { agentId: resolvedAgentId } : {}),
             ...plan.patch,
         });
+        // An item that starts on a new mail carries no plan (usecases/coworkPlan.mts): switching to mail takes it off.
+        if (plan.kind === 'app_event' && existing.planAutomationId) await coworkStore.detachPlan(req.params.id);
         if (plan.syncs) await mailTriggers().syncCoworkMailTrigger(await coworkStore.getSchedule(req.params.id));
         res.json({ success: ok, triggerKind: plan.kind, trigger: plan.trigger });
     } catch (err) {

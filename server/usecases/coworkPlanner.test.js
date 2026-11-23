@@ -36,11 +36,11 @@ const BATCH = [
 ];
 const DONE = says('Each run reads the supplier mail, says what is overdue and tells you.');
 
-function world({ script = [INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE], refusal = null, model = 'model-thinking', stored = { id: 'auto-new' }, maxMs = 60_000, mayAsk = true } = {}) {
+function world({ script = [INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE], refusal = null, model = 'model-thinking', stored = { id: 'auto-new' }, maxMs = 60_000, mayAsk = true, attachWins = true } = {}) {
     const seen = { chats: [], persisted: [], attached: [], usage: [], progress: [] };
     let turn = 0;
     const deps = {
-        store: { attachPlanAutomation: async (scheduleId, automationId) => { seen.attached.push([scheduleId, automationId]); } },
+        store: { attachPlanAutomation: async (scheduleId, automationId, opts) => { seen.attached.push([scheduleId, automationId]); seen.onlyIfNone = opts?.onlyIfNone; return attachWins; } },
         ownerRefusal: async () => refusal,
         resolveModel: async () => model,
         tiersFor: async () => ({ fast: 'model-fast', thinking: 'model-thinking', swarm: 'model-swarm' }),
@@ -252,4 +252,10 @@ test('where the licence has no approvals the model is told so, and a step that w
     const licensed = world();
     await makePlan(licensed.input(), licensed.deps);
     assert.match(licensed.seen.chats[0].messages[0].content, /asks the owner: never name another approver/);
+});
+
+test('a plan made while another making already named one does not replace it, and says so', async () => {
+    const { deps, seen, input } = world({ attachWins: false });
+    await assert.rejects(makePlan(input(), deps), (err) => err.status === 409 && /got a plan while this one was being made/.test(err.message));
+    assert.strictEqual(seen.onlyIfNone, true);
 });
