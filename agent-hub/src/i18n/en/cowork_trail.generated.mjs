@@ -8,6 +8,7 @@
 export default {
     "cowork_trail.action.created": "created this work",
     "cowork_trail.action.deleted": "deleted it",
+    "cowork_trail.action.handed_over": "handed it over to a colleague",
     "cowork_trail.action.independence_set": "chose how independent it may be: {level}",
     "cowork_trail.action.plan_approved": "approved the plan",
     "cowork_trail.action.plan_attached": "chose the automation of its plan",

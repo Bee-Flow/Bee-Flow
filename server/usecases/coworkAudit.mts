@@ -17,12 +17,12 @@ export const TARGET_TYPE = 'cowork_item';
 export type AuditAction =
     | 'cowork.created' | 'cowork.updated' | 'cowork.toggled' | 'cowork.deleted'
     | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made'
-    | 'cowork.review_handled' | 'cowork.independence_set';
+    | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over';
 
 /** Fields whose values may be kept: they say when and how the work runs, not what it is about. */
 const VALUE_FIELDS: readonly string[] = Object.freeze([
     'isActive', 'repeatInterval', 'daysOfWeek', 'timeOfDay', 'timezone', 'modelTier', 'agentId', 'triggerKind',
-    'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level',
+    'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId',
 ]);
 /** Fields that are only ever named: their content is the owner's text. */
 const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 'trigger', 'answer']);

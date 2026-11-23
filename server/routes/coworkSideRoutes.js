@@ -9,6 +9,7 @@
  *                             (usecases/coworkHome.mts; from and to are where the caller's day starts and ends)
  *   GET, PUT /shield/:orgId → the Privacy Shield on Cowork's prompt runs (./coworkShieldSettings.js)
  *   GET, PUT /policy/:orgId, GET /policy/:orgId/audit → the organisation's Cowork policy (./coworkPolicyRoutes.js)
+ *   GET /:id/hand-over/colleagues, POST /:id/hand-over → hand an item to a colleague (./coworkHandOverRoutes.js)
  *
  * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
  * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
@@ -67,6 +68,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkDailyMailRoutes').mountDailyMailRoutes(router, dailyMail);
     router.use(require('./coworkShieldSettings'));
     router.use(require('./coworkPolicyRoutes'));
+    require('./coworkHandOverRoutes').mountHandOverRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

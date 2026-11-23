@@ -1811,6 +1811,9 @@
     "GET /api/cowork/:id/audit": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/hand-over/colleagues": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/plan": {
       "gate": "auth"
     },
@@ -5206,6 +5209,9 @@
       ]
     },
     "POST /api/cowork": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/hand-over": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/plan/approve": {

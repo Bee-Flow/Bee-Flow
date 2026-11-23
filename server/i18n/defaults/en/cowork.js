@@ -182,4 +182,10 @@ module.exports = {
     'cowork.today.next': 'Still to come',
     'cowork.today.running': 'Running now',
     'cowork.today.waiting': 'Waits for you',
+    'cowork.hand_over.choose': 'Choose a colleague',
+    'cowork.hand_over.go': 'Hand over',
+    'cowork.hand_over.heading': 'Hand over to a colleague',
+    'cowork.hand_over.hint': 'Your colleague gets this work paused, with its plan to approve. Its history stays yours and goes with this item.',
+    'cowork.hand_over.nobody': 'There is nobody in your organisation to hand it to.',
+    'cowork.hand_over.to': 'Colleague',
 };

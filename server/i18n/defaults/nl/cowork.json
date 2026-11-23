@@ -1,5 +1,11 @@
 {
   "translations": {
+    "cowork.hand_over.choose": "Kies een collega",
+    "cowork.hand_over.go": "Overdragen",
+    "cowork.hand_over.heading": "Overdragen aan een collega",
+    "cowork.hand_over.hint": "Je collega krijgt dit werk gepauzeerd, met het plan om goed te keuren. De geschiedenis blijft van jou en verdwijnt met dit item.",
+    "cowork.hand_over.nobody": "Er is niemand in je organisatie om het aan over te dragen.",
+    "cowork.hand_over.to": "Collega",
     "cowork.history.ai_cost": "AI: {cost}, {count} modelaanroep",
     "cowork.history.ai_cost_plural": "AI: {cost}, {count} modelaanroepen",
     "cowork.history.started_by_mail": "Gestart door een nieuwe e-mail",
