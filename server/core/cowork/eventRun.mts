@@ -31,10 +31,10 @@ export interface CoworkEvent {
     data: Record<string, unknown>;
 }
 
-interface Item { id: string; userId: string; isActive?: boolean | null; triggerKind?: string | null; planId?: string | null; agentId?: string | null; prompt?: string | null; title?: string | null }
+interface Item { id: string; userId: string; isActive?: boolean | null; triggerKind?: string | null; planId?: string | null; agentId?: string | null; prompt?: string | null; title?: string | null; conversationId?: string | null }
 
 export interface EventRunDeps {
-    claim: (p: { scheduleId: string; userId: string; triggerRef: string; triggerKind: string }) => Promise<string | null>;
+    claim: (p: { scheduleId: string; userId: string; triggerRef: string; triggerKind: string; cap?: { max: number; sinceMs: number } | null }) => Promise<string | null>;
     countRecent: (p: { scheduleId: string; sinceMs: number; triggerKind: string }) => Promise<number>;
     executeCowork: (item: Item, opts: { trigger: Record<string, unknown> }) => Promise<unknown>;
     maxPerHour: () => number;
@@ -82,7 +82,9 @@ export async function runOnEvent(item: Item, event: CoworkEvent, deps: EventRunD
         log.warn(`[Cowork] ${item.id} reached COWORK_EVENT_MAX_PER_HOUR=${max}; an event is skipped`);
         return false;
     }
-    const runId = await deps.claim({ scheduleId: item.id, userId: item.userId, triggerRef: `${event.kind}:${event.ref}`, triggerKind: event.kind });
+    // The claim counts again under the item's lock, so a burst of calls cannot all pass the check above.
+    const cap = Number.isFinite(max) && max > 0 ? { max, sinceMs: HOUR_MS } : null;
+    const runId = await deps.claim({ scheduleId: item.id, userId: item.userId, triggerRef: `${event.kind}:${event.ref}`, triggerKind: event.kind, cap });
     if (!runId) return false;
     const trigger = item.planId
         ? { runId, plan: true, payload: { start: event.kind, ...event.data } }

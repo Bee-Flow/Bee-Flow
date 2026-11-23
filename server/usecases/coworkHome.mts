@@ -16,6 +16,7 @@ import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { effectiveIndependence, type Independence } from '../core/cowork/plan/planIndependence.mts';
 import { mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
+import { capLevel, OPEN_POLICY, policyOfOwner, type CoworkPolicy } from '../core/entitlements/coworkPolicy.mts';
 import { monthStartOf, type RunCost } from './coworkCosts.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -31,6 +32,9 @@ export interface HomeDeps {
     costsSince: (userId: string, since: Date) => Promise<{ total: RunCost }>;
     mayAsk: MayAsk;
     lookups: ToolLookups;
+    /** The owner's organisation and its Cowork policy: the home shows the level a run really uses, under the ceiling. */
+    orgOf?: (userId: string) => Promise<string | null>;
+    policyOf?: (userId: string) => Promise<CoworkPolicy>;
 }
 
 const defaults = (): HomeDeps => {
@@ -42,6 +46,8 @@ const defaults = (): HomeDeps => {
         costsSince: (u, s) => store().costsSince(u, s),
         mayAsk: mayAskByLicence,
         lookups: toolLookups(),
+        orgOf: async (u) => ((await (nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ organizationId?: string | null } | null> }).getUser(u))?.organizationId || null),
+        policyOf: (u) => policyOfOwner(u),
     };
 };
 
@@ -61,25 +67,27 @@ export interface CoworkHome { how: Record<string, HowItWorks>; today: TodayEntry
 
 const NONE = { fixed: 0, ai: 0, ask: 0, deliver: 0 };
 
-async function howOf(item: Item, mayAsk: boolean, deps: HomeDeps): Promise<HowItWorks> {
+async function howOf(item: Item, mayAsk: boolean, ceiling: CoworkPolicy['ceiling'], deps: HomeDeps): Promise<HowItWorks> {
     if (!item.planId) return { kind: item.agentId ? 'agent' : 'prompt', ...NONE, level: null };
     const plan = await deps.getApprovedPlan(item.id).catch((e: unknown) => fallback('usecases/coworkHome:plan', e, null));
     const makeUp = plan ? planViewOf(plan.definition as Definition, deps.lookups).makeUp : NONE;
     let level: Independence | null;
-    try { level = effectiveIndependence(item.independence, mayAsk); } catch { level = null; }
+    try { level = effectiveIndependence(capLevel(effectiveIndependence(item.independence, mayAsk), ceiling), mayAsk); } catch { level = null; }
     return { kind: 'plan', ...makeUp, level };
 }
 
 /** The home of one owner, for the day [from, to) of the owner's clock. */
 export async function homeOf(userId: string, day: { from: string; to: string }, now: Date = new Date(), deps: HomeDeps = defaults()): Promise<CoworkHome> {
-    const [items, runs, cost, mayAsk] = await Promise.all([
+    const organizationId = deps.orgOf ? await deps.orgOf(userId).catch((e: unknown) => fallback('usecases/coworkHome:org', e, null)) : null;
+    const [items, runs, cost, mayAsk, policy] = await Promise.all([
         deps.getSchedules(userId),
         deps.listRunsBetween(userId, day.from, day.to).catch((e: unknown) => fallback('usecases/coworkHome:runs', e, [] as RunRow[])),
         deps.costsSince(userId, monthStartOf(now)).then((m) => m.total).catch((e: unknown) => fallback('usecases/coworkHome:cost', e, null)),
-        deps.mayAsk({ userId }).catch(() => false),
+        deps.mayAsk({ userId, organizationId }).catch(() => false),
+        deps.policyOf ? deps.policyOf(userId) : Promise.resolve(OPEN_POLICY),
     ]);
     const how: Record<string, HowItWorks> = {};
-    for (const item of items) how[item.id] = await howOf(item, mayAsk, deps);
+    for (const item of items) how[item.id] = await howOf(item, mayAsk, policy.ceiling, deps);
     const nowIso = now.toISOString();
     const next: TodayEntry[] = items
         .filter((i) => i.isActive !== false && typeof i.nextRunAt === 'string' && i.nextRunAt >= nowIso && i.nextRunAt < day.to)

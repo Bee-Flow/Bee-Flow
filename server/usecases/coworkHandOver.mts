@@ -13,6 +13,8 @@ import { createRequire } from 'node:module';
 
 const nodeRequire = createRequire(import.meta.url);
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
+const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(where: string, e: unknown, value: T) => T };
+const DAY_MS = 86_400_000;
 
 interface Item {
     id: string; userId: string; title?: string | null; prompt?: string | null; repeatInterval?: string | null; nextRunAt?: string | null;
@@ -79,18 +81,27 @@ async function receiverOf(item: Item, toUserId: string, deps: HandOverDeps): Pro
 }
 
 /** The new owner's item: the same brief and schedule, paused, with the plan in an automation of their own. */
-async function newItemFor(item: Item, to: Person, definition: unknown, deps: HandOverDeps): Promise<string> {
+async function newItemFor(item: Item, to: Person, definition: unknown, deps: HandOverDeps, now: Date = new Date()): Promise<string> {
+    // Never due in the moment between its creation and its pause: a tick there would run it as the new owner.
+    const notBefore = new Date(now.getTime() + DAY_MS).toISOString();
+    const nextRunAt = typeof item.nextRunAt === 'string' && item.nextRunAt > notBefore ? item.nextRunAt : notBefore;
     const created = await deps.store.createSchedule({
-        userId: to.id, title: item.title, prompt: item.prompt, repeatInterval: item.repeatInterval, nextRunAt: item.nextRunAt,
+        userId: to.id, title: item.title, prompt: item.prompt, repeatInterval: item.repeatInterval, nextRunAt,
         modelTier: item.modelTier, timezone: item.timezone, toolsEnabled: item.toolsEnabled, agentId: item.agentId,
         daysOfWeek: item.daysOfWeek, timeOfDay: item.timeOfDay, enabledApps: item.enabledApps, triggerKind: 'schedule',
     });
     if (!created) throw new Error('The new item could not be created.');
-    // Paused until the new owner has looked at it.
-    await deps.store.updateSchedule(created.id, { isActive: false });
-    if (definition) {
-        const automation = await deps.createAutomation({ userId: to.id, organizationId: to.organizationId ?? null, title: item.title || 'Cowork plan', definition, triggerType: 'manual' });
-        await deps.store.attachPlanAutomation(created.id, automation.id);
+    try {
+        // Paused until the new owner has looked at it.
+        await deps.store.updateSchedule(created.id, { isActive: false });
+        if (definition) {
+            const automation = await deps.createAutomation({ userId: to.id, organizationId: to.organizationId ?? null, title: item.title || 'Cowork plan', definition, triggerType: 'manual' });
+            await deps.store.attachPlanAutomation(created.id, automation.id);
+        }
+    } catch (e) {
+        // Half a hand-over is none: the new item goes again, and the old one stays its owner's.
+        await deps.store.deleteSchedule(created.id).catch((err: unknown) => fallback('usecases/coworkHandOver:undo', err, false));
+        throw e;
     }
     return created.id;
 }

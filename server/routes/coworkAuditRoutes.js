@@ -18,6 +18,9 @@ const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 /** Mounted behind requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user);
 
+/** Routes beside the items (their first part is no item id): a change there is not a change to an item. */
+const SIDE_ROUTES = new Set(['compose', 'daily-mail', 'shared', 'hooks', 'needs-you', 'home', 'policy', 'templates', 'receipts', 'shield']);
+
 /**
  * The action a request is, from its method and its path below /api/cowork; null for one that changes nothing.
  * @param {string} method
@@ -29,7 +32,7 @@ function actionOf(method, path) {
     const [id = null, ...rest] = parts;
     const tail = rest.join('/');
     if (method === 'POST' && parts.length === 0) return { action: 'cowork.created', id: null };
-    if (!id || id === 'compose') return null;
+    if (!id || SIDE_ROUTES.has(id)) return null;
     /** @type {Record<string, import('../usecases/coworkAudit.mts').AuditAction>} */
     const byRoute = {
         'PUT ': 'cowork.updated', 'DELETE ': 'cowork.deleted', 'POST toggle': 'cowork.toggled',

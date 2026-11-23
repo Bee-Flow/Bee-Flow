@@ -72,3 +72,19 @@ test('only to an active colleague of the same organisation; a mail-started item 
     assert.ok(await store.getSchedule(item.id), 'nothing changed');
     assert.deepStrictEqual(await colleaguesOf(item, w.deps), [{ id: 'bob', name: 'Bob' }]);
 });
+
+test('the new item is never due in the moment before its pause; half a hand-over is none', async () => {
+    const item = { ...(await annsItem()), nextRunAt: new Date(Date.now() - 60_000).toISOString() };
+    const w = deps();
+    const { itemId } = await handOver({ item, toUserId: 'bob' }, w.deps);
+    const fresh = /** @type {any} */ (await store.getSchedule(itemId));
+    assert.ok(new Date(fresh.nextRunAt).getTime() > Date.now() + 23 * 3_600_000, 'a past moment is not copied: the new item is not due');
+
+    const other = await annsItem();
+    const before = (/** @type {any[]} */ (await store.getSchedules('bob'))).length;
+    const failing = deps();
+    failing.deps.createAutomation = async () => { throw new Error('Studio is down.'); };
+    await assert.rejects(handOver({ item: other, toUserId: 'bob' }, failing.deps), /Studio is down/);
+    assert.ok(await store.getSchedule(other.id), 'Ann keeps her item');
+    assert.strictEqual((/** @type {any[]} */ (await store.getSchedules('bob'))).length, before, 'no half-made item for Bob');
+});

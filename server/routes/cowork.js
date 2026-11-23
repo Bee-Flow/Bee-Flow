@@ -296,8 +296,8 @@ router.post('/:id/toggle', validate({ body: NoBody }), async (req, res) => {
         // Resuming needs the mailbox connected; pausing never does.
         if (isEvent && next && existing.trigger) await assertTriggerUsable(userId, { ...existing.trigger, filter: existing.trigger.filter ?? null });
         const ok = await coworkStore.updateSchedule(req.params.id, { isActive: next });
-        // Pause deletes the subscription (and the Graph one), resume makes a fresh one.
-        if (isEvent) await mailTriggers().syncCoworkMailTrigger({ ...existing, isActive: next });
+        // Pause deletes the subscription (a mail's, with the Graph one; a folder's), resume makes a fresh one.
+        if (isEvent || existing.triggerKind === 'file') await mailTriggers().syncCoworkMailTrigger({ ...existing, isActive: next });
         res.json({ success: ok, isActive: next });
     } catch (err) {
         fail(res, err, 'Toggle');

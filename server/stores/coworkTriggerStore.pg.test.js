@@ -57,3 +57,12 @@ test('countRecentEventRuns counts only runs of that kind inside the window', asy
     assert.strictEqual(await store.countRecentEventRuns({ scheduleId: 's1', sinceMs: 60 * 60 * 1000 }), 1);
     assert.strictEqual(await store.countRecentEventRuns({ scheduleId: 's1', sinceMs: 5 * 60 * 60 * 1000 }), 2);
 });
+
+test('with a cap, a burst of events claims at most that many runs in the window: counted and claimed in one locked step', async () => {
+    const locked = makeCoworkTriggerStore({ ...db, withTransaction: (fn) => pg.transaction((tx) => fn({ query: (sql, params) => tx.query(sql, params) })) });
+    const claims = await Promise.all(Array.from({ length: 6 }, (_, i) => locked.claimEventRun({
+        scheduleId: 's2', userId: 'u1', triggerRef: `webhook:burst-${i}`, triggerKind: 'webhook', cap: { max: 3, sinceMs: 3_600_000 },
+    })));
+    assert.strictEqual(claims.filter(Boolean).length, 3);
+    assert.strictEqual(await locked.countRecentEventRuns({ scheduleId: 's2', sinceMs: 3_600_000, triggerKind: 'webhook' }), 3);
+});

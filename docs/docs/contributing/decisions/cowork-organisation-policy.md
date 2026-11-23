@@ -46,3 +46,7 @@ A switch that one start path forgets is worse than no switch: the administrator 
   the task runner is a review finding.
 - An administrator who empties the app list closes every app for unattended runs, which is what the
   word "list" promises.
+- Each server keeps a policy it read for 30 seconds. With several replicas, a change reaches the others
+  within that time; a run that started in it ran under the policy it read.
+- A run that waits for a decision checks the policy again when it continues, so a read-only switch
+  stops it there too.

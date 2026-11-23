@@ -86,6 +86,8 @@ test('the action is read from the method and the path; anything else is no chang
         ['POST', '/cw-1/plan/try', null],
         ['POST', '/compose', null],
         ['GET', '/cw-1', null],
+        // Beside the items: a switch of the daily mail, a webhook call, a template, the policy are no change to an item.
+        ['PUT', '/daily-mail', null], ['POST', '/hooks', null], ['DELETE', '/templates/t1', null], ['PUT', '/policy/org-1', null],
     ]);
     for (const [method, path, expected] of cases) assert.deepStrictEqual(actionOf(method, path), expected, `${method} ${path}`);
 });

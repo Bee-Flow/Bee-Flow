@@ -38,7 +38,7 @@ const agentItem = { id: 'w1', userId: 'u1', isActive: true, triggerKind: 'webhoo
 test('an agent gets the event as untrusted data between markers it cannot forge, and starts marked as having read outside text', async () => {
     const w = runWorld();
     assert.strictEqual(await runOnEvent(agentItem, EVENT, w.deps), true);
-    assert.deepStrictEqual(w.claims, [{ scheduleId: 'w1', userId: 'u1', triggerRef: 'webhook:call-1', triggerKind: 'webhook' }]);
+    assert.deepStrictEqual(w.claims, [{ scheduleId: 'w1', userId: 'u1', triggerRef: 'webhook:call-1', triggerKind: 'webhook', cap: { max: 30, sinceMs: 3_600_000 } }], 'the claim counts again under the cap');
     const trigger = w.started[0].opts.trigger;
     assert.deepStrictEqual([trigger.runId, trigger.outsideText, trigger.plan], ['run-1', true, undefined]);
     assert.match(trigger.prompt, /^Log the order\./);

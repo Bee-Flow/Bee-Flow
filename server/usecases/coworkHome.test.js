@@ -53,3 +53,13 @@ test('the cost of the month; unreadable is null and costs nothing else', async (
     assert.strictEqual(broken.cost, null);
     assert.strictEqual(broken.today.length, 2);
 });
+
+test('the level shown is the one a run uses: under the organisation\'s ceiling, asked of the owner\'s organisation\'s licence', async () => {
+    /** @type {any[]} */
+    const asked = [];
+    const d = { ...deps(), mayAsk: async (/** @type {any} */ owner) => { asked.push(owner); return true; }, orgOf: async () => 'org-1' };
+    const chose = { ...d, getSchedules: async () => [{ id: 'w1', title: 'Supplier radar', isActive: true, planId: 'p1', independence: 'on_its_own' }] };
+    const capped = await homeOf('u1', DAY, NOW, { ...chose, policyOf: async () => ({ ceiling: /** @type {const} */ ('asks_everything'), readOnly: false, unattendedApps: null, monthlyBudget: null }) });
+    assert.strictEqual(capped.how.w1.level, 'asks_everything');
+    assert.deepStrictEqual(asked[0], { userId: 'u1', organizationId: 'org-1' });
+});
