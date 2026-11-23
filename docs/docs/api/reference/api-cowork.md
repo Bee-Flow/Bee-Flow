@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-24 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
+26 routes, 16 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -199,6 +199,25 @@ No request schema.
 |-------|------|:--------:|-------|
 | `brief` | string | yes | min length 1 |
 | `timezone` | string or null |  |  |
+
+## `daily-mail`
+
+### `GET /api/cowork/daily-mail`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/daily-mail`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+| `timeZone` | string | yes | min length 1; max length 64 |
 
 ## `mail-providers`
 

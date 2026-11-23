@@ -1,10 +1,11 @@
 /**
  * "Waiting for you": everything in Cowork that waits for its owner, at the top of the Cowork home (./CoworkPage.tsx).
  * A decision of a plan run is made under Approvals; anything else opens its item, where the review card, the plan
- * card or the sign-in hint is. Says nothing while nothing waits.
+ * card or the sign-in hint is. While nothing waits, only the switch of the daily e-mail of this list shows.
  */
 import { BellRing } from 'lucide-react';
-import { useCoworkNeedsYou } from '../../api/coworkNeedsYou';
+import Toggle from '../shared/Toggle';
+import { useCoworkDailyMail, useCoworkNeedsYou } from '../../api/coworkNeedsYou';
 import { approvalsLink, needWords } from './coworkNeedsModel';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { CoworkNeed } from '../../api/coworkNeedsYou';
@@ -34,10 +35,26 @@ function NeedRow({ need, onOpen, t }: { need: CoworkNeed; onOpen: (itemId: strin
     );
 }
 
+/** "E-mail me this list every morning": the owner's own switch; absent when the instance cannot send mail. */
+function DailyMailSwitch({ t }: { t: TranslateFn }) {
+    const { query, save } = useCoworkDailyMail();
+    if (!query.data?.available) return null;
+    const label = t('cowork_needs.daily_mail', 'E-mail me this list every morning');
+    return (
+        <div className="flex items-center justify-between gap-3 pt-2 text-[12px] text-[var(--text-secondary)]" data-testid="cowork-daily-mail">
+            <span>{label}</span>
+            <span className="inline-flex items-center gap-2">
+                {save.isError && <span role="alert" className="text-[var(--error-ink)]">{t('cowork_needs.daily_mail_failed', 'That did not save. Try again.')}</span>}
+                <Toggle checked={query.data.enabled} disabled={save.isPending} onChange={(next) => save.mutate(next)} ariaLabel={label} />
+            </span>
+        </div>
+    );
+}
+
 export default function CoworkNeedsYou({ onOpen, reloadKey = 0 }: CoworkNeedsYouProps) {
     const { t } = useTranslation();
     const needs = useCoworkNeedsYou(reloadKey).data ?? [];
-    if (needs.length === 0) return null;
+    if (needs.length === 0) return <div className="mb-4 px-[18px]"><DailyMailSwitch t={t} /></div>;
     return (
         <section className="mb-4 rounded-[10px] border px-[18px] py-3 [border-color:var(--border-default)] bg-[var(--bg-secondary)]" data-testid="cowork-needs-you" aria-labelledby="cowork-needs-you-heading">
             <h2 id="cowork-needs-you-heading" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--text-primary)]">
@@ -48,6 +65,7 @@ export default function CoworkNeedsYou({ onOpen, reloadKey = 0 }: CoworkNeedsYou
             <ul className="divide-y divide-[var(--border-subtle)]">
                 {needs.map((need) => <NeedRow key={`${need.kind}-${need.itemId}-${need.runId ?? ''}`} need={need} onOpen={onOpen} t={t} />)}
             </ul>
+            <DailyMailSwitch t={t} />
         </section>
     );
 }

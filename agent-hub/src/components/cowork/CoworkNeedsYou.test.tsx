@@ -11,7 +11,13 @@ import type { CoworkNeed } from '@/api/coworkNeedsYou';
 const need = (over: Partial<CoworkNeed>): CoworkNeed => ({ kind: 'review', itemId: 'w1', title: 'Offers', runId: 'r1', since: null, reason: null, plan: null, ...over });
 
 let calls: RecordedCall[];
-const serve = (needs: CoworkNeed[]) => { calls = stubRecordingFetch(() => jsonResponse({ needs, count: needs.length })); };
+const serve = (needs: CoworkNeed[], mail = { enabled: false, timeZone: 'UTC', available: true }) => {
+    calls = stubRecordingFetch(({ url, method, body }) => {
+        if (!url.endsWith('/daily-mail')) return jsonResponse({ needs, count: needs.length });
+        return jsonResponse(method === 'PUT' ? { ...(body as object), available: true } : mail);
+    });
+};
+const needsCalls = () => calls.filter((c) => c.url.endsWith('/needs-you'));
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -21,7 +27,7 @@ describe('CoworkNeedsYou', () => {
         const onOpen = vi.fn();
         renderWithClient(<CoworkNeedsYou onOpen={onOpen} />);
         expect(await screen.findAllByTestId('cowork-need')).toHaveLength(3);
-        expect(calls[0].url).toMatch(/\/api\/cowork\/needs-you$/);
+        expect(needsCalls()).toHaveLength(1);
         expect(screen.getByRole('link', { name: 'Decide in Approvals' })).toHaveAttribute('href', '/app/studio/approvals');
         expect(screen.getByText('Which discount applies?')).toBeInTheDocument();
         const user = userEvent.setup();
@@ -29,10 +35,21 @@ describe('CoworkNeedsYou', () => {
         expect(onOpen).toHaveBeenCalledWith('w3');
     });
 
-    it('says nothing while nothing waits', async () => {
+    it('while nothing waits, only the switch of the daily e-mail shows; it saves the browser\'s time zone', async () => {
         serve([]);
         renderWithClient(<CoworkNeedsYou onOpen={() => {}} />);
-        await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+        const toggle = await screen.findByRole('switch', { name: 'E-mail me this list every morning' });
         expect(screen.queryByTestId('cowork-needs-you')).toBeNull();
+        await userEvent.setup().click(toggle);
+        await waitFor(() => expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1));
+        const put = calls.find((c) => c.method === 'PUT');
+        expect(put?.body).toEqual({ enabled: true, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    });
+
+    it('no switch when the instance cannot send mail', async () => {
+        serve([], { enabled: false, timeZone: 'UTC', available: false });
+        renderWithClient(<CoworkNeedsYou onOpen={() => {}} />);
+        await waitFor(() => expect(calls.some((c) => c.url.endsWith('/daily-mail'))).toBe(true));
+        expect(screen.queryByTestId('cowork-daily-mail')).toBeNull();
     });
 });

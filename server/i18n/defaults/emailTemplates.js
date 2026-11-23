@@ -24,7 +24,7 @@
 // (acknowledgement with identity link, Art. 12(3) extension, result). Their
 // subject lines carry no personal data — only the request number and type
 // (BFSF-441): the address is the channel, the body is what the subject reads.
-const EMAIL_TEMPLATE_IDS = ['verification', 'welcome', 'dsr_ack', 'dsr_extension', 'dsr_result', 'project_collab'];
+const EMAIL_TEMPLATE_IDS = ['verification', 'welcome', 'dsr_ack', 'dsr_extension', 'dsr_result', 'project_collab', 'cowork_daily'];
 
 // The structured fields every template exposes.
 const EMAIL_TEMPLATE_FIELDS = ['subject', 'title', 'intro', 'body', 'ctaLabel'];
@@ -47,6 +47,7 @@ const EMAIL_TEMPLATE_VARIABLES = {
     dsr_extension: ['requestId', 'requestType', 'extendedUntil', 'reason', 'orgName', 'dpoEmail'],
     dsr_result: ['requestId', 'requestType', 'status', 'resultSummary', 'orgName', 'dpoEmail'],
     project_collab: ['event', 'project', 'actor', 'intro', 'detail'],
+    cowork_daily: ['count', 'list'],
 };
 
 // Human-readable labels for the editor.
@@ -57,6 +58,7 @@ const EMAIL_TEMPLATE_LABELS = {
     dsr_extension: 'Data-subject request — deadline extension',
     dsr_result: 'Data-subject request — result',
     project_collab: 'Project collaboration notification',
+    cowork_daily: 'Cowork: what waits for you (daily)',
 };
 
 // English defaults. The CTA URL is supplied at send time (verifyUrl /
@@ -105,6 +107,15 @@ const EMAIL_TEMPLATE_DEFAULTS = {
         ctaLabel: 'Open in Bee Flow',
         footer: 'You get this e-mail because of your notification settings in Bee Flow.',
     },
+    // The owner's own Cowork work, to the owner: titles and what each waits for, never what a run read.
+    cowork_daily: {
+        subject: 'Cowork: {{count}} waiting for you',
+        title: 'Waiting for you in Cowork',
+        intro: 'Good morning,',
+        body: '{{list}}',
+        ctaLabel: 'Open Cowork',
+        footer: 'You get this e-mail because you switched on the daily e-mail on the Cowork page. Switch it off there.',
+    },
 };
 
 // Built-in translations. These are the per-field fallback for a locale BEFORE
@@ -141,6 +152,14 @@ const EMAIL_TEMPLATE_LOCALE_DEFAULTS = {
             body: '{{detail}}',
             ctaLabel: 'Openen in Bee Flow',
             footer: 'Je krijgt deze e-mail door je meldingsinstellingen in Bee Flow.',
+        },
+        cowork_daily: {
+            subject: 'Cowork: {{count}} wacht op jou',
+            title: 'Wacht op jou in Cowork',
+            intro: 'Goedemorgen,',
+            body: '{{list}}',
+            ctaLabel: 'Open Cowork',
+            footer: 'Je krijgt deze e-mail omdat je de dagelijkse mail op de Cowork-pagina hebt aangezet. Daar zet je hem ook uit.',
         },
     },
 };

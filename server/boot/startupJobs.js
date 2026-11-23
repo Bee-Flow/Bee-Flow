@@ -255,6 +255,8 @@ function startSupportAndSyncJobs() {
     // The public sanctions lists (EU, UN, NL, OFAC, UK): daily, only while an organisation has the
     // integration on (SANCTIONS_REFRESH_INTERVAL_HOURS, 0 = off). Advisory-locked across pods.
     try { require('../jobs/sanctionsListRefresh.mts').start(); } catch (err) { log.warn('[Server] Sanctions list refresh load failed:', err.message); }
+    // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
+    try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).
     try { require('../jobs/memoryTelemetry').start(); } catch (err) { log.warn('[Server] Memory telemetry load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners

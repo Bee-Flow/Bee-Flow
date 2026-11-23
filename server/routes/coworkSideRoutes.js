@@ -4,6 +4,7 @@
  * a word here is never read as an item id):
  *
  *   GET /needs-you          → everything waiting for the caller, in one list (usecases/coworkNeedsYou.mts)
+ *   GET, PUT /daily-mail    → the caller's daily e-mail of that list (./coworkDailyMailRoutes.js)
  *   GET, PUT /shield/:orgId → the Privacy Shield on Cowork's prompt runs (./coworkShieldSettings.js)
  */
 
@@ -14,13 +15,14 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
 
 /**
  * @param {import('express').Router} router
- * @param {{ needs?: typeof needsYou }} [overrides]
+ * @param {{ needs?: typeof needsYou, dailyMail?: import('./coworkDailyMailRoutes').DailyMailRouteDeps }} [overrides]
  */
-function mountSideRoutes(router, { needs = needsYou } = {}) {
+function mountSideRoutes(router, { needs = needsYou, dailyMail = {} } = {}) {
     router.get('/needs-you', async (req, res) => {
         const list = await needs(userIdOf(req));
         res.json({ needs: list, count: list.length });
     });
+    require('./coworkDailyMailRoutes').mountDailyMailRoutes(router, dailyMail);
     router.use(require('./coworkShieldSettings'));
 }
 

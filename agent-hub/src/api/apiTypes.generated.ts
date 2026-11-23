@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1958 operations. */
+/** 1960 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2562,6 +2562,11 @@ export interface ApiOperations {
         brief: string;
         timezone?: string | null;
     }>;
+    'GET /api/cowork/daily-mail': Op;
+    'PUT /api/cowork/daily-mail': Op<NoParams, UndeclaredQuery, {
+        enabled: boolean;
+        timeZone: string;
+    }>;
     'GET /api/cowork/mail-providers': Op;
     'GET /api/cowork/needs-you': Op;
     'GET /api/cowork/shield/{orgId}': Op<{ orgId: string | number }>;
@@ -3400,7 +3405,7 @@ export interface ApiOperations {
             subject?: string;
             title?: string;
         };
-        templateId: 'verification' | 'welcome' | 'dsr_ack' | 'dsr_extension' | 'dsr_result' | 'project_collab';
+        templateId: 'verification' | 'welcome' | 'dsr_ack' | 'dsr_extension' | 'dsr_result' | 'project_collab' | 'cowork_daily';
     }>;
     'POST /api/languages/{code}/email-templates/{templateId}/preview': Op<{ code: string | number; templateId: string | number }, UndeclaredQuery, {
         fields?: {

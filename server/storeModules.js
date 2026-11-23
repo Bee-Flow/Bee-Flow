@@ -103,6 +103,8 @@ const STORE_MODULES = [
     // standalone `npm run db:migrate` never created those tables — they only
     // appeared once the app booted and something required the store.
     { name: 'coworkStore', file: './stores/coworkStore' },
+    // Whether an owner gets the daily Cowork e-mail, and the day it was last sent (cowork_daily_mail). No FKs.
+    { name: 'coworkDailyMailStore', file: './stores/coworkDailyMail.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
     // Owns integration_activity_log — and integrationCacheStore's
     // scopes migration reads that table. Without this registration that

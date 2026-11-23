@@ -1227,6 +1227,14 @@ declare namespace DbRow {
         project_id: string | null;
         run_id: string;
     }
+    /** Row of `cowork_daily_mail`. */
+    interface CoworkDailyMail {
+        enabled: boolean;
+        last_sent_on: Date | null;
+        time_zone: string;
+        updated_at: Date;
+        user_id: string;
+    }
     /** Row of `cowork_plans`. */
     interface CoworkPlans {
         approved_at: Date;

@@ -1826,6 +1826,9 @@
     "GET /api/cowork/:id/stats": {
       "gate": "auth"
     },
+    "GET /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
     "GET /api/cowork/mail-providers": {
       "gate": "auth"
     },
@@ -7348,6 +7351,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/daily-mail": {
       "gate": "auth"
     },
     "PUT /api/cowork/shield/:orgId": {

@@ -84,6 +84,7 @@ const ERASURE_COVERAGE = Object.freeze({
     ai_task_termination_log: { mode: 'deleted', column: 'user_id' },
     cowork_schedules: { mode: 'deleted', column: 'user_id' },
     cowork_runs: { mode: 'cascade', parent: 'cowork_schedules' },
+    cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
     studio_documents: { mode: 'deleted', column: 'user_id' },
     studio_document_versions: { mode: 'cascade', parent: 'studio_documents' },
     studio_document_folders: { mode: 'deleted', column: 'user_id' },
