@@ -29,7 +29,7 @@ const documentFolderKey = (projectId: string) => ['projects', projectId, 'docume
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** The answer read defensively: unknown shapes become "no folders". */
-function documentFoldersOf(body: unknown): DocumentFolders {
+export function documentFoldersOf(body: unknown): DocumentFolders {
     const b = isObject(body) ? body : {};
     const folders = (Array.isArray(b.folders) ? b.folders : [])
         .filter((f): f is Record<string, unknown> => isObject(f) && typeof f.id === 'string' && typeof f.name === 'string')

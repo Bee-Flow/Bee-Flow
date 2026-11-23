@@ -3,6 +3,9 @@
  *
  * template_fill_start writes `settings.templateFill = { conversationId,
  * templateId, startedAt }` on the copy it makes; finishing adds `finishedAt`.
+ * A document that no conversation started (made from the library, filled in
+ * in the editor or in a project) is finished the same way: its
+ * `settings.templateFill` then holds `finishedAt` alone (`isFinished`).
  * A later turn finds its document again from that link, so the fill does not
  * depend on the model still holding the id (older tool results reach a later
  * turn only as a short preview, and sometimes not at all).
@@ -53,10 +56,16 @@ export function isLinkedTo(doc: TemplateDoc | null, conversationId: string | nul
     return !!doc && !!conversationId && whose && (doc.kind ?? 'document') === 'document' && link?.conversationId === conversationId;
 }
 
-/** The settings with the fill marked finished. */
+/** Whether the filling in of this document was finished, by whoever and from wherever. */
+export function isFinished(doc: TemplateDoc | null | undefined): boolean {
+    const mark = doc?.settings?.templateFill;
+    return isObject(mark) && typeof mark.finishedAt === 'string';
+}
+
+/** The settings with the fill marked finished; the link to a conversation, when there is one, is kept. */
 export function finishedSettings(doc: TemplateDoc, now: Date = new Date()): Record<string, unknown> {
-    const link = fillLinkOf(doc);
-    return link ? { ...(doc.settings || {}), templateFill: { ...link, finishedAt: now.toISOString() } } : { ...(doc.settings || {}) };
+    const mark = isObject(doc.settings?.templateFill) ? doc.settings.templateFill : {};
+    return { ...(doc.settings || {}), templateFill: { ...mark, finishedAt: now.toISOString() } };
 }
 
 type Want = { conversationId: string | null | undefined, userId: string, templateId?: string, projectId?: string | null };

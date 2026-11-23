@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1946 operations. */
+/** 1949 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -5368,6 +5368,11 @@ export interface ApiOperations {
         name?: string;
     }>;
     'GET /api/studio-documents/{id}/export': Op<{ id: string | number }>;
+    'POST /api/studio-documents/{id}/field-notes': Op<{ id: string | number }, UndeclaredQuery, {
+        key?: string;
+        text: string;
+    }>;
+    'DELETE /api/studio-documents/{id}/field-notes/{noteId}': Op<{ id: string | number; noteId: string | number }>;
     'POST /api/studio-documents/{id}/insert-section': Op<{ id: string | number }, UndeclaredQuery, {
         expectedVersionId?: string;
         sourceId: string;
@@ -5451,9 +5456,11 @@ export interface ApiOperations {
     }>;
     'POST /api/studio-documents/{id}/value-requests/{requestId}/close': Op<{ id: string | number; requestId: string | number }, UndeclaredQuery, Record<string, never>>;
     'PUT /api/studio-documents/{id}/values': Op<{ id: string | number }, UndeclaredQuery, {
+        dismiss?: Array<string>;
         finish?: boolean;
         values: Record<string, unknown>;
     }>;
+    'POST /api/studio-documents/{id}/values/review': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/studio-documents/{id}/versions': Op<{ id: string | number }, {
         cursor?: string;
         limit?: number;

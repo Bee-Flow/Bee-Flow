@@ -9,7 +9,8 @@ import type { MegaItem } from '../../components/admin/product-website/blockEdito
 import type { FeatureOption } from '../../shared/featureCatalog';
 import { logger } from '../../utils/logger';
 import { contractSavable, keyProblems, ruleIncomplete, type KeyProblem } from './editor/contractCheck';
-import ProjectFillTab from './editor/ProjectFillTab';
+import DocumentFillPanel from '@/components/documents/fill/DocumentFillPanel';
+import { adoptFillState } from './editor/fillState';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
@@ -218,9 +219,11 @@ interface DocumentWorkspacePanelProps {
     onPreviewDraft?: (draft: { settings: { deck: Record<string, string> } }) => void;
     tab: string;
     onRefresh: () => void;
+    /** The fill-in form saved through its own route: the editor takes the document as it is now. */
+    onFillSynced?: (out: { versionId?: string | null }) => void;
 }
 
-const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft}: DocumentWorkspacePanelProps,ref) {
+const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft,onFillSynced}: DocumentWorkspacePanelProps,ref) {
     const { t } = useTranslation();
     const isDeck = doc.docType === 'presentation';
     const currentSettings=()=>({...doc.settings,contract:doc.contract || doc.settings?.contract || {parameters:[],sections:[],instructions:''}});
@@ -274,6 +277,17 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         const warn=(e: BeforeUnloadEvent)=>{if(JSON.stringify({settings,kind,visibility})!==savedState.current){e.preventDefault();e.returnValue='';}};
         window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
     },[settings,kind,visibility,doc.id,doc.bodyHtml,doc.css,doc.versionId,recovered?.versionId]);
+    // What the fill-in form wrote (values, who filled what, requests, notes, the check) is the document's now:
+    // this panel's copy of the settings takes it as saved, so its next save cannot put older values back.
+    // AFTER the draft effect above, on purpose: in the commit that brings the new document that effect still
+    // compares the old copy with the old baseline (equal: no draft is kept); then both move on together here.
+    const fillSettings=doc.kind==='document'?doc.settings:undefined;
+    useEffect(()=>{
+        if(!fillSettings) return;
+        const saved=JSON.parse(savedState.current) as DraftState;
+        savedState.current=JSON.stringify({...saved,settings:adoptFillState(saved.settings,fillSettings)});
+        setSettings(s=>adoptFillState(s,fillSettings));
+    },[fillSettings]);
     useEffect(()=>{if(tab==='sections') {documentRequest('?kind=section&limit=200').then(r=>setLibrary(r.documents)).catch(e=>setError(e.message));documentRequest(`/${doc.id}/updates`).then(r=>setUpdates(r.updates || [])).catch(e=>setError(e.message));}},[tab,doc.id]);
     return <aside className="w-full sm:w-80 shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]">
         <h2 className="font-semibold">{({parameters:t('documents.workspace.parameters', 'Parameters'),sections:t('documents.workspace.sections', 'Sections'),design:isDeck?t('documents.workspace.look', 'Look'):t('documents.workspace.design', 'Design'),assistant:t('documents.workspace.ai_assistant', 'AI assistant'),preview:t('doc_editor.tab_fill_in', 'Fill in & preview')})[tab]}</h2>
@@ -311,10 +325,10 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             <p className="text-xs text-[var(--text-muted)]">{t('documents.workspace.for_custom_layouts_ask_the_ai', 'For custom layouts, ask the AI assistant to convert the stylesheet to these controls. Review the preview before applying.')}</p>
         </>}
         {tab==='preview' && <>
-            <p className="text-xs">{doc.kind==='document'?t('documents.workspace.customer_values_are_stored_on_this', 'Customer values are stored on this private document.'):t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>
-            {/* In a project people fill it in together: the shared form, who filled what, and requests to colleagues. */}
-            {doc.kind==='document' && doc.projectId
-                ? <ProjectFillTab documentId={doc.id} projectId={doc.projectId}/>
+            {doc.kind!=='document' && <p className="text-xs">{t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>}
+            {/* A document is filled in with the form every place shows (the chat, a project's team chat, here): saved as it is typed, checked by the assistant, and in a project filled in together. A template only takes sample data for its preview. */}
+            {doc.kind==='document'
+                ? <DocumentFillPanel documentId={doc.id} place="editor" onSynced={onFillSynced}/>
                 : parameters.map(p=><div key={p.key}>{field((p.label || p.key)+(p.required?' *':''),<ValueInput parameter={p} value={settings.sampleValues?.[p.key]} onChange={v=>setSettings(s=>({...s,sampleValues:{...s.sampleValues,[p.key]:v}}))}/>)}<p className="text-xs text-[var(--text-muted)] mt-1">{p.summary}</p>{p.instructions && <details className="text-xs mt-1"><summary>{t('documents.workspace.instructions', 'Instructions')}</summary>{p.instructions}</details>}</div>)}
             {sections.map(s=>field(s.title,<select key={s.id} className={input} value={settings.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>setSettings(x=>({...x,sectionOverrides:{...x.sectionOverrides,[s.id]:e.target.value}}))}><option value="automatic">{t('documents.workspace.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('documents.workspace.include', 'Include')}</option><option value="exclude">{t('documents.workspace.exclude', 'Exclude')}</option></select>))}
             <button className={button} onClick={()=>action(async()=>{await save();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>

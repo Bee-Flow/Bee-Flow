@@ -133,14 +133,31 @@ Ask for "a presentation", "slides" or "a deck" and the assistant calls `create_p
 
 ## Filling in a template
 
-**+ → Fill in a template** in the direct chat lists your document templates (your own and those shared with you; **Studio → Documents**, kind *Template*) with a search box. Picking one sends "Fill in the template “…” with me." and the assistant takes it from there:
+**+ → Fill in a template** in the direct chat lists your document templates (your own and those shared with you; **Studio → Documents**, kind *Template*) with a search box. Picking one sends "Fill in the template “…” with me." and the assistant takes it from there. In a project's team chat the **Template** button does the same for the whole team.
 
-- `template_fill_start` makes your own private copy, exactly as *Use template* in the library does (so *Update available* still works), and reads the template's typed fields: label, type, required, options, help text.
-- The assistant asks for what is missing a few fields at a time, in plain language, fills in what the conversation or an attachment already says, and never invents a value. `template_fill_set_values` stores the answers as they come in; a number given as "12,5" becomes 12.5, a wrong type (a date that does not exist, an option that is not on the list) or an unknown field is refused with the reason, not stored.
-- After you confirm the summary, `template_fill_finish` checks every required field (it refuses while one is missing) and the card under the reply offers **Download PDF** (or **Download PowerPoint** for a presentation) and **Open in Documents**.
+**The assistant does the heavy lifting.**
+
+- `template_fill_start` makes a copy to fill in, exactly as *Use template* in the library does (so *Update available* still works), and reads the template's typed fields: label, type, required, options, help text.
+- It stores what the conversation or an attachment already says and the template's defaults right away, asks for what is missing in plain language, and never invents a value. `template_fill_set_values` stores the answers as they come in; a number given as "12,5" becomes 12.5, a wrong type (a date that does not exist, an option that is not on the list) or an unknown field is refused with the reason, not stored.
 - `document_templates_list` finds a template by name when you ask in words ("fill in our engagement letter") instead of picking one.
 
-Only templates you can read are offered, another organisation's never; values are written only to the document made in this chat (or one you opened beside it), never to the template itself.
+**One form, everywhere.** The same form is under the assistant's answer, in the team chat, and in the document editor's **Fill in & preview** tab, so it does not matter where you (or a colleague) continue. It saves as you type and always says the one thing to do next:
+
+- **Fill in**: the fields are grouped by what there is to do: *Asked of you*, *To look at*, *Still needed*, then *Filled in* and *Optional* (folded away while something is still to do). The download appears once nothing required is missing.
+- **Check**: *Check and finish* lets the assistant read everything that is filled in before the document goes out. Where the information is there but not written well enough, it offers a better wording at that field (**Use this** or **Keep mine**); where a value does not look like the right information, it asks *Is this right?* with the reason. It never changes a value itself and never makes one up. In the chat the assistant does this check itself (`template_fill_review`) before it finishes.
+- **Done**: `template_fill_finish` (or *Finish* on the form) refuses while a required field is missing. After that: **Download PDF** (or **Download PowerPoint** for a presentation).
+
+The check goes through the [Privacy Shield](./privacy-shield.md) like every other message to a model. A form cannot stop to ask you what may be sent, so where the shield is set to ask, what it finds is masked instead; where the policy lets nothing out, the form says so and you can finish without the check.
+
+**Together, in a project.** A template filled in in a project's team chat, or a document saved in a project, is the project's: every member who may edit it fills in the same form, and sees the others' values arrive.
+
+- **Ask a colleague** at a field (or `template_fill_ask_colleague` in the team chat: "ask Jan for the price") tags a member for the fields only they know, with a message. They get a notification that opens the document, the fields are at the top of their form under *Asked of you*, and the request closes by itself once the fields have a value, whoever filled them in.
+- **Add a note** leaves a note for the others at a field, or on the document as a whole ("the price is still being negotiated").
+- Under each field the form says who filled it in, or who was asked.
+
+**Saving it where it belongs.** *Save in project* on the form files your own document into one of your projects, and into a folder of that project's Documents tab when you pick one, or a new folder you name on the spot (a customer's folder, say). In a project the form shows the folder the document is in (*Folder: …*, or *Put in a folder*), and a click moves it to another one. The assistant does the same when you ask (`document_add_to_project`, with the folder's name).
+
+Only templates you can read are offered, another organisation's never; values are written only to the document being filled in (the one made in this chat, one you opened beside it, or the project's), never to the template itself.
 
 ## Memory
 

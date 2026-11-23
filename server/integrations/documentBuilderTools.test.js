@@ -99,7 +99,7 @@ const CTX = { userId: 'u1', documentScope: OPEN_SCOPE };
 test('the tool surface is exactly the document tools', () => {
     const names = DOCUMENT_TOOLS.map(t => t.function.name).sort();
     assert.deepStrictEqual(names, ['create_document', 'document_add_to_project', 'document_download', 'document_edit', 'document_read', 'document_templates_list', 'document_write',
-        'template_fill_finish', 'template_fill_set_values', 'template_fill_start', 'template_fill_status']);
+        'template_fill_finish', 'template_fill_review', 'template_fill_set_values', 'template_fill_start', 'template_fill_status']);
     for (const name of names) assert.ok(isDocumentTool(name), `${name} dispatches here`);
     assert.ok(!isDocumentTool('create_webpage'), 'webpage tools are somebody else\'s');
 });

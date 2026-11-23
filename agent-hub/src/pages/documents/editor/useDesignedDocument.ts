@@ -141,6 +141,52 @@ function useRename({ id, docRef, autosave, apply, onRenamed, setError, errorText
     return { rename, nameKey };
 }
 
+interface FillSyncOptions {
+    id: string;
+    docRef: React.RefObject<StudioDocument | null>;
+    apply: (next: StudioDocument) => void;
+    syncedTo: (doc: StudioDocument) => void;
+}
+
+/** How long after the form's last save the editor catches up: once per pause in typing, not per keystroke. */
+const FILL_SYNC_MS = 400;
+
+/**
+ * The fill-in form (the "Fill in & preview" tab) saves the values through its
+ * own route, and in a project colleagues save theirs too. Each answer of that
+ * route names the document's revision: when it is another one than the editor
+ * holds, the editor takes the document as it is now, so its next save (of the
+ * settings, or of the sheet) is made on that revision and with those values.
+ *
+ * Only when the SHEET did not change with it: the form's routes never touch
+ * the body, so then the frame still shows that revision and nothing has to be
+ * redrawn (a redraw would throw the cursor out of the sheet). When somebody
+ * else changed the sheet as well, nothing is taken over here: the next save
+ * finds the newer revision and merges, as it always did.
+ */
+function useFillSync({ id, docRef, apply, syncedTo }: FillSyncOptions) {
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+    return useCallback((out: { versionId?: string | null }) => {
+        if (!out.versionId || out.versionId === docRef.current?.versionId) return;
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(async () => {
+            const held = docRef.current;
+            try {
+                const latest = await getDocument(id) as StudioDocument;
+                // Saved here meanwhile (the editor's own autosave): that state is newer than what was just read.
+                if (!held || docRef.current !== held) return;
+                if (latest.bodyHtml !== held.bodyHtml || latest.css !== held.css) return;
+                apply({ ...held, ...latest });
+                syncedTo(latest);
+            } catch (err) {
+                // The form's own save succeeded; the editor catches up on its next save or reload.
+                logger.debug('the editor did not take over what the form saved', err);
+            }
+        }, FILL_SYNC_MS);
+    }, [id, docRef, apply, syncedTo]);
+}
+
 export default function useDesignedDocument({ initial, canvasRef, workspaceRef, onRenamed }: DesignedDocumentOptions) {
     const { t } = useTranslation();
     const errorText = useErrorText();
@@ -224,6 +270,8 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         }
     }, [flushEditor, autosave, initial.id, apply, canvasRef, t]);
 
+    const fillSynced = useFillSync({ id: initial.id, docRef, apply, syncedTo: autosave.syncedTo });
+
     const { rename, nameKey } = useRename({ id: initial.id, docRef, autosave, apply, onRenamed, setError, errorText });
 
     const toggleHouseStyle = useCallback(async () => {
@@ -244,7 +292,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
     const autosaveError = autosave.error ? errorText(autosave.error) : null;
     return {
         doc, docRef, apply, isDeck, readOnly, reloadKey, panelEpoch, setPanelEpoch, setReloadKey,
-        autosave, flushEditor, reload, savePatch, rename, nameKey, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
+        autosave, flushEditor, reload, savePatch, fillSynced, rename, nameKey, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
         inputNeeded: output.inputNeeded, clearInputNeeded: output.clearInputNeeded,
         error: error || autosaveError, notice,
         clearError: () => { setError(null); setNotice(null); autosave.clearError(); },

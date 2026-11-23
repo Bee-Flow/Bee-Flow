@@ -813,7 +813,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', require('./studioDocuments/stream'));
-router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter, require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter);
+router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter, require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter, require('./studioDocuments/fieldNotes.mts').fieldNotesRouter);
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 
