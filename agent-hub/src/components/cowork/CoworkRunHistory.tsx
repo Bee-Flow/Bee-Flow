@@ -30,6 +30,7 @@ import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
 import CoworkRunDetails from './CoworkRunDetails';
+import CoworkRunTrace from './CoworkRunTrace';
 import { isWaitingForReview } from './coworkReview';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
@@ -92,7 +93,7 @@ function startedByLine(triggerKind: string | undefined, t: (key: string | undefi
     return t('cowork.history.started_on_schedule', 'Started on schedule');
 }
 
-function RunRow({ run, agentId, title }: { run: CoworkRun; agentId?: string | null; title: string }) {
+function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: string; agentId?: string | null; title: string }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const status = runStatusToken(run.status);
@@ -148,6 +149,7 @@ function RunRow({ run, agentId, title }: { run: CoworkRun; agentId?: string | nu
                     </p>
                     {/* The review, what it used (a refusal stands out) and its conversation. */}
                     <CoworkRunDetails run={run} agentId={agentId} title={title} t={t} />
+                    <CoworkRunTrace coworkId={coworkId} run={run} t={t} />
                     {/* A result is model output, so it arrives as Markdown —
                         headings, bullets, tables, bold. Printed raw it was a
                         wall of asterisks and pipes. A failure is not: it is a
@@ -282,7 +284,7 @@ export default function CoworkRunHistory({ coworkId, reloadKey, agentId = null, 
     } else {
         body = (
             <div data-testid="cowork-run-list">
-                {state.runs.map(run => <RunRow key={run.id} run={run} agentId={agentId} title={title} />)}
+                {state.runs.map(run => <RunRow key={run.id} run={run} coworkId={coworkId} agentId={agentId} title={title} />)}
                 {state.total > state.runs.length && (
                     <p className="text-[11px] px-3.5 py-2.5 text-[var(--text-tertiary)]">
                         {t(

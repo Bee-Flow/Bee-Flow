@@ -2,8 +2,8 @@
 // automations a plan can be made from.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { approveCoworkPlan, attachCoworkPlan, getCoworkPlan, getCoworkPlanTry, listPlanAutomations, removeCoworkPlan, startCoworkPlanTry } from '../coworkPlanApi';
-import type { PlanAutomation, PlanState, PlanTryStart, PlanTryState } from '../coworkPlan.types';
+import { approveCoworkPlan, attachCoworkPlan, getCoworkPlan, getCoworkPlanTry, getCoworkRunTrace, listPlanAutomations, removeCoworkPlan, startCoworkPlanTry } from '../coworkPlanApi';
+import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState } from '../coworkPlan.types';
 
 const planKey = (coworkId: string) => ['cowork', 'plan', coworkId] as const;
 
@@ -46,6 +46,20 @@ export function useCoworkPlanTry(coworkId: string) {
         retry: false,
     });
     return { start, started, state: follow.data ?? null, error: start.error ?? follow.error ?? null };
+}
+
+/** How often the steps of a run that is still going are read again. */
+const TRACE_POLL_MS = 2500;
+
+/** The steps of one run that followed a plan; read again while the run is still going. */
+export function useCoworkRunTrace(coworkId: string, runId: string) {
+    return useQuery<PlanRunTrace, Error>({
+        queryKey: ['cowork', 'run-trace', coworkId, runId],
+        queryFn: () => getCoworkRunTrace(coworkId, runId),
+        refetchInterval: (query) => (query.state.data && !query.state.data.done ? TRACE_POLL_MS : false),
+        staleTime: 30_000,
+        retry: false,
+    });
 }
 
 const NO_AUTOMATIONS: PlanAutomation[] = [];

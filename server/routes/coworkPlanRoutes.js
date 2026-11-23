@@ -10,16 +10,17 @@
  *   POST   /:id/plan/try      → try the plan once without it changing or sending anything; answers 202 with the
  *                               try-out's id as soon as it started
  *   GET    /:id/plan/try/:tryId → how that try-out is going, step by step
+ *   GET    /:id/runs/:runId/trace → the steps of a run that followed a plan, for the item's history
  *
  * Ownership first (usecases/coworkItems.mts), the same rule as viewing and editing the item. What a plan is and when
  * it may be approved is the use case's (usecases/coworkPlan.mts) and the plan core's (core/cowork/plan); a try-out is
- * usecases/coworkPlanTry.mts.
+ * usecases/coworkPlanTry.mts, the steps of a run usecases/coworkRunTrace.mts.
  *
  * A try-out reads the owner's real data and runs the plan's AI steps for real, so starting one is limited per person.
  */
 
 const { validate } = require('../core/http/validate');
-const { PlanAttachBody, PlanApproveBody, PlanTryParams, NoBody } = require('./coworkSchemas');
+const { PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, NoBody } = require('./coworkSchemas');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
@@ -31,6 +32,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   loadItem: typeof loadOwnedItem,
  *   plan: () => Pick<typeof import('../usecases/coworkPlan.mts'), 'planStateOf' | 'attachPlan' | 'approvePlan' | 'removePlan'>,
  *   tryOut: () => Pick<typeof import('../usecases/coworkPlanTry.mts'), 'startTry' | 'tryStateOf'>,
+ *   trace: () => Pick<typeof import('../usecases/coworkRunTrace.mts'), 'runTraceOf'>,
  *   tryLimit: import('express').RequestHandler<{ id: string }>,
  * }} PlanRouteDeps
  */
@@ -42,6 +44,7 @@ const defaults = () => ({
     loadItem: loadOwnedItem,
     plan: () => require('../usecases/coworkPlan.mts'),
     tryOut: () => require('../usecases/coworkPlanTry.mts'),
+    trace: () => require('../usecases/coworkRunTrace.mts'),
     tryLimit: perUserRateLimit({ windowMs: 60_000, max: TRIES_PER_MINUTE, name: 'cowork-plan-try' }),
 });
 
@@ -50,7 +53,7 @@ const defaults = () => ({
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan, tryOut, tryLimit } = { ...defaults(), ...overrides };
+    const { loadItem, plan, tryOut, trace, tryLimit } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
@@ -80,6 +83,11 @@ function mountPlanRoutes(router, overrides = {}) {
     router.get('/:id/plan/try/:tryId', validate({ params: PlanTryParams }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         res.json(await tryOut().tryStateOf({ item, tryId: req.params.tryId }));
+    });
+
+    router.get('/:id/runs/:runId/trace', validate({ params: RunTraceParams }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        res.json(await trace().runTraceOf({ item, runId: req.params.runId }));
     });
 }
 

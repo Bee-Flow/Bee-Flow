@@ -35,6 +35,8 @@ const tryOut = {
     startTry: async ({ item }) => { asked.push(['startTry', { item: item.id }]); return { tryId: 'try-1', fingerprint: FINGERPRINT }; },
     tryStateOf: async ({ item, tryId }) => { asked.push(['tryStateOf', { item: item.id, tryId }]); return TRY_STATE; },
 };
+const TRACE = { runId: 'run-1', planVersion: 2, recorded: true, done: true, durationMs: 5200, steps: [] };
+const trace = { runTraceOf: async ({ item, runId }) => { asked.push(['runTraceOf', { item: item.id, runId }]); return TRACE; } };
 /** A limit no test reaches by accident; the limit itself has its own router below. */
 const roomy = () => perUserRateLimit({ windowMs: 60_000, max: 1000, name: 'cowork-plan-try-roomy', _redis: null });
 /** The ownership rule of usecases/coworkItems.mts, over one item that belongs to u1. */
@@ -47,13 +49,14 @@ const loadItem = async (id, userId) => {
 const router = express.Router();
 // The session check routes/cowork.js puts in front of every Cowork route.
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, tryLimit: roomy() });
+mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, tryLimit: roomy() });
 const api = serve('/api/cowork', router, { user: OWNER });
 after(api.close);
 
 const TRY_ROUTES = /** @type {Array<[string, string, unknown]>} */ ([
     ['POST', '/api/cowork/cw-1/plan/try', undefined],
     ['GET', '/api/cowork/cw-1/plan/try/try-1', undefined],
+    ['GET', '/api/cowork/cw-1/runs/run-1/trace', undefined],
 ]);
 
 const ROUTES = /** @type {Array<[string, string, unknown]>} */ ([
@@ -118,6 +121,14 @@ test('trying a plan answers 202 with the try-out and the fingerprint that is tri
     const read = await api.call('GET', '/api/cowork/cw-1/plan/try/try-1');
     assert.deepStrictEqual([read.status, read.body], [200, TRY_STATE]);
     assert.deepStrictEqual(asked, [['startTry', { item: 'cw-1' }], ['tryStateOf', { item: 'cw-1', tryId: 'try-1' }]]);
+});
+
+test('the steps of a run are read through its item: the use case gets the item and the run that was asked for', async () => {
+    asked = [];
+    const res = await api.call('GET', '/api/cowork/cw-1/runs/run-1/trace');
+    assert.deepStrictEqual([res.status, res.body], [200, TRACE]);
+    assert.deepStrictEqual(asked, [['runTraceOf', { item: 'cw-1', runId: 'run-1' }]]);
+    assert.strictEqual((await api.call('GET', `/api/cowork/cw-1/runs/${'x'.repeat(201)}/trace`)).status, 400);
 });
 
 test('starting a try-out takes no body, and a try-out id is short text', async () => {

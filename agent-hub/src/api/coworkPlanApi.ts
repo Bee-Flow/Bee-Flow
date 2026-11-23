@@ -3,7 +3,7 @@
 // A refusal throws with the server's sentence (mutate.ts RefusedError), which the plan card shows.
 
 import { apiJson } from './typedRequest';
-import type { PlanAutomation, PlanState, PlanTryStart, PlanTryState } from './coworkPlan.types';
+import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState } from './coworkPlan.types';
 
 export function getCoworkPlan(id: string): Promise<PlanState> {
     return apiJson<'GET /api/cowork/{id}/plan', PlanState>('GET /api/cowork/{id}/plan', { params: { id } });
@@ -32,6 +32,11 @@ export function startCoworkPlanTry(id: string): Promise<PlanTryStart> {
 /** How a try-out is going, step by step. */
 export function getCoworkPlanTry(id: string, tryId: string): Promise<PlanTryState> {
     return apiJson<'GET /api/cowork/{id}/plan/try/{tryId}', PlanTryState>('GET /api/cowork/{id}/plan/try/{tryId}', { params: { id, tryId } });
+}
+
+/** The steps of one run that followed a plan. */
+export function getCoworkRunTrace(id: string, runId: string): Promise<PlanRunTrace> {
+    return apiJson<'GET /api/cowork/{id}/runs/{runId}/trace', PlanRunTrace>('GET /api/cowork/{id}/runs/{runId}/trace', { params: { id, runId } });
 }
 
 /** The automations of a list response that the caller owns: a plan is made from one of your own. */

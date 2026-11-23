@@ -115,6 +115,8 @@ export interface CoworkRun {
     review?: CoworkRunReview | null;
     /** Null for a run from before this was kept. */
     activity?: CoworkRunActivity | null;
+    /** The approved plan this run followed; null or absent for a prompt or agent run. */
+    planId?: string | null;
 }
 
 /** How the owner handles a run that waits for review. */

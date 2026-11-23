@@ -10,7 +10,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { startTry, tryStateOf, previewOf } = require('./coworkPlanTry.mts');
+const { startTry, tryStateOf } = require('./coworkPlanTry.mts');
 const { planFingerprint } = require('../core/cowork/plan/planPermissions.mts');
 const { fakeLookups, planOf, supplierRadar } = require('../core/cowork/plan/plan.testkit');
 
@@ -143,15 +143,4 @@ test('a try-out belongs to its item: a run of another automation, a live run and
     const live = world({ run: { id: 'try-1', automationId: 'auto-1', mode: 'live', status: 'success' } });
     await assert.rejects(tryStateOf({ item: ITEM, tryId: 'try-1' }, live.deps), httpError(404, 'cowork_plan_refused'));
     await assert.rejects(tryStateOf({ item: ITEM, tryId: 'no-such-run' }, world().deps), httpError(404, 'cowork_plan_refused'));
-});
-
-test('a preview is short text: long values are cut, empty ones are nothing', () => {
-    assert.strictEqual(previewOf('  hello  '), 'hello');
-    assert.strictEqual(previewOf({ a: 1 }), '{\n "a": 1\n}');
-    assert.strictEqual(previewOf('x'.repeat(700)).length, 601);
-    assert.ok(previewOf('x'.repeat(700)).endsWith('…'));
-    for (const empty of [null, undefined, '', '   ', {}, []]) assert.strictEqual(previewOf(empty), null);
-    const circular = {};
-    circular.self = circular;
-    assert.strictEqual(previewOf(circular), null);
 });

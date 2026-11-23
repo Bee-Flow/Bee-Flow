@@ -38,6 +38,13 @@ export interface ApprovedPlan {
     approvedAt: string | null;
 }
 
+/** A run that followed a plan: the plan it ran, and the automation run that holds its steps (null: it never started). */
+export interface PlanRun {
+    runId: string;
+    automationRunId: string | null;
+    plan: ApprovedPlan;
+}
+
 export interface ApproveInput {
     scheduleId: string;
     automationId: string;
@@ -117,5 +124,22 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
         await db.run('UPDATE cowork_runs SET plan_id = $2, automation_run_id = COALESCE($3, automation_run_id) WHERE id = $1', [runId, planId, automationRunId ?? null]);
     }
 
-    return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun };
+    /**
+     * The plan one run of this item followed, as it was approved then (a later approval does not rewrite history).
+     * Null for a run of another item, a run that followed no plan, and a plan that is not this item's.
+     */
+    async function getPlanRun(scheduleId: string, runId: string): Promise<PlanRun | null> {
+        await ready();
+        const row = await db.getOne(
+            `SELECT p.*, r.automation_run_id AS run_automation_run_id
+               FROM cowork_runs r JOIN cowork_plans p ON p.id = r.plan_id
+              WHERE r.id = $2 AND r.schedule_id = $1 AND p.schedule_id = r.schedule_id`,
+            [scheduleId, runId],
+        );
+        const plan = rowToPlan(row);
+        if (!row || !plan) return null;
+        return { runId, automationRunId: row.run_automation_run_id ? String(row.run_automation_run_id) : null, plan };
+    }
+
+    return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun, getPlanRun };
 }

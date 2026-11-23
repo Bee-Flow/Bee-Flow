@@ -9,23 +9,19 @@
  *   - START answers as soon as the run exists, with its id and the fingerprint of the plan that is being tried; the
  *     run goes on in the background. A plan with findings is not tried (it is not a plan Cowork runs), and neither
  *     is one for an owner the runner would refuse.
- *   - READ answers the run so far: per plan step whether it ran, how long it took, and a short preview. For a step
- *     that only reads, the preview is what it got. For a step that would change or send, it is what it WOULD have
- *     sent or written (its resolved input): the draft, the row, the recipient. The simulated answer of such a step
- *     is made-up sample data and is never shown as if it were real.
- *     The runner records a loop as one step, not its body per item, so a step inside a loop goes by its loop: it has
- *     the loop's status and no preview of its own. A step the finished run never came to is 'not_reached'.
+ *   - READ answers the run so far, per plan step: whether it ran, how long it took, and a short preview of what it
+ *     got or WOULD have written or sent (core/cowork/plan/planTrace.mts, the reading a real run's history uses too).
  *
  * A try-out belongs to its item: the run must be a dry run of the automation this item's plan is made from.
  */
 
 import { createRequire } from 'node:module';
-import type { Definition, Effect, StepKind, ToolLookups } from '../core/cowork/plan/planTypes.mts';
+import type { Definition, ToolLookups } from '../core/cowork/plan/planTypes.mts';
+import type { RunStepRow, TraceStep } from '../core/cowork/plan/planTrace.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
-import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
-import { stepsOf } from '../core/cowork/plan/planWalk.mts';
+import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -35,7 +31,6 @@ const log = nodeRequire('../telemetry/log.js') as { warn: (msg: string) => void 
 interface Item { id: string; userId: string; planAutomationId?: string | null }
 interface AutomationRow { id: string; userId: string; organizationId?: string | null; kind?: string | null; definition?: unknown }
 interface RunRow { id?: string; automationId?: string; mode?: string; status?: string; summary?: string | null; error?: string | null; durationMs?: number | null }
-interface RunStepRow { stepId: string; attempts?: number; status?: string; startedAt?: string | null; finishedAt?: string | null; input?: unknown; output?: unknown; error?: string | null }
 
 export interface TryDeps {
     getAutomation: (id: string) => Promise<AutomationRow | null>;
@@ -58,24 +53,6 @@ function defaultDeps(): TryDeps {
     };
 }
 
-/** One plan step of a try-out. */
-export interface TryStep {
-    id: string;
-    title: string;
-    kind: StepKind;
-    effect: Effect;
-    /** 'pending' until the run reaches it, then the runner's own status; 'not_reached' when the run ended before it. */
-    status: string;
-    /** 0 at the top level, 1 inside a loop: such a step runs once per item and goes by its loop's status. */
-    depth: number;
-    durationMs: number | null;
-    /** The step would change or send something, so the try-out held it back. */
-    held: boolean;
-    error: string | null;
-    /** What the step read (a reading step) or would have written or sent (a held step); null when there is nothing. */
-    preview: string | null;
-}
-
 export interface TryState {
     tryId: string;
     status: string;
@@ -84,29 +61,7 @@ export interface TryState {
     summary: string | null;
     error: string | null;
     durationMs: number | null;
-    steps: TryStep[];
-}
-
-const PREVIEW_MAX = 600;
-const RUNNING: ReadonlySet<string> = new Set(['queued', 'running']);
-
-/** A value as a short text a person can read. */
-export function previewOf(value: unknown): string | null {
-    if (value === null || value === undefined) return null;
-    let text: string;
-    if (typeof value === 'string') text = value;
-    else {
-        try { text = JSON.stringify(value, null, 1); } catch { return null; }
-    }
-    const trimmed = text.trim();
-    if (!trimmed || trimmed === '{}' || trimmed === '[]') return null;
-    return trimmed.length > PREVIEW_MAX ? `${trimmed.slice(0, PREVIEW_MAX)}…` : trimmed;
-}
-
-function durationOf(row: RunStepRow): number | null {
-    if (!row.startedAt || !row.finishedAt) return null;
-    const ms = new Date(row.finishedAt).getTime() - new Date(row.startedAt).getTime();
-    return Number.isFinite(ms) && ms >= 0 ? ms : null;
+    steps: TraceStep[];
 }
 
 /** The automation this item's plan is made from, when it is still the owner's. */
@@ -159,36 +114,8 @@ export async function tryStateOf({ item, tryId }: { item: Item; tryId: string },
         throw new HttpError(404, 'cowork_plan_refused', 'That try-out does not exist.');
     }
     const status = run.status ?? 'running';
-    const done = !RUNNING.has(status);
-    // The last attempt of each step is the one that counts.
-    const last = new Map<string, RunStepRow>();
-    for (const row of await deps.getRunSteps(tryId)) {
-        const seen = last.get(row.stepId);
-        if (!seen || (row.attempts ?? 0) >= (seen.attempts ?? 0)) last.set(row.stepId, row);
-    }
-    const definition = automation.definition as Definition;
-    const parentOf = new Map(stepsOf(definition).map((s) => [s.id, s.parentId]));
-    /** A step's own status, else its loop's; a step no row speaks for is still to come, or was never reached. */
-    const statusOf = (id: string): string => {
-        for (let at: string | null | undefined = id; at; at = parentOf.get(at)) {
-            const row = last.get(at);
-            if (row) return row.status ?? 'pending';
-        }
-        return done ? 'not_reached' : 'pending';
-    };
-    const steps = planViewOf(definition, deps.lookups).steps.map((step): TryStep => {
-        const row = last.get(step.id);
-        const held = step.effect !== 'reads';
-        return {
-            id: step.id, title: step.title, kind: step.kind, effect: step.effect,
-            status: statusOf(step.id),
-            depth: step.depth,
-            durationMs: row ? durationOf(row) : null,
-            held,
-            error: row?.error ?? null,
-            preview: row ? previewOf(held ? row.input : row.output) : null,
-        };
-    });
+    const done = runIsOver(status);
+    const steps = traceSteps(automation.definition as Definition, await deps.getRunSteps(tryId), { done, simulated: true }, deps.lookups);
     return {
         tryId, status, done,
         summary: run.summary ?? null, error: run.error ?? null, durationMs: run.durationMs ?? null, steps,

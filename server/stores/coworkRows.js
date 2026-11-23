@@ -93,6 +93,8 @@ function rowToRun(r) {
         review: reviewOf(r),
         // Names, outcomes and counts only (core/cowork/runActivity.mts); null for a run from before it was kept.
         activity: r.activity_json ? safeParseJSON(r.activity_json, NO_ACTIVITY) : null,
+        // The approved plan this run followed (stores/coworkPlans.mts); null for a prompt or agent run.
+        planId: r.plan_id ?? null,
         // run_context_json is deliberately not here: it is the server's, for a follow-up run.
     };
 }

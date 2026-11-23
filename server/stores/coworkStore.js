@@ -549,12 +549,8 @@ module.exports = {
     countOpenReviews: coworkReviews.countOpenReviews,
     getRunForReview: coworkReviews.getRunForReview,
     resolveReview: coworkReviews.resolveReview,
-    // Plans (./coworkPlans.mts).
-    attachPlanAutomation: coworkPlans.attachPlanAutomation,
-    detachPlan: coworkPlans.detachPlan,
-    approvePlan: coworkPlans.approvePlan,
-    getApprovedPlan: coworkPlans.getApprovedPlan,
-    linkPlanRun: coworkPlans.linkPlanRun,
+    // Plans (./coworkPlans.mts): attach, detach, approve, the approved plan, and the plan a run followed.
+    ...coworkPlans,
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
     releaseRun,

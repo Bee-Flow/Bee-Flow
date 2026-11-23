@@ -170,5 +170,7 @@ const FINGERPRINT_TEXT = 'fingerprint is the fingerprint of the plan you looked 
 const PlanApproveBody = z.object({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }).strict();
 // GET /:id/plan/try/:tryId (usecases/coworkPlanTry.mts): the item and the try-out that was started for it.
 const PlanTryParams = z.object({ id: z.string().min(1).max(200), tryId: z.string().min(1).max(200) });
+// GET /:id/runs/:runId/trace (usecases/coworkRunTrace.mts): the item and one of its runs.
+const RunTraceParams = z.object({ id: z.string().min(1).max(200), runId: z.string().min(1).max(200) });
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

@@ -117,3 +117,15 @@ export interface PlanTryState {
     durationMs: number | null;
     steps: PlanTryStep[];
 }
+
+/** The steps of one run that followed a plan (server/usecases/coworkRunTrace.mts). */
+export interface PlanRunTrace {
+    runId: string;
+    /** The version of the plan this run followed. */
+    planVersion: number;
+    /** False: the steps were not recorded or are no longer kept; the plan's steps are listed without how they went. */
+    recorded: boolean;
+    done: boolean;
+    durationMs: number | null;
+    steps: PlanTryStep[];
+}
