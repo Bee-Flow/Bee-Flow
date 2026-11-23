@@ -27,6 +27,25 @@ const VALUE_FIELDS: readonly string[] = Object.freeze([
 /** Fields that are only ever named: their content is the owner's text. */
 const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 'trigger', 'answer']);
 
+/** Fields whose value is rebuilt from an allow-list, never copied: the value kept is what the shaper returns. */
+const SHAPED_FIELDS: Readonly<Record<string, (value: unknown) => unknown>> = Object.freeze({ shares: sharesShape });
+
+export const MAX_AUDITED_SHARES = 50;
+const MAX_USER_ID = 200;
+
+/** Who got access: `[{ userId, role }]`, at most 50, those two keys only (internal ids, no names). Anything else is dropped. */
+function sharesShape(value: unknown): Array<{ userId: string; role: 'viewer' | 'approver' }> {
+    const out: Array<{ userId: string; role: 'viewer' | 'approver' }> = [];
+    if (!Array.isArray(value)) return out;
+    for (const entry of value) {
+        if (out.length >= MAX_AUDITED_SHARES) break;
+        const e = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+        const { userId, role } = e;
+        if (typeof userId === 'string' && userId.length > 0 && userId.length <= MAX_USER_ID && (role === 'viewer' || role === 'approver')) out.push({ userId, role });
+    }
+    return out;
+}
+
 export interface AuditChange { changed: string[]; values: Record<string, unknown> }
 
 /** What a change records, from the fields it carried. */
@@ -35,6 +54,7 @@ export function changeOf(fields: Record<string, unknown> | null | undefined): Au
     for (const [key, value] of Object.entries(fields ?? {})) {
         if (value === undefined) continue;
         if (VALUE_FIELDS.includes(key)) { out.changed.push(key); out.values[key] = value; }
+        else if (Object.hasOwn(SHAPED_FIELDS, key)) { out.changed.push(key); out.values[key] = SHAPED_FIELDS[key](value); }
         else if (NAME_ONLY_FIELDS.includes(key)) out.changed.push(key);
     }
     out.changed.sort();

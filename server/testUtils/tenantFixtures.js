@@ -42,7 +42,7 @@ const { oneFile } = require('./tenantFixtures/helpers');
  *   kind: string,
  *   mount: string,
  *   router: () => import('express').Router,
- *   create: (ctx: { orgId: string, userId: string, index: number }) => Promise<string>,
+ *   create: (ctx: { orgId: string, userId: string, index: number, outsiderId?: string }) => Promise<string>,
  *   routes: string[],
  *   bodies?: Record<string, unknown>,
  *   params?: Record<string, string>,

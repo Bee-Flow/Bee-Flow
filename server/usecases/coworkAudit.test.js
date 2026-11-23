@@ -51,3 +51,25 @@ test('the owner reads the trail newest first, sees which entries were theirs, an
     ]);
     assert.ok(!JSON.stringify(trail).includes('admin-7'), 'who else changed it is not named to the owner');
 });
+
+test('who a cowork is shared with is kept as ids and roles only, rebuilt from an allow-list and capped', () => {
+    const raw = [
+        { userId: 'u-2', role: 'approver', name: 'Anna Bakker', email: 'anna@example.com' }, { userId: 'u-3', role: 'viewer' },
+        { userId: 'u-4', role: 'owner' }, { userId: 7, role: 'viewer' }, { userId: 'x'.repeat(201), role: 'viewer' }, null, 'u-5',
+    ];
+    const change = changeOf({ shares: raw });
+    assert.deepStrictEqual(change.changed, ['shares']);
+    assert.deepStrictEqual(change.values, { shares: [{ userId: 'u-2', role: 'approver' }, { userId: 'u-3', role: 'viewer' }] });
+    assert.ok(!JSON.stringify(change).includes('Anna') && !JSON.stringify(change).includes('example.com'));
+    assert.deepStrictEqual(changeOf({ shares: [] }).values, { shares: [] });
+    assert.deepStrictEqual(changeOf({ shares: 'u-2' }).values, { shares: [] });
+    const many = Array.from({ length: 80 }, (_, i) => ({ userId: `u-${i}`, role: 'viewer' }));
+    assert.strictEqual(/** @type {unknown[]} */ (changeOf({ shares: many }).values.shares).length, 50);
+});
+
+test('an entry that names who got access reads back in the owner\'s trail', async () => {
+    const shares = [{ userId: 'u-2', role: 'approver' }];
+    const rows = [{ action: 'cowork.shares_set', created_at: '2026-11-23T09:00:00.000Z', changed_by: 'u1', new_values: changeOf({ shares }) }];
+    const [entry] = await trailOf('cw-1', 'u1', { logAccessAudit: async () => {}, getAccessAuditLog: async () => rows });
+    assert.deepStrictEqual([entry.changed, entry.values], [['shares'], { shares }]);
+});
