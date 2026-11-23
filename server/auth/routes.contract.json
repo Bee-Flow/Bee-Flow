@@ -183,6 +183,9 @@
     "DELETE /api/cowork/:id/plan": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/templates/:id": {
+      "gate": "auth"
+    },
     "DELETE /api/datatables/:id": {
       "gate": "permission",
       "anyOf": [
@@ -1884,6 +1887,12 @@
       "gate": "auth"
     },
     "GET /api/cowork/shield/:orgId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/templates": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/templates/:id": {
       "gate": "auth"
     },
     "GET /api/datatables": {
@@ -5262,6 +5271,9 @@
     "POST /api/cowork/:id/runs/:runId/review": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/save-as-template": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/toggle": {
       "gate": "auth"
     },
@@ -5271,6 +5283,9 @@
     "POST /api/cowork/hooks": {
       "gate": "handler",
       "via": "mount"
+    },
+    "POST /api/cowork/templates/:id/use": {
+      "gate": "auth"
     },
     "POST /api/csp-report": {
       "gate": "open",

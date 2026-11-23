@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "cowork_templates.add": "Toevoegen aan mijn cowork",
+    "cowork_templates.adds_paused": "Toevoegen start niets: het begint gepauzeerd, en je keurt het plan goed na een proefrun.",
+    "cowork_templates.back": "Terug naar de sjablonen",
+    "cowork_templates.close": "Sluiten",
+    "cowork_templates.delete": "Dit sjabloon verwijderen",
+    "cowork_templates.empty": "Je organisatie heeft nog geen sjablonen. Sla er een op via de instellingen van een cowork.",
+    "cowork_templates.heading": "Sjablonen van je organisatie",
+    "cowork_templates.loading": "Laden…",
+    "cowork_templates.may_do": "Wat het plan mag doen",
+    "cowork_templates.no_plan": "Geen plan: het draait als opdracht, met de apps die je het geeft.",
+    "cowork_templates.open": "Begin met een sjabloon",
+    "cowork_templates.plan_left_out": "Het plan kan zo niet draaien en wordt daarom weggelaten. Na het toevoegen kun je een plan maken.",
+    "cowork_templates.save": "Opslaan als sjabloon",
+    "cowork_templates.save_heading": "Opslaan als sjabloon",
+    "cowork_templates.save_hint": "Collega's in je organisatie kunnen ermee beginnen. Het bewaart de opdracht, het schema en het goedgekeurde plan, zonder je koppelingen, goedkeurders of runs.",
+    "cowork_templates.save_name": "Naam van het sjabloon",
+    "cowork_templates.saved": "Opgeslagen. Collega's vinden het onder \"Begin met een sjabloon\".",
+    "cowork_templates.saved_by": "opgeslagen door {name}"
+  },
+  "sameAsEnglish": []
+}

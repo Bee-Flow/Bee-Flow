@@ -95,6 +95,8 @@ const FIXTURES = [
             'GET /api/cowork/:id/shares', 'PUT /api/cowork/:id/shares', 'GET /api/cowork/shared/:id',
             // Run receipts: the owner's only (usecases/coworkReceipts.mts).
             'GET /api/cowork/:id/receipts', 'GET /api/cowork/:id/runs/:runId/receipt',
+            // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
+            'POST /api/cowork/:id/save-as-template',
             'GET /api/cowork/:id/audit',
             'DELETE /api/cowork/:id',
         ],

@@ -82,8 +82,8 @@ function StepRow({ step, t }: { step: PlanStep; t: TranslateFn }) {
     );
 }
 
-/** What the plan may do: the apps it reads and changes, and who it can reach. */
-function MayDo({ permissions, t }: { permissions: PlanPermissions; t: TranslateFn }) {
+/** What the plan may do: the apps it reads and changes, and who it can reach. Also what a template's plan may do (./CoworkTemplates.tsx). */
+export function MayDo({ permissions, t }: { permissions: PlanPermissions; t: TranslateFn }) {
     const apps = appsByEffect(permissions);
     const nothing = t('cowork_plan.may.nothing', 'Nothing');
     const column = (effect: PlanEffect, lines: string[]) => (
