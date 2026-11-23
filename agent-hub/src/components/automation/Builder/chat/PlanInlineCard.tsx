@@ -53,7 +53,7 @@ export default function PlanInlineCard({ plan, running = false, onOpen = null, o
         </div>
         <div className="flex items-center gap-2">
             {onOpen && <button type="button" onClick={onOpen} className="rounded-xl px-3 py-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('automations.assistant.plan_open', 'Open plan')}</button>}
-            <button type="button" onClick={() => onApprove(!!plan.pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 py-2 font-semibold text-[var(--bg-primary)] transition-opacity hover:opacity-90"><Hammer size={13} />{plan.status === 'review' ? t('automations.assistant.build_plan', 'Build this plan') : t('automations.assistant.continue_plan', 'Continue plan')}</button>
+            <button type="button" onClick={() => onApprove(!!plan.pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 py-2 font-semibold text-[var(--text-on-ink)] transition-opacity hover:opacity-90"><Hammer size={13} />{plan.status === 'review' ? t('automations.assistant.build_plan', 'Build this plan') : t('automations.assistant.continue_plan', 'Continue plan')}</button>
         </div>
     </div>;
 }

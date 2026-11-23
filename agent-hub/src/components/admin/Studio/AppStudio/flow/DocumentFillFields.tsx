@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { documentRequest, listTemplates } from '@/pages/documents/documentsApi';
 import useDocumentText from '@/pages/documents/useDocumentText';
+import useTranslation from '@/hooks/useTranslation';
 import BindingField from '../inspector/panels/BindingField';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppAction, AppDefinition, AppNode, FormFieldRef } from '../inspector/appDefinition';
+import { duplicateNameSuffix } from '@/components/automation/Builder/flow/settings/actionEditors/documentOptionLabel';
 
 interface ContractParameter {
     key: string;
@@ -45,10 +47,24 @@ interface DocumentFillFieldsProps {
     disabled: boolean;
 }
 
+type Say = ReturnType<typeof useDocumentText>;
+
+/** What to type for a parameter of this type: a list wants JSON, a date a date, text just text. */
+function typedPlaceholder(type: string | undefined, d: Say) {
+    switch (type) {
+        case 'number': return d('A number, e.g. 42', 'Een getal, bijv. 42');
+        case 'date': return d('A date, e.g. 2026-01-31', 'Een datum, bijv. 2026-01-31');
+        case 'boolean': return d('true or false', 'true of false');
+        case 'list': return d('JSON like ["a","b"]', 'JSON zoals ["a","b"]');
+        default: return d('Type the value', 'Typ de waarde');
+    }
+}
+
 export default function DocumentFillFields({ step, onChange, definition, node, formFields, disabled }: DocumentFillFieldsProps) {
     const d = useDocumentText();
+    const { locale } = useTranslation();
     const [query, setQuery] = useState('');
-    const [documents, setDocuments] = useState<{ id: string; name: string }[]>([]);
+    const [documents, setDocuments] = useState<{ id: string; name: string; updatedAt?: string }[]>([]);
     const [contract, setContract] = useState<Contract | null>(null);
     const [proposed, setProposed] = useState<Contract | null>(null);
     const [error, setError] = useState('');
@@ -88,21 +104,22 @@ export default function DocumentFillFields({ step, onChange, definition, node, f
     </div>;
     return <fieldset disabled={disabled || busy} className="space-y-3 min-w-0">
         <label className="block text-xs">{d('Search document templates','Documentsjablonen zoeken')}
-            <input className={INPUT_CLS} value={query} onChange={e=>setQuery(e.target.value)}/></label>
+            <input className={INPUT_CLS} value={query} onChange={e=>setQuery(e.target.value)} placeholder={d('Search by name…','Zoeken op naam…')}/></label>
         <label className="block text-xs">{d('Document template','Documentsjabloon')}
             <select className={INPUT_CLS} value={step.documentId || ''} onChange={e=>choose(e.target.value)}>
                 <option value="">{d('Choose template','Kies sjabloon')}</option>
                 {step.documentId && !documents.some(x=>x.id===step.documentId) && <option value={step.documentId}>{contract?.name || step.documentId}</option>}
-                {documents.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+                {documents.map(x=><option key={x.id} value={x.id}>{x.name}{duplicateNameSuffix(x, documents, locale)}</option>)}
             </select></label>
+        {!step.documentId && !error && <p role="status" className="text-xs text-[var(--warning-ink)]">{d('Pick the document to fill. The app saves without one, but cannot be published until it has one.','Kies het document dat gevuld wordt. De app wordt zonder opgeslagen, maar kan pas gepubliceerd worden als er een gekozen is.')}</p>}
         {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
         {contract && <>
-            <p className="text-xs">{d('Pinned revision','Vastgezette versie')}: {contract.versionId}</p>
+            <p className="text-xs text-[var(--text-secondary)]">{d('Pinned revision','Vastgezette versie')}: <span className="font-mono" title={contract.versionId}>{contract.versionId.slice(0, 8)}</span></p>
             <details><summary className="cursor-pointer text-xs">{d('Parameter instructions and sections','Parameterinstructies en onderdelen')}</summary>{summary(contract)}</details>
-            {contract.parameters.map(p=><div className="space-y-1" key={p.key}>
-                <p className="text-xs">{p.label || p.key}{p.required?' *':''} · {p.type}</p><p className="text-xs text-[var(--text-muted)]">{p.summary}</p>
-                {!Object.hasOwn(step.values || {},p.key) && p.required && p.default===undefined && <p className="text-xs text-amber-600">{d('Binding needed when applicable','Koppeling nodig indien van toepassing')}</p>}
-                <BindingField value={step.values?.[p.key]} onChange={binding=>onChange({values:{...step.values,[p.key]:binding}})} definition={definition} node={node} formFields={formFields} disabled={disabled || busy}/>
+            {contract.parameters.map(p=><div className="space-y-1" key={p.key} role="group" aria-label={p.label || p.key}>
+                <p className="text-xs font-medium text-[var(--text-primary)]">{p.label || p.key}{p.required?' *':''} <span className="font-normal text-[var(--text-tertiary)]">· {p.type}</span></p>
+                {p.summary ? <p className="text-xs text-[var(--text-muted)]">{p.summary}</p> : null}
+                <BindingField compact placeholder={typedPlaceholder(p.type, d)} label={null} value={step.values?.[p.key]} onChange={binding=>onChange({values:{...step.values,[p.key]:binding}})} definition={definition} node={node} formFields={formFields} disabled={disabled || busy}/>
             </div>)}
             {contract.sections.map(s=><label key={s.id} className="block text-xs">{s.title}
                 <select className={INPUT_CLS} value={(step.sectionOverrides?.[s.id]?.value || step.sectionOverrides?.[s.id] || 'automatic') as string} onChange={e=>onChange({sectionOverrides:{...step.sectionOverrides,[s.id]:e.target.value}})}>

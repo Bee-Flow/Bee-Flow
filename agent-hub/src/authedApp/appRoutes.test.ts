@@ -162,13 +162,14 @@ describe('usesStudioRail — the rail flag (H1)', () => {
         }
     });
 
-    it('leaves the Approvals slice on the ordinary sidebar', () => {
-        // /app/studio/approvals is a Studio address the whole org reaches from
-        // a notification, and the section is hiddenFromNav — so the rail would
-        // not even list it. Its page key stays 'studio' (that is frozen); only
-        // the chrome differs.
+    it('keeps the Approvals slice inside Studio (the rail lists it)', () => {
+        // /app/studio/approvals is a Studio address; its page key stays
+        // 'studio' (that is frozen). The rail has its own Approvals row, so a
+        // builder who opens it from there must not lose the rail; a member
+        // without Studio gets the ordinary sidebar (Sidebar.helpers checks
+        // canSeeStudio).
         expect(pageFromPath('/app/studio/approvals/apr_1')).toBe('studio');
-        expect(usesStudioRail('studio', 'approvals')).toBe(false);
+        expect(usesStudioRail('studio', 'approvals')).toBe(true);
     });
 });
 

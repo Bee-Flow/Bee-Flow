@@ -69,7 +69,7 @@ export default function SourcesTab({
 
     const summary = totals ? [
         nOf(t, 'knowledge.n_sources', totals.sourceCount, '{count} source', '{count} sources'),
-        nOf(t, 'knowledge.n_documents', totals.documentCount, '{count} document', '{count} documents'),
+        nOf(t, 'knowledge.n_documents', searchableDocuments(totals), '{count} document', '{count} documents'),
         nOf(t, 'knowledge.n_auto_refresh', totals.autoRefreshCount, '{count} refreshes automatically', '{count} refresh automatically'),
     ].join(' · ') : '';
 
@@ -214,7 +214,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
             <span className="text-[var(--text-secondary)]">
                 {source.refreshMode === 'live'
                     ? t('knowledge.sources.always_current', 'always current')
-                    : (rel(source.lastRefreshAt) || t('knowledge.sources.never_refreshed', 'never'))}
+                    : (rel(lastUpdatedAt(source)) || t('knowledge.sources.never_refreshed', 'never'))}
             </span>
 
             <span className="justify-self-end">
@@ -353,6 +353,7 @@ const SUBLINE_EN: Readonly<Record<string, string>> = Object.freeze({
     'knowledge.subline.webpage_site': 'whole site · {count} page',
     'knowledge.subline.webpage_site_plural': 'whole site · {count} pages',
     'knowledge.subline.text': 'pasted text · by {by}',
+    'knowledge.subline.text_anonymous': 'pasted text',
     'knowledge.subline.automation': 'filled by an automation · {count} document',
     'knowledge.subline.automation_plural': 'filled by an automation · {count} documents',
     'knowledge.subline.legacy': 'imported · {count} document',
@@ -361,4 +362,25 @@ const SUBLINE_EN: Readonly<Record<string, string>> = Object.freeze({
 
 function sublineFallback(key: string) {
     return SUBLINE_EN[key] || SUBLINE_EN['knowledge.subline.legacy_plural'];
+}
+
+/**
+ * The documents the AI can search: the same number the knowledge base list
+ * shows (processed or shielded), not every row including failed and skipped
+ * files. An older server without the split counts falls back to all rows.
+ */
+export function searchableDocuments(totals: KbSourceTotals): number {
+    if (totals.processedCount === undefined) return Number(totals.documentCount) || 0;
+    return (Number(totals.processedCount) || 0) + (Number(totals.redactedCount) || 0);
+}
+
+/**
+ * When a source last changed what is in it. A source that only changes by hand
+ * (pasted text, uploads) never runs a refresh, so its last refresh would read
+ * "never" right after it was filled: its own last change stands in.
+ */
+export function lastUpdatedAt(source: KbSource): string | null {
+    if (source.lastRefreshAt) return source.lastRefreshAt;
+    if (source.refreshMode && source.refreshMode !== 'manual') return null;
+    return source.updatedAt || source.createdAt || null;
 }

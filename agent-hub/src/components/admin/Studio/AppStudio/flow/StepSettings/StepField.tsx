@@ -104,6 +104,8 @@ export function StepField({
                     definition={definition}
                     node={node}
                     disabled={disabled}
+                    // The step panel is narrow and holds many bindings: a select, not four cards each.
+                    compact
                 />
             );
         case 'enum':

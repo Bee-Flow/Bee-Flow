@@ -490,4 +490,6 @@ module.exports = {
     'meetings.admin_talk.insights_desc': 'Show per-person statistics (talk time, longest monologue) on the meeting Insights panel. Off = members see only meeting-level metrics.',
     'meetings.admin_talk.language': 'Default language',
     'meetings.admin_talk.language_desc': 'Language used when auto-transcribing Talk recordings.',
+    'meetings.capture_tile_upload_formats': 'Drop a .mp3, .wav, .m4a, .webm or .mp4 file.',
+    'meetings.upload_formats_accepted': 'Supports .mp3, .wav, .m4a, .webm, .mp4 and other audio files, up to 500 MB',
 };

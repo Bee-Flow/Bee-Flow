@@ -56,6 +56,8 @@ export type KbSource = {
     skippedCount?: number;
     errorCount?: number;
     piiFoundCount?: number;
+    createdAt?: string | null;
+    updatedAt?: string | null;
 };
 
 /** A document of a source, as the projected list carries it (never its body). */
@@ -162,7 +164,11 @@ export type KbUsageSummary = {
 /** The numbers over all sources of one knowledge base. */
 export type KbSourceTotals = {
     sourceCount?: number;
+    /** Every document row, failed and skipped ones included. */
     documentCount?: number;
+    /** The documents the AI can search (processed or shielded). */
+    processedCount?: number;
+    redactedCount?: number;
     autoRefreshCount?: number;
 };
 

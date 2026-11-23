@@ -54,6 +54,10 @@ export interface SourceChooserProps {
     disabled: boolean;
 }
 
+export interface CompactSourceChooserProps extends SourceChooserProps {
+    label?: string | null;
+}
+
 export interface TableNameProps {
     appId: string | null;
     tableId: string;
@@ -175,4 +179,10 @@ export interface BindingFieldProps {
     placeholder?: string | null;
     singleValue?: boolean;
     disabled?: boolean;
+    /**
+     * Offer the sources as one select instead of a card each. For a list of
+     * many bindings (a document's placeholders), where four cards per field
+     * made the panel thousands of pixels tall.
+     */
+    compact?: boolean;
 }

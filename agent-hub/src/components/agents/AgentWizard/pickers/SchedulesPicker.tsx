@@ -40,8 +40,13 @@ export function SchedulesPicker({ t, agent, schedules, onClose, onCreate, onCrea
             if ((e.target as Element).closest?.('[data-popover-trigger="schedules"]')) return;
             onClose();
         };
+        const onEscape = ({ key }: KeyboardEvent) => { if (key === 'Escape') onClose(); };
         document.addEventListener('mousedown', onDoc);
-        return () => document.removeEventListener('mousedown', onDoc);
+        document.addEventListener('keydown', onEscape);
+        return () => {
+            document.removeEventListener('mousedown', onDoc);
+            document.removeEventListener('keydown', onEscape);
+        };
     }, [onClose]);
     return (
         <div

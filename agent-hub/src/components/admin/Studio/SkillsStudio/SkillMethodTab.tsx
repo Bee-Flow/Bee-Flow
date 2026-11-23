@@ -20,7 +20,7 @@ export function MethodTab({ draft, patch, readOnly, refOptions, onOpenRef, picke
     return (
         <div className="flex flex-col gap-[18px] min-w-0">
             {empty && !readOnly && <FillInCard onFillIn={onFillIn} drafting={drafting} t={t} />}
-            <div className="grid gap-3.5 [grid-template-columns:1fr_1fr]">
+            <div className="grid gap-3.5 min-w-0 [grid-template-columns:minmax(0,1fr)_380px]">
                 <TextCard
                     label={t('skills_studio.what', 'What this skill does')}
                     value={draft.description}

@@ -207,7 +207,10 @@ function checkFillDocument(step, path, ctx) {
         });
     }
     if (!step.documentId || typeof step.documentId !== 'string') {
-        pushE({
+        // Nothing picked YET is a step the author just dropped on the canvas:
+        // a warning on a draft save (the app stays saveable while they pick),
+        // a hard error at publish, like every other unset data reference.
+        pushDataRef(ctx, {
             code: 'action.fill_document_missing', severity: 'error', path: `${path}.documentId`,
             message: 'Step "fill_document" has no document to fill.',
             hint: 'Name one of the owner\'s documents from Studio → Documents; design it there first if it does not exist yet.',

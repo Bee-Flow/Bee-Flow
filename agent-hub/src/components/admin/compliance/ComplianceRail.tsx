@@ -252,7 +252,7 @@ export default function ComplianceRail({
                         <input value={query} onChange={(e) => setQuery(e.target.value)}
                             placeholder={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
                             aria-label={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
-                            className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]"
+                            className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs text-ellipsis border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]"
                             data-testid={`${testId}-search`} />
                     </label>
                     {exportsEnabled && onOpenReports && (

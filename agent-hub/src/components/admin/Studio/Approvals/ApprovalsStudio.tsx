@@ -144,7 +144,9 @@ function ApprovalsStudioInner({ user = null, initialApprovalId = null }: Approva
                             onClick={() => setStatusTab(tab.key)}
                             aria-pressed={active}
                             className={`px-3 py-1 rounded-full text-[12px] transition ${active
-                                ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] font-medium'
+                                // Not the inverted pill: glass themes make the page background token
+                                // transparent, so the active chip read white on white.
+                                ? 'bg-[var(--bg-card)] text-[var(--text-primary)] font-medium shadow-sm ring-1 ring-[var(--border-default)]'
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
                         >
                             {t(`approvals.status_${tab.key}`, tab.label)}{n ? ` · ${n}` : ''}

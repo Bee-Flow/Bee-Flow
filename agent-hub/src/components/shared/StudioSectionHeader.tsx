@@ -64,7 +64,7 @@ import type { KindTileProps, TitleProps, StatusChipProps, TabMenuProps, BackButt
  *   kind        one of kindColors' KIND_KEYS or an alias ('kb', 'table', …);
  *               the tile's colour, shape and default glyph follow it
  *   icon        overrides the glyph: a lucide component or a ready element
- *   title       the object's name (14px / 600). Empty → "Untitled"
+ *   title       the object's name (14px / 600; capped beside tabs). Empty → "Untitled"
  *   onRename    (next: string) => void — when given the name is a button
  *               that turns into an input; Enter/blur commit, Escape cancels,
  *               an unchanged or empty draft never calls back
@@ -393,7 +393,7 @@ export default function StudioSectionHeader({
         >
             {onBack && <BackButton onBack={onBack} label={backLabel || t('studio.header.back', 'Back')} />}
             <KindTile kind={kind} icon={icon} />
-            <div className={`${titleMin ? 'shrink-0' : 'min-w-0'} max-w-[22rem] @max-[1440px]/objhead:max-w-[12rem] flex items-center gap-2`}>
+            <div className={`${titleMin ? 'shrink-0' : 'min-w-0'} ${tabList.length > 0 || titleMin ? 'max-w-[22rem] @max-[1440px]/objhead:max-w-[12rem]' : ''} flex items-center gap-2`}>
                 <Title title={title} as={titleAs} onRename={onRename} renameRequest={renameRequest} t={t} />
             </div>
             <StatusChip chip={statusChip} />

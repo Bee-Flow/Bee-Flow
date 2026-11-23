@@ -10,7 +10,7 @@ import { BuildCueContext as BuildCueContextJs } from './BuildCueContext';
 import { ScreenValuesContext as ScreenValuesContextJs, useScreenValuesStore } from './ScreenValuesContext';
 import EditorHeader, { PANEL_VIEWS } from './EditorHeader';
 import type { HeaderApp, HeaderView } from './header/headerModel';
-import { CHAT, ChatColumn, DragChip, INSPECTOR, InspectorColumn, useSidePane } from './shell/ShellPanes';
+import { ChatColumn, DragChip, InspectorColumn, useEditorPanes } from './shell/ShellPanes';
 import { useChromeHandles } from './shell/useChromeHandles';
 import type { BuildCue } from './shell/useChromeHandles';
 import { useCanvasDrag } from './shell/useCanvasDrag';
@@ -159,12 +159,13 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
     // side is the difference between building and squinting. The pane is
     // HIDDEN, never unmounted: BuilderChatPane holds the conversation and a
     // possibly-streaming AI turn, and collapsing the column must lose neither.
-    const chatPane = useSidePane(CHAT);
+    // A narrow shell (a 1024px laptop next to the Studio sidebar) floats the
+    // side panes over the canvas instead of squeezing it to a strip.
+    const inspectorShown = mode === 'edit' && editorView === 'edit';
+    const { shellRef, floats, chatPane, inspectorPane } = useEditorPanes(!!chatSlot, inspectorShown);
     const { chrome, buildCue } = useChromeHandles({
         chatPane, commitTurn: drag.commitTurn, markSaved: save.markSaved, flush: save.flush, appId: app?.id ?? null, undo: history.undo,
     });
-
-    const inspectorPane = useSidePane(INSPECTOR);
 
     // ---- the live values on the canvas, readable from the inspector ---------
     // "Test with what is on screen" lives in the inspector; the values live in
@@ -183,10 +184,11 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
         <EditorChromeContext.Provider value={chrome}>
         <ScreenValuesContext.Provider value={screenValues}>
         <div
-            className="ase-shell flex h-full min-h-0 w-full [background:var(--bg-primary)] [color:var(--text-primary)]"
+            ref={shellRef}
+            className="ase-shell relative flex h-full min-h-0 w-full [background:var(--bg-primary)] [color:var(--text-primary)]"
             data-presenter={presenter ? 'on' : undefined}
         >
-            <ChatColumn chatSlot={chatSlot} pane={chatPane} streamLock={streamLock} />
+            <ChatColumn chatSlot={chatSlot} pane={chatPane} streamLock={streamLock} floating={floats.chat} />
 
             <EditorCenter
                 app={app} onAppUpdated={onAppUpdated} onClose={onClose} history={history} commitDefinition={commitDefinition}
@@ -195,9 +197,9 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
             />
 
             {/* RIGHT — inspector (edit mode only; preview gets the full width) */}
-            {mode === 'edit' && editorView === 'edit'
+            {inspectorShown
                 ? (
-                    <InspectorColumn pane={inspectorPane}>
+                    <InspectorColumn pane={inspectorPane} floating={floats.inspector}>
                         <InspectorPanel onCommit={commitDefinition} onTestActionResult={onTestActionResult} />
                     </InspectorColumn>
                 )

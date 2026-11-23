@@ -203,7 +203,7 @@ function StoreHeader({ t, shown, total, query, setQuery, tabs, tab, setTab, onCl
                         onClick={() => setTab(x.key)}
                         data-testid={`skill-store-tab-${x.key}`}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 border transition-all ${tab === x.key
-                            ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]'
+                            ? 'bg-[var(--text-primary)] text-[var(--text-on-ink)] border-[var(--text-primary)]'
                             : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)]'}`}
                     >
                         {x.label}

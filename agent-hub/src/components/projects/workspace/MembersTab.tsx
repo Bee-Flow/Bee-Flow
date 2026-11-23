@@ -20,7 +20,7 @@ function RolesExplainer() {
         { role: t('project_home.role.viewer', 'Viewer'), what: t('project_home.members.viewer_can', 'Reads everything in the project, changes nothing.') },
     ];
     return (
-        <dl className="grid gap-x-4 gap-y-1.5 grid-cols-[max-content_1fr] text-[12.5px] m-0" data-testid="members-roles">
+        <dl className="grid gap-x-4 gap-y-2.5 grid-cols-[max-content_1fr] text-[12.5px] leading-snug" data-testid="members-roles">
             {rows.map((r) => (
                 <React.Fragment key={r.role}>
                     <dt className="font-medium text-[var(--text-primary)]">{r.role}</dt>
@@ -33,12 +33,18 @@ function RolesExplainer() {
 
 type TFn = ReturnType<typeof useTranslation>['t'];
 
-/** "3 people · 1 groups", or null while the members load. */
+/** "3 people · 1 group", or null while the members load. */
 function accessCountLabel(data: ProjectMembers | undefined, t: TFn): string | null {
     if (!data) return null;
     const peopleCount = new Set([data.ownerId, ...data.members.filter(m => m.sharedWithType === 'user').map(m => m.sharedWithId)]).size;
     const groupsCount = data.members.filter(m => m.sharedWithType === 'group').length;
-    return String(t('project_home.members.access_count', '{people} people · {groups} groups', { people: peopleCount, groups: groupsCount }));
+    const people = peopleCount === 1
+        ? t('project_counts.people_one', '{count} person', { count: peopleCount })
+        : t('project_counts.people', '{count} people', { count: peopleCount });
+    const groups = groupsCount === 1
+        ? t('project_counts.groups_one', '{count} group', { count: groupsCount })
+        : t('project_counts.groups', '{count} groups', { count: groupsCount });
+    return `${people} · ${groups}`;
 }
 
 /** An organisation admin who is not the owner can name a new owner. */
@@ -97,12 +103,12 @@ export default function MembersTab({ projectId, project, role, currentUser, inte
                         onLeft={onLeft}
                     />
                     {adminRescue && <AdminTransfer projectId={projectId} ownerId={project.ownerId ?? members.data?.ownerId} currentUserId={currentUser?.id} />}
-                    <section className="space-y-2">
-                        <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0">
+                    <section className="space-y-3">
+                        <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
                             {t('project_home.members.roles_title', 'What each role can do')}
                         </h2>
                         <RolesExplainer />
-                        <p className="text-xs text-[var(--text-secondary)]">{t('project_home.members.group_rights', 'Group membership also grants access. When several grants apply, the highest role applies; removing a direct grant does not remove group access.')}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">{t('project_home.members.group_rights', 'Group membership also grants access. When several grants apply, the highest role applies; removing a direct grant does not remove group access.')}</p>
                     </section>
                 </div>
             </div>

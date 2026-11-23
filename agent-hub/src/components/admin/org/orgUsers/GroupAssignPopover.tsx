@@ -45,7 +45,7 @@ function GroupOptions({ userId, userGroups, orgGroups, groupsState }: Omit<Group
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left cursor-pointer text-sm transition-colors ${isMember ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
             >
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isMember ? 'bg-[var(--text-primary)] border-[var(--text-primary)]' : 'border-[var(--border-default)]'}`}>
-                    {isMember && <Check className="w-3 h-3 text-[var(--bg-primary)]" aria-hidden="true" />}
+                    {isMember && <Check className="w-3 h-3 text-[var(--text-on-ink)]" aria-hidden="true" />}
                 </span>
                 <span className="flex-1 min-w-0 truncate text-[var(--text-primary)]">{g.name}</span>
                 <span className="text-[10px] text-[var(--text-muted)]">{memberCount}</span>

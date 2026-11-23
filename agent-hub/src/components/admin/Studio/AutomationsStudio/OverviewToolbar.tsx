@@ -125,7 +125,9 @@ export default function OverviewToolbar(props: OverviewToolbarProps) {
                     </span>
                 )}
                 <div className="flex-1" />
-                <div className="flex items-center gap-3">
+                {/* Wraps (right-aligned) instead of running past the edge: at 1024px
+                    next to the folder tree the "New" split button lost its chevron. */}
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 min-w-0 max-w-full">
                     {view === 'board' && (
                         <PickerMenu
                             label={t('studio_misc.toolbar.group', 'Group')}

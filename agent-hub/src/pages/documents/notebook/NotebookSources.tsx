@@ -219,7 +219,7 @@ export default function NotebookSources({
                 className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 mx-2 mb-2 rounded-xl border-2 border-dashed transition-colors ${
                     dragOver
                         ? 'p-2 border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_8%,transparent)]'
-                        : 'px-1 py-1 border-[var(--border-subtle)] bg-transparent'
+                        : `px-1 py-1 bg-transparent ${sources.length === 0 ? 'border-[var(--border-subtle)]' : 'border-transparent'}`
                 }`}
                 onDragOver={(e) => { if (!dragId && !readOnly) { e.preventDefault(); setDragOver(true); } }}
                 onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false); }}

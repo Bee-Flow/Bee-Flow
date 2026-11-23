@@ -96,7 +96,7 @@ export default function LearningRail({
                 </div>
                 <div className="min-w-0">
                     <div className="font-semibold leading-4 text-[14px]">{t('settings.learning_center', 'Learning Center')}</div>
-                    <div className="text-[11px] leading-[14px] truncate text-[var(--text-tertiary)]">
+                    <div className="text-[11px] leading-[14px] line-clamp-2 text-[var(--text-tertiary)]">
                         {t('learn.rail.subtitle', 'Bee Flow Academy · {courses} courses · {lessons} lessons')
                             .replace('{courses}', String(courses.length)).replace('{lessons}', String(totalLessons))}
                     </div>

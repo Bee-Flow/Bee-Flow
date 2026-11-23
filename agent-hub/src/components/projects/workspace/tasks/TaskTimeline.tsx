@@ -35,7 +35,7 @@ function Unscheduled({ tasks, people, onOpen }: { tasks: ProjectTask[]; people: 
             <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={listId}
                 className="inline-flex items-center gap-1 -ml-1 px-1 h-6 rounded-md hover:bg-[var(--item-hover-bg)] transition-colors">
                 <ChevronRight className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true" />
-                <span className={GROUP_LABEL}>{t('project_tasks.unscheduled_title', 'Unscheduled')}<span className="ml-1.5 font-normal tabular-nums">{tasks.length}</span></span>
+                <span className={GROUP_LABEL}>{t('project_tasks.unscheduled_title', 'Unscheduled')}<span className="ml-1.5 font-normal tabular-nums" title={t('project_counts.unscheduled_hint', 'Tasks without a start or due date')}>{tasks.length}</span></span>
             </button>
             {open && (
                 <ul id={listId} className="m-0 p-0 list-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] divide-y divide-[var(--border-subtle)] overflow-hidden">

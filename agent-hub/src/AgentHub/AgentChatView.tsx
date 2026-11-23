@@ -147,7 +147,10 @@ const AgentChatView = ({
                     <>
                         {/* New Inline Header for Agent */}
                         <div className={`relative h-14 flex items-center justify-between ${isMobile ? 'px-3' : 'px-6'} bg-[var(--bg-primary)]/80 backdrop-blur-md sticky top-0 z-20 border-b border-[var(--border-subtle)]/50`}>
-                            <div className="flex items-center gap-2">
+                            {/* min-w-0 + the max width keep a long agent name
+                                truncated left of the centred Chat/Cowork group
+                                (about 220px wide) instead of running under it. */}
+                            <div className="flex items-center gap-2 min-w-0 max-w-[calc(50%-110px)]">
                                 {isMobile && (
                                     <button
                                         onClick={() => setSidebarOpen(true)}
@@ -156,7 +159,7 @@ const AgentChatView = ({
                                         <Menu className="w-5 h-5" />
                                     </button>
                                 )}
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm overflow-hidden">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm overflow-hidden shrink-0">
                                     {(() => {
                                         const av = pickAgentAvatar(selectedAgent);
                                         return isImageAvatar(av) ? (
@@ -168,8 +171,8 @@ const AgentChatView = ({
                                         );
                                     })()}
                                 </div>
-                                <h1 className="font-semibold text-[var(--text-primary)] text-sm">{selectedAgent.name}</h1>
-                                <div className="relative">
+                                <h1 className="font-semibold text-[var(--text-primary)] text-sm min-w-0 truncate" title={selectedAgent.name}>{selectedAgent.name}</h1>
+                                <div className="relative shrink-0">
                                     <button
                                         onClick={() => setShowAgentMenu(v => !v)}
                                         className="p-1 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
@@ -180,6 +183,7 @@ const AgentChatView = ({
                                         <>
                                             <div className="fixed inset-0 z-40" onClick={() => setShowAgentMenu(false)} />
                                             <div
+                                                data-solid-popover
                                                 className="absolute top-full left-0 mt-1 w-44 rounded-lg border shadow-xl overflow-hidden z-50 [background:var(--bg-primary)] [border-color:var(--border-subtle)]"
                                             >
                                                 <button
@@ -246,7 +250,7 @@ const AgentChatView = ({
                                     <IncognitoToggle on={incognito} onChange={onIncognitoChange} locked={conversationStarted} />
                                 )}
                             </div>
-                            <div className="flex items-center gap-2 relative">
+                            <div className="flex items-center gap-2 relative shrink-0 whitespace-nowrap">
                                 {!isMobile && !inCoworkMode && !incognito && (
                                     <DocumentsHeaderButton
                                         sidePanelDocumentId={sidePanelDocumentId}

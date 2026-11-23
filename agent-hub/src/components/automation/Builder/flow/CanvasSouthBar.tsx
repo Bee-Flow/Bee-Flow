@@ -332,7 +332,9 @@ export default function CanvasSouthBar({
     if (!interactive) return null;
     return (
         <div
-            className="rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] px-2.5 py-1 text-[11px] text-[var(--text-tertiary)] pointer-events-none whitespace-nowrap"
+            // A tip, not a control: on a canvas under 1000px (twice the south-west
+            // cluster plus the hint) it ran under the Arrange button, so it steps aside.
+            className="rounded-full bg-[var(--bg-card)] border border-[var(--border-default)] px-2.5 py-1 text-[11px] text-[var(--text-tertiary)] pointer-events-none whitespace-nowrap @max-[1000px]/canvas:hidden"
             data-testid="canvas-hint"
         >
             {t('automations.canvas.gesture_hint', 'Two fingers or Space+drag to pan · pinch or wheel to zoom · drag to select')}

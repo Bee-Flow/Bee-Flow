@@ -594,4 +594,6 @@ module.exports = {
     'agent_studio.can_use.mail_runs': 'Also in runs started by an email',
     'agent_studio.can_use.mail_runs_hint': 'A run started by an email may then use this app, except actions that ask first.',
     'agent_studio.agent_designer_sections': 'Agent settings',
+    'agent_studio.card.no_tools': 'No tools',
+    'agent_studio.card.no_own_tools': 'No tools of its own',
 };

@@ -17,6 +17,10 @@
 
 
 :root {
+    /* Text ON an ink-coloured fill (a --text-primary or accent chip, the send
+       button): the page background colour, but always opaque. Glass themes make
+       --bg-primary transparent, which left those icons and labels invisible. */
+    --text-on-ink: var(--bg-primary);
     /* Visible-viewport layout vars — kept live by useAppHeight(). Defaults are
        correct before JS runs / if JS is disabled. --app-height tracks the real
        visible height (use instead of 100vh/100dvh); --keyboard-inset is how much

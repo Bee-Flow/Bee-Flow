@@ -84,7 +84,7 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
                     type="button"
                     onClick={() => setEditing(true)}
                     title={`${displayTitle || untitled}\n${t('automations.header.rename_title', 'Click to rename')}`}
-                    className="text-[14px] font-semibold text-[var(--text-primary)] truncate hover:bg-[var(--bg-secondary)] rounded px-1 -mx-1 transition text-left min-w-0 max-w-[40rem]"
+                    className="text-[14px] font-semibold text-[var(--text-primary)] truncate hover:bg-[var(--bg-secondary)] rounded px-1 transition text-left min-w-0 max-w-[40rem]"
                 >
                     {displayTitle || untitled}
                 </button>

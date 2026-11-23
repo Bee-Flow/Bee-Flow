@@ -108,7 +108,7 @@ export default function OrganizationModal({
         <Modal
             open={open}
             onClose={onClose}
-            title={showEditOrg ? t('admin.sec_org_edit_title', 'Edit organisation') : t('admin.sec_org_add_title', 'Add new organisation')}
+            title={showEditOrg ? t('admin.sec_org_edit_title', 'Edit organisation') : t('admin.sec_org_add_title', 'New organisation')}
             size="lg"
             footer={
                 <>
@@ -162,7 +162,7 @@ export default function OrganizationModal({
                         <input type="checkbox" checked={orgData.allowSignup || false} onChange={e => setOrgData(p => ({ ...p, allowSignup: e.target.checked }))} className="accent-[var(--accent-primary)] w-4 h-4" />
                         <div>
                             <span className="text-sm font-medium block text-[var(--text-primary)]">{t('admin_org.org_modal_signup', 'Allow Public Signup')}</span>
-                            <span className="text-xs text-[var(--text-muted)]">{t('admin_org.org_modal_signup_hint', 'Users can register themselves for this organization')}</span>
+                            <span className="text-xs text-[var(--text-muted)]">{t('admin_org.org_modal_signup_hint', 'Users can register themselves for this organisation')}</span>
                         </div>
                     </label>
                 </div>

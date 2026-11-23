@@ -96,6 +96,7 @@ export default function DocumentPickerPopover({ anchorRef, open, onClose, onSele
         <div
             ref={popoverRef}
             role="dialog"
+            data-solid-popover
             aria-label={t('chat.documents_picker_title', 'Open a document')}
             onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}
             className="absolute z-30 right-0 top-full mt-1 w-[320px] rounded-xl border shadow-xl overflow-hidden bg-[var(--bg-primary)] border-[var(--border-default)]"

@@ -55,12 +55,13 @@ export function StepFlowNode({ id, data }: StepFlowNodeArgs) {
 
     return (
         <div
-            style={{ width: NODE_W }}
+            // As wide as the card (CARD_W), not the layout column (NODE_W): the
+            // selection ring drew 20px to the right of the card it marks.
             onClick={onSelect}
             onContextMenu={onContextMenu}
             data-step-node={node.id}
             data-selected={selected || undefined}
-            className={selected ? 'rounded-lg ring-2 ring-[var(--editor-accent)]' : undefined}
+            className={`w-fit ${selected ? 'rounded-lg ring-2 ring-[var(--editor-accent)]' : ''}`}
         >
             <StepNodeBase
                 icon={<Icon size={14} />}

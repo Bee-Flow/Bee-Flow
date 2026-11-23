@@ -34,7 +34,7 @@ function Stages({ at }: { at: number }) {
         t('chat_templates.stage_fill', 'Fill in'), t('chat_templates.stage_check', 'Check'), t('chat_templates.stage_done', 'Done'),
     ];
     const dot = (i: number): string => {
-        if (i < at || at === names.length - 1) return 'bg-[var(--success)] text-[var(--bg-primary)]';
+        if (i < at || at === names.length - 1) return 'bg-[var(--success)] text-[var(--text-on-ink)]';
         return i === at ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]' : 'border border-[var(--border-default)] text-[var(--text-tertiary)]';
     };
     return (

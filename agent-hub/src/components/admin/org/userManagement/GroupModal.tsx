@@ -57,7 +57,7 @@ export default function GroupModal({
                 {!showEditGroup && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_name', 'Group Name')}</label><input type="text" value={groupData.name} onChange={e => setGroupData(p => ({ ...p, name: e.target.value }))} className={INPUT} placeholder={t('admin_org.group_modal_name_ph', 'Editors')} /></div>}
 
                 <div>
-                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_organization', 'Organization')}</label>
+                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_organization', 'Organisation')}</label>
                     <select
                         value={groupData.organizationId || ''}
                         onChange={e => setGroupData(p => ({ ...p, organizationId: e.target.value || '' }))}

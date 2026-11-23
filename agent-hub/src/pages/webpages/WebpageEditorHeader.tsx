@@ -1,4 +1,4 @@
-import { Code2, Database, Download, Eye, History, Link2, Upload, Users, type LucideIcon } from 'lucide-react';
+import { Code2, Database, Download, Eye, History, Link2, Upload, UploadCloud, Users, type LucideIcon } from 'lucide-react';
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
 import { managedOf, type ManagedPart } from '../../utils/managedPart';
@@ -232,6 +232,9 @@ function publishAction(t: (key: string | undefined, fallbackOrParams?: string | 
         title: published
             ? t('webpages.publish.republish_hint', 'Freeze the current version for the people who can already see this page')
             : t('webpages.publish.choose_audience', 'Choose who can see this page'),
+        // The pill folds its word away in a narrow header: without an icon
+        // the action was an empty dark swatch next to the status dot.
+        icon: UploadCloud,
         onClick: onPublish,
         disabled: publishBusy,
         // Republishing IS the forward action here even though the page is

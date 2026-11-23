@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "admin_no_org.no_orgs_yet": "Er is nog geen organisatie op deze server. Deze pagina werkt voor één organisatie.",
+    "admin_no_org.create_org": "Organisatie aanmaken",
+    "admin_no_org.orgs_empty_title": "Nog geen organisaties",
+    "admin_no_org.orgs_empty_desc": "Een organisatie bevat haar mensen, groepen, modellen en instellingen. Voeg de eerste toe om te beginnen.",
+    "admin_no_org.compliance_title": "Geen organisatie om te controleren",
+    "admin_no_org.compliance_desc": "Het Compliance Center werkt voor je eigen organisatie, en dit account hoort bij geen enkele. Open het met een account van de organisatie die je wilt controleren."
+  },
+  "sameAsEnglish": []
+}

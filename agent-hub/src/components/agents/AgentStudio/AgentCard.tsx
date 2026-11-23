@@ -236,6 +236,13 @@ function skillsLabel(tf: TranslateFn, n: number | null) {
  */
 function toolsLabel(tf: TranslateFn, n: number | null, atLeast: boolean) {
     const count = Number(n) || 0;
+    // "at least 0 tools" says nothing: zero configured is said in words, and with
+    // `atLeast` that it is only what the agent itself carries.
+    if (count === 0) {
+        return atLeast
+            ? tf('agent_studio.card.no_own_tools', 'No tools of its own')
+            : tf('agent_studio.card.no_tools', 'No tools');
+    }
     return atLeast
         ? nOf(tf, 'agent_studio.card.n_tools_min', count, 'at least {count} tool', 'at least {count} tools')
         : nOf(tf, 'agent_studio.card.n_tools', count, '{count} tool', '{count} tools');

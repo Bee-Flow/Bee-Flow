@@ -32,7 +32,7 @@ type ShareState = 'idle' | 'busy' | 'copied' | 'no-link' | 'failed';
 
 const ROW = 'flex items-start gap-2 rounded-lg px-2 py-2';
 const ACTION = 'inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium disabled:opacity-50';
-const PRIMARY = `${ACTION} bg-[var(--text-primary)] text-[var(--bg-primary)]`;
+const PRIMARY = `${ACTION} bg-[var(--text-primary)] text-[var(--text-on-ink)]`;
 const SECONDARY = `${ACTION} border border-[var(--border-default)] hover:bg-[var(--bg-secondary)]`;
 const LINK = 'text-[var(--type-ai)] underline-offset-2 hover:underline';
 

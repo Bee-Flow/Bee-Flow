@@ -4,11 +4,12 @@
  * open state remembered per user.
  */
 import { PanelLeftClose, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { ReactNode, SetStateAction } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';
 import PanelResizerJs from '@/components/shared/PanelResizer';
+import useContainerWidth from '@/components/shared/useContainerWidth';
 import type { ActiveDrag } from './useCanvasDrag';
 
 const PanelResizer = PanelResizerJs;
@@ -43,12 +44,85 @@ export function useSidePane(pane: { widthKey: string; openKey: string; defaultWi
 
 export type SidePane = ReturnType<typeof useSidePane>;
 
+// Below this the canvas column stops being a place to build in: at 1024px the
+// Studio sidebar, the chat pane and the inspector left it ~240px, the app name
+// read "Quote tr…" and the header controls stacked into a column.
+export const MIN_CENTER = 480;
+const RAIL_WIDTH = 40;
+
+/**
+ * Which side panes FLOAT over the canvas instead of sitting beside it, for a
+ * shell this wide. The chat pane goes first (the inspector follows what is
+ * selected, so it is the one you need beside the canvas); when even that is
+ * not enough both float. `null` (not measured, jsdom) keeps both in place.
+ */
+export function floatingPanes(shellWidth: number | null, chatWidth: number, inspectorWidth: number) {
+    if (shellWidth == null || shellWidth - chatWidth - inspectorWidth >= MIN_CENTER) return { chat: false, inspector: false };
+    if (chatWidth > 0 && shellWidth - RAIL_WIDTH - inspectorWidth >= MIN_CENTER) return { chat: true, inspector: false };
+    return { chat: chatWidth > 0, inspector: inspectorWidth > 0 };
+}
+
+type FloatingName = 'chat' | 'inspector';
+
+/**
+ * The two panes as the shell renders them. A pane in place is the remembered
+ * one; a floating pane starts closed (a rail), opens over the canvas, and
+ * only one floats open at a time. Its open state is not remembered: it is a
+ * temporary look, the remembered choice still applies once there is room.
+ */
+export function useShellPanes(chat: SidePane, inspector: SidePane, floats: { chat: boolean; inspector: boolean }) {
+    const [active, setActive] = useState<FloatingName | null>(null);
+    const setFor = useCallback((name: FloatingName) => (value: SetStateAction<boolean>) => setActive((current) => {
+        const isOpen = current === name;
+        const next = typeof value === 'function' ? value(isOpen) : value;
+        if (next) return name;
+        return isOpen ? null : current;
+    }), []);
+    const setChat = useMemo(() => setFor('chat'), [setFor]);
+    const setInspector = useMemo(() => setFor('inspector'), [setFor]);
+    const toggleChat = useCallback(() => setChat((o) => !o), [setChat]);
+    const toggleInspector = useCallback(() => setInspector((o) => !o), [setInspector]);
+    const chatPane = useMemo(
+        () => (floats.chat ? { ...chat, open: active === 'chat', setOpen: setChat, toggle: toggleChat } : chat),
+        [floats.chat, chat, active, setChat, toggleChat],
+    );
+    const inspectorPane = useMemo(
+        () => (floats.inspector ? { ...inspector, open: active === 'inspector', setOpen: setInspector, toggle: toggleInspector } : inspector),
+        [floats.inspector, inspector, active, setInspector, toggleInspector],
+    );
+    return { chatPane, inspectorPane };
+}
+
+/**
+ * Both side panes of the editor shell, measured against the shell: the
+ * remembered ones, and the panes as rendered (in place or floating). The
+ * inspector only counts while it is shown (`inspectorShown`).
+ */
+export function useEditorPanes(hasChat: boolean, inspectorShown: boolean) {
+    const storedChat = useSidePane(CHAT);
+    const storedInspector = useSidePane(INSPECTOR);
+    const [shellRef, shellWidth] = useContainerWidth();
+    const floats = floatingPanes(
+        shellWidth,
+        hasChat ? storedChat.width : 0,
+        inspectorShown ? storedInspector.width : 0,
+    );
+    const { chatPane, inspectorPane } = useShellPanes(storedChat, storedInspector, floats);
+    return { shellRef, floats, chatPane, inspectorPane };
+}
+
+// A floating pane: over the canvas, on an opaque surface (glass themes make
+// --bg-primary transparent; data-surface="opaque" is their modal tier).
+const FLOATING = 'absolute inset-y-0 z-30 bg-[var(--bg-secondary)] shadow-[var(--shadow-popover)]';
+
 const RAIL = 'flex w-10 shrink-0 flex-col items-center pt-3 border-[var(--border-default)]';
 
 interface ChatColumnProps {
     chatSlot: ReactNode;
     pane: SidePane;
     streamLock: boolean;
+    /** Float over the canvas instead of taking a column (a narrow shell). */
+    floating?: boolean;
 }
 
 /**
@@ -56,7 +130,7 @@ interface ChatColumnProps {
  * hidden with CSS rather than unmounted so the chat transcript — and a
  * streaming AI turn — survive a collapse.
  */
-export function ChatColumn({ chatSlot, pane, streamLock }: ChatColumnProps) {
+export function ChatColumn({ chatSlot, pane, streamLock, floating = false }: ChatColumnProps) {
     const { t } = useTranslation();
     if (!chatSlot) {
         return (
@@ -71,8 +145,9 @@ export function ChatColumn({ chatSlot, pane, streamLock }: ChatColumnProps) {
         <>
             <aside
                 aria-label={t('app_studio.shell.ai_builder', 'AI builder')}
-                className={`relative shrink-0 flex-col border-r min-h-0 ${pane.open ? 'flex' : 'hidden'}`}
-                style={{ width: pane.width, borderColor: 'var(--border-default)' }}
+                className={`${floating ? `${FLOATING} left-0` : 'relative'} shrink-0 flex-col border-r min-h-0 ${pane.open ? 'flex' : 'hidden'}`}
+                data-surface={floating ? 'opaque' : undefined}
+                style={{ width: floating ? `min(${pane.width}px, calc(100% - ${RAIL_WIDTH * 2}px))` : pane.width, borderColor: 'var(--border-default)' }}
             >
                 {/* Shell-owned collapse control, overlaid on the pane
                     header's empty right side — the slot stays opaque. */}
@@ -87,7 +162,7 @@ export function ChatColumn({ chatSlot, pane, streamLock }: ChatColumnProps) {
                 </button>
                 {chatSlot}
             </aside>
-            {pane.open ? (
+            {pane.open && !floating ? (
                 <PanelResizer
                     width={pane.width}
                     min={CHAT.min}
@@ -121,6 +196,8 @@ interface InspectorColumnProps {
     pane: SidePane;
     /** The InspectorPanel — rendered by the shell, which already imports it. */
     children: ReactNode;
+    /** Float over the canvas instead of taking a column (a narrow shell). */
+    floating?: boolean;
 }
 
 /**
@@ -131,10 +208,10 @@ interface InspectorColumnProps {
  * phone-shaped app preview is the difference between seeing the whole screen
  * and scrolling it.
  */
-export function InspectorColumn({ pane, children }: InspectorColumnProps) {
+export function InspectorColumn({ pane, children, floating = false }: InspectorColumnProps) {
     const { t } = useTranslation();
-    if (!pane.open) {
-        return (
+    if (!pane.open || floating) {
+        const rail = (
             <aside className={`${RAIL} border-l`}>
                 <button
                     type="button"
@@ -146,6 +223,13 @@ export function InspectorColumn({ pane, children }: InspectorColumnProps) {
                     <PanelRightOpen className="h-4 w-4" aria-hidden="true" />
                 </button>
             </aside>
+        );
+        if (!pane.open) return rail;
+        return (
+            <>
+                {rail}
+                <InspectorAside pane={pane} floating>{children}</InspectorAside>
+            </>
         );
     }
     return (
@@ -160,25 +244,34 @@ export function InspectorColumn({ pane, children }: InspectorColumnProps) {
                 onResizeEnd={pane.persistWidth}
                 label={t('app_studio.shell.inspector_resize', 'Resize the inspector')}
             />
-            <aside
-                aria-label={t('app_studio.shell.inspector', 'Inspector')}
-                className="shrink-0 overflow-y-auto border-l min-h-0"
-                style={{ width: pane.width, borderColor: 'var(--border-default)' }}
-            >
-                <div className="flex justify-end px-2 pt-2">
-                    <button
-                        type="button"
-                        onClick={pane.toggle}
-                        aria-label={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
-                        title={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
-                        className="rounded-md p-1 hover:bg-[var(--bg-card-hover)] text-[var(--text-tertiary)]"
-                    >
-                        <PanelRightClose className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                </div>
-                {children}
-            </aside>
+            <InspectorAside pane={pane}>{children}</InspectorAside>
         </>
+    );
+}
+
+/** The open inspector: in its column, or floating over the canvas. */
+function InspectorAside({ pane, children, floating = false }: { pane: SidePane; children: ReactNode; floating?: boolean }) {
+    const { t } = useTranslation();
+    return (
+        <aside
+            aria-label={t('app_studio.shell.inspector', 'Inspector')}
+            className={`${floating ? `${FLOATING} right-0` : ''} shrink-0 overflow-y-auto border-l min-h-0`}
+            data-surface={floating ? 'opaque' : undefined}
+            style={{ width: floating ? `min(${pane.width}px, calc(100% - ${RAIL_WIDTH * 2}px))` : pane.width, borderColor: 'var(--border-default)' }}
+        >
+            <div className="flex justify-end px-2 pt-2">
+                <button
+                    type="button"
+                    onClick={pane.toggle}
+                    aria-label={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
+                    title={t('app_studio.shell.inspector_collapse', 'Collapse the inspector')}
+                    className="rounded-md p-1 hover:bg-[var(--bg-card-hover)] text-[var(--text-tertiary)]"
+                >
+                    <PanelRightClose className="h-4 w-4" aria-hidden="true" />
+                </button>
+            </div>
+            {children}
+        </aside>
     );
 }
 

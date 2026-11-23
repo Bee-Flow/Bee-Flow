@@ -217,4 +217,6 @@ module.exports = {
     'agent_wizard.share_links_menu_share_links': 'Share links',
     'agent_wizard.share_links_menu_external_links_the_owner_created_for': 'External links the owner created for this page.',
     'agent_wizard.skill_picker_flow': 'Flow',
+    'agent_wizard.skills.empty_above': 'No skills yet — create one above.',
+    'agent_wizard.knowledge.no_kbs_action': 'No knowledge bases yet — add one with “{action}”.',
 };

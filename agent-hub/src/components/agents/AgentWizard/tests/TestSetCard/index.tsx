@@ -182,6 +182,9 @@ export default function TestSetCard({
     const liveItems = progress && progress.items && progress.items.length > 0 ? progress.items : null;
     const items = liveItems || (summary.state === RUN_STATE.RESULT ? summary.items : []);
     const showFailLine = liveItems || summary.state === RUN_STATE.RESULT;
+    // With no questions and no run there is nothing behind "View": the card's
+    // empty state is the score line plus the hint how to add the first question.
+    const nothingToView = tests.length === 0 && testsState === READ.OK && !lastRun && !lastRunUnknown && !liveItems;
 
     const toggle = () => {
         setOpen((v) => {
@@ -257,6 +260,7 @@ export default function TestSetCard({
             </div>
 
             <div className="flex items-center gap-2 px-4 pb-3">
+                {!nothingToView && (
                 <button
                     type="button"
                     data-testid="agent-tests-view"
@@ -267,6 +271,7 @@ export default function TestSetCard({
                     {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
                     {t('agent_studio.test.view', 'View')}
                 </button>
+                )}
                 {/* Only if there IS a turn to record. Without a conversation this button would open an
                     empty form asking for a question you had just asked. */}
                 {!ro && onAddFromChat && canAddFromChat && (

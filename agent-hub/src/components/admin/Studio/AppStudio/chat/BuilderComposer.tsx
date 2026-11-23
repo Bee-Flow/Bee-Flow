@@ -259,7 +259,7 @@ export default function BuilderComposer({
                                 disabled={nothingToSend}
                                 aria-label={t('app_studio.builder.chat.send', 'Send')}
                                 title={t('app_studio.builder.chat.send_title', 'Send (Enter)')}
-                                className={`rounded-full p-1.5 text-[var(--bg-primary)] shadow-sm transition-all active:scale-95 ${nothingToSend ? 'composer-send-quiet cursor-not-allowed' : 'bg-[var(--text-primary)] hover:opacity-90'}`}
+                                className={`rounded-full p-1.5 text-[var(--text-on-ink)] shadow-sm transition-all active:scale-95 ${nothingToSend ? 'composer-send-quiet cursor-not-allowed' : 'bg-[var(--text-primary)] hover:opacity-90'}`}
                             >
                                 <ArrowUp size={16} aria-hidden="true" />
                             </button>

@@ -52,7 +52,7 @@ export function fetchAgentEditorBootstrap(): Promise<[Response, Response, Respon
         authFetch(`${API_BASE}/agents/categories`),
         authFetch(`${API_BASE}/auth/groups`),
         authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`),
-        authFetch(`${API_BASE}/automation`).catch(() => ({ ok: false as const })),
+        authFetch(`${API_BASE}/api/automation`).catch(() => ({ ok: false as const })),
     ]);
 }
 

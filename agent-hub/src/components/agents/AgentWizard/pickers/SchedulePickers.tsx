@@ -185,7 +185,7 @@ export function ScheduleModal({ t, agent, initialSchedule, onClose, onSaved }: S
                                             type="button"
                                             onClick={() => toggleDay(d)}
                                             className={`flex-1 py-1.5 rounded-full text-xs font-medium transition border ${active
-                                                ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-transparent'
+                                                ? 'bg-[var(--text-primary)] text-[var(--text-on-ink)] border-transparent'
                                                 : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
                                         >
                                             {AUTOMATION_DOW_LABELS[d]}
@@ -290,7 +290,7 @@ function ScheduleModalSection({ onClose, t, submit, busy, isEdit }: { onClose: (
             type="button"
             onClick={submit}
             disabled={busy}
-            className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--text-on-ink)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
         >
             {busy ? '…' : (isEdit ? (t('agent_schedules.save_changes', 'Save changes')) : (t('agent_schedules.add', 'Add schedule')))}
         </button>

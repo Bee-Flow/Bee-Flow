@@ -121,7 +121,8 @@ function ChatRow({ chat, onOpen }: { chat: TeamChat; onOpen: () => void }) {
                     {chat.unreadable || !chat.title ? t('project_home.since.a_team_chat', 'A team chat') : chat.title}
                 </span>
                 <span className="flex-shrink-0 text-[11.5px] text-[var(--text-tertiary)]">
-                    {n ? t('project_home.since.new_messages', '{n} new messages', { n }) : t('project_home.since.new_messages_some', 'New messages')}
+                    {n === 1 ? t('project_counts.new_messages_one', '{n} new message', { n })
+                        : n ? t('project_home.since.new_messages', '{n} new messages', { n }) : t('project_home.since.new_messages_some', 'New messages')}
                 </span>
             </button>
         </li>

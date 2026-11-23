@@ -77,6 +77,7 @@ const KnowledgeBasePanel = ({
             role="dialog"
             aria-label={t('chat.composer.kb_panel_title', 'Knowledge bases')}
             data-testid="composer-kb-picker"
+            data-solid-popover
         >
             <div className="px-3.5 pt-3 pb-2">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">

@@ -1,0 +1,14 @@
+{
+  "translations": {
+    "project_counts.people_one": "{count} persoon",
+    "project_counts.people": "{count} personen",
+    "project_counts.groups_one": "{count} groep",
+    "project_counts.groups": "{count} groepen",
+    "project_counts.new_messages_one": "{n} nieuw bericht",
+    "project_counts.backlog_hint": "Open taken die niet in een sprint zitten",
+    "project_counts.unscheduled_hint": "Taken zonder start- of einddatum"
+  },
+  "sameAsEnglish": [
+    "project_counts.weeks_one"
+  ]
+}

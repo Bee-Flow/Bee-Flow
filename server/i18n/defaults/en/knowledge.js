@@ -549,4 +549,8 @@ module.exports = {
     'knowledge.originals.title': 'Keep original files',
     'knowledge.subline.cloud_folder': '{provider} · {folder} · {count} file',
     'knowledge.subline.cloud_folder_plural': '{provider} · {folder} · {count} files',
+    'knowledge.subline.text_anonymous': 'pasted text',
+    'knowledge.doc_pill_one': '{total} file · {done} processed',
+    'knowledge.docs.error_too_little_text': 'Too little text to search. Add a longer text instead.',
+    'knowledge.docs.error_generic': 'This could not be added. Try again, or remove it.',
 };

@@ -66,7 +66,7 @@ function captureText(t: TranslateFn): Record<CaptureMode, CaptureText> {
 function sourceTiles(t: TranslateFn): SourceTile[] {
     return [
         { key: 'record', icon: Mic, title: t('meetings.capture_record_title', 'Record audio'), description: t('meetings.capture_tile_record_desc', 'Capture live from your microphone.'), accent: 'var(--kind-meet)' },
-        { key: 'upload', icon: Upload, title: t('meetings.capture_tile_upload_title', 'Upload a file'), description: t('meetings.capture_tile_upload_desc', 'Drop a .mp3, .wav, .m4a or .mp4.'), accent: 'var(--accent-primary)' },
+        { key: 'upload', icon: Upload, title: t('meetings.capture_tile_upload_title', 'Upload a file'), description: t('meetings.capture_tile_upload_formats', 'Drop a .mp3, .wav, .m4a, .webm or .mp4 file.'), accent: 'var(--accent-primary)' },
         { key: 'talk', icon: MessageSquare, title: t('meetings.capture_tile_talk_title', 'Nextcloud Talk'), description: t('meetings.capture_talk_desc', 'Transcribe a Talk call recording.'), accent: 'var(--type-ai)', requiresNextcloud: true },
         { key: 'gmeet', icon: Video, title: t('meetings.capture_tile_gmeet_title', 'Google Meet'), description: t('meetings.capture_gmeet_desc', 'Import a recorded Meet call.'), accent: 'var(--success)', requiresGoogleMeet: true },
         { key: 'teams', icon: Users, title: t('meetings.capture_tile_teams_title', 'Microsoft Teams'), description: t('meetings.capture_teams_desc', 'Import a Teams meeting you organised.'), accent: 'var(--accent-secondary)', requiresTeams: true },

@@ -65,7 +65,7 @@ const ConsumerLicenseSection = (_props: { user?: unknown }) => {
         <div className="space-y-6 animate-fadeIn">
             <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                    {t('settings.license_usage', 'License & Usage')}
+                    {t('settings.license_usage', 'Licence & usage')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
                     {t('settings.consumer_license.subtitle', 'Your personal account usage and limits')}

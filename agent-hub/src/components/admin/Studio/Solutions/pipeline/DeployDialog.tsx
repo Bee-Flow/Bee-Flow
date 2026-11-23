@@ -185,7 +185,7 @@ function Stepper({ steps }: { steps: { id: string; label: string; state: StepSta
                     className={`flex items-center gap-1.5 ${st.state === 'todo' ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'} ${st.state === 'current' ? 'font-semibold' : ''}`}
                 >
                     {i > 0 && <span className="w-4 sm:w-8 h-px bg-[var(--border-default)]" aria-hidden="true" />}
-                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] tabular-nums ${st.state === 'done' ? 'bg-[var(--success)] text-[var(--bg-primary)]' : st.state === 'current' ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]' : 'bg-[var(--bg-tertiary)]'}`} aria-hidden="true">
+                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] tabular-nums ${st.state === 'done' ? 'bg-[var(--success)] text-[var(--text-on-ink)]' : st.state === 'current' ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]' : 'bg-[var(--bg-tertiary)]'}`} aria-hidden="true">
                         {st.state === 'done' ? <Check className="w-3 h-3" /> : i + 1}
                     </span>
                     {st.label}

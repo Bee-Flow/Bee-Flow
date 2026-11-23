@@ -134,7 +134,7 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
     const usesHouseStyle = doc.settings?.houseStyle !== false;
     const backLabel = isPanel ? t('documents.close', 'Close') : t('documents.back', 'Back to Documents');
     return (
-        <div className="@container/toolbar shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="document-toolbar">
+        <div className="@container/toolbar shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="document-toolbar" data-drawer-anchor="">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
             <button type="button" onClick={props.onLeave} className={ICON_BUTTON} aria-label={backLabel}>{isPanel ? <X size={17} /> : <ArrowLeft size={17} />}</button>
             <input key={`${doc.name}:${props.nameKey ?? 0}`} disabled={readOnly} defaultValue={doc.name} aria-label={t('documents.name', 'Document name')}
