@@ -112,7 +112,10 @@ function bridgeCore(B) {
     function reportStats() {
         var text = (document.body.innerText || document.body.textContent || '').replace(/\s+/g, ' ').trim();
         var words = text ? text.split(' ').length : 0;
-        var pages = Math.max(1, Math.ceil((document.body.scrollHeight || 0) / PAGE_PX));
+        // The sheet's min-height is exactly one page (297mm = 1122.52px) and
+        // scrollHeight rounds that up to 1123, so a bare ceil counted every
+        // one-page document as two. A couple of pixels of slack absorbs it.
+        var pages = Math.max(1, Math.ceil(((document.body.scrollHeight || 0) - 2) / PAGE_PX));
         post({ __beeflowDocStats: true, words: words, pages: pages, text: text.slice(0, 200000) });
     }
     function reportLater() { later('outline', 600, function () { reportOutline(); reportStats(); B.drawPeers(); }); }
