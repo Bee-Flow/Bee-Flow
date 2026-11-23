@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-45 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
+50 routes, 30 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -247,6 +247,22 @@ No request schema.
 | `id` | string | yes | min length 1; max length 200 |
 | `runId` | string | yes | min length 1; max length 200 |
 
+### `POST /api/cowork/:id/save-as-template`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `title` | string |  | min length 1; max length 120 |
+
 ### `GET /api/cowork/:id/shares`
 
 **Access:** Signed-in user · middleware `trainingGate`
@@ -419,4 +435,44 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `enabled` | boolean | yes |  |
+
+## `templates`
+
+### `GET /api/cowork/templates`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/templates/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `DELETE /api/cowork/templates/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/templates/:id/use`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
 

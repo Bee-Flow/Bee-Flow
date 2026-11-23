@@ -23,6 +23,7 @@ import CoworkDetail from './CoworkDetail';
 import CoworkHome from './CoworkHome';
 import CoworkRow, { ReviewCountPill } from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
+import CoworkTemplates from './CoworkTemplates';
 import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
 import { useCoworkAgents } from '../../api/queries/coworkReads';
 import { useCoworkHome } from '../../api/coworkHome';
@@ -382,6 +383,9 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                                         {t('cowork.pick_left', 'Or pick something on the left to see when it runs and how every run went.')}
                                     </p>
                                 )}
+                                <div className="flex flex-col items-center">
+                                    <CoworkTemplates onAdded={(id) => { void refresh().then(() => select(id)); }} />
+                                </div>
                             </div>
                         </div>
                     )}

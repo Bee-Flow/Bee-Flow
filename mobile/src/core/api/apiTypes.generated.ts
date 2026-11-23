@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1979 operations. */
+/** 1984 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2587,6 +2587,10 @@ export interface ApiOperations {
     'PUT /api/cowork/shield/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
         enabled: boolean;
     }>;
+    'GET /api/cowork/templates': Op;
+    'GET /api/cowork/templates/{id}': Op<{ id: string | number }>;
+    'DELETE /api/cowork/templates/{id}': Op<{ id: string | number }>;
+    'POST /api/cowork/templates/{id}/use': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/cowork/{id}': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}': Op<{ id: string | number }, UndeclaredQuery, {
         agentId?: string | null;
@@ -2649,6 +2653,9 @@ export interface ApiOperations {
         answer?: string;
     }>;
     'GET /api/cowork/{id}/runs/{runId}/trace': Op<{ id: string | number; runId: string | number }>;
+    'POST /api/cowork/{id}/save-as-template': Op<{ id: string | number }, UndeclaredQuery, {
+        title?: string;
+    }>;
     'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {
         shares: Array<{

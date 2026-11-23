@@ -1317,6 +1317,19 @@ declare namespace DbRow {
         schedule_id: string;
         user_id: string;
     }
+    /** Row of `cowork_templates`. */
+    interface CoworkTemplates {
+        brief: string;
+        created_at: Date;
+        created_by: string | null;
+        definition: Json | null;
+        fingerprint: string | null;
+        id: string;
+        organization_id: string;
+        repeat_interval: string | null;
+        title: string;
+        updated_at: Date;
+    }
     /** Row of `cowork_trust`. */
     interface CoworkTrust {
         let_through: number;

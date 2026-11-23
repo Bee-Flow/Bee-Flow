@@ -87,6 +87,8 @@ const ERASURE_COVERAGE = Object.freeze({
     cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
     // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
     cowork_shares: { mode: 'deleted', column: 'user_id' },
+    // A template belongs to the organisation it was saved in: it stays, without the name of who saved it.
+    cowork_templates: { mode: 'detached', column: 'created_by' },
     studio_documents: { mode: 'deleted', column: 'user_id' },
     studio_document_versions: { mode: 'cascade', parent: 'studio_documents' },
     studio_document_folders: { mode: 'deleted', column: 'user_id' },

@@ -105,6 +105,8 @@ const STORE_MODULES = [
     { name: 'coworkStore', file: './stores/coworkStore' },
     // Whether an owner gets the daily Cowork e-mail, and the day it was last sent (cowork_daily_mail). No FKs.
     { name: 'coworkDailyMailStore', file: './stores/coworkDailyMail.mts' },
+    // Cowork templates of an organisation (cowork_templates, stores/ddl/cowork-templates-2026-11.js). No FKs.
+    { name: 'coworkTemplatesStore', file: './stores/coworkTemplates.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
     // Owns integration_activity_log — and integrationCacheStore's
     // scopes migration reads that table. Without this registration that

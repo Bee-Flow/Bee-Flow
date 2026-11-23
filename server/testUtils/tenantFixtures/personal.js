@@ -89,6 +89,8 @@ const FIXTURES = [
             // Shared coworks: only the owner manages the shares, and only the owner and the people it is shared with
             // see it; a member of another organisation gets nothing (usecases/coworkShares.mts).
             'GET /api/cowork/:id/shares', 'PUT /api/cowork/:id/shares', 'GET /api/cowork/shared/:id',
+            // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
+            'POST /api/cowork/:id/save-as-template',
             'GET /api/cowork/:id/audit',
             'DELETE /api/cowork/:id',
         ],
