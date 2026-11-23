@@ -8,6 +8,7 @@
 import type { ReactNode } from 'react';
 import CoworkHandOver from './CoworkHandOver';
 import CoworkSaveTemplate from './CoworkSaveTemplate';
+import { ReceiptChain } from './CoworkReceipt';
 import CoworkShare from './CoworkShare';
 import CoworkStartPanel from './CoworkStartPanel';
 import CoworkTrail from './CoworkTrail';
@@ -76,6 +77,7 @@ export default function CoworkSettings({ item, busy, onEdit }: CoworkSettingsPro
             </Section>
             <Section id="changes" heading={t('cowork_detail.settings.changes', 'Changes')}>
                 <CoworkTrail coworkId={item.id} />
+                <ReceiptChain coworkId={item.id} />
             </Section>
         </div>
     );

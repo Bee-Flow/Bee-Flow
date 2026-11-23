@@ -29,6 +29,7 @@ import { useCoworkRunsQuery } from '../../api/queries/coworkReads';
 import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
+import { RunReceiptLine } from './CoworkReceipt';
 import CoworkRunDetails from './CoworkRunDetails';
 import CoworkRunTrace from './CoworkRunTrace';
 import { isWaitingForReview } from './coworkReview';
@@ -156,6 +157,7 @@ function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: s
                     {/* The review, what it used (a refusal stands out) and its conversation. */}
                     <CoworkRunDetails run={run} agentId={agentId} title={title} t={t} locale={locale} />
                     <CoworkRunTrace coworkId={coworkId} run={run} t={t} />
+                    <RunReceiptLine coworkId={coworkId} runId={run.id} finished={run.status !== 'running' && run.status !== 'waiting'} />
                     {/* A result is model output, so it arrives as Markdown —
                         headings, bullets, tables, bold. Printed raw it was a
                         wall of asterisks and pipes. A failure is not: it is a

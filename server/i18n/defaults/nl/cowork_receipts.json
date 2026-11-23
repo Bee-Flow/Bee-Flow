@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "cowork_receipts.download": "Bonnen downloaden",
+    "cowork_receipts.holds": "Elke run heeft een bon, en de keten van {count} klopt.",
+    "cowork_receipts.missing": "{count} afgeronde runs hebben geen bon.",
+    "cowork_receipts.problem.content": "Bon {seq} is gewijzigd nadat hij is uitgegeven.",
+    "cowork_receipts.problem.gap": "Bon {seq} ontbreekt in de keten.",
+    "cowork_receipts.problem.link": "Bon {seq} sluit niet aan op de vorige.",
+    "cowork_receipts.problem.signature": "Bon {seq} heeft geen geldige handtekening.",
+    "cowork_receipts.run_signed": "Bon {seq} · ondertekend",
+    "cowork_receipts.run_unsigned": "Bon {seq} · niet ondertekend",
+    "cowork_receipts.unsigned": "{count} zijn uitgegeven zonder handtekening."
+  },
+  "sameAsEnglish": []
+}
