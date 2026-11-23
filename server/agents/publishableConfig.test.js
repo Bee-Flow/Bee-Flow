@@ -34,17 +34,31 @@ const deps = (extra = {}) => ({
 const agent = (org = 'orgA', config = {}) => ({ id: 'ag1', owner_id: 'owner', organization_id: org, config });
 
 test('no config: nothing to check', async () => {
-    assert.deepStrictEqual(await validateAgentConfigReferences(agent(), null, deps()), { warnings: [], droppedSkillIds: [], tools: null });
+    assert.deepStrictEqual(await validateAgentConfigReferences(agent(), null, deps()), { warnings: [], droppedSkillIds: [], droppedKbIds: [], tools: null });
 });
 
-test('knowledge bases: same org, owned and system pass; cross-org and agent-unusable refuse with 400', async () => {
-    await assert.doesNotReject(() => validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-orgA', 'kb-owned', 'kb-system'] }, deps()));
+test('knowledge bases: same org, owned and system pass; an existing cross-org base refuses with 400', async () => {
+    const ok = await validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-orgA', 'kb-owned', 'kb-system'] }, deps());
+    assert.deepStrictEqual(ok.droppedKbIds, []);
     await assert.rejects(() => validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-orgB'] }, deps()),
         (e) => e.status === 400 && /knowledge base kb-orgB/.test(e.message));
-    await assert.rejects(() => validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-chat-only'] }, deps()),
-        (e) => e.status === 400 && /not available for agents/.test(e.message));
-    await assert.rejects(() => validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-missing'] }, deps()),
-        (e) => e.status === 400);
+});
+
+test('knowledge bases: a deleted or chat-only base is dropped with a warning, so the agent can still be saved', async () => {
+    // The editor sends the whole config on every autosave and cannot show a
+    // base that is gone, so a refusal here made the agent unsaveable for good.
+    const v = await validateAgentConfigReferences(agent(),
+        { knowledge_base_ids: ['kb-orgA', 'kb-missing', 'kb-chat-only'] }, deps());
+    assert.deepStrictEqual(v.droppedKbIds, ['kb-missing', 'kb-chat-only']);
+    assert.deepStrictEqual(v.warnings, ['knowledge base kb-missing (no longer exists)', 'knowledge base kb-chat-only (not available for agents)']);
+    const folded = applyConfigValidation({ knowledge_base_ids: ['kb-orgA', 'kb-missing', 'kb-chat-only'], x: 1 }, v);
+    assert.deepStrictEqual(folded, { knowledge_base_ids: ['kb-orgA'], x: 1 });
+});
+
+test('knowledge bases: a lookup that fails refuses the save instead of unlinking a base that may still exist', async () => {
+    const down = deps({ kbStore: { getKB: async () => { throw new Error('db down'); }, isSystemKB: () => false } });
+    await assert.rejects(() => validateAgentConfigReferences(agent(), { knowledge_base_ids: ['kb-orgA'] }, down),
+        (e) => e.status === 503);
 });
 
 test('skills: a foreign skill is dropped with a warning, never refused', async () => {
