@@ -41,6 +41,9 @@ const PLAN_DDL = Object.freeze([
     `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS independence TEXT`,
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS independence TEXT`,
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ`,
+    // What an item may spend on AI in a calendar month, in euros (NULL: no limit); at it, it pauses itself
+    // (core/cowork/runBudget.mts).
+    `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS monthly_budget NUMERIC`,
 ]);
 
 module.exports = { PLAN_DDL };

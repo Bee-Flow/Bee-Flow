@@ -593,6 +593,23 @@ describe('CoworkEditForm — a mail-trigger item', () => {
             enabledApps: null,
             triggerKind: 'app_event',
             trigger: { provider: 'gmail', event: 'mail.new', filter: { from: 'hr@x.nl' } },
+            monthlyBudget: null,
         });
+    });
+});
+
+describe('CoworkEditForm — the monthly AI budget', () => {
+    it('a typed amount is saved in euros; emptied, it is no limit', async () => {
+        const user = userEvent.setup();
+        const { props } = setup({ itemOver: { monthlyBudget: 2 } });
+        const field = screen.getByTestId('cowork-edit-budget');
+        expect(field).toHaveValue(2);
+        await user.clear(field);
+        await user.type(field, '3.5');
+        await user.click(save());
+        expect(savedPayload(props).monthlyBudget).toBe(3.5);
+        await user.clear(field);
+        await user.click(save());
+        expect(props.onSave.mock.calls.at(-1)[0].monthlyBudget).toBeNull();
     });
 });

@@ -45,6 +45,8 @@ export interface MailTrigger {
 /** One cowork item (a schedule row) as GET /api/cowork returns it. */
 export interface CoworkItem {
     id: string;
+    /** What it may spend on AI in a month, in euros; null: no limit (server/core/cowork/runBudget.mts). */
+    monthlyBudget?: number | null;
     title: string;
     prompt: string;
     isActive?: boolean;
@@ -202,6 +204,8 @@ export interface CoworkUpdate {
     enabledApps: string[] | null;
     triggerKind?: 'app_event';
     trigger?: MailTrigger;
+    /** Euros a month on AI; null: no limit. */
+    monthlyBudget?: number | null;
 }
 
 /** The props of the Cowork page. */

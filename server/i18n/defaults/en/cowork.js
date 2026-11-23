@@ -188,4 +188,6 @@ module.exports = {
     'cowork.hand_over.hint': 'Your colleague gets this work paused, with its plan to approve. Its history stays yours and goes with this item.',
     'cowork.hand_over.nobody': 'There is nobody in your organisation to hand it to.',
     'cowork.hand_over.to': 'Colleague',
+    'cowork.edit.budget': 'AI budget a month (€)',
+    'cowork.edit.budget_hint': 'At this amount it pauses itself and tells you. Empty: no limit.',
 };

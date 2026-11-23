@@ -1293,6 +1293,7 @@ declare namespace DbRow {
         last_status: string | null;
         max_result_length: number | null;
         model_tier: string | null;
+        monthly_budget: string | null;
         next_run_at: Date | null;
         plan_automation_id: string | null;
         plan_id: string | null;

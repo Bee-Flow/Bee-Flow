@@ -11,7 +11,7 @@
  * keystroke would fire a PUT per character, and a half-typed time is not a
  * schedule.
  */
-import { Bot, LayoutGrid, Mail, Save, X } from 'lucide-react';
+import { Bot, LayoutGrid, Mail, Save, Wallet, X } from 'lucide-react';
 import React, { useState } from 'react';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import AppsPicker from '../apps/AppsPicker';
@@ -34,7 +34,15 @@ interface Draft {
     enabledApps: string[] | null;
     /** Set for a mail-trigger item: it has no clock, the trigger replaces it. */
     trigger: MailTrigger | null;
+    /** The monthly AI budget in euros, as typed; empty: no limit. */
+    budget: string;
 }
+
+/** The typed budget as the server takes it: a non-negative amount, or null for none. */
+const budgetOf = (text: string): number | null => {
+    const n = Number(text.replace(',', '.'));
+    return text.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100) / 100;
+};
 
 interface CoworkEditFormProps {
     item: CoworkItem;
@@ -75,6 +83,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
         // workspace-wide one, which is what it has been running on.
         enabledApps: Array.isArray(item.enabledApps) ? item.enabledApps : null,
         trigger: isMailTriggerItem(item) ? item.trigger : null,
+        budget: typeof item.monthlyBudget === 'number' ? String(item.monthlyBudget) : '',
     });
 
     const set = (patch: Partial<Draft>) => setDraft(d => ({ ...d, ...patch }));
@@ -104,6 +113,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                 enabledApps: draft.enabledApps,
                 triggerKind: 'app_event',
                 trigger: normaliseMailTrigger(draft.trigger),
+                monthlyBudget: budgetOf(draft.budget),
             });
             return;
         }
@@ -127,6 +137,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
             // Only sent once this item has a list of its own; null keeps it on
             // the workspace-wide default rather than freezing today's copy of it.
             enabledApps: draft.enabledApps,
+            monthlyBudget: budgetOf(draft.budget),
         });
     };
 
@@ -292,6 +303,18 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                     </select>
                 </Field>
             )}
+
+            <Field label={t('cowork.edit.budget', 'AI budget a month (€)')} icon={Wallet} hint={t('cowork.edit.budget_hint', 'At this amount it pauses itself and tells you. Empty: no limit.')}>
+                <input
+                    type="number" min="0" step="0.5" inputMode="decimal"
+                    value={draft.budget}
+                    onChange={e => set({ budget: e.target.value })}
+                    aria-label={t('cowork.edit.budget', 'AI budget a month (€)')}
+                    data-testid="cowork-edit-budget"
+                    className={inputClass}
+                    style={inputStyle}
+                />
+            </Field>
 
             {error && (
                 <p className="text-[12px] text-red-600 dark:text-red-400" role="alert">{error}</p>

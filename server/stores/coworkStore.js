@@ -127,6 +127,7 @@ const FIELD_MAP = {
     // Needed by the reauth pause: resumeNeedsReauthForUser only matches rows
     // whose last_status is 'needs_reauth', so the pause must be able to set it.
     lastStatus: 'last_status',
+    monthlyBudget: 'monthly_budget', // euros a month on AI, null: no limit (core/cowork/runBudget.mts)
 };
 
 async function updateSchedule(id, updates) {

@@ -46,11 +46,13 @@ async function refuseTask(task, reason, { manual, due, runId }) {
  * (core/entitlements/coworkPolicy.mts): read-only runs nothing.
  * @param {Parameters<typeof executeTask>[0]} schedule
  * @param {{ manual?: boolean, due?: boolean, trigger?: any }} [opts]
- * @param {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy> }} [deps]
+ * @param {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy>, budgetRefusal?: (task: Parameters<typeof executeTask>[0]) => Promise<string | null> }} [deps]
  */
 async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
     const policy = require('../entitlements/coworkPolicy.mts');
-    const refusal = policy.runRefusalOf(await (deps.policyOf || policy.policyOfOwner)(schedule.userId));
+    const refusal = policy.runRefusalOf(await (deps.policyOf || policy.policyOfOwner)(schedule.userId))
+        // The item's own monthly AI budget (./runBudget.mts): at it, the item pauses itself.
+        ?? await (deps.budgetRefusal || require('./runBudget.mts').budgetRefusal)(schedule);
     if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
     return executeTask(schedule, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
 }

@@ -22,7 +22,7 @@ export type AuditAction =
 /** Fields whose values may be kept: they say when and how the work runs, not what it is about. */
 const VALUE_FIELDS: readonly string[] = Object.freeze([
     'isActive', 'repeatInterval', 'daysOfWeek', 'timeOfDay', 'timezone', 'modelTier', 'agentId', 'triggerKind',
-    'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId',
+    'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId', 'monthlyBudget',
 ]);
 /** Fields that are only ever named: their content is the owner's text. */
 const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 'trigger', 'answer']);

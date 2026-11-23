@@ -68,6 +68,7 @@ No request schema.
 | `agentId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |
 | `isActive` | boolean |  |  |
+| `monthlyBudget` | number or null |  |  |
 
 ### `DELETE /api/cowork/:id`
 

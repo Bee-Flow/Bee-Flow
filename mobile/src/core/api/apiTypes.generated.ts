@@ -2591,6 +2591,7 @@ export interface ApiOperations {
         enabledApps?: Array<string> | null;
         isActive?: boolean;
         modelTier?: string | null;
+        monthlyBudget?: number | null;
         nextRunAt?: string;
         prompt?: string;
         repeatInterval?: 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | null;

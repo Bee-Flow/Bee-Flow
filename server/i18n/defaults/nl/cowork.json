@@ -1,5 +1,7 @@
 {
   "translations": {
+    "cowork.edit.budget": "AI-budget per maand (€)",
+    "cowork.edit.budget_hint": "Bij dit bedrag pauzeert het zichzelf en laat het je dat weten. Leeg: geen limiet.",
     "cowork.hand_over.choose": "Kies een collega",
     "cowork.hand_over.go": "Overdragen",
     "cowork.hand_over.heading": "Overdragen aan een collega",

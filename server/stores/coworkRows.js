@@ -57,10 +57,22 @@ function rowToSchedule(r) {
         trigger: r.trigger_json ? safeParseJSON(r.trigger_json, NO_TRIGGER) : null,
         // A plan (core/cowork/plan): the automation it is made from, and the approved
         // plan a run executes. Both null: the item runs as a prompt or as its agent.
+        ...planFieldsOf(r),
+        createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+    };
+}
+
+/**
+ * The plan fields of an item: the automation its plan is made from and the approved plan a run executes (both null:
+ * it runs as a prompt or as its agent), how independent it may be, and its monthly AI budget in euros.
+ * @param {DbRow.CoworkSchedules} r
+ */
+function planFieldsOf(r) {
+    return {
         planAutomationId: r.plan_automation_id || null,
         planId: r.plan_id || null,
         independence: r.independence || null,
-        createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+        monthlyBudget: r.monthly_budget === null || r.monthly_budget === undefined ? null : Number(r.monthly_budget),
     };
 }
 

@@ -181,7 +181,7 @@ router.get('/', async (req, res) => {
             }));
             for (const s of schedules) {
                 const a = s.agentId && agentMap.get(s.agentId);
-                if (a) { s.agentName = a.name; s.agentAvatar = a.avatar; }
+                if (a) Object.assign(s, { agentName: a.name, agentAvatar: a.avatar });
             }
         }
 

@@ -124,11 +124,13 @@ const CreateBody = z.object({
 });
 
 // Every field optional: an update names only what it changes.
+const BUDGET_TEXT = 'monthlyBudget is an amount in euros from 0 to 100000, or null for no limit.';
 const UpdateBody = z.object({
     ...scheduleFields,
     title: scheduleFields.title.optional(),
     prompt: scheduleFields.prompt.optional(),
     isActive: z.boolean({ error: typeError({ invalid: 'isActive is true or false.' }) }).optional(),
+    monthlyBudget: z.number({ error: typeError({ invalid: BUDGET_TEXT }) }).min(0, BUDGET_TEXT).max(100_000, BUDGET_TEXT).nullable().optional(),
 }).strict();
 
 // toggle / run-now act on the schedule as it is.
