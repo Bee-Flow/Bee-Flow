@@ -26,6 +26,83 @@ function resolveDep(given, load) {
 }
 
 /**
+ * Knowledge base references of an agent config.
+ * Anti-leak invariant: a linked KB must belong to the AGENT'S organisation
+ * (org-governed content — org admins curate which org KBs an agent uses),
+ * be owned by the agent owner (their personal KB), or be a public system KB.
+ * Block ONLY cross-org KBs. We deliberately do NOT require the owner to pass
+ * the KB's publish/shared_groups gates — those govern per-user *retrieval* at
+ * query time, not whether the KB may be referenced. (The previous
+ * canUserAccessKB(owner) check rejected same-org drafts / group-restricted
+ * KBs whenever the agent owner wasn't in the KB's shared_groups, which broke
+ * KB-linking on agents owned by users outside those per-role groups.)
+ *
+ * A base that no longer exists, or that its owner has since taken off the
+ * agent surface, is DROPPED with a warning rather than refused: the
+ * editor sends the whole config on every autosave and cannot show such a
+ * base, so a refusal made the agent unsaveable for good. Dropping never
+ * widens access. A lookup that FAILS is not "gone": that refuses (503),
+ * so a database hiccup never unlinks a base that is still there.
+ *
+ * Pushes the hard refusals into `errors` and the soft drops into `warnings`;
+ * returns the ids the caller must strip before writing.
+ *
+ * @param {{ owner_id?: string, organization_id?: string | null }} agent
+ * @param {Record<string, unknown>} config
+ * @param {{ kbStore?: unknown, usageContexts?: unknown }} deps
+ * @param {string[]} errors
+ * @param {string[]} warnings
+ * @returns {Promise<string[]>}
+ */
+async function checkKnowledgeBases(agent, config, deps, errors, warnings) {
+    const ownerId = agent.owner_id;
+    const agentOrgId = agent.organization_id || null;
+    const kbIds = Array.isArray(config.knowledge_base_ids) ? config.knowledge_base_ids.filter(Boolean) : [];
+    /** @type {string[]} */
+    const droppedKbIds = [];
+    if (kbIds.length === 0) return droppedKbIds;
+    const kbStore = resolveDep(deps.kbStore, () => require('../stores/knowledgeBases'));
+    const { kbUsableIn } = resolveDep(deps.usageContexts, () => require('../core/kb/usageContexts'));
+    for (const kbId of kbIds) {
+        let kb;
+        try {
+            kb = await kbStore.getKB(kbId);
+        } catch (e) {
+            log.warn('[Agents] Knowledge base lookup failed while validating an agent config:', /** @type {Error} */ (e).message);
+            const err = /** @type {Error & { status?: number, expose?: boolean }} */ (
+                new Error('The linked knowledge bases could not be checked. Try again.'));
+            err.status = 503;
+            err.expose = true;
+            throw err;
+        }
+        if (!kb) {
+            droppedKbIds.push(kbId);
+            warnings.push(`knowledge base ${kbId} (no longer exists)`);
+            continue;
+        }
+        const sameOrg = !!(kb.organization_id && agentOrgId && kb.organization_id === agentOrgId);
+        const ownedByOwner = kb.tenant_id === ownerId;
+        const isSystem = !!kbStore.isSystemKB(kb);
+        if (!(sameOrg || ownedByOwner || isSystem)) {
+            errors.push(`knowledge base ${kbId}`);
+            continue;
+        }
+        // The base's owner decides which SURFACES it may be attached to
+        // (Knowledge → Settings → "Waar inzetbaar"). A base marked
+        // chat-only is not used by the agent: it is unlinked, so the
+        // toggle stays a setting and the agent stays saveable.
+        //
+        // A system base is exempt: it is public reference text with no
+        // owner to have expressed a preference.
+        if (!isSystem && !kbUsableIn(kb, 'agent')) {
+            droppedKbIds.push(kbId);
+            warnings.push(`knowledge base ${kbId} (not available for agents)`);
+        }
+    }
+    return droppedKbIds;
+}
+
+/**
  * Validate that every cross-element ID referenced from an agent's config is
  * accessible to the AGENT'S OWNER (not the requesting user). This closes the
  * leak path where an editor in org A could attach a KB/skill that belongs to a
@@ -33,17 +110,19 @@ function resolveDep(given, load) {
  * would receive cross-org data through it.
  *
  * Throws an Error with `status: 400` for a cross-org knowledge base (the one
- * hard refusal); skills that cannot be resolved are DROPPED (returned in
- * `droppedSkillIds`, with a warning) and tool grants are clamped (`tools`).
+ * hard refusal) and `status: 503` when a base cannot be looked up; skills that
+ * cannot be resolved and bases that are gone or not for agents are DROPPED
+ * (`droppedSkillIds`, `droppedKbIds`, each with a warning) and tool grants are
+ * clamped (`tools`).
  *
  * @param {{ id?: string, owner_id?: string, organization_id?: string | null }} agent
  * @param {Record<string, unknown>} config  the config about to be written
  * @param {{ kbStore?: unknown, skillStore?: unknown, usageContexts?: unknown, toolPolicy?: unknown }} [deps]
  *   each a module, or a function that returns one (resolveDep)
- * @returns {Promise<{warnings: string[], droppedSkillIds: string[], tools: object|null}>}
+ * @returns {Promise<{warnings: string[], droppedSkillIds: string[], droppedKbIds: string[], tools: object|null}>}
  */
 async function validateAgentConfigReferences(agent, config, deps = {}) {
-    if (!config || typeof config !== 'object') return { warnings: [], droppedSkillIds: [], tools: null };
+    if (!config || typeof config !== 'object') return { warnings: [], droppedSkillIds: [], droppedKbIds: [], tools: null };
     const errors = [];              // hard failures → 400 (cross-org KB leak)
     const warnings = [];            // soft: a reference we drop from the persisted config
     const droppedSkillIds = [];     // skill ids the caller must strip before writing
@@ -51,42 +130,8 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
 
     const ownerId = agent.owner_id;
     const agentOrgId = agent.organization_id || null;
-    // ── Knowledge base references ──
-    // Anti-leak invariant: a linked KB must belong to the AGENT'S organisation
-    // (org-governed content — org admins curate which org KBs an agent uses),
-    // be owned by the agent owner (their personal KB), or be a public system KB.
-    // Block ONLY cross-org KBs. We deliberately do NOT require the owner to pass
-    // the KB's publish/shared_groups gates — those govern per-user *retrieval* at
-    // query time, not whether the KB may be referenced. (The previous
-    // canUserAccessKB(owner) check rejected same-org drafts / group-restricted
-    // KBs whenever the agent owner wasn't in the KB's shared_groups, which broke
-    // KB-linking on agents owned by users outside those per-role groups.)
-    const kbIds = Array.isArray(config.knowledge_base_ids) ? config.knowledge_base_ids.filter(Boolean) : [];
-    if (kbIds.length > 0) {
-        const kbStore = resolveDep(deps.kbStore, () => require('../stores/knowledgeBases'));
-        const { kbUsableIn } = resolveDep(deps.usageContexts, () => require('../core/kb/usageContexts'));
-        for (const kbId of kbIds) {
-            const kb = await kbStore.getKB(kbId).catch((e) => fallback('agents/publishableConfig:validateAgentConfigReferences', e, null));
-            const sameOrg = !!(kb && kb.organization_id && agentOrgId && kb.organization_id === agentOrgId);
-            const ownedByOwner = !!(kb && kb.tenant_id === ownerId);
-            const isSystem = !!(kb && kbStore.isSystemKB(kb));
-            if (!kb || !(sameOrg || ownedByOwner || isSystem)) {
-                errors.push(`knowledge base ${kbId}`);
-                continue;
-            }
-            // The base's owner decides which SURFACES it may be attached to
-            // (Knowledge → Settings → "Waar inzetbaar"). A base marked
-            // chat-only appearing on an agent means the picker was bypassed —
-            // an older client, a copied config, or an MCP patch — and the
-            // toggle would have been a suggestion rather than a setting.
-            //
-            // A system base is exempt: it is public reference text with no
-            // owner to have expressed a preference.
-            if (!isSystem && !kbUsableIn(kb, 'agent')) {
-                errors.push(`knowledge base ${kbId} (not available for agents)`);
-            }
-        }
-    }
+    // ── Knowledge base references (see checkKnowledgeBases) ──
+    const droppedKbIds = await checkKnowledgeBases(agent, config, deps, errors, warnings);
 
     // ── Skill references (wizard stores them as attachedSkillIds) ──
     // Anti-leak invariant, mirroring the KB block above: a linked skill must
@@ -170,7 +215,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
         throw err;
     }
 
-    return { warnings, droppedSkillIds, tools: normalisedTools };
+    return { warnings, droppedSkillIds, droppedKbIds, tools: normalisedTools };
 }
 
 /**
@@ -188,6 +233,11 @@ function applyConfigValidation(config, validation) {
     if (dropped.length > 0 && Array.isArray(config.attachedSkillIds)) {
         const drop = new Set(dropped);
         out = { ...out, attachedSkillIds: config.attachedSkillIds.filter(id => !drop.has(id)) };
+    }
+    const droppedKbs = validation.droppedKbIds || [];
+    if (droppedKbs.length > 0 && Array.isArray(config.knowledge_base_ids)) {
+        const drop = new Set(droppedKbs);
+        out = { ...out, knowledge_base_ids: config.knowledge_base_ids.filter(id => !drop.has(id)) };
     }
     // The clamped map is written back WHOLE — including when it clamps to `{}`.
     //
