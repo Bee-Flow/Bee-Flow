@@ -21,6 +21,7 @@ import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { NOTIFICATION } from './runShared.mts';
 import { resultTextOf } from './planRun.mts';
+import { runEnded } from './runEnded.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
@@ -110,6 +111,8 @@ export async function closeJourney(journeyId: string, leg: Leg, deps: FollowUpDe
     const end = ended.status === 'success' ? { ...ended, result: (await producedBy(journeyId, deps)) ?? 'Done, after your decision.' } : ended;
     if (!(await deps.closeWaitingRun(plan.runId, end))) return false;
     await tellOwner(plan, end, deps);
+    // It ended now, after its owner's decision: the items that start after this one hear it (./runEnded.mts).
+    runEnded({ id: plan.scheduleId, userId: plan.userId, title: plan.title }, plan.runId);
     log.info(`[Cowork] plan run ${plan.runId} closed as ${end.status} after its decision`);
     return true;
 }

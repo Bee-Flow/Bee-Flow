@@ -83,6 +83,7 @@ const FIXTURES = [
             'POST /api/cowork/:id/plan/make',
             'GET /api/cowork/:id/plan/independence', 'PUT /api/cowork/:id/plan/independence',
             'GET /api/cowork/:id/hand-over/colleagues', 'POST /api/cowork/:id/hand-over',
+            'GET /api/cowork/:id/start', 'PUT /api/cowork/:id/start',
             'GET /api/cowork/:id/audit',
             'DELETE /api/cowork/:id',
         ],
@@ -93,6 +94,7 @@ const FIXTURES = [
             'POST /api/cowork/:id/plan/approve': { fingerprint: 'a'.repeat(64) },
             'PUT /api/cowork/:id/plan/independence': { level: 'asks_everything' },
             'POST /api/cowork/:id/hand-over': { toUserId: 'a-colleague' },
+            'PUT /api/cowork/:id/start': { kind: 'webhook' },
         },
     },
     {

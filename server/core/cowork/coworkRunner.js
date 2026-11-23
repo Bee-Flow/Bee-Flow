@@ -17,7 +17,7 @@ const coworkStore = require('../../stores/coworkStore');
 const { executeTask, failRun } = require('../aiTaskRunner');
 const { claimAttempt } = require('./runClaim.mts');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { runMaxMs } = require('./runDeadline.mts');
 
 const RUNNER_INTERVAL_MS = 60_000;
@@ -54,7 +54,11 @@ async function executeCowork(schedule, { manual = false, due = false, trigger = 
         // The item's own monthly AI budget (./runBudget.mts): at it, the item pauses itself.
         ?? await (deps.budgetRefusal || require('./runBudget.mts').budgetRefusal)(schedule);
     if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
-    return executeTask(schedule, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
+    await executeTask(schedule, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
+    // Say that a run ended (./runEnded.mts): the items that start after this one hear it (./afterCowork.mts).
+    const starts = require('../../stores/coworkStarts.mts').coworkStarts();
+    const latest = await starts.latestRunId(schedule.id).catch((/** @type {unknown} */ e) => fallback('core/cowork/coworkRunner:latestRunId', e, null));
+    require('./runEnded.mts').runEnded(schedule, latest);
 }
 
 /**

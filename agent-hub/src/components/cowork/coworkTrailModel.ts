@@ -16,6 +16,7 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.review_handled': 'handled a review',
     'cowork.independence_set': 'chose how independent it may be: {level}',
     'cowork.handed_over': 'handed it over to a colleague',
+    'cowork.start_set': 'changed how it starts',
 };
 
 const FIELD_FALLBACK: Record<string, string> = {

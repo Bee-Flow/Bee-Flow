@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1968 operations. */
+/** 1971 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2571,6 +2571,7 @@ export interface ApiOperations {
         from: string;
         to: string;
     }>;
+    'POST /api/cowork/hooks': Op<NoParams, UndeclaredQuery, Record<string, unknown>>;
     'GET /api/cowork/mail-providers': Op;
     'GET /api/cowork/needs-you': Op;
     'GET /api/cowork/policy/{orgId}': Op<{ orgId: string | number }>;
@@ -2636,6 +2637,21 @@ export interface ApiOperations {
         answer?: string;
     }>;
     'GET /api/cowork/{id}/runs/{runId}/trace': Op<{ id: string | number; runId: string | number }>;
+    'GET /api/cowork/{id}/start': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/start': Op<{ id: string | number }, UndeclaredQuery, {
+        kind: 'schedule';
+    } | {
+        kind: 'after_cowork';
+        scheduleId: string;
+    } | {
+        kind: 'webhook';
+    } | {
+        datatableId: string;
+        kind: 'row';
+    } | {
+        inFolder: string;
+        kind: 'file';
+    }>;
     'GET /api/cowork/{id}/stats': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/toggle': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/csp-report': Op;

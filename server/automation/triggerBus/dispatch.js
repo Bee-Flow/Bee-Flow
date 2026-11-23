@@ -113,7 +113,9 @@ function runMatchedSubscription(sub, matcher, provider, event, payload) {
         setImmediate(async () => {
             try {
                 log.info(`[TriggerBus] dispatch cowork schedule=${sub.coworkScheduleId} via sub ${sub.id} (${provider}.${event})`);
-                await coworkMailRunner().runForEvent(sub, { provider, event, ...payload });
+                // A new file starts its item through core/cowork/fileStart.mts; a new mail through the mail runner.
+                const runner = event === 'file.new' && !coworkRunnerOverride ? require('../../core/cowork/fileStart.mts') : coworkMailRunner();
+                await runner.runForEvent(sub, { provider, event, ...payload });
             } catch (e) {
                 log.error('[TriggerBus] cowork dispatch error:', /** @type {Error} */ (e).message);
             }

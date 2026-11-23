@@ -192,14 +192,15 @@ async function resolveUserSession(userId) {
  * @param {{ getApprovedPlan?: (id: string) => Promise<unknown> }} store
  */
 async function followsPlan(task, trigger, store) {
-    return !!(task.planId && !trigger && await store.getApprovedPlan?.(task.id));
+    // A mail run is no plan run; an event a plan starts on hands its data as `trigger.plan` (./cowork/eventRun.mts).
+    return !!(task.planId && (!trigger || /** @type {{ plan?: boolean }} */ (trigger).plan === true) && await store.getApprovedPlan?.(task.id));
 }
 
 async function executeTask(task, { manual = false, store = require('../stores/coworkStore'), trigger = null, due = false, maxMs = undefined } = {}) {
     if (await followsPlan(task, trigger, store)) {
         // An item with an approved plan runs as that plan (./cowork/planRun.mts):
         // the plan is what its owner approved. A run a new mail started is no plan run.
-        return executePlanRun(task, { manual, store, due }, { failRun, advance: advanceAfterTaskRun, NOTIFICATION });
+        return executePlanRun(task, { manual, store, due, trigger }, { failRun, advance: advanceAfterTaskRun, NOTIFICATION });
     }
     if (task.agentId) {
         // Same reason as buildTaskSystemPrompt's schedule section: an agent

@@ -27,6 +27,7 @@ import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
+import { asStartedBy } from '../core/cowork/startKinds.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -90,7 +91,7 @@ export interface PlanState {
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
-async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk' | 'policyOf'>): Promise<PlanDraft> {
+async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk' | 'policyOf'>, item: Pick<Item, 'triggerKind'> = {}): Promise<PlanDraft> {
     const definition = automation.definition as Definition;
     const owner = { userId: automation.userId, organizationId: automation.organizationId ?? null };
     const permissions = permissionsOf(definition, deps.lookups);
@@ -100,7 +101,8 @@ async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | '
     return {
         view: planViewOf(definition, deps.lookups),
         permissions,
-        findings: [...checkPlan(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
+        // Checked as the item starts: an event's data is outside text (core/cowork/startKinds.mts).
+        findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
         fingerprint: planFingerprint(definition),
     };
 }
@@ -114,7 +116,7 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         ownAutomation(item.planAutomationId, item.userId, deps),
         deps.store.getApprovedPlan(item.id),
     ]);
-    const draft = automation ? await draftOf(automation, deps) : null;
+    const draft = automation ? await draftOf(automation, deps, item) : null;
     const approved = approvedRow
         ? { version: approvedRow.version, fingerprint: approvedRow.fingerprint, approvedAt: approvedRow.approvedAt, permissions: approvedRow.permissions as PlanPermissions }
         : null;
@@ -147,7 +149,7 @@ const REFUSAL_TEXT = Object.freeze({
 export async function approvePlan({ item, fingerprint }: { item: Item; fingerprint: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
-    const draft = await draftOf(automation, deps);
+    const draft = await draftOf(automation, deps, item);
     if (draft.fingerprint !== fingerprint) {
         throw new HttpError(409, 'cowork_plan_changed', 'The plan changed since you looked at it. Look at it again, then approve it.');
     }

@@ -147,8 +147,7 @@ function fail(res, err, _label) {
 /**
  * CW-06 — "Running since 08:00:04".
  *
- * Purely additive: `currentRunStartedAt` comes from the open history row
- * (cowork_runs WHERE finished_at IS NULL), not from a new column, and NOTHING is renamed — the Expo app reads this payload, and a rename there would be a broken APK without a red test.
+ * `currentRunStartedAt` comes from the open history row (cowork_runs WHERE finished_at IS NULL); the Expo app reads this payload, so nothing in it is renamed.
  *
  * Null is the normal value: a schedule that is not running has nothing open.
  * The open row is deliberately the source and not `lastStatus === 'running'`: those two diverge as soon as reapStaleRuns clears a stuck attempt.
@@ -159,6 +158,7 @@ function withCurrentRun(schedule, startedAt) {
     return schedule;
 }
 
+require('./coworkHookRoutes').mountHookRoutes(router); // POST /hooks: open, its bearer token is the credential
 router.use(requireAuth);
 require('./coworkAuditRoutes').mountAuditRoutes(router); // the trail of every change, and GET /:id/audit
 require('./coworkSideRoutes').mountSideRoutes(router); // GET /needs-you, GET/PUT /shield/:orgId (no item id)

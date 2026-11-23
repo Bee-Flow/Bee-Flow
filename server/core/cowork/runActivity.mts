@@ -78,7 +78,12 @@ function defaultAppOf(toolName: string): string | null {
     }
 }
 
-export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf }: { toolCeiling?: string[] | null; appOf?: (toolName: string) => string | null } = {}): CoworkRunContext {
+export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf, startsWithOutsideText = false }: {
+    toolCeiling?: string[] | null;
+    appOf?: (toolName: string) => string | null;
+    /** An event started the run with its data in the prompt (./eventRun.mts): it read outside text before its first step. */
+    startsWithOutsideText?: boolean;
+} = {}): CoworkRunContext {
     return {
         kind: 'cowork_run',
         toolCeiling: Array.isArray(toolCeiling) ? toolCeiling.filter((n) => typeof n === 'string') : null,
@@ -88,7 +93,7 @@ export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf }: 
         offered: new Set(),
         review: null,
         appOf,
-        outsideText: createOutsideTextMark(),
+        outsideText: { ...createOutsideTextMark(), seen: startsWithOutsideText },
     };
 }
 

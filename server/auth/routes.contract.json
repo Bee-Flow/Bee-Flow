@@ -1829,6 +1829,9 @@
     "GET /api/cowork/:id/runs/:runId/trace": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/start": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/stats": {
       "gate": "auth"
     },
@@ -5235,6 +5238,10 @@
     "POST /api/cowork/compose": {
       "gate": "auth"
     },
+    "POST /api/cowork/hooks": {
+      "gate": "handler",
+      "via": "mount"
+    },
     "POST /api/csp-report": {
       "gate": "open",
       "reason": "CSP-violation-reports van de browser — de browser stuurt ze zonder credentials; 32kb-limiet in de router"
@@ -7372,6 +7379,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan/independence": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/start": {
       "gate": "auth"
     },
     "PUT /api/cowork/daily-mail": {

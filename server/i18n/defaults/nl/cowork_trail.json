@@ -9,6 +9,7 @@
     "cowork_trail.action.plan_made": "heeft Cowork een plan laten maken",
     "cowork_trail.action.plan_removed": "heeft het plan eraf gehaald",
     "cowork_trail.action.review_handled": "heeft een beoordeling afgehandeld",
+    "cowork_trail.action.start_set": "heeft gewijzigd hoe het start",
     "cowork_trail.action.toggled": "heeft het {state}gezet",
     "cowork_trail.action.updated": "heeft {what} gewijzigd",
     "cowork_trail.empty": "Nog geen wijzigingen vastgelegd.",

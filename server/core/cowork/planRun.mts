@@ -31,6 +31,7 @@ import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
 import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
 import { sinceTriggerData } from './sinceLastTime.mts';
+import { asStartedBy } from './startKinds.mts';
 import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
 import { appsNotAllowed, capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
 import { permissionsOf, BUILT_IN_APP } from './plan/planPermissions.mts';
@@ -45,6 +46,8 @@ export interface PlanTask {
     id: string;
     userId: string;
     title?: string;
+    /** How the item starts (./startKinds.mts). */
+    triggerKind?: string | null;
     /** When the item last ran, and how that ended (the "since last time" of ./sinceLastTime.mts). */
     lastRunAt?: string | null;
     lastStatus?: string | null;
@@ -79,6 +82,9 @@ export interface PlanRunDeps {
     /** The owner's organisation's Cowork policy (../entitlements/coworkPolicy.mts). */
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
 }
+
+/** An event a plan starts on (./eventRun.mts): the run it claimed, and its data (outside text). */
+export interface PlanEvent { runId?: string | null; plan?: boolean; payload?: Record<string, unknown> }
 
 /** A plan that may not run as it is: the owner has to look at it. */
 export class PlanRefusedError extends Error {
@@ -125,7 +131,8 @@ async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLo
     if (planFingerprint(definition) !== plan.fingerprint) {
         throw new PlanRefusedError('The stored plan is not the one that was approved. Approve the plan again.');
     }
-    const findings = checkPlan(definition, lookups);
+    // Checked as the item starts: an event's data is outside text (./startKinds.mts).
+    const findings = checkPlan(asStartedBy(definition, task), lookups);
     if (findings.length > 0) {
         throw new PlanRefusedError(`This plan may not run as it is: ${firstFinding(findings)} Change the plan and approve it again.`);
     }
@@ -193,12 +200,13 @@ async function announce(task: PlanTask, text: string, deps: PlanRunDeps, createN
  */
 export async function executePlanRun(
     task: PlanTask,
-    { manual = false, store, due = false }: { manual?: boolean; store: PlanRunStore; due?: boolean },
+    { manual = false, store, due = false, trigger = null }: { manual?: boolean; store: PlanRunStore; due?: boolean; trigger?: PlanEvent | null },
     deps: PlanRunDeps,
 ): Promise<void> {
     const startTime = Date.now();
     const d = defaults(deps);
-    const attempt = await claimAttempt(store, task, { manual, due });
+    // An event already claimed its run (./eventRun.mts); the clock and Run now claim one here.
+    const attempt = trigger?.runId ? { runId: trigger.runId } : await claimAttempt(store, task, { manual, due });
     if (!attempt) return;
     log.info(`[AITaskRunner] Executing ${task.id} as its plan`);
     try {
@@ -212,8 +220,8 @@ export async function executePlanRun(
         const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
         const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups)) }, {
             triggerKind: 'manual',
-            // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts).
-            triggerPayload: sinceTriggerData(task),
+            // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts); an event adds its data.
+            triggerPayload: { ...sinceTriggerData(task), ...(trigger?.payload ?? {}) },
             mode: 'live',
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),

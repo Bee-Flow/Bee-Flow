@@ -36,7 +36,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
     log.info(`[AITaskRunner] Executing ${task.id} as agent ${task.agentId}`);
 
     // What the run does, in names and counts (./runActivity.mts); a follow-up carries the ceiling of the run it continues.
-    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null });
+    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null, startsWithOutsideText: trigger?.outsideText === true });
     /** @type {{ runId: string | null, agent: RuntimeAgent | null, conversationId: string | null, parts: ReturnType<typeof eventRunParts> | null }} */
     const run = { runId: trigger?.runId ?? null, agent: null, conversationId: null, parts: null };
     // The time limit of this run (./runDeadline.mts): the agent runtime takes the signal and stops the turn on it.
@@ -367,7 +367,8 @@ module.exports = { executeAgentRun };
  * (usecases/coworkReview.mts): the prompt to run (the schedule's text plus the event as marked data, or the reviewer's
  * answer), the extra message metadata (`unattended`, `mailTrigger`), and how its notification reads. Its history row
  * is already open: `runId` names it. A follow-up also carries `toolCeiling`, the tool names the run it continues was
- * offered, and a mail run the subject for the review queue.
+ * offered, and a mail run the subject for the review queue. `outsideText`: the event's data is in the prompt
+ * (./eventRun.mts), so the run counts as one that read outside text from its first step.
  * @typedef {{
  *   prompt: string,
  *   scheduleText?: string,
@@ -376,6 +377,7 @@ module.exports = { executeAgentRun };
  *   runId?: string | null,
  *   toolCeiling?: string[] | null,
  *   mailSubject?: string | null,
+ *   outsideText?: boolean,
  * }} EventRunTrigger
  */
 
