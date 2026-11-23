@@ -5,15 +5,15 @@
  * closes by itself once its fields have a value.
  */
 import { useState } from 'react';
-import { BellRing, X } from 'lucide-react';
+import { BellRing, Hourglass, X } from 'lucide-react';
 
 import type { FillDocument } from '@/api/templateFillApi';
 import type { ValueRequest } from '@/api/templateFillTeamApi';
 import useTranslation from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
+import { FILL_SMALL } from './fillStyles';
 import type { Colleague } from './projectFillModel';
 
-const SMALL_BUTTON = 'rounded-md px-2 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50';
 const BOX = 'flex items-center gap-1.5 text-xs text-[var(--text-primary)]';
 const MAX_MESSAGE = 500;
 
@@ -63,7 +63,7 @@ export function AskForm({ doc, values, colleagues, preselect, onSend, onCancel }
         }
     };
     return (
-        <div className="flex flex-col gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-2" data-testid="value-request-form">
+        <div className="flex flex-col gap-2.5 rounded-md bg-[var(--bg-secondary)] p-3" data-testid="value-request-form">
             <CheckList legend={t('doc_value_requests.who', 'Ask whom?')} picked={people} onToggle={(id) => setPeople((l) => toggle(l, id))}
                 items={colleagues.map((c) => ({ id: c.id, label: c.name }))}
                 empty={t('doc_value_requests.no_colleagues', 'Nobody else may edit this project yet. Invite someone as an editor first.')} />
@@ -80,10 +80,10 @@ export function AskForm({ doc, values, colleagues, preselect, onSend, onCancel }
             {error && <p role="alert" className="m-0 text-xs text-[var(--error)]">{error}</p>}
             <div className="flex gap-2">
                 <button type="button" disabled={busy || fields.length === 0 || people.length === 0} onClick={() => { void send(); }}
-                    className={`${SMALL_BUTTON} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`} data-testid="value-request-send">
+                    className={`${FILL_SMALL} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`} data-testid="value-request-send">
                     {t('doc_value_requests.send', 'Send request')}
                 </button>
-                <button type="button" onClick={onCancel} className={`${SMALL_BUTTON} text-[var(--text-secondary)]`}>{t('doc_value_requests.cancel', 'Cancel')}</button>
+                <button type="button" onClick={onCancel} className={`${FILL_SMALL} text-[var(--text-secondary)]`}>{t('doc_value_requests.cancel', 'Cancel')}</button>
             </div>
         </div>
     );
@@ -96,23 +96,26 @@ function RequestRow({ r, meId, labelOf, nameOf, onClose, onShow }: {
     const { t } = useTranslation();
     const mine = r.assigneeId === meId;
     const fields = r.fields.map(labelOf).join(', ');
+    const Icon = mine ? BellRing : Hourglass;
+    const closeLabel = t('doc_value_requests.close', 'Close this request');
     return (
-        <li className={`flex items-start gap-2 rounded-md px-2 py-1.5 text-xs ${mine ? 'bg-[color-mix(in_srgb,var(--accent-primary)_12%,transparent)]' : 'bg-[var(--bg-tertiary)]'}`}>
-            <BellRing size={13} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
-            <span className="min-w-0 flex-1 text-[var(--text-primary)]">
+        <li className="flex flex-wrap items-start gap-x-2 gap-y-1 text-xs" data-mine={mine || undefined}>
+            <Icon size={13} className={`mt-0.5 shrink-0 ${mine ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`} aria-hidden="true" />
+            <span className={`min-w-[8rem] flex-1 ${mine ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                 {mine
                     ? t('doc_value_requests.asked_you', '{person} asks you: {fields}', { person: nameOf(r.requestedBy), fields })
                     : t('doc_value_requests.waiting_for', 'Waiting for {person}: {fields}', { person: nameOf(r.assigneeId), fields })}
-                {r.message && <span className="block text-[var(--text-secondary)]">“{r.message}”</span>}
+                {r.message && <span className="block font-normal text-[var(--text-secondary)]">“{r.message}”</span>}
             </span>
             {mine && r.fields[0] && (
-                <button type="button" onClick={() => onShow(r.fields[0])} className={`${SMALL_BUTTON} shrink-0 text-[var(--accent-primary)] hover:bg-[var(--item-hover-bg)]`}>
-                    {t('doc_value_requests.show', 'Show')}
+                <button type="button" onClick={() => onShow(r.fields[0])}
+                    className={`${FILL_SMALL} shrink-0 border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]`}>
+                    {t('doc_value_requests.show', 'Go to field')}
                 </button>
             )}
             {onClose && (r.requestedBy === meId || mine) && (
-                <button type="button" onClick={() => onClose(r)} aria-label={t('doc_value_requests.close', 'Close this request')}
-                    className="shrink-0 rounded p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]">
+                <button type="button" onClick={() => onClose(r)} aria-label={closeLabel} title={closeLabel}
+                    className="shrink-0 rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]">
                     <X size={13} aria-hidden="true" />
                 </button>
             )}
@@ -128,7 +131,7 @@ export function RequestList({ requests, meId, labelOf, nameOf, onClose, onShow }
     if (requests.length === 0) return null;
     const sorted = [...requests].sort((a, b) => Number(b.assigneeId === meId) - Number(a.assigneeId === meId));
     return (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0" data-testid="value-request-list">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0" data-testid="value-request-list">
             {sorted.map((r) => <RequestRow key={r.id} r={r} meId={meId} labelOf={labelOf} nameOf={nameOf} onClose={onClose} onShow={onShow} />)}
         </ul>
     );

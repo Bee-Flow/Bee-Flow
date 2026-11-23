@@ -1,8 +1,9 @@
 /**
  * The line at the top of a fill-in form that says the one thing to do next
- * (projectFillModel.ts `guideStep`), and the three steps the form goes
- * through: fill in, check, done. Whoever opens the form, in the chat, in a
- * project or in the editor, reads the same sentence for the same state.
+ * (projectFillModel.ts `guideStep`). Whoever opens the form, in the chat, in a
+ * project or in the editor, reads the same sentence for the same state. Its
+ * tone follows what it says: someone is waiting, something is to be done,
+ * everything is done.
  */
 import { CheckCircle2, CircleDot, Eye, Sparkles, UserRoundCheck, type LucideIcon } from 'lucide-react';
 
@@ -59,44 +60,33 @@ const ICONS: Record<GuideStep['kind'], LucideIcon> = {
     readOnly: Eye, done: CheckCircle2, asked: UserRoundCheck, missing: CircleDot, remarks: Sparkles, check: Sparkles, finish: CheckCircle2,
 };
 
+type Tone = 'quiet' | 'todo' | 'waiting' | 'good';
+const TONE_OF: Record<GuideStep['kind'], Tone> = {
+    readOnly: 'quiet', done: 'good', asked: 'waiting', missing: 'todo', remarks: 'todo', check: 'todo', finish: 'good',
+};
+/** The bar at the left and the wash behind the sentence, per tone. */
+const TONES: Record<Tone, { box: string; icon: string }> = {
+    quiet: { box: 'border-[var(--border-default)] bg-[var(--bg-tertiary)]', icon: 'text-[var(--text-tertiary)]' },
+    todo: { box: 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_7%,transparent)]', icon: 'text-[var(--accent-primary)]' },
+    waiting: { box: 'border-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]', icon: 'text-[var(--warning)]' },
+    good: { box: 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]', icon: 'text-[var(--success)]' },
+};
+
 /** Which of the three steps the form is at: 0 fill in, 1 check, 2 done. */
-function stageOf(step: GuideStep): number {
+export function stageOf(step: GuideStep): number {
     if (step.kind === 'done') return 2;
     return step.kind === 'asked' || step.kind === 'missing' || step.kind === 'readOnly' ? 0 : 1;
-}
-
-function Stages({ at }: { at: number }) {
-    const { t } = useTranslation();
-    const names = [
-        t('chat_templates.stage_fill', 'Fill in'), t('chat_templates.stage_check', 'Check'), t('chat_templates.stage_done', 'Done'),
-    ];
-    return (
-        <ol className="m-0 flex list-none items-center gap-1 p-0 text-[11px]" data-testid="template-fill-stages">
-            {names.map((name, i) => (
-                <li key={name} aria-current={i === at ? 'step' : undefined}
-                    className={`rounded-full px-2 py-0.5 ${i === at
-                        ? 'bg-[var(--accent-primary)] font-semibold text-[var(--accent-primary-fg,#fff)]'
-                        : i < at ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]' : 'border border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>
-                    {i + 1}. {name}
-                </li>
-            ))}
-        </ol>
-    );
 }
 
 export default function FillGuide({ step, context }: { step: GuideStep; context: GuideContext }) {
     const { t } = useTranslation();
     const Icon = ICONS[step.kind];
-    const calm = step.kind === 'readOnly' || step.kind === 'done' || step.kind === 'finish';
+    const tone = TONES[TONE_OF[step.kind]];
     return (
-        <div className="flex flex-col gap-1.5" data-testid="template-fill-guide" data-step={step.kind}>
-            {step.kind !== 'readOnly' && <Stages at={stageOf(step)} />}
-            <p role="status" className={`m-0 flex items-start gap-1.5 rounded-lg px-2 py-1.5 text-xs ${calm
-                ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-                : 'bg-[color-mix(in_srgb,var(--accent-primary)_12%,transparent)] text-[var(--text-primary)]'}`}>
-                <Icon size={14} className="mt-px shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
-                <span>{guideText(step, context, t)}</span>
-            </p>
-        </div>
+        <p role="status" data-testid="template-fill-guide" data-step={step.kind}
+            className={`m-0 flex items-start gap-2 rounded-md border-l-[3px] px-3 py-2 text-[13px] leading-snug text-[var(--text-primary)] ${tone.box}`}>
+            <Icon size={15} className={`mt-px shrink-0 ${tone.icon}`} aria-hidden="true" />
+            <span>{guideText(step, context, t)}</span>
+        </p>
     );
 }

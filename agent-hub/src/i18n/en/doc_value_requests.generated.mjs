@@ -6,7 +6,7 @@
  */
 
 export default {
-    "doc_value_requests.ask": "Ask a colleague for information",
+    "doc_value_requests.ask": "Ask a colleague",
     "doc_value_requests.ask_failed": "The request could not be sent. Please try again.",
     "doc_value_requests.ask_message": "{person} asks you to fill in: {fields}.{note}",
     "doc_value_requests.ask_title": "Information needed for {document}",
@@ -27,6 +27,7 @@ export default {
     "doc_value_requests.who": "Ask whom?",
     "doc_value_requests.you": "you",
     "doc_value_requests.ask_explained": "They get a notification that opens this document, and the fields are marked as asked of them until they have a value.",
-    "doc_value_requests.show": "Show",
+    "doc_value_requests.show": "Go to field",
     "doc_value_requests.filled_by_ai": "Filled in by {name}, with the assistant",
+    "doc_value_requests.asked_by": "{names} is waiting for this",
 };

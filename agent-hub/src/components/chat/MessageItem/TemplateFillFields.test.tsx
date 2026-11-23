@@ -96,11 +96,13 @@ describe('<TemplateFillFields>', () => {
         const fields = [f('plain', 'text', { required: true }), f('asked', 'text'), f('checked', 'text')];
         render(<TemplateFillFields fields={fields} values={{ checked: 'tbd' }} issues={{}} onChange={() => {}}
             asked={new Set(['asked'])} remarked={new Set(['checked'])}
-            extras={(field) => (field.key === 'checked' ? <p>Is this right?</p> : null)} />);
+            adornments={(field) => (field.key === 'checked' ? { below: <p>Is this right?</p>, actions: <button type="button">Note</button> } : null)} />);
         expect(screen.getAllByRole('region').map((s) => s.getAttribute('data-testid')))
             .toEqual(['template-fill-group-asked', 'template-fill-group-remarked', 'template-fill-group-missing']);
         expect(within(screen.getByTestId('template-fill-group-asked')).getByLabelText('ASKED')).toBeInTheDocument();
         expect(within(screen.getByTestId('template-fill-field-checked')).getByText('Is this right?')).toBeInTheDocument();
+        expect(within(screen.getByTestId('template-fill-field-checked')).getByRole('button', { name: 'Note' })).toBeInTheDocument();
+        expect(within(screen.getByTestId('template-fill-field-asked')).queryByRole('button')).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Asked of you (1)' })).toBeInTheDocument();
     });
 
@@ -111,6 +113,22 @@ describe('<TemplateFillFields>', () => {
         rerender(<TemplateFillFields fields={fields} values={{ a: 'y', b: 'x' }} issues={{}} onChange={() => {}} />);
         expect(screen.getByLabelText('B')).toBeInTheDocument();
         expect(screen.getByLabelText(/^A/)).toBeInTheDocument();
+    });
+
+    it('a text is one box however long it gets: typing past a line never moves the cursor out of it', async () => {
+        const user = userEvent.setup();
+        const onChange = vi.fn();
+        render(<Harness fields={[f('scope', 'text')]} onChange={onChange} />);
+        const box = screen.getByLabelText('SCOPE');
+        const long = 'We set up the workspace and train twelve people, and we stay on call for the first month after delivery.';
+        await user.type(box, long);
+        expect(screen.getByLabelText('SCOPE')).toBe(box);
+        expect(box).toHaveFocus();
+        // Shift+Enter is a new line in the text; Enter alone is "done with this field".
+        await user.keyboard('{Shift>}{Enter}{/Shift}Second line');
+        expect(onChange).not.toHaveBeenCalled();
+        await user.keyboard('{Enter}');
+        expect(onChange).toHaveBeenCalledWith('scope', `${long}\nSecond line`);
     });
 
     it('text reports on blur, number reports a number on Enter', async () => {

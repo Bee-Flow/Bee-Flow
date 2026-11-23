@@ -28,22 +28,38 @@ export function nameFor(members: ProjectMembers | undefined, meId: string | null
     return members?.people[id]?.name || t('doc_value_requests.someone', 'a colleague');
 }
 
-/** One line per field: who it was asked of while open, otherwise who filled it in (and that the assistant stored it). */
+/** The line under a field: `asked` while somebody is still being waited for, otherwise who filled it in. */
+export interface FieldHint { text: string; asked: boolean }
+
+/**
+ * One line per field: while a request for it is open, who is waited for (or,
+ * at a field asked of the reader, who asked); otherwise who filled it in (and
+ * that the assistant stored it).
+ */
 export function fieldHints(
-    requests: ValueRequest[], filledBy: FilledBy, name: (id: string) => string, t: TranslateFn,
-): Record<string, string> {
-    const hints: Record<string, string> = {};
+    { requests, filledBy, meId = null }: { requests: ValueRequest[]; filledBy: FilledBy; meId?: string | null },
+    name: (id: string) => string, t: TranslateFn,
+): Record<string, FieldHint> {
+    const hints: Record<string, FieldHint> = {};
     for (const [key, who] of Object.entries(filledBy)) {
-        hints[key] = who.via === 'ai'
+        const text = who.via === 'ai'
             ? t('doc_value_requests.filled_by_ai', 'Filled in by {name}, with the assistant', { name: name(who.userId) })
             : t('doc_value_requests.filled_by', 'Filled in by {name}', { name: name(who.userId) });
+        hints[key] = { text, asked: false };
     }
     const askedOf: Record<string, string[]> = {};
+    const askedBy: Record<string, string[]> = {};
     for (const r of requests.filter(isOpenRequest)) {
-        for (const key of r.fields) (askedOf[key] ||= []).push(name(r.assigneeId));
+        const mine = !!meId && r.assigneeId === meId;
+        for (const key of r.fields) ((mine ? askedBy : askedOf)[key] ||= []).push(name(mine ? r.requestedBy : r.assigneeId));
     }
+    const list = (names: string[]) => [...new Set(names)].join(', ');
     for (const [key, names] of Object.entries(askedOf)) {
-        if (!filledBy[key]) hints[key] = t('doc_value_requests.asked_of', 'Asked of {names}', { names: [...new Set(names)].join(', ') });
+        if (!filledBy[key]) hints[key] = { text: t('doc_value_requests.asked_of', 'Asked of {names}', { names: list(names) }), asked: true };
+    }
+    // What is asked of the reader says who is waiting for it: that is the one to answer.
+    for (const [key, names] of Object.entries(askedBy)) {
+        if (!filledBy[key]) hints[key] = { text: t('doc_value_requests.asked_by', '{names} is waiting for this', { names: list(names) }), asked: true };
     }
     return hints;
 }

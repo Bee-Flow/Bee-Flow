@@ -14,7 +14,7 @@
  */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FolderInput } from 'lucide-react';
+import { FolderCheck, FolderInput } from 'lucide-react';
 
 import { filingApi, projectDocumentUrl, type FilingApi, type FilingTarget } from '@/api/documentFilingApi';
 import { useOptionalQueryClient } from '@/api/queries/optionalQueryClient';
@@ -22,10 +22,9 @@ import type { DocumentFolder } from '@/api/queries/projectDocumentFolders';
 import useTranslation from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
+import { FILL_SECONDARY, FILL_SMALL } from './fillStyles';
 
-const BUTTON = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-[var(--border-subtle)] text-[var(--text-primary)] bg-[var(--bg-primary)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
-const SMALL = 'rounded-md px-2 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-50';
-const ROW = 'flex items-center gap-2 rounded-md px-2 py-1 text-sm text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]';
+const ROW = 'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]';
 const NEW = '__new__';
 const NONE = '';
 const FOLDER_NAME_MAX = 120;
@@ -101,10 +100,10 @@ function FolderPicker({ step, busy, onSave, onBack }: {
             )}
             <div className="flex gap-2 pt-1">
                 <button type="button" disabled={busy || (picked === NEW && !newName.trim())} onClick={() => onSave(picked, newName)} data-testid="save-to-project-confirm"
-                    className={`${SMALL} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`}>
+                    className={`${FILL_SMALL} bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)]`}>
                     {step.project ? t('chat_templates.save_here', 'Save here') : t('chat_templates.save_move', 'Move here')}
                 </button>
-                <button type="button" onClick={onBack} className={`${SMALL} text-[var(--text-secondary)]`}>
+                <button type="button" onClick={onBack} className={`${FILL_SMALL} text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]`}>
                     {step.project ? t('chat_templates.save_back', 'Back') : t('doc_value_requests.cancel', 'Cancel')}
                 </button>
             </div>
@@ -112,16 +111,17 @@ function FolderPicker({ step, busy, onSave, onBack }: {
     );
 }
 
-/** Where the document was saved, as a link that opens it there. */
-function SavedLine({ saved, href }: { saved: Saved; href: string }) {
+/** Filed into a project from this form: where it is now, as a link that opens it there. */
+function SavedLine({ project, folder, href }: { project: FilingTarget; folder: string | null; href: string }) {
     const { t } = useTranslation();
-    let text = t('chat_templates.saved_no_folder', 'Not in a folder');
-    if (saved.project && saved.folder) text = t('chat_templates.saved_in_project_folder', 'In project {name}, folder {folder}', { name: saved.project.name, folder: saved.folder });
-    else if (saved.project) text = t('chat_templates.added_to_project', 'In project {name}', { name: saved.project.name });
-    else if (saved.folder) text = t('chat_templates.saved_in_folder', 'In folder {folder}', { folder: saved.folder });
+    const text = folder
+        ? t('chat_templates.saved_in_project_folder', 'In project {name}, folder {folder}', { name: project.name, folder })
+        : t('chat_templates.added_to_project', 'In project {name}', { name: project.name });
     return (
         <a href={href} data-testid="template-fill-added-to-project" onClick={(e) => { e.preventDefault(); openInApp(href); }}
-            className="text-sm text-[var(--accent-primary)] underline">{text}</a>
+            className="inline-flex h-9 items-center gap-1.5 px-1 text-sm text-[var(--text-secondary)] underline underline-offset-2 hover:text-[var(--text-primary)]">
+            <FolderCheck size={15} aria-hidden="true" className="shrink-0 text-[var(--success)]" />{text}
+        </a>
     );
 }
 
@@ -192,7 +192,7 @@ function PickerPanel({ picker }: { picker: Picker }) {
     const { step } = picker;
     if (step.at === 'closed' || step.at === 'loading') return null;
     return (
-        <div className="order-last basis-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-2" data-testid="save-to-project-panel">
+        <div className="order-last basis-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3" data-testid="save-to-project-panel">
             {step.at === 'failed' && <p role="alert" className="m-0 text-xs text-[var(--error)]">{step.message}</p>}
             {step.at === 'projects' && <ProjectList projects={step.projects} onPick={(p) => { void picker.showFolders(p, p.id); }} />}
             {step.at === 'folders' && (
@@ -214,19 +214,23 @@ export default function SaveToProject({ documentId, projectId, filing = filingAp
     const picker = usePicker({ documentId, projectId, filing, onFiled });
     const current = useCurrentFolder(filing, projectId, documentId);
     const { step } = picker;
-    // Where it is: what was just chosen here, else the folder the project's document is in already.
-    const saved = picker.saved ?? (current ? { project: null, folder: current } : null);
-    const filedIn = saved?.project?.id || projectId;
+    // The folder it is in: what was just chosen here, else what the project says.
+    const folder = picker.saved ? picker.saved.folder : current;
+    const filedHere = picker.saved?.project ?? null;
     const isOpen = step.at !== 'closed';
-    const label = saved?.folder ? t('chat_templates.move_folder', 'Move to another folder') : t('chat_templates.put_in_folder', 'Put in a folder');
+    // One control per state: a person's own document is saved in a project; a project's document shows its folder
+    // and moves from there; a document just filed from here says where it went.
+    let label = t('chat_templates.save_in_project', 'Save in project');
+    if (projectId) label = folder ? t('chat_templates.folder_named', 'Folder: {folder}', { folder }) : t('chat_templates.put_in_folder', 'Put in a folder');
+    const Icon = projectId && folder ? FolderCheck : FolderInput;
     return (
         <>
-            {saved && filedIn && <SavedLine saved={saved} href={projectDocumentUrl(filedIn, documentId)} />}
-            {!(saved?.project) && (
-                <button type="button" className={BUTTON} data-testid="template-fill-add-to-project" aria-expanded={isOpen}
+            {filedHere && <SavedLine project={filedHere} folder={folder} href={projectDocumentUrl(filedHere.id, documentId)} />}
+            {!filedHere && (
+                <button type="button" className={FILL_SECONDARY} data-testid="template-fill-add-to-project" aria-expanded={isOpen}
                     disabled={step.at === 'loading' || picker.busy} onClick={() => (isOpen ? picker.close() : void picker.open())}>
-                    <FolderInput size={14} aria-hidden="true" />
-                    {projectId ? label : t('chat_templates.save_in_project', 'Save in project')}
+                    <Icon size={15} aria-hidden="true" className="shrink-0" />
+                    <span className="truncate">{label}</span>
                 </button>
             )}
             <PickerPanel picker={picker} />

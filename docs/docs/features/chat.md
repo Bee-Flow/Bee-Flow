@@ -143,7 +143,7 @@ Ask for "a presentation", "slides" or "a deck" and the assistant calls `create_p
 
 **One form, everywhere.** The same form is under the assistant's answer, in the team chat, and in the document editor's **Fill in & preview** tab, so it does not matter where you (or a colleague) continue. It saves as you type and always says the one thing to do next:
 
-- **Fill in**: the fields are grouped by what there is to do: *Asked of you*, *To look at*, *Still needed*, then *Filled in* and *Optional*.
+- **Fill in**: the fields are grouped by what there is to do: *Asked of you*, *To look at*, *Still needed*, then *Filled in* and *Optional* (folded away while something is still to do). The download appears once nothing required is missing.
 - **Check**: *Check and finish* lets the assistant read everything that is filled in before the document goes out. Where the information is there but not written well enough, it offers a better wording at that field (**Use this** or **Keep mine**); where a value does not look like the right information, it asks *Is this right?* with the reason. It never changes a value itself and never makes one up. In the chat the assistant does this check itself (`template_fill_review`) before it finishes.
 - **Done**: `template_fill_finish` (or *Finish* on the form) refuses while a required field is missing. After that: **Download PDF** (or **Download PowerPoint** for a presentation).
 
@@ -155,7 +155,7 @@ The check goes through the [Privacy Shield](./privacy-shield.md) like every othe
 - **Add a note** leaves a note for the others at a field, or on the document as a whole ("the price is still being negotiated").
 - Under each field the form says who filled it in, or who was asked.
 
-**Saving it where it belongs.** *Save in project* on the form files your own document into one of your projects, and into a folder of that project's Documents tab when you pick one, or a new folder you name on the spot (a customer's folder, say). In a project, *Put in a folder* moves it between the project's folders. The assistant does the same when you ask (`document_add_to_project`, with the folder's name).
+**Saving it where it belongs.** *Save in project* on the form files your own document into one of your projects, and into a folder of that project's Documents tab when you pick one, or a new folder you name on the spot (a customer's folder, say). In a project the form shows the folder the document is in (*Folder: …*, or *Put in a folder*), and a click moves it to another one. The assistant does the same when you ask (`document_add_to_project`, with the folder's name).
 
 Only templates you can read are offered, another organisation's never; values are written only to the document being filled in (the one made in this chat, one you opened beside it, or the project's), never to the template itself.
 

@@ -74,8 +74,11 @@ describe('<TemplateFillCard>', () => {
         expect(screen.queryByLabelText(/Notes/)).not.toBeInTheDocument();
         await userEvent.setup().click(screen.getByRole('button', { name: /Optional/ }));
         expect(screen.getByLabelText(/Notes/)).toBeInTheDocument();
-        expect(screen.getByTestId('template-fill-download')).toBeDisabled();
-        expect(screen.getByTestId('document-link-card').textContent).toContain('Open in Documents');
+        // Nothing to download yet, so no download is offered; and while fields are missing the finishing button is the quiet one.
+        expect(screen.queryByTestId('template-fill-download')).not.toBeInTheDocument();
+        expect(screen.getByTestId('template-fill-open')).toHaveAttribute('title', 'Open in Documents');
+        expect(screen.getByTestId('template-fill-stages')).toHaveTextContent('1Fill in2Check3Done');
+        expect(within(screen.getByTestId('template-fill-stages')).getByText('Fill in').closest('li')).toHaveAttribute('aria-current', 'step');
     });
 
     it('saves a typed value through the API and shows the reason next to a value that does not fit', async () => {
@@ -193,6 +196,12 @@ describe('<TemplateFillForm> the final check', () => {
         await user.click(screen.getByRole('button', { name: 'Check and finish' }));
         await waitFor(() => expect(save).toHaveBeenCalledWith('d1', {}, { finish: true }));
         expect(await screen.findByLabelText('Finished')).toBeInTheDocument();
+        // Finished: the fields fold away (a click opens them again), and what is left is the download.
+        expect(screen.queryByLabelText(/Amount/)).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /Filled in \(2\)/ }));
+        expect(screen.getByLabelText(/Amount/)).toHaveValue(10);
+        expect(screen.getByTestId('template-fill-download')).toBeEnabled();
+        expect(within(screen.getByTestId('template-fill-stages')).getByText('Done').closest('li')).toHaveAttribute('aria-current', 'step');
     });
 
     it('when the assistant cannot check it, the form says so and still lets the person finish', async () => {

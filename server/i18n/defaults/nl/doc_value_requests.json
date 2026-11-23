@@ -1,10 +1,11 @@
 {
   "translations": {
-    "doc_value_requests.ask": "Een collega om informatie vragen",
+    "doc_value_requests.ask": "Een collega vragen",
     "doc_value_requests.ask_explained": "Ze krijgen een melding die dit document opent, en de velden staan als aan hen gevraagd totdat ze zijn ingevuld.",
     "doc_value_requests.ask_failed": "Het verzoek kon niet worden verstuurd. Probeer het opnieuw.",
     "doc_value_requests.ask_message": "{person} vraagt je om in te vullen: {fields}.{note}",
     "doc_value_requests.ask_title": "Informatie nodig voor {document}",
+    "doc_value_requests.asked_by": "{names} wacht hierop",
     "doc_value_requests.asked_of": "Gevraagd aan {names}",
     "doc_value_requests.asked_you": "{person} vraagt jou: {fields}",
     "doc_value_requests.cancel": "Annuleren",
@@ -17,7 +18,7 @@
     "doc_value_requests.no_colleagues": "Nog niemand anders mag dit project bewerken. Nodig eerst iemand uit als bewerker.",
     "doc_value_requests.note": "Wat moeten ze weten? (optioneel)",
     "doc_value_requests.send": "Verzoek versturen",
-    "doc_value_requests.show": "Tonen",
+    "doc_value_requests.show": "Naar het veld",
     "doc_value_requests.someone": "een collega",
     "doc_value_requests.waiting_for": "Wacht op {person}: {fields}",
     "doc_value_requests.which_fields": "Welke velden?",

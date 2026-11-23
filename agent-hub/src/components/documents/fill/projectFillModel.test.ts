@@ -35,8 +35,14 @@ describe('projectFillModel', () => {
     it('says who a field was asked of while open, and who filled it in once it is', () => {
         const requests = [request({ fields: ['iban', 'kvk'] }), request({ id: 'r2', fields: ['vat'], assigneeId: 'carol', cancelledAt: 'y' })];
         const name = (id: string) => nameFor(members, 'alice', id, t);
-        const hints = fieldHints(requests, { iban: { userId: 'bob', at: 'z' }, price: { userId: 'alice', at: 'z', via: 'ai' } }, name, t);
-        expect(hints).toEqual({ iban: 'Filled in by Bob', kvk: 'Asked of Bob', price: 'Filled in by you, with the assistant' });
+        const filledBy = { iban: { userId: 'bob', at: 'z' }, price: { userId: 'alice', at: 'z', via: 'ai' as const } };
+        expect(fieldHints({ requests, filledBy }, name, t)).toEqual({
+            iban: { text: 'Filled in by Bob', asked: false }, kvk: { text: 'Asked of Bob', asked: true },
+            price: { text: 'Filled in by you, with the assistant', asked: false },
+        });
+        // Bob reads the same document: at the field asked of him it says who is waiting, not "asked of you".
+        const asBob = (id: string) => nameFor(members, 'bob', id, t);
+        expect(fieldHints({ requests, filledBy: {}, meId: 'bob' }, asBob, t).kvk).toEqual({ text: 'Alice is waiting for this', asked: true });
     });
 
     it('lists what colleagues still wait for from the reader: open requests, empty fields, each once', () => {

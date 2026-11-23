@@ -78,7 +78,9 @@ describe('filling in together', () => {
         expect(within(screen.getByTestId('template-fill-fields')).getAllByRole('region')[0]).toHaveAttribute('data-testid', 'template-fill-group-asked');
         expect(within(screen.getByTestId('template-fill-group-asked')).getByLabelText('IBAN')).toBeInTheDocument();
         expect(screen.getByTestId('value-request-list')).toHaveTextContent('Ann asks you: IBAN“For the invoice”');
-        expect(screen.getByRole('button', { name: 'Show' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Go to field' })).toBeInTheDocument();
+        // At the field itself it says who is waiting, not "asked of you".
+        expect(screen.getByTestId('template-fill-note-iban')).toHaveTextContent('Ann is waiting for this');
     });
 
     it('takes a colleague\'s value from the next read, keeps the field this person is saving, and says who filled in what', async () => {
@@ -148,6 +150,19 @@ describe('filling in together', () => {
         await waitFor(() => expect(screen.queryByTestId('template-fill-notes')).not.toBeInTheDocument());
     });
 
+    it('one thing at a time: starting a note closes the request that was being written, and the other way round', async () => {
+        const user = userEvent.setup();
+        show(<TemplateFillForm doc={DOC} api={fakeApi()} meId="me" people={PEOPLE} />);
+        await user.click(screen.getByTestId('value-request-open'));
+        expect(screen.getByTestId('value-request-form')).toBeInTheDocument();
+        await user.click(screen.getByTestId('document-note-open'));
+        expect(screen.queryByTestId('value-request-form')).not.toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: 'A note for your colleagues about this document' })).toHaveFocus();
+        await user.click(within(field('amount')).getByRole('button', { name: 'Add a note' }));
+        expect(screen.getAllByTestId('template-fill-note-composer')).toHaveLength(1);
+        expect(screen.getByRole('textbox', { name: 'A note for your colleagues about this field' })).toHaveFocus();
+    });
+
     it('a note on the whole document shows above the fields, for everyone', () => {
         const doc = { ...DOC, team: team({ notes: [{ id: 'n2', key: '', userId: 'ann', text: 'The client wants this before Friday.', at: 'now' }] }) };
         show(<TemplateFillForm doc={doc} api={fakeApi()} meId="me" people={PEOPLE} />);
@@ -195,9 +210,8 @@ describe('where the filled-in document is kept', () => {
             place: vi.fn().mockResolvedValue({ id: 'f2', name: '' }),
         });
         show(<TemplateFillForm doc={DOC} api={fakeApi({ filing })} meId="me" people={PEOPLE} />);
-        // Where it is now is said before anything is clicked.
-        expect(await screen.findByTestId('template-fill-added-to-project')).toHaveTextContent('In folder Customers');
-        await user.click(screen.getByRole('button', { name: 'Move to another folder' }));
+        // Where it is now is on the button, before anything is clicked.
+        await user.click(await screen.findByRole('button', { name: 'Folder: Customers' }));
         const folders = await screen.findByTestId('save-to-project-folders');
         expect(filing.targets).not.toHaveBeenCalled();
         expect(within(folders).getByRole('radio', { name: 'Customers' })).toBeChecked();
@@ -205,8 +219,8 @@ describe('where the filled-in document is kept', () => {
         await user.click(screen.getByRole('button', { name: 'Move here' }));
         await waitFor(() => expect(filing.place).toHaveBeenCalledWith('p1', 'd1', { folderId: 'f2' }));
         expect(filing.add).not.toHaveBeenCalled();
-        await waitFor(() => expect(screen.getByTestId('template-fill-added-to-project')).toHaveTextContent('In folder Archive'));
-        expect(screen.getByRole('button', { name: 'Move to another folder' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Folder: Archive' })).toBeInTheDocument();
+        expect(screen.getByTestId('template-fill-open')).toHaveAttribute('title', 'Open in the project');
     });
 
     it('a "new" folder by the name of one that exists is that folder: no second folder of the same name', async () => {
@@ -241,7 +255,9 @@ describe('<DocumentFillPanel>', () => {
         show(<DocumentFillPanel documentId="d1" api={api} place="editor" />);
         expect(screen.getByText('Loading the form…')).toBeInTheDocument();
         expect(await screen.findByTestId('template-fill-card')).toHaveAttribute('data-phase', 'fill');
-        expect(screen.queryByTestId('document-link-card')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('template-fill-open')).not.toBeInTheDocument();
+        // The editor names the document itself: the form does not repeat it, and its fields are one per row.
+        expect(screen.queryByText('Offer Van Dijk')).not.toBeInTheDocument();
         expect(screen.getByTestId('template-fill-guide')).toHaveTextContent('2 required fields are still empty. Fill them in under “Still needed”.');
     });
 
