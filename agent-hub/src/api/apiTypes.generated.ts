@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1960 operations. */
+/** 1963 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2567,6 +2567,10 @@ export interface ApiOperations {
         enabled: boolean;
         timeZone: string;
     }>;
+    'GET /api/cowork/home': Op<NoParams, {
+        from: string;
+        to: string;
+    }>;
     'GET /api/cowork/mail-providers': Op;
     'GET /api/cowork/needs-you': Op;
     'GET /api/cowork/shield/{orgId}': Op<{ orgId: string | number }>;
@@ -2602,6 +2606,10 @@ export interface ApiOperations {
     'DELETE /api/cowork/{id}/plan': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/cowork/{id}/plan/approve': Op<{ id: string | number }, UndeclaredQuery, {
         fingerprint: string;
+    }>;
+    'GET /api/cowork/{id}/plan/independence': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/plan/independence': Op<{ id: string | number }, UndeclaredQuery, {
+        level: 'asks_everything' | 'asks_before_sending' | 'on_its_own';
     }>;
     'POST /api/cowork/{id}/plan/make': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/cowork/{id}/plan/try': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;

@@ -29,6 +29,8 @@ import { planFingerprint } from './plan/planPermissions.mts';
 import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
+import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
+import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
 import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
@@ -50,7 +52,7 @@ export interface AutomationRunRow { id?: string; status?: string; summary?: stri
 
 export interface PlanRunStore extends ClaimStore {
     getApprovedPlan: (scheduleId: string) => Promise<ApprovedPlan | null>;
-    linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null }) => Promise<unknown>;
+    linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null; independence?: string | null }) => Promise<unknown>;
     markCompleted: (id: string, result: string, close?: { runId?: string | null; waiting?: boolean }) => Promise<unknown>;
 }
 
@@ -66,6 +68,8 @@ export interface PlanRunDeps {
     executeAutomation?: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<AutomationRunRow | null | undefined>;
     createNotification?: (n: Record<string, unknown>) => Promise<unknown>;
     lookups?: ToolLookups;
+    /** Approvals are in the owner's licence: a level that asks needs them (./plan/planIndependence.mts). */
+    mayAsk?: MayAsk;
 }
 
 /** A plan that may not run as it is: the owner has to look at it. */
@@ -131,7 +135,18 @@ function defaults(deps: PlanRunDeps) {
         executeAutomation: deps.executeAutomation ?? ((a: AutomationRow, o: Record<string, unknown>) => (nodeRequire('../automationRunner') as { executeAutomation: (a: AutomationRow, o: Record<string, unknown>) => Promise<AutomationRunRow> }).executeAutomation(a, o)),
         createNotification: deps.createNotification ?? ((n: Record<string, unknown>) => (nodeRequire('../../stores/notificationStore') as { createNotification: (n: Record<string, unknown>) => Promise<unknown> }).createNotification(n)),
         lookups: deps.lookups ?? toolLookups(),
+        mayAsk: deps.mayAsk ?? mayAskByLicence,
     };
+}
+
+/** The level this run uses; a level that asks, when asking is not possible, refuses the run. */
+async function levelOf(task: PlanTask, automation: AutomationRow, mayAsk: MayAsk) {
+    const asks = await mayAsk({ userId: task.userId, organizationId: (automation as { organizationId?: string | null }).organizationId ?? null });
+    try {
+        return effectiveIndependence(task.independence, asks);
+    } catch (e) {
+        throw new PlanRefusedError((e as Error).message);
+    }
 }
 
 /** How a run the runner handed back ended, for Cowork: the text of its outcome, or a throw when it did not finish. */
@@ -172,12 +187,14 @@ export async function executePlanRun(
     log.info(`[AITaskRunner] Executing ${task.id} as its plan`);
     try {
         const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d);
-        await store.linkPlanRun(attempt.runId, { planId: plan.id });
+        // The level is kept on the run: after a pause the journey continues with the questions it started with.
+        const independence = await levelOf(task, automation, d.mayAsk);
+        await store.linkPlanRun(attempt.runId, { planId: plan.id, independence });
         // A spread without the row's own copies: the runner executes exactly the definition handed in
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.
         // The row's own time limit is held to Cowork's as well (./plan/planRunCopy.mts holds the run policy's).
         const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
-        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(definition) }, {
+        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups)) }, {
             triggerKind: 'manual',
             mode: 'live',
             startedByUserId: task.userId,

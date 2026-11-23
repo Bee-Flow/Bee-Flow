@@ -1,7 +1,7 @@
 /**
  * The definition a plan's journey keeps across a pause (core/automationRunner/heldDefinitions.js): the plan as its
- * owner approved it, with the run's notifications held to the owner (./plan/planRunCopy.mts), exactly what the first
- * leg ran. A run that no Cowork run started is none of Cowork's business (null).
+ * owner approved it, with the questions of the level the run started with (./plan/planIndependence.mts) and the run's
+ * notifications held to the owner (./plan/planRunCopy.mts): exactly what the first leg ran. A run that no Cowork run started is none of Cowork's business (null).
  *
  * The copy is checked the way a run checks it before it starts (./planRun.mts): it must still have the fingerprint it
  * was approved with and belong to the automation the journey runs. A copy that fails either throws, so the journey
@@ -12,10 +12,12 @@ import { createRequire } from 'node:module';
 import type { Definition } from './plan/planTypes.mts';
 import { planFingerprint } from './plan/planPermissions.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
+import { isIndependence, withAsks } from './plan/planIndependence.mts';
+import { toolLookups } from './plan/planLookups.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-interface PlanOfRun { automationId: string; definition: unknown; fingerprint: string }
+interface PlanOfRun { automationId: string; definition: unknown; fingerprint: string; independence?: string | null }
 export interface HeldDeps { getPlanOfAutomationRun: (automationRunId: string) => Promise<PlanOfRun | null> }
 
 const defaults = (): HeldDeps => ({
@@ -30,5 +32,6 @@ export async function heldPlanDefinition(run: { id?: string | null; rootRunId?: 
     if (plan.automationId !== run.automationId) throw new Error('This run belongs to another automation than the plan that started it.');
     const definition = plan.definition as Definition;
     if (planFingerprint(definition) !== plan.fingerprint) throw new Error('The stored plan is not the one that was approved, so this run does not continue.');
-    return runCopyOf(definition);
+    // With the questions the first leg ran with: a run from before levels asked nothing more.
+    return runCopyOf(withAsks(definition, isIndependence(plan.independence) ? plan.independence : 'on_its_own', toolLookups()));
 }

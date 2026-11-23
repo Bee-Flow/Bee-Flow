@@ -28,7 +28,10 @@ const dailyMail = {
     },
     mailAvailable: async () => true,
 };
-mountSideRoutes(router, { needs: async (userId) => { asked.push(userId); return [/** @type {any} */ ({ kind: 'review', itemId: 'cw-1', title: 'T', runId: 'r1', since: null, reason: 'Look', plan: null })]; }, dailyMail });
+/** @type {any[]} */
+const homes = [];
+const home = async (/** @type {string} */ userId, /** @type {any} */ day) => { homes.push([userId, day]); return { how: {}, today: [], cost: null }; };
+mountSideRoutes(router, { home, needs: async (userId) => { asked.push(userId); return [/** @type {any} */ ({ kind: 'review', itemId: 'cw-1', title: 'T', runId: 'r1', since: null, reason: 'Look', plan: null })]; }, dailyMail });
 // An item route after it, as in routes/cowork.js: the word is never read as an item id.
 router.get('/:id', (req, res) => { res.json({ item: req.params.id }); });
 const api = serve('/api/cowork', router, { user: { id: 'u1' } });
@@ -50,4 +53,13 @@ test('the daily mail is the caller\'s own setting: off at first, then as saved; 
     assert.deepStrictEqual([...settings.keys()], ['u1']);
     assert.strictEqual((await api.call('PUT', '/api/cowork/daily-mail', { body: { enabled: true, timeZone: 'Mars/Olympus' } })).status, 400);
     assert.strictEqual((await api.call('PUT', '/api/cowork/daily-mail', { body: { enabled: true, timeZone: 'UTC', to: 'x@example.test' } })).status, 400);
+});
+
+test('the home is read for the caller\'s own day; a day that is not two ISO times at most two days apart is refused', async () => {
+    const day = { from: '2026-11-22T23:00:00.000Z', to: '2026-11-23T23:00:00.000Z' };
+    const res = await api.call('GET', `/api/cowork/home?from=${encodeURIComponent(day.from)}&to=${encodeURIComponent(day.to)}`);
+    assert.deepStrictEqual([res.status, homes], [200, [['u1', day]]]);
+    for (const q of ['', 'from=yesterday&to=today', `from=${encodeURIComponent(day.to)}&to=${encodeURIComponent(day.from)}`, 'from=2026-11-01T00:00:00Z&to=2026-11-23T00:00:00Z']) {
+        assert.strictEqual((await api.call('GET', `/api/cowork/home?${q}`)).status, 400, q);
+    }
 });

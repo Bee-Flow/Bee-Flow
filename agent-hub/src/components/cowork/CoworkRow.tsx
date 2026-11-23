@@ -28,10 +28,12 @@ import { relativeTime } from './coworkFormat';
 import { describeMoment, repeatLabel } from './coworkSchedule';
 import { coworkStatus } from './coworkStatus';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
+import { howLine } from './coworkHomeModel';
 import useTranslation from '../../hooks/useTranslation';
 import { statusLabel } from '../shared/statusTokens';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkItem } from '../../api/cowork.types';
+import type { HowItWorks } from '../../api/coworkHome';
 import ReviewCountPill from './ReviewCountPill';
 
 // The list header shows the same pill, over every item.
@@ -41,6 +43,8 @@ interface CoworkRowProps {
     item: CoworkItem;
     selected: boolean;
     onSelect: (id: string) => void;
+    /** How it works ("4 fixed steps, 2 AI, asks before sending"), from Cowork's home. */
+    how?: HowItWorks | null;
 }
 
 /** Weekday tokens exactly as the server stores them, Sunday first. */
@@ -106,7 +110,7 @@ function historyText(item: CoworkItem, t: TranslateFn): string {
     return '';
 }
 
-export default function CoworkRow({ item, selected, onSelect }: CoworkRowProps) {
+export default function CoworkRow({ item, selected, onSelect, how = null }: CoworkRowProps) {
     const { t } = useTranslation();
     const status = coworkStatus(item);
     const word = statusLabel(t, status);
@@ -115,6 +119,7 @@ export default function CoworkRow({ item, selected, onSelect }: CoworkRowProps) 
     const tone = status.cssVar || 'var(--text-tertiary)';
     const meta = [whenText(item, t), historyText(item, t)].filter(Boolean).join(' · ');
     const reviews = item.openReviewCount || 0;
+    const works = howLine(how, t);
 
     return (
         <button
@@ -155,6 +160,7 @@ export default function CoworkRow({ item, selected, onSelect }: CoworkRowProps) 
                     <span className="truncate">{meta}</span>
                 </p>
             )}
+            {works && <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]" data-testid="cowork-row-how">{works}</p>}
         </button>
     );
 }

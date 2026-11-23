@@ -121,3 +121,17 @@ test('the runs waiting for their owner: an unhandled review and a plan run waiti
     assert.strictEqual(list.find((r) => r.runId === review)?.reason, 'Two invoices look the same.');
     assert.deepStrictEqual(await store.listRunsWaitingForOwner('someone-else'), []);
 });
+
+test('the owner\'s runs of a day, newest first with their item\'s title; another day and another person are not in it', async () => {
+    const s = await store.createSchedule({ userId: 'u-today', title: 'Daily digest', prompt: 'P', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const first = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Done.', { runId: first });
+    const second = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await pg.query(`UPDATE cowork_runs SET started_at = started_at + interval '1 second' WHERE id = $1`, [second]);
+    const from = new Date(Date.now() - 3_600_000).toISOString();
+    const to = new Date(Date.now() + 3_600_000).toISOString();
+    const day = await store.listRunsBetween('u-today', from, to);
+    assert.deepStrictEqual(day.map((r) => [r.runId, r.title]), [[second, 'Daily digest'], [first, 'Daily digest']]);
+    assert.deepStrictEqual(await store.listRunsBetween('u-today', to, new Date(Date.now() + 7_200_000).toISOString()), []);
+    assert.deepStrictEqual(await store.listRunsBetween('someone-else', from, to), []);
+});

@@ -59,6 +59,7 @@ function rowToSchedule(r) {
         // plan a run executes. Both null: the item runs as a prompt or as its agent.
         planAutomationId: r.plan_automation_id || null,
         planId: r.plan_id || null,
+        independence: r.independence || null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
     };
 }

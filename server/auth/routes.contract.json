@@ -1814,6 +1814,9 @@
     "GET /api/cowork/:id/plan": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/plan/independence": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/plan/try/:tryId": {
       "gate": "auth"
     },
@@ -1827,6 +1830,9 @@
       "gate": "auth"
     },
     "GET /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/home": {
       "gate": "auth"
     },
     "GET /api/cowork/mail-providers": {
@@ -7351,6 +7357,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan/independence": {
       "gate": "auth"
     },
     "PUT /api/cowork/daily-mail": {

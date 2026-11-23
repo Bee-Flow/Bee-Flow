@@ -14,12 +14,17 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.plan_removed': 'took the plan off',
     'cowork.plan_made': 'had Cowork make a plan',
     'cowork.review_handled': 'handled a review',
+    'cowork.independence_set': 'chose how independent it may be: {level}',
 };
 
 const FIELD_FALLBACK: Record<string, string> = {
     title: 'the title', prompt: 'the brief', isActive: 'whether it runs', repeatInterval: 'the schedule', daysOfWeek: 'the schedule',
     timeOfDay: 'the schedule', timezone: 'the time zone', nextRunAt: 'the next run', modelTier: 'the model', agentId: 'the agent',
     enabledApps: 'the apps', triggerKind: 'what starts it', trigger: 'what starts it',
+};
+
+const LEVEL_FALLBACK: Record<string, string> = {
+    asks_everything: 'asks about everything', asks_before_sending: 'asks before sending', on_its_own: 'on its own',
 };
 
 /** The fields a change touched, in words, each once. */
@@ -37,6 +42,7 @@ export function trailLine(entry: TrailEntry, t: TranslateFn): string {
     const who = entry.byYou ? t('cowork_trail.you', 'You') : t('cowork_trail.someone', 'Someone else');
     const fallback = ACTION_FALLBACK[entry.action] ?? entry.action.replace(/^cowork\./, '').replaceAll('_', ' ');
     const state = entry.values.isActive === false ? t('cowork_trail.off', 'off') : t('cowork_trail.on', 'on');
-    const what = t(`cowork_trail.action.${entry.action.replace(/^cowork\./, '')}`, fallback, { what: changedWords(entry.changed, t), state });
+    const level = typeof entry.values.level === 'string' ? t(`cowork_trail.level.${entry.values.level}`, LEVEL_FALLBACK[entry.values.level] ?? entry.values.level) : '';
+    const what = t(`cowork_trail.action.${entry.action.replace(/^cowork\./, '')}`, fallback, { what: changedWords(entry.changed, t), state, level });
     return `${who} ${what}`;
 }

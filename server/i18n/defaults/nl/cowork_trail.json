@@ -2,6 +2,7 @@
   "translations": {
     "cowork_trail.action.created": "heeft dit werk aangemaakt",
     "cowork_trail.action.deleted": "heeft het verwijderd",
+    "cowork_trail.action.independence_set": "heeft gekozen hoe zelfstandig het mag zijn: {level}",
     "cowork_trail.action.plan_approved": "heeft het plan goedgekeurd",
     "cowork_trail.action.plan_attached": "heeft de automatisering van het plan gekozen",
     "cowork_trail.action.plan_made": "heeft Cowork een plan laten maken",
@@ -26,6 +27,9 @@
     "cowork_trail.field.trigger": "wat het start",
     "cowork_trail.field.triggerKind": "wat het start",
     "cowork_trail.heading": "Wijzigingen aan dit werk",
+    "cowork_trail.level.asks_before_sending": "vraagt voor het verstuurt",
+    "cowork_trail.level.asks_everything": "vraagt alles",
+    "cowork_trail.level.on_its_own": "zelfstandig",
     "cowork_trail.off": "uit",
     "cowork_trail.on": "aan",
     "cowork_trail.someone": "Iemand anders",

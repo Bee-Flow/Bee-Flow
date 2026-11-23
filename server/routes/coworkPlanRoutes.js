@@ -11,6 +11,8 @@
  *                               try-out's id as soon as it started
  *   GET    /:id/plan/try/:tryId → how that try-out is going, step by step
  *   GET    /:id/runs/:runId/trace → the steps of a run that followed a plan, for the item's history
+ *   GET    /:id/plan/independence → how independent the plan may be: the three levels, which are open, what each asks
+ *   PUT    /:id/plan/independence → choose a level (usecases/coworkIndependence.mts says which may be chosen)
  *
  * Ownership first (usecases/coworkItems.mts), the same rule as viewing and editing the item. What a plan is and when
  * it may be approved is the use case's (usecases/coworkPlan.mts) and the plan core's (core/cowork/plan); a try-out is
@@ -20,7 +22,7 @@
  */
 
 const { validate } = require('../core/http/validate');
-const { PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, NoBody } = require('./coworkSchemas');
+const { PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, NoBody } = require('./coworkSchemas');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
@@ -33,6 +35,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   plan: () => Pick<typeof import('../usecases/coworkPlan.mts'), 'planStateOf' | 'attachPlan' | 'approvePlan' | 'removePlan'>,
  *   tryOut: () => Pick<typeof import('../usecases/coworkPlanTry.mts'), 'startTry' | 'tryStateOf'>,
  *   trace: () => Pick<typeof import('../usecases/coworkRunTrace.mts'), 'runTraceOf'>,
+ *   independence: () => Pick<typeof import('../usecases/coworkIndependence.mts'), 'independenceOf' | 'chooseIndependence'>,
  *   tryLimit: import('express').RequestHandler<{ id: string }>,
  * }} PlanRouteDeps
  */
@@ -45,6 +48,7 @@ const defaults = () => ({
     plan: () => require('../usecases/coworkPlan.mts'),
     tryOut: () => require('../usecases/coworkPlanTry.mts'),
     trace: () => require('../usecases/coworkRunTrace.mts'),
+    independence: () => require('../usecases/coworkIndependence.mts'),
     tryLimit: perUserRateLimit({ windowMs: 60_000, max: TRIES_PER_MINUTE, name: 'cowork-plan-try' }),
 });
 
@@ -53,7 +57,7 @@ const defaults = () => ({
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan, tryOut, trace, tryLimit } = { ...defaults(), ...overrides };
+    const { loadItem, plan, tryOut, trace, tryLimit, independence } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
@@ -83,6 +87,15 @@ function mountPlanRoutes(router, overrides = {}) {
     router.get('/:id/plan/try/:tryId', validate({ params: PlanTryParams }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         res.json(await tryOut().tryStateOf({ item, tryId: req.params.tryId }));
+    });
+
+    router.get('/:id/plan/independence', async (req, res) => {
+        res.json(await independence().independenceOf(await loadItem(req.params.id, userIdOf(req))));
+    });
+
+    router.put('/:id/plan/independence', validate({ body: IndependenceBody }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        res.json(await independence().chooseIndependence({ item, level: req.body.level }));
     });
 
     router.get('/:id/runs/:runId/trace', validate({ params: RunTraceParams }), async (req, res) => {

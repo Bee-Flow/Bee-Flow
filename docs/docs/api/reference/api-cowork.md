@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-26 routes, 16 with a request schema. Back to the [endpoint reference](../reference.md).
+29 routes, 18 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -112,6 +112,22 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `fingerprint` | string | yes | min length 64; max length 64 |
+
+### `GET /api/cowork/:id/plan/independence`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/plan/independence`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `level` | one of `"asks_everything"`, `"asks_before_sending"`, `"on_its_own"` | yes |  |
 
 ### `POST /api/cowork/:id/plan/make`
 
@@ -218,6 +234,19 @@ No request schema.
 |-------|------|:--------:|-------|
 | `enabled` | boolean | yes |  |
 | `timeZone` | string | yes | min length 1; max length 64 |
+
+## `home`
+
+### `GET /api/cowork/home`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
+| `to` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
 
 ## `mail-providers`
 

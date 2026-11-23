@@ -36,6 +36,11 @@ const PLAN_DDL = Object.freeze([
     `CREATE INDEX IF NOT EXISTS idx_cowork_runs_automation_run ON cowork_runs (automation_run_id) WHERE automation_run_id IS NOT NULL`,
     // The sweep of runs that wait for a decision (core/cowork/planRunFollowUp.mts).
     `CREATE INDEX IF NOT EXISTS idx_cowork_runs_waiting ON cowork_runs (started_at, id) WHERE status = 'waiting'`,
+    // How independent the plan may be (core/cowork/plan/planIndependence.mts): the owner's choice on the item (NULL:
+    // not chosen), the level a run started with (kept across its pause), and when its owner decided on a waiting run.
+    `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS independence TEXT`,
+    `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS independence TEXT`,
+    `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ`,
 ]);
 
 module.exports = { PLAN_DDL };

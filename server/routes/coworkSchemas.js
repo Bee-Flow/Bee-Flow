@@ -172,5 +172,8 @@ const PlanApproveBody = z.object({ fingerprint: worded(FINGERPRINT_TEXT).length(
 const PlanTryParams = z.object({ id: z.string().min(1).max(200), tryId: z.string().min(1).max(200) });
 // GET /:id/runs/:runId/trace (usecases/coworkRunTrace.mts): the item and one of its runs.
 const RunTraceParams = z.object({ id: z.string().min(1).max(200), runId: z.string().min(1).max(200) });
+// PUT /:id/plan/independence (usecases/coworkIndependence.mts): one of the three levels.
+const LEVEL_TEXT = 'level is asks_everything, asks_before_sending or on_its_own.';
+const IndependenceBody = z.object({ level: z.enum(['asks_everything', 'asks_before_sending', 'on_its_own'], { error: LEVEL_TEXT }) }).strict();
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

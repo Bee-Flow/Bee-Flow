@@ -26,6 +26,8 @@ interface CoworkPlanCardProps {
     error?: string | null;
     /** The try-out of this plan (./CoworkPlanTry.tsx), shown between the plan and what its owner can do with it. */
     tryOut?: ReactNode;
+    /** The choice of how independent the approved plan may be (./CoworkIndependence.tsx). */
+    independence?: ReactNode;
     /** What the planner said about the plan it just made: what it does each run, and what it could not do. */
     note?: string | null;
     onApprove: (fingerprint: string) => void;
@@ -184,7 +186,7 @@ function PlannerNote({ note, t }: { note: string; t: TranslateFn }) {
     );
 }
 
-export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, note = null, onApprove, onRemove }: CoworkPlanCardProps) {
+export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, independence = null, note = null, onApprove, onRemove }: CoworkPlanCardProps) {
     const status = planStatusOf(state);
     if (status === 'none') return null;
     const draft = state.draft;
@@ -207,6 +209,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
             {draft && <PlanBody draft={draft} changed={status === 'changed'} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}
+            {independence}
             {error && <p role="alert" className="text-[12.5px] text-[var(--error-ink)]">{error}</p>}
             <PlanActions state={state} t={t} busy={busy} onApprove={onApprove} onRemove={onRemove} />
         </section>

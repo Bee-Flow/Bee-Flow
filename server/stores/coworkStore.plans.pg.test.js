@@ -127,7 +127,7 @@ test('the plan a run followed is read as it was approved then, with the automati
     await store.linkPlanRun(runId, { planId: first.id, automationRunId: 'arun-7' });
     await store.markCompleted(id, 'Done.', { runId });
     await approve(id, { definition: { ...DEFINITION, steps: [] }, fingerprint: 'e'.repeat(64) });
-    assert.deepStrictEqual(await store.getPlanRun(id, runId), { runId, automationRunId: 'arun-7', plan: first });
+    assert.deepStrictEqual(await store.getPlanRun(id, runId), { runId, automationRunId: 'arun-7', plan: first, independence: null });
     const listed = await store.listRuns(id);
     assert.strictEqual(listed[0]?.planId, first.id, 'the history says the run followed a plan');
 });
@@ -138,7 +138,7 @@ test('a run that followed no plan has none, a run that never started its automat
     const plain = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
     assert.strictEqual(await store.getPlanRun(id, plain), null, 'no plan on this run');
     await store.linkPlanRun(plain, { planId: plan.id });
-    assert.deepStrictEqual(await store.getPlanRun(id, plain), { runId: plain, automationRunId: null, plan });
+    assert.deepStrictEqual(await store.getPlanRun(id, plain), { runId: plain, automationRunId: null, plan, independence: null });
 
     const other = await item();
     assert.strictEqual(await store.getPlanRun(other, plain), null, 'asked through another item');
@@ -211,4 +211,39 @@ test('a drafted plan is named only on an item that still has none', async () => 
     assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y', { onlyIfNone: true }), false);
     assert.strictEqual((await store.getSchedule(id))?.planAutomationId, 'auto-x');
     assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y'), true, 'naming one by hand replaces it');
+});
+
+test('the level of independence: the owner\'s choice on the item, the level a run started with, and the runs let through', async () => {
+    const id = await item();
+    assert.strictEqual((await store.getSchedule(id))?.independence, null, 'not chosen');
+    await store.setIndependence(id, 'asks_everything');
+    assert.strictEqual((await store.getSchedule(id))?.independence, 'asks_everything');
+
+    const plan = await approve(id);
+    /** One run that waited for a decision and then ended as `status`. */
+    const decided = async (/** @type {'success'|'error'} */ status, /** @type {string} */ tag) => {
+        const runId = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
+        await store.linkPlanRun(runId, { planId: plan.id, independence: 'asks_before_sending' });
+        await store.linkPlanRun(runId, { planId: plan.id, automationRunId: `arun-${tag}` });
+        await store.markCompleted(id, 'Waiting.', { runId, waiting: true });
+        await store.closeWaitingRun(runId, { status, result: status === 'success' ? 'Done.' : null, error: status === 'error' ? 'You stopped it.' : null });
+        return runId;
+    };
+    const first = await decided('success', 'a');
+    assert.strictEqual((await store.getPlanRun(id, first))?.independence, 'asks_before_sending', 'a second link keeps the level');
+    assert.strictEqual((await store.getPlanOfAutomationRun('arun-a'))?.independence, 'asks_before_sending');
+    await decided('success', 'b');
+    assert.strictEqual(await store.countLetThrough(id, plan.id), 2);
+    // A run that ran without a question does not count.
+    const plain = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
+    await store.linkPlanRun(plain, { planId: plan.id });
+    await store.markCompleted(id, 'Done.', { runId: plain });
+    assert.strictEqual(await store.countLetThrough(id, plan.id), 2);
+    // A run its owner stopped starts the count again; a new version of the plan has its own count.
+    await decided('error', 'c');
+    assert.strictEqual(await store.countLetThrough(id, plan.id), 0);
+    await decided('success', 'd');
+    assert.strictEqual(await store.countLetThrough(id, plan.id), 1);
+    const next = await approve(id, { fingerprint: 'e'.repeat(64) });
+    assert.strictEqual(await store.countLetThrough(id, next.id), 0);
 });

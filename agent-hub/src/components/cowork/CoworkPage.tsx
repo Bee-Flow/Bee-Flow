@@ -20,11 +20,12 @@ import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
 import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
-import CoworkNeedsYou from './CoworkNeedsYou';
+import CoworkHome from './CoworkHome';
 import CoworkRow, { ReviewCountPill } from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
 import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
 import { useCoworkAgents } from '../../api/queries/coworkReads';
+import { useCoworkHome } from '../../api/coworkHome';
 import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
 import type { CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
@@ -44,6 +45,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     const [flash, setFlash] = useState<string | null>(null);
     // Bumped after any mutation so an open history refetches without a reload.
     const [reloadKey, setReloadKey] = useState(0);
+    const home = useCoworkHome(reloadKey); // how each item works, for its row
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Results arrive asynchronously (the runner reports into notifications), so
@@ -222,20 +224,14 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     // ── List ────────────────────────────────────────────────
     // One flat list, in the order the server sent it (newest first).
     //
-    // It used to be two sections, "Running & scheduled" over "Done & paused",
-    // and those headings were doing the row's job: the status was a small
-    // coloured icon with no word, so the only way to learn that something had
-    // stopped was which heading it had drifted under. Now that every row says
-    // "Running" / "Paused" / "Failed" out loud (CW-03), the split costs more
-    // than it gives — it reorders the list out from under someone the moment
-    // an item finishes, and it hides the newest thing they made under a
-    // heading two screens down.
+    // One list, not sections by status: every row says its status out loud (CW-03), so nothing reorders under the reader.
     const rows = items.map(item => (
         <CoworkRow
             key={item.id}
             item={item}
             selected={item.id === selectedId}
             onSelect={select}
+            how={home.data?.how[item.id]}
         />
     ));
 
@@ -355,7 +351,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                         <div className="h-full overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-6 py-10">
                             <div className="w-full max-w-2xl">
                                 <CoworkWelcomeHeader />
-                                <CoworkNeedsYou onOpen={select} reloadKey={reloadKey} />
+                                <CoworkHome onOpen={select} reloadKey={reloadKey} />
                                 {composer}
 
                                 {/* Starters only while there is nothing real to

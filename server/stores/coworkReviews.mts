@@ -101,6 +101,11 @@ export function makeCoworkReviews({ db = nodeRequire('../db.js') as Db, ready = 
         });
     }
 
+    return { getOpenReviewCounts, countOpenReviews, getRunForReview, resolveReview, ...makeCoworkOwnerRuns({ db, ready }) };
+}
+
+/** The owner's runs across their items: those that wait for them, and those of one day (Cowork's home). */
+function makeCoworkOwnerRuns({ db, ready }: { db: Db; ready: () => Promise<unknown> }) {
     /**
      * The runs of one owner that wait for them (the Needs you queue, usecases/coworkNeedsYou.mts): a review nobody
      * handled yet, and a plan run waiting for a decision. Newest first, at most `limit`.
@@ -122,5 +127,21 @@ export function makeCoworkReviews({ db = nodeRequire('../db.js') as Db, ready = 
         }));
     }
 
-    return { getOpenReviewCounts, countOpenReviews, getRunForReview, resolveReview, listRunsWaitingForOwner };
+    /** The owner's runs that started in [from, to), newest first, with the item's title: the "today" of Cowork's home. */
+    async function listRunsBetween(userId: string, from: string, to: string, limit = 100): Promise<Array<{ runId: string; itemId: string; title: string; status: string; at: string | null }>> {
+        await ready();
+        const rows = await db.getAll(
+            `SELECT r.id, r.schedule_id, s.title, r.status, r.started_at
+               FROM cowork_runs r JOIN cowork_schedules s ON s.id = r.schedule_id
+              WHERE s.user_id = $1 AND r.started_at >= $2 AND r.started_at < $3
+              ORDER BY r.started_at DESC LIMIT $4`,
+            [userId, from, to, Math.max(1, Math.min(200, Math.floor(limit) || 1))],
+        );
+        return rows.map((r) => ({
+            runId: String(r.id), itemId: String(r.schedule_id), title: String(r.title ?? ''), status: String(r.status),
+            at: r.started_at ? new Date(r.started_at as string).toISOString() : null,
+        }));
+    }
+
+    return { listRunsWaitingForOwner, listRunsBetween };
 }

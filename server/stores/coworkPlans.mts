@@ -44,6 +44,8 @@ export interface PlanRun {
     runId: string;
     automationRunId: string | null;
     plan: ApprovedPlan;
+    /** The level the run started with; null for a run from before levels (it asked nothing more). */
+    independence: string | null;
 }
 
 export interface ApproveInput {
@@ -127,10 +129,35 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     }
 
     /** Note on a run of a plan which plan it ran and which automation run holds its step trace. */
-    async function linkPlanRun(runId: string | null | undefined, { planId, automationRunId }: { planId: string; automationRunId?: string | null }): Promise<void> {
+    async function linkPlanRun(runId: string | null | undefined, { planId, automationRunId, independence }: { planId: string; automationRunId?: string | null; independence?: string | null }): Promise<void> {
         if (!runId) return;
         await ready();
-        await db.run('UPDATE cowork_runs SET plan_id = $2, automation_run_id = COALESCE($3, automation_run_id) WHERE id = $1', [runId, planId, automationRunId ?? null]);
+        await db.run(
+            'UPDATE cowork_runs SET plan_id = $2, automation_run_id = COALESCE($3, automation_run_id), independence = COALESCE($4, independence) WHERE id = $1',
+            [runId, planId, automationRunId ?? null, independence ?? null],
+        );
+    }
+
+    /** The owner's choice of how independent the item's plan may be (NULL: not chosen). */
+    async function setIndependence(scheduleId: string, level: string | null): Promise<void> {
+        await ready();
+        await db.run('UPDATE cowork_schedules SET independence = $2 WHERE id = $1', [scheduleId, level]);
+    }
+
+    /**
+     * Runs of this version of the plan its owner let through, since the last one they stopped: a run that waited for
+     * a decision and then ended well. "On its own" is offered from ON_ITS_OWN_AFTER on (core/cowork/plan/planIndependence.mts).
+     */
+    async function countLetThrough(scheduleId: string, planId: string): Promise<number> {
+        await ready();
+        const row = await db.getOne(
+            `SELECT COUNT(*)::int AS n FROM cowork_runs r
+              WHERE r.schedule_id = $1 AND r.plan_id = $2 AND r.status = 'success' AND r.decided_at IS NOT NULL
+                AND r.decided_at > COALESCE((SELECT MAX(x.decided_at) FROM cowork_runs x
+                     WHERE x.schedule_id = $1 AND x.plan_id = $2 AND x.status = 'error' AND x.decided_at IS NOT NULL), '-infinity'::timestamptz)`,
+            [scheduleId, planId],
+        );
+        return Number(row?.n ?? 0);
     }
 
     /**
@@ -140,17 +167,18 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     async function getPlanRun(scheduleId: string, runId: string): Promise<PlanRun | null> {
         await ready();
         const row = await db.getOne(
-            `SELECT p.*, r.automation_run_id AS run_automation_run_id
+            `SELECT p.*, r.automation_run_id AS run_automation_run_id, r.independence AS run_independence
                FROM cowork_runs r JOIN cowork_plans p ON p.id = r.plan_id
               WHERE r.id = $2 AND r.schedule_id = $1 AND p.schedule_id = r.schedule_id`,
             [scheduleId, runId],
         );
         const plan = rowToPlan(row);
         if (!row || !plan) return null;
-        return { runId, automationRunId: row.run_automation_run_id ? String(row.run_automation_run_id) : null, plan };
+        const independence = row.run_independence ? String(row.run_independence) : null;
+        return { runId, automationRunId: row.run_automation_run_id ? String(row.run_automation_run_id) : null, plan, independence };
     }
 
-    return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun, getPlanRun };
+    return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun, getPlanRun, setIndependence, countLetThrough };
 }
 
 /**
@@ -162,10 +190,10 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
      * The approved plan a journey of the automation engine is running, by the engine's run id of its first leg: what
      * the run continues on after a pause. Null for a run no Cowork run started.
      */
-    async function getPlanOfAutomationRun(automationRunId: string): Promise<(ApprovedPlan & { runId: string; userId: string; title: string | null }) | null> {
+    async function getPlanOfAutomationRun(automationRunId: string): Promise<(ApprovedPlan & { runId: string; userId: string; title: string | null; independence: string | null }) | null> {
         await ready();
         const row = await db.getOne(
-            `SELECT p.*, r.id AS cowork_run_id, s.user_id AS owner_id, s.title AS item_title
+            `SELECT p.*, r.id AS cowork_run_id, r.independence AS run_independence, s.user_id AS owner_id, s.title AS item_title
                FROM cowork_runs r
                JOIN cowork_plans p ON p.id = r.plan_id AND p.schedule_id = r.schedule_id
                JOIN cowork_schedules s ON s.id = r.schedule_id
@@ -175,7 +203,10 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
         );
         const plan = rowToPlan(row);
         if (!row || !plan) return null;
-        return { ...plan, runId: String(row.cowork_run_id), userId: String(row.owner_id), title: row.item_title ? String(row.item_title) : null };
+        return {
+            ...plan, runId: String(row.cowork_run_id), userId: String(row.owner_id), title: row.item_title ? String(row.item_title) : null,
+            independence: row.run_independence ? String(row.run_independence) : null,
+        };
     }
 
     /**
@@ -186,7 +217,7 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
         await ready();
         const closed = await db.getOne(
             `UPDATE cowork_runs
-                SET status = $2, result = COALESCE($3, result), error = $4, produced_output = $5,
+                SET status = $2, result = COALESCE($3, result), error = $4, produced_output = $5, decided_at = NOW(),
                     duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int, finished_at = NOW()
               WHERE id = $1 AND status = 'waiting'
           RETURNING id, schedule_id`,

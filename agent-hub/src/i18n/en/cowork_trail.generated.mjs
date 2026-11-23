@@ -8,6 +8,7 @@
 export default {
     "cowork_trail.action.created": "created this work",
     "cowork_trail.action.deleted": "deleted it",
+    "cowork_trail.action.independence_set": "chose how independent it may be: {level}",
     "cowork_trail.action.plan_approved": "approved the plan",
     "cowork_trail.action.plan_attached": "chose the automation of its plan",
     "cowork_trail.action.plan_made": "had Cowork make a plan",
@@ -32,6 +33,9 @@ export default {
     "cowork_trail.field.trigger": "what starts it",
     "cowork_trail.field.triggerKind": "what starts it",
     "cowork_trail.heading": "Changes to this work",
+    "cowork_trail.level.asks_before_sending": "asks before sending",
+    "cowork_trail.level.asks_everything": "asks about everything",
+    "cowork_trail.level.on_its_own": "on its own",
     "cowork_trail.off": "off",
     "cowork_trail.on": "on",
     "cowork_trail.someone": "Someone else",

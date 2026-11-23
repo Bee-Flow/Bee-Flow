@@ -22,7 +22,7 @@ function approved(definition = supplierRadar(), over = {}) {
     return { id: 'plan-1', automationId: 'auto-1', definition, fingerprint: planFingerprint(definition), ...over };
 }
 
-function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' } } = {}) {
+function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false } = {}) {
     const calls = [];
     const rec = (name, answer) => async (...a) => { calls.push([name, ...a]); return answer; };
     const store = {
@@ -39,6 +39,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         executeAutomation: async (a, opts) => { seen.executed.push({ automation: a, opts }); await opts.onRunCreated({ id: run.id }); return run; },
         createNotification: async (n) => { seen.notes.push(n); },
         lookups: fakeLookups(),
+        mayAsk: async () => mayAsk,
     };
     return { store, calls, seen, deps, names: () => calls.map((c) => c[0]) };
 }
@@ -66,9 +67,23 @@ test('the run records which plan it ran and, once the runner made its row, the a
     const h = harness();
     await executePlanRun(task, { store: h.store, manual: true }, h.deps);
     assert.deepStrictEqual(h.calls.filter((c) => c[0] === 'linkPlanRun'), [
-        ['linkPlanRun', 'run-1', { planId: 'plan-1' }],
+        ['linkPlanRun', 'run-1', { planId: 'plan-1', independence: 'on_its_own' }],
         ['linkPlanRun', 'run-1', { planId: 'plan-1', automationRunId: 'arun-1' }],
     ]);
+});
+
+test('the level decides the questions: a run that may ask, asks before what it sends; a choice to be asked that cannot be honoured runs nothing', async () => {
+    const sends = planOf([...supplierRadar().steps.slice(0, 6), { id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('x@supplier.example') } }]);
+    const asked = harness({ plan: approved(sends), mayAsk: true });
+    await executePlanRun(task, { store: asked.store, manual: true }, asked.deps);
+    const ran = asked.seen.executed[0].automation.definition.steps.map((/** @type {any} */ st) => st.id);
+    assert.deepStrictEqual(ran.slice(-2), ['cowork_ask__send', 'send'], 'the default where asking is possible: ask before sending');
+    assert.deepStrictEqual(asked.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_before_sending' });
+
+    const refused = harness({ plan: approved(sends), mayAsk: false });
+    await executePlanRun({ ...task, independence: 'asks_everything' }, { store: refused.store, manual: true }, refused.deps);
+    assert.deepStrictEqual(refused.seen.executed, [], 'nothing ran');
+    assert.match(refused.seen.failed[0]?.err.message ?? '', /asking needs approvals/);
 });
 
 test('the automation\'s own time limit is held to Cowork\'s, so the engine ends the run before Cowork\'s reaper would', async () => {

@@ -15,6 +15,7 @@ import { useState } from 'react';
 import CoworkPlanCard from './CoworkPlanCard';
 import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
+import CoworkIndependence from './CoworkIndependence';
 import { canTry } from './coworkPlanModel';
 import { useCoworkPlanActions, useCoworkPlanQuery, useCoworkPlanTry, usePlanAutomations } from '../../api/queries/coworkPlan';
 import useCoworkPlanMaker from '../../hooks/useCoworkPlanMaker';
@@ -131,6 +132,7 @@ export default function CoworkPlanPanel({ coworkId, mailTriggered = false }: { c
             t={t}
             busy={busy}
             tryOut={tryOut}
+            independence={state.approved ? <CoworkIndependence coworkId={coworkId} t={t} /> : null}
             note={maker.making.summary || null}
             error={failureOf(approve.error || remove.error, t)}
             onApprove={(fingerprint) => { remove.reset(); approve.mutate(fingerprint); }}

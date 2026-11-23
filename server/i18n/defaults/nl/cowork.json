@@ -3,11 +3,26 @@
     "cowork.history.ai_cost": "AI: {cost}, {count} modelaanroep",
     "cowork.history.ai_cost_plural": "AI: {cost}, {count} modelaanroepen",
     "cowork.history.started_by_mail": "Gestart door een nieuwe e-mail",
+    "cowork.home.cost_month": "AI deze maand: {cost}",
+    "cowork.how.agent": "Gedaan door een agent",
+    "cowork.how.ai": "{count} AI",
+    "cowork.how.asks_before_sending": "vraagt voor verzenden",
+    "cowork.how.asks_everything": "vraagt alles",
+    "cowork.how.cannot_run": "kan zo niet draaien",
+    "cowork.how.fixed": "{count} vaste stappen",
+    "cowork.how.on_its_own": "zelfstandig",
+    "cowork.how.prompt": "Draait een prompt",
     "cowork.stats.ai_calls": "{count} modelaanroep",
     "cowork.stats.ai_calls_plural": "{count} modelaanroepen",
     "cowork.stats.ai_month": "AI deze maand",
     "cowork.stats.ai_none": "Geen",
-    "cowork.stats.ai_none_sub": "er is geen model aangeroepen"
+    "cowork.stats.ai_none_sub": "er is geen model aangeroepen",
+    "cowork.today.done": "Klaar",
+    "cowork.today.failed": "Niet afgerond",
+    "cowork.today.heading": "Vandaag",
+    "cowork.today.next": "Komt nog",
+    "cowork.today.running": "Draait nu",
+    "cowork.today.waiting": "Wacht op jou"
   },
   "sameAsEnglish": []
 }

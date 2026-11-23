@@ -1252,11 +1252,13 @@ declare namespace DbRow {
         activity_json: string | null;
         automation_run_id: string | null;
         conversation_id: string | null;
+        decided_at: Date | null;
         duration_ms: number | null;
         error: string | null;
         finished_at: Date | null;
         followup_depth: number;
         id: string;
+        independence: string | null;
         mail_subject: string | null;
         parent_run_id: string | null;
         plan_id: string | null;
@@ -1284,6 +1286,7 @@ declare namespace DbRow {
         days_of_week: string | null;
         enabled_apps: string | null;
         id: string;
+        independence: string | null;
         is_active: boolean | null;
         last_result: string | null;
         last_run_at: Date | null;

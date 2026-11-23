@@ -43,10 +43,12 @@ const literal = (value) => ({ kind: 'literal', value });
  * trigger → pick the numbers → (ask the owner) → tell the owner. The automation's own settings name a room and
  * another person.
  */
-function definition(label = 'three orders', { ask = false, tellBody = '{{steps.facts.output.what}} are overdue' } = {}) {
+function definition(label = 'three orders', { ask = false, send = false, tellBody = '{{steps.facts.output.what}} are overdue' } = {}) {
     const steps = [
         { id: 'facts', type: 'set', label: 'Collect the figures', fields: { overdue: literal(3), what: literal(label) } },
         ...(ask ? [{ id: 'ask', type: 'approval', label: 'Ask me first', prompt: 'Send the digest about {{steps.facts.output.what}}?' }] : []),
+        // A mail to someone else: this server has no mailbox, so once it really runs, it fails.
+        ...(send ? [{ id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('orders@supplier.example'), subject: literal('Overdue orders'), body: literal('Three orders are overdue.') } }] : []),
         { id: 'tell', type: 'notification', label: 'Send me the digest', title: 'Supplier radar', body: tellBody, channels: ['notification'] },
     ];
     const ids = ['trg', ...steps.map((x) => x.id)];
@@ -162,6 +164,56 @@ test('a plan that waits for its owner continues on the approved copy after the d
         assert.strictEqual(mine.filter((m) => m === 'three orders are overdue').length, 1, 'the result reached the owner once');
         assert.ok(!mine.some((m) => m.includes('SEVEN') || m.includes('CHANGED')), 'nothing of the changed automation ran');
         assert.deepStrictEqual(await notificationsOf('someone-else'), [], 'the automation\'s own settings reached nobody');
+    } finally {
+        followUp.stop();
+        setPauseDepsForTests(null);
+    }
+});
+
+test('asking before sending: a run stops at the question in front of the mail; a rejection ends it there, an approval goes on', async () => {
+    const followUp = require('./planRunFollowUp.mts');
+    const { setPauseDepsForTests } = require('../automationRunner/dryPause.mts');
+    const { chooseIndependence } = require('../../usecases/coworkIndependence.mts');
+    const { decide } = require('../../automation/approvalService');
+    setPauseDepsForTests({ hasCapability: async (capId) => capId === 'approvals' });
+    followUp.start();
+    /** Run an item that asks before sending until it waits, and answer the question. */
+    const journey = async (/** @type {string} */ owner, /** @type {'approve'|'reject'} */ decision) => {
+        const { item, attached } = await itemWithPlan({ send: true }, owner);
+        assert.deepStrictEqual(attached.draft.findings, [], 'a plan that mails someone is one Cowork runs');
+        await approvePlan({ item, fingerprint: attached.draft.fingerprint });
+        const chosen = await chooseIndependence({ item: await store.getSchedule(item.id), level: 'asks_before_sending' });
+        assert.deepStrictEqual(chosen.options.find((o) => o.level === 'asks_before_sending')?.asksBefore, ['Mail the supplier']);
+        await executeTask(await store.getSchedule(item.id), { manual: true, store });
+        const [waiting] = await store.listRuns(item.id);
+        assert.strictEqual(waiting.status, 'waiting', `the run waits before the mail (${waiting.error})`);
+        const link = await store.getPlanRun(item.id, waiting.id);
+        assert.strictEqual(link.independence, 'asks_before_sending', 'the run keeps the level it started with');
+        const pausedTrace = await runTraceOf({ item, runId: waiting.id });
+        assert.deepStrictEqual(pausedTrace.steps.map((x) => x.id), ['facts', 'cowork_ask__send', 'send', 'tell']);
+        assert.strictEqual(pausedTrace.steps.find((x) => x.id === 'send')?.status, 'pending', 'the mail did not go');
+        const approval = await automationStore.getApprovalForRunStep(link.automationRunId, 'cowork_ask__send', { pendingOnly: true });
+        assert.ok(approval, 'the question is there to decide, under Approvals');
+        assert.match(approval.prompt || '', /Before it sends: "Mail the supplier"/);
+        const run = await automationStore.getRun(link.automationRunId);
+        const decided = await decide({ approval, run, deciderId: owner, decision, reason: 'Not this week.', source: 'studio' });
+        assert.strictEqual(decided.code, 200, JSON.stringify(decided).slice(0, 300));
+        let closed = (await store.listRuns(item.id))[0];
+        for (let i = 0; i < 100 && closed.status === 'waiting'; i++) {
+            await new Promise((resolve) => { setTimeout(resolve, 50); });
+            closed = (await store.listRuns(item.id))[0];
+        }
+        return { item, closed, trace: await runTraceOf({ item, runId: closed.id }) };
+    };
+    try {
+        const stopped = await journey('u-plan-asks-no', 'reject');
+        assert.strictEqual(stopped.closed.status, 'error', 'a rejected question ends the run');
+        assert.deepStrictEqual(stopped.trace.steps.filter((x) => x.id === 'send' || x.id === 'tell').map((x) => x.status), ['not_reached', 'not_reached'], 'nothing after the question ran');
+
+        const went = await journey('u-plan-asks-yes', 'approve');
+        const sendStep = went.trace.steps.find((x) => x.id === 'send');
+        assert.ok(sendStep && sendStep.status !== 'pending' && sendStep.status !== 'not_reached', `after the approval the journey went on to the mail (${sendStep?.status})`);
+        assert.strictEqual(went.trace.steps.find((x) => x.id === 'cowork_ask__send')?.status, 'success');
     } finally {
         followUp.stop();
         setPauseDepsForTests(null);

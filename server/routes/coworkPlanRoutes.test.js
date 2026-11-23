@@ -37,6 +37,11 @@ const tryOut = {
 };
 const TRACE = { runId: 'run-1', planVersion: 2, recorded: true, done: true, durationMs: 5200, steps: [] };
 const trace = { runTraceOf: async ({ item, runId }) => { asked.push(['runTraceOf', { item: item.id, runId }]); return TRACE; } };
+const LEVELS = { chosen: null, level: 'asks_before_sending', asksAvailable: true, letThrough: 0, needed: 10, options: [] };
+const independence = {
+    independenceOf: async (item) => { asked.push(['independenceOf', { item: item.id }]); return LEVELS; },
+    chooseIndependence: async ({ item, level }) => { asked.push(['chooseIndependence', { item: item.id, level }]); return LEVELS; },
+};
 /** A limit no test reaches by accident; the limit itself has its own router below. */
 const roomy = () => perUserRateLimit({ windowMs: 60_000, max: 1000, name: 'cowork-plan-try-roomy', _redis: null });
 /** The ownership rule of usecases/coworkItems.mts, over one item that belongs to u1. */
@@ -49,7 +54,7 @@ const loadItem = async (id, userId) => {
 const router = express.Router();
 // The session check routes/cowork.js puts in front of every Cowork route.
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, tryLimit: roomy() });
+mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, independence: () => /** @type {any} */ (independence), tryLimit: roomy() });
 const api = serve('/api/cowork', router, { user: OWNER });
 after(api.close);
 
@@ -129,6 +134,17 @@ test('the steps of a run are read through its item: the use case gets the item a
     assert.deepStrictEqual([res.status, res.body], [200, TRACE]);
     assert.deepStrictEqual(asked, [['runTraceOf', { item: 'cw-1', runId: 'run-1' }]]);
     assert.strictEqual((await api.call('GET', `/api/cowork/cw-1/runs/${'x'.repeat(201)}/trace`)).status, 400);
+});
+
+test('the level of independence is read and chosen through the item; only the three words are levels', async () => {
+    asked = [];
+    assert.deepStrictEqual((await api.call('GET', '/api/cowork/cw-1/plan/independence')).body, LEVELS);
+    assert.strictEqual((await api.call('PUT', '/api/cowork/cw-1/plan/independence', { body: { level: 'asks_everything' } })).status, 200);
+    assert.deepStrictEqual(asked, [['independenceOf', { item: 'cw-1' }], ['chooseIndependence', { item: 'cw-1', level: 'asks_everything' }]]);
+    for (const body of [{ level: 'never_asks' }, { level: 'on_its_own', extra: 1 }, {}]) {
+        assert.strictEqual((await api.call('PUT', '/api/cowork/cw-1/plan/independence', { body })).status, 400, JSON.stringify(body));
+    }
+    assert.strictEqual((await api.call('PUT', '/api/cowork/cw-1/plan/independence', { body: { level: 'on_its_own' }, user: { id: 'u2' } })).status, 403);
 });
 
 test('starting a try-out takes no body, and a try-out id is short text', async () => {

@@ -17,6 +17,7 @@ import type { RunStepRow, TraceStep } from '../core/cowork/plan/planTrace.mts';
 import type { PlanRun } from '../stores/coworkPlans.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
+import { isIndependence, withAsks } from '../core/cowork/plan/planIndependence.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -68,7 +69,8 @@ async function recordedRun(link: PlanRun, deps: TraceDeps): Promise<RunRow | nul
 export async function runTraceOf({ item, runId }: { item: Item; runId: string }, deps: TraceDeps = defaultDeps()): Promise<RunTrace> {
     const link = await deps.store.getPlanRun(item.id, runId);
     if (!link) throw new HttpError(404, 'cowork_run_no_plan', 'This run followed no plan.');
-    const definition = link.plan.definition as Definition;
+    // The plan as the run executed it: with the questions of the level it started with (none for an older run).
+    const definition = withAsks(link.plan.definition as Definition, isIndependence(link.independence) ? link.independence : 'on_its_own', deps.lookups);
     const run = await recordedRun(link, deps);
     if (!run) {
         return { runId, planVersion: link.plan.version, recorded: false, done: true, durationMs: null, steps: traceSteps(definition, [], { done: true, simulated: false }, deps.lookups) };
