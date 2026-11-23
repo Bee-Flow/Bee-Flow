@@ -18,7 +18,7 @@ const lookups = fakeLookups();
 const ITEM = { id: 's1', userId: 'u1', triggerKind: 'schedule', planAutomationId: 'auto-1', planId: null };
 
 /** A world with the automations given by id, and an in-memory plan store. */
-function world({ automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition: supplierRadar() } }, refusal = null } = {}) {
+function world({ automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition: supplierRadar() } }, refusal = null, mayAsk = true } = {}) {
     const state = { approved: /** @type {any} */ (null), attached: /** @type {string | null} */ (null), detached: 0, approvals: /** @type {any[]} */ ([]) };
     const deps = {
         store: {
@@ -33,6 +33,7 @@ function world({ automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organiz
         },
         getAutomation: async (id) => automations[id] ?? null,
         isManaged: async (a) => a.projectId === 'stage-project',
+        mayAsk: async () => mayAsk,
         ownerRefusal: async () => refusal,
         lookups,
     };
@@ -87,6 +88,19 @@ test('an automation a Solution stage manages is no plan: it cannot be named, and
     const state = await planStateOf({ ...ITEM, planAutomationId: 'auto-1' }, deps);
     assert.deepStrictEqual([state.automationId, state.draft], ['auto-1', null]);
     await assert.rejects(approvePlan({ item: { ...ITEM, planAutomationId: 'auto-1' }, fingerprint: 'f'.repeat(64) }, deps), httpError(409, 'cowork_plan_refused'));
+});
+
+test('a step that waits for a decision needs approvals in the licence: without it the card says so and nothing is approved', async () => {
+    const withAsk = planOf([{ id: 'facts', type: 'set', fields: {} }, { id: 'ask', type: 'approval', prompt: 'Send it?' }, { id: 'tell', type: 'notification', title: 'Done' }]);
+    const automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition: withAsk } };
+    const unlicensed = world({ automations, mayAsk: false });
+    const state = await planStateOf(ITEM, unlicensed.deps);
+    assert.deepStrictEqual(state.draft.findings.map((f) => [f.code, f.stepId]), [['ask.not_licensed', 'ask']]);
+    assert.match(state.draft.findings[0].message, /needs approvals/);
+    await assert.rejects(approvePlan({ item: ITEM, fingerprint: state.draft.fingerprint }, unlicensed.deps), httpError(422, 'cowork_plan_not_allowed'));
+    const licensed = world({ automations });
+    assert.deepStrictEqual((await planStateOf(ITEM, licensed.deps)).draft.findings, []);
+    assert.deepStrictEqual((await planStateOf(ITEM, world({ mayAsk: false }).deps)).draft.findings, [], 'a plan without such a step needs nothing');
 });
 
 test('a building block is no plan, and an item that starts on a mail carries none yet', async () => {

@@ -25,6 +25,7 @@ import { permissionsOf, planFingerprint, widens } from '../core/cowork/plan/plan
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
+import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -44,6 +45,8 @@ export interface Deps {
     getAutomation: (id: string) => Promise<AutomationRow | null>;
     /** The automation is managed by a Solution stage: no plan source (core/cowork/plan/planSource.mts). */
     isManaged: (automation: AutomationRow) => Promise<boolean>;
+    /** The owner's licence covers a step that waits for a decision (core/cowork/plan/planLicence.mts). */
+    mayAsk: MayAsk;
     /** Why the automation runner would refuse this owner, or null (core/automationRunner/ownerGate.mts). */
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     lookups: ToolLookups;
@@ -54,6 +57,7 @@ function defaultDeps(): Deps {
         store: nodeRequire('../stores/coworkStore.js'),
         getAutomation: (id) => (nodeRequire('../stores/automationStore') as { getAutomation: (id: string) => Promise<AutomationRow | null> }).getAutomation(id),
         isManaged: isManagedByStage,
+        mayAsk: mayAskByLicence,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: Deps['ownerRefusal'] }).ownerRefusal(owner),
         lookups: toolLookups(),
     };
@@ -81,12 +85,14 @@ export interface PlanState {
     upToDate: boolean;
 }
 
-function draftOf(automation: AutomationRow, lookups: ToolLookups): PlanDraft {
+/** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
+async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk'>): Promise<PlanDraft> {
     const definition = automation.definition as Definition;
+    const owner = { userId: automation.userId, organizationId: automation.organizationId ?? null };
     return {
-        view: planViewOf(definition, lookups),
-        permissions: permissionsOf(definition, lookups),
-        findings: checkPlan(definition, lookups),
+        view: planViewOf(definition, deps.lookups),
+        permissions: permissionsOf(definition, deps.lookups),
+        findings: [...checkPlan(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk)],
         fingerprint: planFingerprint(definition),
     };
 }
@@ -100,7 +106,7 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         ownAutomation(item.planAutomationId, item.userId, deps),
         deps.store.getApprovedPlan(item.id),
     ]);
-    const draft = automation ? draftOf(automation, deps.lookups) : null;
+    const draft = automation ? await draftOf(automation, deps) : null;
     const approved = approvedRow
         ? { version: approvedRow.version, fingerprint: approvedRow.fingerprint, approvedAt: approvedRow.approvedAt, permissions: approvedRow.permissions as PlanPermissions }
         : null;
@@ -133,7 +139,7 @@ const REFUSAL_TEXT = Object.freeze({
 export async function approvePlan({ item, fingerprint }: { item: Item; fingerprint: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
-    const draft = draftOf(automation, deps.lookups);
+    const draft = await draftOf(automation, deps);
     if (draft.fingerprint !== fingerprint) {
         throw new HttpError(409, 'cowork_plan_changed', 'The plan changed since you looked at it. Look at it again, then approve it.');
     }

@@ -22,6 +22,7 @@ import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
+import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -37,6 +38,8 @@ export interface TryDeps {
     getAutomation: (id: string) => Promise<AutomationRow | null>;
     /** The automation is managed by a Solution stage: no plan source (core/cowork/plan/planSource.mts). */
     isManaged: (automation: AutomationRow) => Promise<boolean>;
+    /** The owner's licence covers a step that waits for a decision (core/cowork/plan/planLicence.mts). */
+    mayAsk: MayAsk;
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     executeAutomation: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<RunRow | null | undefined>;
     getRun: (runId: string) => Promise<RunRow | null>;
@@ -51,6 +54,7 @@ function defaultDeps(): TryDeps {
         getRun: (id) => store().getRun(id),
         getRunSteps: (id) => store().getRunSteps(id),
         isManaged: isManagedByStage,
+        mayAsk: mayAskByLicence,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: TryDeps['ownerRefusal'] }).ownerRefusal(owner),
         executeAutomation: (a, o) => (nodeRequire('../core/automationRunner') as { executeAutomation: TryDeps['executeAutomation'] }).executeAutomation(a, o),
         lookups: toolLookups(),
@@ -84,7 +88,7 @@ const REFUSAL_TEXT = Object.freeze({
 export async function startTry({ item }: { item: Item }, deps: TryDeps = defaultDeps()): Promise<{ tryId: string; fingerprint: string }> {
     const automation = await planAutomation(item, deps);
     const definition = automation.definition as Definition;
-    const findings = checkPlan(definition, deps.lookups);
+    const findings = [...checkPlan(definition, deps.lookups), ...await licenceFindings(definition, { userId: item.userId, organizationId: automation.organizationId ?? null }, deps.mayAsk)];
     if (findings.length > 0) {
         throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be tried yet: ${findings[0]?.message ?? ''}`);
     }

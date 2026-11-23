@@ -16,11 +16,12 @@ const { fakeLookups, planOf, supplierRadar } = require('../core/cowork/plan/plan
 
 const ITEM = { id: 's1', userId: 'u1', planAutomationId: 'auto-1' };
 
-function world({ automation = { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition: supplierRadar() }, refusal = null, run = { id: 'try-1', automationId: 'auto-1', mode: 'dry_run', status: 'running' }, steps = [] } = {}) {
+function world({ automation = { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition: supplierRadar() }, refusal = null, run = { id: 'try-1', automationId: 'auto-1', mode: 'dry_run', status: 'running' }, steps = [], mayAsk = true } = {}) {
     const seen = { executed: [] };
     const deps = {
         getAutomation: async () => automation,
         isManaged: async (a) => a.projectId === 'stage-project',
+        mayAsk: async () => mayAsk,
         ownerRefusal: async () => refusal,
         executeAutomation: async (a, opts) => {
             seen.executed.push({ automation: a, opts });
@@ -72,6 +73,13 @@ test('a plan with a finding is not tried, an owner the runner refuses neither, a
     const refused = world({ refusal: 'not_entitled' });
     await assert.rejects(startTry({ item: ITEM }, refused.deps), httpError(403, 'cowork_plan_refused'));
     assert.strictEqual(blocked.seen.executed.length + refused.seen.executed.length, 0);
+});
+
+test('a plan with a step that waits for a decision is not tried where the licence has no approvals', async () => {
+    const withAsk = planOf([{ id: 'facts', type: 'set', fields: {} }, { id: 'ask', type: 'approval', prompt: 'Send it?' }]);
+    const w = world({ automation: { id: 'auto-1', userId: 'u1', organizationId: 'org-1', definition: withAsk }, mayAsk: false });
+    await assert.rejects(startTry({ item: ITEM }, w.deps), (err) => err.status === 422 && /needs approvals/.test(err.message));
+    assert.strictEqual(w.seen.executed.length, 0);
 });
 
 test('an item without a plan, or whose automation is gone or someone else\'s, has nothing to try', async () => {

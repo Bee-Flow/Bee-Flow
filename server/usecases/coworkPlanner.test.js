@@ -36,7 +36,7 @@ const BATCH = [
 ];
 const DONE = says('Each run reads the supplier mail, says what is overdue and tells you.');
 
-function world({ script = [INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE], refusal = null, model = 'model-thinking', stored = { id: 'auto-new' }, maxMs = 60_000 } = {}) {
+function world({ script = [INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE], refusal = null, model = 'model-thinking', stored = { id: 'auto-new' }, maxMs = 60_000, mayAsk = true } = {}) {
     const seen = { chats: [], persisted: [], attached: [], usage: [], progress: [] };
     let turn = 0;
     const deps = {
@@ -58,6 +58,7 @@ function world({ script = [INSPECT, calls(['builder_add_steps', { steps: BATCH }
             persistDraft: async (draft, opts) => { seen.persisted.push({ draft: structuredClone({ ...draft, _availableToolNames: null, _inspectedTools: null, _allowedModelTiers: null }), opts }); return stored; },
         },
         lookups: fakeLookups(),
+        mayAsk: async () => mayAsk,
         now: () => 1_795_000_000_000,
         maxMs,
     };
@@ -239,4 +240,16 @@ test('the catalog the model builds from is read through the caller\'s session, a
     assert.deepStrictEqual(asked, ['u1', { user: { id: 'u1' } }]);
     const refused = seen.chats[2].messages.findLast((m) => m.role === 'tool').content;
     assert.match(refused, /swarm|tier/i, 'the builder refused a tier the owner does not have');
+});
+
+test('where the licence has no approvals the model is told so, and a step that waits for a decision comes back as a finding', async () => {
+    const withAsk = [BATCH[0], { tempId: 'ask', type: 'approval', spec: { prompt: 'Send the digest?' } }, { tempId: 'tell', type: 'notification', spec: { title: 'Supplier mail', body: 'Checked the mail.' } }];
+    const { deps, seen, input } = world({ mayAsk: false, script: [INSPECT, calls(['builder_add_steps', { steps: withAsk }]), DONE] });
+    const made = await makePlan(input(), deps);
+    assert.match(seen.chats[0].messages[0].content, /There is NO approval step on this workspace/);
+    assert.match(seen.chats[2].messages.at(-1).content, /ask\.not_licensed/, 'the report after the change says so');
+    assert.deepStrictEqual(made.findings.map((f) => f.code), ['ask.not_licensed']);
+    const licensed = world();
+    await makePlan(licensed.input(), licensed.deps);
+    assert.match(licensed.seen.chats[0].messages[0].content, /asks the owner: never name another approver/);
 });

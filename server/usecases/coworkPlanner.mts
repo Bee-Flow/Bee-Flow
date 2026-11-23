@@ -27,6 +27,7 @@ import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { plannerChat } from './coworkPlannerChat.mts';
+import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { planReport, plannerRefusal, plannerSystemPrompt, plannerTools, type ValidationRecord } from './coworkPlannerPrompt.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -88,6 +89,8 @@ export interface PlannerDeps {
     logUsage: (call: Record<string, unknown>) => void;
     builder: BuilderPort;
     lookups: ToolLookups;
+    /** The owner's licence covers a step that waits for a decision (core/cowork/plan/planLicence.mts). */
+    mayAsk: MayAsk;
     now: () => number;
     /** The whole making of a plan may take this long (PLANNER_MAX_MS). */
     maxMs: number;
@@ -134,6 +137,7 @@ function defaultDeps(): PlannerDeps {
         logUsage: (call) => (nodeRequire('../core/llm/surfaceUsage.js') as { logSurfaceUsage: (c: unknown) => void }).logSurfaceUsage(call),
         builder: builderPort(),
         lookups: toolLookups(),
+        mayAsk: mayAskByLicence,
         now: () => Date.now(),
         maxMs: PLANNER_MAX_MS,
     };
@@ -242,10 +246,10 @@ async function runTool(call: ToolCall, draft: DraftWrap, builder: BuilderPort): 
 
 interface LoopResult { summary: string; rounds: number }
 
-interface LoopInput { draft: DraftWrap; modelId: string; system: string; signal: AbortSignal; onProgress?: MakeInput['onProgress'] }
+interface LoopInput { draft: DraftWrap; modelId: string; system: string; signal: AbortSignal; findingsOf: (def: Definition) => Promise<PlanFinding[]>; onProgress?: MakeInput['onProgress'] }
 
 /** The model and its tools, until the model stops, the rounds are used up or the caller gave up. */
-async function draftLoop({ draft, modelId, system, signal, onProgress }: LoopInput, deps: PlannerDeps): Promise<LoopResult> {
+async function draftLoop({ draft, modelId, system, signal, findingsOf, onProgress }: LoopInput, deps: PlannerDeps): Promise<LoopResult> {
     const { builder } = deps;
     const tools = plannerTools(builder.toolSchemas);
     const messages: Message[] = [
@@ -273,7 +277,7 @@ async function draftLoop({ draft, modelId, system, signal, onProgress }: LoopInp
         }
         if (!mutated) continue;
         onProgress?.({ phase: 'drafted', round, steps: planViewOf(draft.def, deps.lookups).steps.map((s) => ({ id: s.id, title: s.title, kind: s.kind })) });
-        const report = planReport(builder.errorsOf(draft.def), checkPlan(draft.def, deps.lookups));
+        const report = planReport(builder.errorsOf(draft.def), await findingsOf(draft.def));
         if (report) messages.push({ role: 'user', content: report });
     }
     return { summary: summary.trim(), rounds };
@@ -326,12 +330,16 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = defaultDeps
 
     const catalog = await deps.builder.catalogFor(item.userId, input.session ?? null);
     const draft = await newDraft(item, userOrgId, catalog, deps);
+    const owner = { userId: item.userId, organizationId: userOrgId };
+    const approvals = await deps.mayAsk(owner);
+    // What Cowork would not run, the licence included: what the model is told after each change, and what is returned.
+    const findingsOf = async (def: Definition) => [...checkPlan(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = plannerSystemPrompt({
-        title: draft.title, brief,
+        title: draft.title, brief, approvals,
         catalog: deps.builder.renderCatalog(catalog),
         datatables: deps.builder.renderDatatables(catalog.datatables),
     });
-    const loop = await draftWithin({ draft, modelId, system, onProgress: input.onProgress }, input.signal, deps);
+    const loop = await draftWithin({ draft, modelId, system, findingsOf, onProgress: input.onProgress }, input.signal, deps);
 
     const steps = planViewOf(draft.def, deps.lookups).steps;
     if (steps.length === 0) {
@@ -340,5 +348,5 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = defaultDeps
     input.onProgress?.({ phase: 'saving' });
     const automationId = await storeAsPlan(item, draft, deps);
     log.info(`[CoworkPlanner] ${item.id}: drafted ${steps.length} step(s) in ${loop.rounds} round(s) as automation ${automationId}`);
-    return { automationId, summary: loop.summary, findings: checkPlan(draft.def, deps.lookups), rounds: loop.rounds };
+    return { automationId, summary: loop.summary, findings: await findingsOf(draft.def), rounds: loop.rounds };
 }
