@@ -36,6 +36,21 @@ test('only a try-out holds steps back: in a real run the same step is not held, 
     for (const step of [draftOf(true), draftOf(false)]) assert.match(step.preview, /hoekstra-staal/);
 });
 
+test('a result for the owner shows its message: what it delivered, or in a try-out what it would deliver', () => {
+    const digestOf = (rows, simulated) => traceSteps(supplierRadar(), rows, { done: true, simulated }, fakeLookups()).find((s) => s.id === 'digest');
+    const sent = digestOf([{ stepId: 'digest', attempts: 1, status: 'success', input: null, output: { title: 'Supplier radar', body: '3 orders are overdue', channels: ['notification'] } }], false);
+    assert.match(sent.preview, /3 orders are overdue/);
+    const tried = digestOf([{ stepId: 'digest', attempts: 1, status: 'success', output: { _dryRun: true, wouldNotify: { title: 'Supplier radar', body: '3 orders are overdue' } } }], true);
+    assert.deepStrictEqual([tried.held, /3 orders are overdue/.test(tried.preview), /_dryRun/.test(tried.preview)], [true, true, false]);
+});
+
+test('a step that acted without recorded inputs shows its real answer, and in a try-out nothing: a simulated answer is made up', () => {
+    const rows = [{ stepId: 'draft', attempts: 1, status: 'success', input: {}, output: { id: 'sample-draft-id' } }];
+    const draftOf = (simulated) => traceSteps(supplierRadar(), rows, { done: true, simulated }, fakeLookups()).find((s) => s.id === 'draft');
+    assert.match(draftOf(false).preview, /sample-draft-id/);
+    assert.strictEqual(draftOf(true).preview, null);
+});
+
 test('a time that cannot be right is not shown: a missing end, an end before the start', () => {
     const rows = [
         { stepId: 'mail', attempts: 1, status: 'success', startedAt: '2026-11-23T09:14:02.000Z', finishedAt: '2026-11-23T09:14:01.000Z' },

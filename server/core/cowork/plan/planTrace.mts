@@ -6,6 +6,8 @@
  *   - A step that only reads previews what it got. A step that changes or sends previews what went INTO it: the
  *     draft, the row, the recipient. In a try-out that is what it WOULD have written or sent, and its simulated
  *     answer (made-up sample data) is never shown as if it were real.
+ *   - A result for the owner has no inputs: its message is its title and body, and the runner records what it
+ *     delivered (in a try-out: what it would deliver) as its output. That is what its preview shows.
  *   - The runner records a loop as one step, not its body per item, so a step inside a loop goes by its loop: it has
  *     the loop's status and no preview of its own.
  *   - A step the finished run never came to (a branch not taken, a step after a failure) is 'not_reached'.
@@ -68,6 +70,22 @@ function durationOf(row: RunStepRow): number | null {
     return Number.isFinite(ms) && ms >= 0 ? ms : null;
 }
 
+const filled = (value: unknown): boolean => previewOf(value) !== null;
+
+/** The message a result step would deliver, as a try-out records it; else the output itself. */
+function messageOf(output: unknown): unknown {
+    const would = output && typeof output === 'object' ? (output as { wouldNotify?: unknown }).wouldNotify : undefined;
+    return would === undefined ? output : would;
+}
+
+/** What a step's preview is made from: see the header. Null when showing anything would show made-up data. */
+function shownOf(step: { kind: StepKind; effect: Effect }, row: RunStepRow, simulated: boolean): unknown {
+    if (step.effect === 'reads') return row.output;
+    if (filled(row.input)) return row.input;
+    if (step.kind === 'deliver') return messageOf(row.output);
+    return simulated ? null : row.output;
+}
+
 /** The last attempt of each step: the one that counts. */
 function lastAttempts(rows: RunStepRow[]): Map<string, RunStepRow> {
     const last = new Map<string, RunStepRow>();
@@ -107,7 +125,7 @@ export function traceSteps(definition: Definition | null | undefined, rows: RunS
             durationMs: row ? durationOf(row) : null,
             held: facts.simulated && acts,
             error: row?.error ?? null,
-            preview: row ? previewOf(acts ? row.input : row.output) : null,
+            preview: row ? previewOf(shownOf(step, row, facts.simulated)) : null,
         };
     });
 }
