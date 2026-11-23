@@ -48,11 +48,14 @@ const mock = createRecordingDb({
         if (/^\s*INSERT INTO integration_response_cache/i.test(sql)) {
             const [cacheKey, organizationId, userId, toolName, payload, payloadBytes, ttl] = params;
             const at = rows.findIndex(r => r.cache_key === cacheKey);
+            // One clock read, like NOW() in one statement: two reads could
+            // straddle a millisecond and put expires_at 1 ms off created_at.
+            const now = Date.now();
             const row = {
                 cache_key: cacheKey, organization_id: organizationId, user_id: userId,
                 tool_name: toolName, payload, payload_bytes: payloadBytes,
-                created_at: Date.now(),
-                expires_at: Date.now() + Number(ttl) * 1000,
+                created_at: now,
+                expires_at: now + Number(ttl) * 1000,
             };
             if (at >= 0) rows[at] = row; else rows.push(row);
             return { rows: [], rowCount: 1 };
