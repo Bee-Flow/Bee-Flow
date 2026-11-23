@@ -17,6 +17,7 @@ export default {
     "cowork_trail.action.review_handled": "handled a review",
     "cowork_trail.action.start_set": "changed how it starts",
     "cowork_trail.action.toggled": "switched it {state}",
+    "cowork_trail.action.trust_set": "changed what may go on its own",
     "cowork_trail.action.updated": "changed {what}",
     "cowork_trail.empty": "No changes recorded yet.",
     "cowork_trail.failed": "The changes could not be loaded.",

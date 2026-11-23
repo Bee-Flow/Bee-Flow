@@ -44,6 +44,19 @@ const PLAN_DDL = Object.freeze([
     // What an item may spend on AI in a calendar month, in euros (NULL: no limit); at it, it pauses itself
     // (core/cowork/runBudget.mts).
     `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS monthly_budget NUMERIC`,
+    // Trust per action and recipient (core/cowork/planTrust.mts): how often its owner let a step of the plan through
+    // to one recipient since they last stopped it, and whether they let it go on its own. A run keeps the steps it
+    // trusted across its pause, like its level.
+    `CREATE TABLE IF NOT EXISTS cowork_trust (
+        schedule_id TEXT NOT NULL REFERENCES cowork_schedules(id) ON DELETE CASCADE,
+        step_id TEXT NOT NULL,
+        recipient TEXT NOT NULL,
+        let_through INTEGER NOT NULL DEFAULT 0,
+        trusted BOOLEAN NOT NULL DEFAULT FALSE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (schedule_id, step_id, recipient)
+    )`,
+    `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS trusted_steps TEXT`,
 ]);
 
 module.exports = { PLAN_DDL };

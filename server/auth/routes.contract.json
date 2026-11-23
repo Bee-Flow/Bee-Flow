@@ -1820,6 +1820,9 @@
     "GET /api/cowork/:id/plan/independence": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/plan/trust": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/plan/try/:tryId": {
       "gate": "auth"
     },
@@ -7379,6 +7382,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan/independence": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan/trust": {
       "gate": "auth"
     },
     "PUT /api/cowork/:id/start": {

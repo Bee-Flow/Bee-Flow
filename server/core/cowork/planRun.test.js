@@ -41,6 +41,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         lookups: fakeLookups(),
         mayAsk: async () => mayAsk,
         policyOf: async () => policy,
+        trustOf: async () => [],
     };
     return { store, calls, seen, deps, names: () => calls.map((c) => c[0]) };
 }
@@ -68,7 +69,7 @@ test('the run records which plan it ran and, once the runner made its row, the a
     const h = harness();
     await executePlanRun(task, { store: h.store, manual: true }, h.deps);
     assert.deepStrictEqual(h.calls.filter((c) => c[0] === 'linkPlanRun'), [
-        ['linkPlanRun', 'run-1', { planId: 'plan-1', independence: 'on_its_own' }],
+        ['linkPlanRun', 'run-1', { planId: 'plan-1', independence: 'on_its_own', trustedSteps: [] }],
         ['linkPlanRun', 'run-1', { planId: 'plan-1', automationRunId: 'arun-1' }],
     ]);
 });
@@ -79,7 +80,7 @@ test('the level decides the questions: a run that may ask, asks before what it s
     await executePlanRun(task, { store: asked.store, manual: true }, asked.deps);
     const ran = asked.seen.executed[0].automation.definition.steps.map((/** @type {any} */ st) => st.id);
     assert.deepStrictEqual(ran.slice(-2), ['cowork_ask__send', 'send'], 'the default where asking is possible: ask before sending');
-    assert.deepStrictEqual(asked.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_before_sending' });
+    assert.deepStrictEqual(asked.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_before_sending', trustedSteps: [] });
 
     const refused = harness({ plan: approved(sends), mayAsk: false });
     await executePlanRun({ ...task, independence: 'asks_everything' }, { store: refused.store, manual: true }, refused.deps);
@@ -213,7 +214,7 @@ test('the organisation\'s policy: its ceiling holds the level down, and an app i
     const sends = planOf([...supplierRadar().steps.slice(0, 6), { id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('x@supplier.example') } }]);
     const capped = harness({ plan: approved(sends), mayAsk: true, policy: { ceiling: 'asks_everything', readOnly: false, unattendedApps: null } });
     await executePlanRun({ ...task, independence: 'on_its_own' }, { store: capped.store, manual: true }, capped.deps);
-    assert.deepStrictEqual(capped.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_everything' });
+    assert.deepStrictEqual(capped.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_everything', trustedSteps: [] });
 
     const fenced = harness({ plan: approved(sends), mayAsk: true, policy: { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables'] } });
     await executePlanRun(task, { store: fenced.store, manual: true }, fenced.deps);

@@ -127,7 +127,7 @@ test('the plan a run followed is read as it was approved then, with the automati
     await store.linkPlanRun(runId, { planId: first.id, automationRunId: 'arun-7' });
     await store.markCompleted(id, 'Done.', { runId });
     await approve(id, { definition: { ...DEFINITION, steps: [] }, fingerprint: 'e'.repeat(64) });
-    assert.deepStrictEqual(await store.getPlanRun(id, runId), { runId, automationRunId: 'arun-7', plan: first, independence: null });
+    assert.deepStrictEqual(await store.getPlanRun(id, runId), { runId, automationRunId: 'arun-7', plan: first, independence: null, trustedSteps: [] });
     const listed = await store.listRuns(id);
     assert.strictEqual(listed[0]?.planId, first.id, 'the history says the run followed a plan');
 });
@@ -138,7 +138,7 @@ test('a run that followed no plan has none, a run that never started its automat
     const plain = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
     assert.strictEqual(await store.getPlanRun(id, plain), null, 'no plan on this run');
     await store.linkPlanRun(plain, { planId: plan.id });
-    assert.deepStrictEqual(await store.getPlanRun(id, plain), { runId: plain, automationRunId: null, plan, independence: null });
+    assert.deepStrictEqual(await store.getPlanRun(id, plain), { runId: plain, automationRunId: null, plan, independence: null, trustedSteps: [] });
 
     const other = await item();
     assert.strictEqual(await store.getPlanRun(other, plain), null, 'asked through another item');

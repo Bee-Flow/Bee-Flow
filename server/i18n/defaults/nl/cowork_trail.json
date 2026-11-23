@@ -11,6 +11,7 @@
     "cowork_trail.action.review_handled": "heeft een beoordeling afgehandeld",
     "cowork_trail.action.start_set": "heeft gewijzigd hoe het start",
     "cowork_trail.action.toggled": "heeft het {state}gezet",
+    "cowork_trail.action.trust_set": "heeft gewijzigd wat zelf mag gaan",
     "cowork_trail.action.updated": "heeft {what} gewijzigd",
     "cowork_trail.empty": "Nog geen wijzigingen vastgelegd.",
     "cowork_trail.failed": "De wijzigingen konden niet worden geladen.",

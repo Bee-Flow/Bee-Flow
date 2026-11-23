@@ -56,7 +56,7 @@ test('a step inside a loop is asked about once, in front of the loop; a branch l
     ]);
     plan.edges[1] = { ...plan.edges[1], label: 'on_success' };
     const targets = askTargets(plan, 'asks_before_sending', lookups);
-    assert.deepStrictEqual(targets, [{ id: 'each', title: 'Answer it', effect: 'sends' }]);
+    assert.deepStrictEqual(targets, [{ id: 'each', title: 'Answer it', effect: 'sends', steps: ['answer'] }]);
     const copy = /** @type {any} */ (withAsks(plan, 'asks_before_sending', lookups));
     assert.deepStrictEqual(copy.edges.find((/** @type {any} */ e) => e.from === 'mail'), { from: 'mail', to: `${ASK_PREFIX}each`, label: 'on_success' });
     assert.strictEqual(copy.steps.find((/** @type {any} */ s) => s.id === 'each').body.length, 1, 'the loop itself is not changed');

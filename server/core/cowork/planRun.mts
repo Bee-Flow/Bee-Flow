@@ -32,6 +32,8 @@ import { runCopyOf } from './plan/planRunCopy.mts';
 import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
 import { sinceTriggerData } from './sinceLastTime.mts';
 import { asStartedBy } from './startKinds.mts';
+import { trustedSteps } from './planTrust.mts';
+import type { TrustRow } from '../../stores/coworkTrust.mts';
 import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
 import { appsNotAllowed, capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
 import { permissionsOf, BUILT_IN_APP } from './plan/planPermissions.mts';
@@ -61,7 +63,7 @@ export interface AutomationRunRow { id?: string; status?: string; summary?: stri
 
 export interface PlanRunStore extends ClaimStore {
     getApprovedPlan: (scheduleId: string) => Promise<ApprovedPlan | null>;
-    linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null; independence?: string | null }) => Promise<unknown>;
+    linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null; independence?: string | null; trustedSteps?: string[] | null }) => Promise<unknown>;
     markCompleted: (id: string, result: string, close?: { runId?: string | null; waiting?: boolean }) => Promise<unknown>;
 }
 
@@ -81,6 +83,8 @@ export interface PlanRunDeps {
     mayAsk?: MayAsk;
     /** The owner's organisation's Cowork policy (../entitlements/coworkPolicy.mts). */
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
+    /** What the owner trusts per step and recipient (./planTrust.mts). */
+    trustOf?: (scheduleId: string) => Promise<TrustRow[]>;
 }
 
 /** An event a plan starts on (./eventRun.mts): the run it claimed, and its data (outside text). */
@@ -152,6 +156,7 @@ function defaults(deps: PlanRunDeps) {
         lookups: deps.lookups ?? toolLookups(),
         mayAsk: deps.mayAsk ?? mayAskByLicence,
         policyOf: deps.policyOf ?? ((userId: string) => policyOfOwner(userId)),
+        trustOf: deps.trustOf ?? ((id: string) => (nodeRequire('../../stores/coworkTrust.mts') as typeof import('../../stores/coworkTrust.mts')).coworkTrust().listTrust(id)),
     };
 }
 
@@ -164,12 +169,14 @@ async function levelOf(task: PlanTask, automation: AutomationRow, definition: De
     const blocked = appsNotAllowed(permissionsOf(definition, d.lookups).grants.map((g) => g.app).filter((a) => a !== BUILT_IN_APP), policy);
     if (blocked.length > 0) throw new PlanRefusedError(`Your organisation does not let ${blocked.join(', ')} run while nobody watches, so this plan did not run.`);
     const asks = await d.mayAsk({ userId: task.userId, organizationId: (automation as { organizationId?: string | null }).organizationId ?? null });
+    let independence;
     try {
-        const chosen = effectiveIndependence(task.independence, asks);
-        return effectiveIndependence(capLevel(chosen, policy.ceiling), asks);
+        independence = effectiveIndependence(capLevel(effectiveIndependence(task.independence, asks), policy.ceiling), asks);
     } catch (e) {
         throw new PlanRefusedError((e as Error).message);
     }
+    // The steps the owner lets go on their own, when the ceiling allows it (./planTrust.mts).
+    return { independence, trusted: trustedSteps(definition, await d.trustOf(task.id), policy.ceiling) };
 }
 
 /** How a run the runner handed back ended, for Cowork: the text of its outcome, or a throw when it did not finish. */
@@ -212,13 +219,13 @@ export async function executePlanRun(
     try {
         const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d);
         // The level is kept on the run: after a pause the journey continues with the questions it started with.
-        const independence = await levelOf(task, automation, definition, d);
-        await store.linkPlanRun(attempt.runId, { planId: plan.id, independence });
+        const { independence, trusted } = await levelOf(task, automation, definition, d);
+        await store.linkPlanRun(attempt.runId, { planId: plan.id, independence, trustedSteps: [...trusted] });
         // A spread without the row's own copies: the runner executes exactly the definition handed in
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.
         // The row's own time limit is held to Cowork's as well (./plan/planRunCopy.mts holds the run policy's).
         const limited = typeof automation.runTimeoutMs === 'number' ? { runTimeoutMs: Math.min(automation.runTimeoutMs, runMaxMs()) } : {};
-        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups)) }, {
+        const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups, trusted)) }, {
             triggerKind: 'manual',
             // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts); an event adds its data.
             triggerPayload: { ...sinceTriggerData(task), ...(trigger?.payload ?? {}) },

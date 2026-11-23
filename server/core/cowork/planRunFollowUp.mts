@@ -42,6 +42,8 @@ export interface FollowUpDeps {
     getRunStepsForChain: (runId: string) => Promise<StepRow[]>;
     createNotification: (n: Record<string, unknown>) => Promise<unknown>;
     onRunEvent: (type: string, handler: (event: RunEnd) => void) => () => void;
+    /** Count the owner's decisions on the questions of the journey (./planTrust.mts). */
+    recordDecisions?: (plan: { scheduleId: string; definition: unknown }, journeyId: string) => Promise<unknown>;
 }
 
 /** What the engine says when a run ends (core/runEventBus.js). */
@@ -57,6 +59,7 @@ const defaults = (): FollowUpDeps => {
         getRunStepsForChain: (id) => (nodeRequire('../../stores/automationStore') as { getRunStepsForChain: FollowUpDeps['getRunStepsForChain'] }).getRunStepsForChain(id),
         createNotification: (n) => (nodeRequire('../../stores/notificationStore') as { createNotification: FollowUpDeps['createNotification'] }).createNotification(n),
         onRunEvent: (type, handler) => (nodeRequire('../runEventBus.js') as { onRunEvent: FollowUpDeps['onRunEvent'] }).onRunEvent(type, handler),
+        recordDecisions: (plan, journeyId) => (nodeRequire('./planTrust.mts') as typeof import('./planTrust.mts')).recordJourneyDecisions(plan, journeyId),
     };
 };
 
@@ -113,6 +116,8 @@ export async function closeJourney(journeyId: string, leg: Leg, deps: FollowUpDe
     await tellOwner(plan, end, deps);
     // It ended now, after its owner's decision: the items that start after this one hear it (./runEnded.mts).
     runEnded({ id: plan.scheduleId, userId: plan.userId, title: plan.title }, plan.runId);
+    // The decisions count towards trust per step and recipient (./planTrust.mts); a count that fails costs nothing else.
+    if (deps.recordDecisions) await deps.recordDecisions(plan, journeyId).catch((e: Error) => log.warn(`[Cowork] the decisions of plan run ${plan.runId} were not counted: ${e.message}`));
     log.info(`[Cowork] plan run ${plan.runId} closed as ${end.status} after its decision`);
     return true;
 }

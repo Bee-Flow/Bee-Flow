@@ -1276,6 +1276,7 @@ declare namespace DbRow {
         status: string;
         trigger_kind: string;
         trigger_ref: string | null;
+        trusted_steps: string | null;
         user_id: string;
     }
     /** Row of `cowork_schedules`. */
@@ -1307,6 +1308,15 @@ declare namespace DbRow {
         trigger_json: string | null;
         trigger_kind: string;
         user_id: string;
+    }
+    /** Row of `cowork_trust`. */
+    interface CoworkTrust {
+        let_through: number;
+        recipient: string;
+        schedule_id: string;
+        step_id: string;
+        trusted: boolean;
+        updated_at: Date;
     }
     /** Row of `datatable_grants`. */
     interface DatatableGrants {

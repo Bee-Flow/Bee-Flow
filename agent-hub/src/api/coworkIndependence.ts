@@ -39,3 +39,22 @@ export function useCoworkIndependence(coworkId: string, enabled: boolean) {
     });
     return { query, choose };
 }
+
+export interface TrustEntry { stepId: string; title: string; recipient: string; letThrough: number; trusted: boolean; canTrust: boolean }
+export interface TrustState { entries: TrustEntry[]; needed: number; ceilingAllows: boolean }
+
+/** Trust per step and recipient (GET/PUT /api/cowork/:id/plan/trust). */
+export function useCoworkTrust(coworkId: string) {
+    const client = useQueryClient();
+    const trustKey = ['cowork', 'trust', coworkId] as const;
+    const query = useQuery<TrustState, Error>({
+        queryKey: trustKey,
+        queryFn: () => apiJson<'GET /api/cowork/{id}/plan/trust', TrustState>('GET /api/cowork/{id}/plan/trust', { params: { id: coworkId } }),
+        retry: false,
+    });
+    const choose = useMutation<TrustState, Error, { stepId: string; recipient: string; trusted: boolean }>({
+        mutationFn: (body) => apiJson<'PUT /api/cowork/{id}/plan/trust', TrustState>('PUT /api/cowork/{id}/plan/trust', { params: { id: coworkId }, body }),
+        onSuccess: (state) => { client.setQueryData(trustKey, state); },
+    });
+    return { query, choose };
+}

@@ -45,6 +45,8 @@ export interface AskTarget {
     /** What the question is about: the first step under it that made it ask. */
     title: string;
     effect: Effect;
+    /** Every step under it that made it ask (the step itself, or the steps inside its loop). */
+    steps: string[];
 }
 
 /** The top-level steps a run at this level asks before, in the plan's order. */
@@ -61,7 +63,9 @@ export function askTargets(definition: Definition | null | undefined, level: Ind
         // A loop says what its steps do; those steps decide, and name the question.
         if (step.type === 'loop' || !asksBefore(step, level)) continue;
         const root = rootOf(step.id);
-        if (!out.has(root)) out.set(root, { id: root, title: step.title, effect: step.effect });
+        const known = out.get(root);
+        if (known) known.steps.push(step.id);
+        else out.set(root, { id: root, title: step.title, effect: step.effect, steps: [step.id] });
     }
     return [...out.values()];
 }
@@ -79,9 +83,13 @@ function questionFor(target: AskTarget): DefStep {
 
 interface Edge { from?: unknown; to?: unknown; [key: string]: unknown }
 
-/** The plan with a question in front of every step this level asks about; the plan itself when it asks about none. */
-export function withAsks(definition: Definition, level: Independence, lookups: ToolLookups): Definition {
-    const targets = askTargets(definition, level, lookups);
+/**
+ * The plan with a question in front of every step this level asks about; the plan itself when it asks about none.
+ * `trusted`: the steps its owner lets go on their own (./planTrust.mts); a question goes only when every step it is
+ * about is one of them.
+ */
+export function withAsks(definition: Definition, level: Independence, lookups: ToolLookups, trusted: ReadonlySet<string> = new Set()): Definition {
+    const targets = askTargets(definition, level, lookups).filter((t) => !t.steps.every((id) => trusted.has(id)));
     if (targets.length === 0 || !Array.isArray(definition.steps)) return definition;
     let steps = [...(definition.steps as DefStep[])];
     let edges = Array.isArray(definition.edges) ? [...(definition.edges as Edge[])] : [];

@@ -40,12 +40,25 @@ export interface ApprovedPlan {
 }
 
 /** A run that followed a plan: the plan it ran, and the automation run that holds its steps (null: it never started). */
+/** A stored JSON list of step ids; none when absent or unreadable. */
+function stepList(value: unknown): string[] {
+    if (typeof value !== 'string' || !value) return [];
+    try {
+        const list = JSON.parse(value) as unknown;
+        return Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
 export interface PlanRun {
     runId: string;
     automationRunId: string | null;
     plan: ApprovedPlan;
     /** The level the run started with; null for a run from before levels (it asked nothing more). */
     independence: string | null;
+    /** The steps it let go on their own (core/cowork/planTrust.mts). */
+    trustedSteps: string[];
 }
 
 export interface ApproveInput {
@@ -129,12 +142,13 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     }
 
     /** Note on a run of a plan which plan it ran and which automation run holds its step trace. */
-    async function linkPlanRun(runId: string | null | undefined, { planId, automationRunId, independence }: { planId: string; automationRunId?: string | null; independence?: string | null }): Promise<void> {
+    async function linkPlanRun(runId: string | null | undefined, { planId, automationRunId, independence, trustedSteps }: { planId: string; automationRunId?: string | null; independence?: string | null; trustedSteps?: string[] | null }): Promise<void> {
         if (!runId) return;
         await ready();
         await db.run(
-            'UPDATE cowork_runs SET plan_id = $2, automation_run_id = COALESCE($3, automation_run_id), independence = COALESCE($4, independence) WHERE id = $1',
-            [runId, planId, automationRunId ?? null, independence ?? null],
+            `UPDATE cowork_runs SET plan_id = $2, automation_run_id = COALESCE($3, automation_run_id), independence = COALESCE($4, independence),
+                    trusted_steps = COALESCE($5, trusted_steps) WHERE id = $1`,
+            [runId, planId, automationRunId ?? null, independence ?? null, trustedSteps ? JSON.stringify(trustedSteps) : null],
         );
     }
 
@@ -167,7 +181,7 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     async function getPlanRun(scheduleId: string, runId: string): Promise<PlanRun | null> {
         await ready();
         const row = await db.getOne(
-            `SELECT p.*, r.automation_run_id AS run_automation_run_id, r.independence AS run_independence
+            `SELECT p.*, r.automation_run_id AS run_automation_run_id, r.independence AS run_independence, r.trusted_steps AS run_trusted_steps
                FROM cowork_runs r JOIN cowork_plans p ON p.id = r.plan_id
               WHERE r.id = $2 AND r.schedule_id = $1 AND p.schedule_id = r.schedule_id`,
             [scheduleId, runId],
@@ -175,7 +189,7 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
         const plan = rowToPlan(row);
         if (!row || !plan) return null;
         const independence = row.run_independence ? String(row.run_independence) : null;
-        return { runId, automationRunId: row.run_automation_run_id ? String(row.run_automation_run_id) : null, plan, independence };
+        return { runId, automationRunId: row.run_automation_run_id ? String(row.run_automation_run_id) : null, plan, independence, trustedSteps: stepList(row.run_trusted_steps) };
     }
 
     return { attachPlanAutomation, detachPlan, approvePlan, getApprovedPlan, linkPlanRun, getPlanRun, setIndependence, countLetThrough };
@@ -190,10 +204,10 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
      * The approved plan a journey of the automation engine is running, by the engine's run id of its first leg: what
      * the run continues on after a pause. Null for a run no Cowork run started.
      */
-    async function getPlanOfAutomationRun(automationRunId: string): Promise<(ApprovedPlan & { runId: string; userId: string; title: string | null; independence: string | null }) | null> {
+    async function getPlanOfAutomationRun(automationRunId: string): Promise<(ApprovedPlan & { runId: string; userId: string; title: string | null; independence: string | null; trustedSteps: string[] }) | null> {
         await ready();
         const row = await db.getOne(
-            `SELECT p.*, r.id AS cowork_run_id, r.independence AS run_independence, s.user_id AS owner_id, s.title AS item_title
+            `SELECT p.*, r.id AS cowork_run_id, r.independence AS run_independence, r.trusted_steps AS run_trusted_steps, s.user_id AS owner_id, s.title AS item_title
                FROM cowork_runs r
                JOIN cowork_plans p ON p.id = r.plan_id AND p.schedule_id = r.schedule_id
                JOIN cowork_schedules s ON s.id = r.schedule_id
@@ -206,6 +220,7 @@ export function makeCoworkPlanJourneys({ db = nodeRequire('../db.js') as Db, rea
         return {
             ...plan, runId: String(row.cowork_run_id), userId: String(row.owner_id), title: row.item_title ? String(row.item_title) : null,
             independence: row.run_independence ? String(row.run_independence) : null,
+            trustedSteps: stepList(row.run_trusted_steps),
         };
     }
 

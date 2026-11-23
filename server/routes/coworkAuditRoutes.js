@@ -34,7 +34,7 @@ function actionOf(method, path) {
     const byRoute = {
         'PUT ': 'cowork.updated', 'DELETE ': 'cowork.deleted', 'POST toggle': 'cowork.toggled',
         'PUT plan': 'cowork.plan_attached', 'POST plan/approve': 'cowork.plan_approved', 'DELETE plan': 'cowork.plan_removed',
-        'PUT plan/independence': 'cowork.independence_set', 'POST hand-over': 'cowork.handed_over', 'PUT start': 'cowork.start_set',
+        'PUT plan/independence': 'cowork.independence_set', 'POST hand-over': 'cowork.handed_over', 'PUT start': 'cowork.start_set', 'PUT plan/trust': 'cowork.trust_set',
     };
     const direct = byRoute[`${method} ${tail}`];
     if (direct) return { action: direct, id };

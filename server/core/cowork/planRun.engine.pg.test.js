@@ -219,3 +219,52 @@ test('asking before sending: a run stops at the question in front of the mail; a
         setPauseDepsForTests(null);
     }
 });
+
+test('trust per step and recipient: after five decisions to let the mail through, the owner trusts it and the next run asks nothing', async () => {
+    const followUp = require('./planRunFollowUp.mts');
+    const { setPauseDepsForTests } = require('../automationRunner/dryPause.mts');
+    const { chooseIndependence } = require('../../usecases/coworkIndependence.mts');
+    const { trustOf, chooseTrust } = require('../../usecases/coworkTrust.mts');
+    const { decide } = require('../../automation/approvalService');
+    setPauseDepsForTests({ hasCapability: async (capId) => capId === 'approvals' });
+    followUp.start();
+    const OWNER = 'u-plan-trust';
+    try {
+        const { item, attached } = await itemWithPlan({ send: true }, OWNER);
+        await approvePlan({ item, fingerprint: attached.draft.fingerprint });
+        await chooseIndependence({ item: await store.getSchedule(item.id), level: 'asks_before_sending' });
+        const runOnce = async () => {
+            await executeTask(await store.getSchedule(item.id), { manual: true, store });
+            return (await store.listRuns(item.id))[0];
+        };
+        for (let i = 0; i < 5; i++) {
+            const waiting = await runOnce();
+            assert.strictEqual(waiting.status, 'waiting', `run ${i + 1} asks first`);
+            const link = await store.getPlanRun(item.id, waiting.id);
+            const approval = await automationStore.getApprovalForRunStep(link.automationRunId, 'cowork_ask__send', { pendingOnly: true });
+            const run = await automationStore.getRun(link.automationRunId);
+            assert.strictEqual((await decide({ approval, run, deciderId: OWNER, decision: 'approve', source: 'studio' })).code, 200);
+            let closed = (await store.listRuns(item.id))[0];
+            for (let w = 0; w < 100 && closed.status === 'waiting'; w++) {
+                await new Promise((resolve) => { setTimeout(resolve, 50); });
+                closed = (await store.listRuns(item.id))[0];
+            }
+        }
+        // The counts are written after each run closes; give the last one a moment.
+        let state = await trustOf(item);
+        for (let w = 0; w < 50 && (state.entries[0]?.letThrough ?? 0) < 5; w++) {
+            await new Promise((resolve) => { setTimeout(resolve, 50); });
+            state = await trustOf(item);
+        }
+        assert.deepStrictEqual(state.entries.map((e) => [e.stepId, e.recipient, e.letThrough, e.canTrust]), [['send', 'orders@supplier.example', 5, true]]);
+        await chooseTrust({ item, stepId: 'send', recipient: 'orders@supplier.example', trusted: true });
+
+        const trustedRun = await runOnce();
+        assert.notStrictEqual(trustedRun.status, 'waiting', 'the trusted mail goes on its own: no question');
+        const trace = await runTraceOf({ item, runId: trustedRun.id });
+        assert.ok(!trace.steps.some((x) => x.id === 'cowork_ask__send'), 'the question is gone from the run');
+    } finally {
+        followUp.stop();
+        setPauseDepsForTests(null);
+    }
+});

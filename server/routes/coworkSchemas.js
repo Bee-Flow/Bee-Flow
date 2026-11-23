@@ -177,5 +177,9 @@ const RunTraceParams = z.object({ id: z.string().min(1).max(200), runId: z.strin
 // PUT /:id/plan/independence (usecases/coworkIndependence.mts): one of the three levels.
 const LEVEL_TEXT = 'level is asks_everything, asks_before_sending or on_its_own.';
 const IndependenceBody = z.object({ level: z.enum(['asks_everything', 'asks_before_sending', 'on_its_own'], { error: LEVEL_TEXT }) }).strict();
+// PUT /:id/plan/trust (usecases/coworkTrust.mts): one step and recipient, trusted or not.
+const TRUST_TEXT = 'stepId and recipient are text of at most 300 characters; trusted is true or false.';
+const trustText = z.string({ error: TRUST_TEXT }).min(1, { error: TRUST_TEXT }).max(300, { error: TRUST_TEXT });
+const TrustBody = z.object({ stepId: trustText, recipient: trustText, trusted: z.boolean({ error: TRUST_TEXT }) }).strict();
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, TrustBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

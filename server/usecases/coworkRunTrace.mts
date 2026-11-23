@@ -70,7 +70,7 @@ export async function runTraceOf({ item, runId }: { item: Item; runId: string },
     const link = await deps.store.getPlanRun(item.id, runId);
     if (!link) throw new HttpError(404, 'cowork_run_no_plan', 'This run followed no plan.');
     // The plan as the run executed it: with the questions of the level it started with (none for an older run).
-    const definition = withAsks(link.plan.definition as Definition, isIndependence(link.independence) ? link.independence : 'on_its_own', deps.lookups);
+    const definition = withAsks(link.plan.definition as Definition, isIndependence(link.independence) ? link.independence : 'on_its_own', deps.lookups, new Set(link.trustedSteps ?? []));
     const run = await recordedRun(link, deps);
     if (!run) {
         return { runId, planVersion: link.plan.version, recorded: false, done: true, durationMs: null, steps: traceSteps(definition, [], { done: true, simulated: false }, deps.lookups) };

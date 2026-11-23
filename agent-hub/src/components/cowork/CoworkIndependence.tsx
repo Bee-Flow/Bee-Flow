@@ -3,7 +3,9 @@
  * Each says what it means for this plan (the steps it would ask about first); a level that is not open says why.
  * Choosing saves at once; the next run uses it, a run under way keeps the level it started with.
  */
+import type { ReactNode } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import CoworkTrust from './CoworkTrust';
 import { useCoworkIndependence, type Independence, type IndependenceState, type LevelOption } from '../../api/coworkIndependence';
 import { errorMessage } from '../../utils/caughtError';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -27,8 +29,8 @@ function lineOf(option: LevelOption, state: IndependenceState, t: TranslateFn): 
     return t('cowork_plan.level.asks_line', 'Waits for your decision before: {steps}', { steps: option.asksBefore.join(', ') });
 }
 
-function IndependenceChoice({ state, busy, error, t, onChoose }: {
-    state: IndependenceState; busy: boolean; error: string | null; t: TranslateFn; onChoose: (level: Independence) => void;
+function IndependenceChoice({ state, busy, error, t, onChoose, trust }: {
+    state: IndependenceState; busy: boolean; error: string | null; t: TranslateFn; onChoose: (level: Independence) => void; trust: ReactNode;
 }) {
     const current = state.chosen ?? state.level;
     return (
@@ -58,6 +60,7 @@ function IndependenceChoice({ state, busy, error, t, onChoose }: {
                 </label>
             ))}
             {error && <p role="alert" className="text-[12px] text-[var(--error-ink)]">{error}</p>}
+            {trust}
         </fieldset>
     );
 }
@@ -67,5 +70,5 @@ export default function CoworkIndependence({ coworkId, t }: { coworkId: string; 
     const { query, choose } = useCoworkIndependence(coworkId, true);
     if (!query.data) return null;
     const error = choose.error ? errorMessage(choose.error) || t('cowork_plan.failed', 'That did not work. Try again.') : null;
-    return <IndependenceChoice state={query.data} busy={choose.isPending} error={error} t={t} onChoose={(level) => choose.mutate(level)} />;
+    return <IndependenceChoice state={query.data} busy={choose.isPending} error={error} t={t} onChoose={(level) => choose.mutate(level)} trust={<CoworkTrust coworkId={coworkId} t={t} />} />;
 }
