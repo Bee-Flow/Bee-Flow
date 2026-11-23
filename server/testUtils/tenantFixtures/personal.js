@@ -68,12 +68,16 @@ const FIXTURES = [
         kind: 'coworkSchedule',
         mount: '/api/cowork',
         router: () => require('../../routes/cowork'),
-        create: async ({ userId, index }) => {
+        create: async ({ userId, index, outsiderId }) => {
             const schedule = await require('../../stores/coworkStore').createSchedule({
                 userId, title: `Schedule ${index}`, prompt: 'Summarise the week.', repeatInterval: 'daily',
                 nextRunAt: new Date(Date.now() + 86_400_000).toISOString(),
             });
-            return present(schedule, 'createSchedule').id;
+            const id = present(schedule, 'createSchedule').id;
+            // The use case would refuse this (the caller is not a colleague of the owner), so the row goes in by SQL: a
+            // share that names an outsider must still give the outsider nothing (stores/coworkShares.mts LIVE_SHARES).
+            if (outsiderId) await require('../../db').run(`INSERT INTO cowork_shares (schedule_id, user_id, role, added_by) VALUES ($1, $2, 'approver', $3)`, [id, outsiderId, userId]);
+            return id;
         },
         routes: [
             'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
