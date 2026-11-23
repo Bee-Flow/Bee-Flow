@@ -57,7 +57,9 @@ export default function DocumentSidePanels(props: DocumentSidePanelsProps) {
     }
     if (side === 'history') {
         return (
-            <div className={panelFrame(placement, 'wide')} data-testid="document-history">
+            // The history is a drawer of its own (fixed, it widens to compare), so
+            // its wrapper takes no room: a column beside the sheet would stay empty.
+            <div className="contents" data-testid="document-history">
                 <VersionHistoryPanel
                     baseUrl={`/api/studio-documents/${encodeURIComponent(doc.id)}`}
                     canEdit={props.canEdit}

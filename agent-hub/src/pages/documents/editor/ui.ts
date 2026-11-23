@@ -25,10 +25,9 @@ export function initials(name: string | undefined): string {
  */
 export type PanelPlacement = 'beside' | 'over' | 'over-narrow';
 const PANEL_EDGE = 'min-h-0 border-l border-[var(--border-subtle)]';
-/** The frame of a side panel; the widths are written out whole so Tailwind sees them. */
-export function panelFrame(placement: PanelPlacement, size: 'narrow' | 'wide' = 'narrow'): string {
-    const beside = size === 'wide' ? 'w-[26rem]' : 'w-80';
-    if (placement === 'over') return `${PANEL_EDGE} absolute inset-y-0 right-0 z-20 w-full ${size === 'wide' ? 'max-w-[26rem]' : 'max-w-80'} bg-[var(--bg-primary)] shadow-xl`;
-    if (placement === 'over-narrow') return `${PANEL_EDGE} max-sm:absolute max-sm:inset-0 max-sm:z-20 max-sm:w-full max-sm:bg-[var(--bg-primary)] ${beside} max-w-full shrink-0`;
-    return `${PANEL_EDGE} ${beside} max-w-full shrink-0`;
+/** The frame of a side panel. */
+export function panelFrame(placement: PanelPlacement): string {
+    if (placement === 'over') return `${PANEL_EDGE} absolute inset-y-0 right-0 z-20 w-full max-w-80 bg-[var(--bg-primary)] shadow-xl`;
+    if (placement === 'over-narrow') return `${PANEL_EDGE} max-sm:absolute max-sm:inset-0 max-sm:z-20 max-sm:w-full max-sm:bg-[var(--bg-primary)] w-80 max-w-full shrink-0`;
+    return `${PANEL_EDGE} w-80 max-w-full shrink-0`;
 }
