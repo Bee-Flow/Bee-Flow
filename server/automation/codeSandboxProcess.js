@@ -9,7 +9,10 @@
  *   - it gets no bridges: no network, no app, no secret. A plan's script is a calculation on the data of earlier
  *     steps; what it returns is its output, and the plan's own steps do everything else;
  *   - it is killed when the script's own wall limit plus a margin passes, or when it ends in any other way than with
- *     an answer; the API process only ever sees an answer or an error.
+ *     an answer; the API process only ever sees an answer or an error;
+ *   - at most COWORK_SANDBOX_MAX_CHILDREN children (default 4) run at once in this process (the slots of
+ *     ./codeSandboxSlots.js): the next script waits its turn, and one that waits longer than CHILD_WAIT_MS fails its
+ *     step with a plain "busy" message rather than piling up processes without end.
  *
  * Two walls, then: the V8 isolate inside the child, and the child process around it.
  */
@@ -18,6 +21,8 @@
 
 const path = require('node:path');
 const { fork } = require('node:child_process');
+const { envInt } = require('../utils/envNumber.mts');
+const { createSlots } = require('./codeSandboxSlots');
 
 const CHILD = path.join(__dirname, 'codeSandboxChild.js');
 const CHILD_HEAP_MB = 128;
@@ -25,6 +30,18 @@ const MARGIN_MS = 3000;
 const MAX_WALL_MS = 30_000;
 /** What a child may inherit: what Node needs to start and find its modules, never a secret. */
 const KEPT_ENV = ['PATH', 'NODE_ENV', 'LANG', 'TZ', 'HOME', 'TMPDIR'];
+const MAX_CHILDREN = envInt('COWORK_SANDBOX_MAX_CHILDREN', 4, { min: 1 });
+const CHILD_WAIT_MS = 20_000;
+const BUSY = 'Too many scripts are running on this server right now, so this step did not start. Try again in a moment.';
+
+/**
+ * Slots for children: one cap for the whole process, which every org's scripts share.
+ * @param {{ maxChildren?: number, waitMs?: number }} [opts]
+ */
+function createChildSlots({ maxChildren = MAX_CHILDREN, waitMs = CHILD_WAIT_MS } = {}) {
+    return createSlots({ maxTotal: maxChildren, maxPerKey: maxChildren, maxWaitMs: waitMs, busyMessage: BUSY });
+}
+const childSlots = createChildSlots();
 
 /** The child's environment. @param {NodeJS.ProcessEnv} [env] */
 function childEnv(env = process.env) {
@@ -38,15 +55,32 @@ function childEnv(env = process.env) {
 }
 
 /**
- * Run one script in a child process. Resolves with what the script returned and what it logged; rejects with the
- * script's own error, a time-out, or the child's end.
+ * Run one script in a child process, once a slot is free. Resolves with what the script returned and what it logged;
+ * rejects with the script's own error, a time-out, the child's end, or a wait for a slot that took too long.
+ * `deps` (tests): the slots and the fork to use.
  * @param {{ code: string, inputs?: unknown, limits?: Record<string, number>, mode?: 'live' | 'test' }} job
+ * @param {{ slots?: { acquireSlot: () => Promise<() => void> }, fork?: typeof fork }} [deps]
  * @returns {Promise<{ result: unknown, logs: string[] }>}
  */
-function runCodeIsolated({ code, inputs = {}, limits = {}, mode = 'live' }) {
+async function runCodeIsolated(job, deps = {}) {
+    const release = await (deps.slots ?? childSlots).acquireSlot();
+    try {
+        return await runInChild(job, deps.fork ?? fork);
+    } finally {
+        release();
+    }
+}
+
+/**
+ * The child process of one script.
+ * @param {{ code: string, inputs?: unknown, limits?: Record<string, number>, mode?: 'live' | 'test' }} job
+ * @param {typeof fork} forkChild
+ * @returns {Promise<{ result: unknown, logs: string[] }>}
+ */
+function runInChild({ code, inputs = {}, limits = {}, mode = 'live' }, forkChild) {
     const wallMs = Math.min(MAX_WALL_MS, Number.isFinite(limits.wallMs) && limits.wallMs > 0 ? limits.wallMs : 5000);
     return new Promise((resolve, reject) => {
-        const child = fork(CHILD, [], {
+        const child = forkChild(CHILD, [], {
             env: childEnv(),
             execArgv: [`--max-old-space-size=${CHILD_HEAP_MB}`],
             stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
@@ -71,4 +105,4 @@ function runCodeIsolated({ code, inputs = {}, limits = {}, mode = 'live' }) {
     });
 }
 
-module.exports = { runCodeIsolated, childEnv, CHILD_HEAP_MB };
+module.exports = { runCodeIsolated, createChildSlots, childEnv, CHILD_HEAP_MB, MAX_CHILDREN };

@@ -1,6 +1,7 @@
 /**
  * How Cowork items start, on `cowork_schedules` and `cowork_runs` (core/cowork/startKinds.mts): the item's start, the
- * items that start on another one, on a table or on a call to their address, and where a run came from.
+ * items that start on another one, on a table or on a call to their address, where a run came from, and when the last
+ * run that ended well started (the "since last time" of core/cowork/sinceLastTime.mts).
  *
  * `trigger_json` is JSON text; it is read as JSON only for the rows of the start kind asked about (a CASE, so the
  * cast never meets another row's text).
@@ -68,7 +69,21 @@ export function makeCoworkStarts({ db = nodeRequire('../db.js') as Db, ready = a
         return r ? String(r.id) : null;
     }
 
-    return { setStart, listFollowers, listTableStarters, findByHookHash, runOrigin, latestRunId };
+    /**
+     * When the item's last run that ended well STARTED (core/cowork/sinceLastTime.mts): a run that succeeded or that
+     * ended with something for the owner to review, a run that waited for a decision and then ended well included. A
+     * run still running or waiting, and a failed one, do not count, so a failure in between moves nothing.
+     */
+    async function lastGoodRunStart(scheduleId: string): Promise<string | null> {
+        await ready();
+        const r = await db.getOne(
+            `SELECT started_at FROM cowork_runs WHERE schedule_id = $1 AND status IN ('success', 'needs_review') ORDER BY started_at DESC LIMIT 1`,
+            [scheduleId],
+        );
+        return r?.started_at ? new Date(r.started_at as string).toISOString() : null;
+    }
+
+    return { setStart, listFollowers, listTableStarters, findByHookHash, runOrigin, latestRunId, lastGoodRunStart };
 }
 
 let defaultStarts: ReturnType<typeof makeCoworkStarts> | null = null;

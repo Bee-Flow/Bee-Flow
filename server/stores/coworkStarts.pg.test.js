@@ -1,7 +1,8 @@
 // @typecheck
 /**
  * How Cowork items start, on a real Postgres (PGlite): choosing a start takes the plan's approval away, and the items
- * that start after another one, on a table or on a token are found, each only for its own start.
+ * that start after another one, on a table or on a token are found, each only for its own start, and the start of
+ * the item's last run that ended well is read.
  *
  * Run: cd server && node --test stores/coworkStarts.pg.test.js
  */
@@ -10,7 +11,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { store } = require('./coworkStore.testkit').coworkStoreOnPglite();
+const { pg, store } = require('./coworkStore.testkit').coworkStoreOnPglite();
 const { makeCoworkStarts } = require('./coworkStarts.mts');
 
 const starts = makeCoworkStarts({ ready: () => store.initDB() });
@@ -54,4 +55,25 @@ test('where a run came from, and the latest run of an item', async () => {
     assert.deepStrictEqual(await starts.runOrigin(runId), { id: runId, scheduleId: id, status: 'success', triggerKind: 'manual', triggerRef: null, result: 'Done.' });
     assert.strictEqual(await starts.latestRunId(id), runId);
     assert.strictEqual(await starts.runOrigin('no-run'), null);
+});
+
+test('the last good run: when the latest run that ended well started; a failure, a waiting or a running run move nothing', async () => {
+    const id = await item('u-since');
+    assert.strictEqual(await starts.lastGoodRunStart(id), null, 'a new item has no good run yet');
+    /** @param {string} runId @param {string} status @param {string} startedAt */
+    const runOf = (runId, status, startedAt) => pg.query(
+        `INSERT INTO cowork_runs (id, schedule_id, user_id, status, started_at, finished_at) VALUES ($1, $2, 'u-since', $3, $4, $5)`,
+        [runId, id, status, startedAt, status === 'running' || status === 'waiting' ? null : new Date(Date.parse(startedAt) + 600_000).toISOString()],
+    );
+    await runOf('since-1', 'success', '2026-11-20T06:30:00.000Z');
+    assert.strictEqual(await starts.lastGoodRunStart(id), '2026-11-20T06:30:00.000Z', 'the START of the run, not its end');
+    await runOf('since-2', 'error', '2026-11-21T06:30:00.000Z');
+    await runOf('since-3', 'needs_reauth', '2026-11-21T07:30:00.000Z');
+    assert.strictEqual(await starts.lastGoodRunStart(id), '2026-11-20T06:30:00.000Z', 'a failed run in between resets nothing');
+    await runOf('since-4', 'needs_review', '2026-11-22T06:30:00.000Z');
+    assert.strictEqual(await starts.lastGoodRunStart(id), '2026-11-22T06:30:00.000Z', 'a run that ended with a review ended well');
+    await runOf('since-5', 'waiting', '2026-11-23T05:30:00.000Z');
+    await runOf('since-6', 'running', '2026-11-23T06:30:00.000Z');
+    assert.strictEqual(await starts.lastGoodRunStart(id), '2026-11-22T06:30:00.000Z', 'a run still waiting or running has not ended well yet');
+    assert.strictEqual(await starts.lastGoodRunStart(await item('u-since-other')), null, 'per item');
 });
