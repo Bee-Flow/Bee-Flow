@@ -1,7 +1,7 @@
 {
   "translations": {
-    "cowork_mobile.receipt.signed": "Ontvangstbewijs #{seq} · ondertekend",
-    "cowork_mobile.receipt.unsigned": "Ontvangstbewijs #{seq} · niet ondertekend",
+    "cowork_mobile.receipt.signed": "Bon #{seq} · ondertekend",
+    "cowork_mobile.receipt.unsigned": "Bon #{seq} · niet ondertekend",
     "cowork_mobile.shared.heading": "Met jou gedeeld",
     "cowork_mobile.shared.line_approver": "Van {name}, jij beslist over de vragen",
     "cowork_mobile.shared.line_viewer": "Van {name}, je kunt het bekijken",
