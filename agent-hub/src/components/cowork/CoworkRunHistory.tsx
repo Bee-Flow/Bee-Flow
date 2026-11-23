@@ -36,6 +36,7 @@ import { useTranslation, type TranslateParams } from '../../hooks/useTranslation
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { statusLabel } from '../shared/statusTokens';
 import type { CoworkRun } from '../../api/cowork.types';
+import { formatCost } from '@/utils/formatCost';
 
 /**
  * The first line of text that carries anything, with its Markdown marks
@@ -95,7 +96,7 @@ function startedByLine(triggerKind: string | undefined, t: (key: string | undefi
 }
 
 function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: string; agentId?: string | null; title: string }) {
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     const [open, setOpen] = useState(false);
     const status = runStatusToken(run.status);
     // Neutral states carry no token of their own; tertiary grey is what "this
@@ -130,6 +131,10 @@ function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: s
                 >
                     {duration}
                 </span>
+                {/* What the run cost in AI; nothing for a run that called no model. */}
+                <span className="w-[56px] flex-shrink-0 text-right text-[11px] tabular-nums text-[var(--text-tertiary)]" data-testid="cowork-run-cost">
+                    {run.cost && run.cost.calls > 0 ? formatCost(run.cost.byCurrency, locale) : ''}
+                </span>
                 <span className="flex-1 min-w-0 truncate text-[12px] text-[var(--text-secondary)]">
                     {outcomeLine(run, t)}
                 </span>
@@ -149,7 +154,7 @@ function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: s
                         {startedByLine(run.triggerKind, t)}
                     </p>
                     {/* The review, what it used (a refusal stands out) and its conversation. */}
-                    <CoworkRunDetails run={run} agentId={agentId} title={title} t={t} />
+                    <CoworkRunDetails run={run} agentId={agentId} title={title} t={t} locale={locale} />
                     <CoworkRunTrace coworkId={coworkId} run={run} t={t} />
                     {/* A result is model output, so it arrives as Markdown —
                         headings, bullets, tables, bold. Printed raw it was a

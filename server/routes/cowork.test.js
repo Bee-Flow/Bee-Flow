@@ -750,14 +750,13 @@ test('a broken open-run query costs one item its live time, not its detail', asy
     }
 });
 
-test('the stats answer carries no cost or token field to render as € 0,00', async () => {
-    // Costs per cowork do not exist (CW-12: the run path logs no usage). An
-    // empty field would reach the screen as "€ 0.00 this month" — a figure that nobody has measured.
+test('the stats answer carries a cost only as the usage ledger measured it, never a figure nobody measured', async () => {
+    // CW-12: an empty field would reach the screen as "€ 0.00 this month". The cost is the ledger's pricing of each
+    // model call (usecases/coworkCosts.mts, which has its own tests); unreadable is null, never zero.
     reset();
     const r = await call('/cw-1/stats');
-    for (const key of Object.keys(r.json)) {
-        assert.ok(!/cost|token|eur|price/i.test(key), `${key} claims a figure nothing measures`);
-    }
+    assert.strictEqual(r.json.costThisMonth, null);
+    for (const key of Object.keys(r.json)) assert.ok(key === 'costThisMonth' || !/cost|token|eur|price/i.test(key), `${key} claims a figure nothing measures`);
 });
 
 test('the stats route never returns run results, only counts', async () => {
@@ -778,7 +777,7 @@ test('the stats route names its fields, rather than spreading the schedule', asy
     const r = await call('/cw-1/stats');
     assert.deepStrictEqual(
         Object.keys(r.json).sort(),
-        ['avgDurationMs', 'createdAt', 'failed', 'runCount', 'success', 'total'],
+        ['avgDurationMs', 'costThisMonth', 'createdAt', 'failed', 'runCount', 'success', 'total'],
     );
 });
 

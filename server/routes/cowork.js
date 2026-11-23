@@ -381,7 +381,8 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
             coworkStore.listRuns(req.params.id, { limit, offset }),
             coworkStore.getRunCount(req.params.id),
         ]);
-        res.json({ runs, total });
+        // What each run cost in AI (usecases/coworkCosts.mts): the history never fails on it.
+        res.json({ runs: await require('../usecases/coworkCosts.mts').withRunCosts(req.params.id, runs, coworkStore), total });
     } catch (err) {
         fail(res, err, 'Runs');
     }
@@ -406,6 +407,8 @@ router.get('/:id/stats', async (req, res) => {
         const stats = await coworkStore.getRunStats(req.params.id);
         res.json({
             ...stats,
+            // What this item's runs cost in AI this calendar month, per currency (null: it could not be read).
+            costThisMonth: await require('../usecases/coworkCosts.mts').monthCostOf(userId, req.params.id, coworkStore),
             // Lifetime, from the schema itself: survives the retention sweep that
             // shrinks `total` after 90 days. "Run 42 times" should be THIS number,
             // not the number of stored rows.

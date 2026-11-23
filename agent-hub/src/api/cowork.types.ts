@@ -115,12 +115,20 @@ export interface CoworkRun {
     review?: CoworkRunReview | null;
     /** Null for a run from before this was kept. */
     activity?: CoworkRunActivity | null;
+    /** What the run cost in AI; null when it made no priced call or the cost could not be read. */
+    cost?: CoworkCost | null;
     /** The approved plan this run followed; null or absent for a prompt or agent run. */
     planId?: string | null;
 }
 
 /** How the owner handles a run that waits for review. */
 export type CoworkReviewAction = 'answer' | 'done_myself' | 'not_needed';
+
+/** An AI cost: per currency, and how many model calls it was. */
+interface CoworkCost {
+    byCurrency: Record<string, number>;
+    calls: number;
+}
 
 export interface CoworkStatsData {
     total: number;
@@ -129,6 +137,8 @@ export interface CoworkStatsData {
     avgDurationMs: number | null;
     runCount: number;
     createdAt: string | null;
+    /** This item's AI cost this calendar month; null when it could not be read. */
+    costThisMonth?: CoworkCost | null;
 }
 
 /** An agent the work can be handed to. */

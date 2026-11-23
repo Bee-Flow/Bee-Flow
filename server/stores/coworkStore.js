@@ -555,6 +555,7 @@ module.exports = {
     // Plans (./coworkPlans.mts): attach, detach, approve, the approved plan, and the plan a run followed.
     ...coworkPlans,
     ...coworkJourneys,
+    ...require('./coworkRunCosts.mts').makeCoworkRunCosts({ ready: () => initDB() }), // what runs cost in AI
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
     releaseRun,

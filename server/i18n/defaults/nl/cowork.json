@@ -1,6 +1,13 @@
 {
   "translations": {
-    "cowork.history.started_by_mail": "Gestart door een nieuwe e-mail"
+    "cowork.history.ai_cost": "AI: {cost}, {count} modelaanroep",
+    "cowork.history.ai_cost_plural": "AI: {cost}, {count} modelaanroepen",
+    "cowork.history.started_by_mail": "Gestart door een nieuwe e-mail",
+    "cowork.stats.ai_calls": "{count} modelaanroep",
+    "cowork.stats.ai_calls_plural": "{count} modelaanroepen",
+    "cowork.stats.ai_month": "AI deze maand",
+    "cowork.stats.ai_none": "Geen",
+    "cowork.stats.ai_none_sub": "er is geen model aangeroepen"
   },
   "sameAsEnglish": []
 }

@@ -41,6 +41,14 @@ describe('CoworkRunDetails', () => {
         expect(tools[1]).not.toHaveAttribute('data-refused');
     });
 
+    it('says what the run cost in AI and in how many model calls; a run without a model call says nothing about it', () => {
+        const { unmount } = render(<CoworkRunDetails run={run({ cost: { byCurrency: { EUR: 0.0421 }, calls: 3 } })} agentId="a1" title="Supplier radar" t={t} />);
+        expect(screen.getByTestId('cowork-run-cost-line').textContent).toBe('AI: €0.04, 3 model calls');
+        unmount();
+        render(<CoworkRunDetails run={run({ cost: null })} agentId="a1" title="Supplier radar" t={t} />);
+        expect(screen.queryByTestId('cowork-run-cost-line')).toBeNull();
+    });
+
     it('names the skills that took part and how', () => {
         render(<CoworkRunDetails run={run()} agentId="a1" title="Mail desk" t={t} />);
         expect(screen.getByText('Skills: Tone of voice (always on), Offer letter (loaded when needed)')).toBeInTheDocument();

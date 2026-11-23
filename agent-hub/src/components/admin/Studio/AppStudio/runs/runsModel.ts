@@ -3,6 +3,7 @@
 
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { RunActor, RunStep } from './runsApi';
+export { formatCost } from '@/utils/formatCost';
 
 export type Tone = 'ok' | 'error' | 'warning' | 'neutral' | 'running';
 
@@ -30,19 +31,6 @@ export function formatDuration(ms: number | null | undefined): string {
     const m = Math.floor(ms / 60_000);
     const s = Math.round((ms % 60_000) / 1000);
     return `${m} min ${s} s`;
-}
-
-/** "$0.0021 · €0.0100", each in its own currency; '—' without a priced call. */
-export function formatCost(costByCurrency: Record<string, number> | null | undefined, locale = 'en'): string {
-    const entries = Object.entries(costByCurrency ?? {}).filter(([, v]) => Number.isFinite(v));
-    if (!entries.length) return '—';
-    return entries.map(([currency, value]) => {
-        try {
-            return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: value < 0.01 ? 4 : 2 }).format(value);
-        } catch {
-            return `${value.toFixed(4)} ${currency}`;
-        }
-    }).join(' · ');
 }
 
 export function formatTokens(n: number): string {

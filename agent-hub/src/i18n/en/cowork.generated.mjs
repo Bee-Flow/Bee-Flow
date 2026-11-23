@@ -155,4 +155,11 @@ export default {
     "cowork.flash.watching_mail": "Watching for new email.",
     "cowork.edit.mail_trigger": "When a new email arrives",
     "cowork.mail_trigger.error_not_connected": "That mail account is not connected. Connect it in Settings → Connections and try again.",
+    "cowork.history.ai_cost": "AI: {cost}, {count} model call",
+    "cowork.history.ai_cost_plural": "AI: {cost}, {count} model calls",
+    "cowork.stats.ai_calls": "{count} model call",
+    "cowork.stats.ai_calls_plural": "{count} model calls",
+    "cowork.stats.ai_month": "AI this month",
+    "cowork.stats.ai_none": "None",
+    "cowork.stats.ai_none_sub": "no model was called",
 };

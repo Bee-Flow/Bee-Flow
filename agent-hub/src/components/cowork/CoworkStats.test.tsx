@@ -76,12 +76,29 @@ describe('CoworkStats — the three figures', () => {
         expect(cards()[0]).not.toHaveTextContent('25');
     });
 
-    it('never puts a money figure on screen, because no cost is recorded anywhere (CW-12)', async () => {
+    it('puts no money figure on screen when the server sent no cost: never a guessed one (CW-12)', async () => {
         await renderStats();
         const block = screen.getByTestId('cowork-stats');
         expect(block.textContent).not.toMatch(/[€$£]/);
         expect(block.textContent).not.toMatch(/token/i);
         expect(block.children).toHaveLength(3);
+    });
+
+    it('shows this month\'s AI cost, read from the usage ledger, as a fourth figure', async () => {
+        api.getCoworkStats.mockResolvedValue(stats({ costThisMonth: { byCurrency: { EUR: 0.62 }, calls: 7 } }));
+        renderWithClient(<CoworkStats coworkId="w1" reloadKey={0} />);
+        await waitFor(() => expect(cards()).toHaveLength(4));
+        expect(cards()[3]).toHaveTextContent('AI this month');
+        expect(cards()[3]).toHaveTextContent('€0.62');
+        expect(cards()[3]).toHaveTextContent('7 model calls');
+    });
+
+    it('a month without a model call says so, without an amount', async () => {
+        api.getCoworkStats.mockResolvedValue(stats({ costThisMonth: { byCurrency: {}, calls: 0 } }));
+        renderWithClient(<CoworkStats coworkId="w1" reloadKey={0} />);
+        await waitFor(() => expect(cards()).toHaveLength(4));
+        expect(cards()[3]).toHaveTextContent('None');
+        expect(cards()[3].textContent).not.toMatch(/[€$£]/);
     });
 });
 

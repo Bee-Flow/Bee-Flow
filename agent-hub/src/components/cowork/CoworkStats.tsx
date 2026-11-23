@@ -29,6 +29,7 @@ import { formatDuration } from './coworkFormat';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkStatsData } from '../../api/cowork.types';
+import { formatCost } from '@/utils/formatCost';
 
 interface FigureProps {
     label: string;
@@ -107,6 +108,22 @@ function failureLine(stats: CoworkStatsData, t: TranslateFn): string {
  * keep their height so the history below them does not jump when the numbers
  * land, and an em dash cannot be misread as a measurement.
  */
+/**
+ * This month's AI cost as a figure: an amount, or "none" for a month without a model call. Only when the server sent
+ * one (the usage ledger, read per run): without it there is no figure at all, never a guessed one.
+ */
+function costFigures(stats: CoworkStatsData | null, t: TranslateFn, locale: string): FigureProps[] {
+    const month = stats?.costThisMonth;
+    if (!month) return [];
+    const label = t('cowork.stats.ai_month', 'AI this month');
+    if (month.calls === 0) return [{ label, value: t('cowork.stats.ai_none', 'None'), sub: t('cowork.stats.ai_none_sub', 'no model was called') }];
+    return [{
+        label,
+        value: formatCost(month.byCurrency, locale),
+        sub: t(month.calls === 1 ? 'cowork.stats.ai_calls' : 'cowork.stats.ai_calls_plural', month.calls === 1 ? '{count} model call' : '{count} model calls', { count: month.calls }),
+    }];
+}
+
 function figures(stats: CoworkStatsData | null, t: TranslateFn): FigureProps[] {
     const pending = '—';
     // avgDurationMs is null until something has FINISHED. Printing "0m 00s"
@@ -137,7 +154,7 @@ function figures(stats: CoworkStatsData | null, t: TranslateFn): FigureProps[] {
 }
 
 export default function CoworkStats({ coworkId, reloadKey }: CoworkStatsProps) {
-    const { t } = useTranslation();
+    const { t, locale } = useTranslation();
     // Same "the state carries the key it was fetched for" shape as the run
     // history, for the same reason: switching items must not show the
     // previous item's numbers for a frame. Numbers are worse than rows here —
@@ -173,7 +190,7 @@ export default function CoworkStats({ coworkId, reloadKey }: CoworkStatsProps) {
 
     return (
         <div className="flex gap-3.5 flex-wrap" data-testid="cowork-stats">
-            {figures(settled ? state.stats : null, t).map(card => (
+            {[...figures(settled ? state.stats : null, t), ...costFigures(settled ? state.stats : null, t, locale)].map(card => (
                 <Figure key={card.label} label={card.label} value={card.value} sub={card.sub} tone={card.tone} />
             ))}
         </div>
