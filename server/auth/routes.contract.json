@@ -1841,6 +1841,12 @@
     "GET /api/cowork/needs-you": {
       "gate": "auth"
     },
+    "GET /api/cowork/policy/:orgId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/:orgId/audit": {
+      "gate": "auth"
+    },
     "GET /api/cowork/shield/:orgId": {
       "gate": "auth"
     },
@@ -7363,6 +7369,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/policy/:orgId": {
       "gate": "auth"
     },
     "PUT /api/cowork/shield/:orgId": {

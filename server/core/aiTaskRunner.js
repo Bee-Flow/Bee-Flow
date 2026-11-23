@@ -559,6 +559,7 @@ function stop() {
 
 module.exports = {
     executeTask,
+    failRun, // the failure path, for a run that never started (core/cowork/coworkRunner.js)
     start,
     stop,
 };

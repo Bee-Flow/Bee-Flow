@@ -1,0 +1,17 @@
+{
+  "translations": {
+    "cowork_policy.apps": "Apps die een plan mag gebruiken als niemand meekijkt",
+    "cowork_policy.apps_hint": "App-id's, gescheiden door komma's, zoals outlook, datatables. Leeg: elke app.",
+    "cowork_policy.audit": "Download het spoor (CSV)",
+    "cowork_policy.audit_hint": "Elke wijziging aan een cowork in deze organisatie: wie, wat en wanneer; nooit wat het werk zegt.",
+    "cowork_policy.ceiling": "Hoe zelfstandig een cowork mag zijn",
+    "cowork_policy.ceiling.asks_before_sending": "Hoogstens: vragen voordat iets Bee Flow verlaat",
+    "cowork_policy.ceiling.asks_everything": "Hoogstens: alles vragen",
+    "cowork_policy.ceiling.on_its_own": "Geen plafond: een cowork mag zelfstandig draaien",
+    "cowork_policy.failed": "Dat is niet opgeslagen. Probeer het opnieuw.",
+    "cowork_policy.read_only": "Maak elke cowork alleen-lezen",
+    "cowork_policy.read_only_desc": "Er draait niets en er wordt niets gemaakt of gewijzigd tot je dit uitzet. Meteen opgeslagen.",
+    "cowork_policy.save_apps": "Opslaan"
+  },
+  "sameAsEnglish": []
+}

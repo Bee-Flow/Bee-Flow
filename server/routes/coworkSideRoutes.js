@@ -8,6 +8,11 @@
  *   GET /home?from=&to=     → Cowork's home: how each item works, the caller's day, the AI cost this month
  *                             (usecases/coworkHome.mts; from and to are where the caller's day starts and ends)
  *   GET, PUT /shield/:orgId → the Privacy Shield on Cowork's prompt runs (./coworkShieldSettings.js)
+ *   GET, PUT /policy/:orgId, GET /policy/:orgId/audit → the organisation's Cowork policy (./coworkPolicyRoutes.js)
+ *
+ * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
+ * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
+ * switch can be turned off again; so does the caller's own daily e-mail.
  */
 
 const { needsYou } = require('../usecases/coworkNeedsYou.mts');
@@ -24,11 +29,33 @@ const HomeQuery = z.object({ from: isoTime, to: isoTime }).strict()
 /** Mounted behind routes/cowork.js's requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
 
+const STAYS_OPEN = ['/policy/', '/shield/', '/daily-mail'];
+
+/**
+ * Refuse every change while the caller's organisation has made Cowork read-only.
+ * @param {((userId: string) => Promise<{ readOnly: boolean }>) | undefined} policyOf
+ * @returns {import('express').RequestHandler}
+ */
+function readOnlyGate(policyOf) {
+    return async (req, res, next) => {
+        if (req.method === 'GET' || req.method === 'HEAD' || STAYS_OPEN.some((p) => req.path.startsWith(p))) return next();
+        const user = req.session?.user;
+        if (!user?.id) return next();
+        const of = policyOf ?? ((/** @type {string} */ id) => require('../core/entitlements/coworkPolicy.mts').policyOfOwner(id));
+        const policy = await of(user.id);
+        // A policy that could not be read stops every run (core/cowork/coworkRunner.js); a change is let through, as
+        // a change sends nothing, and the switch an administrator set is what this gate holds.
+        if (!policy.readOnly || /** @type {{ unreadable?: boolean }} */ (policy).unreadable) return next();
+        return res.status(423).json({ error: 'Your organisation has made Cowork read-only: nothing can be created or changed until an administrator switches that off.', code: 'cowork_read_only' });
+    };
+}
+
 /**
  * @param {import('express').Router} router
- * @param {{ needs?: typeof needsYou, home?: typeof homeOf, dailyMail?: import('./coworkDailyMailRoutes').DailyMailRouteDeps }} [overrides]
+ * @param {{ needs?: typeof needsYou, home?: typeof homeOf, dailyMail?: import('./coworkDailyMailRoutes').DailyMailRouteDeps, policyOf?: (userId: string) => Promise<{ readOnly: boolean }> }} [overrides]
  */
-function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = {} } = {}) {
+function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = {}, policyOf = undefined } = {}) {
+    router.use(readOnlyGate(policyOf));
     router.get('/needs-you', async (req, res) => {
         const list = await needs(userIdOf(req));
         res.json({ needs: list, count: list.length });
@@ -39,6 +66,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     });
     require('./coworkDailyMailRoutes').mountDailyMailRoutes(router, dailyMail);
     router.use(require('./coworkShieldSettings'));
+    router.use(require('./coworkPolicyRoutes'));
 }
 
 module.exports = { mountSideRoutes };

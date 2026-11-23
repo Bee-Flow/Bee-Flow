@@ -31,7 +31,9 @@ const dailyMail = {
 /** @type {any[]} */
 const homes = [];
 const home = async (/** @type {string} */ userId, /** @type {any} */ day) => { homes.push([userId, day]); return { how: {}, today: [], cost: null }; };
-mountSideRoutes(router, { home, needs: async (userId) => { asked.push(userId); return [/** @type {any} */ ({ kind: 'review', itemId: 'cw-1', title: 'T', runId: 'r1', since: null, reason: 'Look', plan: null })]; }, dailyMail });
+/** @type {{ readOnly: boolean }} */
+const policy = { readOnly: false };
+mountSideRoutes(router, { home, policyOf: async () => policy, needs: async (userId) => { asked.push(userId); return [/** @type {any} */ ({ kind: 'review', itemId: 'cw-1', title: 'T', runId: 'r1', since: null, reason: 'Look', plan: null })]; }, dailyMail });
 // An item route after it, as in routes/cowork.js: the word is never read as an item id.
 router.get('/:id', (req, res) => { res.json({ item: req.params.id }); });
 const api = serve('/api/cowork', router, { user: { id: 'u1' } });
@@ -62,4 +64,18 @@ test('the home is read for the caller\'s own day; a day that is not two ISO time
     for (const q of ['', 'from=yesterday&to=today', `from=${encodeURIComponent(day.to)}&to=${encodeURIComponent(day.from)}`, 'from=2026-11-01T00:00:00Z&to=2026-11-23T00:00:00Z']) {
         assert.strictEqual((await api.call('GET', `/api/cowork/home?${q}`)).status, 400, q);
     }
+});
+
+test('while the organisation has made Cowork read-only, every change is refused; reading, the policy and the daily mail stay open', async () => {
+    router.post('/:id/toggle', (req, res) => { res.json({ toggled: req.params.id }); });
+    policy.readOnly = true;
+    try {
+        const refused = await api.call('POST', '/api/cowork/cw-1/toggle');
+        assert.deepStrictEqual([refused.status, refused.body.code], [423, 'cowork_read_only']);
+        assert.strictEqual((await api.call('GET', '/api/cowork/cw-1')).status, 200);
+        assert.strictEqual((await api.call('PUT', '/api/cowork/daily-mail', { body: { enabled: false, timeZone: 'UTC' } })).status, 200);
+    } finally {
+        policy.readOnly = false;
+    }
+    assert.deepStrictEqual((await api.call('POST', '/api/cowork/cw-1/toggle')).body, { toggled: 'cw-1' });
 });

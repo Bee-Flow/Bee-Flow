@@ -14,7 +14,8 @@
  */
 
 const coworkStore = require('../../stores/coworkStore');
-const { executeTask } = require('../aiTaskRunner');
+const { executeTask, failRun } = require('../aiTaskRunner');
+const { claimAttempt } = require('./runClaim.mts');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const { runMaxMs } = require('./runDeadline.mts');
@@ -23,14 +24,35 @@ const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
 
 /**
+ * A run the organisation's policy stopped: a row of its own that fails with the reason, so the schedule moves on and
+ * the owner sees why. A mail run already holds its row (`runId`).
+ * @param {Parameters<typeof executeTask>[0]} task
+ * @param {string} reason
+ * @param {{ manual: boolean, due: boolean, runId: string | null }} opts
+ */
+async function refuseTask(task, reason, { manual, due, runId }) {
+    const attempt = runId ? { runId } : await claimAttempt(coworkStore, task, { manual, due });
+    // failRun is untyped JavaScript; this is the shape its `close` option takes.
+    const fail = /** @type {(t: typeof task, e: Error, o: { manual: boolean, store: typeof coworkStore, close: { runId: string | null } }) => Promise<unknown>} */ (/** @type {unknown} */ (failRun));
+    if (attempt) await fail(task, new Error(reason), { manual, store: coworkStore, close: { runId: attempt.runId } });
+}
+
+/**
  * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
  * own: the run is for a moment that was due when the tick read it, and the
  * claim then requires that it still is (two replicas read the same due row).
+ * `trigger`: a run a new mail started (./mailTriggerRun.mts), which holds its row.
+ * Every start goes through here, so the organisation's policy is asked first
+ * (core/entitlements/coworkPolicy.mts): read-only runs nothing.
  * @param {Parameters<typeof executeTask>[0]} schedule
- * @param {{ manual?: boolean, due?: boolean }} [opts]
+ * @param {{ manual?: boolean, due?: boolean, trigger?: any }} [opts]
+ * @param {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy> }} [deps]
  */
-async function executeCowork(schedule, { manual = false, due = false } = {}) {
-    return executeTask(schedule, { manual, due, store: coworkStore });
+async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
+    const policy = require('../entitlements/coworkPolicy.mts');
+    const refusal = policy.runRefusalOf(await (deps.policyOf || policy.policyOfOwner)(schedule.userId));
+    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null });
+    return executeTask(schedule, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
 }
 
 /**

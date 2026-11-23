@@ -50,6 +50,11 @@ const FIXTURES = [
         adminRoutes: ['PUT /api/cowork/shield/:orgId'],
         bodies: { 'PUT /api/cowork/shield/:orgId': { enabled: true } },
     }),
+    ...orgArea('coworkPolicy', '/api/cowork', () => require('../../routes/coworkPolicyRoutes'), {
+        memberReads: ['GET /api/cowork/policy/:orgId'],
+        adminRoutes: ['PUT /api/cowork/policy/:orgId', 'GET /api/cowork/policy/:orgId/audit'],
+        bodies: { 'PUT /api/cowork/policy/:orgId': { readOnly: false } },
+    }),
     ...orgArea('orgPrivacyShield', '/api/org-privacy-shield', () => require('../../routes/orgPrivacyShield'), {
         memberReads: ['GET /api/org-privacy-shield/:orgId', 'GET /api/org-privacy-shield/:orgId/effective'],
         adminRoutes: [

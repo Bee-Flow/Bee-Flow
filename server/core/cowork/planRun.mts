@@ -31,6 +31,8 @@ import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
 import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
 import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
+import { appsNotAllowed, capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
+import { permissionsOf, BUILT_IN_APP } from './plan/planPermissions.mts';
 import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
@@ -70,6 +72,8 @@ export interface PlanRunDeps {
     lookups?: ToolLookups;
     /** Approvals are in the owner's licence: a level that asks needs them (./plan/planIndependence.mts). */
     mayAsk?: MayAsk;
+    /** The owner's organisation's Cowork policy (../entitlements/coworkPolicy.mts). */
+    policyOf?: (userId: string) => Promise<CoworkPolicy>;
 }
 
 /** A plan that may not run as it is: the owner has to look at it. */
@@ -136,14 +140,22 @@ function defaults(deps: PlanRunDeps) {
         createNotification: deps.createNotification ?? ((n: Record<string, unknown>) => (nodeRequire('../../stores/notificationStore') as { createNotification: (n: Record<string, unknown>) => Promise<unknown> }).createNotification(n)),
         lookups: deps.lookups ?? toolLookups(),
         mayAsk: deps.mayAsk ?? mayAskByLicence,
+        policyOf: deps.policyOf ?? ((userId: string) => policyOfOwner(userId)),
     };
 }
 
-/** The level this run uses; a level that asks, when asking is not possible, refuses the run. */
-async function levelOf(task: PlanTask, automation: AutomationRow, mayAsk: MayAsk) {
-    const asks = await mayAsk({ userId: task.userId, organizationId: (automation as { organizationId?: string | null }).organizationId ?? null });
+/**
+ * The level this run uses, under the organisation's ceiling; a level that asks, when asking is not possible, refuses
+ * the run, and so does an app the organisation does not let run unattended.
+ */
+async function levelOf(task: PlanTask, automation: AutomationRow, definition: Definition, d: ReturnType<typeof defaults>) {
+    const policy = await d.policyOf(task.userId);
+    const blocked = appsNotAllowed(permissionsOf(definition, d.lookups).grants.map((g) => g.app).filter((a) => a !== BUILT_IN_APP), policy);
+    if (blocked.length > 0) throw new PlanRefusedError(`Your organisation does not let ${blocked.join(', ')} run while nobody watches, so this plan did not run.`);
+    const asks = await d.mayAsk({ userId: task.userId, organizationId: (automation as { organizationId?: string | null }).organizationId ?? null });
     try {
-        return effectiveIndependence(task.independence, asks);
+        const chosen = effectiveIndependence(task.independence, asks);
+        return effectiveIndependence(capLevel(chosen, policy.ceiling), asks);
     } catch (e) {
         throw new PlanRefusedError((e as Error).message);
     }
@@ -188,7 +200,7 @@ export async function executePlanRun(
     try {
         const { plan, definition, automation } = await runnablePlan(task, store, d.lookups, d);
         // The level is kept on the run: after a pause the journey continues with the questions it started with.
-        const independence = await levelOf(task, automation, d.mayAsk);
+        const independence = await levelOf(task, automation, definition, d);
         await store.linkPlanRun(attempt.runId, { planId: plan.id, independence });
         // A spread without the row's own copies: the runner executes exactly the definition handed in
         // (core/automationRunner/definitionForRun.js). 'manual' is its live production run.

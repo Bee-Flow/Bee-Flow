@@ -108,3 +108,17 @@ test('the reaper waits ten minutes longer than a run may take, and never less th
 
     assert.deepEqual(windows, [{ olderThanMs: 30 * 60_000 }, { olderThanMs: 55 * 60_000 }]);
 });
+
+test('while the organisation has made Cowork read-only, a start runs nothing: the run closes as failed, with the reason', async () => {
+    const item = { id: 's2', userId: 'u1', title: 'Supplier radar', prompt: 'Summarise.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
+    mock.method(coworkStore, 'markRunning', async () => 'run-ro');
+    /** @type {unknown[]} */
+    const errors = [];
+    mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {string} */ message, /** @type {unknown} */ close) => { errors.push([message, close]); });
+    mock.method(coworkStore, 'advanceSchedule', async () => null);
+    mock.method(coworkStore, 'getSchedule', async () => item);
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null });
+    await runner.executeCowork(item, { due: true }, { policyOf: readOnly });
+    assert.equal(errors.length, 1);
+    assert.match(String(/** @type {any[]} */ (errors[0])[0]), /read-only/);
+});

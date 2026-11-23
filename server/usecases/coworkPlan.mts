@@ -21,7 +21,8 @@
 import { createRequire } from 'node:module';
 import type { Definition, PlanFinding, PlanPermissions, PlanView, ToolLookups } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
-import { permissionsOf, planFingerprint, widens } from '../core/cowork/plan/planPermissions.mts';
+import { permissionsOf, planFingerprint, widens, BUILT_IN_APP } from '../core/cowork/plan/planPermissions.mts';
+import { appsNotAllowed, policyOfOwner, OPEN_POLICY, type CoworkPolicy } from '../core/entitlements/coworkPolicy.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
@@ -50,6 +51,8 @@ export interface Deps {
     /** Why the automation runner would refuse this owner, or null (core/automationRunner/ownerGate.mts). */
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     lookups: ToolLookups;
+    /** The owner's organisation's Cowork policy (core/entitlements/coworkPolicy.mts); without one, the open policy. */
+    policyOf?: (userId: string) => Promise<CoworkPolicy>;
 }
 
 function defaultDeps(): Deps {
@@ -60,6 +63,7 @@ function defaultDeps(): Deps {
         mayAsk: mayAskByLicence,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: Deps['ownerRefusal'] }).ownerRefusal(owner),
         lookups: toolLookups(),
+        policyOf: (userId) => policyOfOwner(userId),
     };
 }
 
@@ -86,13 +90,17 @@ export interface PlanState {
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
-async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk'>): Promise<PlanDraft> {
+async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk' | 'policyOf'>): Promise<PlanDraft> {
     const definition = automation.definition as Definition;
     const owner = { userId: automation.userId, organizationId: automation.organizationId ?? null };
+    const permissions = permissionsOf(definition, deps.lookups);
+    const policy = deps.policyOf ? await deps.policyOf(automation.userId) : OPEN_POLICY;
+    const fenced = appsNotAllowed(permissions.grants.map((g) => g.app).filter((a) => a !== BUILT_IN_APP), policy)
+        .map((app): PlanFinding => ({ code: 'policy.app_not_unattended', stepId: null, message: `Your organisation does not let ${app} run while nobody watches.` }));
     return {
         view: planViewOf(definition, deps.lookups),
-        permissions: permissionsOf(definition, deps.lookups),
-        findings: [...checkPlan(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk)],
+        permissions,
+        findings: [...checkPlan(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
         fingerprint: planFingerprint(definition),
     };
 }

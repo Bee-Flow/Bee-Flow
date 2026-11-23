@@ -88,7 +88,8 @@ function defaultDeps(): Deps {
         claim: (p) => triggerStore.claimEventRun(p),
         countRecent: (p) => triggerStore.countRecentEventRuns(p),
         fetchMessage: fetchProviderMessage,
-        executeTask: (task, opts) => nodeRequire('../aiTaskRunner.js').executeTask(task, opts),
+        // Through the Cowork runner, which asks the organisation's policy first.
+        executeTask: (task, opts) => nodeRequire('./coworkRunner.js').executeCowork(task, opts),
         maxPerHour: () => envByteLimit(MAX_PER_HOUR_ENV, DEFAULT_MAX_PER_HOUR),
     };
 }

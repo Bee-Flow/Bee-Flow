@@ -22,7 +22,7 @@ function approved(definition = supplierRadar(), over = {}) {
     return { id: 'plan-1', automationId: 'auto-1', definition, fingerprint: planFingerprint(definition), ...over };
 }
 
-function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false } = {}) {
+function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false, policy = { ceiling: 'on_its_own', readOnly: false, unattendedApps: null } } = {}) {
     const calls = [];
     const rec = (name, answer) => async (...a) => { calls.push([name, ...a]); return answer; };
     const store = {
@@ -40,6 +40,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         createNotification: async (n) => { seen.notes.push(n); },
         lookups: fakeLookups(),
         mayAsk: async () => mayAsk,
+        policyOf: async () => policy,
     };
     return { store, calls, seen, deps, names: () => calls.map((c) => c[0]) };
 }
@@ -206,4 +207,16 @@ test('what a run produced is the text of its last step, else the runner\'s summa
     assert.strictEqual(resultTextOf({ lastOutput: { rows: [1, 2] }, summary: 'Ran 3 steps.' }), 'Ran 3 steps.');
     assert.strictEqual(resultTextOf({ lastOutput: { body: '   ' }, summary: '' }), 'Done.');
     assert.strictEqual(resultTextOf(null), 'Done.');
+});
+
+test('the organisation\'s policy: its ceiling holds the level down, and an app it does not let run unattended stops the plan', async () => {
+    const sends = planOf([...supplierRadar().steps.slice(0, 6), { id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('x@supplier.example') } }]);
+    const capped = harness({ plan: approved(sends), mayAsk: true, policy: { ceiling: 'asks_everything', readOnly: false, unattendedApps: null } });
+    await executePlanRun({ ...task, independence: 'on_its_own' }, { store: capped.store, manual: true }, capped.deps);
+    assert.deepStrictEqual(capped.calls.find((c) => c[0] === 'linkPlanRun')?.[2], { planId: 'plan-1', independence: 'asks_everything' });
+
+    const fenced = harness({ plan: approved(sends), mayAsk: true, policy: { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables'] } });
+    await executePlanRun(task, { store: fenced.store, manual: true }, fenced.deps);
+    assert.deepStrictEqual(fenced.seen.executed, [], 'nothing ran');
+    assert.match(fenced.seen.failed[0]?.err.message ?? '', /does not let outlook run while nobody watches/);
 });
