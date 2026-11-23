@@ -42,6 +42,7 @@ function apiWith({ ready = async () => ({ brief: 'b', modelId: 'm' }), make = as
     mountPlannerRoutes(router, {
         loadItem, moduleGate, makeLimit,
         orgOf: async () => 'org-1',
+        record: async (action, id, by, fields) => { asked.push(['record', { action, id, by, fields }]); },
         planner: () => ({
             readyToPlan: async ({ item, userOrgId }) => { asked.push(['readyToPlan', { item: item.id, userOrgId }]); return /** @type {any} */ (await ready()); },
             makePlan: async (input) => { asked.push(['makePlan', { item: input.item.id, userOrgId: input.userOrgId, hasSignal: input.signal instanceof AbortSignal, hasSession: !!input.session }]); return make(input); },
@@ -83,6 +84,7 @@ test('making a plan streams what is being drafted and ends in the plan as its ow
     assert.deepStrictEqual(asked, [
         ['readyToPlan', { item: 'cw-1', userOrgId: 'org-1' }],
         ['makePlan', { item: 'cw-1', userOrgId: 'org-1', hasSignal: true, hasSession: true }],
+        ['record', { action: 'cowork.plan_made', id: 'cw-1', by: { userId: 'u1', organizationId: 'org-1' }, fields: { automationId: 'auto-new' } }],
         ['planStateOf', { item: 'cw-1', planAutomationId: 'auto-new' }],
     ]);
 });

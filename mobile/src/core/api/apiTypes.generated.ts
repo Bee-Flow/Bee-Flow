@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1954 operations. */
+/** 1955 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2584,6 +2584,7 @@ export interface ApiOperations {
         triggerKind?: 'schedule' | 'app_event';
     }>;
     'DELETE /api/cowork/{id}': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/audit': Op<{ id: string | number }>;
     'GET /api/cowork/{id}/plan': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/plan': Op<{ id: string | number }, UndeclaredQuery, {
         automationId: string;

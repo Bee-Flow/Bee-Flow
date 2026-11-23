@@ -104,9 +104,9 @@ describe('the detail pane under a key-echoing translator', () => {
 
         expect(keys.length).toBeGreaterThan(10);
         for (const key of keys) {
-            // cowork.* is this track's namespace; run_status.* is the shared
-            // status table every screen reads (F1) — a consumer, not a writer.
-            expect(key).toMatch(/^(cowork|run_status)\./);
+            // cowork.* and its own family (cowork_review, cowork_plan, cowork_trail) are this track's namespaces;
+            // run_status.* is the shared status table every screen reads (F1) — a consumer, not a writer.
+            expect(key).toMatch(/^(cowork(_[a-z]+)?|run_status)\./);
         }
     });
 

@@ -30,6 +30,7 @@ import CoworkEditForm from './CoworkEditForm';
 import CoworkPlanPanel from './CoworkPlanPanel';
 import CoworkReviewQueue from './CoworkReviewQueue';
 import CoworkRunHistory from './CoworkRunHistory';
+import CoworkTrail from './CoworkTrail';
 import { describeMoment, repeatLabel } from './coworkSchedule';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import CoworkStats from './CoworkStats';
@@ -294,6 +295,7 @@ export default function CoworkDetail({
                 <CoworkPlanPanel coworkId={item.id} mailTriggered={isMailTriggerItem(item)} />
                 <CoworkStats coworkId={item.id} reloadKey={reloadKey} />
                 <CoworkRunHistory coworkId={item.id} reloadKey={reloadKey} agentId={item.agentId} title={item.title} />
+                <CoworkTrail coworkId={item.id} />
             </div>
         </div>
     );

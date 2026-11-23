@@ -1,0 +1,36 @@
+// @typecheck strict
+// English GUI defaults — namespace "cowork_trail": every key whose part before the first "." is "cowork_trail".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    "cowork_trail.action.created": "created this work",
+    "cowork_trail.action.deleted": "deleted it",
+    "cowork_trail.action.plan_approved": "approved the plan",
+    "cowork_trail.action.plan_attached": "chose the automation of its plan",
+    "cowork_trail.action.plan_made": "had Cowork make a plan",
+    "cowork_trail.action.plan_removed": "took the plan off",
+    "cowork_trail.action.review_handled": "handled a review",
+    "cowork_trail.action.toggled": "switched it {state}",
+    "cowork_trail.action.updated": "changed {what}",
+    "cowork_trail.empty": "No changes recorded yet.",
+    "cowork_trail.failed": "The changes could not be loaded.",
+    "cowork_trail.field.agentId": "the agent",
+    "cowork_trail.field.daysOfWeek": "the schedule",
+    "cowork_trail.field.enabledApps": "the apps",
+    "cowork_trail.field.isActive": "whether it runs",
+    "cowork_trail.field.modelTier": "the model",
+    "cowork_trail.field.nextRunAt": "the next run",
+    "cowork_trail.field.prompt": "the brief",
+    "cowork_trail.field.repeatInterval": "the schedule",
+    "cowork_trail.field.something": "something",
+    "cowork_trail.field.timeOfDay": "the schedule",
+    "cowork_trail.field.timezone": "the time zone",
+    "cowork_trail.field.title": "the title",
+    "cowork_trail.field.trigger": "what starts it",
+    "cowork_trail.field.triggerKind": "what starts it",
+    "cowork_trail.heading": "Changes to this work",
+    "cowork_trail.off": "off",
+    "cowork_trail.on": "on",
+    "cowork_trail.someone": "Someone else",
+    "cowork_trail.you": "You",
+};

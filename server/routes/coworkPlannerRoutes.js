@@ -33,6 +33,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   orgOf: (req: import('express').Request, userId: string) => Promise<string | null>,
  *   makeLimit: import('express').RequestHandler<{ id: string }>,
  *   moduleGate: import('express').RequestHandler<{ id: string }>,
+ *   record: typeof import('../usecases/coworkAudit.mts').recordCowork,
  * }} PlannerRouteDeps
  */
 
@@ -47,6 +48,7 @@ const defaults = () => ({
         .catch((/** @type {unknown} */ e) => fallback('routes/coworkPlannerRoutes:orgOf', e, null)),
     makeLimit: perUserRateLimit({ windowMs: 60_000, max: MAKES_PER_MINUTE, name: 'cowork-plan-make' }),
     moduleGate: requireModule('automation'),
+    record: (...a) => require('../usecases/coworkAudit.mts').recordCowork(...a),
 });
 
 /**
@@ -66,7 +68,7 @@ function failureOf(err) {
  * @param {Partial<PlannerRouteDeps>} [overrides]
  */
 function mountPlannerRoutes(router, overrides = {}) {
-    const { loadItem, planner, plan, orgOf, makeLimit, moduleGate } = { ...defaults(), ...overrides };
+    const { loadItem, planner, plan, orgOf, makeLimit, moduleGate, record } = { ...defaults(), ...overrides };
 
     router.post('/:id/plan/make', moduleGate, makeLimit, validate({ body: NoBody }), async (req, res) => {
         const userId = userIdOf(req);
@@ -81,6 +83,8 @@ function mountPlannerRoutes(router, overrides = {}) {
                 item, session: req.session, userOrgId, signal: stream.signal,
                 onProgress: (progress) => stream.send('progress', progress),
             });
+            // The trail (usecases/coworkAudit.mts): written here, once the plan exists.
+            void record('cowork.plan_made', item.id, { userId, organizationId: userOrgId }, { automationId: made.automationId });
             const state = await plan().planStateOf({ ...item, planAutomationId: made.automationId });
             stream.send('done', { summary: made.summary, state });
         } catch (err) {

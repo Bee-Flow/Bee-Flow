@@ -1,0 +1,42 @@
+/**
+ * How one entry of an item's trail reads: "You changed the schedule", "Someone else switched it off". Pure.
+ */
+import type { TranslateFn } from '../../hooks/useTranslation';
+import type { TrailEntry } from '../../api/coworkTrail';
+
+const ACTION_FALLBACK: Record<string, string> = {
+    'cowork.created': 'created this work',
+    'cowork.updated': 'changed {what}',
+    'cowork.toggled': 'switched it {state}',
+    'cowork.deleted': 'deleted it',
+    'cowork.plan_attached': 'chose the automation of its plan',
+    'cowork.plan_approved': 'approved the plan',
+    'cowork.plan_removed': 'took the plan off',
+    'cowork.plan_made': 'had Cowork make a plan',
+    'cowork.review_handled': 'handled a review',
+};
+
+const FIELD_FALLBACK: Record<string, string> = {
+    title: 'the title', prompt: 'the brief', isActive: 'whether it runs', repeatInterval: 'the schedule', daysOfWeek: 'the schedule',
+    timeOfDay: 'the schedule', timezone: 'the time zone', nextRunAt: 'the next run', modelTier: 'the model', agentId: 'the agent',
+    enabledApps: 'the apps', triggerKind: 'what starts it', trigger: 'what starts it',
+};
+
+/** The fields a change touched, in words, each once. */
+export function changedWords(changed: string[], t: TranslateFn): string {
+    const words: string[] = [];
+    for (const field of changed) {
+        const word = t(`cowork_trail.field.${field}`, FIELD_FALLBACK[field] ?? field);
+        if (!words.includes(word)) words.push(word);
+    }
+    return words.length > 0 ? words.join(', ') : t('cowork_trail.field.something', 'something');
+}
+
+/** One entry as a sentence. */
+export function trailLine(entry: TrailEntry, t: TranslateFn): string {
+    const who = entry.byYou ? t('cowork_trail.you', 'You') : t('cowork_trail.someone', 'Someone else');
+    const fallback = ACTION_FALLBACK[entry.action] ?? entry.action.replace(/^cowork\./, '').replaceAll('_', ' ');
+    const state = entry.values.isActive === false ? t('cowork_trail.off', 'off') : t('cowork_trail.on', 'on');
+    const what = t(`cowork_trail.action.${entry.action.replace(/^cowork\./, '')}`, fallback, { what: changedWords(entry.changed, t), state });
+    return `${who} ${what}`;
+}
