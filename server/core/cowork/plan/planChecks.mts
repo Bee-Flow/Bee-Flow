@@ -34,8 +34,8 @@ import { stepsOf, inputsOf, aiToolsOf, refsOfStep, refsOfValue, type WalkedStep 
 const nodeRequire = createRequire(import.meta.url);
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
 
-/** Input names that say WHO receives something. Compared without case, `_` and `-`. */
-const DESTINATION_FIELDS: ReadonlySet<string> = new Set([
+/** Input names that say WHO receives something. Compared without case, `_` and `-` (fieldKey). Trust per recipient (../planTrust.mts) reads the same list. */
+export const DESTINATION_FIELDS: ReadonlySet<string> = new Set([
     'to', 'cc', 'bcc', 'recipient', 'recipients', 'email', 'emails', 'address', 'addresses', 'attendees',
     'userid', 'userids', 'user', 'users', 'channel', 'room', 'roomtoken', 'sharewith', 'signer', 'signers', 'phone',
     // A Talk conversation is named by its token; a reply goes to whoever wrote the message it answers.
@@ -48,7 +48,7 @@ const TARGET_FIELDS: ReadonlySet<string> = new Set([
     'spreadsheetid', 'calendarid', 'boardid', 'cardid', 'noteid', 'url', 'link',
 ]);
 
-const fieldKey = (name: string): string => name.toLowerCase().replaceAll('_', '').replaceAll('-', '');
+export const fieldKey = (name: string): string => name.toLowerCase().replaceAll('_', '').replaceAll('-', '');
 
 const finding = (code: string, stepId: string | null, message: string): PlanFinding => ({ code, stepId, message });
 

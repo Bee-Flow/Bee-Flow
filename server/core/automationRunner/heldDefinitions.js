@@ -15,11 +15,24 @@
  * The run is the paused row; the journey is its `rootRunId` (else its own id). A feature that does not know the run
  * answers null and the journey continues as any other. A feature that knows it but cannot answer (the copy it holds
  * was changed behind its back) throws: continuing on another definition is the one thing that may not happen.
+ *
+ * A feature that may not let the journey go on for a reason its owner should read (an organisation's policy that
+ * changed during the pause) throws a ContinuationRefused: the decision then fails the run with that reason
+ * (automation/approvalDecision.js) instead of a reason-less "could not continue".
  */
 
 'use strict';
 
 const { hasRunnerPort, runnerPort } = require('./featurePorts');
+
+/** A refusal to continue a journey, in words for its owner. */
+class ContinuationRefused extends Error {
+    /** @param {string} message */
+    constructor(message) {
+        super(message);
+        this.name = 'ContinuationRefused';
+    }
+}
 
 /**
  * @param {{ id?: string | null, rootRunId?: string | null, automationId?: string | null }} run  the paused run row
@@ -32,4 +45,4 @@ async function heldDefinitionOf(run) {
     return held && typeof held === 'object' && !Array.isArray(held) ? held : null;
 }
 
-module.exports = { heldDefinitionOf };
+module.exports = { heldDefinitionOf, ContinuationRefused };

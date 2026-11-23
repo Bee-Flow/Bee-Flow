@@ -25,6 +25,26 @@ test('the recipient a plan fixes, or any recipient when the plan picks it from d
     assert.deepStrictEqual(stepsUnder(plan, 'send', lookups).map((s) => s.id), ['send']);
 });
 
+test('cc, bcc and attendees are recipients too: the key holds all of them, and one picked from data is any recipient', () => {
+    const withCopies = { ...send, inputs: { ...send.inputs, cc: literal('Boss@Hoekstra.example'), bcc: literal('archive@hoekstra.example') } };
+    assert.strictEqual(recipientOf(withCopies), 'archive@hoekstra.example,boss@hoekstra.example,orders@supplier.example');
+    assert.strictEqual(recipientOf({ ...send, inputs: { ...send.inputs, cc: { kind: 'ref', path: 'steps.mail.output.from' } } }), ANY_RECIPIENT, 'a cc the plan picks from data');
+    assert.strictEqual(recipientOf({ ...send, inputs: { ...send.inputs, bcc: '{{steps.mail.output.from}}' } }), ANY_RECIPIENT, 'a bcc that is no literal');
+    const meeting = { id: 'meet', type: 'integration_action', tool: 'calendar_create_event', inputs: { title: literal('Review'), attendees: literal(['B@x.example', 'a@x.example']) } };
+    assert.strictEqual(recipientOf(meeting), 'a@x.example,b@x.example');
+    assert.strictEqual(recipientOf({ ...meeting, inputs: { attendees: { kind: 'ref', path: 'steps.mail.output.people' } } }), ANY_RECIPIENT);
+    assert.strictEqual(recipientOf({ ...send, inputs: { ...send.inputs, cc: literal('') } }), 'orders@supplier.example', 'an empty cc names nobody');
+    assert.strictEqual(recipientOf({ ...send, inputs: { body: literal('Hi') } }), ANY_RECIPIENT, 'no recipient field at all');
+});
+
+test('trust earned to one recipient does not carry over to a step that also copies someone in', () => {
+    const rows = [{ stepId: 'send', recipient: 'orders@supplier.example', letThrough: 6, trusted: true }];
+    const copied = planOf([{ ...send, inputs: { ...send.inputs, bcc: literal('someone-else@x.example') } }]);
+    assert.deepStrictEqual([...trustedSteps(copied, rows, 'on_its_own')], [], 'a bcc added later has earned nothing');
+    const picked = planOf([{ ...send, inputs: { ...send.inputs, cc: { kind: 'ref', path: 'steps.mail.output.from' } } }]);
+    assert.deepStrictEqual([...trustedSteps(picked, rows, 'on_its_own')], [], 'a cc picked from data is not the trusted recipient');
+});
+
 test('a trusted step goes on its own only to the same recipient, and only while the ceiling allows it', () => {
     const rows = [{ stepId: 'send', recipient: 'orders@supplier.example', letThrough: 6, trusted: true }, { stepId: 'answer', recipient: '*', letThrough: 2, trusted: false }];
     assert.deepStrictEqual([...trustedSteps(plan, rows, 'on_its_own')], ['send']);

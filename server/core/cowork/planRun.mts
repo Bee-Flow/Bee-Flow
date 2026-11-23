@@ -30,13 +30,13 @@ import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
 import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
-import { sinceTriggerData } from './sinceLastTime.mts';
+import { sinceTriggerData, type SinceDeps } from './sinceLastTime.mts';
 import { asStartedBy } from './startKinds.mts';
 import { trustedSteps } from './planTrust.mts';
 import type { TrustRow } from '../../stores/coworkTrust.mts';
 import { mayAskByLicence, type MayAsk } from './plan/planLicence.mts';
-import { appsNotAllowed, capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
-import { permissionsOf, BUILT_IN_APP } from './plan/planPermissions.mts';
+import { capLevel, policyOfOwner, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
+import { unattendedRefusal } from './planPolicy.mts';
 import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
@@ -50,7 +50,7 @@ export interface PlanTask {
     title?: string;
     /** How the item starts (./startKinds.mts). */
     triggerKind?: string | null;
-    /** When the item last ran, and how that ended (the "since last time" of ./sinceLastTime.mts). */
+    /** When the item last ran, and how that ended. */
     lastRunAt?: string | null;
     lastStatus?: string | null;
     [key: string]: unknown;
@@ -87,6 +87,8 @@ export interface PlanRunDeps {
     trustOf?: (scheduleId: string) => Promise<TrustRow[]>;
     /** The colleague who decides the item's questions (usecases/coworkShares.mts), or null. */
     approverOf?: (scheduleId: string) => Promise<string | null>;
+    /** When the item's last good run started (./sinceLastTime.mts). */
+    since?: SinceDeps;
 }
 
 /** An event a plan starts on (./eventRun.mts): the run it claimed, and its data (outside text). */
@@ -160,6 +162,7 @@ function defaults(deps: PlanRunDeps) {
         policyOf: deps.policyOf ?? ((userId: string) => policyOfOwner(userId)),
         trustOf: deps.trustOf ?? ((id: string) => (nodeRequire('../../stores/coworkTrust.mts') as typeof import('../../stores/coworkTrust.mts')).coworkTrust().listTrust(id)),
         approverOf: deps.approverOf ?? ((id: string) => (nodeRequire('../../stores/coworkShares.mts') as typeof import('../../stores/coworkShares.mts')).coworkShares().approverOf(id)),
+        since: deps.since,
     };
 }
 
@@ -169,8 +172,8 @@ function defaults(deps: PlanRunDeps) {
  */
 async function levelOf(task: PlanTask, automation: AutomationRow, definition: Definition, d: ReturnType<typeof defaults>) {
     const policy = await d.policyOf(task.userId);
-    const blocked = appsNotAllowed(permissionsOf(definition, d.lookups).grants.map((g) => g.app).filter((a) => a !== BUILT_IN_APP), policy);
-    if (blocked.length > 0) throw new PlanRefusedError(`Your organisation does not let ${blocked.join(', ')} run while nobody watches, so this plan did not run.`);
+    const blocked = unattendedRefusal(definition, d.lookups, policy);
+    if (blocked) throw new PlanRefusedError(blocked);
     const asks = await d.mayAsk({ userId: task.userId, organizationId: (automation as { organizationId?: string | null }).organizationId ?? null });
     let independence;
     try {
@@ -231,7 +234,7 @@ export async function executePlanRun(
         const row = await d.executeAutomation({ ...automation, ...limited, definition: runCopyOf(withAsks(definition, independence, d.lookups, trusted, await d.approverOf(task.id))) }, {
             triggerKind: 'manual',
             // "Only what is new since last time": {{trigger.output.since}} (./sinceLastTime.mts); an event adds its data.
-            triggerPayload: { ...sinceTriggerData(task), ...(trigger?.payload ?? {}) },
+            triggerPayload: { ...(await sinceTriggerData(task, new Date(), d.since)), ...(trigger?.payload ?? {}) },
             mode: 'live',
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),

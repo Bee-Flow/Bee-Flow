@@ -23,8 +23,10 @@ const { envInt } = require('../utils/envNumber.mts');
 const MAX_TOTAL = Math.max(1, envInt('CODE_STEP_MAX_CONCURRENCY', 4, { min: 1 }));
 const MAX_PER_KEY = Math.max(1, Math.min(MAX_TOTAL, envInt('CODE_STEP_MAX_CONCURRENCY_PER_ORG', 2, { min: 1 })));
 const MAX_WAIT_MS = 20_000;
+const BUSY = 'Code steps are busy on this server right now. Try again in a moment.';
 
-function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs = MAX_WAIT_MS } = {}) {
+/** `busyMessage`: what a run that waited too long fails with. */
+function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs = MAX_WAIT_MS, busyMessage = BUSY } = {}) {
     let running = 0;
     const perKey = new Map();
     const queue = [];
@@ -77,7 +79,7 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
             w.timer = setTimeout(() => {
                 const at = queue.indexOf(w);
                 if (at >= 0) queue.splice(at, 1);
-                reject(new Error('Code steps are busy on this server right now. Try again in a moment.'));
+                reject(new Error(busyMessage));
             }, maxWaitMs);
             queue.push(w);
         });

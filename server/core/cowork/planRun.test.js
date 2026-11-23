@@ -22,7 +22,7 @@ function approved(definition = supplierRadar(), over = {}) {
     return { id: 'plan-1', automationId: 'auto-1', definition, fingerprint: planFingerprint(definition), ...over };
 }
 
-function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false, policy = { ceiling: 'on_its_own', readOnly: false, unattendedApps: null }, approver = null } = {}) {
+function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-1', userId: 'u1', definition: { steps: [{ id: 'other', type: 'code' }] }, version: 7 }, run = { id: 'arun-1', status: 'success', summary: 'Ran 7 steps.' }, mayAsk = false, policy = { ceiling: 'on_its_own', readOnly: false, unattendedApps: null }, approver = null, lastGoodStart = null } = {}) {
     const calls = [];
     const rec = (name, answer) => async (...a) => { calls.push([name, ...a]); return answer; };
     const store = {
@@ -43,6 +43,7 @@ function harness({ plan = approved(), claim = 'run-1', automation = { id: 'auto-
         policyOf: async () => policy,
         trustOf: async () => [],
         approverOf: async () => approver,
+        since: { lastGoodRunStart: rec('lastGoodRunStart', lastGoodStart) },
     };
     return { store, calls, seen, deps, names: () => calls.map((c) => c[0]) };
 }
@@ -223,11 +224,13 @@ test('the organisation\'s policy: its ceiling holds the level down, and an app i
     assert.match(fenced.seen.failed[0]?.err.message ?? '', /does not let outlook run while nobody watches/);
 });
 
-test('a plan run knows when the last good run was: {{trigger.output.since}}', async () => {
-    const h = harness();
-    await executePlanRun({ ...task, lastRunAt: '2026-11-22T06:30:00.000Z', lastStatus: 'success' }, { store: h.store, manual: true }, h.deps);
+test('a plan run knows when the last good run started: {{trigger.output.since}}, read from the item\'s runs', async () => {
+    const h = harness({ lastGoodStart: '2026-11-22T06:30:00.000Z' });
+    // The item says its last run failed: that does not empty "since".
+    await executePlanRun({ ...task, lastRunAt: '2026-11-23T06:31:00.000Z', lastStatus: 'error' }, { store: h.store, manual: true }, h.deps);
     const payload = h.seen.executed[0].opts.triggerPayload;
     assert.strictEqual(payload.since, '2026-11-22T06:30:00.000Z');
+    assert.deepStrictEqual(h.calls.find((c) => c[0] === 'lastGoodRunStart'), ['lastGoodRunStart', 's1']);
     assert.ok(typeof payload.now === 'string' && payload.now.endsWith('Z'));
 });
 

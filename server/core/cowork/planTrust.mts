@@ -5,33 +5,49 @@
  * After TRUST_AFTER the owner is offered to let that one step to that one recipient go on its own; the question in
  * front of it then goes, as long as the plan still sends that step to that recipient.
  *
- * The recipient is the one the plan fixes (a literal address); a step whose recipient the plan picks from data counts
- * as ANY_RECIPIENT, so trusting it trusts the step. The organisation's ceiling wins: below "on its own", no step goes
- * on its own, whatever it was trusted with (core/entitlements/coworkPolicy.mts).
+ * The recipient is who the plan fixes: every field that says who receives something (to, cc, bcc, attendees, ...: the
+ * list the plan checks use, ./plan/planChecks.mts), each a literal. A step that fixes more than one is keyed by all of
+ * them; a step where the plan picks any one of them from data counts as ANY_RECIPIENT, so trusting it trusts the step.
+ * The organisation's ceiling wins: below "on its own", no step goes on its own, whatever it was trusted with
+ * (core/entitlements/coworkPolicy.mts).
  */
 
 import { createRequire } from 'node:module';
 import type { Definition, DefStep, ToolLookups } from './plan/planTypes.mts';
 import { ASK_PREFIX } from './plan/planIndependence.mts';
 import { planViewOf } from './plan/planView.mts';
-import { stepsOf } from './plan/planWalk.mts';
+import { stepsOf, inputsOf } from './plan/planWalk.mts';
+import { DESTINATION_FIELDS, fieldKey } from './plan/planChecks.mts';
 import type { TrustRow, Decision } from '../../stores/coworkTrust.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
 export const TRUST_AFTER = 5;
 export const ANY_RECIPIENT = '*';
-const RECIPIENT_INPUTS = ['to', 'recipient', 'recipients', 'email', 'address'];
 
-/** The recipient a step sends to as the plan fixes it: a literal address, else ANY_RECIPIENT. */
+/** The addresses one recipient field fixes ([] when it names nobody), or null when the plan picks them from data. */
+function fixedBy(input: unknown): string[] | null {
+    if (input === null || input === undefined) return [];
+    const { kind, value } = input as { kind?: unknown; value?: unknown };
+    if (kind !== 'literal') return null;
+    const values = Array.isArray(value) ? value : [value];
+    if (!values.every((v) => typeof v === 'string')) return null;
+    return (values as string[]).map((v) => v.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
+ * Who a step sends to as the plan fixes it: the literal addresses of all its recipient fields, sorted and joined; else
+ * ANY_RECIPIENT. A step with one literal `to` is keyed by that address alone, as trust was always kept.
+ */
 export function recipientOf(step: DefStep | null | undefined): string {
-    const inputs = step && typeof step.inputs === 'object' && step.inputs ? step.inputs as Record<string, unknown> : {};
-    for (const name of RECIPIENT_INPUTS) {
-        const input = inputs[name] as { kind?: unknown; value?: unknown } | undefined;
-        if (!input) continue;
-        return input.kind === 'literal' && typeof input.value === 'string' && input.value.trim() ? input.value.trim().toLowerCase() : ANY_RECIPIENT;
+    const found = new Set<string>();
+    for (const [name, input] of Object.entries(step ? inputsOf(step) : {})) {
+        if (!DESTINATION_FIELDS.has(fieldKey(name))) continue;
+        const fixed = fixedBy(input);
+        if (!fixed) return ANY_RECIPIENT;
+        for (const address of fixed) found.add(address);
     }
-    return ANY_RECIPIENT;
+    return found.size > 0 ? [...found].sort().join(',') : ANY_RECIPIENT;
 }
 
 /** The steps a question in front of `rootId` is about: the step itself, or what changes or sends inside its loop. */
