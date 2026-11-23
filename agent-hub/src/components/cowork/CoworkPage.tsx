@@ -20,6 +20,7 @@ import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
 import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
+import CoworkNeedsYou from './CoworkNeedsYou';
 import CoworkRow, { ReviewCountPill } from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
 import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
@@ -354,6 +355,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                         <div className="h-full overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-6 py-10">
                             <div className="w-full max-w-2xl">
                                 <CoworkWelcomeHeader />
+                                <CoworkNeedsYou onOpen={select} reloadKey={reloadKey} />
                                 {composer}
 
                                 {/* Starters only while there is nothing real to
@@ -361,12 +363,8 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                                     user's own work for attention. */}
                                 {items.length === 0 ? (
                                     <div className="mt-5 flex flex-col gap-2">
-                                        {/* The keyed table, not the flattened
-                                            COWORK_STARTERS strings: those drop
-                                            the keys, so this page printed the
-                                            English while the chat welcome —
-                                            same four sentences, same file —
-                                            showed the translation. */}
+                                        {/* The keyed table: the flattened COWORK_STARTERS
+                                            strings drop the keys, so they show no translation. */}
                                         {COWORK_STARTER_ITEMS.map(({ key, en }) => {
                                             const text = t(key, en);
                                             return (

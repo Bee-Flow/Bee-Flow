@@ -107,3 +107,17 @@ test('a failed run closes its own row with its activity', async () => {
     const run = (await store.listRuns(scheduleId)).find((r) => r?.id === runId);
     assert.deepStrictEqual([run?.status, run?.error, run?.conversationId, run?.activity?.toolCalls], ['error', 'model down', 'conv-9', 1]);
 });
+
+test('the runs waiting for their owner: an unhandled review and a plan run waiting for a decision, only the owner\'s own', async () => {
+    const s = await store.createSchedule({ userId: 'u-needs', title: 'Waits', prompt: 'P', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const review = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Look at this.', { runId: review, review: { reason: 'Two invoices look the same.' } });
+    const waiting = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Waiting.', { runId: waiting, waiting: true });
+    const plain = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Done.', { runId: plain });
+    const list = await store.listRunsWaitingForOwner('u-needs');
+    assert.deepStrictEqual(list.map((r) => [r.runId, r.status]).sort(), [[review, 'needs_review'], [waiting, 'waiting']].sort());
+    assert.strictEqual(list.find((r) => r.runId === review)?.reason, 'Two invoices look the same.');
+    assert.deepStrictEqual(await store.listRunsWaitingForOwner('someone-else'), []);
+});

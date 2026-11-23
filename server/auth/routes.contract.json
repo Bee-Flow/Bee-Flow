@@ -1829,6 +1829,9 @@
     "GET /api/cowork/mail-providers": {
       "gate": "auth"
     },
+    "GET /api/cowork/needs-you": {
+      "gate": "auth"
+    },
     "GET /api/cowork/shield/:orgId": {
       "gate": "auth"
     },

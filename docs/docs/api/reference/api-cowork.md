@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-23 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
+24 routes, 15 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -203,6 +203,14 @@ No request schema.
 ## `mail-providers`
 
 ### `GET /api/cowork/mail-providers`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+## `needs-you`
+
+### `GET /api/cowork/needs-you`
 
 **Access:** Signed-in user · middleware `trainingGate`
 

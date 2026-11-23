@@ -547,11 +547,8 @@ module.exports = {
     reapStaleRuns,
     deleteRunsOlderThan,
     getDueSchedules,
-    // The review queue (./coworkReviews.mts).
-    getOpenReviewCounts: coworkReviews.getOpenReviewCounts,
-    countOpenReviews: coworkReviews.countOpenReviews,
-    getRunForReview: coworkReviews.getRunForReview,
-    resolveReview: coworkReviews.resolveReview,
+    // The review queue and the runs waiting for their owner (./coworkReviews.mts).
+    ...coworkReviews,
     // Plans (./coworkPlans.mts): attach, detach, approve, the approved plan, and the plan a run followed.
     ...coworkPlans,
     ...coworkJourneys,

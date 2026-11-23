@@ -101,5 +101,26 @@ export function makeCoworkReviews({ db = nodeRequire('../db.js') as Db, ready = 
         });
     }
 
-    return { getOpenReviewCounts, countOpenReviews, getRunForReview, resolveReview };
+    /**
+     * The runs of one owner that wait for them (the Needs you queue, usecases/coworkNeedsYou.mts): a review nobody
+     * handled yet, and a plan run waiting for a decision. Newest first, at most `limit`.
+     */
+    async function listRunsWaitingForOwner(userId: string, limit = 50): Promise<Array<{ runId: string; itemId: string; title: string; status: string; since: string | null; reason: string | null }>> {
+        await ready();
+        const rows = await db.getAll(
+            `SELECT r.id, r.schedule_id, s.title, r.status, r.started_at, r.review_reason
+               FROM cowork_runs r JOIN cowork_schedules s ON s.id = r.schedule_id
+              WHERE s.user_id = $1
+                AND ((r.status = 'needs_review' AND r.review_resolved_at IS NULL) OR r.status = 'waiting')
+              ORDER BY r.started_at DESC LIMIT $2`,
+            [userId, Math.max(1, Math.min(200, Math.floor(limit) || 1))],
+        );
+        return rows.map((r) => ({
+            runId: String(r.id), itemId: String(r.schedule_id), title: String(r.title ?? ''), status: String(r.status),
+            since: r.started_at ? new Date(r.started_at as string).toISOString() : null,
+            reason: typeof r.review_reason === 'string' ? r.review_reason : null,
+        }));
+    }
+
+    return { getOpenReviewCounts, countOpenReviews, getRunForReview, resolveReview, listRunsWaitingForOwner };
 }
