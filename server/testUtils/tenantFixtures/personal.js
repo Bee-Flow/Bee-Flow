@@ -85,6 +85,7 @@ const FIXTURES = [
             'GET /api/cowork/:id/hand-over/colleagues', 'POST /api/cowork/:id/hand-over',
             'GET /api/cowork/:id/start', 'PUT /api/cowork/:id/start',
             'GET /api/cowork/:id/plan/trust', 'PUT /api/cowork/:id/plan/trust',
+            'GET /api/cowork/:id/routine', 'GET /api/cowork/:id/plan/try/:tryId/compare',
             'GET /api/cowork/:id/audit',
             'DELETE /api/cowork/:id',
         ],

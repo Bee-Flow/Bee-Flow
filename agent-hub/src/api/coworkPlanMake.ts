@@ -8,9 +8,9 @@ import { apiFetch } from './typedRequest';
 import { readEventStream } from './readEventStream';
 import type { PlanMakeOutcome, PlanMakeProgress, PlanState } from './coworkPlan.types';
 
-type MakeRequest = (id: string, signal: AbortSignal) => Promise<Response>;
+type MakeRequest = (id: string, signal: AbortSignal, fromRuns?: boolean) => Promise<Response>;
 
-const defaultRequest: MakeRequest = (id, signal) => apiFetch('POST /api/cowork/{id}/plan/make', { params: { id }, init: { signal } });
+const defaultRequest: MakeRequest = (id, signal, fromRuns = false) => apiFetch('POST /api/cowork/{id}/plan/make', { params: { id }, ...(fromRuns ? { body: { fromRuns: true } } : {}), init: { signal } });
 
 interface MakeEvent {
     error?: unknown;
@@ -33,10 +33,11 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
  */
 export async function makeCoworkPlan(
     id: string,
-    { signal, onProgress }: { signal: AbortSignal; onProgress?: (progress: PlanMakeProgress) => void },
+    { signal, onProgress, fromRuns = false }: { signal: AbortSignal; onProgress?: (progress: PlanMakeProgress) => void; fromRuns?: boolean },
     request: MakeRequest = defaultRequest,
 ): Promise<PlanMakeOutcome> {
-    const response = await request(id, signal);
+    // fromRuns: "make it routine", the planner reads what the item's past runs did.
+    const response = await request(id, signal, fromRuns);
     if (!response.ok || !response.body) return { state: null, summary: '', error: await refusalOf(response) };
     const outcome: PlanMakeOutcome = { state: null, summary: '', error: null };
     for await (const { event, data } of readEventStream<MakeEvent | PlanMakeProgress>(response, { signal })) {

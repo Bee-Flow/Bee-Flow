@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-39 routes, 23 with a request schema. Back to the [endpoint reference](../reference.md).
+41 routes, 24 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -150,7 +150,11 @@ No request schema.
 
 **Access:** Signed-in user · middleware `trainingGate`
 
-**Body:** object (no other keys)
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fromRuns` | boolean |  |  |
 
 ### `GET /api/cowork/:id/plan/trust`
 
@@ -186,6 +190,23 @@ No request schema.
 |-------|------|:--------:|-------|
 | `id` | string | yes | min length 1; max length 200 |
 | `tryId` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/:id/plan/try/:tryId/compare`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `tryId` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/:id/routine`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
 
 ### `POST /api/cowork/:id/run-now`
 

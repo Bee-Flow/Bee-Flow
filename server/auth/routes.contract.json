@@ -1826,6 +1826,12 @@
     "GET /api/cowork/:id/plan/try/:tryId": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/plan/try/:tryId/compare": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/routine": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/runs": {
       "gate": "auth"
     },

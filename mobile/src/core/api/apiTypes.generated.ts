@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1973 operations. */
+/** 1975 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2624,7 +2624,9 @@ export interface ApiOperations {
     'PUT /api/cowork/{id}/plan/independence': Op<{ id: string | number }, UndeclaredQuery, {
         level: 'asks_everything' | 'asks_before_sending' | 'on_its_own';
     }>;
-    'POST /api/cowork/{id}/plan/make': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/{id}/plan/make': Op<{ id: string | number }, UndeclaredQuery, {
+        fromRuns?: boolean;
+    }>;
     'GET /api/cowork/{id}/plan/trust': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/plan/trust': Op<{ id: string | number }, UndeclaredQuery, {
         recipient: string;
@@ -2633,6 +2635,8 @@ export interface ApiOperations {
     }>;
     'POST /api/cowork/{id}/plan/try': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/cowork/{id}/plan/try/{tryId}': Op<{ id: string | number; tryId: string | number }>;
+    'GET /api/cowork/{id}/plan/try/{tryId}/compare': Op<{ id: string | number; tryId: string | number }>;
+    'GET /api/cowork/{id}/routine': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/run-now': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/cowork/{id}/runs': Op<{ id: string | number }, {
         limit?: number;

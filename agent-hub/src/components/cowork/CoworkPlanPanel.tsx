@@ -16,6 +16,8 @@ import CoworkPlanCard from './CoworkPlanCard';
 import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
 import CoworkIndependence from './CoworkIndependence';
+import CoworkRoutine from './CoworkRoutine';
+import CoworkRoutineCompare from './CoworkRoutineCompare';
 import { canTry } from './coworkPlanModel';
 import { useCoworkPlanActions, useCoworkPlanQuery, useCoworkPlanTry, usePlanAutomations } from '../../api/queries/coworkPlan';
 import useCoworkPlanMaker from '../../hooks/useCoworkPlanMaker';
@@ -94,6 +96,7 @@ function PlanAttachGate({ coworkId, mailTriggered, maker, t }: { coworkId: strin
             data-testid="cowork-plan-none"
             className="rounded-[10px] border border-dashed px-[18px] py-3.5 flex flex-col gap-3 [border-color:var(--border-default)]"
         >
+            <CoworkRoutine coworkId={coworkId} busy={maker.making.running} onPropose={() => { void maker.start(true); }} t={t} />
             <CoworkPlanMake t={t} making={maker.making} onMake={() => { void maker.start(); }} onCancel={maker.cancel} />
             {!maker.making.running && (
                 <AttachPlan automations={automations} busy={attach.isPending} error={failureOf(attach.error, t)} t={t} onAttach={(id) => attach.mutate(id)} />
@@ -106,14 +109,18 @@ function PlanAttachGate({ coworkId, mailTriggered, maker, t }: { coworkId: strin
 function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: string; t: TranslateFn }) {
     const { start, started, state, error } = useCoworkPlanTry(coworkId);
     return (
-        <CoworkPlanTry
-            t={t}
-            state={state}
-            starting={start.isPending}
-            stale={started !== null && started.fingerprint !== fingerprint}
-            error={failureOf(error, t)}
-            onStart={() => start.mutate()}
-        />
+        <>
+            <CoworkPlanTry
+                t={t}
+                state={state}
+                starting={start.isPending}
+                stale={started !== null && started.fingerprint !== fingerprint}
+                error={failureOf(error, t)}
+                onStart={() => start.mutate()}
+            />
+            {/* The proof of "make it routine": this try-out next to the last run the AI made, when there is one. */}
+            <CoworkRoutineCompare coworkId={coworkId} tryId={state?.tryId ?? null} done={!!state?.done} t={t} />
+        </>
     );
 }
 

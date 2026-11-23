@@ -22,6 +22,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { asStartedBy } from '../core/cowork/startKinds.mts';
 import type { Definition, PlanFinding, PlanStep, ToolLookups } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
@@ -156,6 +157,8 @@ export interface MakeInput {
     userOrgId?: string | null;
     signal?: AbortSignal | null;
     onProgress?: (progress: PlannerProgress) => void;
+    /** What the item's past runs did (usecases/coworkRoutine.mts): "make it routine". */
+    hints?: string | null;
 }
 
 export interface MadePlan {
@@ -336,9 +339,9 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = defaultDeps
     const owner = { userId: item.userId, organizationId: userOrgId };
     const approvals = await deps.mayAsk(owner);
     // What Cowork would not run, the licence included: what the model is told after each change, and what is returned.
-    const findingsOf = async (def: Definition) => [...checkPlan(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
+    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = plannerSystemPrompt({
-        title: draft.title, brief, approvals,
+        title: draft.title, brief, approvals, hints: input.hints ?? null,
         catalog: deps.builder.renderCatalog(catalog),
         datatables: deps.builder.renderDatatables(catalog.datatables),
     });

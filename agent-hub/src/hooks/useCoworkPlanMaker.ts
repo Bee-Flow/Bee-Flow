@@ -43,13 +43,13 @@ export default function useCoworkPlanMaker(coworkId: string) {
         setMaking(IDLE);
     }, []);
 
-    const start = useCallback(async () => {
+    const start = useCallback(async (fromRuns = false) => {
         stopRef.current?.abort();
         const stop = new AbortController();
         stopRef.current = stop;
         setMaking({ ...IDLE, running: true, phase: 'thinking' });
         try {
-            const outcome = await makeCoworkPlan(coworkId, { signal: stop.signal, onProgress: (progress) => setMaking((m) => afterProgress(m, progress)) });
+            const outcome = await makeCoworkPlan(coworkId, { signal: stop.signal, fromRuns, onProgress: (progress) => setMaking((m) => afterProgress(m, progress)) });
             if (stopRef.current !== stop) return;
             if (outcome.state) client.setQueryData(coworkPlanKey(coworkId), outcome.state);
             setMaking((m) => ({ ...m, running: false, phase: null, summary: outcome.summary, error: outcome.error }));

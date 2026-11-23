@@ -14,7 +14,10 @@
  */
 
 const { validate } = require('../core/http/validate');
-const { NoBody } = require('./coworkSchemas');
+const { z, bodyOf } = require('../core/http/schemaParts');
+
+// POST /:id/plan/make: nothing, or { fromRuns: true } to make the item's past runs routine.
+const PlanMakeBody = bodyOf({ fromRuns: z.boolean({ error: 'fromRuns is true or false.' }).optional() }, 'Making a plan');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { openSse } = require('../core/http/sseHelpers');
@@ -30,6 +33,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   loadItem: typeof loadOwnedItem,
  *   planner: () => Pick<typeof import('../usecases/coworkPlanner.mts'), 'readyToPlan' | 'makePlan'>,
  *   plan: () => Pick<typeof import('../usecases/coworkPlan.mts'), 'planStateOf'>,
+ *   routine: () => Pick<typeof import('../usecases/coworkRoutine.mts'), 'hintsFor'>,
  *   orgOf: (req: import('express').Request, userId: string) => Promise<string | null>,
  *   makeLimit: import('express').RequestHandler<{ id: string }>,
  *   moduleGate: import('express').RequestHandler<{ id: string }>,
@@ -43,6 +47,7 @@ const MAKES_PER_MINUTE = 4;
 const defaults = () => ({
     loadItem: loadOwnedItem,
     planner: () => require('../usecases/coworkPlanner.mts'),
+    routine: () => require('../usecases/coworkRoutine.mts'),
     plan: () => require('../usecases/coworkPlan.mts'),
     orgOf: (req, userId) => require('../core/llm/modelResolver').resolveEffectiveOrgId(req, { userId })
         .catch((/** @type {unknown} */ e) => fallback('routes/coworkPlannerRoutes:orgOf', e, null)),
@@ -68,19 +73,21 @@ function failureOf(err) {
  * @param {Partial<PlannerRouteDeps>} [overrides]
  */
 function mountPlannerRoutes(router, overrides = {}) {
-    const { loadItem, planner, plan, orgOf, makeLimit, moduleGate, record } = { ...defaults(), ...overrides };
+    const { loadItem, planner, plan, routine, orgOf, makeLimit, moduleGate, record } = { ...defaults(), ...overrides };
 
-    router.post('/:id/plan/make', moduleGate, makeLimit, validate({ body: NoBody }), async (req, res) => {
+    router.post('/:id/plan/make', moduleGate, makeLimit, validate({ body: PlanMakeBody }), async (req, res) => {
         const userId = userIdOf(req);
         const item = await loadItem(req.params.id, userId);
         const userOrgId = await orgOf(req, userId);
         await planner().readyToPlan({ item, userOrgId });
+        // "Make it routine": the planner is told what the item's past runs did (usecases/coworkRoutine.mts).
+        const hints = req.body?.fromRuns === true ? await routine().hintsFor(item) : null;
 
         // Drafting takes a while: a stream with a heartbeat, so no gateway in between gives up on a quiet request.
         const stream = openSse(res, { heartbeat: true, flush: true });
         try {
             const made = await planner().makePlan({
-                item, session: req.session, userOrgId, signal: stream.signal,
+                item, session: req.session, userOrgId, signal: stream.signal, hints,
                 onProgress: (progress) => stream.send('progress', progress),
             });
             // The trail (usecases/coworkAudit.mts): written here, once the plan exists.

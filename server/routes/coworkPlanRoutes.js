@@ -13,6 +13,8 @@
  *   GET    /:id/runs/:runId/trace → the steps of a run that followed a plan, for the item's history
  *   GET    /:id/plan/independence → how independent the plan may be: the three levels, which are open, what each asks
  *   PUT    /:id/plan/independence → choose a level (usecases/coworkIndependence.mts says which may be chosen)
+ *   GET    /:id/routine       → "make it routine": what the last good runs did, in names and counts
+ *   GET    /:id/plan/try/:tryId/compare → the proof: that try-out next to the last run the AI made
  *   GET    /:id/plan/trust    → what each step has earned per recipient (usecases/coworkTrust.mts)
  *   PUT    /:id/plan/trust    → let one step and recipient go on its own, or ask again
  *
@@ -39,6 +41,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   trace: () => Pick<typeof import('../usecases/coworkRunTrace.mts'), 'runTraceOf'>,
  *   independence: () => Pick<typeof import('../usecases/coworkIndependence.mts'), 'independenceOf' | 'chooseIndependence'>,
  *   trust: () => Pick<typeof import('../usecases/coworkTrust.mts'), 'trustOf' | 'chooseTrust'>,
+ *   routine: () => Pick<typeof import('../usecases/coworkRoutine.mts'), 'routineAdviceOf' | 'compareTry'>,
  *   tryLimit: import('express').RequestHandler<{ id: string }>,
  * }} PlanRouteDeps
  */
@@ -53,6 +56,7 @@ const defaults = () => ({
     trace: () => require('../usecases/coworkRunTrace.mts'),
     independence: () => require('../usecases/coworkIndependence.mts'),
     trust: () => require('../usecases/coworkTrust.mts'),
+    routine: () => require('../usecases/coworkRoutine.mts'),
     tryLimit: perUserRateLimit({ windowMs: 60_000, max: TRIES_PER_MINUTE, name: 'cowork-plan-try' }),
 });
 
@@ -61,7 +65,7 @@ const defaults = () => ({
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan, tryOut, trace, tryLimit, independence, trust } = { ...defaults(), ...overrides };
+    const { loadItem, plan, tryOut, trace, tryLimit, independence, trust, routine } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
@@ -100,6 +104,15 @@ function mountPlanRoutes(router, overrides = {}) {
     router.put('/:id/plan/independence', validate({ body: IndependenceBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         res.json(await independence().chooseIndependence({ item, level: req.body.level }));
+    });
+
+    router.get('/:id/routine', async (req, res) => {
+        res.json(await routine().routineAdviceOf(await loadItem(req.params.id, userIdOf(req))));
+    });
+
+    router.get('/:id/plan/try/:tryId/compare', validate({ params: PlanTryParams }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        res.json(await routine().compareTry({ item, tryId: req.params.tryId }));
     });
 
     router.get('/:id/plan/trust', async (req, res) => {

@@ -20,13 +20,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { pg, store } = require('../../stores/coworkStore.testkit').coworkStoreOnPglite();
-
-// What boot registers for the server: the runner reaches these features through its ports.
-require('../../automation/runnerPorts');
-require('../../integrations/runnerPorts');
-require('../../services/runnerPorts');
-require('./runnerPorts'); // Cowork's own: a plan's journey keeps its approved copy across a pause
+const { pg, store } = require('./coworkEngine.testkit').coworkOnEngine();
 
 const automationStore = require('../../stores/automationStore');
 const { executeTask } = require('../aiTaskRunner');
