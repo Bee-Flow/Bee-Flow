@@ -99,6 +99,24 @@ it('renames the notebook from the header menu', async () => {
     expect(put).toHaveBeenCalledWith('/api/notebooks/nb1', { name: 'Q3 review' });
 });
 
+it('archives the notebook from the header menu, never deletes it, and says where to get it back', async () => {
+    answer();
+    post.mockClear();
+    post.mockResolvedValueOnce({ success: true });
+    await renderScreen(<NotebookScreen notebookId="nb1" />);
+    await screen.findByText('Test');
+    await fireEvent.press(screen.getByLabelText('Notebook actions'));
+    expect(screen.queryByText('Delete')).toBeNull();
+    await fireEvent.press(await screen.findByText('Archive'));
+    expect(await screen.findByText('Archive notebook?')).toBeTruthy();
+    expect(screen.getByText(/moves to the archive.*restore it in Bee Flow on the web/)).toBeTruthy();
+    await fireEvent.press(screen.getAllByText('Archive').at(-1) as never);
+    await act(async () => undefined);
+    expect(post).toHaveBeenCalledWith('/api/studio-documents/notebooks/nb1/archive', {});
+    expect(api.delete).not.toHaveBeenCalled();
+    expect(await screen.findByText('Notebook archived')).toBeTruthy();
+});
+
 it('adds a link, and says in words why the server refused one', async () => {
     answer();
     post.mockRejectedValueOnce(new ApiError('This address points inside the network and cannot be fetched.', { status: 400 }));

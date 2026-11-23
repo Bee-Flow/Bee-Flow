@@ -24,7 +24,7 @@ toc_max_heading_level: 2
 | `query` | string |  | max length 2000 |
 | `kind` | one of `"document"`, `"template"`, `"section"` |  |  |
 | `docType` | string |  | max length 40 |
-| `visibility` | one of `"private"`, `"team"` |  |  |
+| `visibility` | one of `"private"`, `"team"`, `"restricted"`, `"organisation"` |  |  |
 | `folderId` | string |  | max length 200 |
 | `category` | string |  | max length 200 |
 | `sort` | one of `"updated"`, `"name"` |  |  |
@@ -596,7 +596,7 @@ No request schema.
 | `query` | string |  | max length 2000 |
 | `kind` | one of `"document"`, `"template"`, `"section"` |  |  |
 | `docType` | string |  | max length 40 |
-| `visibility` | one of `"private"`, `"team"` |  |  |
+| `visibility` | one of `"private"`, `"team"`, `"restricted"`, `"organisation"` |  |  |
 | `folderId` | string |  | max length 200 |
 | `category` | string |  | max length 200 |
 | `sort` | one of `"updated"`, `"name"` |  |  |

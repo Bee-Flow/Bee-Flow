@@ -124,7 +124,8 @@ const listFilters = {
     query: docText('query is text.', 2000).optional(),
     kind: choice(['document', 'template', 'section'], 'kind is document, template or section.').optional(),
     docType: docText(DOC_TYPE_TEXT, 40).refine((v) => listTypes().includes(v), DOC_TYPE_TEXT).optional(),
-    visibility: choice(['private', 'team'], 'visibility is private or team.').optional(),
+    // team: shared with anybody; restricted: with some people or groups; organisation: with everyone.
+    visibility: choice(['private', 'team', 'restricted', 'organisation'], 'visibility is private, team, restricted or organisation.').optional(),
     // Empty means "the root folder", as the library sends it.
     folderId: docText('folderId is the id of a folder, or empty for the root.', 200).optional(),
     category: docText('category is text.', 200).optional(),
@@ -812,8 +813,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', require('./studioDocuments/stream'));
-router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter);
-router.use('/', require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter);
+router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter, require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter);
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 

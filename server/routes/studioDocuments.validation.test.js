@@ -34,7 +34,15 @@ test('a list filter the library does not have is refused, not dropped', async ()
     h.assertRefused(assert, await api.call('GET', '/api/studio-documents?sort=newest'), 'query.sort', /updated or name/);
     h.assertRefused(assert, await api.call('GET', '/api/studio-documents?archived=yes'), 'query.archived', /archived/);
     h.assertRefused(assert, await api.call('GET', '/api/studio-documents?knd=section'), 'query', /"knd"/);
+    h.assertRefused(assert, await api.call('GET', '/api/studio-documents?visibility=public'), 'query.visibility', /restricted or organisation/);
     assert.deepStrictEqual(db.queries, []);
+});
+
+test('the Visibility filter tells some people from the whole organisation', async () => {
+    for (const visibility of ['private', 'team', 'restricted', 'organisation']) {
+        const res = await api.call('GET', `/api/studio-documents?visibility=${visibility}`);
+        assert.strictEqual(res.status, 200, `${visibility}: ${res.text}`);
+    }
 });
 
 test('the per-document bodies take only their own keys', async () => {

@@ -95,3 +95,11 @@ test('ambiguous thousands separators are refused, plain decimals accepted, list 
     assert.equal(prepareDocument(doc, { lines }).valid, true);
     assert.equal(lines[0].amount, '3.5');
 });
+test('an empty element stays a closed element in the filled body, so the next element is not swallowed into it', () => {
+    const doc = { bodyHtml: '<header class="top"><div class="doc-logo"></div><p class="tag">{{title}}</p></header><section data-doc-section="extra"><p>a<br>b</p><img src="x.png"><span></span></section>',
+        settings: { contract: { parameters: [{ key: 'title', type: 'text' }], sections: [{ id: 'extra' }] } } };
+    const fill = prepareDocument(doc, { title: 'Hello' });
+    assert.match(fill.bodyHtml, /<div class="doc-logo"><\/div><p class="tag">Hello<\/p>/);
+    assert.doesNotMatch(fill.bodyHtml, /<div class="doc-logo"\s*\/>|<span\s*\/>|<\/br>|<\/img>/);
+    assert.match(fill.bodyHtml, /a<br>b/);
+});

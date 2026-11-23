@@ -36,6 +36,15 @@ function mapRow(row) {
 }
 
 /**
+ * Who a list row is shared with: 'restricted' (some people or groups),
+ * 'organisation' or 'private'; the library query reads it (documentSharing
+ * audienceSql), a row without it says what its visibility says.
+ */
+function listAudience(row) {
+    return row.audience || (row.visibility === 'team' ? 'organisation' : 'private');
+}
+
+/**
  * The list row deliberately omits the slots. A documents list renders names,
  * types and dates; shipping every document's full markup to paint a list is
  * the kind of thing that only hurts once somebody has three hundred of them.
@@ -49,6 +58,7 @@ function mapListRow(row) {
         docType: row.doc_type,
         description: row.description || '',
         kind: row.kind || 'document', visibility: row.visibility || 'private',
+        audience: listAudience(row),
         folderId: row.folder_id || null, categories: row.categories || [], versionId: row.version_id,
         htmlSize: Number(row.html_size) || 0,
         projectId: row.project_id || null,

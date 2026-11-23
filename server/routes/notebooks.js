@@ -10,7 +10,7 @@
  *   GET    /:id/conversation    — the persisted in-notebook chat
  *   DELETE /:id/conversation    — clear it
  *   PUT    /:id                 — update notebook
- *   DELETE /:id                 — delete notebook
+ *   DELETE /:id                 — archive a live notebook; delete an archived one for good
  *   POST   /:id/images          — editor image upload
  *   POST   /:id/import-file     — parse a file into the editor
  *
@@ -35,6 +35,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const notebookStore = require('../stores/notebookStore');
+const { archiveLiveNotebook } = require('../usecases/notebookArchive.mts');
 
 /** @typedef {import('./notebooksShared').NotebookReq} NotebookReq */
 const notebookConversationStore = require('../stores/notebookConversationStore');
@@ -339,10 +340,9 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async 
 
 router.delete('/:id', requireAuth, asOwner, async (req, res) => {
     const userId = sessionUser(req).id;
-    // Full cascade: per-source storage blobs and derived chunks/embeddings,
-    // then the row (sources + versions cascade via FK), then the KBs this
-    // notebook created, then the persisted chat. Deleting only the row left
-    // the actual bytes behind — see core/notebookCascade.js.
+    // A live notebook is archived, not deleted (usecases/notebookArchive.mts).
+    if (await archiveLiveNotebook(userId, req.params.id)) return res.json({ success: true, archived: true });
+    // An archived one: full cascade (core/kb/notebookCascade.js), the stored bytes included.
     const { deleteNotebookCascade } = require('../core/kb/notebookCascade');
     const result = await deleteNotebookCascade(req.params.id, userId);
     if (!result.deleted) return res.status(404).json({ error: 'Notebook not found' });

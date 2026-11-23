@@ -15,7 +15,10 @@ function ruleKeys(rule, keys = new Set()) {
  * @param {string | Buffer<ArrayBufferLike> | AnyNode | AnyNode[]} html
  */
 function parse(html) {
-    return cheerio.load(html || '', /** @type {import('cheerio').CheerioOptions} */ ({ xmlMode: true, decodeEntities: false }), false);
+    // HTML mode via htmlparser2 (no table foster-parenting, entities kept as
+    // written) and an HTML serialiser: XML mode stored an empty `<div></div>` as
+    // `<div/>`, which a browser reads as an open div swallowing what follows.
+    return cheerio.load(html || '', { xml: { xmlMode: false, decodeEntities: false } }, false);
 }
 /**
  * @param {string} message

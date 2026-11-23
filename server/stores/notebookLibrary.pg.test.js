@@ -183,3 +183,38 @@ test('a library row says whether a Solution stage manages it', async () => {
     const notebookRows = (await documents.listDocumentsPage('alice', { kind: 'document', includeNotebooks: true })).documents.filter((d) => d.docType === 'notebook');
     assert.ok(notebookRows.length && notebookRows.every((d) => d.managed === false));
 });
+
+test('a library row says who it is shared with: some people, or the whole organisation', async () => {
+    await pg.query(`INSERT INTO users VALUES ('carol','org1'), ('dave','org1')`);
+    const mine = await documents.createDocument({ userId: 'carol', name: 'Mine', bodyHtml: '<p>a</p>' });
+    const some = await documents.createDocument({ userId: 'carol', name: 'Some', bodyHtml: '<p>b</p>' });
+    const all = await documents.createDocument({ userId: 'carol', name: 'All', bodyHtml: '<p>c</p>' });
+    const team = await documents.createDocument({ userId: 'carol', name: 'Team template', kind: 'template', visibility: 'team', organizationId: 'org1' });
+    const nbMine = await notebooks.createNotebook({ userId: 'carol', name: 'Nb mine', organizationId: 'org1' });
+    const nbSome = await notebooks.createNotebook({ userId: 'carol', name: 'Nb some', organizationId: 'org1' });
+    const nbAll = await notebooks.createNotebook({ userId: 'carol', name: 'Nb all', organizationId: 'org1' });
+    await pg.query(`UPDATE studio_documents SET organization_id = 'org1', sharing_audience = 'restricted', shared_user_ids = '["dave"]' WHERE id = $1`, [some.id]);
+    await pg.query(`UPDATE studio_documents SET organization_id = 'org1', sharing_audience = 'organisation' WHERE id = $1`, [all.id]);
+    await pg.query(`UPDATE notebooks SET sharing_audience = 'restricted', shared_user_ids = '["dave"]' WHERE id = $1`, [nbSome.id]);
+    await pg.query(`UPDATE notebooks SET sharing_audience = 'organisation' WHERE id = $1`, [nbAll.id]);
+
+    // Carol's own rows (alice's organisation-wide notebook is in her library too).
+    const rows = (await documents.listDocumentsPage('carol', { kind: 'document', includeNotebooks: true })).documents.filter((d) => d.userId === 'carol');
+    const said = Object.fromEntries(rows.map((d) => [d.name, [d.visibility, d.audience]]));
+    assert.deepStrictEqual(said, {
+        Mine: ['private', 'private'], Some: ['team', 'restricted'], All: ['team', 'organisation'],
+        'Nb mine': ['private', 'private'], 'Nb some': ['team', 'restricted'], 'Nb all': ['team', 'organisation'],
+    });
+    // A team template from before per-person sharing is the whole organisation's.
+    const templates = (await documents.listDocumentsPage('carol', { kind: 'template' })).documents;
+    assert.strictEqual(templates.find((d) => d.id === team.id).audience, 'organisation');
+
+    // The Visibility filter tells the two apart; "team" is still both.
+    const names = async (visibility) => (await documents.listDocumentsPage('carol', { kind: 'document', includeNotebooks: true, visibility })).documents
+        .filter((d) => d.userId === 'carol').map((d) => d.name).sort();
+    assert.deepStrictEqual(await names('restricted'), ['Nb some', 'Some']);
+    assert.deepStrictEqual(await names('organisation'), ['All', 'Nb all']);
+    assert.deepStrictEqual(await names('team'), ['All', 'Nb all', 'Nb some', 'Some']);
+    assert.deepStrictEqual(await names('private'), ['Mine', 'Nb mine']);
+    assert.ok(mine && nbMine);
+});

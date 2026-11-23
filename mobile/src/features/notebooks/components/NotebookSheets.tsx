@@ -1,7 +1,7 @@
 /**
  * Every sheet the notebook screen opens: adding a source (file, camera scan,
  * link, pasted text), previewing, renaming and removing one, and renaming or
- * deleting the notebook itself. `useNotebookSheets` holds which one is open.
+ * archiving the notebook itself. `useNotebookSheets` holds which one is open.
  */
 
 import { useRouter } from 'expo-router';
@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '@/core/i18n';
 import { IngestSheets, type IngestFlow } from '@/features/knowledge';
 
-import { DeleteNotebookSheet } from './DeleteNotebookSheet';
+import { ArchiveNotebookSheet } from './ArchiveNotebookSheet';
 import { DeleteSourceSheet } from './DeleteSourceSheet';
 import { RenameSheet } from './RenameSheet';
 import { SourcePreviewSheet } from './SourcePreviewSheet';
@@ -22,7 +22,7 @@ export function useNotebookSheets() {
     const [removing, setRemoving] = useState<NotebookSource | null>(null);
     const [renamingSource, setRenamingSource] = useState<NotebookSource | null>(null);
     const [renaming, setRenaming] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+    const [archiving, setArchiving] = useState(false);
     return {
         previewOf,
         setPreviewOf,
@@ -32,8 +32,8 @@ export function useNotebookSheets() {
         setRenamingSource,
         renaming,
         setRenaming,
-        deleting,
-        setDeleting,
+        archiving,
+        setArchiving,
     };
 }
 
@@ -93,10 +93,10 @@ export function NotebookSheets({
             <SourcePreviewSheet notebookId={notebookId} source={sheets.previewOf} onClose={() => sheets.setPreviewOf(null)} />
             <DeleteSourceSheet notebookId={notebookId} source={sheets.removing} onDone={() => sheets.setRemoving(null)} />
             <RenameSheets notebookId={notebookId} notebook={notebook} sheets={sheets} />
-            <DeleteNotebookSheet
-                notebook={sheets.deleting && notebook ? notebook : null}
-                onDone={() => sheets.setDeleting(false)}
-                onDeleted={() => router.back()}
+            <ArchiveNotebookSheet
+                notebook={sheets.archiving && notebook ? notebook : null}
+                onDone={() => sheets.setArchiving(false)}
+                onArchived={() => router.back()}
             />
         </>
     );

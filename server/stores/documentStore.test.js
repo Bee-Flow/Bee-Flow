@@ -82,6 +82,10 @@ test('mapRow parses settings from an object or a string; a list row carries no s
     assert.strictEqual(row.solutionProjectId, null);
     assert.strictEqual(mapListRow({ ...base, solution_project_id: 'sol1' }).solutionProjectId, 'sol1');
     assert.ok(!('bodyHtml' in row) && !('css' in row));
+    // Who it is shared with: the stored audience, else what the legacy visibility says.
+    assert.strictEqual(mapListRow({ ...base, visibility: 'team', audience: 'restricted' }).audience, 'restricted');
+    assert.strictEqual(mapListRow({ ...base, visibility: 'team' }).audience, 'organisation');
+    assert.strictEqual(row.audience, 'private');
 });
 
 test('a new document has one revision: seq 1, source created, its creator as author', async () => {

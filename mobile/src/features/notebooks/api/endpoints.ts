@@ -5,6 +5,7 @@
  * ('notebooks'), so a 403 here means "not on this plan", not "not signed in".
  */
 
+import { apiPath } from '@/core/api/apiPath';
 import { api } from '@/core/api/client';
 import type { UploadTarget } from '@/features/knowledge';
 
@@ -73,8 +74,13 @@ export async function createNotebook(input: { name: string; description?: string
     return readCreatedNotebook(await api.post<unknown>('/api/notebooks', input));
 }
 
-export async function deleteNotebook(id: string): Promise<void> {
-    await api.delete(nbPath(id));
+/**
+ * Archive a notebook (its owner only): out of every list, its project and its
+ * shares, with everything kept. It is restored, or deleted for good, from the
+ * Documents library on the web. The phone never deletes a notebook itself.
+ */
+export async function archiveNotebook(id: string): Promise<void> {
+    await api.post(apiPath('POST /api/studio-documents/notebooks/{id}/archive', { id }), {});
 }
 
 /**

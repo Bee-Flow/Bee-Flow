@@ -14,9 +14,9 @@ import { useToast } from '@/shared/ui';
 import {
     addTextSource,
     addUrlSource,
+    archiveNotebook,
     cancelSource,
     createNotebook,
-    deleteNotebook,
     deleteSource,
     notebookSourceTarget,
     renameSource,
@@ -63,11 +63,12 @@ export function useCreateNotebook(handlers: Handlers<Notebook | null, string> = 
     });
 }
 
-export function useDeleteNotebook(handlers: Handlers<void, string> = {}) {
+/** Archive a notebook: it leaves every list here and waits in the web's Archived view. */
+export function useArchiveNotebook(handlers: Handlers<void, string> = {}) {
     const queryClient = useQueryClient();
     const onError = useErrorToast();
     return useMutation({
-        mutationFn: (id: string) => deleteNotebook(id),
+        mutationFn: (id: string) => archiveNotebook(id),
         onSuccess: (_result, id) => {
             handlers.onSuccess?.(undefined, id);
             void queryClient.invalidateQueries({ queryKey: notebookKeys.all });

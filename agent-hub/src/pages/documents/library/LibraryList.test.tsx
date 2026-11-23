@@ -44,3 +44,12 @@ it('offers a template file download on designed documents and templates, not on 
     screen.getByRole('button', { name: 'Download Own offer as a template file' }).click();
     expect(onExport).toHaveBeenCalledWith(free);
 });
+
+it('a row says Shared for some people and Organisation for everyone, from the audience the server sends', () => {
+    const doc = (id: string, audience: LibraryRow['audience']): LibraryRow => ({ id, name: `Doc ${id}`, userId: 'me', docType: 'page', kind: 'document', visibility: audience === 'private' ? 'private' : 'team', audience, updatedAt: now });
+    render(<LibraryList {...props([doc('a', 'restricted'), doc('b', 'organisation'), doc('c', 'private')])} />);
+    expect(screen.getByTestId('library-row-a')).toHaveTextContent('Shared');
+    expect(screen.getByTestId('library-row-a')).not.toHaveTextContent('Organisation');
+    expect(screen.getByTestId('library-row-b')).toHaveTextContent('Organisation');
+    expect(screen.getByTestId('library-row-c')).not.toHaveTextContent(/Shared|Organisation/);
+});

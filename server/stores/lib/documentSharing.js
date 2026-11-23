@@ -51,6 +51,36 @@ function visibilitySql(alias) {
         WHEN ${alias}.sharing_audience = 'private' THEN 'private' ELSE ${alias}.visibility END`;
 }
 
+/**
+ * Who a row is shared with, as sharingOf reads it: 'restricted' (some people
+ * or groups), 'organisation' (everyone in it) or 'private'. A row with no
+ * stored audience is what its legacy `visibility` says (a team template is the
+ * whole organisation's); `withVisibility` false for a table without that
+ * column (notebooks).
+ *
+ * @param {string} alias
+ * @param {boolean} [withVisibility]
+ */
+function audienceSql(alias, withVisibility = true) {
+    const fallback = withVisibility ? `CASE WHEN ${alias}.visibility = 'team' THEN 'organisation' ELSE 'private' END` : `'private'`;
+    return `COALESCE(${alias}.sharing_audience, ${fallback})`;
+}
+
+/**
+ * The library's Visibility filter as SQL over a row's audience: 'team' is
+ * every shared row (some people or everyone), 'restricted' and 'organisation'
+ * tell the two apart.
+ *
+ * @param {string} audience  audienceSql of the row
+ * @param {string} visibility  private | team | restricted | organisation
+ */
+function audienceFilterSql(audience, visibility) {
+    if (visibility === 'team') return `${audience} IN ('organisation','restricted')`;
+    if (visibility === 'restricted' || visibility === 'organisation') return `${audience} = '${visibility}'`;
+    if (visibility === 'private') return `${audience} NOT IN ('organisation','restricted')`;
+    return 'false';
+}
+
 function sharingOf(row) {
     return {
         audience: row.sharing_audience || (row.visibility === 'team' ? 'organisation' : 'private'),
@@ -168,4 +198,4 @@ async function sharingDirectory(type, id, userId) {
     return { users: users.filter((u) => u.id !== userId), groups };
 }
 
-module.exports = { sharingDdl, sharingSql, editSharingSql, visibilitySql, sharingOf, getSharing, setSharing, sharingDirectory, revokeGroupShares };
+module.exports = { sharingDdl, sharingSql, editSharingSql, visibilitySql, audienceSql, audienceFilterSql, sharingOf, getSharing, setSharing, sharingDirectory, revokeGroupShares };
