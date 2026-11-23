@@ -337,6 +337,8 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/provider-type-outside-the-adapters',
             'contributing/decisions/webhook-header-token',
             'contributing/decisions/windmill-import',
+            'contributing/decisions/cowork-plan-closed-step-list',
+            'contributing/decisions/outside-text-informs-never-instructs',
           ],
         },
       ],
