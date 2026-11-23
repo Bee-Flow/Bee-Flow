@@ -265,20 +265,36 @@ async function getEffectiveBlog(siteId, opts = {}) {
 }
 
 /**
+ * How many posts getLatestPublishedPosts returns: `limit` between 1 and 50
+ * (3 when it is not a number), or every post when `all` is set.
+ *
+ * @param {unknown} limit
+ * @param {boolean} all
+ * @returns {number}
+ */
+function latestPostsCap(limit, all) {
+    if (all) return Infinity;
+    return Math.min(50, Math.max(1, Number.parseInt(String(limit), 10) || 3));
+}
+
+/**
  * The newest visible posts of the live published site, for the "latest posts"
  * block and the feed. Summaries only (no body unless `withBody`).
  *
+ * `limit` is capped at 50. `all: true` lifts the cap: the sitemap needs every
+ * visible post, and a cap there drops the oldest posts out of sitemap.xml.
+ *
  * @param {string} siteId
- * @param {{ locale?: string, limit?: number, tag?: string, now?: number, withBody?: boolean }} [opts]
+ * @param {{ locale?: string, limit?: number, all?: boolean, tag?: string, now?: number, withBody?: boolean }} [opts]
  */
-async function getLatestPublishedPosts(siteId, { locale, limit = 3, tag = '', now = Date.now(), withBody = false } = {}) {
+async function getLatestPublishedPosts(siteId, { locale, limit = 3, all = false, tag = '', now = Date.now(), withBody = false } = {}) {
     const snap = await getPublishedSnapshot(siteId);
     if (!snap) return { posts: [], locale: locale || null };
     const defaultLocale = await getDefaultLocale();
     const loc = String(locale || defaultLocale).toLowerCase().split('-')[0];
     const overrides = isPlainObject(snap.postLocaleOverrides) ? snap.postLocaleOverrides : {};
     const wantedTag = tagSlug(tag || '');
-    const cap = Math.min(50, Math.max(1, Number.parseInt(String(limit), 10) || 3));
+    const cap = latestPostsCap(limit, all);
     const posts = sortPosts(Object.values(isPlainObject(snap.posts) ? snap.posts : {}))
         .filter(p => isPostVisible(p, now))
         .filter(p => !wantedTag || tagObjects(p.tags).some(t => t.slug === wantedTag))

@@ -61,6 +61,7 @@ const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog')
 const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
 const { blogSitemap } = require('../usecases/publicRenderBlogSitemap');
+const { homeLocaleRedirect, siteLocaleCookie } = require('../core/seo/homeLocale.mts');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
@@ -280,6 +281,57 @@ router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLi
 router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
 router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId, siteLocales }));
 
+/**
+ * The language redirects, answered before a page or post is looked up.
+ *
+ * 1. Consolidate the old ?locale= form onto its path URL, for pages and blog
+ *    addresses alike. It produced three crawlable addresses per page (bare,
+ *    ?locale=en, ?locale=nl) that competed instead of pointing at one page.
+ *    Everything EXCEPT `locale` is carried over: dropping the rest threw away
+ *    campaign attribution on arrival (/pricing?locale=nl&utm_source=… landed
+ *    on a bare /nl/pricing and counted as direct traffic). `locale` itself must
+ *    not survive, or the next request acts on it again. The language switcher
+ *    uses this form, so it is also where the visitor's choice is remembered
+ *    (core/seo/homeLocale.mts).
+ * 2. Send a visitor of the bare homepage to the homepage in the language the
+ *    browser asks for, unless the visitor picked a language on the site.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ slug: string }} parsed
+ * @param {{ locales: string[], defaultLocale: string }} site
+ * @returns {boolean} true when a redirect was sent
+ */
+function localeRedirect(req, res, parsed, { locales, defaultLocale }) {
+    const rest = rawQuery(req);
+    const queryLocale = String(rest.get('locale') || '').toLowerCase().split('-')[0];
+    if (queryLocale && locales.includes(queryLocale)) {
+        const target = buildPublicPath(queryLocale, parsed.slug, defaultLocale);
+        rest.delete('locale');
+        const qs = rest.toString();
+        // Same path already (`/nl/pricing?locale=nl`): no redirect here, the
+        // untranslated-page redirect further on would make it a chain. The
+        // cookie rides only on this redirect, never on a page a shared cache
+        // may keep; the switcher always moves to another path, so it gets one.
+        if (target !== req.path) {
+            const cookie = siteLocaleCookie(queryLocale, locales);
+            if (cookie) res.append('Set-Cookie', cookie);
+            res.set('Cache-Control', 'private, no-store');
+            res.redirect(301, qs ? `${target}?${qs}` : target);
+            return true;
+        }
+    }
+    // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is "/" + one of the site's own locale codes (homeLocaleRedirect only returns a locale from `locales`), plus the visitor's own query
+    const home = homeLocaleRedirect({
+        path: req.path, query: rawQuery(req), acceptLanguage: req.get('accept-language'),
+        cookieHeader: req.get('cookie'), locales, defaultLocale,
+    });
+    if (!home) return false;
+    res.set('Cache-Control', 'private, no-store').set('Vary', 'Accept-Language, Cookie');
+    res.redirect(302, home);
+    return true;
+}
+
 router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const origin = resolveOrigin(req);
@@ -306,30 +358,13 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         let parsed = parsePublicPath(req.path, locales);
         if (!parsed) return next();
 
+        if (localeRedirect(req, res, parsed, { locales, defaultLocale })) return undefined;
+
         if (parsed.blog) {
             if (await renderBlog(req, res, { origin, siteId, parsed, defaultLocale, locales })) return undefined;
             // Not handled: only /blog itself may fall back to a legacy page of that slug.
             if (parsed.blog.view !== 'index') return next();
             parsed = { locale: parsed.locale, slug: 'blog' };
-        }
-
-        // Consolidate the old ?locale= form onto its path URL. It produced
-        // three crawlable addresses per page (bare, ?locale=en, ?locale=nl)
-        // with no canonical, so they competed instead of pointing at one page.
-        //
-        // Everything EXCEPT `locale` is carried over. Dropping the rest threw
-        // away campaign attribution on arrival: a visitor landing on
-        // /pricing?locale=nl&utm_source=… was redirected to a bare /nl/pricing,
-        // so the session was recorded as direct traffic and the click that paid
-        // for it went unattributed. `locale` itself is the one param that must
-        // not survive — it is what we are consolidating away.
-        const rest = rawQuery(req);
-        const queryLocale = String(rest.get('locale') || '').toLowerCase().split('-')[0];
-        if (queryLocale && locales.includes(queryLocale)) {
-            const target = buildPublicPath(queryLocale, parsed.slug, defaultLocale);
-            rest.delete('locale');
-            const qs = rest.toString();
-            if (target !== req.path) return res.redirect(301, qs ? `${target}?${qs}` : target);
         }
 
         // Slugs that used to exist and now resolve somewhere else. Without this
@@ -471,6 +506,8 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
            how long a just-published edit can take to appear. */
         res.type('html').set('Cache-Control',
             'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+        // `/` answers differently per browser language and language cookie (localeRedirect).
+        if (req.path === '/' && locales.length > 1) res.set('Vary', 'Accept-Language, Cookie');
         return res.send(injectIntoShell(shell, { head: headWithCss, body, lang: locale }));
     } catch (err) {
         log.warn('[SEO] render failed for', req.path, '-', /** @type {Error} */ (err).message);

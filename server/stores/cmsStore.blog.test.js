@@ -170,6 +170,28 @@ test('visitor view: translation merge, hreflang locales, tag filter, paging and 
     assert.ok(nl.header, 'the site chrome comes along');
 });
 
+test('the sitemap lists every visible post, not only the newest 50', async () => {
+    // getLatestPublishedPosts caps at 50 for the "latest posts" block and the
+    // feed. The sitemap asked for 50 000 and silently got 50, so every older
+    // post (and its translation) dropped out of sitemap.xml.
+    const { blogSitemap } = require('../usecases/publicRenderBlogSitemap');
+    const siteId = await newSite('Big blog');
+    for (let i = 0; i < 55; i++) {
+        await cmsStore.createPost(siteId, { title: `Old post ${i}`, status: 'published', publishedAt: iso(-(i + 1) * DAY) });
+    }
+    await cmsStore.publishSite(siteId);
+
+    const latest = await cmsStore.getLatestPublishedPosts(siteId, { limit: 500 });
+    assert.strictEqual(latest.posts.length, 50, 'the latest-posts cap itself is unchanged');
+    const every = await cmsStore.getLatestPublishedPosts(siteId, { all: true });
+    assert.strictEqual(every.posts.length, 55);
+
+    const snapshot = await cmsStore.getPublishedSnapshot(siteId);
+    const entries = await blogSitemap(siteId, { snapshot, defaultLocale: 'en', locales: ['en'] });
+    const postEntries = entries.filter(e => e.slug.startsWith('blog/'));
+    assert.strictEqual(postEntries.length, 55, 'the oldest post is in the sitemap too');
+});
+
 test('duplicate, export and import carry posts and their translations; delete site removes them', async () => {
     const siteId = await newSite('Original');
     const p = await cmsStore.createPost(siteId, {
