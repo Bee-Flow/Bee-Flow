@@ -16,14 +16,14 @@ const PanelResizer = PanelResizerJs;
 
 // Inspector column. 260px still fits a label+control row; 560px is where a
 // binding editor stops needing its own scrollbar.
-export const INSPECTOR = { widthKey: 'appStudioInspectorWidth', openKey: 'appStudioInspectorOpen', defaultWidth: 320, min: 260, max: 560 };
+const INSPECTOR = { widthKey: 'appStudioInspectorWidth', openKey: 'appStudioInspectorOpen', defaultWidth: 320, min: 260, max: 560 };
 
 // Chat column. 280px keeps the composer usable; past 480px the pane starts
 // costing the canvas more than a chat transcript is worth.
 export const CHAT = { widthKey: 'appStudioChatWidth', openKey: 'appStudioChatOpen', defaultWidth: 340, min: 280, max: 480 };
 
 /** A side column's remembered width and open state. */
-export function useSidePane(pane: { widthKey: string; openKey: string; defaultWidth: number }) {
+function useSidePane(pane: { widthKey: string; openKey: string; defaultWidth: number }) {
     const [width, setWidth] = useState(
         () => parseInt(scopedStorage.getItem(pane.widthKey) as string, 10) || pane.defaultWidth,
     );

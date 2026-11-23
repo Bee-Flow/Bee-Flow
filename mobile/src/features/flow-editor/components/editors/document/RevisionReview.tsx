@@ -31,7 +31,7 @@ function Review({ latest, onApply, onCancel }: { latest: ReturnType<typeof useDo
                     {t('automations.document_fields.review_template_update', 'Review template update')}
                 </Text>
                 {latest.isPending ? <Note>{t('common.loading', 'Loading...')}</Note> : null}
-                {latest.isError ? <Warn tone="error">{t('mobile.flow.fill.load_failed', 'Could not load your documents.')}</Warn> : null}
+                {latest.isError ? <Warn tone="error">{t('builder_polish.fill_load_failed', 'Could not load your documents.')}</Warn> : null}
                 {next?.instructions ? <Note>{next.instructions}</Note> : null}
                 {next?.parameters.map((p) => (
                     <Note key={p.key}>{`${p.key}${p.required ? ' *' : ''} — ${p.summary || p.instructions}`}</Note>

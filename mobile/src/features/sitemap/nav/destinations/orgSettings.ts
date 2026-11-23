@@ -25,7 +25,7 @@ function row(spec: Omit<DestinationSpec, 'group'>): Destination {
 }
 
 export const ORG_SETTINGS: Destination[] = [
-    row({ id: 'org-billing', label: { i18nKey: 'settings.license_usage', en: 'License & Usage' }, hint: { i18nKey: 'mobile.sitemap.org_billing.hint', en: 'Your plan, seats, invoices and payment' }, icon: 'CreditCard', href: '/org/billing', gate: ADMIN, keywords: ['subscription', 'stripe', 'plan', 'billing', 'upgrade'] }),
+    row({ id: 'org-billing', label: { i18nKey: 'settings.license_usage', en: 'Licence & usage' }, hint: { i18nKey: 'mobile.sitemap.org_billing.hint', en: 'Your plan, seats, invoices and payment' }, icon: 'CreditCard', href: '/org/billing', gate: ADMIN, keywords: ['subscription', 'stripe', 'plan', 'billing', 'upgrade'] }),
     row({ id: 'org-billing-plans', label: { i18nKey: 'mobile.sitemap.org_billing_plans.label', en: 'Plans' }, hint: { i18nKey: 'mobile.sitemap.org_billing_plans.hint', en: 'Compare plans and change yours' }, icon: 'Wallet', href: '/org/billing/plans', gate: ADMIN, keywords: ['upgrade', 'downgrade', 'pricing'] }),
     row({ id: 'org-billing-invoices', label: { i18nKey: 'billing.invoices', en: 'Invoices' }, hint: { i18nKey: 'mobile.sitemap.org_billing_invoices.hint', en: 'Past invoices, as PDF' }, icon: 'Receipt', href: '/org/billing/invoices', gate: ADMIN, keywords: ['receipt', 'pdf', 'payment'] }),
     row({ id: 'org-sign-in', label: { i18nKey: 'settings.signin_method', en: 'Sign-in Method' }, hint: { i18nKey: 'mobile.sitemap.org_sign_in.hint', en: 'How your members sign in, and which domains join' }, icon: 'KeyRound', href: '/org/sign-in', gate: ADMIN, keywords: ['sso', 'google', 'microsoft', 'password', 'domain'] }),

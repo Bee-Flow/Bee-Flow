@@ -10,7 +10,7 @@ import { QUIET_BTN } from '@/components/shared/adminUi';
 import { navigate } from '@/router/history';
 
 /** Whole server > Organisations, where "Add organisation" lives. */
-export const ORGANISATIONS_PATH = '/app/admin/organisations';
+const ORGANISATIONS_PATH = '/app/admin/organisations';
 
 interface ChooseOrgNoticeProps {
     /** The server has no organisations at all. */
