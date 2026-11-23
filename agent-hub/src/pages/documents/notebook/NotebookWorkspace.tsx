@@ -197,11 +197,16 @@ export default function NotebookWorkspace({
                         {leftDrawer.node}
                     </Drawer>
                 )}
-                {secondaryLeft}
+                {/* Below desktop the outline and the comments float over the editor instead of squeezing it. */}
+                {secondaryLeft && (isDesktop ? secondaryLeft : (
+                    <div className="absolute inset-y-0 left-0 z-20 flex max-w-full shadow-2xl" data-testid="workspace-secondary-left">{secondaryLeft}</div>
+                ))}
                 <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
                     {children}
                 </div>
-                {secondaryRight}
+                {secondaryRight && (isDesktop ? secondaryRight : (
+                    <div className="absolute inset-y-0 right-0 z-20 flex max-w-full shadow-2xl bg-[var(--bg-primary)]" data-testid="workspace-secondary-right">{secondaryRight}</div>
+                ))}
                 {rightDrawer && (
                     <Drawer side="right" open={rightEffectiveOpen} width={isDesktop ? rightWidth : Math.min(rightWidth, 380)} resizable={isDesktop} mode={drawerMode} onResizeStart={startDrag} onClose={closeOverlay} label={rightDrawer.label}>
                         {rightDrawer.node}

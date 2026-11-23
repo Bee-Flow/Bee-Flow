@@ -50,6 +50,13 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
     const lastIdx = Math.max(0, filtered.length - 1);
     if (activeIdx > lastIdx) setActiveIdx(lastIdx);
 
+    // Keep the active option in view while the arrow keys walk a long list.
+    const activeId = filtered[activeIdx]?.id;
+    useEffect(() => {
+        if (!open || activeId === undefined) return;
+        document.getElementById(`bf-cmd-${activeId}`)?.scrollIntoView?.({ block: 'nearest' });
+    }, [open, activeId]);
+
     if (!open) return null;
 
     const run = (cmd: PaletteCommand | undefined) => {
@@ -59,7 +66,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
     };
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i: number) => Math.min(i + 1, filtered.length - 1)); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i: number) => Math.max(0, Math.min(i + 1, filtered.length - 1))); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i: number) => Math.max(i - 1, 0)); }
         else if (e.key === 'Enter') { e.preventDefault(); run(filtered[activeIdx]); }
     };

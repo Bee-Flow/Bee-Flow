@@ -24,7 +24,18 @@
     "doc_sheet.unsaved.body": "{reason} Als je doorgaat, gaan de wijzigingen die niet zijn opgeslagen verloren.",
     "doc_sheet.unsaved.leave": "Toch verlaten",
     "doc_sheet.unsaved.stay": "Blijven",
-    "doc_sheet.unsaved.title": "Je laatste wijzigingen zijn niet opgeslagen"
+    "doc_sheet.unsaved.title": "Je laatste wijzigingen zijn niet opgeslagen",
+    "doc_sheet.chart.problem_type": "De grafiek heeft een geldig type nodig.",
+    "doc_sheet.chart.problem_data_range": "De grafiek heeft een geldig gegevensbereik nodig.",
+    "doc_sheet.chart.problem_kpi_one_cell": "Een KPI gebruikt één cel.",
+    "doc_sheet.chart.problem_scatter_categories": "Een spreidingsdiagram heeft de x-waarden nodig als bereik van de categorieën.",
+    "doc_sheet.chart.problem_compare_range": "De vergelijkingscel is niet geldig.",
+    "doc_sheet.chart.problem_colors": "Kleuren moeten hexcodes zijn, zoals #4e79a7.",
+    "doc_sheet.chart.problem_categories_range": "Het bereik van de categorieën is niet geldig.",
+    "doc_sheet.chart.problem_anchor": "De grafiek heeft een geldige ankercel nodig.",
+    "doc_sheet.chart.problem_size": "De grafiek heeft een grootte nodig.",
+    "doc_sheet.tab.list": "Tabbladen van het werkblad",
+    "doc_sheet.tab.name_label": "Naam van het tabblad"
   },
   "sameAsEnglish": []
 }

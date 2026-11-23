@@ -101,8 +101,8 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
             >
                 {/* Header */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-subtle)]">
-                    <div className="p-2 rounded-xl [background:rgba(34,197,94,0.1)]">
-                        <PenTool className="w-5 h-5 [color:#22c55e]" />
+                    <div className="p-2 rounded-xl bg-[color-mix(in_srgb,var(--success)_12%,transparent)]">
+                        <PenTool className="w-5 h-5 text-[var(--success)]" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="text-base font-semibold text-[var(--text-primary)]">
@@ -115,7 +115,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                     <button
                         onClick={onClose}
                         aria-label={t('notebooks.close_panel', 'Close')}
-                        className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors"
                     >
                         <X className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
@@ -138,7 +138,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                     {result ? (
                         <button
                             onClick={onClose}
-                            className="px-5 py-2 rounded-xl text-[13px] font-medium text-white [background:linear-gradient(135deg,#22c55e,#16a34a)]"
+                            className="px-5 py-2 rounded-xl text-[13px] font-medium text-white bg-[var(--success)]"
                         >
                             {t('notebooks.done', 'Done')}
                         </button>
@@ -146,14 +146,14 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                         <>
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors [color:var(--text-secondary)]! [background:var(--bg-primary)] [border:1px_solid_var(--border-default)]"
+                                className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors text-[var(--text-secondary)] bg-[var(--bg-primary)] hover:bg-[var(--item-hover-bg)] border border-[var(--border-default)]"
                             >
                                 {t('common.cancel', 'Cancel')}
                             </button>
                             <button
                                 onClick={handleSend}
                                 disabled={!canSend}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 [background:linear-gradient(135deg,#22c55e,#16a34a)]"
+                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 bg-[var(--success)]"
                             >
                                 {sending ? (
                                     <>
@@ -180,7 +180,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
         {result ? (
             /* ── Success state ── */
             <div className="flex flex-col items-center gap-3 py-6">
-                <CheckCircle className="w-12 h-12 [color:#22c55e]" />
+                <CheckCircle className="w-12 h-12 text-[var(--success)]" />
                 <h4 className="text-base font-semibold text-[var(--text-primary)]">
                     {t('notebooks.sign_sent_title', 'Document sent for signing!')}
                 </h4>
@@ -194,7 +194,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                                 <span className="flex-1 truncate text-[var(--text-primary)]">
                                     {s.name ? `${s.name} (${s.email})` : s.email}
                                 </span>
-                                <span className="text-[11px] px-2 py-0.5 rounded-full font-medium [background:rgba(234,179,8,0.1)] [color:#ca8a04]!">
+                                <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning)]">
                                     {s.status || t('notebooks.sign_pending', 'Pending')}
                                 </span>
                             </div>
@@ -220,21 +220,21 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                                         aria-label={t('notebooks.signer_email', 'Email *')}
                                         value={signer.email}
                                         onChange={e => updateSigner(signer._uid, 'email', e.target.value)}
-                                        className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                        className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]" />
                                     <input
                                         type="text"
                                         placeholder={t('notebooks.signer_first_name', 'First name')}
                                         aria-label={t('notebooks.signer_first_name', 'First name')}
                                         value={signer.first_name}
                                         onChange={e => updateSigner(signer._uid, 'first_name', e.target.value)}
-                                        className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                        className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]" />
                                     <input
                                         type="text"
                                         placeholder={t('notebooks.signer_last_name', 'Last name')}
                                         aria-label={t('notebooks.signer_last_name', 'Last name')}
                                         value={signer.last_name}
                                         onChange={e => updateSigner(signer._uid, 'last_name', e.target.value)}
-                                        className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                        className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]" />
                                 </div>
                                 {signers.length > 1 && (
                                     <button
@@ -251,7 +251,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                     </div>
                     <button
                         onClick={addSigner}
-                        className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-black/5 transition-colors text-[var(--accent-primary)]"
+                        className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors text-[var(--accent-primary)]"
                     >
                         <Plus className="w-3.5 h-3.5" /> {t('notebooks.add_signer', 'Add signer')}
                     </button>
@@ -267,7 +267,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                         value={subject}
                         onChange={e => setSubject(e.target.value)}
                         placeholder={t('notebooks.email_subject_placeholder', 'e.g. Contract for review and signature')}
-                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]" />
                 </div>
 
                 {/* Message */}
@@ -280,7 +280,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                         onChange={e => setMessage(e.target.value)}
                         placeholder={t('notebooks.message_placeholder', 'Add a personal message to the signers…')}
                         rows={3}
-                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]" />
                 </div>
             </>
         )}

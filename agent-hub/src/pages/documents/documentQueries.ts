@@ -4,7 +4,7 @@
 // documentsApi.js (shared with the automation and app builders); this module is
 // the caching and the types.
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import {
     documentRequest, fetchPreviewHtml, getDocumentView, listDocumentsPage,
@@ -118,7 +118,18 @@ export function useDocumentView(id: string | null | undefined) {
 }
 
 /**
- * One library page; the previous page stays on screen while the next loads.
+ * Whether two library filters show the same view: both the archive (one view
+ * over every kind), or both the same kind outside it.
+ */
+export function sameLibraryView(a: LibraryFilters, b: LibraryFilters): boolean {
+    if (!!a.archived !== !!b.archived) return false;
+    return !!a.archived || a.kind === b.kind;
+}
+
+/**
+ * One library page; the previous page stays on screen while the next loads,
+ * but only within the same view: rows of another view (archived or not, another
+ * kind) would show with the wrong actions, so that switch shows loading.
  * The archive is one view over every kind (documents, templates, sections), so
  * it is asked for without one.
  */
@@ -133,7 +144,10 @@ export function useLibrary(filters: LibraryFilters) {
                 folderId: rest.folderId,
             }) as Promise<{ documents: LibraryRow[]; total: number; people: People; notebooks?: boolean; spreadsheets?: boolean }>;
         },
-        placeholderData: keepPreviousData,
+        placeholderData: (previous, previousQuery) => {
+            const before = previousQuery?.queryKey[2] as LibraryFilters | undefined;
+            return before && sameLibraryView(before, filters) ? previous : undefined;
+        },
     });
 }
 

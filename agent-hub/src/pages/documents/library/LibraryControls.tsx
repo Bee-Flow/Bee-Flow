@@ -103,7 +103,9 @@ function ClearCategories({ count, busy, onClear }: { count: number; busy: boolea
             <ConfirmDialog
                 open={asking}
                 title={t('doc_gallery.clear_categories_title', 'Clear the categories?')}
-                description={t('doc_gallery.clear_categories_desc', 'Every category is taken off the {count} selected documents. The documents themselves stay as they are.', { count })}
+                description={count === 1
+                    ? t('doc_gallery.clear_categories_desc_one', 'Every category is taken off the selected document. The document itself stays as it is.')
+                    : t('doc_gallery.clear_categories_desc', 'Every category is taken off the {count} selected documents. The documents themselves stay as they are.', { count })}
                 confirmLabel={t('doc_gallery.clear_categories', 'Clear categories')}
                 cancelLabel={t('documents.cancel', 'Cancel')}
                 destructive

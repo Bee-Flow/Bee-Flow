@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from 'vitest';
-import { chartDataFrom, chartSize, parseA1Range, validateChart } from './sheetCharts';
+import { chartDataFrom, chartSize, normalizeRef, parseA1Range, validateChart } from './sheetCharts';
 import { evaluateSheet } from './sheetEngine';
 
 describe('sheetCharts', () => {
@@ -30,6 +30,16 @@ describe('sheetCharts', () => {
         expect(validateChart({})).toBeTruthy();
         expect(validateChart({ id: 'c', type: 'bar', dataRange: 'A1:A2', anchor: 'D2', width: 100, height: 100 })).toBeNull();
         expect(validateChart({ id: 'c', type: 'donut', dataRange: 'A1:A2', anchor: 'D2', width: 100, height: 100 })).toBeTruthy();
+    });
+
+    test('validateChart returns a code, not English text', () => {
+        expect(validateChart({ id: 'c', type: 'bar', dataRange: 'nope', anchor: 'D2', width: 100, height: 100 })).toBe('data_range');
+        expect(validateChart({ id: 'c', type: 'bar', dataRange: 'A1:A2', anchor: 'x', width: 100, height: 100 })).toBe('anchor');
+    });
+
+    test('normalizeRef names a cell the way the grid does', () => {
+        expect(normalizeRef(' $b$12 ')).toBe('B12');
+        expect(normalizeRef('a1:$C$4')).toBe('A1:C4');
     });
 
     test('chartSize: the stored size, else 6 x 14 cells like the server and the Excel export, clamped', () => {

@@ -89,10 +89,12 @@ function chartProblem(c) {
  */
 function chartFieldsOf(c) {
     const up = (v) => String(v).trim().toUpperCase();
+    // a range is stored the way the grid names its cells: "$b$2" -> "B2" (the editor finds the anchor by that name)
+    const ref = (v) => up(v).split('$').join('');
     /** @type {ChartFields} */
     const out = {};
     if (c.type !== undefined) out.type = String(c.type);
-    for (const k of ['dataRange', 'categoriesRange', 'compareRange', 'anchor']) if (c[k]) out[k] = up(c[k]);
+    for (const k of ['dataRange', 'categoriesRange', 'compareRange', 'anchor']) if (c[k]) out[k] = ref(c[k]);
     if (c.title) out.title = String(c.title).slice(0, 120);
     if (c.label) out.label = String(c.label).slice(0, 60);
     if (c.format) out.format = c.format;
