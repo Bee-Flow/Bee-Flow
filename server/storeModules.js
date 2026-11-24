@@ -114,6 +114,9 @@ const STORE_MODULES = [
     // The goals of Cowork items and what their checks measured (cowork_goals, cowork_goal_results); refer to
     // cowork_schedules, so after coworkStore.
     { name: 'coworkGoalsStore', file: './stores/coworkGoals.mts' },
+    // What Cowork proposes to change in a plan, and when it last tried (cowork_proposals, cowork_proposal_attempts);
+    // refer to cowork_schedules, so after coworkStore.
+    { name: 'coworkProposalsStore', file: './stores/coworkProposals.mts' },
     // Cowork templates of an organisation (cowork_templates, stores/ddl/cowork-templates-2026-11.js). No FKs.
     { name: 'coworkTemplatesStore', file: './stores/coworkTemplates.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },

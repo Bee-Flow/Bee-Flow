@@ -35,18 +35,22 @@ export function hadNoRecording(step: RecordedStep | undefined): boolean {
     }
 }
 
-function differs(a: RecordedStep | undefined, b: RecordedStep | undefined): boolean {
+function differs(a: RecordedStep | undefined, b: RecordedStep | undefined, outputOnly: boolean): boolean {
     if (!a || !b) return true;
     if (a.status !== b.status) return true;
     if (QUESTION_TYPES.has(b.stepType)) return false;
-    return canonicalHash(a.input) !== canonicalHash(b.input) || canonicalHash(a.output) !== canonicalHash(b.output);
+    if (!outputOnly && canonicalHash(a.input) !== canonicalHash(b.input)) return true;
+    return canonicalHash(a.output) !== canonicalHash(b.output);
 }
 
-/** The verdict of one replay: `baseline` the plan then, `candidate` the plan now, both on the same recording. */
-export function compareReplay(baseline: Map<string, RecordedStep>, candidate: Map<string, RecordedStep>): Comparison {
+/**
+ * The verdict of one replay: `baseline` the plan then, `candidate` the plan now, both on the same recording. A step in
+ * `outputOnly` is compared on its status and what it hands on: its type changed on purpose, so it reads differently.
+ */
+export function compareReplay(baseline: Map<string, RecordedStep>, candidate: Map<string, RecordedStep>, outputOnly: ReadonlySet<string> = new Set()): Comparison {
     const ids = [...new Set([...baseline.keys(), ...candidate.keys()])].sort();
     const missing = ids.filter((id) => hadNoRecording(baseline.get(id)) || hadNoRecording(candidate.get(id)));
-    const differing = ids.filter((id) => !missing.includes(id) && differs(baseline.get(id), candidate.get(id)));
+    const differing = ids.filter((id) => !missing.includes(id) && differs(baseline.get(id), candidate.get(id), outputOnly.has(id)));
     const verdict: Verdict = missing.length > 0 ? 'partial' : differing.length > 0 ? 'differs' : 'same';
     return { verdict, missingSteps: missing.length, differingSteps: differing.slice(0, MAX_DIFFERING) };
 }

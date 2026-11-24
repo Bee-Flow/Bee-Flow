@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiJson } from './typedRequest';
 
-type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'plan';
+type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'plan';
 type CoworkPlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface CoworkNeed {
@@ -15,6 +15,8 @@ export interface CoworkNeed {
     since: string | null;
     reason: string | null;
     plan: CoworkPlanNeed | null;
+    /** A repair Cowork worked out: why, and the step it is about. */
+    repair?: { proposalId: string; reasonCode: string; stepTitle: string | null } | null;
 }
 
 async function getNeedsYou(): Promise<CoworkNeed[]> {

@@ -103,6 +103,9 @@ const FIXTURES = [
             // The goal and its check: the owner's only (usecases/coworkGoals.mts).
             'GET /api/cowork/:id/goal', 'PUT /api/cowork/:id/goal', 'POST /api/cowork/:id/goal/check',
             'POST /api/cowork/:id/goal/approve', 'DELETE /api/cowork/:id/goal',
+            // What Cowork proposes to change in a plan, and "Undo": the owner's only (usecases/coworkProposals.mts).
+            'GET /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals/:proposalId/approve',
+            'POST /api/cowork/:id/proposals/:proposalId/dismiss', 'POST /api/cowork/:id/plan/restore',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.
@@ -117,6 +120,8 @@ const FIXTURES = [
             'PUT /api/cowork/:id/shares': { shares: [] },
             'PUT /api/cowork/:id/goal': { sentence: 'Every mail gets an answer within two working days', targetPercent: 95 },
             'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
+            'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
+            'POST /api/cowork/:id/plan/restore': { version: 1 },
         },
     },
     {

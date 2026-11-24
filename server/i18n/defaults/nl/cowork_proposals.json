@@ -1,0 +1,33 @@
+{
+  "translations": {
+    "cowork_proposals.approve": "De oplossing goedkeuren",
+    "cowork_proposals.approving": "Goedkeuren…",
+    "cowork_proposals.change.added": "Nieuw",
+    "cowork_proposals.change.changed": "Gewijzigd",
+    "cowork_proposals.change.removed": "Verwijderd",
+    "cowork_proposals.changes_heading": "Wat er verandert",
+    "cowork_proposals.details.hide": "Oplossing verbergen",
+    "cowork_proposals.details.show": "Bekijk de oplossing",
+    "cowork_proposals.failed": "Dat lukte niet. Probeer het opnieuw.",
+    "cowork_proposals.need.failed_twice": "Twee keer mislukt bij '{step}'. Er ligt een oplossing klaar.",
+    "cowork_proposals.need.goal_under": "Drie keer op rij onder het doel gebleven. Er ligt een oplossing klaar.",
+    "cowork_proposals.need.mail": "Cowork heeft een oplossing voor het plan uitgewerkt. Er verandert niets tot je die goedkeurt.",
+    "cowork_proposals.need.see_fix": "Bekijk de oplossing",
+    "cowork_proposals.never_alone": "Er verandert niets tot je het goedkeurt.",
+    "cowork_proposals.not_now": "Niet nu",
+    "cowork_proposals.offer.approve": "Maak er een vaste stap van",
+    "cowork_proposals.offer.hide_proof": "Bewijs verbergen",
+    "cowork_proposals.offer.line": "Eén stap kan zonder AI: hetzelfde in {same} van de {full}.",
+    "cowork_proposals.offer.made_fixed": "Op {date} een vaste stap gemaakt",
+    "cowork_proposals.offer.proof": "Bekijk het bewijs",
+    "cowork_proposals.offer.step": "'{step}' wordt een vaste stap. Die geeft door wat de AI doorgaf, zonder een model te vragen.",
+    "cowork_proposals.offer.undo": "Ongedaan maken",
+    "cowork_proposals.offer.undoing": "Bezig met ongedaan maken…",
+    "cowork_proposals.replay.heading": "Op de eerdere runs",
+    "cowork_proposals.replay.none": "Er waren geen eerdere runs om het op na te spelen.",
+    "cowork_proposals.replay.result": "Nagespeeld op {full} eerdere runs: {same} hetzelfde, {differs} anders.",
+    "cowork_proposals.widens.heading": "Wat het nieuw mag doen",
+    "cowork_proposals.widens.none": "Niets wat het eerder niet mocht."
+  },
+  "sameAsEnglish": []
+}

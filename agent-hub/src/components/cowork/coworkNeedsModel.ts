@@ -1,6 +1,7 @@
 // The words of one "Needs you" entry (./CoworkNeedsYou.tsx): what waits, and where the owner acts on it.
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkNeed } from '../../api/coworkNeedsYou';
+import { repairLine } from './coworkProposalModel';
 
 /** Where the entry's button goes: the item itself, or Approvals for a decision of a plan run. */
 type NeedAction = 'open' | 'approvals';
@@ -34,6 +35,8 @@ export function needWords(need: CoworkNeed, t: TranslateFn): NeedWords {
             return { line: t('cowork_needs.review', 'The agent asks you to look at something.'), detail: need.reason, action: 'open', button: open };
         case 'sign_in':
             return { line: t('cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'), detail: null, action: 'open', button: open };
+        case 'repair':
+            return { line: repairLine({ reasonCode: need.repair?.reasonCode ?? '', stepTitle: need.repair?.stepTitle ?? null }, t), detail: null, action: 'open', button: t('cowork_proposals.need.see_fix', 'See the fix') };
         default:
             return { line: planLine(need, t), detail: need.reason, action: 'open', button: t('cowork_needs.see_plan', 'See the plan') };
     }

@@ -93,6 +93,9 @@ const ERASURE_COVERAGE = Object.freeze({
     // A goal and what its check measured go with the item they are about.
     cowork_goals: { mode: 'deleted', column: 'user_id' },
     cowork_goal_results: { mode: 'cascade', parent: 'cowork_schedules' },
+    // What Cowork proposed to change in a plan (a definition of the owner's plan): the owner's, gone with the account.
+    cowork_proposals: { mode: 'deleted', column: 'user_id' },
+    cowork_proposal_attempts: { mode: 'cascade', parent: 'cowork_schedules' },
     // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
     cowork_shares: { mode: 'deleted', column: 'user_id' },
     // A template belongs to the organisation it was saved in: it stays, without the name of who saved it.

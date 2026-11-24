@@ -91,7 +91,7 @@ export interface PlanState {
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
-async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk' | 'policyOf'>, item: Pick<Item, 'triggerKind'> = {}): Promise<PlanDraft> {
+export async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'lookups' | 'mayAsk' | 'policyOf'>, item: Pick<Item, 'triggerKind'> = {}): Promise<PlanDraft> {
     const definition = automation.definition as Definition;
     const owner = { userId: automation.userId, organizationId: automation.organizationId ?? null };
     const permissions = permissionsOf(definition, deps.lookups);
