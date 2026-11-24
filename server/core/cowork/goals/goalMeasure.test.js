@@ -14,6 +14,7 @@ const { measureAfterRun, start, stop, MEASURE_WINDOW_MS } = require('./goalMeasu
 const { runEnded } = require('../runEnded.mts');
 const { fakeLookups } = require('../plan/plan.testkit');
 const { literal, checkOf, goalStoreOnPglite } = require('./goals.testkit');
+const { OPEN_POLICY } = require('../../entitlements/coworkPolicy.mts');
 
 const { pg, store, addItem, nextSeq } = goalStoreOnPglite({ onClose: stop });
 
@@ -21,7 +22,7 @@ const COUNT = { id: 'count', type: 'set', fields: { met: literal(46), total: lit
 const CHECK = checkOf([{ id: 'mail', type: 'integration_action', tool: 'outlook_search', inputs: {} }, COUNT]);
 
 /** An item with an approved check; answers the item and what the runner was asked. */
-async function world({ definition = CHECK, run = async () => ({ id: 'ar-1', status: 'success', lastOutput: { met: 46, total: 49, period: 'this week' } }), owner = 'ann' } = {}) {
+async function world({ definition = CHECK, run = async () => ({ id: 'ar-1', status: 'success', lastOutput: { met: 46, total: 49, period: 'this week' } }), owner = 'ann', policy = OPEN_POLICY } = {}) {
     const id = await addItem('w');
     await store.saveGoal({ scheduleId: id, userId: 'ann', sentence: 'Every supplier mail gets an answer within two working days', targetPercent: 95 });
     await store.setCheck(id, 'auto-check');
@@ -35,6 +36,7 @@ async function world({ definition = CHECK, run = async () => ({ id: 'ar-1', stat
         isManaged: async () => false,
         executeAutomation: async (automation, opts) => { asked.push({ automation, opts }); return run(automation, opts); },
         lookups: fakeLookups(),
+        policyOf: async () => policy,
         now: () => clock,
     };
     return { item: { id, userId: 'ann', title: 'Supplier radar' }, deps, asked, later: (ms) => { clock = new Date(clock.getTime() + ms); } };
@@ -49,6 +51,24 @@ test('the approved check runs once as a dry run, as approved, and its count is k
     assert.deepStrictEqual(automation.definition.steps.map((s) => s.id), ['mail', 'count'], 'the approved definition, not the automation of the moment');
     const [result] = await store.listResults(item.id);
     assert.deepStrictEqual([result.runId, result.met, result.total, result.period, result.ok, result.error], ['run-1', 46, 49, 'this week', true, null]);
+});
+
+test('the organisation\'s Cowork policy is asked first: an app off the unattended list, or a read-only Cowork, is a failed measurement and nothing runs', async () => {
+    for (const [policy, reason] of [
+        [{ ...OPEN_POLICY, unattendedApps: ['nextcloud'] }, /^Your organisation does not let outlook run while nobody watches, so the check did not run\.$/],
+        [{ ...OPEN_POLICY, readOnly: true }, /read-only/],
+        [{ ...OPEN_POLICY, unreadable: true }, /could not be read/],
+    ]) {
+        const { item, deps, asked } = await world({ policy });
+        assert.strictEqual(await measureAfterRun(item, `run-p${nextSeq()}`, deps), 'failed');
+        assert.strictEqual(asked.length, 0, 'the check did not run');
+        const [result] = await store.listResults(item.id);
+        assert.deepStrictEqual([result.ok, result.met, result.total], [false, null, null]);
+        assert.match(String(result.error), reason);
+    }
+    const { item, deps, asked } = await world({ policy: { ...OPEN_POLICY, unattendedApps: ['outlook'] } });
+    assert.strictEqual(await measureAfterRun(item, 'run-q', deps), 'measured', 'an app on the list runs');
+    assert.strictEqual(asked.length, 1);
 });
 
 test('two runs that end within fifteen minutes are measured once; the next window measures again', async () => {
