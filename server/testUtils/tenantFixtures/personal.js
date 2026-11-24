@@ -97,6 +97,8 @@ const FIXTURES = [
             'GET /api/cowork/:id/shares', 'PUT /api/cowork/:id/shares', 'GET /api/cowork/shared/:id',
             // Run receipts: the owner's only (usecases/coworkReceipts.mts).
             'GET /api/cowork/:id/receipts', 'GET /api/cowork/:id/runs/:runId/receipt',
+            // What the task remembers from one run to the next, and clearing it: the owner's only (usecases/coworkMemory.mts).
+            'GET /api/cowork/:id/memory', 'POST /api/cowork/:id/memory/clear', 'POST /api/cowork/:id/memory/restore',
             // Replaying a changed plan on the item's past runs: the owner's only (usecases/coworkReplay.mts).
             'POST /api/cowork/:id/plan/replay', 'GET /api/cowork/:id/plan/replay/:replayId',
             // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
@@ -126,6 +128,7 @@ const FIXTURES = [
             'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
             'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
             'POST /api/cowork/:id/plan/restore': { version: 1 },
+            'POST /api/cowork/:id/memory/restore': { ids: ['a-memory-of-the-owner'] },
         },
     },
     {

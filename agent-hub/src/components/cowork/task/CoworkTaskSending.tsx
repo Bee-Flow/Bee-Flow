@@ -47,7 +47,7 @@ export default function CoworkTaskSending({ coworkId, t }: { coworkId: string; t
     const state = query.data;
     if (!state) return null;
     const ask = (state.chosen ?? state.level) !== 'on_its_own';
-    const goOption = state.options.find((o) => o.level === 'on_its_own');
+    const goOption = (Array.isArray(state.options) ? state.options : []).find((o) => o.level === 'on_its_own');
     const onChoose = (next: Choice) => {
         if ((next === 'ask') === ask) return;
         choose.mutate(next === 'ask' ? 'asks_before_sending' : 'on_its_own');

@@ -72,7 +72,7 @@ const PROBLEMS: Record<string, [string, string]> = {
 
 /** Whether the chain holds, in one line. */
 export function chainWords(view: ReceiptsView | undefined, t: TranslateFn): string {
-    if (!view || view.verdict.count === 0) return t('cowork_task.receipts.none', 'No receipts yet');
+    if (!view?.verdict || view.verdict.count === 0) return t('cowork_task.receipts.none', 'No receipts yet');
     const problem = view.verdict.problem;
     if (problem) {
         const [key, en] = PROBLEMS[problem.kind] ?? PROBLEMS.content;

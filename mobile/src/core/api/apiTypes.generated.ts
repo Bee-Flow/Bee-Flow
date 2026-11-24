@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2023 operations. */
+/** 2026 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2685,6 +2685,11 @@ export interface ApiOperations {
         toUserId: string;
     }>;
     'GET /api/cowork/{id}/hand-over/colleagues': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/memory': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/memory/clear': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/{id}/memory/restore': Op<{ id: string | number }, UndeclaredQuery, {
+        ids: Array<string>;
+    }>;
     'GET /api/cowork/{id}/plan': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/plan': Op<{ id: string | number }, UndeclaredQuery, {
         automationId: string;

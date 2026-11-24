@@ -147,7 +147,7 @@ function TaskMain({ item, facts, onEdit, panel, open, close }: OwnProps & { fact
                     agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
                     tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />
             </div>
-            {approved && sends && sends !== 'none' && <CoworkTaskSending coworkId={item.id} t={t} />}
+            {approved && sends === 'others' && <CoworkTaskSending coworkId={item.id} t={t} />}
             <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts t={t} />
             <CoworkTaskMore item={item} hasApprovedSteps={approved} onGone={close} locale={locale} t={t} />
         </div>

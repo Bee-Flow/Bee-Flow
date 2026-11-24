@@ -1838,6 +1838,9 @@
     "GET /api/cowork/:id/hand-over/colleagues": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/memory": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/plan": {
       "gate": "auth"
     },
@@ -5302,6 +5305,12 @@
       "gate": "auth"
     },
     "POST /api/cowork/:id/hand-over": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/memory/clear": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/memory/restore": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/plan/approve": {
