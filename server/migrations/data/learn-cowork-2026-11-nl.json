@@ -1,0 +1,799 @@
+{
+  "reworded": {
+    "learn.automations.q-justify.choice.b.feedback": {
+      "nl": "Een eenmalige vraag heeft geen opgeslagen automatisering nodig. Stel hem in een chat, of geef hem aan Cowork als taak die één keer draait, vandaag.",
+      "was": [
+        "Een eenmalige vraag heeft geen opgeslagen automatisering nodig. Stel hem in een chat, of geef hem eenmalig aan Cowork met Wanneer op Nu uitvoeren."
+      ]
+    },
+    "learn.check.cowork-apps-scoped.own-list.hint": {
+      "nl": "Open Cowork en maak er een met één zin als Jouw taken leeg is. De eigen lijst van apps wordt in de taak bewaard, waar deze controle niet kan kijken: de rij Gebruikt op de taak is je bewijs.",
+      "was": [
+        "Open Cowork en maak er een met een briefing van één regel als de lijst leeg is. De lijst Apps per item wordt in het item zelf opgeslagen, waar deze controle niet kan kijken — de teller onder \"Apps die het mag gebruiken\" is je bewijs."
+      ]
+    },
+    "learn.check.cowork-apps-scoped.own-list.label": {
+      "nl": "Er bestaat een eigen Cowork-taak",
+      "was": [
+        "Er bestaat een eigen cowork-item"
+      ]
+    },
+    "learn.course.cowork.desc": {
+      "nl": "Geef Bee Flow een klus in één zin, controleer wat hij begreep, keur de geteste stappen één keer goed en laat hem vanzelf draaien.",
+      "was": [
+        "Geef Bee Flow een klus één keer en laat hem onbewaakt draaien — nu, vanavond of elke werkdagochtend."
+      ]
+    },
+    "learn.cowork-basics.composer.body": {
+      "nl": "Typ in dit vak wat er moet gebeuren, en wanneer. De knop heet Laat zien wat ik begrepen heb: hij leest alleen je zin en laat zien wat Cowork ervan maakte. Er wordt nog niets aangemaakt. Begin met een sjabloon, ernaast, start vanuit werk dat je organisatie al heeft klaargezet.",
+      "was": [
+        "Typ het werk hier; het vak zegt \"Beschrijf het werk — Bee Flow voert het uit en meldt zich terug\". Eronder staan drie chips die hun huidige antwoord tonen, niet hun naam: wanneer het draait (Nu), of het herhaalt (Eenmalig) en wie het werk doet (Geen agent) — die laatste chip verschijnt alleen als je agents hebt. Verzenden staat op Uitvoeren als het werk nu begint, op Plannen als het later begint."
+      ]
+    },
+    "learn.cowork-basics.composer.title": {
+      "nl": "Eén zin, dan Laat zien wat ik begrepen heb",
+      "was": [
+        "Eén vak, drie chips"
+      ]
+    },
+    "learn.cowork-basics.desc": {
+      "nl": "Wat een Cowork-taak is, hoe één zin er een wordt, waarom hij op je goedkeuring wacht en waar het resultaat terechtkomt.",
+      "was": [
+        "Wat een Cowork-item is, waar het resultaat terechtkomt en hoe het verschilt van een chat."
+      ]
+    },
+    "learn.cowork-basics.ex-life.instruction": {
+      "nl": "Kies één klus die je echt uit handen zou geven, je eigen of Barts leveranciersoverzicht. Loop hem in vier tot zes zinnen van begin tot eind door: de zin die je typt, wat de vier regels van de kaart zouden zeggen, wat er gebeurt als je op Klaarzetten en testen drukt, wat je controleert voordat je goedkeurt, en waar je het resultaat leest als hij heeft gedraaid. Schrijf het voor een collega die Cowork nog nooit heeft geopend.",
+      "was": [
+        "Kies een klus die je echt zou overdragen — van jou, of Barts leveranciersdigest. Loop er in vier tot zes zinnen van begin tot eind doorheen: de zin die je typt, op welke knop je drukt en waarom (**Uitvoeren** of **Plannen**), wat Bee Flow uit die zin afleidt en waar je het resultaat leest als het gedraaid heeft. Schrijf het voor een collega die Cowork nog nooit heeft geopend."
+      ]
+    },
+    "learn.cowork-basics.ex-life.placeholder": {
+      "nl": "bijv. Ik typ \"Maak elke vrijdag om 16:00 een lijst van de offertes van deze week zonder antwoord, met klant, bedrag en aantal dagen stilte, en stuur het naar mij.\" De kaart zou zeggen: Wat, Openstaande offertes; Wanneer, elke vrijdag om 16:00…",
+      "was": [
+        "bijv. Ik typ \"Maak elke vrijdag om 16:00 een lijst van de offertes van deze week waarop geen reactie is gekomen, met klant, bedrag en hoeveel dagen het stil is.\" Omdat het later begint, staat de knop op Plannen…"
+      ]
+    },
+    "learn.cowork-basics.ex-life.title": {
+      "nl": "Jouw beurt: loop het leven van één taak door",
+      "was": [
+        "Jouw beurt: loop door het leven van één delegatie"
+      ]
+    },
+    "learn.cowork-basics.hand-over.body": {
+      "nl": "Bij Van Dijk Groep begint inkoper Bart elke ochtend hetzelfde: hij opent een chat en typt opnieuw dezelfde vraag, *wat kwam er vannacht binnen van leveranciers, en wat moet vandaag beantwoord worden?*\n\nBee Flow heeft daar twee helften voor.\n\n- **Chat** antwoordt je hier, terwijl je wacht. Je bent erbij, dus je kunt doorvragen.\n- **Cowork** doet terugkerend werk voor je terwijl jij iets anders doet: volgens een planning of als er iets gebeurt, en meldt zich daarna.\n\nDe pagina vraagt het gewoon: **Wat moet er voor je gedaan worden?** Elke klus die je uit handen geeft, wordt een **taak**.\n\nWe volgen één taak helemaal: Barts zin, de kaart die hem controleert, de stappen die hij goedkeurt en het resultaat dat om 07:30 op hem wacht.",
+      "was": [
+        "Bij Van Dijk Groep begint inkoper Bart elke ochtend op dezelfde manier: hij opent een chat en typt hetzelfde verzoek opnieuw — *wat is er vannacht van leveranciers binnengekomen en wat vraagt vandaag om een antwoord?*\n\nDaarvoor heeft Bee Flow twee helften.\n\n- **Chat** antwoordt je hier, terwijl je wacht. Je bent erbij, dus je kunt een vervolgvraag stellen.\n- **Cowork** neemt de klus mee en voert hem zonder toezicht uit — nu, op een moment dat je kiest, of elke werkdag — en meldt zich als hij klaar is.\n\nDe pagina zegt het duidelijk: **Wat kan Bee Flow je uit handen nemen?** *Beschrijf het één keer. Het draait vanzelf — nu, later of elke week.*\n\nWe volgen één klus helemaal: Barts zin, de uitvoering om 07:30 en het resultaat dat in zijn meldingen wacht."
+      ]
+    },
+    "learn.cowork-basics.hand-over.title": {
+      "nl": "Hier vragen, of het voor je laten doen",
+      "was": [
+        "Vraag het hier, of draag het over"
+      ]
+    },
+    "learn.cowork-basics.nav.body": {
+      "nl": "Het getal op deze rij telt je taken die aanstaan; een gepauzeerde taak telt niet mee. Open hem en je komt op de startpagina van Cowork: één kolom met bovenaan het vak, dan wat op jou wacht, dan je taken.",
+      "was": [
+        "De badge op deze rij telt de items die nog aan staan — die waarvan nog een uitvoering voor de boeg ligt. Open hem en de pagina splitst zich: links je lijst, rechts één item, en een knop Nieuwe taak die de selectie wist zodat je de volgende kunt schrijven."
+      ]
+    },
+    "learn.cowork-basics.now.body": {
+      "nl": "- **Houd de twee helften uit elkaar.** Wil je het antwoord voor je zien en misschien doorvragen, dan chat je. Moet het werk gebeuren terwijl jij ergens anders bent, maak er dan een Cowork-taak van.\n- **Voorspel wat je zin wordt.** Laat zien wat ik begrepen heb antwoordt met Wat, Wanneer, Gebruikt en Stuurt naar, en er bestaat niets tot je op Klaarzetten en testen drukt.\n- **Weet waarom hij wacht, en waar je het leest.** Hij draait pas echt nadat je hebt goedgekeurd wat de test opleverde; daarna bewaren de taakpagina, de Geschiedenis en je meldingen elk resultaat.\n\nVolgend hoofdstuk: de ene zin zo schrijven dat de vier regels in één keer goed komen.",
+      "was": [
+        "- **De twee helften uit elkaar houden.** Wil je het antwoord voor je en kun je een vervolgvraag stellen, chat dan. Moet het werk gebeuren terwijl je elders bent, geef het dan aan Cowork.\n- **Voorspellen wat je zin gaat doen.** Bee Flow leidt er een titel, een instructie en een schema uit af — en elke chip die je zelf instelt wint van wat de zin zegt.\n- **Weten waar je het leest.** De opdracht zegt wat er draait, de pillen zeggen wanneer, Wat er gebeurde bewaart elke poging met het volledige resultaat — en het afgeronde resultaat bereikt je in je meldingen (en in de chatthread van de agent, als je de klus aan een agent gaf).\n\nVolgend hoofdstuk: een opdracht schrijven die niemand hoeft toe te lichten — want als hij draait, is er niemand om het te vragen."
+      ]
+    },
+    "learn.cowork-basics.q-private.choice.a.label": {
+      "nl": "Niemand, tenzij ze hem zelf onder Delen deelt met een collega bij naam; zelfs dan kan alleen zij hem wijzigen.",
+      "was": [
+        "Niemand. Een cowork-item is van de persoon die het heeft aangemaakt, en er is geen gedeelde of organisatiebrede lijst."
+      ]
+    },
+    "learn.cowork-basics.q-private.choice.b.feedback": {
+      "nl": "Jouw taken toont alleen je eigen taken. Een collega ziet een taak alleen onder Met jou gedeeld, nadat de eigenaar hem deelde.",
+      "was": [
+        "Hij wordt helemaal niet gedeeld. Elke leesactie is beperkt tot de aangemelde gebruiker en het openen van andermans item wordt geweigerd als Verboden."
+      ]
+    },
+    "learn.cowork-basics.q-private.choice.b.label": {
+      "nl": "Iedereen in de organisatie: Jouw taken is een lijst van de werkruimte, zoals een gedeelde agenda.",
+      "was": [
+        "Iedereen in de organisatie — de Cowork-lijst is een werkruimtelijst, zoals een gedeelde agenda."
+      ]
+    },
+    "learn.cowork-basics.q-private.choice.c.feedback": {
+      "nl": "Tijd deelt nooit iets. Delen is een keuze die de eigenaar onder Delen maakt, per collega.",
+      "was": [
+        "Dat overzicht bestaat niet. Er is geen organisatiebrede cowork-weergave; eigenaarschap is de enige sleutel tot een item."
+      ]
+    },
+    "learn.cowork-basics.q-private.choice.c.label": {
+      "nl": "Haar collega's kunnen hem zien, maar pas nadat hij een maand heeft gedraaid.",
+      "was": [
+        "Organisatiebeheerders, vanuit een centraal overzicht van ieders geplande werk."
+      ]
+    },
+    "learn.cowork-basics.q-private.explanation": {
+      "nl": "Een taak is van degene die hem maakte en draait als die persoon. Met Delen laat je een collega hem zien (Kan zien) of ook beantwoorden wat hij vraagt (Kan antwoorden); verder kan niemand hem wijzigen.",
+      "was": [
+        "Cowork is strikt per persoon: jouw items, jouw uitvoeringen, jouw meldingen. Een collega die dezelfde digest wil, typt dezelfde zin in zijn eigen Cowork."
+      ]
+    },
+    "learn.cowork-basics.q-private.q": {
+      "nl": "Saskia's maandelijkse voortgangsrapport raakt personeelsgegevens. Wie bij Van Dijk Groep kan die taak nog meer openen en de uitvoeringen lezen?",
+      "was": [
+        "Saskia's maandelijkse voortgangsrapportage bevat personeelsgegevens. Wie anders bij Van Dijk Groep kan dat cowork-item openen en de uitvoeringen lezen?"
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.ask.left": {
+      "nl": "Bart wil nu onze betalingsvoorwaarden met één bepaalde leverancier weten, en wil misschien verder graven.",
+      "was": [
+        "Bart heeft nu onze betalingsvoorwaarden met één specifieke leverancier nodig — en wil misschien verder graven."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.ask.note": {
+      "nl": "Je bent erbij en je wilt een gesprek. Een Cowork-uitvoering stelt je nooit een vraag terug over wat je bedoelde, dus alles waarbij je wilt doorvragen hoort in de chat.",
+      "was": [
+        "Je bent erbij en wilt een gesprek. Een cowork-uitvoering stelt je nooit een vraag terug, dus alles wat een vervolg nodig heeft, hoort in een chat."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.monthly.left": {
+      "nl": "Saskia's korte voortgangsrapport op de eerste van elke maand, uit de vergadernotities van vorige maand.",
+      "was": [
+        "Saskia op kantoor schrijft op de eerste van elke maand een korte voortgangsrapportage, op basis van de vergadernotities van vorige maand."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.monthly.note": {
+      "nl": "Dezelfde vorm, een trager ritme. Ze zegt het in haar zin; achteraf kan Wanneer van de taak ook op Elke maand worden gezet.",
+      "was": [
+        "Zelfde vorm, langzamer ritme. Ze zet Herhalen op Elke maand en kiest het moment zelf, zodat het model niet hoeft te raden."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.monthly.right": {
+      "nl": "Een taak die elke maand draait",
+      "was": [
+        "Cowork — Herhalen: Elke maand"
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.once.note": {
+      "nl": "Echt werk, geen herhaling. Als de zin niet zegt wanneer, vraagt de kaart Welke dag? en is Eén keer, vandaag de eerste keuze.",
+      "was": [
+        "Echt werk, geen herhaling, en hij gaat er niet naar zitten kijken. Druk op Uitvoeren; het resultaat staat in zijn meldingen als hij terugkomt."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.once.right": {
+      "nl": "Een taak die één keer draait, vandaag",
+      "was": [
+        "Cowork — Wanneer: Nu uitvoeren, Herhalen: Eenmalig"
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.weekday.note": {
+      "nl": "Maandag tot en met vrijdag, of Bart Bee Flow nu opent of niet. De regel Wanneer op de kaart toont de dag en de tijd.",
+      "was": [
+        "Ma–vr-werk dat moet gebeuren of hij Bee Flow nu opent of niet. De rij zal \"Elke werkdag 07:30\" tonen."
+      ]
+    },
+    "learn.cowork-basics.sim-match.pair.weekday.right": {
+      "nl": "Een taak die elke werkdag draait",
+      "was": [
+        "Cowork — Herhalen: Elke werkdag"
+      ]
+    },
+    "learn.cowork-basics.sim-match.title": {
+      "nl": "Chat, of een Cowork-taak?",
+      "was": [
+        "Chat, of overdragen?"
+      ]
+    },
+    "learn.cowork-briefs.desc": {
+      "nl": "Eén zin die Wat, Wanneer, Gebruikt en Stuurt naar goed invult, en wat je op de kaart verbetert voordat je begint.",
+      "was": [
+        "De prompt zonder toezicht: wat op te leveren, het detail dat het bruikbaar maakt, wanneer het draait."
+      ]
+    },
+    "learn.cowork-briefs.diagnose.instruction": {
+      "nl": "Vier zinnen die Bart bijna verstuurde. Elke zin laat één van de vier regels aan het toeval over. Koppel de zin aan wat de kaart zal tonen.",
+      "was": [
+        "Vier opdrachten die Bart bijna verstuurde. In elk ontbreekt precies één ding. Koppel het aan het gat dat hem om 07:30 zou opbreken."
+      ]
+    },
+    "learn.cowork-briefs.diagnose.pair.when.left": {
+      "nl": "\"Vat de nieuwe leveranciersmail in Outlook samen met ordernummer, bedrag en deadline, en stuur het naar mij.\"",
+      "was": [
+        "\"Vat de nieuwe leveranciersmail samen met ordernummer, bedrag en deadline.\""
+      ]
+    },
+    "learn.cowork-briefs.diagnose.pair.when.note": {
+      "nl": "Helemaal geen dag of tijd. De kaart zegt dat je zin niet zegt wanneer, en de startknop blijft uit tot je een dag kiest.",
+      "was": [
+        "Helemaal geen tijdwoorden, dus er valt niets af te leiden: het draait meteen, één keer, en schakelt zichzelf dan uit — wat de lijst toont als Afgerond. Zeg de dag en het uur, of zeg dat je het nu wilt."
+      ]
+    },
+    "learn.cowork-briefs.diagnose.pair.when.right": {
+      "nl": "Wanneer: de kaart vraagt Welke dag?",
+      "was": [
+        "Ontbreekt: wanneer of hoe vaak"
+      ]
+    },
+    "learn.cowork-briefs.diagnose.title": {
+      "nl": "Welke regel komt er verkeerd uit?",
+      "was": [
+        "Wat vergat deze opdracht te zeggen?"
+      ]
+    },
+    "learn.cowork-briefs.nobody-there.body": {
+      "nl": "Morgen om 07:30 begint een uitvoering, en niemand is wakker om er een vraag over te beantwoorden.\n\nBart doet de inkoop bij Van Dijk Groep, een Nederlandse groothandel in bouwmaterialen. Zijn eerste zin luidt: **\"Houd de leveranciersmail in de gaten.\"**\n\nCowork komt niet terug om te vragen *welke* mailbox, *wanneer*, of wat *\"in de gaten houden\"* betekent. Hij werkt met wat de zin zegt. Als de AI een taak bij een uitvoering zelf uitzoekt, krijgt hij zelfs letterlijk mee: stel geen vervolgvragen, dit draait zonder toezicht.\n\nIn de chat kost een vage prompt je één extra bericht. In Cowork kost hij je de hele uitvoering, en dat merk je de volgende ochtend. Het goede nieuws: voordat er iets bestaat, laat Cowork zien wat hij begreep, zodat je het op de kaart kunt opvangen.",
+      "was": [
+        "Morgen om 07:30 start een uitvoering, en er is niemand wakker om een vraag erover te beantwoorden.\n\nBart doet de inkoop bij Van Dijk Groep, een Nederlands bouwmaterialenbedrijf. Zijn eerste opdracht luidt: **\"Houd elke werkdag om 07:30 de leveranciersmail in de gaten.\"**\n\nDe uitvoerder heeft één vaste instructie die hij niet kan breken: **stel geen vervolgvragen — dit draait zonder toezicht.** Hij vraagt dus nooit *welke* mailbox, *welke* leveranciers, of wat *\"in de gaten houden\"* betekent. Hij gokt, schrijft iets en zet het in Barts meldingen.\n\nIn een chat kost een vage prompt je één vervolgbericht. In Cowork kost het je de hele uitvoering — en dat merk je pas de volgende ochtend."
+      ]
+    },
+    "learn.cowork-briefs.recap.body": {
+      "nl": "- **Schrijf één zin met vier antwoorden**: wat eruit komt, wanneer, welke app bij naam, en wie het krijgt met een adres. Laat er geen vraag in staan voor iemand die er niet zal zijn.\n- **Lees de kaart voordat je begint**: Welke dag? betekent dat je niet zei wanneer; geen app-chips betekent dat Cowork ze kiest; alleen Mij bij Stuurt naar betekent dat er geen adres in stond.\n- **Verbeter op de kaart, niet achteraf**: een regel die je met de hand wijzigt houdt jouw keuze, en elk bericht aan iemand anders wacht in het begin op jou.\n\nVolgend hoofdstuk maak je er een echt, keur je de stappen goed, laat je hem draaien en lees je bewust een mislukking.",
+      "was": [
+        "- **Een opdracht zonder gaten schrijven** — het werk, het detail dat het bruikbaar maakt, het ritme — en geen vraag erin laten voor iemand die er niet zal zijn.\n- **Met de chips beslissen waar jij om geeft**, en Bee Flow de rest laten invullen: een chip die je aanraakt wint altijd, en de Apps-keuzelijst beperkt waar de uitvoering bij kan totdat je hem terugstuurt naar je werkruimtelijst.\n- **Het snel testen**: \"Nu uitvoeren\" plus een herhaling geeft je vandaag een echt resultaat, en de reeks begint bij de volgende keer.\n\nIn het volgende hoofdstuk stuur je er een echt de wereld in, kijk je hoe hij draait en lees je met opzet een mislukking."
+      ]
+    },
+    "learn.cowork-briefs.what-happens.body": {
+      "nl": "- **Wat** op de kaart is de **naam** van de taak, hooguit 60 tekens, zodat de lijst overzichtelijk blijft. Wat de taak moet doen wordt ernaast bewaard, en dat vind je op de taak terug onder Instellingen → Wat.\n- **Wanneer**: vage tijden worden vaste uren. *Ochtend* is 08:00, *middag* 12:00, *namiddag* 14:00, *avond* 18:00, *nacht* 21:00.\n- **Gebruikt**: alleen apps die je zin bij hun naam noemt staan al klaar. Noem je er geen, dan zegt de kaart dat Cowork de apps kiest terwijl hij de stappen klaarzet.\n- **Stuurt naar**: **Mij** staat er altijd als begin, plus elk e-mailadres dat in de zin staat. *\"Stuur het naar mij en sam@…\"* toont ze allebei.\n\nDe zin lezen maakt niets aan. Er komt niets onder **Jouw taken** tot je op **Klaarzetten en testen** drukt.",
+      "was": [
+        "Je opdracht wordt niet zoals hij is opgeslagen. Als je hem verstuurt, leest Bee Flow hem één keer en splitst hem in:\n\n- **een titel** — kort, maximaal 60 tekens, zodat de lijst links overzichtelijk blijft;\n- **de instructie** — je opdracht herschreven als een directe, op zichzelf staande opdracht aan een assistent. Je kunt hem teruglezen op het item onder **DE OPDRACHT**, en herformuleren onder **Bewerken** → **Wat hij doet**;\n- **de timing** — bewaard in aparte velden, nooit binnen de instructie.\n\nVage tijden krijgen vaste uren: *ochtend* is 08:00, *middag* 12:00, *namiddag* 14:00, *avond* 18:00, *nacht* 21:00.\n\nHet maakt zelf niets aan. Niets bereikt je lijst totdat je op **Uitvoeren** of **Plannen** drukt."
+      ]
+    },
+    "learn.cowork-briefs.what-happens.title": {
+      "nl": "Hoe Cowork elke regel leest",
+      "was": [
+        "Wat er gebeurt met de woorden die je typt"
+      ]
+    },
+    "learn.cowork-briefs.write-it.instruction": {
+      "nl": "Denk aan de klus die je het vaakst opnieuw typt: de maandaglijst, de weeksamenvatting, de controle die je steeds vergeet. Schrijf hem als ÉÉN zin voor Cowork die alle vier de regels beantwoordt: wat eruit komt (met de velden of lengte die het bruikbaar maken), wanneer, uit welke app hij leest bij naam, en naar wie het gaat (jijzelf, en een collega met een e-mailadres). Voeg daarna één korte regel toe: welke regel van de kaart je als eerste zou controleren, en waarom.",
+      "was": [
+        "Denk aan de klus die je het vaakst opnieuw typt — de maandaglijst, de wekelijkse samenvatting, de controle die je steeds vergeet. Schrijf hem als een opdracht die je echt zou overdragen. Noem het werk dat eruit komt, waar het moet kijken, de vorm van het resultaat (velden, punten, lengte) en wanneer of hoe vaak het draait. Lees hem één keer terug en vraag je af: kan een collega dit doen terwijl ik op vakantie ben, zonder me te bellen?"
+      ]
+    },
+    "learn.cowork-briefs.write-it.placeholder": {
+      "nl": "bijv. Maak elke vrijdag om 15:00 een lijst van de gesloten supporttickets van deze week uit Zendesk met de drie vaakste problemen en per probleem één voorbeeld, en stuur het naar mij en lead@example.com. Ik zou eerst Stuurt naar controleren, omdat…",
+      "was": [
+        "bijv. Loop elke vrijdag om 15:00 de deze week gesloten supporttickets door en geef me de drie problemen die het vaakst voorkwamen, met telkens een voorbeeld van één regel, plus elke klant die vertrek noemde. Zeg \"een rustige week\" als er minder dan vijf tickets zijn."
+      ]
+    },
+    "learn.cowork-briefs.write-it.title": {
+      "nl": "Jouw beurt: de zin voor wat je elke week opnieuw doet",
+      "was": [
+        "Jouw beurt: wat je elke maandag opnieuw doet"
+      ]
+    },
+    "learn.cowork-hands-on.create.instruction": {
+      "nl": "Open Cowork, typ één zin voor werk dat je echt uit handen zou geven, en kies **Laat zien wat ik begrepen heb**. Controleer de vier regels en laat alleen **Mij** staan bij Stuurt naar. Druk op **Klaarzetten en testen** (of **Starten**, als dat de knop is), keur de stappen goed onder Wacht op jou, en druk op de taak op **Nu echt uitvoeren**. De checklist leest je eigen takenlijst: hij wil een taak die bestaat en één echte uitvoering; de test telt niet. Een taak die je eerder maakte telt ook. Gebruik de minimaliseerknop bovenaan deze les om hem weg te zetten terwijl je werkt.",
+      "was": [
+        "Open Cowork en typ één zin die werk beschrijft dat je echt zou overdragen. Open voordat je verstuurt de chip **Wanneer** en kies *Nu uitvoeren* — een chip die je met de hand instelt, wordt nooit overruled door wat de AI in je zin leest, en je eerste item moet draaien waar je het kunt zien. De checklist leest je eigen Cowork-lijst: hij wil één item dat bestaat en minstens één keer is gedraaid, en een item dat je eerder maakte telt ook mee. Gebruik de minimaliseerknop bovenaan deze les om hem weg te stoppen terwijl je werkt."
+      ]
+    },
+    "learn.cowork-hands-on.create.title": {
+      "nl": "Maak hem, keur hem goed, laat hem draaien: wij controleren je echte lijst",
+      "was": [
+        "Maak het aan — wij controleren je echte lijst"
+      ]
+    },
+    "learn.cowork-hands-on.desc": {
+      "nl": "Maak een Cowork-taak, keur de geteste stappen goed, laat hem echt draaien, verbeter hem in Instellingen en lees een mislukking zonder te gokken.",
+      "was": [
+        "Maak een Cowork-item aan, voer het uit, corrigeer en pauzeer het, en lees dan een mislukte uitvoering zonder te gokken."
+      ]
+    },
+    "learn.cowork-hands-on.ex-repair.instruction": {
+      "nl": "Barts overzicht draait al twee weken. Twee dingen kloppen niet: het moet ook naar inkoop@vandijk.nl, en het draait om 07:30 terwijl hij het om 07:00 wil. Schrijf in drie tot vijf zinnen precies wat hij voor elke wijziging op de taakpagina doet: welke rij van Instellingen, wat hij wijzigt, en wat Cowork daarna doet (meteen opgeslagen, of Opslaan en testen met een nieuwe goedkeuring). Zeg daarna in één regel wat hij na de volgende uitvoering controleert om te weten dat het werkte.",
+      "was": [
+        "Barts item eindigt steeds met de melding dat de limiet van 20 toolaanroepen is bereikt. Zijn opdracht: “Elke werkdag om 07:30: vat nieuwe leveranciersmail samen, controleer elk ordernummer in onze orderlijst, schrijf voor elk bericht een antwoord en geef me op vrijdag een weekoverzicht.” Herschrijf dit als **twee afzonderlijke coworks**. Geef per cowork een naam, de instructie die hij moet uitvoeren (wat het resultaat moet bevatten, zodat niemand een vervolgvraag hoeft te beantwoorden) en wanneer en hoe vaak hij draait. Zeg daarna in één regel waar je na de eerste uitvoering naar kijkt om te weten dat het werkt."
+      ]
+    },
+    "learn.cowork-hands-on.ex-repair.placeholder": {
+      "nl": "bijv. Voor de tijd opent hij Instellingen → Wanneer, kiest Wijzigen en zet… Dat wordt meteen opgeslagen. Voor het adres…",
+      "was": [
+        "bijv. 1) Naam: Leveranciersmail-digest — Wat het doet: toon elk nieuw leveranciersbericht van de afgelopen 24 uur, gegroepeerd per leverancier, met ordernummer, bedrag en uiterste antwoorddatum per bericht… — Wanneer: elke werkdag, 07:30. 2) Naam: … 3) Na de eerste uitvoering controleer ik …"
+      ]
+    },
+    "learn.cowork-hands-on.ex-repair.title": {
+      "nl": "Jouw beurt: repareer een taak zonder opnieuw te beginnen",
+      "was": [
+        "Jouw beurt: repareer een overladen opdracht"
+      ]
+    },
+    "learn.cowork-hands-on.failnote.body": {
+      "nl": "Als een uitvoering misgaat, wordt het woord van de taak **Mislukt** en verschijnt er een kaart onder **Wacht op jou**, op de startpagina en op de taak. De kaart:\n\n- noemt de stap en de oorzaak in gewone woorden, zoals *'Orderlijst controleren' werkte de laatste keer niet.*;\n- biedt **één** actie die het oplost, en een uitweg;\n- bewaart de ruwe foutmelding onder **Technische details**, voor als je hem nodig hebt.\n\nEen mislukte uitvoering stuurt ook een melding, *Cowork failed*, die rechtstreeks naar de taak leidt.\n\nWat Cowork kan herstellen zonder dat de taak meer mag dan eerst, herstelt hij zelf, test hij, en meldt hij je met **Ongedaan maken**.",
+      "was": [
+        "Een afgeronde uitvoering komt in de bel onder **Cowork** met het resultaat als bericht. Een mislukte komt als **dringende** melding met de titel *Cowork mislukt: de naam van je item*, met de reden in de tekst, en **linkt direct terug naar het item**.\n\nLees vanaf daar de bovenste rij onder **Wat er gebeurde**. De uitkomstregel is de eerste regel van de fout; als de uitvoering helemaal geen reden gaf, staat er *Het is mislukt zonder te zeggen waarom*. Klik de rij open voor de volledige fout in monospace.\n\nEén detail dat paniek voorkomt: een **herhalend** item gaat na een mislukking gewoon door naar zijn volgende keer. Een mislukte **eenmalige** wordt in plaats daarvan uitgeschakeld, zodat hij niet elke minuut zichzelf opnieuw kan proberen — je herstart hem zelf met Nu uitvoeren."
+      ]
+    },
+    "learn.cowork-hands-on.failnote.title": {
+      "nl": "Hoe een mislukking eruitziet",
+      "was": [
+        "Hoe een mislukking er van buiten uitziet"
+      ]
+    },
+    "learn.cowork-hands-on.plan.body": {
+      "nl": "Bart is inkoper bij Van Dijk Groep. Elke ochtend leest hij leveranciersmail opnieuw door om uit te zoeken wat vandaag beantwoord moet worden: twintig minuten weg voordat hij aan iets van zichzelf begint.\n\nLezen over uit handen geven geeft niets uit handen. In dit hoofdstuk maak je één eigen taak, keur je de stappen goed, laat je hem echt draaien terwijl je kijkt, lees je wat hij deed, en leer je waar een mislukking verschijnt en wat je dan indrukt.\n\nKies iets **kleins, herhaalbaars en onschuldigs als het eerste resultaat matig is**, en laat het alleen naar jezelf gaan. Een eerste taak hoeft niemand te imponeren; hij moet je leren waar je kijkt als de volgende misgaat.",
+      "was": [
+        "Bart is inkoper bij Van Dijk Groep. Elke ochtend leest hij leveranciersmail opnieuw om uit te zoeken wat vandaag een antwoord nodig heeft — twintig minuten weg voordat hij aan iets van zichzelf is begonnen.\n\nLezen over overdragen draagt het niet over. In de komende twaalf minuten maak je één eigen item aan, voer je het uit terwijl je kijkt, lees je wat het opleverde en repareer je een uitvoering die misging.\n\nKies iets **kleins, herhaalbaars en onschadelijk als het eerste resultaat matig is**. Een eerste delegatie hoeft niemand te imponeren; hij moet je leren waar je moet kijken als de volgende faalt."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.choice.a.label": {
+      "nl": "De uitvoering is gewoon afgerond en vond niets te doen, bijvoorbeeld geen nieuwe leveranciersmail.",
+      "was": [
+        "De uitvoering is normaal afgerond en leverde gewoon geen tekst op — hij telt als geslaagd."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.choice.b.feedback": {
+      "nl": "Een mislukking is nooit stil: op de taak zou Mislukt staan en een kaart onder Wacht op jou zou de stap en de oorzaak noemen, met één actie.",
+      "was": [
+        "Een mislukking toont in plaats daarvan de eerste regel van de fout, of \"Het is mislukt zonder te zeggen waarom\", en geeft altijd een dringende melding. Deze rij deed geen van beide."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.choice.c.feedback": {
+      "nl": "Dan zou er Wacht op jou staan, met een kaart die hem iets vraagt. Niets te doen is een afgeronde uitvoering.",
+      "was": [
+        "Een openstaande uitvoering toont \"Draait nog…\" en de koppil toont \"Draait sinds\" met de kloktijd. Deze heeft een afgeronde duur."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.choice.c.label": {
+      "nl": "De uitvoering wacht nog op zijn goedkeuring.",
+      "was": [
+        "De uitvoering loopt nog."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.explanation": {
+      "nl": "Niets te doen is een geslaagde uitvoering met een leeg antwoord. Ga er alleen achteraan als je elke keer uitvoer verwachtte; dan moet de zin of de tijd anders.",
+      "was": [
+        "\"Niets te melden\" is een geslaagde uitvoering met een leeg antwoord — geen nieuwe leveranciersmail, geen open offertes. Ga er alleen achteraan als je elke keer uitvoer verwachtte; dan moet de opdracht of het tijdvenster worden gewijzigd."
+      ]
+    },
+    "learn.cowork-hands-on.q-nothing.q": {
+      "nl": "De volgende ochtend staat er op Barts taak \"Niets te doen · Vandaag 07:30\". Onder Wacht op jou staat geen kaart. Wat zegt dat hem?",
+      "was": [
+        "Een uitvoeringsrij toont een duur van 0m 31s en de uitkomstregel \"Niets te melden\". Wat vertelt dat je?"
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.a.label": {
+      "nl": "Pauzeren bovenaan de taak, en Hervatten als hij terug is.",
+      "was": [
+        "Het item pauzeren en het hervatten als hij terug is."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.b.feedback": {
+      "nl": "De bevestiging is er duidelijk over: ze stopt voorgoed, met haar uitvoeringen, en dit kun je niet ongedaan maken. Hij zou ook de stappen opnieuw moeten laten klaarzetten en goedkeuren.",
+      "was": [
+        "Het dialoogvenster is er botweg over: het item stopt met draaien en zijn geschiedenis wordt verwijderd, en dat kan niet ongedaan worden gemaakt. Hij zou elke uitvoering verliezen die hij heeft verzameld."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.b.label": {
+      "nl": "Deze taak verwijderen, en hem over drie weken opnieuw maken.",
+      "was": [
+        "Het item verwijderen en over drie weken opnieuw aanmaken."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.c.feedback": {
+      "nl": "Dan herschrijft hij de planning voorgoed, en hij draait nog één keer. Pauzeren is de schakelaar die hiervoor bedoeld is.",
+      "was": [
+        "Dat herschrijft de reeks blijvend — en het zou nog één keer afgaan en zich dan uitschakelen als afgerond."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.c.label": {
+      "nl": "Onder Instellingen → Wanneer Hoe vaak op Eén keer zetten.",
+      "was": [
+        "Het bewerken en Herhalen op Eenmalig zetten."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.d.feedback": {
+      "nl": "De taak zou nog steeds draaien, alleen blind, en op een taak met vaste stappen betekenen andere apps Opslaan en testen en een nieuwe goedkeuring. Dat is geen pauze.",
+      "was": [
+        "De uitvoering zou nog steeds plaatsvinden, alleen blind. Het geeft het item ook vanaf dan een eigen applijst, die je daarna moet terugdraaien met \"Mijn werkruimtelijst volgen\"."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.choice.d.label": {
+      "nl": "Onder Instellingen → Gebruikt alle apps uitzetten.",
+      "was": [
+        "Elke app onder \"Apps die het mag gebruiken\" uitschakelen."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.explanation": {
+      "nl": "Pauzeren is de omkeerbare bediening: er start niets, de taak houdt zijn stappen, instellingen en geschiedenis, en Hervatten zet hem terug. Deze taak verwijderen is de enige onomkeerbare knop.",
+      "was": [
+        "Pauzeren is de omkeerbare bediening: toekomstige uitvoeringen stoppen, het item behoudt zijn geschiedenis en zijn schema, en Hervatten zet het terug. Verwijderen is het enige onomkeerbare op het scherm."
+      ]
+    },
+    "learn.cowork-hands-on.q-pause.q": {
+      "nl": "Bart is drie weken weg en wil niet dat het dagelijkse overzicht zich opstapelt. Welke stap kan hij terugdraaien als hij terug is?",
+      "was": [
+        "Bart is drie weken weg en wil niet dat de dagelijkse digest zich ophoopt in zijn meldingen. Welke actie kan hij terugdraaien als hij terugkomt?"
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.choice.a.label": {
+      "nl": "Instellingen → Koppelingen: het persoonlijke scherm in zijn eigen Instellingenmenu, waar zijn eigen inloggegevens voor de mailbox staan. Opnieuw inloggen op de kaart gaat daarheen.",
+      "was": [
+        "Instellingen → Koppelingen — het persoonlijke scherm in zijn eigen Instellingenmenu, waar zijn eigen credential voor de mailbox staat."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.choice.b.feedback": {
+      "nl": "Dat beheerscherm bepaalt wie een integratie mag gebruiken; het bewaart nooit Barts eigen inloggegevens. Ook na een toekenning logt Bart onder Instellingen → Koppelingen in op zijn eigen account.",
+      "was": [
+        "Dat is het beheerderscherm, en het bepaalt *wie een integratie mag* gebruiken — het bevat nooit Barts eigen credential. Zelfs nadat een beheerder toegang geeft, moet Bart zijn eigen account nog steeds koppelen onder Instellingen → Koppelingen."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.choice.c.feedback": {
+      "nl": "Die lijst bepaalt welke apps deze ene taak mag gebruiken. Een verlopen account meldt hij daar niet opnieuw aan.",
+      "was": [
+        "Die lijst beperkt welke gekoppelde apps dit ene item mag aanraken. Hij kan een verlopen account niet weer inloggen, en dingen daar uitzetten geeft het item alleen een eigen applijst die je later moet terugdraaien."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.choice.c.label": {
+      "nl": "Instellingen → Gebruikt van de taak, onder Apps die ze mag gebruiken.",
+      "was": [
+        "Het Bewerken-formulier van het Cowork-item, onder \"Apps die het mag gebruiken\"."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.choice.d.feedback": {
+      "nl": "Beveiliging gaat over zijn eigen aanmelding bij Bee Flow, niet over de accounts waarmee Bee Flow verbinding maakt. Die staan onder Koppelingen.",
+      "was": [
+        "Beveiliging gaat over zijn eigen aanmelding bij Bee Flow, niet over de accounts waarmee Bee Flow naar buiten koppelt. Die staan één rij lager in hetzelfde menu, onder Koppelingen."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.explanation": {
+      "nl": "Instellingen → Koppelingen is persoonlijk en bewaart je inloggegevens; de Toekenningen van de beheerder bepalen wie überhaupt mag koppelen. Een verlopen aanmelding is altijd het eerste. Opnieuw koppelen zet ook de taken weer aan die zichzelf ervoor pauzeerden.",
+      "was": [
+        "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Beheerdashboard → Beveiliging en toegang → Toegang → Toekenningen** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd.",
+        "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Instellingen → Organisatie → Integraties → Toegang tot integraties** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd.",
+        "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Beheerdashboard → Toegang → Toegang tot integraties** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd."
+      ]
+    },
+    "learn.cowork-hands-on.q-where-reconnect.q": {
+      "nl": "Een kaart op Barts taak zegt \"De aanmelding bij Outlook is verlopen.\" Hij opent Instellingen, en zijn beheerder opent op haar eigen scherm het beheerdashboard. Welk scherm heeft Bart nodig?",
+      "was": [
+        "Bart ziet **Aanmelden vereist** bij zijn leveranciersdigest. Hij opent Instellingen, en zijn beheerder opent ook Instellingen op haar eigen scherm. Welk scherm heeft *Bart* nodig om zijn digest weer te laten draaien?"
+      ]
+    },
+    "learn.cowork-hands-on.recap.body": {
+      "nl": "Je hebt een Cowork-taak die echt heeft gedraaid, en een weg terug uit alles wat hij hierna doet.\n\n- **Krijg hem aan het draaien.** Klaarzetten en testen, goedkeuren wat de test opleverde, dan Nu echt uitvoeren. Een grijze knop zegt altijd waarop hij wacht.\n- **Verbeter in plaats van verwijderen.** Instellingen bevat Wat, Wanneer, Gebruikt en Stuurt naar; een nieuwe zin of andere apps betekent Opslaan en testen en nog één goedkeuring. Pauzeren en Hervatten zijn het omkeerbare paar.\n- **Lees de kaart voordat je iets doet.** Een mislukking is een kaart onder Wacht op jou met één actie: Opnieuw inloggen, Los het voor me op, Bekijk wat er mis is of Opnieuw uitvoeren. Niets te doen is geen mislukking.\n\nWas de taak die je net maakte alleen oefening, pauzeer hem dan, of verwijder hem om de plek terug te krijgen.",
+      "was": [
+        "Je hebt een Cowork-item dat echt is uitgevoerd, en een weg terug van alles wat het daarna doet.\n\n- **Lees het item eerlijk.** Uitvoeringen is een totaal over de hele looptijd, Geslaagd en de foutregel beschrijven de laatste 90 dagen aan bewaarde geschiedenis, en Gemiddeld laat zien wat de taak aan tijd kost.\n- **Corrigeer in plaats van te verwijderen.** Bewerken scherpt de instructie en het schema aan, Nu uitvoeren bewijst de oplossing meteen, Pauzeren en Hervatten zijn het omkeerbare paar. Verwijderen neemt de geschiedenis mee.\n- **Diagnosticeer voordat je herschrijft.** Inloggen vereist betekent opnieuw koppelen, een limiet op toolaanroepen betekent opsplitsen, “Niets te melden” betekent dat er niets was — en pas een echte foutmelding betekent dat de opdracht zelf niet klopt.\n\nWas het item dat je net maakte alleen oefening, pauzeer het dan — of verwijder het om de plek terug te krijgen."
+      ]
+    },
+    "learn.cowork-hands-on.sim-fix.instruction": {
+      "nl": "Van Dijk Groep heeft op dezelfde ochtend vier taken met een kaart onder Wacht op jou. Koppel wat de kaart zegt aan de knop die het oplost.",
+      "was": [
+        "Van Dijk Groep heeft vier coworks die op dezelfde ochtend fout gaan. Koppel wat het scherm toont aan de handeling die het echt oplost."
+      ]
+    },
+    "learn.cowork-hands-on.sim-fix.title": {
+      "nl": "Vier kaarten, vier verschillende stappen",
+      "was": [
+        "Vier mislukkingen, vier verschillende oplossingen"
+      ]
+    },
+    "learn.cowork-hands-on.undo.body": {
+      "nl": "Werk uit handen geven aan iets dat draait terwijl je niet kijkt, voelt als controle kwijtraken, dus neem eerst de weg terug.\n\n- **Pauzeren**, bovenaan de taak, houdt hem tegen; **Hervatten** zet hem terug. De taak houdt zijn instellingen, zijn stappen en zijn geschiedenis.\n- **Deze taak verwijderen**, helemaal onderaan de Geschiedenis van de taak, is de deur zonder terugweg: *Ze stopt voorgoed, met haar uitvoeringen. Dit kun je niet ongedaan maken.*\n\nJe kunt **10 taken** hebben. Een gepauzeerde taak telt mee; alleen verwijderen geeft een plek terug. Maak er nu dus een, en pauzeer hem aan het eind van het hoofdstuk als je hem later nog wilt, of verwijder hem als je zeker weet dat je hem niet meer nodig hebt.",
+      "was": [
+        "Werk overdragen aan iets dat draait terwijl jij niet kijkt, voelt als de controle verliezen, dus neem eerst de weg terug.\n\n- **Pauzeren** stopt toekomstige uitvoeringen en **Hervatten** zet ze terug. Het item behoudt zijn opdracht, zijn schema en zijn geschiedenis.\n- **Verwijderen** is de deur zonder terugweg: het dialoogvenster zegt dat het item stopt met draaien en *zijn geschiedenis wordt verwijderd*.\n\nJe hebt **10 cowork-plekken**. Een gepauzeerd item houdt zijn plek vast; alleen verwijderen geeft er een terug. Besteed er dus nu een, en pauzeer het aan het eind van de les als je het misschien wilt houden — of verwijder het als je zeker weet van niet."
+      ]
+    },
+    "learn.cowork-hands-on.undo.title": {
+      "nl": "Niets is hier blijvend, op één knop na",
+      "was": [
+        "Niets hier is blijvend — behalve één knop"
+      ]
+    },
+    "learn.cowork-run-as-agent.desc": {
+      "nl": "Instellingen → Gebruikt: vaste stappen, elke keer de AI, of een van je agents, en de eigen lijst van apps van de taak.",
+      "was": [
+        "Uitvoeren als: wat een gekoppelde agent overneemt, waar de resultaten zich ophopen, en hoe de eigen Apps-lijst van het item bepaalt wat een uitvoering mag bereiken."
+      ]
+    },
+    "learn.cowork-run-as-agent.do.instruction": {
+      "nl": "Open Cowork en open een eigen taak vanuit Jouw taken, of maak er eerst een met één zin. Kies onder Instellingen Wijzigen op de rij Gebruikt, zet onder Apps die ze mag gebruiken minstens één app-chip uit, en sla op (op een taak met vaste stappen is dat Opslaan en testen). We controleren daarna of de taak in je eigen lijst staat; de rij Gebruikt, die nu de eigen apps van de taak noemt, is je bewijs.",
+      "was": [
+        "Open Cowork en selecteer een item dat van jou is, of maak er eerst een met een opdracht van één regel. Klik op Bewerken en zet onder Apps die het mag gebruiken minstens één app uit, zodat de teller niet meer alle apps toont. Klik op Opslaan. Daarna controleren we dat het item in je eigen Cowork-lijst staat; de teller is je bewijs."
+      ]
+    },
+    "learn.cowork-run-as-agent.do.title": {
+      "nl": "Geef één taak een eigen lijst van apps",
+      "was": [
+        "Geef één item een eigen Apps-lijst"
+      ]
+    },
+    "learn.cowork-run-as-agent.ex-decide.instruction": {
+      "nl": "Neem één klus die je deze maand uit handen zou geven, je eigen of een van de voorbeelden van Van Dijk Groep. Schrijf vier korte regels: (1) de zin voor de taak; (2) Vaste stappen, De AI zoekt het elke keer uit, of Een agent van jou doet het, en waarom, in de termen van deze les (elke keer hetzelfde werk, kennis of een gesprek dat een agent meebrengt, vragen vóór berichten aan anderen); (3) de apps: geen eigen lijst, een eigen lijst (noem de apps), of helemaal geen, en waarom; (4) het ene ding dat je na de eerste uitvoering op de taak controleert om te weten dat de keuze klopte.",
+      "was": [
+        "Neem één stuk werk dat je deze maand zou overdragen, van jezelf of een van de voorbeelden van Van Dijk Groep. Schrijf vier korte regels: (1) de opdracht, in één zin; (2) Geen agent of een agent, en de reden in de termen van deze les: instructies, kennis, gekoppelde apps of een eigen thread; (3) de Apps-lijst van het item: geen eigen lijst, een eigen korte lijst (noem de apps) of leeg, en waarom dat de juiste van de drie is; (4) het ene wat je na de eerste uitvoering bij het item controleert om te weten dat de keuze goed was."
+      ]
+    },
+    "learn.cowork-run-as-agent.ex-decide.placeholder": {
+      "nl": "bijv. (1) Vat elke werkdag om 07:30 nieuwe leveranciersmail in Outlook samen per leverancier met ordernummer, bedrag en uiterste reactiedatum, en stuur het naar mij. (2) Vaste stappen, omdat… (3) Een eigen lijst: alleen Outlook, omdat… (4) Na de eerste uitvoering open ik…",
+      "was": [
+        "bijv. (1) Elke werkdag om 07:30 nieuwe leveranciersmail samenvatten per leverancier, met ordernummer, bedrag en uiterste antwoorddatum. (2) …, omdat … (3) Een eigen lijst: alleen de mailbox, omdat … (4) Na de eerste uitvoering open ik …"
+      ]
+    },
+    "learn.cowork-run-as-agent.link-later.feedback": {
+      "nl": "Alles over één taak wijzig je op die taak, in zijn Instellingen, en er wordt niets weggeschreven tot je opslaat. Terug gaat langs dezelfde weg: kies weer Vaste stappen, en Cowork maakt en test nieuwe stappen die jij goedkeurt.",
+      "was": [
+        "Een bestaand item wijzig je op één plek: je selecteert het, opent Bewerken, wijzigt het veld, en pas Opslaan schrijft het weg. Verlaat je het formulier zonder op te slaan, dan is de koppeling nooit gebeurd. Nu uitvoeren is het bewijs: het vuurt meteen zonder het volgende geplande moment te verschuiven. Teruggaan is hetzelfde pad met Geen agent geselecteerd."
+      ]
+    },
+    "learn.cowork-run-as-agent.link-later.instruction": {
+      "nl": "Barts leveranciersoverzicht draait als vaste stappen. Vanaf morgen wil hij dat zijn inkoopagent het doet. Zet zijn stappen in de volgorde die het scherm toelaat.",
+      "was": [
+        "Barts leveranciersoverzicht draait al als gewone prompt. Hij wil dat het vanaf morgen als zijn inkoopagent draait. Zet zijn vijf handelingen in de volgorde die het scherm toestaat."
+      ]
+    },
+    "learn.cowork-run-as-agent.link-later.item.pick.label": {
+      "nl": "Onder Hoe het werkt Een agent van jou doet het kiezen, dan de agent onder Welke agent",
+      "was": [
+        "Zet Uitvoeren als op de inkoopagent (de eerste optie van het veld is Geen agent)"
+      ]
+    },
+    "learn.cowork-run-as-agent.link-later.item.save.label": {
+      "nl": "Opslaan: de melding waarschuwt dat opslaan de vaste stappen eraf haalt",
+      "was": [
+        "Klik op Opslaan: het formulier schrijft pas iets bij verzenden"
+      ]
+    },
+    "learn.cowork-run-as-agent.link-later.title": {
+      "nl": "Een taak die je al hebt aan een agent geven",
+      "was": [
+        "Een agent koppelen aan een item dat je al hebt"
+      ]
+    },
+    "learn.cowork-run-as-agent.memory.body": {
+      "nl": "Haal deze twee niet door elkaar.\n\n- **Wat ze onthoudt**, onder **Gebruikt** van de taak: wat deze taak bewaart van de ene uitvoering naar de volgende. Je leest het daar, en met **Wissen wat ze onthoudt** begint de volgende uitvoering opnieuw.\n- **Het Geheugen van de agent**, aangezet in de eigen instellingen van de agent: als dat aanstaat en de agent een Cowork-taak doet, krijgt elke uitvoering van die taak mee wat eerdere uitvoeringen al behandelden, elk met de datum, met de opdracht dat over te slaan tenzij er iets veranderde. Bij een nieuwe agent staat het uit.\n\nVoor een dagelijks overzicht is dat het verschil tussen \"hier zijn de vijf leveranciers weer\" en \"een van de vijf is veranderd\".",
+      "was": [
+        "Er is een tweede effect, en het staat standaard uit.\n\nAls bij de gekoppelde agent **Geheugen** aanstaat (de schakelaar staat bij de **Geavanceerde instellingen** van de agent, onder **Gedrag**), krijgt elke uitvoering van ditzelfde Cowork-item de lijst met dingen die eerdere uitvoeringen al naar boven haalden, elk met de datum waarop het voor het laatst aan bod kwam, en krijgt hij de opdracht ze over te slaan tenzij er iets wezenlijks is veranderd.\n\nBij een dagelijks overzicht is dat het verschil tussen “hier zijn de vijf leveranciers weer” en “één van de vijf is veranderd”. Bij een maandrapport houdt het vorige maand uit de tekst van deze maand.\n\nMet Geheugen uit, de staat van een nieuwe agent, begint elke uitvoering met een schone lei en vertelt hij je gerust twee keer hetzelfde."
+      ]
+    },
+    "learn.cowork-run-as-agent.memory.title": {
+      "nl": "Twee soorten onthouden",
+      "was": [
+        "Een agent die onthoudt, herhaalt zichzelf niet"
+      ]
+    },
+    "learn.cowork-run-as-agent.nochip.body": {
+      "nl": "De keuze staat er alleen als er een agent te kiezen is, dus dat hij ontbreekt heeft oorzaken en is geen fout.\n\n- **Er zijn geen agents om je aan te bieden.** Niets te kiezen.\n- **Je rol mag geen agents beheren.** De lijst achter de keuze wordt gelezen met de bevoegdheid waarmee iemand agents bouwt: Organisatiebeheerder, Agentbeheerder en Agentbewerker hebben die, een Lid niet.\n- **De functie staat niet aan voor je account.** Opslaan wordt geweigerd met *Running Cowork items as an agent is not enabled for this account*.\n- **Je mag die agent niet gebruiken.** Een taak mag draaien als je eigen agent, of als een gepubliceerde agent van je organisatie waarmee je mag chatten; al het andere wordt geweigerd met *Agent not found or not available to you*.\n\nNiets hiervan houdt de taak tegen. Vaste stappen of elke keer de AI werken nog steeds.",
+      "was": [
+        "**Uitvoeren als** wordt alleen getekend als er iets te kiezen valt, dus de afwezigheid heeft oorzaken en is geen fout.\n\n- **Geen agents om je aan te bieden.** Niets te kiezen, dus twee chips in plaats van drie.\n- **Je rol mag misschien geen agents beheren.** De lijst achter de chip wordt gelezen met dezelfde machtiging waarmee iemand agents mag bouwen: Organisatiebeheerder, Agentbeheerder en Agentbewerker hebben die, een Lid niet. Voor een Lid wordt de chip simpelweg niet getekend.\n- **De functie agentautomatiseringen is niet ingeschakeld voor het account.** Een poging die toch wordt gedaan, wordt geweigerd met *Agentautomatiseringen-bèta is niet ingeschakeld voor dit account*.\n- **Het is niet jouw agent.** Een item mag alleen draaien als een agent die van jou is; al het andere wordt geweigerd met *Agent niet gevonden of niet van jou*.\n\nGeen van deze dingen stopt het item. Het draait als gewone prompt, wat toch al de standaard is."
+      ]
+    },
+    "learn.cowork-run-as-agent.nochip.title": {
+      "nl": "Een agent van jou doet het staat er niet bij. Waarom?",
+      "was": [
+        "De chip is er niet. Waarom?"
+      ]
+    },
+    "learn.cowork-run-as-agent.open.body": {
+      "nl": "Twee mensen bij Van Dijk Groep geven op dezelfde ochtend werk uit handen.\n\nBart, die materialen inkoopt, wil om 07:30 een leveranciersoverzicht: de nieuwe mail lezen, per leverancier groeperen, ordernummer en bedrag noemen. Elke dag hetzelfde werk, gewoon beschreven.\n\nSaskia van HR wil een maandelijks voortgangsrapport dat klinkt als de vorige en het personeelshandboek goed citeert. Haar zin kan dat niet allemaal dragen, maar haar HR-agent kent het handboek al.\n\nZelfde Cowork, een ander antwoord op één vraag: **wie doet het werk?** Op een taak staat die vraag op één plek: **Instellingen → Gebruikt**, onder **Hoe het werkt**. Ernaast staat **Apps die ze mag gebruiken**. Dit hoofdstuk gaat over die twee.",
+      "was": [
+        "Twee mensen bij Van Dijk Groep dragen op dezelfde ochtend werk over.\n\nBart, die materialen inkoopt, wil om 07:30 een leveranciersoverzicht: de nieuwe mail lezen, per leverancier groeperen, het ordernummer en het bedrag noemen. Gewoon werk, gewoon beschreven.\n\nSaskia van HR wil een maandelijks voortgangsrapport dat klinkt als de vorige en het personeelshandboek correct citeert. Haar zin kan dat niet allemaal dragen.\n\nZelfde vak, dezelfde chips. Het verschil zit in de derde chip, die van de agent, die **Geen agent** zegt totdat je iemand kiest, en de knop **Apps** ernaast. Dit hoofdstuk gaat alleen over die twee bedieningselementen: wat een gekoppelde agent overneemt, wat je dan niet meer zelf bepaalt, en hoe je zegt wat een uitvoering mag bereiken."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.choice.a.label": {
+      "nl": "Dat deze taak helemaal geen apps mag gebruiken, bij elke uitvoering, tot ze er weer een aanzet.",
+      "was": [
+        "Dat dit item helemaal geen apps mag gebruiken. Een lege lijst is een besluit, en blijft gelden voor elke uitvoering totdat ze op Mijn werkruimtelijst volgen klikt."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.choice.b.feedback": {
+      "nl": "Dat zijn twee verschillende toestanden. Geen eigen lijst is hoe een taak begint; elke chip uitzetten is een lijst zonder iets erin, en de uitvoering houdt zich daaraan.",
+      "was": [
+        "Dat zijn twee verschillende standen. “Geen eigen lijst” is wat een onaangeroerd item heeft; een lege lijst is iets wat ze koos, en de uitvoering respecteert dat."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.choice.b.label": {
+      "nl": "Niets: een lege lijst telt als geen keuze, dus de taak valt terug op de apps die voor haar aanstaan.",
+      "was": [
+        "Niets bruikbaars: een lege lijst telt als “geen keuze gemaakt”, dus het item valt terug op haar werkruimtebrede lijst."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.choice.c.feedback": {
+      "nl": "De chips zijn wat hij mag gebruiken: alleen wat aanstaat is beschikbaar voor de uitvoering. Staat er niets aan, dan is er niets.",
+      "was": [
+        "De lijst is een toegestaan-lijst: alleen wat aanstaat is beschikbaar voor de uitvoering. Als niets aanstaat, is niets beschikbaar."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.choice.c.label": {
+      "nl": "Dat de taak elke app mag gebruiken, omdat een filter zonder inhoud niets wegfiltert.",
+      "was": [
+        "Dat het item elke app mag gebruiken, want een filter zonder inhoud filtert niets weg."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.explanation": {
+      "nl": "Leeg en afwezig zijn verschillende antwoorden. Afwezig betekent de apps die voor jou aanstaan; leeg betekent geen, het strengste wat je over een taak kunt zeggen.",
+      "was": [
+        "Leeg en afwezig zijn niet hetzelfde antwoord. Afwezig betekent “volg mijn werkruimtelijst”; leeg betekent “mag niets gebruiken”: het strengste wat je over een Cowork-item kunt zeggen, en een verstandig antwoord voor werk dat alleen over de tekst in de opdracht moet redeneren."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-empty.q": {
+      "nl": "Saskia's rapport mag alleen redeneren over de tekst die het krijgt, dus onder Gebruikt zet ze elke app-chip uit en slaat op. De rij toont nu Geen apps. Wat heeft ze Cowork verteld?",
+      "was": [
+        "Saskia opent Bewerken bij haar maandelijkse HR-item en zet onder Apps die het mag gebruiken elke app uit. De teller zegt 0 van 9 ingeschakeld. Wat heeft ze Bee Flow verteld?"
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.choice.a.label": {
+      "nl": "De kaart lezen, dan onder Instellingen → Gebruikt een andere agent of een andere manier van werken kiezen, opslaan, en op Nu echt uitvoeren drukken.",
+      "was": [
+        "Lees de bovenste rij van Wat er gebeurde: daar staat dat de gekoppelde agent niet meer bestaat. Zet dan onder Bewerken Uitvoeren als op een andere agent of terug op Geen agent, sla op en druk op Nu uitvoeren."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.choice.b.feedback": {
+      "nl": "Haar zin kreeg geen kans. De uitvoering stopte omdat de agent die hij moest gebruiken weg is. Lees de kaart voordat je iets herschrijft.",
+      "was": [
+        "Haar zin kreeg nooit een kans. De uitvoering stopte voordat de instructie ertoe deed, omdat de agent als wie hij moest draaien weg is. Lees de reden voordat je iets herschrijft."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.choice.b.label": {
+      "nl": "De zin onder Wat herschrijven; een mislukte uitvoering betekent dat de zin te vaag was.",
+      "was": [
+        "Herschrijf Wat het doet onder Bewerken: een mislukte uitvoering betekent altijd dat de instructie te vaag was voor een onbeheerde taak."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.choice.c.feedback": {
+      "nl": "Cowork kiest nooit een agent voor je. Wie het werk doet, wijzig je zelf onder Gebruikt.",
+      "was": [
+        "Geen van beide helften gebeurt. Een terugkerend item behoudt zijn reeks na een fout (alleen een eenmalig item deactiveert zichzelf), en er wordt nooit een agent voor je gekozen; de koppeling wijzig je onder Bewerken."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.choice.c.label": {
+      "nl": "Niets: de taak kiest zelf de volgende beschikbare agent.",
+      "was": [
+        "Niets: een terugkerend item zet zichzelf na een fout uit en kiest zelf de volgende beschikbare agent."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.explanation": {
+      "nl": "Een ontbrekende agent, een agent die je niet meer mag gebruiken of een uitgezette functie zijn allemaal problemen met wie het werk doet, en elk ervan los je op onder Instellingen → Gebruikt, niet in de zin.",
+      "was": [
+        "De reden staat altijd eerst op de uitvoeringsrij. Een ontbrekende agent, verloren eigenaarschap of een uitgezette functie zijn allemaal koppelingsproblemen, en elk ervan los je op in het veld Uitvoeren als, niet in de opdracht."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-fail.q": {
+      "nl": "Saskia's maandrapport draaide als een agent die een collega inmiddels heeft verwijderd. Vanochtend mislukte het. Wat is de oplossing?",
+      "was": [
+        "Saskia's maandrapport draaide als een agent die een collega inmiddels heeft verwijderd. De uitvoering van vanochtend mislukte. Wat is de oplossing?"
+      ]
+    },
+    "learn.cowork-run-as-agent.q-thread.choice.a.label": {
+      "nl": "Eén gesprek dat de taak blijft gebruiken, met het resultaat van elke uitvoering erin; elke uitvoering kwam ook in zijn meldingen en in de Geschiedenis van de taak.",
+      "was": [
+        "Eén thread die het item blijft gebruiken, met het resultaat van elke uitvoering erin, en elke uitvoering kwam nog steeds zoals gewoonlijk bij zijn meldingen binnen."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-thread.choice.b.feedback": {
+      "nl": "De taak onthoudt het gesprek dat zijn eerste agentuitvoering opende en blijft daarin schrijven, zodat de reeks leest als één gesprek.",
+      "was": [
+        "Het item onthoudt de thread die zijn eerste uitvoering opende en blijft daarin schrijven, zodat de reeks leest als één gesprek waarin je terug kunt scrollen."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-thread.choice.c.feedback": {
+      "nl": "Er wordt niets weggenomen. De melding en de eigen Geschiedenis van de taak bewaren elke uitvoering nog steeds; het gesprek van de agent is een extra kopie waarin je kunt praten.",
+      "was": [
+        "Er wordt niets weggehaald. Meldingen blijven het bezorgkanaal voor elk Cowork-resultaat; de thread van de agent is een extra kopie waarin je kunt doorpraten."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-thread.choice.c.label": {
+      "nl": "Niets: met een agent gaan resultaten alleen naar de chat van de agent en niet meer naar de meldingen.",
+      "was": [
+        "Niets. Zodra een agent is gekoppeld, wordt het resultaat in de thread van de agent bezorgd in plaats van in de meldingen."
+      ]
+    },
+    "learn.cowork-run-as-agent.q-thread.explanation": {
+      "nl": "Een agenttaak houdt één eigen gesprek. Dat is een praktische reden om ook voor eenvoudig werk een agent te kiezen: de resultaten verzamelen zich op een plek waar je er vragen over kunt stellen.",
+      "was": [
+        "Een item met een agent houdt één eigen thread bij. Dat is de praktische reden om er een te koppelen, ook als het werk simpel is: de resultaten verzamelen zich ergens waar je ze kunt bevragen, in plaats van alleen in de bel."
+      ]
+    },
+    "learn.cowork-run-as-agent.recap.body": {
+      "nl": "- **Kies bewust wie het werk doet**, onder Instellingen → Gebruikt → Hoe het werkt. Vaste stappen voor elke keer hetzelfde werk, en om te vragen vóór berichten aan anderen; elke keer de AI voor werk dat van vorm verandert; een agent voor zijn instructies, kennis, apps en één gesprek waarin resultaten zich verzamelen.\n- **Zeg wat een taak mag bereiken**: geen eigen lijst, een eigen lijst, of helemaal geen apps. De Beheerdersregels van je organisatie staan boven elke taak.\n- **Repareer wie, niet wat.** Een verwijderde agent, een agent die je niet meer mag gebruiken of een uitgezette functie los je op onder Gebruikt, en bewijs je daarna met Nu echt uitvoeren.\n\nEn als de agentkeuze ontbreekt: dat is een rol of een functie, geen fout. De taak draait nog steeds.",
+      "was": [
+        "- **Kies bewust wie uitvoert.** **Geen agent** voert jouw zin uit met jouw apps en jouw niveau. Een agent brengt zijn instructies, skills, kennisbanken, gekoppelde apps en eigen model mee (daarom zegt het niveau **Auto**) en houdt één thread bij waarin de resultaten zich verzamelen.\n- **Zeg op de juiste plek wat een uitvoering mag bereiken.** Bij een item met gewone prompt: de drie standen van de Apps-lijst, geen eigen, een eigen of leeg. Bij een item met agent komt het bereik met de agent mee.\n- **Herstel een koppeling, geen zin.** Een verwijderde agent, een agent die niet meer van jou is of een uitgezette functie lezen allemaal als een mislukte uitvoering, en worden allemaal opgelost in **Uitvoeren als** onder **Bewerken**, en bewezen met **Nu uitvoeren**.\n\nEn als de chip ontbreekt: dat is een rol of een functie, geen fout. Het item draait gewoon."
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.instruction": {
+      "nl": "Saskia's maandrapport gaat draaien als haar HR-agent. Koppel elk ding dat haar rapport nodig heeft aan waar het vandaan komt zodra de agent het werk doet.",
+      "was": [
+        "Saskia maakt een lijst van wat haar maandrapport nodig heeft. Koppel elke eis aan de plek waar hij echt vandaan komt zodra het item als agent draait."
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.pair.apps.left": {
+      "nl": "De uitvoering moet de vergadernotities van vorige maand lezen",
+      "was": [
+        "De uitvoering moet de cijfers van vorige maand uit een mailbox halen"
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.pair.apps.note": {
+      "nl": "Ergens bij komen is een app. Een agent brengt de apps mee waarmee hij gekoppeld is, en dat zegt Hoe het werkt ook: met eigen instructies en apps.",
+      "was": [
+        "Naar iets buiten reiken is een app. Een agent brengt de apps mee waarmee hij is gekoppeld; dat is de eigen regel van het blad."
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.pair.brief.right": {
+      "nl": "De zin van de taak, onder Wat",
+      "was": [
+        "De opdracht die je typt"
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.pair.kb.note": {
+      "nl": "Iets waarin de uitvoering moet opzoeken is kennis, en kennis hangt aan de agent, niet aan de taak.",
+      "was": [
+        "Iets waarin de uitvoering dingen moet opzoeken is kennis, en kennis hangt aan de agent, niet aan het Cowork-item."
+      ]
+    },
+    "learn.cowork-run-as-agent.sources.pair.tone.note": {
+      "nl": "Vaste regels over toon en grenzen staan in de agent, dus ze gelden bij elke uitvoering zonder dat je ze opnieuw typt.",
+      "was": [
+        "Vaste regels over stem en grenzen zitten in de agent, dus ze gelden voor elke uitvoering zonder dat je ze in de opdracht opnieuw typt."
+      ]
+    },
+    "learn.cowork-run-as-agent.wrong.body": {
+      "nl": "Een agenttaak heeft foutsituaties die een taak met vaste stappen niet heeft, en ze komen allemaal op dezelfde manier naar boven: de taak toont **Mislukt** en een kaart onder **Wacht op jou** zegt wat er gebeurde.\n\n- **De agent is verwijderd.** Elke taak die ernaar wijst, mislukt bij de volgende uitvoering.\n- **Je mag hem niet meer gebruiken.** Toegang wordt bij elke uitvoering opnieuw gecontroleerd: een agent die niet meer gepubliceerd is, of uit je groepen is gehaald, houdt de taak tegen.\n- **De functie is uitgezet** voor je organisatie.\n- **Een aanmelding is verlopen.** Met een agent kan de kapotte koppeling er een zijn waar de agent naar grijpt in plaats van een die je zin noemt. **Opnieuw inloggen** opent Instellingen → Koppelingen.\n\nEen herhalende taak houdt na elk hiervan zijn planning; de volgende uitvoering probeert het opnieuw.",
+      "was": [
+        "Een gekoppeld item heeft foutsituaties die een item met gewone prompt niet heeft, en ze komen allemaal op dezelfde manier naar boven: als een mislukte uitvoering met de reden op de bovenste rij van **Wat er gebeurde**.\n\n- **De agent is verwijderd.** Elk Cowork-item dat ernaar wijst, mislukt, met een foutmelding dat de gekoppelde agent niet meer bestaat.\n- **De agent is niet meer van jou.** Een uitvoering mag alleen een agent gebruiken die van jou is; als het eigenaarschap elders heen gaat, stopt dat.\n- **De functie is uitgezet voor de organisatie.** Al geplande agentuitvoeringen stoppen, en de fout noemt agentautomatiseringen als reden.\n- **Een koppeling is verlopen.** Het statuswoord wordt **Aanmelden vereist**, en elk item van jou dat die aanbieder kan raken, wordt gepauzeerd totdat je de koppeling opnieuw maakt onder Instellingen → Integraties. Met een gekoppelde agent kan de kapotte koppeling er een zijn waar de agent naar grijpt in plaats van een die je opdracht noemt.\n\nEen terugkerend item behoudt na elk van deze zijn reeks; alleen een eenmalig item zet zichzelf uit.",
+        "Een gekoppeld item heeft foutsituaties die een item met gewone prompt niet heeft, en ze komen allemaal op dezelfde manier naar boven: als een mislukte uitvoering met de reden op de bovenste rij van **Wat er gebeurde**.\n\n- **De agent is verwijderd.** Elk Cowork-item dat ernaar wijst, mislukt, met een foutmelding dat de gekoppelde agent niet meer bestaat.\n- **De agent is niet meer van jou.** Een uitvoering mag alleen een agent gebruiken die van jou is; als het eigenaarschap elders heen gaat, stopt dat.\n- **De functie is uitgezet voor de organisatie.** Al geplande agentuitvoeringen stoppen, en de fout noemt agentautomatiseringen als reden.\n- **Een koppeling is verlopen.** Het statuswoord wordt **Aanmelden vereist**, en elk item van jou dat die aanbieder kan raken, wordt gepauzeerd totdat je de koppeling opnieuw maakt onder Instellingen → Koppelingen. Met een gekoppelde agent kan de kapotte koppeling er een zijn waar de agent naar grijpt in plaats van een die je opdracht noemt.\n\nEen terugkerend item behoudt na elk van deze zijn reeks; alleen een eenmalig item zet zichzelf uit."
+      ]
+    },
+    "learn.hive-master.brief.body": {
+      "nl": "Er is dit keer geen stap-voor-stapuitleg. Een afsluiter geeft je een resultaat en laat jou bepalen hoe je daar komt — en wat je overhoudt is geen score, maar een werkruimte die op maandag nog steeds jouw werk doet.\n\nDrie dingen moeten echt bestaan in je werkruimte:\n\n1. **Een automatisering volgens een schema die echt is uitgevoerd.**\n2. **Een Cowork-taak die je hebt gedelegeerd.**\n3. **Een builder-artefact** — een eigen agent, *of* een kennisbank met minstens één document.\n\nWerk uit eerdere cursussen telt mee. De controlestap leest je live werkruimte, dus er hoeft niets opnieuw te worden gebouwd voor het examen — en de volgende stap vraagt je, nog vóór enige uitleg, om vijf echte gevallen te beoordelen.\n\nDe checklist stopt bij drie rijen. De afsluiter niet: de laatste stappen vragen je in te staan voor de beslissingen waarop je drie dingen draaien — wie ze mocht bouwen, wat de shield ermee doet, op welk versleutelingsniveau ze zitten en waar een gepubliceerde agent in een register opduikt. Terug bij **Van Dijk Groep**, het installatiebedrijf met zestig mensen uit de eerdere cursussen: Bilal bouwt, Sanne werkt in de chat en Marieke, de organisatiebeheerder, moet antwoord geven.",
+      "was": [
+        "Er is dit keer geen stap-voor-stapuitleg. Een afsluiter geeft je een resultaat en laat jou bepalen hoe je daar komt — en wat je overhoudt is geen score, maar een werkruimte die op maandag nog steeds jouw werk doet.\n\nDrie dingen moeten echt bestaan in je werkruimte:\n\n1. **Een automatisering volgens een schema die echt is uitgevoerd.**\n2. **Een cowork-item dat je hebt gedelegeerd.**\n3. **Een builder-artefact** — een eigen agent, *of* een kennisbank met minstens één document.\n\nWerk uit eerdere cursussen telt mee. De controlestap leest je live werkruimte, dus er hoeft niets opnieuw te worden gebouwd voor het examen — en de volgende stap vraagt je, nog vóór enige uitleg, om vijf echte gevallen te beoordelen.\n\nDe checklist stopt bij drie rijen. De afsluiter niet: de laatste stappen vragen je in te staan voor de beslissingen waarop je drie dingen draaien — wie ze mocht bouwen, wat de shield ermee doet, op welk versleutelingsniveau ze zitten en waar een gepubliceerde agent in een register opduikt. Terug bij **Van Dijk Groep**, het installatiebedrijf met zestig mensen uit de eerdere cursussen: Bilal bouwt, Sanne werkt in de chat en Marieke, de organisatiebeheerder, moet antwoord geven."
+      ]
+    },
+    "learn.hive-master.counts.pair.cowork.left": {
+      "nl": "Een Cowork-taak “Onbeantwoorde offertes opsommen”, maandag klaargezet",
+      "was": [
+        "Een cowork-item “Onbeantwoorde offertes opsommen”, maandag verstuurd"
+      ]
+    },
+    "learn.hive-master.counts.pair.cowork.note": {
+      "nl": "Eis twee vraagt alleen dat er een eigen Cowork-taak bestaat: je schrijft één zin, kiest Laat zien wat ik begrepen heb en drukt op Klaarzetten en testen (of Starten). Hij telt zodra hij bestaat, ook als zijn stappen nog op je goedkeuring wachten.",
+      "was": [
+        "Eis twee vraagt alleen dat er een eigen cowork-item bestaat: je beschrijft het werk in gewone taal, geeft aan wanneer het moet draaien en drukt op Inplannen (of Uitvoeren, wanneer het moment “Nu uitvoeren” is)."
+      ]
+    },
+    "learn.hive-master.done.body": {
+      "nl": "Dat was geen quiz. Dit zijn echte, draaiende dingen die blijven werken nadat dit venster sluit. De badge **Hive Master** komt in Prestaties terecht, en vier afgeronde cursussen uit de ingebouwde catalogus leveren ook het certificaat **Bee Flow AI-practitioner** op.\n\nWat je nu kunt:\n\n- Een automatisering bouwen die volgens een schema start, en die met een proefrun bewijzen voordat ze iets echts aanraakt.\n- Terugkerend werk delegeren aan een Cowork-taak in plaats van er nog een vrijdag aan te besteden.\n- Een builder-artefact opleveren — een eigen agent, of een kennisbank waarin een agent kan zoeken.\n- Zeggen wie heeft besloten dat het mocht, wat de shield ermee doet, op welk versleutelingsniveau het draait en in welk register het opduikt.\n\nHoud de gewoonte vast: lees **Studio → Uitvoeringen & log** zoals je een nieuwe collega zou volgen, pauzeer alles waar je het vertrouwen in verliest, en automatiseer of delegeer een taak die zich twee keer herhaalt dezelfde dag.",
+      "was": [
+        "Dat was geen quiz. Dit zijn echte, draaiende dingen die blijven werken nadat dit venster sluit. De badge **Hive Master** komt in Prestaties terecht, en vier afgeronde cursussen uit de ingebouwde catalogus leveren ook het certificaat **Bee Flow AI-practitioner** op.\n\nWat je nu kunt:\n\n- Een automatisering bouwen die volgens een schema start, en die met een proefrun bewijzen voordat ze iets echts aanraakt.\n- Terugkerend werk delegeren aan een cowork-item in plaats van er nog een vrijdag aan te besteden.\n- Een builder-artefact opleveren — een eigen agent, of een kennisbank waarin een agent kan zoeken.\n- Zeggen wie heeft besloten dat het mocht, wat de shield ermee doet, op welk versleutelingsniveau het draait en in welk register het opduikt.\n\nHoud de gewoonte vast: lees **Studio → Uitvoeringen & log** zoals je een nieuwe collega zou volgen, pauzeer alles waar je het vertrouwen in verliest, en automatiseer of delegeer een taak die zich twee keer herhaalt dezelfde dag."
+      ]
+    },
+    "learn.hive-master.prove.instruction": {
+      "nl": "Laat de drie dingen bestaan in je eigen werkruimte — je echte werk is het beste onderwerp. De checklist leest precies drie rijen: (1) een automatisering van jou met de trigger Volgens een schema en minstens één uitvoering, een proefrun inbegrepen; (2) een Cowork-taak die je hebt gemaakt, ook een waarvan de stappen nog op je goedkeuring wachten; (3) een eigen agent, of een kennisbank met minstens één document. Rijen die je rol of licentie niet kan bereiken zijn verborgen, niet mislukt. Alles wat je vóór vandaag hebt gebouwd telt mee, de lijst draait elke paar seconden opnieuw en “Mijn werk controleren” antwoordt nu.",
+      "was": [
+        "Laat de drie dingen bestaan in je eigen werkruimte — je echte werk is het beste onderwerp. De checklist leest precies drie rijen: (1) een automatisering van jou met de trigger Volgens een schema en minstens één uitvoering, een proefrun inbegrepen; (2) een cowork-item dat je hebt gemaakt; (3) een eigen agent, of een kennisbank met minstens één document. Rijen die je rol of licentie niet kan bereiken zijn verborgen, niet mislukt. Alles wat je vóór vandaag hebt gebouwd telt mee, de lijst draait elke paar seconden opnieuw en “Mijn werk controleren” antwoordt nu."
+      ]
+    },
+    "learn.hive-master.q-gap.choice.a.label": {
+      "nl": "De Cowork-eis — een kaart die hij nooit bevestigde is nog geen taak",
+      "was": [
+        "De coworkeis — een niet-verzonden opdracht is nog geen item"
+      ]
+    },
+    "learn.hive-master.q-gap.choice.d.feedback": {
+      "nl": "De checklist draait zichzelf elke paar seconden opnieuw zolang de stap openstaat, dus verouderd zijn is zelden het probleem. De taak bestaat echt niet totdat hij op Klaarzetten en testen (of Starten) drukt.",
+      "was": [
+        "De checklist draait zichzelf elke paar seconden opnieuw zolang de stap openstaat, dus verouderd zijn is zelden het probleem. Het cowork-item bestaat echt niet totdat de opdracht is verzonden."
+      ]
+    },
+    "learn.hive-master.q-gap.explanation": {
+      "nl": "Tekst in een vak, en een kaart die alleen laat zien wat Cowork begreep, zijn geen artefacten. Klaarzetten en testen (of Starten) maakt de taak aan, en de rij wordt aangevinkt bij de volgende controleronde.",
+      "was": [
+        "Tekst in een invoerveld is geen artefact. Op Uitvoeren of Inplannen drukken maakt het cowork-item aan, en de rij wordt aangevinkt bij de volgende controleronde."
+      ]
+    },
+    "learn.hive-master.q-gap.q": {
+      "nl": "Bilal heeft een digest-automatisering met schematrigger die donderdag als proefrun draaide, een agent die hij in de wizard maakte maar nooit publiceerde, en een Cowork-zin die hij maandag typte, op de kaart teruglas en nooit bevestigde. Welke eis is nog niet voldaan?",
+      "was": [
+        "Bilal heeft een digest-automatisering met schematrigger die donderdag als proefrun draaide, een agent die hij in de wizard maakte maar nooit publiceerde, en een cowork-opdracht die hij maandag typte en onverzonden in het vak liet staan. Welke eis is nog niet voldaan?"
+      ]
+    },
+    "learn.hive-master.req-two.body": {
+      "nl": "Eis twee is een **Cowork-taak**. Cowork is de rij in de zijbalk onder Nieuwe chat: je schrijft één zin over wat er moet gebeuren en wanneer, en Bee Flow meldt zich daarna.\n\nBilal schrijft *Maak elke vrijdag om 16:00 een lijst van de offertes van deze week die nog niemand heeft beantwoord, en stuur het naar mij*, kiest **Laat zien wat ik begrepen heb**, controleert de vier regels van de kaart (Wat, Wanneer, Gebruikt, Stuurt naar) en drukt op **Klaarzetten en testen**. (Als de organisatie geen vaste stappen heeft, heet de knop **Starten**.)\n\nHet criterium wordt aangevinkt zodra er een taak van jou bestaat. Keur de stappen wel goed en laat hem draaien: de taak blijft werken lang nadat deze les is gesloten, en een wegwerpzin wordt elke vrijdag een wegwerpresultaat.",
+      "was": [
+        "Eis twee is een **cowork-item**. Cowork is de rij in de zijbalk onder Nieuwe chat: je beschrijft het werk in gewone taal, geeft aan wanneer het moet draaien en Bee Flow meldt terug in je meldingen.\n\nBilal schrijft één zin — *Maak elke vrijdag een lijst van de offertes van deze week die nog niemand heeft beantwoord* — zet **Herhalen** op *Elke week*, kiest een moment onder **Wanneer** en drukt op **Inplannen**. (Dezelfde knop heet **Uitvoeren** wanneer het moment “Nu uitvoeren” is.)\n\nHet criterium wordt aangevinkt zodra er een cowork-item van jou bestaat. Delegeer wel iets wat je echt terug wilt hebben: het item blijft draaien lang nadat deze les is gesloten, en een wegwerpopdracht wordt elke vrijdag een wegwerpmail."
+      ]
+    }
+  }
+}
