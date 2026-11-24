@@ -111,7 +111,7 @@ function fixTitle(problem: NeedProblem, words: NeedWords | undefined, t: Transla
 
 /** Something went wrong with the steps or the last run: what, in plain words, the action that resolves it, and the other way. */
 export function FixCard(props: NeedKindProps) {
-    const { need, onOpenTask, onDone } = props;
+    const { need, solo, onOpenTask, onDone } = props;
     const { t } = useTranslation();
     const act = useNeedAct(onDone);
     const ai = useAiChoice(need.itemId, act);
@@ -130,9 +130,11 @@ export function FixCard(props: NeedKindProps) {
         ? <a className={className} href={settingsPathForTab('integrations')}>{t(...LABELS[move])}</a>
         : <button type="button" className={className} disabled={act.isPending} onClick={() => go(move)}>{t(...LABELS[move])}</button>);
     const sub = plan.sub[way];
+    // Inside the task there is nothing to open: say which step and why, where the server said it.
+    const said = solo && need.reason ? need.reason : null;
     return (
         <NeedFrame
-            {...props} title={fixTitle(problem, need.words, t)} sub={sub ? t(...sub) : null} error={act.error}
+            {...props} title={fixTitle(problem, need.words, t)} sub={said ?? (sub ? t(...sub) : null)} error={act.error}
             actions={<>{button(plan.primary, PILL_PRIMARY)}{button(plan.secondary[way], PILL_QUIET)}</>}
         />
     );

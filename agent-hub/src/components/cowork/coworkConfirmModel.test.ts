@@ -2,7 +2,7 @@
 // say when, what each answer schedules, the time, who it sends to, and how the owner's own choices outlive a new
 // reading of the sentence and end up in what Start sends.
 import { describe, expect, it } from 'vitest';
-import {
+import { dayChoiceOf,
     appsNamedIn, confirmView, dayWords, isAddress, needsDay, recipientsIn, schedulePartOf, startPayload, timeOf, withDay, withRecipient, withTime, withoutRecipient,
 } from './coworkConfirmModel';
 import type { CoworkPayload } from '@/api/cowork.types';
@@ -142,5 +142,17 @@ describe('appsNamedIn', () => {
     });
     it('matches a name of more than one word, in any case', () => {
         expect(appsNamedIn('put it in my GOOGLE CALENDAR', apps).map((a) => a.id)).toEqual(['google_calendar']);
+    });
+});
+
+describe('dayChoiceOf', () => {
+    const base = { title: 'T', prompt: 'P', nextRunAt: '2026-11-30T08:00:00.000Z' } as Parameters<typeof dayChoiceOf>[0];
+    it('names the choice a schedule stands for, so Change starts the day picker at what the card understood', () => {
+        expect(dayChoiceOf({ ...base, repeatInterval: 'weekly', daysOfWeek: ['mon'] })).toBe('mon');
+        expect(dayChoiceOf({ ...base, repeatInterval: 'weekdays', daysOfWeek: ['mon', 'tue', 'wed', 'thu', 'fri'] })).toBe('weekdays');
+        expect(dayChoiceOf({ ...base, repeatInterval: 'daily' })).toBe('day');
+        expect(dayChoiceOf({ ...base, repeatInterval: null })).toBe('once');
+        expect(dayChoiceOf({ ...base, repeatInterval: 'weekly', daysOfWeek: ['mon', 'thu'] })).toBe('');
+        expect(dayChoiceOf({ ...base, repeatInterval: 'monthly' })).toBe('');
     });
 });

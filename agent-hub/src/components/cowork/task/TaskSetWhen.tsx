@@ -9,6 +9,7 @@
  */
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import CoworkTimeField from '../CoworkTimeField';
 import MailTriggerPanel from '../MailTriggerPanel';
 import { ENTER, TINT } from '../coworkMotion';
 import { cadenceLine } from '../coworkSchedule';
@@ -97,7 +98,7 @@ function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: strin
                 )}
                 {draft.repeat !== 'hourly' && (
                     <Field id={`${id}-time`} label={t('cowork_task.when.at', 'At')}>
-                        <input id={`${id}-time`} type="time" className={FIELD} value={draft.time} onChange={(e) => set({ time: e.target.value || '09:00' })} />
+                        <CoworkTimeField id={`${id}-time`} value={draft.time} onChange={(time) => set({ time })} />
                     </Field>
                 )}
             </div>

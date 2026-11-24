@@ -42,6 +42,17 @@ export function timeOf(payload: CoworkPayload): string {
     return Number.isNaN(first.getTime()) ? DEFAULT_TIME : toTimeInput(first);
 }
 
+const isWeekDay = (day: unknown): day is WeekDay => typeof day === 'string' && (WEEK_DAYS as readonly string[]).includes(day);
+
+/** The choice a draft's schedule stands for, to start the day picker at; '' when it is none of the choices (several days, every month). */
+export function dayChoiceOf(payload: CoworkPayload): DayChoice | '' {
+    const days = Array.isArray(payload.daysOfWeek) ? payload.daysOfWeek : [];
+    if (days.length === 1 && isWeekDay(days[0]) && (!payload.repeatInterval || payload.repeatInterval === 'weekly')) return days[0];
+    if (payload.repeatInterval === 'weekdays') return 'weekdays';
+    if (payload.repeatInterval === 'daily' && days.length === 0) return 'day';
+    return !payload.repeatInterval && days.length === 0 ? 'once' : '';
+}
+
 /** The schedule fields of a choice, without the rest of the draft. */
 function scheduleOf(choice: DayChoice): Pick<CoworkPayload, 'repeatInterval' | 'daysOfWeek'> {
     if (choice === 'once') return { repeatInterval: null };

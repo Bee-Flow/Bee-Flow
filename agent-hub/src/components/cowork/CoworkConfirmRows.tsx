@@ -17,8 +17,8 @@ import { FOCUS_RING } from '../shared/buttonClasses';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A chip: the shared tag, a little taller, with room for its remove button. */
-const CHIP = `${TAG_PLAIN} min-h-7 pr-1 max-w-full text-[var(--text-primary)]`;
-const CHIP_REMOVE = `grid place-items-center w-5 h-5 pointer-coarse:w-9 pointer-coarse:h-9 rounded-full text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)] ${TINT} ${FOCUS_RING}`;
+const CHIP = `${TAG_PLAIN} min-h-9 py-0 pl-3 pr-0 max-w-full text-[13px] leading-5 text-[var(--text-primary)]`;
+const CHIP_REMOVE = `grid place-items-center flex-shrink-0 w-9 h-9 pointer-coarse:w-11 pointer-coarse:h-11! rounded-full text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)] ${TINT} ${FOCUS_RING}`;
 const SAID = 'm-0 text-[14px] leading-5 font-medium text-[var(--text-primary)]';
 
 function Chip({ label, removeLabel, onRemove, children }: { label: string; removeLabel: string; onRemove: () => void; children?: ReactNode }) {
