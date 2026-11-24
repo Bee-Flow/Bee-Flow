@@ -3,7 +3,9 @@
  * Desks for their people (./coworkDesks.mts), on the real stores (PGlite): a desk is made by a member of an
  * organisation; an owner puts their own cowork on it, the desk's maker invites one shared with them and it joins when
  * its owner accepts; the view shows the coworks in the order work moves, with owners and last status but never run
- * content; roles are set by the desk's maker for colleagues only; an outsider sees nothing.
+ * content; roles are set by the desk's maker for colleagues only, and the owners whose coworks use a role are told when
+ * it changes hands; a colleague's cowork that starts after mine receives its result only once I allowed it; an outsider
+ * sees nothing.
  *
  * Run: cd server && node --test usecases/coworkDesks.pg.test.js
  */
@@ -22,8 +24,11 @@ const desks = makeCoworkDesks({ ready: async () => { await store.initDB(); for (
 const shares = makeCoworkShares({ ready: () => store.initDB() });
 const starts = makeCoworkStarts({ ready: () => store.initDB() });
 
+/** The notices that went out. @type {Array<{ userId: string, title: string, message: string, link: string }>} */
+const notices = [];
 /** @type {import('./coworkDesks.mts').DeskDeps} */
 const deps = {
+    notify: async (n) => { notices.push({ userId: n.userId, title: n.title, message: n.message, link: n.link }); },
     desks,
     getUser: async (id) => /** @type {any} */ ((await pg.query('SELECT * FROM users WHERE id = $1', [id])).rows[0] ?? null),
     listMembers: async (orgId) => /** @type {any} */ ((await pg.query(`SELECT * FROM users WHERE "organizationId" = $1 AND status = 'active' ORDER BY id`, [orgId])).rows),
@@ -105,4 +110,61 @@ test('roles: set by the maker for colleagues only; the owner picks the role for 
     assert.deepStrictEqual((await desksUseCase.itemDesk({ id: mine, userId: 'bob' }, deps)).desk, null);
     await assert.rejects(desksUseCase.deleteDesk({ userId: 'bob', deskId: desk.id }, deps), refused(403));
     assert.deepStrictEqual(await desksUseCase.deleteDesk({ userId: 'ann', deskId: desk.id }, deps), { removed: true });
+});
+
+test('a colleague\'s cowork that starts after mine receives nothing until I allow it; I can withdraw it; nobody else decides', async () => {
+    const { desk } = await desksUseCase.createDesk({ userId: 'cas', name: 'Consent' }, deps);
+    const radar = await item('ann', 'Supplier radar');
+    const intake = await item('bob', 'Invoice intake');
+    const annsOwn = await item('ann', 'Weekly digest');
+    for (const [userId, id] of [['ann', radar], ['bob', intake], ['ann', annsOwn]]) {
+        await desks.addMember({ deskId: desk.id, scheduleId: id, addedBy: userId, accepted: true });
+    }
+    await starts.setStart(intake, 'after_cowork', { scheduleId: radar });
+    await starts.setStart(annsOwn, 'after_cowork', { scheduleId: radar });
+    const states = (/** @type {import('./coworkDesks.mts').DeskView} */ v) => Object.fromEntries(v.members.map((m) => [m.title, [m.handOff, m.decidesHandOff]]));
+
+    assert.deepStrictEqual(states(await desksUseCase.deskView('ann', desk.id, deps)), {
+        'Supplier radar': [null, false], 'Invoice intake': ['waiting', true], 'Weekly digest': [null, false],
+    }, 'Ann decides about Bob\'s cowork; her own needs nothing');
+    assert.deepStrictEqual(states(await desksUseCase.deskView('bob', desk.id, deps))['Invoice intake'], ['waiting', false], 'Bob sees that it waits');
+    assert.deepStrictEqual(await desks.deskFollowers(radar).then((f) => f.map((i) => i.id)), [annsOwn], 'nothing of Ann goes to Bob yet');
+
+    for (const userId of ['bob', 'cas', 'eve']) {
+        await assert.rejects(desksUseCase.allowHandOff({ userId, deskId: desk.id, scheduleId: intake }, deps), refused(404), `${userId} does not decide for Ann`);
+    }
+    await assert.rejects(desksUseCase.allowHandOff({ userId: 'ann', deskId: desk.id, scheduleId: annsOwn }, deps), refused(404), 'her own cowork has nothing to allow');
+    const allowed = await desksUseCase.allowHandOff({ userId: 'ann', deskId: desk.id, scheduleId: intake }, deps);
+    assert.deepStrictEqual(states(allowed)['Invoice intake'], ['allowed', true]);
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id).sort(), [annsOwn, intake].sort());
+
+    await assert.rejects(desksUseCase.withdrawHandOff({ userId: 'bob', deskId: desk.id, scheduleId: intake }, deps), refused(404));
+    const withdrawn = await desksUseCase.withdrawHandOff({ userId: 'ann', deskId: desk.id, scheduleId: intake }, deps);
+    assert.deepStrictEqual(states(withdrawn)['Invoice intake'], ['waiting', true]);
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id), [annsOwn], 'withdrawn: Bob\'s cowork receives nothing again');
+});
+
+test('when a role changes hands, the owners whose coworks use it are told: the title and the role only, never the maker', async () => {
+    const { desk } = await desksUseCase.createDesk({ userId: 'ann', name: 'Questions' }, deps);
+    const bobs = await item('bob', 'Invoice intake');
+    const anns = await item('ann', 'Supplier radar');
+    const other = await item('cas', 'Payment check');
+    for (const [userId, id] of [['bob', bobs], ['ann', anns], ['cas', other]]) await desks.addMember({ deskId: desk.id, scheduleId: id, addedBy: userId, accepted: true });
+    await desksUseCase.setDeskRoles({ userId: 'ann', deskId: desk.id, roles: [{ role: 'invoices', holderId: 'cas' }, { role: 'payments', holderId: 'bob' }] }, deps);
+    await desks.setDeskRole(desk.id, bobs, 'invoices');
+    await desks.setDeskRole(desk.id, anns, 'invoices');
+    await desks.setDeskRole(desk.id, other, 'payments');
+    notices.length = 0;
+
+    await desksUseCase.setDeskRoles({ userId: 'ann', deskId: desk.id, roles: [{ role: 'invoices', holderId: 'cas' }, { role: 'payments', holderId: 'bob', awayUntil: '2099-01-01T00:00:00.000Z' }] }, deps);
+    assert.deepStrictEqual(notices, [], 'the same holders and stand-ins: nobody is told');
+
+    await desksUseCase.setDeskRoles({ userId: 'ann', deskId: desk.id, roles: [{ role: 'invoices', holderId: 'ann' }, { role: 'payments', holderId: 'bob' }] }, deps);
+    assert.deepStrictEqual(notices.map((n) => [n.userId, n.link]), [['bob', `/app/cowork/${bobs}`]], 'only Bob: Ann made the change, Cas uses another role');
+    assert.match(notices[0].message, /"invoices".*"Invoice intake"/);
+    for (const name of ['Ann', 'Cas', 'ann', 'cas', 'Questions']) assert.ok(!JSON.stringify(notices[0]).includes(name), `no ${name} in the notice`);
+
+    notices.length = 0;
+    await desksUseCase.setDeskRoles({ userId: 'ann', deskId: desk.id, roles: [{ role: 'invoices', holderId: 'ann', standInId: 'cas' }, { role: 'payments', holderId: 'bob' }] }, deps);
+    assert.deepStrictEqual(notices.map((n) => n.userId), ['bob'], 'a new stand-in is a change too');
 });

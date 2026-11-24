@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-76 routes, 50 with a request schema. Back to the [endpoint reference](../reference.md).
+78 routes, 52 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -540,6 +540,30 @@ No request schema.
 | `scheduleId` | string | yes | min length 1; max length 200 |
 
 **Body:** object (no other keys)
+
+### `POST /api/cowork/desks/:id/members/:scheduleId/hand-off`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `DELETE /api/cowork/desks/:id/members/:scheduleId/hand-off`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
 
 ### `PUT /api/cowork/desks/:id/roles`
 

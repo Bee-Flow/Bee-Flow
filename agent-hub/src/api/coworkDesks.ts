@@ -9,6 +9,13 @@ export interface ItemDesk { id: string; name: string; accepted: boolean; deskRol
 export interface DeskMember {
     scheduleId: string; title: string; ownerName: string; mine: boolean; accepted: boolean; after: string | null;
     lastStatus: string | null; lastRunAt: string | null; deskRole: string | null;
+    /**
+     * It starts after a colleague's cowork on the desk: 'allowed' once that colleague said yes, 'waiting' until then
+     * (it receives nothing). Null when it starts after none, or after a cowork of its own owner.
+     */
+    handOff: 'allowed' | 'waiting' | null;
+    /** The reader owns the cowork it starts after: the reader allows the hand-off or withdraws it. */
+    decidesHandOff: boolean;
 }
 interface DeskRole { role: string; holderId: string | null; standInId: string | null; awayUntil: string | null; holderName: string | null; standInName: string | null; away: boolean }
 export interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
@@ -72,6 +79,15 @@ export function useItemDeskActions(coworkId: string) {
         accept: useDeskChange<string>((deskId) => apiJson('POST /api/cowork/desks/{id}/members/{scheduleId}/accept', { params: params(deskId), body: {} })),
         leave: useDeskChange<string>((deskId) => apiJson('DELETE /api/cowork/desks/{id}/members/{scheduleId}', { params: params(deskId) })),
         chooseRole: useDeskChange<{ deskId: string; deskRole: string | null }>(({ deskId, deskRole }) => apiJson('PUT /api/cowork/desks/{id}/members/{scheduleId}', { params: params(deskId), body: { deskRole } })),
+    };
+}
+
+/** What the owner of a cowork does about a colleague's cowork that starts after it: let it receive the result, or stop that. */
+export function useDeskHandOff(deskId: string) {
+    const params = (scheduleId: string) => ({ id: deskId, scheduleId });
+    return {
+        allow: useDeskChange<string>((scheduleId) => apiJson('POST /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId), body: {} })),
+        withdraw: useDeskChange<string>((scheduleId) => apiJson('DELETE /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId) })),
     };
 }
 

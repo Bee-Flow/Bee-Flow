@@ -73,9 +73,18 @@ test('on a desk: an item of another owner on the same desk may be followed; foll
         elsewhere: { id: 'elsewhere', userId: 'u3', title: 'Not on the desk', triggerKind: 'schedule' },
     };
     const w = world(items);
-    const deps = { ...w.deps, sameDesk: async (/** @type {string} */ a, /** @type {string} */ b) => a === 'w1' && b === 'theirs' };
+    /** @type {Array<[string, string]>} */
+    const asked = [];
+    const deps = {
+        ...w.deps, sameDesk: async (/** @type {string} */ a, /** @type {string} */ b) => a === 'w1' && b === 'theirs',
+        askLeader: async (/** @type {any} */ item, /** @type {any} */ leader) => { asked.push([item.id, leader.userId]); },
+    };
     const state = await chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'theirs' } }, deps);
     assert.deepStrictEqual(state.after, { id: 'theirs', title: 'Invoice intake' });
+    assert.deepStrictEqual(asked, [['w1', 'u2']], 'the owner of the cowork it follows is asked');
+    await chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'w1-own' } }, { ...deps, getSchedule: async (/** @type {string} */ id) => (id === 'w1-own' ? { id, userId: 'u1', title: 'Mine', triggerKind: 'schedule' } : null) });
+    assert.deepStrictEqual(asked, [['w1', 'u2']], 'following one\'s own cowork asks nobody');
+    w.set.pop();
     await assert.rejects(chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'elsewhere' } }, deps), (/** @type {any} */ e) => e.status === 404);
     await assert.rejects(chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'w1' } }, deps), (/** @type {any} */ e) => e.status === 409 && /itself/.test(e.message));
     assert.deepStrictEqual(w.set, [['w1', 'after_cowork', { scheduleId: 'theirs' }]], 'only the desk item was saved');

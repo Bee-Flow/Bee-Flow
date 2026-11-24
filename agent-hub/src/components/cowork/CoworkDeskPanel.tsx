@@ -82,7 +82,7 @@ function StartAfter({ coworkId, members, t }: { coworkId: string; members: DeskM
                 {theirs.map((m) => <option key={m.scheduleId} value={m.scheduleId}>{t('cowork_desks.member_option', '{title} ({owner})', { title: m.title, owner: m.ownerName })}</option>)}
             </select>
             <button type="button" className={BUTTON} disabled={!after || choose.isPending} onClick={() => choose.mutate({ kind: 'after_cowork', scheduleId: after })}>{t('cowork_desks.start_after_save', 'Start it after that one')}</button>
-            {choose.isSuccess && <span className="text-[12px] text-[var(--text-secondary)]">{t('cowork_desks.start_after_saved', 'Saved. It gets only the result of that run.')}</span>}
+            {choose.isSuccess && <span className="text-[12px] text-[var(--text-secondary)]">{t('cowork_desks.start_after_saved', 'Saved. It gets only the result of that run, once its owner allows it.')}</span>}
             {choose.error && <span role="alert" className="text-[12px] text-[var(--error-ink)]">{errorMessage(choose.error) || t('cowork_desks.failed', 'That did not work. Try again.')}</span>}
         </div>
     );
@@ -94,7 +94,7 @@ function OnDesk({ coworkId, desk, actions, t }: { coworkId: string; desk: ItemDe
     return (
         <div className="flex flex-col gap-2" data-testid="cowork-desk-on">
             <p className="text-[12px] text-[var(--text-secondary)]">{t('cowork_desks.on', 'On the desk "{desk}".', { desk: desk.name })}</p>
-            {view && <CoworkDeskChain members={view.members} />}
+            {view && <CoworkDeskChain deskId={view.desk.id} members={view.members} />}
             {view && <StartAfter coworkId={coworkId} members={view.members} t={t} />}
             <label className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--text-secondary)]">
                 {t('cowork_desks.decides', 'Who decides its questions')}

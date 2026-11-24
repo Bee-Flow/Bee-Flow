@@ -1235,6 +1235,15 @@ declare namespace DbRow {
         updated_at: Date;
         user_id: string;
     }
+    /** Row of `cowork_desk_follows`. */
+    interface CoworkDeskFollows {
+        allowed_at: Date;
+        allowed_by: string;
+        desk_id: string;
+        follower_id: string;
+        follower_owner: string;
+        leader_id: string;
+    }
     /** Row of `cowork_desk_members`. */
     interface CoworkDeskMembers {
         accepted_at: Date | null;

@@ -13,8 +13,8 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const VIEW = {
     desk: { id: 'd1', name: 'Invoices', isOwner: false, ownerName: 'Ann' },
     members: [
-        { scheduleId: 'radar', title: 'Supplier radar', ownerName: 'Ann', mine: false, accepted: true, after: null, lastStatus: 'success', lastRunAt: null, deskRole: null },
-        { scheduleId: 'w1', title: 'Invoice intake', ownerName: 'Bob', mine: true, accepted: true, after: 'radar', lastStatus: null, lastRunAt: null, deskRole: null },
+        { scheduleId: 'radar', title: 'Supplier radar', ownerName: 'Ann', mine: false, accepted: true, after: null, lastStatus: 'success', lastRunAt: null, deskRole: null, handOff: null, decidesHandOff: false },
+        { scheduleId: 'w1', title: 'Invoice intake', ownerName: 'Bob', mine: true, accepted: true, after: 'radar', lastStatus: null, lastRunAt: null, deskRole: null, handOff: 'waiting', decidesHandOff: false },
     ],
     roles: [],
     colleagues: [],

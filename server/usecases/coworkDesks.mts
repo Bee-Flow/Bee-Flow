@@ -8,7 +8,10 @@
  *   - an owner puts their own cowork on a desk; the desk's maker may invite a cowork of someone else that they can
  *     see (it is shared with them), and it joins only when its owner accepts;
  *   - the desk's maker sets the roles (holder, stand-in, away until); each owner chooses, per item, which role decides
- *     its questions;
+ *     its questions, and is told (title and role name only) when the holder or stand-in of that role changes;
+ *   - a cowork that starts after a colleague's cowork on the desk receives that cowork's result only once the
+ *     colleague (the owner of the cowork it follows) allowed it, once; they can withdraw that again. Following one's
+ *     own cowork needs nothing;
  *   - the desk view shows the coworks in the order work moves along them, each with its owner's name and its last
  *     status, never what another owner's runs read or produced. An invitation is shown to the desk's maker and the
  *     invited owner only.
@@ -20,18 +23,21 @@ import { createRequire } from 'node:module';
 import type { CoworkDesks, Desk, DeskMember, DeskRole, RoleInput } from '../stores/coworkDesks.mts';
 
 const nodeRequire = createRequire(import.meta.url);
+const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value: T) => T };
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
 
 interface Person { id: string; organizationId?: string | null; status?: string | null; displayName?: string | null; username?: string | null }
 interface Item { id: string; userId: string; title?: string | null }
 
 export interface DeskDeps {
-    desks: Pick<CoworkDesks, 'createDesk' | 'deleteDesk' | 'desksOf' | 'listMembers' | 'membershipOf' | 'addMember' | 'acceptMember' | 'removeMember' | 'setDeskRole' | 'setRoles' | 'listRoles'>;
+    desks: Pick<CoworkDesks, 'createDesk' | 'deleteDesk' | 'desksOf' | 'listMembers' | 'membershipOf' | 'addMember' | 'acceptMember' | 'removeMember' | 'setDeskRole' | 'setRoles' | 'listRoles' | 'allowFollow' | 'withdrawFollow'>;
     getUser: (id: string) => Promise<Person | null>;
     listMembers: (orgId: string) => Promise<Person[]>;
     getSchedule: (id: string) => Promise<Item | null>;
     /** May this person see this item through a share (stores/coworkShares.mts roleOf)? */
     sharedWith: (scheduleId: string, userId: string) => Promise<boolean>;
+    /** A Cowork notice in the person's notifications (stores/notificationStore.js). */
+    notify: (n: { userId: string; category: string; title: string; message: string; link: string }) => Promise<unknown>;
 }
 
 const defaults = (): DeskDeps => {
@@ -43,6 +49,7 @@ const defaults = (): DeskDeps => {
         listMembers: (orgId) => users().getOrgMembersForDirectory(orgId),
         getSchedule: (id) => (nodeRequire('../stores/coworkStore.js') as { getSchedule: DeskDeps['getSchedule'] }).getSchedule(id),
         sharedWith: async (id, userId) => (await shares().roleOf(id, userId)) !== null,
+        notify: (n) => (nodeRequire('../stores/notificationStore.js') as { createNotification: DeskDeps['notify'] }).createNotification(n),
     };
 };
 
@@ -56,7 +63,16 @@ export interface DeskSummary { id: string; name: string; isOwner: boolean }
 export interface DeskView {
     desk: { id: string; name: string; isOwner: boolean; ownerName: string };
     /** In the order work moves along them. */
-    members: Array<{ scheduleId: string; title: string; ownerName: string; mine: boolean; accepted: boolean; after: string | null; lastStatus: string | null; lastRunAt: string | null; deskRole: string | null }>;
+    members: Array<{
+        scheduleId: string; title: string; ownerName: string; mine: boolean; accepted: boolean; after: string | null; lastStatus: string | null; lastRunAt: string | null; deskRole: string | null;
+        /**
+         * It starts after a colleague's cowork on the desk: 'allowed' once that cowork's owner said yes, 'waiting' until
+         * then (it receives nothing). Null when it starts after none, or after a cowork of its own owner.
+         */
+        handOff: 'allowed' | 'waiting' | null;
+        /** The reader owns the cowork it starts after, so the reader allows the hand-off or withdraws it. */
+        decidesHandOff: boolean;
+    }>;
     roles: Array<DeskRole & { holderName: string | null; standInName: string | null; away: boolean }>;
     /** For the desk's maker: the people of the organisation who can hold a role. */
     colleagues: Array<{ id: string; name: string }>;
@@ -95,6 +111,11 @@ function namer(deps: DeskDeps) {
     };
 }
 
+/** The accepted member of another owner that accepted member `m` starts after, on the same desk; else undefined. */
+const crossOwnerLeader = (m: DeskMember, members: DeskMember[]): DeskMember | undefined => (m.accepted && m.afterId
+    ? members.find((l) => l.scheduleId === m.afterId && l.accepted && l.ownerId !== m.ownerId)
+    : undefined);
+
 /** An invitation is seen by the desk's maker and the invited owner; an accepted member by everyone on the desk. */
 const seenBy = (userId: string, desk: Desk) => (m: DeskMember): boolean => m.accepted || m.ownerId === userId || desk.ownerId === userId;
 
@@ -103,10 +124,14 @@ async function viewOf(userId: string, desk: Desk, deps: DeskDeps): Promise<DeskV
     const isOwner = desk.ownerId === userId;
     const [members, roles] = await Promise.all([deps.desks.listMembers(desk.id), deps.desks.listRoles(desk.id)]);
     const now = Date.now();
-    const shown = await Promise.all(members.filter(seenBy(userId, desk)).map(async (m) => ({
-        scheduleId: m.scheduleId, title: m.title || 'Untitled work', ownerName: (await name(m.ownerId)) ?? 'A colleague', mine: m.ownerId === userId,
-        accepted: m.accepted, after: m.afterId, lastStatus: m.lastStatus, lastRunAt: m.lastRunAt, deskRole: m.deskRole,
-    })));
+    const shown = await Promise.all(members.filter(seenBy(userId, desk)).map(async (m) => {
+        const leader = crossOwnerLeader(m, members);
+        return {
+            scheduleId: m.scheduleId, title: m.title || 'Untitled work', ownerName: (await name(m.ownerId)) ?? 'A colleague', mine: m.ownerId === userId,
+            accepted: m.accepted, after: m.afterId, lastStatus: m.lastStatus, lastRunAt: m.lastRunAt, deskRole: m.deskRole,
+            handOff: leader ? (m.afterAllowed ? 'allowed' as const : 'waiting' as const) : null, decidesHandOff: leader?.ownerId === userId,
+        };
+    }));
     const inDesk = new Set(shown.map((m) => m.scheduleId));
     return {
         desk: { id: desk.id, name: desk.name, isOwner, ownerName: (await name(desk.ownerId)) ?? 'A colleague' },
@@ -191,12 +216,67 @@ function checkedRoles(roles: RoleInput[], colleagues: Set<string>): RoleInput[] 
     });
 }
 
-/** Set the desk's roles (the desk's maker only), in one go. */
+/** The roles kept under their name whose holder or stand-in is someone else now. */
+function changedHolders(before: DeskRole[], after: RoleInput[]): Set<string> {
+    const was = new Map(before.map((r) => [r.role, r]));
+    return new Set(after.filter((r) => {
+        const old = was.get(r.role);
+        return !!old && (old.holderId !== r.holderId || (old.standInId ?? null) !== (r.standInId ?? null));
+    }).map((r) => r.role));
+}
+
+/**
+ * Tell the owners whose coworks chose a role whose holder or stand-in changed: their questions go to someone else
+ * now. The item's title and the role's name only; never the maker's own coworks. A notice that does not go out
+ * does not undo the roles.
+ */
+async function tellRoleChanges(desk: Desk, userId: string, changed: Set<string>, deps: DeskDeps): Promise<void> {
+    if (changed.size === 0) return;
+    const users = (await deps.desks.listMembers(desk.id)).filter((m) => m.accepted && !!m.deskRole && changed.has(m.deskRole) && m.ownerId !== userId);
+    await Promise.all(users.map((m) => deps.notify({
+        userId: m.ownerId, category: 'cowork', title: 'A desk role changed',
+        message: `The role "${m.deskRole}" that decides the questions of "${m.title || 'Untitled work'}" has another holder or stand-in now. Its next questions go to them.`,
+        link: `/app/cowork/${m.scheduleId}`,
+    }).catch((e: unknown) => fallback('usecases/coworkDesks:tellRoleChange', e, null))));
+}
+
+/** Set the desk's roles (the desk's maker only), in one go. Owners whose coworks use a role that changed hands are told. */
 export async function setDeskRoles({ userId, deskId, roles }: { userId: string; deskId: string; roles: RoleInput[] }, deps: DeskDeps = defaults()): Promise<DeskView> {
     const desk = await visibleDesk(userId, deskId, deps);
     if (desk.ownerId !== userId) throw refuse(403, 'Only the person who made the desk sets its roles.');
     const colleagues = new Set((await deps.listMembers(desk.organizationId)).map((p) => p.id));
-    await deps.desks.setRoles(deskId, checkedRoles(roles, colleagues));
+    const next = checkedRoles(roles, colleagues);
+    const before = await deps.desks.listRoles(deskId);
+    await deps.desks.setRoles(deskId, next);
+    await tellRoleChanges(desk, userId, changedHolders(before, next), deps);
+    return viewOf(userId, desk, deps);
+}
+
+/** The hand-off to `followerId` on the desk that the reader decides: it starts after a cowork of the reader's. */
+async function handOffOf(desk: Desk, followerId: string, userId: string, deps: DeskDeps): Promise<{ leader: DeskMember; follower: DeskMember }> {
+    const members = await deps.desks.listMembers(desk.id);
+    const follower = members.find((m) => m.scheduleId === followerId);
+    const leader = follower ? crossOwnerLeader(follower, members) : undefined;
+    if (!follower || !leader || leader.ownerId !== userId) throw refuse(404, 'No colleague\'s cowork on this desk starts after one of yours.');
+    return { leader, follower };
+}
+
+/**
+ * The owner of a cowork lets a colleague's cowork that starts after it on the desk receive its result: once, for that
+ * cowork and its owner of now. Until then it receives nothing.
+ */
+export async function allowHandOff({ userId, deskId, scheduleId }: { userId: string; deskId: string; scheduleId: string }, deps: DeskDeps = defaults()): Promise<DeskView> {
+    const desk = await visibleDesk(userId, deskId, deps);
+    const { leader, follower } = await handOffOf(desk, scheduleId, userId, deps);
+    await deps.desks.allowFollow({ deskId, leaderId: leader.scheduleId, followerId: follower.scheduleId, followerOwner: follower.ownerId, allowedBy: userId });
+    return viewOf(userId, desk, deps);
+}
+
+/** Withdraw that again: from the next run on, the colleague's cowork receives nothing of the reader's. */
+export async function withdrawHandOff({ userId, deskId, scheduleId }: { userId: string; deskId: string; scheduleId: string }, deps: DeskDeps = defaults()): Promise<DeskView> {
+    const desk = await visibleDesk(userId, deskId, deps);
+    const { leader, follower } = await handOffOf(desk, scheduleId, userId, deps);
+    await deps.desks.withdrawFollow(deskId, leader.scheduleId, follower.scheduleId);
     return viewOf(userId, desk, deps);
 }
 

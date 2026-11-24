@@ -4,7 +4,9 @@
  *
  *   - an event start needs an agent or a plan: a prompt on its own cannot act on what an event brings;
  *   - after another cowork: one of the owner's own items, or an item of another owner accepted on the same desk
- *     (stores/coworkDesks.mts), never itself, never one that (through others) follows this one;
+ *     (stores/coworkDesks.mts), never itself, never one that (through others) follows this one. Across owners the
+ *     start is saved, but the follower receives the other item's result only once that item's owner allowed it on the
+ *     desk (usecases/coworkDesks.mts allowHandOff); that owner is told that it is asked;
  *   - a webhook: a new secret token each time it is chosen, sent as `Authorization: Bearer <token>` to POST
  *     /api/cowork/hooks; the token is shown once and only its hash is kept;
  *   - a table: one the owner can read through its own sharing;
@@ -19,6 +21,7 @@ import crypto from 'node:crypto';
 import { ownerCanRead } from '../core/cowork/tableStart.mts';
 
 const nodeRequire = createRequire(import.meta.url);
+const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value: T) => T };
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
 
 interface Item {
@@ -41,6 +44,21 @@ export interface StartDeps {
     clientHost: () => string;
     /** Are both items accepted on one desk (stores/coworkDesks.mts)? Without it, only the owner's own items. */
     sameDesk?: (a: string, b: string) => Promise<boolean>;
+    /** Tell the owner of `leader` that `item`, of another owner, asks for its result (unless that was allowed already). */
+    askLeader?: (item: Item, leader: Item) => Promise<unknown>;
+}
+
+/** The default `askLeader`: a Cowork notice to the leader's owner, with the colleague's name and both titles. */
+async function askLeaderOwner(item: Item, leader: Item): Promise<void> {
+    const desks = (nodeRequire('../stores/coworkDesks.mts') as typeof import('../stores/coworkDesks.mts')).coworkDesks();
+    if (await desks.followAllowed(leader.id, item.id)) return;
+    const owner = await (nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ displayName?: string | null; username?: string | null } | null> }).getUser(item.userId);
+    const name = (owner?.displayName || owner?.username || 'A colleague').trim();
+    await (nodeRequire('../stores/notificationStore.js') as { createNotification: (n: Record<string, unknown>) => Promise<unknown> }).createNotification({
+        userId: leader.userId, category: 'cowork', title: 'A colleague\'s cowork asks for your results',
+        message: `${name}'s "${item.title || 'Untitled work'}" wants to start after your "${leader.title || 'Untitled work'}" and receive its result. It receives nothing until you allow it on the desk.`,
+        link: `/app/cowork/${leader.id}`,
+    });
 }
 
 const defaults = (): StartDeps => ({
@@ -50,6 +68,7 @@ const defaults = (): StartDeps => ({
     canReadTable: ownerCanRead,
     clientHost: () => (nodeRequire('../utils/appPaths.js') as { clientHost: () => string }).clientHost(),
     sameDesk: (a, b) => (nodeRequire('../stores/coworkDesks.mts') as typeof import('../stores/coworkDesks.mts')).coworkDesks().sameDesk(a, b),
+    askLeader: askLeaderOwner,
 });
 
 /** May the item start after `target`: one of its owner's own, or one on the same desk. */
@@ -99,7 +118,7 @@ async function closesALoop(itemId: string, target: Item, deps: StartDeps): Promi
 /** A webhook's address: where to send, and the token to send as `Authorization: Bearer <token>` (shown once). */
 export interface HookAddress { url: string; token: string }
 
-async function triggerFor(item: Item, choice: StartChoice, deps: StartDeps): Promise<{ trigger: Record<string, unknown> | null; address: HookAddress | null }> {
+async function triggerFor(item: Item, choice: StartChoice, deps: StartDeps): Promise<{ trigger: Record<string, unknown> | null; address: HookAddress | null; leader?: Item }> {
     switch (choice.kind) {
         case 'schedule':
             if (!item.nextRunAt) throw refuse(409, 'Set when it runs first, in the edit form.');
@@ -109,7 +128,7 @@ async function triggerFor(item: Item, choice: StartChoice, deps: StartDeps): Pro
             if (target?.id === item.id) throw refuse(409, 'A cowork cannot start after itself.');
             if (!target || !(await mayStartAfter(item, target, deps))) throw refuse(404, 'That cowork does not exist.');
             if (await closesALoop(item.id, target, deps)) throw refuse(409, 'That would make the two run each other in a circle.');
-            return { trigger: { scheduleId: target.id }, address: null };
+            return { trigger: { scheduleId: target.id }, address: null, leader: target };
         }
         case 'webhook': {
             const token = crypto.randomBytes(24).toString('base64url');
@@ -128,8 +147,10 @@ export async function chooseStart({ item, choice }: { item: Item; choice: StartC
     if (choice.kind !== 'schedule' && !item.agentId && !item.planAutomationId) {
         throw refuse(409, 'Give it an agent or a plan first: a prompt on its own cannot act on what an event brings.');
     }
-    const { trigger, address } = await triggerFor(item, choice, deps);
+    const { trigger, address, leader } = await triggerFor(item, choice, deps);
     await deps.setStart(item.id, choice.kind, trigger);
+    // Across owners the other owner decides whether their result goes along; a notice that does not go out changes nothing.
+    if (leader && leader.userId !== item.userId && deps.askLeader) await deps.askLeader(item, leader).catch((e: unknown) => fallback('usecases/coworkStart:askLeader', e, null));
     const updated: Item = { ...item, triggerKind: choice.kind, trigger };
     // The subscription follows the start: a new mail or a folder has one, anything else none.
     await deps.syncSubscription(updated);

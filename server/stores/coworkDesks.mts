@@ -1,6 +1,6 @@
 /**
  * Desks (usecases/coworkDesks.mts): a small team of coworks of different owners in one organisation, that hand work
- * to each other. Three tables:
+ * to each other. Four tables:
  *
  *   cowork_desks         the desk: its organisation, the person who made it, its name;
  *   cowork_desk_members  the coworks on it. An item joins only when ITS owner accepts (`accepted_at`, `accepted_by`):
@@ -8,7 +8,13 @@
  *                        a colleague waits for the new owner. The owner's per-item setting `desk_role` names the role
  *                        that decides its questions. One desk per item;
  *   cowork_desk_roles    who holds a role (`holder_id`), who stands in (`stand_in_id`), and until when the holder is
- *                        away (`away_until`).
+ *                        away (`away_until`);
+ *   cowork_desk_follows  the hand-offs across owners that the LEADING item's owner allowed: the follower `follower_id`
+ *                        (owned by `follower_owner` when it was allowed) may receive the result of `leader_id`. It counts
+ *                        while the person who allowed it (`allowed_by`) still owns the leader and the follower has the
+ *                        same owner: a cowork handed to a colleague, on either side, is asked again. Until then, and once
+ *                        withdrawn (the row goes), a follower of another owner receives nothing. Following one's own
+ *                        cowork needs no row. The rows go with either item (foreign keys to cowork_schedules).
  *
  * Every read counts a person only while they are an ACTIVE member of the desk's organisation, the rule of
  * stores/coworkShares.mts LIVE_SHARES: an owner who left, moved to another organisation or was switched off keeps the
@@ -61,6 +67,15 @@ export const COWORK_DESKS_DDL: readonly string[] = Object.freeze([
         away_until TIMESTAMPTZ,
         PRIMARY KEY (desk_id, role)
     )`,
+    `CREATE TABLE IF NOT EXISTS cowork_desk_follows (
+        desk_id TEXT NOT NULL REFERENCES cowork_desks(id) ON DELETE CASCADE,
+        leader_id TEXT NOT NULL REFERENCES cowork_schedules(id) ON DELETE CASCADE,
+        follower_id TEXT NOT NULL REFERENCES cowork_schedules(id) ON DELETE CASCADE,
+        follower_owner TEXT NOT NULL,
+        allowed_by TEXT NOT NULL,
+        allowed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (desk_id, leader_id, follower_id)
+    )`,
 ]);
 
 /** A person `u` who counts on desk `d`: an active member of its organisation now. */
@@ -73,12 +88,20 @@ const LIVE_MEMBERS = `cowork_desk_members m
 /** Member `m` of item `s` is accepted by the item's owner of now. */
 const ACCEPTED = (m: string, s: string) => `${m}.accepted_at IS NOT NULL AND ${m}.accepted_by = ${s}.user_id`;
 const AFTER = `CASE WHEN s.trigger_kind = 'after_cowork' THEN s.trigger_json::jsonb ->> 'scheduleId' END`;
+/**
+ * Follower `s` on desk `d` may receive the result of leader `l`: the same owner, or a hand-off the leader's owner of
+ * now allowed for the follower's owner of now.
+ */
+const MAY_FOLLOW = (d: string, l: string, s: string) => `(${s}.user_id = ${l}.user_id OR EXISTS (SELECT 1 FROM cowork_desk_follows f
+    WHERE f.desk_id = ${d}.id AND f.leader_id = ${l}.id AND f.follower_id = ${s}.id AND f.allowed_by = ${l}.user_id AND f.follower_owner = ${s}.user_id))`;
 
 export interface Desk { id: string; organizationId: string; ownerId: string; name: string; createdAt: string | null }
 export interface DeskMember {
     scheduleId: string; ownerId: string; title: string; accepted: boolean; addedBy: string | null; deskRole: string | null;
     /** The item it starts after, when it starts after another cowork. */
     afterId: string | null;
+    /** That item is on the same desk and may hand it its result: the same owner, or allowed by that item's owner. */
+    afterAllowed: boolean;
     lastStatus: string | null; lastRunAt: string | null; isActive: boolean;
 }
 export interface DeskRole { role: string; holderId: string | null; standInId: string | null; awayUntil: string | null }
@@ -92,7 +115,7 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : nul
 const deskOf = (r: Row): Desk => ({ id: String(r.id), organizationId: String(r.organization_id), ownerId: String(r.owner_id), name: String(r.name ?? ''), createdAt: iso(r.created_at) });
 const memberOf = (r: Row): DeskMember => ({
     scheduleId: String(r.schedule_id), ownerId: String(r.user_id), title: String(r.title ?? ''), accepted: r.accepted === true, addedBy: str(r.added_by),
-    deskRole: str(r.desk_role), afterId: str(r.after_id), lastStatus: str(r.last_status), lastRunAt: iso(r.last_run_at), isActive: r.is_active === true,
+    deskRole: str(r.desk_role), afterId: str(r.after_id), afterAllowed: r.after_allowed === true, lastStatus: str(r.last_status), lastRunAt: iso(r.last_run_at), isActive: r.is_active === true,
 });
 const roleOf = (r: Row): DeskRole => ({ role: String(r.role), holderId: str(r.holder_id), standInId: str(r.stand_in_id), awayUntil: iso(r.away_until) });
 
@@ -154,7 +177,8 @@ function memberRows({ db, ready }: Part) {
     async function listMembers(deskId: string): Promise<DeskMember[]> {
         await ready();
         const rows = await db.getAll(
-            `SELECT m.schedule_id, m.added_by, (${ACCEPTED('m', 's')}) AS accepted, m.desk_role, s.user_id, s.title, s.last_status, s.last_run_at, s.is_active, ${AFTER} AS after_id
+            `SELECT m.schedule_id, m.added_by, (${ACCEPTED('m', 's')}) AS accepted, m.desk_role, s.user_id, s.title, s.last_status, s.last_run_at, s.is_active, ${AFTER} AS after_id,
+                    EXISTS (SELECT 1 FROM cowork_schedules l WHERE l.id = ${AFTER} AND ${MAY_FOLLOW('d', 'l', 's')}) AS after_allowed
                FROM ${LIVE_MEMBERS}
               WHERE m.desk_id = $1 ORDER BY m.created_at, m.schedule_id`,
             [deskId],
@@ -200,10 +224,14 @@ function memberRows({ db, ready }: Part) {
         return rows.length > 0;
     }
 
+    /** Take an item off the desk, with the hand-offs allowed to it or from it there: put back, it is asked again. */
     async function removeMember(deskId: string, scheduleId: string): Promise<boolean> {
         await ready();
-        const rows = await db.getAll('DELETE FROM cowork_desk_members WHERE desk_id = $1 AND schedule_id = $2 RETURNING schedule_id', [deskId, scheduleId]);
-        return rows.length > 0;
+        return db.withTransaction(async (client) => {
+            await client.query('DELETE FROM cowork_desk_follows WHERE desk_id = $1 AND (leader_id = $2 OR follower_id = $2)', [deskId, scheduleId]);
+            const { rows } = await client.query('DELETE FROM cowork_desk_members WHERE desk_id = $1 AND schedule_id = $2 RETURNING schedule_id', [deskId, scheduleId]);
+            return rows.length > 0;
+        });
     }
 
     /** The owner's per-item setting: the role that decides the item's questions, or none. */
@@ -212,6 +240,41 @@ function memberRows({ db, ready }: Part) {
         await db.run('UPDATE cowork_desk_members SET desk_role = $3 WHERE desk_id = $1 AND schedule_id = $2', [deskId, scheduleId, role]);
     }
     return { listMembers, membershipOf, addMember, acceptMember, removeMember, setDeskRole };
+}
+
+/** The hand-offs across owners that the leading item's owner allows (and withdraws). */
+function followRows({ db, ready }: Part) {
+    /** The leader's owner `allowedBy` lets `followerId` (owned by `followerOwner`) receive the result of `leaderId`. */
+    async function allowFollow({ deskId, leaderId, followerId, followerOwner, allowedBy }: { deskId: string; leaderId: string; followerId: string; followerOwner: string; allowedBy: string }): Promise<void> {
+        await ready();
+        await db.run(
+            `INSERT INTO cowork_desk_follows (desk_id, leader_id, follower_id, follower_owner, allowed_by) VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (desk_id, leader_id, follower_id) DO UPDATE SET follower_owner = EXCLUDED.follower_owner, allowed_by = EXCLUDED.allowed_by, allowed_at = NOW()`,
+            [deskId, leaderId, followerId, followerOwner, allowedBy],
+        );
+    }
+
+    /** Withdraw it: the follower receives nothing of the leader any more. False when nothing was allowed. */
+    async function withdrawFollow(deskId: string, leaderId: string, followerId: string): Promise<boolean> {
+        await ready();
+        const rows = await db.getAll('DELETE FROM cowork_desk_follows WHERE desk_id = $1 AND leader_id = $2 AND follower_id = $3 RETURNING follower_id', [deskId, leaderId, followerId]);
+        return rows.length > 0;
+    }
+
+    /** May `followerId` receive the result of `leaderId` on the desk they are on (the same owner, or allowed)? */
+    async function followAllowed(leaderId: string, followerId: string): Promise<boolean> {
+        await ready();
+        const r = await db.getOne(
+            `SELECT 1 AS ok FROM cowork_desk_members lm JOIN cowork_desks d ON d.id = lm.desk_id
+               JOIN cowork_schedules l ON l.id = lm.schedule_id
+               JOIN cowork_desk_members m ON m.desk_id = d.id AND m.schedule_id = $2
+               JOIN cowork_schedules s ON s.id = m.schedule_id
+              WHERE lm.schedule_id = $1 AND ${MAY_FOLLOW('d', 'l', 's')}`,
+            [leaderId, followerId],
+        );
+        return !!r;
+    }
+    return { allowFollow, withdrawFollow, followAllowed };
 }
 
 /** The roles of a desk, and what the runs read: who follows whom across owners, who decides a question. */
@@ -237,7 +300,9 @@ function flowRows({ db, ready }: Part) {
 
     /**
      * The coworks that start when `scheduleId` ended well, across owners: accepted members of the same desk that start
-     * after it, both owners counting in the desk's organisation, the follower switched on.
+     * after it, both owners counting in the desk's organisation, the follower switched on, and, for a follower of
+     * another owner, allowed by the owner of `scheduleId` (cowork_desk_follows): one person's results never go to
+     * another without that person's yes.
      */
     async function deskFollowers(scheduleId: string): Promise<CoworkItem[]> {
         await ready();
@@ -249,7 +314,7 @@ function flowRows({ db, ready }: Part) {
                JOIN cowork_desk_members m ON m.desk_id = d.id AND m.schedule_id <> lm.schedule_id
                JOIN cowork_schedules s ON s.id = m.schedule_id AND s.is_active = TRUE AND ${ACCEPTED('m', 's')}
                JOIN users o ON o.id = s.user_id AND ${LIVE('o')}
-              WHERE lm.schedule_id = $1 AND ${ACCEPTED('lm', 'l')} AND ${AFTER} = $1
+              WHERE lm.schedule_id = $1 AND ${ACCEPTED('lm', 'l')} AND ${AFTER} = $1 AND ${MAY_FOLLOW('d', 'l', 's')}
               ORDER BY s.id`,
             [scheduleId],
         );
@@ -283,7 +348,7 @@ function flowRows({ db, ready }: Part) {
 
 export function makeCoworkDesks({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     const part = { db, ready };
-    return { ...deskRows(part), ...memberRows(part), ...flowRows(part) };
+    return { ...deskRows(part), ...memberRows(part), ...followRows(part), ...flowRows(part) };
 }
 
 export type CoworkDesks = ReturnType<typeof makeCoworkDesks>;
