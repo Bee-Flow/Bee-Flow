@@ -74,6 +74,10 @@ function sentenceOf(need: MailNeed): [string, string] {
     if (need.kind === 'review') return ['cowork_needs.review', 'The agent asks you to look at something.'];
     if (need.kind === 'sign_in') return ['cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'];
     if (need.kind === 'repair') return ['cowork_proposals.need.mail', 'Cowork worked out a fix for its plan. It changes nothing until you approve it.'];
+    if (need.kind === 'incomplete') return ['cowork_resolver.need.incomplete', 'Did not do its work last time: a step found nothing to work on.'];
+    if (need.kind === 'ai_failed') return ['cowork_resolver.need.ai_failed', 'The AI said its last run failed.'];
+    if (need.kind === 'setup') return ['cowork_home.mail.setup', 'Cowork could not set up its steps. It waits until you choose what to do.'];
+    if (need.kind === 'failed') return ['cowork_home.mail.failed', 'Its last run failed. Open it to see what is wrong.'];
     if (need.plan === 'changed') return ['cowork_needs.plan.changed', 'The plan changed and may do more than you approved. Approve it again.'];
     if (need.plan === 'blocked') return ['cowork_needs.plan.blocked', 'The plan cannot run as it is.'];
     if (need.plan === 'gone') return ['cowork_needs.plan.gone', 'The automation of its plan is gone.'];

@@ -67,6 +67,32 @@ export interface CoworkItem {
     openReviewCount?: number;
     /** The automation its plan is made from; null without a plan. Its approvals are found by it. */
     planAutomationId?: string | null;
+    /** The approved steps a run follows; null while none is approved. */
+    planId?: string | null;
+    /** What its owner chose on the confirmation, and where its set-up stands; null or absent for a task nobody set up that way. */
+    setup?: CoworkSetup | null;
+}
+
+/** Why Cowork could not set up a task's steps, as a class (server stores/coworkSetup.mts). */
+export type CoworkSetupCause = 'no_model' | 'not_available' | 'timeout' | 'unclear' | 'budget' | 'left' | 'failed';
+
+/** A task's set-up (server stores/coworkSetup.mts). */
+export interface CoworkSetup {
+    /** 'wanted': it waits for its steps. 'failed': setting them up did not work. 'ai': the AI works it out every run. */
+    steps: 'wanted' | 'failed' | 'ai' | null;
+    cause: CoworkSetupCause | null;
+    since: string | null;
+    sendsTo: { me: boolean; others: string[] } | null;
+    askFirst: boolean | null;
+    /** "Let the AI work it out every run" can be undone. */
+    canUndo: boolean;
+}
+
+/** What the confirmation sends with a new task: fixed steps or not, who it sends to ("me" and addresses), and "show me first". */
+interface CoworkSetupChoice {
+    steps?: boolean;
+    sendsTo?: string[];
+    askFirst?: boolean;
 }
 
 /** How the owner handled a run that asked for review. */
@@ -196,6 +222,7 @@ export interface CoworkPayload {
     agentId?: string;
     enabledApps?: string[];
     startNow?: true;
+    setup?: CoworkSetupChoice;
 }
 
 /** The POST /api/cowork body of an agent that starts on a new email: no clock, so no `nextRunAt`. */

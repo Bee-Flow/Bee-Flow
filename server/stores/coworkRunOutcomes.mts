@@ -4,7 +4,8 @@
  * (usecases/coworkHome.mts: "Nothing to do") and for the automatic fix of a
  * reference (core/cowork/repairs/autoResolve.mts).
  *
- * Codes, ids and the plan's own references only: never a result, an error text or anything a run read.
+ * Codes, ids and the plan's own references only: never a result or anything a run read. The error text of a failed
+ * last run goes to the one place that classes it (`lastRunFailures`), which shows its class and never the text.
  */
 
 import { createRequire } from 'node:module';
@@ -25,6 +26,8 @@ export interface JudgedRun {
     outcome: { kind?: string; [key: string]: unknown } | null;
 }
 
+const FAILED_STATUS: ReadonlySet<string> = new Set(['error', 'failed', 'timeout', 'cancelled', 'incomplete']);
+
 const iso = (v: unknown): string | null => (v ? new Date(v as string).toISOString() : null);
 function parsed(v: unknown): { kind?: string; [key: string]: unknown } | null {
     if (typeof v !== 'string' || !v) return null;
@@ -34,9 +37,46 @@ function parsed(v: unknown): { kind?: string; [key: string]: unknown } | null {
     } catch { return null; }
 }
 
+/**
+ * The newest finished run of an item that failed, for the one sentence "Needs you" says about it
+ * (usecases/coworkRunWords.mts classes it). Its error text is handed over only to be classed, never to be shown.
+ */
+export interface FailedRun {
+    itemId: string;
+    id: string;
+    status: string;
+    error: string | null;
+    planId: string | null;
+    outcome: { kind: string; stepId: string | null; sourceStepId: string | null } | null;
+    failure?: { stepId: string; errorClass: string | null; sourceStepId: string | null };
+    since: string | null;
+}
+
+const text = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+
+/** The step an outcome is about: its own, or (an incomplete run) that of its first list that did not resolve. */
+function stepOf(facts: { [key: string]: unknown } | null): { stepId: string | null; sourceStepId: string | null } {
+    const first = Array.isArray(facts?.unresolved) ? facts.unresolved[0] as Record<string, unknown> | undefined : undefined;
+    const at = first && typeof first === 'object' ? first : facts;
+    return { stepId: text(at?.stepId), sourceStepId: text(at?.sourceStepId) };
+}
+
+/** One failed last run, as its row keeps it. */
+function failedRunOf(r: Row): FailedRun {
+    const facts = parsed(r.outcome_json);
+    const kind = text(facts?.kind);
+    const at = stepOf(facts);
+    const run: FailedRun = {
+        itemId: String(r.schedule_id), id: String(r.id), status: String(r.status), error: text(r.error), planId: text(r.plan_id), since: iso(r.finished_at),
+        outcome: kind ? { kind, ...at } : null,
+    };
+    if (kind === 'step_failed' && at.stepId) run.failure = { stepId: at.stepId, errorClass: text(facts?.errorClass), sourceStepId: at.sourceStepId };
+    return run;
+}
+
 /** The newest finished run per item of one owner. */
 const LAST_RUNS_SQL = `
-    SELECT DISTINCT ON (r.schedule_id) r.schedule_id, r.id, r.status, r.outcome_json, r.finished_at
+    SELECT DISTINCT ON (r.schedule_id) r.schedule_id, r.id, r.status, r.outcome_json, r.finished_at, r.error, r.plan_id
       FROM cowork_runs r JOIN cowork_schedules s ON s.id = r.schedule_id
      WHERE s.user_id = $1 AND r.finished_at IS NOT NULL AND r.status <> 'waiting'
      ORDER BY r.schedule_id, r.started_at DESC, r.id DESC`;
@@ -65,6 +105,13 @@ export function makeCoworkRunOutcomes({ db = nodeRequire('../db.js') as Db, read
         return out;
     }
 
+    /** The owner's items whose newest finished run failed, with what its sentence is read from. */
+    async function lastRunFailures(userId: string): Promise<FailedRun[]> {
+        await ready();
+        const rows = await db.getAll(LAST_RUNS_SQL, [userId]) as Row[];
+        return rows.filter((r) => FAILED_STATUS.has(String(r.status ?? ''))).map(failedRunOf);
+    }
+
     async function judgedRun(scheduleId: string, runId: string): Promise<JudgedRun | null> {
         await ready();
         const r = await db.getOne(
@@ -78,7 +125,7 @@ export function makeCoworkRunOutcomes({ db = nodeRequire('../db.js') as Db, read
         };
     }
 
-    return { lastRunProblems, lastOutcomes, judgedRun };
+    return { lastRunProblems, lastRunFailures, lastOutcomes, judgedRun };
 }
 
 export type CoworkRunOutcomes = ReturnType<typeof makeCoworkRunOutcomes>;

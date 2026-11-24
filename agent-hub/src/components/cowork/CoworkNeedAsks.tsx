@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { NeedBox, NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import CoworkProposalDetails from './CoworkProposalDetails';
 import { repairLine } from './coworkProposalModel';
-import { LINK_BUTTON, PILL_PRIMARY, PILL_QUIET } from './coworkUi';
+import { FIELD_WIDE, LABEL, LINK_BUTTON, PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { resolveCoworkReview } from '@/api/coworkApi';
 import { useDecideApproval, usePendingApproval, type PendingApproval } from '@/api/coworkApprovals';
 import { useCoworkTrust } from '@/api/coworkIndependence';
@@ -125,8 +125,8 @@ export function ReviewCard(props: NeedKindProps) {
             {need.reason && <NeedBox testId="cowork-need-reason">{need.reason}</NeedBox>}
             {asking && (
                 <div className="flex flex-col gap-1.5">
-                    <label htmlFor={fieldId} className="text-[14px] font-semibold text-[var(--text-secondary)]">{t('cowork_home.need.what_change', 'What should change?')}</label>
-                    <textarea id={fieldId} value={note} rows={3} maxLength={4000} onChange={(e) => setNote(e.target.value)} placeholder={t('cowork_home.need.note_placeholder', 'Shorter, and put the decision first')} className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-[14px] text-[var(--text-primary)]" />
+                    <label htmlFor={fieldId} className={LABEL}>{t('cowork_home.need.what_change', 'What should change?')}</label>
+                    <textarea id={fieldId} value={note} rows={3} maxLength={4000} onChange={(e) => setNote(e.target.value)} placeholder={t('cowork_home.need.note_placeholder', 'Shorter, and put the decision first')} className={FIELD_WIDE} />
                 </div>
             )}
         </div>
@@ -147,7 +147,7 @@ export function RepairCard(props: NeedKindProps) {
             <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !proposal} onClick={() => proposal && act.mutate({ run: () => approve.mutateAsync({ proposalId: proposal.id, fingerprint: proposal.fingerprint }), done: t('cowork_home.done.fix_approved', 'Approved. The fix is in the steps now.') })}>
                 {t('cowork_home.need.approve_fix', 'Approve the fix')}
             </button>
-            <button type="button" className={PILL_QUIET} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.snoozed', 'Fine. The task stays on hold; you find the fix in the task.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.fix_later', 'Fine. The task keeps waiting for you; you find the fix in the task.') })}>
                 {t('cowork_home.need.not_now', 'Not now')}
             </button>
         </>

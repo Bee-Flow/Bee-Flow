@@ -1,10 +1,15 @@
 /**
  * The one confirmation before a new task exists (./CoworkConfirmCard.tsx): what the composer worked out of the
- * sentence (./useCoworkComposer.ts with `confirm`), as When, Uses and Sends to. Pure: the clock comes in.
+ * sentence (./useCoworkComposer.ts with `confirm`), as What, When, Uses and Sends to. Pure: the clock comes in.
  *
  * When the sentence does not say when ("summarise my meetings", "every week, …" without a day), the card asks "Which
  * day?" before Start: once today, every day, weekdays, or every one weekday, at a time. Choosing one rewrites the
  * draft's schedule with the same fields the composer itself sends.
+ *
+ * Every row can be changed before Start. What the owner changed by hand is kept apart from the draft (`ConfirmChoices`),
+ * so reading the sentence again after an edit replaces only the rows they did not touch (`confirmView`). What Start
+ * sends is the draft with those choices in it (`startPayload`): the name, the schedule, the apps as the task's own
+ * list, and who it sends to with "show me each message first" as its set-up (server usecases/coworkSetup.mts).
  */
 import { cadenceLine, nextOccurrence, repeatLabel, toTimeInput } from './coworkSchedule';
 import type { CoworkPayload, CoworkTriggerPayload } from '@/api/cowork.types';
@@ -90,23 +95,60 @@ export function dayWords(payload: CoworkPayload | CoworkTriggerPayload, t: Trans
     return t('cowork_home.confirm.once_on', 'Once, {date}', { date: first.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) });
 }
 
-/** The e-mail addresses written in the sentence, in order and once each. */
-function addressesIn(text: string): string[] {
+const BREAKS = ' \t\n\r,;:()<>"';
+const ENDINGS = '.!?';
+
+/** The words of a text, cut at blanks and brackets, without the full stop a sentence ends on. Plain string walking. */
+function wordsOf(text: string): string[] {
     const out: string[] = [];
-    for (const raw of text.split(/[\s,;:()<>]+/)) {
-        const word = raw.replace(/[.!?]+$/, '');
-        const at = word.indexOf('@');
-        if (at > 0 && word.indexOf('.', at) > at + 1 && !out.includes(word)) out.push(word);
+    let word = '';
+    for (const ch of text + ' ') {
+        if (!BREAKS.includes(ch)) { word += ch; continue; }
+        while (word && ENDINGS.includes(word.charAt(word.length - 1))) word = word.slice(0, -1);
+        if (word) out.push(word);
+        word = '';
     }
     return out;
 }
 
-/** Who a new task sends to, as far as the sentence says: the addresses in it, or only its owner. */
-export function sendsToWords({ payload }: CoworkDraft, t: TranslateFn): string {
-    if (!isClockPayload(payload)) return t('cowork_home.confirm.sends_sender', 'The sender of each mail, as a draft');
-    const to = addressesIn(payload.prompt);
-    return to.length > 0 ? to.join(', ') : t('cowork_home.confirm.sends_you', 'Only you');
+/** An e-mail address, by plain string checks (never a pattern on what a person typed): one @, a dotted host, no blanks. */
+export function isAddress(value: string): boolean {
+    const text = value.trim();
+    if (!text || text.length > 320 || wordsOf(text)[0] !== text) return false;
+    const at = text.indexOf('@');
+    if (at <= 0 || at !== text.lastIndexOf('@')) return false;
+    const host = text.slice(at + 1);
+    const dot = host.lastIndexOf('.');
+    return dot > 0 && dot < host.length - 1 && !host.includes('..');
 }
+
+/** Who a task sends to: its owner ("Me"), and the addresses of other people. */
+export interface Recipients { me: boolean; others: string[] }
+
+const sameAddress = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
+
+/**
+ * Who a new task sends to, as far as its sentence says: its owner, and every address written in it, in order and once
+ * each. "Me" is always there: "send it to me and sam@example.com" is both, and only the owner takes themselves off.
+ */
+export function recipientsIn(text: string): Recipients {
+    const others: string[] = [];
+    for (const word of wordsOf(text)) if (isAddress(word) && !others.some((o) => sameAddress(o, word))) others.push(word);
+    return { me: true, others };
+}
+
+/** With one more address; the same list when it is there already or is no address. */
+export function withRecipient(to: Recipients, address: string): Recipients {
+    const next = address.trim();
+    if (!isAddress(next) || to.others.some((o) => sameAddress(o, next))) return to;
+    return { ...to, others: [...to.others, next] };
+}
+
+/** Without one address. */
+export const withoutRecipient = (to: Recipients, address: string): Recipients => ({ ...to, others: to.others.filter((o) => !sameAddress(o, address)) });
+
+/** What a task's set-up says it sends to: "me", then the addresses. */
+const sendsToList = (to: Recipients): string[] => [...(to.me ? ['me'] : []), ...to.others];
 
 /** The part of an app's name a person writes in a sentence: "Fireflies.ai" → "fireflies", "Google Calendar" → "google calendar". */
 function spokenName(label: string): string {
@@ -126,4 +168,79 @@ export function appsNamedIn<A extends { id: string; label: string }>(text: strin
         const name = spokenName(a.label);
         return (name.length >= 3 && said.includes(name)) || (a.id.length >= 3 && said.includes(a.id.toLowerCase()));
     });
+}
+
+/** The schedule of a draft: the fields "Which day?" and the time rewrite. */
+export type SchedulePart = Pick<CoworkPayload, 'repeatInterval' | 'nextRunAt' | 'daysOfWeek' | 'timeOfDay' | 'startNow'>;
+
+/** What the owner changed by hand on the card; a row they did not touch follows the sentence. */
+export interface ConfirmChoices {
+    title?: string;
+    schedule?: SchedulePart;
+    /** The apps the task may use, by id. */
+    apps?: string[];
+    recipients?: Recipients;
+    showFirst?: boolean;
+}
+
+export const schedulePartOf = ({ repeatInterval, nextRunAt, daysOfWeek, timeOfDay, startNow }: CoworkPayload): SchedulePart => ({
+    repeatInterval, nextRunAt, ...(daysOfWeek ? { daysOfWeek } : {}), ...(timeOfDay ? { timeOfDay } : {}), ...(startNow ? { startNow } : {}),
+});
+
+/** The draft with a schedule chosen by hand in it. */
+function withSchedule(payload: CoworkPayload, schedule: SchedulePart): CoworkPayload {
+    const rest: CoworkPayload = { ...payload };
+    delete rest.startNow;
+    delete rest.daysOfWeek;
+    delete rest.timeOfDay;
+    return { ...rest, ...schedule };
+}
+
+/** The four rows as the card shows them now. */
+export interface ConfirmView {
+    title: string;
+    /** What Start creates, with the schedule the owner chose by hand. */
+    payload: CoworkPayload | CoworkTriggerPayload;
+    /** The ids of the apps the task may use; null while nobody chose and the sentence names none (Cowork picks them). */
+    apps: string[] | null;
+    recipients: Recipients;
+    /** Someone other than the owner gets it: "Show me each message first" is offered. */
+    sendsToOthers: boolean;
+    showFirst: boolean;
+}
+
+/**
+ * The card's rows: the owner's own choice where they made one, else what the sentence says. `sentence` is what they
+ * typed (the draft's instruction may word it differently), `catalogue` the workspace's apps.
+ */
+export function confirmView(draft: CoworkDraft, choices: ConfirmChoices, sentence: string, catalogue: ReadonlyArray<{ id: string; label: string }>): ConfirmView {
+    const { payload } = draft;
+    const said = [sentence, payload.prompt ?? ''].join(' ');
+    const named = appsNamedIn(said, catalogue).map((a) => a.id);
+    const own = Array.isArray(payload.enabledApps) ? payload.enabledApps : null;
+    const recipients = choices.recipients ?? recipientsIn(said);
+    const sendsToOthers = isClockPayload(payload) && recipients.others.length > 0;
+    return {
+        title: choices.title ?? payload.title,
+        payload: choices.schedule && isClockPayload(payload) ? withSchedule(payload, choices.schedule) : payload,
+        apps: choices.apps ?? own ?? (named.length > 0 ? named : null),
+        recipients,
+        sendsToOthers,
+        showFirst: sendsToOthers && (choices.showFirst ?? true),
+    };
+}
+
+/**
+ * What Start sends: the draft with the card's rows in it. `steps`: Cowork sets up fixed steps for it and tests them
+ * (false where the organisation has none: the AI then works it out every run, and the card said so).
+ */
+export function startPayload(view: ConfirmView, steps: boolean): CoworkPayload | CoworkTriggerPayload {
+    const title = view.title.trim() || view.payload.title;
+    if (!isClockPayload(view.payload)) return { ...view.payload, title };
+    return {
+        ...view.payload,
+        title,
+        ...(view.apps ? { enabledApps: view.apps } : {}),
+        setup: { steps, sendsTo: sendsToList(view.recipients), ...(view.sendsToOthers ? { askFirst: view.showFirst } : {}) },
+    };
 }

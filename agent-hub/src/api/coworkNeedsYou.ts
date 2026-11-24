@@ -3,8 +3,12 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiJson } from './typedRequest';
+import type { CoworkSetupCause } from './cowork.types';
 
-type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'incomplete' | 'ai_failed' | 'plan';
+type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'incomplete' | 'ai_failed' | 'plan' | 'setup' | 'failed';
+
+/** Why a last run failed, as a class (server usecases/coworkRunWords.mts). */
+export type CoworkFailureCause = 'permission' | 'sign_in' | 'reads' | 'nothing_found' | 'ai_failed' | 'nothing_to_do' | 'timeout' | 'waits' | 'step' | 'other';
 type CoworkPlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface CoworkNeed {
@@ -20,6 +24,12 @@ export interface CoworkNeed {
     fixable?: boolean;
     /** A repair Cowork worked out: why, and the step it is about. */
     repair?: { proposalId: string; reasonCode: string; stepTitle: string | null } | null;
+    /** A set-up that ended without steps: why, as a class. */
+    cause?: CoworkSetupCause;
+    /** A failed last run in words: the class of the cause, the step and the step it reads by their titles, the app by its name. */
+    failure?: { cause: CoworkFailureCause; step: string | null; source: string | null; app: string | null };
+    /** The task has fixed steps, so "let the AI work it out every run" is a way out. */
+    hasSteps?: boolean;
 }
 
 async function getNeedsYou(): Promise<CoworkNeed[]> {

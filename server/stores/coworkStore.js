@@ -25,6 +25,7 @@ const { advanceNextRun } = require('./aiTaskStore');
 const { nextRunAfter } = require('./coworkNextRun.mts');
 const log = require('../telemetry/log');
 const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
+const { HELD_ONE_OFF } = require('./coworkSetup.mts');
 const coworkReviews = require('./coworkReviews.mts').makeCoworkReviews({ ready: () => initDB() });
 const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => initDB() });
 // The claim of one attempt, and giving it back (./coworkClaims.mts).
@@ -443,9 +444,8 @@ async function getDueSchedules() {
     const rows = await getAll(
         `SELECT * FROM cowork_schedules
          WHERE next_run_at <= NOW()
-           AND trigger_kind = 'schedule'
-           AND is_active = TRUE
-           AND last_status != 'running'
+           AND trigger_kind = 'schedule' AND is_active = TRUE AND last_status != 'running'
+           AND NOT (${HELD_ONE_OFF})
          ORDER BY next_run_at ASC
          LIMIT 20`,
     );

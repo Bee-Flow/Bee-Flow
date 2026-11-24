@@ -112,6 +112,8 @@ const FIXTURES = [
             // What Cowork proposes to change in a plan, and "Undo": the owner's only (usecases/coworkProposals.mts).
             'GET /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals/:proposalId/approve',
             'POST /api/cowork/:id/proposals/:proposalId/dismiss', 'POST /api/cowork/:id/plan/restore',
+            // Letting the AI work it out every run, and its Undo: the owner's only (usecases/coworkSetup.mts).
+            'PUT /api/cowork/:id/setup',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.
@@ -129,6 +131,7 @@ const FIXTURES = [
             'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
             'POST /api/cowork/:id/plan/restore': { version: 1 },
             'POST /api/cowork/:id/memory/restore': { ids: ['a-memory-of-the-owner'] },
+            'PUT /api/cowork/:id/setup': { mode: 'ai' },
         },
     },
     {

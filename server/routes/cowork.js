@@ -10,6 +10,7 @@
  * POST   /:id/toggle    → pause / resume
  * POST   /:id/run-now   → force an immediate run
  * GET    /:id/runs      → execution history, newest first
+ * PUT    /:id/setup     → let the AI work it out every run, or back to the steps it had (./coworkSetupRoutes.js)
  * GET    /:id/stats     → the aggregate behind the figure cards
  * POST   /:id/runs/:runId/review → handle a run that asked for review (./coworkReviewRoutes.js)
  * GET, PUT, DELETE /:id/plan and POST /:id/plan/approve → the item's plan (./coworkPlanRoutes.js)
@@ -75,7 +76,8 @@ const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone 
 const { mountReviewRoutes, withReviewCounts, reviewCountOf } = require('./coworkReviewRoutes');
 const { mountPlanRoutes } = require('./coworkPlanRoutes');
 const { mountPlannerRoutes } = require('./coworkPlannerRoutes');
-const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
+const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate, startNowRun } = require('../usecases/coworkTrigger');
+const { heldForSetup } = require('../core/cowork/taskSetup.mts');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 
@@ -107,30 +109,6 @@ async function resolveAgentId(agentId, userId, session) {
         throw err;
     }
     return agent.id;
-}
-
-/**
- * `startNow`: fire the first run immediately instead of waiting for the tick.
- * A one-off has next_run_at = now and is_active = true on insert, so the very
- * next tick would run it a second time: take it off the scheduler before
- * firing. A repeating one keeps its schedule: manual:true leaves next_run_at
- * pointing at the next occurrence. "Repeating" includes daysOfWeek-only specs
- * ("every Monday 09:00"), which carry no repeatInterval.
- * @param {NonNullable<Awaited<ReturnType<typeof coworkStore.getSchedule>>>} schedule
- * @param {{ repeatInterval?: string | null, daysOfWeek?: string[] | null }} norm
- */
-async function startNowRun(schedule, norm) {
-    if (!norm.repeatInterval && !(Array.isArray(norm.daysOfWeek) && norm.daysOfWeek.length > 0)) {
-        await coworkStore.updateSchedule(schedule.id, { isActive: false });
-        schedule.isActive = false;
-    }
-    setImmediate(async () => {
-        try {
-            await executeCowork(schedule, { manual: true });
-        } catch (err) {
-            log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
-        }
-    });
 }
 
 // Load a schedule and assert the caller owns it (404 / 403).
@@ -218,7 +196,10 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
         const schedule = await coworkStore.createSchedule(newItemFields(userId, norm, resolvedAgentId, trigger));
 
         if (isEvent) await syncNewEventItem(schedule);
-        if (startNow === true) await startNowRun(schedule, norm);
+        // What its owner chose on the confirmation (usecases/coworkSetup.mts): fixed steps, who it sends to, and
+        // whether they see each message first. A task that waits for its steps does not run before they are approved.
+        schedule.setup = await require('../usecases/coworkSetup.mts').startSetup({ item: schedule, chosen: norm.setup, organizationId: req.session.user.organizationId ?? null });
+        if (startNow === true && !heldForSetup(schedule)) await startNowRun(schedule, norm);
 
         res.json(schedule);
     } catch (err) {
@@ -314,6 +295,8 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (req, res) => {
         if (existing.lastStatus === 'running') {
             return res.status(400).json({ error: 'This cowork is already running' });
         }
+        // Its steps are not approved and its owner did not say the AI may do it: nothing runs for real yet.
+        if (heldForSetup(existing)) throw new HttpError(409, 'cowork_waits_for_steps', 'This task waits for you: approve its steps first, or let the AI work it out every run.');
 
         // Don't block the response on a run that can take minutes.
         setImmediate(async () => {
@@ -384,13 +367,16 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
         // What each run cost in AI (usecases/coworkCosts.mts): the history never fails on it. Each tool a run used carries
         // what a person calls it and what it does (usecases/coworkRunWords.mts), so no screen shows a raw tool name.
         const costed = await require('../usecases/coworkCosts.mts').withRunCosts(req.params.id, runs, coworkStore);
-        res.json({ runs: require('../usecases/coworkRunWords.mts').withToolWords(costed), total });
+        // `plain`: how each run ended in its owner's words (the step and the cause); the raw error stays beside it.
+        const words = require('../usecases/coworkRunWords.mts');
+        res.json({ runs: await words.withPlainWords(req.params.id, words.withToolWords(costed)), total });
     } catch (err) {
         fail(res, err, 'Runs');
     }
 });
 
 mountReviewRoutes(router); // POST /:id/runs/:runId/review
+require('./coworkSetupRoutes').mountSetupRoutes(router); // PUT /:id/setup
 mountPlanRoutes(router); // GET, PUT, DELETE /:id/plan and POST /:id/plan/approve
 mountPlannerRoutes(router); // POST /:id/plan/make
 

@@ -17,12 +17,28 @@ describe('nextLine', () => {
         expect(nextLine({ isActive: true, nextRunAt: at(30, 9), repeatInterval: 'weekly' }, 'done', t, 'en-GB', NOW)).toMatch(/^Next: Mon.* 30 Nov, 09:00$/);
     });
 
-    it('in the status\'s words: now while it runs or tests, on hold when it failed, nothing while paused', () => {
+    it('in the status\'s words: now while it runs or tests, nothing while paused', () => {
         const item = { isActive: true, nextRunAt: at(25, 9), repeatInterval: 'daily' };
         expect(nextLine(item, 'running', t, 'en-GB', NOW)).toBe('Now');
         expect(nextLine(item, 'testing', t, 'en-GB', NOW)).toBe('Now');
-        expect(nextLine(item, 'failed', t, 'en-GB', NOW)).toBe('On hold');
         expect(nextLine({ ...item, isActive: false }, 'paused', t, 'en-GB', NOW)).toBe('');
+    });
+
+    it('a task that failed never shows a next run: it waits for its owner, and there is no second word for that', () => {
+        const item = { isActive: true, nextRunAt: at(25, 9), repeatInterval: 'daily' };
+        expect(nextLine(item, 'failed', t, 'en-GB', NOW)).toBe('Waits for you');
+        expect(nextLine({ ...item, triggerKind: 'webhook' }, 'failed', t, 'en-GB', NOW)).toBe('Waits for you');
+    });
+
+    it('neither does a task that waits for its steps: nothing runs until they are approved or its owner chose the AI', () => {
+        const waits = { steps: 'wanted' as const, cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false };
+        const item = { isActive: true, nextRunAt: at(25, 9), repeatInterval: 'daily', setup: waits, planId: null };
+        expect(nextLine(item, 'needs', t, 'en-GB', NOW)).toBe('Waits for you');
+        expect(nextLine({ ...item, setup: { ...waits, steps: 'failed' as const, cause: 'timeout' as const } }, 'needs', t, 'en-GB', NOW)).toBe('Waits for you');
+        expect(nextLine({ ...item, planId: 'plan-1' }, 'scheduled', t, 'en-GB', NOW)).toBe('Next: Tomorrow, 09:00');
+        expect(nextLine({ ...item, setup: { ...waits, steps: 'ai' as const } }, 'scheduled', t, 'en-GB', NOW)).toBe('Next: Tomorrow, 09:00');
+        // A question that does not hold the task back (a message to send, a review) keeps its next run.
+        expect(nextLine({ isActive: true, nextRunAt: at(25, 9), repeatInterval: 'daily' }, 'needs', t, 'en-GB', NOW)).toBe('Next: Tomorrow, 09:00');
     });
 
     it('an event start waits for it; a finished one-off ran once', () => {

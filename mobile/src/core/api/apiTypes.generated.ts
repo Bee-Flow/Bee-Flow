@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2028 operations. */
+/** 2029 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2547,6 +2547,11 @@ export interface ApiOperations {
         nextRunAt?: string;
         prompt: string;
         repeatInterval?: 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | null;
+        setup?: {
+            askFirst?: boolean;
+            sendsTo?: Array<string>;
+            steps?: boolean;
+        };
         startNow?: boolean;
         timeOfDay?: string | null;
         timezone?: string | null;
@@ -2744,6 +2749,9 @@ export interface ApiOperations {
     'GET /api/cowork/{id}/runs/{runId}/trace': Op<{ id: string | number; runId: string | number }>;
     'POST /api/cowork/{id}/save-as-template': Op<{ id: string | number }, UndeclaredQuery, {
         title?: string;
+    }>;
+    'PUT /api/cowork/{id}/setup': Op<{ id: string | number }, UndeclaredQuery, {
+        mode: 'ai' | 'steps';
     }>;
     'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {

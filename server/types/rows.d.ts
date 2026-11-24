@@ -1442,6 +1442,8 @@ declare namespace DbRow {
         prompt: string;
         repeat_interval: string | null;
         run_count: number | null;
+        setup_json: string | null;
+        setup_state: string | null;
         time_of_day: string | null;
         timezone: string | null;
         title: string;

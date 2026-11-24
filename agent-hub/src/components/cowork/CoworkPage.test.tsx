@@ -23,7 +23,9 @@ function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
-        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0 });
+        // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
+        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
+        if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
         if (path === '/api/cowork/w1' && method === 'GET') return jsonResponse(items.find((i) => i.id === 'w1') ?? {}, items.some((i) => i.id === 'w1') ? 200 : 404);
         if (path === '/api/cowork/compose') return jsonResponse({ title: 'Meeting overview', prompt: 'Summarise', repeatInterval: 'daily', timeOfDay: '09:00' });
         if (path === '/api/cowork/home') return jsonResponse({ how: {}, today: [], cost: null });
