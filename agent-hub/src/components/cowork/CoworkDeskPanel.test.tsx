@@ -1,4 +1,5 @@
-// "Work on this together" in an item's Settings tab: a cowork not on a desk goes on one of mine or on a new one; an
+// "Work on this together" in an item's Settings tab: a cowork not on a desk goes, under All settings (the Teamwork helper
+// comes first, ./CoworkTeamworkHelper.test.tsx), on one of mine or on a new one; an
 // invitation is accepted or declined; on a desk it shows the coworks in order, starts after a colleague's cowork,
 // chooses the role that decides its questions and leaves; the desk's maker sets the roles. The network is the seam (a recording fetch), no module is
 // mocked.
@@ -34,10 +35,11 @@ function serve(desk: ItemDesk | null, view: DeskView = VIEW) {
 }
 
 describe('CoworkDeskPanel', () => {
-    it('puts a cowork on one of my desks, or makes a new desk with it', async () => {
+    it('under All settings: puts a cowork on one of my desks, or makes a new desk with it', async () => {
         serve(null);
         renderWithClient(<CoworkDeskPanel coworkId="w1" />);
         const user = userEvent.setup();
+        await user.click(await screen.findByRole('button', { name: 'All settings' }));
         await user.selectOptions(await screen.findByLabelText('Desk to put it on'), 'd1');
         await user.click(screen.getByRole('button', { name: 'Put it on this desk' }));
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/api/cowork/desks/d1/members'))).toBe(true));

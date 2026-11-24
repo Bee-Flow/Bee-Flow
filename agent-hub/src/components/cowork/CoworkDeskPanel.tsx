@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Network } from 'lucide-react';
 import CoworkDeskChain from './CoworkDeskChain';
 import CoworkDeskRoles from './CoworkDeskRoles';
+import CoworkTeamworkHelper from './CoworkTeamworkHelper';
 import { useDeskView, useItemDesk, useItemDeskActions, useMyDesks, type DeskMember, type ItemDesk } from '@/api/coworkDesks';
 import { useCoworkStart } from '@/api/coworkStart';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -17,6 +18,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 
 const FIELD = 'rounded-lg border px-2 py-1 text-[12px] bg-[var(--bg-primary)] [border-color:var(--border-default)]';
 const BUTTON = 'px-3 py-1.5 rounded-lg border text-[12px] font-medium [border-color:var(--border-default)] disabled:opacity-50';
+const LINK = 'self-start text-[12px] text-[var(--text-secondary)] underline underline-offset-2';
 
 type Actions = ReturnType<typeof useItemDeskActions>;
 
@@ -88,12 +90,13 @@ function StartAfter({ coworkId, members, t }: { coworkId: string; members: DeskM
     );
 }
 
-/** On a desk: the coworks on it, the role that decides this one's questions, and leaving. */
-function OnDesk({ coworkId, desk, actions, t }: { coworkId: string; desk: ItemDesk; actions: Actions; t: TranslateFn }) {
+/** On a desk: the coworks on it, the role that decides this one's questions, and leaving. Its maker may also change it with the helper. */
+function OnDesk({ coworkId, desk, actions, t, onHelper }: { coworkId: string; desk: ItemDesk; actions: Actions; t: TranslateFn; onHelper: () => void }) {
     const view = useDeskView(desk.id).data;
     return (
         <div className="flex flex-col gap-2" data-testid="cowork-desk-on">
             <p className="text-[12px] text-[var(--text-secondary)]">{t('cowork_desks.on', 'On the desk "{desk}".', { desk: desk.name })}</p>
+            {view?.desk.isOwner && <button type="button" className={LINK} onClick={onHelper}>{t('cowork_teamwork.change_with_helper', 'Change with the helper')}</button>}
             {view && <CoworkDeskChain deskId={view.desk.id} members={view.members} />}
             {view && <StartAfter coworkId={coworkId} members={view.members} t={t} />}
             <label className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--text-secondary)]">
@@ -111,11 +114,26 @@ function OnDesk({ coworkId, desk, actions, t }: { coworkId: string; desk: ItemDe
     );
 }
 
+/** Not on a desk yet: the Teamwork helper first ("Help me set this up"), every setting under "All settings". */
+function NoDesk({ actions, t, onHelper, startAll }: { actions: Actions; t: TranslateFn; onHelper: () => void; startAll: boolean }) {
+    const [all, setAll] = useState(startAll);
+    return (
+        <div className="flex flex-col gap-2">
+            <button type="button" className={`${BUTTON} self-start`} onClick={onHelper}>{t('cowork_teamwork.open', 'Help me set this up')}</button>
+            {all ? <Join actions={actions} t={t} /> : <button type="button" className={LINK} onClick={() => setAll(true)}>{t('cowork_teamwork.all_settings', 'All settings')}</button>}
+        </div>
+    );
+}
+
 export default function CoworkDeskPanel({ coworkId }: { coworkId: string }) {
     const { t } = useTranslation();
     const query = useItemDesk(coworkId);
     const actions = useItemDeskActions(coworkId);
     const desk = query.data ?? null;
+    // While the helper is open it stays, also after it set the desk up: its last screen says what waits for whom.
+    const [helper, setHelper] = useState(false);
+    const [allSettings, setAllSettings] = useState(false);
+    if (helper) return <CoworkTeamworkHelper itemId={coworkId} onClose={() => setHelper(false)} onAllSettings={() => { setHelper(false); setAllSettings(true); }} />;
     return (
         <div data-testid="cowork-desk" className="flex flex-col gap-2">
             <h4 className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-primary)]">
@@ -125,9 +143,9 @@ export default function CoworkDeskPanel({ coworkId }: { coworkId: string }) {
             <p className="text-[12px] text-[var(--text-secondary)]">
                 {t('cowork_desks.hint', 'On a desk, coworks of colleagues hand work to each other. Each runs as its own owner, with its own connections: only the result goes on to the next.')}
             </p>
-            {query.isSuccess && !desk && <Join actions={actions} t={t} />}
+            {query.isSuccess && !desk && <NoDesk actions={actions} t={t} onHelper={() => setHelper(true)} startAll={allSettings} />}
             {desk && !desk.accepted && <Invitation desk={desk} actions={actions} t={t} />}
-            {desk?.accepted && <OnDesk coworkId={coworkId} desk={desk} actions={actions} t={t} />}
+            {desk?.accepted && <OnDesk coworkId={coworkId} desk={desk} actions={actions} t={t} onHelper={() => setHelper(true)} />}
             <Failure actions={actions} t={t} />
         </div>
     );

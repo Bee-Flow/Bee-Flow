@@ -76,6 +76,21 @@ Under **Settings → People** you can share an item with colleagues of your orga
 it and its runs, and one of them can decide its questions. It keeps running as you, and only you change
 it. **Hand over** gives the item to a colleague; they approve its plan again before it runs as them.
 
+### Work together
+
+Coworks of different people can hand their results to each other on a **desk**. The easiest way in is
+the **Teamwork helper**: under **Settings → People**, choose **Help me set this up** (or **Set up
+teamwork** on the Cowork home) and write what should happen, for example "When my supplier mails are
+done, Ben checks the invoices. Questions go to purchasing: Ben, or Lena when he is away." The helper
+proposes the desk in a few sentences; change any part with its dropdown, then choose **Set it up**.
+
+The helper only proposes; setting up follows the desk's rules. A colleague's cowork joins only when
+they accept it, it starts after yours only when they choose that, and a colleague's results reach your
+cowork only once they allow it. At most three hand-offs in a row go from one person to another. Each
+cowork keeps running as its own owner, with its own connections; only the result goes on. The result
+screen says what is done and what waits for whom. Everything else (more roles, away until, taking a
+cowork off) is under **All settings**.
+
 ### Budget
 
 Give an item a monthly AI budget in euros; at the budget it pauses itself and tells you. Trying a plan,

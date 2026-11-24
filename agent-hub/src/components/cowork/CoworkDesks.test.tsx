@@ -21,11 +21,12 @@ const VIEW = {
 };
 
 describe('CoworkDesks', () => {
-    it('says nothing while the reader is on no desk', async () => {
+    it('shows no desks section while the reader is on no desk, only a quiet way to set up teamwork', async () => {
         calls = stubRecordingFetch(() => jsonResponse({ desks: [] }));
         renderWithClient(<CoworkDesks onOpen={() => {}} />);
         await waitFor(() => expect(calls.some((c) => c.url.endsWith('/api/cowork/desks'))).toBe(true));
         expect(screen.queryByTestId('cowork-desks')).toBeNull();
+        expect(await screen.findByTestId('cowork-desks-setup')).toHaveTextContent('Set up teamwork');
     });
 
     it('opens a desk to its coworks in order; only my own cowork opens', async () => {
