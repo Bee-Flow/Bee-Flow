@@ -18,6 +18,8 @@ export interface IndependenceState {
     /** The level the next run uses; null when it cannot run as chosen. */
     level: Independence | null;
     asksAvailable: boolean;
+    /** The most independent level the organisation allows; absent from an older server. */
+    ceiling?: Independence;
     letThrough: number;
     needed: number;
     options: LevelOption[];

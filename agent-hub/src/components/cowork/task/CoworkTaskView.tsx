@@ -1,47 +1,48 @@
 /**
- * One task, opened in the Cowork sheet (`kind: 'task'` of ../coworkSheetPanels.ts). Self-contained: it reads the task
- * itself (GET /api/cowork/:id), its steps, its runs and what waits for its owner. Top to bottom, as the approved
- * redesign has it:
+ * One task, opened as a page of Cowork (`kind: 'task'` of ../coworkSheetPanels.ts). Self-contained: it reads the task
+ * itself (GET /api/cowork/:id), its steps, its runs and what waits for its owner. ONE column of sections, top to
+ * bottom, everything about this one task inside it:
  *
- *   1. its status, name, when · sends to, and goal (./CoworkTaskHeader.tsx); Run now, Pause, Edit;
+ *   1. its status and name; Run for real now, Pause, Share (./CoworkTaskHeader.tsx). A button that is off says why;
  *   2. what waits for its owner, one card each (../CoworkNeedCard.tsx, `solo`), OR what it is doing right now
- *      (./CoworkTaskLive.tsx), OR its latest result with the fix Cowork made by itself (./CoworkTaskResult.tsx);
- *   3. what it could do cheaper (./CoworkTaskOffer.tsx);
- *   4. its steps in run order (./CoworkTaskSteps.tsx); "Before it sends something" (./CoworkTaskSending.tsx);
- *   5. earlier runs (./CoworkTaskRuns.tsx), and More, folded (./CoworkTaskMore.tsx).
+ *      (./CoworkTaskLive.tsx), OR its latest result with the fix Cowork made by itself (./CoworkTaskResult.tsx); and
+ *      what it could do cheaper (./CoworkTaskOffer.tsx);
+ *   3. Settings: What, When, Uses, Sends to, each with its value, each opened in place (./CoworkTaskSettings.tsx).
+ *      There is no edit screen and no "More";
+ *   4. while its steps wait for their first approval, what the test produced (./CoworkTaskTested.tsx), then its Steps
+ *      in run order (./CoworkTaskSteps.tsx);
+ *   5. People: share, send each result on, save as template, give it away (./CoworkTaskPeople.tsx);
+ *   6. History: runs, changes, proof of each run, and Delete at the very bottom (./CoworkTaskHistory.tsx).
  *
- * Edit replaces the sheet's content (./CoworkTaskEdit.tsx) and comes back to it. A task that is not the reader's own
- * is read as one shared with them (./CoworkTaskShared.tsx). Opened at its steps (`focus: 'steps'`), the Steps
- * section is scrolled into view.
+ * A task that is not the reader's own is read as one shared with them (./CoworkTaskShared.tsx). Opened at its steps
+ * (`focus: 'steps'`), the Steps section is scrolled into view.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CoworkNeedCard from '../CoworkNeedCard';
-import { BLOCKS } from '../coworkNeedsModel';
+import { BLOCKS, type NeedCardData } from '../coworkNeedsModel';
 import { taskStatus } from '../coworkTaskStatus';
 import useCoworkNeedCards from '../useCoworkNeedCards';
 import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
-import CoworkTaskEdit from './CoworkTaskEdit';
-import CoworkTaskHeader, { CoworkTaskActions, sendsWords } from './CoworkTaskHeader';
+import CoworkTaskHeader, { CoworkTaskActions, type HeldBy } from './CoworkTaskHeader';
+import CoworkTaskHistory from './CoworkTaskHistory';
 import CoworkTaskLive, { isLive } from './CoworkTaskLive';
-import CoworkTaskMore from './CoworkTaskMore';
 import CoworkTaskOffer from './CoworkTaskOffer';
+import CoworkTaskPeople, { type PeopleRowId } from './CoworkTaskPeople';
 import CoworkTaskResult, { AutoFixNote } from './CoworkTaskResult';
-import CoworkTaskRuns from './CoworkTaskRuns';
-import CoworkTaskSending from './CoworkTaskSending';
+import CoworkTaskSettings from './CoworkTaskSettings';
 import CoworkTaskShared from './CoworkTaskShared';
 import CoworkTaskSteps from './CoworkTaskSteps';
-import { draftOf } from './coworkTaskEditModel';
+import CoworkTaskTested from './CoworkTaskTested';
 import { latestRunOf, liveRunOf, taskModeOf } from './coworkTaskModel';
 import { BTN_LINK, Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
-import { useCoworkGoal } from '@/api/coworkGoals';
-import { useCoworkStart } from '@/api/coworkStart';
 import { useCoworkItem, useCoworkItemActions } from '@/api/coworkTask';
 import { useCoworkPlanQuery, useCoworkPlanTry } from '@/api/queries/coworkPlan';
 import { useCoworkAgents, useCoworkRunsQuery } from '@/api/queries/coworkReads';
 import useCoworkPlanMaker from '@/hooks/useCoworkPlanMaker';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CoworkItem } from '@/api/cowork.types';
+import type { SettingRowId } from './coworkTaskSettingsModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 type OwnProps = CoworkSheetPanelProps & { item: CoworkItem };
@@ -50,6 +51,19 @@ type OwnProps = CoworkSheetPanelProps & { item: CoworkItem };
 function useMayPlan(): boolean {
     const ent = useEntitlements() as { loading: boolean; can?: (id: string) => boolean };
     return !ent.loading && typeof ent.can === 'function' && ent.can('automations');
+}
+
+/** The cards that hold the task back: a hand-off or an invitation asks about another task's work, and does not. */
+const holding = (cards: readonly NeedCardData[]): NeedCardData[] => cards.filter((c) => c.kind !== 'hand_off' && c.kind !== 'invitation' && !!BLOCKS[c.kind]);
+
+/** What holds it back from running for real now: something on the go, its steps' approval or first test, or a problem. */
+function heldByOf(live: boolean, cards: readonly NeedCardData[]): HeldBy {
+    if (live) return 'live';
+    const held = holding(cards);
+    if (held.length === 0) return null;
+    if (held.some((c) => BLOCKS[c.kind] === 'failed')) return 'problem';
+    if (held.some((c) => c.kind === 'check')) return 'approval';
+    return held.some((c) => c.kind === 'first_test') ? 'test' : 'problem';
 }
 
 /** Everything the opened task reads, and what follows from it. */
@@ -65,112 +79,100 @@ function useTaskFacts(item: CoworkItem) {
     const cards = useMemo(() => all.filter((c) => c.itemId === item.id).map((c) => (c.kind === 'check' && fingerprint ? { ...c, fingerprint } : c)), [all, item.id, fingerprint]);
     const liveRun = liveRunOf(runs);
     const testing = maker.making.running || (!!tryOut.state && !tryOut.state.done);
+    const live = isLive({ making: maker.making, tryState: tryOut.state, liveRun }) || item.lastStatus === 'running';
     return {
-        plan, runs: runs ?? [], maker, tryOut, cards, liveRun, latest: latestRunOf(runs),
+        plan, runs: runs ?? [], maker, tryOut, cards, liveRun, latest: latestRunOf(runs), live,
         mode: taskModeOf(item, plan),
-        live: isLive({ making: maker.making, tryState: tryOut.state, liveRun }) || item.lastStatus === 'running',
-        // A hand-off or an invitation asks about another task's work: it does not hold this one back.
-        blocked: cards.some((c) => c.kind !== 'hand_off' && c.kind !== 'invitation' && !!BLOCKS[c.kind]),
+        blocked: holding(cards).length > 0,
+        heldBy: heldByOf(live, cards),
         status: taskStatus(item, cards, { testing }),
     };
 }
 
 type Facts = ReturnType<typeof useTaskFacts>;
 
-/** "After 'Weekly numbers' finishes", opening that task; null for any other start. */
-function useAfterLink(item: CoworkItem, open: CoworkSheetPanelProps['open'], t: TranslateFn) {
-    const after = useCoworkStart(item.id, true).query.data?.after ?? null;
-    if (!after) return null;
-    return (
-        <button type="button" className="underline underline-offset-2 text-[var(--text-primary)]" onClick={() => open({ kind: 'task', id: after.id })}>
-            {t('cowork_task.head.after', "After '{title}' finishes", { title: after.title || t('cowork_task.head.untitled', 'Untitled task') })}
-        </button>
-    );
+/** Where a button elsewhere on the page can bring the reader: the page's top, and the headings of three sections. */
+const PLACES = { top: 'cowork-task-top', settings: 'cowork-task-settings-h', steps: 'cowork-task-steps-h', people: 'cowork-task-people-h' } as const;
+
+/** Bring a place into view; at once for a reader who asked for less motion. */
+function showPlace(place: keyof typeof PLACES) {
+    const still = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(PLACES[place])?.scrollIntoView?.({ behavior: still ? 'auto' : 'smooth', block: 'start' });
 }
 
-function TopOfTask({ item, facts, onEdit, open, t }: { item: CoworkItem; facts: Facts; onEdit: () => void; open: CoworkSheetPanelProps['open']; t: TranslateFn }) {
-    const goal = useCoworkGoal(item.id).query.data ?? null;
+function TopOfTask({ item, facts, onShare, t }: { item: CoworkItem; facts: Facts; onShare: () => void; t: TranslateFn }) {
     const actions = useCoworkItemActions(item.id);
-    const when = useAfterLink(item, open, t);
-    const permissions = facts.plan?.approved?.permissions ?? facts.plan?.draft?.permissions;
-    const busy = actions.runNow.isPending || actions.toggle.isPending;
     return (
         <>
-            <CoworkTaskHeader item={item} status={facts.status} when={when ?? undefined} goal={goal} t={t}
-                sends={sendsWords({ item, mode: facts.mode, sends: permissions?.sends ?? null }, t)} />
-            <CoworkTaskActions item={item} live={facts.live} blocked={facts.blocked} busy={busy} t={t}
-                onRunNow={() => actions.runNow.mutate()} onToggle={() => actions.toggle.mutate()} onEdit={onEdit} />
+            <CoworkTaskHeader item={item} status={facts.status} t={t} />
+            <CoworkTaskActions item={item} heldBy={facts.heldBy} busy={actions.runNow.isPending || actions.toggle.isPending} t={t}
+                onRunNow={() => actions.runNow.mutate()} onToggle={() => actions.toggle.mutate()} onShare={onShare} />
             <Failure error={actions.runNow.error || actions.toggle.error} t={t} />
         </>
     );
 }
 
-/** What waits for the owner, what is on the go, or the latest result. */
-function NowOfTask({ item, facts, open, t }: { item: CoworkItem; facts: Facts; open: CoworkSheetPanelProps['open']; t: TranslateFn }) {
+/** What waits for the owner, what is on the go, or the latest result; and what it could do cheaper. */
+function NowOfTask({ item, facts, mayPlan, open, t }: { item: CoworkItem; facts: Facts; mayPlan: boolean; open: CoworkSheetPanelProps['open']; t: TranslateFn }) {
     const [done, setDone] = useState<string | null>(null);
     const onOpenTask = (itemId: string, focus?: 'steps') => open({ kind: 'task', id: itemId, ...(focus ? { focus } : {}) });
+    const quiet = !facts.blocked && !facts.live;
     return (
         <>
             {done && <p role="status" className={META} data-testid="cowork-task-done">{done}</p>}
             {facts.cards.map((need) => <CoworkNeedCard key={need.key} need={need} solo onOpenTask={onOpenTask} onDone={setDone} />)}
-            {facts.live
-                ? <CoworkTaskLive coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />
-                : !facts.blocked && (
-                    <>
-                        <AutoFixNote coworkId={item.id} t={t} />
-                        <CoworkTaskResult coworkId={item.id} item={item} latest={facts.latest} t={t} />
-                    </>
-                )}
+            {facts.live && <CoworkTaskLive coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
+            {quiet && (
+                <>
+                    <AutoFixNote coworkId={item.id} t={t} />
+                    <CoworkTaskResult item={item} latest={facts.latest} t={t} />
+                    <CoworkTaskOffer coworkId={item.id} hasSteps={facts.mode === 'steps'} mayPlan={mayPlan} making={facts.maker.making.running} onMakeFromRuns={() => { void facts.maker.start(true); }} t={t} />
+                </>
+            )}
         </>
     );
 }
 
-function TaskMain({ item, facts, onEdit, panel, open, close }: OwnProps & { facts: Facts; onEdit: () => void }) {
+/** Which rows are open, and what a button elsewhere on the page does with them. */
+function useOpenRows(atSteps: boolean, hasPlan: boolean) {
+    const [setting, setSetting] = useState<SettingRowId | null>(null);
+    const [people, setPeople] = useState<PeopleRowId | null>(null);
+    useEffect(() => { if (atSteps && hasPlan) showPlace('steps'); }, [atSteps, hasPlan]);
+    return {
+        setting, setSetting, people, setPeople,
+        /** "Change something": What opens, where the sentence is. */
+        changeSomething: () => { setSetting('what'); showPlace('settings'); },
+        /** "Share": the Share row under People opens. */
+        share: () => { setPeople('share'); showPlace('people'); },
+    };
+}
+
+function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts }) {
     const { t, locale } = useTranslation();
     const mayPlan = useMayPlan();
     const agents = useCoworkAgents(facts.mode === 'agent');
-    const steps = useRef<HTMLDivElement>(null);
-    const atSteps = panel.kind === 'task' && panel.focus === 'steps';
-    const hasPlan = !!facts.plan;
-    useEffect(() => { if (atSteps && hasPlan) steps.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }); }, [atSteps, hasPlan]);
-    const approved = facts.mode === 'steps' && !!facts.plan?.approved;
-    const sends = facts.plan?.approved?.permissions.sends;
+    const rows = useOpenRows(panel.kind === 'task' && panel.focus === 'steps', !!facts.plan);
+    // "Save and test": the steps are made again and tested, and the page shows that at its top.
+    const rebuild = () => { void facts.maker.start(); showPlace('top'); };
     return (
-        <div className="flex flex-col gap-5" data-testid="cowork-task-view">
-            <TopOfTask item={item} facts={facts} onEdit={onEdit} open={open} t={t} />
-            <NowOfTask item={item} facts={facts} open={open} t={t} />
-            {!facts.blocked && !facts.live && (
-                <CoworkTaskOffer coworkId={item.id} hasSteps={facts.mode === 'steps'} mayPlan={mayPlan} making={facts.maker.making.running} onMakeFromRuns={() => { void facts.maker.start(true); }} t={t} />
-            )}
-            <div ref={steps} className="scroll-mt-4">
-                <CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false}
-                    agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
-                    tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />
-            </div>
-            {approved && sends === 'others' && <CoworkTaskSending coworkId={item.id} t={t} />}
-            <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts t={t} />
-            <CoworkTaskMore item={item} hasApprovedSteps={approved} onGone={close} locale={locale} t={t} />
+        <div id={PLACES.top} className="flex flex-col gap-6 scroll-mt-4" data-testid="cowork-task-view">
+            <TopOfTask item={item} facts={facts} onShare={rows.share} t={t} />
+            <NowOfTask item={item} facts={facts} mayPlan={mayPlan} open={open} t={t} />
+            <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} open={rows.setting} onOpen={rows.setSetting} onRebuild={rebuild}
+                onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />
+            {facts.plan && <CoworkTaskTested plan={facts.plan} onChange={rows.changeSomething} t={t} />}
+            <CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false}
+                agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
+                tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />
+            <CoworkTaskPeople coworkId={item.id} title={item.title} open={rows.people} onOpen={rows.setPeople} onGone={close} t={t} />
+            <CoworkTaskHistory item={item} runs={facts.runs} plan={facts.plan} onGone={close} t={t} />
         </div>
-    );
-}
-
-function EditOfTask({ item, facts, onBack }: { item: CoworkItem; facts: Facts; onBack: () => void }) {
-    const { t } = useTranslation();
-    const start = useCoworkStart(item.id, true).query;
-    const mayPlan = useMayPlan();
-    const agents = useCoworkAgents();
-    if (start.isPending) return <p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>;
-    return (
-        <CoworkTaskEdit itemId={item.id} initial={draftOf(item, start.data, facts.mode)} agents={agents} mayPlan={mayPlan} t={t}
-            onRebuild={() => { void facts.maker.start(); }} onBack={onBack} />
     );
 }
 
 function OwnTask(props: OwnProps) {
     const facts = useTaskFacts(props.item);
-    const [editing, setEditing] = useState(false);
-    if (editing) return <EditOfTask item={props.item} facts={facts} onBack={() => setEditing(false)} />;
-    return <TaskMain {...props} facts={facts} onEdit={() => setEditing(true)} />;
+    return <TaskMain {...props} facts={facts} />;
 }
 
 function CoworkTaskView(props: CoworkSheetPanelProps) {

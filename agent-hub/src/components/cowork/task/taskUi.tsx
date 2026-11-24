@@ -3,7 +3,7 @@
  * with the home: the pill buttons and the section heading of ../coworkUi.ts, cards, the green "Fixed … · Undo" note,
  * the folded rows of "More", and the receipt mark. Bee Flow tokens only.
  */
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { Check, ChevronDown, ShieldCheck } from 'lucide-react';
 import { FOCUS_RING } from '../../shared/buttonClasses';
@@ -56,21 +56,6 @@ export function ReceiptMark({ seq, signed, t }: { seq: number; signed: boolean; 
                 ? t('cowork_task.receipt.signed', 'Receipt {seq} · signed', { seq })
                 : t('cowork_task.receipt.unsigned', 'Receipt {seq} · not signed', { seq })}
         </span>
-    );
-}
-
-/** "More": everything a task holds besides what it does, folded until asked for. */
-export function Fold({ label, children }: { label: string; children: ReactNode }) {
-    const [open, setOpen] = useState(false);
-    const bodyId = useId();
-    return (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] overflow-hidden" data-testid="cowork-task-more">
-            <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)} className={`w-full min-h-[54px] px-[18px] flex items-center justify-between gap-3 text-left text-[15px] font-semibold text-[var(--text-primary)] ${FOCUS_RING}`}>
-                <span>{label}</span>
-                <ChevronDown aria-hidden="true" className={`w-4 h-4 flex-shrink-0 motion-safe:transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
-            {open && <div id={bodyId} className="flex flex-col">{children}</div>}
-        </div>
     );
 }
 

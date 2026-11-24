@@ -1,7 +1,7 @@
 /**
- * The latest result of an opened task (./CoworkTaskView.tsx): how its last run ended and when, the next run, the
- * result itself and its receipt ("Receipt 41 · signed"). Before a first result it says Scheduled (with the first run)
- * or Paused.
+ * The latest result of an opened task (./CoworkTaskView.tsx): how its last run ended and when, the next run, and the
+ * result itself, or for a run that stopped one plain sentence (never its raw error). Before a first result it says
+ * Scheduled (with the first run) or Paused. The run's receipt is under History, with the proof of every run.
  *
  * Above it, a fix Cowork made by itself while it is still the plan: "Fixed by itself on 24 Nov: 'A week ago' now
  * reads from 'Now'. · Undo". Undo approves the version before it again (POST /api/cowork/:id/plan/restore).
@@ -11,9 +11,8 @@ import { fullTimestamp } from '../coworkFormat';
 import { autoFixed } from '../coworkProposalModel';
 import { wiringChangeWords } from '../coworkWiringModel';
 import { runFailed, runLine } from './coworkTaskModel';
-import { CARD, CARD_HEAD, Failure, META, ReceiptMark, UndoNote } from './taskUi';
+import { CARD, CARD_HEAD, Failure, META, UndoNote } from './taskUi';
 import { useCoworkProposalActions, useCoworkProposals } from '@/api/coworkProposals';
-import { useRunReceipt } from '@/api/coworkReceipts';
 import { formatDate } from '@/utils/dateFormatters';
 import type { CoworkProposal } from '@/api/coworkProposals';
 import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
@@ -39,12 +38,6 @@ export function AutoFixNote({ coworkId, t }: { coworkId: string; t: TranslateFn 
             <Failure error={restore.error} t={t} />
         </>
     );
-}
-
-function RunReceipt({ coworkId, runId, t }: { coworkId: string; runId: string; t: TranslateFn }) {
-    const receipt = useRunReceipt(coworkId, runId, true).data;
-    if (!receipt || typeof receipt.seq !== 'number') return null;
-    return <ReceiptMark seq={receipt.seq} signed={receipt.signed} t={t} />;
 }
 
 /** "Done · Today 08:00", "Failed · …", "Nothing to do · …". */
@@ -78,15 +71,12 @@ function NoResultYet({ item, t }: { item: Pick<CoworkItem, 'isActive' | 'nextRun
 }
 
 interface CoworkTaskResultProps {
-    coworkId: string;
     item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>;
     latest: CoworkRun | null;
-    /** Read the latest run's receipt: only for the owner's own task. */
-    withReceipt?: boolean;
     t: TranslateFn;
 }
 
-export default function CoworkTaskResult({ coworkId, item, latest, withReceipt = true, t }: CoworkTaskResultProps) {
+export default function CoworkTaskResult({ item, latest, t }: CoworkTaskResultProps) {
     if (!latest) return <section className={CARD} data-testid="cowork-task-result"><NoResultYet item={item} t={t} /></section>;
     const ended = endedWords(latest, t);
     const next = nextWords(item, t);
@@ -99,8 +89,8 @@ export default function CoworkTaskResult({ coworkId, item, latest, withReceipt =
                 </div>
                 {next && <span className={META}>{next}</span>}
             </div>
-            <p className="text-[15px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]" data-testid="cowork-task-result-text">{text}</p>
-            {withReceipt && <RunReceipt coworkId={coworkId} runId={latest.id} t={t} />}
+            {/* motion: SWAP */}
+            <p className="text-[14px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]" data-testid="cowork-task-result-text">{text}</p>
         </section>
     );
 }

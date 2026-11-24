@@ -103,8 +103,7 @@ describe('CoworkPage', () => {
         const user = userEvent.setup();
         renderWithClient(<CoworkPage initialCoworkId="w1" />);
         const sheet = await screen.findByRole('dialog', { name: 'Weekly digest' });
-        await user.click(await within(sheet).findByRole('button', { name: 'More' }));
-        await user.click(within(sheet).getByRole('button', { name: 'Delete this task' }));
+        await user.click(await within(sheet).findByRole('button', { name: 'Delete this task' }));
         expect(within(sheet).getByTestId('cowork-task-delete-confirm')).toHaveTextContent("Delete 'Weekly digest'? It stops for good, with its runs. This cannot be undone.");
         expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
         await user.click(within(sheet).getByRole('button', { name: 'Delete task' }));
