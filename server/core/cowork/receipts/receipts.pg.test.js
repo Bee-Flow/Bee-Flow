@@ -15,6 +15,7 @@ const { pg, store } = require('../../../stores/coworkStore.testkit').coworkStore
 const { makeCoworkReceipts, COWORK_RECEIPTS_DDL } = require('../../../stores/coworkReceipts.mts');
 const { issueReceipts } = require('./issueReceipts.mts');
 const { verifyReceipts } = require('./verifyReceipts.mts');
+const { hashPayload, linkHash } = require('./receiptHash.mts');
 const { receiptKey, _forgetReceiptKey } = require('./receiptKey.mts');
 
 const MARKER = 'MARKER-7f3a-secret-content';
@@ -92,6 +93,14 @@ test('a receipt taken out shows as a gap; an edited one as changed content; a fo
     assert.deepStrictEqual(verifyReceipts(edited, key).problem, { seq: 2, kind: 'content' });
     const forged = [chain[0], { ...chain[1], signature: chain[0].signature }, chain[2]];
     assert.deepStrictEqual(verifyReceipts(forged, key).problem, { seq: 2, kind: 'signature' });
+    // A writer who edits a receipt, recomputes its hashes and clears its signature: after a signed receipt, that is a
+    // signature problem, not an "unsigned" count.
+    const tampered = { ...chain[1].payload, status: 'success', did: [] };
+    const payloadHash = hashPayload(tampered);
+    const rehashed = { ...chain[1], payload: tampered, payloadHash, hash: linkHash(chain[1].prevHash, payloadHash), signature: null };
+    assert.deepStrictEqual(verifyReceipts([chain[0], rehashed], key).problem, { seq: 2, kind: 'signature' });
+    const unsignedFirst = { ...chain[0], signature: null };
+    assert.deepStrictEqual(verifyReceipts([unsignedFirst, chain[1], chain[2]], key).problem, null, 'a receipt from before the key stays acceptable');
 
     await pg.query('DELETE FROM cowork_receipts WHERE schedule_id = $1 AND seq = 2', [id]);
     assert.deepStrictEqual(verifyReceipts(await receipts.listReceipts(id), key).problem, { seq: 3, kind: 'gap' });

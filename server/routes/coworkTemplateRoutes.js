@@ -57,7 +57,7 @@ function mountTemplateRoutes(router, overrides = {}) {
         res.json(pkg);
     });
     router.post('/packages/preview', validate({ body: PackageBody }), async (req, res) => {
-        res.json((await packages().previewPackage(req.body.package)).preview);
+        res.json((await packages().previewPackage(userIdOf(req), req.body.package)).preview);
     });
     router.post('/packages/add', validate({ body: PackageBody }), async (req, res) => {
         res.json(await packages().addPackage(userIdOf(req), req.body.package));

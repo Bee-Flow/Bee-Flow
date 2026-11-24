@@ -67,7 +67,8 @@ export interface PackagePreview {
     brief: string;
     repeatInterval: string | null;
     plan: TemplatePlan | null;
-    signedBy: { keyId: string; thisInstallation: boolean };
+    /** `organisation`: whether the reader's own organisation signed it; 'unknown' for an older file or another installation. */
+    signedBy: { keyId: string; thisInstallation: boolean; organisation: 'your_organisation' | 'another_organisation' | 'unknown' };
 }
 
 /** Where a template downloads as a package file, signed by this installation. */

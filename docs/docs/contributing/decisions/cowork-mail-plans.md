@@ -14,7 +14,8 @@ on the mail), `server/core/cowork/plan/planChecks.mts` (`answersStartSender`, th
 `server/usecases/coworkPlannerPrompt.mts` (what the planner is told about the mail).
 **Enforced by:** `server/core/cowork/plan/planChecks.test.js` (a draft to the sender passes; anything
 added to it, a cc from the mail, an address from the text and any send stay refused),
-`server/core/cowork/startKinds.test.js`, `server/core/cowork/mailTriggerRun.test.js`.
+`server/core/cowork/startKinds.test.js`, `server/core/cowork/mailTriggerRun.test.js`,
+`server/core/cowork/poisonedMail.engine.pg.test.js` (a mail item's plan that sends cannot be approved).
 
 ## Context
 
@@ -33,6 +34,10 @@ recipient taken from outside text, which 0031 forbids.
 - **One exemption, as narrow as it can be:** the `to` of a mail draft may be exactly
   `{{trigger.output.mail.from}}`, the sender of the mail that started the run. Nothing added to it, no cc
   or bcc from the mail, no address found in its text, and no step that sends.
+- **No step that sends, whoever it goes to.** `checkPlan` refuses every step whose effect is `sends`
+  (`mail.sends`) in a plan that starts on a mail (`startsOnMail`: an item marked by `asStartedBy` with its
+  start kind, or a plan whose own trigger is a mail event), also when the plan names the recipient itself.
+  A question for the owner and the result for the owner are not sending, and stay.
 
 ## Consequences
 

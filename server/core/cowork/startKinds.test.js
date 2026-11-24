@@ -23,7 +23,9 @@ test('on the clock the trigger is Bee Flow\'s own; on any event its data is outs
     for (const kind of ['webhook', 'after_cowork', 'row', 'file', 'app_event']) {
         assert.ok(startsWithOutsideText(kind), kind);
         const findings = checkPlan(asStartedBy(plan, { triggerKind: kind }), lookups);
-        assert.deepStrictEqual(findings.map((f) => f.code), ['send.destination_from_outside'], `refused for the recipient, and only for that, when it starts on ${kind}`);
+        // A mail start refuses the send itself too: a plan a mail starts drafts, it never sends (decision 0044).
+        const expected = kind === 'app_event' ? ['mail.sends', 'send.destination_from_outside'] : ['send.destination_from_outside'];
+        assert.deepStrictEqual(findings.map((f) => f.code), expected, `refused for the recipient, and only for that, when it starts on ${kind}`);
     }
     assert.strictEqual(asStartedBy(plan, { triggerKind: 'webhook' }).steps, plan.steps, 'the plan itself is not changed');
 });
