@@ -29,6 +29,7 @@ import { describeMoment, repeatLabel } from './coworkSchedule';
 import { coworkStatus } from './coworkStatus';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import { howLine } from './coworkHomeModel';
+import { goalCountText } from './coworkGoalModel';
 import useTranslation from '../../hooks/useTranslation';
 import { statusLabel } from '../shared/statusTokens';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -120,6 +121,8 @@ export default function CoworkRow({ item, selected, onSelect, how = null }: Cowo
     const meta = [whenText(item, t), historyText(item, t)].filter(Boolean).join(' · ');
     const reviews = item.openReviewCount || 0;
     const works = howLine(how, t);
+    // The goal's latest count, the thing a reader of the list wants to see move.
+    const goal = how?.goal ? t('cowork_goals.row', 'Goal: {count}', { count: goalCountText(how.goal, t) }) : '';
 
     return (
         <button
@@ -161,6 +164,7 @@ export default function CoworkRow({ item, selected, onSelect, how = null }: Cowo
                 </p>
             )}
             {works && <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]" data-testid="cowork-row-how">{works}</p>}
+            {goal && <p className="mt-0.5 truncate text-[11px] text-[var(--text-secondary)]" data-testid="cowork-row-goal">{goal}</p>}
         </button>
     );
 }

@@ -63,3 +63,12 @@ test('the level shown is the one a run uses: under the organisation\'s ceiling, 
     assert.strictEqual(capped.how.w1.level, 'asks_everything');
     assert.deepStrictEqual(asked[0], { userId: 'u1', organizationId: 'org-1' });
 });
+
+test('an item with a goal shows its latest count next to how it works; one without, nothing new', async () => {
+    const goal = { sentence: 'Every quote gets an answer within two working days', targetPercent: 95, met: 46, total: 49, period: 'this week', measuredAt: '2026-11-23T08:00:00.000Z' };
+    const home = await homeOf('u1', DAY, NOW, { ...deps(), goalCounts: async () => [{ scheduleId: 'w2', title: 'Open quotes', ...goal }] });
+    assert.deepStrictEqual(home.how.w2.goal, goal);
+    assert.strictEqual(Object.hasOwn(home.how.w1, 'goal'), false, 'an item without a goal answers as before');
+    const unreadable = await homeOf('u1', DAY, NOW, { ...deps(), goalCounts: async () => { throw new Error('down'); } });
+    assert.strictEqual(Object.hasOwn(unreadable.how.w2, 'goal'), false, 'an unreadable list shows no goal, and the home still answers');
+});

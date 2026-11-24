@@ -259,6 +259,8 @@ function startSupportAndSyncJobs() {
     try { require('../core/cowork/afterCowork.mts').start(); } catch (err) { log.warn('[Server] Cowork after-cowork start failed:', err.message); }
     // Every closed Cowork run gets a signed receipt (core/cowork/receipts/issueReceipts.mts).
     try { require('../core/cowork/receipts/issueReceipts.mts').start(); } catch (err) { log.warn('[Server] Cowork receipts start failed:', err.message); }
+    // A cowork with a goal is measured by its approved check after its runs (core/cowork/goals/goalMeasure.mts).
+    try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
     // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
     try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).

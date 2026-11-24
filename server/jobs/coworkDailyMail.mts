@@ -5,6 +5,8 @@
  *
  * Personal data leaves Bee Flow only by e-mail to the person it is about: the mail goes to the owner's own address and
  * says the titles of their own work and what each waits for, never what a run read, a review's reason or a result.
+ * Under the list, one line per item with a goal: its sentence and its latest count ("46 of 49 this week"); the goals
+ * ride along with a mail that goes out, they do not send one on their own.
  *
  * Once per owner per local day: the day is claimed before the mail is built (stores/coworkDailyMail.mts claimDay), so
  * two servers or a restart send it once; a mail that fails is not tried again that day.
@@ -15,6 +17,7 @@
 
 import { createRequire } from 'node:module';
 import type { CoworkDailyMailStore, DailyMailOwner } from '../stores/coworkDailyMail.mts';
+import type { GoalCount } from '../stores/coworkGoals.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
@@ -24,9 +27,14 @@ export interface MailNeed { kind: string; title: string; plan: string | null }
 
 interface MailUser { email?: string | null; preferredLocale?: string | null }
 
+/** One goal of the owner, as far as the mail reads it. */
+export type MailGoal = Pick<GoalCount, 'title' | 'sentence' | 'met' | 'total' | 'period'>;
+
 export interface DailyMailDeps {
     store: Pick<CoworkDailyMailStore, 'listEnabled' | 'claimDay'>;
     needsYou: (userId: string) => Promise<MailNeed[]>;
+    /** The owner's goals with their latest count; without it, the mail has no goal lines. */
+    goalsOf?: (userId: string) => Promise<MailGoal[]>;
     getUser: (userId: string) => Promise<MailUser | null>;
     translate: (locale: string, key: string, vars?: Record<string, unknown>) => Promise<string>;
     renderTemplate: (templateId: string, locale: string, vars: Record<string, string>) => Promise<{ subject: string; html: string; text: string }>;
@@ -85,6 +93,22 @@ export async function listOf(needs: MailNeed[], locale: string, translate: Daily
     return lines.join('\n');
 }
 
+/** One line per goal, in the owner's language: its count (or that it has none yet) and its sentence. '' without goals. */
+export async function goalLinesOf(goals: MailGoal[], locale: string, translate: DailyMailDeps['translate']): Promise<string> {
+    if (goals.length === 0) return '';
+    const say = async (key: string, en: string, vars: Record<string, unknown> = {}) => (await translate(locale, key, vars)) || en;
+    const untitled = await say('cowork_needs.untitled', 'Untitled work');
+    const lines = [await say('cowork_goals.mail_heading', 'Your goals:')];
+    for (const goal of goals.slice(0, LIST_CAP)) {
+        const title = goal.title || untitled;
+        const measured = goal.met !== null && goal.total !== null
+            ? [await say('cowork_goals.count', `${goal.met} of ${goal.total}`, { met: goal.met, total: goal.total }), goal.period].filter(Boolean).join(' ')
+            : await say('cowork_goals.not_measured', 'not measured yet');
+        lines.push(await say('cowork_goals.mail_line', `• ${title}: ${measured} (goal: ${goal.sentence})`, { title, measured, sentence: goal.sentence }));
+    }
+    return lines.join('\n');
+}
+
 /** Build and send one owner's mail; answers whether it went out. */
 async function mailOwner(userId: string, deps: DailyMailDeps): Promise<boolean> {
     const needs = await deps.needsYou(userId);
@@ -92,7 +116,9 @@ async function mailOwner(userId: string, deps: DailyMailDeps): Promise<boolean> 
     const user = await deps.getUser(userId);
     if (!user?.email) return false;
     const locale = user.preferredLocale || 'en';
-    const vars = { count: String(needs.length), list: await listOf(needs, locale, deps.translate), cta: `${deps.clientHost()}/app/cowork` };
+    const goals = deps.goalsOf ? await deps.goalsOf(userId).catch((e: Error) => { log.warn(`[Cowork] the goals of ${userId} were left out of the daily mail: ${e.message}`); return []; }) : [];
+    const list = [await listOf(needs, locale, deps.translate), await goalLinesOf(goals, locale, deps.translate)].filter(Boolean).join('\n\n');
+    const vars = { count: String(needs.length), list, cta: `${deps.clientHost()}/app/cowork` };
     const { subject, html, text } = await deps.renderTemplate('cowork_daily', locale, vars);
     const sent = await deps.sendServiceEmail({ to: user.email, subject, html, text });
     if (sent && sent.success === false) throw new Error(sent.error || 'the service mailbox refused it');
@@ -129,6 +155,7 @@ function defaults(needsYou: DailyMailDeps['needsYou'] = async () => []): DailyMa
     return {
         store: (nodeRequire('../stores/coworkDailyMail.mts') as { coworkDailyMailStore: () => CoworkDailyMailStore }).coworkDailyMailStore(),
         needsYou,
+        goalsOf: (id) => (nodeRequire('../stores/coworkGoals.mts') as typeof import('../stores/coworkGoals.mts')).coworkGoals().countsOfOwner(id),
         getUser: (id) => (nodeRequire('../stores/userStore.js') as { getUser: DailyMailDeps['getUser'] }).getUser(id),
         translate: (locale, key, vars) => (nodeRequire('../i18n/translate.js') as { translate: DailyMailDeps['translate'] }).translate(locale, key, vars),
         renderTemplate: (id, locale, vars) => (nodeRequire('../utils/emailTemplates.js') as { renderEmailTemplate: DailyMailDeps['renderTemplate'] }).renderEmailTemplate(id, locale, vars),

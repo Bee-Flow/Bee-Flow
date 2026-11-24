@@ -378,7 +378,7 @@ test('every callable function name in the engine is rendered in the catalog', ()
     assert.ok(EXPR_FUNCTION_NAMES.length > 20, 'sanity: the engine has a real whitelist');
     // Schema version 3 vocabulary (`since: 3`) stays out of the pinned text and is served on demand.
     const { SINCE_3 } = require('./formulaGuide');
-    assert.deepStrictEqual([...SINCE_3].sort(), ['groupBy', 'keys', 'merge', 'range', 'reduce', 'reverse', 'slice', 'sort', 'values']);
+    assert.deepStrictEqual([...SINCE_3].sort(), ['addWorkdays', 'groupBy', 'keys', 'merge', 'range', 'reduce', 'reverse', 'slice', 'sort', 'values', 'workdaysBetween']);
     // Every other name is in the text: with its signature, or (the long tail) by name with the topic that holds it.
     const topic = renderTopic('formulas');
     const named = section.split('\n').find((l) => l.startsWith('Also callable'));

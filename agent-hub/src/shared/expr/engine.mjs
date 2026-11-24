@@ -452,7 +452,7 @@ const EXPR_FUNCTION_NAMES = [...PLAIN_FUNCTION_NAMES, ...EACH_FUNCTIONS, REDUCE_
 
 /** @type {Map<string, number>} */
 const SINCE_BY_NAME = new Map();
-for (const doc of COLLECTION_FUNCTION_DOCS) SINCE_BY_NAME.set(doc.name, doc.since);
+for (const doc of EXPR_FUNCTIONS) if (doc.since !== undefined) SINCE_BY_NAME.set(doc.name, doc.since);
 
 /** @type {WeakMap<object, boolean>} */
 const ALL_WORK = new WeakMap();

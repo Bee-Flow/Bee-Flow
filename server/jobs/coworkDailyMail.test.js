@@ -89,3 +89,24 @@ test('a long list is cut, with how many more there are', async () => {
     assert.strictEqual(lines.at(-1), '…and 3 more.');
     assert.strictEqual(lines[0], '• Work 0: Its plan waits for your approval.');
 });
+
+test('under the list, one line per item with a goal: its latest count and its sentence; goals alone send no mail', async () => {
+    const goals = [
+        { title: 'Supplier radar', sentence: 'Every supplier mail gets an answer within two working days', met: 46, total: 49, period: 'this week' },
+        { title: 'Open quotes', sentence: 'Every quote is followed up', met: null, total: null, period: null },
+    ];
+    const w = world();
+    assert.strictEqual(await sendDue(MORNING, { ...w.deps, goalsOf: async () => goals }), 1);
+    assert.strictEqual(w.rendered[0].vars.list, [
+        '• Offers: The agent asks you to look at something.',
+        '',
+        'Your goals:',
+        '• Supplier radar: 46 of 49 this week (goal: Every supplier mail gets an answer within two working days)',
+        '• Open quotes: not measured yet (goal: Every quote is followed up)',
+    ].join('\n'));
+    const nothingWaits = world({ needs: [] });
+    assert.strictEqual(await sendDue(MORNING, { ...nothingWaits.deps, goalsOf: async () => goals }), 0);
+    const unreadable = world();
+    assert.strictEqual(await sendDue(MORNING, { ...unreadable.deps, goalsOf: async () => { throw new Error('down'); } }), 1, 'an unreadable goal list leaves the goals out, not the mail');
+    assert.match(unreadable.rendered[0].vars.list, /^• Offers: [^\n]+$/);
+});

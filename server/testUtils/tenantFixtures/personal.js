@@ -98,6 +98,9 @@ const FIXTURES = [
             // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
             'POST /api/cowork/:id/save-as-template',
             'GET /api/cowork/:id/audit',
+            // The goal and its check: the owner's only (usecases/coworkGoals.mts).
+            'GET /api/cowork/:id/goal', 'PUT /api/cowork/:id/goal', 'POST /api/cowork/:id/goal/check',
+            'POST /api/cowork/:id/goal/approve', 'DELETE /api/cowork/:id/goal',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.
@@ -110,6 +113,8 @@ const FIXTURES = [
             'PUT /api/cowork/:id/start': { kind: 'webhook' },
             'PUT /api/cowork/:id/plan/trust': { stepId: 'send', recipient: '*', trusted: false },
             'PUT /api/cowork/:id/shares': { shares: [] },
+            'PUT /api/cowork/:id/goal': { sentence: 'Every mail gets an answer within two working days', targetPercent: 95 },
+            'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
         },
     },
     {

@@ -54,3 +54,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0039](./cowork-sharing.md) | A shared cowork stays its owner's: colleagues of the same organisation may see it, one may decide its questions, and every read checks current membership |
 | [0040](./cowork-budgets.md) | Cowork budgets are measured from the usage ledger in euros: an item pauses itself at its own budget, an organisation refuses runs at its budget without pausing anything, and an unreadable cost does not stop a run |
 | [0041](./cowork-run-receipts.md) | Every closed Cowork run gets a receipt of names and counts, chained per item by hash and signed with the installation's Ed25519 key, issued apart from closing the run so it can never stop one |
+| [0043](./cowork-goals.md) | A cowork's goal is measured by a check of fixed, read-only steps that ends on met and total, approved by its owner and run as a dry run apart from the cowork's own run; public holidays count as working days |

@@ -41,6 +41,8 @@ export const ADDITIONS: readonly string[] = Object.freeze([
     'reduce(a, acc + it, 0)', 'keys(a)', 'values(a)', 'merge(a, b)', 'range(3)', 'range(1, 9, 2)',
     '[1, 2]', '[]', '[a, [b]]', '[1, 2][0]', '{ a: 1 }', '{}', '{ "a b": 1 }.a', 'a ?? b', 'a ? [1] : b',
     'len([1])', 'map(a, { id: it.id })', 'sum(map(range(3), it))',
+    // Working days (shared/expr/workdays.mjs): names the base did not have (about.functions in the additions file).
+    'workdaysBetween(a, b)', 'addWorkdays(a, 1)',
 ]);
 
 /** The scope every candidate is evaluated against. Fixed: the fingerprints depend on it. */

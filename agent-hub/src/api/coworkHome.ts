@@ -12,7 +12,11 @@ export interface HowItWorks {
     ask: number;
     deliver: number;
     level: Independence | null;
+    /** The item's goal and its latest count; absent without a goal (met and total null before a first count). */
+    goal?: GoalLine;
 }
+
+interface GoalLine { sentence: string; targetPercent: number; met: number | null; total: number | null; period: string | null; measuredAt: string | null }
 
 export interface TodayEntry { kind: 'ran' | 'next'; itemId: string; title: string; at: string | null; status: string | null; runId: string | null }
 
