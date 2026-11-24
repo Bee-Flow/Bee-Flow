@@ -38,6 +38,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   makeLimit: import('express').RequestHandler<{ id: string }>,
  *   moduleGate: import('express').RequestHandler<{ id: string }>,
  *   record: typeof import('../usecases/coworkAudit.mts').recordCowork,
+ *   spendLeft: (item: { id: string, userId: string, monthlyBudget?: number | null }) => Promise<void>,
  * }} PlannerRouteDeps
  */
 
@@ -54,6 +55,7 @@ const defaults = () => ({
     makeLimit: perUserRateLimit({ windowMs: 60_000, max: MAKES_PER_MINUTE, name: 'cowork-plan-make' }),
     moduleGate: requireModule('automation'),
     record: (...a) => require('../usecases/coworkAudit.mts').recordCowork(...a),
+    spendLeft: (item) => require('../core/cowork/spendGate.mts').assertSpendLeft(item),
 });
 
 /**
@@ -73,13 +75,14 @@ function failureOf(err) {
  * @param {Partial<PlannerRouteDeps>} [overrides]
  */
 function mountPlannerRoutes(router, overrides = {}) {
-    const { loadItem, planner, plan, routine, orgOf, makeLimit, moduleGate, record } = { ...defaults(), ...overrides };
+    const { loadItem, planner, plan, routine, orgOf, makeLimit, moduleGate, record, spendLeft } = { ...defaults(), ...overrides };
 
     router.post('/:id/plan/make', moduleGate, makeLimit, validate({ body: PlanMakeBody }), async (req, res) => {
         const userId = userIdOf(req);
         const item = await loadItem(req.params.id, userId);
         const userOrgId = await orgOf(req, userId);
         await planner().readyToPlan({ item, userOrgId });
+        await spendLeft(item); // drafting a plan is AI too: it counts against the budgets (core/cowork/spendGate.mts)
         // "Make it routine": the planner is told what the item's past runs did (usecases/coworkRoutine.mts).
         const hints = req.body?.fromRuns === true ? await routine().hintsFor(item) : null;
 

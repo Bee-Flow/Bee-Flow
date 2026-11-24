@@ -30,6 +30,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   loadItem?: typeof loadOwnedItem,
  *   replay?: () => Pick<typeof import('../usecases/coworkReplay.mts'), 'startReplay' | 'replayStateOf'>,
  *   replayLimit?: import('express').RequestHandler<{ id: string }>,
+ *   spendLeft?: (item: { id: string, userId: string, monthlyBudget?: number | null }) => Promise<void>,
  * }} ReplayRouteDeps
  */
 
@@ -40,9 +41,11 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
 function mountReplayRoutes(router, overrides = {}) {
     const loadItem = overrides.loadItem ?? loadOwnedItem;
     const useCase = overrides.replay ?? (() => require('../usecases/coworkReplay.mts'));
+    const spendLeft = overrides.spendLeft ?? ((/** @type {{ id: string, userId: string, monthlyBudget?: number | null }} */ i) => require('../core/cowork/spendGate.mts').assertSpendLeft(i));
     const replayLimit = overrides.replayLimit ?? perUserRateLimit({ windowMs: 60_000, max: REPLAYS_PER_MINUTE, name: 'cowork-plan-replay' });
     router.post('/:id/plan/replay', replayLimit, validate({ body: ReplayBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
+        await spendLeft(item); // a replay's AI counts against the budgets too (core/cowork/spendGate.mts)
         res.status(202).json(await useCase().startReplay({ item, ...(req.body.limit ? { limit: req.body.limit } : {}) }));
     });
     router.get('/:id/plan/replay/:replayId', validate({ params: ReplayParams }), async (req, res) => {

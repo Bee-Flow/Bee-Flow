@@ -43,6 +43,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   trust: () => Pick<typeof import('../usecases/coworkTrust.mts'), 'trustOf' | 'chooseTrust'>,
  *   routine: () => Pick<typeof import('../usecases/coworkRoutine.mts'), 'routineAdviceOf' | 'compareTry'>,
  *   tryLimit: import('express').RequestHandler<{ id: string }>,
+ *   spendLeft: (item: { id: string, userId: string, monthlyBudget?: number | null }) => Promise<void>,
  * }} PlanRouteDeps
  */
 
@@ -58,6 +59,7 @@ const defaults = () => ({
     trust: () => require('../usecases/coworkTrust.mts'),
     routine: () => require('../usecases/coworkRoutine.mts'),
     tryLimit: perUserRateLimit({ windowMs: 60_000, max: TRIES_PER_MINUTE, name: 'cowork-plan-try' }),
+    spendLeft: (item) => require('../core/cowork/spendGate.mts').assertSpendLeft(item),
 });
 
 /**
@@ -65,7 +67,7 @@ const defaults = () => ({
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan, tryOut, trace, tryLimit, independence, trust, routine } = { ...defaults(), ...overrides };
+    const { loadItem, plan, tryOut, trace, tryLimit, independence, trust, routine, spendLeft } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
@@ -89,6 +91,7 @@ function mountPlanRoutes(router, overrides = {}) {
 
     router.post('/:id/plan/try', tryLimit, validate({ body: NoBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
+        await spendLeft(item); // a try-out's AI counts against the budgets too (core/cowork/spendGate.mts)
         res.status(202).json(await tryOut().startTry({ item }));
     });
 
