@@ -87,4 +87,29 @@ router.get('/policy/:orgId/audit', requireAuth, async (/** @type {import('expres
     res.send(`${lines.join('\n')}\n`);
 });
 
+/**
+ * The caller's own organisation when the caller administers it; otherwise the answer is sent and null is returned.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+async function ownAdminOrg(req, res) {
+    const org = await require('../usecases/coworkOrgPanel.mts').ownOrgOf(sessionUser(req).id);
+    if (!org) { res.status(404).json({ error: 'You are not in an organization.' }); return null; }
+    if (!(await isOrgAdminForOrg(req, org.id))) { res.status(403).json({ error: 'Only organization admins can see this.' }); return null; }
+    return org;
+}
+
+router.get('/policy/mine/org', requireAuth, async (req, res) => {
+    if (!(await ownAdminOrg(req, res))) return;
+    res.json(await require('../usecases/coworkOrgPanel.mts').orgOverview(sessionUser(req).id));
+});
+
+router.get('/policy/mine/receipts-audit', requireAuth, async (req, res) => {
+    const org = await ownAdminOrg(req, res);
+    if (!org) return;
+    const audit = await require('../usecases/coworkOrgPanel.mts').receiptsAudit(org.id);
+    if (req.query.download === 'true') res.setHeader('Content-Disposition', `attachment; filename="cowork-receipts-audit-${org.id}.json"`);
+    res.json(audit);
+});
+
 module.exports = router;

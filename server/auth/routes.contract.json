@@ -1913,6 +1913,12 @@
     "GET /api/cowork/policy/mine": {
       "gate": "auth"
     },
+    "GET /api/cowork/policy/mine/org": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/mine/receipts-audit": {
+      "gate": "auth"
+    },
     "GET /api/cowork/receipts/key": {
       "gate": "auth"
     },

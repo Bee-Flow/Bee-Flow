@@ -210,7 +210,17 @@ export function makeCoworkReceipts({ db = nodeRequire('../db.js') as Db, ready =
         return Number(r?.n) || 0;
     }
 
-    return { withChain, planOf, stepsOf, itemsWithPending, listReceipts, receiptOfRun, countMissing };
+    /** The ids of every item of the organisation's members (the audit of usecases/coworkOrgPanel.mts), at most `limit`. */
+    async function itemIdsOfOrg(orgId: string, limit: number): Promise<string[]> {
+        await ready();
+        const rows = await db.getAll(
+            'SELECT s.id FROM cowork_schedules s JOIN users u ON u.id = s.user_id WHERE u."organizationId" = $1 ORDER BY s.id LIMIT $2',
+            [orgId, limit],
+        );
+        return rows.map((r) => String(r.id));
+    }
+
+    return { withChain, planOf, stepsOf, itemsWithPending, listReceipts, receiptOfRun, countMissing, itemIdsOfOrg };
 }
 
 type StoreInit = { makeStoreInit: (tag: string, fn: () => Promise<void>) => () => Promise<void> };

@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2023 operations. */
+/** 2025 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2625,6 +2625,8 @@ export interface ApiOperations {
         package: Record<string, unknown>;
     }>;
     'GET /api/cowork/policy/mine': Op;
+    'GET /api/cowork/policy/mine/org': Op;
+    'GET /api/cowork/policy/mine/receipts-audit': Op;
     'GET /api/cowork/policy/{orgId}': Op<{ orgId: string | number }>;
     'PUT /api/cowork/policy/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
         autoFix?: boolean;
