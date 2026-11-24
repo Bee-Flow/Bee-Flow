@@ -28,7 +28,7 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
-import { refFindings } from '../core/cowork/plan/planRefs.mts';
+import { refFindings, REF_FINDING } from '../core/cowork/plan/planRefs.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -148,16 +148,19 @@ const REFUSAL_TEXT = Object.freeze({
 /**
  * Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. `approvedBy` is the
  * owner, except for Cowork's own fix of a reference (core/cowork/repairs/autoResolve.mts: AUTO_FIX_APPROVER).
+ * `earlierVersion`: an approved version brought back ("Undo", ./coworkPlanVersions.mts restoreVersion); a reference
+ * finding (core/cowork/plan/planRefs.mts) does not stop it, as it did not stop that version then: Undo always undoes.
  */
-export async function approvePlan({ item, fingerprint, approvedBy }: { item: Item; fingerprint: string; approvedBy?: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
+export async function approvePlan({ item, fingerprint, approvedBy, earlierVersion = false }: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
     const draft = await draftOf(automation, deps, item);
     if (draft.fingerprint !== fingerprint) {
         throw new HttpError(409, 'cowork_plan_changed', 'The plan changed since you looked at it. Look at it again, then approve it.');
     }
-    if (draft.findings.length > 0) {
-        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${draft.findings[0]?.message ?? ''}`);
+    const blocking = earlierVersion ? draft.findings.filter((f) => f.code !== REF_FINDING) : draft.findings;
+    if (blocking.length > 0) {
+        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${blocking[0]?.message ?? ''}`);
     }
     const refusal = await deps.ownerRefusal({ userId: item.userId, organizationId: automation.organizationId ?? null });
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);

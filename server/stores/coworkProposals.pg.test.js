@@ -26,7 +26,7 @@ const store = makeCoworkProposalsStore({ db: /** @type {any} */ (db) });
 
 before(async () => {
     await pg.exec(`CREATE TABLE cowork_schedules (id TEXT PRIMARY KEY, plan_id TEXT, is_active BOOLEAN DEFAULT TRUE);
-        CREATE TABLE cowork_runs (id TEXT PRIMARY KEY, schedule_id TEXT, plan_id TEXT, automation_run_id TEXT, status TEXT, started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ);
+        CREATE TABLE cowork_runs (id TEXT PRIMARY KEY, schedule_id TEXT, plan_id TEXT, automation_run_id TEXT, status TEXT, started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ, outcome_json TEXT);
         CREATE TABLE automation_runs (id TEXT PRIMARY KEY, root_run_id TEXT);
         CREATE TABLE automation_run_steps (run_id TEXT, step_id TEXT, parent_step_id TEXT, status TEXT, error TEXT, error_class TEXT);
         CREATE TABLE cowork_plans (schedule_id TEXT, version INTEGER, definition_json TEXT, fingerprint TEXT)`);
@@ -110,6 +110,18 @@ test('the triggers read failed step ids and error classes, never the message; an
     assert.deepStrictEqual(await store.stepSuccessCounts('w1', 'p-other'), {});
     assert.deepStrictEqual(await store.itemsWithApprovedPlan(2, null), ['w1', 'w2']);
     assert.deepStrictEqual(await store.itemsWithApprovedPlan(10, 'w2'), ['w3']);
+});
+
+test('a step whose own AI said it failed counts as failed in that run, with a class and no reason', async () => {
+    await pg.query(`INSERT INTO cowork_runs VALUES ('r-ai', 'w2', 'p-w2', NULL, 'error', '2026-11-22T08:00:00Z', '2026-11-22T08:01:00Z', $1)`, [JSON.stringify({ kind: 'ai_failed', stepId: 'write' })]);
+    assert.deepStrictEqual(await store.lastRunFailures('w2', 2), [{ runId: 'r-ai', planId: 'p-w2', failed: [{ stepId: 'write', errorClass: 'ai_verdict_failed' }] }]);
+});
+
+test('the record of a fix Cowork applied by itself is approved as it is written, never open', async () => {
+    const kept = await store.recordAutoFix(proposal({ id: 'pr-auto', scheduleId: 'w4', reasonCode: 'reference_fixed', widens: [] }));
+    assert.deepStrictEqual([kept?.status, kept?.kind, kept?.reasonCode, kept?.widens], ['approved', 'repair', 'reference_fixed', []]);
+    assert.strictEqual(await store.openProposalOf('w4', 'repair'), null);
+    assert.ok(await store.claimAttempt('w4', 'auto_fix', new Date(), 60_000), 'its own attempt kind');
 });
 
 test('the approved versions of a plan: one by number, and the newest with a fingerprint', async () => {

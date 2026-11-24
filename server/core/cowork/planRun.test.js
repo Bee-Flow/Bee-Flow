@@ -263,3 +263,59 @@ test('a run an event started is not the item\'s moment: it moves no clock and ne
     await executePlanRun(task, { store: failing.store, trigger: { runId: 'ev-2', plan: true, payload: {} } }, failing.deps);
     assert.deepStrictEqual(failing.seen.failed.map((f) => f.opts.manual), [true]);
 });
+
+// ── How the run really ended (./runOutcome.mts): the AI may only make it worse ──
+
+/** A plan that lists, works through the list, and lets an AI write about it. */
+function listPlan(overRef) {
+    return planOf([
+        { id: 'list', type: 'integration_action', label: 'List meetings', tool: 'fireflies_list_transcripts', inputs: {} },
+        { id: 'sums', type: 'integration_action', label: 'Get summaries', tool: 'fireflies_get_summary', forEach: { overRef, itemVar: 't' }, inputs: {} },
+        { id: 'ai', type: 'ai_step', label: 'Write the overview', prompt: 'Summarise {{steps.sums.output.results}}.' },
+    ]);
+}
+/** What the run's history recorded, per step, handed in as its recording. */
+const recordingOf = (steps) => ({
+    getRun: async () => null,
+    getRunFullOutput: async () => null,
+    getRunStepsForChain: async (id) => Object.entries(steps).map(([stepId, s]) => ({ runId: id, stepId, stepType: 'x', attempts: 1, ...s })),
+});
+
+test('an AI step that says it failed makes the run failed, with its reason; the row keeps the code', async () => {
+    const h = harness({ plan: approved(listPlan('steps.list.output.results')) });
+    h.deps.recording = recordingOf({
+        list: { status: 'success', output: { results: [{ id: 't1' }] } }, sums: { status: 'success', output: { iterations: 1 } },
+        ai: { status: 'success', output: 'x', verdict: { outcome: 'failed', reason: 'No meeting data reached me.' } },
+    });
+    await executePlanRun(task, { store: h.store }, h.deps);
+    assert.strictEqual(h.seen.failed.length, 1);
+    assert.strictEqual(h.seen.failed[0].err.message, 'The AI says: No meeting data reached me.');
+    assert.deepStrictEqual(h.seen.failed[0].opts.close, { runId: 'run-1', outcome: { kind: 'ai_failed', stepId: 'ai' } });
+    assert.ok(!h.names().includes('markCompleted'));
+});
+
+test('"done" from an AI step does not clear an incomplete run, and the owner is told it did not do its work', async () => {
+    const h = harness({ plan: approved(listPlan('steps.list.output.transcripts')) });
+    h.deps.recording = recordingOf({
+        list: { status: 'success', output: { results: [{ id: 't1' }] } }, sums: { status: 'skipped', output: { iterations: 0 } },
+        ai: { status: 'success', output: 'No meetings found.', verdict: { outcome: 'done', reason: null } },
+    });
+    await executePlanRun(task, { store: h.store }, h.deps);
+    const [, , text, close] = h.calls.find((c) => c[0] === 'markCompleted');
+    assert.strictEqual(text, "Did not do its work: step 'Get summaries' found nothing to work on.");
+    assert.strictEqual(close.outcome.kind, 'incomplete');
+    assert.deepStrictEqual(h.seen.notes.map((n) => n.message), [text]);
+    assert.strictEqual(h.seen.failed.length, 0);
+});
+
+test('"nothing to do" over a list that resolved and was empty is a success', async () => {
+    const h = harness({ plan: approved(listPlan('steps.list.output.results')) });
+    h.deps.recording = recordingOf({
+        list: { status: 'success', output: { results: [] } }, sums: { status: 'success', output: { iterations: 0 } },
+        ai: { status: 'success', output: 'No meetings this week.', verdict: { outcome: 'nothing_to_do', reason: 'No meetings.' } },
+    });
+    await executePlanRun(task, { store: h.store }, h.deps);
+    const [, , , close] = h.calls.find((c) => c[0] === 'markCompleted');
+    assert.deepStrictEqual(close, { runId: 'run-1', waiting: false, outcome: { kind: 'nothing_to_do' } });
+    assert.strictEqual(h.seen.failed.length, 0);
+});

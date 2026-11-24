@@ -154,3 +154,23 @@ test('a try-out belongs to its item: a run of another automation, a live run and
     await assert.rejects(tryStateOf({ item: ITEM, tryId: 'try-1' }, live.deps), httpError(404, 'cowork_plan_refused'));
     await assert.rejects(tryStateOf({ item: ITEM, tryId: 'no-such-run' }, world().deps), httpError(404, 'cowork_plan_refused'));
 });
+
+test('a try-out in which a step found no list in what the step before it really returned is no pass: it says why', async () => {
+    const definition = planOf([
+        { id: 'list', type: 'integration_action', label: 'List meetings', tool: 'fireflies_list_transcripts', inputs: {} },
+        { id: 'sums', type: 'integration_action', label: 'Get summaries', tool: 'fireflies_get_summary', forEach: { overRef: 'steps.list.output.transcripts', itemVar: 't' }, inputs: {} },
+    ]);
+    const steps = [
+        { stepId: 'list', attempts: 1, status: 'success', output: { results: [{ id: 't1' }], count: 1, message: 'Found 1 transcript(s).' } },
+        { stepId: 'sums', attempts: 1, status: 'skipped', output: { iterations: 0, results: [] } },
+    ];
+    const run = { id: 'try-1', automationId: 'auto-1', mode: 'dry_run', status: 'success' };
+    const automation = { id: 'auto-1', userId: 'u1', organizationId: 'org-1', kind: 'automation', definition };
+    const state = await tryStateOf({ item: ITEM, tryId: 'try-1' }, world({ automation, run, steps }).deps);
+    assert.strictEqual(state.status, 'error');
+    assert.deepStrictEqual(state.problems, ["Step 'Get summaries' reads `transcripts` from 'List meetings', which returns no such field."]);
+    assert.strictEqual(state.error, state.problems[0]);
+
+    const fine = await tryStateOf({ item: ITEM, tryId: 'try-1' }, world({ automation, run, steps: [steps[0], { ...steps[1], status: 'success' }] }).deps);
+    assert.deepStrictEqual([fine.status, fine.problems], ['success', []]);
+});

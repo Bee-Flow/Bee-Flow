@@ -32,6 +32,9 @@ const { checkRefTokens } = nodeRequire('../../../automation/builderTools/refChec
 const { normalizeAiPath } = nodeRequire('../../../automation/builderTools/aiPaths.js') as { normalizeAiPath: (p: string) => { tokens: Token[] | null } };
 const { formatPath } = nodeRequire('../../../automation/expr.js') as { formatPath: (t: Token[]) => string };
 
+/** The code of a reference finding. */
+export const REF_FINDING = 'ref.missing';
+
 /** The field a reference reads, after `steps.<id>.output.`. */
 function fieldOf(ref: ListRef): string {
     const prefix = `steps.${ref.sourceStepId}.output.`;
@@ -52,7 +55,7 @@ function findingOf(ref: ListRef, titles: Map<string, string>, problem: Problem |
         ? `Step '${step}' reads \`${fieldOf(ref)}\` from '${source}' as a list, but it is no list.`
         : `Step '${step}' reads \`${fieldOf(ref)}\` from '${source}', which returns no such field.`;
     const has = problem?.here?.length ? ` It returns: ${problem.here.slice(0, 8).join(', ')}.` : '';
-    return { code: 'ref.missing', stepId: ref.stepId, message: `${base}${fixed ? ` Use \`${fixed}\`.` : has}` };
+    return { code: REF_FINDING, stepId: ref.stepId, message: `${base}${fixed ? ` Use \`${fixed}\`.` : has}` };
 }
 
 /** The references of this plan that do not resolve on the described output of the step they read. */
