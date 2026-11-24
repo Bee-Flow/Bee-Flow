@@ -46,6 +46,17 @@ read, change and send, and you approve it. A plan that later wants to do more as
 - **Make it routine**: after a few runs, Cowork can propose a plan from what those runs did, and shows
   side by side that the plan finds the same items.
 
+- **Replay on last month**: after you change a plan, replay it on what the earlier runs read. A replay
+  touches no app at all; it shows per run whether the new plan comes out the same, and says so plainly when
+  a run could not be replayed.
+
+### A goal, measured every run
+
+Give an item a goal in one sentence, such as "every supplier mail gets an answer within two working
+days". Cowork drafts a small check for it, made of steps that only read and count; you approve the check,
+and after every run the item shows how it stands ("46 of 49 this week"), on its row, in Today and in the
+daily e-mail. Public holidays count as working days.
+
 ### How independent it may be
 
 Choose per item: **ask me about everything**, **ask before anything leaves Bee Flow**, or **on its
@@ -67,7 +78,29 @@ it. **Hand over** gives the item to a colleague; they approve its plan again bef
 
 ### Budget
 
-Give an item a monthly AI budget in euros; at the budget it pauses itself and tells you.
+Give an item a monthly AI budget in euros; at the budget it pauses itself and tells you. Trying a plan,
+replaying it and having one made count against the budget too.
+
+### Receipts
+
+Every finished run leaves a receipt: which plan it ran, what it was allowed to do, who approved it and
+what it did, in names and counts, never what it read or wrote. Receipts are signed and chained, so a
+missing or changed one shows. An opened run shows its receipt; **Settings → Changes** says whether the
+chain holds and lets you download it for an audit.
+
+### Templates and package files
+
+**Save as template** (Settings → People) shares a cowork with your organisation; colleagues start from
+it under **Start from a template**. A template can also be downloaded as a signed file and added on
+another Bee Flow with **Add from a file**: the signature is checked, what its plan may do is worked out
+again, and the new item starts paused, with its plan waiting for your approval.
+
+### It notices what you repeat
+
+Switch on **Notice what I ask again and again** at the foot of the Cowork home. When you ask the same
+kind of thing in chat on the same weekday four weeks in a row, Cowork offers once to do it for you. It
+keeps only which apps a chat used and on which weekday, never what you asked; switching it off forgets
+it all.
 
 ## For administrators
 
@@ -79,6 +112,7 @@ of the organisation:
 - **Apps a cowork may use while nobody watches**: other apps are left out of every run.
 - **Monthly AI budget for all coworks**: at it, coworks stop running until the next month; you are
   told once.
+- **Let people switch on "notice what I repeat"**: switch it off to stop it for everyone.
 - **Download the trail**: every change to a cowork in the organisation, without what the work says.
 
 ## Privacy
