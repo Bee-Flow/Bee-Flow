@@ -41,7 +41,6 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
 
     const onTask = panel?.kind === 'task';
     const open = useCallback((next: CoworkSheetPanel) => {
-        COWORK_SHEET_PANELS[next.kind].prepare?.(next);
         setPanel(next);
         if (next.kind === 'task') onNavigate?.(`cowork/${next.id}`);
         else if (onTask) onNavigate?.('cowork');

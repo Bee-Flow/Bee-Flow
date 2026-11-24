@@ -62,7 +62,7 @@ export function draftOf(item: CoworkItem, start: StartState | null | undefined, 
         days,
         date: toDateInput(at),
         time: item.timeOfDay ?? toTimeInput(at),
-        mail: isMailTriggerItem({ triggerKind: item.triggerKind ?? null, trigger: item.trigger }) ? item.trigger : defaultMailTrigger(),
+        mail: item.triggerKind === 'app_event' && item.trigger ? item.trigger : defaultMailTrigger(),
         afterId: start?.after?.id ?? '',
         tableId: start?.datatableId ?? '',
         folder: start?.inFolder ?? '',
@@ -102,7 +102,10 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** What the save sends to PUT /api/cowork/:id. */
 export function changeOf(draft: EditDraft, now: Date = new Date()): CoworkItemChange {
     const base: CoworkItemChange = { title: draft.title.trim(), prompt: draft.prompt.trim(), agentId: draft.mode === 'agent' && draft.agentId ? draft.agentId : null };
-    if (draft.kind === 'email') return { ...base, triggerKind: 'app_event', trigger: normaliseMailTrigger(draft.mail) };
+    if (draft.kind === 'email') {
+        const mail = normaliseMailTrigger(draft.mail);
+        return { ...base, triggerKind: 'app_event', trigger: { provider: mail.provider, event: mail.event, filter: Object.fromEntries(Object.entries(mail.filter ?? {})) } };
+    }
     if (draft.kind !== 'schedule') return base;
     const next = nextRunOf(draft, now);
     return {

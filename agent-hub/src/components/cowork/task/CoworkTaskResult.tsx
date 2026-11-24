@@ -81,10 +81,12 @@ interface CoworkTaskResultProps {
     coworkId: string;
     item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>;
     latest: CoworkRun | null;
+    /** Read the latest run's receipt: only for the owner's own task. */
+    withReceipt?: boolean;
     t: TranslateFn;
 }
 
-export default function CoworkTaskResult({ coworkId, item, latest, t }: CoworkTaskResultProps) {
+export default function CoworkTaskResult({ coworkId, item, latest, withReceipt = true, t }: CoworkTaskResultProps) {
     if (!latest) return <section className={CARD} data-testid="cowork-task-result"><NoResultYet item={item} t={t} /></section>;
     const ended = endedWords(latest, t);
     const next = nextWords(item, t);
@@ -98,7 +100,7 @@ export default function CoworkTaskResult({ coworkId, item, latest, t }: CoworkTa
                 {next && <span className={META}>{next}</span>}
             </div>
             <p className="text-[15px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]" data-testid="cowork-task-result-text">{text}</p>
-            <RunReceipt coworkId={coworkId} runId={latest.id} t={t} />
+            {withReceipt && <RunReceipt coworkId={coworkId} runId={latest.id} t={t} />}
         </section>
     );
 }

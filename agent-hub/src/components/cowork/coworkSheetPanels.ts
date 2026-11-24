@@ -13,7 +13,6 @@
  * page, the menu and the home never name a panel's component.
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { focusCowork } from './coworkView';
 import type { TaskFocus } from './CoworkNeedFrame';
 import type { CoworkViewer } from '@/api/cowork.types';
 
@@ -47,17 +46,11 @@ interface PanelEntry {
     label: readonly [string, string];
     /** Offered to the organisation's administrators only. */
     adminOnly?: boolean;
-    /** Runs before the sheet opens on it: a task asked at its steps opens its Plan tab. */
-    prepare?: (panel: CoworkSheetPanel) => void;
 }
 
 export const COWORK_SHEET_PANELS: Readonly<Record<CoworkSheetKind, PanelEntry>> = {
-    task: {
-        component: lazy(() => import('./CoworkTaskPanel')),
-        label: ['cowork_home.sheet.task', 'Task'],
-        prepare: (panel) => { if (panel.kind === 'task' && panel.focus === 'steps') focusCowork({ itemId: panel.id, tab: 'plan' }); },
-    },
-    shared: { component: lazy(() => import('./CoworkSharedPanel')), label: ['cowork_home.sheet.shared', 'Shared task'] },
+    task: { component: lazy(() => import('./task/CoworkTaskView')), label: ['cowork_home.sheet.task', 'Task'] },
+    shared: { component: lazy(() => import('./task/CoworkTaskShared')), label: ['cowork_home.sheet.shared', 'Shared task'] },
     settings: { component: lazy(() => import('./CoworkSettingsPanel')), label: ['cowork_home.menu.settings', 'Settings'] },
     teamwork: { component: lazy(() => import('./CoworkTeamworkPanel')), label: ['cowork_home.menu.teamwork', 'Teamwork'] },
     templates: { component: lazy(() => import('./CoworkTemplatesPanel')), label: ['cowork_home.menu.templates', 'Templates'] },

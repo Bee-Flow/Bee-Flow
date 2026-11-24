@@ -7,13 +7,14 @@
 import type { ReactNode } from 'react';
 import { Pause, Pencil, Play } from 'lucide-react';
 import { goalCountText } from '../coworkGoalModel';
-import { whenPart } from '../coworkOverviewModel';
+import { whenLine } from '../coworkOverviewModel';
 import { isMailTriggerItem } from '../mailTrigger';
-import { BTN_PRIMARY, BTN_QUIET, META, ROW_ACTIONS, StatusPill, TAG_ACCENT } from './taskUi';
+import CoworkStatusPill from '../CoworkStatusPill';
+import { BTN_PRIMARY, BTN_QUIET, META, ROW_ACTIONS, TAG_ACCENT } from './taskUi';
 import type { CoworkGoal } from '@/api/coworkGoals';
 import type { PlanPermissions } from '@/api/coworkPlan.types';
 import type { CoworkItem } from '@/api/cowork.types';
-import type { StatusToken } from '../../shared/statusTokens';
+import type { TaskStatus } from '../coworkTaskStatus';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { TaskMode } from './coworkTaskModel';
 
@@ -31,7 +32,7 @@ export interface SharedBy { owner: string; role: 'viewer' | 'approver' }
 
 interface CoworkTaskHeaderProps {
     item: HeaderItem;
-    status: StatusToken;
+    status: TaskStatus;
     sends: string;
     goal: CoworkGoal | null;
     sharedBy?: SharedBy | null;
@@ -65,11 +66,11 @@ function SharedLine({ shared, t }: { shared: SharedBy; t: TranslateFn }) {
 export default function CoworkTaskHeader({ item, status, sends, goal, sharedBy = null, when, t }: CoworkTaskHeaderProps) {
     return (
         <header className="flex flex-col gap-1.5" data-testid="cowork-task-header">
-            <StatusPill token={status} t={t} />
+            <div><CoworkStatusPill status={status} /></div>
             <h2 className="text-[26px] leading-[1.2] font-bold break-words text-[var(--text-primary)]">
                 {item.title || t('cowork_task.head.untitled', 'Untitled task')}
             </h2>
-            <p className={META} data-testid="cowork-task-when">{when ?? whenPart({ item }, t)} · {sends}</p>
+            <p className={META} data-testid="cowork-task-when">{when ?? whenLine(item, t)} · {sends}</p>
             {goal && <GoalLine goal={goal} t={t} />}
             {sharedBy && <SharedLine shared={sharedBy} t={t} />}
         </header>

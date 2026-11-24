@@ -51,7 +51,7 @@ const { findRelevantMemories, selectWithinBudget } = require('./memoryRecall');
 const { formatMemoriesForPrompt } = require('./memoryPrompt');
 const {
     SCHEDULE_COVERAGE_TYPE, getMemoryStats, countActiveMemoriesForUser, countOrgMemoryStats,
-    upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage,
+    upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage, clearScheduleCoverage, restoreScheduleCoverage,
 } = require('./memoryStats');
 
 module.exports = {
@@ -60,7 +60,7 @@ module.exports = {
     addMemorySource, findSimilarMemory, findSimilarMemories, findRelevantMemories, selectWithinBudget,
     formatMemoriesForPrompt, getMemoryStats, countActiveMemoriesForUser,
     findByKey, updateMemoryValue, confirmMemory,
-    upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage,
+    upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage, clearScheduleCoverage, restoreScheduleCoverage,
     SCHEDULE_COVERAGE_TYPE,
     deleteMemoriesForOrg, countOrgMemoryStats,
     getEmbedding, backfillMemoryColumns,

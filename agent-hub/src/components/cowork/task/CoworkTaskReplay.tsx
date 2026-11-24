@@ -5,7 +5,8 @@
  */
 import { useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
-import { BTN_LINK, CARD, CARD_HEAD, META, ProgressList, ROW_ACTIONS, TAG_OK, TAG_PLAIN, TAG_WARN } from './taskUi';
+import CoworkProgress from '../CoworkProgress';
+import { BTN_LINK, CARD, CARD_HEAD, META, ROW_ACTIONS, TAG_OK, TAG_PLAIN, TAG_WARN } from './taskUi';
 import type { ReplayRun, ReplayState } from '@/api/coworkReplay';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -43,7 +44,7 @@ function RunItem({ run, titleOf, t }: { run: ReplayRun; titleOf: StepTitleOf; t:
 
 export default function CoworkTaskReplay({ state, titleOf, onClose, t }: { state: ReplayState; titleOf: StepTitleOf; onClose: () => void; t: TranslateFn }) {
     const [showSame, setShowSame] = useState(false);
-    if (!state.done) return <section className={CARD}><ProgressList rows={[{ key: 'replay', label: t('cowork_task.replay.running', 'Replaying last month\'s runs. No app is touched.'), state: 'now' }]} /></section>;
+    if (!state.done) return <section className={CARD}><CoworkProgress labels={[t('cowork_task.replay.running', 'Replaying last month\'s runs. No app is touched.')]} phase={0} /></section>;
     const replayed = state.runs.filter((r) => r.verdict !== 'not_replayable');
     const same = replayed.filter((r) => r.verdict === 'same');
     const other = replayed.filter((r) => r.verdict !== 'same');
