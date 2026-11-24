@@ -142,13 +142,13 @@ export const ACTION_CHECKS: Record<string, ActionCheck> = {
         criteria: [
             {
                 id: 'created',
-                labelFallback: 'Create a cowork',
-                hintFallback: 'Open Cowork in the sidebar, describe the work in the box, and send it.',
+                labelFallback: 'Create a Cowork task',
+                hintFallback: 'Open Cowork in the sidebar, write one sentence, choose Show what I understood, then Set up and test (or Start).',
             },
             {
                 id: 'ran',
-                labelFallback: 'Let it run once',
-                hintFallback: 'Leave “When” on “Run now” and it runs immediately — or open your item and press Run now.',
+                labelFallback: 'Let it run once for real',
+                hintFallback: 'Approve its steps under Needs you, then press Run for real now on the task. The test of the steps does not count.',
             },
         ],
         async fetchState() {
@@ -212,8 +212,8 @@ export const ACTION_CHECKS: Record<string, ActionCheck> = {
             },
             {
                 id: 'cowork',
-                labelFallback: 'A cowork item working for you',
-                hintFallback: 'Delegate something real via Cowork — once is enough.',
+                labelFallback: 'A Cowork task working for you',
+                hintFallback: 'Hand something real to Cowork: one sentence, then Set up and test. It counts as soon as the task exists.',
             },
             {
                 id: 'builder',

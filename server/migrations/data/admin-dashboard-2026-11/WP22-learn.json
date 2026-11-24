@@ -635,13 +635,6 @@
         "Beheerdashboard → Toegang → Integratietoegang."
       ]
     },
-    "learn.cowork-hands-on.q-where-reconnect.explanation": {
-      "nl": "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Beheerdashboard → Beveiliging en toegang → Toegang → Toekenningen** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd.",
-      "was": [
-        "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Instellingen → Organisatie → Integraties → Toegang tot integraties** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd.",
-        "Twee verschillende schermen met op elkaar lijkende namen. **Instellingen → Koppelingen** is persoonlijk: het is de rij tussen Geheugen en Leercentrum in je eigen Instellingenmenu, en daar staan je credentials. **Beheerdashboard → Toegang → Toegang tot integraties** is de beheerderstoekenning die bepaalt wie überhaupt mag koppelen. Een cowork met \"Inloggen nodig\" is altijd de eerste — en het opnieuw koppelen hervat elk schema dat voor dat account was geparkeerd."
-      ]
-    },
     "learn.encryption-rollout-and-recovery.do-managed.instruction": {
       "nl": "Open Beheerdashboard → Beveiliging en toegang → Versleuteling, selecteer de kaart Beheerd en klik op Opslaan. Je moet de melding \"Versleutelingsinstellingen opgeslagen\" zien, en niemand wordt uitgelogd. Is Beheerd grijs, dan staat de reden onder de kaart: je abonnement of een sleutel die deze server mist. Kies Zero-knowledge niet als oefening: dat logt echt je hele organisatie uit. Beheerd is omkeerbaar: Uit is altijd te kiezen, ook later.",
       "was": [

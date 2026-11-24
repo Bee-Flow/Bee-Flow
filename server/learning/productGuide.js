@@ -14,7 +14,7 @@ BEE FLOW PRODUCT FACTS (ground truth for answering learner questions):
 
 CHAT
 - "New Chat" in the sidebar opens a fresh conversation. Users can chat free-form or pick an agent for specialised help.
-- The chat header has a Chat ⇄ Cowork switch: Chat answers here in the conversation; Cowork runs the work on its own — now or on a schedule — and reports back.
+- An empty chat's header has a Chat ⇄ Cowork switch (it disappears after the first message): Chat answers here in the conversation; Cowork mode creates a task straight from the chat with the older When / Repeat chips. The Cowork page itself is the main way in.
 
 AGENTS (Studio)
 - An agent = a system prompt (role, tone, rules) + tools (what it may do) + knowledge (documents it answers from).
@@ -38,9 +38,12 @@ AUTOMATIONS (Studio → Automations)
 - The schedule picker offers Every N minutes / Hourly / Daily / Weekly / Monthly / Advanced, with a timezone and a preview of the next 3 firing times.
 
 COWORK (sidebar, under New Chat)
-- Cowork is "describe it once, it runs on its own — now, later, or every week". One plain-language brief; Bee Flow's composer derives the title, instruction and schedule. Results land in the notification center.
-- The composer has three chips: When (Run now / In an hour / Tonight / Tomorrow morning / Next Monday / Pick a moment…), Repeat (Once up to Every year, incl. Every weekday), and Run as agent (an agent brings its own skills, knowledge and connected apps).
-- Any chip the user sets wins over what the AI infers from the brief. Each cowork item shows its run history; users can Edit, Run now, Pause/Resume, or Delete it. There is a per-user slot limit (default 10).
+- Cowork does recurring work for you while you do something else. Each job is a "task". The home asks "What should be done for you?": the user types ONE sentence and chooses "Show what I understood" (this creates nothing). "Start from a template" begins from a colleague's template.
+- A card "This is what I understood" answers with four lines, each changeable before anything exists: What (the task's name), When (day and time; "Which day?" when the sentence did not say), Uses (chips of the apps the sentence names; none named: Cowork picks them while setting up), Sends to ("Me" plus every e-mail address written in the sentence; "Show me each message first" is ticked when it sends to someone else). Editing the sentence re-reads it but keeps lines changed by hand.
+- "Set up and test" creates the task, sets up fixed steps and tests them once on real data, sending nothing ("Setting up the steps" · "Testing once, nothing is sent" · "Ready for your check"). A card under "Needs you" says "The steps are ready and tested. Check them once." with "Open and approve". The task does NOT run for real until its steps are approved; the first approval shows "This is what you would have received" with "Approve" and "Change something". Where the organisation has no fixed steps the button reads "Start" and the AI works the task out on every run. If set-up fails, a card offers "Try setting up again" or "Let the AI work it out every run".
+- The home lists "Needs you", "Your tasks", "Shared with you" (when not empty) and "Teamwork". The gear opens "Cowork preferences"; administrators also see "Admin rules". Status words: Done, Failed, Needs you, Scheduled, Running, Testing, Paused, Nothing to do ("Nothing to do" is a run that found nothing, not a failure).
+- A task opens as a page: "Run for real now", "Pause", "Share" (a disabled button says why underneath); then Settings with four rows, each with "Change" (no Edit screen): What (name, sentence, Target to track), When (schedule or what starts it), Uses (Apps it may use, How it works: "The AI works it out every run" / "An agent of yours does it" / "Fixed steps", What it remembers, Spending limit), Sends to (who receives it — changed by saying it in the sentence under What — and one "Ask me" choice: "Ask me before every change or message", "Show me each message first", "Don't ask", which opens after 10 runs let through and applies to fixed steps only). Then Steps ("Test, sends nothing", "Compare with last month"), People (Share, Send each result to a colleague's task, Save as template / Export as file, Give this task away), History (Runs, Changes, Proof of each run, and "Delete this task" at the bottom).
+- A failure is always a card under "Needs you" in plain words with one action ("Sign in again", "Fix it for me", "See what is wrong", "Run it again"); the raw error is under "Technical details". Results also land in the notification center (category Cowork). Limit: 10 tasks per person.
 
 MEMORY (Settings → Memory)
 - Bee Flow remembers facts and preferences mentioned in chat, across conversations. Everything is reviewable, editable, removable.

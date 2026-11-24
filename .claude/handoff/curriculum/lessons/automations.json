@@ -215,7 +215,7 @@
           "id": "b",
           "label": "Work out how many hours we billed last quarter, so the sales lead can quote the number in tomorrow's meeting — one answer, needed today.",
           "correct": false,
-          "feedback": "A one-off question needs no saved automation. Ask it in a chat, or hand it to Cowork once with When set to Run now."
+          "feedback": "A one-off question needs no saved automation. Ask it in a chat, or hand it to Cowork as a task that runs just once, today."
         },
         {
           "id": "c",

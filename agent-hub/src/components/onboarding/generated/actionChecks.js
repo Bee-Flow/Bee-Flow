@@ -282,9 +282,9 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "own-list",
                 "labelKey": "learn.check.cowork-apps-scoped.own-list.label",
-                "labelFallback": "A cowork item of your own exists",
+                "labelFallback": "A Cowork task of your own exists",
                 "hintKey": "learn.check.cowork-apps-scoped.own-list.hint",
-                "hintFallback": "Open Cowork and create one with a one-line brief if the list is empty. The per-item Apps list is saved inside the item, where this check cannot look — the counter under \"Apps it may use\" is your proof.",
+                "hintFallback": "Open Cowork and make one with a one-line sentence if Your tasks is empty. The task's own list of apps is saved inside the task, where this check cannot look: the chips under Apps it may use are your proof.",
                 "endpoint": "/api/cowork",
                 "expect": {
                     "kind": "rows",

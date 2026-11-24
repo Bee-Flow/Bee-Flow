@@ -1,92 +1,40 @@
 {
   "id": "cowork-hands-on",
   "icon": "🚀",
-  "estMinutes": 12,
+  "estMinutes": 13,
   "title": "Ship one real delegation — and repair it",
-  "desc": "Create, run, correct and pause a Cowork item, then read a failed run without guessing.",
+  "desc": "Create a Cowork task, approve its tested steps, run it for real, correct it in Settings, and read a failure without guessing.",
   "gate": {},
-  "learningGoal": "After this lesson you have one Cowork item that has actually run, and you can turn a failed run into a fixed one without guessing.",
+  "learningGoal": "After this lesson you have one Cowork task that has really run, and you can turn a failure card into a fixed task without guessing.",
   "steps": [
     {
       "type": "slide",
       "id": "plan",
       "icon": "🎒",
       "title": "The chapter where you stop reading",
-      "bodyMd": "Bart is a buyer at Van Dijk Groep. Every morning he re-reads supplier mail to work out what needs answering today — twenty minutes gone before he has started on anything of his own.\n\nReading about handing that over does not get it handed over. In the next twelve minutes you will create one item of your own, run it while you watch, read what it produced, and repair a run that went wrong.\n\nPick something **small, repeatable, and harmless if the first result is mediocre**. A first delegation does not have to impress anyone; it has to teach you where to look when the next one fails."
+      "bodyMd": "Bart is a buyer at Van Dijk Groep. Every morning he re-reads supplier mail to work out what needs answering today: twenty minutes gone before he has started on anything of his own.\n\nReading about handing that over does not get it handed over. In this chapter you make one task of your own, approve its steps, run it for real while you watch, read what it did, and learn where a failure shows up and what to press.\n\nPick something **small, repeatable, and harmless if the first result is mediocre**, and let it send only to yourself. A first task does not have to impress anyone; it has to teach you where to look when the next one fails."
     },
     {
       "type": "slide",
       "id": "undo",
       "icon": "↩️",
-      "title": "Nothing here is permanent — except one button",
-      "bodyMd": "Handing work to something that runs while you are not looking feels like losing control, so take the way back first.\n\n- **Pause** stops future runs and **Resume** puts them back. The item keeps its brief, its schedule and its history.\n- **Delete** is the one-way door: the dialog says the item stops running and *its history is removed*.\n\nYou get **10 cowork slots**. A paused item still holds its slot; only deleting gives one back. So spend one now, and at the end of the lesson pause it if you might want it — or delete it if you are sure you will not."
+      "title": "Nothing here is permanent, except one button",
+      "bodyMd": "Handing work to something that runs while you are not looking feels like losing control, so take the way back first.\n\n- **Pause**, at the top of the task, stops it from starting; **Resume** puts it back. The task keeps its settings, its steps and its history.\n- **Delete this task**, at the very bottom of the task's History, is the one-way door: *It stops for good, with its runs. This cannot be undone.*\n\nYou can have **10 tasks**. A paused task still counts; only deleting gives a place back. So make one now, and at the end of the chapter pause it if you might want it later, or delete it if you are sure you will not."
+    },
+    {
+      "type": "slide",
+      "id": "flow",
+      "icon": "🧭",
+      "title": "What happens after you press Set up and test",
+      "bodyMd": "1. The home shows your task's name with **Setting up the steps**, then **Testing once, nothing is sent**, then **Ready for your check**. The status reads **Testing** meanwhile.\n2. Under **Needs you**: *The steps are ready and tested. Check them once.* Press **Open and approve**.\n3. The task opens. Read **This is what you would have received**: the real output of the test. Press **Approve**, or **Change something** if it is not right.\n4. Press **Run for real now** at the top. That run is real: it reads your data and sends to who is under Sends to.\n\nIf setting up does not work, a card says *Cowork could not set up the steps.* and lets you choose **Try setting up again** or **Let the AI work it out every run**. Until you choose, the task waits."
     },
     {
       "type": "action",
       "id": "create",
       "icon": "🤝",
       "checkId": "cowork-first",
-      "title": "Create it — we check your real list",
-      "instruction": "Open Cowork and type one sentence describing work you would genuinely hand over. Before you send it, open the **When** chip and pick *Run now* — a chip you set by hand is never overruled by what the AI reads in your sentence, and your first item should run where you can watch it. The checklist reads your own Cowork list: it wants one item that exists and has run at least once, and an item you created earlier counts too. Use the minimise button at the top of this lesson to tuck it away while you work.",
-      "launch": {
-        "navigateTo": "cowork",
-        "label": "Open Cowork"
-      }
-    },
-    {
-      "type": "slide",
-      "id": "figures",
-      "icon": "📊",
-      "title": "The three figures, and what they actually count",
-      "bodyMd": "Open your item: three cards sit above the history.\n\n- **Runs** — the lifetime tally, with the date it started counting under it. It only ever goes up.\n- **Succeeded** — how many of the runs **still kept** went well, with *nothing went wrong* or *2 runs failed* under it.\n- **Average** — duration per run, shaped like *0m 48s*.\n\nThe two counts drift apart on purpose: history rows are kept for **90 days**, the lifetime tally forever. When the sweep has left no rows, Succeeded reads 0 and the line under it says *older runs are no longer kept* — never an all-clear about runs it cannot see.\n\nA dash in all three cards means they are still loading. *The figures for this work could not be loaded* means only the figures failed; brief, buttons and history still work."
-    },
-    {
-      "type": "quiz",
-      "id": "q-figures",
-      "icon": "🔢",
-      "question": "Bart's supplier digest ran every weekday last year, sat paused for months, and restarted three days ago. The figures now read Runs 42 next to Succeeded 3, with \"nothing went wrong\" underneath. What has happened?",
-      "multi": false,
-      "choices": [
-        {
-          "id": "a",
-          "label": "Nothing is wrong: Runs counts the whole lifetime, while Succeeded counts only the run history still kept — 90 days of it.",
-          "correct": true
-        },
-        {
-          "id": "b",
-          "label": "39 runs failed and the item needs fixing.",
-          "correct": false,
-          "feedback": "Failures are counted in the same kept window and are named out loud: the Succeeded card would read \"39 runs failed\" underneath, and every failed run also raises an urgent notification."
-        },
-        {
-          "id": "c",
-          "label": "The figures are broken and need a refresh.",
-          "correct": false,
-          "feedback": "When the figures cannot be read the cards show a dash and the line \"The figures for this work could not be loaded\" — not numbers that disagree."
-        },
-        {
-          "id": "d",
-          "label": "Someone deleted 39 runs from the history.",
-          "correct": false,
-          "feedback": "There is no way to delete a single run. Deleting is all-or-nothing: the delete dialog removes the item and its whole history together."
-        }
-      ],
-      "explanation": "Runs is the lifetime tally and survives; the kept history is trimmed after 90 days, so Succeeded and the failure line describe a shorter window. If that sweep had left nothing at all, the line under Succeeded would read \"older runs are no longer kept\" rather than \"nothing went wrong\"."
-    },
-    {
-      "type": "slide",
-      "id": "edit",
-      "icon": "✏️",
-      "title": "Edit is where you correct what the AI guessed",
-      "bodyMd": "**Edit** opens the item's own form, in this order:\n\n- **Name**, then **What it does** — *\"This is the instruction Bee Flow runs, unattended, at the scheduled moment\"*.\n- **Next run** and **At**, then **Repeat**, then **Only on** — day buttons that appear once you pick a repeat; leave them all off to use the repeat as-is.\n- **Apps it may use**, and **Run as** (only if you have agents to pick from).\n\nTwo things to know before you save:\n\n- **Save stays disabled** until both Name and What it does have text.\n- Moving **Next run** alone does not move a repeating series. The line you read in the list is built from **Repeat**, the time and **Only on** — change those.\n\nAfter his first run, Bart shortens his instruction here: \"per message: order number, amount, reply-by date\"."
-    },
-    {
-      "type": "action",
-      "id": "runnow",
-      "icon": "▶️",
-      "checkId": "cowork-first",
-      "title": "Run it, then read the run",
-      "instruction": "Open your item and press **Run now**. It fires immediately and does not move the next scheduled moment. The row under **What happened** reads *Still running…* until the run ends; when it does, click it open and you will see **Started by you** (or *Started on schedule*) and the full result. The check wants one run in that history that has finished.",
+      "title": "Make it, approve it, run it: we check your real list",
+      "instruction": "Open Cowork, type one sentence for work you would genuinely hand over, and choose **Show what I understood**. Check the four lines and leave only **Me** under Sends to. Press **Set up and test** (or **Start**, where that is the button), approve the steps under Needs you, and press **Run for real now** on the task. The checklist reads your own task list: it wants a task that exists and one run for real; the test does not count. A task you made earlier counts too. Use the minimise button at the top of this lesson to tuck it away while you work.",
       "launch": {
         "navigateTo": "cowork",
         "label": "Open Cowork"
@@ -94,168 +42,189 @@
     },
     {
       "type": "quiz",
-      "id": "q-pause",
-      "icon": "⏸️",
-      "question": "Bart is away for three weeks and does not want the daily digest piling up in his notifications. Which action can he take back when he returns?",
+      "id": "q-held",
+      "icon": "🔒",
+      "question": "On Bart's new task, Run for real now is greyed out, and under it reads: \"It cannot run for real yet: its steps wait for your approval.\" What gets him going?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Pause the item, then Resume it when he is back.",
+          "label": "Approve the steps: Open and approve under Needs you, read what the test produced, then Approve.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "Delete the item and recreate it in three weeks.",
+          "label": "Wait until 07:30 tomorrow; the schedule will start it anyway.",
           "correct": false,
-          "feedback": "The dialog is blunt about it: the item stops running and its history is removed, and this cannot be undone. He would lose every run he has collected."
+          "feedback": "The schedule is held back by the same rule. A task whose steps wait for approval skips its moments; nothing runs and nothing is sent."
         },
         {
           "id": "c",
-          "label": "Edit it and set Repeat to Once.",
+          "label": "Delete the task and make it again from the chat instead.",
           "correct": false,
-          "feedback": "That rewrites the series permanently — and it would still fire one more time, then switch itself off as finished."
-        },
-        {
-          "id": "d",
-          "label": "Switch off every app under \"Apps it may use\".",
-          "correct": false,
-          "feedback": "The run would still happen, just blind. It also gives the item its own app list from then on, which you then have to undo with \"Follow my workspace list\"."
+          "feedback": "That throws the tested steps away for nothing. The button already says what it needs: one approval."
         }
       ],
-      "explanation": "Pause is the reversible control: future runs stop, the item keeps its history and its schedule, and Resume puts it back. Delete is the only irreversible one on the screen."
+      "explanation": "A button that is off always says why under it. Here the why is the hold: the task runs for real only after you approved what its test produced."
     },
     {
       "type": "slide",
-      "id": "failnote",
-      "icon": "🔔",
-      "title": "What a failure looks like from the outside",
-      "bodyMd": "A finished run arrives in the bell under **Cowork** with the result as the message. A failed one arrives as an **urgent** notification titled *Cowork failed: your item's name*, with the reason in the text, and it **links straight back to the item**.\n\nFrom there, read the top row under **What happened**. The outcome line is the first line of the error; if the run gave no reason at all it reads *It failed without saying why*. Click the row open for the full error in monospace.\n\nOne detail that saves a panic: a **repeating** item still moves on to its next occurrence after a failure. A failed **one-off** is switched off instead, so it cannot retry itself every minute — you restart it yourself with Run now."
-    },
-    {
-      "type": "sim",
-      "id": "sim-fix",
-      "icon": "🧩",
-      "title": "Four failures, four different fixes",
-      "instruction": "Van Dijk Groep has four coworks misbehaving on the same morning. Match what the screen shows to the move that actually fixes it.",
-      "sim": {
-        "kind": "match",
-        "pairs": [
-          {
-            "id": "reauth",
-            "left": "The status word reads \"Needs sign-in\" and the item paused itself overnight",
-            "right": "Reconnect the account in Settings → Connections",
-            "note": "The mailbox connection expired. Connections is the personal screen in the Settings left-hand menu — Preferences, Appearance, Security, Memory, Connections, Learning Center, Help & Support — and it is where your own credential lives. Reconnecting un-pauses every schedule that was parked for that account, by itself — you do not touch the brief."
-          },
-          {
-            "id": "toolcap",
-            "left": "The result says the run reached the limit of 20 tool calls before it produced a final answer",
-            "right": "Split the brief into two coworks, or attach an agent",
-            "note": "Twenty tool calls — twenty goes at fetching, searching or reading — is the ceiling for one run. Hitting it is a size problem, not a wording problem."
-          },
-          {
-            "id": "running",
-            "left": "Run now is greyed out and the pill reads \"Running since 08:00:04\"",
-            "right": "Wait for the open run to finish",
-            "note": "One run at a time: the server refuses a second with \"This cowork is already running\". A run that hangs is closed automatically after 30 minutes."
-          },
-          {
-            "id": "oneoff",
-            "left": "A one-off failed last night and has not tried again since",
-            "right": "Fix it under Edit, then press Run now",
-            "note": "A failed one-off is deactivated on purpose so it cannot retry forever. Repeating items move to their next occurrence by themselves."
-          }
-        ]
-      }
+      "id": "read-task",
+      "icon": "📖",
+      "title": "Reading the task after its first run",
+      "bodyMd": "Open the task once the run is over.\n\n- At the top: its latest result, *Done · Today 07:31*, with the result itself and **Next:** with its next moment. *Nothing to do · …* is a run that found nothing to do.\n- **Steps**: *Fixed steps, the same on every run, top to bottom.* Each step says what it does: **Reads**, **Changes**, **Sends**, or **AI writes or decides**. **Test, sends nothing** tries them again on today's data.\n- **History**: **Runs** (every run in plain words), **Changes** (every change to the task, with Restore for earlier approved steps) and **Proof of each run**.\n\nThe result also reached your notifications, under Cowork."
     },
     {
       "type": "quiz",
       "id": "q-nothing",
       "icon": "🔍",
-      "question": "A run row shows a duration of 0m 31s and the outcome line \"Nothing to report\". What does that tell you?",
+      "question": "The next morning Bart's task reads \"Nothing to do · Today 07:30\". There is no card under Needs you. What does that tell him?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "The run finished normally and simply produced no text — it counts as succeeded.",
+          "label": "The run finished normally and found nothing to do, for example no new supplier mail.",
           "correct": true
         },
         {
           "id": "b",
           "label": "The run failed quietly.",
           "correct": false,
-          "feedback": "A failure shows the first line of the error instead, or \"It failed without saying why\", and always raises an urgent notification. This row did neither."
+          "feedback": "A failure is never quiet: the task would read Failed and a card under Needs you would name the step and the cause, with one action."
         },
         {
           "id": "c",
-          "label": "The run is still going.",
+          "label": "The run is still waiting for his approval.",
           "correct": false,
-          "feedback": "An open run reads \"Still running…\" and the header pill shows \"Running since\" with the clock time. This one has a finished duration."
-        },
-        {
-          "id": "d",
-          "label": "Bee Flow has no idea what the run did.",
-          "correct": false,
-          "feedback": "That case has its own wording: \"No output recorded\". \"Nothing to report\" is the run explicitly saying it looked and found nothing."
+          "feedback": "Then the word would be Needs you, with a card that asks him something. Nothing to do is a finished run."
         }
       ],
-      "explanation": "\"Nothing to report\" is a successful run with an empty answer — no new supplier mail, no open quotes. Only chase it if you expected output every time; then the brief or the time window is what needs changing."
+      "explanation": "Nothing to do is a success with an empty answer. Only chase it if you expected output every time; then the sentence or the time is what needs changing."
     },
     {
       "type": "slide",
-      "id": "reauth",
-      "icon": "🔑",
-      "title": "\"Needs sign-in\" is not your brief's fault",
-      "bodyMd": "Connections to mail, calendar and file storage expire. When one does, Bee Flow does not keep failing quietly: every schedule of yours that could have touched that account is **paused** and given the status word **Needs sign-in**, and you get one notification with a link into the sign-in flow.\n\nThe repair is a sign-in, not a rewrite. Reconnect the account under **Settings → Connections** — the personal screen in the Settings left-hand menu, sitting between **Memory** and **Learning Center**, where your own credentials for mail, calendar and storage are kept. The reconnect itself **un-pauses every item** that was parked for that account, so you do not have to hunt them down one by one.\n\nSo when you see that status word, stop reading the instruction. Editing a brief that never got as far as the mailbox only adds a second problem to the first."
+      "id": "settings-fix",
+      "icon": "✏️",
+      "title": "Correct it under Settings, not by starting over",
+      "bodyMd": "There is no Edit button. Everything is under **Settings**, in the same four rows as the card, each with **Change**:\n\n- **What**: the name, the sentence, and a **Target to track**.\n- **When**: when it starts, how often, which days, at what time.\n- **Uses**: the apps it may use and how it works.\n- **Sends to**: who receives it, and the one **Ask me** choice.\n\nTwo things to know before you save:\n\n- A name or a time is saved at once. A new sentence or other apps on a task with fixed steps is **Save and test**: Cowork rebuilds the steps, tests them once without sending, and you approve the changed steps before it runs again.\n- Recipients are not changed here. To send to someone else, *say so in the sentence under What*."
+    },
+    {
+      "type": "quiz",
+      "id": "q-pause",
+      "icon": "⏸️",
+      "question": "Bart is away for three weeks and does not want the daily digest piling up. Which move can he take back when he returns?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Pause at the top of the task, then Resume when he is back.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "Delete this task, and make it again in three weeks.",
+          "correct": false,
+          "feedback": "The confirmation is blunt about it: it stops for good, with its runs, and this cannot be undone. He would also have to set up and approve the steps again."
+        },
+        {
+          "id": "c",
+          "label": "Under Settings → When, set How often to Once.",
+          "correct": false,
+          "feedback": "That rewrites the schedule for good, and it would still run one more time. Pause is the switch made for this."
+        },
+        {
+          "id": "d",
+          "label": "Under Settings → Uses, switch every app off.",
+          "correct": false,
+          "feedback": "The task would still run, just blind, and on a task with fixed steps other apps mean Save and test and a new approval. That is not a pause."
+        }
+      ],
+      "explanation": "Pause is the reversible control: nothing starts, the task keeps its steps, settings and history, and Resume puts it back. Delete this task is the only irreversible button."
+    },
+    {
+      "type": "slide",
+      "id": "failnote",
+      "icon": "🔔",
+      "title": "What a failure looks like",
+      "bodyMd": "When a run goes wrong, the task's word becomes **Failed** and a card appears under **Needs you**, on the home and on the task alike. The card:\n\n- names the step and the cause in plain words, such as *'Check the order list' did not work in the last run.*;\n- offers **one** action that resolves it, and a way out;\n- keeps the raw error message under **Technical details**, for when you need it.\n\nA failed run also sends a notification, *Cowork failed*, that links straight to the task.\n\nWhat Cowork can repair without letting the task do more than before, it repairs by itself, tests, and tells you with **Undo**."
+    },
+    {
+      "type": "sim",
+      "id": "sim-fix",
+      "icon": "🧩",
+      "title": "Four cards, four different moves",
+      "instruction": "Van Dijk Groep has four tasks with a card under Needs you on the same morning. Match what the card says to the button that resolves it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "signin",
+            "left": "\"The sign-in of Outlook ran out.\"",
+            "right": "Sign in again",
+            "note": "The mailbox connection expired. Sign in again opens Settings → Connections, where your own credential lives. Then run it again; the sentence was never the problem."
+          },
+          {
+            "id": "wiring",
+            "left": "\"The steps are in the wrong order, so it cannot run.\"",
+            "right": "Fix it for me",
+            "note": "Cowork can put the steps in the right order itself. What the task may read and send stays the same."
+          },
+          {
+            "id": "setup",
+            "left": "\"Cowork could not set up the steps.\"",
+            "right": "Try setting up again, or Let the AI work it out every run",
+            "note": "Cowork never makes that second choice for you. Until you pick one, the task waits; the AI choice can be undone."
+          },
+          {
+            "id": "timeout",
+            "left": "\"The last run took too long and was stopped.\"",
+            "right": "Run it again",
+            "note": "Nothing about the task itself is wrong, so the first move is simply another run."
+          }
+        ]
+      }
     },
     {
       "type": "quiz",
       "id": "q-where-reconnect",
       "icon": "🧭",
-      "question": "Bart sees **Needs sign-in** on his supplier digest. He opens Settings, and his admin also opens Settings on her own screen. Which screen does *Bart* need to get his digest running again?",
+      "question": "A card on Bart's task says \"The sign-in of Outlook ran out.\" He opens Settings, and his admin also opens the admin dashboard on her own screen. Which screen does Bart need?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Settings → Connections — the personal screen in his own Settings menu, where his own credential for the mailbox lives.",
+          "label": "Settings → Connections: the personal screen in his own Settings menu, where his own credential for the mailbox lives. The card's Sign in again goes there.",
           "correct": true
         },
         {
           "id": "b",
           "label": "Admin dashboard → Security & access → Access → Grants.",
           "correct": false,
-          "feedback": "That is the admin screen, and it decides *who is allowed* to use an integration — it never holds Bart's own credential. Even after an admin grants access, Bart still has to connect his own account under Settings → Connections."
+          "feedback": "That admin screen decides who is allowed to use an integration; it never holds Bart's own credential. Even after a grant, Bart signs in to his own account under Settings → Connections."
         },
         {
           "id": "c",
-          "label": "The Cowork item's Edit form, under \"Apps it may use\".",
+          "label": "The task's Settings → Uses, under Apps it may use.",
           "correct": false,
-          "feedback": "That list narrows which connected apps this one item may touch. It cannot sign an expired account back in, and switching things off there only gives the item its own app list to undo later."
+          "feedback": "That list decides which apps this one task may use. It cannot sign an expired account back in."
         },
         {
           "id": "d",
           "label": "Settings → Security.",
           "correct": false,
-          "feedback": "Security covers his own sign-in to Bee Flow, not the accounts Bee Flow connects out to. Those live one row further down the same menu, under Connections."
+          "feedback": "Security covers his own sign-in to Bee Flow, not the accounts Bee Flow connects out to. Those live under Connections."
         }
       ],
-      "explanation": "Two different screens with similar-sounding names. **Settings → Connections** is personal: it is the row between Memory and Learning Center in your own Settings menu, and it holds your credentials. **Admin dashboard → Security & access → Access → Grants** is the admin grant that decides who may connect at all. A \"Needs sign-in\" cowork is always the first one — and the reconnect un-pauses every schedule parked for that account."
-    },
-    {
-      "type": "slide",
-      "id": "split",
-      "icon": "✂️",
-      "title": "Sometimes the fix is two items, not a better sentence",
-      "bodyMd": "The ceiling you just matched is the clearest sign that a better sentence will not help. An unattended run is allowed **20 tool calls** — twenty goes at fetching, searching or reading — and a stored result stops at 50,000 characters. A brief that says *\"check the mailbox, cross-check the order list, then draft a reply for each one\"* burns that budget and ends with nothing to show.\n\nSplit it when:\n\n- the brief contains an **and** that hides a second job,\n- the pieces would run on **different rhythms** (daily scan, weekly summary),\n- or one piece keeps failing and drags a working piece down.\n\nTwo items fail separately, each keeps its own history, and the figures tell you which half is fragile. Bart ends with a 07:30 digest and a separate Friday overview."
+      "explanation": "Settings → Connections is personal and holds your credentials; the admin's Grants decide who may connect at all. An expired sign-in is always the first one. Reconnecting also switches back on the tasks that paused themselves for it."
     },
     {
       "type": "exercise",
       "id": "ex-repair",
       "icon": "🎯",
-      "exerciseId": "ex-cowork-hands-on-split",
-      "title": "Your turn: repair an overloaded brief",
-      "instruction": "Bart's item keeps ending with the note that it hit the limit of 20 tool calls. His brief: \"Every weekday at 07:30, summarise new supplier mail, check each order number against our order list, draft a reply for every message, and give me a weekly overview on Friday.\" Rewrite it as **two separate coworks**. For each one, give a name, the instruction it should run (what the result must contain, so nobody has to answer a follow-up question), and when it runs and how often. Then say in one line what you will look at after the first run to know it worked.",
-      "placeholder": "e.g. 1) Name: Supplier mail digest — What it does: list every new supplier message from the last 24 hours, grouped per supplier, with order number, amount and reply-by date per message… — When: every weekday, 07:30. 2) Name: … 3) After the first run I check …",
+      "exerciseId": "ex-cowork-hands-on-repair",
+      "title": "Your turn: repair a task without starting over",
+      "instruction": "Bart's digest has run for two weeks. Two things are wrong: it should also go to inkoop@vandijk.nl, and it runs at 07:30 while he wants it at 07:00. Write, in three to five sentences, exactly what he does on the task page for each change: which row of Settings, what he changes, and what Cowork does next (saved at once, or Save and test with a new approval). Then say in one line what he checks after the next run to know it worked.",
+      "placeholder": "e.g. For the time he opens Settings → When, chooses Change and sets… That is saved at once. For the address he…",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -264,35 +233,35 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "You have a Cowork item that has really run, and a way back from anything it does next.\n\n- **Read the item honestly.** Runs is a lifetime number, Succeeded and the failure line describe the last 90 days of kept history, and Average tells you what the job costs in time.\n- **Correct instead of delete.** Edit sharpens the instruction and the schedule, Run now proves the fix on the spot, Pause and Resume are the reversible pair. Delete takes the history with it.\n- **Diagnose before you rewrite.** Needs sign-in means reconnect, a tool-call ceiling means split, \"Nothing to report\" means there was nothing — and only a real error message means the brief itself is wrong.\n\nIf the item you just made was only practice, pause it — or delete it to get the slot back."
+      "bodyMd": "You have a Cowork task that has really run, and a way back from anything it does next.\n\n- **Get it running.** Set up and test, approve what the test produced, then Run for real now. A greyed-out button always says what it waits for.\n- **Correct instead of delete.** Settings holds What, When, Uses and Sends to; a new sentence or other apps means Save and test and one more approval. Pause and Resume are the reversible pair.\n- **Read the card before you act.** A failure is a card under Needs you with one action: Sign in again, Fix it for me, See what is wrong or Run it again. Nothing to do is not a failure.\n\nIf the task you just made was only practice, pause it, or delete it to get the place back."
     }
   ],
   "rubrics": {
-    "ex-cowork-hands-on-split": {
-      "title": "Splitting an overloaded brief",
-      "task": "Rewrite one overloaded weekday brief as two separate cowork items, each with a name, a self-contained instruction that states what the result must contain, and its own moment plus repeat — followed by one line naming what the learner will check after the first run.",
+    "ex-cowork-hands-on-repair": {
+      "title": "Repairing a task in Settings",
+      "task": "The learner describes how to make two changes to an existing Cowork task on its page: add a colleague's address as a recipient, and move the time from 07:30 to 07:00. For each: which Settings row, what is changed, and what Cowork does next. Then one line on what to check after the next run.",
       "criteria": [
-        "Produces two items that can each run on their own, with no item depending on another item's output",
-        "Each item states what its result must contain, in enough detail that an unattended run never needs to ask a follow-up question",
-        "Each item names its own moment and repeat in concrete terms (a time and a rhythm such as every weekday or every week), not 'regularly'",
-        "Names something specific to check after the first run — the run row under What happened, the Succeeded or Average card, or the notification"
+        "Moves the time under Settings → When (Change), and says it is saved at once without a new approval.",
+        "Adds the recipient by saying it in the sentence under Settings → What (Sends to itself cannot be edited on the task page), and says that a task with fixed steps then rebuilds and tests its steps (Save and test) and needs approving again.",
+        "Does not delete and recreate the task, and does not use Pause as a fix.",
+        "Names something concrete to check after the next run: the latest result at the top, History → Runs, a message waiting under Needs you for the colleague's copy, or the notification."
       ],
       "passScore": 70,
-      "guidance": "Do not pass a single rewritten brief, however tidy: the point is two items. Do not pass a split that still chains ('the second one uses the output of the first'), and do not pass vague scheduling ('daily-ish', 'when needed') or an instruction phrased as a question to Bee Flow. A weekly overview that reads back the kept history is fine; a second item that merely renames the first is not."
+      "guidance": "Pass a plain, correct description even if informal. Do not pass an answer that edits recipients under Sends to directly, that looks for an Edit button, that deletes and recreates the task, or that claims the changed steps run without a new approval. Mentioning that the message to the colleague first waits under Needs you (Show me each message first) is a plus."
     }
   },
   "practiceTopic": {
-    "title": "Running, reading and repairing a cowork",
-    "summary": "How the figures, the run history, the buttons and the failure messages on a Cowork item actually behave.",
+    "title": "Running, reading and repairing a Cowork task",
+    "summary": "How a new task gets from Set up and test to its first real run, how to read and correct it, and what each kind of failure card asks you to press.",
     "facts": [
-      "The three figure cards are Runs (the lifetime tally, with 'since <date>' under it), Succeeded (counted from the kept history, with 'nothing went wrong' or '<n> runs failed' under it) and Average (duration per run).",
-      "Run history rows are kept for 90 days while the lifetime run count survives, which is why Runs can sit far above Succeeded; when the sweep has left no rows at all the Succeeded card says 'older runs are no longer kept' instead of 'nothing went wrong'.",
-      "Pause and Resume are reversible; the delete dialog 'Delete this cowork?' warns that the item stops running and its history is removed, and that this cannot be undone.",
-      "Run now fires the item immediately without moving the next scheduled moment, and is disabled while a run is open — the server refuses a second run with 'This cowork is already running'.",
-      "A failed run raises an urgent notification titled 'Cowork failed: <title>' that links back to the item; a repeating item still advances to its next occurrence, while a failed one-off is switched off and must be restarted with Run now.",
-      "The status word 'Needs sign-in' means an account connection expired: every schedule that could touch it is paused, and reconnecting under Settings → Connections (the personal screen in the Settings left-hand menu) un-pauses them straight away.",
-      "'Nothing to report' in the run history is a successful run that produced no text, and is different from 'No output recorded' and from 'It failed without saying why'.",
-      "One run may make at most 20 tool calls; when it hits that ceiling the result says so, and the fix is to split the brief or attach an agent."
+      "After Set up and test the home shows 'Setting up the steps', 'Testing once, nothing is sent' and 'Ready for your check', then a Needs you card 'The steps are ready and tested. Check them once.' with 'Open and approve'.",
+      "Run for real now is off while the steps wait for approval and says why under it: 'It cannot run for real yet: its steps wait for your approval.'; approving does not itself start a run.",
+      "The test of the steps and the approval do not count as a run; the task's first real run comes from Run for real now or from its schedule.",
+      "Pause and Resume are reversible; 'Delete this task' sits at the very bottom of History and its confirmation says it stops for good, with its runs, and cannot be undone. Each person can have 10 tasks, paused ones included.",
+      "There is no Edit screen: Settings holds What, When, Uses and Sends to; a name or a time saves at once, a new sentence or other apps on a task with fixed steps is 'Save and test' and needs a new approval.",
+      "Recipients cannot be edited on the task page; the Sends to row says to say it in the sentence under What.",
+      "A failure is always a card under Needs you that names the step and the cause, with one action such as Sign in again, Fix it for me, See what is wrong or Run it again; the raw error sits under Technical details.",
+      "An expired sign-in is repaired under Settings → Connections; reconnecting also resumes the tasks that paused themselves for it."
     ]
   }
 }

@@ -30,7 +30,7 @@ const DATA_DIR = path.join(__dirname, 'data', 'admin-dashboard-2026-11');
  * the data files, so pinning their hash here makes every manifest change a change
  * to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = 'afff565485157ed46460ccb9eb8bffc67d7149237893c1a44f5d397b6fafa838';
+const DATA_SHA256 = 'b1b73b454041d3138fafc734ad13659b2b0307b2a38617335969c983cb48d5fd';
 
 /** @returns {string[]} the manifest file names, sorted */
 function manifestFiles() {

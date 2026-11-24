@@ -43,9 +43,11 @@ export const TOUR_ANCHORS: Record<string, TourAnchor> = {
     // The "Building blocks" group in the automations list (sidebar), where reusable Steps live.
     'automation-building-blocks': { selector: '[data-tour="automation-building-blocks"]', owner: 'Studio/AutomationsStudio/BuildingBlocksGroup.tsx', reveal: {} },
 
-    // Cowork page (the composer renders on /app/cowork with nothing selected).
-    'cowork-composer': { selector: '[data-tour="cowork-composer"]', owner: 'cowork/CoworkComposer.jsx', reveal: {} },
-    'cowork-options': { selector: '[data-tour="cowork-options"]', owner: 'cowork/CoworkOptionsBar.jsx', reveal: {} },
+    // Cowork home (/app/cowork with no task open): the box with "Show what I understood", and the confirmation card
+    // with its four rows, which only renders after that button was pressed. The chat's Cowork mode carries the same
+    // two anchors on its older composer and its chips (cowork/CoworkComposer.tsx, cowork/CoworkOptionsBar.tsx).
+    'cowork-composer': { selector: '[data-tour="cowork-composer"]', owner: 'cowork/CoworkHomeComposer.tsx', reveal: {} },
+    'cowork-options': { selector: '[data-tour="cowork-options"]', owner: 'cowork/CoworkConfirmCard.tsx', reveal: {}, ephemeral: true },
 };
 
 // All registered selectors (for the validator test).

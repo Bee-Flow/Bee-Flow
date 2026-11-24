@@ -38,11 +38,11 @@ import { fileURLToPath } from 'node:url';
 // over the SHIPPED catalog on every frontend test run; this script is the fast
 // authoring-time version, run before generate.mjs.
 import {
-    NAV_SURFACE_GATES, ENDPOINT_SURFACE_GATES, PERMISSION_IMPLIES, endpointGate,
+    NAV_SURFACE_GATES, PERMISSION_IMPLIES, endpointGate,
 } from '../../../agent-hub/src/components/onboarding/surfaceGates.ts';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-const SG = { nav: NAV_SURFACE_GATES, endpoint: ENDPOINT_SURFACE_GATES };
+const SG = { nav: NAV_SURFACE_GATES };
 const IMPLIES = PERMISSION_IMPLIES;
 const expand = (perms) => {
     const out = new Set(perms);

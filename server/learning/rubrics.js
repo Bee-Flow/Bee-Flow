@@ -97,15 +97,15 @@ const LEGACY_RUBRICS = {
         guidance: 'Reward a brief a builder could implement without follow-up questions. "Automate my reports" or any description missing the trigger or destination should score below pass. Conditions ("skip when empty") are a plus, not a requirement.',
     },
     'ex-cowork-brief': {
-        title: 'Write a Cowork brief',
-        task: 'Write a brief you would hand to Cowork — one plain-language message that says what Bee Flow should do unattended, with enough detail that the result is useful, and when/how often it should run.',
+        title: 'Write the sentence for a Cowork task',
+        task: 'Write one sentence for a Cowork task that answers the four lines of the confirmation card: what comes out, when it runs, which app it reads from by name, and who receives it (any colleague by e-mail address).',
         criteria: [
-            'States a concrete piece of work (not just a topic — what should actually be produced or done)',
-            'Includes the detail that makes the result useful (what to include, focus on, or leave out; the desired shape of the result)',
-            'Says when or how often it should run (a moment, a schedule, or explicitly right now)',
+            'States a concrete result (not just a topic) with the detail that makes it useful',
+            'Says when it runs (a day and a time, a repeat, or explicitly once today)',
+            'Names the app or source it reads from, and who receives it, with colleagues as e-mail addresses',
         ],
         passScore: 70,
-        guidance: 'Reward briefs Bee Flow could run unattended without follow-up questions — the learner will not be there to clarify. "Look into our competitors" with no product, focus, or timing should score below pass. Mentioning where the result should go or an agent to run it is a plus, not a requirement.',
+        guidance: 'Reward sentences that fill the card correctly with nobody there to clarify. A topic with no result, no timing, or a recipient given only as a team name should score below pass.',
     },
     'ex-admin-rollout': {
         title: 'Plan a feature rollout',
