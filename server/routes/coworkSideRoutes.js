@@ -12,6 +12,8 @@
  *   GET /:id/hand-over/colleagues, POST /:id/hand-over → hand an item to a colleague (./coworkHandOverRoutes.js)
  *   GET, PUT /:id/start     → how an item starts: the clock or an event (./coworkStartRoutes.js)
  *   GET /shared, GET /shared/:id, GET/PUT /:id/shares → sharing with a team (./coworkShareRoutes.js)
+ *   POST /:id/plan/replay, GET /:id/plan/replay/:replayId → replay a changed plan on the item's past runs
+ *                             (./coworkReplayRoutes.js)
  *   GET /templates, GET/DELETE /templates/:id, POST /templates/:id/use, POST /:id/save-as-template → templates from
  *                             the organisation (./coworkTemplateRoutes.js)
  *
@@ -76,6 +78,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkStartRoutes').mountStartRoutes(router);
     require('./coworkShareRoutes').mountShareRoutes(router);
     require('./coworkReceiptRoutes').mountReceiptRoutes(router);
+    require('./coworkReplayRoutes').mountReplayRoutes(router);
     require('./coworkTemplateRoutes').mountTemplateRoutes(router);
 }
 

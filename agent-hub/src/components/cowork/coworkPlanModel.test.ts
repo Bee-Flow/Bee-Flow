@@ -2,7 +2,7 @@
  * What the plan card says, worked out from the plan the server sent (./coworkPlanModel.ts).
  */
 import { describe, it, expect } from 'vitest';
-import { appLabel, appsByEffect, canApprove, canTry, makeUpParts, planStatusOf } from './coworkPlanModel';
+import { appLabel, appsByEffect, canApprove, canReplay, canTry, makeUpParts, planStatusOf } from './coworkPlanModel';
 import { planState, supplierRadarDraft } from './coworkPlan.fixture';
 
 describe('where a plan stands', () => {
@@ -48,6 +48,15 @@ describe('what can be approved', () => {
         expect(canTry(planState({ automationId: null, draft: null }))).toBe(false);
         expect(canApprove(planState({ draft: null }))).toBe(false);
         expect(canApprove(planState({ automationId: null, draft: null }))).toBe(false);
+    });
+
+    it('only a changed plan nothing blocks can be replayed on the past runs', () => {
+        const draft = supplierRadarDraft();
+        const approved = { version: 1, fingerprint: draft.fingerprint, approvedAt: null, permissions: draft.permissions };
+        expect(canReplay(planState({ approved: { ...approved, fingerprint: 'older' } }))).toBe(true);
+        expect(canReplay(planState())).toBe(false);
+        expect(canReplay(planState({ approved, upToDate: true }))).toBe(false);
+        expect(canReplay(planState({ approved: { ...approved, fingerprint: 'older' }, draft: { ...draft, findings: [{ code: 'x', stepId: null, message: 'No.' }] } }))).toBe(false);
     });
 });
 

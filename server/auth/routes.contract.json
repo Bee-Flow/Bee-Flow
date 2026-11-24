@@ -1823,6 +1823,9 @@
     "GET /api/cowork/:id/plan/independence": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/plan/replay/:replayId": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/plan/trust": {
       "gate": "auth"
     },
@@ -5260,6 +5263,9 @@
       "gate": "auth"
     },
     "POST /api/cowork/:id/plan/make": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/replay": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/plan/try": {

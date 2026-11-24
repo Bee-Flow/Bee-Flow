@@ -32,6 +32,7 @@ const { toolIdentity } = require('./toolIdentity');
 const { recordSimulatedWrite, isUnderSimulatedPath, isNotFoundError } = require('./simulatedPaths');
 const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
 const { bestEffort } = require('../../utils/bestEffort');
+const { recordedIntegrationRead, answersFromRecordings } = require('./recordedReads.mts');
 
 /**
  * ── Safety: scan resolved inputs (toolInput scope) before anything leaves ──
@@ -243,12 +244,17 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // Per call, not per name: a tool whose effect follows its method
     // (nextcloud_request) is a read for a GET and dispatches for real in a dry run.
     const sideEffect = isSideEffectCall(step.tool, inputs);
+    // A replay reads nothing live: a read is answered from the earlier run's recording, before any gate or dispatch
+    // (./recordedReads.mts; a dry run with recordedReads only).
+    const recorded = recordedIntegrationRead(step, ctx, runState, mode, { sideEffect, emptyOutput: () => emptyDryRunOutput(step.tool, {}) });
+    if (recorded) return recorded;
     // A dry run fails a write on the same holes a live run does, except a
     // hole in data the dry run made up (./blankInputs, ./execCode.js header).
     if (sideEffect) failOnBlankInputs(step, missesThatFail(resolved.misses, runState, ctx, mode));
     const { policy, auditBase, guardedIn } = await guardInputs(step, ctx, mode, inputs, safety);
     const { resolveIntegration } = require('../integrations/integrationToolMap');
-    if (mode === 'dry_run' && sideEffect) {
+    // Under a replay even the permission catalog is not asked: it can reach the app to list its tools.
+    if (mode === 'dry_run' && sideEffect && !answersFromRecordings(ctx, mode)) {
         const refused = await dryRunWritePermission(step, ctx, inputs, deps);
         if (refused) return refused;
     }

@@ -3,7 +3,8 @@
  * carries out what its owner does with it: approve the plan that is on screen, or take it off.
  *
  * A plan nothing blocks can be tried first (./CoworkPlanTry.tsx): one run on the owner's real data in which nothing is
- * changed or sent, followed step by step.
+ * changed or sent, followed step by step. A changed plan can be replayed on what the past runs read
+ * (./CoworkPlanReplay.tsx).
  *
  * An item without a plan shows ONE way to give it one in sight, to someone whose organisation has automations: "Make
  * it routine" (./CoworkRoutine.tsx) when its past runs say so, otherwise "Make a plan" from the brief
@@ -19,10 +20,11 @@ import type { ReactNode } from 'react';
 import CoworkPlanCard from './CoworkPlanCard';
 import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
+import CoworkPlanReplay from './CoworkPlanReplay';
 import CoworkIndependenceLine from './CoworkIndependenceLine';
 import CoworkRoutine from './CoworkRoutine';
 import CoworkRoutineCompare from './CoworkRoutineCompare';
-import { canTry } from './coworkPlanModel';
+import { canReplay, canTry } from './coworkPlanModel';
 import { useCoworkPlanActions, useCoworkPlanQuery, useCoworkPlanTry, usePlanAutomations } from '../../api/queries/coworkPlan';
 import { isRoutineWorthIt, useCoworkRoutine } from '../../api/coworkRoutine';
 import useCoworkPlanMaker from '../../hooks/useCoworkPlanMaker';
@@ -142,8 +144,11 @@ function PlanAttachGate({ coworkId, mailTriggered, maker, t, fallback }: GatePro
     );
 }
 
-/** The try-out of the plan on screen: started here, followed until it is over. */
-function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: string; t: TranslateFn }) {
+/**
+ * The try-out of the plan on screen: started here, followed until it is over. A changed plan can also be replayed on
+ * what the past runs read (./CoworkPlanReplay.tsx), before it is approved.
+ */
+function PlanTry({ coworkId, fingerprint, replay, t }: { coworkId: string; fingerprint: string; replay: boolean; t: TranslateFn }) {
     const { start, started, state, error } = useCoworkPlanTry(coworkId);
     return (
         <>
@@ -157,6 +162,7 @@ function PlanTry({ coworkId, fingerprint, t }: { coworkId: string; fingerprint: 
             />
             {/* The proof of "make it routine": this try-out next to the last run the AI made, when there is one. */}
             <CoworkRoutineCompare coworkId={coworkId} tryId={state?.tryId ?? null} done={!!state?.done} t={t} />
+            {replay && <CoworkPlanReplay coworkId={coworkId} t={t} />}
         </>
     );
 }
@@ -176,7 +182,7 @@ export default function CoworkPlanPanel({ coworkId, mailTriggered = false, fallb
     if (!state) return null;
     if (!state.automationId) return <PlanAttachGate coworkId={coworkId} mailTriggered={mailTriggered} maker={maker} t={t} fallback={fallback} />;
     const busy = approve.isPending ? 'approve' : remove.isPending ? 'remove' : null;
-    const tryOut = state.draft && canTry(state) ? <PlanTry coworkId={coworkId} fingerprint={state.draft.fingerprint} t={t} /> : null;
+    const tryOut = state.draft && canTry(state) ? <PlanTry coworkId={coworkId} fingerprint={state.draft.fingerprint} replay={canReplay(state)} t={t} /> : null;
     return (
         <CoworkPlanCard
             state={state}

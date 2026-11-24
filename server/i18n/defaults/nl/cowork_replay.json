@@ -1,0 +1,27 @@
+{
+  "translations": {
+    "cowork_replay.again": "Opnieuw naspelen",
+    "cowork_replay.heading": "De afgelopen maand naspelen",
+    "cowork_replay.headline.all_same": "{same} van {full} hetzelfde",
+    "cowork_replay.headline.none_full": "Geen van de eerdere runs kon helemaal worden nagespeeld.",
+    "cowork_replay.headline.one_differs": "{same} van {full} hetzelfde, 1 anders",
+    "cowork_replay.headline.some_differ": "{same} van {full} hetzelfde, {differs} anders",
+    "cowork_replay.hint": "Speelt het gewijzigde plan na op wat de eerdere runs lazen. Er wordt niets uit je apps gelezen, gewijzigd of verstuurd.",
+    "cowork_replay.line.differs": "Helemaal nagespeeld: het komt anders uit.",
+    "cowork_replay.line.not_replayable": "Kon niet worden nagespeeld: {reason}",
+    "cowork_replay.line.partial": "Deels nagespeeld: van {count} stappen was niets opgenomen. Ze zijn nieuw, of vragen iets anders dan toen.",
+    "cowork_replay.line.partial_one": "Deels nagespeeld: van 1 stap was niets opgenomen. Die is nieuw, of vraagt iets anders dan toen.",
+    "cowork_replay.line.same": "Helemaal nagespeeld: het komt hetzelfde uit.",
+    "cowork_replay.reason.failed": "het naspelen van deze run stopte met een fout.",
+    "cowork_replay.reason.no_automation_run": "er is niets van over om na te spelen.",
+    "cowork_replay.reason.no_plan": "deze run volgde geen plan.",
+    "cowork_replay.reason.not_recorded": "wat deze run las, wordt niet meer bewaard.",
+    "cowork_replay.reason.too_old": "deze run is ouder dan de geschiedenis bewaart.",
+    "cowork_replay.replaying": "Bezig met naspelen…",
+    "cowork_replay.running": "Het plan wordt nagespeeld op de eerdere runs…",
+    "cowork_replay.start": "De afgelopen maand naspelen",
+    "cowork_replay.starting": "Starten…",
+    "cowork_replay.stopped": "Het naspelen stopte voordat alle eerdere runs waren nagespeeld."
+  },
+  "sameAsEnglish": []
+}

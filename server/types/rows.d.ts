@@ -1260,6 +1260,32 @@ declare namespace DbRow {
         seq: number;
         signature: string | null;
     }
+    /** Row of `cowork_replay_events`. */
+    interface CoworkReplayEvents {
+        created_at: Date;
+        differing_steps: Json;
+        missing_steps: number;
+        past_run_id: string;
+        past_started_at: Date | null;
+        reason: string | null;
+        replay_id: string;
+        verdict: string;
+    }
+    /** Row of `cowork_replays`. */
+    interface CoworkReplays {
+        differs: number;
+        fingerprint: string;
+        finished_at: Date | null;
+        id: string;
+        not_replayable: number;
+        partial: number;
+        same: number;
+        schedule_id: string;
+        started_at: Date;
+        status: string;
+        total: number;
+        user_id: string;
+    }
     /** Row of `cowork_runs`. */
     interface CoworkRuns {
         activity_json: string | null;
