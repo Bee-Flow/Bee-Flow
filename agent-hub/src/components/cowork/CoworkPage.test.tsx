@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkPage from './CoworkPage';
+import { softClasses } from './crisp.testkit';
 import type { CoworkItem } from '@/api/cowork.types';
 
 const ITEM: CoworkItem = {
@@ -174,26 +175,6 @@ describe('CoworkPage', () => {
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && path(c) === '/api/cowork/new/plan/make')).toBe(true));
     });
 });
-
-// What "crisp" forbids on anything that holds text, at rest: a transform, a filter, a backdrop filter, will-change.
-const SOFT = /^-?(translate|scale|rotate|skew)-|^transform(-|$)|^(blur|backdrop|will-change|brightness|contrast|grayscale|saturate|drop-shadow)-|^(blur|filter|grayscale)$|^animate-(spin|bounce|ping|fade-in)$|^(bf-step-in|sidebar-slide-in|modal-slide-in-\w+)$/;
-// Not at rest (a pointer or a key is on it), or not the element itself (a part drawn before or after it).
-const NOT_AT_REST = /^(hover|active|focus|focus-visible|focus-within|group-hover|peer-hover|enabled:hover|after|before|peer-checked:after|peer-focus-visible)$/;
-
-/** The classes of `root` and everything in it that hold text and would be drawn soft. */
-function softClasses(root: HTMLElement): string[] {
-    const found: string[] = [];
-    for (const el of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
-        if (!(el.textContent ?? '').trim()) continue;
-        for (const token of el.getAttribute('class')?.split(/\s+/) ?? []) {
-            const parts = token.split(':');
-            const utility = parts[parts.length - 1];
-            if (parts.slice(0, -1).some((variant) => NOT_AT_REST.test(variant))) continue;
-            if (SOFT.test(utility)) found.push(`${el.tagName.toLowerCase()}.${token}`);
-        }
-    }
-    return found;
-}
 
 describe('the Cowork page is crisp', () => {
     it('nothing that holds text carries a transform, a filter or a backdrop filter at rest: the home, and a page', async () => {

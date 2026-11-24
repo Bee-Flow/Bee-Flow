@@ -25,7 +25,7 @@ function NoAiOffer({ offer, actions, t }: { offer: CoworkProposal; actions: Acti
     return (
         <section className={CARD_SOFT} data-testid="cowork-task-offer-noai">
             <div className={CARD_HEAD}>{t('cowork_task.offer.noai_heading', 'One step can run without AI')}</div>
-            <p className="text-[15px]">
+            <p className="text-[14px]">
                 {t('cowork_task.offer.noai_line', "'{step}' gave the same result in {same} of {full} replays. Without AI it is faster and costs nothing. You can undo this.", { step: offer.stepTitle ?? '', same: replay?.same ?? 0, full })}
             </p>
             <div className={ROW_ACTIONS}>
@@ -49,11 +49,11 @@ function Comparison({ advice, t }: { advice: RoutineAdvice; t: TranslateFn }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" data-testid="cowork-task-offer-compare">
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 flex flex-col gap-1.5 text-[14px]">
-                <h4 className="font-semibold">{t('cowork_task.offer.now_heading', 'Now: the AI does it each time')}</h4>
+                <h3 className="m-0 text-[14px] leading-5 font-semibold">{t('cowork_task.offer.now_ai', 'Now: the AI works it out every run')}</h3>
                 <span>{t('cowork_task.offer.now_line', 'It works out the steps again on every run.')}</span>
             </div>
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 flex flex-col gap-1.5 text-[14px]">
-                <h4 className="font-semibold">{t('cowork_task.offer.steps_heading', 'As fixed steps')}</h4>
+                <h3 className="m-0 text-[14px] leading-5 font-semibold">{t('cowork_task.offer.steps_heading', 'As fixed steps')}</h3>
                 <span>{t('cowork_task.offer.steps_line', 'The same steps every run. The AI only writes or judges where it must.')}</span>
                 {apps.length > 0 && <span className={META}>{t('cowork_task.offer.steps_apps', 'Every run used: {apps}.', { apps: apps.join(', ') })}</span>}
             </div>
@@ -66,14 +66,14 @@ function RoutineOffer({ advice, busy, onAccept, onLater, t }: { advice: RoutineA
     return (
         <section className={CARD_SOFT} data-testid="cowork-task-offer-routine">
             <div className={CARD_HEAD}>{t('cowork_task.offer.routine_heading', 'Turn it into fixed steps?')}</div>
-            <p className="text-[15px]">
+            <p className="text-[14px]">
                 {t('cowork_task.offer.routine_line', 'This task did the same thing the last {count} times. As fixed steps it is faster and cheaper, and the result stays the same.', { count: advice.signals?.runs ?? 0 })}
             </p>
             <button type="button" className={`${BTN_LINK} self-start`} aria-expanded={proof} onClick={() => setProof((v) => !v)}>
                 {proof ? t('cowork_task.offer.hide_compare', 'Hide the comparison') : t('cowork_task.offer.show_compare', 'See the comparison')}
             </button>
             {proof && <Comparison advice={advice} t={t} />}
-            <p className={META}>{t('cowork_task.offer.routine_safe', 'Cowork makes the steps from these runs and tries them once. Nothing is sent, and they run only after you approve them.')}</p>
+            <p className={META}>{t('cowork_task.offer.routine_tested', 'Cowork makes the steps from these runs and tests them once. Nothing is sent, and they run only after you approve them.')}</p>
             <div className={ROW_ACTIONS}>
                 <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={onAccept}>{t('cowork_task.offer.routine_accept', 'Turn into fixed steps')}</button>
                 <button type="button" className={BTN_QUIET} onClick={onLater}>{t('cowork_task.not_now', 'Not now')}</button>

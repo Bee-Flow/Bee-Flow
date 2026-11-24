@@ -1,6 +1,6 @@
 /**
- * A task someone else shared with the reader, opened in the sheet (`kind: 'shared'` of ../coworkSheetPanels.ts): read only. Its status, name, when it
- * runs, "Shared by …" with what the reader may do, its latest result and its earlier runs (server
+ * A task someone else shared with the reader, opened as a page (`kind: 'shared'` of ../coworkSheetPanels.ts): read
+ * only. Its status, name, when it runs, "Shared by …" with what the reader may do, its latest result and its earlier runs (server
  * usecases/coworkShares.mts sharedView). No actions: only its owner changes it, and a reader who may answer does so
  * where its questions arrive.
  */
@@ -8,6 +8,7 @@ import CoworkTaskHeader from './CoworkTaskHeader';
 import CoworkTaskResult from './CoworkTaskResult';
 import CoworkTaskRuns from './CoworkTaskRuns';
 import { latestRunOf } from './coworkTaskModel';
+import { whenLine } from '../coworkOverviewModel';
 import { taskStatus } from '../coworkTaskStatus';
 import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { META } from './taskUi';
@@ -45,10 +46,10 @@ export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
     const { item, runs } = shared;
     const role = view.data.role === 'approver' ? 'approver' : 'viewer';
     return (
-        <div className="flex flex-col gap-5" data-testid="cowork-task-shared">
-            <CoworkTaskHeader item={item} status={taskStatus(item)} sends={t('cowork_task.head.sends_owner', "as {owner} set it up", { owner })} goal={null} sharedBy={{ owner, role }} t={t} />
-            <CoworkTaskResult coworkId={item.id} item={item} latest={latestRunOf(runs)} withReceipt={false} t={t} />
-            <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} t={t} />
+        <div className="flex flex-col gap-6" data-testid="cowork-task-shared">
+            <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
+            <CoworkTaskResult item={item} latest={latestRunOf(runs)} t={t} />
+            <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />
         </div>
     );
 }

@@ -3,13 +3,16 @@
  *
  *   - how it works: the AI each time, an agent of the owner, or fixed steps;
  *   - its steps in RUN ORDER (the order of the plan's edges, server core/cowork/plan/planOrder.mts), each with its
- *     kind word (Reads, Changes, Sends, AI writes or decides) and its app, never a tool name; for a task the AI or an
- *     agent does, what its last run did;
+ *     kind word (Reads, Changes, Sends to …, AI writes or decides) and its app, never a tool name; for a task the AI
+ *     or an agent does, what its last run did;
  *   - what it may read, change and send;
- *   - which runs are on the go, which one is the latest result, and each run in one plain line.
+ *   - which runs are on the go, which one is the latest result, and each run with its status word and one plain line.
+ *     A run's raw error is never part of that line: the server's own plain sentence is (`plain`), or a general one.
  */
 import { appLabel, appsByEffect } from '../coworkPlanModel';
 import { plainStepTitle } from '../coworkOverviewModel';
+import { recipientWord } from './coworkTaskSendsModel';
+import type { TaskStatus } from '../coworkTaskStatus';
 import type { CoworkItem, CoworkRun, CoworkRunTool } from '@/api/cowork.types';
 import type { PlanEffect, PlanState, PlanStep } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -34,6 +37,8 @@ export interface TaskStep {
     helper: boolean;
     /** Changed or new since the steps were last approved. */
     changed: boolean;
+    /** Who a step that sends reaches, as the plan says it ('owner', addresses, '*'); null when unknown or it sends nothing. */
+    to: string | null;
 }
 
 const SORT_OF_EFFECT: Record<PlanEffect, StepSort> = { reads: 'read', writes: 'change', sends: 'send' };
@@ -65,6 +70,7 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
         app: step.app ? appLabel(step.app) : null,
         helper: !!step.helper,
         changed: changed.has(step.id),
+        to: state.draft?.recipients?.[step.id] ?? null,
     }));
 }
 
@@ -84,18 +90,25 @@ export function runSteps(run: CoworkRun | null | undefined, t: TranslateFn): Tas
         app: tool.app ? appLabel(tool.app) : null,
         helper: false,
         changed: false,
+        to: null,
     }));
     if (!run) return steps;
-    return [...steps, { id: 'ai-result', title: t('cowork_task.steps.ai_result', 'Write the result'), sort: 'ai', app: null, helper: false, changed: false }];
+    return [...steps, { id: 'ai-result', title: t('cowork_task.steps.ai_result', 'Write the result'), sort: 'ai', app: null, helper: false, changed: false, to: null }];
+}
+
+/** "Sends to you", "Sends to sam@hoekstra.example"; plain "Sends" when the plan does not say to whom. */
+function sendsWord(to: string | null | undefined, t: TranslateFn): string {
+    const who = recipientWord(to, t);
+    return who ? t('cowork_task.steps.word.send_to', 'Sends to {who}', { who }) : t('cowork_task.steps.word.send', 'Sends');
 }
 
 /** The word under a step's title. */
-export function stepWord(step: Pick<TaskStep, 'sort' | 'helper'>, t: TranslateFn): string {
-    if (step.helper) return t('cowork_task.steps.word.helper', 'Helper step');
+export function stepWord(step: Pick<TaskStep, 'sort' | 'helper'> & { to?: string | null }, t: TranslateFn): string {
+    if (step.helper) return t('cowork_task.steps.word.between', 'In-between step');
     switch (step.sort) {
         case 'ai': return t('cowork_task.steps.word.ai', 'AI writes or decides');
         case 'ask': return t('cowork_task.steps.word.ask', 'Asks you');
-        case 'send': return t('cowork_task.steps.word.send', 'Sends');
+        case 'send': return sendsWord(step.to, t);
         case 'change': return t('cowork_task.steps.word.change', 'Changes');
         default: return t('cowork_task.steps.word.read', 'Reads');
     }
@@ -141,22 +154,44 @@ function firstLine(text: string | null | undefined): string {
     return lines.find((line) => /[\p{L}\p{N}]/u.test(line)) ?? '';
 }
 
-/** One plain line for a run: what came out of it, or what stopped it. */
-export function runLine(run: CoworkRun, t: TranslateFn): string {
+const WAITING: ReadonlySet<string> = new Set(['waiting', 'needs_review', 'awaiting_approval']);
+
+/** A run in the one status vocabulary (../coworkTaskStatus.ts): Running, Needs you, Failed, Nothing to do or Done. */
+export function runStatus(run: Pick<CoworkRun, 'status' | 'review' | 'producedOutput'>): TaskStatus {
+    if (run.status === 'running') return 'running';
+    if (WAITING.has(run.status) || (run.review && !run.review.resolution)) return 'needs';
+    if (runFailed(run)) return 'failed';
+    return run.producedOutput === false ? 'nothing' : 'done';
+}
+
+/** A run that is still open, in a line; null for one that is over. */
+function openLine(run: CoworkRun, t: TranslateFn): string | null {
     if (run.status === 'running') return t('cowork_task.run.running', 'Running now…');
     if (run.status === 'waiting') return t('cowork_task.run.waiting', 'Waits for your decision.');
     if (run.review && !run.review.resolution) return t('cowork_task.run.review', 'Waits for your check: {reason}', { reason: firstLine(run.review.reason) });
-    if (run.error) return firstLine(run.error) || t('cowork_task.run.failed', 'It stopped without saying why.');
-    if (runFailed(run)) return t('cowork_task.run.failed', 'It stopped without saying why.');
+    return null;
+}
+
+/** One plain line for a run: the server's own sentence when it has one, else what came out of it, or that it stopped. */
+export function runLine(run: CoworkRun, t: TranslateFn): string {
+    const open = openLine(run, t);
+    if (open) return open;
+    const plain = firstLine(run.plain);
+    if (plain) return plain;
+    if (run.error || runFailed(run)) return t('cowork_task.run.stopped', 'It stopped before it was done.');
     if (run.producedOutput === false) return t('cowork_task.run.nothing', 'Nothing to do this time.');
     return firstLine(run.result) || t('cowork_task.run.no_text', 'It finished without a text.');
 }
 
-/** Why a run went the way it did, for its opened row: the AI's own verdict or the review's reason where there is one. */
+/**
+ * Why a run went the way it did, for its opened row: the review's reason where there is one, else the server's plain
+ * sentence, else a general one. Its raw error goes under "Technical details" (./CoworkTaskRuns.tsx), never here.
+ */
 export function runReason(run: CoworkRun, t: TranslateFn): string {
     if (run.review?.reason) return run.review.reason;
-    if (run.error) return run.error;
-    if (runFailed(run)) return t('cowork_task.run.reason_failed', 'This run stopped before it changed or sent anything.');
+    const plain = run.plain?.trim();
+    if (plain) return plain;
+    if (run.error || runFailed(run)) return t('cowork_task.run.reason_stopped', 'This run stopped before it was done. What it had already done stays done.');
     if (run.producedOutput === false) return t('cowork_task.run.reason_nothing', 'There was nothing to do this time.');
     return t('cowork_task.run.reason_done', 'Every step finished as planned.');
 }

@@ -50,6 +50,24 @@ export function recipientOf(step: DefStep | null | undefined): string {
     return found.size > 0 ? [...found].sort().join(',') : ANY_RECIPIENT;
 }
 
+/** A result for the owner (a plan's own notification): it reaches nobody else (./plan/planRunCopy.mts). */
+export const OWNER_RECIPIENT = 'owner';
+
+/**
+ * Who each sending step of a plan reaches, by step id, for the plan's card: a result goes to the owner
+ * (OWNER_RECIPIENT), any other step that sends to the addresses the plan fixes (`recipientOf`), or ANY_RECIPIENT when
+ * the plan picks them from data. Steps that send nothing are left out, and so is a loop: the step inside it says it.
+ */
+export function sendsToOf(definition: Definition | null | undefined, lookups: ToolLookups): Record<string, string> {
+    const byId = new Map(stepsOf(definition).map((s) => [s.id, s.step]));
+    const out: Record<string, string> = {};
+    for (const step of planViewOf(definition, lookups).steps) {
+        if (step.kind === 'deliver') out[step.id] = OWNER_RECIPIENT;
+        else if (step.effect === 'sends' && step.type !== 'loop') out[step.id] = recipientOf(byId.get(step.id));
+    }
+    return out;
+}
+
 /** The steps a question in front of `rootId` is about: the step itself, or what changes or sends inside its loop. */
 export function stepsUnder(definition: Definition, rootId: string, lookups: ToolLookups): DefStep[] {
     const walked = stepsOf(definition);

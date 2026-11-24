@@ -1,53 +1,31 @@
 /**
- * The top of an opened task (./CoworkTaskView.tsx): its status, its name, when it runs and who it sends to, and its
- * goal. A task someone shared says by whom, and what the reader may do with it. Under it, the three actions an owner
- * has: Run now, Pause or Resume, and Edit, each off while something is on the go, Run now also while the task waits
- * for its owner.
+ * The top of an opened task (./CoworkTaskView.tsx): its status and its name. When it runs and who it sends to are in
+ * its Settings, right under it. A task someone shared says when it runs, by whom it is shared, and what the reader
+ * may do with it.
+ *
+ * Under it, the three actions an owner has: "Run for real now", Pause or Resume, and Share (which opens the Share row
+ * under People). A button that is off says why, on the button and in a line under the buttons: while something is on
+ * the go, and for running also while the task waits for its owner (its steps wait for approval or a first test, or
+ * something has to be fixed first).
  */
-import type { ReactNode } from 'react';
-import { Pause, Pencil, Play } from 'lucide-react';
-import { goalCountText } from '../coworkGoalModel';
-import { whenLine } from '../coworkOverviewModel';
+import { Pause, Play, Share2 } from 'lucide-react';
+import { SWAP } from '../coworkMotion';
 import { isMailTriggerItem } from '../mailTrigger';
 import CoworkStatusPill from '../CoworkStatusPill';
 import { BTN_PRIMARY, BTN_QUIET, META, ROW_ACTIONS, TAG_ACCENT } from './taskUi';
-import type { CoworkGoal } from '@/api/coworkGoals';
-import type { PlanPermissions } from '@/api/coworkPlan.types';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { TaskStatus } from '../coworkTaskStatus';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import type { TaskMode } from './coworkTaskModel';
-
-type HeaderItem = Pick<CoworkItem, 'title' | 'prompt' | 'isActive' | 'repeatInterval' | 'daysOfWeek' | 'timeOfDay' | 'nextRunAt' | 'lastStatus' | 'enabledApps' | 'trigger' | 'triggerKind'>;
-
-/** Who it sends to, in a few words. */
-export function sendsWords({ item, mode, sends }: { item: HeaderItem; mode: TaskMode; sends: PlanPermissions['sends'] | null }, t: TranslateFn): string {
-    if (isMailTriggerItem({ triggerKind: item.triggerKind ?? null, trigger: item.trigger })) return t('cowork_task.head.sends_draft', 'drafts a reply to the sender');
-    if (mode === 'steps' && sends === 'none') return t('cowork_task.head.sends_nothing', 'sends nothing');
-    if (mode === 'steps' && sends === 'others') return t('cowork_task.head.sends_others', 'sends to other people');
-    return t('cowork_task.head.sends_you', 'sends only to you');
-}
 
 interface SharedBy { owner: string; role: 'viewer' | 'approver' }
 
 interface CoworkTaskHeaderProps {
-    item: HeaderItem;
+    item: Pick<CoworkItem, 'title'>;
     status: TaskStatus;
-    sends: string;
-    goal: CoworkGoal | null;
+    /** A task someone shared: when it runs, as its owner set it up. */
+    meta?: string;
     sharedBy?: SharedBy | null;
-    /** When it runs, when the caller says it better (a link to the task it follows); else from the item. */
-    when?: ReactNode;
     t: TranslateFn;
-}
-
-function GoalLine({ goal, t }: { goal: CoworkGoal; t: TranslateFn }) {
-    const sentence = goal.sentence.replace(/[.!?]+$/, '');
-    return (
-        <p className={META} data-testid="cowork-task-goal">
-            {t('cowork_task.head.goal', 'Goal: {sentence}. {count}.', { sentence, count: goalCountText(goal.count, t).replace(/^./, (c) => c.toUpperCase()) })}
-        </p>
-    );
 }
 
 function SharedLine({ shared, t }: { shared: SharedBy; t: TranslateFn }) {
@@ -63,51 +41,69 @@ function SharedLine({ shared, t }: { shared: SharedBy; t: TranslateFn }) {
     );
 }
 
-export default function CoworkTaskHeader({ item, status, sends, goal, sharedBy = null, when, t }: CoworkTaskHeaderProps) {
+export default function CoworkTaskHeader({ item, status, meta, sharedBy = null, t }: CoworkTaskHeaderProps) {
     return (
         <header className="flex flex-col gap-1.5" data-testid="cowork-task-header">
-            <div><CoworkStatusPill status={status} /></div>
-            <h2 className="text-[26px] leading-[1.2] font-bold break-words text-[var(--text-primary)]">
+            <div key={status} className={SWAP}><CoworkStatusPill status={status} /></div>
+            <h1 className="m-0 text-[20px] leading-7 font-semibold break-words text-[var(--text-primary)] outline-none">
                 {item.title || t('cowork_task.head.untitled', 'Untitled task')}
-            </h2>
-            <p className={META} data-testid="cowork-task-when">{when ?? whenLine(item, t)} · {sends}</p>
-            {goal && <GoalLine goal={goal} t={t} />}
+            </h1>
+            {meta && <p className={META} data-testid="cowork-task-when">{meta}</p>}
             {sharedBy && <SharedLine shared={sharedBy} t={t} />}
         </header>
     );
 }
 
+/** What holds the task back from running for real now; null when nothing does. */
+export type HeldBy = 'live' | 'approval' | 'test' | 'problem' | null;
+
+/** Why a button is off, in one line; null when nothing holds the task back. */
+function heldWords(heldBy: HeldBy, t: TranslateFn): string | null {
+    switch (heldBy) {
+        case 'live': return t('cowork_task.held.live', 'It is running or being tested right now. You can run or pause it once that is over.');
+        case 'approval': return t('cowork_task.held.approval', 'It cannot run for real yet: its steps wait for your approval.');
+        case 'test': return t('cowork_task.held.test', 'It cannot run for real yet: test it once first.');
+        case 'problem': return t('cowork_task.held.problem', 'It cannot run for real yet: something needs you first. See below.');
+        default: return null;
+    }
+}
+
 interface ActionsProps {
-    item: Pick<CoworkItem, 'isActive' | 'triggerKind' | 'trigger'>;
-    /** A run, a try-out or the setting up of steps is on the go. */
-    live: boolean;
-    /** Something waits for the owner first. */
-    blocked: boolean;
+    item: Pick<CoworkItem, 'id' | 'isActive' | 'triggerKind' | 'trigger'>;
+    heldBy: HeldBy;
+    /** A change of this task is being saved. */
     busy: boolean;
     onRunNow: () => void;
     onToggle: () => void;
-    onEdit: () => void;
+    onShare: () => void;
     t: TranslateFn;
 }
 
-/** Run now, Pause or Resume, Edit. A task a new mail starts cannot be run by hand. */
-export function CoworkTaskActions({ item, live, blocked, busy, onRunNow, onToggle, onEdit, t }: ActionsProps) {
+/** Run for real now, Pause or Resume, Share. A task a new mail starts cannot be run by hand, and says so. */
+export function CoworkTaskActions({ item, heldBy, busy, onRunNow, onToggle, onShare, t }: ActionsProps) {
     const paused = item.isActive === false;
     const byMail = isMailTriggerItem({ triggerKind: item.triggerKind ?? null, trigger: item.trigger });
+    const why = heldWords(heldBy, t);
+    const live = heldBy === 'live';
+    const whyId = `cowork-task-held-${item.id}`;
     return (
-        <div className={ROW_ACTIONS} data-testid="cowork-task-actions">
-            {!byMail && (
-                <button type="button" className={BTN_PRIMARY} disabled={live || blocked || busy} onClick={onRunNow}>
-                    <Play aria-hidden="true" className="w-4 h-4" />{t('cowork_task.action.run_now', 'Run now')}
+        <div className="flex flex-col gap-2" data-testid="cowork-task-actions">
+            <div className={ROW_ACTIONS}>
+                {!byMail && (
+                    <button type="button" className={BTN_PRIMARY} disabled={!!heldBy || busy} title={why ?? undefined} aria-describedby={why ? whyId : undefined} onClick={onRunNow}>
+                        <Play aria-hidden="true" size={16} />{t('cowork_task.action.run_for_real', 'Run for real now')}
+                    </button>
+                )}
+                <button type="button" className={BTN_QUIET} disabled={live || busy} title={live ? why ?? undefined : undefined} onClick={onToggle}>
+                    {paused ? <Play aria-hidden="true" size={16} /> : <Pause aria-hidden="true" size={16} />}
+                    {paused ? t('cowork_task.action.resume', 'Resume') : t('cowork_task.action.pause', 'Pause')}
                 </button>
-            )}
-            <button type="button" className={BTN_QUIET} disabled={live || busy} onClick={onToggle}>
-                {paused ? <Play aria-hidden="true" className="w-4 h-4" /> : <Pause aria-hidden="true" className="w-4 h-4" />}
-                {paused ? t('cowork_task.action.resume', 'Resume') : t('cowork_task.action.pause', 'Pause')}
-            </button>
-            <button type="button" className={BTN_QUIET} disabled={live} onClick={onEdit}>
-                <Pencil aria-hidden="true" className="w-4 h-4" />{t('cowork_task.action.edit', 'Edit')}
-            </button>
+                <button type="button" className={BTN_QUIET} onClick={onShare}>
+                    <Share2 aria-hidden="true" size={16} />{t('cowork_task.more.share', 'Share')}
+                </button>
+            </div>
+            {why && <p key={why} id={whyId} className={`${META} ${SWAP}`} data-testid="cowork-task-held">{why}</p>}
+            {byMail && !why && <p className={META}>{t('cowork_task.held.by_mail', 'It starts when a new e-mail arrives, so it cannot be started by hand.')}</p>}
         </div>
     );
 }

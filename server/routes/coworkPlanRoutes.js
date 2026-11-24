@@ -3,7 +3,9 @@
  * The plan half of /api/cowork (routes/cowork.js mounts it on its own router, behind the same requireAuth):
  *
  *   GET    /:id/plan          → the item's plan as its owner sees it: the steps, what it may do, why it may not run
- *                               if it may not, its fingerprint, and the plan that was approved
+ *                               if it may not, its fingerprint, and the plan that was approved. While a tested
+ *                               plan waits for its approval, also what that test produced (`triedResult`,
+ *                               usecases/coworkPlanTryResult.mts): what its owner would have received
  *   PUT    /:id/plan          → name the automation the plan is made from (one the caller owns); approves nothing.
  *                               When Cowork can fix its wiring by itself, it does, and tries it (never approves it)
  *   POST   /:id/plan/fix-wiring → Cowork fixes the wiring of the plan that is not approved and tries it
@@ -42,6 +44,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   loadItem: typeof loadOwnedItem,
  *   plan: () => Pick<typeof import('../usecases/coworkPlan.mts'), 'planStateOf' | 'attachPlan' | 'approvePlan' | 'removePlan'>,
  *   tryOut: () => Pick<typeof import('../usecases/coworkPlanTry.mts'), 'startTry' | 'tryStateOf'>,
+ *   tried: () => Pick<typeof import('../usecases/coworkPlanTryResult.mts'), 'triedResultOf'>,
  *   trace: () => Pick<typeof import('../usecases/coworkRunTrace.mts'), 'runTraceOf'>,
  *   independence: () => Pick<typeof import('../usecases/coworkIndependence.mts'), 'independenceOf' | 'chooseIndependence'>,
  *   trust: () => Pick<typeof import('../usecases/coworkTrust.mts'), 'trustOf' | 'chooseTrust'>,
@@ -60,6 +63,7 @@ const defaults = () => ({
     loadItem: loadOwnedItem,
     plan: () => require('../usecases/coworkPlan.mts'),
     tryOut: () => require('../usecases/coworkPlanTry.mts'),
+    tried: () => require('../usecases/coworkPlanTryResult.mts'),
     trace: () => require('../usecases/coworkRunTrace.mts'),
     independence: () => require('../usecases/coworkIndependence.mts'),
     trust: () => require('../usecases/coworkTrust.mts'),
@@ -75,11 +79,14 @@ const defaults = () => ({
  * @param {Partial<PlanRouteDeps>} [overrides]
  */
 function mountPlanRoutes(router, overrides = {}) {
-    const { loadItem, plan, tryOut, trace, tryLimit, fixLimit, independence, trust, routine, wiring, spendLeft } = { ...defaults(), ...overrides };
+    const { loadItem, plan, tryOut, tried, trace, tryLimit, fixLimit, independence, trust, routine, wiring, spendLeft } = { ...defaults(), ...overrides };
 
     router.get('/:id/plan', async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
-        res.json(await plan().planStateOf(item));
+        const state = await plan().planStateOf(item);
+        // Before the approval of a plan whose test passed, its owner sees what that test produced.
+        const waits = !state.upToDate && state.tried?.status === 'passed' && state.tried.current;
+        res.json({ ...state, triedResult: waits ? await tried().triedResultOf({ item }) : null });
     });
 
     router.put('/:id/plan', validate({ body: PlanAttachBody }), async (req, res) => {
