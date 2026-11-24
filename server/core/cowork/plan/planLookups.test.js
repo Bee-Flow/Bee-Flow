@@ -48,3 +48,9 @@ test('the tool names the plan tests use are real, with the app and the effect th
         assert.strictEqual(real.isOpenWebRead(name), kit.isOpenWebRead(name), `open web: ${name}`);
     }
 });
+
+test('a tool is called by its app and what the rest of its name says', () => {
+    assert.strictEqual(real.labelOfTool?.('fireflies_list_transcripts'), 'Fireflies: list transcripts');
+    assert.strictEqual(real.labelOfTool?.('gmail_search'), 'Gmail: search');
+    assert.strictEqual(real.labelOfTool?.('no_such_tool_anywhere'), null);
+});

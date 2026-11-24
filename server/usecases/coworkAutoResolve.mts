@@ -110,10 +110,7 @@ export function autoResolveDeps(): AutoResolveDeps {
         judge: (automation, item) => proposals().proposalDeps().judge(automation, item),
         approveDefinition: (input) => (nodeRequire('./coworkPlanVersions.mts') as typeof import('./coworkPlanVersions.mts')).approveDefinition(input),
         proposals: (nodeRequire('../stores/coworkProposals.mts') as typeof import('../stores/coworkProposals.mts')).coworkProposals(),
-        audit: async (item, fields, action = 'cowork.plan_auto_fixed') => {
-            const user = await (nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ organizationId?: string | null } | null> }).getUser(item.userId).catch(() => null);
-            await (nodeRequire('./coworkAudit.mts') as typeof import('./coworkAudit.mts')).recordCowork(action, item.id, { userId: AUTO_FIX_APPROVER, organizationId: user?.organizationId ?? null }, fields);
-        },
+        audit: (item, fields, action = 'cowork.plan_auto_fixed') => (nodeRequire('./coworkAudit.mts') as typeof import('./coworkAudit.mts')).recordAsCowork(action, item, fields),
         propose: (item, request, deps) => proposals().propose(item, request, deps),
         proposalDeps: () => proposals().proposalDeps(),
         chooseList: modelChooser(),

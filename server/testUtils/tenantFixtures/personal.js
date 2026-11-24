@@ -84,6 +84,8 @@ const FIXTURES = [
             'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
             'GET /api/cowork/:id/plan', 'PUT /api/cowork/:id/plan', 'POST /api/cowork/:id/plan/approve', 'DELETE /api/cowork/:id/plan',
             'POST /api/cowork/:id/plan/try', 'GET /api/cowork/:id/plan/try/:tryId', 'GET /api/cowork/:id/runs/:runId/trace',
+            // Cowork fixing the wiring of a plan that is not approved: the owner's only (usecases/coworkPlanWiringRepair.mts).
+            'POST /api/cowork/:id/plan/fix-wiring',
             'POST /api/cowork/:id/plan/make',
             'GET /api/cowork/:id/plan/independence', 'PUT /api/cowork/:id/plan/independence',
             'GET /api/cowork/:id/hand-over/colleagues', 'POST /api/cowork/:id/hand-over',

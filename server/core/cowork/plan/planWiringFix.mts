@@ -177,6 +177,34 @@ export function sameWiringReach(before: Definition, after: Definition, lookups: 
     return canonicalJson(permissionsOf(before, lookups)) === canonicalJson(permissionsOf(after, lookups));
 }
 
+const ID_MAX = 120;
+
+/** Changes of the wiring as kept (a trail entry, a try-out record): `[{ kind, stepId, otherId }]`, step ids only, at most `max`. */
+export function wiringChangesShape(value: unknown, max = 20): WiringChange[] {
+    const out: WiringChange[] = [];
+    const id = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= ID_MAX;
+    for (const entry of Array.isArray(value) ? value : []) {
+        if (out.length >= max) break;
+        const { kind, stepId, otherId } = (isPlain(entry) ? entry : {}) as Record<string, unknown>;
+        if ((kind === 'waits' || kind === 'reads') && id(stepId) && id(otherId)) out.push({ kind, stepId, otherId });
+    }
+    return out;
+}
+
+/** Why Cowork may not fix a plan's wiring by itself: nothing to fix, a finding no fix answers, or a fix that reaches more. */
+export type WiringFixRefusal = 'nothing' | 'no_fix' | 'reach_differs';
+
+/**
+ * The fix of the wiring Cowork may apply by itself: every blocking wiring finding answered, and the fixed plan reaches
+ * exactly what the plan before it reached. Otherwise why not.
+ */
+export function selfFixOf(definition: Definition, lookups: ToolLookups, opts: WiringOptions = {}): { fixed: FixedWiring } | { refused: WiringFixRefusal } {
+    const fixed = fixWiring(definition, lookups, opts);
+    if (!fixed) return { refused: 'nothing' };
+    if (fixed.remaining.length > 0) return { refused: 'no_fix' };
+    return sameWiringReach(definition, fixed.definition, lookups) ? { fixed } : { refused: 'reach_differs' };
+}
+
 /** What changed between two versions of a plan, in the wiring: who waits for whom now, who reads from whom now. */
 export function wiringChangesOf(before: Definition | null | undefined, after: Definition | null | undefined): WiringChange[] {
     if (!before || !after) return [];

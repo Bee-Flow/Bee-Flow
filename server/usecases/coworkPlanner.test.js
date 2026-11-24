@@ -258,3 +258,24 @@ test('a plan made while another making already named one does not replace it, an
     await assert.rejects(makePlan(input(), deps), (err) => err.status === 409 && /got a plan while this one was being made/.test(err.message));
     assert.strictEqual(seen.onlyIfNone, true);
 });
+
+test('a draft its try-outs could not reach because of a finding is handed to Cowork\'s own fix; a draft that was tried is not', async () => {
+    const tries = (/** @type {Record<string, any>} */ seen) => ({
+        tryOut: async () => { seen.tried = (seen.tried ?? 0) + 1; return { tryId: 't1', status: 'success', passed: true, facts: [], summary: { reads: [], ai: 1, held: 0 }, problems: [] }; },
+        getAutomation: async (/** @type {string} */ id) => ({ id, userId: 'u1', definition: {} }),
+        spendLeft: async () => {},
+        recordTry: async () => {},
+    });
+    const withTools = [BATCH[0], { tempId: 'sum', type: 'ai_step', spec: { prompt: 'Read {{steps.$mail.output}}', tools: ['drive_search'] } }];
+    const blocked = world({ script: [INSPECT, calls(['builder_add_steps', { steps: withTools }]), DONE] });
+    const repairs = [];
+    const repairWiring = async (/** @type {{ planAutomationId: string }} */ item) => { repairs.push(item.planAutomationId); return { outcome: 'fixed', changes: [], tried: 'running', notTried: null }; };
+    const made = await makePlan(blocked.input(), { ...blocked.deps, tries: tries(blocked.seen), repairWiring });
+    assert.deepStrictEqual(repairs, ['auto-new'], 'untried because of a finding: Cowork fixes it');
+    assert.deepStrictEqual([made.findings, made.tried?.status, blocked.seen.tried], [[], 'running', undefined]);
+
+    const clean = world();
+    repairs.length = 0;
+    const tried = await makePlan(clean.input(), { ...clean.deps, tries: tries(clean.seen), repairWiring });
+    assert.deepStrictEqual([repairs, tried.tried?.status, clean.seen.tried], [[], 'passed', 1], 'tried once by the planner, not twice');
+});

@@ -18,7 +18,9 @@
  *     cannot be approved, tried or run;
  *   - a draft without findings is TRIED before its owner sees it (./coworkPlannerTry.mts): once in test mode, what
  *     went wrong back to the model as facts, at most three try-outs. The plan arrives with how its try-out went, and
- *     it is approved from its card only once a try-out of exactly that plan passed.
+ *     it is approved from its card only once a try-out of exactly that plan passed;
+ *   - a draft that was not tried because its wiring is wrong is fixed by Cowork itself when the fix reaches exactly
+ *     what the draft reaches (./coworkPlanWiringRepair.mts), and tried once; it still waits for its owner's approval.
  *
  * An item that already has a plan is left alone: its owner takes the plan off first. A draft that came out empty is
  * not stored.
@@ -37,6 +39,7 @@ import { plannerChat } from './coworkPlannerChat.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { plannerRefusal, plannerSystemPrompt, plannerTools } from './coworkPlannerPrompt.mts';
 import { builderPort, draftWithin, newDraft, type DraftWrap, type LoopDeps, type LoopResult, type Message } from './coworkDraftLoop.mts';
+import type { Repaired } from './coworkPlanWiringRepair.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -62,6 +65,11 @@ export interface PlannerDeps extends LoopDeps {
     mayAsk: MayAsk;
     /** The try-out of every draft (./coworkPlannerTry.mts); without it the draft is not tried. */
     tries?: Pick<TryRoundDeps, 'tryOut' | 'getAutomation' | 'spendLeft' | 'recordTry'>;
+    /**
+     * Cowork's own fix of the wiring of a draft it could not try because of it (./coworkPlanWiringRepair.mts): fixed,
+     * stored, tried. Without it a miswired draft stays as the model left it.
+     */
+    repairWiring?: (item: Item) => Promise<Repaired | null>;
 }
 
 /** The real wiring of the planner (the amend mode, ./coworkPlanAmend.mts, thinks the same way). */
@@ -86,6 +94,7 @@ export function plannerDeps(): PlannerDeps {
             spendLeft: (item) => (nodeRequire('../core/cowork/spendGate.mts') as typeof import('../core/cowork/spendGate.mts')).assertSpendLeft(item),
             recordTry: (id, record) => (nodeRequire('./coworkPlanTryOut.mts') as typeof import('./coworkPlanTryOut.mts')).planTries().setPlanTry(id, record),
         },
+        repairWiring: (item) => (nodeRequire('./coworkPlanWiringRepair.mts') as typeof import('./coworkPlanWiringRepair.mts')).repairQuietly(item),
     };
 }
 
@@ -194,5 +203,14 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     log.info(`[CoworkPlanner] ${item.id}: drafted ${steps.length} step(s) in ${loop.rounds} round(s) as automation ${automationId}`);
     const tried = deps.tries ? await tryAndRepair({ item, draft, automationId, loop: spec, blockingOf, signal: input.signal, onProgress: input.onProgress }, { ...deps, ...deps.tries }) : undefined;
     if (tried) log.info(`[CoworkPlanner] ${item.id}: ${tried.status} after ${tried.rounds} try-out(s)`);
-    return { automationId, summary: loop.summary, findings: await blockingOf(draft.def), rounds: loop.rounds, ...(tried ? { tried } : {}) };
+    const findings = await blockingOf(draft.def);
+    // A draft its try-outs never reached because of its wiring: Cowork fixes that by itself when it can, and tries it
+    // once. A draft that was tried is not tried again.
+    const repaired = tried && tried.status !== 'passed' && tried.status !== 'failed' && findings.length > 0 && deps.repairWiring
+        ? await deps.repairWiring({ ...item, planAutomationId: automationId }) : null;
+    if (repaired?.outcome === 'fixed') {
+        const fixedTried: TriedPlan = { status: repaired.tried ?? 'untried', summary: null, problems: repaired.notTried ? [repaired.notTried] : [], rounds: tried?.rounds ?? 0 };
+        return { automationId, summary: loop.summary, findings: [], rounds: loop.rounds, tried: fixedTried };
+    }
+    return { automationId, summary: loop.summary, findings, rounds: loop.rounds, ...(tried ? { tried } : {}) };
 }

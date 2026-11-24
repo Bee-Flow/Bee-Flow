@@ -9,6 +9,8 @@
  */
 
 import { createRequire } from 'node:module';
+import { wiringChangesShape, type WiringChange } from '../core/cowork/plan/planWiringFix.mts';
+import { AUTO_FIX_APPROVER } from '../core/cowork/repairs/autoResolve.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -26,7 +28,7 @@ export type AuditAction =
 const VALUE_FIELDS: readonly string[] = Object.freeze([
     'isActive', 'repeatInterval', 'daysOfWeek', 'timeOfDay', 'timezone', 'modelTier', 'agentId', 'triggerKind',
     'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId', 'monthlyBudget', 'kind', 'stepId', 'trusted',
-    // How an automatic fix was proven: 'replay' or 'try_out'.
+    // How an automatic fix was proven: 'replay' or 'try_out'; 'none' for a plan not approved yet (it is not approved by it).
     'proof',
 ]);
 /** Fields that are only ever named: their content is the owner's text. */
@@ -36,18 +38,10 @@ const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 't
 const SHAPED_FIELDS: Readonly<Record<string, (value: unknown) => unknown>> = Object.freeze({ shares: sharesShape, wiring: wiringShape });
 
 const MAX_AUDITED_WIRING = 20;
-const ID_MAX = 120;
 
 /** What an automatic fix of the wiring changed: `[{ kind, stepId, otherId }]`, step ids only, at most 20. */
-function wiringShape(value: unknown): Array<{ kind: 'waits' | 'reads'; stepId: string; otherId: string }> {
-    const out: Array<{ kind: 'waits' | 'reads'; stepId: string; otherId: string }> = [];
-    for (const entry of Array.isArray(value) ? value : []) {
-        if (out.length >= MAX_AUDITED_WIRING) break;
-        const { kind, stepId, otherId } = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
-        const id = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= ID_MAX;
-        if ((kind === 'waits' || kind === 'reads') && id(stepId) && id(otherId)) out.push({ kind, stepId, otherId });
-    }
-    return out;
+function wiringShape(value: unknown): WiringChange[] {
+    return wiringChangesShape(value, MAX_AUDITED_WIRING);
 }
 
 /** Every field a trail entry can name: each has its words in the owner's language (i18n `cowork_trail.field.<name>`). */
@@ -104,6 +98,13 @@ export async function recordCowork(action: AuditAction, itemId: string, by: { us
     } catch {
         // logAccessAudit logs its own failures; nothing here may fail the request.
     }
+}
+
+/** Write one entry as Cowork itself (an automatic fix), in the owner's organisation. Never throws. */
+export async function recordAsCowork(action: AuditAction, item: { id: string; userId: string }, fields: Record<string, unknown> | null, deps?: AuditDeps): Promise<void> {
+    const users = nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ organizationId?: string | null } | null> };
+    const user = await users.getUser(item.userId).catch(() => null);
+    await recordCowork(action, item.id, { userId: AUTO_FIX_APPROVER, organizationId: user?.organizationId ?? null }, fields, deps);
 }
 
 /** One entry of the trail, as its owner reads it. */

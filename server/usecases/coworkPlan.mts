@@ -17,6 +17,9 @@
  *     approved from its card only once a try-out of exactly that plan passed, and a plan whose last try-out failed
  *     waits for one that passes. What Cowork approves with its own proof (a repair its owner approves after a replay,
  *     Undo, the automatic fix) is `proven` and passes by.
+ *   - FIXABLE. A plan that is not approved and cannot run only because of its wiring says whether Cowork can fix that
+ *     by itself with the same reach (`wiringFixable`; ./coworkPlanWiringRepair.mts fixes it and tries it, and never
+ *     approves it). The try-out record says what was fixed (`tried.wiringFixed`).
  *   - TAKE OFF. The item runs as a prompt or as its agent again.
  *
  * An item started by an event (a new mail) carries no plan yet: its trigger is the event, and a plan's is the clock.
@@ -33,7 +36,9 @@ import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/p
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import { changesOf, type StepChange } from '../core/cowork/plan/planChanges.mts';
-import { refFindings, isReferenceFinding } from './coworkPlanRefs.mts';
+import { refFindings, isReferenceFinding, WIRING_OPTIONS } from './coworkPlanRefs.mts';
+import { WIRING_BLOCKING } from '../core/cowork/plan/planWiring.mts';
+import { selfFixOf, type WiringChange } from '../core/cowork/plan/planWiringFix.mts';
 import type { PlanTryRecord, TryStatus } from '../stores/coworkPlanTries.mts';
 import type { TrySummary } from '../core/cowork/plan/planTryFacts.mts';
 
@@ -103,7 +108,15 @@ export interface PlanState {
     stepChanges: StepChange[];
     /** The last try-out of this plan's automation; null when none is known. */
     tried: PlanTried | null;
+    /**
+     * The plan is not approved, it cannot run as it is because of its wiring, and Cowork can fix that by itself with the
+     * same reach (./coworkPlanWiringRepair.mts): the card asks for it.
+     */
+    wiringFixable: boolean;
 }
+
+/** One change Cowork made to the wiring, in the plan's titles: "'Notification' now waits for 'AI step'". */
+export interface WiringNote { kind: WiringChange['kind']; step: string; other: string }
 
 /** The last try-out, as the plan card shows it. */
 export interface PlanTried {
@@ -117,15 +130,19 @@ export interface PlanTried {
     summary: TrySummary | null;
     problems: string[];
     rounds: number;
+    /** What Cowork fixed in the wiring of exactly this plan before it tried it; empty when it fixed nothing. */
+    wiringFixed: WiringNote[];
 }
 
 /** The try-out record as the card reads it, for the plan on screen; null when it is about another automation. */
-export function triedOf(record: PlanTryRecord | null, automationId: string | null | undefined, fingerprint: string | null): PlanTried | null {
+export function triedOf(record: PlanTryRecord | null, automationId: string | null | undefined, fingerprint: string | null, titles: ReadonlyMap<string, string> = new Map()): PlanTried | null {
     if (!record || !automationId || record.automationId !== automationId) return null;
     const current = record.fingerprint === fingerprint;
     const passed = current && record.status === 'passed';
     const blocksApproval = record.required ? !passed : current && record.status === 'failed';
-    return { status: record.status, current, required: record.required, blocksApproval, summary: record.summary, problems: record.problems, rounds: record.rounds };
+    const title = (id: string): string => titles.get(id) ?? id;
+    const wiringFixed = current ? (record.wiring ?? []).map((c) => ({ kind: c.kind, step: title(c.stepId), other: title(c.otherId) })) : [];
+    return { status: record.status, current, required: record.required, blocksApproval, summary: record.summary, problems: record.problems, rounds: record.rounds, wiringFixed };
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
@@ -152,7 +169,18 @@ const ownAutomation = (automationId: string | null | undefined, userId: string, 
 /** The item's last try-out, for the plan on screen. */
 async function triedFor(item: Item, automation: AutomationRow | null, draft: PlanDraft | null, deps: Pick<Deps, 'tryOf'>): Promise<PlanTried | null> {
     if (!deps.tryOf || !automation || !draft) return null;
-    return triedOf(await deps.tryOf(item.id).catch(() => null), automation.id, draft.fingerprint);
+    const titles = new Map(draft.view.steps.map((s) => [s.id, s.title]));
+    return triedOf(await deps.tryOf(item.id).catch(() => null), automation.id, draft.fingerprint, titles);
+}
+
+/**
+ * Can Cowork fix the wiring of this plan by itself? Only a plan that is not approved, that cannot run because of its
+ * wiring alone, and whose fix reaches exactly what it reaches (./coworkPlanWiringRepair.mts does it).
+ */
+function wiringFixableOf(automation: AutomationRow | null, draft: PlanDraft | null, upToDate: boolean, lookups: ToolLookups): boolean {
+    if (!automation || !draft || upToDate) return false;
+    if (!draft.findings.some((f) => WIRING_BLOCKING.has(f.code)) || draft.findings.some((f) => !WIRING_BLOCKING.has(f.code))) return false;
+    return 'fixed' in selfFixOf(automation.definition as Definition, lookups, WIRING_OPTIONS);
 }
 
 /** What stops an approval from the card: a finding (not a reference one when an earlier version comes back), or a try-out that has to pass first. */
@@ -190,6 +218,7 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         stepChanges,
         // A try-out of an earlier plan says nothing about the approved one on screen (a fix Cowork approved with its own proof).
         tried: await triedFor(item, automation, draft, deps).then((t) => (t && !t.current && upToDate ? null : t)),
+        wiringFixable: wiringFixableOf(automation, draft, upToDate, deps.lookups),
     };
 }
 

@@ -12,17 +12,41 @@ import type { Effect, ToolLookups } from './planTypes.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
+/**
+ * What a person calls a tool: its app's name, then what the rest of the tool name says ("Fireflies: list transcripts",
+ * "Google Drive: list recent"); null when no app owns it or the registry cannot say.
+ */
+export function toolLabel(tool: string, appId: string | null): string | null {
+    if (!appId) return null;
+    let app: { label?: unknown } | null = null;
+    try {
+        const { featureModule } = nodeRequire('../../featureModules.js') as { featureModule: (name: string) => { appEntryFor: (id: string) => { label?: unknown } | null } };
+        app = featureModule('automation/toolRegistry').appEntryFor(appId);
+    } catch {
+        return null;
+    }
+    const label = typeof app?.label === 'string' ? app.label.trim() : '';
+    if (!label) return null;
+    const own = new Set(label.toLowerCase().split(/\s+/));
+    const words = tool.split('_').filter(Boolean);
+    while (words.length > 1 && own.has(String(words[0]).toLowerCase())) words.shift();
+    const rest = words.join(' ');
+    return rest && !own.has(rest.toLowerCase()) ? `${label}: ${rest}` : label;
+}
+
 /** The real lookups. Each module is loaded on first use, so requiring this file loads no registry. */
 export function toolLookups(): ToolLookups {
+    const appOfTool = (tool: string): string | null => {
+        const { appIdForTool } = nodeRequire('../../agentRuntime/toolPolicy/appIndex.js') as { appIdForTool: (name: string) => string | null };
+        return appIdForTool(tool);
+    };
     return {
-        appOfTool(tool) {
-            const { appIdForTool } = nodeRequire('../../agentRuntime/toolPolicy/appIndex.js') as { appIdForTool: (name: string) => string | null };
-            return appIdForTool(tool);
-        },
+        appOfTool,
         effectOfTool(tool) {
             const { effectOf } = nodeRequire('../../automationModel/sideEffectMap.js') as { effectOf: (name: string) => Effect };
             return effectOf(tool);
         },
+        labelOfTool: (tool) => toolLabel(tool, appOfTool(tool)),
         isOpenWebRead(tool) {
             const { OUTSIDE_READS } = nodeRequire('../../agentRuntime/toolPolicy/mailRun.mts') as { OUTSIDE_READS: ReadonlySet<string> };
             return OUTSIDE_READS.has(tool);

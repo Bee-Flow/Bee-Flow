@@ -4,12 +4,14 @@
  * usecases/coworkPlanner.mts). usecases/coworkPlanTryOut.mts writes it; usecases/coworkPlan.mts reads it for the plan
  * card and for approval.
  *
- * Counts, the plan's step titles and the plan's own sentences only: never a value the try-out read.
+ * Counts, the plan's step titles and the plan's own sentences only: never a value the try-out read. When Cowork fixed
+ * the wiring of the plan before it tried it, which steps now wait for or read from which (step ids).
  */
 
 import { createRequire } from 'node:module';
 import type { CoworkDb as Db } from './lib/coworkDb.mts';
 import type { TrySummary } from '../core/cowork/plan/planTryFacts.mts';
+import type { WiringChange } from '../core/cowork/plan/planWiringFix.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -28,11 +30,24 @@ export interface PlanTryRecord {
     /** How many try-outs the making of the plan took. */
     rounds: number;
     at: string;
+    /** Cowork fixed the wiring of exactly this plan before it was tried (usecases/coworkPlanWiringRepair.mts): step ids only. */
+    wiring?: WiringChange[];
 }
 
 const STATUSES: ReadonlySet<string> = new Set(['running', 'passed', 'failed', 'untried']);
 const MAX_PROBLEMS = 8;
 const TEXT_MAX = 400;
+const MAX_CHANGES = 20;
+const ID_MAX = 120;
+
+const isStepId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= ID_MAX;
+const isChange = (c: unknown): c is WiringChange => {
+    const v = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
+    return (v.kind === 'waits' || v.kind === 'reads') && isStepId(v.stepId) && isStepId(v.otherId);
+};
+/** What a fix of the wiring changed, as kept: the three fields, step ids only, at most MAX_CHANGES. */
+const changesOf = (raw: unknown): WiringChange[] => (Array.isArray(raw) ? raw : []).filter(isChange).slice(0, MAX_CHANGES)
+    .map((c) => ({ kind: c.kind, stepId: c.stepId, otherId: c.otherId }));
 
 function recordOf(raw: unknown): PlanTryRecord | null {
     if (typeof raw !== 'string' || !raw) return null;
@@ -44,10 +59,14 @@ function recordOf(raw: unknown): PlanTryRecord | null {
         required: v.required === true, summary: (v.summary as TrySummary | null) ?? null,
         problems: Array.isArray(v.problems) ? v.problems.filter((p): p is string => typeof p === 'string') : [],
         rounds: typeof v.rounds === 'number' ? v.rounds : 0, at: typeof v.at === 'string' ? v.at : '',
+        ...(Array.isArray(v.wiring) ? { wiring: changesOf(v.wiring) } : {}),
     };
 }
 
-const clean = (r: PlanTryRecord): PlanTryRecord => ({ ...r, problems: r.problems.slice(0, MAX_PROBLEMS).map((p) => p.slice(0, TEXT_MAX)) });
+function clean(r: PlanTryRecord): PlanTryRecord {
+    const { wiring, ...rest } = r;
+    return { ...rest, problems: r.problems.slice(0, MAX_PROBLEMS).map((p) => p.slice(0, TEXT_MAX)), ...(wiring ? { wiring: changesOf(wiring) } : {}) };
+}
 
 export function makeCoworkPlanTries({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     async function getPlanTry(scheduleId: string): Promise<PlanTryRecord | null> {

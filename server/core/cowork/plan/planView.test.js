@@ -56,6 +56,17 @@ test('a step is called by its label, else by its tool or type in plain words', (
     assert.deepStrictEqual(planViewOf(plan, lookups).steps.map((s) => s.title), ['Get the mail', 'Outlook create draft', 'Data extraction']);
 });
 
+test('a label that is only the tool name or the id is no title: the tool\'s label from the lookups, else its words', () => {
+    const plan = planOf([
+        { id: 'a', type: 'integration_action', label: 'outlook_search', tool: 'outlook_search' },
+        { id: 'b', type: 'integration_action', label: 'b', tool: 'outlook_create_draft' },
+        { id: 'c', type: 'integration_action', label: 'Read the mail', tool: 'outlook_read' },
+    ]);
+    assert.deepStrictEqual(planViewOf(plan, lookups).steps.map((s) => s.title), ['Outlook search', 'Outlook create draft', 'Read the mail']);
+    const named = { ...lookups, labelOfTool: (/** @type {string} */ tool) => (tool === 'outlook_search' ? 'Outlook: search' : null) };
+    assert.deepStrictEqual(planViewOf(plan, named).steps.map((s) => s.title), ['Outlook: search', 'Outlook create draft', 'Read the mail']);
+});
+
 test('the steps inside a loop follow it, one level deeper', () => {
     const plan = planOf([
         { id: 'each', type: 'loop', items: literal([1, 2]), body: [{ id: 'one', type: 'ai_step', prompt: 'x' }, { id: 'two', type: 'set', values: {} }] },

@@ -49,6 +49,8 @@ export interface ToolLookups {
     effectOfTool(tool: string): Effect;
     /** Does this tool read an address or a query on the open web? */
     isOpenWebRead(tool: string): boolean;
+    /** What a person calls this tool ("Fireflies: list transcripts"), or null when nobody named it. */
+    labelOfTool?(tool: string): string | null;
 }
 
 /** One step as a person reads it. */

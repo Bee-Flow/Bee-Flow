@@ -8,6 +8,8 @@
  *            took (core/cowork/routineCompare.mts).
  *
  * Nothing changes until the owner approves the plan: the item keeps running as it does, and its runs stay its history.
+ * The routine is drafted by the planner (./coworkPlanner.mts makePlan), so a draft whose wiring is wrong is fixed and
+ * tried by Cowork the same way (./coworkPlanWiringRepair.mts), and is never approved by it.
  */
 
 import { createRequire } from 'node:module';

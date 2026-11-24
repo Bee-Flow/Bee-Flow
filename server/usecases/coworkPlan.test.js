@@ -44,7 +44,7 @@ const httpError = (status, code) => (err) => err.status === status && err.code =
 
 test('an item without a plan shows nothing to approve', async () => {
     const { deps } = world();
-    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null });
+    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null, wiringFixable: false });
 });
 
 test('looking at a plan shows its steps, what it may do, no findings, and that it was never approved', async () => {
@@ -199,7 +199,7 @@ test('taking the plan off leaves the item without one', async () => {
     await approvePlan({ item: ITEM, fingerprint: planFingerprint(supplierRadar()) }, deps);
     const after = await removePlan({ item: ITEM }, deps);
     assert.strictEqual(state.detached, 1);
-    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null });
+    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null, wiringFixable: false });
 });
 
 test('the last try-out: a plan Cowork made waits for one that passed, a failed one blocks, another automation\'s says nothing', () => {
@@ -210,6 +210,14 @@ test('the last try-out: a plan Cowork made waits for one that passed, a failed o
     assert.strictEqual(triedOf(record({ status: 'failed', required: false }), 'auto-1', 'fp-2').blocksApproval, false, 'of another version it does not');
     assert.strictEqual(triedOf(record(), 'auto-2', 'fp-1'), null);
     assert.strictEqual(triedOf(null, 'auto-1', 'fp-1'), null);
+});
+
+test('the try-out says what Cowork fixed in the wiring of exactly this plan, in its titles', () => {
+    const record = { automationId: 'auto-1', fingerprint: 'fp-1', tryId: null, status: 'passed', required: false, summary: null, problems: [], rounds: 1, at: '', wiring: [{ kind: 'waits', stepId: 'tell', otherId: 'ai' }] };
+    const titles = new Map([['tell', 'Notification'], ['ai', 'AI step']]);
+    assert.deepStrictEqual(triedOf(record, 'auto-1', 'fp-1', titles)?.wiringFixed, [{ kind: 'waits', step: 'Notification', other: 'AI step' }]);
+    assert.deepStrictEqual(triedOf(record, 'auto-1', 'fp-2', titles)?.wiringFixed, [], 'about another version of the plan: nothing');
+    assert.deepStrictEqual(triedOf({ ...record, wiring: undefined }, 'auto-1', 'fp-1', titles)?.wiringFixed, []);
 });
 
 test('approval waits for the try-out a plan Cowork made needs; what Cowork proves itself does not', async () => {

@@ -142,7 +142,9 @@ async function markRunning(item: Item, automationId: string, fingerprint: string
     if (!deps.tries) return;
     const before = await deps.tries.getPlanTry(item.id);
     const required = before?.automationId === automationId && before.required;
-    await deps.tries.setPlanTry(item.id, { automationId, fingerprint, tryId, status: 'running', required, summary: null, problems: [], rounds: before?.rounds ?? 0, at: new Date().toISOString() });
+    // What Cowork fixed in exactly this plan before (./coworkPlanWiringRepair.mts) stays said.
+    const wiring = before?.automationId === automationId && before.fingerprint === fingerprint ? before.wiring : undefined;
+    await deps.tries.setPlanTry(item.id, { automationId, fingerprint, tryId, status: 'running', required, summary: null, problems: [], rounds: before?.rounds ?? 0, at: new Date().toISOString(), ...(wiring ? { wiring } : {}) });
 }
 
 

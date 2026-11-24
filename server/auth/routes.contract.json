@@ -5307,6 +5307,9 @@
     "POST /api/cowork/:id/plan/approve": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/plan/fix-wiring": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/plan/make": {
       "gate": "auth"
     },

@@ -15,12 +15,22 @@ import { stepsOf } from './planWalk.mts';
 const nodeRequire = createRequire(import.meta.url);
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
 
-/** What a step is called when its author gave it no label: its tool, else its type, in plain words. */
-function titleOf(step: DefStep, type: string): string {
-    if (typeof step.label === 'string' && step.label.trim()) return step.label.trim();
-    const name = typeof step.tool === 'string' && step.tool ? step.tool : type;
+/** Words for a name: `fireflies_list_transcripts` reads "Fireflies list transcripts". */
+function humanised(name: string): string {
     const words = name.replaceAll('_', ' ').trim();
     return words ? words[0]?.toUpperCase() + words.slice(1) : 'Step';
+}
+
+/**
+ * What a step is called: its own label, unless that is only its tool's name or its id (the builder writes the tool name
+ * when the model gave none); else the tool's label from the lookups, else its tool or its type in plain words.
+ */
+function titleOf(step: DefStep, type: string, lookups: ToolLookups): string {
+    const tool = typeof step.tool === 'string' && step.tool ? step.tool : null;
+    const label = typeof step.label === 'string' ? step.label.trim() : '';
+    if (label && label !== tool && label !== step.id) return label;
+    if (!tool) return humanised(type);
+    return lookups.labelOfTool?.(tool)?.trim() || humanised(tool);
 }
 
 const emptyMakeUp = (): Record<StepKind, number> => ({ fixed: 0, ai: 0, ask: 0, deliver: 0 });
@@ -42,7 +52,7 @@ export function planViewOf(definition: Definition | null | undefined, lookups: T
             id: s.id,
             type: s.type,
             kind,
-            title: titleOf(s.step, s.type),
+            title: titleOf(s.step, s.type, lookups),
             // A plan's script runs with no network, no apps and no secrets (./planRunCopy.mts): it changes and sends nothing.
             effect: s.type === 'code' ? 'reads' : stepEffect(s.step),
             app: tool ? lookups.appOfTool(tool) : null,

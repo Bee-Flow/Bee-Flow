@@ -19,7 +19,7 @@ const { HttpError } = require('../core/http/errors');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
 const FINGERPRINT = 'a'.repeat(64);
-const STATE = { automationId: 'auto-1', draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null };
+const STATE = { automationId: 'auto-1', draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null, wiringFixable: false };
 const OWNER = { id: 'u1' };
 
 /** @type {Array<[string, Record<string, unknown>]>} */
@@ -42,6 +42,11 @@ const independence = {
     independenceOf: async (item) => { asked.push(['independenceOf', { item: item.id }]); return LEVELS; },
     chooseIndependence: async ({ item, level }) => { asked.push(['chooseIndependence', { item: item.id, level }]); return LEVELS; },
 };
+const FIXED = { outcome: 'fixed', changes: [{ kind: 'waits', stepId: 'tell', otherId: 'ai' }], tried: 'running', notTried: null, state: STATE };
+const wiring = {
+    fixDraftWiring: async ({ item }) => { asked.push(['fixDraftWiring', { item: item.id }]); return FIXED; },
+    repairedState: async (item, state) => { asked.push(['repairedState', { item: item.id, fixable: state.wiringFixable }]); return STATE; },
+};
 /** A limit no test reaches by accident; the limit itself has its own router below. */
 const roomy = () => perUserRateLimit({ windowMs: 60_000, max: 1000, name: 'cowork-plan-try-roomy', _redis: null });
 /** The ownership rule of usecases/coworkItems.mts, over one item that belongs to u1. */
@@ -54,7 +59,7 @@ const loadItem = async (id, userId) => {
 const router = express.Router();
 // The session check routes/cowork.js puts in front of every Cowork route.
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, independence: () => /** @type {any} */ (independence), tryLimit: roomy() });
+mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, independence: () => /** @type {any} */ (independence), wiring: () => /** @type {any} */ (wiring), tryLimit: roomy(), fixLimit: roomy() });
 const api = serve('/api/cowork', router, { user: OWNER });
 after(api.close);
 
@@ -62,6 +67,7 @@ const TRY_ROUTES = /** @type {Array<[string, string, unknown]>} */ ([
     ['POST', '/api/cowork/cw-1/plan/try', undefined],
     ['GET', '/api/cowork/cw-1/plan/try/try-1', undefined],
     ['GET', '/api/cowork/cw-1/runs/run-1/trace', undefined],
+    ['POST', '/api/cowork/cw-1/plan/fix-wiring', undefined],
 ]);
 
 const ROUTES = /** @type {Array<[string, string, unknown]>} */ ([
@@ -187,6 +193,51 @@ test('what the use case refuses reaches the caller with its status, its code and
         assert.strictEqual(res.status, 409);
         assert.strictEqual(res.body.code, 'cowork_plan_changed');
         assert.match(res.body.error, /changed since you looked/);
+    } finally {
+        await other.close();
+    }
+});
+
+test('fixing the wiring hands the use case the item and answers what was fixed and tried; it takes no body', async () => {
+    asked = [];
+    const res = await api.call('POST', '/api/cowork/cw-1/plan/fix-wiring');
+    assert.deepStrictEqual([res.status, res.body], [200, FIXED]);
+    assert.deepStrictEqual(asked, [['fixDraftWiring', { item: 'cw-1' }]]);
+    assert.strictEqual((await api.call('POST', '/api/cowork/cw-1/plan/fix-wiring', { body: { approve: true } })).status, 400);
+    assert.strictEqual(asked.length, 1);
+});
+
+test('a plan named with wiring Cowork can fix is fixed right away; any other plan is answered as it is', async () => {
+    const fixable = express.Router();
+    mountPlanRoutes(fixable, { loadItem, plan: () => ({ ...plan, attachPlan: async () => ({ ...STATE, wiringFixable: true }) }), wiring: () => /** @type {any} */ (wiring) });
+    const other = serve('/api/cowork', fixable, { user: OWNER });
+    try {
+        asked = [];
+        const res = await other.call('PUT', '/api/cowork/cw-1/plan', { body: { automationId: 'auto-1' } });
+        assert.deepStrictEqual([res.status, res.body], [200, STATE]);
+        assert.deepStrictEqual(asked, [['repairedState', { item: 'cw-1', fixable: true }]]);
+    } finally {
+        await other.close();
+    }
+    asked = [];
+    await api.call('PUT', '/api/cowork/cw-1/plan', { body: { automationId: 'auto-1' } });
+    assert.deepStrictEqual(asked, [['attachPlan', { item: 'cw-1', automationId: 'auto-1' }]], 'nothing to fix: no repair');
+});
+
+test('the fix of the wiring is limited per person, by a limit of its own', () => {
+    const probe = express.Router();
+    mountPlanRoutes(probe, { loadItem });
+    assert.deepStrictEqual(limitersOn(probe, 'post', '/:id/plan/fix-wiring'), ['cowork-plan-fix-wiring']);
+});
+
+test('a refused fix of the wiring reaches the caller with its status, its code and its sentence', async () => {
+    const refusing = express.Router();
+    mountPlanRoutes(refusing, { loadItem, wiring: () => /** @type {any} */ ({ ...wiring, fixDraftWiring: async () => { throw new HttpError(409, 'cowork_wiring_approved', 'This plan is the approved one: Cowork does not change it here.'); } }) });
+    const other = serve('/api/cowork', refusing, { user: OWNER });
+    try {
+        const res = await other.call('POST', '/api/cowork/cw-1/plan/fix-wiring');
+        assert.deepStrictEqual([res.status, res.body.code], [409, 'cowork_wiring_approved']);
+        assert.match(res.body.error, /approved one/);
     } finally {
         await other.close();
     }
