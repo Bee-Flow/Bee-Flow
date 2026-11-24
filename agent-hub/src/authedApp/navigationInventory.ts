@@ -93,8 +93,10 @@ export const INVENTORY: Row[] = [
     { page: 'webpages', flags: '→ studio/webpages (replace)', url: '/app/webpages', lands: '/app/studio/webpages', shows: { current: 'rail-webpages' } },
     // ── Cowork ────────────────────────────────────────────────────────────
     { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork', shows: { testId: 'cowork-page' }, nav: 'cowork' },
-    // From another page an item pushes (Back returns there); inside Cowork a row replaces (Back leaves Cowork).
-    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork/cw1', shows: { testId: 'cowork-page' }, nav: 'cowork/cw1' },
+    // A page of Cowork is a destination (a task by its id, the others by name): opening one pushes, from the
+    // Cowork home too, so Back returns to where it was opened (navigation.history.test.tsx has the home's case).
+    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork/cw1', shows: { testId: 'cowork-page-frame' }, nav: 'cowork/cw1' },
+    { page: 'cowork', flags: 'initialCoworkId (a page by name)', url: '/app/cowork/preferences', shows: { testId: 'cowork-settings-panel' }, nav: 'cowork/preferences' },
     { page: 'cowork', flags: 'initialCoworkId (legacy)', url: '/app/work', shows: { testId: 'cowork-page' } },
     { page: 'cowork', flags: 'initialCoworkId (legacy Studio tab)', url: '/app/studio/cowork/cw1', shows: { testId: 'cowork-page' } },
     // ── Documents, projects, published apps and forms ─────────────────────

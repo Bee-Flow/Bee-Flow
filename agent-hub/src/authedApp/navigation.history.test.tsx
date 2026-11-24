@@ -7,7 +7,9 @@
  * page and Forward to the page again, both through popstate. Then the history
  * edges. Part one (navigation.deepLinks.test.tsx) is the cold load.
  */
-import { afterEach, describe, it, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HOME, MEMBER, QUICK, WAIT, back, bootAt, expectAt, expectShows, forward, onAPhone } from './navigationHarness';
 import { APP_ID, INVENTORY, landing } from './navigationInventory';
 
@@ -42,6 +44,21 @@ describe('the history edges', () => {
         await back();
         await expectAt('/app/cowork');
         await expectShows({ testId: 'cowork-page' });
+    });
+
+    it('a page of Cowork opened from the Cowork home has its own address; Back returns to the home, Forward to the page', async () => {
+        await bootAt('/app/cowork', { testId: 'cowork-page' });
+        await userEvent.setup().click(await screen.findByRole('button', { name: 'Cowork preferences' }));
+        await expectAt('/app/cowork/preferences');
+        await expectShows({ testId: 'cowork-settings-panel' });
+        expect(screen.queryByRole('dialog')).toBeNull();
+        await back();
+        await expectAt('/app/cowork');
+        await waitFor(() => expect(screen.queryByTestId('cowork-settings-panel')).toBeNull());
+        expect(screen.getByTestId('cowork-home')).toBeVisible();
+        await forward();
+        await expectAt('/app/cowork/preferences');
+        await expectShows({ testId: 'cowork-settings-panel' });
     });
 
     it('a page key with no route writes "/" and shows the home page', async () => {

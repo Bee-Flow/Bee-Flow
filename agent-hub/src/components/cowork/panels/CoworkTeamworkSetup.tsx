@@ -1,18 +1,18 @@
 /**
- * "Help me set this up", in the Teamwork panel: one sentence about who does what, a proposal the person changes with
- * dropdowns (which task passes its result to which, who answers questions and who stands in), and "Send invitations".
+ * "Send each result to a colleague's task", on the Teamwork page: one sentence about who does what, a proposal the
+ * person changes with dropdowns (which task sends its result to which, who answers questions and who stands in), and
+ * "Send invitations".
  * The proposal comes from POST /api/cowork/desks/helper/draft and makes nothing; sending goes through the desk's own
  * rules (POST /api/cowork/desks/helper/apply): a colleague accepts once before their task joins, and a chain stops after
- * three hand-offs from one person to another. The edit model is ../coworkTeamworkModel.ts, shared with the helper of an
+ * the result went from one person to another three times. The edit model is ../coworkTeamworkModel.ts, shared with the helper of an
  * item's settings.
  */
 import { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { useApplyDeskDraft, useDraftDesk, type DeskProposal, type HelperCowork, type HelperPerson, type HelperResult } from '@/api/coworkDeskHelper';
-import { Button } from '@/components/shared/Button';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { agreesFirst, bodyOf, editableOf, MAX_STEPS, noteText, notReady, type EditDraft, type EditRole, type NotReady } from '../coworkTeamworkModel';
-import { CARD, INPUT, LabeledField, META, PanelSection, Problem, TALL } from './panelParts';
+import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelSection, Problem } from './panelParts';
 
 const taskLabel = (c: HelperCowork, t: TranslateFn): string => (c.mine
     ? t('cowork_panels.team.task_mine', '{title} (you)', { title: c.title })
@@ -24,7 +24,7 @@ function whyNot(reason: NotReady, t: TranslateFn): string {
         case 'no_steps': return t('cowork_panels.team.not_ready.no_steps', 'Choose at least one task.');
         case 'unchosen': return t('cowork_panels.team.not_ready.unchosen', 'Choose a task in every dropdown.');
         case 'twice': return t('cowork_panels.team.not_ready.twice', 'Each task can come once.');
-        case 'crossings': return t('cowork_panels.team.not_ready.crossings', 'A chain stops after 3 hand-offs from one person to another. Leave a task out.');
+        case 'crossings': return t('cowork_panels.team.not_ready.too_far', 'A result can go from one person to another 3 times at most. Leave a task out.');
         case 'holder': return t('cowork_panels.team.not_ready.holder', 'Choose who answers the questions, or leave that out.');
         case 'name': return t('cowork_panels.team.not_ready.name', 'Give it a name.');
     }
@@ -41,16 +41,16 @@ function StepFields({ draft, tasks, onChange }: { draft: EditDraft; tasks: Helpe
                     <div key={i} className="flex flex-col gap-1" data-testid="cowork-team-step">
                         {step.words && !step.scheduleId && <p className={`m-0 ${META}`}>{t('cowork_panels.team.no_task', 'I could not find a task for “{words}”. Choose one:', { words: step.words })}</p>}
                         <div className="flex items-end gap-2">
-                            <LabeledField id={`cowork-team-step-${i}`} label={i === 0 ? t('cowork_panels.team.pass_of', 'Pass the result of') : t('cowork_panels.team.pass_to', 'To this task')}>
+                            <LabeledField id={`cowork-team-step-${i}`} label={i === 0 ? t('cowork_panels.team.send_of', 'Send each result of') : t('cowork_panels.team.pass_to', 'To this task')}>
                                 <select id={`cowork-team-step-${i}`} className={INPUT} value={step.scheduleId} onChange={(e) => setStep(i, e.target.value)}>
                                     <option value="">{t('cowork_panels.team.choose_task', 'Choose a task')}</option>
                                     {tasks.map((c) => <option key={c.scheduleId} value={c.scheduleId}>{taskLabel(c, t)}</option>)}
                                 </select>
                             </LabeledField>
                             {i > 0 && (
-                                <Button variant="ghost" className={TALL} aria-label={t('cowork_panels.team.remove_handoff', 'No hand-off to step {n}', { n: i + 1 })} onClick={() => onChange({ ...draft, steps: draft.steps.filter((_, j) => j !== i) })}>
-                                    <Minus aria-hidden="true" className="h-4 w-4" />
-                                </Button>
+                                <PanelButton look="icon" aria-label={t('cowork_panels.team.remove_task', 'Do not send it to task {n}', { n: i + 1 })} onClick={() => onChange({ ...draft, steps: draft.steps.filter((_, j) => j !== i) })}>
+                                    <Minus aria-hidden="true" size={16} />
+                                </PanelButton>
                             )}
                         </div>
                         {asks && <p className={`m-0 ${META}`}>{t('cowork_panels.team.asked_to_accept', '{name} is asked to accept once.', { name: asks })}</p>}
@@ -58,9 +58,9 @@ function StepFields({ draft, tasks, onChange }: { draft: EditDraft; tasks: Helpe
                 );
             })}
             {draft.steps.length < MAX_STEPS && (
-                <Button variant="ghost" className={`${TALL} self-start`} onClick={() => onChange({ ...draft, steps: [...draft.steps, { scheduleId: '', words: '' }] })}>
-                    <Plus aria-hidden="true" className="h-4 w-4" />{t('cowork_panels.team.add_handoff', 'Add a hand-off')}
-                </Button>
+                <PanelButton look="link" className="self-start" onClick={() => onChange({ ...draft, steps: [...draft.steps, { scheduleId: '', words: '' }] })}>
+                    <Plus aria-hidden="true" size={16} />{t('cowork_panels.team.send_on', 'Send it on to another task')}
+                </PanelButton>
             )}
         </>
     );
@@ -89,7 +89,7 @@ function RoleFields({ role, people, onChange, onRemove }: { role: EditRole; peop
                 </LabeledField>
             </div>
             <p className={`m-0 ${META}`}>{t('cowork_panels.team.away_note', 'When someone is away, a question for them goes to their stand-in.')}</p>
-            <Button variant="ghost" className={`${TALL} self-start`} onClick={onRemove}>{t('cowork_panels.team.no_role', 'Leave this out')}</Button>
+            <PanelButton look="link" className="self-start" onClick={onRemove}>{t('cowork_panels.team.no_role', 'Leave this out')}</PanelButton>
         </div>
     );
 }
@@ -114,15 +114,15 @@ function Proposal({ proposal, onBack, onDone }: { proposal: DeskProposal; onBack
             {draft.role
                 ? <RoleFields role={draft.role} people={people} onChange={(role) => setDraft({ ...draft, role })} onRemove={() => setDraft({ ...draft, role: null })} />
                 : (
-                    <Button variant="ghost" className={`${TALL} self-start`} onClick={() => setDraft({ ...draft, role: { role: t('cowork_panels.team.default_role', 'Answers the questions'), holderId: '', standInId: '', holderWords: '' } })}>
-                        <Plus aria-hidden="true" className="h-4 w-4" />{t('cowork_panels.team.add_role', 'Say who answers questions')}
-                    </Button>
+                    <PanelButton look="link" className="self-start" onClick={() => setDraft({ ...draft, role: { role: t('cowork_panels.team.default_role', 'Answers the questions'), holderId: '', standInId: '', holderWords: '' } })}>
+                        <Plus aria-hidden="true" size={16} />{t('cowork_panels.team.add_role', 'Say who answers questions')}
+                    </PanelButton>
                 )}
-            <p className={`m-0 ${META}`}>{t('cowork_panels.team.rules', 'Only the result is passed on, never access to anyone’s apps. Each colleague accepts once. A chain stops after 3 hand-offs.')}</p>
+            <p className={`m-0 ${META}`}>{t('cowork_panels.team.only_result', 'Only the result is sent on, never access to anyone’s apps. Each colleague accepts once. A result goes from one person to another 3 times at most.')}</p>
             {waits && <p className={`m-0 ${META}`} data-testid="cowork-team-not-ready">{whyNot(waits, t)}</p>}
             <div className="flex flex-wrap gap-2">
-                <Button className={TALL} busy={apply.isPending} disabled={!!waits} onClick={() => apply.mutate({ draft: bodyOf(draft) }, { onSuccess: onDone })}>{t('cowork_panels.team.send', 'Send invitations')}</Button>
-                <Button variant="ghost" className={TALL} disabled={apply.isPending} onClick={onBack}>{t('cowork_panels.team.start_over', 'Start over')}</Button>
+                <PanelButton busy={apply.isPending} disabled={!!waits} onClick={() => apply.mutate({ draft: bodyOf(draft) }, { onSuccess: onDone })}>{t('cowork_panels.team.send', 'Send invitations')}</PanelButton>
+                <PanelButton look="inline" disabled={apply.isPending} onClick={onBack}>{t('cowork_panels.team.start_over', 'Start over')}</PanelButton>
             </div>
             <Problem error={apply.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
         </div>
@@ -133,11 +133,11 @@ function Sent({ result, onAgain }: { result: HelperResult; onAgain: () => void }
     const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-2" role="status" data-testid="cowork-team-sent">
-            <p className="m-0 text-[13.5px] font-semibold text-[var(--text-primary)]">{t('cowork_panels.team.sent', 'Done. Invitations are sent.')}</p>
+            <p className={`${BODY} font-semibold`}>{t('cowork_panels.team.sent', 'Done. Invitations are sent.')}</p>
             <ul className={`m-0 flex list-disc flex-col gap-1 pl-5 ${META}`}>
                 {[...result.done, ...result.waiting].map((n, i) => <li key={i}>{noteText(n, t)}</li>)}
             </ul>
-            <Button variant="ghost" className={`${TALL} self-start`} onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</Button>
+            <PanelButton look="link" className="self-start" onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</PanelButton>
         </div>
     );
 }
@@ -150,18 +150,18 @@ export default function CoworkTeamworkSetup({ another }: { another: boolean }) {
     const [screen, setScreen] = useState<Screen>({ at: 'words' });
     const [text, setText] = useState('');
     return (
-        <PanelSection title={another ? t('cowork_panels.team.another_heading', 'Set up another') : t('cowork_panels.team.help_heading', 'Help me set this up')}>
+        <PanelSection title={another ? t('cowork_panels.team.another_heading', 'Set up another') : t('cowork_panels.team.send_heading', 'Send each result to a colleague’s task')}>
             <div className={CARD}>
                 {screen.at === 'words' && (
                     <>
                         <LabeledField id="cowork-team-words" label={t('cowork_panels.team.words_label', 'Who does what? Say it in one sentence.')}>
-                            <textarea id="cowork-team-words" rows={3} maxLength={1000} className={`${INPUT} leading-relaxed`} value={text} onChange={(e) => setText(e.target.value)}
+                            <textarea id="cowork-team-words" rows={3} maxLength={1000} className={INPUT} value={text} onChange={(e) => setText(e.target.value)}
                                 placeholder={t('cowork_panels.team.words_placeholder', 'Sam collects the supplier mails, I answer them, Noor steps in when I am away')} />
                         </LabeledField>
                         <div>
-                            <Button className={TALL} busy={draft.isPending} disabled={!text.trim()} onClick={() => draft.mutate({ text: text.trim() }, { onSuccess: (proposal) => setScreen({ at: 'proposal', proposal }) })}>
+                            <PanelButton busy={draft.isPending} disabled={!text.trim()} onClick={() => draft.mutate({ text: text.trim() }, { onSuccess: (proposal) => setScreen({ at: 'proposal', proposal }) })}>
                                 {t('cowork_panels.team.propose', 'Propose a setup')}
-                            </Button>
+                            </PanelButton>
                         </div>
                         <Problem error={draft.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
                     </>
