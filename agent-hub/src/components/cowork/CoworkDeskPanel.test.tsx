@@ -65,7 +65,7 @@ describe('CoworkDeskPanel', () => {
         renderWithClient(<CoworkDeskPanel coworkId="w1" />);
         const user = userEvent.setup();
         const members = await screen.findAllByTestId('cowork-desk-member');
-        expect(members.map((m) => m.textContent)).toEqual([expect.stringContaining("Supplier radarAnn's · Finished"), expect.stringContaining('Invoice intakeyours')]);
+        expect(members.map((m) => m.textContent)).toEqual([expect.stringContaining("Supplier radarAnn · Finished"), expect.stringContaining('Invoice intakeyours')]);
         expect(screen.queryByTestId('cowork-desk-roles')).toBeNull();
         await user.selectOptions(screen.getByLabelText('Who decides its questions'), 'invoices');
         await waitFor(() => expect(calls.some((c) => c.method === 'PUT' && c.url.endsWith('/desks/d1/members/w1'))).toBe(true));

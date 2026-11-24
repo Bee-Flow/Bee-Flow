@@ -12,7 +12,7 @@
  * its full history — or, when nothing is selected, the welcome that used to be
  * the whole page. Deep-linkable at /app/cowork/:id.
  */
-import { CalendarClock, Plus, RefreshCw, X } from 'lucide-react';
+import { Plus, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import useModelTierSelection from '../../hooks/useModelTierSelection';
@@ -22,8 +22,9 @@ import { takeHandedBrief } from './coworkHandedBrief';
 import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
 import CoworkHome from './CoworkHome';
+import CoworkHomePane from './CoworkHomePane';
 import CoworkRow, { ReviewCountPill } from './CoworkRow';
-import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
+import { CoworkWelcomeHeader } from './CoworkWelcome';
 import CoworkTemplates from './CoworkTemplates';
 import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
 import { useCoworkAgents } from '../../api/queries/coworkReads';
@@ -39,8 +40,10 @@ const NO_ITEMS: CoworkItem[] = [];
 export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
     const [actionError, setActionError] = useState<string | null | undefined>(null);
-    // A brief handed over by "Make it a cowork" (./CoworkHabitChip.tsx, ./coworkHandedBrief.ts) fills the box once.
-    const [brief, setBrief] = useState(takeHandedBrief);
+    // A brief handed over by "Make it a cowork" (./CoworkHabitChip.tsx, ./coworkHandedBrief.ts) fills the box once,
+    // and its weekday sets the schedule to every week on that day.
+    const [handed] = useState(takeHandedBrief);
+    const [brief, setBrief] = useState(handed.brief);
     const [busy, setBusy] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(initialCoworkId);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,6 +83,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     }, [initialCoworkId]);
 
     const cowork = useCoworkComposer({
+        weeklyOn: handed.weekday,
         onCreated: (created, payload) => {
             setBrief('');
             setFlash(createdFlash(payload, t));
@@ -148,6 +152,8 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         await runCoworkNow(id);
         setFlash('Running — the result lands in your notifications.');
     }), [withBusy]);
+
+    const addedFromTemplate = useCallback((id: string) => { void refresh().then(() => select(id)); }, [refresh, select]);
 
     const handleToggle = useCallback((id: string) => withBusy(() => toggleCowork(id)), [withBusy]);
 
@@ -302,7 +308,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             onClick={() => { setSelectedId(null); setEditingId(null); textareaRef.current?.focus(); }}
                             disabled={busy}
                             data-testid="cowork-new"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
                         >
                             <Plus className="w-3.5 h-3.5 flex-shrink-0" />
                             {t('cowork.list.new', 'New task')}
@@ -317,6 +323,8 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                         <div className="px-1 pt-2 pb-1">
                             <CoworkWelcomeHeader className="text-center mb-4" />
                             {composer}
+                            {/* What waits, the day, the desks, the cost: the home the desktop pane shows, under the box. */}
+                            <div className="mt-4" data-testid="cowork-home-phone"><CoworkHome onOpen={select} reloadKey={reloadKey} /></div>
                         </div>
                     )}
                     {loading && items.length === 0 && (
@@ -326,6 +334,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                     )}
                     <div className="flex flex-col gap-0.5 pt-1">{rows}</div>
                     {explainer}
+                    {isMobile && <div className="flex flex-col items-center"><CoworkTemplates onAdded={addedFromTemplate} /></div>}
                 </div>
             </aside>
             )}
@@ -351,45 +360,14 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                             reloadKey={reloadKey}
                         />
                     ) : (
-                        <div className="h-full overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-6 py-10">
-                            <div className="w-full max-w-2xl">
-                                <CoworkWelcomeHeader />
-                                <CoworkHome onOpen={select} reloadKey={reloadKey} />
-                                {composer}
-
-                                {/* Starters only while there is nothing real to
-                                    look at — otherwise they compete with the
-                                    user's own work for attention. */}
-                                {items.length === 0 ? (
-                                    <div className="mt-5 flex flex-col gap-2">
-                                        {/* The keyed table: the flattened COWORK_STARTERS
-                                            strings drop the keys, so they show no translation. */}
-                                        {COWORK_STARTER_ITEMS.map(({ key, en }) => {
-                                            const text = t(key, en);
-                                            return (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() => { setBrief(text); textareaRef.current?.focus(); }}
-                                                data-testid="cowork-starter"
-                                                className="text-left px-3.5 py-2.5 rounded-xl border text-[12.5px] transition-colors hover:bg-[var(--bg-secondary)] [background:var(--bg-card)]! [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                            >
-                                                {text}
-                                            </button>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <p className="mt-6 text-[13px] flex items-center gap-2 justify-center text-[var(--text-tertiary)]">
-                                        <CalendarClock className="w-4 h-4 flex-shrink-0" />
-                                        {t('cowork.pick_left', 'Or pick something on the left to see when it runs and how every run went.')}
-                                    </p>
-                                )}
-                                <div className="flex flex-col items-center">
-                                    <CoworkTemplates onAdded={(id) => { void refresh().then(() => select(id)); }} />
-                                </div>
-                            </div>
-                        </div>
+                        <CoworkHomePane
+                            composer={composer}
+                            hasItems={items.length > 0}
+                            reloadKey={reloadKey}
+                            onOpen={select}
+                            onStarter={(text) => { setBrief(text); textareaRef.current?.focus(); }}
+                            onTemplateAdded={addedFromTemplate}
+                        />
                     )}
                 </div>
             )}

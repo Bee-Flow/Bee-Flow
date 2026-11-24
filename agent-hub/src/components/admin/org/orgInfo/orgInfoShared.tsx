@@ -1,4 +1,4 @@
-import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, X, Plus } from 'lucide-react';
+import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Handshake, Info, X, Plus } from 'lucide-react';
 import { cloneElement, isValidElement, useId, useState, useRef } from 'react';
 import type { ComponentType, KeyboardEvent, ReactElement, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -116,6 +116,8 @@ const SECTIONS: OrgSettingsSection[] = [
     { id: 'encryption', labelKey: 'settings.encryption', icon: Lock },
     { id: 'ai_context', labelKey: 'settings.ai_context', icon: Brain },
     { id: 'integration_cache', labelKey: 'settings.integration_cache', icon: DatabaseZap },
+    // The Cowork policy, reachable without the Privacy Shield (the dashboard's Organisation > Cowork row).
+    { id: 'cowork', labelKey: 'admin_nav.cowork', icon: Handshake },
     { id: 'info', labelKey: 'settings.org_info', icon: Info },
 ];
 

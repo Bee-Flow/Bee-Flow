@@ -30,7 +30,7 @@ import { formatDuration } from './coworkFormat';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkStatsData } from '../../api/cowork.types';
-import { formatCost } from '@/utils/formatCost';
+import { formatCostCents } from '@/utils/formatCost';
 
 interface FigureProps {
     label: string;
@@ -116,7 +116,7 @@ function costFigures(stats: CoworkStatsData | null, t: TranslateFn, locale: stri
     if (month.calls === 0) return [{ label, value: t('cowork.stats.ai_none', 'None'), sub: t('cowork.stats.ai_none_sub', 'no model was called') }];
     return [{
         label,
-        value: formatCost(month.byCurrency, locale),
+        value: formatCostCents(month.byCurrency, locale),
         sub: t(month.calls === 1 ? 'cowork.stats.ai_calls' : 'cowork.stats.ai_calls_plural', month.calls === 1 ? '{count} model call' : '{count} model calls', { count: month.calls }),
     }];
 }

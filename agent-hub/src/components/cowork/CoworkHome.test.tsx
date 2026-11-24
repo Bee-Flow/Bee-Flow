@@ -41,6 +41,14 @@ describe('CoworkHome', () => {
         expect(onOpen).toHaveBeenCalledWith('w2');
     });
 
+    it('keeps a moment on one line, whatever the locale writes ("06:30 AM" does not wrap under itself)', async () => {
+        serve({ how: {}, today: [{ kind: 'ran', itemId: 'w1', title: 'Supplier radar', at: '2026-11-23T06:30:00.000Z', status: 'success', runId: 'r1' }], cost: { byCurrency: {}, calls: 0 } });
+        renderWithClient(<CoworkHome onOpen={() => {}} />);
+        const time = await screen.findByTestId('cowork-today-time');
+        expect(time).toHaveClass('whitespace-nowrap', 'flex-shrink-0');
+        expect(time.className.split(' ').some((c) => c.startsWith('w-['))).toBe(false);
+    });
+
     it('an empty day and a month without AI say nothing', async () => {
         serve({ how: {}, today: [], cost: { byCurrency: {}, calls: 0 } });
         renderWithClient(<CoworkHome onOpen={() => {}} />);

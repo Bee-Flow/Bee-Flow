@@ -33,6 +33,9 @@ const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 't
 /** Fields whose value is rebuilt from an allow-list, never copied: the value kept is what the shaper returns. */
 const SHAPED_FIELDS: Readonly<Record<string, (value: unknown) => unknown>> = Object.freeze({ shares: sharesShape });
 
+/** Every field a trail entry can name: each has its words in the owner's language (i18n `cowork_trail.field.<name>`). */
+export const AUDITED_FIELDS: readonly string[] = Object.freeze([...VALUE_FIELDS, ...NAME_ONLY_FIELDS, ...Object.keys(SHAPED_FIELDS)]);
+
 export const MAX_AUDITED_SHARES = 50;
 const MAX_USER_ID = 200;
 

@@ -348,7 +348,7 @@ function CoworkEditFormSection2({ canSave, t, saving, onCancel }: { canSave: boo
             type="submit"
             disabled={!canSave}
             data-testid="cowork-edit-save"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
         >
             <Save className="w-3.5 h-3.5" />
             {t(saving ? 'cowork.edit.saving' : 'cowork.edit.save', saving ? 'Saving…' : 'Save')}

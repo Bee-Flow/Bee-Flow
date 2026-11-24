@@ -121,4 +121,6 @@ export default {
     "admin_nav.nextcloud_instances_desc": "The Nextclouds connected to this server, and how their connectors are doing.",
     "admin_nav.website_analytics_desc": "Visits to the product website, in totals.",
     "admin_nav.release_notes_desc": "Write and publish the release notes of each version.",
+    "admin_nav.cowork": "Cowork",
+    "admin_nav.cowork_desc": "How independent coworks may be, which apps they may use and what they may spend on AI.",
 };

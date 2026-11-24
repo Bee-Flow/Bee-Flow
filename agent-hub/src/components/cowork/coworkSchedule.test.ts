@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     resolveWhen, advanceByRepeat, describeMoment, describeSchedule,
-    buildCoworkPayload, titleFromBrief, toDateInput, toTimeInput, repeatLabel,
+    buildCoworkPayload, titleFromBrief, toDateInput, toTimeInput, repeatLabel, cadenceLine,
 } from './coworkSchedule';
 
 import { malformed } from '@/test/mocks';
@@ -217,5 +217,29 @@ describe('repeatLabel', () => {
     it('does not translate an unknown value — that is data, not copy', () => {
         const t = (key: string, english: string) => `«${key}»:${english}`;
         expect(repeatLabel('fortnightly', t)).toBe('fortnightly');
+    });
+});
+
+describe('cadenceLine', () => {
+    // English with its parameters filled in, as the real translator does for a key it has no text for.
+    const say = ((_key: string, english: string, params: Record<string, string> = {}) => english.replace(/\{(\w+)\}/g, (_m, name: string) => params[name] ?? '')) as unknown as Parameters<typeof cadenceLine>[1];
+    const long = (d: Date) => new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(d);
+    const short = (d: Date) => new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(d);
+    const TUESDAY = new Date(2024, 0, 9, 12);
+    const THURSDAY = new Date(2024, 0, 11, 12);
+
+    it('names the day of a weekly schedule, from the next run when it keeps no list of days', () => {
+        expect(cadenceLine({ repeatInterval: 'weekly', timeOfDay: '06:30', nextRunAt: new Date(2024, 0, 9, 6, 30).toISOString() }, say)).toBe(`Every ${long(TUESDAY)} 06:30`);
+        expect(cadenceLine({ repeatInterval: 'biweekly', nextRunAt: new Date(2024, 0, 9, 6, 30).toISOString() }, say)).toBe(`Every 2 weeks on ${long(TUESDAY)}`);
+    });
+
+    it('lists several days by their short names, in week order', () => {
+        expect(cadenceLine({ repeatInterval: 'weekly', daysOfWeek: ['thu', 'tue'], timeOfDay: '06:30' }, say)).toBe(`Every week on ${short(TUESDAY)}, ${short(THURSDAY)} 06:30`);
+        expect(cadenceLine({ repeatInterval: null, daysOfWeek: ['tue'], timeOfDay: '07:00' }, say)).toBe(`Every ${long(TUESDAY)} 07:00`);
+    });
+
+    it('keeps the interval word where no day applies', () => {
+        expect(cadenceLine({ repeatInterval: 'weekdays', timeOfDay: '08:00' }, say)).toBe('Every weekday 08:00');
+        expect(cadenceLine({ repeatInterval: 'weekly' }, say)).toBe('Every week');
     });
 });

@@ -159,6 +159,13 @@ describe('CoworkRow — the one meta line', () => {
         expect(metaLine()).toBe('Every week 07:00 · last run 2d ago');
     });
 
+    it('names the day of a weekly schedule: the weekday of its next run', () => {
+        // 9 Jan 2024 was a Tuesday.
+        const tuesday = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(new Date(2024, 0, 9, 12));
+        renderRow({ repeatInterval: 'weekly', timeOfDay: '06:30', nextRunAt: new Date(2024, 0, 9, 6, 30).toISOString(), lastRunAt: null, runCount: 0 });
+        expect(metaLine()).toBe(`Every ${tuesday} 06:30`);
+    });
+
     it('does not read the previous run out beside a live one', () => {
         // "last run 3h ago" next to "Running" is about the run BEFORE this
         // one — true, and the wrong fact to put there.
@@ -182,15 +189,15 @@ describe('CoworkRow — the one meta line', () => {
             lastRunAt: null,
             runCount: 0,
         });
-        expect(metaLine()).toBe(`${monday} 07:00`);
+        expect(metaLine()).toBe(`Every ${monday} 07:00`);
     });
 
     it('lists days in week order, not in the order they arrived', () => {
-        const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+        const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
         const monday = fmt.format(new Date(2024, 0, 8, 12));
         const thursday = fmt.format(new Date(2024, 0, 11, 12));
         renderRow({ repeatInterval: null, daysOfWeek: ['thu', 'mon'], lastRunAt: null, runCount: 0 });
-        expect(metaLine()).toBe(`${monday}, ${thursday}`);
+        expect(metaLine()).toBe(`Every week on ${monday}, ${thursday}`);
     });
 
     it('states the concrete moment of a one-off that is still coming', () => {

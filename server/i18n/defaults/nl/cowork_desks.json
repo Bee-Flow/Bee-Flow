@@ -25,7 +25,6 @@
     "cowork_desks.new_name": "Naam van een nieuw bureau",
     "cowork_desks.new_placeholder": "Bijvoorbeeld: Facturen",
     "cowork_desks.on": "Op het bureau \"{desk}\".",
-    "cowork_desks.owner": "van {owner}",
     "cowork_desks.remove_desk": "Het bureau verwijderen",
     "cowork_desks.roles.add": "Een rol toevoegen",
     "cowork_desks.roles.away": "Houder van {role} afwezig tot en met",

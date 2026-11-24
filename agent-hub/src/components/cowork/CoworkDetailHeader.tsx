@@ -151,17 +151,16 @@ export default function DetailHeader({ item, status, t, busy, needsCount = 0, on
             {needsCount > 0 && <NeedsBadge count={needsCount} t={t} onClick={onShowNeeds} />}
 
             <div className="ml-auto flex items-center gap-1.5">
-                {/* The one primary action on the pane. Accent tokens, not the
-                    artboard's ink fill: the fill is a hex, and this product
-                    follows the admin's accent through eight themes
-                    (COMPLETED-STAGES.md:412). */}
+                {/* The one primary action on the pane, on the primary button
+                    tokens every theme defines (index.css, themes.css): the grey
+                    accent carried light text in dark mode. */}
                 {!isMailTriggerItem(item) && (
                 <button
                     type="button"
                     onClick={() => onRunNow(item.id)}
                     disabled={busy || item.lastStatus === 'running'}
                     data-testid="cowork-run-now"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
                 >
                     <Play className="w-3.5 h-3.5" />{t('cowork.detail.run_now', 'Run now')}
                 </button>

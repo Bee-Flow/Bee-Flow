@@ -15,7 +15,7 @@ import { appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPla
 import type { PlanStatus } from './coworkPlanModel';
 import { fullTimestamp } from './coworkFormat';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { PlanDraft, PlanEffect, PlanPermissions, PlanState, PlanStep, PlanStepKind } from '../../api/coworkPlan.types';
+import type { PlanDraft, PlanEffect, PlanPermissions, PlanState, PlanStep, PlanStepChange, PlanStepKind } from '../../api/coworkPlan.types';
 
 interface CoworkPlanCardProps {
     state: PlanState;
@@ -64,13 +64,23 @@ function MakeUpBar({ draft, t }: { draft: PlanDraft; t: TranslateFn }) {
     );
 }
 
-function StepRow({ step, t }: { step: PlanStep; t: TranslateFn }) {
+const CHANGE_PILL = 'inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium border-[color-mix(in_srgb,var(--warning)_40%,transparent)] text-[var(--warning-ink)]';
+
+/** "New" or "Changed" beside a step that differs from the approved plan. */
+function ChangeMark({ change, t }: { change: PlanStepChange['change'] | undefined; t: TranslateFn }) {
+    if (change === 'added') return <span className={CHANGE_PILL} data-testid="cowork-plan-step-change">{t('cowork_plan.step_change.added', 'New')}</span>;
+    if (change === 'changed') return <span className={CHANGE_PILL} data-testid="cowork-plan-step-change">{t('cowork_plan.step_change.changed', 'Changed')}</span>;
+    return null;
+}
+
+function StepRow({ step, change, t }: { step: PlanStep; change?: PlanStepChange['change']; t: TranslateFn }) {
     return (
         <li className={`flex items-start gap-2.5 py-1.5 ${step.depth > 0 ? 'pl-6' : ''}`} data-testid={`cowork-plan-step-${step.id}`}>
             <CoworkPlanKindTile kind={step.kind} />
             <span className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-[13px] font-medium break-words text-[var(--text-primary)]">{step.title}</span>
                 <span className={PILL}>{t(`cowork_plan.kind.${step.kind}`, KIND_FALLBACK[step.kind])}</span>
+                <ChangeMark change={change} t={t} />
                 {step.readsOutsideText && (
                     <span className={PILL} title={t('cowork_plan.outside_text_hint', 'This step reads text someone outside wrote, so the AI gets no apps here.')}>
                         <Lock aria-hidden="true" className="w-3 h-3" />
@@ -129,13 +139,20 @@ function Notes({ heading, lines, tone }: { heading: string; lines: string[]; ton
     );
 }
 
-/** The plan itself: its steps, what it may do, and what stops it. */
-function PlanBody({ draft, changed, t }: { draft: PlanDraft; changed: boolean; t: TranslateFn }) {
+/** The plan itself: its steps (marked where they differ from the approved plan), what it may do, and what stops it. */
+function PlanBody({ draft, changed, stepChanges, t }: { draft: PlanDraft; changed: boolean; stepChanges: PlanStepChange[]; t: TranslateFn }) {
+    const changeOf = new Map(changed ? stepChanges.map((c) => [c.id, c.change]) : []);
+    const removed = changed ? stepChanges.filter((c) => c.change === 'removed').map((c) => c.title) : [];
     return (
         <>
             <ol className="flex flex-col">
-                {draft.view.steps.map((step) => <StepRow key={step.id} step={step} t={t} />)}
+                {draft.view.steps.map((step) => <StepRow key={step.id} step={step} change={changeOf.get(step.id)} t={t} />)}
             </ol>
+            {removed.length > 0 && (
+                <p className="text-[12px] text-[var(--text-secondary)]" data-testid="cowork-plan-steps-removed">
+                    {t('cowork_plan.step_change.removed', 'Taken out since you approved it: {steps}', { steps: removed.join(', ') })}
+                </p>
+            )}
             <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-subtle)]">
                 <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{t('cowork_plan.may.heading', 'What it may do')}</span>
                 <MayDo permissions={draft.permissions} t={t} />
@@ -206,7 +223,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
             </div>
             <StatusLine status={status} state={state} t={t} />
             {note && <PlannerNote note={note} t={t} />}
-            {draft && <PlanBody draft={draft} changed={status === 'changed'} t={t} />}
+            {draft && <PlanBody draft={draft} changed={status === 'changed'} stepChanges={state.stepChanges ?? []} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}
             {independence}

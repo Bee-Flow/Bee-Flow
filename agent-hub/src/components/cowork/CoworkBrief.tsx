@@ -17,7 +17,7 @@
  */
 import { CalendarClock, Clock, LayoutGrid } from 'lucide-react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
-import { describeMoment, repeatLabel } from './coworkSchedule';
+import { cadenceLine, describeMoment } from './coworkSchedule';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import { TIER_META, tierLabel } from '../licensing/tierMeta';
 import { kindColorVar, kindIcon } from '../shared/kindColors';
@@ -51,12 +51,12 @@ function Pill(props: PillProps) {
     );
 }
 
-/** "Every weekday 08:00", "Every week", or "Runs once". */
+/** "Every weekday 08:00", "Every Tuesday 06:30", or "Runs once". */
 function cadenceText(item: CoworkItem, t: TranslateFn) {
     if (isMailTriggerItem(item)) return describeMailTrigger(item.trigger, t);
-    if (!item.repeatInterval) return t('cowork.detail.runs_once', 'Runs once');
-    const label = repeatLabel(item.repeatInterval, t);
-    return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
+    const days = Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0;
+    if (!item.repeatInterval && !days) return t('cowork.detail.runs_once', 'Runs once');
+    return cadenceLine(item, t);
 }
 
 /** The brief in the user's own words, and the context it runs under. */

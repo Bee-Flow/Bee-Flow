@@ -34,7 +34,11 @@ describe('CoworkDesks', () => {
         renderWithClient(<CoworkDesks onOpen={onOpen} />);
         const user = userEvent.setup();
         await user.click(await screen.findByRole('button', { name: 'Invoices' }));
-        expect(await screen.findAllByTestId('cowork-desk-member')).toHaveLength(2);
+        const members = await screen.findAllByTestId('cowork-desk-member');
+        expect(members).toHaveLength(2);
+        // A colleague's cowork names its owner plainly, without a possessive that has no noun after it.
+        expect(members[0]).toHaveTextContent('Ann · Finished');
+        expect(members[0]).not.toHaveTextContent("Ann's");
         expect(screen.queryByRole('button', { name: 'Supplier radar' })).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Invoice intake' }));
         expect(onOpen).toHaveBeenCalledWith('w1');

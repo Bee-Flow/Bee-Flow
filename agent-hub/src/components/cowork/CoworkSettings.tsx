@@ -15,7 +15,7 @@ import CoworkShare from './CoworkShare';
 import CoworkStartPanel from './CoworkStartPanel';
 import CoworkTrail from './CoworkTrail';
 import { useTranslation } from '@/hooks/useTranslation';
-import { formatCost } from '@/utils/formatCost';
+import { formatCostCents } from '@/utils/formatCost';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -40,7 +40,7 @@ function Budget({ amount, t, locale, busy, onEdit }: { amount: number | null; t:
             <p className="text-[12.5px] text-[var(--text-secondary)]">
                 {amount === null
                     ? t('cowork_detail.budget.none', 'No limit on what it may spend on AI.')
-                    : t('cowork_detail.budget.amount', '{amount} a month on AI. At that amount it pauses itself and tells you.', { amount: formatCost({ EUR: amount }, locale) })}
+                    : t('cowork_detail.budget.amount', '{amount} a month on AI. At that amount it pauses itself and tells you.', { amount: formatCostCents({ EUR: amount }, locale) })}
             </p>
             <button
                 type="button"

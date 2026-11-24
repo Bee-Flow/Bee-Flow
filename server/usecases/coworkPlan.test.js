@@ -26,7 +26,7 @@ function world({ automations = { 'auto-1': { id: 'auto-1', userId: 'u1', organiz
             detachPlan: async () => { state.detached += 1; state.approved = null; },
             approvePlan: async (input) => {
                 state.approvals.push(input);
-                state.approved = { id: `plan-${state.approvals.length}`, version: state.approvals.length, fingerprint: input.fingerprint, approvedAt: '2026-11-23T09:14:00.000Z', permissions: input.permissions };
+                state.approved = { id: `plan-${state.approvals.length}`, version: state.approvals.length, fingerprint: input.fingerprint, approvedAt: '2026-11-23T09:14:00.000Z', permissions: input.permissions, definition: input.definition };
                 return state.approved;
             },
             getApprovedPlan: async () => state.approved,
@@ -44,7 +44,7 @@ const httpError = (status, code) => (err) => err.status === status && err.code =
 
 test('an item without a plan shows nothing to approve', async () => {
     const { deps } = world();
-    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false });
+    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [] });
 });
 
 test('looking at a plan shows its steps, what it may do, no findings, and that it was never approved', async () => {
@@ -162,6 +162,24 @@ test('after the automation changes, the item still runs the approved plan and sh
     assert.strictEqual(state.upToDate, false);
     assert.strictEqual(state.approved?.fingerprint, planFingerprint(supplierRadar()), 'the approved plan did not move');
     assert.deepStrictEqual(state.widens, ['outlook: sends (outlook_compose)', 'It can now send to other people.']);
+    assert.deepStrictEqual(state.stepChanges.map((c) => [c.id, c.change]), [['send', 'added']], 'the step list can say which step is new');
+});
+
+test('the plan state names the steps that changed, were added or went since the approval, and none while it is the same', async () => {
+    const automations = { 'auto-1': { id: 'auto-1', userId: 'u1', kind: 'automation', definition: supplierRadar() } };
+    const { deps } = world({ automations });
+    const approved = await approvePlan({ item: ITEM, fingerprint: planFingerprint(supplierRadar()) }, deps);
+    assert.deepStrictEqual(approved.stepChanges, []);
+
+    const changed = supplierRadar();
+    const table = changed.steps.find((s) => s.id === 'table');
+    table.datatableId = 'tbl_other_orders';
+    changed.steps = changed.steps.filter((s) => s.id !== 'digest');
+    changed.edges = changed.edges.filter((e) => e.to !== 'digest');
+    automations['auto-1'] = { ...automations['auto-1'], definition: changed };
+    const state = await planStateOf(ITEM, deps);
+    assert.deepStrictEqual(state.stepChanges.map((c) => [c.id, c.change]), [['table', 'changed'], ['digest', 'removed']]);
+    assert.ok(state.stepChanges.every((c) => typeof c.title === 'string' && c.title.length > 0));
 });
 
 test('a change that does less does not widen, but the plan is still not the approved one until approved', async () => {
@@ -181,5 +199,5 @@ test('taking the plan off leaves the item without one', async () => {
     await approvePlan({ item: ITEM, fingerprint: planFingerprint(supplierRadar()) }, deps);
     const after = await removePlan({ item: ITEM }, deps);
     assert.strictEqual(state.detached, 1);
-    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false });
+    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [] });
 });

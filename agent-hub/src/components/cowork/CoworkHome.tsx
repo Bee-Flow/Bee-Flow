@@ -11,7 +11,7 @@ import CoworkHabitsSwitch from './CoworkHabitsSwitch';
 import { todayWords } from './coworkHomeModel';
 import { useCoworkHome } from '../../api/coworkHome';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatCost } from '../../utils/formatCost';
+import { formatCostCents } from '../../utils/formatCost';
 import type { TodayEntry } from '../../api/coworkHome';
 
 const timeOf = (iso: string | null, locale: string): string => {
@@ -32,7 +32,7 @@ function Today({ entries, onOpen, locale }: { entries: TodayEntry[]; onOpen: (it
                 {entries.map((entry) => (
                     <li key={`${entry.kind}-${entry.runId ?? entry.itemId}-${entry.at ?? ''}`} data-testid="cowork-today-entry" data-kind={entry.kind}>
                         <button type="button" className="w-full flex items-baseline gap-3 py-1 text-left text-[12px] hover:text-[var(--text-primary)]" onClick={() => onOpen(entry.itemId)}>
-                            <span className="w-[44px] flex-shrink-0 tabular-nums text-[var(--text-tertiary)]">{timeOf(entry.at, locale)}</span>
+                            <span className="min-w-[4.75rem] flex-shrink-0 whitespace-nowrap tabular-nums text-[var(--text-tertiary)]" data-testid="cowork-today-time">{timeOf(entry.at, locale)}</span>
                             <span className="flex-1 min-w-0 truncate text-[var(--text-secondary)]">{entry.title || t('cowork_needs.untitled', 'Untitled work')}</span>
                             <span className={entry.kind === 'next' ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}>{todayWords(entry, t)}</span>
                         </button>
@@ -55,7 +55,7 @@ export default function CoworkHome({ onOpen, reloadKey = 0 }: { onOpen: (itemId:
             <CoworkDesks onOpen={onOpen} />
             {home?.cost && home.cost.calls > 0 && (
                 <p className="mb-4 px-[18px] text-[12px] text-[var(--text-tertiary)]" data-testid="cowork-cost-month">
-                    {t('cowork.home.cost_month', 'AI this month: {cost}', { cost: formatCost(home.cost.byCurrency, lang) })}
+                    {t('cowork.home.cost_month', 'AI this month: {cost}', { cost: formatCostCents(home.cost.byCurrency, lang) })}
                 </p>
             )}
             <CoworkHabitsSwitch />

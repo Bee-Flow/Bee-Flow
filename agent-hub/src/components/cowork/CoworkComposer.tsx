@@ -233,7 +233,7 @@ export default function CoworkComposer({
                         disabled={!canSend}
                         data-testid="cowork-send"
                         title={cowork.summary}
-                        className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-full text-[12.5px] font-semibold text-white transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--accent-primary)]"
+                        className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-full text-[12.5px] font-semibold transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
                     >
                         {cowork.submitting
                             ? t('cowork.composer.starting', 'Starting…')

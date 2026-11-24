@@ -90,7 +90,7 @@ function ReviewCard({ coworkId, run, t, onReviewed }: ReviewCardProps) {
                     type="button"
                     onClick={() => act('answer')}
                     disabled={busy !== null || !answer.trim()}
-                    className="px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+                    className="px-2.5 py-1.5 rounded-lg text-[12px] font-medium disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
                 >
                     {t('cowork_review.queue.send', 'Send and let the agent continue')}
                 </button>

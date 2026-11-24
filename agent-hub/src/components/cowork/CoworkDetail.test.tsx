@@ -299,12 +299,11 @@ describe('CoworkDetail — the status word for the remaining branches', () => {
         expect(pill()).toHaveTextContent('Idle');
     });
 
-    it('wrat: a paused item whose last run succeeded claims to be "Finished"', async () => {
-        // The badge and the button directly contradict each other: "Finished"
-        // above a button offering to Resume it.
+    it('a paused recurring item whose last run succeeded reads "Paused", beside the button that resumes it', async () => {
+        // It used to say "Finished" above a button offering to Resume it.
         await renderFull({ isActive: false, lastStatus: 'success' });
-        expect(pill().getAttribute('data-status-key')).toBe('run_status.success');
-        expect(pill()).toHaveTextContent('Finished');
+        expect(pill().getAttribute('data-status-key')).toBe('run_status.paused');
+        expect(pill()).toHaveTextContent('Paused');
         expect(screen.getByTestId('cowork-toggle')).toHaveTextContent('Resume');
     });
 
@@ -485,16 +484,16 @@ describe('CoworkDetail — the header identity (CW-06)', () => {
         expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Quotes of yesterday');
     });
 
-    it('gives Run now the accent tokens and leaves the rest secondary', async () => {
-        // One primary action per pane, and it follows the admin's accent
-        // through the eight themes rather than the artboard's ink hex.
+    it('gives Run now the primary button tokens and leaves the rest secondary', async () => {
+        // One primary action per pane, on the tokens every theme defines for it, so its text keeps its contrast in dark
+        // mode too (the grey accent with light text did not).
         await renderFull();
         const runNow = screen.getByTestId('cowork-run-now').className;
-        expect(runNow).toContain('bg-[var(--accent-primary)]');
-        expect(runNow).toContain('text-[var(--accent-primary-fg)]');
+        expect(runNow).toContain('bg-[var(--button-primary-bg)]');
+        expect(runNow).toContain('text-[var(--button-primary-fg)]');
         const toggle = screen.getByTestId('cowork-toggle');
-        expect(toggle.className).not.toContain('--accent-primary');
-        expect(toggle.getAttribute('style')).not.toContain('--accent-primary');
+        expect(toggle.className).not.toContain('--button-primary');
+        expect(toggle.getAttribute('style')).not.toContain('--button-primary');
     });
 });
 

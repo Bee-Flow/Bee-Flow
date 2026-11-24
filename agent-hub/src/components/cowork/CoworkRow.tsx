@@ -25,7 +25,7 @@
  * have to do to learn that their work is switched off.
  */
 import { relativeTime } from './coworkFormat';
-import { describeMoment, repeatLabel } from './coworkSchedule';
+import { cadenceLine, describeMoment } from './coworkSchedule';
 import { coworkStatus } from './coworkStatus';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import { howLine } from './coworkHomeModel';
@@ -48,42 +48,13 @@ interface CoworkRowProps {
     how?: HowItWorks | null;
 }
 
-/** Weekday tokens exactly as the server stores them, Sunday first. */
-const DOW_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
-/**
- * "Monday, Thursday" for a `daysOfWeek` spec, in the reader's own locale.
- *
- * Always in WEEK order, never the order the array happened to arrive in: the
- * composer builds the list from whatever the user said, so `['thu','mon']` is
- * an ordinary payload and "Thursday, Monday" would be an odd way to read it
- * back. Noon on the anchor dates, not midnight — a DST jump that lands exactly
- * on midnight (Chile, Brazil) would otherwise name the wrong day.
- */
-function weekdayNames(days: string[]): string {
-    const set = new Set(days.map(d => String(d).toLowerCase()));
-    const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
-    return DOW_TOKENS
-        .map((tok, i) => (set.has(tok) ? fmt.format(new Date(2024, 0, 7 + i, 12)) : null))
-        .filter(Boolean)
-        .join(', ');
-}
-
 /** The left half of the meta line: when this runs. */
 function whenText(item: CoworkItem, t: TranslateFn): string {
     // Started by a new email, not by a clock: there is no moment to print.
     if (isMailTriggerItem(item)) return describeMailTrigger(item.trigger, t);
-    if (item.repeatInterval) {
-        const label = repeatLabel(item.repeatInterval, t);
-        return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
-    }
-    // A days-of-week spec with no interval is still a repeat — it is how the
-    // server stores "every Monday at 07:00" (see routes/cowork.js, which
-    // counts it as repeating for exactly this reason).
-    if (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0) {
-        const days = weekdayNames(item.daysOfWeek);
-        return item.timeOfDay ? `${days} ${item.timeOfDay}` : days;
-    }
+    // A days-of-week spec with no interval is still a repeat: it is how the server stores "every Monday at 07:00"
+    // (routes/cowork.js counts it as repeating for exactly this reason).
+    if (item.repeatInterval || (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0)) return cadenceLine(item, t);
     // A one-off. Its moment is only a promise while it is still switched on;
     // a paused item keeps a stale `nextRunAt` the server will never honour.
     if (item.isActive && item.nextRunAt) return describeMoment(item.nextRunAt);

@@ -89,6 +89,27 @@ describe('CoworkPlanCard', () => {
         expect(screen.getByTestId('cowork-plan-approve')).toBeTruthy();
     });
 
+    it('a changed plan marks which steps are new or changed, and names the ones taken out', () => {
+        renderCard(approvedState({
+            upToDate: false,
+            approved: { version: 2, fingerprint: 'older', approvedAt: null, permissions: supplierRadarDraft().permissions },
+            stepChanges: [
+                { id: 'table', title: 'Update the Open orders table', kind: 'fixed', change: 'changed' },
+                { id: 'draft', title: 'Save the replies as drafts', kind: 'fixed', change: 'added' },
+                { id: 'old', title: 'Ring the bell', kind: 'fixed', change: 'removed' },
+            ],
+        }));
+        expect(within(screen.getByTestId('cowork-plan-step-table')).getByTestId('cowork-plan-step-change')).toHaveTextContent('Changed');
+        expect(within(screen.getByTestId('cowork-plan-step-draft')).getByTestId('cowork-plan-step-change')).toHaveTextContent('New');
+        expect(within(screen.getByTestId('cowork-plan-step-mail')).queryByTestId('cowork-plan-step-change')).toBeNull();
+        expect(screen.getByTestId('cowork-plan-steps-removed')).toHaveTextContent('Taken out since you approved it: Ring the bell');
+    });
+
+    it('an approved plan that is up to date marks no step', () => {
+        renderCard(approvedState({ stepChanges: [{ id: 'table', title: 'Update the Open orders table', kind: 'fixed', change: 'changed' }] }));
+        expect(screen.queryByTestId('cowork-plan-step-change')).toBeNull();
+    });
+
     it('a plan that may not run says why, and cannot be approved', () => {
         const draft = { ...supplierRadarDraft(), findings: [{ code: 'step.not_allowed', stepId: 'c', message: 'A plan cannot run a script yet: scripts arrive with the sandbox that runs outside the server process.' }] };
         renderCard(planState({ draft }));

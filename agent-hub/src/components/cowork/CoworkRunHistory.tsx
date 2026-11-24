@@ -37,7 +37,7 @@ import { useTranslation, type TranslateParams } from '../../hooks/useTranslation
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { statusLabel } from '../shared/statusTokens';
 import type { CoworkRun } from '../../api/cowork.types';
-import { formatCost } from '@/utils/formatCost';
+import { formatCostCents } from '@/utils/formatCost';
 
 /**
  * The first line of text that carries anything, with its Markdown marks
@@ -111,7 +111,7 @@ function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: s
                 type="button"
                 onClick={() => setOpen(v => !v)}
                 aria-expanded={open}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[var(--bg-card-hover)]"
+                className="w-full flex flex-wrap items-center gap-x-2.5 gap-y-1 px-3 py-2.5 text-left hover:bg-[var(--bg-card-hover)]"
             >
                 <span
                     aria-hidden="true"
@@ -134,9 +134,11 @@ function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: s
                 </span>
                 {/* What the run cost in AI; nothing for a run that called no model. */}
                 <span className="w-[56px] flex-shrink-0 text-right text-[11px] tabular-nums text-[var(--text-tertiary)]" data-testid="cowork-run-cost">
-                    {run.cost && run.cost.calls > 0 ? formatCost(run.cost.byCurrency, locale) : ''}
+                    {run.cost && run.cost.calls > 0 ? formatCostCents(run.cost.byCurrency, locale) : ''}
                 </span>
-                <span className="flex-1 min-w-0 truncate text-[12px] text-[var(--text-secondary)]">
+                {/* Up to two lines, never cut to a letter: on a phone the columns before it leave no room, so it wraps
+                    under them instead. */}
+                <span className="flex-1 min-w-[8rem] line-clamp-2 break-words text-[12px] text-[var(--text-secondary)]" data-testid="cowork-run-outcome">
                     {outcomeLine(run, t)}
                 </span>
                 <ChevronRight
