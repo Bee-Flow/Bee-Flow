@@ -112,6 +112,16 @@ async function refusedByFeature(approval, deciderId) {
 }
 
 /**
+ * The same question for a screen: may this person decide it, as far as the feature that started the journey says?
+ * A decide button follows the decision's own rule, so a former approver is not shown one they cannot use.
+ * @param {Approval} approval
+ * @param {string} deciderId
+ */
+async function featureLetsDecide(approval, deciderId) {
+    return (await refusedByFeature(approval, deciderId)) === null;
+}
+
+/**
  * The decision. `approval` is the pending row (already authz-checked by the
  * caller via canDecide); `run` is the actionable leg (resolveActionableRun).
  * Returns {code, body} ready for res.status(code).json(body).
@@ -368,7 +378,7 @@ async function validateApprovalAssignees(definition, ownerId) {
 }
 
 module.exports = {
-    decide, withdraw, canDecide, canView, ensureApprovalForRun, validateApprovalAssignees,
+    decide, withdraw, canDecide, canView, featureLetsDecide, ensureApprovalForRun, validateApprovalAssignees,
     isRunless, userDisplayName,
     // Panel machinery — the routes render progress; tests pin the rulebook.
     hasPanel, panelProgress, voteSummary, seatIndexFor,

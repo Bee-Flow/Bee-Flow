@@ -28,7 +28,7 @@ const automationStore = require('../../stores/automationStore');
 const { executeTask } = require('../aiTaskRunner');
 const { attachPlan, approvePlan } = require('../../usecases/coworkPlan.mts');
 const { chooseIndependence } = require('../../usecases/coworkIndependence.mts');
-const { decide, canDecide } = require('../../automation/approvalService');
+const { decide, canDecide, featureLetsDecide } = require('../../automation/approvalService');
 const { coworkShares } = require('../../stores/coworkShares.mts');
 const { setCoworkPolicy } = require('../entitlements/coworkPolicy.mts');
 const { setPauseDepsForTests } = require('../automationRunner/dryPause.mts');
@@ -112,6 +112,8 @@ test('a colleague the owner took off the item no longer decides its questions; t
 
     await coworkShares().setShares(itemId, [], OWNER);
     assert.ok(canDecide(approval, { userId: COLLEAGUE, groupIds: [] }), 'the row alone still names them');
+    assert.strictEqual(await featureLetsDecide(approval, COLLEAGUE), false, 'and no screen offers them a decide button');
+    assert.strictEqual(await featureLetsDecide(approval, OWNER), true);
     const refused = await decide({ approval, run, deciderId: COLLEAGUE, decision: 'reject', reason: 'No.', source: 'studio' });
     assert.deepStrictEqual([refused.code, refused.body.error], [403, 'You cannot decide this approval.'], JSON.stringify(refused).slice(0, 300));
     assert.strictEqual((await automationStore.getApproval(approval.id))?.status, 'pending', 'nothing was decided');
