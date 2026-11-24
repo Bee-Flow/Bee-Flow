@@ -18,7 +18,8 @@ approval), `server/usecases/coworkPlanTry.mts` (the try-out), `server/core/cowor
 for the wiring: `server/core/cowork/plan/planWiring.mts` (the check), `server/core/cowork/plan/planWiringFix.mts` (the
 fixes and the same reach), `server/usecases/coworkAutoResolveWiring.mts` (the fix of an approved plan),
 `server/usecases/coworkPlannerTry.mts` and `server/usecases/coworkPlanTryOut.mts` (the planner's try-outs),
-`server/core/cowork/plan/planTryFacts.mts` (what a try-out tells), `server/stores/coworkPlanTries.mts`.
+`server/core/cowork/plan/planTryFacts.mts` (what a try-out tells), `server/stores/coworkPlanTries.mts`,
+`server/usecases/coworkPlanWiringRepair.mts` (the fix of a plan that is not approved yet).
 **Enforced by:** `server/core/cowork/repairs/autoResolve.engine.pg.test.js` (on the real engine: the Fireflies plan
 that reads `output.transcripts` from a tool that hands on `results` ends incomplete, not succeeded; the fix takes
 `output.results`, changes only that reference, keeps the permissions exactly, is replayed on the run's recording,
@@ -41,7 +42,12 @@ Fireflies, the fix keeps the permissions exactly, is proven by a try-out because
 approved by Cowork with a trail entry and an Undo, the rerun reaches Fireflies; a marker in the meetings reaches
 nothing stored; a fix the try-out does not prove becomes a proposal),
 `server/usecases/coworkPlanner.tryOut.engine.pg.test.js` (the planner's first draft fails its try-out, the facts go
-back without a meeting title, the second draft passes; a draft that never passes gets no Approve).
+back without a meeting title, the second draft passes; a draft that never passes gets no Approve),
+`server/usecases/coworkPlanWiringRepair.engine.pg.test.js` (on the real engine: the owner's plan that is not approved,
+in which "Notification" does not wait for "AI step", is fixed with the same permissions, stays unapproved, is tried
+once and gets its trail entry; a fix that reaches more, an approved plan, a read-only organisation and someone else's
+item are refused and change nothing; a spent budget leaves it fixed and untried; a marker in the meetings reaches
+nothing stored).
 
 ## Context
 
@@ -105,6 +111,15 @@ repairs of 0048 only listen for a step that FAILS twice: this one did not fail.
   It is approved by `cowork:auto_fix`, the trail gets `cowork.plan_wiring_fixed` with what changed in step ids and the
   proof, the item shows "Fixed automatically: '…' now waits for '…' / now reads from '…'. · Undo", and a scheduled
   item runs once more. Otherwise it is a repair its owner decides (`wiring_broken`).
+- **A plan that is not approved may have its wiring fixed too, and is never approved by it (24 Nov).** A plan drafted
+  by an older planner, or named by hand, may be miswired before it ever ran, and then it never runs: the card said "This
+  plan cannot run as it is" and offered no Approve, while the fix was already known. Cowork applies the same fixes to
+  such a plan under the same reach rule (every blocking wiring finding answered, `sameWiringReach`, no finding left),
+  right after the plan is named or drafted and when the card asks (`wiringFixable`, `POST /:id/plan/fix-wiring`). The
+  fixed definition is stored as the plan and stays unapproved: its owner approves it from the card as any other plan.
+  The trail gets `cowork.plan_wiring_fixed` by Cowork with `proof: 'none'` and what changed in step ids, and the fixed
+  plan is tried once in test mode under the item's and the organisation's budget; a try-out the budget refuses leaves
+  the wiring fixed, untried, with the reason on the card and "Fix it for me" to try again.
 - **A plan Cowork drafts is tried before its owner sees it.** Once a draft passes the static checks, the planner runs
   it once in test mode; what went wrong goes back to the model as facts (step titles, error classes, the fields the
   plan reads, the keys an output really has; never a value or an app's error text), at most three try-outs, each
