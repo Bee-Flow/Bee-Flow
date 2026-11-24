@@ -65,7 +65,7 @@ export default function TaskSetTarget({ coworkId, t }: { coworkId: string; t: Tr
                 <button type="button" className={BTN_QUIET} disabled={busy || !trimmed || goal?.sentence === trimmed} onClick={() => { saveTarget().catch(() => undefined); }}>
                     {draft.isPending ? t('cowork_task.goal.drafting', 'Drafting the check…') : t('cowork_task.target.save', 'Save target')}
                 </button>
-                {goal && <button type="button" className={BTN_QUIET} disabled={busy} onClick={() => remove.mutate(undefined, { onSuccess: () => setTyped('') })}>{t('cowork_task.target.remove', 'Remove target')}</button>}
+                {goal && <button type="button" className={BTN_QUIET} disabled={busy} onClick={() => remove.mutate(undefined, { onSuccess: () => { setTyped(''); draft.reset(); } })}>{t('cowork_task.target.remove', 'Remove target')}</button>}
             </div>
             <Failure error={error} t={t} />
         </div>

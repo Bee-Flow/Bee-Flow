@@ -11,7 +11,7 @@
  * There is no separate edit screen. A change that needs the steps made again says so before it is saved ("Save and
  * test"); a change that does not (a name, a time) is saved at once (./coworkTaskSettingsModel.ts).
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useCoworkApps from '../useCoworkApps';
 import TaskSetSendsTo from './TaskSetSendsTo';
 import { targetLine } from './TaskSetTarget';
@@ -20,7 +20,7 @@ import TaskSetWhat from './TaskSetWhat';
 import TaskSetWhen, { whenWords } from './TaskSetWhen';
 import { limitWords } from './TaskSetKeeps';
 import { askLevelOf, askNote, reachesOthers, recipientsOf, sendsValue } from './coworkTaskSendsModel';
-import { draftOf, type SettingRowId } from './coworkTaskSettingsModel';
+import { draftOf, type DraftRowId, type SettingRowId } from './coworkTaskSettingsModel';
 import { ROWS, Section, SettingRow } from './taskRows';
 import { useCoworkGoal } from '@/api/coworkGoals';
 import { useCoworkIndependence } from '@/api/coworkIndependence';
@@ -81,23 +81,38 @@ function useRowWords({ item, mode, plan, open, locale, t }: CoworkTaskSettingsPr
     };
 }
 
+/** How long a closed row says "Saved". */
+const SAVED_SHOWN_MS = 4000;
+
+/** The row that was saved a moment ago: it says so until the time is up or a row is opened again. */
+function useSavedRow(open: SettingRowId | null) {
+    const [saved, setSaved] = useState<DraftRowId | null>(null);
+    useEffect(() => {
+        if (!saved) return undefined;
+        const timer = window.setTimeout(() => setSaved(null), SAVED_SHOWN_MS);
+        return () => window.clearTimeout(timer);
+    }, [saved]);
+    return [open ? null : saved, setSaved] as const;
+}
+
 export default function CoworkTaskSettings(props: CoworkTaskSettingsProps) {
     const { item, mode, mayPlan, open, onOpen, onRebuild, onOpenTask, live, locale, t } = props;
     const words = useRowWords(props);
     const initial = useMemo(() => draftOf(item, words.start, mode), [item, words.start, mode]);
-    const form: SettingRowForm = { itemId: item.id, initial, onRebuild, onDone: () => onOpen(null), locked: live };
-    const row = (id: SettingRowId) => ({ id, open: open === id, onToggle: onOpen, t });
+    const [saved, setSaved] = useSavedRow(open);
+    const form = (id: DraftRowId): SettingRowForm => ({ itemId: item.id, initial, onRebuild, onDone: () => onOpen(null), onSaved: () => { setSaved(id); onOpen(null); }, locked: live });
+    const row = (id: SettingRowId) => ({ id, open: open === id, saved: saved === id, onToggle: onOpen, t });
     return (
         <Section id="cowork-task-settings-h" heading={t('cowork_task.set.heading', 'Settings')} testId="cowork-task-settings">
             <div className={ROWS}>
                 <SettingRow {...row('what')} label={t('cowork_task.set.what', 'What')} {...words.what}>
-                    <TaskSetWhat form={form} t={t} />
+                    <TaskSetWhat form={form('what')} t={t} />
                 </SettingRow>
                 <SettingRow {...row('when')} label={t('cowork_task.edit.when', 'When')} {...words.when}>
-                    <TaskSetWhen form={form} onOpenTask={onOpenTask} t={t} />
+                    <TaskSetWhen form={form('when')} onOpenTask={onOpenTask} t={t} />
                 </SettingRow>
                 <SettingRow {...row('uses')} label={t('cowork_task.set.uses', 'Uses')} {...words.uses}>
-                    <TaskSetUses form={form} agents={words.agents} mayPlan={mayPlan} limit={words.limit} locale={locale} t={t} />
+                    <TaskSetUses form={form('uses')} agents={words.agents} mayPlan={mayPlan} limit={words.limit} locale={locale} t={t} />
                 </SettingRow>
                 <SettingRow {...row('sends')} label={t('cowork_task.set.sends', 'Sends to')} value={words.sends.value} note={words.sends.note}>
                     <TaskSetSendsTo coworkId={item.id} mode={mode} hasApprovedSteps={words.hasApprovedSteps} othersReached={words.sends.othersReached} recipients={words.sends.recipients} t={t} />

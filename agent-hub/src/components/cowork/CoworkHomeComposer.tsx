@@ -71,7 +71,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
 
     return (
         <section aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
-            <h1 id="cowork-ask-heading" className="text-[25px] sm:text-[26px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">
+            <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
                 {t('cowork_home.ask', 'What should be done for you?')}
             </h1>
             <form className={`${CARD} px-[18px] pt-[18px] pb-3 flex flex-col gap-2`} onSubmit={(e) => { e.preventDefault(); go(); }}>
@@ -85,12 +85,12 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     onChange={(e) => { setText(e.target.value); if (cowork.draft) reset(); }}
                     onKeyDown={onKey}
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
-                    className="w-full min-h-[54px] resize-none border-0 bg-transparent text-[17px] leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+                    className="w-full min-h-[54px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <button type="button" className={LINK_BUTTON} onClick={onTemplates}>{t('cowork_home.from_template', 'Start from a template')}</button>
                     <button type="submit" className={PILL_PRIMARY} data-testid="cowork-continue" disabled={!text.trim() || !!cowork.draft || cowork.submitting || atLimit}>
-                        {cowork.submitting && !cowork.draft ? t('cowork_home.reading', 'Reading…') : t('cowork_home.continue', 'Continue')}
+                        {cowork.submitting && !cowork.draft ? t('cowork_home.reading', 'Reading…') : t('cowork_home.understood', 'Show what I understood')}
                     </button>
                 </div>
             </form>

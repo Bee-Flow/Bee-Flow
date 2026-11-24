@@ -15,8 +15,14 @@
 import { FOCUS_RING, PRIMARY_TONE } from '../shared/buttonClasses';
 import { TINT } from './coworkMotion';
 
-/** The height of a control: 36px, and 44px where the pointer is a finger. */
-const CONTROL_HEIGHT = 'min-h-9 pointer-coarse:min-h-11';
+/**
+ * The height of a control: 36px, and 44px where the pointer is a finger. Important there, because src/app.css sets
+ * `button { min-height: 36px }` under 768px outside any layer, which beats a plain utility at phone width.
+ */
+export const CONTROL_HEIGHT = 'min-h-9 pointer-coarse:min-h-11!';
+
+/** The focus ring of a row inside a card: drawn inside the row, where the card's rounded edge cannot clip it. */
+export const FOCUS_INSET = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]';
 
 const BUTTON = `inline-flex items-center justify-center gap-1.5 ${CONTROL_HEIGHT} px-3.5 py-1.5 rounded-lg border text-[13px] leading-5 font-semibold ${TINT} disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`;
 
@@ -36,7 +42,7 @@ export const LINK_INLINE = `inline-flex items-center gap-1.5 ${CONTROL_HEIGHT} p
 export const LINK_BUTTON = `${LINK_INLINE} -ml-2`;
 
 /** A square button that holds one 16px icon (the gear of the home). */
-export const ICON_BUTTON = `inline-grid place-items-center ${CONTROL_HEIGHT} min-w-9 pointer-coarse:min-w-11 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)] ${TINT} ${FOCUS_RING}`;
+export const ICON_BUTTON = `inline-grid place-items-center ${CONTROL_HEIGHT} min-w-9 pointer-coarse:min-w-11! rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)] hover:text-[var(--text-primary)] ${TINT} ${FOCUS_RING}`;
 
 /** The names these two had while they were pills; the same buttons. */
 export const PILL_PRIMARY = BUTTON_PRIMARY;
@@ -49,7 +55,7 @@ export const CARD = 'rounded-[var(--radius-lg)] border border-[var(--border-defa
 export const CARD_INSET = 'rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]';
 
 /** A row that is one button (a task in a list, the Teamwork row): the whole row is the target, the ring stays inside it. */
-export const LIST_ROW = `w-full min-h-11 px-4 py-3 text-left text-[14px] leading-5 hover:bg-[var(--item-hover-bg)] ${TINT} focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]`;
+export const LIST_ROW = `w-full min-h-11 px-4 py-3 text-left text-[14px] leading-5 hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_INSET}`;
 
 /** The heading of a section ("Needs you · 3", "Your tasks", "Steps"). */
 export const SECTION_HEADING = 'm-0 text-[13px] leading-5 font-semibold text-[var(--text-secondary)]';

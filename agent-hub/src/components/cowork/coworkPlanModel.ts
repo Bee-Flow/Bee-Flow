@@ -49,8 +49,12 @@ export function makeUpParts(makeUp: Record<PlanStepKind, number> | null | undefi
     return order.map((kind) => ({ kind, count: makeUp?.[kind] ?? 0 })).filter((p) => p.count > 0);
 }
 
-/** An app id as a name: `google-drive` reads "Google drive". */
+/** The app of the tools that are part of Bee Flow itself (server core/cowork/plan/planPermissions.mts BUILT_IN_APP). */
+const BUILT_IN_APP = 'bee-flow';
+
+/** An app id as a name: `google-drive` reads "Google drive"; the built-in tools are Bee Flow's own. */
 export function appLabel(app: string): string {
+    if (app === BUILT_IN_APP) return 'Bee Flow';
     const words = app.replaceAll('-', ' ').replaceAll('_', ' ').trim();
     return words ? words.charAt(0).toUpperCase() + words.slice(1) : app;
 }

@@ -33,7 +33,6 @@ module.exports = {
     "cowork_home.confirm.when": "When",
     "cowork_home.confirm.which_day": "Which day?",
     "cowork_home.confirm.workspace_apps": "The apps of your workspace",
-    "cowork_home.continue": "Continue",
     "cowork_home.delete.cancel": "Cancel",
     "cowork_home.delete.confirm": "Delete",
     "cowork_home.delete.consequence": "“{title}” stops running and its history is removed. This cannot be undone.",
@@ -122,7 +121,6 @@ module.exports = {
     "cowork_home.next.next": "Next: {when}",
     "cowork_home.next.now": "Now",
     "cowork_home.next.on": "{date}, {time}",
-    "cowork_home.next.on_hold": "On hold",
     "cowork_home.next.ran_once": "Ran once",
     "cowork_home.next.row": "Waits for a new row",
     "cowork_home.next.today": "Today, {time}",
@@ -158,4 +156,5 @@ module.exports = {
     "cowork_home.tasks.empty": "No tasks yet. Write one sentence above to start.",
     "cowork_home.tasks.heading": "Your tasks",
     "cowork_home.untitled": "Untitled task",
+    "cowork_home.understood": "Show what I understood",
 };

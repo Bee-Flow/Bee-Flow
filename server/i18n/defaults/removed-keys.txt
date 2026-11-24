@@ -3586,3 +3586,16 @@ cowork_task.live.trying
 cowork_task.offer.now_heading
 cowork_task.offer.routine_safe
 cowork_task.replay.running
+
+# Cowork task page, walked in a browser: the save note no longer reads as "already saved", Admin rules says
+# "spending limit" like the task does, "Continue" says what it shows, and Failed has no second word beside it.
+cowork_task.set.save_note
+cowork_task.set.plain_note
+cowork_panels.org.budget_over
+cowork_panels.org.meter
+cowork_panels.org.budget_heading
+cowork_panels.org.budget_label
+cowork_panels.org.budget_save
+cowork_panels.org.budget_off
+cowork_home.continue
+cowork_home.next.on_hold

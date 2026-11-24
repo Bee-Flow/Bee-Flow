@@ -4,13 +4,13 @@
  * bottom, everything about this one task inside it:
  *
  *   1. its status and name; Run for real now, Pause, Share (./CoworkTaskHeader.tsx). A button that is off says why;
- *   2. what waits for its owner, one card each (../CoworkNeedCard.tsx, `solo`), OR what it is doing right now
- *      (./CoworkTaskLive.tsx), OR its latest result with the fix Cowork made by itself (./CoworkTaskResult.tsx); and
- *      what it could do cheaper (./CoworkTaskOffer.tsx);
+ *   2. what waits for its owner, one card each (../CoworkNeedCard.tsx, `solo`): for steps that wait for approval,
+ *      what their test produced with Approve and "Change something" on it (./CoworkTaskTested.tsx, in place of the
+ *      "check the steps" card); OR what it is doing right now (./CoworkTaskLive.tsx), OR its latest result with the
+ *      fix Cowork made by itself (./CoworkTaskResult.tsx); and what it could do cheaper (./CoworkTaskOffer.tsx);
  *   3. Settings: What, When, Uses, Sends to, each with its value, each opened in place (./CoworkTaskSettings.tsx).
  *      There is no edit screen and no "More";
- *   4. while its steps wait for their first approval, what the test produced (./CoworkTaskTested.tsx), then its Steps
- *      in run order (./CoworkTaskSteps.tsx);
+ *   4. its Steps in run order (./CoworkTaskSteps.tsx);
  *   5. People: share, send each result on, save as template, give it away (./CoworkTaskPeople.tsx);
  *   6. History: runs, changes, proof of each run, and Delete at the very bottom (./CoworkTaskHistory.tsx).
  *
@@ -32,7 +32,7 @@ import CoworkTaskResult, { AutoFixNote } from './CoworkTaskResult';
 import CoworkTaskSettings from './CoworkTaskSettings';
 import CoworkTaskShared from './CoworkTaskShared';
 import CoworkTaskSteps from './CoworkTaskSteps';
-import CoworkTaskTested from './CoworkTaskTested';
+import CoworkTaskTested, { triedResultOf } from './CoworkTaskTested';
 import { latestRunOf, liveRunOf, taskModeOf } from './coworkTaskModel';
 import { BTN_LINK, Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
@@ -113,19 +113,22 @@ function TopOfTask({ item, facts, onShare, t }: { item: CoworkItem; facts: Facts
 }
 
 /** What waits for the owner, what is on the go, or the latest result; and what it could do cheaper. */
-function NowOfTask({ item, facts, mayPlan, open, t }: { item: CoworkItem; facts: Facts; mayPlan: boolean; open: CoworkSheetPanelProps['open']; t: TranslateFn }) {
+function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: CoworkItem; facts: Facts; mayPlan: boolean; open: CoworkSheetPanelProps['open']; onChange: () => void; locale: string; t: TranslateFn }) {
     const [done, setDone] = useState<string | null>(null);
     const onOpenTask = (itemId: string, focus?: 'steps') => open({ kind: 'task', id: itemId, ...(focus ? { focus } : {}) });
     const quiet = !facts.blocked && !facts.live;
+    // Steps that wait for approval and whose test left something to show: the owner decides on what they see.
+    const check = triedResultOf(facts.plan) ? facts.cards.find((c) => c.kind === 'check' && !!c.fingerprint) : undefined;
     return (
         <>
             {done && <p role="status" className={META} data-testid="cowork-task-done">{done}</p>}
-            {facts.cards.map((need) => <CoworkNeedCard key={need.key} need={need} solo onOpenTask={onOpenTask} onDone={setDone} />)}
+            {facts.cards.filter((need) => need !== check).map((need) => <CoworkNeedCard key={need.key} need={need} solo onOpenTask={onOpenTask} onDone={setDone} />)}
+            {facts.plan && !facts.live && <CoworkTaskTested coworkId={item.id} plan={facts.plan} fingerprint={check?.fingerprint ?? null} onApproved={setDone} onChange={onChange} t={t} />}
             {facts.live && <CoworkTaskLive coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
             {quiet && (
                 <>
                     <AutoFixNote coworkId={item.id} t={t} />
-                    <CoworkTaskResult item={item} latest={facts.latest} t={t} />
+                    <CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} />
                     <CoworkTaskOffer coworkId={item.id} hasSteps={facts.mode === 'steps'} mayPlan={mayPlan} making={facts.maker.making.running} onMakeFromRuns={() => { void facts.maker.start(true); }} t={t} />
                 </>
             )}
@@ -157,10 +160,9 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
     return (
         <div id={PLACES.top} className="flex flex-col gap-6 scroll-mt-4" data-testid="cowork-task-view">
             <TopOfTask item={item} facts={facts} onShare={rows.share} t={t} />
-            <NowOfTask item={item} facts={facts} mayPlan={mayPlan} open={open} t={t} />
+            <NowOfTask item={item} facts={facts} mayPlan={mayPlan} open={open} onChange={rows.changeSomething} locale={locale} t={t} />
             <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} open={rows.setting} onOpen={rows.setSetting} onRebuild={rebuild}
                 onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />
-            {facts.plan && <CoworkTaskTested plan={facts.plan} onChange={rows.changeSomething} t={t} />}
             <CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false}
                 agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
                 tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />

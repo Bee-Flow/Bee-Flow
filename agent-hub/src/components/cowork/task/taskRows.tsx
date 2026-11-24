@@ -8,10 +8,9 @@
  */
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { FOCUS_RING } from '../../shared/buttonClasses';
-import { Expand, SWAP, TINT } from '../coworkMotion';
-import { CARD as SURFACE } from '../coworkUi';
-import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Chevron, Failure, META, ROW_ACTIONS, SECTION_H } from './taskUi';
+import { ENTER, Expand, SWAP, TINT, useReveal } from '../coworkMotion';
+import { CARD as SURFACE, FOCUS_INSET } from '../coworkUi';
+import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Chevron, Failure, META, ROW_ACTIONS, SECTION_H, TAG_OK } from './taskUi';
 import type { SaveState } from './useTaskSettingsSave';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -42,22 +41,25 @@ interface SettingRowProps<Id extends string> {
     /** A second, quieter line under the value. */
     note?: string | null;
     open: boolean;
+    /** It was saved a moment ago: the closed row says so. */
+    saved?: boolean;
     onToggle: (id: Id | null) => void;
     t: TranslateFn;
     children: ReactNode;
 }
 
 /** One row of Settings: opened, it is edited in place, right under its value. Only the opened row renders its body. */
-export function SettingRow<Id extends string>({ id, label, value, note, open, onToggle, t, children }: SettingRowProps<Id>) {
+export function SettingRow<Id extends string>({ id, label, value, note, open, saved = false, onToggle, t, children }: SettingRowProps<Id>) {
     const bodyId = useId();
+    const ref = useReveal<HTMLDivElement>(open);
     return (
-        <div className="border-t border-[var(--border-subtle)]" data-testid={`cowork-task-setting-${id}`}>
+        <div ref={ref} className="scroll-my-4 border-t border-[var(--border-subtle)]" data-testid={`cowork-task-setting-${id}`}>
             <button
                 type="button"
                 aria-expanded={open}
                 aria-controls={bodyId}
                 onClick={() => onToggle(open ? null : id)}
-                className={`w-full min-h-11 px-4 py-3 grid grid-cols-[80px_minmax(0,1fr)_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto] items-start gap-x-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_RING}`}
+                className={`w-full min-h-11 px-4 py-3 grid grid-cols-[80px_minmax(0,1fr)_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto] items-start gap-x-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_INSET}`}
             >
                 <span className="text-[13px] font-medium leading-5 text-[var(--text-tertiary)]">{label}</span>
                 <span className="min-w-0 flex flex-col gap-0.5">
@@ -65,6 +67,7 @@ export function SettingRow<Id extends string>({ id, label, value, note, open, on
                     {note && <span key={note} className={`${SWAP} text-[13px] leading-5 break-words text-[var(--text-secondary)]`}>{note}</span>}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[13px] font-medium leading-5 text-[var(--text-secondary)]">
+                    {saved && !open && <span role="status" className={`${TAG_OK} ${ENTER} mr-1`} data-testid={`cowork-task-setting-${id}-saved`}>{t('cowork_task.edit.saved', 'Saved')}</span>}
                     {open ? t('cowork_task.close', 'Close') : t('cowork_task.set.change', 'Change')}
                     <Chevron open={open} />
                 </span>
@@ -80,8 +83,8 @@ function saveNote({ effect, locked }: SaveState, t: TranslateFn): string {
     switch (effect) {
         case 'rebuild': return t('cowork_task.set.rebuild_note', 'Save and test: Cowork rebuilds the steps and tests them once. Nothing is sent. You approve the changed steps before it runs again.');
         case 'drops_steps': return t('cowork_task.set.drops_note', 'Saving takes its fixed steps off: from then on the task is worked out again on every run. You can choose fixed steps again here; they are then made and tested anew.');
-        case 'keeps_steps': return t('cowork_task.set.save_note', 'Saved at once. The steps stay as they are.');
-        default: return t('cowork_task.set.plain_note', 'Saved at once.');
+        case 'keeps_steps': return t('cowork_task.set.keeps_note', 'Saving takes effect at once. The steps stay as they are.');
+        default: return t('cowork_task.set.at_once_note', 'Saving takes effect at once.');
     }
 }
 

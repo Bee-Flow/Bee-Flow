@@ -11,7 +11,9 @@ describe('trailLine', () => {
         expect(trailLine(entry({ action: 'cowork.created' }), t)).toBe('You created this task');
         expect(trailLine(entry({ action: 'cowork.plan_approved', byYou: false }), t)).toBe('Someone else approved the steps');
         expect(trailLine(entry({ action: 'cowork.toggled', values: { isActive: false } }), t)).toBe('You switched it off');
-        expect(trailLine(entry({ action: 'cowork.toggled', values: {} }), t)).toBe('You switched it on');
+        expect(trailLine(entry({ action: 'cowork.toggled', values: { isActive: true } }), t)).toBe('You switched it on');
+        // The server records a switch without where it ended: never "on" for what may have been a pause.
+        expect(trailLine(entry({ action: 'cowork.toggled', values: {} }), t)).toBe('You paused or resumed it');
     });
 
     it('names Cowork, not someone else, for a fix it made by itself', () => {

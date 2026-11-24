@@ -8,7 +8,8 @@
  */
 import { useId, useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
-import { Expand } from '../coworkMotion';
+import { Expand, TINT } from '../coworkMotion';
+import { FOCUS_INSET } from '../coworkUi';
 import { taskStatusLabel } from '../coworkTaskStatus';
 import { runLine, runReason, runStatus } from './coworkTaskModel';
 import { TechnicalDetails } from './taskRows';
@@ -42,7 +43,7 @@ function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: Cowor
                 aria-expanded={open}
                 aria-controls={bodyId}
                 onClick={onToggle}
-                className="w-full min-h-11 py-3 grid grid-cols-[minmax(0,1fr)_auto_16px] sm:grid-cols-[110px_120px_minmax(0,1fr)_16px] items-center gap-x-3 gap-y-1 text-left text-[14px]"
+                className={`-mx-2 w-[calc(100%+1rem)] min-h-11 px-2 py-3 grid grid-cols-[minmax(0,1fr)_auto_16px] sm:grid-cols-[110px_120px_minmax(0,1fr)_16px] items-center gap-x-3 gap-y-1 rounded-[var(--radius-md)] text-left text-[14px] leading-5 hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_INSET}`}
             >
                 <span className="text-[var(--text-secondary)] tabular-nums">{fullTimestamp(run.startedAt, t)}</span>
                 <span className="font-medium text-[var(--text-primary)]" data-status={status}>{taskStatusLabel(status, t)}</span>

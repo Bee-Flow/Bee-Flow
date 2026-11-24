@@ -1,6 +1,6 @@
 /**
  * The words of one row of "Your tasks" (./CoworkTaskRows.tsx) besides its title and status: when it runs and its goal
- * (left), and what comes next (right): "Next: Tomorrow, 09:00", "Now", "On hold", "Waits for a new mail", "Ran once".
+ * (left), and what comes next (right): "Next: Tomorrow, 09:00", "Now", "Waits for a new mail", "Ran once".
  * Pure: the clock and the locale come in.
  */
 import { isMailTriggerItem } from './mailTrigger';
@@ -14,7 +14,8 @@ const sameDay = (a: Date, b: Date): boolean => a.toDateString() === b.toDateStri
 
 /** "Today, 09:00", "Tomorrow, 09:00", "Tue 1 Dec, 09:00", on the reader's clock and in their language. */
 export function momentWords(at: Date, t: TranslateFn, locale: string, now: Date = new Date()): string {
-    const time = at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    // The 24-hour clock the schedules are written in ("Every Friday 16:00"), never an AM/PM beside it.
+    const time = at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
     if (sameDay(at, now)) return t('cowork_home.next.today', 'Today, {time}', { time });
@@ -47,8 +48,8 @@ const repeats = (item: RowItem): boolean => !!item.repeatInterval || (Array.isAr
 /** The right-hand line of a row; empty when there is nothing to say (paused). */
 export function nextLine(item: RowItem, status: TaskStatus, t: TranslateFn, locale: string, now: Date = new Date()): string {
     if (status === 'running' || status === 'testing') return t('cowork_home.next.now', 'Now');
-    if (status === 'paused') return '';
-    if (status === 'failed') return t('cowork_home.next.on_hold', 'On hold');
+    // Paused and Failed are said by the status pill: no second word for the same state beside it.
+    if (status === 'paused' || status === 'failed') return '';
     const event = waitsFor(item, t);
     if (event) return event;
     const due = dueAt(item, now);

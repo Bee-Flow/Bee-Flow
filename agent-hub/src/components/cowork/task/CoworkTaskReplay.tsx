@@ -21,6 +21,13 @@ function replayCounts(state: Pick<ReplayState, 'same' | 'differs'>, t: Translate
 /** A step's title by its id; null for a step the plan does not have now. */
 export type StepTitleOf = (stepId: string) => string | null;
 
+/** Why a run was compared only in part. */
+function partialWords(missing: number, t: TranslateFn): string {
+    return missing === 1
+        ? t('cowork_task.replay.partial_one', '1 step had no recording: it is new, or asks something different than then.')
+        : t('cowork_task.replay.partial_line', '{count} steps had no recording: they are new, or ask something different than then.', { count: missing });
+}
+
 function RunItem({ run, titleOf, t }: { run: ReplayRun; titleOf: StepTitleOf; t: TranslateFn }) {
     const differing = run.differingSteps.map(titleOf).filter((title): title is string => !!title);
     const tag = run.verdict === 'differs'
@@ -31,7 +38,7 @@ function RunItem({ run, titleOf, t }: { run: ReplayRun; titleOf: StepTitleOf; t:
     const detail = run.verdict === 'differs' && differing.length > 0
         ? t('cowork_task.replay.differs_at', 'Different at: {steps}', { steps: differing.join(', ') })
         : run.verdict === 'partial'
-            ? t('cowork_task.replay.partial_line', '{count} steps had no recording: they are new, or ask something different than then.', { count: run.missingSteps })
+            ? partialWords(run.missingSteps, t)
             : '';
     return (
         <li className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 border-t first:border-t-0 border-[var(--border-subtle)] text-[14px]" data-testid={`cowork-task-replay-${run.pastRunId}`}>
@@ -51,7 +58,11 @@ export default function CoworkTaskReplay({ state, titleOf, onClose, t }: { state
     return (
         <section className={CARD} role="status" data-testid="cowork-task-replay">
             <div className={CARD_HEAD} data-testid="cowork-task-replay-headline">{replayCounts(state, t)}</div>
-            <p className={META}>{t('cowork_task.replay.safe', "Today's steps were replayed on the last {count} runs. No app was touched and nothing was sent.", { count: replayed.length })}</p>
+            <p className={META}>
+                {replayed.length === 1
+                    ? t('cowork_task.replay.safe_one', "Today's steps were replayed on the last run. No app was touched and nothing was sent.")
+                    : t('cowork_task.replay.safe', "Today's steps were replayed on the last {count} runs. No app was touched and nothing was sent.", { count: replayed.length })}
+            </p>
             {other.length > 0 && <ul className="flex flex-col">{other.map((run) => <RunItem key={run.pastRunId} run={run} titleOf={titleOf} t={t} />)}</ul>}
             <div className={ROW_ACTIONS}>
                 {same.length > 0 && (

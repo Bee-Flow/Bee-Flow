@@ -65,7 +65,8 @@ function AddShare({ free, onAdd, busy, coworkId, t }: { free: Array<{ id: string
                     {free.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
             </span>
-            <span className="flex flex-col gap-1">
+            {/* A grid, not a column of flex items: RoleSelect's 160px is a width, and would be a height in one. */}
+            <span className="grid gap-1">
                 <span className={LABEL} aria-hidden="true">{t('cowork_task.share.they', 'They')}</span>
                 <RoleSelect id={`cowork-task-share-role-${coworkId}`} value={role} label={t('cowork_task.share.they', 'They')} onChange={setRole} t={t} />
             </span>

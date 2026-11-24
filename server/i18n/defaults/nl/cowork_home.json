@@ -30,7 +30,6 @@
     "cowork_home.confirm.when": "Wanneer",
     "cowork_home.confirm.which_day": "Welke dag?",
     "cowork_home.confirm.workspace_apps": "De apps van je werkruimte",
-    "cowork_home.continue": "Verder",
     "cowork_home.delete.cancel": "Annuleren",
     "cowork_home.delete.confirm": "Verwijderen",
     "cowork_home.delete.consequence": "“{title}” stopt en de geschiedenis ervan wordt verwijderd. Dit kan niet ongedaan worden gemaakt.",
@@ -118,7 +117,6 @@
     "cowork_home.next.mail": "Wacht op een nieuwe mail",
     "cowork_home.next.next": "Volgende: {when}",
     "cowork_home.next.now": "Nu",
-    "cowork_home.next.on_hold": "Staat stil",
     "cowork_home.next.ran_once": "Eén keer gedraaid",
     "cowork_home.next.row": "Wacht op een nieuwe rij",
     "cowork_home.next.today": "Vandaag, {time}",
@@ -153,6 +151,7 @@
     "cowork_home.status.testing": "Testen",
     "cowork_home.tasks.empty": "Nog geen taken. Schrijf hierboven één zin om te beginnen.",
     "cowork_home.tasks.heading": "Jouw taken",
+    "cowork_home.understood": "Laat zien wat ik begreep",
     "cowork_home.untitled": "Taak zonder naam"
   },
   "sameAsEnglish": [

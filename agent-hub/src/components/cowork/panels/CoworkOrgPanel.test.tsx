@@ -34,13 +34,13 @@ describe('CoworkOrgPanel', () => {
     it.each([
         [100, 'fine', '€100 of €500 used this month (20%).', 'Nobody sees a notice until 80% is used.'],
         [450, 'close', '€450 of €500 used this month (90%).', 'Everyone sees a notice on their home page from 80%.'],
-        [520, 'over', '€520 of €500 used this month (104%).', 'The budget is used up. New runs are refused'],
+        [520, 'over', '€520 of €500 used this month (104%).', 'The limit is reached. New runs are refused'],
     ])('the budget meter at %i euros is %s, with its sentence', async (spent, level, used, sentence) => {
         serve({ spent });
         renderWithClient(<CoworkOrgPanel />);
         const meter = await screen.findByTestId('cowork-org-budget');
         expect(meter).toHaveAttribute('data-level', level);
-        expect(within(meter).getByRole('progressbar', { name: 'Budget used this month' })).toHaveAttribute('value', String(Math.min(100, Math.round((spent / 500) * 100))));
+        expect(within(meter).getByRole('progressbar', { name: 'Used of the limit this month' })).toHaveAttribute('value', String(Math.min(100, Math.round((spent / 500) * 100))));
         expect(meter).toHaveTextContent(used);
         expect(meter).toHaveTextContent(sentence);
     });
@@ -49,16 +49,16 @@ describe('CoworkOrgPanel', () => {
         const calls = serve();
         renderWithClient(<CoworkOrgPanel />);
         const user = userEvent.setup();
-        const box = await screen.findByLabelText('Budget for all tasks together, in euros a month');
+        const box = await screen.findByLabelText('For all tasks together, in euros a month');
         expect(box).toHaveValue('500');
         await user.clear(box);
         await user.type(box, '750');
-        await user.click(screen.getByRole('button', { name: 'Save budget' }));
+        await user.click(screen.getByRole('button', { name: 'Save limit' }));
         await waitFor(() => expect(put(calls)?.body).toEqual({ monthlyBudget: 750 }));
         await user.clear(box);
         await user.type(box, '0');
         expect(screen.getByRole('alert')).toHaveTextContent('Fill in an amount above 0');
-        expect(screen.getByRole('button', { name: 'Save budget' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Save limit' })).toBeDisabled();
     });
 
     it('a switch saves at once', async () => {
@@ -91,7 +91,7 @@ describe('CoworkOrgPanel', () => {
         renderWithClient(<CoworkOrgPanel />);
         expect(await screen.findByRole('heading', { level: 1, name: 'Admin rules' })).toBeInTheDocument();
         await screen.findByRole('switch', { name: 'Read-only mode' });
-        expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Monthly AI budget', 'Apps tasks may use without asking', 'For all tasks', 'Proof of each run']);
+        expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Monthly spending limit', 'Apps tasks may use without asking', 'For all tasks', 'Proof of each run']);
     });
 
     it('shows someone who is no administrator nothing but that', async () => {

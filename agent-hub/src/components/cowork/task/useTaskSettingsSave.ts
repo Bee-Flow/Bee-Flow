@@ -49,8 +49,10 @@ export interface SettingRowForm {
     initial: TaskDraft;
     /** Make the steps again from the sentence and test them once. */
     onRebuild: () => void;
-    /** The row was saved: it closes. */
+    /** The row closes without a save (Cancel, or Done after a webhook's address was shown). */
     onDone: () => void;
+    /** The row was saved: it closes, and says so. Without it, a save closes the row like onDone. */
+    onSaved?: () => void;
     /** Something is on the go (a run, a test): nothing is saved now. */
     locked: boolean;
 }
@@ -67,7 +69,7 @@ export interface SaveState {
 }
 
 /** One row's form: its draft, its submit, the webhook address a save made, and its save bar. */
-export function useSettingRow(row: DraftRowId, { itemId, initial, onRebuild, onDone, locked }: SettingRowForm) {
+export function useSettingRow(row: DraftRowId, { itemId, initial, onRebuild, onDone, onSaved = onDone, locked }: SettingRowForm) {
     const [draft, setDraft] = useState<TaskDraft>(initial);
     const [address, setAddress] = useState<HookAddress | null>(null);
     const { save, saving, error } = useTaskSettingsSave(itemId, initial, onRebuild);
@@ -77,7 +79,7 @@ export function useSettingRow(row: DraftRowId, { itemId, initial, onRebuild, onD
         const done = await save(row, draft);
         if (!done.ok) return;
         if (done.address) setAddress(done.address);
-        else onDone();
+        else onSaved();
     };
     const bar: SaveState = { effect: saveEffect(draft, initial), ready: canSave(row, draft) && rowChanged(row, draft, initial), saving, locked, error };
     return { draft, set, submit, address, bar };

@@ -7,9 +7,8 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { Check, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
-import { FOCUS_RING } from '../../shared/buttonClasses';
-import { Expand, TINT } from '../coworkMotion';
-import { ALERT, BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, CARD_INSET, FIELD_WIDE, LINK_BUTTON, LINK_INLINE, SECTION_HEADING } from '../coworkUi';
+import { Expand, TINT, useReveal } from '../coworkMotion';
+import { ALERT, BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, CARD_INSET, FIELD_WIDE, FOCUS_INSET, LINK_BUTTON, LINK_INLINE, SECTION_HEADING } from '../coworkUi';
 import { errorMessage } from '@/utils/caughtError';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -61,7 +60,7 @@ export function Chevron({ open }: { open: boolean }) {
     return <Icon aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--text-tertiary)]" />;
 }
 
-const ROW_HEAD = `w-full min-h-11 px-4 flex items-center gap-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_RING}`;
+const ROW_HEAD = `w-full min-h-11! px-4 flex items-center gap-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_INSET}`;
 
 interface FoldRowProps {
     id: string;
@@ -76,8 +75,9 @@ interface FoldRowProps {
 /** One row that opens in place: its name and where it stands; opened, what it holds. Only the opened row renders its body. */
 export function FoldRow({ id, label, value, open, onToggle, danger = false, children }: FoldRowProps) {
     const bodyId = useId();
+    const ref = useReveal<HTMLDivElement>(open);
     return (
-        <div data-testid={`cowork-task-row-${id}`}>
+        <div ref={ref} className="scroll-my-4" data-testid={`cowork-task-row-${id}`}>
             <button
                 type="button"
                 aria-expanded={open}

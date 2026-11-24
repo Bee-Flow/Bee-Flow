@@ -34,7 +34,7 @@ export function howWords(mode: TaskMode, agentName: string | null, t: TranslateF
     return t('cowork_task.how.ai', 'The AI works it out every run');
 }
 
-const CHIP = `inline-flex items-center gap-1.5 min-h-9 pointer-coarse:min-h-11 px-3 rounded-lg border text-[13px] leading-5 font-medium ${TINT}`;
+const CHIP = `inline-flex items-center gap-1.5 min-h-9 pointer-coarse:min-h-11! px-3 rounded-lg border text-[13px] leading-5 font-medium ${TINT}`;
 
 /** The apps it may use: one chip each, pressed while it is on. */
 function Apps({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: string; t: TranslateFn }) {

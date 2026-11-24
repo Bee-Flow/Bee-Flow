@@ -11,7 +11,7 @@
  *     month" (no app at all, ./CoworkTaskReplay.tsx).
  */
 import { useState } from 'react';
-import { Check, FileSearch, Hand, PenLine, Send } from 'lucide-react';
+import { Check, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
 import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
@@ -36,7 +36,7 @@ const AI_MARK = 'AI';
 
 function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
-    if (step.helper) return <span aria-hidden="true" className={`${base} border-dashed border-[var(--border-default)] text-[var(--text-tertiary)]`}>·</span>;
+    if (step.helper) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-tertiary)]`}>·</span>;
     const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
     if (step.sort === 'ai') return <span aria-hidden="true" className={tone}>{AI_MARK}</span>;
     const Icon = ICON[step.sort];
@@ -104,15 +104,36 @@ function testedOf(plan: PlanState | undefined, tryState: PlanTryState | null, t:
             ? { line: t('cowork_task.steps.test_failed', 'The test stopped at a step. Nothing was changed or sent.'), ok: false, technical: tryState.error }
             : { line: t('cowork_task.steps.test_passed', 'Tested just now on your real data. Nothing was changed or sent.'), ok: true, technical: null };
     }
-    const tried = triedLines(plan?.tried, t);
-    return tried ? { line: tried.line, ok: tried.tone === 'ok', technical: null } : null;
+    return lastTestOf(plan?.tried, !!plan?.upToDate, t);
+}
+
+/**
+ * The last test the steps know of. What the server lists as wrong names steps in its own words (an error class, a
+ * field in backticks), so it goes under "Technical details"; the line itself is whole without it. `approved`: the
+ * steps on screen are the approved ones, so nothing waits for an approval the test could hold back.
+ */
+function lastTestOf(tried: PlanState['tried'], approved: boolean, t: TranslateFn): Tested | null {
+    const lines = triedLines(tried, t);
+    if (!tried || !lines) return null;
+    const technical = lines.problems.length > 0 ? lines.problems.join('\n') : null;
+    if (lines.tone === 'ok') return { line: lines.line, ok: true, technical: null };
+    if (!tried.current) return { line: t('cowork_task.steps.test_stale', 'The steps changed since their last test. Test them again before you approve them.'), ok: false, technical };
+    if (tried.status === 'failed') {
+        const line = approved
+            ? t('cowork_task.steps.test_failed', 'The test stopped at a step. Nothing was changed or sent.')
+            : t('cowork_task.steps.last_test_failed', 'The last test did not pass, so these steps cannot be approved yet. Nothing was changed or sent.');
+        return { line, ok: false, technical };
+    }
+    return { line: t('cowork_task.steps.not_tested', 'Not tested yet: the steps cannot run as they are.'), ok: false, technical };
 }
 
 function TestedLine({ tested, t }: { tested: Tested; t: TranslateFn }) {
+    // A check only for a test that passed: a test that stopped is no tick.
+    const Mark = tested.ok ? Check : TriangleAlert;
     return (
         <div className="flex flex-col gap-1" data-testid="cowork-task-tested">
             <p className={`flex items-start gap-2 text-[14px] ${tested.ok ? 'text-[var(--success-ink)]' : 'text-[var(--warning-ink)]'}`}>
-                <Check aria-hidden="true" size={16} className="mt-0.5 flex-shrink-0" /><span>{tested.line}</span>
+                <Mark aria-hidden="true" size={16} className="mt-0.5 flex-shrink-0" /><span>{tested.line}</span>
             </p>
             <TechnicalDetails text={tested.technical} t={t} />
         </div>

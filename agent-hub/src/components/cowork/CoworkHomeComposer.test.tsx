@@ -1,5 +1,5 @@
 // The composer of the Cowork home and its ONE confirmation card (./CoworkHomeComposer.tsx, ./CoworkConfirmCard.tsx):
-// Continue works the sentence out, the card says When, Uses and Sends to, asks "Which day?" when the sentence did not
+// "Show what I understood" works the sentence out, the card says When, Uses and Sends to, asks "Which day?" when the sentence did not
 // say, and Start creates the task with what the card shows. The network is the seam (a recording fetch).
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -30,16 +30,16 @@ function renderComposer() {
 async function write(text: string) {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Describe the task in one sentence'), text);
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Show what I understood' }));
     return { user, card: await screen.findByTestId('cowork-confirm') };
 }
 
 describe('CoworkHomeComposer', () => {
-    it('asks first, offers templates, and Continue waits for a sentence', async () => {
+    it('asks first, offers templates, and "Show what I understood" waits for a sentence', async () => {
         serve({});
         const { onTemplates } = renderComposer();
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What should be done for you?');
-        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Show what I understood' })).toBeDisabled();
         await userEvent.setup().click(screen.getByRole('button', { name: 'Start from a template' }));
         expect(onTemplates).toHaveBeenCalled();
     });
@@ -78,7 +78,7 @@ describe('CoworkHomeComposer', () => {
         expect(calls.some((c) => c.method === 'POST' && new URL(c.url, 'http://x').pathname === '/api/cowork')).toBe(false);
     });
 
-    it('at the limit, it says so and offers no Continue', () => {
+    it('at the limit, it says so and offers no "Show what I understood"', () => {
         serve({});
         renderWithClient(<CoworkHomeComposer atLimit maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={null} />);
         expect(screen.getByText('You have 10 tasks, the most you can have. Delete one to add another.')).toBeInTheDocument();
