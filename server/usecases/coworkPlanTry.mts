@@ -15,6 +15,10 @@
  *     pass (core/cowork/runOutcome.mts): it ends as an error, with the plain sentence of each such reference.
  *
  * A try-out belongs to its item: the run must be a dry run of the automation this item's plan is made from.
+ *
+ * The item keeps its last try-out (stores/coworkPlanTries.mts): START marks it running for the fingerprint that is
+ * tried, and the first READ that sees it over closes it as passed or failed (./coworkPlanTryOut.mts verdictOf). A plan
+ * Cowork drafted is approved from its card only after a try-out of exactly that plan passed (./coworkPlan.mts).
  */
 
 import { createRequire } from 'node:module';
@@ -27,8 +31,11 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
-import { unresolvedOf, unresolvedSentence, type StepRecord } from '../core/cowork/runOutcome.mts';
-import { recordedStepsOf } from '../core/cowork/replay/recordingOf.mts';
+import { unresolvedOf, unresolvedSentence } from '../core/cowork/runOutcome.mts';
+import { synthesised } from '../core/cowork/plan/planTryFacts.mts';
+import { recordedStepsOf, type RecordedStep } from '../core/cowork/replay/recordingOf.mts';
+import type { CoworkPlanTries } from '../stores/coworkPlanTries.mts';
+import { planTries, verdictOf } from './coworkPlanTryOut.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -52,6 +59,8 @@ export interface TryDeps {
     /** The kept full copy of a step output the history had to cut. */
     getRunFullOutput?: (runId: string, stepId: string, attempts: number) => Promise<unknown>;
     lookups: ToolLookups;
+    /** The item's last try-out; without it nothing is kept. */
+    tries?: Pick<CoworkPlanTries, 'getPlanTry' | 'setPlanTry' | 'closePlanTry'>;
 }
 
 function defaultDeps(): TryDeps {
@@ -66,6 +75,7 @@ function defaultDeps(): TryDeps {
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: TryDeps['ownerRefusal'] }).ownerRefusal(owner),
         executeAutomation: (a, o) => (nodeRequire('../core/automationRunner') as { executeAutomation: TryDeps['executeAutomation'] }).executeAutomation(a, o),
         lookups: toolLookups(),
+        tries: planTries(),
     };
 }
 
@@ -122,26 +132,47 @@ export async function startTry({ item }: { item: Item }, deps: TryDeps = default
             reject(e);
         });
     });
-    return { tryId, fingerprint: planFingerprint(definition) };
+    const fingerprint = planFingerprint(definition);
+    await markRunning(item, automation.id, fingerprint, tryId, deps);
+    return { tryId, fingerprint };
 }
 
-/** A made-up output (a simulated step) says nothing about what the real one returns. */
-const synthesised = (s: StepRecord): boolean => !!s.output && typeof s.output === 'object' && (s.output as { _dryRunSynthesised?: unknown })._dryRunSynthesised === true;
+/** The item's last try-out is this one now, running; a plan that needs a passing one keeps needing it. */
+async function markRunning(item: Item, automationId: string, fingerprint: string, tryId: string, deps: TryDeps): Promise<void> {
+    if (!deps.tries) return;
+    const before = await deps.tries.getPlanTry(item.id);
+    const required = before?.automationId === automationId && before.required;
+    await deps.tries.setPlanTry(item.id, { automationId, fingerprint, tryId, status: 'running', required, summary: null, problems: [], rounds: before?.rounds ?? 0, at: new Date().toISOString() });
+}
 
-/** The references of a finished try-out that found no list in what an earlier step really returned. */
-async function problemsOf(definition: Definition, tryId: string, deps: TryDeps): Promise<string[]> {
+
+/** What a finished try-out really recorded; empty when it cannot be read. */
+async function recordedOf(tryId: string, deps: TryDeps): Promise<Map<string, RecordedStep>> {
     try {
-        const recorded = await recordedStepsOf(tryId, {
+        return await recordedStepsOf(tryId, {
             getRun: async () => null,
             getRunStepsForChain: async (id) => (await deps.getRunSteps(id)).map((r) => ({ ...r, runId: id })),
             getRunFullOutput: deps.getRunFullOutput ?? (async () => null),
         });
-        const real = new Map([...recorded].filter(([, s]) => !synthesised(s)));
-        return unresolvedOf(definition, real, deps.lookups).map(unresolvedSentence);
     } catch (e) {
-        log.warn(`[Cowork] try-out ${tryId}: the references could not be read: ${(e as Error).message}`);
-        return [];
+        log.warn(`[Cowork] try-out ${tryId}: the steps could not be read: ${(e as Error).message}`);
+        return new Map();
     }
+}
+
+/** The references of a finished try-out that found no list in what an earlier step really returned. */
+function problemsOf(definition: Definition, recorded: Map<string, RecordedStep>, deps: TryDeps): string[] {
+    const real = new Map([...recorded].filter(([, s]) => !synthesised(s)));
+    return unresolvedOf(definition, real, deps.lookups).map(unresolvedSentence);
+}
+
+/** Close the item's try-out record as this try-out ended (the first read that sees it over does). */
+async function closeRecord(item: Item, ended: { tryId: string; definition: Definition; recorded: Map<string, RecordedStep>; status: string }, deps: TryDeps): Promise<void> {
+    const { tryId, definition, recorded, status } = ended;
+    if (!deps.tries) return;
+    const verdict = verdictOf(definition, recorded, status, deps.lookups);
+    await deps.tries.closePlanTry(item.id, tryId, { status: verdict.passed ? 'passed' : 'failed', summary: verdict.summary, problems: verdict.problems })
+        .catch((e: Error) => log.warn(`[Cowork] try-out ${tryId}: its result was not kept: ${e.message}`));
 }
 
 /** How a try-out is going, per plan step. */
@@ -153,8 +184,11 @@ export async function tryStateOf({ item, tryId }: { item: Item; tryId: string },
     }
     const status = run.status ?? 'running';
     const done = runIsOver(status);
-    const steps = traceSteps(automation.definition as Definition, await deps.getRunSteps(tryId), { done, simulated: true }, deps.lookups);
-    const problems = done && status === 'success' ? await problemsOf(automation.definition as Definition, tryId, deps) : [];
+    const definition = automation.definition as Definition;
+    const steps = traceSteps(definition, await deps.getRunSteps(tryId), { done, simulated: true }, deps.lookups);
+    const recorded = done ? await recordedOf(tryId, deps) : new Map<string, RecordedStep>();
+    const problems = done && status === 'success' ? problemsOf(definition, recorded, deps) : [];
+    if (done) await closeRecord(item, { tryId, definition, recorded, status }, deps);
     return {
         tryId, status: problems.length > 0 ? 'error' : status, done,
         summary: run.summary ?? null, error: problems[0] ?? run.error ?? null, durationMs: run.durationMs ?? null, steps, problems,

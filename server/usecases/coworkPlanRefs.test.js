@@ -21,7 +21,7 @@ const plan = (overRef, tool = 'fireflies_list_transcripts') => ({
         { id: 'list', type: 'integration_action', label: 'List meetings', tool, inputs: {} },
         { id: 'sums', type: 'integration_action', label: 'Get summaries', tool: 'fireflies_get_summary', forEach: { overRef, itemVar: 't' }, inputs: {} },
     ],
-    edges: [],
+    edges: [{ from: 'trg', to: 'list' }, { from: 'list', to: 'sums' }],
 });
 
 test('a key the tool does not return is a finding that names the step, the field and what it does return', () => {

@@ -50,7 +50,9 @@ export type RunOutcome =
 export type OutcomeFacts =
     | { kind: 'done' | 'nothing_to_do' }
     | { kind: 'incomplete'; unresolved: Array<Pick<Unresolved, 'stepId' | 'field' | 'ref' | 'sourceStepId' | 'found'>> }
-    | { kind: 'ai_failed'; stepId: string };
+    | { kind: 'ai_failed'; stepId: string }
+    /** A run that failed at a step: which, its error class, and the step it reads (null: the start of the run, or none). */
+    | { kind: 'step_failed'; stepId: string; errorClass: string | null; sourceStepId: string | null };
 
 const unwrap = (ref: string): string => {
     const t = ref.trim();
@@ -130,6 +132,22 @@ export function factsOf(outcome: RunOutcome): OutcomeFacts | null {
     }
     if (outcome.kind === 'ai_failed') return { kind: 'ai_failed', stepId: outcome.stepId };
     return outcome.verdict ? { kind: outcome.verdict } : null;
+}
+
+const CLASS_RE = /^[\w.-]{1,40}$/;
+
+/**
+ * The facts of a run that failed at a step (the first failed step in the order a person reads the plan): its id, its
+ * error class (a code) and the first step whose output it reads. Null when no step failed (the run itself did).
+ */
+export function stepFailedFactsOf(definition: Definition | null | undefined, steps: ReadonlyMap<string, StepRecord & { errorClass?: string | null }>, lookups: ToolLookups): OutcomeFacts | null {
+    const failed = planViewOf(definition, lookups).steps.find((s) => steps.get(s.id)?.status === 'error');
+    if (!failed) return null;
+    const rec = steps.get(failed.id);
+    const errorClass = typeof rec?.errorClass === 'string' && CLASS_RE.test(rec.errorClass) ? rec.errorClass : null;
+    const step = stepsOf(definition).find((w) => w.id === failed.id)?.step;
+    const [sourceStepId] = step ? [...refsOfValue(step).steps].filter((id) => id !== failed.id) : [];
+    return { kind: 'step_failed', stepId: failed.id, errorClass, sourceStepId: sourceStepId ?? null };
 }
 
 /** The sentence the owner reads for a run that did not do its work. */

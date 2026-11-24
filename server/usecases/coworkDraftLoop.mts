@@ -187,13 +187,15 @@ export interface LoopInput {
     onProgress?: (progress: DraftProgress) => void;
     /** The Cowork run whose cost this drafting is booked on (a repair: the run that set it off), so it counts on the item's budget. */
     bookOn?: string | null;
+    /** A conversation to go on with (the planner after a try-out): the loop adds to it, and `system` and `ask` are not sent again. */
+    messages?: Message[];
 }
 
 /** The model and its tools, until the model stops, the rounds are used up or the caller gave up. */
 async function draftLoop(input: LoopInput & { signal: AbortSignal }, deps: LoopDeps): Promise<LoopResult> {
     const { draft, modelId, signal, findingsOf, onProgress, menu } = input;
     const { builder } = deps;
-    const messages: Message[] = [{ role: 'system', content: input.system }, { role: 'user', content: input.ask }];
+    const messages: Message[] = input.messages ?? [{ role: 'system', content: input.system }, { role: 'user', content: input.ask }];
     let summary = '';
     let rounds = 0;
     for (let round = 0; round < input.maxRounds; round++) {

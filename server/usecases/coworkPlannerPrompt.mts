@@ -118,6 +118,7 @@ export function plannerSystemPrompt({ title, brief, catalog, datatables, approva
 
 RULES - follow exactly:
 - BATCH your calls. First look up every app action you need in ONE builder_inspect_tool({tools:[...]}) call. Then add ALL steps with ONE builder_add_steps call (tempIds cross-reference: steps.$a.output.<field>). Use as few replies as possible.
+- ORDER: a step runs after the step it is added after (afterStepId; by default the entry before it in the batch). A step that reads another step's output must come AFTER that step, never beside it after the trigger. An ai_step comes after the steps that fetch its data and names their output in its prompt ({{steps.$a.output}}). Fields that take a path (a datetime step's input, a list a step works through) take it bare, without {{ }}: steps.$a.output.iso.
 - Do the work WITHOUT AI wherever the work is fixed: read from an app, filter, limit, dedupe, aggregate, a datatable. Use data_extraction to pull named fields out of text, and an ai_step only for judgement or writing. A plan that is mostly fixed steps is cheaper, faster and does the same thing every run.
 - Only these step types exist in a plan: ${planStepTypes().join(', ')}. There is no HTTP request, no sub-flow, no wait and no form.
 - A code step runs a short script on the data of earlier steps, in a sandbox with no network, no apps and no secrets: use one only for a calculation or a reshape the fixed steps cannot do, never to fetch or send anything.

@@ -13,6 +13,10 @@
  *     be approved (422). The owner must be someone the automation runner runs for (an active account whose
  *     organisation has automations): a plan that could never run is refused here rather than at its first run.
  *     What is stored is the plan as approved; a run executes that copy (core/cowork/planRun.mts).
+ *   - TRIED. The item's last try-out (stores/coworkPlanTries.mts), shown with the plan. A plan Cowork drafted is
+ *     approved from its card only once a try-out of exactly that plan passed, and a plan whose last try-out failed
+ *     waits for one that passes. What Cowork approves with its own proof (a repair its owner approves after a replay,
+ *     Undo, the automatic fix) is `proven` and passes by.
  *   - TAKE OFF. The item runs as a prompt or as its agent again.
  *
  * An item started by an event (a new mail) carries no plan yet: its trigger is the event, and a plan's is the clock.
@@ -29,7 +33,9 @@ import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/p
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import { changesOf, type StepChange } from '../core/cowork/plan/planChanges.mts';
-import { refFindings, REF_FINDING } from './coworkPlanRefs.mts';
+import { refFindings, isReferenceFinding } from './coworkPlanRefs.mts';
+import type { PlanTryRecord, TryStatus } from '../stores/coworkPlanTries.mts';
+import type { TrySummary } from '../core/cowork/plan/planTryFacts.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -56,6 +62,8 @@ export interface Deps {
     lookups: ToolLookups;
     /** The owner's organisation's Cowork policy (core/entitlements/coworkPolicy.mts); without one, the open policy. */
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
+    /** The item's last try-out (stores/coworkPlanTries.mts); without it, none is known. */
+    tryOf?: (scheduleId: string) => Promise<PlanTryRecord | null>;
 }
 
 function defaultDeps(): Deps {
@@ -67,6 +75,7 @@ function defaultDeps(): Deps {
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: Deps['ownerRefusal'] }).ownerRefusal(owner),
         lookups: toolLookups(),
         policyOf: (userId) => policyOfOwner(userId),
+        tryOf: (id) => (nodeRequire('../stores/coworkPlanTries.mts') as typeof import('../stores/coworkPlanTries.mts')).coworkPlanTries().getPlanTry(id),
     };
 }
 
@@ -92,6 +101,31 @@ export interface PlanState {
     upToDate: boolean;
     /** The steps of the draft that are new, gone or changed against the approved plan; empty while they are the same. */
     stepChanges: StepChange[];
+    /** The last try-out of this plan's automation; null when none is known. */
+    tried: PlanTried | null;
+}
+
+/** The last try-out, as the plan card shows it. */
+export interface PlanTried {
+    status: TryStatus;
+    /** It tried exactly the plan on screen. */
+    current: boolean;
+    /** A passing try-out of this plan is needed before it is approved from its card. */
+    required: boolean;
+    /** Approval from the card waits for a try-out that passes. */
+    blocksApproval: boolean;
+    summary: TrySummary | null;
+    problems: string[];
+    rounds: number;
+}
+
+/** The try-out record as the card reads it, for the plan on screen; null when it is about another automation. */
+export function triedOf(record: PlanTryRecord | null, automationId: string | null | undefined, fingerprint: string | null): PlanTried | null {
+    if (!record || !automationId || record.automationId !== automationId) return null;
+    const current = record.fingerprint === fingerprint;
+    const passed = current && record.status === 'passed';
+    const blocksApproval = record.required ? !passed : current && record.status === 'failed';
+    return { status: record.status, current, required: record.required, blocksApproval, summary: record.summary, problems: record.problems, rounds: record.rounds };
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
@@ -115,6 +149,24 @@ export async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'looku
 /** The automation a plan of `userId` can be made from (core/cowork/plan/planSource.mts), else null. */
 const ownAutomation = (automationId: string | null | undefined, userId: string, deps: Deps): Promise<AutomationRow | null> => planSourceOf(automationId, userId, deps);
 
+/** The item's last try-out, for the plan on screen. */
+async function triedFor(item: Item, automation: AutomationRow | null, draft: PlanDraft | null, deps: Pick<Deps, 'tryOf'>): Promise<PlanTried | null> {
+    if (!deps.tryOf || !automation || !draft) return null;
+    return triedOf(await deps.tryOf(item.id).catch(() => null), automation.id, draft.fingerprint);
+}
+
+/** What stops an approval from the card: a finding (not a reference one when an earlier version comes back), or a try-out that has to pass first. */
+async function assertApprovable(item: Item, automation: AutomationRow, draft: PlanDraft, opts: { earlierVersion: boolean; proven: boolean }, deps: Deps): Promise<void> {
+    const blocking = opts.earlierVersion ? draft.findings.filter((f) => !isReferenceFinding(f.code)) : draft.findings;
+    if (blocking.length > 0) {
+        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${blocking[0]?.message ?? ''}`);
+    }
+    const tried = opts.proven ? null : await triedFor(item, automation, draft, deps);
+    if (tried?.blocksApproval) {
+        throw new HttpError(422, 'cowork_plan_untried', `This plan cannot be approved yet: a try-out of it has to pass first.${tried.current && tried.problems[0] ? ` ${tried.problems[0]}` : ''}`);
+    }
+}
+
 /** The plan of an item, as its owner sees it. */
 export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promise<PlanState> {
     const [automation, approvedRow] = await Promise.all([
@@ -136,6 +188,7 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         widens: draft ? widens(draft.permissions, approved?.permissions) : [],
         upToDate,
         stepChanges,
+        tried: await triedFor(item, automation, draft, deps),
     };
 }
 
@@ -157,19 +210,17 @@ const REFUSAL_TEXT = Object.freeze({
  * Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. `approvedBy` is the
  * owner, except for Cowork's own fix of a reference (core/cowork/repairs/autoResolve.mts: AUTO_FIX_APPROVER).
  * `earlierVersion`: an approved version brought back ("Undo", ./coworkPlanVersions.mts restoreVersion); a reference
- * finding (core/cowork/plan/planRefs.mts) does not stop it, as it did not stop that version then: Undo always undoes.
+ * finding or a wiring finding (./coworkPlanRefs.mts) does not stop it, as it did not stop that version then: Undo
+ * always undoes. `proven`: Cowork's own proof stands for the try-out (./coworkPlanVersions.mts approveDefinition).
  */
-export async function approvePlan({ item, fingerprint, approvedBy, earlierVersion = false }: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean }, deps: Deps = defaultDeps()): Promise<PlanState> {
+export async function approvePlan({ item, fingerprint, approvedBy, earlierVersion = false, proven = false }: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean; proven?: boolean }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
     const draft = await draftOf(automation, deps, item);
     if (draft.fingerprint !== fingerprint) {
         throw new HttpError(409, 'cowork_plan_changed', 'The plan changed since you looked at it. Look at it again, then approve it.');
     }
-    const blocking = earlierVersion ? draft.findings.filter((f) => f.code !== REF_FINDING) : draft.findings;
-    if (blocking.length > 0) {
-        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${blocking[0]?.message ?? ''}`);
-    }
+    await assertApprovable(item, automation, draft, { earlierVersion, proven }, deps);
     const refusal = await deps.ownerRefusal({ userId: item.userId, organizationId: automation.organizationId ?? null });
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);
     await deps.store.approvePlan({

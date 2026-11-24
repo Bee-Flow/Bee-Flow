@@ -16,7 +16,7 @@ export const TARGET_TYPE = 'cowork_item';
 
 export type AuditAction =
     | 'cowork.created' | 'cowork.updated' | 'cowork.toggled' | 'cowork.deleted'
-    | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made' | 'cowork.plan_auto_fixed'
+    | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made' | 'cowork.plan_auto_fixed' | 'cowork.plan_wiring_fixed'
     | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over' | 'cowork.start_set' | 'cowork.trust_set' | 'cowork.shares_set'
     | 'cowork.goal_set' | 'cowork.goal_check_approved' | 'cowork.goal_removed'
     | 'cowork.desk_joined' | 'cowork.desk_accepted' | 'cowork.desk_role_set' | 'cowork.desk_left'
@@ -26,12 +26,29 @@ export type AuditAction =
 const VALUE_FIELDS: readonly string[] = Object.freeze([
     'isActive', 'repeatInterval', 'daysOfWeek', 'timeOfDay', 'timezone', 'modelTier', 'agentId', 'triggerKind',
     'nextRunAt', 'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId', 'monthlyBudget', 'kind', 'stepId', 'trusted',
+    // How an automatic fix was proven: 'replay' or 'try_out'.
+    'proof',
 ]);
 /** Fields that are only ever named: their content is the owner's text. */
 const NAME_ONLY_FIELDS: readonly string[] = Object.freeze(['title', 'prompt', 'trigger', 'answer', 'sentence', 'targetPercent', 'deskRole']);
 
 /** Fields whose value is rebuilt from an allow-list, never copied: the value kept is what the shaper returns. */
-const SHAPED_FIELDS: Readonly<Record<string, (value: unknown) => unknown>> = Object.freeze({ shares: sharesShape });
+const SHAPED_FIELDS: Readonly<Record<string, (value: unknown) => unknown>> = Object.freeze({ shares: sharesShape, wiring: wiringShape });
+
+const MAX_AUDITED_WIRING = 20;
+const ID_MAX = 120;
+
+/** What an automatic fix of the wiring changed: `[{ kind, stepId, otherId }]`, step ids only, at most 20. */
+function wiringShape(value: unknown): Array<{ kind: 'waits' | 'reads'; stepId: string; otherId: string }> {
+    const out: Array<{ kind: 'waits' | 'reads'; stepId: string; otherId: string }> = [];
+    for (const entry of Array.isArray(value) ? value : []) {
+        if (out.length >= MAX_AUDITED_WIRING) break;
+        const { kind, stepId, otherId } = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+        const id = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= ID_MAX;
+        if ((kind === 'waits' || kind === 'reads') && id(stepId) && id(otherId)) out.push({ kind, stepId, otherId });
+    }
+    return out;
+}
 
 /** Every field a trail entry can name: each has its words in the owner's language (i18n `cowork_trail.field.<name>`). */
 export const AUDITED_FIELDS: readonly string[] = Object.freeze([...VALUE_FIELDS, ...NAME_ONLY_FIELDS, ...Object.keys(SHAPED_FIELDS)]);

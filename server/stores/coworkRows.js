@@ -108,8 +108,24 @@ function rowToRun(r) {
         activity: r.activity_json ? safeParseJSON(r.activity_json, NO_ACTIVITY) : null,
         // The approved plan this run followed (stores/coworkPlans.mts); null for a prompt or agent run.
         planId: r.plan_id ?? null,
+        // Where a plan run failed (core/cowork/runOutcome.mts stepFailedFactsOf): step ids and a code, for the
+        // Overview's plain sentence. Only on a run that failed at a step.
+        ...failureOf(r.outcome_json),
         // run_context_json is deliberately not here: it is the server's, for a follow-up run.
     };
+}
+
+/**
+ * The step a plan run failed at, as `{ failure }`, or nothing.
+ * @param {unknown} json
+ * @returns {{ failure?: { stepId: string, errorClass: string | null, sourceStepId: string | null } }}
+ */
+function failureOf(json) {
+    /** @type {{ kind?: unknown, stepId?: unknown, errorClass?: unknown, sourceStepId?: unknown } | null} */
+    let v = null;
+    try { v = typeof json === 'string' && json ? JSON.parse(json) : null; } catch { v = null; }
+    if (!v || v.kind !== 'step_failed' || typeof v.stepId !== 'string') return {};
+    return { failure: { stepId: v.stepId, errorClass: typeof v.errorClass === 'string' ? v.errorClass : null, sourceStepId: typeof v.sourceStepId === 'string' ? v.sourceStepId : null } };
 }
 
 /**

@@ -41,7 +41,7 @@ import { unattendedRefusal } from './planPolicy.mts';
 import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
-import { aiFailedText, factsOf, incompleteText, outcomeOfRun, type OutcomeFacts, type RunOutcome } from './runOutcome.mts';
+import { aiFailedText, factsOf, incompleteText, outcomeOfRun, stepFailedFactsOf, type OutcomeFacts, type RunOutcome } from './runOutcome.mts';
 import { recordedStepsOf, type RecordingDeps } from './replay/recordingOf.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -105,6 +105,16 @@ export class AiVerdictError extends Error {
     constructor(message: string, outcome: OutcomeFacts) {
         super(message);
         this.name = 'AiVerdictError';
+        this.outcome = outcome;
+    }
+}
+
+/** A run that failed at a step: the runner's error, and the facts the row keeps (./runOutcome.mts stepFailedFactsOf). */
+export class StepFailedError extends Error {
+    readonly outcome: OutcomeFacts;
+    constructor(message: string, outcome: OutcomeFacts) {
+        super(message);
+        this.name = 'StepFailedError';
         this.outcome = outcome;
     }
 }
@@ -222,6 +232,24 @@ async function levelOf(task: PlanTask, automation: AutomationRow, definition: De
     return { independence, trusted: trustedSteps(definition, await d.trustOf(task.id), policy.ceiling) };
 }
 
+/** Which step a run that did not finish failed at, as facts; null when it cannot be read or no step failed. */
+async function failedAt(row: AutomationRunRow | null | undefined, definition: Definition, d: ReturnType<typeof defaults>): Promise<OutcomeFacts | null> {
+    const status = row?.status ?? 'error';
+    if (status === 'success' || PAUSED.has(status) || !row?.id || !d.recording) return null;
+    try {
+        return stepFailedFactsOf(definition, await recordedStepsOf(row.id, d.recording), d.lookups);
+    } catch (e) {
+        log.error(`[AITaskRunner] could not read where plan run ${row.id} failed: ${(e as Error).message}`);
+        return null;
+    }
+}
+
+/** A run that failed at a step keeps which step and why, in codes (the Overview says it in plain words): a throw. */
+async function failIfStepFailed(row: AutomationRunRow | null | undefined, definition: Definition, d: ReturnType<typeof defaults>): Promise<void> {
+    const failed = await failedAt(row, definition, d);
+    if (failed) throw new StepFailedError(row?.error || row?.summary || 'The plan did not finish.', failed);
+}
+
 /** How a run the runner handed back ended, for Cowork: the text of its outcome, or a throw when it did not finish. */
 function outcomeOf(row: AutomationRunRow | null | undefined): { text: string; paused: boolean } {
     const status = row?.status ?? 'error';
@@ -253,6 +281,7 @@ interface CloseCtx { store: PlanRunStore; deps: PlanRunDeps; d: ReturnType<typeo
  * failed; either only makes the run worse.
  */
 async function closeEnded(task: PlanTask, row: AutomationRunRow | null | undefined, definition: Definition, c: CloseCtx): Promise<void> {
+    await failIfStepFailed(row, definition, c.d);
     const ended = outcomeOf(row);
     const outcome = ended.paused ? null : await judged(row, definition, c.d);
     if (outcome?.kind === 'ai_failed') throw new AiVerdictError(aiFailedText(outcome.reason), { kind: 'ai_failed', stepId: outcome.stepId });
@@ -307,7 +336,7 @@ export async function executePlanRun(
     } catch (caught) {
         const err = caught instanceof Error ? caught : new Error(String(caught));
         log.error(`[AITaskRunner] Plan run of ${task.id} failed:`, err.message);
-        const outcome = err instanceof AiVerdictError ? { outcome: err.outcome } : {};
+        const outcome = err instanceof AiVerdictError || err instanceof StepFailedError ? { outcome: err.outcome } : {};
         await deps.failRun(task, err, { manual: byHand, store, close: { runId: attempt.runId, ...outcome } });
     }
 }

@@ -34,7 +34,7 @@ export interface VersionDeps {
     /** Write a definition into an automation as its owner (stores/automationStore updateAutomation). */
     writeDefinition: (automationId: string, definition: unknown, userId: string) => Promise<unknown>;
     /** ./coworkPlan.mts approvePlan, with all its checks. */
-    approve: (input: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean }) => Promise<PlanState>;
+    approve: (input: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean; proven?: boolean }) => Promise<PlanState>;
 }
 
 export function versionDeps(): VersionDeps {
@@ -68,7 +68,8 @@ export async function approveDefinition({ item, definition, approvedBy, earlierV
     }
     await deps.writeDefinition(automation.id, definition, item.userId);
     try {
-        return await deps.approve({ item, fingerprint: planFingerprint(definition), ...(approvedBy ? { approvedBy } : {}), ...(earlierVersion ? { earlierVersion } : {}) });
+        // What comes this way carries its own proof (a replay, a try-out, an earlier approval): no try-out of the card is asked.
+        return await deps.approve({ item, fingerprint: planFingerprint(definition), ...(approvedBy ? { approvedBy } : {}), ...(earlierVersion ? { earlierVersion } : {}), proven: true });
     } catch (e) {
         // A refusal changes nothing: the automation goes back to the plan that is approved.
         await deps.writeDefinition(automation.id, before, item.userId).catch((err: unknown) => fallback('usecases/coworkPlanVersions:restore', err, null));

@@ -22,6 +22,9 @@
  * Whatever fails on the way falls back to the repair its owner decides (./coworkProposals.mts propose): the patched
  * plan when there is one (its widening is then shown), else the facts of the reference for the amend mode. Nothing that
  * widens what the plan may do is ever applied here.
+ *
+ * A miswired plan (a step that reads a step that is not before it) is fixed by ./coworkAutoResolveWiring.mts, with the
+ * same deps; `autoResolve` hands it on.
  */
 
 import { createRequire } from 'node:module';
@@ -33,7 +36,9 @@ import type { PlanDraft, PlanState } from './coworkPlan.mts';
 import type { ProposalDeps, ProposeOutcome } from './coworkProposals.mts';
 import type { PastRun, ReplayRunDeps } from '../core/cowork/replay/replayRun.mts';
 import type { RecordedStep } from '../core/cowork/replay/recordingOf.mts';
-import { AUTO_FIX_APPROVER, AUTO_FIX_REASON, deterministicCandidate, listPathsOf, patchRef, refOfList, sameReach, type ListPath, type ResolveItem, type UnresolvedFact } from '../core/cowork/repairs/autoResolve.mts';
+import { AUTO_FIX_APPROVER, AUTO_FIX_REASON, deterministicCandidate, isWiringFact, listPathsOf, patchRef, refOfList, sameReach, type ListPath, type ResolveFact, type ResolveItem, type UnresolvedFact } from '../core/cowork/repairs/autoResolve.mts';
+import type { TryVerdict } from './coworkPlanTryOut.mts';
+import { resolveWiring } from './coworkAutoResolveWiring.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
@@ -65,8 +70,8 @@ export interface AutoResolveDeps {
     judge: (automation: SourceRow, item: ResolveItem) => Promise<PlanDraft>;
     approveDefinition: (input: { item: ResolveItem; definition: Definition; approvedBy: string }) => Promise<PlanState>;
     proposals: Pick<CoworkProposalsStore, 'recordAutoFix'>;
-    /** The trail entry, written as Cowork itself in the owner's organisation. */
-    audit: (item: ResolveItem, fields: Record<string, unknown>) => Promise<void>;
+    /** The trail entry, written as Cowork itself in the owner's organisation (a fix of a reference, unless `action` says otherwise). */
+    audit: (item: ResolveItem, fields: Record<string, unknown>, action?: 'cowork.plan_auto_fixed' | 'cowork.plan_wiring_fixed') => Promise<void>;
     /** The fallback: a repair its owner decides (./coworkProposals.mts propose). */
     propose: (item: ResolveItem, request: Parameters<typeof import('./coworkProposals.mts').propose>[1], deps?: ProposalDeps) => Promise<ProposeOutcome>;
     proposalDeps: () => ProposalDeps;
@@ -76,6 +81,8 @@ export interface AutoResolveDeps {
     /** Run the item once more now, through the Cowork runner (its policy and budgets). */
     rerun: (item: ResolveItem) => Promise<unknown>;
     lookups: ToolLookups;
+    /** A try-out in test mode of a definition of the item's plan automation (./coworkPlanTryOut.mts tryDefinition). */
+    tryOut: (input: { item: ResolveItem; automation: SourceRow; definition: Definition }) => Promise<TryVerdict>;
 }
 
 export type ResolveOutcome = 'fixed' | 'fixed_and_rerun' | 'proposed' | 'not_fixed';
@@ -103,9 +110,9 @@ export function autoResolveDeps(): AutoResolveDeps {
         judge: (automation, item) => proposals().proposalDeps().judge(automation, item),
         approveDefinition: (input) => (nodeRequire('./coworkPlanVersions.mts') as typeof import('./coworkPlanVersions.mts')).approveDefinition(input),
         proposals: (nodeRequire('../stores/coworkProposals.mts') as typeof import('../stores/coworkProposals.mts')).coworkProposals(),
-        audit: async (item, fields) => {
+        audit: async (item, fields, action = 'cowork.plan_auto_fixed') => {
             const user = await (nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ organizationId?: string | null } | null> }).getUser(item.userId).catch(() => null);
-            await (nodeRequire('./coworkAudit.mts') as typeof import('./coworkAudit.mts')).recordCowork('cowork.plan_auto_fixed', item.id, { userId: AUTO_FIX_APPROVER, organizationId: user?.organizationId ?? null }, fields);
+            await (nodeRequire('./coworkAudit.mts') as typeof import('./coworkAudit.mts')).recordCowork(action, item.id, { userId: AUTO_FIX_APPROVER, organizationId: user?.organizationId ?? null }, fields);
         },
         propose: (item, request, deps) => proposals().propose(item, request, deps),
         proposalDeps: () => proposals().proposalDeps(),
@@ -117,6 +124,7 @@ export function autoResolveDeps(): AutoResolveDeps {
             if (fresh) await (nodeRequire('../core/cowork/coworkRunner') as { executeCowork: (s: unknown, o: { manual: boolean }) => Promise<unknown> }).executeCowork(fresh, { manual: true });
         },
         lookups,
+        tryOut: (input) => (nodeRequire('./coworkPlanTryOut.mts') as typeof import('./coworkPlanTryOut.mts')).tryDefinition(input),
     };
 }
 
@@ -218,8 +226,13 @@ async function apply({ item, run, fact }: Case, approved: Approved, patched: Def
     return 'fixed_and_rerun';
 }
 
-/** Fix the broken reference of the run `run` of `item`, or propose a repair. */
-export async function autoResolve(item: ResolveItem, run: JudgedRun, fact: UnresolvedFact, deps: AutoResolveDeps = autoResolveDeps()): Promise<ResolveOutcome> {
+/** Fix the broken reference (or the wiring) of the plan the run `run` of `item` followed, or propose a repair. */
+export async function autoResolve(item: ResolveItem, run: JudgedRun, fact: ResolveFact, deps: AutoResolveDeps = autoResolveDeps()): Promise<ResolveOutcome> {
+    if (isWiringFact(fact)) return resolveWiring(item, run, deps);
+    return resolveReference(item, run, fact, deps);
+}
+
+async function resolveReference(item: ResolveItem, run: JudgedRun, fact: UnresolvedFact, deps: AutoResolveDeps): Promise<ResolveOutcome> {
     const approved = await deps.getApprovedPlan(item.id);
     const automation = await planSourceOf(item.planAutomationId, item.userId, deps);
     if (!approved || !automation || approved.id !== run.planId) return 'not_fixed';

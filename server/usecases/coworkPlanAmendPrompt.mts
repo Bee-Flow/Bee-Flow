@@ -18,7 +18,9 @@ export type AmendFacts =
     | { kind: 'goal_under'; targetPercent: number; percents: number[] }
     | { kind: 'make_fixed'; stepId: string; stepTitle: string }
     /** A step's list reference found no list; `lists`: the paths that hold one in what the earlier step returned (shape only). */
-    | { kind: 'reference_unresolved'; stepId: string; stepTitle: string; sourceStepId: string; sourceTitle: string; ref: string; lists: string[] };
+    | { kind: 'reference_unresolved'; stepId: string; stepTitle: string; sourceStepId: string; sourceTitle: string; ref: string; lists: string[] }
+    /** The plan is miswired (core/cowork/plan/planWiring.mts): each finding's step and its sentence, made of step titles. */
+    | { kind: 'wiring'; findings: Array<{ stepId: string; stepTitle: string; message: string }> };
 
 /** The fixed step types a steady AI step may become. */
 export const FIXED_TARGETS: readonly string[] = Object.freeze(['set', 'aggregate', 'filter', 'datetime', 'summarize']);
@@ -44,6 +46,10 @@ export function factLines(facts: AmendFacts): string {
     if (facts.kind === 'goal_under') {
         const seen = facts.percents.map((p) => `${percent(p)}%`).join(', ');
         return `- The goal of this work is that ${percent(facts.targetPercent)}% of what it handles meets it.\n- The last ${facts.percents.length} measurements, oldest first, were: ${seen}. Each was under the target.\n- Change the plan so that more of what it handles meets the goal. Change only the steps that decide that.`;
+    }
+    if (facts.kind === 'wiring') {
+        const lines = facts.findings.slice(0, 8).map((f) => `- The step ${JSON.stringify(f.stepId)}: ${JSON.stringify(f.message.slice(0, 400))}`);
+        return `${lines.join('\n')}\n- Fix the order and the references: each step must come after the steps whose output it reads (builder_update_step with afterStepId, or the reference it reads). Change no tool and no input other than a reference.`;
     }
     const step = `the step ${JSON.stringify(facts.stepId)} (titled ${JSON.stringify(facts.stepTitle.slice(0, TITLE_MAX))})`;
     if (facts.kind === 'reference_unresolved') {

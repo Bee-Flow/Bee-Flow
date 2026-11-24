@@ -33,7 +33,9 @@ import { planFingerprint, widens } from '../core/cowork/plan/planPermissions.mts
 import { changesOf, onlyStepMadeFixed, type StepChange } from '../core/cowork/plan/planChanges.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
-import { AUTO_FIX_REASON } from '../core/cowork/repairs/autoResolve.mts';
+import { AUTO_FIX_REASONS, WIRING_FIX_REASON } from '../core/cowork/repairs/autoResolve.mts';
+import { wiringChangesOf } from '../core/cowork/plan/planWiringFix.mts';
+import { planViewOf } from '../core/cowork/plan/planView.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
@@ -49,7 +51,12 @@ interface Approved { id: string; version: number; definition: unknown; permissio
 
 export interface ProposalDeps {
     store: Pick<CoworkProposalsStore, 'createProposal' | 'getProposal' | 'listProposals' | 'openProposalOf' | 'decideProposal' | 'markStale'>;
-    plans: { getApprovedPlan: (scheduleId: string) => Promise<Approved | null>; versionWithFingerprint: (scheduleId: string, fingerprint: string) => Promise<number | null> };
+    plans: {
+        getApprovedPlan: (scheduleId: string) => Promise<Approved | null>;
+        versionWithFingerprint: (scheduleId: string, fingerprint: string) => Promise<number | null>;
+        /** An approved version's definition: what an automatic fix of the wiring changed is read against it. */
+        getPlanVersion?: (scheduleId: string, version: number) => Promise<{ definition: unknown } | null>;
+    };
     getAutomation: (id: string) => Promise<SourceRow | null>;
     isManaged: (automation: SourceRow) => Promise<boolean>;
     /** The plan as approval would judge it (./coworkPlan.mts draftOf). */
@@ -82,6 +89,7 @@ export function proposalDeps(): ProposalDeps {
         plans: {
             getApprovedPlan: (id) => (nodeRequire('../stores/coworkStore.js') as Pick<ProposalDeps['plans'], 'getApprovedPlan'>).getApprovedPlan(id),
             versionWithFingerprint: (id, fp) => store().versionWithFingerprint(id, fp),
+            getPlanVersion: (id, version) => store().getPlanVersion(id, version),
         },
         getAutomation: (id) => (nodeRequire('../stores/automationStore') as { getAutomation: ProposalDeps['getAutomation'] }).getAutomation(id),
         isManaged: isManagedByStage,
@@ -103,7 +111,7 @@ export function proposalDeps(): ProposalDeps {
 /** What a proposal asks: the change to work out, and what to replay it on. */
 export interface ProposalRequest {
     kind: ProposalKind;
-    reasonCode: 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved';
+    reasonCode: 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved' | 'wiring_broken';
     stepId: string | null;
     stepTitle: string | null;
     facts: AmendFacts;
@@ -176,19 +184,33 @@ export interface ProposalView {
     replay: Pick<ReplayState, 'done' | 'total' | 'same' | 'differs' | 'partial' | 'notReplayable'> | null;
     /** An approved fixed step that is still the plan: the version "Undo" brings back. */
     undoVersion: number | null;
+    /** An automatic fix of the wiring that is still the plan: who waits for whom, who reads from whom now (titles). */
+    wiring?: Array<{ kind: 'waits' | 'reads'; step: string; other: string }>;
+}
+
+/** What an automatic fix of the wiring changed, against the version Undo brings back, as titles. */
+async function wiringOf(item: Item, p: Proposal, undoVersion: number | null, deps: ProposalDeps): Promise<ProposalView['wiring']> {
+    if (p.reasonCode !== WIRING_FIX_REASON || undoVersion === null || !deps.plans.getPlanVersion) return undefined;
+    const before = await deps.plans.getPlanVersion(item.id, undoVersion);
+    const titles = new Map(planViewOf(p.definition as Definition, deps.lookups).steps.map((s) => [s.id, s.title]));
+    return wiringChangesOf(before?.definition as Definition | null, p.definition as Definition)
+        .map((c) => ({ kind: c.kind, step: titles.get(c.stepId) ?? c.stepId, other: titles.get(c.otherId) ?? c.otherId }));
 }
 
 async function viewOf(item: Item, p: Proposal, approved: Approved | null, deps: ProposalDeps): Promise<ProposalView> {
     const open = p.status === 'open';
     const replay = p.replayId && (open || p.kind === 'fixed_step') ? await deps.replay.stateOf(item, p.replayId) : null;
     // An approved fixed step, or a reference Cowork fixed by itself (core/cowork/repairs/autoResolve.mts), that is still the plan.
-    const current = p.status === 'approved' && (p.kind === 'fixed_step' || p.reasonCode === AUTO_FIX_REASON) && approved?.fingerprint === p.fingerprint;
+    const current = p.status === 'approved' && (p.kind === 'fixed_step' || AUTO_FIX_REASONS.has(p.reasonCode)) && approved?.fingerprint === p.fingerprint;
+    const undoVersion = current ? await deps.plans.versionWithFingerprint(item.id, p.baseFingerprint) : null;
+    const wiring = await wiringOf(item, p, undoVersion, deps);
     return {
         id: p.id, kind: p.kind, reasonCode: p.reasonCode, stepId: p.stepId, stepTitle: p.stepTitle, status: p.status, fingerprint: p.fingerprint,
         createdAt: p.createdAt, decidedAt: p.decidedAt, widens: p.widens,
         changes: open && approved ? changesOf(approved.definition as Definition, p.definition as Definition, deps.lookups) : [],
         replay: replay ? { done: replay.done, total: replay.total, same: replay.same, differs: replay.differs, partial: replay.partial, notReplayable: replay.notReplayable } : null,
-        undoVersion: current ? await deps.plans.versionWithFingerprint(item.id, p.baseFingerprint) : null,
+        undoVersion,
+        ...(wiring ? { wiring } : {}),
     };
 }
 

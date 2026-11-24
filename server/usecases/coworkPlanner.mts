@@ -15,7 +15,10 @@
  *   - after every change the draft is checked twice, by the builder's validation and by Cowork's own rules
  *     (core/cowork/plan/planChecks.mts), and both reports go back to the model to fix;
  *   - whatever the model ends on, the plan card shows the findings of those same rules, and a plan with a finding
- *     cannot be approved, tried or run.
+ *     cannot be approved, tried or run;
+ *   - a draft without findings is TRIED before its owner sees it (./coworkPlannerTry.mts): once in test mode, what
+ *     went wrong back to the model as facts, at most three try-outs. The plan arrives with how its try-out went, and
+ *     it is approved from its card only once a try-out of exactly that plan passed.
  *
  * An item that already has a plan is left alone: its owner takes the plan off first. A draft that came out empty is
  * not stored.
@@ -25,13 +28,15 @@ import { createRequire } from 'node:module';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
-import { refFindings } from './coworkPlanRefs.mts';
+import { draftFindings, refFindings } from './coworkPlanRefs.mts';
+import { tryAndRepair, type TriedPlan, type TryProgress, type TryRoundDeps } from './coworkPlannerTry.mts';
+import type { SourceRow } from '../core/cowork/plan/planSource.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { plannerChat } from './coworkPlannerChat.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { plannerRefusal, plannerSystemPrompt, plannerTools } from './coworkPlannerPrompt.mts';
-import { builderPort, draftWithin, newDraft, type DraftProgress, type DraftWrap, type LoopDeps, type LoopResult } from './coworkDraftLoop.mts';
+import { builderPort, draftWithin, newDraft, type DraftWrap, type LoopDeps, type LoopResult, type Message } from './coworkDraftLoop.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -46,7 +51,7 @@ export const MAX_PLANNER_ROUNDS = 8;
 /** The whole making of a plan, in ms. */
 export const PLANNER_MAX_MS = 180_000;
 
-interface Item { id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null }
+interface Item { id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null }
 
 export interface PlannerDeps extends LoopDeps {
     store: { attachPlanAutomation: (scheduleId: string, automationId: string, opts?: { onlyIfNone?: boolean }) => Promise<boolean> };
@@ -55,6 +60,8 @@ export interface PlannerDeps extends LoopDeps {
     resolveModel: (who: { userOrgId: string | null; userId: string }) => Promise<string | null>;
     /** The owner's licence covers a step that waits for a decision (core/cowork/plan/planLicence.mts). */
     mayAsk: MayAsk;
+    /** The try-out of every draft (./coworkPlannerTry.mts); without it the draft is not tried. */
+    tries?: Pick<TryRoundDeps, 'tryOut' | 'getAutomation' | 'spendLeft' | 'recordTry'>;
 }
 
 /** The real wiring of the planner (the amend mode, ./coworkPlanAmend.mts, thinks the same way). */
@@ -73,11 +80,17 @@ export function plannerDeps(): PlannerDeps {
         mayAsk: mayAskByLicence,
         now: () => Date.now(),
         maxMs: PLANNER_MAX_MS,
+        tries: {
+            tryOut: (input) => (nodeRequire('./coworkPlanTryOut.mts') as typeof import('./coworkPlanTryOut.mts')).tryDefinition(input),
+            getAutomation: (id) => (nodeRequire('../stores/automationStore') as { getAutomation: (id: string) => Promise<SourceRow | null> }).getAutomation(id),
+            spendLeft: (item) => (nodeRequire('../core/cowork/spendGate.mts') as typeof import('../core/cowork/spendGate.mts')).assertSpendLeft(item),
+            recordTry: (id, record) => (nodeRequire('./coworkPlanTryOut.mts') as typeof import('./coworkPlanTryOut.mts')).planTries().setPlanTry(id, record),
+        },
     };
 }
 
-/** What the page is told while a plan is being made. */
-export type PlannerProgress = DraftProgress;
+/** What the page is told while a plan is being made: the drafting, then the try-outs and their repairs. */
+export type PlannerProgress = TryProgress;
 
 export interface MakeInput {
     item: Item;
@@ -97,6 +110,8 @@ export interface MadePlan {
     /** Why the plan may not run as it is; empty for a plan that can be tried and approved. */
     findings: PlanFinding[];
     rounds: number;
+    /** How its try-outs went; absent when the planner does not try (a test's planner). */
+    tried?: TriedPlan;
 }
 
 const REFUSAL_TEXT = Object.freeze({
@@ -152,16 +167,21 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     }, deps);
     const owner = { userId: item.userId, organizationId: userOrgId };
     const approvals = await deps.mayAsk(owner);
-    // What Cowork would not run, the licence included: what the model is told after each change, and what is returned.
-    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
+    // What Cowork would not run, the licence included: what is returned and what stops a try-out. The model is also told
+    // the advice (a read that no step uses).
+    const blockingOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
+    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...draftFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = plannerSystemPrompt({
         title: draft.title, brief, approvals, hints: input.hints ?? null, startsOnMail: item.triggerKind === 'app_event',
         catalog: deps.builder.renderCatalog(catalog),
         datatables: deps.builder.renderDatatables(catalog.datatables),
     });
     const menu = { tools: plannerTools(deps.builder.toolSchemas), refusal: plannerRefusal };
+    const ask = 'Make the plan for this work.';
+    const messages: Message[] = [{ role: 'system', content: system }, { role: 'user', content: ask }];
+    const spec = { draft, modelId, system, ask, menu, findingsOf, onProgress: input.onProgress, messages };
     const loop: LoopResult = await draftWithin(
-        { draft, modelId, system, ask: 'Make the plan for this work.', menu, maxRounds: MAX_PLANNER_ROUNDS, findingsOf, onProgress: input.onProgress },
+        { ...spec, maxRounds: MAX_PLANNER_ROUNDS },
         input.signal, { code: 'cowork_planner_timeout', message: 'Making the plan took too long. Try again, or write a shorter brief.' }, deps,
     );
 
@@ -172,5 +192,7 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     input.onProgress?.({ phase: 'saving' });
     const automationId = await storeAsPlan(item, draft, deps);
     log.info(`[CoworkPlanner] ${item.id}: drafted ${steps.length} step(s) in ${loop.rounds} round(s) as automation ${automationId}`);
-    return { automationId, summary: loop.summary, findings: await findingsOf(draft.def), rounds: loop.rounds };
+    const tried = deps.tries ? await tryAndRepair({ item, draft, automationId, loop: spec, blockingOf, signal: input.signal, onProgress: input.onProgress }, { ...deps, ...deps.tries }) : undefined;
+    if (tried) log.info(`[CoworkPlanner] ${item.id}: ${tried.status} after ${tried.rounds} try-out(s)`);
+    return { automationId, summary: loop.summary, findings: await blockingOf(draft.def), rounds: loop.rounds, ...(tried ? { tried } : {}) };
 }

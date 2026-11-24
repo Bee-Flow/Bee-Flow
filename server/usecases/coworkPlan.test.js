@@ -44,7 +44,7 @@ const httpError = (status, code) => (err) => err.status === status && err.code =
 
 test('an item without a plan shows nothing to approve', async () => {
     const { deps } = world();
-    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [] });
+    assert.deepStrictEqual(await planStateOf({ ...ITEM, planAutomationId: null }, deps), { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null });
 });
 
 test('looking at a plan shows its steps, what it may do, no findings, and that it was never approved', async () => {
@@ -199,5 +199,5 @@ test('taking the plan off leaves the item without one', async () => {
     await approvePlan({ item: ITEM, fingerprint: planFingerprint(supplierRadar()) }, deps);
     const after = await removePlan({ item: ITEM }, deps);
     assert.strictEqual(state.detached, 1);
-    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [] });
+    assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null });
 });

@@ -25,7 +25,7 @@ const { isTruncatedOutput, fullOutputRefOf } = nodeRequire('../../../stores/auto
 };
 
 export interface RunRow { id: string; mode?: string | null; startedAt?: string | null; triggerPayload?: unknown }
-export interface StepRow { runId: string; stepId: string; stepType?: string | null; attempts?: number | null; status?: string | null; input?: unknown; output?: unknown; verdict?: unknown }
+export interface StepRow { runId: string; stepId: string; stepType?: string | null; attempts?: number | null; status?: string | null; input?: unknown; output?: unknown; verdict?: unknown; errorClass?: string | null }
 
 export interface RecordedStep {
     stepId: string;
@@ -37,6 +37,8 @@ export interface RecordedStep {
     usable: boolean;
     /** An AI step's verdict on its own work, when it gave one (core/automationRunner/aiStepVerdict.mts). */
     verdict?: unknown;
+    /** The error class of a step that failed (a code, never the error text). */
+    errorClass?: string | null;
 }
 
 export interface Recording {
@@ -77,7 +79,7 @@ export async function recordedStepsOf(automationRunId: string, deps: RecordingDe
     const steps = new Map<string, RecordedStep>();
     for (const row of finalRows.values()) {
         const { output, usable } = await fullOutputOf(row, deps);
-        steps.set(row.stepId, { stepId: row.stepId, stepType: String(row.stepType ?? ''), status: String(row.status ?? ''), input: row.input ?? null, output, usable, verdict: row.verdict ?? null });
+        steps.set(row.stepId, { stepId: row.stepId, stepType: String(row.stepType ?? ''), status: String(row.status ?? ''), input: row.input ?? null, output, usable, verdict: row.verdict ?? null, errorClass: row.errorClass ?? null });
     }
     return steps;
 }

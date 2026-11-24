@@ -61,6 +61,10 @@ const PLAN_DDL = Object.freeze([
     // found no list), failed by an AI step's own verdict, or an AI's done / nothing to do. Codes, step ids and the plan's
     // own references only; never a value the run read, never the AI's reason (that is the run's error text).
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS outcome_json TEXT`,
+    // The last try-out of the item's plan (stores/coworkPlanTries.mts): which automation and fingerprint it tried, how
+    // it ended, and whether the plan needs a passing one before it is approved (a plan Cowork drafted). Counts, step
+    // titles and the plan's own sentences only; never a value the try-out read.
+    `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS plan_try_json TEXT`,
     // Sharing (usecases/coworkShares.mts): colleagues of the owner's organisation who may see the item (viewer) or
     // also decide its runs' questions (approver, at most one). The owner keeps the item; a share never runs it.
     `CREATE TABLE IF NOT EXISTS cowork_shares (

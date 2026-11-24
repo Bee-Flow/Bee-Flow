@@ -19,7 +19,7 @@ const { HttpError } = require('../core/http/errors');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
 const FINGERPRINT = 'a'.repeat(64);
-const STATE = { automationId: 'auto-1', draft: null, approved: null, widens: [], upToDate: false, stepChanges: [] };
+const STATE = { automationId: 'auto-1', draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null };
 const OWNER = { id: 'u1' };
 
 /** @type {Array<[string, Record<string, unknown>]>} */

@@ -14,8 +14,13 @@
  *     that the steps, their types, tools and inputs and the permissions are exactly equal. A fix that would reach
  *     anything else is never applied: it becomes a proposal its owner decides.
  *
+ * The same exception covers the WIRING of a plan (core/cowork/plan/planWiring.mts): after a run of a plan whose
+ * approved version reads a step that is not in it or that does not run before the step that reads it, or that starts
+ * an AI step before the reads it should work on, the use case applies the deterministic fixes (references and edges
+ * only; usecases/coworkAutoResolveWiring.mts), under the same limits, with a replay or a try-out as the proof.
+ *
  * LIMITS, asked in this order, the claim last so a refused attempt does not use up the day: the item has a plan and
- * the run followed it and ended incomplete; the organisation lets Cowork fix references (`autoFix`, on unless an
+ * the run followed it and ended incomplete, or its approved plan is miswired; the organisation lets Cowork fix references (`autoFix`, on unless an
  * administrator switched it off) and has not made Cowork read-only; the item has no open repair; at most one attempt
  * per item per day, claimed in the proposals' attempts table (kind 'auto_fix') so two servers agree.
  *
@@ -26,6 +31,7 @@
 
 import { createRequire } from 'node:module';
 import type { Definition, DefStep, ToolLookups } from '../plan/planTypes.mts';
+import { WIRING_BLOCKING, wiringFindings } from '../plan/planWiring.mts';
 import type { JudgedRun } from '../../../stores/coworkRunOutcomes.mts';
 import type { CoworkProposalsStore } from '../../../stores/coworkProposals.mts';
 import { stepsOf, refsOfValue } from '../plan/planWalk.mts';
@@ -41,6 +47,10 @@ const log = nodeRequire('../../../telemetry/log.js') as { info: (m: string) => v
 export const AUTO_FIX_APPROVER = 'cowork:auto_fix';
 /** The reason code of the record an automatic fix leaves (cowork_proposals.reason_code), with its Undo. */
 export const AUTO_FIX_REASON = 'reference_fixed';
+/** The reason code of the record an automatic fix of the wiring leaves, with its Undo. */
+export const WIRING_FIX_REASON = 'wiring_fixed';
+/** Both: what the item shows as "Fixed automatically" while it is still the plan. */
+export const AUTO_FIX_REASONS: ReadonlySet<string> = new Set([AUTO_FIX_REASON, WIRING_FIX_REASON]);
 /** One attempt per item per this long. */
 export const ATTEMPT_WINDOW_MS = 24 * 60 * 60_000;
 /** How deep a list may sit to count as "near the top" for the one-list rule. */
@@ -150,8 +160,16 @@ export function sameReach(before: Definition, after: Definition, fact: Pick<Unre
 
 export interface ResolveItem { id: string; userId: string; title?: string | null; triggerKind?: string | null; planId?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null }
 
+/** The approved plan of the item is miswired: the codes of the wiring findings that stop an approval. */
+export interface WiringFact { kind: 'wiring'; codes: string[] }
+
+/** What a run that ended set off: a list reference that found none, or a miswired plan. */
+export type ResolveFact = UnresolvedFact | WiringFact;
+
+export const isWiringFact = (fact: ResolveFact): fact is WiringFact => (fact as { kind?: unknown }).kind === 'wiring';
+
 /** What fixes the reference (usecases/coworkAutoResolve.mts autoResolve). */
-export type Resolve = (item: ResolveItem, run: JudgedRun, fact: UnresolvedFact) => Promise<unknown>;
+export type Resolve = (item: ResolveItem, run: JudgedRun, fact: ResolveFact) => Promise<unknown>;
 
 export interface AutoResolveDeps {
     getSchedule: (id: string) => Promise<ResolveItem | null>;
@@ -159,6 +177,9 @@ export interface AutoResolveDeps {
     proposals: Pick<CoworkProposalsStore, 'openProposalOf' | 'claimAttempt'>;
     policyOf: (userId: string) => Promise<CoworkPolicy>;
     now: () => Date;
+    /** The definition of the item's approved plan; without it the wiring is not judged. */
+    approvedDefinition?: (scheduleId: string) => Promise<Definition | null>;
+    lookups?: ToolLookups;
 }
 
 function defaults(): AutoResolveDeps {
@@ -168,7 +189,24 @@ function defaults(): AutoResolveDeps {
         proposals: (nodeRequire('../../../stores/coworkProposals.mts') as typeof import('../../../stores/coworkProposals.mts')).coworkProposals(),
         policyOf: (userId) => (nodeRequire('../../entitlements/coworkPolicy.mts') as typeof import('../../entitlements/coworkPolicy.mts')).policyOfOwner(userId),
         now: () => new Date(),
+        approvedDefinition: async (id) => ((await (nodeRequire('../../../stores/coworkStore.js') as { getApprovedPlan: (id: string) => Promise<{ definition?: unknown } | null> }).getApprovedPlan(id))?.definition ?? null) as Definition | null,
+        lookups: (nodeRequire('../plan/planLookups.mts') as typeof import('../plan/planLookups.mts')).toolLookups(),
     };
+}
+
+/** Run states after which the wiring is judged: the run is over (a run that waits for a decision is not). */
+const ENDED: ReadonlySet<string> = new Set(['success', 'error', 'incomplete']);
+
+/**
+ * After a run of a plan: is its approved version miswired? Judged on the plan alone (the run is the moment, not the
+ * evidence: a plan that reads a step that is not before it is wrong whatever the run read), with the built-in shapes;
+ * the use case judges again with the builder's.
+ */
+export async function wiringFactOf(run: JudgedRun, item: ResolveItem, deps: AutoResolveDeps): Promise<WiringFact | null> {
+    if (!ENDED.has(run.status) || !deps.approvedDefinition || !deps.lookups) return null;
+    const definition = await deps.approvedDefinition(item.id);
+    const codes = [...new Set(wiringFindings(definition, deps.lookups).filter((f) => WIRING_BLOCKING.has(f.code)).map((f) => f.code))];
+    return codes.length > 0 ? { kind: 'wiring', codes } : null;
 }
 
 /** The first unresolved reference a run's outcome names, as the row keeps it. */
@@ -183,13 +221,14 @@ export function unresolvedFactOf(run: JudgedRun | null): UnresolvedFact | null {
 
 export type Checked = 'no_plan' | 'not_incomplete' | 'switched_off' | 'read_only' | 'open' | 'tried_today' | 'resolving';
 
-/** After a run of `ended` ended: may Cowork fix its broken reference now, and if so, hand it to `resolve`. */
+/** After a run of `ended` ended: may Cowork fix its broken reference or its wiring now, and if so, hand it to `resolve`. */
 export async function checkAfterRun(ended: EndedItem, runId: string, resolve: Resolve, deps: AutoResolveDeps = defaults()): Promise<Checked> {
     const item = await deps.getSchedule(ended.id);
     if (!item?.planId) return 'no_plan';
     const run = await deps.judgedRun(item.id, runId);
-    const fact = run && run.planId === item.planId ? unresolvedFactOf(run) : null;
-    if (!run || !fact) return 'not_incomplete';
+    if (!run || run.planId !== item.planId) return 'not_incomplete';
+    const fact: ResolveFact | null = unresolvedFactOf(run) ?? await wiringFactOf(run, item, deps);
+    if (!fact) return 'not_incomplete';
     const policy = await deps.policyOf(item.userId);
     if (runRefusalOf(policy)) return 'read_only';
     if (policy.autoFix === false) return 'switched_off';
@@ -207,7 +246,7 @@ export function start(resolve: Resolve, deps?: AutoResolveDeps): boolean {
     stopListening = onRunEnded((item, runId) => {
         setImmediate(() => {
             checkAfterRun(item, runId, resolve, deps).then((c) => {
-                if (c === 'resolving') log.info(`[Cowork] ${item.id}: a broken reference is being fixed`);
+                if (c === 'resolving') log.info(`[Cowork] ${item.id}: a broken reference or the wiring of the plan is being fixed`);
             }).catch((e: Error) => log.warn(`[Cowork] the reference check of ${item.id} failed: ${e.message}`));
         });
     });
