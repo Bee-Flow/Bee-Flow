@@ -3,26 +3,32 @@
  * ./taskUi.tsx: a section with its heading, the bordered list its rows sit in, one row of Settings (its name, its
  * current value in plain words, and what it holds once opened in place), the bar a row's form saves with, and the
  * "Technical details" disclosure that is the only place a raw error is shown.
+ *
+ * A row opens in place through <Expand>, and a value that changes fades in (SWAP): ../coworkMotion.ts.
  */
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { FOCUS_RING } from '../../shared/buttonClasses';
-import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Failure, META, ROW_ACTIONS, SECTION_H } from './taskUi';
+import { Expand, SWAP, TINT } from '../coworkMotion';
+import { CARD as SURFACE } from '../coworkUi';
+import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Chevron, Failure, META, ROW_ACTIONS, SECTION_H } from './taskUi';
 import type { SaveState } from './useTaskSettingsSave';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The bordered list a section's rows sit in; the first row carries no line of its own above it. */
-export const ROWS = 'rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden [&>div:first-child]:border-t-0 [&>div:first-child>button]:border-t-0';
+export const ROWS = `${SURFACE} overflow-hidden [&>div:first-child]:border-t-0 [&>div:first-child>button]:border-t-0`;
 /** The name of a part inside an opened row ("Target to track", "What it remembers"). */
-export const PART_H = 'text-[14px] font-semibold text-[var(--text-primary)]';
+export const PART_H = 'text-[14px] leading-5 font-semibold text-[var(--text-primary)]';
 /** A part inside an opened row, set off from the one above it. */
 export const PART = 'flex flex-col gap-2.5 pt-4 border-t border-[var(--border-subtle)]';
+/** A choice that is on, and one that is off (an app, a day, a way of working): a solid border and fill, no tint. */
+export const CHOICE_ON = 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
+export const CHOICE_OFF = 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)]';
 
 export function Section({ id, heading, testId, children }: { id: string; heading: string; testId: string; children: ReactNode }) {
     return (
         <section aria-labelledby={id} className="flex flex-col gap-3" data-testid={testId}>
-            <h3 id={id} className={`${SECTION_H} scroll-mt-4`}>{heading}</h3>
+            <h2 id={id} className={`${SECTION_H} scroll-mt-4`}>{heading}</h2>
             {children}
         </section>
     );
@@ -51,21 +57,19 @@ export function SettingRow<Id extends string>({ id, label, value, note, open, on
                 aria-expanded={open}
                 aria-controls={bodyId}
                 onClick={() => onToggle(open ? null : id)}
-                className={`w-full min-h-11 px-4 py-3 grid grid-cols-[80px_minmax(0,1fr)_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto] items-start gap-x-3 text-left transition-colors duration-[120ms] hover:bg-[var(--bg-tertiary)] ${FOCUS_RING}`}
+                className={`w-full min-h-11 px-4 py-3 grid grid-cols-[80px_minmax(0,1fr)_auto] sm:grid-cols-[96px_minmax(0,1fr)_auto] items-start gap-x-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_RING}`}
             >
                 <span className="text-[13px] font-medium leading-5 text-[var(--text-tertiary)]">{label}</span>
                 <span className="min-w-0 flex flex-col gap-0.5">
-                    {/* motion: SWAP */}
-                    <span className="text-[14px] leading-5 break-words line-clamp-2 text-[var(--text-primary)]" data-testid={`cowork-task-setting-${id}-value`}>{value}</span>
-                    {note && <span className="text-[13px] leading-5 break-words text-[var(--text-secondary)]">{note}</span>}
+                    <span key={value} className={`${SWAP} text-[14px] leading-5 break-words line-clamp-2 text-[var(--text-primary)]`} data-testid={`cowork-task-setting-${id}-value`}>{value}</span>
+                    {note && <span key={note} className={`${SWAP} text-[13px] leading-5 break-words text-[var(--text-secondary)]`}>{note}</span>}
                 </span>
                 <span className="inline-flex items-center gap-1 text-[13px] font-medium leading-5 text-[var(--text-secondary)]">
                     {open ? t('cowork_task.close', 'Close') : t('cowork_task.set.change', 'Change')}
-                    <ChevronDown aria-hidden="true" size={16} className={open ? 'rotate-180' : ''} />
+                    <Chevron open={open} />
                 </span>
             </button>
-            {/* motion: EXPAND */}
-            {open && <div id={bodyId} className="px-4 pt-2 pb-4 flex flex-col gap-4 text-[14px] text-[var(--text-primary)]">{children}</div>}
+            <Expand open={open} id={bodyId} className="px-4 pt-2 pb-4 flex flex-col gap-4 text-[14px] leading-5 text-[var(--text-primary)]">{children}</Expand>
         </div>
     );
 }
@@ -83,9 +87,10 @@ function saveNote({ effect, locked }: SaveState, t: TranslateFn): string {
 
 /** The bar a row's form saves with: what the save does, then "Save" or "Save and test", and Cancel. */
 export function SaveBar({ state, onCancel, t }: { state: SaveState; onCancel: () => void; t: TranslateFn }) {
+    const note = saveNote(state, t);
     return (
         <div className="flex flex-col gap-2.5">
-            <p className={META} data-testid="cowork-task-save-note">{saveNote(state, t)}</p>
+            <p key={note} className={`${META} ${SWAP}`} data-testid="cowork-task-save-note">{note}</p>
             <Failure error={state.error} t={t} />
             <div className={ROW_ACTIONS}>
                 <button type="submit" className={BTN_PRIMARY} disabled={state.saving || state.locked || !state.ready}>
@@ -103,12 +108,15 @@ export function TechnicalDetails({ text, t }: { text: string | null | undefined;
     const bodyId = useId();
     if (!text) return null;
     return (
-        <div className="flex flex-col items-start gap-1.5" data-testid="cowork-task-technical">
-            <button type="button" className={BTN_LINK} aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}>
-                {t('cowork_task.technical', 'Technical details')}
-            </button>
-            {/* motion: EXPAND */}
-            {open && <pre id={bodyId} className="self-stretch m-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-[12px] leading-5 text-[var(--text-secondary)]">{text}</pre>}
+        <div className="flex flex-col" data-testid="cowork-task-technical">
+            <div>
+                <button type="button" className={BTN_LINK} aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)}>
+                    {t('cowork_task.technical', 'Technical details')}
+                </button>
+            </div>
+            <Expand open={open} id={bodyId} className="pt-1.5">
+                <pre className="m-0 whitespace-pre-wrap break-words rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-[12px] leading-5 text-[var(--text-secondary)]">{text}</pre>
+            </Expand>
         </div>
     );
 }

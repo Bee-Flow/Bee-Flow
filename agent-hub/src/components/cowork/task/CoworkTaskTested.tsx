@@ -6,6 +6,7 @@
  *
  * "Change something" opens What in Settings, where the sentence is; Approve is on the card above (Needs you).
  */
+import { ENTER } from '../coworkMotion';
 import { recipientWord } from './coworkTaskSendsModel';
 import { BTN_QUIET, CARD, CARD_HEAD, META } from './taskUi';
 import type { PlanState } from '@/api/coworkPlan.types';
@@ -29,9 +30,8 @@ export default function CoworkTaskTested({ plan, onChange, t }: CoworkTaskTested
     if (!result) return null;
     const to = recipientWord(plan.draft?.recipients?.[result.stepId], t);
     return (
-        // motion: ENTER
-        <section className={CARD} aria-labelledby="cowork-task-tested-h" data-testid="cowork-task-would-receive">
-            <h3 id="cowork-task-tested-h" className={CARD_HEAD}>{t('cowork_task.tested.heading', 'This is what you would have received')}</h3>
+        <section className={`${CARD} ${ENTER}`} aria-labelledby="cowork-task-tested-h" data-testid="cowork-task-would-receive">
+            <h2 id="cowork-task-tested-h" className={`${CARD_HEAD} m-0`}>{t('cowork_task.tested.heading', 'This is what you would have received')}</h2>
             <p className={META}>
                 {to
                     ? t('cowork_task.tested.to', 'From the test, on your real data. It would have gone to {who}. Nothing was sent.', { who: to })

@@ -7,9 +7,10 @@
  *     organisation with automations). Becoming fixed steps, or other apps for fixed steps, is "Save and test";
  *   - what it remembers and its spending limit (./TaskSetKeeps.tsx), each saved by itself.
  */
+import { TINT } from '../coworkMotion';
 import useCoworkApps from '../useCoworkApps';
 import { MemoryPart, SpendingPart } from './TaskSetKeeps';
-import { PART_H, SaveBar } from './taskRows';
+import { CHOICE_OFF, CHOICE_ON, PART_H, SaveBar } from './taskRows';
 import { FIELD, LABEL, META } from './taskUi';
 import { useSettingRow, type SettingRowForm } from './useTaskSettingsSave';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
@@ -33,9 +34,7 @@ export function howWords(mode: TaskMode, agentName: string | null, t: TranslateF
     return t('cowork_task.how.ai', 'The AI works it out every run');
 }
 
-const CHIP = 'inline-flex items-center gap-1.5 min-h-9 px-3 rounded-[var(--radius-md)] border text-[14px] font-medium transition-colors duration-[120ms]';
-const CHIP_ON = 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
-const CHIP_OFF = 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)]';
+const CHIP = `inline-flex items-center gap-1.5 min-h-9 pointer-coarse:min-h-11 px-3 rounded-lg border text-[13px] leading-5 font-medium ${TINT}`;
 
 /** The apps it may use: one chip each, pressed while it is on. */
 function Apps({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: string; t: TranslateFn }) {
@@ -47,7 +46,7 @@ function Apps({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: string; t
             {apps.length > 0 && (
                 <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${id}-apps`}>
                     {apps.map((app) => (
-                        <button key={app.id} type="button" aria-pressed={isAppEnabled(app.id)} onClick={() => toggleApp(app.id)} className={`${CHIP} ${isAppEnabled(app.id) ? CHIP_ON : CHIP_OFF}`}>
+                        <button key={app.id} type="button" aria-pressed={isAppEnabled(app.id)} onClick={() => toggleApp(app.id)} className={`${CHIP} ${isAppEnabled(app.id) ? CHOICE_ON : CHOICE_OFF}`}>
                             {app.label}
                         </button>
                     ))}
@@ -75,9 +74,9 @@ function HowItWorks({ draft, set, agents, mayPlan, id, t }: { draft: TaskDraft; 
         <fieldset className="flex flex-col gap-2 border-0 p-0 m-0 min-w-0">
             <legend className={`${PART_H} mb-2`}>{t('cowork_task.edit.how', 'How it works')}</legend>
             {modes.map(([mode, key, en, lineKey, lineEn]) => (
-                <label key={mode} htmlFor={`${id}-mode-${mode}`} aria-label={t(key, en)} className={`grid grid-cols-[auto_1fr] gap-x-3 items-start rounded-[var(--radius-md)] border px-3 py-2.5 cursor-pointer transition-colors duration-[120ms] ${draft.mode === mode ? 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)]' : 'border-[var(--border-subtle)]'}`}>
+                <label key={mode} htmlFor={`${id}-mode-${mode}`} aria-label={t(key, en)} className={`grid grid-cols-[auto_1fr] gap-x-3 items-start rounded-[var(--radius-md)] border px-3 py-2.5 cursor-pointer ${TINT} ${draft.mode === mode ? CHOICE_ON : CHOICE_OFF}`}>
                     <input id={`${id}-mode-${mode}`} type="radio" name={`${id}-mode`} className="mt-1 w-4 h-4" checked={draft.mode === mode} onChange={() => set({ mode })} />
-                    <span className="flex flex-col gap-0.5"><span className="text-[14px] font-medium">{t(key, en)}</span><span className={META}>{t(lineKey, lineEn)}</span></span>
+                    <span className="flex flex-col gap-0.5"><span className="text-[14px] leading-5 font-medium text-[var(--text-primary)]">{t(key, en)}</span><span className={META}>{t(lineKey, lineEn)}</span></span>
                 </label>
             ))}
             {draft.mode === 'agent' && (

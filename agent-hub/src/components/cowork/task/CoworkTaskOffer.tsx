@@ -49,11 +49,11 @@ function Comparison({ advice, t }: { advice: RoutineAdvice; t: TranslateFn }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5" data-testid="cowork-task-offer-compare">
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 flex flex-col gap-1.5 text-[14px]">
-                <h4 className="font-semibold">{t('cowork_task.offer.now_ai', 'Now: the AI works it out every run')}</h4>
+                <h3 className="m-0 text-[14px] leading-5 font-semibold">{t('cowork_task.offer.now_ai', 'Now: the AI works it out every run')}</h3>
                 <span>{t('cowork_task.offer.now_line', 'It works out the steps again on every run.')}</span>
             </div>
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3 flex flex-col gap-1.5 text-[14px]">
-                <h4 className="font-semibold">{t('cowork_task.offer.steps_heading', 'As fixed steps')}</h4>
+                <h3 className="m-0 text-[14px] leading-5 font-semibold">{t('cowork_task.offer.steps_heading', 'As fixed steps')}</h3>
                 <span>{t('cowork_task.offer.steps_line', 'The same steps every run. The AI only writes or judges where it must.')}</span>
                 {apps.length > 0 && <span className={META}>{t('cowork_task.offer.steps_apps', 'Every run used: {apps}.', { apps: apps.join(', ') })}</span>}
             </div>

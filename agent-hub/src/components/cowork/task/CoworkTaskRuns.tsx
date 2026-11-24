@@ -6,13 +6,13 @@
  *
  * A run's raw error is shown only under "Technical details" in its opened row, never in a line a person reads.
  */
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useId, useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
+import { Expand } from '../coworkMotion';
 import { taskStatusLabel } from '../coworkTaskStatus';
 import { runLine, runReason, runStatus } from './coworkTaskModel';
 import { TechnicalDetails } from './taskRows';
-import { LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
+import { Chevron, LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
 import { useReceipts, useRunReceipt } from '@/api/coworkReceipts';
 import type { CoworkRun } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -34,27 +34,26 @@ function Receipt({ coworkId, runId, t }: { coworkId: string; runId: string; t: T
 
 function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: CoworkRun; coworkId: string; open: boolean; onToggle: () => void; withReceipts: boolean; t: TranslateFn }) {
     const status = runStatus(run);
+    const bodyId = useId();
     return (
         <li className="border-t first:border-t-0 border-[var(--border-subtle)]" data-testid="cowork-task-run">
             <button
                 type="button"
                 aria-expanded={open}
+                aria-controls={bodyId}
                 onClick={onToggle}
                 className="w-full min-h-11 py-3 grid grid-cols-[minmax(0,1fr)_auto_16px] sm:grid-cols-[110px_120px_minmax(0,1fr)_16px] items-center gap-x-3 gap-y-1 text-left text-[14px]"
             >
                 <span className="text-[var(--text-secondary)] tabular-nums">{fullTimestamp(run.startedAt, t)}</span>
                 <span className="font-medium text-[var(--text-primary)]" data-status={status}>{taskStatusLabel(status, t)}</span>
                 <span className="col-span-full row-start-2 sm:col-span-1 sm:row-start-auto min-w-0 truncate text-[var(--text-secondary)]" data-testid="cowork-task-run-line">{runLine(run, t)}</span>
-                <ChevronDown aria-hidden="true" size={16} className={`text-[var(--text-tertiary)] col-start-3 row-start-1 sm:col-start-4 ${open ? 'rotate-180' : ''}`} />
+                <span className="col-start-3 row-start-1 sm:col-start-4"><Chevron open={open} /></span>
             </button>
-            {/* motion: EXPAND */}
-            {open && (
-                <div className="pb-3.5 flex flex-col gap-2 text-[14px] text-[var(--text-primary)]" data-testid="cowork-task-run-detail">
-                    <span className="whitespace-pre-wrap break-words">{runReason(run, t)}</span>
-                    <TechnicalDetails text={run.error} t={t} />
-                    {withReceipts && <Receipt coworkId={coworkId} runId={run.id} t={t} />}
-                </div>
-            )}
+            <Expand open={open} id={bodyId} className="pb-3.5 flex flex-col gap-2 text-[14px] leading-5 text-[var(--text-primary)]">
+                <span className="whitespace-pre-wrap break-words" data-testid="cowork-task-run-detail">{runReason(run, t)}</span>
+                <TechnicalDetails text={run.error} t={t} />
+                {withReceipts && <Receipt coworkId={coworkId} runId={run.id} t={t} />}
+            </Expand>
         </li>
     );
 }

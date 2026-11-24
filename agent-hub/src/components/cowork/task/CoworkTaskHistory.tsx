@@ -13,10 +13,11 @@
  */
 import { useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
+import { ENTER } from '../coworkMotion';
 import { trailLine } from '../coworkTrailModel';
 import CoworkTaskRuns from './CoworkTaskRuns';
 import { ROWS, Section } from './taskRows';
-import { BTN_DANGER, BTN_LINK, BTN_QUIET, Failure, FoldRow, META, ROW_ACTIONS, TAG_ACCENT, TAG_PLAIN } from './taskUi';
+import { BTN_DANGER, BTN_LINK, BTN_QUIET, CARD, Failure, FoldRow, META, ROW_ACTIONS, TAG_ACCENT, TAG_PLAIN } from './taskUi';
 import { useCoworkProposalActions } from '@/api/coworkProposals';
 import { receiptsUrl, useReceipts, type ReceiptsView } from '@/api/coworkReceipts';
 import { useCoworkItemActions } from '@/api/coworkTask';
@@ -119,7 +120,7 @@ function DeleteTask({ item, onGone, t }: { item: Pick<CoworkItem, 'id' | 'title'
         return <div><button type="button" className={`${BTN_LINK} text-[var(--error-ink)]`} onClick={() => setConfirming(true)}>{t('cowork_task.more.delete', 'Delete this task')}</button></div>;
     }
     return (
-        <div className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-card)] p-4" role="group" aria-label={t('cowork_task.more.delete', 'Delete this task')}>
+        <div className={`${CARD} ${ENTER}`} role="group" aria-label={t('cowork_task.more.delete', 'Delete this task')}>
             <p className="text-[14px] text-[var(--text-primary)]" data-testid="cowork-task-delete-confirm">
                 {t('cowork_task.delete.confirm', "Delete '{title}'? It stops for good, with its runs. This cannot be undone.", { title: item.title })}
             </p>

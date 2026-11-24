@@ -10,11 +10,12 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import MailTriggerPanel from '../MailTriggerPanel';
+import { ENTER, TINT } from '../coworkMotion';
 import { cadenceLine } from '../coworkSchedule';
 import { fullTimestamp } from '../coworkFormat';
 import { whenLine } from '../coworkOverviewModel';
 import { DAY_TOKENS, REPEATS, nextRunOf, type Repeat, type StartChoiceKind, type TaskDraft } from './coworkTaskSettingsModel';
-import { SaveBar } from './taskRows';
+import { CHOICE_OFF, CHOICE_ON, SaveBar } from './taskRows';
 import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, FIELD, LABEL, META, ROW_ACTIONS } from './taskUi';
 import { useSettingRow, type SettingRowForm } from './useTaskSettingsSave';
 import { useOwnCoworks, useReadableTables, type HookAddress, type StartState } from '@/api/coworkStart';
@@ -75,9 +76,6 @@ function Field({ id, label, hint, children }: { id: string; label: string; hint?
     );
 }
 
-const DAY_ON = 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
-const DAY_OFF = 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)]';
-
 function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: string; t: TranslateFn }) {
     const dated = draft.repeat === '' || ['biweekly', 'monthly', 'quarterly', 'yearly'].includes(draft.repeat);
     const toggle = (day: string) => set({ days: draft.days.includes(day) ? draft.days.filter((d) => d !== day) : [...draft.days, day] });
@@ -106,7 +104,7 @@ function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: strin
                     <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby={`${id}-days`}>
                         {DAY_TOKENS.map((day) => (
                             <button key={day} type="button" aria-pressed={draft.days.includes(day)} onClick={() => toggle(day)}
-                                className={`min-w-11 min-h-11 px-2 rounded-[var(--radius-md)] border text-[14px] font-medium transition-colors duration-[120ms] ${draft.days.includes(day) ? DAY_ON : DAY_OFF}`}>
+                                className={`min-w-9 min-h-9 pointer-coarse:min-w-11 pointer-coarse:min-h-11 px-2 rounded-lg border text-[13px] leading-5 font-medium ${TINT} ${draft.days.includes(day) ? CHOICE_ON : CHOICE_OFF}`}>
                                 {t(DAY_WORDS[day][0], DAY_WORDS[day][1])}
                             </button>
                         ))}
@@ -166,7 +164,7 @@ function HookAddressCard({ address, onDone, t }: { address: HookAddress; onDone:
         try { navigator.clipboard.writeText(`${address.url}\nAuthorization: Bearer ${address.token}`).then(() => setCopied(t('cowork_task.when.copied', 'Copied')), fail); } catch { fail(); }
     };
     return (
-        <div className="flex flex-col gap-2.5" data-testid="cowork-task-hook">
+        <div className={`flex flex-col gap-2.5 ${ENTER}`} data-testid="cowork-task-hook">
             <strong className="font-semibold" role="status">{t('cowork_task.edit.saved', 'Saved')}</strong>
             <span className={LABEL}>{t('cowork_task.when.address', 'Its address')}</span>
             <code className="block break-all rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-[13px]">POST {address.url}<br />Authorization: Bearer {address.token}</code>

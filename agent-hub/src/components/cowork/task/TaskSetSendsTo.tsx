@@ -111,7 +111,7 @@ function AskMe({ coworkId, mode, hasApprovedSteps, othersReached, t }: AskMeProp
                         <input id={`${name}-${level}`} type="radio" name={name} className="mt-1 w-4 h-4" checked={!waits && now === level}
                             disabled={!!waits || !state || !!why || choose.isPending} onChange={() => choose.mutate(level)} />
                         <span className="flex flex-col gap-0.5">
-                            <span className="text-[14px] font-medium">{askLabel(level, t)}</span>
+                            <span className="text-[14px] leading-5 font-medium">{askLabel(level, t)}</span>
                             <span className={META}>{why ?? t(...LEVEL_LINES[level])}</span>
                         </span>
                     </label>

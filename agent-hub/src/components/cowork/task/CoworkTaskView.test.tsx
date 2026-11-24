@@ -4,6 +4,7 @@
 // and raw errors under History, and someone else's task read only.
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { softClasses } from '../crisp.testkit';
 import { NEEDS_APPROVAL, PLAN_WAITING, RUN, openTask } from './taskWorld.testkit';
 
 const AUTO_FIX = {
@@ -13,6 +14,29 @@ const AUTO_FIX = {
 const FAILED_RUN = { id: 'r0', status: 'error', startedAt: '2026-11-22T08:00:00.000Z', error: 'datetime: input "{{steps.dtac3ed7.output.iso}}" did not resolve to a parseable date' };
 
 afterEach(() => { vi.unstubAllGlobals(); });
+
+describe('the task page is crisp', () => {
+    it('nothing that holds text carries a transform, a filter or a backdrop filter at rest: closed, and with every row opened', async () => {
+        const { user } = openTask({ plan: PLAN_WAITING, needs: [NEEDS_APPROVAL], runs: [FAILED_RUN, RUN], colleagues: [{ id: 'u2', name: 'Bo Jansen' }] });
+        const page = await screen.findByTestId('cowork-task-view');
+        await screen.findByTestId('cowork-task-would-receive');
+        await waitFor(() => expect(within(page).getAllByTestId('cowork-task-run')).toHaveLength(2));
+        expect(softClasses(page)).toEqual([]);
+        // Every row that opens in place, one after another: the four of Settings, People's, History's, and a run.
+        const rows = ['cowork-task-setting-what', 'cowork-task-setting-when', 'cowork-task-setting-uses', 'cowork-task-setting-sends',
+            'cowork-task-row-share', 'cowork-task-row-pass', 'cowork-task-row-template', 'cowork-task-row-give', 'cowork-task-row-changes', 'cowork-task-row-proof'];
+        for (const id of rows) {
+            const head = within(within(page).getByTestId(id)).getAllByRole('button')[0];
+            await user.click(head);
+            expect(head).toHaveAttribute('aria-expanded', 'true');
+            expect(softClasses(page), id).toEqual([]);
+        }
+        await user.click(within(within(page).getAllByTestId('cowork-task-run')[0]).getByRole('button'));
+        await user.click(within(page).getByRole('button', { name: 'Technical details' }));
+        await user.click(within(page).getByRole('button', { name: 'Delete this task' }));
+        expect(softClasses(page)).toEqual([]);
+    });
+});
 
 describe('CoworkTaskView', () => {
     it('lists the steps in run order, the in-between step folded until asked for, and names who the sending step reaches', async () => {

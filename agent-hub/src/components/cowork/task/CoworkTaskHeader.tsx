@@ -9,6 +9,7 @@
  * something has to be fixed first).
  */
 import { Pause, Play, Share2 } from 'lucide-react';
+import { SWAP } from '../coworkMotion';
 import { isMailTriggerItem } from '../mailTrigger';
 import CoworkStatusPill from '../CoworkStatusPill';
 import { BTN_PRIMARY, BTN_QUIET, META, ROW_ACTIONS, TAG_ACCENT } from './taskUi';
@@ -43,11 +44,10 @@ function SharedLine({ shared, t }: { shared: SharedBy; t: TranslateFn }) {
 export default function CoworkTaskHeader({ item, status, meta, sharedBy = null, t }: CoworkTaskHeaderProps) {
     return (
         <header className="flex flex-col gap-1.5" data-testid="cowork-task-header">
-            {/* motion: SWAP */}
-            <div><CoworkStatusPill status={status} /></div>
-            <h2 className="text-[24px] leading-[1.25] font-semibold break-words text-[var(--text-primary)]">
+            <div key={status} className={SWAP}><CoworkStatusPill status={status} /></div>
+            <h1 className="m-0 text-[20px] leading-7 font-semibold break-words text-[var(--text-primary)] outline-none">
                 {item.title || t('cowork_task.head.untitled', 'Untitled task')}
-            </h2>
+            </h1>
             {meta && <p className={META} data-testid="cowork-task-when">{meta}</p>}
             {sharedBy && <SharedLine shared={sharedBy} t={t} />}
         </header>
@@ -102,7 +102,7 @@ export function CoworkTaskActions({ item, heldBy, busy, onRunNow, onToggle, onSh
                     <Share2 aria-hidden="true" size={16} />{t('cowork_task.more.share', 'Share')}
                 </button>
             </div>
-            {why && <p id={whyId} className={META} data-testid="cowork-task-held">{why}</p>}
+            {why && <p key={why} id={whyId} className={`${META} ${SWAP}`} data-testid="cowork-task-held">{why}</p>}
             {byMail && !why && <p className={META}>{t('cowork_task.held.by_mail', 'It starts when a new e-mail arrives, so it cannot be started by hand.')}</p>}
         </div>
     );

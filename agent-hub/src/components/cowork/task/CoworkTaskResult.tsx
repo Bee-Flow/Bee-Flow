@@ -8,6 +8,7 @@
  */
 import { Check } from 'lucide-react';
 import { fullTimestamp } from '../coworkFormat';
+import { SWAP } from '../coworkMotion';
 import { autoFixed } from '../coworkProposalModel';
 import { wiringChangeWords } from '../coworkWiringModel';
 import { runFailed, runLine } from './coworkTaskModel';
@@ -89,8 +90,7 @@ export default function CoworkTaskResult({ item, latest, t }: CoworkTaskResultPr
                 </div>
                 {next && <span className={META}>{next}</span>}
             </div>
-            {/* motion: SWAP */}
-            <p className="text-[14px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]" data-testid="cowork-task-result-text">{text}</p>
+            <p key={latest.id} className={`${SWAP} text-[14px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]`} data-testid="cowork-task-result-text">{text}</p>
         </section>
     );
 }
