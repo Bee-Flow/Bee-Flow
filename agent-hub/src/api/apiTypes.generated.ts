@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2020 operations. */
+/** 2022 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2570,6 +2570,22 @@ export interface ApiOperations {
     'GET /api/cowork/desks': Op;
     'POST /api/cowork/desks': Op<NoParams, UndeclaredQuery, {
         name: string;
+    }>;
+    'POST /api/cowork/desks/helper/apply': Op<NoParams, UndeclaredQuery, {
+        draft: {
+            chain: Array<string>;
+            deskName: string;
+            roles: Array<{
+                holderId: string;
+                role: string;
+                standInId?: string | null;
+            }>;
+        };
+        itemId?: string;
+    }>;
+    'POST /api/cowork/desks/helper/draft': Op<NoParams, UndeclaredQuery, {
+        itemId?: string;
+        text: string;
     }>;
     'GET /api/cowork/desks/{id}': Op<{ id: string | number }>;
     'DELETE /api/cowork/desks/{id}': Op<{ id: string | number }>;

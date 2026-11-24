@@ -18,7 +18,8 @@
  *                             the organisation (./coworkTemplateRoutes.js)
  *   GET, PUT, DELETE /:id/goal, POST /:id/goal/check, POST /:id/goal/approve → the goal of a cowork and the check
  *                             that measures it (./coworkGoalRoutes.js)
- *   GET, POST /desks, GET, DELETE /desks/:id, PUT /desks/:id/roles, /desks/:id/members..., GET /:id/desk → desks of
+ *   GET, POST /desks, GET, DELETE /desks/:id, PUT /desks/:id/roles, /desks/:id/members..., GET /:id/desk, POST
+ *                             /desks/helper/draft|apply (the Teamwork helper) → desks of
  *                             coworks of different owners that hand work to each other (./coworkDeskRoutes.js)
  *   GET /:id/proposals, POST /:id/proposals/:proposalId/approve|dismiss, POST /:id/plan/restore → what Cowork proposes
  *                             to change in a plan, and "Undo" (./coworkProposalRoutes.js)

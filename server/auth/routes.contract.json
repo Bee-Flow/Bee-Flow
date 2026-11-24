@@ -5352,6 +5352,12 @@
     "POST /api/cowork/desks/:id/members/:scheduleId/hand-off": {
       "gate": "auth"
     },
+    "POST /api/cowork/desks/helper/apply": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/helper/draft": {
+      "gate": "auth"
+    },
     "POST /api/cowork/hooks": {
       "gate": "handler",
       "via": "mount"

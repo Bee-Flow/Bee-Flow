@@ -272,6 +272,20 @@ export async function allowHandOff({ userId, deskId, scheduleId }: { userId: str
     return viewOf(userId, desk, deps);
 }
 
+/**
+ * The same yes, said before the colleague chose to start after it (the Teamwork helper, ./coworkDeskHelperApply.mts):
+ * the reader's own cowork on the desk lets a colleague's cowork on the desk (invited or accepted) receive its result
+ * once that colleague chooses to start it after the reader's. Nothing moves until they do; it lapses like any yes.
+ */
+export async function allowHandOffAhead({ userId, deskId, leaderId, followerId }: { userId: string; deskId: string; leaderId: string; followerId: string }, deps: DeskDeps = defaults()): Promise<void> {
+    await visibleDesk(userId, deskId, deps);
+    const members = await deps.desks.listMembers(deskId);
+    const leader = members.find((m) => m.scheduleId === leaderId && m.accepted && m.ownerId === userId);
+    const follower = members.find((m) => m.scheduleId === followerId && m.ownerId !== userId);
+    if (!leader || !follower) throw refuse(404, 'No colleague\'s cowork on this desk can start after one of yours.');
+    await deps.desks.allowFollow({ deskId, leaderId, followerId, followerOwner: follower.ownerId, allowedBy: userId });
+}
+
 /** Withdraw that again: from the next run on, the colleague's cowork receives nothing of the reader's. */
 export async function withdrawHandOff({ userId, deskId, scheduleId }: { userId: string; deskId: string; scheduleId: string }, deps: DeskDeps = defaults()): Promise<DeskView> {
     const desk = await visibleDesk(userId, deskId, deps);

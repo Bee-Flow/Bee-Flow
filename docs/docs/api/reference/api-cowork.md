@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-82 routes, 56 with a request schema. Back to the [endpoint reference](../reference.md).
+84 routes, 58 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -640,6 +640,34 @@ No request schema.
 | `roles[].holderId` | string | yes | min length 1; max length 200 |
 | `roles[].standInId` | string or null |  |  |
 | `roles[].awayUntil` | string (date-time) or null |  |  |
+
+### `POST /api/cowork/desks/helper/apply`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `itemId` | string |  | min length 1; max length 200 |
+| `draft` | object | yes | no other keys |
+| `draft.deskName` | string | yes | min length 1; max length 80 |
+| `draft.chain` | array of string | yes | min items 1; max items 5 |
+| `draft.roles` | array of object | yes | max items 1 |
+| `draft.roles[].role` | string | yes | min length 1; max length 40 |
+| `draft.roles[].holderId` | string | yes | min length 1; max length 200 |
+| `draft.roles[].standInId` | string or null |  |  |
+
+### `POST /api/cowork/desks/helper/draft`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `text` | string | yes | min length 1; max length 1000 |
+| `itemId` | string |  | min length 1; max length 200 |
 
 ## `habits`
 
