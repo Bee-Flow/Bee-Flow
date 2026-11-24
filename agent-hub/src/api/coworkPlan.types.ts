@@ -79,6 +79,15 @@ export interface PlanState {
     stepChanges?: PlanStepChange[];
     /** The last try-out of the plan (server usecases/coworkPlan.mts PlanTried); null or absent when none is known. */
     tried?: PlanTried | null;
+    /** Not approved, it cannot run because of its wiring, and Cowork can fix that by itself (POST …/plan/fix-wiring). */
+    wiringFixable?: boolean;
+}
+
+/** One change Cowork made to the wiring, in the plan's titles. */
+export interface PlanWiringNote {
+    kind: 'waits' | 'reads';
+    step: string;
+    other: string;
 }
 
 /** What a try-out read and did, in counts (server core/cowork/plan/planTryFacts.mts). */
@@ -101,6 +110,18 @@ export interface PlanTried {
     /** Why it did not pass, in sentences. */
     problems: string[];
     rounds: number;
+    /** What Cowork fixed in the wiring of exactly this plan before it tried it; absent from an older server. */
+    wiringFixed?: PlanWiringNote[];
+}
+
+/** What Cowork's own fix of the wiring did (server usecases/coworkPlanWiringRepair.mts fixDraftWiring). */
+export interface PlanWiringFix {
+    outcome: 'fixed' | 'tried';
+    changes: Array<{ kind: 'waits' | 'reads'; stepId: string; otherId: string }>;
+    /** How its try-out stands: 'running' while it goes on by itself. */
+    tried: PlanTried['status'] | null;
+    notTried: string | null;
+    state: PlanState;
 }
 
 /** One step of the draft against the approved plan. */

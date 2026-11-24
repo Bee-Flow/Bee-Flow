@@ -1,5 +1,13 @@
 {
   "translations": {
+    "cowork_wiring.draft_fix.button": "Herstel het voor mij",
+    "cowork_wiring.draft_fix.failed": "Cowork kon dit plan niet zelf herstellen.",
+    "cowork_wiring.draft_fix.fixed": "Hersteld: {changes}.",
+    "cowork_wiring.draft_fix.fixing": "Cowork herstelt de volgorde van de stappen…",
+    "cowork_wiring.draft_fix.outcome_failed": "Hersteld, maar de proefrun slaagt nog niet.",
+    "cowork_wiring.draft_fix.outcome_passed": "Hersteld, en de proefrun is geslaagd.",
+    "cowork_wiring.draft_fix.outcome_running": "Hersteld. Het wordt nu uitgeprobeerd, zonder iets te wijzigen of te versturen.",
+    "cowork_wiring.draft_fix.outcome_untried": "Hersteld, maar het kon nog niet worden uitgeprobeerd.",
     "cowork_wiring.failure.date": "'{step}' kon de datum niet lezen uit '{source}'.",
     "cowork_wiring.failure.date_alone": "'{step}' kon geen datum lezen.",
     "cowork_wiring.failure.date_missing": "'{step}' kon de datum niet lezen: het leest uit een stap die niet in het plan staat.",
@@ -14,6 +22,7 @@
     "cowork_wiring.tried.ai_many": "{count} AI-stappen schreven hun antwoord",
     "cowork_wiring.tried.ai_one": "de AI schreef zijn antwoord",
     "cowork_wiring.tried.failed": "Uitgeprobeerd, en het werkt nog niet. Goedkeuren kan pas als een proefrun slaagt:",
+    "cowork_wiring.tried.not_yet": "Nog niet uitgeprobeerd.",
     "cowork_wiring.tried.nothing": "het draaide",
     "cowork_wiring.tried.passed": "Eén keer uitgeprobeerd: {what}. Er is niets gewijzigd of verstuurd.",
     "cowork_wiring.tried.passed_rounds": "{count} keer uitgeprobeerd tot het werkte: {what}. Er is niets gewijzigd of verstuurd.",

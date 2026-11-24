@@ -3,7 +3,7 @@
 // A refusal throws with the server's sentence (mutate.ts RefusedError), which the plan card shows.
 
 import { apiJson } from './typedRequest';
-import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState } from './coworkPlan.types';
+import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState, PlanWiringFix } from './coworkPlan.types';
 
 export function getCoworkPlan(id: string): Promise<PlanState> {
     return apiJson<'GET /api/cowork/{id}/plan', PlanState>('GET /api/cowork/{id}/plan', { params: { id } });
@@ -22,6 +22,11 @@ export function approveCoworkPlan(id: string, fingerprint: string): Promise<Plan
 /** Take the plan off: the item runs as a prompt or as its agent again. */
 export function removeCoworkPlan(id: string): Promise<PlanState> {
     return apiJson<'DELETE /api/cowork/{id}/plan', PlanState>('DELETE /api/cowork/{id}/plan', { params: { id } });
+}
+
+/** Cowork fixes the wiring of the plan that is not approved, and tries it. Never approves it. */
+export function fixCoworkPlanWiring(id: string): Promise<PlanWiringFix> {
+    return apiJson<'POST /api/cowork/{id}/plan/fix-wiring', PlanWiringFix>('POST /api/cowork/{id}/plan/fix-wiring', { params: { id } });
 }
 
 /** Try the plan once: reads run for real, nothing is changed or sent. Answers as soon as the try-out started. */

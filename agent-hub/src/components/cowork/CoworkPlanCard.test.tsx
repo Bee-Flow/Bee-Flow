@@ -179,3 +179,34 @@ describe('CoworkPlanCard, a plan Cowork made and tried', () => {
         expect(screen.queryByTestId('cowork-plan-approve')).toBeNull();
     });
 });
+
+describe('CoworkPlanCard, a plan that cannot run because of its wiring', () => {
+    const FINDING = "'Notification' reads from 'AI step', but does not wait for it. Let it wait for 'AI step'.";
+    const blocked = () => {
+        const draft = supplierRadarDraft();
+        return planState({ draft: { ...draft, findings: [{ code: 'wiring.ref_not_upstream', stepId: 'digest', message: FINDING }] }, tried: { status: 'untried', current: true, required: true, blocksApproval: true, rounds: 0, problems: [FINDING], summary: null } });
+    };
+
+    it('says why once: the try-out line is just "Not tried yet." above the box that says why it cannot run', () => {
+        renderCard(blocked());
+        expect(screen.getByTestId('cowork-plan-tried').textContent).toBe('Not tried yet.');
+        expect(screen.getAllByText(FINDING)).toHaveLength(1);
+        expect(screen.getByText('Why it cannot run')).toBeTruthy();
+    });
+
+    it('shows Cowork\'s fix of the wiring where it is handed in', () => {
+        renderCard(blocked(), { wiringFix: <p data-testid="fix-slot">Fixed.</p> });
+        expect(screen.getByTestId('fix-slot')).toBeTruthy();
+    });
+});
+
+describe('CoworkPlanCard, step titles', () => {
+    it('a step titled with its tool name reads as words; a display label stays as it is', () => {
+        const draft = supplierRadarDraft();
+        const steps = draft.view.steps.map((s) => (s.id === 'mail' ? { ...s, title: 'fireflies_list_transcripts' } : s.id === 'draft' ? { ...s, title: 'Fireflies: get summary' } : s));
+        renderCard(planState({ draft: { ...draft, view: { ...draft.view, steps } } }));
+        expect(screen.getByTestId('cowork-plan-step-mail')).toHaveTextContent('Fireflies list transcripts');
+        expect(screen.getByTestId('cowork-plan-step-mail').textContent).not.toContain('fireflies_list_transcripts');
+        expect(screen.getByTestId('cowork-plan-step-draft')).toHaveTextContent('Fireflies: get summary');
+    });
+});

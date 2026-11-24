@@ -16,8 +16,9 @@ const TONE: Record<'ok' | 'warning' | 'error', string> = {
     error: 'text-[var(--error-ink)]',
 };
 
-export default function CoworkPlanTried({ tried, t }: { tried: PlanTried | null | undefined; t: TranslateFn }) {
-    const lines = triedLines(tried, t);
+/** `findingsShown`: the card shows why the plan cannot run right below, so the try-out line does not repeat it. */
+export default function CoworkPlanTried({ tried, findingsShown = false, t }: { tried: PlanTried | null | undefined; findingsShown?: boolean; t: TranslateFn }) {
+    const lines = triedLines(tried, t, { findingsShown });
     if (!lines) return null;
     return (
         <div className="flex flex-col gap-1" data-testid="cowork-plan-tried" data-tone={lines.tone}>

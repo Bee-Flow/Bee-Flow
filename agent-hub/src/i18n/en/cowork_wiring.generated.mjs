@@ -6,6 +6,14 @@
  */
 
 export default {
+    "cowork_wiring.draft_fix.button": "Fix it for me",
+    "cowork_wiring.draft_fix.failed": "Cowork could not fix this plan by itself.",
+    "cowork_wiring.draft_fix.fixed": "Fixed: {changes}.",
+    "cowork_wiring.draft_fix.fixing": "Cowork is fixing the order of the steps…",
+    "cowork_wiring.draft_fix.outcome_failed": "Fixed, but its try-out does not pass yet.",
+    "cowork_wiring.draft_fix.outcome_passed": "Fixed, and its try-out passed.",
+    "cowork_wiring.draft_fix.outcome_running": "Fixed. It is being tried now, without changing or sending anything.",
+    "cowork_wiring.draft_fix.outcome_untried": "Fixed, but it could not be tried yet.",
     "cowork_wiring.failure.date": "'{step}' could not read the date from '{source}'.",
     "cowork_wiring.failure.date_alone": "'{step}' could not read a date.",
     "cowork_wiring.failure.date_missing": "'{step}' could not read the date: it reads from a step that is not in the plan.",
@@ -20,6 +28,7 @@ export default {
     "cowork_wiring.tried.ai_many": "{count} AI steps wrote their answers",
     "cowork_wiring.tried.ai_one": "the AI wrote its answer",
     "cowork_wiring.tried.failed": "Tried, and it does not work yet. It cannot be approved until a try-out passes:",
+    "cowork_wiring.tried.not_yet": "Not tried yet.",
     "cowork_wiring.tried.nothing": "it ran",
     "cowork_wiring.tried.passed": "Tried once: {what}. Nothing was changed or sent.",
     "cowork_wiring.tried.passed_rounds": "Tried {count} times until it worked: {what}. Nothing was changed or sent.",

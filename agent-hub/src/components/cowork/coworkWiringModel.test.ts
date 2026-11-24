@@ -1,7 +1,7 @@
 // The plain words of a plan's try-out and of a run that failed at a step (./coworkWiringModel.ts), in English
 // fallbacks: what the owner reads instead of the runner's message.
 import { describe, expect, it } from 'vitest';
-import { failureLine, triedLines } from './coworkWiringModel';
+import { draftFixLine, draftFixOutcome, failureLine, offerDraftFix, triedLines, wiringChangeWords } from './coworkWiringModel';
 import { canApprove } from './coworkPlanModel';
 import { englishT, supplierRadarDraft } from './coworkPlan.fixture';
 import type { PlanState, PlanTried } from '@/api/coworkPlan.types';
@@ -58,5 +58,45 @@ describe('failureLine', () => {
     it('nothing for a run that did not fail at a step, or at a step the plan no longer has', () => {
         expect(failureLine(undefined, titleOf, englishT)).toBeNull();
         expect(failureLine({ stepId: 'gone', errorClass: null, sourceStepId: null }, titleOf, englishT)).toBeNull();
+    });
+});
+
+describe('the fix of the wiring of a plan that is not approved', () => {
+    const WAITS = [{ kind: 'waits' as const, step: 'Notification', other: 'AI step' }];
+    const blocked = (over: Partial<PlanState> = {}): PlanState => ({
+        automationId: 'a1', draft: { ...supplierRadarDraft(), findings: [{ code: 'wiring.ref_not_upstream', stepId: 'digest', message: 'x' }] },
+        approved: null, widens: [], upToDate: false, wiringFixable: true, ...over,
+    });
+
+    it('says what was fixed, in the plan\'s titles, only for the plan on screen', () => {
+        expect(draftFixLine(tried({ wiringFixed: WAITS }), englishT)).toBe("Fixed: 'Notification' now waits for 'AI step'.");
+        expect(draftFixLine(tried({ wiringFixed: WAITS, current: false }), englishT)).toBeNull();
+        expect(draftFixLine(tried(), englishT)).toBeNull();
+        expect(wiringChangeWords([...WAITS, { kind: 'reads', step: 'A week ago', other: 'Now' }], englishT)).toBe("'Notification' now waits for 'AI step', 'A week ago' now reads from 'Now'");
+    });
+
+    it('an untried plan does not repeat its findings when the card shows them, and says the budget when that kept it', () => {
+        const untried = tried({ status: 'untried', problems: ['x'] });
+        expect(triedLines(untried, englishT, { findingsShown: true })).toEqual({ line: 'Not tried yet.', problems: [], tone: 'warning' });
+        expect(triedLines(untried, englishT)?.line).toBe('Not tried yet, because it cannot run as it is:');
+        expect(triedLines(tried({ status: 'untried', problems: ['Not tried: the budget.'], wiringFixed: WAITS }), englishT)).toEqual({ line: 'Not tried yet.', problems: ['Not tried: the budget.'], tone: 'warning' });
+    });
+
+    it('offers "Fix it for me" where Cowork\'s own attempt did not work out, never while it is under way', () => {
+        expect(offerDraftFix(blocked(), { busy: false, failed: false }), 'it is being asked by itself').toBe(false);
+        expect(offerDraftFix(blocked(), { busy: false, failed: true })).toBe(true);
+        expect(offerDraftFix(blocked({ wiringFixable: false }), { busy: false, failed: false }), 'no fix known: the sentence says why').toBe(true);
+        expect(offerDraftFix(blocked(), { busy: true, failed: true })).toBe(false);
+        expect(offerDraftFix(blocked({ upToDate: true }), { busy: false, failed: true }), 'the approved plan is not changed here').toBe(false);
+        const fixedUntried: PlanState = { ...blocked({ wiringFixable: false }), draft: supplierRadarDraft(), tried: tried({ status: 'untried', wiringFixed: WAITS }) };
+        expect(offerDraftFix(fixedUntried, { busy: false, failed: false })).toBe(true);
+        expect(offerDraftFix({ ...fixedUntried, tried: tried({ wiringFixed: WAITS }) }, { busy: false, failed: false })).toBe(false);
+    });
+
+    it('says how "Fix it for me" went in one sentence', () => {
+        expect(draftFixOutcome({ tried: 'running' }, englishT)).toBe('Fixed. It is being tried now, without changing or sending anything.');
+        expect(draftFixOutcome({ tried: 'passed' }, englishT)).toBe('Fixed, and its try-out passed.');
+        expect(draftFixOutcome({ tried: 'failed' }, englishT)).toBe('Fixed, but its try-out does not pass yet.');
+        expect(draftFixOutcome({ tried: 'untried' }, englishT)).toBe('Fixed, but it could not be tried yet.');
     });
 });

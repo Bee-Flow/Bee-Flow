@@ -2,6 +2,9 @@
  * The plan of one Cowork item in its detail view: reads the plan, shows it as a card (./CoworkPlanCard.tsx) and
  * carries out what its owner does with it: approve the plan that is on screen, or take it off.
  *
+ * A plan that cannot run because of its wiring is fixed by Cowork itself when it can be, and tried
+ * (./CoworkPlanWiringFix.tsx); where that does not work out, "Fix it for me" asks again. It is never approved by it.
+ *
  * A plan nothing blocks can be tried first (./CoworkPlanTry.tsx): one run on the owner's real data in which nothing is
  * changed or sent, followed step by step. A changed plan can be replayed on what the past runs read
  * (./CoworkPlanReplay.tsx).
@@ -21,6 +24,7 @@ import type { ReactNode } from 'react';
 import CoworkPlanCard from './CoworkPlanCard';
 import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
+import CoworkPlanWiringFix from './CoworkPlanWiringFix';
 import CoworkPlanReplay from './CoworkPlanReplay';
 import CoworkIndependenceLine from './CoworkIndependenceLine';
 import CoworkPlanOffer from './CoworkPlanOffer';
@@ -190,6 +194,7 @@ export default function CoworkPlanPanel({ coworkId, fallback = null }: CoworkPla
             t={t}
             busy={busy}
             tryOut={tryOut}
+            wiringFix={<CoworkPlanWiringFix coworkId={coworkId} state={state} t={t} />}
             independence={state.approved ? <><CoworkIndependenceLine coworkId={coworkId} t={t} /><CoworkPlanOffer coworkId={coworkId} t={t} /></> : null}
             note={maker.making.summary || null}
             error={failureOf(approve.error || remove.error, t)}

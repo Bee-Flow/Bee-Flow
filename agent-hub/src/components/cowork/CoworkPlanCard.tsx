@@ -15,6 +15,7 @@ import CoworkPlanTried from './CoworkPlanTried';
 import { appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPlanModel';
 import type { PlanStatus } from './coworkPlanModel';
 import { fullTimestamp } from './coworkFormat';
+import { plainStepTitle } from './coworkOverviewModel';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { PlanDraft, PlanEffect, PlanPermissions, PlanState, PlanStep, PlanStepChange, PlanStepKind } from '../../api/coworkPlan.types';
 
@@ -27,6 +28,8 @@ interface CoworkPlanCardProps {
     error?: string | null;
     /** The try-out of this plan (./CoworkPlanTry.tsx), shown between the plan and what its owner can do with it. */
     tryOut?: ReactNode;
+    /** Cowork's own fix of the plan's wiring (./CoworkPlanWiringFix.tsx), under how its try-out went. */
+    wiringFix?: ReactNode;
     /** The choice of how independent the approved plan may be (./CoworkIndependence.tsx). */
     independence?: ReactNode;
     /** What the planner said about the plan it just made: what it does each run, and what it could not do. */
@@ -79,7 +82,7 @@ function StepRow({ step, change, t }: { step: PlanStep; change?: PlanStepChange[
         <li className={`flex items-start gap-2.5 py-1.5 ${step.depth > 0 ? 'pl-6' : ''}`} data-testid={`cowork-plan-step-${step.id}`}>
             <CoworkPlanKindTile kind={step.kind} />
             <span className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-[13px] font-medium break-words text-[var(--text-primary)]">{step.title}</span>
+                <span className="text-[13px] font-medium break-words text-[var(--text-primary)]">{plainStepTitle(step, t)}</span>
                 <span className={PILL}>{t(`cowork_plan.kind.${step.kind}`, KIND_FALLBACK[step.kind])}</span>
                 <ChangeMark change={change} t={t} />
                 {step.readsOutsideText && (
@@ -204,7 +207,7 @@ function PlannerNote({ note, t }: { note: string; t: TranslateFn }) {
     );
 }
 
-export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, independence = null, note = null, onApprove, onRemove }: CoworkPlanCardProps) {
+export default function CoworkPlanCard({ state, t, busy = null, error = null, tryOut = null, wiringFix, independence = null, note = null, onApprove, onRemove }: CoworkPlanCardProps) {
     const status = planStatusOf(state);
     if (status === 'none') return null;
     const draft = state.draft;
@@ -224,7 +227,8 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
             </div>
             <StatusLine status={status} state={state} t={t} />
             {note && <PlannerNote note={note} t={t} />}
-            {draft && <CoworkPlanTried tried={state.tried} t={t} />}
+            {/* "Why it cannot run" says what stops it: the try-out line does not list it again. */}
+            {draft && <><CoworkPlanTried tried={state.tried} findingsShown={draft.findings.length > 0} t={t} />{wiringFix}</>}
             {draft && <PlanBody draft={draft} changed={status === 'changed'} stepChanges={state.stepChanges ?? []} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}

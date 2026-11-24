@@ -2,6 +2,7 @@
 // says. A repair is a need (the item's "Needs you" strip); a fixed-step offer is not (a quiet line on the Plan tab).
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CoworkProposal, ProposalReplay } from '@/api/coworkProposals';
+import { wiringChangeWords } from './coworkWiringModel';
 
 /** The open repair of an item, if there is one. */
 export function openRepair(list: readonly CoworkProposal[] | undefined): CoworkProposal | null {
@@ -29,10 +30,7 @@ export function autoFixed(list: readonly CoworkProposal[] | undefined): CoworkPr
 /** "Fixed automatically: 'A week ago' now reads from 'Now', 'AI step' now waits for 'Get summary'." */
 export function autoFixLine(fix: Pick<CoworkProposal, 'reasonCode' | 'stepTitle' | 'wiring'>, t: TranslateFn): string {
     if (fix.reasonCode !== 'wiring_fixed') return t('cowork_resolver.note.fixed', "Fixed automatically: step '{step}' was reading the wrong field.", { step: fix.stepTitle ?? '' });
-    const changes = (fix.wiring ?? []).map((c) => (c.kind === 'waits'
-        ? t('cowork_wiring.note.waits', "'{step}' now waits for '{other}'", { step: c.step, other: c.other })
-        : t('cowork_wiring.note.reads', "'{step}' now reads from '{other}'", { step: c.step, other: c.other })));
-    return t('cowork_wiring.note.fixed', 'Fixed automatically: {changes}.', { changes: changes.join(', ') || (fix.stepTitle ?? '') });
+    return t('cowork_wiring.note.fixed', 'Fixed automatically: {changes}.', { changes: wiringChangeWords(fix.wiring, t) || (fix.stepTitle ?? '') });
 }
 
 /** Why a repair is offered, in one line. */
