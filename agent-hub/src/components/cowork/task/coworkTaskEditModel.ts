@@ -109,7 +109,13 @@ export function nextRunOf(draft: EditDraft, now: Date = new Date()): Date | null
     return Number.isNaN(at.getTime()) ? null : at;
 }
 
-const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** "HH:MM" on a 24-hour clock, checked with plain string operations (no regular expression on what the user typed). */
+function isTimeOfDay(value: string): boolean {
+    if (value.length !== 5 || value[2] !== ':') return false;
+    const digits = value.slice(0, 2) + value.slice(3);
+    if (![...digits].every((c) => c >= '0' && c <= '9')) return false;
+    return Number(value.slice(0, 2)) <= 23 && Number(value.slice(3)) <= 59;
+}
 
 /** What the save sends to PUT /api/cowork/:id. */
 export function changeOf(draft: EditDraft, now: Date = new Date()): CoworkItemChange {
@@ -125,7 +131,7 @@ export function changeOf(draft: EditDraft, now: Date = new Date()): CoworkItemCh
         triggerKind: 'schedule',
         repeatInterval: draft.repeat || null,
         daysOfWeek: draft.repeat === 'weekly' ? daysOf(draft) : null,
-        timeOfDay: draft.repeat !== 'hourly' && TIME.test(draft.time) ? draft.time : null,
+        timeOfDay: draft.repeat !== 'hourly' && isTimeOfDay(draft.time) ? draft.time : null,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         ...(next ? { nextRunAt: next.toISOString() } : {}),
     };
