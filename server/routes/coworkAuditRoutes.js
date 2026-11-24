@@ -46,6 +46,13 @@ function deskActionOf(method, parts, body) {
 }
 
 /**
+ * `PUT /:id/setup` (./coworkSetupRoutes.js): "let the AI work it out every run" takes the plan off; its Undo names it again.
+ * @param {unknown} body
+ * @returns {import('../usecases/coworkAudit.mts').AuditAction}
+ */
+const setupActionOf = (body) => (/** @type {{ mode?: unknown } | null} */ (body && typeof body === 'object' ? body : null)?.mode === 'steps' ? 'cowork.plan_attached' : 'cowork.plan_removed');
+
+/**
  * The action a request is, from its method and its path below /api/cowork (and, for a desk member, the body that names
  * the cowork); null for one that changes nothing.
  * @param {string} method
@@ -66,6 +73,7 @@ function actionOf(method, path, body) {
         'PUT plan': 'cowork.plan_attached', 'POST plan/approve': 'cowork.plan_approved', 'DELETE plan': 'cowork.plan_removed',
         'PUT plan/independence': 'cowork.independence_set', 'POST hand-over': 'cowork.handed_over', 'PUT start': 'cowork.start_set', 'PUT plan/trust': 'cowork.trust_set', 'PUT shares': 'cowork.shares_set',
         'PUT goal': 'cowork.goal_set', 'POST goal/approve': 'cowork.goal_check_approved', 'DELETE goal': 'cowork.goal_removed',
+        'PUT setup': setupActionOf(body),
     };
     const direct = byRoute[`${method} ${tail}`];
     if (direct) return { action: direct, id };

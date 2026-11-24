@@ -7540,6 +7540,9 @@
     "PUT /api/cowork/:id/plan/trust": {
       "gate": "auth"
     },
+    "PUT /api/cowork/:id/setup": {
+      "gate": "auth"
+    },
     "PUT /api/cowork/:id/shares": {
       "gate": "auth"
     },

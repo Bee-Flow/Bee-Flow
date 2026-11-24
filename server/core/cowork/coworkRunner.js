@@ -20,6 +20,7 @@ const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { runMaxMs } = require('./runDeadline.mts');
 const { isRepeating } = require('./runShared.mts');
+const { heldForSetup, briefWithRecipients } = require('./taskSetup.mts');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
@@ -74,6 +75,20 @@ async function announceEnd(schedule) {
 }
 
 /**
+ * A task that waits for its owner (its steps are not set up or not approved, and they did not say the AI may do it,
+ * ./taskSetup.mts) does not start by itself. A repeating one moves on to its next moment, so it stays truthful about
+ * when it would run; a one-off keeps its moment (the tick does not read it, stores/coworkStore.js getDueSchedules);
+ * a run that holds its own row (an event, a follow-up) closes with the reason, quietly.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ due: boolean, runId: string | null }} how
+ */
+async function holdForSetup(schedule, { due, runId }) {
+    if (runId) return coworkStore.markError(schedule.id, 'This task waits for its owner: its steps are not approved yet.', { runId });
+    if (due && isRepeating(schedule)) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
+    return null;
+}
+
+/**
  * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
  * own: the run is for a moment that was due when the tick read it, and the
  * claim then requires that it still is (two replicas read the same due row).
@@ -87,13 +102,36 @@ async function announceEnd(schedule) {
  * @param {StartDeps} [deps]
  */
 async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
+    if (!manual && heldForSetup(schedule)) return holdForSetup(schedule, { due, runId: runIdOf(trigger) });
+    return startCowork(schedule, { manual, due, trigger }, deps);
+}
+
+/** The row a start holds for itself (an event, a follow-up), or null. @param {{ runId?: string | null } | null} trigger */
+const runIdOf = (trigger) => trigger?.runId ?? null;
+
+/**
+ * The task as a run reads it: with the apps it may use while nobody watches (./runApps.mts), so no runner reads the
+ * policy again, and with who its owner chose to send to as the last line of what the AI reads (./taskSetup.mts).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {import('../entitlements/coworkPolicy.mts').CoworkPolicy} ownerPolicy
+ */
+function taskOfRun(schedule, ownerPolicy) {
+    const task = { ...schedule, unattendedApps: ownerPolicy.unattendedApps };
+    return typeof schedule.prompt === 'string' ? { ...task, prompt: briefWithRecipients(schedule.prompt, schedule.setup) } : task;
+}
+
+/**
+ * Start a schedule that does not wait for its owner: the policy and the budgets first, then the run.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ manual: boolean, due: boolean, trigger: any }} how
+ * @param {StartDeps} deps
+ */
+async function startCowork(schedule, { manual, due, trigger }, deps) {
     const { ownerPolicy, refusal, quiet } = await startRefusal(schedule, deps);
     const silent = quiet && due && !trigger && isRepeating(schedule);
     if (silent) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
     if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null, quiet });
-    // The apps it may use while nobody watches travel with the run (./runApps.mts), so no runner reads the policy again.
-    const task = { ...schedule, unattendedApps: ownerPolicy.unattendedApps };
-    await (deps.executeTask || executeTask)(task, { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
+    await (deps.executeTask || executeTask)(taskOfRun(schedule, ownerPolicy), { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
     await announceEnd(schedule);
 }
 

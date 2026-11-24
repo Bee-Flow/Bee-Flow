@@ -10,7 +10,9 @@
  * Ownership first, the same rule as every other plan route. Making a plan spends a model's time, so it is limited
  * per person, and it stands behind the switch of the automation module: a plan is an automation.
  *
- * Nothing is approved here. The plan that comes out waits on its card to be tried and approved.
+ * Nothing is approved here. The plan that comes out waits on its card to be tried and approved. A making that fails,
+ * or whose caller leaves, never turns a task that waits for its steps into one the AI does: the task keeps waiting and
+ * says why under "Needs you" (usecases/coworkSetup.mts).
  */
 
 const { validate } = require('../core/http/validate');
@@ -39,6 +41,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
  *   moduleGate: import('express').RequestHandler<{ id: string }>,
  *   record: typeof import('../usecases/coworkAudit.mts').recordCowork,
  *   spendLeft: (item: { id: string, userId: string, monthlyBudget?: number | null }) => Promise<void>,
+ *   setup: () => Pick<typeof import('../usecases/coworkSetup.mts'), 'setupStarted' | 'setupFailed'>,
  * }} PlannerRouteDeps
  */
 
@@ -56,6 +59,7 @@ const defaults = () => ({
     moduleGate: requireModule('automation'),
     record: (...a) => require('../usecases/coworkAudit.mts').recordCowork(...a),
     spendLeft: (item) => require('../core/cowork/spendGate.mts').assertSpendLeft(item),
+    setup: () => require('../usecases/coworkSetup.mts'),
 });
 
 /**
@@ -75,14 +79,21 @@ function failureOf(err) {
  * @param {Partial<PlannerRouteDeps>} [overrides]
  */
 function mountPlannerRoutes(router, overrides = {}) {
-    const { loadItem, planner, plan, routine, orgOf, makeLimit, moduleGate, record, spendLeft } = { ...defaults(), ...overrides };
+    const { loadItem, planner, plan, routine, orgOf, makeLimit, moduleGate, record, spendLeft, setup } = { ...defaults(), ...overrides };
 
     router.post('/:id/plan/make', moduleGate, makeLimit, validate({ body: PlanMakeBody }), async (req, res) => {
         const userId = userIdOf(req);
         const item = await loadItem(req.params.id, userId);
         const userOrgId = await orgOf(req, userId);
-        await planner().readyToPlan({ item, userOrgId });
-        await spendLeft(item); // drafting a plan is AI too: it counts against the budgets (core/cowork/spendGate.mts)
+        try {
+            await planner().readyToPlan({ item, userOrgId });
+            await spendLeft(item); // drafting a plan is AI too: it counts against the budgets (core/cowork/spendGate.mts)
+        } catch (err) {
+            // A task that waits for its steps keeps waiting, and says why (usecases/coworkSetup.mts): never the AI by itself.
+            await setup().setupFailed({ item, err });
+            throw err;
+        }
+        await setup().setupStarted(item);
         // "Make it routine": the planner is told what the item's past runs did (usecases/coworkRoutine.mts).
         const hints = req.body?.fromRuns === true ? await routine().hintsFor(item) : null;
 
@@ -99,6 +110,7 @@ function mountPlannerRoutes(router, overrides = {}) {
             stream.send('done', { summary: made.summary, state });
         } catch (err) {
             const failure = failureOf(err);
+            await setup().setupFailed({ item, err, left: stream.isGone() }).catch((/** @type {unknown} */ e) => bestEffort('routes/coworkPlannerRoutes:setupFailed', e));
             // A caller that left gets no answer; why the making ended is still worth a line.
             if (stream.isGone()) bestEffort('routes/coworkPlannerRoutes:make', err);
             else {

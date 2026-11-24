@@ -76,6 +76,13 @@ const PLAN_DDL = Object.freeze([
         PRIMARY KEY (schedule_id, user_id)
     )`,
     `CREATE INDEX IF NOT EXISTS idx_cowork_shares_user ON cowork_shares (user_id)`,
+    // What its owner chose before it started, and where its set-up stands (core/cowork/taskSetup.mts). `setup_state`:
+    // 'wanted' (it is to get fixed steps), 'failed' (setting them up did not work) or 'ai' (its owner let the AI work
+    // it out every run); NULL for an item nobody set up this way. While it is wanted or failed and no plan is approved,
+    // the item does not start by itself (stores/coworkStore.js getDueSchedules, core/cowork/coworkRunner.js).
+    // `setup_json`: who it sends to and whether its owner sees each message first, as chosen on the confirmation.
+    `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS setup_state TEXT`,
+    `ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS setup_json TEXT`,
 ]);
 
 module.exports = { PLAN_DDL };

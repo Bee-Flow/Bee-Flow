@@ -28,6 +28,8 @@
 
 import { createRequire } from 'node:module';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
+import { briefForPlanner } from '../core/cowork/taskSetup.mts';
+import type { TaskSetup } from '../stores/coworkSetup.mts';
 import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
 import { draftFindings, refFindings } from './coworkPlanRefs.mts';
@@ -54,7 +56,7 @@ export const MAX_PLANNER_ROUNDS = 8;
 /** The whole making of a plan, in ms. */
 export const PLANNER_MAX_MS = 180_000;
 
-interface Item { id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null }
+interface Item { id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null; enabledApps?: string[] | null; setup?: Pick<TaskSetup, 'sendsTo'> | null }
 
 export interface PlannerDeps extends LoopDeps {
     store: { attachPlanAutomation: (scheduleId: string, automationId: string, opts?: { onlyIfNone?: boolean }) => Promise<boolean> };
@@ -128,12 +130,16 @@ const REFUSAL_TEXT = Object.freeze({
     not_entitled: 'A plan runs on the automation engine, and your organisation does not have automations.',
 });
 
-/** The brief of an item that may get a plan made for it; throws the reason when it may not. */
+/**
+ * The brief of an item that may get a plan made for it; throws the reason when it may not. What its owner chose on
+ * the confirmation closes it (core/cowork/taskSetup.mts): the apps to build with, and who it sends to as its last
+ * line, so the plan is drafted for exactly them.
+ */
 function briefOf(item: Item): string {
     if (item.planAutomationId) throw new HttpError(409, 'cowork_plan_refused', 'This item already has a plan. Take it off to make a new one.');
     const brief = typeof item.prompt === 'string' ? item.prompt.trim() : '';
     if (!brief) throw new HttpError(422, 'cowork_plan_refused', 'Write what this work should do first: a plan is made from that.');
-    return brief;
+    return briefForPlanner(brief, item);
 }
 
 /**
