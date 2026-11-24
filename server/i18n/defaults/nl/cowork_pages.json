@@ -1,0 +1,17 @@
+{
+  "translations": {
+    "cowork_pages.back": "Taken",
+    "cowork_pages.home.teamwork_none": "Laat je taken samenwerken met taken van collega’s",
+    "cowork_pages.home.teamwork_none_sub": "Er is nog niets opgezet. Iedereen houdt zijn eigen taak en zijn eigen apps.",
+    "cowork_pages.home.teamwork_on": "Je werkt samen in {names}",
+    "cowork_pages.home.teamwork_on_sub": "Bekijk wie wat doet, of zet er nog een op.",
+    "cowork_pages.loading": "Laden…",
+    "cowork_pages.name.org": "Beheerdersregels",
+    "cowork_pages.name.settings": "Cowork-voorkeuren",
+    "cowork_pages.name.shared": "Gedeelde taak",
+    "cowork_pages.name.task": "Taak",
+    "cowork_pages.name.teamwork": "Samenwerken",
+    "cowork_pages.name.templates": "Begin met een sjabloon"
+  },
+  "sameAsEnglish": []
+}

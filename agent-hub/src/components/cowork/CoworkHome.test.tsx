@@ -1,6 +1,6 @@
 // The Cowork home (./CoworkHome.tsx): the composer first, the notices only when they hold, Needs you at most three
-// with the rest behind "Show N more", Your tasks with their status and next run, and Shared with you and Teamwork only
-// when they have something. The network is the seam (a recording fetch); no module is mocked.
+// with the rest behind "Show N more", Your tasks with their status and next run, Shared with you only when it has
+// something, and Teamwork always, as one quiet row. The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -47,7 +47,6 @@ describe('CoworkHome', () => {
         expect(rows.map((r) => within(r).getByTestId('cowork-status').dataset.status)).toEqual(['nothing', 'failed', 'paused']);
         expect(rows[0]).toHaveTextContent('Goal: Every meeting in it');
         expect(rows[0]).toHaveTextContent(/Next: (Today|Tomorrow), /);
-        expect(rows[1]).toHaveTextContent('On hold');
         await userEvent.setup().click(rows[1]);
         expect(onOpenTask).toHaveBeenCalledWith('w2');
     });
@@ -59,7 +58,27 @@ describe('CoworkHome', () => {
         for (const id of ['cowork-today', 'cowork-cost-month', 'cowork-habits', 'cowork-running-count', 'cowork-explainer', 'cowork-desks-setup']) expect(screen.queryByTestId(id)).toBeNull();
         expect(screen.queryByText(/AI this month/)).toBeNull();
         expect(screen.queryByRole('heading', { name: 'Shared with you' })).toBeNull();
-        expect(screen.queryByRole('heading', { name: 'Teamwork' })).toBeNull();
+    });
+
+    it('teamwork is always there: for someone on no desk it says what it is for, and it opens the Teamwork page', async () => {
+        serve();
+        const { onOpenPanel } = home();
+        expect(screen.getByRole('heading', { name: 'Teamwork' })).toBeInTheDocument();
+        const entry = screen.getByTestId('cowork-teamwork');
+        expect(entry).toHaveTextContent('Let your tasks work together with colleagues’ tasks');
+        expect(entry).toHaveTextContent('Nothing is set up yet. Everyone keeps their own task and their own apps.');
+        await userEvent.setup().click(entry);
+        expect(onOpenPanel).toHaveBeenCalledWith({ kind: 'teamwork' });
+    });
+
+    it('the rows arrive one after another, six at most; the status is a flat label', async () => {
+        serve();
+        home();
+        const rows = await screen.findAllByTestId('cowork-task-row');
+        expect(rows.map((r) => r.parentElement?.className.match(/cowork-(enter|stagger-\d)/g)?.join(' '))).toEqual(['cowork-enter', 'cowork-enter cowork-stagger-1', 'cowork-enter cowork-stagger-2']);
+        const status = within(rows[0]).getByTestId('cowork-status');
+        expect(status).toHaveClass('cowork-swap');
+        expect(status.className).not.toMatch(/transparent\)|shadow|animate-pulse/);
     });
 
     it('needs you: at most three, the rest behind "Show N more"; their task is Failed or Needs you', async () => {
@@ -89,10 +108,10 @@ describe('CoworkHome', () => {
         expect(await screen.findByTestId('cowork-read-only-notice')).toHaveTextContent('Read-only mode is on for your organisation.');
     });
 
-    it('shared with you and teamwork, once there is something in them; each opens its panel', async () => {
+    it('shared with you once there is something in it, and teamwork names the desks; each opens its page', async () => {
         serve({
             shared: [{ id: 's1', ownerId: 'u2', ownerName: 'Sam Peters', title: 'Invoice reminders', role: 'viewer', lastStatus: 'success', lastRunAt: '2026-11-24T08:00:00.000Z', isActive: true }],
-            desks: [{ id: 'd1', name: 'Supplier desk', isOwner: true }],
+            desks: [{ id: 'd1', name: 'Supplier desk', isOwner: true }, { id: 'd2', name: 'Finance desk', isOwner: false }],
         });
         const { onOpenPanel } = home();
         const shared = await screen.findByTestId('cowork-shared');
@@ -100,7 +119,9 @@ describe('CoworkHome', () => {
         const user = userEvent.setup();
         await user.click(within(shared).getByRole('button'));
         expect(onOpenPanel).toHaveBeenCalledWith({ kind: 'shared', id: 's1' });
-        await user.click(within(await screen.findByTestId('cowork-teamwork')).getByRole('button', { name: /Supplier desk/ }));
+        const teamwork = await screen.findByRole('button', { name: /You work together in Supplier desk and Finance desk/ });
+        expect(teamwork).toHaveTextContent('See who does what, or set up another.');
+        await user.click(teamwork);
         expect(onOpenPanel).toHaveBeenCalledWith({ kind: 'teamwork' });
     });
 });

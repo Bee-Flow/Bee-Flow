@@ -114,14 +114,15 @@ const RESOLVERS: readonly Resolver[] = [
         const notebookId = idOf(page, 'notebooks');
         return studioTarget(notebookId ? `studio/documents/notebook/${notebookId}` : 'studio/documents', replace);
     },
-    (page, replace, ctx) => {
+    (page, replace) => {
         if (!isPage(page, 'cowork')) return null;
+        // 'cowork/<segment>' is a page of Cowork: a task by its id, or one of
+        // its other pages by name (preferences, teamwork, templates,
+        // admin-rules; components/cowork/coworkSheetPanels.ts). A page is a
+        // destination, so opening one pushes, from the Cowork home too: Back
+        // returns to the home.
         const coworkId = idOf(page, 'cowork');
-        // Selecting a row inside Cowork is a filter, not a destination, so it
-        // replaces: Back keeps meaning "leave Cowork". Arriving from another
-        // page pushes, so Back returns to that page.
-        const onCowork = matchAppRoute(ctx.currentPathname).page === 'cowork';
-        return target(coworkId ? `/app/cowork/${coworkId}` : '/app/cowork', { page: 'cowork', coworkId }, replace || (!!coworkId && onCowork));
+        return target(coworkId ? `/app/cowork/${coworkId}` : '/app/cowork', { page: 'cowork', coworkId }, replace);
     },
     (page, replace) => (page.startsWith('forms/') ? target(`/app/forms/${page.slice('forms/'.length)}`, { page: 'formView' }, replace) : null),
     (page, replace) => (page.startsWith('apps/') ? target(`/app/apps/${page.slice('apps/'.length)}`, { page: 'appRun' }, replace) : null),

@@ -1,5 +1,6 @@
-// Teamwork in the Cowork sheet: the desks the reader is on as cards (roles with stand-ins, who an invitation waits for,
-// how the result flows), and "Help me set this up": a sentence, a proposal changed with dropdowns, "Send invitations".
+// Teamwork, a page of Cowork: the desks the reader is on as cards (roles with stand-ins, who an invitation waits for,
+// which task sends each result to which), and "Send each result to a colleague's task": a sentence, a proposal changed
+// with dropdowns, "Send invitations".
 // The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -63,7 +64,7 @@ describe('CoworkTeamworkPanel', () => {
         const card = await screen.findByTestId('cowork-team-desk');
         expect(await within(card).findByText('Waiting for Noor to accept. It takes them one click.')).toBeInTheDocument();
         expect(within(card).getByTestId('cowork-team-role-line')).toHaveTextContent('PurchasingNoorstand-in: Ines');
-        expect(within(card).getByTestId('cowork-team-flow')).toHaveTextContent('“Collect supplier mails” (you) passes its result to “Answer the suppliers” (Noor).');
+        expect(within(card).getByTestId('cowork-team-flow')).toHaveTextContent('“Collect supplier mails” (you) sends each result to “Answer the suppliers” (Noor).');
         expect(within(card).getByText('Set up by you')).toBeInTheDocument();
         const user = userEvent.setup();
         await user.click(within(card).getByRole('button', { name: 'Open “Collect supplier mails”' }));
@@ -76,17 +77,17 @@ describe('CoworkTeamworkPanel', () => {
         const calls = serve();
         renderWithClient(<CoworkTeamworkPanel {...panelProps({ kind: 'teamwork' })} />);
         const user = userEvent.setup();
-        expect(await screen.findByRole('heading', { name: 'Help me set this up' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Send each result to a colleague’s task' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Propose a setup' })).toBeDisabled();
         await user.type(screen.getByLabelText('Who does what? Say it in one sentence.'), 'When my supplier mails are done, Noor checks the invoices. Questions go to Noor, Ines stands in.');
         await user.click(screen.getByRole('button', { name: 'Propose a setup' }));
         const proposal = await screen.findByTestId('cowork-team-proposal');
         expect(calls.find((c) => c.url.endsWith('/desks/helper/draft'))?.body).toEqual({ text: 'When my supplier mails are done, Noor checks the invoices. Questions go to Noor, Ines stands in.' });
 
-        expect(within(proposal).getByLabelText('Pass the result of')).toHaveValue('collect');
+        expect(within(proposal).getByLabelText('Send each result of')).toHaveValue('collect');
         expect(within(proposal).getByLabelText('To this task')).toHaveValue('answer');
         expect(within(proposal).getByText('Noor is asked to accept once.')).toBeInTheDocument();
-        expect(within(proposal).getByText(/Only the result is passed on, never access to anyone’s apps\. Each colleague accepts once\. A chain stops after 3 hand-offs\./)).toBeInTheDocument();
+        expect(within(proposal).getByText('Only the result is sent on, never access to anyone’s apps. Each colleague accepts once. A result goes from one person to another 3 times at most.')).toBeInTheDocument();
         expect(within(proposal).getByLabelText('Who')).toHaveValue('noor');
         expect(within(proposal).getByLabelText('Stand-in')).toHaveValue('ines');
 

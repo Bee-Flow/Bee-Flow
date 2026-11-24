@@ -1,6 +1,6 @@
 /**
- * Organisation, for administrators (opens in the right-side sheet from the Cowork user menu): the rules for all tasks of
- * the organisation. It reads and saves the organisation's Cowork policy by id (GET/PUT /api/cowork/policy/{orgId}, an
+ * Admin rules, a page of Cowork for the organisation's administrators (the home's "Admin rules" link opens it): the
+ * rules for all tasks of the organisation. It reads and saves the organisation's Cowork policy by id (GET/PUT /api/cowork/policy/{orgId}, an
  * administrator's permission is checked by the server), the AI spend of this month for the budget meter, and the check
  * and export of every signed receipt (server/usecases/coworkOrgPanel.mts). Each switch saves at once. Someone who is no
  * administrator is told so and sees nothing else.
@@ -10,9 +10,8 @@ import { ShieldCheck } from 'lucide-react';
 import { receiptsAuditDownloadUrl, useCoworkOrgOverview, useOrgCoworkPolicy, useReceiptsAudit, type OrgCoworkPolicy, type OrgPolicyPatch } from '@/api/coworkOrgPanel';
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { Button } from '@/components/shared/Button';
-import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
-import { CARD, INPUT, LabeledField, META, PanelSection, PanelShell, Problem, SwitchRow, TALL } from './panelParts';
+import { ALERT, BUTTON_SECONDARY } from '../coworkUi';
+import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
 
 type Level = 'fine' | 'close' | 'over';
 const CLOSE_AT = 80;
@@ -73,12 +72,12 @@ function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPol
                 <LabeledField id="cowork-panels-budget" label={t('cowork_panels.org.budget_label', 'Budget for all tasks together, in euros a month')}>
                     <div className="flex gap-2">
                         <input id="cowork-panels-budget" className={INPUT} inputMode="decimal" value={shown} placeholder={t('cowork_panels.org.budget_none', 'No limit')} onChange={(e) => setText(e.target.value)} />
-                        <Button className={TALL} disabled={saving || text === null || parsed === undefined} onClick={() => { if (parsed !== undefined) onSave(parsed, () => setText(null)); }}>
+                        <PanelButton disabled={saving || text === null || parsed === undefined} onClick={() => { if (parsed !== undefined) onSave(parsed, () => setText(null)); }}>
                             {t('cowork_panels.org.budget_save', 'Save budget')}
-                        </Button>
+                        </PanelButton>
                     </div>
                 </LabeledField>
-                {parsed === undefined && <p role="alert" className="m-0 text-[12.5px] text-[var(--error-ink)]">{t('cowork_panels.org.budget_invalid', 'Fill in an amount above 0, or leave it empty for no limit.')}</p>}
+                {parsed === undefined && <p role="alert" className={ALERT}>{t('cowork_panels.org.budget_invalid', 'Fill in an amount above 0, or leave it empty for no limit.')}</p>}
                 {budget !== null && <BudgetMeter spent={spent} budget={budget} />}
                 {budget === null && <p className={`m-0 ${META}`}>{t('cowork_panels.org.budget_off', 'Without a budget, tasks keep running whatever they cost. Set one to be told at 80% and to stop new runs at 100%.')}</p>}
             </div>
@@ -96,7 +95,7 @@ function AppsSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; savi
         onSave(base.includes(id) ? base.filter((x) => x !== id) : [...base, id]);
     };
     return (
-        <PanelSection title={t('cowork_panels.org.apps_heading', 'Apps that may run unattended')}>
+        <PanelSection title={t('cowork_panels.org.apps_ask_heading', 'Apps tasks may use without asking')}>
             <div className={CARD}>
                 {apps.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.org.apps_none', 'No apps are connected yet.')}</p>}
                 {apps.map((app) => (
@@ -118,13 +117,13 @@ function AppsSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; savi
 function RulesSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; saving: boolean; onSave: (patch: OrgPolicyPatch) => void }) {
     const { t } = useTranslation();
     return (
-        <PanelSection title={t('cowork_panels.org.rules_heading', 'Rules')}>
+        <PanelSection title={t('cowork_panels.org.all_tasks_heading', 'For all tasks')}>
             <div className={CARD}>
                 <SwitchRow id="cowork-panels-readonly" label={t('cowork_panels.org.read_only', 'Read-only mode')} sub={t('cowork_panels.org.read_only_sub', 'Tasks read and write drafts, but change and send nothing.')}
                     checked={policy.readOnly} disabled={saving} onChange={(readOnly) => onSave({ readOnly })} />
                 <SwitchRow id="cowork-panels-autofix" label={t('cowork_panels.org.auto_fix', 'Automatic fixes')} sub={t('cowork_panels.org.auto_fix_sub', 'Cowork repairs a broken step by itself when the fix needs no new permission. The owner sees it and can undo it.')}
                     checked={policy.autoFix !== false} disabled={saving} onChange={(autoFix) => onSave({ autoFix })} />
-                <SwitchRow id="cowork-panels-habits" label={t('cowork_panels.org.habits', 'Allow “Notices what you repeat”')} sub={t('cowork_panels.org.habits_sub', 'Each person still has to turn it on. You never see what it noticed.')}
+                <SwitchRow id="cowork-panels-habits" label={t('cowork_panels.org.suggest', 'Allow “Suggest a task when I repeat a question”')} sub={t('cowork_panels.org.habits_sub', 'Each person still has to turn it on. You never see what it noticed.')}
                     checked={policy.habitsAllowed !== false} disabled={saving} onChange={(habitsAllowed) => onSave({ habitsAllowed })} />
             </div>
         </PanelSection>
@@ -137,10 +136,10 @@ function AuditSection() {
     const result = audit.data;
     const count = (n: number) => n.toLocaleString(locale);
     return (
-        <PanelSection title={t('cowork_panels.org.audit_heading', 'Receipts audit')}>
+        <PanelSection title={t('cowork_panels.org.proof_heading', 'Proof of each run')}>
             <div className={CARD}>
-                <div className="flex items-start gap-2 text-[13.5px] text-[var(--text-primary)]" role="status" data-testid="cowork-org-audit">
-                    <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className={`flex items-start gap-2 ${BODY}`} role="status" data-testid="cowork-org-audit">
+                    <ShieldCheck aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
                     <span>
                         {audit.isPending && t('cowork_panels.org.audit_busy', 'Checking every receipt…')}
                         {!audit.isPending && !result && t('cowork_panels.org.audit_idle', 'Check that no receipt of any task was changed or removed.')}
@@ -151,8 +150,8 @@ function AuditSection() {
                 {result?.truncated && <p className={`m-0 ${META}`}>{t('cowork_panels.org.audit_truncated', 'There are more tasks than one check reads. Only the first ones were checked.')}</p>}
                 <p className={`m-0 ${META}`}>{t('cowork_panels.org.audit_sub', 'Each run of each task leaves a signed receipt. The audit proves none was changed or removed afterwards.')}</p>
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" className={TALL} disabled={audit.isPending} onClick={() => audit.mutate()}>{t('cowork_panels.org.audit_check', 'Check now')}</Button>
-                    <a className={`inline-flex ${TALL} items-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-3.5 text-[13px] font-semibold text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]`} href={receiptsAuditDownloadUrl()} download>
+                    <PanelButton look="secondary" disabled={audit.isPending} onClick={() => audit.mutate()}>{t('cowork_panels.org.audit_check', 'Check now')}</PanelButton>
+                    <a className={`${BUTTON_SECONDARY} hover:bg-[var(--item-hover-bg)]`} href={receiptsAuditDownloadUrl()} download>
                         {t('cowork_panels.org.audit_export', 'Export the audit file')}
                     </a>
                 </div>
@@ -162,22 +161,22 @@ function AuditSection() {
     );
 }
 
-export default function CoworkOrgPanel({ close }: CoworkSheetPanelProps) {
+export default function CoworkOrgPanel() {
     const { t } = useTranslation();
     const overview = useCoworkOrgOverview();
     const { query, save } = useOrgCoworkPolicy(overview.data?.orgId);
     const policy = query.data;
     const tag = t('cowork_panels.org.admins_only', 'Admins only');
-    const title = t('cowork_panels.org.title', 'Organisation');
+    const title = t('cowork_panels.org.rules_title', 'Admin rules');
     if (overview.isError) {
         return (
-            <PanelShell testId="cowork-org-panel" tag={tag} title={title} onClose={close}>
+            <PanelShell testId="cowork-org-panel" tag={tag} title={title}>
                 <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
             </PanelShell>
         );
     }
     return (
-        <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined} onClose={close}>
+        <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined}>
             {!policy && !query.isError && <p className={`m-0 ${META}`}>{t('cowork_panels.loading', 'Loading…')}</p>}
             <Problem error={query.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
             {policy && overview.data && (

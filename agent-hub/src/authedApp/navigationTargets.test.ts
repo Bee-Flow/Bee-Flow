@@ -43,10 +43,11 @@ describe('resolveNavigationTarget: one address per page name', () => {
         expect(resolve('billing', { isMobile: true }).path).toBe('/app/settings/organisation/license');
     });
 
-    it('pushes a Cowork item from another page and replaces it inside Cowork', () => {
+    it('a page of Cowork is a destination: opening one pushes, from another page and from the Cowork home alike', () => {
         expect(resolve('cowork/cw1')).toMatchObject({ path: '/app/cowork/cw1', replace: false });
-        expect(resolve('cowork/cw1', { currentPathname: '/app/cowork' })).toMatchObject({ replace: true });
-        expect(resolve('cowork/cw1', { currentPathname: '/app/cowork/cw0' })).toMatchObject({ replace: true });
+        expect(resolve('cowork/cw1', { currentPathname: '/app/cowork' })).toMatchObject({ path: '/app/cowork/cw1', replace: false });
+        expect(resolve('cowork/cw1', { currentPathname: '/app/cowork/cw0' })).toMatchObject({ replace: false });
+        expect(resolve('cowork/preferences', { currentPathname: '/app/cowork' })).toMatchObject({ path: '/app/cowork/preferences', replace: false });
         expect(resolve('cowork', { currentPathname: '/app/cowork/cw0' })).toMatchObject({ path: '/app/cowork', replace: false });
     });
 

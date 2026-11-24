@@ -1,5 +1,5 @@
-// The props the Cowork sheet gives a panel (../coworkSheetPanels.ts), for the panel tests: a panel kind, no user, and the
-// three ways out as plain functions the test can replace.
+// The props the Cowork page gives one of its pages (../coworkSheetPanels.ts), for their tests: the page's kind, no user,
+// and the three ways out as plain functions the test can replace.
 import type { CoworkSheetPanel, CoworkSheetPanelProps } from '../coworkSheetPanels';
 
 export function panelProps(panel: CoworkSheetPanel, over: Partial<CoworkSheetPanelProps> = {}): CoworkSheetPanelProps {
