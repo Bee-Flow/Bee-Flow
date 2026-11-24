@@ -44,6 +44,7 @@ const ENGINE_FILES = [
     'topics.mjs',
     'userFunctions.mjs',
     'wholeRun.mjs',
+    'workdays.mjs',
 ];
 const ORIGINALS = ['agent-hub/src/shared/expr', 'server/shared/expr'];
 

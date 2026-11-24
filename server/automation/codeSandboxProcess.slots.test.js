@@ -91,7 +91,8 @@ test('a child that ends without an answer frees its slot too', async () => {
 });
 
 test('the cap is read from COWORK_SANDBOX_MAX_CHILDREN', () => {
-    const read = execFileSync(process.execPath, ['-e', 'process.stdout.write(String(require("./automation/codeSandboxProcess").MAX_CHILDREN))'], {
+    const script = `process.stdout.write(String(require(${JSON.stringify(path.join(__dirname, 'codeSandboxProcess.js'))}).MAX_CHILDREN))`;
+    const read = execFileSync(process.execPath, ['-e', script], {
         cwd: path.join(__dirname, '..'), env: { ...process.env, NODE_ENV: 'test', COWORK_SANDBOX_MAX_CHILDREN: '2' }, encoding: 'utf8',
     });
     assert.strictEqual(read, '2');

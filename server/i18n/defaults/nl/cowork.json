@@ -17,7 +17,6 @@
     "cowork.history.started_by_mail": "Gestart door een nieuwe e-mail",
     "cowork.home.cost_month": "AI deze maand: {cost}",
     "cowork.how.agent": "Gedaan door een agent",
-    "cowork.how.ai": "{count} AI",
     "cowork.how.asks_before_sending": "vraagt voor verzenden",
     "cowork.how.asks_everything": "vraagt alles",
     "cowork.how.cannot_run": "kan zo niet draaien",
@@ -77,5 +76,7 @@
     "cowork.today.running": "Draait nu",
     "cowork.today.waiting": "Wacht op jou"
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "cowork.how.ai"
+  ]
 }

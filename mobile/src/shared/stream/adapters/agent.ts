@@ -111,4 +111,7 @@ export const AGENT_FRAMES: FrameAdapter<AgentTurn> = {
     memory_extraction_failed: IGNORE,
     tools_loaded: IGNORE,
     tool_progress: IGNORE,
+    // "You ask this every Monday. Let Cowork do it?" (core/cowork/habits/habitSignals.mts): the web shows it as a chip
+    // that opens Cowork with the message as its brief. Making a cowork stays on the computer, so the phone shows none.
+    cowork_suggestion: IGNORE,
 };
