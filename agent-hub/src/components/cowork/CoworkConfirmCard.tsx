@@ -6,20 +6,28 @@
  */
 import { useState } from 'react';
 import { CARD, FIELD, LINK_BUTTON, PILL_PRIMARY, PILL_QUIET } from './coworkUi';
-import { WEEK_DAYS, dayWords, hasTimeOfDay, isClockPayload, needsDay, sendsToWords, timeOf, withDay, withTime, type DayChoice } from './coworkConfirmModel';
+import { WEEK_DAYS, appsNamedIn, dayWords, hasTimeOfDay, isClockPayload, needsDay, sendsToWords, timeOf, withDay, withTime, type DayChoice } from './coworkConfirmModel';
 import { repeatLabel } from './coworkSchedule';
 import useCoworkApps from './useCoworkApps';
 import type { UseCoworkComposerReturn } from './useCoworkComposer';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
-/** "Outlook and Planner", or what it can say when it cannot name them. */
-function UsesLine({ enabledApps, t }: { enabledApps: string[] | null; t: TranslateFn }) {
-    const { availableApps, isAppEnabled, appsKnown } = useCoworkApps({ value: enabledApps });
-    const names = availableApps.filter((a) => !a.isStep && isAppEnabled(a.id)).map((a) => a.label);
+/**
+ * "Fireflies.ai": the apps the task was given, or (when it was given none of its own) only the apps the sentence names.
+ * Never the whole workspace: which apps the steps really use is shown, and checked, once Cowork has set them up.
+ */
+function UsesLine({ enabledApps, brief, t }: { enabledApps: string[] | null; brief: string; t: TranslateFn }) {
+    const { availableApps, isAppEnabled } = useCoworkApps({ value: enabledApps });
+    const apps = availableApps.filter((a) => !a.isStep && isAppEnabled(a.id));
     let text: string;
     if (Array.isArray(enabledApps) && enabledApps.length === 0) text = t('cowork_home.confirm.no_apps', 'No apps. The AI only writes.');
-    else if (names.length > 0) text = names.join(', ');
-    else text = appsKnown ? t('cowork_home.confirm.no_apps', 'No apps. The AI only writes.') : t('cowork_home.confirm.workspace_apps', 'The apps of your workspace');
+    else if (Array.isArray(enabledApps) && apps.length > 0) text = apps.map((a) => a.label).join(', ');
+    else {
+        const named = appsNamedIn(brief, apps).map((a) => a.label);
+        text = named.length > 0
+            ? t('cowork_home.confirm.named_apps', '{apps}, and what else the steps turn out to need', { apps: named.join(', ') })
+            : t('cowork_home.confirm.picks_apps', 'Cowork picks the apps it needs while it sets up the steps. You see them before anything runs.');
+    }
     return <span data-testid="cowork-confirm-uses">{text}</span>;
 }
 
@@ -86,7 +94,7 @@ export default function CoworkConfirmCard({ cowork, onStart }: { cowork: UseCowo
                 <dt className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.confirm.when', 'When')}</dt>
                 <WhenField cowork={cowork} asking={asking} setAsking={setAsking} />
                 <dt className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.confirm.uses', 'Uses')}</dt>
-                <dd className="m-0 mb-2.5 sm:mb-0 min-w-0 text-[15px] font-semibold text-[var(--text-primary)]"><UsesLine enabledApps={payload.enabledApps ?? null} t={t} /></dd>
+                <dd className="m-0 mb-2.5 sm:mb-0 min-w-0 text-[15px] font-semibold text-[var(--text-primary)]"><UsesLine enabledApps={payload.enabledApps ?? null} brief={payload.prompt ?? ''} t={t} /></dd>
                 <dt className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.confirm.sends_to', 'Sends to')}</dt>
                 <dd className="m-0 min-w-0 text-[15px] font-semibold text-[var(--text-primary)] break-words" data-testid="cowork-confirm-sends">{sendsToWords(draft, t)}</dd>
             </dl>

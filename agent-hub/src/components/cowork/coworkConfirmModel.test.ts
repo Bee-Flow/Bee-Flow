@@ -1,7 +1,7 @@
 // The one confirmation before a new task exists (./coworkConfirmModel.ts): "Which day?" when the sentence did not
 // say when, what each answer schedules, the time, and who it sends to.
 import { describe, expect, it } from 'vitest';
-import { dayWords, needsDay, sendsToWords, timeOf, withDay, withTime } from './coworkConfirmModel';
+import { appsNamedIn, dayWords, needsDay, sendsToWords, timeOf, withDay, withTime } from './coworkConfirmModel';
 import type { CoworkPayload } from '@/api/cowork.types';
 
 const NOW = new Date(2026, 10, 24, 10, 0); // Tuesday 24 November, 10:00 local
@@ -64,5 +64,23 @@ describe('dayWords and sendsToWords', () => {
         expect(sendsToWords({ payload: payload(), spec: null }, t)).toBe('Only you');
         expect(sendsToWords({ payload: payload({ prompt: 'Mail the list to finance@northwind.example and to sam@northwind.example.' }), spec: null }, t))
             .toBe('finance@northwind.example, sam@northwind.example');
+    });
+});
+
+describe('appsNamedIn', () => {
+    const apps = [
+        { id: 'fireflies', label: 'Fireflies.ai' },
+        { id: 'google_calendar', label: 'Google Calendar' },
+        { id: 'gmail', label: 'Gmail' },
+    ];
+    it('names only the apps the sentence names, never the rest of the workspace', () => {
+        const named = appsNamedIn('Every Monday, summarise last week’s Fireflies meetings and send them to me', apps);
+        expect(named.map((a) => a.id)).toEqual(['fireflies']);
+    });
+    it('names nothing when the sentence names no app', () => {
+        expect(appsNamedIn('per meeting de belangrijkste punten samenvatten', apps)).toEqual([]);
+    });
+    it('matches a name of more than one word, in any case', () => {
+        expect(appsNamedIn('put it in my GOOGLE CALENDAR', apps).map((a) => a.id)).toEqual(['google_calendar']);
     });
 });

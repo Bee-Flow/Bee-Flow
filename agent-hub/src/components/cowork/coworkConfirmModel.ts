@@ -107,3 +107,23 @@ export function sendsToWords({ payload }: CoworkDraft, t: TranslateFn): string {
     const to = addressesIn(payload.prompt);
     return to.length > 0 ? to.join(', ') : t('cowork_home.confirm.sends_you', 'Only you');
 }
+
+/** The part of an app's name a person writes in a sentence: "Fireflies.ai" → "fireflies", "Google Calendar" → "google calendar". */
+function spokenName(label: string): string {
+    const lower = label.toLowerCase().trim();
+    const dot = lower.indexOf('.');
+    return dot > 0 ? lower.slice(0, dot) : lower;
+}
+
+/**
+ * The apps the sentence itself names, by their name or id, with plain string matching (no regular expression on what
+ * the user typed). The confirmation names only these: the workspace's other apps are not what the task "uses"; the
+ * steps Cowork sets up afterwards say exactly which apps they read, change or send with, before anything runs.
+ */
+export function appsNamedIn<A extends { id: string; label: string }>(text: string, apps: readonly A[]): A[] {
+    const said = ` ${text.toLowerCase()} `;
+    return apps.filter((a) => {
+        const name = spokenName(a.label);
+        return (name.length >= 3 && said.includes(name)) || (a.id.length >= 3 && said.includes(a.id.toLowerCase()));
+    });
+}
