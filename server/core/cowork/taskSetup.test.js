@@ -11,7 +11,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { heldForSetup, setupProblemOf, isAddress, sendsToOf, recipientsLine, briefWithRecipients, causeOf, SETUP_GRACE_MS } = require('./taskSetup.mts');
+const { heldForSetup, setupProblemOf, isAddress, recipientsOf, recipientsLine, briefWithRecipients, causeOf, SETUP_GRACE_MS } = require('./taskSetup.mts');
 
 const NOW = new Date('2026-11-24T12:00:00.000Z');
 const ago = (/** @type {number} */ ms) => new Date(NOW.getTime() - ms).toISOString();
@@ -45,9 +45,9 @@ test('an address is checked with plain string rules', () => {
 });
 
 test('who a task sends to: "me" apart, each address once, anything else left out', () => {
-    assert.deepStrictEqual(sendsToOf(['me', 'sam@example.com', 'SAM@example.com', 'not an address']), { me: true, others: ['sam@example.com'] });
-    assert.deepStrictEqual(sendsToOf(['sam@example.com']), { me: false, others: ['sam@example.com'] }, 'its owner took themselves off');
-    assert.deepStrictEqual(sendsToOf([]), { me: false, others: [] });
+    assert.deepStrictEqual(recipientsOf(['me', 'sam@example.com', 'SAM@example.com', 'not an address']), { me: true, others: ['sam@example.com'] });
+    assert.deepStrictEqual(recipientsOf(['sam@example.com']), { me: false, others: ['sam@example.com'] }, 'its owner took themselves off');
+    assert.deepStrictEqual(recipientsOf([]), { me: false, others: [] });
 });
 
 test('the recipients reach whoever does the work as the last line of the brief; the brief itself stays as written', () => {

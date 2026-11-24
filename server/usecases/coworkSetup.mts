@@ -16,7 +16,7 @@
 
 import { createRequire } from 'node:module';
 import { mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
-import { causeOf, sendsToOf } from '../core/cowork/taskSetup.mts';
+import { causeOf, recipientsOf } from '../core/cowork/taskSetup.mts';
 import { setupViewOf, type SetupRecord, type SetupState, type TaskSetup } from '../stores/coworkSetup.mts';
 import type { CoworkSetupStore } from '../stores/coworkSetupStore.mts';
 
@@ -59,7 +59,7 @@ export async function startSetup({ item, chosen, organizationId = null }: { item
     if (!chosen) return null;
     const owner = { userId: item.userId, organizationId };
     const record: SetupRecord = {};
-    if (Array.isArray(chosen.sendsTo)) record.sendsTo = sendsToOf(chosen.sendsTo);
+    if (Array.isArray(chosen.sendsTo)) record.sendsTo = recipientsOf(chosen.sendsTo);
     if (typeof chosen.askFirst === 'boolean') record.askFirst = chosen.askFirst;
     const wanted = chosen.steps === true && await deps.stepsAvailable(owner).catch(() => false);
     if (wanted) record.since = deps.now().toISOString();

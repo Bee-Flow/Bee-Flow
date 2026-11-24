@@ -53,7 +53,7 @@ export function isAddress(value: string): boolean {
 }
 
 /** A body's list ("me" and addresses) as who the task sends to: once each, the owner apart. */
-export function sendsToOf(list: readonly string[]): SendsTo {
+export function recipientsOf(list: readonly string[]): SendsTo {
     const others: string[] = [];
     let me = false;
     for (const raw of list) {

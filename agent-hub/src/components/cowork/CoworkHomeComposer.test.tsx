@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkHomeComposer from './CoworkHomeComposer';
+import { softClasses } from './crisp.testkit';
 import EntitlementsContext, { type EntitlementsValue } from '../licensing/EntitlementsContext';
 import type { CoworkSpec } from '@/api/cowork.types';
 
@@ -105,6 +106,7 @@ describe('CoworkHomeComposer', () => {
         const sends = within(screen.getByTestId('cowork-confirm-sends'));
         expect(sends.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Me', 'sam@example.com']);
         expect(sends.getByRole('switch', { name: 'Show me each message first' })).toBeChecked();
+        expect(softClasses(card)).toEqual([]);
 
         await user.type(sends.getByLabelText('Add an address'), 'not an address');
         await user.click(sends.getByRole('button', { name: 'Add' }));
@@ -211,6 +213,7 @@ describe('CoworkHomeComposer', () => {
     it('shows the set-up of a new task as phases', () => {
         serve({});
         renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 1 }} />));
+        expect(softClasses(screen.getByTestId('cowork-setup'))).toEqual([]);
         const steps = within(screen.getByTestId('cowork-setup')).getAllByRole('listitem');
         expect(steps.map((s) => [s.textContent, s.dataset.state])).toEqual([
             ['Setting up the steps', 'did'], ['Testing once, nothing is sent', 'now'], ['Ready for your check', 'next'],

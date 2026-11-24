@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkNeedCard from './CoworkNeedCard';
+import { softClasses } from './crisp.testkit';
 import type { NeedCardData } from './coworkNeedsModel';
 
 const PROPOSAL = {
@@ -218,6 +219,18 @@ describe('CoworkNeedCard — the primary action of each kind', () => {
         await waitFor(() => expect(posted('/api/cowork/desks/d1/members/w1/accept')).toBeTruthy());
         await userEvent.setup().click(screen.getByRole('button', { name: 'Decline' }));
         await waitFor(() => expect(posted('/api/cowork/desks/d1/members/w1', 'DELETE')).toBeTruthy());
+    });
+
+    it('every kind of card is crisp at rest, on the home and inside the task', () => {
+        serve();
+        const needs = [
+            card({ kind: 'check', held: true }), card({ kind: 'first_test', key: 'k1' }), card({ kind: 'setup', cause: 'timeout', key: 'k2' }), card({ kind: 'sign_in', key: 'k3' }),
+            card({ kind: 'fix', problem: 'permission', hasSteps: true, key: 'k4', words: { step: 'List meetings', source: null, app: 'Fireflies' } }),
+            card({ kind: 'review', runId: 'r1', reason: 'Is this right?', key: 'k5' }),
+        ];
+        const { container } = renderWithClient(<>{needs.map((need, i) => <CoworkNeedCard key={need.key} need={need} solo={i % 2 === 1} />)}</>);
+        expect(screen.getAllByTestId('cowork-need-card')).toHaveLength(needs.length);
+        expect(softClasses(container)).toEqual([]);
     });
 
     it('a refusal is said in the server\'s words under the buttons', async () => {

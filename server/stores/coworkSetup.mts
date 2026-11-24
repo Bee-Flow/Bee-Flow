@@ -59,7 +59,7 @@ export interface TaskSetup {
 export const isSetupState = (v: unknown): v is SetupState => v === 'wanted' || v === 'failed' || v === 'ai';
 const isCause = (v: unknown): v is SetupCause => typeof v === 'string' && (SETUP_CAUSES as readonly string[]).includes(v);
 
-function sendsToOf(v: unknown): SendsTo | null {
+function sendsToIn(v: unknown): SendsTo | null {
     if (!v || typeof v !== 'object') return null;
     const { me, others } = v as { me?: unknown; others?: unknown };
     return { me: me !== false, others: Array.isArray(others) ? others.filter((o): o is string => typeof o === 'string' && !!o) : [] };
@@ -83,7 +83,7 @@ export function setupViewOf(state: unknown, json: unknown): TaskSetup | null {
         steps,
         cause: steps === 'failed' && isCause(record.cause) ? record.cause : null,
         since: typeof record.since === 'string' ? record.since : null,
-        sendsTo: sendsToOf(record.sendsTo),
+        sendsTo: sendsToIn(record.sendsTo),
         askFirst: typeof record.askFirst === 'boolean' ? record.askFirst : null,
         canUndo: steps === 'ai' && !!record.was,
     };

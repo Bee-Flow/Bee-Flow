@@ -162,8 +162,6 @@ export interface CoworkRun {
     planId?: string | null;
     /** Where a plan run failed: the step, its error class and the step it reads (ids and a code; server core/cowork/runOutcome.mts). */
     failure?: CoworkRunFailure;
-    /** How it ended in its owner's words (the step and the cause); null for a run that went well (server usecases/coworkRunWords.mts). */
-    plain?: string | null;
 }
 
 /** The step a plan run failed at, in ids and a code. */
