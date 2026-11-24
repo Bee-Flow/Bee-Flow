@@ -29,7 +29,7 @@ organisation settings need a licence with those features. See [Tiers](../licensi
    - **Sends to**: you, and any address you add. When it sends to someone else, **Show me each message
      first** is on.
 3. Choose **Set up and test**. Cowork sets the task up, tests it once without sending anything, and
-   tells you what the test produced.
+   tells you what the test produced. The task does not run for real until you have approved its steps.
 
 The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,
 and **Teamwork**. The gear opens your **Cowork preferences**; administrators also see **Admin rules**.
