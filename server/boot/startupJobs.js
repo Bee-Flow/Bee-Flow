@@ -263,6 +263,10 @@ function startSupportAndSyncJobs() {
     try { require('../core/cowork/habits/habitSweep.mts').start(); } catch (err) { log.warn('[Server] Cowork habit sweep start failed:', err.message); }
     // A cowork with a goal is measured by its approved check after its runs (core/cowork/goals/goalMeasure.mts).
     try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
+    // A plan that keeps failing, or a goal that stays under target, gets a repair proposed (never applied); the work is in usecases/.
+    try { require('../core/cowork/repairs/repairTriggers.mts').start((item, trigger) => require('../usecases/coworkProposals.mts').proposeRepair(item, trigger)); } catch (err) { log.warn('[Server] Cowork repairs start failed:', err.message); }
+    // Weekly: a steady AI step is offered as a fixed one when a replay proves it (core/cowork/cheaper/stableSteps.mts).
+    try { require('../core/cowork/cheaper/stableSteps.mts').start((item, step) => require('../usecases/coworkProposals.mts').offerFixedStep(item, step)); } catch (err) { log.warn('[Server] Cowork steady-step offers start failed:', err.message); }
     // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
     try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).

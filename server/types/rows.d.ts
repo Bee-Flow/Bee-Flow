@@ -1312,6 +1312,30 @@ declare namespace DbRow {
         schedule_id: string;
         version: number;
     }
+    /** Row of `cowork_proposal_attempts`. */
+    interface CoworkProposalAttempts {
+        attempted_at: Date;
+        kind: string;
+        schedule_id: string;
+    }
+    /** Row of `cowork_proposals`. */
+    interface CoworkProposals {
+        base_fingerprint: string;
+        created_at: Date;
+        decided_at: Date | null;
+        definition_json: string;
+        fingerprint: string;
+        id: string;
+        kind: string;
+        reason_code: string;
+        replay_id: string | null;
+        schedule_id: string;
+        status: string;
+        step_id: string | null;
+        step_title: string | null;
+        user_id: string;
+        widens_json: string;
+    }
     /** Row of `cowork_receipts`. */
     interface CoworkReceipts {
         created_at: Date;

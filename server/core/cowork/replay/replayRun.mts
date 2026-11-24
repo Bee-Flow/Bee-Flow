@@ -115,7 +115,7 @@ const notReplayable = (past: PastRun, reason: NotReplayable): ReplayVerdict => (
 });
 
 /** Replay the item's plan as it is now (`automation.definition`) on one past run, and say how it came out. */
-export async function replayPastRun({ item, automation, past }: { item: { userId: string }; automation: SourceRow; past: PastRun }, deps: ReplayRunDeps): Promise<ReplayVerdict> {
+export async function replayPastRun({ item, automation, past, outputOnly }: { item: { userId: string }; automation: SourceRow; past: PastRun; outputOnly?: ReadonlySet<string> }, deps: ReplayRunDeps): Promise<ReplayVerdict> {
     const refused = refusalOf(past, deps);
     if (refused) return notReplayable(past, refused);
     const recording = await recordingOf(past.automationRunId as string, deps);
@@ -126,6 +126,6 @@ export async function replayPastRun({ item, automation, past }: { item: { userId
     const baselineId = await dryRunOn(planThen, ctx, deps);
     // The same plan as then needs no second run: it is its own baseline.
     const candidateId = planFingerprint(planNow) === planFingerprint(planThen) ? baselineId : await dryRunOn(planNow, ctx, deps);
-    const comparison = compareReplay(await recordedStepsOf(baselineId, deps), await recordedStepsOf(candidateId, deps));
+    const comparison = compareReplay(await recordedStepsOf(baselineId, deps), await recordedStepsOf(candidateId, deps), outputOnly);
     return { pastRunId: past.id, startedAt: past.startedAt, verdict: comparison.verdict, reason: null, missingSteps: comparison.missingSteps, differingSteps: comparison.differingSteps };
 }

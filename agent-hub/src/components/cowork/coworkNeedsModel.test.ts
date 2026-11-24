@@ -17,6 +17,13 @@ describe('needWords', () => {
         expect(needWords(need({ kind: 'sign_in', reason: 'ignored' }), t).detail).toBeNull();
     });
 
+    it('a repair that is ready names the step that failed, and opens the item', () => {
+        const filled = (_k: string, en: string, vars: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (_m, k: string) => String(vars[k] ?? ''));
+        const repair = need({ kind: 'repair', repair: { proposalId: 'pr-1', reasonCode: 'step_failed_twice', stepTitle: 'Read the order table' } });
+        expect(needWords(repair, filled)).toMatchObject({ line: "Failed twice at 'Read the order table'. A fix is ready.", action: 'open', button: 'See the fix', detail: null });
+        expect(needWords(need({ kind: 'repair', repair: { proposalId: 'pr-2', reasonCode: 'goal_under_target', stepTitle: null } }), filled).line).toBe('Stayed under its goal three times in a row. A fix is ready.');
+    });
+
     it('each state of a plan has its own sentence', () => {
         const lines = (['first', 'changed', 'blocked', 'gone'] as const).map((plan) => needWords(need({ kind: 'plan', plan }), t).line);
         expect(new Set(lines).size).toBe(4);

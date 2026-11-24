@@ -11,7 +11,8 @@
  * (./CoworkPlanMake.tsx). The other ways, one of their own automations among them, wait under "More ways". Everyone
  * else sees the `fallback` here (one sentence), and their items run as before.
  *
- * An approved plan says how independent it is in one line (./CoworkIndependenceLine.tsx) that opens to the choice.
+ * An approved plan says how independent it is in one line (./CoworkIndependenceLine.tsx) that opens to the choice,
+ * and, when a steady AI step can run without AI, one quiet line more (./CoworkPlanOffer.tsx).
  *
  * A failure to read the plan costs this card and nothing else: the brief, the figures and the history still render.
  */
@@ -22,6 +23,7 @@ import CoworkPlanMake from './CoworkPlanMake';
 import CoworkPlanTry from './CoworkPlanTry';
 import CoworkPlanReplay from './CoworkPlanReplay';
 import CoworkIndependenceLine from './CoworkIndependenceLine';
+import CoworkPlanOffer from './CoworkPlanOffer';
 import CoworkRoutine from './CoworkRoutine';
 import CoworkRoutineCompare from './CoworkRoutineCompare';
 import { canReplay, canTry } from './coworkPlanModel';
@@ -188,7 +190,7 @@ export default function CoworkPlanPanel({ coworkId, fallback = null }: CoworkPla
             t={t}
             busy={busy}
             tryOut={tryOut}
-            independence={state.approved ? <CoworkIndependenceLine coworkId={coworkId} t={t} /> : null}
+            independence={state.approved ? <><CoworkIndependenceLine coworkId={coworkId} t={t} /><CoworkPlanOffer coworkId={coworkId} t={t} /></> : null}
             note={maker.making.summary || null}
             error={failureOf(approve.error || remove.error, t)}
             onApprove={(fingerprint) => { remove.reset(); approve.mutate(fingerprint); }}

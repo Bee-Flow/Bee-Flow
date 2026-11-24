@@ -185,6 +185,8 @@ export interface LoopInput {
     maxRounds: number;
     findingsOf: (def: Definition) => Promise<PlanFinding[]>;
     onProgress?: (progress: DraftProgress) => void;
+    /** The Cowork run whose cost this drafting is booked on (a repair: the run that set it off), so it counts on the item's budget. */
+    bookOn?: string | null;
 }
 
 /** The model and its tools, until the model stops, the rounds are used up or the caller gave up. */
@@ -200,7 +202,7 @@ async function draftLoop(input: LoopInput & { signal: AbortSignal }, deps: LoopD
         onProgress?.({ phase: 'thinking', round });
         const startedAt = deps.now();
         const response = await deps.chat(modelId, messages, { signal, maxTokens: 8192, temperature: 0.2, tools: menu.tools, toolChoice: 'auto', reasoningEffort: 'medium' });
-        deps.logUsage({ source: 'cowork_planner', userId: draft.userId, orgId: draft.orgId, model: modelId, usage: response.usage, startedAt, conversationId: draft.builderSessionId });
+        deps.logUsage({ source: 'cowork_planner', userId: draft.userId, orgId: draft.orgId, model: modelId, usage: response.usage, startedAt, conversationId: draft.builderSessionId, ...(input.bookOn ? { runId: input.bookOn } : {}) });
         if (response.content) summary = response.content;
         if (!response.toolCalls || response.toolCalls.length === 0) break;
 

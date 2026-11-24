@@ -28,6 +28,7 @@ import CoworkEditForm from './CoworkEditForm';
 import CoworkNeedsStrip, { needsCount } from './CoworkNeedsStrip';
 import type { NeedsEntry } from './CoworkNeedsStrip';
 import CoworkPlanPanel from './CoworkPlanPanel';
+import CoworkRepair from './CoworkRepair';
 import CoworkReviewQueue from './CoworkReviewQueue';
 import CoworkRunHistory from './CoworkRunHistory';
 import CoworkSettings from './CoworkSettings';
@@ -35,6 +36,8 @@ import CoworkStats from './CoworkStats';
 import CoworkTabs from './CoworkTabs';
 import { coworkStatus } from './coworkStatus';
 import { waitingRuns } from './coworkReview';
+import { openRepair } from './coworkProposalModel';
+import { useCoworkProposals } from '@/api/coworkProposals';
 import { useCoworkRunsQuery } from '@/api/queries/coworkReads';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CoworkAgent, CoworkItem, CoworkUpdate } from '@/api/cowork.types';
@@ -59,14 +62,16 @@ type ViewProps = Omit<CoworkDetailProps, 'onSave' | 'editing' | 'onCancelEdit' |
 
 /**
  * What waits for the owner, as entries of the "Needs you" strip. The runs come from the same query as the review
- * queue and the history (one request); a plan to approve or a repair that is ready becomes one more entry here.
+ * queue and the history (one request); a repair Cowork worked out is one more entry (./CoworkRepair.tsx).
  */
 function useNeedsEntries(item: CoworkItem, reloadKey: number | undefined): NeedsEntry[] {
     const runs = useCoworkRunsQuery(item.id, reloadKey).data?.runs;
+    const repair = openRepair(useCoworkProposals(item.id).data);
     const reviews = waitingRuns(runs).length;
-    return reviews > 0
-        ? [{ key: 'review', count: reviews, content: <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} runs={runs} /> }]
-        : [];
+    const entries: NeedsEntry[] = [];
+    if (reviews > 0) entries.push({ key: 'review', count: reviews, content: <CoworkReviewQueue coworkId={item.id} reloadKey={reloadKey} runs={runs} /> });
+    if (repair) entries.push({ key: 'repair', count: 1, content: <CoworkRepair coworkId={item.id} proposal={repair} /> });
+    return entries;
 }
 
 /** The pane while it is not being edited. Split from the editor so its reads stop while the form is open. */

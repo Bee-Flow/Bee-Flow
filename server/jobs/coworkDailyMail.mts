@@ -73,6 +73,7 @@ function sentenceOf(need: MailNeed): [string, string] {
     if (need.kind === 'decision') return ['cowork_needs.decision', 'A step waits for your decision.'];
     if (need.kind === 'review') return ['cowork_needs.review', 'The agent asks you to look at something.'];
     if (need.kind === 'sign_in') return ['cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'];
+    if (need.kind === 'repair') return ['cowork_proposals.need.mail', 'Cowork worked out a fix for its plan. It changes nothing until you approve it.'];
     if (need.plan === 'changed') return ['cowork_needs.plan.changed', 'The plan changed and may do more than you approved. Approve it again.'];
     if (need.plan === 'blocked') return ['cowork_needs.plan.blocked', 'The plan cannot run as it is.'];
     if (need.plan === 'gone') return ['cowork_needs.plan.gone', 'The automation of its plan is gone.'];

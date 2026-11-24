@@ -1850,6 +1850,9 @@
     "GET /api/cowork/:id/plan/try/:tryId/compare": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/proposals": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/receipts": {
       "gate": "auth"
     },
@@ -5301,7 +5304,16 @@
     "POST /api/cowork/:id/plan/replay": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/plan/restore": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/plan/try": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/proposals/:proposalId/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/proposals/:proposalId/dismiss": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/run-now": {

@@ -5,6 +5,8 @@
  *   decision   a plan run waits for the owner's decision (an approval step: decided under Approvals)
  *   review     an agent run asked the owner to look at something
  *   sign_in    an app needs its owner to sign in again; the item paused itself
+ *   repair     Cowork worked out a repair of a plan that kept failing, or of a goal that stayed under target
+ *              (usecases/coworkProposals.mts); it changes nothing until the owner approves it
  *   plan       a plan waits for its first approval, changed and may do more than approved, or cannot run as it is
  *
  * Nothing here reads what the runs read: titles, statuses and the review's own reason, never a mail or a result. The
@@ -17,7 +19,7 @@ import type { PlanState } from './coworkPlan.mts';
 const nodeRequire = createRequire(import.meta.url);
 const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value: T) => T };
 
-export type NeedKind = 'decision' | 'review' | 'sign_in' | 'plan';
+export type NeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'plan';
 export type PlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface Need {
@@ -32,7 +34,11 @@ export interface Need {
     reason: string | null;
     /** A plan: where it stands. */
     plan: PlanNeed | null;
+    /** A repair: the proposal, why it was made, and the step it is about as the approved plan names it. */
+    repair?: OpenRepair | null;
 }
+
+export interface OpenRepair { proposalId: string; reasonCode: string; stepTitle: string | null }
 
 interface Item { id: string; userId: string; title?: string | null; lastStatus?: string | null; isActive?: boolean; planAutomationId?: string | null; planId?: string | null; triggerKind?: string | null }
 interface WaitingRun { runId: string; itemId: string; title: string; status: string; since: string | null; reason: string | null }
@@ -41,6 +47,8 @@ export interface NeedsYouDeps {
     getSchedules: (userId: string) => Promise<Item[]>;
     listRunsWaitingForOwner: (userId: string, limit?: number) => Promise<WaitingRun[]>;
     planStateOf: (item: Item) => Promise<PlanState>;
+    /** The open repair of an item that fits its approved plan (usecases/coworkProposals.mts). */
+    openRepairOf?: (item: Item, approvedFingerprint: string | null) => Promise<OpenRepair | null>;
 }
 
 const defaults = (): NeedsYouDeps => {
@@ -49,6 +57,7 @@ const defaults = (): NeedsYouDeps => {
         getSchedules: (userId) => store().getSchedules(userId),
         listRunsWaitingForOwner: (userId, limit) => store().listRunsWaitingForOwner(userId, limit),
         planStateOf: (item) => (nodeRequire('./coworkPlan.mts') as { planStateOf: NeedsYouDeps['planStateOf'] }).planStateOf(item),
+        openRepairOf: (item, fingerprint) => (nodeRequire('./coworkProposals.mts') as typeof import('./coworkProposals.mts')).openRepairOf(item, fingerprint),
     };
 };
 
@@ -69,7 +78,22 @@ function planReasonOf(state: PlanState, need: PlanNeed): string | null {
     return null;
 }
 
-const ORDER: Readonly<Record<NeedKind, number>> = { decision: 0, review: 1, sign_in: 2, plan: 3 };
+const ORDER: Readonly<Record<NeedKind, number>> = { decision: 0, review: 1, sign_in: 2, repair: 3, plan: 4 };
+
+/** What an item's plan waits for: its approval, and a repair that is ready. One that cannot be read costs its own entry. */
+async function planNeedsOf(item: Item, deps: NeedsYouDeps): Promise<Need[]> {
+    const out: Need[] = [];
+    const title = item.title ?? '';
+    const state = await deps.planStateOf(item).catch((e: unknown) => fallback('usecases/coworkNeedsYou:planState', e, null));
+    const need = state ? planNeedOf(state) : null;
+    if (state && need) out.push({ kind: 'plan', itemId: item.id, title, runId: null, since: null, reason: planReasonOf(state, need), plan: need });
+    const fingerprint = state?.approved?.fingerprint ?? null;
+    const repair = fingerprint && deps.openRepairOf
+        ? await deps.openRepairOf(item, fingerprint).catch((e: unknown) => fallback('usecases/coworkNeedsYou:repair', e, null))
+        : null;
+    if (repair) out.push({ kind: 'repair', itemId: item.id, title, runId: null, since: null, reason: null, plan: null, repair });
+    return out;
+}
 
 /** The needs of one owner: the most urgent kind first, and within a kind the newest first. */
 export async function needsYou(userId: string, deps: NeedsYouDeps = defaults()): Promise<Need[]> {
@@ -82,11 +106,7 @@ export async function needsYou(userId: string, deps: NeedsYouDeps = defaults()):
         if (item.lastStatus === 'needs_reauth') {
             needs.push({ kind: 'sign_in', itemId: item.id, title: item.title ?? '', runId: null, since: null, reason: null, plan: null });
         }
-        if (!item.planAutomationId) continue;
-        // One plan that cannot be read costs its own entry, never the list.
-        const state = await deps.planStateOf(item).catch((e: unknown) => fallback('usecases/coworkNeedsYou:planState', e, null));
-        const need = state ? planNeedOf(state) : null;
-        if (state && need) needs.push({ kind: 'plan', itemId: item.id, title: item.title ?? '', runId: null, since: null, reason: planReasonOf(state, need), plan: need });
+        if (item.planAutomationId) needs.push(...await planNeedsOf(item, deps));
     }
     return needs.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || String(b.since ?? '').localeCompare(String(a.since ?? '')));
 }

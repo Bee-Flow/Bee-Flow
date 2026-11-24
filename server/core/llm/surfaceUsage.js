@@ -35,6 +35,7 @@ const { usageLogFields } = require('../providers/usageNormalizer');
  *   agentName?: string | null,
  *   agentType?: string | null,
  *   conversationId?: string | null,
+ *   runId?: string | null,
  * }} SurfaceCall
  */
 
@@ -62,6 +63,8 @@ function surfaceUsageEntry(call) {
         duration_ms: typeof call.startedAt === 'number' ? Math.max(0, Date.now() - call.startedAt) : null,
         source: call.source,
         conversation_id: text(call.conversationId),
+        // The run the call is booked on (a Cowork repair: the run that set it off), so it counts on that run's item.
+        ...(text(call.runId) ? { run_id: text(call.runId) } : {}),
     };
 }
 

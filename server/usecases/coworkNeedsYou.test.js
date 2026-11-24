@@ -54,3 +54,20 @@ test('a plan that cannot be read costs its own entry, never the list', async () 
     });
     assert.deepStrictEqual(list, []);
 });
+
+test('a repair that is ready is one entry, after sign-ins and before plans; only while it fits the approved plan', async () => {
+    const asked = [];
+    const repair = { proposalId: 'pr-1', reasonCode: 'step_failed_twice', stepTitle: 'Read the order table' };
+    const list = await needsYou('u1', {
+        getSchedules: async () => [
+            { id: 'b', userId: 'u1', title: 'Order radar', planAutomationId: 'auto-1' },
+            { id: 'c', userId: 'u1', title: 'Not approved yet', planAutomationId: 'auto-2' },
+        ],
+        listRunsWaitingForOwner: async () => [],
+        planStateOf: async (item) => (item.id === 'b' ? state({ approved, upToDate: true, widens: [] }) : state()),
+        openRepairOf: async (item, fingerprint) => { asked.push([item.id, fingerprint]); return repair; },
+    });
+    assert.deepStrictEqual(list.map((n) => [n.kind, n.itemId]), [['repair', 'b'], ['plan', 'c']]);
+    assert.deepStrictEqual(list[0].repair, repair);
+    assert.deepStrictEqual(asked, [['b', 'f']], 'an item without an approved plan has no repair to ask about');
+});

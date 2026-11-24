@@ -115,14 +115,14 @@ const eventOf = (v: ReplayVerdict): ReplayEvent => ({
 });
 
 /** Replay every past run in turn; one that fails is not replayable, and the replay goes on with the next. */
-async function replayAll(replayId: string, input: { item: Item; automation: SourceRow; past: PastRunRow[] }, deps: ReplayDeps): Promise<void> {
+async function replayAll(replayId: string, input: { item: Item; automation: SourceRow; past: PastRunRow[]; outputOnly: ReadonlySet<string> }, deps: ReplayDeps): Promise<void> {
     const runDeps: ReplayRunDeps = { ...deps.run, lookups: deps.lookups };
     try {
         for (const row of input.past) {
             const past = pastRunOf(row);
             let verdict: ReplayVerdict;
             try {
-                verdict = await replayPastRun({ item: input.item, automation: input.automation, past }, runDeps);
+                verdict = await replayPastRun({ item: input.item, automation: input.automation, past, outputOnly: input.outputOnly }, runDeps);
             } catch (e) {
                 log.warn(`[Cowork] replay ${replayId}: past run ${past.id} could not be replayed: ${(e as Error).message}`);
                 verdict = { pastRunId: past.id, startedAt: past.startedAt, verdict: 'not_replayable', reason: 'failed', missingSteps: 0, differingSteps: [] };
@@ -136,11 +136,27 @@ async function replayAll(replayId: string, input: { item: Item; automation: Sour
     }
 }
 
+/**
+ * What else a replay may be asked (usecases/coworkProposals.mts): replay `definition` instead of the plan automation
+ * of the moment, only on the past runs that followed the plan with fingerprint `onlyPlan`, and compare the steps in
+ * `outputOnly` on what they hand on (a step whose type changed on purpose reads differently by construction).
+ */
+export interface ReplayOptions { definition?: Definition; onlyPlan?: string; outputOnly?: readonly string[] }
+
+/** The newest past runs to replay, only those of one plan when asked. */
+async function pastRunsFor(item: Item, limit: number, onlyPlan: string | undefined, deps: ReplayDeps): Promise<PastRunRow[]> {
+    const wanted = Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit) || DEFAULT_LIMIT));
+    if (!onlyPlan) return deps.store.pastRunsOf(item.id, wanted);
+    const rows = await deps.store.pastRunsOf(item.id, MAX_LIMIT * 2);
+    return rows.filter((r) => !!r.planDefinition && planFingerprint(r.planDefinition as Definition) === onlyPlan).slice(0, wanted);
+}
+
 /** Start replaying the item's plan as it is now on its newest past runs. Answers once the replay exists. */
-export async function startReplay({ item, limit = DEFAULT_LIMIT }: { item: Item; limit?: number }, deps: ReplayDeps = replayDeps()): Promise<{ replayId: string; fingerprint: string; total: number }> {
-    const automation = await planAutomation(item, deps);
+export async function startReplay({ item, limit = DEFAULT_LIMIT, ...options }: { item: Item; limit?: number } & ReplayOptions, deps: ReplayDeps = replayDeps()): Promise<{ replayId: string; fingerprint: string; total: number }> {
+    const source = await planAutomation(item, deps);
+    const automation = options.definition ? { ...source, definition: options.definition } : source;
     await assertMayReplay(item, automation, deps);
-    const past = await deps.store.pastRunsOf(item.id, Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit) || DEFAULT_LIMIT)));
+    const past = await pastRunsFor(item, limit, options.onlyPlan, deps);
     if (past.length === 0) throw new HttpError(409, 'cowork_replay_refused', 'This item has no earlier runs to replay the plan on.');
     const fingerprint = planFingerprint(automation.definition as Definition);
     const replayId = randomUUID();
@@ -148,7 +164,7 @@ export async function startReplay({ item, limit = DEFAULT_LIMIT }: { item: Item;
     if (!begun) throw new HttpError(409, 'cowork_replay_running', 'A replay of this plan is already running. Wait until it is done.');
     // The plan that was read here is the one that is replayed, also when it changes while the replay runs.
     const frozen = { ...automation, definition: JSON.parse(JSON.stringify(automation.definition ?? null)) as unknown };
-    deps.inBackground(() => replayAll(replayId, { item, automation: frozen, past }, deps));
+    deps.inBackground(() => replayAll(replayId, { item, automation: frozen, past, outputOnly: new Set(options.outputOnly ?? []) }, deps));
     return { replayId, fingerprint, total: past.length };
 }
 

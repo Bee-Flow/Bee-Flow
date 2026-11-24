@@ -20,6 +20,8 @@
  *                             that measures it (./coworkGoalRoutes.js)
  *   GET, POST /desks, GET, DELETE /desks/:id, PUT /desks/:id/roles, /desks/:id/members..., GET /:id/desk → desks of
  *                             coworks of different owners that hand work to each other (./coworkDeskRoutes.js)
+ *   GET /:id/proposals, POST /:id/proposals/:proposalId/approve|dismiss, POST /:id/plan/restore → what Cowork proposes
+ *                             to change in a plan, and "Undo" (./coworkProposalRoutes.js)
  *
  * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
  * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
@@ -88,6 +90,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkTemplateRoutes').mountTemplateRoutes(router);
     require('./coworkGoalRoutes').mountGoalRoutes(router);
     require('./coworkDeskRoutes').mountDeskRoutes(router);
+    require('./coworkProposalRoutes').mountProposalRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

@@ -56,7 +56,8 @@ export interface PlannerDeps extends LoopDeps {
     mayAsk: MayAsk;
 }
 
-function defaultDeps(): PlannerDeps {
+/** The real wiring of the planner (the amend mode, ./coworkPlanAmend.mts, thinks the same way). */
+export function plannerDeps(): PlannerDeps {
     const flowlet = () => nodeRequire('../automation/flowletAgent.js') as { resolveLayerAgentModel: PlannerDeps['resolveModel'] };
     return {
         store: nodeRequire('../stores/coworkStore.js') as PlannerDeps['store'],
@@ -114,7 +115,7 @@ function briefOf(item: Item): string {
  * May a plan be made for this item now? Answers the brief and the model it would be made with; throws the reason when
  * not. The route asks this before it opens its stream, so a refusal is an ordinary answer with its status.
  */
-export async function readyToPlan({ item, userOrgId = null }: Pick<MakeInput, 'item' | 'userOrgId'>, deps: PlannerDeps = defaultDeps()): Promise<{ brief: string; modelId: string }> {
+export async function readyToPlan({ item, userOrgId = null }: Pick<MakeInput, 'item' | 'userOrgId'>, deps: PlannerDeps = plannerDeps()): Promise<{ brief: string; modelId: string }> {
     const brief = briefOf(item);
     const refusal = await deps.ownerRefusal({ userId: item.userId, organizationId: userOrgId });
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);
@@ -136,7 +137,7 @@ async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps): Pro
 }
 
 /** Make the plan of an item from its brief, store it as an automation of its owner's, and name it as the item's plan. */
-export async function makePlan(input: MakeInput, deps: PlannerDeps = defaultDeps()): Promise<MadePlan> {
+export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps()): Promise<MadePlan> {
     const { item } = input;
     const userOrgId = input.userOrgId ?? null;
     const { brief, modelId } = await readyToPlan({ item, userOrgId }, deps);
