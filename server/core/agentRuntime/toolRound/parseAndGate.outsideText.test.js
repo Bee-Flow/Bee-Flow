@@ -45,3 +45,14 @@ test('a run a new mail started, and a turn that is no Cowork run, are not held h
         assert.strictEqual(gateOfferedName(rc, { decideToolCall }, call('outlook_compose')).refusal, null, JSON.stringify(metadata && Object.keys(metadata)));
     }
 });
+
+test('a Cowork run keeps to its apps and its follow-up ceiling even for a name it was not offered (an uncurated agent)', () => {
+    const appOf = (/** @type {{ function?: { name?: unknown } | null } | null | undefined} */ t) => (String(t?.function?.name).startsWith('outlook_') ? 'outlook' : String(t?.function?.name).startsWith('gmail_') ? 'gmail' : null);
+    const onlyGmail = createRunActivity({ appCeiling: ['gmail'], toolAppOf: appOf });
+    const refused = gateOfferedName(round({ coworkRun: onlyGmail }).rc, { decideToolCall }, call('outlook_compose')).refusal;
+    assert.match(String(refused?.finalToolResult), /not open to this Cowork run/);
+    assert.strictEqual(gateOfferedName(round({ coworkRun: onlyGmail }).rc, { decideToolCall }, call('gmail_search')).refusal, null);
+    const followUp = createRunActivity({ toolCeiling: ['gmail_search'], toolAppOf: appOf });
+    assert.match(String(gateOfferedName(round({ coworkRun: followUp }).rc, { decideToolCall }, call('gmail_send')).refusal?.finalToolResult), /not open to this Cowork run/);
+    assert.strictEqual(gateOfferedName(round({ coworkRun: followUp }).rc, { decideToolCall }, call('cowork_request_review')).refusal, null, 'a follow-up may always ask again');
+});

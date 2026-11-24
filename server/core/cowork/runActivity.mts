@@ -200,6 +200,18 @@ export function applyToolCeiling<T extends ToolDef>(ctx: unknown, tools: T[]): T
     return within.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
 }
 
+export const CEILING_REFUSAL = 'This tool is not open to this Cowork run (its organisation does not let that app run while nobody watches, or a follow-up keeps to what its run was offered), so it was not called.';
+
+/**
+ * The same ceilings at the moment of a call, for a name the model calls without having been offered it (an agent
+ * without stored tool grants lets such a name through to the dispatcher). Null when the call may go on.
+ */
+export function ceilingRefusal(ctx: unknown, toolName: string): string | null {
+    if (!isRunActivity(ctx)) return null;
+    const tool = { function: { name: toolName } };
+    return applyToolCeiling(ctx, [tool]).length === 0 ? CEILING_REFUSAL : null;
+}
+
 /** Every skill id the run noted (static and activated), for the one lookup of their names. */
 export function skillIdsOf(ctx: CoworkRunContext): string[] {
     return [...new Set([...ctx.staticSkills, ...ctx.activatedSkills])];
