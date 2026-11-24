@@ -1609,6 +1609,57 @@ pre.hljs {
     .modal-slide-in-up { animation: none !important; }
 }
 
+/* ── Cowork motion (components/cowork/coworkMotion.ts) ─────────────────────
+   The whole motion vocabulary of the Cowork page: an element arriving, a row
+   opening in place, a value changing, an element leaving, and a spinner while
+   work is in progress. Small on purpose: nothing moves more than 4px, nothing
+   lasts over 200ms, and nothing loops but the spinner.
+
+   The resting state is clean. A text layer that keeps a `transform` loses its
+   sharp rendering on many Linux and Windows screens, so the arrival fills
+   BACKWARDS only: the `from` frame holds during a stagger delay, and once the
+   animation ends no transform is left on the element. The leaving element
+   animates opacity alone. Everything is off under reduced motion. */
+@keyframes coworkEnter {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes coworkSwap { from { opacity: 0; } to { opacity: 1; } }
+@keyframes coworkLeave { from { opacity: 1; } to { opacity: 0; } }
+
+.cowork-enter { animation: coworkEnter 160ms ease-out backwards; }
+.cowork-stagger-1 { animation-delay: 30ms; }
+.cowork-stagger-2 { animation-delay: 60ms; }
+.cowork-stagger-3 { animation-delay: 90ms; }
+.cowork-stagger-4 { animation-delay: 120ms; }
+.cowork-stagger-5 { animation-delay: 150ms; }
+.cowork-swap { animation: coworkSwap 120ms ease-out backwards; }
+.cowork-leave { animation: coworkLeave 120ms ease-in forwards; }
+.cowork-spin { animation: spin 800ms linear infinite; }
+
+/* A row or disclosure opening in place (<Expand open>): the wrapper is a
+   one-row grid whose row grows from 0fr to 1fr, so the height animates without
+   being measured. The one child clips while the row moves; once it is open and
+   still (data-open="settled"), it stops clipping, so a focus ring or a
+   dropdown inside is never cut off. An <Expand> that is open when it mounts
+   starts settled and does not animate. */
+@keyframes coworkExpand { from { grid-template-rows: 0fr; } to { grid-template-rows: 1fr; } }
+@keyframes coworkCollapse { from { grid-template-rows: 1fr; } to { grid-template-rows: 0fr; } }
+.cowork-expand { display: grid; grid-template-rows: 1fr; }
+.cowork-expand[data-open="true"] { animation: coworkExpand 180ms ease-out; }
+.cowork-expand[data-open="false"] { grid-template-rows: 0fr; animation: coworkCollapse 180ms ease-out; }
+.cowork-expand > * { min-height: 0; overflow: hidden; }
+.cowork-expand[data-open="settled"] > * { overflow: visible; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cowork-enter,
+    .cowork-swap,
+    .cowork-leave,
+    .cowork-spin,
+    .cowork-expand[data-open="true"],
+    .cowork-expand[data-open="false"] { animation: none; }
+}
+
 /* Sidebar slide-in animation (mobile overlay) */
 @keyframes sidebarSlideIn {
     from {
