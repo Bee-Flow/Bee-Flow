@@ -50,6 +50,8 @@ export const COWORK_PROPOSALS_DDL: readonly string[] = Object.freeze([
 ]);
 
 export type ProposalKind = 'repair' | 'fixed_step';
+/** What an attempt is claimed for: a proposal of a kind, or Cowork's own fix of a reference (core/cowork/repairs/autoResolve.mts). */
+export type AttemptKind = ProposalKind | 'auto_fix';
 export type ProposalStatus = 'open' | 'approved' | 'dismissed' | 'stale';
 /** Decided proposals kept per item. */
 export const KEEP = 20;
@@ -103,13 +105,16 @@ function proposalOf(r: Row): Proposal {
     };
 }
 
+/** The error class of a step whose own AI verdict was "failed". */
+export const AI_FAILED_CLASS = 'ai_verdict_failed';
+
 /** The last `n` finished runs of an item, newest first, with the steps that failed in them (step id and class only). */
 const LAST_RUN_FAILURES_SQL = `
     WITH last AS (
-        SELECT id, plan_id, automation_run_id, started_at FROM cowork_runs
+        SELECT id, plan_id, automation_run_id, started_at, outcome_json FROM cowork_runs
          WHERE schedule_id = $1 AND finished_at IS NOT NULL AND status <> 'waiting'
          ORDER BY started_at DESC, id DESC LIMIT $2)
-    SELECT last.id AS run_id, last.plan_id, last.started_at, s.step_id, s.error_class
+    SELECT last.id AS run_id, last.plan_id, last.started_at, last.outcome_json, s.step_id, s.error_class
       FROM last
       LEFT JOIN automation_runs a ON last.automation_run_id IS NOT NULL
            AND (a.id = last.automation_run_id OR a.root_run_id = last.automation_run_id)
@@ -135,6 +140,21 @@ export function makeCoworkProposals({ db = nodeRequire('../db.js') as Db, ready 
             );
             return proposalOf(rows[0] as Row);
         });
+    }
+
+    /**
+     * Keep the record of a fix Cowork applied by itself (core/cowork/repairs/autoResolve.mts): a repair that is approved
+     * as it is written, never open, so the item can show it with its Undo. Answers it, or null when nothing was written.
+     */
+    async function recordAutoFix(input: NewProposal): Promise<Proposal | null> {
+        await ready();
+        const row = await db.getOne(
+            `INSERT INTO cowork_proposals (id, schedule_id, user_id, kind, reason_code, step_id, step_title, base_fingerprint, definition_json, fingerprint, widens_json, replay_id, status, decided_at)
+             VALUES ($1, $2, $3, 'repair', $4, $5, $6, $7, $8, $9, '[]', $10, 'approved', NOW()) RETURNING *`,
+            [input.id, input.scheduleId, input.userId, input.reasonCode, input.stepId, input.stepTitle?.slice(0, TITLE_MAX) ?? null,
+                input.baseFingerprint, JSON.stringify(input.definition), input.fingerprint, input.replayId],
+        );
+        return row ? proposalOf(row) : null;
     }
 
     /** A proposal of this item, or null (another item's proposal answers as one that does not exist). */
@@ -179,7 +199,7 @@ export function makeCoworkProposals({ db = nodeRequire('../db.js') as Db, ready 
         return rows.length;
     }
 
-    return { createProposal, getProposal, listProposals, openProposalOf, decideProposal, markStale };
+    return { createProposal, recordAutoFix, getProposal, listProposals, openProposalOf, decideProposal, markStale };
 }
 
 /**
@@ -188,7 +208,7 @@ export function makeCoworkProposals({ db = nodeRequire('../db.js') as Db, ready 
  */
 export function makeCoworkPlanFacts({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     /** Claim the item's next attempt of this kind at `now`; false while the last one is younger than `windowMs`. */
-    async function claimAttempt(scheduleId: string, kind: ProposalKind, now: Date, windowMs: number): Promise<boolean> {
+    async function claimAttempt(scheduleId: string, kind: AttemptKind, now: Date, windowMs: number): Promise<boolean> {
         await ready();
         const row = await db.getOne(
             `INSERT INTO cowork_proposal_attempts (schedule_id, kind, attempted_at) VALUES ($1, $2, $3)
@@ -209,6 +229,10 @@ export function makeCoworkPlanFacts({ db = nodeRequire('../db.js') as Db, ready 
             const run = byRun.get(runId) ?? { runId, planId: text(r.plan_id), failed: [] };
             const stepId = text(r.step_id);
             if (stepId && !run.failed.some((f) => f.stepId === stepId)) run.failed.push({ stepId, errorClass: text(r.error_class) });
+            // A step whose AI said it failed (core/cowork/runOutcome.mts) failed that run too: the step and a class, no reason.
+            const judged = parsed(r.outcome_json) as { kind?: unknown; stepId?: unknown } | null;
+            const aiStep = judged?.kind === 'ai_failed' ? text(judged.stepId) : null;
+            if (aiStep && !run.failed.some((f) => f.stepId === aiStep)) run.failed.push({ stepId: aiStep, errorClass: AI_FAILED_CLASS });
             byRun.set(runId, run);
         }
         return [...byRun.values()];

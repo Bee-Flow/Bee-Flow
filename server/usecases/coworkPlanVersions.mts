@@ -34,7 +34,7 @@ export interface VersionDeps {
     /** Write a definition into an automation as its owner (stores/automationStore updateAutomation). */
     writeDefinition: (automationId: string, definition: unknown, userId: string) => Promise<unknown>;
     /** ./coworkPlan.mts approvePlan, with all its checks. */
-    approve: (input: { item: Item; fingerprint: string }) => Promise<PlanState>;
+    approve: (input: { item: Item; fingerprint: string; approvedBy?: string }) => Promise<PlanState>;
 }
 
 export function versionDeps(): VersionDeps {
@@ -58,7 +58,7 @@ export function versionDeps(): VersionDeps {
  * Write `definition` into the item's plan automation and approve it there. Refused (409) when the item has no plan
  * automation of its owner's, or when that automation holds changes that were never approved.
  */
-export async function approveDefinition({ item, definition }: { item: Item; definition: Definition }, deps: VersionDeps = versionDeps()): Promise<PlanState> {
+export async function approveDefinition({ item, definition, approvedBy }: { item: Item; definition: Definition; approvedBy?: string }, deps: VersionDeps = versionDeps()): Promise<PlanState> {
     const automation = await planSourceOf(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to change.');
     const approved = await deps.store.getApprovedPlan(item.id);
@@ -68,7 +68,7 @@ export async function approveDefinition({ item, definition }: { item: Item; defi
     }
     await deps.writeDefinition(automation.id, definition, item.userId);
     try {
-        return await deps.approve({ item, fingerprint: planFingerprint(definition) });
+        return await deps.approve({ item, fingerprint: planFingerprint(definition), ...(approvedBy ? { approvedBy } : {}) });
     } catch (e) {
         // A refusal changes nothing: the automation goes back to the plan that is approved.
         await deps.writeDefinition(automation.id, before, item.userId).catch((err: unknown) => fallback('usecases/coworkPlanVersions:restore', err, null));

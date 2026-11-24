@@ -11,6 +11,9 @@
  *                   limit). At it, runs do not start until the next month (core/cowork/orgBudget.mts).
  *   habitsAllowed   whether people may switch on "it notices what you repeat" for themselves
  *                   (core/cowork/habits/habitSignals.mts); true unless an administrator switched it off.
+ *   autoFix         whether Cowork may fix a plan's broken reference between its own steps by itself, approved as a
+ *                   new version that its owner undoes in one click (core/cowork/repairs/autoResolve.mts, decision
+ *                   0050); true unless an administrator switched it off. Read-only Cowork never fixes anything.
  *
  * Stored under `org_cowork_policy_<orgId>` in configStore; nothing stored is the open policy. Reading fails CLOSED:
  * a policy that cannot be read is the strictest one (read-only), so an administrator's switch never stops counting
@@ -32,12 +35,14 @@ export interface CoworkPolicy {
     unattendedApps: string[] | null;
     monthlyBudget: number | null;
     habitsAllowed: boolean;
+    /** Absent in a policy built by hand is "on", as nothing stored is. */
+    autoFix?: boolean;
     /** The policy could not be read: it is the strictest one, and says so. */
     unreadable?: boolean;
 }
 
-export const OPEN_POLICY: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
-const STRICTEST: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'asks_everything', readOnly: true, unattendedApps: [], monthlyBudget: null, habitsAllowed: false, unreadable: true });
+export const OPEN_POLICY: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null, habitsAllowed: true, autoFix: true });
+const STRICTEST: Readonly<CoworkPolicy> = Object.freeze({ ceiling: 'asks_everything', readOnly: true, unattendedApps: [], monthlyBudget: null, habitsAllowed: false, autoFix: false, unreadable: true });
 
 const keyOf = (orgId: string): string => `org_cowork_policy_${orgId}`;
 const isLevel = (v: unknown): v is Level => typeof v === 'string' && (ORDER as readonly string[]).includes(v);
@@ -52,7 +57,7 @@ export function normalizePolicy(stored: unknown): CoworkPolicy {
     const apps = Array.isArray(s.unattendedApps)
         ? [...new Set(s.unattendedApps.filter((a): a is string => typeof a === 'string' && a.trim() !== '').map((a) => a.trim()))].sort()
         : null;
-    return { ceiling: isLevel(s.ceiling) ? s.ceiling : 'on_its_own', readOnly: s.readOnly === true, unattendedApps: apps, monthlyBudget: budgetOf(s.monthlyBudget), habitsAllowed: s.habitsAllowed !== false };
+    return { ceiling: isLevel(s.ceiling) ? s.ceiling : 'on_its_own', readOnly: s.readOnly === true, unattendedApps: apps, monthlyBudget: budgetOf(s.monthlyBudget), habitsAllowed: s.habitsAllowed !== false, autoFix: s.autoFix !== false };
 }
 
 /** The level a run uses under a ceiling: the lower of the two. */

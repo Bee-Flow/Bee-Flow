@@ -84,6 +84,11 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             finalResponse = `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd. Open de chat om de uitvoering te bekijken.)_`;
         }
 
+        // The AI said the run failed (`cowork_report_outcome`, ./outcomeTool.mts): a failed run with its reason. It can
+        // only make the run worse; `done` never overrides anything.
+        const aiFailed = require('./outcomeTool.mts').failureOf(coworkRun);
+        if (aiFailed) throw aiFailed;
+
         const truncated = finalResponse.length > 50000
             ? finalResponse.substring(0, 50000) + '\n\n… (truncated)'
             : finalResponse;
@@ -109,7 +114,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             await store.updateTask(task.id, { isActive: false });
             log.info(`[AITaskRunner] Schedule ${task.id} completed (one-time, ${Date.now() - startTime}ms)`);
         }
-        await store.markCompleted(task.id, truncated, await runCloseOf(task, run, coworkRun, trigger, services.skillNames));
+        await store.markCompleted(task.id, truncated, { ...await runCloseOf(task, run, coworkRun, trigger, services.skillNames), ...require('./outcomeTool.mts').outcomeClose(coworkRun) });
         await storeScheduleCoverage(task, agent, truncated);
 
         // The notification opens the run in Cowork, where its conversation, its activity and a review live.
@@ -147,7 +152,7 @@ async function failAgentRun(task, reason, caught, { run, coworkRun, trigger, man
     }
     // An event run is never a one-off: a failure must not take the trigger off (failRun deactivates a failed one-off).
     const close = await runCloseOf(task, run, coworkRun, trigger, services.skillNames).catch((e) => fallback('core/cowork/agentScheduleRun:failAgentRun#2', e, { runId: run.runId }));
-    await failRun(task, err, { manual: manual || !!trigger, store, close: { ...close, review: null } });
+    await failRun(task, err, { manual: manual || !!trigger, store, close: { ...close, review: null, ...require('./outcomeTool.mts').outcomeClose(coworkRun, err) } });
 }
 
 /**

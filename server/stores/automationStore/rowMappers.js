@@ -217,6 +217,9 @@ function rowToRunStep(r) {
         bindingWarnings: fromJsonb(r.binding_warnings) ?? null,
         // The user an integration step ran as (an id, nothing else); null elsewhere.
         identityUserId: r.identity_user_id ?? null,
+        // An AI step's verdict on its own work, when Cowork asked for one
+        // (core/automationRunner/aiStepVerdict.mts). Null elsewhere.
+        verdict: fromJsonb(r.verdict) ?? null,
     };
     // A failed row from before the runner wrote error_info still gets the
     // plain-language card, classified from its message, its step type and its

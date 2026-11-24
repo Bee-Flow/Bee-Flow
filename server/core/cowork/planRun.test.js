@@ -54,7 +54,9 @@ test('it runs the approved copy, live, as the owner: never the automation\'s own
     assert.strictEqual(h.seen.executed.length, 1);
     const { automation, opts } = h.seen.executed[0];
     const { notificationSettings, ...steps } = automation.definition;
-    assert.deepStrictEqual(steps, supplierRadar(), 'the plan as approved');
+    // Its AI steps are asked for their own verdict (planRunCopy.mts); nothing else differs from the plan as approved.
+    const asApproved = supplierRadar();
+    assert.deepStrictEqual(steps, { ...asApproved, steps: asApproved.steps.map((st) => (st.type === 'ai_step' ? { ...st, reportOutcome: true } : st)) }, 'the plan as approved');
     assert.strictEqual(notificationSettings, OWNER_ONLY_NOTIFICATIONS);
     assert.deepStrictEqual([automation.id, automation.userId, automation.version], ['auto-1', 'u1', 7], 'the automation lends its identity');
     assert.deepStrictEqual([opts.triggerKind, opts.mode, opts.startedByUserId], ['manual', 'live', 'u1']);

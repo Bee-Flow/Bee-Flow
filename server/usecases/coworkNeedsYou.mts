@@ -7,6 +7,9 @@
  *   sign_in    an app needs its owner to sign in again; the item paused itself
  *   repair     Cowork worked out a repair of a plan that kept failing, or of a goal that stayed under target
  *              (usecases/coworkProposals.mts); it changes nothing until the owner approves it
+ *   incomplete the item's last run did not do its work: a step that works through a list found none
+ *              (core/cowork/runOutcome.mts), and no fix was applied by itself (core/cowork/repairs/autoResolve.mts)
+ *   ai_failed  the item's last run failed because its own AI said it could not do the work (decision 0050)
  *   plan       a plan waits for its first approval, changed and may do more than approved, or cannot run as it is
  *
  * Nothing here reads what the runs read: titles, statuses and the review's own reason, never a mail or a result. The
@@ -19,7 +22,7 @@ import type { PlanState } from './coworkPlan.mts';
 const nodeRequire = createRequire(import.meta.url);
 const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value: T) => T };
 
-export type NeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'plan';
+export type NeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'incomplete' | 'ai_failed' | 'plan';
 export type PlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface Need {
@@ -49,7 +52,11 @@ export interface NeedsYouDeps {
     planStateOf: (item: Item) => Promise<PlanState>;
     /** The open repair of an item that fits its approved plan (usecases/coworkProposals.mts). */
     openRepairOf?: (item: Item, approvedFingerprint: string | null) => Promise<OpenRepair | null>;
+    /** The owner's items whose last run did not do its work (stores/coworkRunOutcomes.mts). */
+    lastRunProblems?: (userId: string) => Promise<RunProblem[]>;
 }
+
+interface RunProblem { itemId: string; runId: string; kind: 'incomplete' | 'ai_failed'; since: string | null }
 
 const defaults = (): NeedsYouDeps => {
     const store = () => nodeRequire('../stores/coworkStore.js') as Pick<NeedsYouDeps, 'getSchedules' | 'listRunsWaitingForOwner'>;
@@ -58,6 +65,7 @@ const defaults = (): NeedsYouDeps => {
         listRunsWaitingForOwner: (userId, limit) => store().listRunsWaitingForOwner(userId, limit),
         planStateOf: (item) => (nodeRequire('./coworkPlan.mts') as { planStateOf: NeedsYouDeps['planStateOf'] }).planStateOf(item),
         openRepairOf: (item, fingerprint) => (nodeRequire('./coworkProposals.mts') as typeof import('./coworkProposals.mts')).openRepairOf(item, fingerprint),
+        lastRunProblems: (userId) => (nodeRequire('../stores/coworkRunOutcomes.mts') as typeof import('../stores/coworkRunOutcomes.mts')).coworkRunOutcomes().lastRunProblems(userId),
     };
 };
 
@@ -78,7 +86,18 @@ function planReasonOf(state: PlanState, need: PlanNeed): string | null {
     return null;
 }
 
-const ORDER: Readonly<Record<NeedKind, number>> = { decision: 0, review: 1, sign_in: 2, repair: 3, plan: 4 };
+const ORDER: Readonly<Record<NeedKind, number>> = { decision: 0, review: 1, sign_in: 2, repair: 3, incomplete: 4, ai_failed: 4, plan: 5 };
+
+/** The runs that did not do their work, as needs; an item with a repair ready says so through the repair instead. */
+async function problemNeeds(userId: string, items: Item[], needs: Need[], deps: NeedsYouDeps): Promise<Need[]> {
+    if (!deps.lastRunProblems) return [];
+    const problems = await deps.lastRunProblems(userId).catch((e: unknown) => fallback('usecases/coworkNeedsYou:problems', e, [] as RunProblem[]));
+    const titles = new Map(items.map((i) => [i.id, i.title ?? '']));
+    const repaired = new Set(needs.filter((n) => n.kind === 'repair').map((n) => n.itemId));
+    return problems
+        .filter((p) => titles.has(p.itemId) && !repaired.has(p.itemId))
+        .map((p) => ({ kind: p.kind, itemId: p.itemId, title: titles.get(p.itemId) ?? '', runId: p.runId, since: p.since, reason: null, plan: null }));
+}
 
 /** What an item's plan waits for: its approval, and a repair that is ready. One that cannot be read costs its own entry. */
 async function planNeedsOf(item: Item, deps: NeedsYouDeps): Promise<Need[]> {
@@ -108,5 +127,6 @@ export async function needsYou(userId: string, deps: NeedsYouDeps = defaults()):
         }
         if (item.planAutomationId) needs.push(...await planNeedsOf(item, deps));
     }
+    needs.push(...await problemNeeds(userId, items, needs, deps));
     return needs.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || String(b.since ?? '').localeCompare(String(a.since ?? '')));
 }

@@ -41,6 +41,8 @@ import { unattendedRefusal } from './planPolicy.mts';
 import { runMaxMs } from './runDeadline.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from './plan/planSource.mts';
 import { claimAttempt, type ClaimStore } from './runClaim.mts';
+import { aiFailedText, factsOf, incompleteText, outcomeOfRun, type OutcomeFacts, type RunOutcome } from './runOutcome.mts';
+import { recordedStepsOf, type RecordingDeps } from './replay/recordingOf.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../telemetry/log') as { info: (msg: string) => void; error: (...a: unknown[]) => void };
@@ -65,12 +67,12 @@ export interface AutomationRunRow { id?: string; status?: string; summary?: stri
 export interface PlanRunStore extends ClaimStore {
     getApprovedPlan: (scheduleId: string) => Promise<ApprovedPlan | null>;
     linkPlanRun: (runId: string | null, link: { planId: string; automationRunId?: string | null; independence?: string | null; trustedSteps?: string[] | null }) => Promise<unknown>;
-    markCompleted: (id: string, result: string, close?: { runId?: string | null; waiting?: boolean }) => Promise<unknown>;
+    markCompleted: (id: string, result: string, close?: { runId?: string | null; waiting?: boolean; outcome?: OutcomeFacts | null }) => Promise<unknown>;
 }
 
 export interface PlanRunDeps {
     /** The failure path both other run modes use (core/aiTaskRunner.js failRun): mark, move on, notify. */
-    failRun: (task: PlanTask, err: Error, opts: { manual: boolean; store: PlanRunStore; close?: { runId?: string | null } }) => Promise<unknown>;
+    failRun: (task: PlanTask, err: Error, opts: { manual: boolean; store: PlanRunStore; close?: { runId?: string | null; outcome?: OutcomeFacts | null } }) => Promise<unknown>;
     /** Move the schedule on after a run that finished (core/aiTaskRunner.js advanceAfterTaskRun). */
     advance: (task: PlanTask, opts: { manual: boolean; store: PlanRunStore; startTime: number }) => Promise<unknown>;
     NOTIFICATION: { category: string; link: string | null; prefix: string };
@@ -90,10 +92,22 @@ export interface PlanRunDeps {
     approverOf?: (scheduleId: string) => Promise<string | QuestionRoute | null>;
     /** When the item's last good run started (./sinceLastTime.mts). */
     since?: SinceDeps;
+    /** The recorded steps of an automation run (its whole journey), to read how it really ended (./runOutcome.mts). */
+    recording?: RecordingDeps;
 }
 
 /** An event a plan starts on (./eventRun.mts): the run it claimed, and its data (outside text). */
 export interface PlanEvent { runId?: string | null; plan?: boolean; payload?: Record<string, unknown> }
+
+/** A run an AI step of the plan said it failed (./runOutcome.mts): the AI's reason, and the facts the row keeps. */
+export class AiVerdictError extends Error {
+    readonly outcome: OutcomeFacts;
+    constructor(message: string, outcome: OutcomeFacts) {
+        super(message);
+        this.name = 'AiVerdictError';
+        this.outcome = outcome;
+    }
+}
 
 /** A plan that may not run as it is: the owner has to look at it. */
 export class PlanRefusedError extends Error {
@@ -164,7 +178,29 @@ function defaults(deps: PlanRunDeps) {
         trustOf: deps.trustOf ?? ((id: string) => (nodeRequire('../../stores/coworkTrust.mts') as typeof import('../../stores/coworkTrust.mts')).coworkTrust().listTrust(id)),
         approverOf: deps.approverOf ?? ((id: string) => questionRouteOf(id)),
         since: deps.since,
+        // A runner handed in (a test's) has no history of its own unless it hands that in too.
+        recording: deps.recording ?? (deps.executeAutomation ? null : recordingDeps()),
     };
+}
+
+function recordingDeps(): RecordingDeps {
+    const store = () => nodeRequire('../../stores/automationStore') as RecordingDeps;
+    return {
+        getRun: (id) => store().getRun(id),
+        getRunStepsForChain: (id) => store().getRunStepsForChain(id),
+        getRunFullOutput: (runId, stepId, attempts) => store().getRunFullOutput(runId, stepId, attempts),
+    };
+}
+
+/** How a run the runner called a success really ended (./runOutcome.mts); a success when it cannot be read. */
+async function judged(row: AutomationRunRow | null | undefined, definition: Definition, d: ReturnType<typeof defaults>): Promise<RunOutcome> {
+    if (!row?.id || !d.recording) return { kind: 'success', verdict: null };
+    try {
+        return outcomeOfRun(definition, await recordedStepsOf(row.id, d.recording), d.lookups);
+    } catch (e) {
+        log.error(`[AITaskRunner] could not read how plan run ${row.id} ended: ${(e as Error).message}`);
+        return { kind: 'success', verdict: null };
+    }
 }
 
 /**
@@ -242,17 +278,26 @@ export async function executePlanRun(
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),
         });
-        const { text, paused } = outcomeOf(row);
+        const ended = outcomeOf(row);
+        // The runner's success is not yet Cowork's: a list step that found no list did not do its work, and an AI
+        // step may say it failed (./runOutcome.mts). Either only makes the run worse, never better.
+        const outcome = ended.paused ? null : await judged(row, definition, d);
+        if (outcome?.kind === 'ai_failed') throw new AiVerdictError(aiFailedText(outcome.reason), { kind: 'ai_failed', stepId: outcome.stepId });
+        const incomplete = outcome?.kind === 'incomplete';
+        const text = incomplete ? incompleteText(outcome.unresolved) : ended.text;
         // The schedule moves on before the run closes: once the item stops saying 'running', a tick must not find
         // this moment still due. A run that waits for a decision closes as 'waiting' (./planRunFollowUp.mts).
         await deps.advance(task, { manual: byHand, store, startTime });
-        await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: paused });
+        const facts = outcome ? factsOf(outcome) : null;
+        await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: ended.paused, ...(facts ? { outcome: facts } : {}) });
         // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
-        // before its result step, is announced here.
-        if (paused || planViewOf(definition, d.lookups).makeUp.deliver === 0) await announce(task, text, deps, d.createNotification);
+        // before its result step, is announced here. So is a run that did not do its work: its own result said
+        // nothing was there, and the owner must not take that for the truth.
+        if (incomplete || ended.paused || planViewOf(definition, d.lookups).makeUp.deliver === 0) await announce(task, text, deps, d.createNotification);
     } catch (caught) {
         const err = caught instanceof Error ? caught : new Error(String(caught));
         log.error(`[AITaskRunner] Plan run of ${task.id} failed:`, err.message);
-        await deps.failRun(task, err, { manual: byHand, store, close: { runId: attempt.runId } });
+        const outcome = err instanceof AiVerdictError ? { outcome: err.outcome } : {};
+        await deps.failRun(task, err, { manual: byHand, store, close: { runId: attempt.runId, ...outcome } });
     }
 }

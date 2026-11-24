@@ -24,6 +24,8 @@ const nodeRequire = createRequire(import.meta.url);
 
 /** The internal tool an agent in a Cowork run calls when a person has to decide (./reviewTool.mts). */
 export const REVIEW_TOOL_NAME = 'cowork_request_review';
+/** The internal tool the AI of a Cowork run gives its own verdict with (./outcomeTool.mts). */
+export const OUTCOME_TOOL_NAME = 'cowork_report_outcome';
 
 /** The refusal codes a stored activity may carry; anything else is stored as 'other'. */
 export const REFUSAL_REASONS: ReadonlySet<string> = new Set([
@@ -48,6 +50,8 @@ export interface CoworkRunContext {
     activatedSkills: Set<string>;
     offered: Set<string>;
     review: ReviewRequest | null;
+    /** The AI's own verdict on the run (`cowork_report_outcome`, ./outcomeTool.mts), when it gave one. */
+    outcome?: { outcome: 'done' | 'nothing_to_do' | 'failed'; reason: string | null } | null;
     appOf: (toolName: string) => string | null;
     /** Whether the run has read text written outside the workspace (./outsideTextGuard.mts). */
     outsideText: OutsideTextMark;
@@ -102,6 +106,7 @@ export function createRunActivity({ toolCeiling = null, appCeiling = null, toolA
         activatedSkills: new Set(),
         offered: new Set(),
         review: null,
+        outcome: null,
         appOf,
         outsideText: { ...createOutsideTextMark(), seen: startsWithOutsideText },
     };
@@ -196,7 +201,7 @@ export function applyToolCeiling<T extends ToolDef>(ctx: unknown, tools: T[]): T
     if (!isRunActivity(ctx) || !Array.isArray(tools)) return tools;
     const within = withinApps(tools, ctx.appCeiling, ctx.toolAppOf);
     if (!ctx.toolCeiling) return within;
-    const allowed = new Set([...ctx.toolCeiling, REVIEW_TOOL_NAME]);
+    const allowed = new Set([...ctx.toolCeiling, REVIEW_TOOL_NAME, OUTCOME_TOOL_NAME]);
     return within.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
 }
 

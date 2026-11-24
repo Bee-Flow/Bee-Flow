@@ -13,7 +13,9 @@
  * Its run time is held to Cowork's too (COWORK_RUN_MAX_MINUTES, ../runDeadline.mts): a run policy that allows longer is
  * cut to that, so the engine stops the run before Cowork's reaper would take it for one the server lost.
  *
- * Its scripts run outside the API process (withIsolatedScripts).
+ * Its scripts run outside the API process (withIsolatedScripts), and its AI steps end with their own verdict on their
+ * work (`reportOutcome`, core/automationRunner/aiStepVerdict.mts), which Cowork reads after the run
+ * (../runOutcome.mts): a verdict can only make the run worse, never better (decision 0050).
  *
  * The approved plan and its fingerprint are not touched: this is what the runner is handed, derived at run time.
  */
@@ -52,15 +54,19 @@ function heldPolicy(policy: unknown, maxMinutes: number): unknown {
 
 type StepLike = Record<string, unknown>;
 
-/** Steps with every script marked to run outside the API process; loop bodies and branches included. */
-function isolatedSteps(steps: unknown): unknown {
+/**
+ * Steps with every script marked to run outside the API process, and, for a run (`verdicts`), every AI step asked for
+ * its verdict; loop bodies and branches included.
+ */
+function isolatedSteps(steps: unknown, verdicts = false): unknown {
     if (!Array.isArray(steps)) return steps;
     return steps.map((raw): unknown => {
         if (!raw || typeof raw !== 'object') return raw;
         const step = { ...(raw as StepLike) };
         if (step.type === 'code') step.isolated = true;
-        if (Array.isArray(step.body)) step.body = isolatedSteps(step.body);
-        if (Array.isArray(step.branches)) step.branches = (step.branches as unknown[]).map((b) => (b && typeof b === 'object' && Array.isArray((b as StepLike).steps) ? { ...(b as StepLike), steps: isolatedSteps((b as StepLike).steps) } : b));
+        if (verdicts && step.type === 'ai_step') step.reportOutcome = true;
+        if (Array.isArray(step.body)) step.body = isolatedSteps(step.body, verdicts);
+        if (Array.isArray(step.branches)) step.branches = (step.branches as unknown[]).map((b) => (b && typeof b === 'object' && Array.isArray((b as StepLike).steps) ? { ...(b as StepLike), steps: isolatedSteps((b as StepLike).steps, verdicts) } : b));
         return step;
     });
 }
@@ -76,7 +82,7 @@ export function withIsolatedScripts(definition: Definition): Definition {
 
 /** The definition a plan run executes. */
 export function runCopyOf(definition: Definition, maxMinutes: number = runMaxMinutes()): Definition {
-    const copy: Definition = { ...withIsolatedScripts(definition), notificationSettings: OWNER_ONLY_NOTIFICATIONS };
+    const copy: Definition = { ...definition, steps: isolatedSteps(definition.steps, true), notificationSettings: OWNER_ONLY_NOTIFICATIONS };
     if (definition.runPolicy !== undefined) copy.runPolicy = heldPolicy(definition.runPolicy, maxMinutes);
     return copy;
 }

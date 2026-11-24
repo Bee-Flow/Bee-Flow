@@ -6,7 +6,8 @@
  *                               so the app picker offers only apps that may run while nobody watches
  *   GET /policy/:orgId        → the policy (members of the organisation)
  *   PUT /policy/:orgId        → change it: the ceiling on independence, read-only, the apps that may run unattended,
- *                               the monthly AI budget of all its coworks
+ *                               the monthly AI budget of all its coworks, whether Cowork may fix a broken
+ *                               reference by itself (`autoFix`)
  *                               (organisation administrators; recorded as `cowork_policy.set`)
  *   GET /policy/:orgId/audit  → the trail of every Cowork change in the organisation, as CSV (administrators).
  *                               Ids, actions, times and the names of the fields that changed: never what the work says.
@@ -33,6 +34,8 @@ const PolicyBody = z.object({
     unattendedApps: z.array(z.string({ error: APPS_TEXT }).min(1, { error: APPS_TEXT }).max(100, { error: APPS_TEXT }), { error: APPS_TEXT }).max(200, { error: APPS_TEXT }).nullable().optional(),
     monthlyBudget: z.number({ error: BUDGET_TEXT }).positive({ error: BUDGET_TEXT }).max(10_000_000, { error: BUDGET_TEXT }).nullable().optional(),
     habitsAllowed: flag('habitsAllowed is true or false.').optional(),
+    // Cowork may fix a broken reference between a plan's own steps by itself (core/cowork/repairs/autoResolve.mts).
+    autoFix: flag('autoFix is true or false.').optional(),
 }).strict();
 
 /** Members read; a platform admin (null) reads every organisation. @param {import('express').Request<{ orgId: string }>} req */

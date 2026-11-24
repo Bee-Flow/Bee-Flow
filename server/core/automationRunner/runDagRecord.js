@@ -201,6 +201,8 @@ async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runSt
         branchIndex,
         // Whose connection an integration step used (a user id, nothing else).
         identityUserId: step.type === 'integration_action' ? toolIdentity(ctx).userId || null : null,
+        // An AI step's own verdict on its work, when it was asked for one (./aiStepVerdict.mts).
+        verdict: dispatched.verdict ?? null,
         piiSummary,
         secretValues: secretValuesFor(runState),
         publicValues: publicValuesFor(runState),
@@ -312,7 +314,7 @@ module.exports = { dispatchLiveStep };
 
 /**
  * What dispatchStep returns for a step that ran.
- * @typedef {{ output?: StepOutput | null, skippedReason?: string, dryRunSynthesised?: boolean, dryRunFallback?: unknown,
+ * @typedef {{ output?: StepOutput | null, skippedReason?: string, dryRunSynthesised?: boolean, dryRunFallback?: unknown, verdict?: unknown,
  *   attempt?: number, attemptStartedAt?: string, startedAt?: string, inputSnapshot?: unknown, piiSummary?: unknown, imageInput?: unknown,
  *   bindingWarnings?: unknown[], toolsWithheld?: string[], toolsWithheldReasons?: Record<string, string> }} Dispatched
  */

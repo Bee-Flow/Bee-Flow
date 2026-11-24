@@ -265,6 +265,9 @@ function startSupportAndSyncJobs() {
     try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
     // A plan that keeps failing, or a goal that stays under target, gets a repair proposed (never applied); the work is in usecases/.
     try { require('../core/cowork/repairs/repairTriggers.mts').start((item, trigger) => require('../usecases/coworkProposals.mts').proposeRepair(item, trigger)); } catch (err) { log.warn('[Server] Cowork repairs start failed:', err.message); }
+    // A run that did not do its work because a step read a list that is not there gets that reference fixed by itself,
+    // when the fix reaches exactly what the plan reaches and a replay proves it (decision 0050); the work is in usecases/.
+    try { require('../core/cowork/repairs/autoResolve.mts').start((item, run, fact) => require('../usecases/coworkAutoResolve.mts').autoResolve(item, run, fact)); } catch (err) { log.warn('[Server] Cowork auto-fix start failed:', err.message); }
     // Weekly: a steady AI step is offered as a fixed one when a replay proves it (core/cowork/cheaper/stableSteps.mts).
     try { require('../core/cowork/cheaper/stableSteps.mts').start((item, step) => require('../usecases/coworkProposals.mts').offerFixedStep(item, step)); } catch (err) { log.warn('[Server] Cowork steady-step offers start failed:', err.message); }
     // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.

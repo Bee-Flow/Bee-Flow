@@ -34,6 +34,11 @@ export interface ReceiptPayload {
     independence: string | null;
     trustedSteps: number;
     did: DidLine[];
+    /**
+     * How the run really ended, as a code (core/cowork/runOutcome.mts): done, nothing_to_do, incomplete, ai_failed;
+     * null when nothing was judged. Never the AI's reason: no text in receipts.
+     */
+    outcome?: string | null;
 }
 
 export interface ReceiptInput {
@@ -138,5 +143,6 @@ export function receiptFacts({ run, plan, steps, lookups }: ReceiptInput): Recei
         independence: text(run.independence, 40),
         trustedSteps: run.trustedSteps.length,
         did,
+        ...(run.outcome ? { outcome: text(run.outcome, 40) } : {}),
     };
 }

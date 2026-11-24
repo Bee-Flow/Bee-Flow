@@ -28,6 +28,7 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
+import { refFindings } from '../core/cowork/plan/planRefs.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -102,7 +103,8 @@ export async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'looku
         view: planViewOf(definition, deps.lookups),
         permissions,
         // Checked as the item starts: an event's data is outside text (core/cowork/startKinds.mts).
-        findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
+        // A list a step works through that the earlier step's described output does not have (planRefs.mts).
+        findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...refFindings(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
         fingerprint: planFingerprint(definition),
     };
 }
@@ -143,8 +145,11 @@ const REFUSAL_TEXT = Object.freeze({
     not_entitled: 'A plan runs on the automation engine, and your organisation does not have automations.',
 });
 
-/** Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. */
-export async function approvePlan({ item, fingerprint }: { item: Item; fingerprint: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
+/**
+ * Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. `approvedBy` is the
+ * owner, except for Cowork's own fix of a reference (core/cowork/repairs/autoResolve.mts: AUTO_FIX_APPROVER).
+ */
+export async function approvePlan({ item, fingerprint, approvedBy }: { item: Item; fingerprint: string; approvedBy?: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
     const draft = await draftOf(automation, deps, item);
@@ -158,7 +163,7 @@ export async function approvePlan({ item, fingerprint }: { item: Item; fingerpri
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);
     await deps.store.approvePlan({
         scheduleId: item.id, automationId: automation.id, definition: automation.definition,
-        permissions: draft.permissions, fingerprint: draft.fingerprint, approvedBy: item.userId,
+        permissions: draft.permissions, fingerprint: draft.fingerprint, approvedBy: approvedBy ?? item.userId,
     });
     return planStateOf(item, deps);
 }

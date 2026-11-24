@@ -58,8 +58,8 @@ test('a chat turn is not offered the review tool', async () => {
     assert.ok(!S.toolsOfferedPerRound[0].includes(REVIEW_TOOL_NAME));
 });
 
-test('a follow-up run is offered only what the run it continues was offered, plus the review tool', async () => {
+test('a follow-up run is offered only what the run it continues was offered, plus the review and outcome tools', async () => {
     resetTurnState(S, { drive: (cb) => { cb('text', { text: 'ok' }); cb('done', {}); }, tools: TOOLS });
     await kit.runTurn({ coworkRun: createRunActivity({ toolCeiling: ['web_lookup'] }) });
-    assert.deepStrictEqual([...S.toolsOfferedPerRound[0]].sort(), ['web_lookup', REVIEW_TOOL_NAME].sort());
+    assert.deepStrictEqual([...S.toolsOfferedPerRound[0]].sort(), ['web_lookup', REVIEW_TOOL_NAME, 'cowork_report_outcome'].sort());
 });
