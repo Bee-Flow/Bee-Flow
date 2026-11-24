@@ -17,7 +17,8 @@ import CoworkConfirmCard from './CoworkConfirmCard';
 import CoworkProgress from './CoworkProgress';
 import type { ConfirmChoices } from './coworkConfirmModel';
 import { takeHandedBrief } from './coworkHandedBrief';
-import { CARD, LINK_BUTTON, PILL_PRIMARY } from './coworkUi';
+import { ENTER } from './coworkMotion';
+import { ALERT, BUTTON_PRIMARY, CARD, LINK_BUTTON, META } from './coworkUi';
 import useCoworkComposer, { type UseCoworkComposerReturn } from './useCoworkComposer';
 import type { TaskSetup } from './useTaskSetup';
 import useModelTierSelection from '@/hooks/useModelTierSelection';
@@ -44,10 +45,8 @@ const RETRY_MS = 200;
 function SetupProgress({ setup, t }: { setup: TaskSetup; t: TranslateFn }) {
     const labels = [t('cowork_home.setup.steps', 'Setting up the steps'), t('cowork_home.setup.testing', 'Testing once, nothing is sent'), t('cowork_home.setup.check', 'Ready for your check')];
     return (
-        // motion: ENTER
-        <div className={`${CARD} p-4 flex flex-col gap-3`} data-testid="cowork-setup">
-            <p className="text-[16px] font-semibold text-[var(--text-primary)]">{setup.title}</p>
-            {/* motion: STAGGER (the phases tick one after the other) */}
+        <div className={`${CARD} ${ENTER} p-4 flex flex-col gap-3`} data-testid="cowork-setup">
+            <p className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{setup.title}</p>
             <CoworkProgress labels={labels} phase={setup.phase} />
         </div>
     );
@@ -88,7 +87,7 @@ function ComposerButtons({ reading, disabled, onTemplates, t }: { reading: boole
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <button type="button" className={LINK_BUTTON} onClick={onTemplates}>{t('cowork_home.from_template', 'Start from a template')}</button>
-            <button type="submit" className={PILL_PRIMARY} data-testid="cowork-continue" disabled={disabled}>
+            <button type="submit" className={BUTTON_PRIMARY} data-testid="cowork-continue" disabled={disabled}>
                 {reading ? t('cowork_home.reading', 'Reading…') : t('cowork_home.show_understood', 'Show what I understood')}
             </button>
         </div>
@@ -140,7 +139,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
 
     return (
         <section aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
-            <h1 id="cowork-ask-heading" className="text-[24px] font-semibold text-[var(--text-primary)]">
+            <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
                 {t('cowork_home.ask', 'What should be done for you?')}
             </h1>
             <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2`} onSubmit={(e) => { e.preventDefault(); go(); }}>
@@ -154,12 +153,12 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     onChange={(e) => edit(e.target.value)}
                     onKeyDown={onKey}
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
-                    className="w-full min-h-[54px] resize-none border-0 bg-transparent text-[16px] leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+                    className="w-full min-h-[56px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
                 />
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!text.trim() || !!cowork.draft || cowork.submitting || atLimit} onTemplates={onTemplates} t={t} />
             </form>
-            {atLimit && <p role="status" className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
-            {cowork.error && !cowork.draft && <p role="alert" className="text-[13px] text-[var(--error-ink)]">{cowork.error}</p>}
+            {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
+            {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (
                 <CoworkConfirmCard
                     cowork={cowork} sentence={text} choices={choices} rereading={reread.waiting || (cowork.submitting && !starting)}

@@ -11,7 +11,7 @@
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import { AiChosen, useAiChoice } from './CoworkNeedSetup';
 import type { NeedProblem, NeedWords } from './coworkNeedsModel';
-import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './coworkUi';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import { runCoworkNow } from '@/api/coworkApi';
 import { fixCoworkPlanWiring } from '@/api/coworkPlanApi';
@@ -133,7 +133,7 @@ export function FixCard(props: NeedKindProps) {
     return (
         <NeedFrame
             {...props} title={fixTitle(problem, need.words, t)} sub={sub ? t(...sub) : null} error={act.error}
-            actions={<>{button(plan.primary, PILL_PRIMARY)}{button(plan.secondary[way], PILL_QUIET)}</>}
+            actions={<>{button(plan.primary, BUTTON_PRIMARY)}{button(plan.secondary[way], BUTTON_SECONDARY)}</>}
         />
     );
 }

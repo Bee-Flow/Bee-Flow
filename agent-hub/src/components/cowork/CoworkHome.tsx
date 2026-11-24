@@ -2,24 +2,27 @@
  * The Cowork home, one calm column, top to bottom:
  *
  *   1. the composer: "What should be done for you?", one confirmation card, then the visible set-up and test of the
- *      new task's steps (./CoworkHomeComposer.tsx);
+ *      new task's steps (./CoworkHomeComposer.tsx), with "Start from a template" in it;
  *   2. the notices: the organisation's budget from 80%, read-only mode (./CoworkHomeNotices.tsx);
  *   3. Needs you: at most three cards (./CoworkNeedCard.tsx), the rest behind "Show N more";
  *   4. Your tasks: title, status, when, next run, goal (./CoworkTaskRows.tsx);
- *   5. Shared with you and Teamwork, each only when it has something.
+ *   5. Shared with you, only when there is something;
+ *   6. Teamwork: one quiet row that is always there, also for someone who is on no desk yet.
  *
- * A task, Templates and Teamwork open in the page's sheet (./CoworkPage.tsx): this column only asks for them.
+ * A task, Templates and Teamwork are pages of their own (./CoworkPage.tsx): this column only asks for them.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ChevronRight, Users } from 'lucide-react';
 import CoworkHomeComposer from './CoworkHomeComposer';
 import CoworkHomeNotices from './CoworkHomeNotices';
 import CoworkNeedCard from './CoworkNeedCard';
 import type { TaskFocus } from './CoworkNeedFrame';
-import CoworkTaskRows, { CoworkSharedRows, TaskList } from './CoworkTaskRows';
+import CoworkTaskRows, { CoworkSharedRows } from './CoworkTaskRows';
+import { ENTER, LEAVE, useLeave } from './coworkMotion';
 import type { NeedCardData } from './coworkNeedsModel';
-import type { CoworkSheetPanel } from './coworkSheetPanels';
-import { CARD, LINK_BUTTON, SECTION_HEADING } from './coworkUi';
+import { pageName, type CoworkSheetPanel } from './coworkSheetPanels';
+import { ALERT, CARD, LINK_BUTTON, LIST_ROW, META, SECTION_HEADING } from './coworkUi';
 import useCoworkList from './useCoworkList';
 import useCoworkNeedCards from './useCoworkNeedCards';
 import useTaskSetup from './useTaskSetup';
@@ -31,6 +34,7 @@ import { errorMessage } from '@/utils/caughtError';
 import type { CoworkItem } from '@/api/cowork.types';
 
 const NEEDS_SHOWN = 3;
+const FLASH_MS = 5000;
 const NO_ITEMS: CoworkItem[] = [];
 
 interface NeedsSectionProps {
@@ -45,13 +49,13 @@ function NeedsSection({ cards, onOpenTask, onDone }: NeedsSectionProps) {
     if (cards.length === 0) return null;
     const shown = all ? cards : cards.slice(0, NEEDS_SHOWN);
     return (
-        <section aria-labelledby="cowork-needs-heading" className="flex flex-col gap-2.5" data-testid="cowork-needs">
+        <section aria-labelledby="cowork-needs-heading" className="flex flex-col gap-2" data-testid="cowork-needs">
             <h2 id="cowork-needs-heading" className={SECTION_HEADING}>{t('cowork_home.needs.heading', 'Needs you · {count}', { count: cards.length })}</h2>
             <div className={`${CARD} overflow-hidden divide-y divide-[var(--border-subtle)]`}>
                 {shown.map((need) => <CoworkNeedCard key={need.key} need={need} onOpenTask={onOpenTask} onDone={onDone} />)}
             </div>
             {cards.length > NEEDS_SHOWN && (
-                <button type="button" className={`${LINK_BUTTON} self-start ml-0`} aria-expanded={all} onClick={() => setAll((v) => !v)}>
+                <button type="button" className={`${LINK_BUTTON} self-start`} aria-expanded={all} onClick={() => setAll((v) => !v)}>
                     {all ? t('cowork_home.needs.fewer', 'Show fewer') : t('cowork_home.needs.more', 'Show {count} more', { count: cards.length - NEEDS_SHOWN })}
                 </button>
             )}
@@ -61,7 +65,7 @@ function NeedsSection({ cards, onOpenTask, onDone }: NeedsSectionProps) {
 
 function Section({ id, heading, children }: { id: string; heading: string; children: ReactNode }) {
     return (
-        <section aria-labelledby={`cowork-${id}-heading`} className="flex flex-col gap-2.5">
+        <section aria-labelledby={`cowork-${id}-heading`} className="flex flex-col gap-2">
             <h2 id={`cowork-${id}-heading`} className={SECTION_HEADING}>{heading}</h2>
             {children}
         </section>
@@ -82,43 +86,58 @@ function TasksSection({ list, items, cards, home, testingId, onOpen }: TasksSect
     const { t } = useTranslation();
     return (
         <Section id="tasks" heading={t('cowork_home.tasks.heading', 'Your tasks')}>
-            {list.error && <p role="alert" className="text-[14px] text-[var(--error-ink)]">{errorMessage(list.error)}</p>}
+            {list.error && <p role="alert" className={ALERT}>{errorMessage(list.error)}</p>}
             {items.length > 0 && <CoworkTaskRows items={items} cards={cards} home={home} testingId={testingId} onOpen={onOpen} />}
-            {items.length === 0 && list.isSuccess && <p className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.tasks.empty', 'No tasks yet. Write one sentence above to start.')}</p>}
+            {items.length === 0 && list.isSuccess && <p className={`m-0 ${META}`}>{t('cowork_home.tasks.empty', 'No tasks yet. Write one sentence above to start.')}</p>}
         </Section>
     );
 }
 
-/** The desks the owner is on, as rows that open Teamwork; nothing while they are on none. */
-function TeamworkSection({ onOpen }: { onOpen: () => void }) {
-    const { t } = useTranslation();
+/** Teamwork, always there: the desks the owner is on by name, or what it is for while they are on none. Opens the Teamwork page. */
+function TeamworkEntry({ onOpen }: { onOpen: () => void }) {
+    const { t, locale } = useTranslation();
     const desks = useMyDesks().data ?? [];
-    if (desks.length === 0) return null;
+    const names = new Intl.ListFormat(locale || 'en', { style: 'long', type: 'conjunction' }).format(desks.map((desk) => desk.name));
     return (
-        <Section id="teamwork" heading={t('cowork_home.teamwork.heading', 'Teamwork')}>
-            <TaskList testId="cowork-teamwork">
-                {desks.map((desk) => (
-                    <li key={desk.id} className="border-t first:border-t-0 border-[var(--border-subtle)]">
-                        <button type="button" onClick={onOpen} className="w-full min-h-11 flex flex-col gap-0.5 px-4 py-3.5 text-left hover:bg-[var(--bg-tertiary)]">
-                            <span className="font-semibold text-[15px] text-[var(--text-primary)]">{desk.name}</span>
-                            {desk.isOwner && <span className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.teamwork.yours', 'Set up by you')}</span>}
-                        </button>
-                    </li>
-                ))}
-            </TaskList>
+        <Section id="teamwork" heading={pageName('teamwork', t)}>
+            <button type="button" onClick={onOpen} data-testid="cowork-teamwork" className={`${CARD} ${LIST_ROW} flex items-center gap-3`}>
+                <Users aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--text-tertiary)]" />
+                <span className="flex-1 min-w-0 flex flex-col">
+                    <span className="font-medium text-[var(--text-primary)]">
+                        {desks.length > 0
+                            ? t('cowork_pages.home.teamwork_on', 'You work together in {names}', { names })
+                            : t('cowork_pages.home.teamwork_none', 'Let your tasks work together with colleagues’ tasks')}
+                    </span>
+                    <span className={META}>
+                        {desks.length > 0
+                            ? t('cowork_pages.home.teamwork_on_sub', 'See who does what, or set up another.')
+                            : t('cowork_pages.home.teamwork_none_sub', 'Nothing is set up yet. Everyone keeps their own task and their own apps.')}
+                    </span>
+                </span>
+                <ChevronRight aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--text-tertiary)]" />
+            </button>
         </Section>
     );
 }
 
-/** One sentence after an action, said for a few seconds. */
-function useFlash(): [string | null, (message: string) => void] {
-    const [flash, setFlash] = useState<string | null>(null);
+interface Flash { text: string; on: boolean }
+
+/** One sentence after an action, said for a few seconds; its words stay while it fades. */
+function useFlash(): [Flash | null, (message: string) => void] {
+    const [flash, setFlash] = useState<Flash | null>(null);
     useEffect(() => {
-        if (!flash) return undefined;
-        const timer = setTimeout(() => setFlash(null), 5000);
+        if (!flash?.on) return undefined;
+        const timer = setTimeout(() => setFlash((was) => (was ? { ...was, on: false } : was)), FLASH_MS);
         return () => clearTimeout(timer);
     }, [flash]);
-    return [flash, setFlash];
+    const say = useCallback((text: string) => setFlash({ text, on: true }), []);
+    return [flash, say];
+}
+
+function FlashLine({ flash }: { flash: Flash | null }) {
+    const { ref, mounted, leaving } = useLeave<HTMLParagraphElement>(!!flash?.on);
+    if (!mounted || !flash) return null;
+    return <p ref={ref} role="status" className={`m-0 ${META} ${leaving ? LEAVE : ENTER}`} data-testid="cowork-flash">{flash.text}</p>;
 }
 
 export interface CoworkHomeProps {
@@ -144,9 +163,9 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
         void begin({ id: item.id, title: item.title });
     }, [client, begin]);
     return (
-        <div className="flex flex-col gap-7" data-testid="cowork-home">
+        <div className="flex flex-col gap-6" data-testid="cowork-home">
             <CoworkHomeComposer atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed} onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
-            {flash && <p role="status" className="text-[14px] text-[var(--text-secondary)]" data-testid="cowork-flash">{flash}</p>}
+            <FlashLine flash={flash} />
             <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
             <NeedsSection cards={cards} onOpenTask={onOpenTask} onDone={say} />
             <TasksSection list={list} items={items} cards={cards} home={home} testingId={setup?.id ?? null} onOpen={(id) => onOpenTask(id)} />
@@ -155,7 +174,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
                     <CoworkSharedRows items={shared} onOpen={(id) => onOpenPanel({ kind: 'shared', id })} />
                 </Section>
             )}
-            <TeamworkSection onOpen={() => onOpenPanel({ kind: 'teamwork' })} />
+            <TeamworkEntry onOpen={() => onOpenPanel({ kind: 'teamwork' })} />
         </div>
     );
 }

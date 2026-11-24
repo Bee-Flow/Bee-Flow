@@ -5,23 +5,26 @@
  *              amber "used 86%… tasks wait until 1 December", red once it is used up;
  *   read-only  the organisation switched Cowork to read-only (GET /api/cowork/policy/mine): tasks read and draft,
  *              but change and send nothing.
+ *
+ * A notice is a flat card: a solid border in its tone, the tone's ink for the icon, body text for the sentence.
  */
 import { AlertTriangle, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { ENTER } from './coworkMotion';
 import { useMyCoworkPolicy } from '@/api/coworkPolicy';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const TONE = {
-    warn: 'border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_9%,transparent)] text-[var(--warning-ink)]',
-    bad: 'border-[color-mix(in_srgb,var(--error)_30%,transparent)] bg-[color-mix(in_srgb,var(--error)_7%,transparent)] text-[var(--error-ink)]',
-    plain: 'border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
+    warn: { border: 'border-[color-mix(in_srgb,var(--warning)_45%,var(--bg-card))]', ink: 'text-[var(--warning-ink)]' },
+    bad: { border: 'border-[color-mix(in_srgb,var(--error)_45%,var(--bg-card))]', ink: 'text-[var(--error-ink)]' },
+    plain: { border: 'border-[var(--border-default)]', ink: 'text-[var(--text-tertiary)]' },
 } as const;
 
 function Notice({ tone, children, testId }: { tone: keyof typeof TONE; children: ReactNode; testId: string }) {
     const Icon = tone === 'plain' ? Info : AlertTriangle;
     return (
-        <div role="status" data-testid={testId} className={`rounded-[14px] border px-3.5 py-3 flex items-start gap-2.5 text-[14px] ${TONE[tone]}`}>
-            <Icon aria-hidden="true" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <div role="status" data-testid={testId} className={`${ENTER} rounded-[var(--radius-lg)] border bg-[var(--bg-card)] px-4 py-3 flex items-start gap-2 text-[14px] leading-5 text-[var(--text-primary)] ${TONE[tone].border}`}>
+            <Icon aria-hidden="true" size={16} className={`mt-0.5 flex-shrink-0 ${TONE[tone].ink}`} />
             <span>{children}</span>
         </div>
     );
@@ -38,8 +41,9 @@ export default function CoworkHomeNotices({ budgetPercent }: { budgetPercent: nu
     const lang = locale || 'en';
     const percent = typeof budgetPercent === 'number' ? budgetPercent : 0;
     const date = nextMonthStart(lang);
+    if (percent < 80 && !readOnly) return null;
     return (
-        <>
+        <div className="flex flex-col gap-2">
             {percent >= 100 && (
                 <Notice tone="bad" testId="cowork-budget-notice">
                     {t('cowork_home.notice.budget_over', 'Your organisation’s AI budget for this month is used up. Tasks do not run until {date}, or until an admin raises it.', { date })}
@@ -55,6 +59,6 @@ export default function CoworkHomeNotices({ budgetPercent }: { budgetPercent: nu
                     {t('cowork_home.notice.read_only', 'Read-only mode is on for your organisation. Tasks read and write drafts, but change and send nothing.')}
                 </Notice>
             )}
-        </>
+        </div>
     );
 }

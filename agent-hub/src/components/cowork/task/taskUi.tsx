@@ -1,46 +1,42 @@
 /**
- * The small pieces every part of an opened task (./CoworkTaskView.tsx) is built from, so the sheet reads as one page
- * with the home: the pill buttons and the section heading of ../coworkUi.ts, cards, the green "Fixed … · Undo" note,
- * the folded rows of "More", and the receipt mark. Bee Flow tokens only.
+ * The small pieces every part of an opened task (./CoworkTaskView.tsx) is built from, so the task reads as one page
+ * with the home: the buttons, fields, tags and section heading of ../coworkUi.ts under the names the task's files use,
+ * cards with their 16px padding, the "Fixed … · Undo" note, rows that open in place, and the receipt mark. Bee Flow
+ * tokens only; the look and its rules are ../coworkUi.ts, the motion ../coworkMotion.ts.
  */
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Check, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { FOCUS_RING } from '../../shared/buttonClasses';
-import { LINK_BUTTON, PILL_PRIMARY, PILL_QUIET, SECTION_HEADING } from '../coworkUi';
+import { Expand, TINT } from '../coworkMotion';
+import { ALERT, BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, CARD_INSET, FIELD_WIDE, LINK_BUTTON, LINK_INLINE, SECTION_HEADING } from '../coworkUi';
 import { errorMessage } from '@/utils/caughtError';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
-export const BTN_PRIMARY = PILL_PRIMARY;
-export const BTN_QUIET = PILL_QUIET;
+export { LABEL, META, TAG_ACCENT, TAG_OK, TAG_PLAIN, TAG_WARN } from '../coworkUi';
+
+export const BTN_PRIMARY = BUTTON_PRIMARY;
+export const BTN_QUIET = BUTTON_SECONDARY;
 export const BTN_LINK = LINK_BUTTON;
 /** The action that cannot be taken back. */
-export const BTN_DANGER = `inline-flex items-center justify-center gap-2 min-h-11 px-[18px] rounded-full text-[14px] font-semibold border border-transparent bg-[var(--error)] text-[var(--bg-card)] disabled:opacity-50 ${FOCUS_RING}`;
+export const BTN_DANGER = BUTTON_DANGER;
 export const SECTION_H = SECTION_HEADING;
 
-export const CARD = 'rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] p-[18px] flex flex-col gap-3 min-w-0 text-[var(--text-primary)]';
-export const CARD_SOFT = 'rounded-2xl bg-[var(--bg-tertiary)] p-[18px] flex flex-col gap-3 min-w-0 text-[var(--text-primary)]';
+const CARD_BODY = 'p-4 flex flex-col gap-3 min-w-0 text-[var(--text-primary)]';
+export const CARD = `${SURFACE} ${CARD_BODY}`;
+export const CARD_SOFT = `${CARD_INSET} ${CARD_BODY}`;
 /** A card's heading; its colour is the card's unless the caller gives one. */
-export const CARD_HEAD = 'flex flex-wrap items-center gap-2 text-[16px] font-bold';
-export const META = 'text-[14px] text-[var(--text-secondary)]';
+export const CARD_HEAD = 'flex flex-wrap items-center gap-2 text-[16px] leading-6 font-semibold';
 export const ROW_ACTIONS = 'flex flex-wrap items-center gap-2';
-export const FIELD = 'w-full min-h-11 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[14px] text-[var(--text-primary)]';
-export const LABEL = 'text-[14px] font-medium text-[var(--text-primary)]';
-const ALERT = 'text-[14px] text-[var(--error-ink)]';
-
-const TAG = 'inline-flex items-center rounded-full px-[9px] py-0.5 text-[12px] font-semibold whitespace-nowrap';
-export const TAG_PLAIN = `${TAG} bg-[var(--bg-tertiary)] text-[var(--text-secondary)]`;
-export const TAG_OK = `${TAG} bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]`;
-export const TAG_WARN = `${TAG} bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]`;
-export const TAG_ACCENT = `${TAG} bg-[color-mix(in_srgb,var(--accent-primary)_14%,transparent)] text-[var(--accent-primary)]`;
+export const FIELD = FIELD_WIDE;
 
 /** "Fixed … · Undo": a change Cowork made that can be taken back. */
 export function UndoNote({ children, undoing, onUndo, t, testId }: { children: ReactNode; undoing: boolean; onUndo: () => void; t: TranslateFn; testId?: string }) {
     return (
-        <div data-testid={testId} className="flex flex-wrap items-center gap-2.5 rounded-xl py-1.5 pl-3 pr-1.5 text-[14px] text-[var(--text-primary)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)]">
-            <Check aria-hidden="true" className="w-4 h-4 flex-shrink-0 text-[var(--success-ink)]" />
+        <div data-testid={testId} className={`${SURFACE} flex flex-wrap items-center gap-2 py-1 pl-3 pr-1 text-[14px] leading-5 text-[var(--text-primary)]`}>
+            <Check aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--success-ink)]" />
             <span className="flex-1 min-w-[12rem] py-1.5">{children}</span>
-            <button type="button" className={BTN_LINK} disabled={undoing} onClick={onUndo}>
+            <button type="button" className={LINK_INLINE} disabled={undoing} onClick={onUndo}>
                 {undoing ? t('cowork_task.undoing', 'Undoing…') : t('cowork_task.undo', 'Undo')}
             </button>
         </div>
@@ -50,8 +46,8 @@ export function UndoNote({ children, undoing, onUndo, t, testId }: { children: R
 /** "Receipt 41 · signed". */
 export function ReceiptMark({ seq, signed, t }: { seq: number; signed: boolean; t: TranslateFn }) {
     return (
-        <span className="inline-flex items-center gap-1.5 text-[13px] tabular-nums text-[var(--text-tertiary)]" data-testid="cowork-task-receipt">
-            <ShieldCheck aria-hidden="true" className="w-3.5 h-3.5" />
+        <span className="inline-flex items-center gap-1.5 text-[13px] leading-5 tabular-nums text-[var(--text-tertiary)]" data-testid="cowork-task-receipt">
+            <ShieldCheck aria-hidden="true" size={16} />
             {signed
                 ? t('cowork_task.receipt.signed', 'Receipt {seq} · signed', { seq })
                 : t('cowork_task.receipt.unsigned', 'Receipt {seq} · not signed', { seq })}
@@ -59,17 +55,25 @@ export function ReceiptMark({ seq, signed, t }: { seq: number; signed: boolean; 
     );
 }
 
-/** "More": everything a task holds besides what it does, folded until asked for. */
+/** The chevron of a row that opens in place: once open it points the other way, by being the other icon. */
+function Chevron({ open }: { open: boolean }) {
+    const Icon = open ? ChevronUp : ChevronDown;
+    return <Icon aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--text-tertiary)]" />;
+}
+
+const ROW_HEAD = `w-full min-h-11 px-4 flex items-center gap-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_RING}`;
+
+/** A card of rows that opens in place as a whole. */
 export function Fold({ label, children }: { label: string; children: ReactNode }) {
     const [open, setOpen] = useState(false);
     const bodyId = useId();
     return (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] overflow-hidden" data-testid="cowork-task-more">
-            <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)} className={`w-full min-h-[54px] px-[18px] flex items-center justify-between gap-3 text-left text-[15px] font-semibold text-[var(--text-primary)] ${FOCUS_RING}`}>
+        <div className={`${SURFACE} overflow-hidden`} data-testid="cowork-task-more">
+            <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)} className={`${ROW_HEAD} justify-between text-[14px] leading-5 font-semibold text-[var(--text-primary)]`}>
                 <span>{label}</span>
-                <ChevronDown aria-hidden="true" className={`w-4 h-4 flex-shrink-0 motion-safe:transition-transform ${open ? 'rotate-180' : ''}`} />
+                <Chevron open={open} />
             </button>
-            {open && <div id={bodyId} className="flex flex-col">{children}</div>}
+            <Expand open={open} id={bodyId} className="flex flex-col">{children}</Expand>
         </div>
     );
 }
@@ -84,7 +88,7 @@ interface FoldRowProps {
     children: ReactNode;
 }
 
-/** One row of "More": its name and where it stands; opened, what it holds. Only the opened row renders its body. */
+/** One row that opens in place: its name and where it stands; opened, what it holds. Only the opened row renders its body. */
 export function FoldRow({ id, label, value, open, onToggle, danger = false, children }: FoldRowProps) {
     const bodyId = useId();
     return (
@@ -94,13 +98,13 @@ export function FoldRow({ id, label, value, open, onToggle, danger = false, chil
                 aria-expanded={open}
                 aria-controls={bodyId}
                 onClick={() => onToggle(open ? null : id)}
-                className={`w-full min-h-12 px-[18px] flex items-center gap-3 text-left border-t border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] ${FOCUS_RING}`}
+                className={`${ROW_HEAD} border-t border-[var(--border-subtle)]`}
             >
-                <span className={`flex-1 min-w-0 text-[15px] font-medium ${danger ? 'text-[var(--error-ink)]' : 'text-[var(--text-primary)]'}`}>{label}</span>
-                {value && <span className="min-w-0 max-w-[55%] truncate text-right text-[14px] text-[var(--text-tertiary)]">{value}</span>}
-                <ChevronDown aria-hidden="true" className={`w-4 h-4 flex-shrink-0 text-[var(--text-tertiary)] motion-safe:transition-transform ${open ? 'rotate-180' : ''}`} />
+                <span className={`flex-1 min-w-0 text-[14px] leading-5 font-medium ${danger ? 'text-[var(--error-ink)]' : 'text-[var(--text-primary)]'}`}>{label}</span>
+                {value && <span className="min-w-0 max-w-[55%] truncate text-right text-[13px] leading-5 text-[var(--text-tertiary)]">{value}</span>}
+                <Chevron open={open} />
             </button>
-            {open && <div id={bodyId} className="px-[18px] pt-1 pb-[18px] flex flex-col gap-3">{children}</div>}
+            <Expand open={open} id={bodyId} className="px-4 pt-1 pb-4 flex flex-col gap-3">{children}</Expand>
         </div>
     );
 }

@@ -1,15 +1,17 @@
-// Settings in the Cowork sheet: each switch saves through the API at once, the daily digest shows an example of what
-// it holds, and "Notice what I ask again and again" cannot be switched on while the organisation has turned it off.
-// The network is the seam (a recording fetch); no module is mocked.
+// Cowork preferences, a page of Cowork: each switch saves through the API at once, the morning e-mail shows what it
+// would say now, and "Suggest a task when I repeat a question" cannot be switched on while the organisation has turned
+// it off. The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkSettingsPanel from './CoworkSettingsPanel';
-import { panelProps } from './panelProps.testkit';
 
 afterEach(() => { vi.unstubAllGlobals(); });
+
+const MORNING = 'E-mail me each morning what needs me';
+const SUGGEST = 'Suggest a task when I repeat a question';
 
 function serve({ habits = { on: false, allowed: true }, mail = { enabled: false, timeZone: 'UTC', available: true } } = {}) {
     return stubRecordingFetch(({ method, url }) => {
@@ -22,56 +24,56 @@ function serve({ habits = { on: false, allowed: true }, mail = { enabled: false,
 const put = (calls: RecordedCall[], path: string) => calls.find((c) => c.method === 'PUT' && c.url.endsWith(path));
 
 describe('CoworkSettingsPanel', () => {
-    it('saves the daily digest at once and then shows what tomorrow’s e-mail would hold', async () => {
-        const calls = serve();
-        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
-        const user = userEvent.setup();
-        const digest = await screen.findByRole('switch', { name: 'Send me a daily digest e-mail' });
-        await waitFor(() => expect(digest).toBeEnabled());
-        expect(screen.queryByTestId('cowork-digest-example')).toBeNull();
-        await user.click(digest);
-        await waitFor(() => expect(put(calls, '/api/cowork/daily-mail')?.body).toMatchObject({ enabled: true }));
-        expect(await screen.findByTestId('cowork-digest-example')).toHaveTextContent('1 things need you');
-        expect(screen.getByTestId('cowork-digest-example')).toHaveTextContent('Supplier mails');
+    it('is called Cowork preferences and says it holds for the reader only', async () => {
+        serve();
+        renderWithClient(<CoworkSettingsPanel />);
+        expect(screen.getByRole('heading', { level: 1, name: 'Cowork preferences' })).toBeInTheDocument();
+        expect(screen.getByText('Only for you.')).toBeInTheDocument();
+        expect(await screen.findByRole('switch', { name: MORNING })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: SUGGEST })).toBeInTheDocument();
     });
 
-    it('"Notice what I ask again and again" is off until switched on, and saves when it is', async () => {
+    it('saves the morning e-mail at once and then shows what tomorrow’s e-mail would say', async () => {
         const calls = serve();
-        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
-        const notice = await screen.findByRole('switch', { name: 'Notice what I ask again and again' });
-        await waitFor(() => expect(notice).toBeEnabled());
-        expect(notice).not.toBeChecked();
+        renderWithClient(<CoworkSettingsPanel />);
+        const user = userEvent.setup();
+        const morning = await screen.findByRole('switch', { name: MORNING });
+        await waitFor(() => expect(morning).toBeEnabled());
+        expect(screen.queryByTestId('cowork-digest-example')).toBeNull();
+        await user.click(morning);
+        await waitFor(() => expect(put(calls, '/api/cowork/daily-mail')?.body).toMatchObject({ enabled: true }));
+        const example = await screen.findByTestId('cowork-digest-example');
+        expect(example).toHaveTextContent('What tomorrow’s e-mail would say now');
+        expect(example).toHaveTextContent('1 things need you');
+        expect(example).toHaveTextContent('Supplier mails');
+    });
+
+    it('suggesting a task is off until switched on, and saves when it is', async () => {
+        const calls = serve();
+        renderWithClient(<CoworkSettingsPanel />);
+        const suggest = await screen.findByRole('switch', { name: SUGGEST });
+        await waitFor(() => expect(suggest).toBeEnabled());
+        expect(suggest).not.toBeChecked();
         expect(screen.getByText('It never keeps your words or the answers.')).toBeInTheDocument();
-        await userEvent.setup().click(notice);
+        await userEvent.setup().click(suggest);
         await waitFor(() => expect(put(calls, '/api/cowork/habits')?.body).toEqual({ on: true }));
     });
 
     it('cannot be switched on while the organisation has turned it off, and says so', async () => {
         const calls = serve({ habits: { on: true, allowed: false } });
-        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
+        renderWithClient(<CoworkSettingsPanel />);
         expect(await screen.findByText('Your organisation has turned this off.')).toBeInTheDocument();
-        const notice = screen.getByRole('switch', { name: 'Notice what I ask again and again' });
-        expect(notice).toBeDisabled();
-        expect(notice).not.toBeChecked();
-        await userEvent.setup().click(notice);
+        const suggest = screen.getByRole('switch', { name: SUGGEST });
+        expect(suggest).toBeDisabled();
+        expect(suggest).not.toBeChecked();
+        await userEvent.setup().click(suggest);
         expect(put(calls, '/api/cowork/habits')).toBeUndefined();
     });
 
-    it('where the server cannot send e-mail, the digest switch is off limits and says why', async () => {
+    it('where the server cannot send e-mail, the morning e-mail is off limits and says why', async () => {
         serve({ mail: { enabled: false, timeZone: 'UTC', available: false } });
-        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
+        renderWithClient(<CoworkSettingsPanel />);
         expect(await screen.findByText('This Bee Flow cannot send e-mail yet. Ask your administrator.')).toBeInTheDocument();
-        expect(screen.getByRole('switch', { name: 'Send me a daily digest e-mail' })).toBeDisabled();
-    });
-
-    it('closes on Escape', async () => {
-        serve();
-        const onClose = vi.fn();
-        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' }, { close: onClose })} />);
-        const digest = await screen.findByRole('switch', { name: 'Send me a daily digest e-mail' });
-        await waitFor(() => expect(digest).toBeEnabled());
-        digest.focus();
-        await userEvent.setup().keyboard('{Escape}');
-        expect(onClose).toHaveBeenCalledOnce();
+        expect(screen.getByRole('switch', { name: MORNING })).toBeDisabled();
     });
 });

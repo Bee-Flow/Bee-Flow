@@ -7,12 +7,18 @@
  *   Inside a task    (`solo`) the same without the task's name, as a flat card of its own with a coloured edge:
  *                    amber for a question, red for a problem.
  *
+ * A card fades in when it arrives. One that puts itself aside (`open` false) fades out before it is gone; one whose
+ * need is answered goes with the list it was in.
+ *
  * An action runs through `useNeedAct`: the buttons wait while it runs, a refusal is said in the server's own words
  * under them, and afterwards every Cowork read is read again, so the card goes once its need is gone.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { ENTER, LEAVE, TINT, useLeave } from './coworkMotion';
 import { BLOCKS, type NeedCardData } from './coworkNeedsModel';
+import { ALERT, CARD_INSET, META } from './coworkUi';
+import { FOCUS_RING } from '../shared/buttonClasses';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 
@@ -38,6 +44,8 @@ interface NeedFrameProps {
     extra?: ReactNode;
     actions: ReactNode;
     error?: Error | null;
+    /** False once the card put itself aside ("Not now"): it fades out, then it is gone. */
+    open?: boolean;
 }
 
 const SOLO_TONE: Readonly<Record<'failed' | 'needs', string>> = {
@@ -50,29 +58,30 @@ const DOT: Readonly<Record<'failed' | 'needs', string>> = {
     needs: 'bg-[var(--warning-ink)]',
 };
 
-export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, error }: NeedFrameProps) {
+export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, error, open = true }: NeedFrameProps) {
     const { t } = useTranslation();
     const tone = BLOCKS[need.kind];
+    const leave = useLeave<HTMLElement>(open);
+    if (!leave.mounted) return null;
     return (
-        // motion: ENTER (and its leaving, when the card goes)
-        <article className={`flex flex-col gap-3 p-4 ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
+        <article ref={leave.ref} className={`flex flex-col gap-3 p-4 ${leave.leaving ? LEAVE : ENTER} ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
             <div className="flex flex-col gap-0.5 min-w-0">
                 {!solo && (
                     <button
                         type="button"
-                        className="self-start inline-flex items-center gap-1.5 min-h-6 text-[13px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:underline"
+                        className={`self-start inline-flex items-center gap-1.5 min-h-6 rounded-lg text-[13px] leading-5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline ${TINT} ${FOCUS_RING}`}
                         onClick={() => onOpenTask(need.itemId)}
                     >
                         <span aria-hidden="true" className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[tone]}`} />
                         {need.title || t('cowork_home.untitled', 'Untitled task')}
                     </button>
                 )}
-                <p className="text-[16px] font-semibold text-[var(--text-primary)]">{title}</p>
-                {sub && <p className="text-[14px] text-[var(--text-secondary)]">{sub}</p>}
+                <p className="m-0 text-[14px] leading-5 font-semibold text-[var(--text-primary)]">{title}</p>
+                {sub && <p className={`m-0 ${META}`}>{sub}</p>}
             </div>
             {extra}
             <div className="flex flex-wrap items-center gap-2">{actions}</div>
-            {error && <p role="alert" className="text-[13px] text-[var(--error-ink)]">{errorMessage(error) || t('cowork_home.failed', 'That did not work. Try again.')}</p>}
+            {error && <p role="alert" className={ALERT}>{errorMessage(error) || t('cowork_home.failed', 'That did not work. Try again.')}</p>}
         </article>
     );
 }
@@ -80,7 +89,7 @@ export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, 
 /** A box for what the card is about: the message that waits, the agent's question. */
 export function NeedBox({ children, testId }: { children: ReactNode; testId?: string }) {
     return (
-        <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-3 text-[14px] whitespace-pre-wrap break-words text-[var(--text-secondary)]" data-testid={testId}>
+        <div className={`${CARD_INSET} px-3 py-3 text-[14px] leading-5 whitespace-pre-wrap break-words text-[var(--text-secondary)]`} data-testid={testId}>
             {children}
         </div>
     );

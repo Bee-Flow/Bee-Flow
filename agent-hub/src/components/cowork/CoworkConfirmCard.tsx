@@ -14,7 +14,8 @@
  */
 import { useState } from 'react';
 import { SendsToRow, UsesRow } from './CoworkConfirmRows';
-import { CARD, FIELD, LINK_BUTTON, PILL_PRIMARY, PILL_QUIET } from './coworkUi';
+import { ENTER } from './coworkMotion';
+import { ALERT, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FIELD, FIELD_WIDE, LINK_INLINE, META } from './coworkUi';
 import {
     WEEK_DAYS, confirmView, dayWords, hasTimeOfDay, isClockPayload, needsDay, schedulePartOf, startPayload, timeOf, withDay, withTime,
     type ConfirmChoices, type ConfirmView, type DayChoice,
@@ -70,12 +71,12 @@ function WhenField({ payload, asking, setChanging, onChoose }: WhenFieldProps) {
                     <input id="cowork-confirm-time" type="time" className={FIELD} value={timeOf(clock)} onChange={(e) => onChoose({ schedule: schedulePartOf(withTime(clock, e.target.value || '09:00')) })} />
                 </>
             )}
-            {clock && !asking && <button type="button" className={`${LINK_BUTTON} min-h-9`} onClick={() => setChanging(true)}>{t('cowork_home.confirm.change', 'Change')}</button>}
+            {clock && !asking && <button type="button" className={LINK_INLINE} onClick={() => setChanging(true)}>{t('cowork_home.confirm.change', 'Change')}</button>}
         </div>
     );
 }
 
-const ROW_LABEL = 'text-[14px] text-[var(--text-tertiary)] sm:pt-2';
+const ROW_LABEL = 'text-[13px] leading-5 text-[var(--text-secondary)] sm:pt-2';
 const ROW_VALUE = 'm-0 mb-3 sm:mb-0 min-w-0 text-[14px] font-medium text-[var(--text-primary)]';
 
 /** What the card says under its rows: what is still asked, or what "Set up and test" does. */
@@ -113,7 +114,7 @@ function ConfirmRows({ view, asking, setChanging, onChoose, catalogue, t }: Rows
         <dl className="grid grid-cols-1 sm:grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 items-start m-0">
             <dt className={ROW_LABEL}><label htmlFor="cowork-confirm-name">{t('cowork_home.confirm.what', 'What')}</label></dt>
             <dd className={ROW_VALUE}>
-                <input id="cowork-confirm-name" type="text" maxLength={500} className={`${FIELD} w-full`} value={view.title} onChange={(e) => onChoose({ title: e.target.value })} data-testid="cowork-confirm-name" />
+                <input id="cowork-confirm-name" type="text" maxLength={500} className={FIELD_WIDE} value={view.title} onChange={(e) => onChoose({ title: e.target.value })} data-testid="cowork-confirm-name" />
             </dd>
             <dt className={ROW_LABEL}>{t('cowork_home.confirm.when', 'When')}</dt>
             <dd className={ROW_VALUE}><WhenField payload={view.payload} asking={asking} setChanging={setChanging} onChoose={onChoose} /></dd>
@@ -141,18 +142,17 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     const asking = changing || (needsDay(draft) && !choices.schedule);
     const busy = cowork.submitting || rereading;
     return (
-        // motion: ENTER
-        <section className={`${CARD} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm">
-            <h2 id="cowork-confirm-heading" className="text-[16px] font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'This is what I understood')}</h2>
+        <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm">
+            <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'This is what I understood')}</h2>
             <ConfirmRows view={view} asking={asking} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
-            <p className="text-[13px] text-[var(--text-tertiary)]">{hintOf(asking, steps, t)}</p>
-            {rereading && <p role="status" className="text-[13px] text-[var(--text-tertiary)]">{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
-            {cowork.error && <p role="alert" className="text-[13px] text-[var(--error-ink)]">{cowork.error}</p>}
+            <p className={META}>{hintOf(asking, steps, t)}</p>
+            {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
+            {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}
             <div className="flex flex-wrap items-center gap-2">
-                <button type="button" className={PILL_PRIMARY} data-testid="cowork-confirm-start" disabled={asking || busy} onClick={() => onStart(startPayload(view, steps))}>
+                <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={asking || busy} onClick={() => onStart(startPayload(view, steps))}>
                     {startLabel(cowork.submitting && !rereading, steps, t)}
                 </button>
-                <button type="button" className={PILL_QUIET} disabled={cowork.submitting && !rereading} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
+                <button type="button" className={BUTTON_SECONDARY} disabled={cowork.submitting && !rereading} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
             </div>
         </section>
     );

@@ -1,6 +1,7 @@
-// The Cowork page (./CoworkPage.tsx): the home in one column, and a sheet from the right for a task and for what the
-// header's menu opens (./coworkSheetPanels.ts). A task opens from its row or a deep link, says so in the address, and
-// closes back to the row. The network is the seam (a recording fetch); no module is mocked.
+// The Cowork page (./CoworkPage.tsx): the home in one column, and a task, Cowork preferences, Teamwork, Templates and
+// Admin rules each as a full page in its place (./coworkSheetPanels.ts), never as a layer over it. A page says so in
+// the address, takes the focus to its heading, and gives it back to what opened it; the address decides on Back.
+// The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -14,19 +15,20 @@ const ITEM: CoworkItem = {
     lastStatus: 'success', lastRunAt: new Date().toISOString(), runCount: 3,
 };
 const NO_PLAN = { automationId: null, draft: null, approved: null, widens: [], upToDate: true };
+const TEMPLATE = { id: 't1', title: 'Monday summary', brief: 'Every Monday, summarise last week’s meetings', repeatInterval: 'weekly', hasPlan: false, createdAt: null, mine: false };
 
 let calls: RecordedCall[];
 function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
-        // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up.
-        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: WAITS_FOR_STEPS });
-        if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: WAITS_FOR_STEPS });
+        // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
+        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
+        if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
         if (path === '/api/cowork/w1' && method === 'GET') return jsonResponse(items.find((i) => i.id === 'w1') ?? {}, items.some((i) => i.id === 'w1') ? 200 : 404);
-        if (path === '/api/cowork/w1' && method === 'DELETE') return jsonResponse({ success: true });
         if (path === '/api/cowork/compose') return jsonResponse({ title: 'Meeting overview', prompt: 'Summarise', repeatInterval: 'daily', timeOfDay: '09:00' });
         if (path === '/api/cowork/home') return jsonResponse({ how: {}, today: [], cost: null });
+        if (path === '/api/cowork/templates') return jsonResponse({ templates: [TEMPLATE] });
         if (path.endsWith('/runs')) return jsonResponse({ runs: [], total: 0 });
         if (path.endsWith('/needs-you')) return jsonResponse({ needs: [] });
         if (path.endsWith('/desk')) return jsonResponse({ desk: null });
@@ -38,81 +40,129 @@ function serve(items: CoworkItem[] = [ITEM]) {
 }
 afterEach(() => { vi.unstubAllGlobals(); });
 
-const WAITS_FOR_STEPS = { steps: 'wanted', cause: null, since: null, sendsTo: { me: true, others: [] }, askFirst: null, canUndo: false };
 const path = (c: RecordedCall) => new URL(c.url, 'http://x').pathname;
+const ADMIN = { id: 'u1', organizationId: 'o1', orgRole: 'org_admin' };
+const MEMBER = { id: 'u1', organizationId: 'o1', orgRole: 'member' };
+
+/** Nothing lies over the page: no dialog, no scrim, no sheet. */
+function expectNoOverlay() {
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.querySelector('[aria-modal="true"]')).toBeNull();
+    expect(screen.queryByTestId('cowork-sheet')).toBeNull();
+    // A page is a child of the Cowork column itself, not a portal next to it.
+    expect(screen.getByTestId('cowork-page')).toContainElement(screen.getByTestId('cowork-page-frame'));
+}
 
 describe('CoworkPage', () => {
-    it('opens a task from its row in the sheet, says so in the address, and closes back to the row', async () => {
+    it('opens a task from its row as a page in place of the home, says so in the address, and "Tasks" goes back to the row', async () => {
         serve();
         const onNavigate = vi.fn();
         renderWithClient(<CoworkPage onNavigate={onNavigate} />);
         const user = userEvent.setup();
         const row = await screen.findByRole('button', { name: /Weekly digest/ });
         await user.click(row);
-        const sheet = await screen.findByRole('dialog', { name: 'Weekly digest' });
-        expect(await within(sheet).findByTestId('cowork-task-view')).toBeInTheDocument();
+        const heading = await screen.findByRole('heading', { name: 'Weekly digest' });
+        expectNoOverlay();
+        expect(screen.getByTestId('cowork-home')).not.toBeVisible();
         expect(onNavigate).toHaveBeenLastCalledWith('cowork/w1');
-        await user.click(within(sheet).getByTestId('cowork-sheet-close'));
-        expect(screen.queryByRole('dialog')).toBeNull();
+        await waitFor(() => expect(heading).toHaveFocus());
+        await user.click(screen.getByRole('button', { name: 'Tasks' }));
+        expect(screen.queryByTestId('cowork-page-frame')).toBeNull();
+        expect(screen.getByTestId('cowork-home')).toBeVisible();
         expect(onNavigate).toHaveBeenLastCalledWith('cowork');
         expect(row).toHaveFocus();
     });
 
-    it('a deep link opens the task in the sheet', async () => {
+    it('the address decides: a link opens the task as a page, and the browser’s Back returns to the home', async () => {
         serve();
-        renderWithClient(<CoworkPage initialCoworkId="w1" />);
-        expect(await screen.findByRole('dialog', { name: 'Weekly digest' })).toBeInTheDocument();
+        const { rerender } = renderWithClient(<CoworkPage initialCoworkId="w1" />);
+        expect(await screen.findByRole('heading', { name: 'Weekly digest' })).toBeInTheDocument();
+        expect(screen.getByTestId('cowork-page-frame')).toHaveAccessibleName('Weekly digest');
+        expectNoOverlay();
+        // Back: the address is /app/cowork again.
+        rerender(<CoworkPage initialCoworkId={null} />);
+        expect(screen.queryByTestId('cowork-page-frame')).toBeNull();
+        expect(screen.getByTestId('cowork-home')).toBeVisible();
+        // Forward: the task again.
+        rerender(<CoworkPage initialCoworkId="w1" />);
+        expect(await screen.findByRole('heading', { name: 'Weekly digest' })).toBeInTheDocument();
     });
 
-    it('the menu offers Settings, Teamwork and Templates; Organisation only to an administrator', async () => {
+    it('Back after opening a row gives the focus back to that row', async () => {
         serve();
+        const { rerender } = renderWithClient(<CoworkPage />);
+        const row = await screen.findByRole('button', { name: /Weekly digest/ });
+        await userEvent.setup().click(row);
+        // The router follows the click, then the reader presses Back.
+        rerender(<CoworkPage initialCoworkId="w1" />);
+        expect(await screen.findByRole('heading', { name: 'Weekly digest' })).toBeInTheDocument();
+        rerender(<CoworkPage initialCoworkId={null} />);
+        expect(screen.queryByTestId('cowork-page-frame')).toBeNull();
+        expect(row).toHaveFocus();
+    });
+
+    it('the header has a gear for Cowork preferences and no menu; it opens the page with the focus on its heading', async () => {
+        serve();
+        const onNavigate = vi.fn();
         const user = userEvent.setup();
-        const { unmount } = renderWithClient(<CoworkPage user={{ id: 'u1', organizationId: 'o1', orgRole: 'member' }} />);
-        await user.click(screen.getByRole('button', { name: 'Your menu' }));
-        expect(within(screen.getByRole('menu')).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Settings', 'Teamwork', 'Templates']);
-        unmount();
-        renderWithClient(<CoworkPage user={{ id: 'u1', organizationId: 'o1', orgRole: 'org_admin' }} />);
-        await user.click(screen.getByRole('button', { name: 'Your menu' }));
-        expect(within(screen.getByRole('menu')).getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Settings', 'Teamwork', 'Templates', 'OrganisationAdmin']);
-        await user.keyboard('{Escape}');
+        renderWithClient(<CoworkPage user={MEMBER} onNavigate={onNavigate} />);
+        expect(screen.queryByRole('button', { name: 'Your menu' })).toBeNull();
         expect(screen.queryByRole('menu')).toBeNull();
-        expect(screen.getByRole('button', { name: 'Your menu' })).toHaveFocus();
+        const gear = screen.getByRole('button', { name: 'Cowork preferences' });
+        await user.click(gear);
+        const heading = await screen.findByRole('heading', { level: 1, name: 'Cowork preferences' });
+        await waitFor(() => expect(heading).toHaveFocus());
+        expect(onNavigate).toHaveBeenLastCalledWith('cowork/preferences');
+        expectNoOverlay();
+        await user.click(screen.getByRole('button', { name: 'Tasks' }));
+        expect(gear).toHaveFocus();
     });
 
-    it('a menu entry opens its panel in the sheet', async () => {
+    it('offers Admin rules to an administrator of the organisation only', async () => {
         serve();
         const user = userEvent.setup();
-        renderWithClient(<CoworkPage />);
-        await user.click(screen.getByRole('button', { name: 'Your menu' }));
-        await user.click(screen.getByRole('menuitem', { name: 'Templates' }));
-        const sheet = await screen.findByRole('dialog', { name: 'Templates' });
-        expect(await within(sheet).findByTestId('cowork-templates-panel')).toBeInTheDocument();
-        await user.keyboard('{Escape}');
-        await user.click(screen.getByRole('button', { name: 'Your menu' }));
-        await user.click(screen.getByRole('menuitem', { name: 'Settings' }));
-        expect(await screen.findByTestId('cowork-settings-panel')).toBeInTheDocument();
+        const { unmount } = renderWithClient(<CoworkPage user={MEMBER} />);
+        expect(screen.queryByRole('button', { name: 'Admin rules' })).toBeNull();
+        unmount();
+        const onNavigate = vi.fn();
+        renderWithClient(<CoworkPage user={ADMIN} onNavigate={onNavigate} />);
+        await user.click(screen.getByRole('button', { name: 'Admin rules' }));
+        expect(await screen.findByTestId('cowork-org-panel')).toBeInTheDocument();
+        expect(onNavigate).toHaveBeenLastCalledWith('cowork/admin-rules');
     });
 
-    it('"Start from a template" under the composer opens Templates in the sheet', async () => {
+    it('"Start from a template" opens Templates as a page; "Use" puts the sentence in the composer, back on the home', async () => {
         serve();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage />);
         await user.click(screen.getByRole('button', { name: 'Start from a template' }));
-        expect(await screen.findByRole('dialog', { name: 'Templates' })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { level: 1, name: 'Start from a template' })).toBeInTheDocument();
+        expectNoOverlay();
+        await user.click(await screen.findByRole('button', { name: 'Use “Monday summary”' }));
+        expect(screen.queryByTestId('cowork-page-frame')).toBeNull();
+        expect(screen.getByTestId('cowork-brief-input')).toHaveValue('Every Monday, summarise last week’s meetings');
     });
 
-    it('deleting a task from the sheet asks once in the page, deletes it and closes the sheet', async () => {
+    it('Teamwork is always on the home, also for someone on no desk, and opens its page', async () => {
+        serve();
+        const onNavigate = vi.fn();
+        renderWithClient(<CoworkPage onNavigate={onNavigate} />);
+        const entry = await screen.findByTestId('cowork-teamwork');
+        expect(entry).toHaveTextContent('Let your tasks work together with colleagues’ tasks');
+        await userEvent.setup().click(entry);
+        expect(await screen.findByTestId('cowork-teamwork-panel')).toBeInTheDocument();
+        expect(onNavigate).toHaveBeenLastCalledWith('cowork/teamwork');
+    });
+
+    it('keeps what was being written on the home while a page is open', async () => {
         serve();
         const user = userEvent.setup();
-        renderWithClient(<CoworkPage initialCoworkId="w1" />);
-        const sheet = await screen.findByRole('dialog', { name: 'Weekly digest' });
-        await user.click(await within(sheet).findByRole('button', { name: 'More' }));
-        await user.click(within(sheet).getByRole('button', { name: 'Delete this task' }));
-        expect(within(sheet).getByTestId('cowork-task-delete-confirm')).toHaveTextContent("Delete 'Weekly digest'? It stops for good, with its runs. This cannot be undone.");
-        expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
-        await user.click(within(sheet).getByRole('button', { name: 'Delete task' }));
-        await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && path(c) === '/api/cowork/w1')).toBe(true));
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        renderWithClient(<CoworkPage />);
+        await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9');
+        await user.click(screen.getByRole('button', { name: 'Cowork preferences' }));
+        await screen.findByTestId('cowork-settings-panel');
+        await user.click(screen.getByRole('button', { name: 'Tasks' }));
+        expect(screen.getByTestId('cowork-brief-input')).toHaveValue('Every day at 9');
     });
 
     it('a new task is started, then Cowork sets up and tests its steps', async () => {
@@ -120,9 +170,54 @@ describe('CoworkPage', () => {
         const user = userEvent.setup();
         renderWithClient(<CoworkPage />);
         expect(await screen.findByText('No tasks yet. Write one sentence above to start.')).toBeInTheDocument();
-        await user.type(screen.getByLabelText('Describe the task in one sentence'), 'Every day at 9, summarise my meetings');
-        await user.click(screen.getByRole('button', { name: 'Show what I understood' }));
-        await user.click(await screen.findByRole('button', { name: 'Start' }));
+        await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9, summarise my meetings');
+        await user.click(screen.getByTestId('cowork-continue'));
+        await user.click(await screen.findByTestId('cowork-confirm-start'));
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && path(c) === '/api/cowork/new/plan/make')).toBe(true));
+    });
+});
+
+// What "crisp" forbids on anything that holds text, at rest: a transform, a filter, a backdrop filter, will-change.
+const SOFT = /^-?(translate|scale|rotate|skew)-|^transform(-|$)|^(blur|backdrop|will-change|brightness|contrast|grayscale|saturate|drop-shadow)-|^(blur|filter|grayscale)$|^animate-(spin|bounce|ping|fade-in)$|^(bf-step-in|sidebar-slide-in|modal-slide-in-\w+)$/;
+// Not at rest (a pointer or a key is on it), or not the element itself (a part drawn before or after it).
+const NOT_AT_REST = /^(hover|active|focus|focus-visible|focus-within|group-hover|peer-hover|enabled:hover|after|before|peer-checked:after|peer-focus-visible)$/;
+
+/** The classes of `root` and everything in it that hold text and would be drawn soft. */
+function softClasses(root: HTMLElement): string[] {
+    const found: string[] = [];
+    for (const el of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
+        if (!(el.textContent ?? '').trim()) continue;
+        for (const token of el.getAttribute('class')?.split(/\s+/) ?? []) {
+            const parts = token.split(':');
+            const utility = parts[parts.length - 1];
+            if (parts.slice(0, -1).some((variant) => NOT_AT_REST.test(variant))) continue;
+            if (SOFT.test(utility)) found.push(`${el.tagName.toLowerCase()}.${token}`);
+        }
+    }
+    return found;
+}
+
+describe('the Cowork page is crisp', () => {
+    it('nothing that holds text carries a transform, a filter or a backdrop filter at rest: the home, and a page', async () => {
+        serve();
+        const user = userEvent.setup();
+        renderWithClient(<CoworkPage user={ADMIN} />);
+        await screen.findByRole('button', { name: /Weekly digest/ });
+        expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);
+        for (const [opener, shows] of [['Cowork preferences', 'cowork-settings-panel'], ['Admin rules', 'cowork-org-panel'], ['Start from a template', 'cowork-templates-panel']] as const) {
+            await user.click(screen.getByRole('button', { name: opener }));
+            await screen.findByTestId(shows);
+            expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);
+            await user.click(screen.getByRole('button', { name: 'Tasks' }));
+        }
+        await user.click(screen.getByTestId('cowork-teamwork'));
+        await within(screen.getByTestId('cowork-page-frame')).findByTestId('cowork-teamwork-panel');
+        expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);
+    });
+
+    it('the check sees a soft class, and lets the ones that are not at rest through', () => {
+        const box = document.createElement('div');
+        box.innerHTML = '<p class="translate-y-0 hover:scale-105">a</p><p class="backdrop-blur-sm">b</p><span class="animate-spin"></span><p class="after:translate-x-1 motion-safe:animate-spin">c</p><p class="cowork-enter">d</p>';
+        expect(softClasses(box)).toEqual(['p.translate-y-0', 'p.backdrop-blur-sm', 'p.motion-safe:animate-spin']);
     });
 });
