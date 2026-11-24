@@ -80,7 +80,7 @@ function plan(listPath = 'steps.list.output.transcripts') {
 
 /**
  * An item whose plan was approved before the reference check existed: stored as approved directly, as an older
- * approval left it (the approval of today refuses `transcripts`: core/cowork/plan/planRefs.mts).
+ * approval left it (the approval of today refuses `transcripts`: usecases/coworkPlanRefs.mts).
  */
 async function itemWithPlan(definition = plan(), title = 'Meeting overview') {
     const automation = await automationStore.createAutomation({ userId: OWNER, title, definition, triggerType: 'manual' });

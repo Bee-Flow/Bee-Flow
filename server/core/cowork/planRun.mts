@@ -244,6 +244,31 @@ async function announce(task: PlanTask, text: string, deps: PlanRunDeps, createN
     }
 }
 
+/** What closing a run that the runner handed back needs. */
+interface CloseCtx { store: PlanRunStore; deps: PlanRunDeps; d: ReturnType<typeof defaults>; runId: string | null; byHand: boolean; startTime: number }
+
+/**
+ * Close a run the runner handed back: as it really ended (./runOutcome.mts), never better than the runner said. The
+ * runner's success is not yet Cowork's: a list step that found no list did not do its work, and an AI step may say it
+ * failed; either only makes the run worse.
+ */
+async function closeEnded(task: PlanTask, row: AutomationRunRow | null | undefined, definition: Definition, c: CloseCtx): Promise<void> {
+    const ended = outcomeOf(row);
+    const outcome = ended.paused ? null : await judged(row, definition, c.d);
+    if (outcome?.kind === 'ai_failed') throw new AiVerdictError(aiFailedText(outcome.reason), { kind: 'ai_failed', stepId: outcome.stepId });
+    const incomplete = outcome?.kind === 'incomplete';
+    const text = incomplete ? incompleteText(outcome.unresolved) : ended.text;
+    // The schedule moves on before the run closes: once the item stops saying 'running', a tick must not find
+    // this moment still due. A run that waits for a decision closes as 'waiting' (./planRunFollowUp.mts).
+    await c.deps.advance(task, { manual: c.byHand, store: c.store, startTime: c.startTime });
+    const facts = outcome ? factsOf(outcome) : null;
+    await c.store.markCompleted(task.id, text, { runId: c.runId, waiting: ended.paused, ...(facts ? { outcome: facts } : {}) });
+    // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
+    // before its result step, is announced here. So is a run that did not do its work: its own result said
+    // nothing was there, and the owner must not take that for the truth.
+    if (incomplete || ended.paused || planViewOf(definition, c.d.lookups).makeUp.deliver === 0) await announce(task, text, c.deps, c.d.createNotification);
+}
+
 /**
  * Run one item as its approved plan. `manual`: a person pressed Run now. `due`: the scheduler tick started this for a
  * due moment (the claim then asks that it still is, ./runClaim.mts).
@@ -278,22 +303,7 @@ export async function executePlanRun(
             startedByUserId: task.userId,
             onRunCreated: (run: { id?: string }) => store.linkPlanRun(attempt.runId, { planId: plan.id, automationRunId: run?.id ?? null }),
         });
-        const ended = outcomeOf(row);
-        // The runner's success is not yet Cowork's: a list step that found no list did not do its work, and an AI
-        // step may say it failed (./runOutcome.mts). Either only makes the run worse, never better.
-        const outcome = ended.paused ? null : await judged(row, definition, d);
-        if (outcome?.kind === 'ai_failed') throw new AiVerdictError(aiFailedText(outcome.reason), { kind: 'ai_failed', stepId: outcome.stepId });
-        const incomplete = outcome?.kind === 'incomplete';
-        const text = incomplete ? incompleteText(outcome.unresolved) : ended.text;
-        // The schedule moves on before the run closes: once the item stops saying 'running', a tick must not find
-        // this moment still due. A run that waits for a decision closes as 'waiting' (./planRunFollowUp.mts).
-        await deps.advance(task, { manual: byHand, store, startTime });
-        const facts = outcome ? factsOf(outcome) : null;
-        await store.markCompleted(task.id, text, { runId: attempt.runId, waiting: ended.paused, ...(facts ? { outcome: facts } : {}) });
-        // A plan that ends in a result for its owner has delivered it itself; one that does not, or that stopped
-        // before its result step, is announced here. So is a run that did not do its work: its own result said
-        // nothing was there, and the owner must not take that for the truth.
-        if (incomplete || ended.paused || planViewOf(definition, d.lookups).makeUp.deliver === 0) await announce(task, text, deps, d.createNotification);
+        await closeEnded(task, row, definition, { store, deps, d, runId: attempt.runId, byHand, startTime });
     } catch (caught) {
         const err = caught instanceof Error ? caught : new Error(String(caught));
         log.error(`[AITaskRunner] Plan run of ${task.id} failed:`, err.message);

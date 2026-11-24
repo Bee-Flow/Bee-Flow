@@ -17,7 +17,7 @@ import { createRequire } from 'node:module';
 import type { Definition } from '../core/cowork/plan/planTypes.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
-import { refFindings } from '../core/cowork/plan/planRefs.mts';
+import { refFindings } from './coworkPlanRefs.mts';
 import { licenceFindings } from '../core/cowork/plan/planLicence.mts';
 import { plannerRefusal, plannerTools } from './coworkPlannerPrompt.mts';
 import { amendSystemPrompt, type AmendFacts } from './coworkPlanAmendPrompt.mts';

@@ -33,7 +33,7 @@ import type { PlanDraft, PlanState } from './coworkPlan.mts';
 import type { ProposalDeps, ProposeOutcome } from './coworkProposals.mts';
 import type { PastRun, ReplayRunDeps } from '../core/cowork/replay/replayRun.mts';
 import type { RecordedStep } from '../core/cowork/replay/recordingOf.mts';
-import { AUTO_FIX_APPROVER, AUTO_FIX_REASON, deterministicCandidate, listPathsOf, patchRef, refOfList, sameReach, shapeOf, type ListPath, type ResolveItem, type UnresolvedFact } from '../core/cowork/repairs/autoResolve.mts';
+import { AUTO_FIX_APPROVER, AUTO_FIX_REASON, deterministicCandidate, listPathsOf, patchRef, refOfList, sameReach, type ListPath, type ResolveItem, type UnresolvedFact } from '../core/cowork/repairs/autoResolve.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
@@ -42,6 +42,12 @@ import { unresolvedOf } from '../core/cowork/runOutcome.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
+const { describeValue } = nodeRequire('../automation/shapeCache.js') as { describeValue: (v: unknown) => unknown };
+
+/** The shape of a value: keys and types, never content (automation/shapeCache.js describeValue). */
+export function shapeOf(value: unknown): unknown {
+    return describeValue(value);
+}
 
 interface Approved { id: string; version: number; definition: unknown; fingerprint: string }
 
@@ -178,8 +184,11 @@ function replayHolds(steps: Map<string, RecordedStep> | null, patched: Definitio
     return unresolvedOf(patched, steps, lookups).length === 0;
 }
 
+/** One fix being worked out: the item, the run that ended incomplete, its reference, and the plan it followed. */
+interface Case { item: ResolveItem; run: JudgedRun; fact: UnresolvedFact; definition: Definition; lists: ListPath[] }
+
 /** The fallback: the repair its owner decides, with the patched plan when there is one, else the facts. */
-async function fallBack(item: ResolveItem, run: JudgedRun, fact: UnresolvedFact, definition: Definition, patched: Definition | null, lists: ListPath[], deps: AutoResolveDeps): Promise<ResolveOutcome> {
+async function fallBack({ item, run, fact, definition, lists }: Case, patched: Definition | null, deps: AutoResolveDeps): Promise<ResolveOutcome> {
     const stepTitle = titleOf(definition, fact.stepId, deps.lookups);
     const base = deps.proposalDeps();
     const facts = {
@@ -194,7 +203,7 @@ async function fallBack(item: ResolveItem, run: JudgedRun, fact: UnresolvedFact,
 }
 
 /** Apply the patch as a new approved version, leave its record and trail entry, and run a scheduled item again. */
-async function apply(item: ResolveItem, run: JudgedRun, fact: UnresolvedFact, approved: Approved, patched: Definition, deps: AutoResolveDeps): Promise<ResolveOutcome> {
+async function apply({ item, run, fact }: Case, approved: Approved, patched: Definition, deps: AutoResolveDeps): Promise<ResolveOutcome> {
     const state = await deps.approveDefinition({ item, definition: patched, approvedBy: AUTO_FIX_APPROVER });
     const fingerprint = planFingerprint(patched);
     await deps.proposals.recordAutoFix({
@@ -216,18 +225,19 @@ export async function autoResolve(item: ResolveItem, run: JudgedRun, fact: Unres
     if (!approved || !automation || approved.id !== run.planId) return 'not_fixed';
     const definition = approved.definition as Definition;
     const { ref, lists } = await candidateOf(item, run, fact, definition, deps);
+    const c: Case = { item, run, fact, definition, lists };
     const patched = ref ? patchRef(definition, fact, ref) : null;
-    if (!ref || !patched) return fallBack(item, run, fact, definition, null, lists, deps);
-    if (!sameReach(definition, patched, fact, ref, deps.lookups)) return fallBack(item, run, fact, definition, patched, lists, deps);
+    if (!ref || !patched) return fallBack(c, null, deps);
+    if (!sameReach(definition, patched, fact, ref, deps.lookups)) return fallBack(c, patched, deps);
     const draft = await deps.judge({ ...automation, definition: patched }, item);
-    if (draft.findings.length > 0) return fallBack(item, run, fact, definition, patched, lists, deps);
+    if (draft.findings.length > 0) return fallBack(c, patched, deps);
     const replayed = await deps.replayOnRecording({ item, automation, past: pastOf(run, approved), definition: patched }, deps.replay)
         .catch((e: Error) => { log.warn(`[Cowork] ${item.id}: the fix of the reference was not replayed: ${e.message}`); return null; });
-    if (!replayHolds(replayed, patched, fact, deps.lookups)) return fallBack(item, run, fact, definition, patched, lists, deps);
+    if (!replayHolds(replayed, patched, fact, deps.lookups)) return fallBack(c, patched, deps);
     try {
-        return await apply(item, run, fact, approved, patched, deps);
+        return await apply(c, approved, patched, deps);
     } catch (e) {
         log.warn(`[Cowork] ${item.id}: the fix of the reference was not applied: ${(e as Error).message}`);
-        return fallBack(item, run, fact, definition, patched, lists, deps);
+        return fallBack(c, patched, deps);
     }
 }

@@ -739,6 +739,7 @@ No request schema.
 | `unattendedApps` | array of string or null |  |  |
 | `monthlyBudget` | number or null |  |  |
 | `habitsAllowed` | boolean |  |  |
+| `autoFix` | boolean |  |  |
 
 ### `GET /api/cowork/policy/:orgId/audit`
 

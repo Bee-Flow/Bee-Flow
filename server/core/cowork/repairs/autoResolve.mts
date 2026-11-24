@@ -3,8 +3,9 @@
  * INCOMPLETE (../runOutcome.mts: a step that works through a list found none, because the reference it reads points
  * at a path the earlier step's output does not have), may Cowork fix that reference by itself, and to what?
  *
- *   - SHAPE ONLY. What is read of the earlier step's actual output is its SHAPE: key paths and types
- *     (automation/shapeCache.js describeValue), never a value. Content stays out, as decision 0048 keeps the facts.
+ *   - SHAPE ONLY. What is read of the earlier step's actual output is its SHAPE: key paths and types (the use case
+ *     describes it with automation/shapeCache.js describeValue; this module sees only that descriptor), never a value.
+ *     Content stays out, as decision 0048 keeps the facts.
  *   - A CANDIDATE, deterministically first: a path that holds a list and whose last name is the missing one
  *     (`data.transcripts`, `result.transcripts`, `transcripts.items` is not: its last name is `items`); else the one
  *     list near the top (at most two levels down), when there is exactly one. Only when neither answers is the model
@@ -35,7 +36,6 @@ import type { ListField } from '../runOutcome.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
-const { describeValue } = nodeRequire('../../../automation/shapeCache.js') as { describeValue: (v: unknown) => unknown };
 
 /** Who approved a version of a plan that Cowork fixed by itself (cowork_plans.approved_by, the receipt's approvedBy). */
 export const AUTO_FIX_APPROVER = 'cowork:auto_fix';
@@ -62,11 +62,6 @@ export type Candidate =
 const isPlain = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isListShape = (d: unknown): boolean => d === 'array<empty>' || (isPlain(d) && '_array' in d);
 const simpleKey = (k: string): boolean => /^[A-Za-z_$][\w$]*$/.test(k);
-
-/** The shape of a value: keys and types, never content. */
-export function shapeOf(value: unknown): unknown {
-    return describeValue(value);
-}
 
 /** Every list in a shape descriptor, by its path of keys (a list inside a list is not followed). */
 export function listPathsOf(shape: unknown, prefix: string[] = [], depth = 0): ListPath[] {

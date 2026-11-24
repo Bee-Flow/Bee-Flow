@@ -5,8 +5,8 @@
  *
  * Without them a plan had nothing to read a Fireflies output from but the tool's description, and one bound
  * `steps.<list>.output.transcripts` (the GraphQL field name inside the tool): the list is `results`. With a curated
- * shape the builder refuses that path when it is added, and Cowork refuses it before a plan is approved
- * (core/cowork/plan/planRefs.mts).
+ * shape the builder warns about that path when it is added, and Cowork refuses it before a plan is approved
+ * (usecases/coworkPlanRefs.mts).
  */
 
 const TRANSCRIPT = '{ id, title, date, duration, organizer, participants (array of string), speakers (array of string), url }';

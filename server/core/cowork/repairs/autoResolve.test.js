@@ -11,7 +11,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { shapeOf, listPathsOf, deterministicCandidate, patchRef, sameReach, unresolvedFactOf } = require('./autoResolve.mts');
+const { listPathsOf, deterministicCandidate, patchRef, sameReach, unresolvedFactOf } = require('./autoResolve.mts');
+const { shapeOf } = require('../../../usecases/coworkAutoResolve.mts');
 const { fakeLookups } = require('../plan/plan.testkit');
 
 const lookups = fakeLookups();

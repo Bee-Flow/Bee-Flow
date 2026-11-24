@@ -28,7 +28,7 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
-import { refFindings, REF_FINDING } from '../core/cowork/plan/planRefs.mts';
+import { refFindings, REF_FINDING } from './coworkPlanRefs.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 

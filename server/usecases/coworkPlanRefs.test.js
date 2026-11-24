@@ -1,8 +1,8 @@
 /**
- * A list a plan step works through that the earlier step's described output does not have (./planRefs.mts): a finding
+ * A list a plan step works through that the earlier step's described output does not have (./coworkPlanRefs.mts): a finding
  * with a plain sentence, before the plan is approved. An output nobody described is never a finding.
  *
- * Run: cd server && node --test core/cowork/plan/planRefs.test.js
+ * Run: cd server && node --test usecases/coworkPlanRefs.test.js
  */
 
 'use strict';
@@ -10,8 +10,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { refFindings } = require('./planRefs.mts');
-const { fakeLookups } = require('./plan.testkit');
+const { refFindings } = require('./coworkPlanRefs.mts');
+const { fakeLookups } = require('../core/cowork/plan/plan.testkit');
 
 const lookups = fakeLookups();
 const plan = (overRef, tool = 'fireflies_list_transcripts') => ({

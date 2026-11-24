@@ -25,7 +25,7 @@ import { createRequire } from 'node:module';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
-import { refFindings } from '../core/cowork/plan/planRefs.mts';
+import { refFindings } from './coworkPlanRefs.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { plannerChat } from './coworkPlannerChat.mts';

@@ -1,8 +1,8 @@
 /**
  * Does every list a plan's steps work through exist in what the earlier step returns? Checked when a plan is judged for
- * approval (usecases/coworkPlan.mts draftOf), while the planner and the amend mode draft one (their findings go back to
- * the model, usecases/coworkDraftLoop.mts), and on the try-out's actual outputs (usecases/coworkPlanTry.mts, with
- * ../runOutcome.mts).
+ * approval (./coworkPlan.mts draftOf), while the planner and the amend mode draft one (their findings go back to the
+ * model, ./coworkDraftLoop.mts), and on the try-out's actual outputs (./coworkPlanTry.mts, with
+ * core/cowork/runOutcome.mts). Here, not in core: it reads the builder's shape checker (automation/builderTools).
  *
  * A step that runs once per item, a Loop and a list step (filter, limit, ...) name their list as a reference to an
  * earlier step's output. When that output's shape is DESCRIBED (the tool's curated output schema,
@@ -12,25 +12,25 @@
  * meetings', which returns no such field."), and the checker's one obvious fix is named when it has one. An output
  * nobody described is never a reason for a finding: no shape, no complaint.
  *
- * Not part of ./planChecks.mts on purpose: that one also runs before every run, and a reference is not a rule about
- * what a plan may do. A broken reference in an approved plan makes the run incomplete (../runOutcome.mts) and is fixed
- * by itself when it can be (../repairs/autoResolve.mts); it never stops the run from starting.
+ * Not part of core/cowork/plan/planChecks.mts on purpose: that one also runs before every run, and a reference is not a rule about
+ * what a plan may do. A broken reference in an approved plan makes the run incomplete (core/cowork/runOutcome.mts) and is
+ * fixed by itself when it can be (core/cowork/repairs/autoResolve.mts); it never stops the run from starting.
  */
 
 import { createRequire } from 'node:module';
-import type { Definition, PlanFinding, ToolLookups } from './planTypes.mts';
-import { planViewOf } from './planView.mts';
-import { listRefsOf, type ListRef } from '../runOutcome.mts';
+import type { Definition, PlanFinding, ToolLookups } from '../core/cowork/plan/planTypes.mts';
+import { planViewOf } from '../core/cowork/plan/planView.mts';
+import { listRefsOf, type ListRef } from '../core/cowork/runOutcome.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
 type Token = { type: string; key: unknown };
 type Problem = { kind: string; reason?: string; sure?: boolean; here?: string[] };
-const { checkRefTokens } = nodeRequire('../../../automation/builderTools/refCheck.js') as {
+const { checkRefTokens } = nodeRequire('../automation/builderTools/refCheck.js') as {
     checkRefTokens: (graph: unknown, tokens: Token[], opts: { wantList?: boolean }) => { tokens: Token[]; fixes: string[]; problem?: Problem };
 };
-const { normalizeAiPath } = nodeRequire('../../../automation/builderTools/aiPaths.js') as { normalizeAiPath: (p: string) => { tokens: Token[] | null } };
-const { formatPath } = nodeRequire('../../../automation/expr.js') as { formatPath: (t: Token[]) => string };
+const { normalizeAiPath } = nodeRequire('../automation/builderTools/aiPaths.js') as { normalizeAiPath: (p: string) => { tokens: Token[] | null } };
+const { formatPath } = nodeRequire('../automation/expr.js') as { formatPath: (t: Token[]) => string };
 
 /** The code of a reference finding. */
 export const REF_FINDING = 'ref.missing';
