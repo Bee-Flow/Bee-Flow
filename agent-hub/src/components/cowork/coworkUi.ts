@@ -19,7 +19,7 @@ import { TINT } from './coworkMotion';
  * The height of a control: 36px, and 44px where the pointer is a finger. Important there, because src/app.css sets
  * `button { min-height: 36px }` under 768px outside any layer, which beats a plain utility at phone width.
  */
-export const CONTROL_HEIGHT = 'min-h-9 pointer-coarse:min-h-11!';
+const CONTROL_HEIGHT = 'min-h-9 pointer-coarse:min-h-11!';
 
 /** The focus ring of a row inside a card: drawn inside the row, where the card's rounded edge cannot clip it. */
 export const FOCUS_INSET = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]';
