@@ -142,7 +142,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
             <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
                 {t('cowork_home.ask', 'What should be done for you?')}
             </h1>
-            <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2`} onSubmit={(e) => { e.preventDefault(); go(); }}>
+            <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
                 <label htmlFor="cowork-brief" className="sr-only">{t('cowork_home.brief_label', 'Describe the task in one sentence')}</label>
                 <textarea
                     id="cowork-brief"
