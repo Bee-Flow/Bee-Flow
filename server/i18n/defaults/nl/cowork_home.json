@@ -123,7 +123,6 @@
     "cowork_home.next.mail": "Wacht op een nieuwe mail",
     "cowork_home.next.next": "Volgende: {when}",
     "cowork_home.next.now": "Nu",
-    "cowork_home.next.on": "{date}, {time}",
     "cowork_home.next.on_hold": "Staat stil",
     "cowork_home.next.ran_once": "Eén keer gedraaid",
     "cowork_home.next.row": "Wacht op een nieuwe rij",
@@ -166,5 +165,7 @@
     "cowork_home.teamwork.yours": "Door jou opgezet",
     "cowork_home.untitled": "Taak zonder naam"
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "cowork_home.next.on"
+  ]
 }
