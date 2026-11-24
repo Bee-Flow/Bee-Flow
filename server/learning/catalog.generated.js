@@ -820,7 +820,7 @@ const EXERCISE_LESSONS = {
     "ex-projects-shared-workspace-instructions": "projects-shared-workspace",
     "ex-cowork-basics-life": "cowork-basics",
     "ex-cowork-brief": "cowork-briefs",
-    "ex-cowork-hands-on-split": "cowork-hands-on",
+    "ex-cowork-hands-on-repair": "cowork-hands-on",
     "ex-cowork-run-as-agent-decide": "cowork-run-as-agent",
     "ex-research-web-and-browse-open-page": "research-web-and-browse",
     "ex-grounded-chat-setup": "research-grounded-chat",
@@ -1127,52 +1127,52 @@ const RUBRICS = {
         "guidance": "Do not pass a single sentence, a request phrased as a task for today ('write the tender letter'), or text that merely describes the project without instructing the assistant. Do not pass anything containing a real-looking personal detail, even as an example. A learner who writes short, plain, specific rules should pass; polish and length are not the point."
     },
     "ex-cowork-basics-life": {
-        "title": "The life of a cowork item",
-        "task": "The learner picks one job to delegate and describes it end to end in four to six sentences: the sentence they type, whether they press Run or Schedule and why, what Bee Flow derives from that sentence, and where the result is read afterwards.",
+        "title": "The life of a Cowork task",
+        "task": "The learner picks one job to hand to Cowork and describes it end to end in four to six sentences: the sentence they type, what the confirmation card's four lines (What, When, Uses, Sends to) would say, what Set up and test does, what they check before approving, and where the result is read afterwards.",
         "criteria": [
-            "Names a concrete job with a timing decision (now, a moment, or a repeat) rather than a vague wish.",
-            "Uses the correct send button for that timing: Run when it starts now, Schedule when it starts later.",
-            "Shows that Bee Flow derives a title and the instruction that actually runs from the typed sentence, and that the item is only created when they send.",
-            "Says the result arrives in their notifications and that past attempts live in the item's run history — not in a chat thread, an email, or a colleague's screen."
+            "Names a concrete job with a timing (once, a day and time, or a repeat) rather than a vague wish.",
+            "Describes the card's lines, or at least When and Sends to, and shows that nothing exists until Set up and test (or Start) is pressed.",
+            "Says that the steps are set up and tested once without sending anything, and that the task only runs for real after they approve what the test produced.",
+            "Says where the result is read: the task page or its History, or the notifications; not in an open chat window or a colleague's screen."
         ],
         "passScore": 70,
-        "guidance": "Pass a plain, specific walkthrough even if the wording is informal. Do not pass an answer that only says \"it runs automatically\", that describes a back-and-forth conversation with follow-up questions, that sends the result to a colleague or an inbox, or that omits where the result is read. A wrong button choice (Schedule for work starting now, or the reverse) should fail the second criterion but need not sink the whole answer."
+        "guidance": "Pass a plain, specific walkthrough even if the wording is informal. Do not pass an answer that only says \"it runs automatically\", that skips the approval and claims the task runs straight after it is created, that describes a back-and-forth conversation, or that sends the result to colleagues without naming them under Sends to. Using the old words (Run, Schedule, chips) instead of Show what I understood and Set up and test should fail the second criterion but need not sink the whole answer."
     },
     "ex-cowork-brief": {
-        "title": "Write a Cowork brief",
-        "task": "Write a brief you would hand to Cowork: one plain-language message saying what Bee Flow should do unattended, with enough detail that the result is useful, and when or how often it should run.",
+        "title": "Write the sentence for a Cowork task",
+        "task": "Write one sentence for a Cowork task that answers the four lines of the confirmation card: what comes out (with the detail that makes it useful), when it runs, which app it reads from by name, and who receives it (the learner, and anyone else by e-mail address). Then add one line saying which line of the card they would check first and why.",
         "criteria": [
-            "States a concrete deliverable — what is actually produced (a digest, list, draft, table), not just a topic to watch",
-            "Names the source or scope it should work from (a mailbox, meeting notes, this week's tickets, a named set of customers)",
-            "Pins the shape of the result: which fields, how many items, how long, or what to leave out",
-            "Says when or how often it runs, or explicitly that it runs right now"
+            "States a concrete result (a digest, list, draft, table) with the detail that makes it useful, not just a topic to watch.",
+            "Says when it runs: a day and a time, a repeat, or explicitly once today.",
+            "Names the app or source it reads from by name (a mailbox app, a calendar, meeting notes, a ticket system).",
+            "Says who receives it, with any colleague given as an e-mail address rather than a team name, and adds a sensible line about which card line to check first."
         ],
         "passScore": 70,
-        "guidance": "Reward briefs that could run with nobody available to clarify. Score below pass: a topic with no deliverable (\"keep an eye on our competitors\"), a brief with no source or scope, and any brief that asks the user a question (\"shall I also include...?\") since nobody will answer it. Timing may be a moment, a repeat, or an explicit \"now\". Naming an agent, an app, or what to do when there is nothing to report is a plus, not a requirement."
+        "guidance": "Reward sentences that would fill the card correctly with nobody available to clarify. Score below pass: a topic with no result (\"keep an eye on our competitors\"), no timing at all, a recipient given only as a team or role (\"send it to purchasing\") with no address, or a sentence that asks the reader a question. A sentence that only sends to the learner is fine. Naming what to do when there is nothing to report is a plus, not a requirement."
     },
-    "ex-cowork-hands-on-split": {
-        "title": "Splitting an overloaded brief",
-        "task": "Rewrite one overloaded weekday brief as two separate cowork items, each with a name, a self-contained instruction that states what the result must contain, and its own moment plus repeat — followed by one line naming what the learner will check after the first run.",
+    "ex-cowork-hands-on-repair": {
+        "title": "Repairing a task in Settings",
+        "task": "The learner describes how to make two changes to an existing Cowork task on its page: add a colleague's address as a recipient, and move the time from 07:30 to 07:00. For each: which Settings row, what is changed, and what Cowork does next. Then one line on what to check after the next run.",
         "criteria": [
-            "Produces two items that can each run on their own, with no item depending on another item's output",
-            "Each item states what its result must contain, in enough detail that an unattended run never needs to ask a follow-up question",
-            "Each item names its own moment and repeat in concrete terms (a time and a rhythm such as every weekday or every week), not 'regularly'",
-            "Names something specific to check after the first run — the run row under What happened, the Succeeded or Average card, or the notification"
+            "Moves the time under Settings → When (Change), and says it is saved at once without a new approval.",
+            "Adds the recipient by saying it in the sentence under Settings → What (Sends to itself cannot be edited on the task page), and says that a task with fixed steps then rebuilds and tests its steps (Save and test) and needs approving again.",
+            "Does not delete and recreate the task, and does not use Pause as a fix.",
+            "Names something concrete to check after the next run: the latest result at the top, History → Runs, a message waiting under Needs you for the colleague's copy, or the notification."
         ],
         "passScore": 70,
-        "guidance": "Do not pass a single rewritten brief, however tidy: the point is two items. Do not pass a split that still chains ('the second one uses the output of the first'), and do not pass vague scheduling ('daily-ish', 'when needed') or an instruction phrased as a question to Bee Flow. A weekly overview that reads back the kept history is fine; a second item that merely renames the first is not."
+        "guidance": "Pass a plain, correct description even if informal. Do not pass an answer that edits recipients under Sends to directly, that looks for an Edit button, that deletes and recreates the task, or that claims the changed steps run without a new approval. Mentioning that the message to the colleague first waits under Needs you (Show me each message first) is a plus."
     },
     "ex-cowork-run-as-agent-decide": {
-        "title": "Choosing the runner and the reach",
-        "task": "Write four lines about one real delegation: the brief in one sentence; No agent or a named agent with the reason; which of the three Apps states the item should be in and why; and the one thing to check on the item after the first run.",
+        "title": "Choosing who does the work, and the reach",
+        "task": "Write four lines about one real task: the sentence; Fixed steps, the AI every run, or an agent, with the reason; which apps state the task should be in (no list of its own, its own list with the apps named, or none) and why; and the one thing to check on the task after its first run.",
         "criteria": [
-            "The brief is one sentence that says what must be produced, not just a topic.",
-            "The runner choice is justified with something an agent actually brings — its instructions, skills, knowledge bases, connected apps, its own model, or its one continuing thread — or with a reason to keep the work on the plain-prompt path.",
-            "The Apps answer names one of the three states (no list of its own, its own list with the apps named, or empty) and says why that state fits the work.",
-            "The check after the first run points at something the item really shows: the assignment and its pills, a row in What happened, or the figure cards."
+            "The sentence says what must be produced and when, not just a topic.",
+            "The choice of how it works is justified with something real: the same work every time or asking before messages to others (fixed steps), work that changes shape (the AI every run), or the instructions, knowledge, apps or one continuing thread an agent brings.",
+            "The apps answer names one of the three states (no list of its own, its own list with the apps named, or none) and says why that state fits the work.",
+            "The check after the first run points at something the task really shows: its latest result, History → Runs, Steps, a card under Needs you, or the agent's thread."
         ],
         "passScore": 70,
-        "guidance": "Pass a concrete, honest answer even if short. Do not pass: a brief that is only a subject line; 'an agent is smarter' or any reason that is not one of the things an agent brings; an Apps answer that leaves the state ambiguous ('restrict the apps') or that claims a per-item list narrows an agent-linked run; a check that cannot be seen on the item, such as a cost figure, a colleague's view of the item, or an email confirmation."
+        "guidance": "Pass a concrete, honest answer even if short. Do not pass: a sentence that is only a subject line; 'an agent is smarter' or any reason that is not one of the things above; an apps answer that leaves the state ambiguous ('restrict the apps'); a claim that an agent still asks before every message; or a check that cannot be seen on the task, such as a cost figure on the task or a colleague's view of it."
     },
     "ex-research-web-and-browse-open-page": {
         "title": "A message that opens one named page",
@@ -2058,8 +2058,8 @@ const RUBRICS = {
         "title": "Handover note for the capstone build",
         "task": "Describe the three artifacts built for the Hive Master challenge — what each does and which requirement it meets — then name one admin decision the build depends on and where it is taken, and one further repeating task with the trigger it should get and why.",
         "criteria": [
-            "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a cowork item, and an agent or a knowledge base with a document — and says in one line what each actually does.",
-            "Maps each artifact to the requirement it satisfies, correctly (schedule automation, cowork, builder artifact).",
+            "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a Cowork task, and an agent or a knowledge base with a document — and says in one line what each actually does.",
+            "Maps each artifact to the requirement it satisfies, correctly (schedule automation, Cowork task, builder artifact).",
             "Names one real admin decision the build depends on and where it is taken: \"Also protect automations\" on the Privacy Shield, the encryption tier an unattended automation needs, the role or group grant that permits building, or the processing register a published agent lands in — or, for a non-admin, the decision to be confirmed, its screen and who confirms it.",
             "Names one further repeating task and picks a trigger for it from the real palette (schedule, form, webhook, app event, agent call, Studio App).",
             "Justifies the trigger choice by what starts the work — a clock, a submission, an event in a connected app — not by preference."
@@ -2362,58 +2362,58 @@ const PRACTICE_TOPICS = {
     },
     "cowork-basics": {
         "title": "Cowork basics",
-        "summary": "How a cowork item is created, what the chips decide, where its result is delivered, and who can see it.",
+        "summary": "How one sentence becomes a Cowork task, why it waits for your approval, how the home and a task page are laid out, and who can see a task.",
         "facts": [
-            "The Cowork row sits directly under New Chat in the sidebar, and its badge counts the items that are currently active.",
-            "The send button reads Run when the work starts now and Schedule when it starts later; while it is submitting it reads Starting…",
-            "A finished run is delivered to the notification centre under the Cowork category, and every attempt is listed in the item's What happened card.",
-            "A chip you set yourself — When, Repeat or Run as — always wins; Bee Flow only fills in the chips you left untouched.",
-            "Run as hands the brief to one of your agents, which brings its own skills, knowledge and connected apps; the result then also lands in that agent's chat thread, and the model tier is forced to Auto because the agent's own model runs it.",
-            "Apps it may use is a per-item allow-list: by default the item follows your workspace-wide list, and switching anything in the picker gives it its own list until you click Follow my workspace list.",
-            "Cowork items are personal: every read is scoped to the signed-in user, and there is no organisation-wide cowork list.",
-            "The cards above What happened read Runs, Succeeded and Average: Runs is the lifetime tally while individual run rows are kept for 90 days, and each person can keep 10 cowork items at a time."
+            "The Cowork row sits directly under New Chat in the sidebar, and its badge counts the tasks that are switched on.",
+            "Show what I understood reads the sentence and answers with a card headed 'This is what I understood' with four lines, What, When, Uses and Sends to; it creates nothing.",
+            "Set up and test creates the task, sets up fixed steps and tests them once on real data while sending nothing; where the organisation has no fixed steps the button reads Start and the AI works the task out on every run.",
+            "A task created through the card does not run for real until its steps are approved; the first approval shows 'This is what you would have received' with Approve and Change something.",
+            "The home lists Needs you, Your tasks, Shared with you (when not empty) and Teamwork; a failure is always a card under Needs you.",
+            "Every task has one status word: Done, Failed, Needs you, Scheduled, Running, Testing, Paused or Nothing to do; Nothing to do is a run that found nothing to do, not a failure.",
+            "A task opens as a page with Run for real now, Pause and Share at the top, then Settings with the rows What, When, Uses and Sends to, then Steps, People and History.",
+            "A task belongs to its owner; colleagues see it only when the owner shares it (Can see or Can answer), and only the owner can change it."
         ]
     },
     "cowork-briefs": {
-        "title": "Cowork briefs that run unattended",
-        "summary": "How a brief becomes a title, an instruction and a schedule, and which decisions the chips take out of your words.",
+        "title": "Writing the sentence for a Cowork task",
+        "summary": "How one sentence becomes the card's What, When, Uses and Sends to, what each line needs to come out right, and what can be corrected on the card.",
         "facts": [
-            "The cowork runner is instructed never to ask follow-up questions because the run is unattended, so a question left in the brief comes back as a guess rather than a pause.",
-            "A sent brief is split into a title of at most 60 characters, the instruction shown on the item as THE ASSIGNMENT and editable under 'What it does', and the timing, which is kept in separate fields.",
-            "Vague times in a brief map to fixed hours: morning is 08:00, midday 12:00, afternoon 14:00, evening 18:00 and night 21:00.",
-            "Any chip you set yourself — When, Repeat or Run as — always wins; Bee Flow only fills in the chips you left untouched.",
-            "When is set to 'Run now' and a repeat is also set, the first run fires immediately and the series starts at the next occurrence.",
-            "'Run now' with Repeat on 'Once' runs exactly once, after which the item switches itself off and the list shows it as Finished.",
-            "Until you touch the Apps picker an item has no list of its own and follows your workspace-wide app list; 'Follow my workspace list' in Edit puts it back.",
-            "A run that succeeds without producing any text is recorded as 'Nothing to report' in the item's 'What happened' history."
+            "The confirmation card 'This is what I understood' has four lines: What (the task's name, at most 60 characters), When, Uses and Sends to.",
+            "When the sentence does not say when, the card asks 'Which day?' and the start button stays off until a day is picked; the choices include 'Just once, today', every day, weekdays and one weekday.",
+            "Vague times map to fixed hours: morning is 08:00, midday 12:00, afternoon 14:00, evening 18:00 and night 21:00.",
+            "Uses pre-selects only the apps the sentence names by name; with none named the card says Cowork picks the apps it needs while it sets up the steps.",
+            "Sends to starts with Me and adds every e-mail address written in the sentence; a team name is not an address.",
+            "Editing the sentence makes the card read it again ('Reading your sentence again…'); lines changed by hand on the card keep their value.",
+            "When someone besides the owner is under Sends to, 'Show me each message first' is ticked; unticked, Cowork still shows each message at first, and 'Don't ask' is offered on the task only after 10 runs let through.",
+            "When the AI works a task out on a run it is told not to ask follow-up questions, because the run is unattended."
         ]
     },
     "cowork-hands-on": {
-        "title": "Running, reading and repairing a cowork",
-        "summary": "How the figures, the run history, the buttons and the failure messages on a Cowork item actually behave.",
+        "title": "Running, reading and repairing a Cowork task",
+        "summary": "How a new task gets from Set up and test to its first real run, how to read and correct it, and what each kind of failure card asks you to press.",
         "facts": [
-            "The three figure cards are Runs (the lifetime tally, with 'since <date>' under it), Succeeded (counted from the kept history, with 'nothing went wrong' or '<n> runs failed' under it) and Average (duration per run).",
-            "Run history rows are kept for 90 days while the lifetime run count survives, which is why Runs can sit far above Succeeded; when the sweep has left no rows at all the Succeeded card says 'older runs are no longer kept' instead of 'nothing went wrong'.",
-            "Pause and Resume are reversible; the delete dialog 'Delete this cowork?' warns that the item stops running and its history is removed, and that this cannot be undone.",
-            "Run now fires the item immediately without moving the next scheduled moment, and is disabled while a run is open — the server refuses a second run with 'This cowork is already running'.",
-            "A failed run raises an urgent notification titled 'Cowork failed: <title>' that links back to the item; a repeating item still advances to its next occurrence, while a failed one-off is switched off and must be restarted with Run now.",
-            "The status word 'Needs sign-in' means an account connection expired: every schedule that could touch it is paused, and reconnecting under Settings → Connections (the personal screen in the Settings left-hand menu) un-pauses them straight away.",
-            "'Nothing to report' in the run history is a successful run that produced no text, and is different from 'No output recorded' and from 'It failed without saying why'.",
-            "One run may make at most 20 tool calls; when it hits that ceiling the result says so, and the fix is to split the brief or attach an agent."
+            "After Set up and test the home shows 'Setting up the steps', 'Testing once, nothing is sent' and 'Ready for your check', then a Needs you card 'The steps are ready and tested. Check them once.' with 'Open and approve'.",
+            "Run for real now is off while the steps wait for approval and says why under it: 'It cannot run for real yet: its steps wait for your approval.'; approving does not itself start a run.",
+            "The test of the steps and the approval do not count as a run; the task's first real run comes from Run for real now or from its schedule.",
+            "Pause and Resume are reversible; 'Delete this task' sits at the very bottom of History and its confirmation says it stops for good, with its runs, and cannot be undone. Each person can have 10 tasks, paused ones included.",
+            "There is no Edit screen: Settings holds What, When, Uses and Sends to; a name or a time saves at once, a new sentence or other apps on a task with fixed steps is 'Save and test' and needs a new approval.",
+            "Recipients cannot be edited on the task page; the Sends to row says to say it in the sentence under What.",
+            "A failure is always a card under Needs you that names the step and the cause, with one action such as Sign in again, Fix it for me, See what is wrong or Run it again; the raw error sits under Technical details.",
+            "An expired sign-in is repaired under Settings → Connections; reconnecting also resumes the tasks that paused themselves for it."
         ]
     },
     "cowork-run-as-agent": {
-        "title": "Cowork: Run as, and what a run may reach",
-        "summary": "How linking an agent changes a cowork item, and how the per-item Apps list decides what a run may touch.",
+        "title": "Cowork: who does the work, and what a task may use",
+        "summary": "How Settings → Uses → How it works decides between fixed steps, the AI every run and one of your agents, and how a task's own list of apps decides what a run may use.",
         "facts": [
-            "The Run as sheet is titled 'Who does the work?' with the subtitle 'An agent brings its own skills, knowledge and connected apps'; its first row is 'No agent', hinted 'Runs as a plain prompt'.",
-            "An item with an agent linked is stored with model tier Auto, because an agent runs on its own model; the tier is only meaningful for agent-less work, and the Edit form has no tier field.",
-            "An agent-linked run delivers its result to the notifications as usual and also writes it into that agent's chat thread, which the item keeps using for later runs.",
-            "The Apps picker puts an item in one of three states: no list of its own (it follows the workspace-wide list), its own list, or an empty list meaning it may use nothing; 'Follow my workspace list' returns it to the first state.",
-            "When the workspace app list cannot be read the composer shows 'App list unavailable — this run follows your workspace list' and the edit form shows 'Your app list could not be loaded' — the item is never given a list that could not be verified.",
-            "The Run as chip only appears when there are agents to pick from; the list behind it needs the permission that lets someone manage agents, which a Member does not have.",
-            "An item may only run as an agent you own; other attempts are refused with 'Agent not found or not owned by you', and an account without the agent-automations feature gets 'Agent automations beta is not enabled for this account'.",
-            "If the linked agent has Memory switched on, each run is given the items earlier runs of the same cowork already covered, with dates, and is told to skip them unless something material changed."
+            "How it works, under a task's Settings → Uses, offers 'Fixed steps', 'The AI works it out every run' and 'An agent of yours does it' (then 'Which agent').",
+            "Switching a task with fixed steps to the AI or an agent takes its fixed steps off; the screen warns 'Saving takes its fixed steps off' before the save.",
+            "The Ask me choice under Sends to applies to fixed steps only; for the AI or an agent the row says the AI or the agent does the task and tells you afterwards what it did.",
+            "An agent run writes its result into one chat thread of that agent that the task keeps using, and also reaches the notifications and the task's History.",
+            "Apps it may use: a task without its own list uses the apps that are on for you; switching a chip gives it its own list; all chips off reads 'No apps' and means it may use none.",
+            "The agent choice is only offered when there are agents to pick; the list needs the permission to manage agents (Organisation Admin, Agent Admin, Agent Editor), which a Member does not have.",
+            "A task may run as your own agent or a published agent of your organisation that you may chat with; otherwise the save is refused with 'Agent not found or not available to you', and without the feature with 'Running Cowork items as an agent is not enabled for this account'.",
+            "If the agent's Memory is on, each run of the same task is given what earlier runs already covered, with dates, and told to skip it unless something changed; a task's own 'What it remembers' under Uses can be cleared so the next run starts fresh."
         ]
     },
     "research-web-and-browse": {
@@ -3542,7 +3542,7 @@ const PRACTICE_TOPICS = {
         "title": "The Hive Master capstone",
         "summary": "What the capstone checklist asks for, what counts as proof, why a row can be missing, and the admin decisions the three things depend on.",
         "facts": [
-            "The capstone asks for three things: a schedule-triggered automation that has run, a cowork item of your own, and an agent of your own or a knowledge base with at least one document.",
+            "The capstone asks for three things: a schedule-triggered automation that has run, a Cowork task of your own, and an agent of your own or a knowledge base with at least one document.",
             "Only an automation whose trigger is \"On a schedule\" satisfies the automation requirement; manual, form and webhook automations do not.",
             "A dry-run counts as a run — \"Dry-run (preview)\" is described in the app as \"No real actions, a safe preview\" — and how a run ended is not part of the criterion, so a failed run still shows the automation has fired.",
             "For the builder requirement an agent counts as soon as it exists and belongs to you (publishing decides who else may use it and is not required), and a knowledge base counts once it holds at least one document; system-seeded agents and system-managed knowledge bases do not count.",
