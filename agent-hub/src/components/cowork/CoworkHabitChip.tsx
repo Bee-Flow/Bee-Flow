@@ -1,7 +1,7 @@
 /**
- * "You ask this every Monday. Let Cowork do it?": the one offer "it notices what you repeat" makes
+ * "You ask this every Monday. Let it run as a task?": the one offer "it notices what you repeat" makes
  * (server/core/cowork/habits/habitSignals.mts), mounted once next to the app's other global surfaces (AuthedApp.tsx)
- * and woken by the chat stream (hooks/useChatEngine/sse/handlers/cowork.ts). "Make it a cowork" opens Cowork with the
+ * and woken by the chat stream (hooks/useChatEngine/sse/handlers/cowork.ts). "Make it a task" opens Cowork with the
  * message as its brief, handed over in this tab's storage and never in the address (./coworkHandedBrief.ts);
  * nothing is created until the person confirms there. It never shows twice for one turn. It sits top right, under the
  * header, where it never covers the chat's composer at the bottom.
@@ -42,14 +42,14 @@ export default function CoworkHabitChip() {
         <div role="status" className="fixed top-16 right-4 left-4 sm:left-auto sm:max-w-sm z-40 rounded-xl border px-4 py-3 shadow-lg bg-[var(--bg-primary)] [border-color:var(--border-default)] flex flex-col gap-2" data-testid="cowork-habit-chip">
             <span className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-primary)]">
                 <Repeat aria-hidden="true" className="w-4 h-4" />
-                {t('cowork_habits.offer', 'You ask this every {day}. Let Cowork do it for you?', { day: t(key, en) })}
+                {t('cowork_panels.chip.offer', 'You ask this every {day}. Let it run as a task?', { day: t(key, en) })}
             </span>
             <div className="flex gap-2">
-                <button type="button" className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)]" onClick={() => { setOffer(null); openCoworkWithBrief(offer.brief, offer.weekday); }}>
-                    {t('cowork_habits.make', 'Make it a cowork')}
+                <button type="button" className="min-h-[44px] px-4 py-2 rounded-full text-[13px] font-medium bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)]" onClick={() => { setOffer(null); openCoworkWithBrief(offer.brief, offer.weekday); }}>
+                    {t('cowork_panels.chip.make', 'Make it a task')}
                 </button>
-                <button type="button" className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-secondary)]" onClick={() => setOffer(null)}>
-                    {t('cowork_habits.not_now', 'Not now')}
+                <button type="button" className="min-h-[44px] px-4 py-2 rounded-full text-[13px] font-medium text-[var(--text-secondary)]" onClick={() => setOffer(null)}>
+                    {t('cowork_panels.chip.not_now', 'Not now')}
                 </button>
             </div>
         </div>
