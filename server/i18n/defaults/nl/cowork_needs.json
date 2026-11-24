@@ -1,19 +1,14 @@
 {
   "translations": {
-    "cowork_needs.daily_mail": "Mail me deze lijst elke ochtend",
-    "cowork_needs.daily_mail_failed": "Dat is niet opgeslagen. Probeer het opnieuw.",
     "cowork_needs.decision": "Een stap wacht op jouw beslissing.",
     "cowork_needs.heading": "Wacht op jou",
     "cowork_needs.mail_more": "…en nog {count}.",
-    "cowork_needs.open": "Openen",
     "cowork_needs.plan.blocked": "Het plan kan zo niet draaien.",
     "cowork_needs.plan.changed": "Het plan is veranderd en kan meer doen dan je goedkeurde. Keur het opnieuw goed.",
     "cowork_needs.plan.first": "Het plan wacht op je goedkeuring.",
     "cowork_needs.plan.gone": "De automatisering van het plan bestaat niet meer.",
     "cowork_needs.review": "De agent vraagt je ergens naar te kijken.",
-    "cowork_needs.see_plan": "Bekijk het plan",
     "cowork_needs.sign_in": "Een app vraagt je opnieuw in te loggen. Het werk is gepauzeerd.",
-    "cowork_needs.to_approvals": "Beslis bij Goedkeuringen",
     "cowork_needs.untitled": "Werk zonder titel"
   },
   "sameAsEnglish": []

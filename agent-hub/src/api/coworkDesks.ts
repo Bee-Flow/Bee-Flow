@@ -54,13 +54,18 @@ export function useItemDesk(coworkId: string) {
     });
 }
 
-export function useDeskView(deskId: string | null) {
-    return useQuery<DeskView, Error>({
+/** One desk as the reader sees it: the query of useDeskView, for a caller that reads several desks at once. */
+export function deskViewQuery(deskId: string | null) {
+    return {
         queryKey: [...DESKS_KEY, 'view', deskId],
         enabled: !!deskId,
         queryFn: () => apiJson<'GET /api/cowork/desks/{id}', DeskView>('GET /api/cowork/desks/{id}', { params: { id: String(deskId) } }),
         retry: false,
-    });
+    } as const;
+}
+
+export function useDeskView(deskId: string | null) {
+    return useQuery<DeskView, Error>(deskViewQuery(deskId));
 }
 
 /** A change to a desk; afterwards every desk read is read again. */

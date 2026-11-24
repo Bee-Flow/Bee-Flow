@@ -35,17 +35,17 @@ describe('the navigation call writes the address; Back and Forward return', () =
 
 describe('the history edges', () => {
     it("'home' from another page writes /app, and Back returns", async () => {
-        const app = await bootAt('/app/cowork', { testId: 'cowork-welcome' });
+        const app = await bootAt('/app/cowork', { testId: 'cowork-page' });
         app.navigate('home');
         await expectAt('/app');
         await expectShows(HOME);
         await back();
         await expectAt('/app/cowork');
-        await expectShows({ testId: 'cowork-welcome' });
+        await expectShows({ testId: 'cowork-page' });
     });
 
     it('a page key with no route writes "/" and shows the home page', async () => {
-        const app = await bootAt('/app/cowork', { testId: 'cowork-welcome' });
+        const app = await bootAt('/app/cowork', { testId: 'cowork-page' });
         app.navigate('no-such-page');
         await expectAt('/');
         await expectShows(HOME);
@@ -72,7 +72,7 @@ describe('the history edges', () => {
 
     it('on a phone, navigating to a desktop-only page stays home', async () => {
         onAPhone();
-        const app = await bootAt('/app/cowork', { testId: 'cowork-welcome' });
+        const app = await bootAt('/app/cowork', { testId: 'cowork-page' });
         app.navigate('admin');
         await expectAt('/app');
         await expectShows(HOME);

@@ -3503,3 +3503,19 @@ doc_value_requests.note
 # A template default is used when the field is left empty, so the form says that
 # (chat_templates.fields_default) instead of calling it a suggestion.
 chat_templates.fields_suggestion
+# The Cowork home of the redesign (cowork_home.*) replaced the "Waiting for you" list, the compose card, the
+# row's review count and the goal line of the old list; their keys went with them.
+cowork_goals.row
+cowork_needs.daily_mail
+cowork_needs.daily_mail_failed
+cowork_needs.open
+cowork_needs.see_plan
+cowork_needs.to_approvals
+cowork_overview.compose.apps
+cowork_overview.compose.change
+cowork_overview.compose.heading
+cowork_overview.compose.no_apps
+cowork_overview.compose.start
+cowork_overview.compose.workspace_apps
+cowork_proposals.need.see_fix
+cowork_review.list.count

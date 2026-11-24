@@ -1,59 +1,106 @@
-// Cowork's home: the day as one timeline that opens its items, and the AI cost of the month when there was any.
-// The network is the seam (a recording fetch), no module is mocked.
-import { screen } from '@testing-library/react';
+// The Cowork home (./CoworkHome.tsx): the composer first, the notices only when they hold, Needs you at most three
+// with the rest behind "Show N more", Your tasks with their status and next run, and Shared with you and Teamwork only
+// when they have something. The network is the seam (a recording fetch); no module is mocked.
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
-import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
+import { jsonResponse, stubRecordingFetch } from '@/test/recordingFetch';
 import CoworkHome from './CoworkHome';
-import type { CoworkHome as Home } from '@/api/coworkHome';
+import type { CoworkItem } from '@/api/cowork.types';
+import type { CoworkNeed } from '@/api/coworkNeedsYou';
 
-let calls: RecordedCall[];
-const serve = (home: Home) => {
-    calls = stubRecordingFetch(({ url }) => {
-        if (url.includes('/api/cowork/home')) return jsonResponse(home);
-        if (url.endsWith('/daily-mail')) return jsonResponse({ enabled: false, timeZone: 'UTC', available: false });
-        return jsonResponse({ needs: [], count: 0 });
+const soon = new Date(Date.now() + 3 * 3_600_000).toISOString();
+const ITEMS: CoworkItem[] = [
+    { id: 'w1', title: 'Team meeting overview', prompt: 'Summarise', isActive: true, repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00', nextRunAt: soon, lastStatus: 'success', lastRunAt: '2026-11-23T08:00:00.000Z', runCount: 3 },
+    { id: 'w2', title: 'Order radar', prompt: 'Watch orders', isActive: true, repeatInterval: 'daily', nextRunAt: soon, lastStatus: 'error', lastRunAt: '2026-11-24T07:00:00.000Z', runCount: 9 },
+    { id: 'w3', title: 'Paused digest', prompt: 'Digest', isActive: false, repeatInterval: 'daily', lastStatus: 'success', lastRunAt: '2026-11-20T07:00:00.000Z', runCount: 2 },
+];
+const need = (kind: CoworkNeed['kind'], itemId: string, over: Partial<CoworkNeed> = {}): CoworkNeed => ({ kind, itemId, title: itemId, runId: `r-${kind}-${itemId}`, since: null, reason: null, plan: null, ...over });
+
+interface Serve { needs?: CoworkNeed[]; budget?: number | null; readOnly?: boolean; shared?: unknown[]; desks?: unknown[]; outcomes?: Record<string, string> }
+function serve({ needs = [], budget = null, readOnly = false, shared = [], desks = [], outcomes = {} }: Serve = {}) {
+    return stubRecordingFetch(({ url }) => {
+        const path = new URL(url, 'http://x').pathname;
+        if (path === '/api/cowork') return jsonResponse({ schedules: ITEMS, maxSchedules: 10 });
+        if (path === '/api/cowork/home') return jsonResponse({ how: { w1: { kind: 'plan', fixed: 3, ai: 1, ask: 0, deliver: 1, level: null, goal: { sentence: 'Every meeting in it', targetPercent: 100, met: null, total: null, period: null, measuredAt: null } } }, today: [], cost: { byCurrency: { EUR: 2 }, calls: 4 }, budget: budget === null ? null : { percent: budget }, outcomes });
+        if (path === '/api/cowork/needs-you') return jsonResponse({ needs });
+        if (path === '/api/cowork/policy/mine') return jsonResponse({ ceiling: 'on_its_own', readOnly, unattendedApps: null });
+        if (path === '/api/cowork/shared') return jsonResponse({ items: shared });
+        if (path === '/api/cowork/desks') return jsonResponse({ desks });
+        if (path.startsWith('/api/cowork/desks/')) return jsonResponse({ desk: { id: 'd1', name: 'Supplier desk', isOwner: true, ownerName: 'Ann' }, members: [], roles: [], colleagues: [] });
+        return jsonResponse({});
     });
-};
-
+}
 afterEach(() => { vi.unstubAllGlobals(); });
 
+const home = (onOpenTask = vi.fn(), onOpenPanel = vi.fn()) => {
+    renderWithClient(<CoworkHome onOpenTask={onOpenTask} onOpenPanel={onOpenPanel} />);
+    return { onOpenTask, onOpenPanel };
+};
+
 describe('CoworkHome', () => {
-    it('shows the day, earliest first, and a moment opens its item; the month\'s cost is said', async () => {
+    it('your tasks: title, status and the next run; a row opens the task', async () => {
+        serve({ outcomes: { w1: 'nothing_to_do' } });
+        const { onOpenTask } = home();
+        const rows = await screen.findAllByTestId('cowork-task-row');
+        expect(rows.map((r) => within(r).getByTestId('cowork-status').dataset.status)).toEqual(['nothing', 'failed', 'paused']);
+        expect(rows[0]).toHaveTextContent('Goal: Every meeting in it');
+        expect(rows[0]).toHaveTextContent(/Next: (Today|Tomorrow), /);
+        expect(rows[1]).toHaveTextContent('On hold');
+        await userEvent.setup().click(rows[1]);
+        expect(onOpenTask).toHaveBeenCalledWith('w2');
+    });
+
+    it('shows none of what the redesign took away: no hero, no Today, no cost line, no habits switch, no running tally, no Builder note', async () => {
+        serve();
+        home();
+        await screen.findAllByTestId('cowork-task-row');
+        for (const id of ['cowork-today', 'cowork-cost-month', 'cowork-habits', 'cowork-running-count', 'cowork-explainer', 'cowork-desks-setup']) expect(screen.queryByTestId(id)).toBeNull();
+        expect(screen.queryByText(/AI this month/)).toBeNull();
+        expect(screen.queryByRole('heading', { name: 'Shared with you' })).toBeNull();
+        expect(screen.queryByRole('heading', { name: 'Teamwork' })).toBeNull();
+    });
+
+    it('needs you: at most three, the rest behind "Show N more"; their task is Failed or Needs you', async () => {
+        serve({ needs: [need('review', 'w1'), need('sign_in', 'w2'), need('review', 'w3'), need('ai_failed', 'w1'), need('review', 'w2', { runId: 'x' })] });
+        home();
+        expect(await screen.findByRole('heading', { name: 'Needs you · 5' })).toBeInTheDocument();
+        expect(screen.getAllByTestId('cowork-need-card')).toHaveLength(3);
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Show 2 more' }));
+        expect(screen.getAllByTestId('cowork-need-card')).toHaveLength(5);
+        await user.click(screen.getByRole('button', { name: 'Show fewer' }));
+        expect(screen.getAllByTestId('cowork-need-card')).toHaveLength(3);
+        const rows = screen.getAllByTestId('cowork-task-row');
+        expect(within(rows[0]).getByTestId('cowork-status').dataset.status).toBe('failed');
+    });
+
+    it('the budget notice from 80% only, red once it is used up; and the read-only notice', async () => {
+        const first = serve({ budget: 79 });
+        home();
+        await waitFor(() => expect(first.some((c) => c.url.includes('/api/cowork/home'))).toBe(true));
+        await screen.findAllByTestId('cowork-task-row');
+        expect(screen.queryByTestId('cowork-budget-notice')).toBeNull();
+        vi.unstubAllGlobals();
+        serve({ budget: 86, readOnly: true });
+        home();
+        expect(await screen.findByTestId('cowork-budget-notice')).toHaveTextContent('Your organisation has used 86% of this month’s AI budget.');
+        expect(await screen.findByTestId('cowork-read-only-notice')).toHaveTextContent('Read-only mode is on for your organisation.');
+    });
+
+    it('shared with you and teamwork, once there is something in them; each opens its panel', async () => {
         serve({
-            how: {},
-            today: [
-                { kind: 'ran', itemId: 'w1', title: 'Supplier radar', at: '2026-11-23T07:30:00.000Z', status: 'success', runId: 'r1' },
-                { kind: 'next', itemId: 'w2', title: 'Open quotes', at: '2026-11-23T16:00:00.000Z', status: null, runId: null },
-            ],
-            cost: { byCurrency: { EUR: 0.62 }, calls: 9 },
+            shared: [{ id: 's1', ownerId: 'u2', ownerName: 'Sam Peters', title: 'Invoice reminders', role: 'viewer', lastStatus: 'success', lastRunAt: '2026-11-24T08:00:00.000Z', isActive: true }],
+            desks: [{ id: 'd1', name: 'Supplier desk', isOwner: true }],
         });
-        const onOpen = vi.fn();
-        renderWithClient(<CoworkHome onOpen={onOpen} />);
-        const entries = await screen.findAllByTestId('cowork-today-entry');
-        expect(entries.map((e) => e.dataset.kind)).toEqual(['ran', 'next']);
-        expect(screen.getByText('Still to come')).toBeInTheDocument();
-        expect(screen.getByTestId('cowork-cost-month')).toHaveTextContent(/AI this month: €0\.62/);
-        const home = calls.find((c) => c.url.includes('/api/cowork/home'));
-        expect(home?.url).toMatch(/from=.*&to=/);
-        await userEvent.setup().click(screen.getByRole('button', { name: /Open quotes/ }));
-        expect(onOpen).toHaveBeenCalledWith('w2');
-    });
-
-    it('keeps a moment on one line, whatever the locale writes ("06:30 AM" does not wrap under itself)', async () => {
-        serve({ how: {}, today: [{ kind: 'ran', itemId: 'w1', title: 'Supplier radar', at: '2026-11-23T06:30:00.000Z', status: 'success', runId: 'r1' }], cost: { byCurrency: {}, calls: 0 } });
-        renderWithClient(<CoworkHome onOpen={() => {}} />);
-        const time = await screen.findByTestId('cowork-today-time');
-        expect(time).toHaveClass('whitespace-nowrap', 'flex-shrink-0');
-        expect(time.className.split(' ').some((c) => c.startsWith('w-['))).toBe(false);
-    });
-
-    it('an empty day and a month without AI say nothing', async () => {
-        serve({ how: {}, today: [], cost: { byCurrency: {}, calls: 0 } });
-        renderWithClient(<CoworkHome onOpen={() => {}} />);
-        await vi.waitFor(() => expect(calls.some((c) => c.url.includes('/api/cowork/home'))).toBe(true));
-        expect(screen.queryByTestId('cowork-today')).toBeNull();
-        expect(screen.queryByTestId('cowork-cost-month')).toBeNull();
+        const { onOpenPanel } = home();
+        const shared = await screen.findByTestId('cowork-shared');
+        expect(shared).toHaveTextContent('From Sam Peters · you can see it');
+        const user = userEvent.setup();
+        await user.click(within(shared).getByRole('button'));
+        expect(onOpenPanel).toHaveBeenCalledWith({ kind: 'shared', id: 's1' });
+        await user.click(within(await screen.findByTestId('cowork-teamwork')).getByRole('button', { name: /Supplier desk/ }));
+        expect(onOpenPanel).toHaveBeenCalledWith({ kind: 'teamwork' });
     });
 });

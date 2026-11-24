@@ -1,6 +1,6 @@
 /**
  * The one plain sentence that says what a cowork does and when (./CoworkOverview.tsx, and the card that confirms a new
- * one, ./CoworkComposeCard.tsx): "Every weekday 16:30, the AI works on: “Answer the new supplier mails.” Nothing is
+ * one, ./CoworkConfirmCard.tsx): "Every weekday 16:30, the AI works on: “Answer the new supplier mails.” Nothing is
  * sent without you." Built from the item itself (how it starts, its brief or its plan) and, for a plan, from what the
  * approved plan may send and how independent it is. Pure.
  *
@@ -68,6 +68,11 @@ function whenPart(facts: OverviewFacts, t: TranslateFn): string {
     if (facts.startsNow) return t('cowork_overview.when.now', 'Right away');
     if (item.nextRunAt && item.isActive !== false) return t('cowork_overview.when.once_at', 'Once, {when}', { when: describeMoment(item.nextRunAt) });
     return t('cowork_overview.when.once', 'Once');
+}
+
+/** When a task runs, in a few words, for a line of its own: the home's rows and the card that confirms a new one. */
+export function whenLine(item: ItemFacts, t: TranslateFn, startsNow = false): string {
+    return whenPart({ item, plan: null, sends: null, level: null, agentName: null, startsNow }, t);
 }
 
 /** "it follows its approved plan of 6 steps", "the AI works on: “…”". */

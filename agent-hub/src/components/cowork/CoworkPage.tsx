@@ -1,439 +1,78 @@
 /**
- * /app/cowork — everything you handed to Bee Flow, in one place.
+ * /app/cowork: what the owner handed to Bee Flow, as one calm column (./CoworkHome.tsx), and a sheet from the right
+ * for whatever is opened from it (./CoworkSheet.tsx): a task, or from the header's menu Settings, Teamwork,
+ * Templates and, for an administrator, Organisation. What each kind shows is ./coworkSheetPanels.ts.
  *
- * This page replaces two half-surfaces. The sidebar's "Work" page could create
- * items and pause them but never showed a run history or let you fix a
- * schedule the composer had inferred wrong; Studio → Cowork could do both but
- * sat three clicks away under a different word, and had no way to make
- * anything. Splitting "create" from "correct" across two screens is what made
- * the feature feel like several features.
- *
- * Left column: the composer, then the list. Right pane: the selected item with
- * its full history — or, when nothing is selected, the welcome that used to be
- * the whole page. Deep-linkable at /app/cowork/:id.
+ * Deep-linkable at /app/cowork/:id: the task opens in the sheet. Opening a task says so in the address, closing it
+ * goes back to /app/cowork.
  */
-import { Plus, RefreshCw, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import useModelTierSelection from '../../hooks/useModelTierSelection';
-import useTranslation from '../../hooks/useTranslation';
-import Modal from '../shared/Modal';
-import { takeHandedBrief } from './coworkHandedBrief';
-import CoworkComposer from './CoworkComposer';
-import CoworkComposeCard from './CoworkComposeCard';
-import CoworkDetail from './CoworkDetail';
+import { Suspense, useCallback, useState } from 'react';
 import CoworkHome from './CoworkHome';
-import CoworkHomePane from './CoworkHomePane';
-import CoworkRow, { ReviewCountPill } from './CoworkRow';
-import { CoworkWelcomeHeader } from './CoworkWelcome';
-import CoworkTemplates from './CoworkTemplates';
-import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
-import { useCoworkAgents } from '../../api/queries/coworkReads';
-import { useCoworkHome } from '../../api/coworkHome';
-import { isInFlight } from './coworkStatus';
-import useCoworkComposer from './useCoworkComposer';
-import type { CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
-import { errorMessage } from '../../utils/caughtError';
-import { createdFlash, saveErrorMessage } from './mailTrigger';
+import CoworkSheet from './CoworkSheet';
+import CoworkUserMenu from './CoworkUserMenu';
+import type { TaskFocus } from './CoworkNeedFrame';
+import { COWORK_SHEET_PANELS, type CoworkSheetPanel } from './coworkSheetPanels';
+import useCoworkList from './useCoworkList';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { CoworkPageProps } from '@/api/cowork.types';
 
-const NO_ITEMS: CoworkItem[] = [];
-
-export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
+/** The sheet's name for a screen reader: a task's title, else the kind's own name. */
+function useSheetLabel(panel: CoworkSheetPanel | null): string {
     const { t } = useTranslation();
-    const [actionError, setActionError] = useState<string | null | undefined>(null);
-    // A brief handed over by "Make it a cowork" (./CoworkHabitChip.tsx, ./coworkHandedBrief.ts) fills the box once,
-    // and its weekday sets the schedule to every week on that day.
-    const [handed] = useState(takeHandedBrief);
-    const [brief, setBrief] = useState(handed.brief);
-    const [busy, setBusy] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(initialCoworkId);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [pendingDelete, setPendingDelete] = useState<CoworkItem | null>(null);
-    const [flash, setFlash] = useState<string | null>(null);
-    // Bumped after any mutation so an open history refetches without a reload.
-    const [reloadKey, setReloadKey] = useState(0);
-    const home = useCoworkHome(reloadKey); // how each item works, for its row
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const items = useCoworkList().data?.items;
+    if (!panel) return '';
+    const title = panel.kind === 'task' ? items?.find((i) => i.id === panel.id)?.title : null;
+    const [key, en] = COWORK_SHEET_PANELS[panel.kind].label;
+    return title || t(key, en);
+}
 
-    // Results arrive asynchronously (the runner reports into notifications), so
-    // the list is read again every 10 s while something is mid-run rather than
-    // showing "Starting…" until the user reloads; it stops as soon as it settles.
-    // A failed read keeps the list and says so.
-    const listQuery = useQuery<{ items: CoworkItem[]; maxItems: number }>({
-        queryKey: ['cowork', 'list'],
-        staleTime: 0,
-        retry: false,
-        refetchInterval: (q) => ((q.state.data as { items: CoworkItem[] } | undefined)?.items.some(isInFlight) ? 10_000 : false),
-        refetchIntervalInBackground: true,
-        queryFn: listCowork,
-    });
-    const items = listQuery.data?.items ?? NO_ITEMS;
-    const maxItems = listQuery.data?.maxItems ?? 10;
-    const loading = listQuery.isPending;
-    const loadError = listQuery.error ? errorMessage(listQuery.error) : null;
-    const { refetch } = listQuery;
-    const refresh = useCallback(async () => { await refetch(); }, [refetch]);
+export default function CoworkPage({ user = null, initialCoworkId = null, onNavigate }: CoworkPageProps) {
+    const { t } = useTranslation();
+    const [panel, setPanel] = useState<CoworkSheetPanel | null>(initialCoworkId ? { kind: 'task', id: initialCoworkId } : null);
+    const [seed, setSeed] = useState<{ text: string; n: number } | null>(null);
+    const label = useSheetLabel(panel);
 
-    // Only the edit form's "Run as" picker needs these; an empty list simply
-    // hides the field, which is the right outcome outside the agent beta.
-    const agents = useCoworkAgents();
+    // A deep link wins on arrival, and again when it changes; in between the owner's clicks decide.
+    const [linked, setLinked] = useState(initialCoworkId);
+    if (initialCoworkId !== linked) {
+        setLinked(initialCoworkId);
+        if (initialCoworkId) setPanel({ kind: 'task', id: initialCoworkId });
+    }
 
-    // A deep link wins on arrival; after that the user's clicks decide.
-    useEffect(() => {
-        if (initialCoworkId) setSelectedId(initialCoworkId);
-    }, [initialCoworkId]);
+    const onTask = panel?.kind === 'task';
+    const open = useCallback((next: CoworkSheetPanel) => {
+        COWORK_SHEET_PANELS[next.kind].prepare?.(next);
+        setPanel(next);
+        if (next.kind === 'task') onNavigate?.(`cowork/${next.id}`);
+        else if (onTask) onNavigate?.('cowork');
+    }, [onNavigate, onTask]);
+    const openTask = useCallback((id: string, focus?: TaskFocus) => open({ kind: 'task', id, ...(focus ? { focus } : {}) }), [open]);
+    const close = useCallback(() => {
+        if (onTask) onNavigate?.('cowork');
+        setPanel(null);
+    }, [onTask, onNavigate]);
+    const fillComposer = useCallback((text: string) => {
+        setSeed((was) => ({ text, n: (was?.n ?? 0) + 1 }));
+        close();
+    }, [close]);
 
-    // One confirmation before anything exists: what the composer worked out waits as a card (./CoworkComposeCard.tsx).
-    const cowork = useCoworkComposer({
-        confirm: true,
-        weeklyOn: handed.weekday,
-        onCreated: (created, payload) => {
-            setBrief('');
-            setFlash(createdFlash(payload, t));
-            // Select what was just created: the history it is about to fill is then on screen.
-            if (created?.id) setSelectedId(created.id);
-            refresh();
-        },
-    });
-
-    useEffect(() => {
-        if (!flash) return undefined;
-        const t = setTimeout(() => setFlash(null), 4000);
-        return () => clearTimeout(t);
-    }, [flash]);
-
-    // Cowork keeps its own remembered tier, separate from the chat's: a daily
-    // digest and a conversation are different jobs and deserve different
-    // budgets. Until this existed the page sent no tier at all, so everything
-    // scheduled here silently ran on 'auto'.
-    const { modelTiers, selectedTier, setSelectedTier } = useModelTierSelection({
-        storageKey: 'coworkTier',
-    });
-
-    const atLimit = items.length >= maxItems;
-    const send = () => {
-        if (atLimit) return;
-        cowork.submit(brief, { modelTier: selectedTier });
-    };
-
-    // ONE count, from ONE predicate. The header pill, the poll below and the
-    // sidebar badge are the same question — "is anything on the go, and how
-    // much of it" — and the moment two of them derive it their own way they
-    // drift: the badge used to count `isActive`, so six schedules with two
-    // running showed a 5 (CW-02/CW-18).
-    const inFlightCount = useMemo(() => items.filter(isInFlight).length, [items]);
-
-    const selected = useMemo(
-        () => items.find(i => i.id === selectedId) || null,
-        [items, selectedId],
-    );
-
-    const select = useCallback((id: string) => {
-        setSelectedId(id);
-        // Switching rows abandons an open edit: carrying the form over to a
-        // different item would save one item's text onto another.
-        setEditingId(null);
-        setActionError(null);
-        if (onNavigate) onNavigate(`cowork/${id}`);
-    }, [onNavigate]);
-
-    const withBusy = useCallback(async (fn: () => Promise<unknown>) => {
-        setBusy(true);
-        setActionError(null);
-        try {
-            await fn();
-            await refresh();
-            setReloadKey(k => k + 1);
-        } catch (err) {
-            setActionError(errorMessage(err));
-        } finally {
-            setBusy(false);
-        }
-    }, [refresh]);
-
-    const handleRunNow = useCallback((id: string) => withBusy(async () => {
-        await runCoworkNow(id);
-        setFlash('Running — the result lands in your notifications.');
-    }), [withBusy]);
-
-    const addedFromTemplate = useCallback((id: string) => { void refresh().then(() => select(id)); }, [refresh, select]);
-
-    const handleToggle = useCallback((id: string) => withBusy(() => toggleCowork(id)), [withBusy]);
-
-    const handleDelete = useCallback(async () => {
-        const item = pendingDelete;
-        setPendingDelete(null);
-        if (!item) return;
-        await withBusy(async () => {
-            await deleteCowork(item.id);
-            setSelectedId(prev => (prev === item.id ? null : prev));
-        });
-    }, [pendingDelete, withBusy]);
-
-    const handleSave = useCallback(async (patch: CoworkUpdate) => {
-        if (!selectedId) return;
-        setBusy(true);
-        setActionError(null);
-        try {
-            await updateCowork(selectedId, patch);
-            // Leave edit mode only on success, so a rejected save keeps the
-            // user's edits on screen instead of discarding them.
-            setEditingId(null);
-            await refresh();
-        } catch (err) {
-            setActionError(saveErrorMessage(err, t));
-        } finally {
-            setBusy(false);
-        }
-    }, [selectedId, refresh, t]);
-
-    // ── Composer ────────────────────────────────────────────
-    // Lives in the wide right-hand pane, directly under the promise it answers
-    // — not in the 320px list column, where the chips wrapped onto three rows
-    // and the brief was two words per line.
-    const composer = (
-        <>
-            <CoworkComposer
-                value={brief}
-                onChange={setBrief}
-                onSubmit={send}
-                cowork={cowork}
-                modelTiers={modelTiers}
-                selectedTier={selectedTier}
-                onTierChange={setSelectedTier}
-                simpleMode={!!user?.simpleMode || isMobile}
-                isMobile={isMobile}
-                // Under a full-height hero a single-line box reads as an
-                // afterthought; in the chat the same component starts at one
-                // row and grows. Two, not three — a brief is usually a
-                // sentence, and an empty box the size of a paragraph reads as
-                // a demand for one.
-                minRows={2}
-                textareaRef={textareaRef}
-            />
-            <CoworkComposeCard cowork={cowork} />
-
-            {/* Page-level status: the load error, the "off it goes" flash and
-                the quota ceiling. The composer shows its own create errors.
-                This is also the only place the quota is spelled out — a
-                permanent "4/10 in use" under the box was noise nine times out
-                of ten, and the tenth time it needs to be a warning anyway. */}
-            {(flash || loadError || atLimit) && (
-                <div
-                    className="mt-3 rounded-xl px-3 py-2 text-[12px]"
-                    role="status"
-                    style={{
-                        background: 'var(--bg-secondary)',
-                        color: loadError ? 'var(--danger, #dc2626)' : 'var(--text-secondary)',
-                    }}
-                >
-                    {loadError || flash
-                        || `You've used all ${maxItems} cowork slots. Delete or finish one to add more.`}
-                </div>
-            )}
-        </>
-    );
-
-    // ── List ────────────────────────────────────────────────
-    // One flat list, in the order the server sent it (newest first).
-    //
-    // One list, not sections by status: every row says its status out loud (CW-03), so nothing reorders under the reader.
-    const rows = items.map(item => (
-        <CoworkRow
-            key={item.id}
-            item={item}
-            selected={item.id === selectedId}
-            onSelect={select}
-            how={home.data?.how[item.id]}
-        />
-    ));
-
-    // The dotted card under the rows. It states the ONE thing this screen
-    // cannot show — where Cowork stops and the Builder starts — and it is
-    // there whether the list is empty or full (CW-05). The old copy only
-    // appeared at zero items, so the boundary was explained exactly once, to
-    // someone who had not yet met either side of it.
-    const explainer = (
-        <p
-            data-testid="cowork-explainer"
-            className="mt-3 mx-1 px-3 py-2.5 rounded-[9px] border border-dashed text-[11px] leading-relaxed border-[var(--border-default)] text-[var(--text-tertiary)]"
-        >
-            {t(
-                'cowork.list.explainer',
-                'Cowork is the short way: you write down what needs to happen, not how. If it has to take more steps, the same brief opens in the Builder.',
-            )}
-        </p>
-    );
-
-    // Phones get one pane at a time: the composer and the list stacked in a
-    // single scroll, or — once a row is tapped — the detail on its own. The
-    // desktop split would put a 320px column next to a 40px one.
-    const showList = !isMobile || !selected;
-    const showPane = !isMobile || !!selected;
-
+    const Panel = panel ? COWORK_SHEET_PANELS[panel.kind].component : null;
     return (
-        <div className="flex-1 flex min-h-0 min-w-0 bg-[var(--bg-primary)]">
-            {showList && (
-            <aside
-                className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0 [border-color:var(--border-subtle)]!`}
-            >
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">
-                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">{t('sidebar.cowork', 'Cowork')}</span>
-                    {/* The tally, and only when there is one to tell. A
-                        permanent "0 running" is a fact nobody asked for; the
-                        pill exists to be noticed. */}
-                    {inFlightCount > 0 && (
-                        <span
-                            data-testid="cowork-running-count"
-                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 [background:color-mix(in_srgb,var(--type-ai)_14%,transparent)] [color:var(--type-ai)]!"
-                        >
-                            {t('cowork.list.running_count', '{count} running', { count: inFlightCount })}
-                        </span>
-                    )}
-                    <ReviewCountPill count={items.reduce((n, i) => n + (i.openReviewCount || 0), 0)} testId="cowork-review-count" />
-                    <div className="ml-auto flex items-center gap-1">
-                        <button
-                            type="button"
-                            onClick={refresh}
-                            disabled={loading || busy}
-                            aria-label={t('cowork.list.refresh', 'Refresh')}
-                            data-testid="cowork-refresh"
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-tertiary)]"
-                        >
-                            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-                        {/* The one filled button on this column, and the thing
-                            the screen is for. Clearing the selection is what
-                            brings the composer back — it lives in the pane on
-                            the right, so this button reveals it rather than
-                            opening anything of its own. */}
-                        <button
-                            type="button"
-                            onClick={() => { setSelectedId(null); setEditingId(null); textareaRef.current?.focus(); }}
-                            disabled={busy}
-                            data-testid="cowork-new"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50 bg-[var(--button-primary-bg)] text-[var(--button-primary-fg)] hover:bg-[var(--button-primary-hover)]"
-                        >
-                            <Plus className="w-3.5 h-3.5 flex-shrink-0" />
-                            {t('cowork.list.new', 'New task')}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-3 pt-1">
-                    {/* On a phone there is no second pane to put the composer
-                        in, so it rides above the list instead. */}
-                    {isMobile && (
-                        <div className="px-1 pt-2 pb-1">
-                            <CoworkWelcomeHeader className="text-center mb-4" />
-                            {composer}
-                            {/* What waits, the day, the desks, the cost: the home the desktop pane shows, under the box. */}
-                            <div className="mt-4" data-testid="cowork-home-phone"><CoworkHome onOpen={select} reloadKey={reloadKey} /></div>
-                        </div>
-                    )}
-                    {loading && items.length === 0 && (
-                        <p className="px-2 pt-3 text-[12px] text-[var(--text-tertiary)]">
-                            {t('cowork.list.loading', 'Loading…')}
-                        </p>
-                    )}
-                    <div className="flex flex-col gap-0.5 pt-1">{rows}</div>
-                    {explainer}
-                    {isMobile && <div className="flex flex-col items-center"><CoworkTemplates onAdded={addedFromTemplate} /></div>}
-                </div>
-            </aside>
-            )}
-
-            {showPane && (
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-                    {actionError && editingId === null && (
-                        <p className="m-4 text-[12px] text-red-600 dark:text-red-400" role="alert">{actionError}</p>
-                    )}
-                    {selected ? (
-                        <CoworkDetail
-                            item={selected}
-                            agents={agents}
-                            onRunNow={handleRunNow}
-                            onToggle={handleToggle}
-                            onDelete={setPendingDelete}
-                            onSave={handleSave}
-                            editing={editingId === selected.id}
-                            onEdit={() => { setActionError(null); setEditingId(selected.id); }}
-                            onCancelEdit={() => { setActionError(null); setEditingId(null); }}
-                            saveError={actionError}
-                            busy={busy}
-                            reloadKey={reloadKey}
-                        />
-                    ) : (
-                        <CoworkHomePane
-                            composer={composer}
-                            hasItems={items.length > 0}
-                            reloadKey={reloadKey}
-                            onOpen={select}
-                            onStarter={(text) => { setBrief(text); textareaRef.current?.focus(); }}
-                            onTemplateAdded={addedFromTemplate}
-                        />
-                    )}
-                </div>
-            )}
-
-            {/* ── Delete confirm ──────────────────────────────────── */}
-            {pendingDelete && (
-                <Modal
-                    open
-                    onClose={() => setPendingDelete(null)}
-                    variant="bare"
-                    size="auto"
-                    zIndex={1000}
-                    label={t('cowork.delete.heading', 'Delete this cowork?')}
-                >
-                    <div
-                        className="w-full max-w-sm rounded-2xl border shadow-2xl p-5 bg-[var(--bg-primary)] border-[var(--border-default)]"
-                    >
-                        <div className="text-[14px] font-semibold mb-1 text-[var(--text-primary)]">
-                            {t('cowork.delete.heading', 'Delete this cowork?')}
-                        </div>
-                        {/* The title travels as a PARAMETER, not as a child
-                            between two JSX fragments: a translator has to be
-                            able to move it inside the sentence, and half a
-                            sentence either side of a name is not translatable
-                            at all in most languages. */}
-                        <p className="text-[12.5px] mb-4 text-[var(--text-secondary)]">
-                            {t(
-                                'cowork.delete.consequence',
-                                '“{title}” stops running and its history is removed. This can’t be undone.',
-                                { title: pendingDelete.title },
-                            )}
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setPendingDelete(null)}
-                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-                            >
-                                {t('cowork.delete.cancel', 'Cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                data-testid="cowork-confirm-delete"
-                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-semibold text-white bg-red-500 hover:bg-red-600"
-                            >
-                                {t('cowork.delete.confirm', 'Delete')}
-                            </button>
-                        </div>
-                    </div>
-                </Modal>
-            )}
-
-            {/* Phones: a selected item takes the whole screen, so it needs a way back. */}
-            {isMobile && selected && (
-                <button
-                    type="button"
-                    onClick={() => { setSelectedId(null); setEditingId(null); }}
-                    aria-label={t('cowork.list.back', 'Back to the list')}
-                    className="fixed top-3 right-3 z-[900] p-2 rounded-full border shadow-sm bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]" data-testid="cowork-page">
+            <div className="max-w-[720px] mx-auto px-4 pt-5 pb-24 flex flex-col gap-7">
+                <header className="flex items-center gap-3">
+                    <span className="mr-auto text-[20px] font-semibold text-[var(--text-primary)]">{t('sidebar.cowork', 'Cowork')}</span>
+                    <CoworkUserMenu user={user} onOpen={(kind) => open({ kind })} />
+                </header>
+                <CoworkHome onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+            </div>
+            <CoworkSheet open={!!panel} label={label} onClose={close}>
+                {panel && Panel && (
+                    <Suspense fallback={<p className="text-[14px] text-[var(--text-tertiary)]">{t('cowork_home.loading', 'Loading…')}</p>}>
+                        <Panel key={panel.kind === 'task' || panel.kind === 'shared' ? `${panel.kind}-${panel.id}` : panel.kind} panel={panel} user={user} close={close} open={open} fillComposer={fillComposer} />
+                    </Suspense>
+                )}
+            </CoworkSheet>
         </div>
     );
 }

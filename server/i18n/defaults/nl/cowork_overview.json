@@ -2,12 +2,6 @@
   "translations": {
     "cowork_overview.advanced": "Geavanceerd",
     "cowork_overview.advanced_hide": "Geavanceerd verbergen",
-    "cowork_overview.compose.apps": "Hij mag {apps} gebruiken.",
-    "cowork_overview.compose.change": "Aanpassen",
-    "cowork_overview.compose.heading": "Deze cowork starten?",
-    "cowork_overview.compose.no_apps": "Hij gebruikt geen apps.",
-    "cowork_overview.compose.start": "Starten",
-    "cowork_overview.compose.workspace_apps": "Hij mag de apps van je werkruimte gebruiken.",
     "cowork_overview.heading": "Overzicht",
     "cowork_overview.holds.answer_only": "Hij schrijft alleen een antwoord voor je.",
     "cowork_overview.holds.asks_before_sending": "Er gaat niets weg zonder jou.",
