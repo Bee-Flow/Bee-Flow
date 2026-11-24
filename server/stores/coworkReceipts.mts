@@ -53,6 +53,8 @@ export interface ReceiptRun {
     independence: string | null;
     trustedSteps: string[];
     activity: unknown;
+    /** How the run really ended (cowork_runs.outcome_json, core/cowork/runOutcome.mts): the code of it, nothing else. */
+    outcome?: string | null;
 }
 
 /** The approved plan a run executed. */
@@ -105,7 +107,15 @@ function runOf(r: Row): ReceiptRun {
         conversationId: r.conversation_id ? String(r.conversation_id) : null, independence: r.independence ? String(r.independence) : null,
         trustedSteps: Array.isArray(trusted) ? trusted.filter((s): s is string => typeof s === 'string') : [],
         activity: parse(r.activity_json),
+        outcome: outcomeKindOf(parse(r.outcome_json)),
     };
+}
+
+const OUTCOME_KINDS: ReadonlySet<string> = new Set(['done', 'nothing_to_do', 'incomplete', 'ai_failed']);
+/** The outcome's code only: never its references, never a reason. */
+function outcomeKindOf(v: unknown): string | null {
+    const kind = v && typeof v === 'object' ? (v as { kind?: unknown }).kind : null;
+    return typeof kind === 'string' && OUTCOME_KINDS.has(kind) ? kind : null;
 }
 
 function receiptOf(r: Row): StoredReceipt {
@@ -117,7 +127,7 @@ function receiptOf(r: Row): StoredReceipt {
     };
 }
 
-const RUN_COLUMNS = 'r.id, r.schedule_id, r.status, r.trigger_kind, r.started_at, r.finished_at, r.plan_id, r.automation_run_id, r.conversation_id, r.independence, r.trusted_steps, r.activity_json';
+const RUN_COLUMNS = 'r.id, r.schedule_id, r.status, r.trigger_kind, r.started_at, r.finished_at, r.plan_id, r.automation_run_id, r.conversation_id, r.independence, r.trusted_steps, r.activity_json, r.outcome_json';
 /** A closed run without a receipt: finished, and not waiting for a decision. */
 const PENDING = `r.finished_at IS NOT NULL AND r.status <> 'waiting'
     AND NOT EXISTS (SELECT 1 FROM cowork_receipts c WHERE c.run_id = r.id)`;

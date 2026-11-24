@@ -29,6 +29,7 @@ import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/p
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import { changesOf, type StepChange } from '../core/cowork/plan/planChanges.mts';
+import { refFindings, REF_FINDING } from './coworkPlanRefs.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -105,7 +106,8 @@ export async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'looku
         view: planViewOf(definition, deps.lookups),
         permissions,
         // Checked as the item starts: an event's data is outside text (core/cowork/startKinds.mts).
-        findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
+        // A list a step works through that the earlier step's described output does not have (planRefs.mts).
+        findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...refFindings(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
         fingerprint: planFingerprint(definition),
     };
 }
@@ -151,22 +153,28 @@ const REFUSAL_TEXT = Object.freeze({
     not_entitled: 'A plan runs on the automation engine, and your organisation does not have automations.',
 });
 
-/** Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. */
-export async function approvePlan({ item, fingerprint }: { item: Item; fingerprint: string }, deps: Deps = defaultDeps()): Promise<PlanState> {
+/**
+ * Approve the plan the caller looked at (`fingerprint`), as the plan a run executes from now on. `approvedBy` is the
+ * owner, except for Cowork's own fix of a reference (core/cowork/repairs/autoResolve.mts: AUTO_FIX_APPROVER).
+ * `earlierVersion`: an approved version brought back ("Undo", ./coworkPlanVersions.mts restoreVersion); a reference
+ * finding (core/cowork/plan/planRefs.mts) does not stop it, as it did not stop that version then: Undo always undoes.
+ */
+export async function approvePlan({ item, fingerprint, approvedBy, earlierVersion = false }: { item: Item; fingerprint: string; approvedBy?: string; earlierVersion?: boolean }, deps: Deps = defaultDeps()): Promise<PlanState> {
     const automation = await ownAutomation(item.planAutomationId, item.userId, deps);
     if (!automation) throw new HttpError(409, 'cowork_plan_refused', 'This item has no plan to approve.');
     const draft = await draftOf(automation, deps, item);
     if (draft.fingerprint !== fingerprint) {
         throw new HttpError(409, 'cowork_plan_changed', 'The plan changed since you looked at it. Look at it again, then approve it.');
     }
-    if (draft.findings.length > 0) {
-        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${draft.findings[0]?.message ?? ''}`);
+    const blocking = earlierVersion ? draft.findings.filter((f) => f.code !== REF_FINDING) : draft.findings;
+    if (blocking.length > 0) {
+        throw new HttpError(422, 'cowork_plan_not_allowed', `This plan cannot be approved yet: ${blocking[0]?.message ?? ''}`);
     }
     const refusal = await deps.ownerRefusal({ userId: item.userId, organizationId: automation.organizationId ?? null });
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);
     await deps.store.approvePlan({
         scheduleId: item.id, automationId: automation.id, definition: automation.definition,
-        permissions: draft.permissions, fingerprint: draft.fingerprint, approvedBy: item.userId,
+        permissions: draft.permissions, fingerprint: draft.fingerprint, approvedBy: approvedBy ?? item.userId,
     });
     return planStateOf(item, deps);
 }

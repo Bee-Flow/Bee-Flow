@@ -58,6 +58,9 @@ tell the planner what to change.
 - **Approved like a plan.** Approving writes the definition into the plan automation and goes through
   `approvePlan` with every check; a refusal puts the automation back. A proposal whose base is no longer the
   approved plan is stale and refused. An automation with changes its owner has not approved is not written over.
+- **One exception.** A broken reference between the plan's own steps, fixed with exactly the same permissions and
+  proven on a replay, is approved by Cowork itself and can be undone in one click: see
+  [0050](./cowork-auto-resolve.md). Everything else stays a proposal.
 - **Undo is an approval.** "Undo" approves the earlier `cowork_plans` version again through the same checks, so it
   gives back exactly the earlier fingerprint and leaves a version of its own in the history.
 - **On screen.** A repair is a need: one entry in the item's "Needs you" strip and in the home's list. A fixed step

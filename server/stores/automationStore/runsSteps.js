@@ -15,7 +15,7 @@ async function recordRunStep(args) {
  * recordRunStep's body over an injected `run(sql, params)`, so a test can put
  * its real SQL against an in-process Postgres without mocking the store's db.
  */
-async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null, identityUserId = null }) {
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null, identityUserId = null, verdict = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -63,8 +63,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     const warnings = persistableBindingWarnings(bindingWarnings, { clean: (v) => stripNulDeep(redact(v)) });
     const warningsJson = warnings ? JSON.stringify(warnings) : null;
     await run(
-        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings, identity_user_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings, identity_user_id, verdict)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
          ON CONFLICT (run_id, step_id, attempts) DO UPDATE SET
             status = EXCLUDED.status,
             finished_at = EXCLUDED.finished_at,
@@ -86,7 +86,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             tools_withheld = COALESCE(EXCLUDED.tools_withheld, automation_run_steps.tools_withheld),
             error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info),
             binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings),
-            identity_user_id = COALESCE(EXCLUDED.identity_user_id, automation_run_steps.identity_user_id)`,
+            identity_user_id = COALESCE(EXCLUDED.identity_user_id, automation_run_steps.identity_user_id),
+            verdict = COALESCE(EXCLUDED.verdict, automation_run_steps.verdict)`,
         [
             runId, stepId, parentStepId || null, stepType, attempts, status,
             startedAt || null, finishedAt || null,
@@ -100,6 +101,9 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             errorInfoJson,
             warningsJson,
             identityUserId || null,
+            // An AI step's verdict (core/automationRunner/aiStepVerdict.mts): an outcome code and one sentence,
+            // redacted like `error`.
+            verdict != null ? JSON.stringify(stripNulDeep(redact(verdict))) : null,
         ],
     );
 }

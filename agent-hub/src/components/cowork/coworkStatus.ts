@@ -66,10 +66,21 @@ const NEEDS_REVIEW_TOKEN: StatusToken = {
 };
 
 /**
+ * `incomplete`: a plan run that finished without doing its work (server core/cowork/runOutcome.mts: a step that works
+ * through a list found none). The tone of a failure, because the server counts it as one, never green.
+ */
+const INCOMPLETE_TOKEN: StatusToken = {
+    ...tokenFor('error'),
+    labelKey: 'cowork_resolver.status.incomplete',
+    labelEn: 'Did not do its work',
+};
+
+/**
  * The token for ONE run row's status — the same lookup as `tokenFor`, plus
- * cowork's own `needs_reauth`, `needs_review` and `waiting`.
+ * cowork's own `needs_reauth`, `needs_review`, `waiting` and `incomplete`.
  */
 export function runStatusToken(status: string | null | undefined): StatusToken {
+    if (status === 'incomplete') return INCOMPLETE_TOKEN;
     if (status === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
     if (status === 'needs_review') return NEEDS_REVIEW_TOKEN;
     if (status === 'waiting') return WAITING_TOKEN;
@@ -91,6 +102,7 @@ export function coworkStatus(item: CoworkItem): StatusToken {
     // A schedule switched off because an account needs signing in again is not
     // a schedule the user paused, and must not read like one.
     if (item.lastStatus === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
+    if (item.lastStatus === 'incomplete') return INCOMPLETE_TOKEN;
     if (!item.lastRunAt && !item.runCount) return tokenFor(item.isActive ? 'queued' : 'idle');
     // A one-off that ran is finished; a recurring item switched off after a good run is paused.
     if (!item.isActive && item.lastStatus === 'success') return tokenFor(isRecurring(item) ? 'paused' : 'success');

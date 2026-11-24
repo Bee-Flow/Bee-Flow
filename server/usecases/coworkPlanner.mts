@@ -25,6 +25,7 @@ import { createRequire } from 'node:module';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
+import { refFindings } from './coworkPlanRefs.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { plannerChat } from './coworkPlannerChat.mts';
@@ -152,7 +153,7 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     const owner = { userId: item.userId, organizationId: userOrgId };
     const approvals = await deps.mayAsk(owner);
     // What Cowork would not run, the licence included: what the model is told after each change, and what is returned.
-    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
+    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = plannerSystemPrompt({
         title: draft.title, brief, approvals, hints: input.hints ?? null, startsOnMail: item.triggerKind === 'app_event',
         catalog: deps.builder.renderCatalog(catalog),

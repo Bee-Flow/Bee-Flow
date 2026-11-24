@@ -17,6 +17,7 @@ import { createRequire } from 'node:module';
 import type { Definition } from '../core/cowork/plan/planTypes.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
 import { checkPlan } from '../core/cowork/plan/planChecks.mts';
+import { refFindings } from './coworkPlanRefs.mts';
 import { licenceFindings } from '../core/cowork/plan/planLicence.mts';
 import { plannerRefusal, plannerTools } from './coworkPlannerPrompt.mts';
 import { amendSystemPrompt, type AmendFacts } from './coworkPlanAmendPrompt.mts';
@@ -80,7 +81,7 @@ export async function amendPlan(input: AmendInput, deps: AmendDeps = amendDeps()
     // A COPY: the builder's tools change this one only.
     draft.def = structuredClone(input.approved);
     const approvals = await deps.mayAsk(owner);
-    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
+    const findingsOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
     const system = amendSystemPrompt({
         title: draft.title, plan: input.approved, facts: input.facts, approvals,
         catalog: deps.builder.renderCatalog(catalog), datatables: deps.builder.renderDatatables(catalog.datatables),

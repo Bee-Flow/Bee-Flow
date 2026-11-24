@@ -23,6 +23,7 @@
  */
 import { useRef } from 'react';
 import AssignmentCard from './CoworkBrief';
+import CoworkAutoFixNote from './CoworkAutoFixNote';
 import DetailHeader from './CoworkDetailHeader';
 import CoworkEditForm from './CoworkEditForm';
 import CoworkNeedsStrip, { needsCount } from './CoworkNeedsStrip';
@@ -102,6 +103,7 @@ function DetailView({ item, agents, onRunNow, onToggle, onDelete, busy, reloadKe
             />
             <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 sm:px-[26px] py-[22px] flex flex-col gap-[18px]">
                 <CoworkNeedsStrip entries={needs} ref={strip} />
+                <CoworkAutoFixNote coworkId={item.id} />
                 <AssignmentCard item={item} agents={agents} t={t} />
                 <CoworkTabs
                     scope={item.id}

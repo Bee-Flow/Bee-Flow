@@ -6,6 +6,10 @@
  *   - a FIXED STEP, when an AI step without tools did the same work at least ten times and a replay says a fixed step
  *     comes out the same in at least 95% of the past runs (core/cowork/cheaper/stableSteps.mts asks weekly).
  *
+ * The one exception (decision 0050): a broken reference between the plan's own steps that Cowork can fix with exactly
+ * the same permissions is fixed by itself (./coworkAutoResolve.mts) and kept here as an approved repair with its Undo;
+ * one it cannot fix that way becomes a repair proposal like any other.
+ *
  * MAKING a proposal changes nothing: the amend mode (./coworkPlanAmend.mts) works on a copy of the approved plan, the
  * copy is judged by the same rules as an approval (./coworkPlan.mts draftOf: the plan rules, the licence, the
  * organisation's policy), and a copy with any finding is dropped, never shown. Each proposal is replayed on the past
@@ -29,6 +33,7 @@ import { planFingerprint, widens } from '../core/cowork/plan/planPermissions.mts
 import { changesOf, onlyStepMadeFixed, type StepChange } from '../core/cowork/plan/planChanges.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
+import { AUTO_FIX_REASON } from '../core/cowork/repairs/autoResolve.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
@@ -98,7 +103,7 @@ export function proposalDeps(): ProposalDeps {
 /** What a proposal asks: the change to work out, and what to replay it on. */
 export interface ProposalRequest {
     kind: ProposalKind;
-    reasonCode: 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step';
+    reasonCode: 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved';
     stepId: string | null;
     stepTitle: string | null;
     facts: AmendFacts;
@@ -176,7 +181,8 @@ export interface ProposalView {
 async function viewOf(item: Item, p: Proposal, approved: Approved | null, deps: ProposalDeps): Promise<ProposalView> {
     const open = p.status === 'open';
     const replay = p.replayId && (open || p.kind === 'fixed_step') ? await deps.replay.stateOf(item, p.replayId) : null;
-    const current = p.status === 'approved' && p.kind === 'fixed_step' && approved?.fingerprint === p.fingerprint;
+    // An approved fixed step, or a reference Cowork fixed by itself (core/cowork/repairs/autoResolve.mts), that is still the plan.
+    const current = p.status === 'approved' && (p.kind === 'fixed_step' || p.reasonCode === AUTO_FIX_REASON) && approved?.fingerprint === p.fingerprint;
     return {
         id: p.id, kind: p.kind, reasonCode: p.reasonCode, stepId: p.stepId, stepTitle: p.stepTitle, status: p.status, fingerprint: p.fingerprint,
         createdAt: p.createdAt, decidedAt: p.decidedAt, widens: p.widens,

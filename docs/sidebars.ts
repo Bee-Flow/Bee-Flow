@@ -358,6 +358,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/cowork-desks',
             'contributing/decisions/cowork-repairs',
             'contributing/decisions/cowork-teamwork-helper',
+            'contributing/decisions/cowork-auto-resolve',
           ],
         },
       ],

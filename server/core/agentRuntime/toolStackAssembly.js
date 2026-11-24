@@ -31,6 +31,7 @@ const { REPLY_IN_THREAD_TOOLS } = require('./toolPolicy/mailAccess');
 const { withholdIncognitoTools } = require('../conversation/incognito.mts');
 const { applyToolCeiling, noteOfferedTools, coworkRunOf } = require('../cowork/runActivity.mts');
 const { addReviewTool } = require('../cowork/reviewTool.mts');
+const { addOutcomeTool } = require('../cowork/outcomeTool.mts');
 
 /**
  * The agent fields tool assembly reads.
@@ -206,6 +207,8 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
 
     // ── Cowork run: the structured "a person has to decide" signal (core/cowork/reviewTool.mts) ──
     addReviewTool(tools, coworkRunOf(messageMetadata));
+    // ...and its own verdict on the run (core/cowork/outcomeTool.mts): it can only make the run worse.
+    if (require('../cowork/runActivity.mts').isRunActivity(coworkRunOf(messageMetadata))) addOutcomeTool(tools, coworkRunOf(messageMetadata));
 
     const unattended = isUnattended(messageMetadata);
     const narrowed = narrowToolsForTurn({ tools, agent, agentId, messageMetadata });

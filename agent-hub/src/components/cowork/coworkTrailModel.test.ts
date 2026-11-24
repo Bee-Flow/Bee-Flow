@@ -14,6 +14,11 @@ describe('trailLine', () => {
         expect(trailLine(entry({ action: 'cowork.toggled', values: {} }), t)).toBe('You switched it on');
     });
 
+    it('names Cowork, not someone else, for a fix it made by itself', () => {
+        expect(trailLine(entry({ action: 'cowork.plan_auto_fixed', byYou: false, byCowork: true }), t))
+            .toBe('Cowork fixed a step that was reading the wrong field (Cowork did this by itself; it can be undone)');
+    });
+
     it('names the fields a change touched, each once, and an action it does not know in plain words', () => {
         expect(trailLine(entry({ changed: ['repeatInterval', 'timeOfDay', 'prompt'] }), t)).toBe('You changed the schedule, the brief');
         expect(trailLine(entry({ changed: [] }), t)).toBe('You changed something');

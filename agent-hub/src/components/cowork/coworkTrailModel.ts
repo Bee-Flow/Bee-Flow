@@ -26,6 +26,7 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.desk_accepted': 'accepted it on a desk',
     'cowork.desk_role_set': 'chose which desk role decides its questions',
     'cowork.desk_left': 'took it off a desk',
+    'cowork.plan_auto_fixed': 'fixed a step that was reading the wrong field (Cowork did this by itself; it can be undone)',
     'cowork.desk_hand_off_allowed': 'let it receive the result of the cowork it starts after',
     'cowork.desk_hand_off_withdrawn': 'stopped sending it the result of the cowork it starts after',
 };
@@ -56,7 +57,7 @@ export function changedWords(changed: string[], t: TranslateFn): string {
 
 /** One entry as a sentence. */
 export function trailLine(entry: TrailEntry, t: TranslateFn): string {
-    const who = entry.byYou ? t('cowork_trail.you', 'You') : t('cowork_trail.someone', 'Someone else');
+    const who = entry.byCowork ? t('cowork_trail.cowork', 'Cowork') : entry.byYou ? t('cowork_trail.you', 'You') : t('cowork_trail.someone', 'Someone else');
     const fallback = ACTION_FALLBACK[entry.action] ?? entry.action.replace(/^cowork\./, '').replaceAll('_', ' ');
     const state = entry.values.isActive === false ? t('cowork_trail.off', 'off') : t('cowork_trail.on', 'on');
     const level = typeof entry.values.level === 'string' ? t(`cowork_trail.level.${entry.values.level}`, LEVEL_FALLBACK[entry.values.level] ?? entry.values.level) : '';

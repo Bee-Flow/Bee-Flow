@@ -591,6 +591,7 @@ declare namespace DbRow {
         step_id: string;
         step_type: string;
         tools_withheld: Json | null;
+        verdict: Json | null;
     }
     /** Row of `automation_run_tables`. */
     interface AutomationRunTables {
@@ -1397,6 +1398,7 @@ declare namespace DbRow {
         id: string;
         independence: string | null;
         mail_subject: string | null;
+        outcome_json: string | null;
         parent_run_id: string | null;
         plan_id: string | null;
         produced_output: boolean | null;

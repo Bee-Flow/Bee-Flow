@@ -37,17 +37,19 @@ test('a trail that could not be written never fails the change it describes', as
     await recordCowork('cowork.deleted', 'cw-1', { userId: 'u1' }, null, { logAccessAudit: async () => { throw new Error('db down'); }, getAccessAuditLog: async () => [] });
 });
 
-test('the owner reads the trail newest first, sees which entries were theirs, and the values that were kept', async () => {
+test('the owner reads the trail newest first, sees which entries were theirs or Cowork\'s own, and the values that were kept', async () => {
     const asked = [];
     const rows = [
         { action: 'cowork.plan_approved', created_at: '2026-11-23T09:00:00.000Z', changed_by: 'u1', new_values: { changed: ['fingerprint'], values: { fingerprint: 'abc' } } },
         { action: 'cowork.toggled', created_at: '2026-11-22T09:00:00.000Z', changed_by: 'admin-7', new_values: null },
+        { action: 'cowork.plan_auto_fixed', created_at: '2026-11-21T09:00:00.000Z', changed_by: 'cowork:auto_fix', new_values: null },
     ];
     const trail = await trailOf('cw-1', 'u1', { logAccessAudit: async () => {}, getAccessAuditLog: async (opts) => { asked.push(opts); return rows; } });
     assert.deepStrictEqual(asked, [{ targetType: TARGET_TYPE, targetId: 'cw-1', limit: 100 }]);
     assert.deepStrictEqual(trail, [
-        { action: 'cowork.plan_approved', at: '2026-11-23T09:00:00.000Z', byYou: true, changed: ['fingerprint'], values: { fingerprint: 'abc' } },
-        { action: 'cowork.toggled', at: '2026-11-22T09:00:00.000Z', byYou: false, changed: [], values: {} },
+        { action: 'cowork.plan_approved', at: '2026-11-23T09:00:00.000Z', byYou: true, byCowork: false, changed: ['fingerprint'], values: { fingerprint: 'abc' } },
+        { action: 'cowork.toggled', at: '2026-11-22T09:00:00.000Z', byYou: false, byCowork: false, changed: [], values: {} },
+        { action: 'cowork.plan_auto_fixed', at: '2026-11-21T09:00:00.000Z', byYou: false, byCowork: true, changed: [], values: {} },
     ]);
     assert.ok(!JSON.stringify(trail).includes('admin-7'), 'who else changed it is not named to the owner');
 });

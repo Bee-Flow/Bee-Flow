@@ -28,4 +28,11 @@ describe('needWords', () => {
         const lines = (['first', 'changed', 'blocked', 'gone'] as const).map((plan) => needWords(need({ kind: 'plan', plan }), t).line);
         expect(new Set(lines).size).toBe(4);
     });
+
+    it('a run that did not do its work, or that its AI said failed, opens the item, with no text of the run', () => {
+        expect(needWords(need({ kind: 'incomplete', runId: 'r1', reason: 'ignored' }), t)).toMatchObject({ line: 'Did not do its work last time: a step found nothing to work on.', action: 'open', detail: null });
+        expect(needWords(need({ kind: 'ai_failed', runId: 'r2' }), t)).toMatchObject({ line: 'The AI said its last run failed.', action: 'open', detail: null });
+        const filled = (_k: string, en: string, vars: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (_m, k: string) => String(vars[k] ?? ''));
+        expect(needWords(need({ kind: 'repair', repair: { proposalId: 'pr-3', reasonCode: 'reference_unresolved', stepTitle: 'Get summaries' } }), filled).line).toBe("Step 'Get summaries' found nothing to work on. A fix is ready.");
+    });
 });

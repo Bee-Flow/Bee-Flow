@@ -58,6 +58,8 @@ before(async () => {
     // identity_user_id (which connection an integration step used) is written on every row.
     await pg.exec('CREATE TABLE automations (id TEXT PRIMARY KEY); CREATE TABLE automation_runs (id TEXT PRIMARY KEY)');
     await callerMigration.up({ exec: (sql) => pg.exec(sql) });
+    // verdict (an AI step's own verdict on its work) is written on every row too.
+    await require('../../migrations/automation-run-step-verdict-2026-11').up({ exec: (sql) => pg.exec(sql) });
 });
 after(async () => { await pg.close(); });
 

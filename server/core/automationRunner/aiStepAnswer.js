@@ -122,7 +122,8 @@ async function answerAiStep(call, deps = {}) {
     // With tools, a DECLARED schema still gets that tool for the call after a capped tool loop.
     const hasTools = !!(tools && tools.length);
     const answerTool = answerToolFor(contract.effectiveSchema, listsMessage, lists);
-    const toolDef = hasTools ? null : answerTool;
+    // A text step asked for its verdict (./aiStepVerdict.mts) stays on the prompt route: it is offered no tool, as before.
+    const toolDef = hasTools || contract.verdictWrapped ? null : answerTool;
     const parameters = toolDef ? toolDef.function.parameters : null;
     const finalTool = hasTools && contract.outputContract && contract.outputContract.declared ? answerTool : null;
     const route = parameters ? 'structured' : 'prompt';

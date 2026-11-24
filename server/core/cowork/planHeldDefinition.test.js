@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const { heldPlanDefinition } = require('./planHeldDefinition.mts');
 const { planFingerprint } = require('./plan/planPermissions.mts');
 const { OWNER_ONLY_NOTIFICATIONS } = require('./plan/planRunCopy.mts');
-const { supplierRadar, fakeLookups } = require('./plan/plan.testkit');
+const { supplierRadar, fakeLookups, withVerdicts } = require('./plan/plan.testkit');
 const { OPEN_POLICY } = require('../entitlements/coworkPolicy.mts');
 
 const plan = (over = {}) => ({ automationId: 'auto-1', userId: 'owner-1', definition: supplierRadar(), fingerprint: planFingerprint(supplierRadar()), ...over });
@@ -33,7 +33,7 @@ test('a journey a plan run started continues on the approved copy, with its noti
     const d = deps(plan());
     const held = await heldPlanDefinition({ id: 'leg-2', rootRunId: 'leg-1', automationId: 'auto-1' }, d);
     const { notificationSettings, ...steps } = held;
-    assert.deepStrictEqual(steps, supplierRadar());
+    assert.deepStrictEqual(steps, withVerdicts(supplierRadar()), 'the approved copy, its AI steps asked for their verdict');
     assert.strictEqual(notificationSettings, OWNER_ONLY_NOTIFICATIONS);
     assert.deepStrictEqual(d.asked, ['leg-1'], 'asked by the journey, not by the leg');
 });

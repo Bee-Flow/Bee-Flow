@@ -16,7 +16,7 @@ export const TARGET_TYPE = 'cowork_item';
 
 export type AuditAction =
     | 'cowork.created' | 'cowork.updated' | 'cowork.toggled' | 'cowork.deleted'
-    | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made'
+    | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made' | 'cowork.plan_auto_fixed'
     | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over' | 'cowork.start_set' | 'cowork.trust_set' | 'cowork.shares_set'
     | 'cowork.goal_set' | 'cowork.goal_check_approved' | 'cowork.goal_removed'
     | 'cowork.desk_joined' | 'cowork.desk_accepted' | 'cowork.desk_role_set' | 'cowork.desk_left'
@@ -90,7 +90,7 @@ export async function recordCowork(action: AuditAction, itemId: string, by: { us
 }
 
 /** One entry of the trail, as its owner reads it. */
-export interface TrailEntry { action: string; at: string | null; byYou: boolean; changed: string[]; values: Record<string, unknown> }
+export interface TrailEntry { action: string; at: string | null; byYou: boolean; byCowork: boolean; changed: string[]; values: Record<string, unknown> }
 
 export const TRAIL_LIMIT = 100;
 
@@ -103,6 +103,8 @@ export async function trailOf(itemId: string, viewerId: string, deps: AuditDeps 
             action: String(r.action),
             at: r.created_at ? new Date(r.created_at as string).toISOString() : null,
             byYou: r.changed_by === viewerId,
+            // A change Cowork made by itself (an automatic fix: usecases/coworkAutoResolve.mts) is written as `cowork:…`.
+            byCowork: String(r.changed_by ?? '').startsWith('cowork:'),
             changed: Array.isArray(recorded.changed) ? recorded.changed : [],
             values: recorded.values && typeof recorded.values === 'object' ? recorded.values : {},
         };

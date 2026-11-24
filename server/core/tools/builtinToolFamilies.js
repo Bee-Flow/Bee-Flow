@@ -54,6 +54,14 @@ async function executeCoworkReview(toolName, toolArgs, context) {
     return await executeReviewTool(toolName, toolArgs, context);
 }
 
+// ─── Cowork outcome (the AI of a Cowork run gives its own verdict) ──
+// Writes the verdict onto the run context; only a Cowork run has one (core/cowork/outcomeTool.mts).
+async function executeCoworkOutcome(_toolName, toolArgs, context) {
+    const { isRunActivity } = require('../cowork/runActivity.mts');
+    const run = context?.coworkRun;
+    return require('../cowork/outcomeTool.mts').executeOutcomeTool(toolArgs, isRunActivity(run) ? run : null);
+}
+
 // ─── Session Skill Runtime (direct-chat local skills) ──────────
 function isSessionSkillTool(toolName) {
     const rt = sessionSkillRuntime();
@@ -212,6 +220,7 @@ async function executeDatatable(toolName, toolArgs, context) {
 const BUILTIN_TOOL_FAMILIES = [
     { name: 'activate_skill', order: 10, isTool: n => n === require('./skillInjection').ACTIVATE_SKILL_TOOL_NAME, execute: executeActivateSkillTool },
     { name: 'cowork_review', order: 15, isTool: n => n === 'cowork_request_review', execute: executeCoworkReview },
+    { name: 'cowork_outcome', order: 16, isTool: n => n === 'cowork_report_outcome', execute: executeCoworkOutcome },
     { name: 'session_skills', order: 20, isTool: isSessionSkillTool, execute: executeSessionSkillTool },
     { name: 'generate_image', order: 30, isTool: n => n === 'generate_image', execute: executeGenerateImage },
     { name: 'generate_video', order: 60, isTool: n => n === 'generate_video', execute: executeGenerateVideo },

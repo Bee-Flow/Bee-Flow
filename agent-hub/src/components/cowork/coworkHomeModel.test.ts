@@ -19,5 +19,6 @@ describe('Cowork home words', () => {
         const entry = (over: Partial<TodayEntry>): TodayEntry => ({ kind: 'ran', itemId: 'w1', title: 'T', at: null, status: 'success', runId: 'r1', ...over });
         expect(['success', 'running', 'waiting', 'error'].map((status) => todayWords(entry({ status }), t))).toEqual(['Done', 'Running now', 'Waits for you', 'Did not finish']);
         expect(todayWords(entry({ kind: 'next', status: null }), t)).toBe('Still to come');
+        expect(todayWords(entry({ status: 'incomplete' }), t)).toBe('Did not do its work');
     });
 });

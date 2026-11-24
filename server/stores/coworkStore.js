@@ -469,16 +469,18 @@ async function getDueSchedules() {
  */
 async function markCompleted(id, result, { producedOutput, ...close } = {}) {
     await initDB();
+    // Finished without doing its work (core/cowork/runOutcome.mts): 'incomplete', counted with what went wrong.
+    const incomplete = close.outcome?.kind === 'incomplete' && !close.waiting;
     await run(
         `UPDATE cowork_schedules
-         SET last_status = 'success',
+         SET last_status = $3,
              last_result = $1,
              last_run_at = NOW(),
              run_count = run_count + 1
          WHERE id = $2`,
-        [result, id],
+        [result, id, incomplete ? 'incomplete' : 'success'],
     );
-    const status = close.waiting ? 'waiting' : close.review?.reason ? 'needs_review' : 'success';
+    const status = close.waiting ? 'waiting' : incomplete ? 'incomplete' : close.review?.reason ? 'needs_review' : 'success';
     await _closeOpenRun(id, { status, result, producedOutput, ...close });
 }
 

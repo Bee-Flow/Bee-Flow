@@ -9,6 +9,8 @@ export interface TrailEntry {
     at: string | null;
     /** The viewer made this change; an entry by someone else (an administrator) is not named. */
     byYou: boolean;
+    /** Cowork made this change by itself (an automatic fix). Absent from older servers. */
+    byCowork?: boolean;
     changed: string[];
     values: Record<string, unknown>;
 }

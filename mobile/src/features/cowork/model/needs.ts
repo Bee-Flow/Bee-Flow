@@ -16,6 +16,8 @@ const SENTENCES: Readonly<Record<string, Sentence>> = {
     decision: ['cowork_needs.decision', 'A step waits for your decision.'],
     review: ['cowork_needs.review', 'The agent asks you to look at something.'],
     sign_in: ['cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'],
+    incomplete: ['cowork_resolver.need.incomplete', 'Did not do its work last time: a step found nothing to work on.'],
+    ai_failed: ['cowork_resolver.need.ai_failed', 'The AI said its last run failed.'],
     'plan:first': FIRST_PLAN,
     'plan:changed': ['cowork_needs.plan.changed', 'The plan changed and may do more than you approved. Approve it again.'],
     'plan:blocked': ['cowork_needs.plan.blocked', 'The plan cannot run as it is.'],

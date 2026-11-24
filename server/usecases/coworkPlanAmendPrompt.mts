@@ -16,7 +16,9 @@ import type { Definition } from '../core/cowork/plan/planTypes.mts';
 export type AmendFacts =
     | { kind: 'step_failed'; stepId: string; stepTitle: string; errorClass: string; runs: number }
     | { kind: 'goal_under'; targetPercent: number; percents: number[] }
-    | { kind: 'make_fixed'; stepId: string; stepTitle: string };
+    | { kind: 'make_fixed'; stepId: string; stepTitle: string }
+    /** A step's list reference found no list; `lists`: the paths that hold one in what the earlier step returned (shape only). */
+    | { kind: 'reference_unresolved'; stepId: string; stepTitle: string; sourceStepId: string; sourceTitle: string; ref: string; lists: string[] };
 
 /** The fixed step types a steady AI step may become. */
 export const FIXED_TARGETS: readonly string[] = Object.freeze(['set', 'aggregate', 'filter', 'datetime', 'summarize']);
@@ -44,6 +46,10 @@ export function factLines(facts: AmendFacts): string {
         return `- The goal of this work is that ${percent(facts.targetPercent)}% of what it handles meets it.\n- The last ${facts.percents.length} measurements, oldest first, were: ${seen}. Each was under the target.\n- Change the plan so that more of what it handles meets the goal. Change only the steps that decide that.`;
     }
     const step = `the step ${JSON.stringify(facts.stepId)} (titled ${JSON.stringify(facts.stepTitle.slice(0, TITLE_MAX))})`;
+    if (facts.kind === 'reference_unresolved') {
+        const paths = facts.lists.slice(0, 12).map((p) => JSON.stringify(p)).join(', ') || 'none';
+        return `- ${step} works through a list, and its reference ${JSON.stringify(facts.ref)} found none in what the step ${JSON.stringify(facts.sourceStepId)} (titled ${JSON.stringify(facts.sourceTitle.slice(0, TITLE_MAX))}) returned in the last run.\n- The paths that hold a list in that output are: ${paths}. Nothing else about the output is known.\n- Point that step at the list it is meant to work through, with builder_update_step on that step only. Change no other step.`;
+    }
     if (facts.kind === 'step_failed') {
         return `- ${step} failed in each of the last ${Math.max(2, Math.floor(facts.runs))} runs.\n- The runs recorded the error class ${JSON.stringify(cleanErrorClass(facts.errorClass))}. Nothing else about the failure is known.\n- Change that step, or the steps that feed it, so that it does not fail this way. Leave the other steps as they are.`;
     }

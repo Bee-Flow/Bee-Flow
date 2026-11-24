@@ -24,7 +24,7 @@ import { runCopyOf } from '../plan/planRunCopy.mts';
 import { isIndependence, withAsks } from '../plan/planIndependence.mts';
 import { planFingerprint } from '../plan/planPermissions.mts';
 import { stepsOf } from '../plan/planWalk.mts';
-import { decisionsOf, outputHashesOf, recordedReadsOf, recordedStepsOf, recordingOf, unchangedAnswersOf, type Recording, type RecordingDeps } from './recordingOf.mts';
+import { decisionsOf, outputHashesOf, recordedReadsOf, recordedStepsOf, recordingOf, unchangedAnswersOf, type RecordedStep, type Recording, type RecordingDeps } from './recordingOf.mts';
 import { compareReplay, type Comparison } from './replayCompare.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -113,6 +113,17 @@ async function dryRunOn(definition: Definition, ctx: { item: { userId: string };
 const notReplayable = (past: PastRun, reason: NotReplayable): ReplayVerdict => ({
     pastRunId: past.id, startedAt: past.startedAt, verdict: 'not_replayable', reason, missingSteps: 0, differingSteps: [],
 });
+
+/**
+ * A dry run of `definition` on one past run's recording, and what each of its steps recorded; null when that run
+ * cannot be replayed (../repairs/autoResolve.mts shows a fixed reference now gets its list, before it applies it).
+ */
+export async function replayOnRecording({ item, automation, past, definition }: { item: { userId: string }; automation: SourceRow; past: PastRun; definition: Definition }, deps: ReplayRunDeps): Promise<Map<string, RecordedStep> | null> {
+    if (refusalOf(past, deps)) return null;
+    const recording = await recordingOf(past.automationRunId as string, deps);
+    if (!recording || recording.steps.size === 0) return null;
+    return recordedStepsOf(await dryRunOn(definition, { item, automation, past, recording }, deps), deps);
+}
 
 /** Replay the item's plan as it is now (`automation.definition`) on one past run, and say how it came out. */
 export async function replayPastRun({ item, automation, past, outputOnly }: { item: { userId: string }; automation: SourceRow; past: PastRun; outputOnly?: ReadonlySet<string> }, deps: ReplayRunDeps): Promise<ReplayVerdict> {

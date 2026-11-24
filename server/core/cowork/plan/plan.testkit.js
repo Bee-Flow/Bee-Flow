@@ -65,4 +65,14 @@ function supplierRadar() {
     ]);
 }
 
-module.exports = { fakeLookups, planOf, supplierRadar, ref, literal, template };
+/**
+ * A plan's steps as a run executes them (./planRunCopy.mts runCopyOf): every AI step asked for its own verdict
+ * (core/automationRunner/aiStepVerdict.mts), nothing else changed.
+ * @param {{ steps?: unknown[] } & Record<string, unknown>} definition
+ */
+function withVerdicts(definition) {
+    const steps = (definition.steps ?? []).map((s) => (s && typeof s === 'object' && /** @type {{ type?: unknown }} */ (s).type === 'ai_step' ? { ...s, reportOutcome: true } : s));
+    return { ...definition, steps };
+}
+
+module.exports = { fakeLookups, planOf, supplierRadar, ref, literal, template, withVerdicts };

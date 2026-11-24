@@ -11,6 +11,8 @@
  *     is one for an owner the runner would refuse.
  *   - READ answers the run so far, per plan step: whether it ran, how long it took, and a short preview of what it
  *     got or WOULD have written or sent (core/cowork/plan/planTrace.mts, the reading a real run's history uses too).
+ *     A try-out in which a step that works through a list found none in what an earlier step really returned is no
+ *     pass (core/cowork/runOutcome.mts): it ends as an error, with the plain sentence of each such reference.
  *
  * A try-out belongs to its item: the run must be a dry run of the automation this item's plan is made from.
  */
@@ -25,6 +27,8 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { runIsOver, traceSteps } from '../core/cowork/plan/planTrace.mts';
+import { unresolvedOf, unresolvedSentence, type StepRecord } from '../core/cowork/runOutcome.mts';
+import { recordedStepsOf } from '../core/cowork/replay/recordingOf.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -45,15 +49,18 @@ export interface TryDeps {
     executeAutomation: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<RunRow | null | undefined>;
     getRun: (runId: string) => Promise<RunRow | null>;
     getRunSteps: (runId: string) => Promise<RunStepRow[]>;
+    /** The kept full copy of a step output the history had to cut. */
+    getRunFullOutput?: (runId: string, stepId: string, attempts: number) => Promise<unknown>;
     lookups: ToolLookups;
 }
 
 function defaultDeps(): TryDeps {
-    const store = () => nodeRequire('../stores/automationStore') as { getAutomation: TryDeps['getAutomation']; getRun: TryDeps['getRun']; getRunSteps: TryDeps['getRunSteps'] };
+    const store = () => nodeRequire('../stores/automationStore') as { getAutomation: TryDeps['getAutomation']; getRun: TryDeps['getRun']; getRunSteps: TryDeps['getRunSteps']; getRunFullOutput: NonNullable<TryDeps['getRunFullOutput']> };
     return {
         getAutomation: (id) => store().getAutomation(id),
         getRun: (id) => store().getRun(id),
         getRunSteps: (id) => store().getRunSteps(id),
+        getRunFullOutput: (runId, stepId, attempts) => store().getRunFullOutput(runId, stepId, attempts),
         isManaged: isManagedByStage,
         mayAsk: mayAskByLicence,
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: TryDeps['ownerRefusal'] }).ownerRefusal(owner),
@@ -71,6 +78,8 @@ export interface TryState {
     error: string | null;
     durationMs: number | null;
     steps: TraceStep[];
+    /** References that found no list in what the try-out really read, as plain sentences; empty or absent when none. */
+    problems?: string[];
 }
 
 /** The automation this item's plan is made from, when it is still the owner's. */
@@ -116,6 +125,25 @@ export async function startTry({ item }: { item: Item }, deps: TryDeps = default
     return { tryId, fingerprint: planFingerprint(definition) };
 }
 
+/** A made-up output (a simulated step) says nothing about what the real one returns. */
+const synthesised = (s: StepRecord): boolean => !!s.output && typeof s.output === 'object' && (s.output as { _dryRunSynthesised?: unknown })._dryRunSynthesised === true;
+
+/** The references of a finished try-out that found no list in what an earlier step really returned. */
+async function problemsOf(definition: Definition, tryId: string, deps: TryDeps): Promise<string[]> {
+    try {
+        const recorded = await recordedStepsOf(tryId, {
+            getRun: async () => null,
+            getRunStepsForChain: async (id) => (await deps.getRunSteps(id)).map((r) => ({ ...r, runId: id })),
+            getRunFullOutput: deps.getRunFullOutput ?? (async () => null),
+        });
+        const real = new Map([...recorded].filter(([, s]) => !synthesised(s)));
+        return unresolvedOf(definition, real, deps.lookups).map(unresolvedSentence);
+    } catch (e) {
+        log.warn(`[Cowork] try-out ${tryId}: the references could not be read: ${(e as Error).message}`);
+        return [];
+    }
+}
+
 /** How a try-out is going, per plan step. */
 export async function tryStateOf({ item, tryId }: { item: Item; tryId: string }, deps: TryDeps = defaultDeps()): Promise<TryState> {
     const automation = await planAutomation(item, deps);
@@ -126,8 +154,9 @@ export async function tryStateOf({ item, tryId }: { item: Item; tryId: string },
     const status = run.status ?? 'running';
     const done = runIsOver(status);
     const steps = traceSteps(automation.definition as Definition, await deps.getRunSteps(tryId), { done, simulated: true }, deps.lookups);
+    const problems = done && status === 'success' ? await problemsOf(automation.definition as Definition, tryId, deps) : [];
     return {
-        tryId, status, done,
-        summary: run.summary ?? null, error: run.error ?? null, durationMs: run.durationMs ?? null, steps,
+        tryId, status: problems.length > 0 ? 'error' : status, done,
+        summary: run.summary ?? null, error: problems[0] ?? run.error ?? null, durationMs: run.durationMs ?? null, steps, problems,
     };
 }

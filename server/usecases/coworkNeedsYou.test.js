@@ -71,3 +71,24 @@ test('a repair that is ready is one entry, after sign-ins and before plans; only
     assert.deepStrictEqual(list[0].repair, repair);
     assert.deepStrictEqual(asked, [['b', 'f']], 'an item without an approved plan has no repair to ask about');
 });
+
+test('an item whose last run did not do its work is an entry; a repair that is ready for it says so instead', async () => {
+    const list = await needsYou('u1', {
+        getSchedules: async () => [
+            { id: 'a', userId: 'u1', title: 'Meeting overview' },
+            { id: 'b', userId: 'u1', title: 'Order radar', planAutomationId: 'auto-1' },
+            { id: 'c', userId: 'u1', title: 'Inbox digest' },
+        ],
+        listRunsWaitingForOwner: async () => [],
+        planStateOf: async () => state({ approved, upToDate: true, widens: [] }),
+        openRepairOf: async () => ({ proposalId: 'pr-1', reasonCode: 'reference_unresolved', stepTitle: 'Get summaries' }),
+        lastRunProblems: async () => [
+            { itemId: 'a', runId: 'r1', kind: 'incomplete', since: '2026-11-24T08:00:00.000Z' },
+            { itemId: 'b', runId: 'r2', kind: 'incomplete', since: '2026-11-24T08:00:00.000Z' },
+            { itemId: 'c', runId: 'r3', kind: 'ai_failed', since: '2026-11-24T07:00:00.000Z' },
+            { itemId: 'someone-else', runId: 'r4', kind: 'incomplete', since: null },
+        ],
+    });
+    assert.deepStrictEqual(list.map((n) => [n.kind, n.itemId, n.runId]), [['repair', 'b', null], ['incomplete', 'a', 'r1'], ['ai_failed', 'c', 'r3']]);
+    assert.ok(list.every((n) => n.reason === null), 'no text a run produced');
+});

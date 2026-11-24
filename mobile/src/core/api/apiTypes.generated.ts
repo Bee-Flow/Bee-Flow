@@ -2627,6 +2627,7 @@ export interface ApiOperations {
     'GET /api/cowork/policy/mine': Op;
     'GET /api/cowork/policy/{orgId}': Op<{ orgId: string | number }>;
     'PUT /api/cowork/policy/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
+        autoFix?: boolean;
         ceiling?: 'asks_everything' | 'asks_before_sending' | 'on_its_own';
         habitsAllowed?: boolean;
         monthlyBudget?: number | null;

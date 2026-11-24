@@ -219,7 +219,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
     // iteration 19 has paid for 18 real model rounds. One accumulator over
     // every round of the loop (providers/usageNormalizer.js): tokens, cache
     // read/write (with the 5m/1h split), tier and tool counts.
-    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false, runId: null };
+    const run = { userOrgForTier: null, modelId: null, usageAcc: createUsageAccumulator(), lastIter: 0, usageLogged: false, runId: null, outcome: /** @type {import('./automationRunner/aiStepVerdict.mts').Verdict | null} */ (null) };
     // The time limit of this run (./cowork/runDeadline.mts): past it the model
     // call in flight is cancelled and no further round or tool call starts.
     const deadline = startRunDeadline(maxMs);
@@ -234,6 +234,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         run.runId = attempt.runId;
 
         const prep = await prepareTaskRun(task, run);
+        require('./cowork/outcomeTool.mts').addOutcomeTool(prep.tools, run); // the AI's verdict on the run, kept on `run`
         const terminationBase = () => ({
             user_id: task.userId || null,
             agent_id: task.agentId || null,
@@ -252,7 +253,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         const tierDefaults = TIER_DEFAULTS[task.modelTier] || TIER_DEFAULTS.thinking;
         const loop = await runPromptToolLoop({
             ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run, signal: deadline.signal,
-            dispatchTool: (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs),
+            dispatchTool: require('./cowork/outcomeTool.mts').withOutcomeTool(run, (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs)),
             logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch((e) => fallback('core/aiTaskRunner:logTermination', e)),
         });
 
@@ -270,11 +271,12 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch((e) => bestEffort('core/aiTaskRunner:executeTask', e));
         }
         const finalResponse = promptRunOutcome(task, loop, { messages: prep.messages, tools: prep.tools });
+        require('./cowork/outcomeTool.mts').throwIfFailed(run); // the AI said it failed: a failed run, with its reason
 
         // Move the schedule on, then close the run: once the item stops saying 'running', a tick must not find
         // this moment still due (the order the automation runner keeps too, runFinalize.js).
         await advanceAfterTaskRun(task, { manual, store, startTime });
-        await store.markCompleted(task.id, finalResponse);
+        await store.markCompleted(task.id, finalResponse, require('./cowork/outcomeTool.mts').outcomeClose(run));
 
         // Create notification
         const notificationStore = require('../stores/notificationStore');
@@ -315,7 +317,7 @@ async function failTaskRun(task, run, err, { manual, store, startTime }) {
         termination_type: 'error',
         ...sanitizeError(err),
     }).catch((e) => bestEffort('core/aiTaskRunner:failTaskRun', e));
-    await failRun(task, err, { manual, store });
+    await failRun(task, err, { manual, store, close: require('./cowork/outcomeTool.mts').outcomeClose(run, err) });
 }
 
 /**

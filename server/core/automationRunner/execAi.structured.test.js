@@ -136,3 +136,30 @@ test('the same step with the field there, read-only tools, a dry run, an optiona
     await execAiStep(toolStep('Post: {{trigger.output.nickname}}', WRITES), CTX, ran(), 'live');
     assert.strictEqual(h.chatCalls.length, 4);
 });
+
+// ── `reportOutcome` (./aiStepVerdict.mts, set by Cowork on a plan's run copy): the verdict beside the output, never in it ──
+
+test('a step that asks for its verdict gets one more field; the verdict comes back beside the output', async () => {
+    h.forced = async () => ({ structured: { digest: 'Three meetings.', coworkOutcome: { outcome: 'done', reason: 'Summarised them.' } }, usage: {} });
+    const r = await execAiStep(step({ reportOutcome: true }), CTX, runStateWith(), 'live');
+    assert.deepStrictEqual(r.output, { digest: 'Three meetings.' });
+    assert.deepStrictEqual(r.verdict, { outcome: 'done', reason: 'Summarised them.' });
+    assert.ok(h.forcedCalls[0].toolDef.function.parameters.properties.coworkOutcome, 'the verdict is part of the asked answer');
+});
+
+test('a step that answers in text stays on the prompt route (no tool), answers as text again, its verdict beside it', async () => {
+    h.chat = async () => ({ content: JSON.stringify({ answer: 'No meetings found.', coworkOutcome: { outcome: 'failed', reason: 'The meeting list was empty where it should not be.' } }), usage: {} });
+    const r = await execAiStep(step({ outputSchema: undefined, reportOutcome: true }), CTX, runStateWith(), 'live');
+    assert.strictEqual(r.output, 'No meetings found.');
+    assert.deepStrictEqual(r.verdict, { outcome: 'failed', reason: 'The meeting list was empty where it should not be.' });
+    assert.strictEqual(h.forcedCalls.length, 0, 'no answer tool');
+    h.chat = async () => ({ content: 'Plain prose, no JSON.', usage: {} });
+    const prose = await execAiStep(step({ outputSchema: undefined, reportOutcome: true }), CTX, runStateWith(), 'live');
+    assert.deepStrictEqual([prose.output, prose.verdict], ['Plain prose, no JSON.', undefined]);
+});
+
+test('a step that does not ask for a verdict has none', async () => {
+    h.forced = async () => ({ structured: { digest: 'x' }, usage: {} });
+    const r = await execAiStep(step(), CTX, runStateWith(), 'live');
+    assert.strictEqual(r.verdict, undefined);
+});

@@ -57,6 +57,10 @@ const PLAN_DDL = Object.freeze([
         PRIMARY KEY (schedule_id, step_id, recipient)
     )`,
     `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS trusted_steps TEXT`,
+    // How a run that the runner called a success really ended (core/cowork/runOutcome.mts): incomplete (a list step
+    // found no list), failed by an AI step's own verdict, or an AI's done / nothing to do. Codes, step ids and the plan's
+    // own references only; never a value the run read, never the AI's reason (that is the run's error text).
+    `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS outcome_json TEXT`,
     // Sharing (usecases/coworkShares.mts): colleagues of the owner's organisation who may see the item (viewer) or
     // also decide its runs' questions (approver, at most one). The owner keeps the item; a share never runs it.
     `CREATE TABLE IF NOT EXISTS cowork_shares (
