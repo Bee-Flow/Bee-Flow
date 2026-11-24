@@ -21,7 +21,12 @@ const PHASE_FALLBACK: Record<NonNullable<PlanMaking['phase']>, string> = {
     thinking: 'Working out the steps…',
     drafted: 'Drafting the plan…',
     saving: 'Saving the plan…',
+    trying: 'Trying the plan once, without changing or sending anything…',
+    repairing: 'Fixing what the try-out found…',
 };
+
+/** The key of a phase's words: the try-out's phases have their own namespace. */
+const phaseKey = (phase: NonNullable<PlanMaking['phase']>): string => (phase === 'trying' || phase === 'repairing' ? `cowork_wiring.make.${phase}` : `cowork_plan.make.${phase}`);
 
 const LABEL = 'text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]';
 const PILL = 'inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] border-[var(--border-default)] text-[var(--text-secondary)]';
@@ -35,7 +40,7 @@ function Drafting({ making, t, onCancel }: Pick<CoworkPlanMakeProps, 'making' | 
         <div className="flex flex-col gap-2" data-testid="cowork-plan-making">
             <div className="flex items-center gap-2">
                 <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin text-[var(--type-ai)]" />
-                <span role="status" className="flex-1 text-[12.5px] text-[var(--text-secondary)]">{t(`cowork_plan.make.${phase}`, PHASE_FALLBACK[phase])}</span>
+                <span role="status" className="flex-1 text-[12.5px] text-[var(--text-secondary)]">{t(phaseKey(phase), PHASE_FALLBACK[phase])}</span>
                 <button type="button" data-testid="cowork-plan-make-cancel" className={SECONDARY} onClick={onCancel}>{t('cowork_plan.make.cancel', 'Stop')}</button>
             </div>
             {making.steps.length > 0 && (

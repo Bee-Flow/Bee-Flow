@@ -27,6 +27,14 @@ describe('CoworkAutoFixNote', () => {
         expect(calls.find((c) => c.url.endsWith('/plan/restore'))?.body).toEqual({ version: 1 });
     });
 
+    it('a fix of the order of the steps says who waits for whom and who reads from whom now', async () => {
+        const wiring: CoworkProposal = { ...FIXED, reasonCode: 'wiring_fixed', stepTitle: 'A week ago', wiring: [{ kind: 'reads', step: 'A week ago', other: 'Now' }, { kind: 'waits', step: 'AI step', other: 'Get summary' }] };
+        calls = stubRecordingFetch(() => jsonResponse({ proposals: [wiring] }));
+        renderWithClient(<CoworkAutoFixNote coworkId="w1" />);
+        expect(await screen.findByTestId('cowork-auto-fix')).toHaveTextContent("Fixed automatically: 'A week ago' now reads from 'Now', 'AI step' now waits for 'Get summary'.");
+        expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    });
+
     it('says nothing when nothing was fixed, or the fix was undone', async () => {
         calls = stubRecordingFetch(() => jsonResponse({ proposals: [{ ...FIXED, undoVersion: null }] }));
         renderWithClient(<CoworkAutoFixNote coworkId="w1" />);

@@ -1438,6 +1438,7 @@ declare namespace DbRow {
         next_run_at: Date | null;
         plan_automation_id: string | null;
         plan_id: string | null;
+        plan_try_json: string | null;
         prompt: string;
         repeat_interval: string | null;
         run_count: number | null;

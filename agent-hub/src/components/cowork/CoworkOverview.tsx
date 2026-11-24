@@ -5,7 +5,9 @@
  *   1. one sentence of what it does and when, and what holds about sending (./coworkOverviewModel.ts);
  *   2. the goal line (./CoworkGoal.tsx);
  *   3. the last runs as plain lines: when, a status word, and the run's own one-line outcome, the same words the run
- *      list uses (./CoworkRunHistory.tsx RunOutcomeText). A line opens that run under Advanced → Runs;
+ *      list uses (./CoworkRunHistory.tsx RunOutcomeText); a plan run that failed at a step says so about the plan's
+ *      own steps instead ("'A week ago' could not read the date from 'Now'.", ./coworkWiringModel.ts), and the
+ *      runner's own message stays under Advanced → Runs. A line opens that run there;
  *   4. offers, one line and one button each, only when they apply: make it routine, and a step that can run without AI.
  *      A ready repair is a need, so it is in the strip above. Each opens Advanced → Plan, where it is decided.
  *   5. a slot for notes about the item (`notes`), such as a change Cowork made on its own.
@@ -17,7 +19,8 @@ import type { ReactNode } from 'react';
 import CoworkGoal from './CoworkGoal';
 import { RunOutcomeText } from './CoworkRunHistory';
 import { fullTimestamp } from './coworkFormat';
-import { overviewSentence } from './coworkOverviewModel';
+import { overviewSentence, plainStepTitle } from './coworkOverviewModel';
+import { failureLine, type TitleOf } from './coworkWiringModel';
 import type { OverviewFacts } from './coworkOverviewModel';
 import { offerLine, openOffer } from './coworkProposalModel';
 import { runStatusToken } from './coworkStatus';
@@ -50,8 +53,18 @@ function useOverviewFacts(item: CoworkItem, agents: CoworkAgent[] | undefined): 
     };
 }
 
-function RunLine({ run, t, onOpen }: { run: CoworkRun; t: TranslateFn; onOpen: (runId: string) => void }) {
+/** A step's title by its id, from the item's plan as it is now; null for a step it does not have. */
+function useTitleOf(itemId: string, t: TranslateFn): TitleOf {
+    const steps = useCoworkPlanQuery(itemId).data?.draft?.view.steps ?? [];
+    return (stepId) => {
+        const step = steps.find((s) => s.id === stepId);
+        return step ? plainStepTitle(step, t) : null;
+    };
+}
+
+function RunLine({ run, t, titleOf, onOpen }: { run: CoworkRun; t: TranslateFn; titleOf: TitleOf; onOpen: (runId: string) => void }) {
     const status = runStatusToken(run.status);
+    const failed = failureLine(run.failure, titleOf, t);
     return (
         <li>
             <button
@@ -62,7 +75,7 @@ function RunLine({ run, t, onOpen }: { run: CoworkRun; t: TranslateFn; onOpen: (
             >
                 <span className="w-[120px] flex-shrink-0 truncate text-[var(--text-primary)]">{fullTimestamp(run.startedAt, t)}</span>
                 <span className="w-[110px] flex-shrink-0 font-medium text-[var(--text-secondary)]" data-status-key={status.labelKey}>{statusLabel(t, status)}</span>
-                <span className="flex-1 min-w-[10rem] line-clamp-2 break-words text-[var(--text-secondary)]"><RunOutcomeText run={run} /></span>
+                <span className="flex-1 min-w-[10rem] line-clamp-2 break-words text-[var(--text-secondary)]" data-testid="cowork-overview-run-outcome">{failed ?? <RunOutcomeText run={run} />}</span>
             </button>
         </li>
     );
@@ -70,13 +83,14 @@ function RunLine({ run, t, onOpen }: { run: CoworkRun; t: TranslateFn; onOpen: (
 
 function RecentRuns({ itemId, reloadKey, t, onOpenRun }: { itemId: string; reloadKey?: number; t: TranslateFn; onOpenRun: (runId: string) => void }) {
     const runs = useCoworkRunsQuery(itemId, reloadKey).data?.runs;
+    const titleOf = useTitleOf(itemId, t);
     if (!runs) return null;
     return (
         <div className="flex flex-col gap-1" data-testid="cowork-overview-runs">
             <h3 className={HEADING}>{t('cowork_overview.recent', 'Last runs')}</h3>
             {runs.length === 0
                 ? <p className="text-[12.5px] text-[var(--text-tertiary)]">{t('cowork_overview.no_runs', 'It has not run yet.')}</p>
-                : <ul className="flex flex-col">{runs.slice(0, RECENT).map((run) => <RunLine key={run.id} run={run} t={t} onOpen={onOpenRun} />)}</ul>}
+                : <ul className="flex flex-col">{runs.slice(0, RECENT).map((run) => <RunLine key={run.id} run={run} t={t} titleOf={titleOf} onOpen={onOpenRun} />)}</ul>}
         </div>
     );
 }

@@ -11,6 +11,7 @@
 import { ListChecks, Lock, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import CoworkPlanKindTile, { KIND_FALLBACK } from './CoworkPlanKindTile';
+import CoworkPlanTried from './CoworkPlanTried';
 import { appsByEffect, canApprove, makeUpParts, planStatusOf } from './coworkPlanModel';
 import type { PlanStatus } from './coworkPlanModel';
 import { fullTimestamp } from './coworkFormat';
@@ -223,6 +224,7 @@ export default function CoworkPlanCard({ state, t, busy = null, error = null, tr
             </div>
             <StatusLine status={status} state={state} t={t} />
             {note && <PlannerNote note={note} t={t} />}
+            {draft && <CoworkPlanTried tried={state.tried} t={t} />}
             {draft && <PlanBody draft={draft} changed={status === 'changed'} stepChanges={state.stepChanges ?? []} t={t} />}
             {status === 'changed' && <Notes tone="warning" heading={t('cowork_plan.widens.heading', 'New compared with what you approved')} lines={state.widens} />}
             {tryOut}

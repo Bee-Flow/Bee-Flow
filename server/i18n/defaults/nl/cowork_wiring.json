@@ -14,8 +14,6 @@
     "cowork_wiring.tried.ai_many": "{count} AI-stappen schreven hun antwoord",
     "cowork_wiring.tried.ai_one": "de AI schreef zijn antwoord",
     "cowork_wiring.tried.failed": "Uitgeprobeerd, en het werkt nog niet. Goedkeuren kan pas als een proefrun slaagt:",
-    "cowork_wiring.tried.heading": "Proefrun",
-    "cowork_wiring.tried.needs_try": "Cowork heeft dit plan gemaakt: probeer het eerst uit. Goedkeuren kan zodra een proefrun slaagt.",
     "cowork_wiring.tried.nothing": "het draaide",
     "cowork_wiring.tried.passed": "Eén keer uitgeprobeerd: {what}. Er is niets gewijzigd of verstuurd.",
     "cowork_wiring.tried.passed_rounds": "{count} keer uitgeprobeerd tot het werkte: {what}. Er is niets gewijzigd of verstuurd.",

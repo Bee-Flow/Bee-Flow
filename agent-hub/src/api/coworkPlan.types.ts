@@ -77,6 +77,30 @@ export interface PlanState {
     upToDate: boolean;
     /** The steps that are new, gone or changed against the approved plan (server core/cowork/plan/planChanges.mts); absent from an older server. */
     stepChanges?: PlanStepChange[];
+    /** The last try-out of the plan (server usecases/coworkPlan.mts PlanTried); null or absent when none is known. */
+    tried?: PlanTried | null;
+}
+
+/** What a try-out read and did, in counts (server core/cowork/plan/planTryFacts.mts). */
+export interface PlanTrySummary {
+    reads: Array<{ title: string; items: number | null }>;
+    ai: number;
+    held: number;
+}
+
+/** The last try-out of a plan, as the card shows it. */
+export interface PlanTried {
+    status: 'running' | 'passed' | 'failed' | 'untried';
+    /** It tried exactly the plan on screen. */
+    current: boolean;
+    /** Cowork made the plan: a passing try-out of it comes before Approve. */
+    required: boolean;
+    /** Approve waits for a try-out that passes. */
+    blocksApproval: boolean;
+    summary: PlanTrySummary | null;
+    /** Why it did not pass, in sentences. */
+    problems: string[];
+    rounds: number;
 }
 
 /** One step of the draft against the approved plan. */
@@ -144,7 +168,9 @@ export interface PlanRunTrace {
 export type PlanMakeProgress =
     | { phase: 'thinking'; round: number }
     | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'>> }
-    | { phase: 'saving' };
+    | { phase: 'saving' }
+    | { phase: 'trying'; round: number }
+    | { phase: 'repairing'; round: number };
 
 /** How making a plan ended: the plan as its owner now sees it with what the planner said about it, or a sentence. */
 export interface PlanMakeOutcome {

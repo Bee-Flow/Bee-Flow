@@ -123,6 +123,16 @@ export interface CoworkRun {
     cost?: CoworkCost | null;
     /** The approved plan this run followed; null or absent for a prompt or agent run. */
     planId?: string | null;
+    /** Where a plan run failed: the step, its error class and the step it reads (ids and a code; server core/cowork/runOutcome.mts). */
+    failure?: CoworkRunFailure;
+}
+
+/** The step a plan run failed at, in ids and a code. */
+export interface CoworkRunFailure {
+    stepId: string;
+    errorClass: string | null;
+    /** The step whose output it reads; null for the start of the run or none. */
+    sourceStepId: string | null;
 }
 
 /** How the owner handles a run that waits for review. */

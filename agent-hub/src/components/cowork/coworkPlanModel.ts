@@ -23,10 +23,13 @@ export function planStatusOf(state: PlanState): PlanStatus {
     return state.approved ? 'changed' : 'first';
 }
 
-/** A plan its owner can approve now: there is one, nothing blocks it, and it is not already the approved one. */
+/**
+ * A plan its owner can approve now: there is one, nothing blocks it, it is not already the approved one, and no
+ * try-out has to pass first (a plan Cowork made, or one whose try-out failed).
+ */
 export function canApprove(state: PlanState): boolean {
     const status = planStatusOf(state);
-    return (status === 'first' || status === 'changed') && (state.draft?.findings.length ?? 0) === 0;
+    return (status === 'first' || status === 'changed') && (state.draft?.findings.length ?? 0) === 0 && !state.tried?.blocksApproval;
 }
 
 /** A plan that can be tried: there is one and nothing blocks it (an approved plan can be tried again too). */

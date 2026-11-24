@@ -18,14 +18,27 @@ export function madeFixed(list: readonly CoworkProposal[] | undefined): CoworkPr
     return list?.find((p) => p.kind === 'fixed_step' && p.status === 'approved' && p.undoVersion !== null) ?? null;
 }
 
-/** The newest reference Cowork fixed by itself that is still the plan, with its Undo (server core/cowork/repairs/autoResolve.mts). */
+/** What Cowork fixes by itself: a reference, or the order of the steps (server core/cowork/repairs/autoResolve.mts). */
+const AUTO_FIXES: ReadonlySet<string> = new Set(['reference_fixed', 'wiring_fixed']);
+
+/** The newest fix Cowork made by itself that is still the plan, with its Undo. */
 export function autoFixed(list: readonly CoworkProposal[] | undefined): CoworkProposal | null {
-    return list?.find((p) => p.reasonCode === 'reference_fixed' && p.status === 'approved' && p.undoVersion !== null) ?? null;
+    return list?.find((p) => AUTO_FIXES.has(p.reasonCode) && p.status === 'approved' && p.undoVersion !== null) ?? null;
+}
+
+/** "Fixed automatically: 'A week ago' now reads from 'Now', 'AI step' now waits for 'Get summary'." */
+export function autoFixLine(fix: Pick<CoworkProposal, 'reasonCode' | 'stepTitle' | 'wiring'>, t: TranslateFn): string {
+    if (fix.reasonCode !== 'wiring_fixed') return t('cowork_resolver.note.fixed', "Fixed automatically: step '{step}' was reading the wrong field.", { step: fix.stepTitle ?? '' });
+    const changes = (fix.wiring ?? []).map((c) => (c.kind === 'waits'
+        ? t('cowork_wiring.note.waits', "'{step}' now waits for '{other}'", { step: c.step, other: c.other })
+        : t('cowork_wiring.note.reads', "'{step}' now reads from '{other}'", { step: c.step, other: c.other })));
+    return t('cowork_wiring.note.fixed', 'Fixed automatically: {changes}.', { changes: changes.join(', ') || (fix.stepTitle ?? '') });
 }
 
 /** Why a repair is offered, in one line. */
 export function repairLine(proposal: Pick<CoworkProposal, 'reasonCode' | 'stepTitle'>, t: TranslateFn): string {
     if (proposal.reasonCode === 'reference_unresolved') return t('cowork_resolver.repair.reference', "Step '{step}' found nothing to work on. A fix is ready.", { step: proposal.stepTitle ?? '' });
+    if (proposal.reasonCode === 'wiring_broken') return t('cowork_wiring.repair.wiring', "'{step}' reads from a step that does not run before it. A fix is ready.", { step: proposal.stepTitle ?? '' });
     if (proposal.reasonCode === 'goal_under_target') return t('cowork_proposals.need.goal_under', 'Stayed under its goal three times in a row. A fix is ready.');
     return t('cowork_proposals.need.failed_twice', "Failed twice at '{step}'. A fix is ready.", { step: proposal.stepTitle ?? '' });
 }

@@ -17,8 +17,6 @@ module.exports = {
     "cowork_wiring.tried.ai_many": "{count} AI steps wrote their answers",
     "cowork_wiring.tried.ai_one": "the AI wrote its answer",
     "cowork_wiring.tried.failed": "Tried, and it does not work yet. It cannot be approved until a try-out passes:",
-    "cowork_wiring.tried.heading": "Try-out",
-    "cowork_wiring.tried.needs_try": "Cowork made this plan: try it first. It can be approved once a try-out passes.",
     "cowork_wiring.tried.nothing": "it ran",
     "cowork_wiring.tried.passed": "Tried once: {what}. Nothing was changed or sent.",
     "cowork_wiring.tried.passed_rounds": "Tried {count} times until it worked: {what}. Nothing was changed or sent.",

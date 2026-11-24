@@ -14,7 +14,11 @@ closes by it), `server/core/automationRunner/aiStepVerdict.mts` (an AI step's ve
 (`cowork_report_outcome` for prompt and agent runs), `server/usecases/coworkPlanRefs.mts` (the check before
 approval), `server/usecases/coworkPlanTry.mts` (the try-out), `server/core/cowork/repairs/autoResolve.mts` and
 `server/usecases/coworkAutoResolve.mts` (the fix), `server/stores/coworkRunOutcomes.mts`,
-`server/core/entitlements/coworkPolicy.mts` (`autoFix`), `server/automation/outputSchemasFireflies.mts`.
+`server/core/entitlements/coworkPolicy.mts` (`autoFix`), `server/automation/outputSchemasFireflies.mts`;
+for the wiring: `server/core/cowork/plan/planWiring.mts` (the check), `server/core/cowork/plan/planWiringFix.mts` (the
+fixes and the same reach), `server/usecases/coworkAutoResolveWiring.mts` (the fix of an approved plan),
+`server/usecases/coworkPlannerTry.mts` and `server/usecases/coworkPlanTryOut.mts` (the planner's try-outs),
+`server/core/cowork/plan/planTryFacts.mts` (what a try-out tells), `server/stores/coworkPlanTries.mts`.
 **Enforced by:** `server/core/cowork/repairs/autoResolve.engine.pg.test.js` (on the real engine: the Fireflies plan
 that reads `output.transcripts` from a tool that hands on `results` ends incomplete, not succeeded; the fix takes
 `output.results`, changes only that reference, keeps the permissions exactly, is replayed on the run's recording,
@@ -28,7 +32,16 @@ incomplete run; "nothing to do" over an empty list is a success), `server/core/c
 `server/core/automationRunner/aiStepVerdict.test.js`, `execAi.structured.test.js`,
 `server/usecases/coworkPlanRefs.test.js`, `server/usecases/coworkPlanTry.test.js` (a missing path fails the
 try-out), `server/core/cowork/receipts/receiptFacts.outcome.test.js` (the outcome is a code on the receipt, the reason
-is not in it), `server/stores/coworkProposals.pg.test.js` (an AI-failed step counts toward the repair trigger).
+is not in it), `server/stores/coworkProposals.pg.test.js` (an AI-failed step counts toward the repair trigger),
+`server/core/cowork/plan/planWiring.test.js` (the owner's miswired Fireflies plan: an unknown step fixed by the one
+datetime step with `iso`, an AI step without input moved after the reads, a step that is not upstream fixed with an
+edge and a cycle refused, a read nobody uses as advice, a correct plan clean),
+`server/core/cowork/repairs/autoResolve.wiring.engine.pg.test.js` (on the real engine: that plan's run fails before
+Fireflies, the fix keeps the permissions exactly, is proven by a try-out because the run never reached the reads, is
+approved by Cowork with a trail entry and an Undo, the rerun reaches Fireflies; a marker in the meetings reaches
+nothing stored; a fix the try-out does not prove becomes a proposal),
+`server/usecases/coworkPlanner.tryOut.engine.pg.test.js` (the planner's first draft fails its try-out, the facts go
+back without a meeting title, the second draft passes; a draft that never passes gets no Approve).
 
 ## Context
 
@@ -77,6 +90,27 @@ repairs of 0048 only listen for a step that FAILS twice: this one did not fail.
   again, in one click), and a scheduled item runs once more right away through the Cowork runner, so the policy and the
   budgets apply. Anything that does not hold falls back to a repair its owner decides (0048), with the patched plan
   when there is one. Nothing that widens what a plan may do is ever applied.
+- **The exception covers the order between a plan's own steps too (24 Nov).** A plan is walked along its edges, so a
+  step that reads a step with no path of edges from it runs before it or beside it and reads nothing (the owner's
+  Fireflies plan: the AI step ran first, "a week ago" read a step id that was not in the plan). The wiring check
+  (`planWiring.mts`) finds a reference to a step that is not in the plan, to a step that does not run before the
+  reader, a path written in braces where the runner reads a bare path, and an AI step that starts before the reads it
+  should work on; each finding stops an approval and has a deterministic fix where one exists (the one step whose known
+  output has the path; an edge from the step it reads, never one that closes a cycle; the AI step after the last
+  reads, with their output in its prompt). After a run of a plan whose approved version is miswired, Cowork applies
+  those fixes by itself under the same conditions as above: they change references and edges only, the steps, tools,
+  inputs other than references and the permissions stay exactly equal (`sameWiringReach`), and the fixed plan has no
+  finding. The proof is a replay on the run's recording when it holds what every read returned; when the failing run
+  never reached the reads, it is a try-out in test mode (reads for real, nothing changed or sent), under the budgets.
+  It is approved by `cowork:auto_fix`, the trail gets `cowork.plan_wiring_fixed` with what changed in step ids and the
+  proof, the item shows "Fixed automatically: '…' now waits for '…' / now reads from '…'. · Undo", and a scheduled
+  item runs once more. Otherwise it is a repair its owner decides (`wiring_broken`).
+- **A plan Cowork drafts is tried before its owner sees it.** Once a draft passes the static checks, the planner runs
+  it once in test mode; what went wrong goes back to the model as facts (step titles, error classes, the fields the
+  plan reads, the keys an output really has; never a value or an app's error text), at most three try-outs, each
+  through the budgets. The plan arrives with how its try-out went, and it is approved from its card only once a
+  try-out of exactly that plan passed. What Cowork approves with its own proof (a repair after a replay, Undo, the
+  automatic fix) does not need one.
 
 ## Consequences
 

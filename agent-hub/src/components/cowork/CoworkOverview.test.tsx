@@ -140,3 +140,28 @@ describe('CoworkOverview', () => {
         expect(screen.getByTestId('cowork-overview-sentence').textContent).toMatch(/^Paused: nothing runs until you resume it\./);
     });
 });
+
+describe('CoworkOverview, a plan run that failed at a step', () => {
+    it('says it about the plan\'s own steps, not with the runner\'s message', async () => {
+        const raw = 'datetime: input "{{steps.dt_ac3ed7.output.iso}}" did not resolve to a parseable date';
+        const failed: CoworkRun = { id: 'r9', status: 'error', startedAt: new Date().toISOString(), error: raw, planId: 'p1', failure: { stepId: 'dt_week', errorClass: 'datetime_unresolved_input', sourceStepId: 'dt_now' } };
+        const step = (id: string, title: string) => ({ id, type: 'datetime', kind: 'fixed' as const, title, effect: 'reads' as const, app: null, tool: null, readsOutsideText: false, depth: 0 });
+        const permissions = { v: 1, grants: [], sends: 'owner', ai: true, outsideText: false };
+        const plan = {
+            automationId: 'a1', approved: { version: 1, fingerprint: 'f', approvedAt: null, permissions }, widens: [], upToDate: true, tried: null,
+            draft: { view: { trigger: 'schedule', steps: [step('dt_now', 'Now'), step('dt_week', 'A week ago')], makeUp: { fixed: 2, ai: 0, ask: 0, deliver: 0 } }, permissions, findings: [], fingerprint: 'f' },
+        };
+        stubRecordingFetch(({ url }) => {
+            if (url.includes('/runs')) return jsonResponse({ runs: [failed], total: 1 });
+            if (url.endsWith('/proposals')) return jsonResponse({ proposals: [] });
+            if (url.endsWith('/needs-you')) return jsonResponse({ needs: [] });
+            if (url.endsWith('/goal')) return jsonResponse({ goal: null });
+            if (url.endsWith('/desk')) return jsonResponse({ desk: null });
+            if (url.endsWith('/plan')) return jsonResponse(plan);
+            return jsonResponse({});
+        });
+        renderWithClient(detail());
+        await waitFor(() => expect(screen.getByTestId('cowork-overview-run-outcome')).toHaveTextContent("'A week ago' could not read the date from 'Now'."));
+        expect(screen.getByTestId('cowork-overview').textContent).not.toContain('parseable');
+    });
+});

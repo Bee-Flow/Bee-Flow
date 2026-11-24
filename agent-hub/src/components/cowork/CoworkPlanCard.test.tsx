@@ -163,3 +163,19 @@ describe('CoworkPlanCard', () => {
         expect(screen.getByTestId('cowork-plan-approve').textContent).toBe('Approving…');
     });
 });
+
+describe('CoworkPlanCard, a plan Cowork made and tried', () => {
+    const tried = { status: 'passed' as const, current: true, required: true, blocksApproval: false, rounds: 1, problems: [], summary: { reads: [{ title: 'Get the new supplier mail', items: 4 }], ai: 2, held: 2 } };
+
+    it('arrives with its try-out in plain words, and can be approved', () => {
+        renderCard(planState({ tried }));
+        expect(screen.getByTestId('cowork-plan-tried')).toHaveTextContent("Tried once: 'Get the new supplier mail' read 4 items, 2 AI steps wrote their answers. Nothing was changed or sent.");
+        expect(screen.getByTestId('cowork-plan-approve')).toBeTruthy();
+    });
+
+    it('a try-out that still fails says what fails, and there is no Approve', () => {
+        renderCard(planState({ tried: { ...tried, status: 'failed', blocksApproval: true, rounds: 3, problems: ["'Save the replies as drafts' failed (tool_error)."] } }));
+        expect(screen.getByTestId('cowork-plan-tried')).toHaveTextContent("Tried, and it does not work yet. It cannot be approved until a try-out passes:'Save the replies as drafts' failed (tool_error).");
+        expect(screen.queryByTestId('cowork-plan-approve')).toBeNull();
+    });
+});

@@ -28,6 +28,8 @@ export interface CoworkProposal {
     widens: string[];
     replay: ProposalReplay | null;
     undoVersion: number | null;
+    /** An automatic fix of the wiring that is still the plan: who waits for whom, who reads from whom now (step titles). */
+    wiring?: Array<{ kind: 'waits' | 'reads'; step: string; other: string }>;
 }
 
 interface ProposalList { proposals: CoworkProposal[] }
