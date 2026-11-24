@@ -19,9 +19,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createRequire } from 'node:module';
 
 import { compile } from './ts-equivalence.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -114,7 +114,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         if (!bad.size && unattributed) throw new Error(`gate: ${unattributed} typecheck error(s) not caused by a converted file it can name; fix or revert by hand`);
         if (!bad.size) {
             // Typecheck green: now no forbidden construct, and the compiled program unchanged.
-            const ts = createRequire(path.join(HUB, 'package.json'))('typescript');
+            const ts = loadTsApi();
             for (const k of kept) {
                 const f = forbidden(ts, fs.readFileSync(path.join(HUB, k.target), 'utf8'), git('show', `${BASE}:agent-hub/${k.file}`));
                 if (f.length) bad.set(k.target, { reason: `forbidden: ${f.join(', ')}`, errors: [] });

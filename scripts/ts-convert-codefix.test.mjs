@@ -1,16 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyChanges, forbiddenInsert, targetName } from './ts-convert-codefix.mjs';
 import { applyEdits, inferFile, resetCaches } from './ts-callsite-types.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
+ts = tryTsApi();
 
 test('a quick fix that writes any, Function or a ts- comment is refused', () => {
     assert.equal(forbiddenInsert(': any'), true);
@@ -21,7 +21,7 @@ test('a quick fix that writes any, Function or a ts- comment is refused', () => 
     assert.equal(forbiddenInsert(': Company'), false); // `any` only as a whole word
 });
 
-test('.jsx becomes .tsx; .js becomes .tsx only when it holds JSX', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('.jsx becomes .tsx; .js becomes .tsx only when it holds JSX', { skip: !ts && INSTALL_HINT }, () => {
     assert.equal(targetName('src/A.jsx', 'export const A = () => <div />;'), 'src/A.tsx');
     assert.equal(targetName('src/a.jsx', 'export const a = 1; // <Tag> in a comment'), 'src/a.ts');
     assert.equal(targetName('src/a.js', 'export const a = 1;'), 'src/a.ts');
@@ -59,7 +59,7 @@ function serviceOver(files) {
     return { service: ts.createLanguageService(host), at: (f) => path.join(dir, f), texts };
 }
 
-test('props come from the typed call sites, a missing one from what the body hands it to', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('props come from the typed call sites, a missing one from what the body hands it to', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'types.ts': 'export interface User { id: string; name: string }\n',
         'Child.tsx': "import type { User } from './types';\nexport function Child(p: { user: User }) { return null; }\n",
@@ -75,7 +75,7 @@ test('props come from the typed call sites, a missing one from what the body han
     assert.match(out, /import type \{ User \} from '\.\/types';/);
 });
 
-test('useState([]) takes T from its setter calls; a literal widens', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('useState([]) takes T from its setter calls; a literal widens', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'react.ts': 'export function useState<S>(s: S): [S, (v: S) => void] { return [s, () => {}]; }\n',
         'list.ts': "import { useState } from './react';\nexport function useList() { const [items, setItems] = useState([]); setItems(['a']); return items; }\n",
@@ -85,7 +85,7 @@ test('useState([]) takes T from its setter calls; a literal widens', { skip: !ts
     assert.match(applyEdits(texts.get(at('list.ts')), edits), /useState<string\[\]>\(\[\]\)/);
 });
 
-test('a callback prop is typed from how the body calls it; a guard makes it optional', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('a callback prop is typed from how the body calls it; a guard makes it optional', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'Form.tsx': "export function Form({ onSave, onClose }) { const save = () => { onSave('x', 2); if (onClose) onClose(); }; return <button onClick={save} />; }\n",
     });
@@ -95,7 +95,7 @@ test('a callback prop is typed from how the body calls it; a guard makes it opti
     assert.match(out, /onClose\?: \(\) => void;/);
 });
 
-test('an options object gets a <Name>Args type alias (implicit index signature); `= {}` makes every member optional', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('an options object gets a <Name>Args type alias (implicit index signature); `= {}` makes every member optional', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'span.ts': 'export function span({ dx, width } = {}) { return dx / width; }\n',
         'use.ts': "import { span } from './span';\nexport const s = span({ dx: 1, width: 2 });\n",
@@ -106,7 +106,7 @@ test('an options object gets a <Name>Args type alias (implicit index signature);
     assert.match(out, /span\(\{ dx, width \}: SpanArgs = \{\}\)/);
 });
 
-test('an object grown after its literal gets the whole shape; one filled by key a Record', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('an object grown after its literal gets the whole shape; one filled by key a Record', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'm.ts': "export function f(k: string) { const out = { views: 1 }; out.rate = 0.5; const byId = {}; byId[k] = 'x'; return [out, byId]; }\n",
     });
@@ -116,7 +116,7 @@ test('an object grown after its literal gets the whole shape; one filled by key 
     assert.match(out, /const byId: Record<string, string> = \{\};/);
 });
 
-test('learned patterns: lookup tables, caught errors, late-assigned lets', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('learned patterns: lookup tables, caught errors, late-assigned lets', { skip: !ts && INSTALL_HINT }, () => {
     const { service, at, texts } = serviceOver({
         'l.ts': "const LABELS = { a: 'A', b: 'B' };\nexport function f(k: string) { let ro = null; ro = new Date(); try { return LABELS[k]; } catch (e) { return e.message + String(ro); } }\n",
     });

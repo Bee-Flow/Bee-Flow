@@ -22,7 +22,6 @@
 // The typecheck that decides stays `npm run typecheck` in agent-hub (tsc 7).
 
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -38,8 +37,9 @@ export const FIX_ALIASES = {
 const FORMAT = { indentSize: 4, tabSize: 4, convertTabsToSpaces: true, semicolons: 'insert' };
 const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'relative', includeCompletionsForModuleExports: true, includeCompletionsWithInsertText: true };
 
-export function loadTs(hub = HUB) {
-    return createRequire(path.join(hub, 'package.json'))('typescript');
+/** The TypeScript 6 compiler API (root `typescript-api`, see lib/ts-api.mjs), whatever package is fixed. */
+export function loadTs() {
+    return loadTsApi();
 }
 
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');

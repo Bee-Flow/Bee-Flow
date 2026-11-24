@@ -46,25 +46,18 @@
  *   node scripts/store-write-tx.mjs           list every counted function (file:line name tables)
  *   node scripts/store-write-tx.mjs --json    the same as JSON
  *
- * TypeScript's JS API from the root's `typescript-api` alias, else agent-hub's copy.
+ * TypeScript's JS API from the root's `typescript-api` (lib/ts-api.mjs).
  */
 
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-let tsCache;
 function loadTs() {
-    if (tsCache) return tsCache;
-    try {
-        tsCache = createRequire(path.join(ROOT, 'package.json'))('typescript-api');
-    } catch {
-        tsCache = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
-    }
-    return tsCache;
+    return loadTsApi();
 }
 
 const NAME = String.raw`("[^"]+"|\$\{[^}]*\}|[A-Za-z_][\w.$]*)`;

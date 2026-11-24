@@ -169,7 +169,9 @@ updates:
       # { version }); typescript-eslint 8.x needs it (peer <6.1.0) and crashes
       # while eslint.config.js loads. Lift when `npm view typescript-eslint@latest
       # peerDependencies.typescript` admits 7.x (typescript-eslint#10940; the API
-      # is expected in TS 7.1), bumping both in one PR.
+      # is expected in TS 7.1), bumping both in one PR. This copy is ONLY for
+      # typescript-eslint: the repository scripts take their TypeScript 6 API
+      # from the root's `typescript-api` (scripts/lib/ts-api.mjs).
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
@@ -299,7 +301,7 @@ updates:
         update-types: ["version-update:semver-major"]
       # typecheck and build already run on TypeScript 7 (the typescript-7
       # alias); `typescript` itself stays on 6 for typescript-eslint 8.x (peer
-      # <6.1.0, no TS 7 JS API before 7.1). Lift with agent-hub's entry.
+      # <6.1.0, no TS 7 JS API before 7.1) and nothing else. Lift with agent-hub's entry.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
       # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).

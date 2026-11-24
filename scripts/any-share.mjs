@@ -48,10 +48,10 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { isEntryPoint } from './entry-point.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -70,8 +70,7 @@ export function pct(n, total) {
 
 /** The TypeScript API (TypeScript 6, the root's `typescript-api`). */
 export function loadTs() {
-    const name = 'typescript-api';
-    return createRequire(path.join(ROOT, 'package.json'))(name);
+    return loadTsApi();
 }
 
 /**

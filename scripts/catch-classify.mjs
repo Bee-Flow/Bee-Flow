@@ -36,27 +36,16 @@
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'server');
 
-let tsCache;
-/**
- * The TypeScript 6 compiler API: the root's `typescript-api` alias (the fast-gates
- * job installs only the root), else agent-hub's own copy.
- */
+/** The TypeScript 6 compiler API: the root's `typescript-api` (lib/ts-api.mjs). */
 function loadTs() {
-    if (tsCache) return tsCache;
-    const fromRoot = createRequire(path.join(ROOT, 'package.json'));
-    try {
-        tsCache = fromRoot('typescript-api');
-    } catch {
-        tsCache = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
-    }
-    return tsCache;
+    return loadTsApi();
 }
 
 export const BUCKETS = ['optional-table', 'best-effort', 'fallback', 'lazy-require', 'security-relevant', 'unknown'];

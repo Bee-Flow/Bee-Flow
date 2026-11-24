@@ -1,0 +1,17 @@
+{
+    // Type-checks the Playwright config, the fixtures and the generated specs with
+    // TypeScript 7 (`npm run typecheck`). Playwright transpiles them itself, so
+    // nothing is emitted. No "type": "module" in package.json: they run as CommonJS.
+    "compilerOptions": {
+        "target": "ES2023",
+        "lib": ["ES2023", "DOM"],
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "types": ["node"],
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": ["playwright.config.ts", "tests/**/*.ts"]
+}

@@ -14,9 +14,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // The policy job runs the repo-script tests with only the root packages, so
-// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+// without the root's typescript-api these tests skip (as ts-move-types.test.mjs does).
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const test = hasTs ? nodeTest : nodeTest.skip;
 const { split } = hasTs ? await import('./ts-split.mjs') : {};
 
@@ -158,6 +158,7 @@ test('TypeScript: types get inline `type` modifiers, imports are re-based for an
     const dir = fixture({
         'src/model.ts': `import type { Row } from './row';
 import { fmt } from '../util/fmt';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 export interface Shape { rows: Row[] }
 

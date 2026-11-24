@@ -17,16 +17,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// The parser is the TypeScript compiler API (root typescript-api, lib/ts-api.mjs). The
 // workflow-policy job runs these tests without npm ci, so the parser tests skip there.
 let hasTs = false;
-for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
-    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
-}
+hasTs = Boolean(tryTsApi());
 const tsTest = hasTs ? test : test.skip;
 const SCRIPT = path.join(HERE, 'count-ratchet.mjs');
 

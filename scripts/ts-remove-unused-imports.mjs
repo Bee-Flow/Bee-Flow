@@ -9,9 +9,9 @@
 //   node scripts/ts-remove-unused-imports.mjs agent-hub/src/a.tsx [more files]
 
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -19,7 +19,7 @@ const HUB = path.join(ROOT, 'agent-hub');
 const UNUSED = new Set([6133, 6192, 6196, 6198]);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    const ts = createRequire(path.join(HUB, 'package.json'))('typescript');
+    const ts = loadTsApi();
     const files = process.argv.slice(2).map((f) => path.resolve(f));
     const cfg = ts.parseJsonConfigFileContent(ts.readConfigFile(path.join(HUB, 'tsconfig.json'), ts.sys.readFile).config, ts.sys, HUB);
     const options = { ...cfg.options, noUnusedLocals: true };

@@ -42,12 +42,12 @@
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseTsc } from './ts-convert-gate.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HEAVY = '/home/tom/.claude/bin/heavy';
@@ -55,11 +55,9 @@ const DEFAULT_PATTERNS = ['as unknown as', 'as any'];
 
 const isTest = (f) => /\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f);
 
-function loadTs(pkg) {
-    for (const base of [pkg, path.join(ROOT, 'agent-hub')]) {
-        try { return createRequire(path.join(base, 'package.json'))('typescript'); } catch { /* next */ }
-    }
-    throw new Error('typescript not found (npm ci in agent-hub)');
+// Not the package's own `typescript`: on server that is 7, whose require() is a version stub.
+function loadTs() {
+    return loadTsApi();
 }
 
 export function findTsc(pkg) {

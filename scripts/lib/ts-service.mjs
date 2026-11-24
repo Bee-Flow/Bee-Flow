@@ -4,14 +4,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-/** The `typescript` agent-hub locks (the language service API lives there). */
+/** The TypeScript 6 compiler API (root `typescript-api`, see ts-api.mjs). */
 export function loadTs() {
-    return createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
+    return loadTsApi();
 }
 
 /** `noResolve` keeps the program to `only`: imports are still resolved but their targets are not pulled in. `only`: restrict the program to these files (a rename or an extract only needs the files that touch the subject; a whole-package program takes a minute per query).

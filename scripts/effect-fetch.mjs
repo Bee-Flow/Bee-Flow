@@ -18,22 +18,15 @@
  * Used by `node scripts/count-ratchet.mjs fetch-in-effect agent-hub`.
  */
 
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-let tsCache;
-/** The TypeScript 6 compiler API: the root's `typescript-api` alias, else agent-hub's own copy. */
+/** The TypeScript 6 compiler API: the root's `typescript-api` (lib/ts-api.mjs). */
 function loadTs() {
-    if (tsCache) return tsCache;
-    try {
-        tsCache = createRequire(path.join(ROOT, 'package.json'))('typescript-api');
-    } catch {
-        tsCache = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
-    }
-    return tsCache;
+    return loadTsApi();
 }
 
 const API_MODULE = /(^|\/)api(\/|$)/;

@@ -1,5 +1,5 @@
 // A TypeScript 6 language service over the server's JavaScript, for the JSDoc codemods.
-// TypeScript 7 (what `npm run typecheck` runs) has no JavaScript API; 6.0.3 lives in agent-hub.
+// TypeScript 7 (what `npm run typecheck` runs) has no JavaScript API; 6.0.3 is the root's `typescript-api` (lib/ts-api.mjs).
 // The service is only used to find places and to try an edit in memory: whether the edit
 // stays is decided by the same diagnostics, and `npm run typecheck` decides in the end.
 

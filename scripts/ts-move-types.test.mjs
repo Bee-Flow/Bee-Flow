@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mergeInto, moveTypes } from './ts-move-types.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
+ts = tryTsApi();
 
-test('declarations move with their JSDoc and imports; a free comment and local-bound types stay', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('declarations move with their JSDoc and imports; a free comment and local-bound types stay', { skip: !ts && INSTALL_HINT }, () => {
     const src = "import type { User } from './u';\nconst LIMIT = 3;\n\n/* a note about the code below */\n\n/** One card. */\ninterface CardProps {\n    user: User;\n}\n\ntype Max = typeof LIMIT;\n\nexport interface Row { id: string }\n\nexport function Card(p: CardProps) { return p; }\n";
     const r = moveTypes(ts, src, '/x/Card.tsx');
     assert.deepEqual(r.moved, ['CardProps', 'Row']);

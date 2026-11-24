@@ -6,17 +6,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyEdits, calleeSlotOfDiagnostic, guardedInBody, hasDeclaredType, inferFile, jsdocTypedefNames, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
-const skip = !ts && 'agent-hub typescript not installed';
+ts = tryTsApi();
+const skip = !ts && INSTALL_HINT;
 
 function serviceOver(files, extra = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-callsite-'));

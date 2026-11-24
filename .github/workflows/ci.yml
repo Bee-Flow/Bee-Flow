@@ -1894,6 +1894,9 @@ jobs:
           directory: e2e
       - name: Generated specs match the scenarios
         run: npm run gen:check
+      # TypeScript 7: the Playwright config, fixtures and generated specs.
+      - name: Typecheck (TypeScript 7)
+        run: npm run typecheck
 
   # ── Repo plumbing gates ────────────────────────────────────────────────
   # What `npm run check:fast` runs locally (every root lint:* ratchet and
@@ -1920,7 +1923,12 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Ratchets and repo guards (check:fast)
         run: node scripts/check-fast.mjs
+      # TS_API_REQUIRED: the root packages are installed here, so a script test
+      # that needs the TypeScript API (scripts/lib/ts-api.mjs) fails instead of
+      # skipping. workflow-policy.yml installs nothing and lets them skip.
       - name: Repo-script unit tests
+        env:
+          TS_API_REQUIRED: '1'
         run: npm run test:scripts
 
   # ── The one context the ruleset requires ───────────────────────────────

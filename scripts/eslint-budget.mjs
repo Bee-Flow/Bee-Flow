@@ -38,6 +38,14 @@
  * half the CPUs and turns a single worker into none, so on a 2-vCPU CI
  * runner it changes nothing. Measured on agent-hub with 2 CPUs: 246-271 s
  * with auto or no flag, 170-176 s with 2 workers, identical findings.
+ *
+ * LOCAL CACHE, opt-in: with ESLINT_CACHE=1 the gate adds eslint's own
+ * `--cache` (content strategy, in <package>/node_modules/.cache/eslint/), so a
+ * second run re-lints only the files that changed. eslint applies the bulk
+ * suppressions AFTER linting, to cached and fresh results alike, so suppression
+ * counts and `--prune-suppressions` are unaffected. What a cache can miss: a
+ * type-aware rule (agent-hub's no-floating-promises on src/api) in an unchanged
+ * file whose imported types changed. CI never sets it and stays the authority.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -86,6 +94,12 @@ export function eslintArgs(version, cpus = availableParallelism()) {
     return ['.', '-f', 'json', ...(parallel ? ['--concurrency', String(workers)] : [])];
 }
 
+/** eslint's cache flags when the environment opts in with ESLINT_CACHE=1, else none. */
+export function cacheArgs(pkgDir, env = process.env) {
+    if (env.ESLINT_CACHE !== '1') return [];
+    return ['--cache', '--cache-strategy', 'content', '--cache-location', path.join(pkgDir, 'node_modules', '.cache', 'eslint') + path.sep];
+}
+
 /** Does the package carry bulk suppressions (and so run without a total budget)? */
 export function usesSuppressions(pkgDir) {
     return fs.existsSync(path.join(pkgDir, 'eslint-suppressions.json'));
@@ -103,7 +117,7 @@ function runEslint(pkg, dir, extraArgs = []) {
         process.exit(2);
     }
     try {
-        const stdout = execFileSync(process.execPath, [entry, ...eslintArgs(eslintVersion(dir)), ...extraArgs], {
+        const stdout = execFileSync(process.execPath, [entry, ...eslintArgs(eslintVersion(dir)), ...cacheArgs(dir), ...extraArgs], {
             cwd: dir,
             encoding: 'utf8',
             maxBuffer: 512 * 1024 * 1024,

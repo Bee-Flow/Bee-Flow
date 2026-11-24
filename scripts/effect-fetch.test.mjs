@@ -1,12 +1,10 @@
 import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
+import { tryTsApi } from './lib/ts-api.mjs';
 
-// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's).
+// The parser is the TypeScript compiler API (root typescript-api, lib/ts-api.mjs).
 let hasTs = false;
-for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
-    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
-}
+hasTs = Boolean(tryTsApi());
 const test = hasTs ? nodeTest : nodeTest.skip;
 const { fetchInEffect } = hasTs ? await import('./effect-fetch.mjs') : {};
 

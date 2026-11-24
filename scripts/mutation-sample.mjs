@@ -67,10 +67,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { isEntryPoint } from './entry-point.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -82,8 +82,7 @@ const UNOBSERVABLE_CALL = /^(?:log|logger|console|debug)\b/;
 
 /** The TypeScript API (the root's `typescript-api`), used as a parser only. */
 export function loadTs() {
-    const name = 'typescript-api';
-    return createRequire(path.join(ROOT, 'package.json'))(name);
+    return loadTsApi();
 }
 
 /** A small seeded generator (mulberry32): the same seed, the same sample. */

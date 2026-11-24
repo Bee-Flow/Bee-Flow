@@ -5,7 +5,6 @@
  */
 
 import nodeTest from 'node:test';
-import { createRequire } from 'node:module';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,9 +13,9 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 // The policy job runs the repo-script tests with only the root packages, so
-// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+// without the root's typescript-api these tests skip (as ts-move-types.test.mjs does).
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const test = hasTs ? nodeTest : nodeTest.skip;
 const { format, outline } = hasTs ? await import('./ts-outline.mjs') : {};
 
@@ -34,6 +33,7 @@ function fixture(files) {
 const ESM_TS = `// @typecheck
 import { readFile } from 'node:fs/promises';
 import type { Row } from './row';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 /** Parses one line. */
 export function parseLine(line: string): string[] {

@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe } from './ts-runtime-recorder.mjs';
 import { instrument, typeFromSamples } from './ts-runtime-types.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
+ts = tryTsApi();
 
 test('values are described, never kept', () => {
     assert.deepEqual(describe('x'), { k: 'string' });
@@ -38,7 +38,7 @@ test('what says nothing or cannot be written is refused', () => {
     assert.equal(typeFromSamples([{ k: 'class', name: 'Map' }]), null); // needs type arguments
 });
 
-test('instrumentation records parameters, props and state without touching the logic', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('instrumentation records parameters, props and state without touching the logic', { skip: !ts && INSTALL_HINT }, () => {
     const src = 'export function Card({ label }) { const [n, setN] = useState(null); return label; }\nconst f = (a, b) => a + b;\n';
     const out = instrument(ts, src, 'src/Card.jsx');
     assert.match(out, /function Card\(\{ label \}\) \{__tcRec\("src\/Card\.jsx", "Card#0", \{ "\.label": label \}\);/);

@@ -4,12 +4,12 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseRowTypes, run, tableFor } from './jsdoc-row-types.mjs';
-import { createRequire } from 'node:module';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 // The run() tests drive the TypeScript language service from agent-hub's
 // node_modules; a job without them (the policy job) skips those tests only.
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const tsTest = hasTs ? test : test.skip;
 
 const ROWS = `declare namespace DbRow {

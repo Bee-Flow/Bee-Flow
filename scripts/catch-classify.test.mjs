@@ -6,15 +6,15 @@
 
 import test from 'node:test';
 import assert from 'node:assert';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const t = hasTs ? test : test.skip;
 
 import { execFileSync } from 'node:child_process';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 const dedupeModule = hasTs ? await import('./catch-classify.mjs') : {};
 const { scanText, rewriteText, countSwallowed } = dedupeModule;

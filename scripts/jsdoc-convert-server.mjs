@@ -27,7 +27,6 @@
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +34,7 @@ import { lowerToJsDoc } from './jsdoc-lower.mjs';
 import { applyEdits, calleeSlotOfDiagnostic, functionKeys, hasDeclaredType, inferFile, varDeclared, MISFIT, resetCaches, setSiteFilter, slotOfDiagnostic } from './ts-callsite-types.mjs';
 import { createService, forbiddenInsert, fixRound } from './ts-convert-codefix.mjs';
 import { compile } from './ts-equivalence.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'server');
@@ -201,7 +201,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         process.exit(bad ? 1 : 0);
     }
 
-    const ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
+    const ts = loadTsApi();
     const outDir = arg('--out'); const write = process.argv.includes('--write'); const mark = process.argv.includes('--mark');
     if (!outDir && !write) { console.error('pass --out <dir> to look first, or --write to change the files'); process.exit(2); }
     const observed = arg('--observed') ? JSON.parse(fs.readFileSync(arg('--observed'), 'utf8')) : {};

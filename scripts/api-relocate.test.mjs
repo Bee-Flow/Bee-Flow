@@ -1,12 +1,12 @@
 import nodeTest from 'node:test';
-import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-// Like rq-codemod.test.mjs: skipped where agent-hub's typescript is not installed.
+import { tryTsApi } from './lib/ts-api.mjs';
+// Like rq-codemod.test.mjs: skipped where the root's typescript-api is not installed.
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const test = hasTs ? nodeTest : nodeTest.skip;
 const { main, isApiShaped } = hasTs ? await import('./api-relocate.mjs') : {};
 const { loadTs } = hasTs ? await import('./lib/ts-service.mjs') : {};

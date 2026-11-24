@@ -1,13 +1,12 @@
 import nodeTest from 'node:test';
-import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 // The policy job runs the repo-script tests with only the root packages, so
-// without agent-hub's typescript these tests skip (as ts-move-types.test.mjs does).
+// without the root's typescript-api these tests skip (as ts-move-types.test.mjs does).
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const test = hasTs ? nodeTest : nodeTest.skip;
 const { run } = hasTs ? await import('./rq-codemod.mjs') : {};
 
@@ -489,6 +488,7 @@ test('--max-lines: a conversion that would push a small file over the limit is d
 
 const LOADER = `import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 export default function Roles({ orgId }: { orgId: string }) {
     const [roles, setRoles] = useState<string[]>([]);

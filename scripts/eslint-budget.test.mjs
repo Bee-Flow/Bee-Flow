@@ -15,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { eslintEntry, eslintArgs, atLeast, usesSuppressions, staleSuppressions, CONCURRENCY_SINCE, MAX_WORKERS } from './eslint-budget.mjs';
+import { eslintEntry, eslintArgs, cacheArgs, atLeast, usesSuppressions, staleSuppressions, CONCURRENCY_SINCE, MAX_WORKERS } from './eslint-budget.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'eslint-budget.mjs');
@@ -46,11 +46,14 @@ process.exit(${errors > 0 ? 1 : 0});
     return dir;
 }
 
-function run(dir, extra = []) {
+function run(dir, extra = [], env = {}) {
+    // A developer's own ESLINT_CACHE=1 must not change what these tests see.
+    const { ESLINT_CACHE: _ignored, ...base } = process.env;
     try {
         const stdout = execFileSync(process.execPath, [path.join(dir, 'scripts/eslint-budget.mjs'), 'pkg', ...extra], {
             cwd: dir,
             encoding: 'utf8',
+            env: { ...base, ...env },
         });
         return { code: 0, stdout, stderr: '' };
     } catch (e) {
@@ -151,6 +154,22 @@ test('the worker count is explicit, never auto: every usable CPU up to MAX_WORKE
     assert.deepStrictEqual(eslintArgs('9.39.2', 3).slice(3), ['--concurrency', '3']);
     assert.deepStrictEqual(eslintArgs('9.39.2', 64).slice(3), ['--concurrency', String(MAX_WORKERS)]);
     assert.ok(!eslintArgs('9.39.2', 64).includes('auto'));
+});
+
+test('the eslint cache is opt-in with ESLINT_CACHE=1, content-based, inside the package node_modules', () => {
+    assert.deepStrictEqual(cacheArgs('pkg', {}), []);
+    assert.deepStrictEqual(cacheArgs('pkg', { ESLINT_CACHE: '0' }), []);
+    assert.deepStrictEqual(cacheArgs('pkg', { ESLINT_CACHE: '1' }), ['--cache', '--cache-strategy', 'content', '--cache-location', path.join('pkg', 'node_modules', '.cache', 'eslint') + path.sep]);
+
+    const off = sandbox({ budget: 5 });
+    run(off);
+    assert.ok(!argvOf(off).includes('--cache'), 'CI does not set it, so the gate lints every file');
+    const on = sandbox({ suppressions: true, stale: true });
+    const r = run(on, ['--update'], { ESLINT_CACHE: '1' });
+    assert.strictEqual(r.code, 0, r.stderr);
+    const argv = argvOf(on);
+    assert.ok(argv.includes('--cache') && argv.includes('--prune-suppressions'), 'the cache also serves --update');
+    assert.ok(argv.indexOf('--cache-location') > 0 && argv[argv.indexOf('--cache-location') + 1].startsWith(path.join(on, 'pkg', 'node_modules')));
 });
 
 test('suppressions mode: no total budget, a clean run passes and a new violation fails', () => {

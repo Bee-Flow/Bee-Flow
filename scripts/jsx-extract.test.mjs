@@ -1,11 +1,11 @@
 import nodeTest from 'node:test';
-import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { tryTsApi } from './lib/ts-api.mjs';
 let ok = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); ok = true; } catch { /* not installed */ }
+ok = Boolean(tryTsApi());
 const test = ok ? nodeTest : nodeTest.skip;
 const { extractFile, longComponents } = ok ? await import('./jsx-extract.mjs') : {};
 const { createService, loadTs } = ok ? await import('./lib/ts-service.mjs') : {};

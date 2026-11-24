@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addMark, addsRequire, completeOptionsEdits, forbiddenJsDoc, quickFixRefuser, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
 import { applyEdits, inferFile, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 test('JSDoc may not say any, *, ? or Function, nor carry a ts-comment', () => {
     assert.equal(forbiddenJsDoc('/** @param {any} a */'), true);
@@ -63,9 +63,9 @@ test('the @typecheck mark goes on top, after a shebang, and only once', () => {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
+ts = tryTsApi();
 
-test('end to end on CommonJS: a JavaScript caller types the parameter, as JSDoc', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('end to end on CommonJS: a JavaScript caller types the parameter, as JSDoc', { skip: !ts && INSTALL_HINT }, () => {
     const dir = '/virtual/server';
     const files = new Map([
         [`${dir}/greet.js`, "'use strict';\nfunction greet(name, times) { return name.repeat(times); }\nmodule.exports = { greet };\n"],
@@ -89,7 +89,7 @@ test('end to end on CommonJS: a JavaScript caller types the parameter, as JSDoc'
     assert.doesNotMatch(out, /: string|: number/); // no TypeScript syntax in a .js file
 });
 
-test('end to end on CommonJS: an options object with an untyped member gets no typedef (the file would otherwise stop passing the typecheck)', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('end to end on CommonJS: an options object with an untyped member gets no typedef (the file would otherwise stop passing the typecheck)', { skip: !ts && INSTALL_HINT }, () => {
     const dir = '/virtual/server2';
     const files = new Map([
         [`${dir}/build.js`, "'use strict';\n/** @param {string} name */\nfunction greet(name) { return name; }\nfunction build({ id, extra }) { greet(id); return extra.x; }\nmodule.exports = { build };\n"],
@@ -119,7 +119,7 @@ test('end to end on CommonJS: an options object with an untyped member gets no t
     assert.doesNotMatch(out, /BuildArgs/);
 });
 
-test('the quick-fix refuser: a banned parameter, a @type at a banned variable, and @param tags that leave a JS parameter undocumented', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('the quick-fix refuser: a banned parameter, a @type at a banned variable, and @param tags that leave a JS parameter undocumented', { skip: !ts && INSTALL_HINT }, () => {
     const text = 'function add(col, val) { return [col, val]; }\nconst two = (a, b) => a + b;\nfunction g() {\n    let params = [];\n    params.push(1);\n    return params;\n}\nfunction opts({ columns }) { return columns; }\n';
     const sf = ts.createSourceFile('a.js', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
     const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required', 'var:params@g#0|quickfix', 'opts#0|.columns|quickfix']));

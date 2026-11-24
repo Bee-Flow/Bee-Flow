@@ -8,11 +8,12 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { TEST_FILE, countExpressions, exportedFunctions, folderOf, loadTs, pct, summarise, verdict } from './any-share.mjs';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 // The checker is the TypeScript API (root `typescript-api`). The workflow-policy
 // job runs the scripts' tests without npm ci, so the checker cases skip there.
 let ts = null;
-try { ts = loadTs(); } catch { /* not installed */ }
+ts = tryTsApi();
 const tsTest = ts ? test : test.skip;
 
 /** A program over throwaway files; returns the checker and a getter for each source file. */

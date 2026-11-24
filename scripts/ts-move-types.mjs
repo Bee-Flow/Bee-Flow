@@ -12,9 +12,9 @@
 //   node scripts/ts-move-types.mjs agent-hub/src/a/B.tsx [more files]
 
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -118,7 +118,7 @@ export function mergeInto(existing, types, existingBase) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    const ts = createRequire(path.join(HUB, 'package.json'))('typescript');
+    const ts = loadTsApi();
     const { mergeTypeImports } = await import('./ts-merge-type-imports.mjs');
     for (const arg of process.argv.slice(2)) {
         const file = path.resolve(arg);

@@ -23,19 +23,17 @@
 // The analysis (`analyze`, `findTests`, ...) is shared with ts-split.mjs.
 
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { importsOf, readAliases } from './scc-ratchet.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-let tsCache;
-/** TypeScript 6 from agent-hub (the server's TypeScript 7 has no JS API). */
+/** TypeScript 6 from the root's `typescript-api` (TypeScript 7 has no JS API; lib/ts-api.mjs). */
 export function loadTs() {
-    tsCache ??= createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
-    return tsCache;
+    return loadTsApi();
 }
 
 const DIRECTIVE = /^\/\/\s*@(?:typecheck|ts-check|ts-nocheck)\b|^#!|^\/\*\s*eslint-disable(?!-next)|^\/\/\s*eslint-disable(?!-next)/;

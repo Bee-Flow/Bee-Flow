@@ -21,12 +21,12 @@
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { applyEdits, inferFile, MISFIT, resetCaches, slotOfDiagnostic } from './ts-callsite-types.mjs';
 import { mergeTypeImports } from './ts-merge-type-imports.mjs';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -67,7 +67,7 @@ export function applyChanges(text, changes) {
 }
 
 function loadTs() {
-    return createRequire(path.join(HUB, 'package.json'))('typescript');
+    return loadTsApi();
 }
 
 export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = /** @type {boolean | ((f: string) => boolean)} */ (false) } = {}) {

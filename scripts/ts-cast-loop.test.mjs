@@ -1,21 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { acquireLock, applyCasts, castLoop, findCasts, isLocked, LOCK_NAME, makeTscRunner, waitForLock } from './ts-cast-loop.mjs';
+import { tryTsApi, INSTALL_HINT } from './lib/ts-api.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
 let ts = null;
-try { ts = createRequire(path.join(HUB, 'package.json'))('typescript'); } catch { /* not installed */ }
+ts = tryTsApi();
 const tscPath = ['typescript-7', 'typescript'].map((m) => path.join(HUB, 'node_modules', m, 'bin', 'tsc')).find((p) => fs.existsSync(p));
-const skip = (!ts || !tscPath) && 'agent-hub typescript not installed';
+const skip = (!ts || !tscPath) && INSTALL_HINT;
 
-test('findCasts and applyCasts remove the cast and keep the operand', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+test('findCasts and applyCasts remove the cast and keep the operand', { skip: !ts && INSTALL_HINT }, () => {
     const text = "const a = (x as any).y;\nconst b = f(z) as unknown as number;\nconst c = <any>w;\nconst d = q as string;\n";
     const casts = findCasts(ts, 'a.ts', text, ['as unknown as', 'as any', '<any>']);
     assert.deepEqual(casts.map((c) => c.pattern), ['as any', 'as unknown as', '<any>']);

@@ -173,7 +173,7 @@ export function serverHookSource(targetsFile, recDir) {
 const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
-const ts = Module.createRequire(${JSON.stringify(path.join(HUB, 'package.json'))})('typescript');
+const ts = Module.createRequire(${JSON.stringify(path.join(ROOT, 'package.json'))})('typescript-api'); // TypeScript 6: lib/ts-api.mjs
 const { instrument } = require(${JSON.stringify(path.join(ROOT, 'scripts', 'ts-runtime-types.mjs'))});
 const { describe } = require(${JSON.stringify(path.join(ROOT, 'scripts', 'ts-runtime-recorder.mjs'))});
 const targets = new Set(JSON.parse(fs.readFileSync(${JSON.stringify(targetsFile)}, 'utf8')));
@@ -270,7 +270,7 @@ import base from ${JSON.stringify(path.join(HUB, 'vite.config.js'))};
 import { instrument } from ${JSON.stringify(path.join(ROOT, 'scripts', 'ts-runtime-types.mjs'))};
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
-const ts = createRequire(${JSON.stringify(path.join(HUB, 'package.json'))})('typescript');
+const ts = createRequire(${JSON.stringify(path.join(ROOT, 'package.json'))})('typescript-api'); // TypeScript 6: lib/ts-api.mjs
 const targets = new Set(JSON.parse(fs.readFileSync(${JSON.stringify(listFile)}, 'utf8')));
 export default async (env) => {
     const c = await (typeof base === 'function' ? base(env) : base);

@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { commentFor, expressTypeFor, run } from './jsdoc-express-params.mjs';
 import { insertAll, keepHarmless } from './lib/server-service.mjs';
-import { createRequire } from 'node:module';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 // The run() tests drive the TypeScript language service from agent-hub's
 // node_modules; a job without them (the policy job) skips those tests only.
 let hasTs = false;
-try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+hasTs = Boolean(tryTsApi());
 const tsTest = hasTs ? test : test.skip;
 
 test('expressTypeFor: the shape of the parameter list decides, not the name alone', () => {

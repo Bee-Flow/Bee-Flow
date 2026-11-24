@@ -4,17 +4,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// The parser is the TypeScript compiler API (root typescript-api, lib/ts-api.mjs). The
 // workflow-policy job runs the scripts' tests without npm ci, so these skip there.
 let hasTs = false;
-for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
-    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
-}
+hasTs = Boolean(tryTsApi());
 const tsTest = hasTs ? test : test.skip;
 const { nonAtomicWrites, tablesWritten, isStoreSource } = await import('./store-write-tx.mjs');
 

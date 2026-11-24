@@ -9,11 +9,12 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { applyMutant, buildSample, floorFor, idOf, journalDir, loadTs, mutantsOf, rates, missingPaths, recover, rng, runMutants, runTest, sample, shuffled, siblingTests, sourceFiles, testsFor } from './mutation-sample.mjs';
+import { tryTsApi } from './lib/ts-api.mjs';
 
 // The parser is the TypeScript API (root `typescript-api`). The workflow-policy
 // job runs the scripts' tests without npm ci, so the parser cases skip there.
 let ts = null;
-try { ts = loadTs(); } catch { /* not installed */ }
+ts = tryTsApi();
 const tsTest = ts ? test : test.skip;
 
 const changes = (text, file = 'x.js') => mutantsOf(ts, text, file).map((m) => `${m.op}:${m.original}->${m.replacement}`);

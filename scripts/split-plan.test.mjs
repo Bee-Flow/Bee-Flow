@@ -5,11 +5,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-// Like rq-codemod.test.mjs: skipped where agent-hub's typescript / esbuild are not installed.
+import { tryTsApi } from './lib/ts-api.mjs';
+// Like rq-codemod.test.mjs: skipped where the root's typescript-api / agent-hub's esbuild-wasm are not installed.
 let ok = false;
 try {
     const req = createRequire(new URL('../agent-hub/package.json', import.meta.url));
-    req('typescript');
+    if (!tryTsApi()) throw new Error('no TypeScript API');
     req('esbuild-wasm');
     ok = true;
 } catch { /* not installed */ }

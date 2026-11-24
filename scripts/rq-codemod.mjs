@@ -44,12 +44,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { loadTsApi } from './lib/ts-api.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
+const ts = loadTsApi();
 const K = ts.SyntaxKind;
 
 // ---------------------------------------------------------------- text edits
