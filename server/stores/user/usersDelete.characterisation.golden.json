@@ -2372,7 +2372,7 @@
    "[UserStore] erasure step 'execution_history' failed for user 'fault-13' (57014)"
   ],
   "statements": 264,
-  "trace": "1f8faccb74bd7ff3e312d98316818869065ecd3f3f7522b6f60cb72030de71a9",
+  "trace": "ab1b127d73688e403ab7e43a3240ab2c9cf5f83dd139c1e808879e5f7f1cc57f",
   "accountKept": 1,
   "retry": {
    "outcome": {
