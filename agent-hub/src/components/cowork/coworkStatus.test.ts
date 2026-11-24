@@ -130,6 +130,14 @@ describe('isInFlight', () => {
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item()))).toBe(false);
     });
 
+    it('does not count a never-run item that waits for a later start as running', () => {
+        const later = new Date(Date.now() + 3 * 3600_000).toISOString();
+        const soon = new Date(Date.now() + 10_000).toISOString();
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0, nextRunAt: later })))).toBe(false);
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0, nextRunAt: soon })))).toBe(true);
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ isActive: false, lastRunAt: null, runCount: 0, nextRunAt: later })))).toBe(true);
+    });
+
     it('reads an item and a run that did not do their work as a failure, never as green', () => {
         const token = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ lastStatus: 'incomplete' })));
         expect(token.labelKey).toBe('cowork_resolver.status.incomplete');

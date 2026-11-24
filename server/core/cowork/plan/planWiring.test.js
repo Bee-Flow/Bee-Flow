@@ -60,7 +60,7 @@ test('the owner\'s plan: an unknown step, an AI step without input, and a read n
         ['wiring.ai_without_input', 'ai_1'],
         ['wiring.read_unused', 'ff_sum'],
     ]);
-    assert.strictEqual(found[0].message, '\'Een week geleden\' reads from a step that is not in this plan ("dt_ac3ed7"). It should read from \'Nu\'.');
+    assert.strictEqual(found[0].message, '\'Een week geleden\' reads from a step that is not in this plan. It should read from \'Nu\'.');
     assert.match(found[1].message, /^'AI step' starts right away and reads none of the steps that fetch the data it should work on\. Let it wait for 'Fireflies get summary' and read its output\.$/);
     assert.strictEqual(found[2].message, '\'Fireflies get summary\' reads data that no later step uses.');
     assert.ok(found.filter((f) => WIRING_BLOCKING.has(f.code)).length === 2, 'read_unused is advice');

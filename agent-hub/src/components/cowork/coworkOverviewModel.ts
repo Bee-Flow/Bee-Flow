@@ -77,7 +77,7 @@ function whatPart({ item, plan, agentName }: OverviewFacts, t: TranslateFn): str
             ? t('cowork_overview.what.plan_one', 'it follows its approved plan of one step')
             : t('cowork_overview.what.plan', 'it follows its approved plan of {count} steps', { count: plan.steps });
     }
-    if (plan) return t('cowork_overview.what.plan_waiting', 'it will follow a plan that waits for your approval');
+    if (plan) return t('cowork_overview.what.plan_waiting', 'it will follow a fixed plan');
     // The sentence ends with its own full stop, so the quoted brief does not bring one.
     const brief = (briefLine(item.prompt) || item.title).replace(/[.!?]+$/, '');
     return agentName

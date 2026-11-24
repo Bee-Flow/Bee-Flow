@@ -210,7 +210,7 @@ function onlyStepWith(c: Ctx, keys: string[], stepId: string): string | null {
 
 function unknownStep(c: Ctx, w: WalkedStep, r: StepRef): WiringFinding {
     const to = onlyStepWith(c, r.keys, w.id);
-    const base = `'${titleIn(c, w.id)}' reads from a step that is not in this plan ("${r.sourceId}").`;
+    const base = `'${titleIn(c, w.id)}' reads from a step that is not in this plan.`;
     return finding('wiring.ref_unknown_step', w.id, null, to ? `${base} It should read from '${titleIn(c, to)}'.` : base, to ? { kind: 'reread', stepId: w.id, from: r.sourceId, to } : null);
 }
 

@@ -37,7 +37,7 @@ module.exports = {
     "cowork_overview.what.ai": "the AI works on: “{brief}”",
     "cowork_overview.what.plan": "it follows its approved plan of {count} steps",
     "cowork_overview.what.plan_one": "it follows its approved plan of one step",
-    "cowork_overview.what.plan_waiting": "it will follow a plan that waits for your approval",
+    "cowork_overview.what.plan_waiting": "it will follow a fixed plan",
     "cowork_overview.when.after": "When the cowork it follows is done",
     "cowork_overview.when.file": "When a file arrives in its folder",
     "cowork_overview.when.mail": "When a new e-mail arrives in {app}",

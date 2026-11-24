@@ -33,7 +33,7 @@
     "cowork_overview.what.ai": "werkt de AI aan: „{brief}”",
     "cowork_overview.what.plan": "volgt hij zijn goedgekeurde plan van {count} stappen",
     "cowork_overview.what.plan_one": "volgt hij zijn goedgekeurde plan van één stap",
-    "cowork_overview.what.plan_waiting": "volgt hij straks een plan dat op je goedkeuring wacht",
+    "cowork_overview.what.plan_waiting": "volgt hij straks een vast plan",
     "cowork_overview.when.after": "Als de cowork waarna hij start klaar is,",
     "cowork_overview.when.file": "Als er een bestand in zijn map komt,",
     "cowork_overview.when.mail": "Als er een nieuwe mail binnenkomt in {app},",

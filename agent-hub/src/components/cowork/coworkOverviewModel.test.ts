@@ -40,7 +40,7 @@ describe('overviewSentence', () => {
     });
 
     it('a plan that waits for approval, and the other levels, say what holds', () => {
-        expect(overviewSentence(facts({ plan: { steps: 3, approved: false } }), t)).toMatch(/a plan that waits for your approval\. Its plan waits for your approval\.$/);
+        expect(overviewSentence(facts({ plan: { steps: 3, approved: false } }), t)).toMatch(/it will follow a fixed plan\. Its plan waits for your approval\.$/);
         expect(overviewSentence(facts({ plan: { steps: 2, approved: true }, sends: 'owner' }), t)).toMatch(/It only reports to you\.$/);
         expect(overviewSentence(facts({ plan: { steps: 2, approved: true }, sends: 'others', level: 'on_its_own' }), t)).toMatch(/It sends on its own, as you approved\.$/);
     });

@@ -87,9 +87,16 @@ export function runStatusToken(status: string | null | undefined): StatusToken {
     return tokenFor(status);
 }
 
-/** True while an item is running or has not produced its first run yet. */
+/** Active and set to start more than a minute from now: it waits for its clock, nothing is on the go. */
+function waitsForItsClock(item: CoworkItem): boolean {
+    if (item.isActive === false || !item.nextRunAt) return false;
+    const at = Date.parse(item.nextRunAt);
+    return Number.isFinite(at) && at > Date.now() + 60_000;
+}
+
+/** True while an item is running, or about to produce its first run (not one that only waits for a later start). */
 export function isInFlight(item: CoworkItem): boolean {
-    return item.lastStatus === 'running' || (!item.lastRunAt && !item.runCount);
+    return item.lastStatus === 'running' || (!item.lastRunAt && !item.runCount && !waitsForItsClock(item));
 }
 
 /** Runs again by itself: on a clock (an interval or weekdays) or on a new email. Paused, it is paused, not finished. */
