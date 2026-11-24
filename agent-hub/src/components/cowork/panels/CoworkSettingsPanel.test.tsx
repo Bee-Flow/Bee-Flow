@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
-import { CoworkSettingsPanel } from './CoworkSettingsPanel';
+import CoworkSettingsPanel from './CoworkSettingsPanel';
+import { panelProps } from './panelProps.testkit';
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -23,7 +24,7 @@ const put = (calls: RecordedCall[], path: string) => calls.find((c) => c.method 
 describe('CoworkSettingsPanel', () => {
     it('saves the daily digest at once and then shows what tomorrow’s e-mail would hold', async () => {
         const calls = serve();
-        renderWithClient(<CoworkSettingsPanel onClose={() => {}} />);
+        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
         const user = userEvent.setup();
         const digest = await screen.findByRole('switch', { name: 'Send me a daily digest e-mail' });
         await waitFor(() => expect(digest).toBeEnabled());
@@ -36,7 +37,7 @@ describe('CoworkSettingsPanel', () => {
 
     it('"Notice what I ask again and again" is off until switched on, and saves when it is', async () => {
         const calls = serve();
-        renderWithClient(<CoworkSettingsPanel onClose={() => {}} />);
+        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
         const notice = await screen.findByRole('switch', { name: 'Notice what I ask again and again' });
         await waitFor(() => expect(notice).toBeEnabled());
         expect(notice).not.toBeChecked();
@@ -47,7 +48,7 @@ describe('CoworkSettingsPanel', () => {
 
     it('cannot be switched on while the organisation has turned it off, and says so', async () => {
         const calls = serve({ habits: { on: true, allowed: false } });
-        renderWithClient(<CoworkSettingsPanel onClose={() => {}} />);
+        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
         expect(await screen.findByText('Your organisation has turned this off.')).toBeInTheDocument();
         const notice = screen.getByRole('switch', { name: 'Notice what I ask again and again' });
         expect(notice).toBeDisabled();
@@ -58,7 +59,7 @@ describe('CoworkSettingsPanel', () => {
 
     it('where the server cannot send e-mail, the digest switch is off limits and says why', async () => {
         serve({ mail: { enabled: false, timeZone: 'UTC', available: false } });
-        renderWithClient(<CoworkSettingsPanel onClose={() => {}} />);
+        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' })} />);
         expect(await screen.findByText('This Bee Flow cannot send e-mail yet. Ask your administrator.')).toBeInTheDocument();
         expect(screen.getByRole('switch', { name: 'Send me a daily digest e-mail' })).toBeDisabled();
     });
@@ -66,7 +67,7 @@ describe('CoworkSettingsPanel', () => {
     it('closes on Escape', async () => {
         serve();
         const onClose = vi.fn();
-        renderWithClient(<CoworkSettingsPanel onClose={onClose} />);
+        renderWithClient(<CoworkSettingsPanel {...panelProps({ kind: 'settings' }, { close: onClose })} />);
         const digest = await screen.findByRole('switch', { name: 'Send me a daily digest e-mail' });
         await waitFor(() => expect(digest).toBeEnabled());
         digest.focus();

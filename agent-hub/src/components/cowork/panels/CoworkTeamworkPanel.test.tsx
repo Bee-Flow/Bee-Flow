@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
-import { CoworkTeamworkPanel } from './CoworkTeamworkPanel';
+import CoworkTeamworkPanel from './CoworkTeamworkPanel';
+import { panelProps } from './panelProps.testkit';
 import type { DeskView } from '@/api/coworkDesks';
 import type { DeskProposal, HelperResult } from '@/api/coworkDeskHelper';
 
@@ -58,7 +59,7 @@ describe('CoworkTeamworkPanel', () => {
     it('shows a desk as a card: roles with stand-ins, who an invitation waits for, and where the result flows', async () => {
         const calls = serve({ desks: [{ id: 'd1', name: 'Supplier desk', isOwner: true }] });
         const onOpenTask = vi.fn();
-        renderWithClient(<CoworkTeamworkPanel onClose={() => {}} onOpenTask={onOpenTask} />);
+        renderWithClient(<CoworkTeamworkPanel {...panelProps({ kind: 'teamwork' }, { open: (p) => { if (p.kind === 'task') onOpenTask(p.id); } })} />);
         const card = await screen.findByTestId('cowork-team-desk');
         expect(await within(card).findByText('Waiting for Noor to accept. It takes them one click.')).toBeInTheDocument();
         expect(within(card).getByTestId('cowork-team-role-line')).toHaveTextContent('PurchasingNoorstand-in: Ines');
@@ -73,7 +74,7 @@ describe('CoworkTeamworkPanel', () => {
 
     it('turns a sentence into a proposal, lets the person change a role, and sends the invitations', async () => {
         const calls = serve();
-        renderWithClient(<CoworkTeamworkPanel onClose={() => {}} onOpenTask={() => {}} />);
+        renderWithClient(<CoworkTeamworkPanel {...panelProps({ kind: 'teamwork' })} />);
         const user = userEvent.setup();
         expect(await screen.findByRole('heading', { name: 'Help me set this up' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Propose a setup' })).toBeDisabled();
@@ -108,7 +109,7 @@ describe('CoworkTeamworkPanel', () => {
 
     it('does not send while a dropdown is empty, and says what is missing', async () => {
         serve({ proposal: { ...PROPOSAL, chain: [PROPOSAL.chain[0], { ...PROPOSAL.chain[1], scheduleId: null, words: 'the finance person' }] } });
-        renderWithClient(<CoworkTeamworkPanel onClose={() => {}} onOpenTask={() => {}} />);
+        renderWithClient(<CoworkTeamworkPanel {...panelProps({ kind: 'teamwork' })} />);
         const user = userEvent.setup();
         await user.type(await screen.findByLabelText('Who does what? Say it in one sentence.'), 'Finance checks it');
         await user.click(screen.getByRole('button', { name: 'Propose a setup' }));

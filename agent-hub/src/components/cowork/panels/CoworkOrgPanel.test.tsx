@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
-import { budgetState, CoworkOrgPanel } from './CoworkOrgPanel';
+import CoworkOrgPanel, { budgetState } from './CoworkOrgPanel';
+import { panelProps } from './panelProps.testkit';
 import type { ReceiptsAudit } from '@/api/coworkOrgPanel';
 
 afterEach(() => { vi.unstubAllGlobals(); });
@@ -37,7 +38,7 @@ describe('CoworkOrgPanel', () => {
         [520, 'over', '€520 of €500 used this month (104%).', 'The budget is used up. New runs are refused'],
     ])('the budget meter at %i euros is %s, with its sentence', async (spent, level, used, sentence) => {
         serve({ spent });
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         const meter = await screen.findByTestId('cowork-org-budget');
         expect(meter).toHaveAttribute('data-level', level);
         expect(within(meter).getByRole('progressbar', { name: 'Budget used this month' })).toHaveAttribute('value', String(Math.min(100, Math.round((spent / 500) * 100))));
@@ -47,7 +48,7 @@ describe('CoworkOrgPanel', () => {
 
     it('saves a new budget on its own button, and an empty box means no limit', async () => {
         const calls = serve();
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         const user = userEvent.setup();
         const box = await screen.findByLabelText('Budget for all tasks together, in euros a month');
         expect(box).toHaveValue('500');
@@ -63,7 +64,7 @@ describe('CoworkOrgPanel', () => {
 
     it('a switch saves at once', async () => {
         const calls = serve();
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         const readOnly = await screen.findByRole('switch', { name: 'Read-only mode' });
         await waitFor(() => expect(readOnly).toBeEnabled());
         await userEvent.setup().click(readOnly);
@@ -74,7 +75,7 @@ describe('CoworkOrgPanel', () => {
 
     it('checks every receipt on "Check now" and offers the file', async () => {
         serve();
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         await userEvent.setup().click(await screen.findByRole('button', { name: 'Check now' }));
         expect(await screen.findByText('All 1,204 receipts of 12 tasks check out, checked just now.')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Export the audit file' })).toHaveAttribute('href', expect.stringContaining('/api/cowork/policy/mine/receipts-audit?download=true'));
@@ -82,14 +83,14 @@ describe('CoworkOrgPanel', () => {
 
     it('says plainly when a receipt does not check out', async () => {
         serve({ audit: { ...AUDIT, ok: false, problems: [{ itemId: 'x', seq: 4, kind: 'content' }], missing: 2 } });
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         await userEvent.setup().click(await screen.findByRole('button', { name: 'Check now' }));
         expect(await screen.findByText('1 of 12 tasks have a receipt that does not check out, and 2 runs have no receipt.')).toBeInTheDocument();
     });
 
     it('shows someone who is no administrator nothing but that', async () => {
         serve({ admin: false });
-        renderWithClient(<CoworkOrgPanel onClose={() => {}} />);
+        renderWithClient(<CoworkOrgPanel {...panelProps({ kind: 'org' })} />);
         expect(await screen.findByText('Only administrators of your organisation can see and change these rules.')).toBeInTheDocument();
         expect(screen.queryByRole('switch')).toBeNull();
     });

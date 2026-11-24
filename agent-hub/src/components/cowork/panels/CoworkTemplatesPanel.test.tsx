@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch } from '@/test/recordingFetch';
-import { CoworkTemplatesPanel } from './CoworkTemplatesPanel';
+import CoworkTemplatesPanel from './CoworkTemplatesPanel';
+import { panelProps } from './panelProps.testkit';
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -30,7 +31,7 @@ describe('CoworkTemplatesPanel', () => {
     it('lists the organisation’s templates and "Use" hands the sentence over', async () => {
         serve();
         const onUseText = vi.fn();
-        renderWithClient(<CoworkTemplatesPanel onClose={() => {}} onUseText={onUseText} onOpenTask={() => {}} />);
+        renderWithClient(<CoworkTemplatesPanel {...panelProps({ kind: 'templates' }, { fillComposer: onUseText })} />);
         expect(await screen.findByText('Monday summary')).toBeInTheDocument();
         await userEvent.setup().click(screen.getByRole('button', { name: 'Use “Invoice check”' }));
         expect(onUseText).toHaveBeenCalledWith('Check new supplier invoices against the orders');
@@ -39,7 +40,7 @@ describe('CoworkTemplatesPanel', () => {
     it('names who signed a package file before adding it, then adds it as a paused task and opens that task', async () => {
         const calls = serve();
         const onOpenTask = vi.fn();
-        renderWithClient(<CoworkTemplatesPanel onClose={() => {}} onUseText={() => {}} onOpenTask={onOpenTask} />);
+        renderWithClient(<CoworkTemplatesPanel {...panelProps({ kind: 'templates' }, { open: (p) => { if (p.kind === 'task') onOpenTask(p.id); } })} />);
         const user = userEvent.setup();
         await user.upload(await screen.findByLabelText('Choose a package file'), file(JSON.stringify({ format: 'beeflow.cowork-package', v: 1 })));
         const preview = await screen.findByTestId('cowork-panels-package-preview');
@@ -56,7 +57,7 @@ describe('CoworkTemplatesPanel', () => {
 
     it('a package signed by the own organisation needs no warning, and Cancel starts over', async () => {
         serve({ ...PREVIEW, signedBy: { keyId: 'abcd1234', thisInstallation: true, organisation: 'your_organisation' } });
-        renderWithClient(<CoworkTemplatesPanel onClose={() => {}} onUseText={() => {}} onOpenTask={() => {}} />);
+        renderWithClient(<CoworkTemplatesPanel {...panelProps({ kind: 'templates' })} />);
         const user = userEvent.setup();
         await user.upload(await screen.findByLabelText('Choose a package file'), file(JSON.stringify({ format: 'beeflow.cowork-package', v: 1 })));
         const preview = await screen.findByTestId('cowork-panels-package-preview');
@@ -68,7 +69,7 @@ describe('CoworkTemplatesPanel', () => {
 
     it('a file that is no package is said to be none, and nothing is asked', async () => {
         const calls = serve();
-        renderWithClient(<CoworkTemplatesPanel onClose={() => {}} onUseText={() => {}} onOpenTask={() => {}} />);
+        renderWithClient(<CoworkTemplatesPanel {...panelProps({ kind: 'templates' })} />);
         await userEvent.setup().upload(await screen.findByLabelText('Choose a package file'), file('not json'));
         expect(await screen.findByRole('alert')).toHaveTextContent('That file is not a package from Cowork.');
         expect(calls.filter((c) => c.url.includes('/packages/'))).toHaveLength(0);

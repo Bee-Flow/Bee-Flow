@@ -58,10 +58,10 @@ export const COWORK_SHEET_PANELS: Readonly<Record<CoworkSheetKind, PanelEntry>> 
         prepare: (panel) => { if (panel.kind === 'task' && panel.focus === 'steps') focusCowork({ itemId: panel.id, tab: 'plan' }); },
     },
     shared: { component: lazy(() => import('./CoworkSharedPanel')), label: ['cowork_home.sheet.shared', 'Shared task'] },
-    settings: { component: lazy(() => import('./CoworkSettingsPanel')), label: ['cowork_home.menu.settings', 'Settings'] },
-    teamwork: { component: lazy(() => import('./CoworkTeamworkPanel')), label: ['cowork_home.menu.teamwork', 'Teamwork'] },
-    templates: { component: lazy(() => import('./CoworkTemplatesPanel')), label: ['cowork_home.menu.templates', 'Templates'] },
-    org: { component: lazy(() => import('./CoworkOrgPanel')), label: ['cowork_home.menu.org', 'Organisation'], adminOnly: true },
+    settings: { component: lazy(() => import('./panels/CoworkSettingsPanel')), label: ['cowork_home.menu.settings', 'Settings'] },
+    teamwork: { component: lazy(() => import('./panels/CoworkTeamworkPanel')), label: ['cowork_home.menu.teamwork', 'Teamwork'] },
+    templates: { component: lazy(() => import('./panels/CoworkTemplatesPanel')), label: ['cowork_home.menu.templates', 'Templates'] },
+    org: { component: lazy(() => import('./panels/CoworkOrgPanel')), label: ['cowork_home.menu.org', 'Organisation'], adminOnly: true },
 };
 
 /** The kinds the page's menu offers, in its order; Organisation only to an administrator of their organisation. */

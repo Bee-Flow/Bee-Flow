@@ -9,6 +9,7 @@
 import { useCoworkHabits } from '@/api/coworkHabits';
 import { useCoworkDailyMail, useCoworkNeedsYou } from '@/api/coworkNeedsYou';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { CARD, META, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
 
 const EXAMPLE_ROWS = 3;
@@ -83,10 +84,10 @@ function HabitsSection() {
     );
 }
 
-export function CoworkSettingsPanel({ onClose }: { onClose: () => void }) {
+export default function CoworkSettingsPanel({ close }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     return (
-        <PanelShell testId="cowork-settings-panel" title={t('cowork_panels.settings.title', 'Settings')} meta={t('cowork_panels.settings.meta', 'Only for you.')} onClose={onClose}>
+        <PanelShell testId="cowork-settings-panel" title={t('cowork_panels.settings.title', 'Settings')} meta={t('cowork_panels.settings.meta', 'Only for you.')} onClose={close}>
             <DigestSection />
             <HabitsSection />
         </PanelShell>

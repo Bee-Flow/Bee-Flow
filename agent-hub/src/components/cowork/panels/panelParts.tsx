@@ -4,7 +4,7 @@
  * the one-line problem and note styles. Bee Flow tokens only.
  */
 import type { ReactNode } from 'react';
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import Toggle from '@/components/shared/Toggle';
 import { errorMessage } from '@/utils/caughtError';
 
@@ -17,14 +17,15 @@ export const TALL = 'min-h-[44px]';
 /** The shell of a panel in the sheet: a heading, a one-line meta, and Escape asks the sheet to close. */
 export function PanelShell({ title, meta, tag, onClose, testId, children }: { title: string; meta?: string; tag?: string; onClose: () => void; testId: string; children: ReactNode }) {
     const headingId = useId();
+    const root = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = root.current;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        el?.addEventListener('keydown', onKey);
+        return () => el?.removeEventListener('keydown', onKey);
+    }, [onClose]);
     return (
-        <div
-            className="flex flex-col gap-5 pb-6"
-            data-testid={testId}
-            aria-labelledby={headingId}
-            role="region"
-            onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
-        >
+        <div ref={root} className="flex flex-col gap-5 pb-6" data-testid={testId} aria-labelledby={headingId} role="region">
             <header className="flex flex-col gap-1">
                 {tag && <span className="self-start rounded-full bg-[var(--bg-tertiary)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--text-primary)]">{tag}</span>}
                 <h2 id={headingId} className="m-0 text-[22px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h2>

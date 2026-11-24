@@ -11,6 +11,7 @@ import { receiptsAuditDownloadUrl, useCoworkOrgOverview, useOrgCoworkPolicy, use
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { Button } from '@/components/shared/Button';
+import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { CARD, INPUT, LabeledField, META, PanelSection, PanelShell, Problem, SwitchRow, TALL } from './panelParts';
 
 type Level = 'fine' | 'close' | 'over';
@@ -44,13 +45,28 @@ function levelText(level: Level, t: TranslateFn): string {
     return t('cowork_panels.org.budget_fine', 'Nobody sees a notice until 80% is used. At 100% new runs are refused.');
 }
 
-function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPolicy; spent: number | null; saving: boolean; onSave: (budget: number | null, done: () => void) => void }) {
+function BudgetMeter({ spent, budget }: { spent: number | null; budget: number }) {
     const { t, locale } = useTranslation();
+    const used = spent !== null ? budgetState(spent, budget) : null;
+    return (
+        <div className="flex flex-col gap-1.5" data-testid="cowork-org-budget" data-level={used?.level ?? 'unknown'}>
+            <progress className={`${BAR} ${BAR_TONE[used?.level ?? 'fine']}`} max={100} value={Math.min(100, used?.pct ?? 0)} aria-label={t('cowork_panels.org.meter', 'Budget used this month')} />
+            <span className={META}>
+                {used && spent !== null
+                    ? t('cowork_panels.org.used', '{spent} of {budget} used this month ({pct}%).', { spent: euros(spent, locale), budget: euros(budget, locale), pct: used.pct })
+                    : t('cowork_panels.org.spend_unknown', 'This month’s spend could not be read.')}
+            </span>
+            {used && <p className={`m-0 ${META}`}>{levelText(used.level, t)}</p>}
+        </div>
+    );
+}
+
+function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPolicy; spent: number | null; saving: boolean; onSave: (budget: number | null, done: () => void) => void }) {
+    const { t } = useTranslation();
     const [text, setText] = useState<string | null>(null);
     const budget = policy.monthlyBudget ?? null;
     const shown = text ?? (budget === null ? '' : String(budget));
     const parsed = budgetOf(shown);
-    const used = budget !== null && spent !== null ? budgetState(spent, budget) : null;
     return (
         <PanelSection title={t('cowork_panels.org.budget_heading', 'Monthly AI budget')}>
             <div className={CARD}>
@@ -63,17 +79,7 @@ function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPol
                     </div>
                 </LabeledField>
                 {parsed === undefined && <p role="alert" className="m-0 text-[12.5px] text-[var(--error-ink)]">{t('cowork_panels.org.budget_invalid', 'Fill in an amount above 0, or leave it empty for no limit.')}</p>}
-                {budget !== null && (
-                    <div className="flex flex-col gap-1.5" data-testid="cowork-org-budget" data-level={used?.level ?? 'unknown'}>
-                        <progress className={`${BAR} ${BAR_TONE[used?.level ?? 'fine']}`} max={100} value={Math.min(100, used?.pct ?? 0)} aria-label={t('cowork_panels.org.meter', 'Budget used this month')} />
-                        <span className={META}>
-                            {used && spent !== null
-                                ? t('cowork_panels.org.used', '{spent} of {budget} used this month ({pct}%).', { spent: euros(spent, locale), budget: euros(budget, locale), pct: used.pct })
-                                : t('cowork_panels.org.spend_unknown', 'This month’s spend could not be read.')}
-                        </span>
-                        {used && <p className={`m-0 ${META}`}>{levelText(used.level, t)}</p>}
-                    </div>
-                )}
+                {budget !== null && <BudgetMeter spent={spent} budget={budget} />}
                 {budget === null && <p className={`m-0 ${META}`}>{t('cowork_panels.org.budget_off', 'Without a budget, tasks keep running whatever they cost. Set one to be told at 80% and to stop new runs at 100%.')}</p>}
             </div>
         </PanelSection>
@@ -156,7 +162,7 @@ function AuditSection() {
     );
 }
 
-export function CoworkOrgPanel({ onClose }: { onClose: () => void }) {
+export default function CoworkOrgPanel({ close }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const overview = useCoworkOrgOverview();
     const { query, save } = useOrgCoworkPolicy(overview.data?.orgId);
@@ -165,13 +171,13 @@ export function CoworkOrgPanel({ onClose }: { onClose: () => void }) {
     const title = t('cowork_panels.org.title', 'Organisation');
     if (overview.isError) {
         return (
-            <PanelShell testId="cowork-org-panel" tag={tag} title={title} onClose={onClose}>
+            <PanelShell testId="cowork-org-panel" tag={tag} title={title} onClose={close}>
                 <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
             </PanelShell>
         );
     }
     return (
-        <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined} onClose={onClose}>
+        <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined} onClose={close}>
             {!policy && !query.isError && <p className={`m-0 ${META}`}>{t('cowork_panels.loading', 'Loading…')}</p>}
             <Problem error={query.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
             {policy && overview.data && (

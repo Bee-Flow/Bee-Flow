@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { useAddPackage, useCoworkTemplates, usePreviewPackage, type PackagePreview } from '@/api/coworkTemplates';
 import { Button } from '@/components/shared/Button';
+import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { MayDo } from '../CoworkPlanCard';
 import { repeatLabel } from '../coworkSchedule';
@@ -91,12 +92,12 @@ function PackageSection({ onOpenTask }: { onOpenTask: (id: string) => void }) {
     );
 }
 
-export function CoworkTemplatesPanel({ onClose, onUseText, onOpenTask }: { onClose: () => void; onUseText: (text: string) => void; onOpenTask: (id: string) => void }) {
+export default function CoworkTemplatesPanel({ close, open, fillComposer }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const list = useCoworkTemplates(true);
     const templates = list.data ?? [];
     return (
-        <PanelShell testId="cowork-templates-panel" title={t('cowork_panels.templates.title', 'Start from a template')} meta={t('cowork_panels.templates.meta', 'Made by colleagues. You get your own copy, with your own apps.')} onClose={onClose}>
+        <PanelShell testId="cowork-templates-panel" title={t('cowork_panels.templates.title', 'Start from a template')} meta={t('cowork_panels.templates.meta', 'Made by colleagues. You get your own copy, with your own apps.')} onClose={close}>
             {list.isSuccess && templates.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.templates.empty', 'Your organisation has no templates yet. Save one from the settings of a task.')}</p>}
             <Problem error={list.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -107,13 +108,13 @@ export function CoworkTemplatesPanel({ onClose, onUseText, onOpenTask }: { onClo
                             <span className={`${META} whitespace-pre-wrap`}>{tpl.brief}</span>
                             {tpl.repeatInterval && <span className="text-[12px] text-[var(--text-tertiary)]">{repeatLabel(tpl.repeatInterval, t)}</span>}
                         </div>
-                        <Button variant="secondary" className={TALL} aria-label={t('cowork_panels.templates.use_named', 'Use “{title}”', { title: tpl.title })} onClick={() => onUseText(tpl.brief)}>
+                        <Button variant="secondary" className={TALL} aria-label={t('cowork_panels.templates.use_named', 'Use “{title}”', { title: tpl.title })} onClick={() => fillComposer(tpl.brief)}>
                             {t('cowork_panels.templates.use', 'Use')}
                         </Button>
                     </li>
                 ))}
             </ul>
-            <PackageSection onOpenTask={onOpenTask} />
+            <PackageSection onOpenTask={(id) => open({ kind: 'task', id })} />
         </PanelShell>
     );
 }
