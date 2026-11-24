@@ -298,13 +298,13 @@ test('search mode (memory_search tool): no profile padding, relevance only, wide
 test('export surface is exactly this set of keys', () => {
     assert.deepStrictEqual(Object.keys(store).sort(), [
         'SCHEDULE_COVERAGE_TYPE', 'addMemorySource', 'backfillMemoryColumns', 'clearAllMemories',
-        'clearProjectMemories', 'confirmMemory', 'cosineSimilarity', 'countActiveMemoriesForUser',
+        'clearProjectMemories', 'clearScheduleCoverage', 'confirmMemory', 'cosineSimilarity', 'countActiveMemoriesForUser',
         'countOrgMemoryStats', 'createMemory', 'deleteMemoriesByIds', 'deleteMemoriesForOrg', 'deleteMemory',
         'embedOne', 'ensureVectorColumn', 'findByKey', 'findRelevantMemories', 'findSimilarMemories',
         'findSimilarMemory', 'formatMemoriesForPrompt', 'getEmbedding', 'getMemories', 'getMemoriesByIds',
         'getMemoriesForAgent', 'getMemoriesForProject', 'getMemoryById', 'getMemoryStats', 'getScheduleCoverage',
         'indexMemory', 'initDB', 'isPgvectorAvailable', 'lexicalSimilarity', 'pruneExpiredCoverage',
-        'scrubSealedIndexes', 'searchUserMemories', 'selectWithinBudget', 'updateMemory', 'updateMemoryValue',
+        'restoreScheduleCoverage', 'scrubSealedIndexes', 'searchUserMemories', 'selectWithinBudget', 'updateMemory', 'updateMemoryValue',
         'upsertScheduleCoverage',
     ]);
     assert.strictEqual(store.SCHEDULE_COVERAGE_TYPE, 'schedule_coverage');
