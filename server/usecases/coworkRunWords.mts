@@ -11,6 +11,7 @@
 import { createRequire } from 'node:module';
 import type { Effect, ToolLookups } from '../core/cowork/plan/planTypes.mts';
 import { OUTCOME_TOOL_NAME, REVIEW_TOOL_NAME } from '../core/cowork/runActivity.mts';
+import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value: T) => T };
@@ -33,7 +34,7 @@ function wordsOf(name: string, lookups: Lookups): ToolWords {
 }
 
 /** The runs, each tool of their activity with its words; a run without activity is left as it is. */
-export function withToolWords<R extends { activity?: unknown }>(runs: R[], lookups: Lookups): R[] {
+export function withToolWords<R extends { activity?: unknown }>(runs: R[], lookups: Lookups = toolLookups()): R[] {
     return runs.map((run) => {
         const activity = run.activity as { tools?: unknown } | null | undefined;
         if (!activity || !Array.isArray(activity.tools)) return run;

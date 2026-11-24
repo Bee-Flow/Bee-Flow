@@ -74,9 +74,6 @@ const coworkStub = (over = {}) => ({
     ...over,
 });
 
-/** Every «key» the render put on screen. */
-const keysOnScreen = (container) =>
-    [...(container.innerHTML.matchAll(/«([\w.-]+)»/g))].map(m => m[1]);
 
 describe('CW-01 — CoworkWelcome', () => {
     it('translates the heading and the subheading', () => {

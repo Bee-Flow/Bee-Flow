@@ -55,13 +55,13 @@ describe('CoworkTaskEdit', () => {
     it('turns a task the AI does into fixed steps with "Save and test"', async () => {
         const { user } = edit('ai');
         expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-        await user.click(screen.getByLabelText(/Fixed steps/));
+        await user.click(screen.getByRole('radio', { name: /Fixed steps/ }));
         expect(screen.getByRole('button', { name: 'Save and test' })).toBeEnabled();
     });
 
     it('turns fixed steps back into the AI with "Save", and takes the steps off', async () => {
         const { onRebuild, user } = edit('steps');
-        await user.click(screen.getByLabelText(/The AI does it each time/));
+        await user.click(screen.getByRole('radio', { name: /The AI does it each time/ }));
         await user.click(screen.getByRole('button', { name: 'Save' }));
         await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/api/cowork/w1/plan'))).toBe(true));
         expect(onRebuild).not.toHaveBeenCalled();

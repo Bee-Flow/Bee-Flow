@@ -35,6 +35,26 @@ function RecipientRow({ entry, state, ask, busy, onChoose, t }: { entry: TrustEn
     );
 }
 
+/** Who it sends to, each with Ask me each time or Send without asking. */
+function Recipients({ coworkId, ask, t }: { coworkId: string; ask: boolean; t: TranslateFn }) {
+    const { query, choose } = useCoworkTrust(coworkId);
+    const state = query.data;
+    const entries = state && Array.isArray(state.entries) ? state.entries : [];
+    if (!state || entries.length === 0) return <Failure error={choose.error} t={t} />;
+    return (
+        <>
+            <ul className="flex flex-col list-none m-0 p-0">
+                {entries.map((entry) => (
+                    <RecipientRow key={`${entry.stepId}|${entry.recipient}`} entry={entry} state={state} ask={ask} busy={choose.isPending}
+                        onChoose={(trusted) => choose.mutate({ stepId: entry.stepId, recipient: entry.recipient, trusted })} t={t} />
+                ))}
+            </ul>
+            {ask && <p className={META}>{t('cowork_task.send.grows', 'Trust grows per person: after the messages you let through, you can allow that address for good. Stop a message and it goes back to asking.')}</p>}
+            <Failure error={choose.error} t={t} />
+        </>
+    );
+}
+
 /** What the choice means now, in one line. */
 function choiceLine(ask: boolean, t: TranslateFn): string {
     if (ask) return t('cowork_task.send.ask_line', 'You see the message first. One tap to send.');
@@ -43,7 +63,6 @@ function choiceLine(ask: boolean, t: TranslateFn): string {
 
 export default function CoworkTaskSending({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
     const { query, choose } = useCoworkIndependence(coworkId, true);
-    const trust = useCoworkTrust(coworkId);
     const state = query.data;
     if (!state) return null;
     const ask = (state.chosen ?? state.level) !== 'on_its_own';
@@ -52,7 +71,6 @@ export default function CoworkTaskSending({ coworkId, t }: { coworkId: string; t
         if ((next === 'ask') === ask) return;
         choose.mutate(next === 'ask' ? 'asks_before_sending' : 'on_its_own');
     };
-    const entries = Array.isArray(trust.query.data?.entries) ? trust.query.data.entries : [];
     return (
         <section className="flex flex-col gap-2.5" aria-labelledby="cowork-task-send-h" data-testid="cowork-task-sending">
             <h3 id="cowork-task-send-h" className={SECTION_H}>{t('cowork_task.send.heading', 'Before it sends something')}</h3>
@@ -72,16 +90,8 @@ export default function CoworkTaskSending({ coworkId, t }: { coworkId: string; t
             {goOption && !goOption.open && ask && (
                 <p className={META}>{t('cowork_task.send.opens_after', "Don't ask opens after {needed} runs you let through without stopping one ({count} so far).", { needed: state.needed, count: state.letThrough })}</p>
             )}
-            {entries.length > 0 && trust.query.data && (
-                <ul className="flex flex-col list-none m-0 p-0">
-                    {entries.map((entry) => (
-                        <RecipientRow key={`${entry.stepId}|${entry.recipient}`} entry={entry} state={trust.query.data as TrustState} ask={ask} busy={trust.choose.isPending}
-                            onChoose={(trusted) => trust.choose.mutate({ stepId: entry.stepId, recipient: entry.recipient, trusted })} t={t} />
-                    ))}
-                </ul>
-            )}
-            {ask && entries.length > 0 && <p className={META}>{t('cowork_task.send.grows', 'Trust grows per person: after the messages you let through, you can allow that address for good. Stop a message and it goes back to asking.')}</p>}
-            <Failure error={choose.error || trust.choose.error} t={t} />
+            <Recipients coworkId={coworkId} ask={ask} t={t} />
+            <Failure error={choose.error} t={t} />
         </section>
     );
 }

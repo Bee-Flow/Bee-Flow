@@ -46,26 +46,38 @@ export function startKindOf(item: Pick<CoworkItem, 'triggerKind' | 'trigger'>, s
 
 const isRepeat = (value: unknown): value is Repeat => typeof value === 'string' && (REPEATS as readonly string[]).includes(value);
 
+/** When it runs next, or now for a task without a valid next run. */
+function nextOf(item: Pick<CoworkItem, 'nextRunAt'>, now: Date): Date {
+    const next = item.nextRunAt ? new Date(item.nextRunAt) : now;
+    return Number.isNaN(next.getTime()) ? now : next;
+}
+
+/** Its days as tokens; a plain "every week" runs on the weekday of its next run. */
+function daysOfItem(item: Pick<CoworkItem, 'daysOfWeek'>, repeat: Repeat, at: Date): string[] {
+    const own = Array.isArray(item.daysOfWeek) ? item.daysOfWeek.map((d) => String(d).toLowerCase().slice(0, 3)) : [];
+    return own.length === 0 && repeat === 'weekly' ? [['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][at.getDay()]] : own;
+}
+
+/** What a start on an event points at: the task it follows, the table, the folder. */
+function targetsOf(start: StartState | null | undefined): Pick<EditDraft, 'afterId' | 'tableId' | 'folder'> {
+    return { afterId: start?.after?.id ?? '', tableId: start?.datatableId ?? '', folder: start?.inFolder ?? '' };
+}
+
 /** The draft of a task as it is. */
 export function draftOf(item: CoworkItem, start: StartState | null | undefined, mode: TaskMode, now: Date = new Date()): EditDraft {
-    const next = item.nextRunAt ? new Date(item.nextRunAt) : now;
-    const at = Number.isNaN(next.getTime()) ? now : next;
-    const repeat = isRepeat(item.repeatInterval ?? '') ? (item.repeatInterval ?? '') as Repeat : 'daily';
-    const own = Array.isArray(item.daysOfWeek) ? item.daysOfWeek.map((d) => String(d).toLowerCase().slice(0, 3)) : [];
-    // A plain "every week" runs on the weekday of its next run.
-    const days = own.length === 0 && repeat === 'weekly' ? [['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][at.getDay()]] : own;
+    const at = nextOf(item, now);
+    const stored = item.repeatInterval ?? '';
+    const repeat: Repeat = isRepeat(stored) ? stored : 'daily';
     return {
         title: item.title ?? '',
         prompt: item.prompt ?? '',
         kind: startKindOf(item, start),
         repeat,
-        days,
+        days: daysOfItem(item, repeat, at),
         date: toDateInput(at),
         time: item.timeOfDay ?? toTimeInput(at),
         mail: item.triggerKind === 'app_event' && item.trigger ? item.trigger : defaultMailTrigger(),
-        afterId: start?.after?.id ?? '',
-        tableId: start?.datatableId ?? '',
-        folder: start?.inFolder ?? '',
+        ...targetsOf(start),
         mode,
         agentId: item.agentId ?? '',
     };
@@ -124,12 +136,12 @@ export function changeOf(draft: EditDraft, now: Date = new Date()): CoworkItemCh
  * new or points elsewhere, or back to the clock from such a start. The clock and a mail are saved with the task.
  */
 export function startChoiceOf(draft: EditDraft, initial: EditDraft): StartChoice | null {
-    const same = draft.kind === initial.kind;
+    const moved = (field: 'afterId' | 'tableId' | 'folder') => draft.kind !== initial.kind || draft[field] !== initial[field];
     switch (draft.kind) {
-        case 'after': return draft.afterId && (!same || draft.afterId !== initial.afterId) ? { kind: 'after_cowork', scheduleId: draft.afterId } : null;
-        case 'row': return draft.tableId && (!same || draft.tableId !== initial.tableId) ? { kind: 'row', datatableId: draft.tableId } : null;
-        case 'file': return draft.folder.startsWith('/') && (!same || draft.folder !== initial.folder) ? { kind: 'file', inFolder: draft.folder } : null;
-        case 'webhook': return same ? null : { kind: 'webhook' };
+        case 'after': return draft.afterId && moved('afterId') ? { kind: 'after_cowork', scheduleId: draft.afterId } : null;
+        case 'row': return draft.tableId && moved('tableId') ? { kind: 'row', datatableId: draft.tableId } : null;
+        case 'file': return draft.folder.startsWith('/') && moved('folder') ? { kind: 'file', inFolder: draft.folder } : null;
+        case 'webhook': return draft.kind === initial.kind ? null : { kind: 'webhook' };
         case 'schedule': return ['after', 'row', 'file', 'webhook'].includes(initial.kind) ? { kind: 'schedule' } : null;
         default: return null;
     }

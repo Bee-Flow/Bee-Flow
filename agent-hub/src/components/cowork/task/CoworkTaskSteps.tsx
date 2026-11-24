@@ -29,11 +29,13 @@ const TILE: Record<TaskStep['sort'], string> = {
     ask: 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)]',
 };
 const ICON = { read: FileSearch, change: PenLine, send: Send, ask: Hand } as const;
+/** The tile of a step a model does: a mark, the same in every language (hidden from screen readers; the word below says it). */
+const AI_MARK = 'AI';
 
 function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[10px] grid place-items-center flex-shrink-0 text-[11px] font-extrabold';
     if (step.helper) return <span aria-hidden="true" className={`${base} border border-dashed border-[var(--border-default)] text-[var(--text-tertiary)]`}>·</span>;
-    if (step.sort === 'ai') return <span aria-hidden="true" className={`${base} ${TILE.ai}`}>AI</span>;
+    if (step.sort === 'ai') return <span aria-hidden="true" className={`${base} ${TILE.ai}`}>{AI_MARK}</span>;
     const Icon = ICON[step.sort];
     return <span aria-hidden="true" className={`${base} ${TILE[step.sort]}`}><Icon className="w-4 h-4" /></span>;
 }

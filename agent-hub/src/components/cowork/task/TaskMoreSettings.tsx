@@ -24,7 +24,7 @@ export function CheckFirstRow({ coworkId, open, onToggle, hasApprovedSteps, t }:
     return (
         <FoldRow id="review" label={t('cowork_task.more.check_first', 'Check each result first')} value={on ? t('cowork_task.on', 'On') : t('cowork_task.off', 'Off')} open={open} onToggle={onToggle}>
             {hasApprovedSteps ? (
-                <label htmlFor={id} className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+                <label htmlFor={id} aria-label={t('cowork_task.more.check_first', 'Check each result first')} className="flex items-start gap-3 min-h-11 cursor-pointer">
                     <input id={id} type="checkbox" role="switch" className="mt-1 w-5 h-5 accent-[var(--accent-primary)]" checked={on} disabled={!query.data || choose.isPending}
                         onChange={(e) => choose.mutate(e.target.checked ? 'asks_everything' : 'asks_before_sending')} />
                     <span className="flex flex-col gap-0.5">

@@ -32,7 +32,7 @@ function HowItWorks({ draft, set, agents, mayPlan, id, t }: { draft: EditDraft; 
         <fieldset className="flex flex-col gap-2 border-0 p-0 m-0 min-w-0">
             <legend className={`${SECTION_H} mb-2.5`}>{t('cowork_task.edit.how', 'How it works')}</legend>
             {modes.map(([mode, key, en, lineKey, lineEn]) => (
-                <label key={mode} htmlFor={`${id}-mode-${mode}`} className={`grid grid-cols-[auto_1fr] gap-x-3 items-start rounded-[var(--radius-md)] border px-3.5 py-3 cursor-pointer ${draft.mode === mode ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_6%,transparent)]' : 'border-[var(--border-subtle)]'}`}>
+                <label key={mode} htmlFor={`${id}-mode-${mode}`} aria-label={t(key, en)} className={`grid grid-cols-[auto_1fr] gap-x-3 items-start rounded-[var(--radius-md)] border px-3.5 py-3 cursor-pointer ${draft.mode === mode ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_6%,transparent)]' : 'border-[var(--border-subtle)]'}`}>
                     <input id={`${id}-mode-${mode}`} type="radio" name={`${id}-mode`} className="mt-1 w-4 h-4" checked={draft.mode === mode} onChange={() => set({ mode })} />
                     <span className="flex flex-col gap-0.5"><strong className="text-[15px]">{t(key, en)}</strong><span className={META}>{t(lineKey, lineEn)}</span></span>
                 </label>
