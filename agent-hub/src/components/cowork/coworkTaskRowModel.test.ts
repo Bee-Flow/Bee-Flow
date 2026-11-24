@@ -15,6 +15,8 @@ describe('nextLine', () => {
         expect(nextLine({ isActive: true, nextRunAt: at(24, 17), repeatInterval: 'daily' }, 'done', t, 'en-GB', NOW)).toBe('Next: Today, 17:00');
         expect(nextLine({ isActive: true, nextRunAt: at(25, 9), repeatInterval: 'daily' }, 'scheduled', t, 'en-GB', NOW)).toBe('Next: Tomorrow, 09:00');
         expect(nextLine({ isActive: true, nextRunAt: at(30, 9), repeatInterval: 'weekly' }, 'done', t, 'en-GB', NOW)).toMatch(/^Next: Mon.* 30 Nov, 09:00$/);
+        // The 24-hour clock of the schedules, also where the reader's language would write 04:00 PM.
+        expect(nextLine({ isActive: true, nextRunAt: at(24, 16), repeatInterval: 'daily' }, 'done', t, 'en-US', NOW)).toBe('Next: Today, 16:00');
     });
 
     it('in the status\'s words: now while it runs or tests, nothing while paused', () => {

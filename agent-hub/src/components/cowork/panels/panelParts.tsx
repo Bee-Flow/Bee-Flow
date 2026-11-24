@@ -7,7 +7,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { useId } from 'react';
 import Toggle from '@/components/shared/Toggle';
 import { errorMessage } from '@/utils/caughtError';
-import { ALERT, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, FIELD_WIDE, ICON_BUTTON, LABEL, LINK_BUTTON, LINK_INLINE, TAG_PLAIN } from '../coworkUi';
+import { ALERT, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, FIELD_WIDE, ICON_BUTTON, LABEL, LINK_BUTTON, LINK_INLINE, SECTION_HEADING, TAG_PLAIN } from '../coworkUi';
 
 export { META } from '../coworkUi';
 
@@ -52,7 +52,7 @@ export function PanelSection({ title, children }: { title: string; children: Rea
     const headingId = useId();
     return (
         <section className="flex flex-col gap-2" aria-labelledby={headingId}>
-            <h2 id={headingId} className="m-0 text-[14px] leading-5 font-semibold text-[var(--text-primary)]">{title}</h2>
+            <h2 id={headingId} className={SECTION_HEADING}>{title}</h2>
             {children}
         </section>
     );

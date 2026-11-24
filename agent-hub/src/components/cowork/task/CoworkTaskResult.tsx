@@ -10,6 +10,7 @@ import { Check } from 'lucide-react';
 import { fullTimestamp } from '../coworkFormat';
 import { SWAP } from '../coworkMotion';
 import { autoFixed } from '../coworkProposalModel';
+import { momentWords } from '../coworkTaskRowModel';
 import { wiringChangeWords } from '../coworkWiringModel';
 import { runFailed, runLine } from './coworkTaskModel';
 import { CARD, CARD_HEAD, Failure, META, UndoNote } from './taskUi';
@@ -49,16 +50,16 @@ function endedWords(run: CoworkRun, t: TranslateFn): { words: string; done: bool
     return { words: t('cowork_task.result.done', 'Done · {when}', { when }), done: true };
 }
 
-/** "Next: Tomorrow 08:00" while it waits for its clock; nothing when paused or not on a clock. */
-function nextWords(item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>, t: TranslateFn): string | null {
+/** "Next: Tomorrow, 08:00" while it waits for its clock, in the words of its row on the home; nothing when paused or not on a clock. */
+function nextWords(item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>, t: TranslateFn, locale: string): string | null {
     if (item.isActive === false || !item.nextRunAt || Date.parse(item.nextRunAt) <= Date.now()) return null;
-    return t('cowork_task.result.next', 'Next: {when}', { when: fullTimestamp(item.nextRunAt, t) });
+    return t('cowork_task.result.next', 'Next: {when}', { when: momentWords(new Date(item.nextRunAt), t, locale) });
 }
 
 /** Before a first result: Paused, or Scheduled with when it starts. */
-function NoResultYet({ item, t }: { item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>; t: TranslateFn }) {
+function NoResultYet({ item, locale, t }: { item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>; locale: string; t: TranslateFn }) {
     const paused = item.isActive === false;
-    const next = nextWords(item, t);
+    const next = nextWords(item, t, locale);
     return (
         <>
             <div className={CARD_HEAD}>{paused ? t('cowork_task.result.paused', 'Paused') : t('cowork_task.result.scheduled', 'Scheduled')}</div>
@@ -74,13 +75,15 @@ function NoResultYet({ item, t }: { item: Pick<CoworkItem, 'isActive' | 'nextRun
 interface CoworkTaskResultProps {
     item: Pick<CoworkItem, 'isActive' | 'nextRunAt'>;
     latest: CoworkRun | null;
+    /** The reader's language, for the day and time of the next run. */
+    locale?: string;
     t: TranslateFn;
 }
 
-export default function CoworkTaskResult({ item, latest, t }: CoworkTaskResultProps) {
-    if (!latest) return <section className={CARD} data-testid="cowork-task-result"><NoResultYet item={item} t={t} /></section>;
+export default function CoworkTaskResult({ item, latest, locale = 'en', t }: CoworkTaskResultProps) {
+    if (!latest) return <section className={CARD} data-testid="cowork-task-result"><NoResultYet item={item} locale={locale} t={t} /></section>;
     const ended = endedWords(latest, t);
-    const next = nextWords(item, t);
+    const next = nextWords(item, t, locale);
     const text = runFailed(latest) || !latest.result ? runLine(latest, t) : latest.result;
     return (
         <section className={CARD} data-testid="cowork-task-result">

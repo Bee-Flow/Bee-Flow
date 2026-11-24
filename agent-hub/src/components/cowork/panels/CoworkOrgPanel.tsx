@@ -39,7 +39,7 @@ function budgetOf(text: string): number | null | undefined {
 const euros = (n: number, locale: string): string => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: n % 1 === 0 ? 0 : 2 }).format(n);
 
 function levelText(level: Level, t: TranslateFn): string {
-    if (level === 'over') return t('cowork_panels.org.budget_over', 'The budget is used up. New runs are refused and everyone sees a notice until you raise it or the month ends.');
+    if (level === 'over') return t('cowork_panels.org.limit_over', 'The limit is reached. New runs are refused and everyone sees a notice until you raise it or the month ends.');
     if (level === 'close') return t('cowork_panels.org.budget_close', 'Everyone sees a notice on their home page from 80%. At 100% new runs are refused.');
     return t('cowork_panels.org.budget_fine', 'Nobody sees a notice until 80% is used. At 100% new runs are refused.');
 }
@@ -49,7 +49,7 @@ function BudgetMeter({ spent, budget }: { spent: number | null; budget: number }
     const used = spent !== null ? budgetState(spent, budget) : null;
     return (
         <div className="flex flex-col gap-1.5" data-testid="cowork-org-budget" data-level={used?.level ?? 'unknown'}>
-            <progress className={`${BAR} ${BAR_TONE[used?.level ?? 'fine']}`} max={100} value={Math.min(100, used?.pct ?? 0)} aria-label={t('cowork_panels.org.meter', 'Budget used this month')} />
+            <progress className={`${BAR} ${BAR_TONE[used?.level ?? 'fine']}`} max={100} value={Math.min(100, used?.pct ?? 0)} aria-label={t('cowork_panels.org.limit_meter', 'Used of the limit this month')} />
             <span className={META}>
                 {used && spent !== null
                     ? t('cowork_panels.org.used', '{spent} of {budget} used this month ({pct}%).', { spent: euros(spent, locale), budget: euros(budget, locale), pct: used.pct })
@@ -67,19 +67,19 @@ function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPol
     const shown = text ?? (budget === null ? '' : String(budget));
     const parsed = budgetOf(shown);
     return (
-        <PanelSection title={t('cowork_panels.org.budget_heading', 'Monthly AI budget')}>
+        <PanelSection title={t('cowork_panels.org.limit_heading', 'Monthly spending limit')}>
             <div className={CARD}>
-                <LabeledField id="cowork-panels-budget" label={t('cowork_panels.org.budget_label', 'Budget for all tasks together, in euros a month')}>
-                    <div className="flex gap-2">
+                <LabeledField id="cowork-panels-budget" label={t('cowork_panels.org.limit_label', 'For all tasks together, in euros a month')}>
+                    <div className="flex items-start gap-2">
                         <input id="cowork-panels-budget" className={INPUT} inputMode="decimal" value={shown} placeholder={t('cowork_panels.org.budget_none', 'No limit')} onChange={(e) => setText(e.target.value)} />
-                        <PanelButton disabled={saving || text === null || parsed === undefined} onClick={() => { if (parsed !== undefined) onSave(parsed, () => setText(null)); }}>
-                            {t('cowork_panels.org.budget_save', 'Save budget')}
+                        <PanelButton className="shrink-0 whitespace-nowrap" disabled={saving || text === null || parsed === undefined} onClick={() => { if (parsed !== undefined) onSave(parsed, () => setText(null)); }}>
+                            {t('cowork_panels.org.limit_save', 'Save limit')}
                         </PanelButton>
                     </div>
                 </LabeledField>
                 {parsed === undefined && <p role="alert" className={ALERT}>{t('cowork_panels.org.budget_invalid', 'Fill in an amount above 0, or leave it empty for no limit.')}</p>}
                 {budget !== null && <BudgetMeter spent={spent} budget={budget} />}
-                {budget === null && <p className={`m-0 ${META}`}>{t('cowork_panels.org.budget_off', 'Without a budget, tasks keep running whatever they cost. Set one to be told at 80% and to stop new runs at 100%.')}</p>}
+                {budget === null && <p className={`m-0 ${META}`}>{t('cowork_panels.org.limit_off', 'Without a limit, tasks keep running whatever they cost. Set one to be told at 80% and to stop new runs at 100%.')}</p>}
             </div>
         </PanelSection>
     );

@@ -26,6 +26,7 @@
     "cowork_trail.did.shares_set": "heeft gewijzigd met wie ze gedeeld is",
     "cowork_trail.did.start_set": "heeft gewijzigd wanneer ze start",
     "cowork_trail.did.toggled": "heeft haar {state}gezet",
+    "cowork_trail.did.toggled_either": "heeft haar gepauzeerd of hervat",
     "cowork_trail.did.trust_set": "heeft gewijzigd wat zonder vragen verstuurd mag worden",
     "cowork_trail.did.updated": "heeft {what} gewijzigd",
     "cowork_trail.empty": "Nog geen wijzigingen vastgelegd.",

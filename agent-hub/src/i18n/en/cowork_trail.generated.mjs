@@ -33,6 +33,7 @@ export default {
     "cowork_trail.did.shares_set": "changed who it is shared with",
     "cowork_trail.did.start_set": "changed when it starts",
     "cowork_trail.did.toggled": "switched it {state}",
+    "cowork_trail.did.toggled_either": "paused or resumed it",
     "cowork_trail.did.trust_set": "changed what may be sent without asking",
     "cowork_trail.did.updated": "changed {what}",
     "cowork_trail.empty": "No changes recorded yet.",

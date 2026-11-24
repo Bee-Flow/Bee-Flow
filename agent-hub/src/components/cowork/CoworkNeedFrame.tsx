@@ -49,8 +49,8 @@ interface NeedFrameProps {
 }
 
 const SOLO_TONE: Readonly<Record<'failed' | 'needs', string>> = {
-    failed: 'rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-2 border-l-[var(--error-ink)] bg-[var(--bg-card)]',
-    needs: 'rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-2 border-l-[var(--warning-ink)] bg-[var(--bg-card)]',
+    failed: 'rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--error)_45%,var(--border-default))] bg-[var(--bg-card)]',
+    needs: 'rounded-[var(--radius-lg)] border border-[color-mix(in_srgb,var(--warning)_55%,var(--border-default))] bg-[var(--bg-card)]',
 };
 
 const DOT: Readonly<Record<'failed' | 'needs', string>> = {
@@ -69,7 +69,7 @@ export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, 
                 {!solo && (
                     <button
                         type="button"
-                        className={`self-start inline-flex items-center gap-1.5 min-h-6 rounded-lg text-[13px] leading-5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline ${TINT} ${FOCUS_RING}`}
+                        className={`self-start inline-flex items-center gap-1.5 -my-1.5 min-h-9 pointer-coarse:-my-2.5 pointer-coarse:min-h-11! rounded-lg text-[13px] leading-5 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline ${TINT} ${FOCUS_RING}`}
                         onClick={() => onOpenTask(need.itemId)}
                     >
                         <span aria-hidden="true" className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[tone]}`} />

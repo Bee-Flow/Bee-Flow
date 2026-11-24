@@ -45,7 +45,7 @@ describe('CoworkTaskSettings', () => {
         const what = await openRow(user, 'what');
         expect(within(what).getByRole('button', { name: 'Save' })).toBeDisabled();
         await user.type(within(what).getByLabelText('Name'), ' on Monday');
-        expect(within(what).getByTestId('cowork-task-save-note')).toHaveTextContent('Saved at once. The steps stay as they are.');
+        expect(within(what).getByTestId('cowork-task-save-note')).toHaveTextContent('Saving takes effect at once. The steps stay as they are.');
         await user.click(within(what).getByRole('button', { name: 'Save' }));
         await waitFor(() => expect(sent('PUT', TASK)?.body).toEqual({ title: 'Weekly digest on Monday', prompt: 'Sum up the week.' }));
         expect(sent('POST', `${TASK}/plan/make`)).toBeUndefined();

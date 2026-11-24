@@ -87,6 +87,8 @@ export function trailLine(entry: TrailEntry, t: TranslateFn): string {
     const fallback = ACTION_FALLBACK[entry.action] ?? entry.action.replace(/^cowork\./, '').replaceAll('_', ' ');
     const state = entry.values.isActive === false ? t('cowork_trail.off', 'off') : t('cowork_trail.on', 'on');
     const level = typeof entry.values.level === 'string' ? t(`cowork_trail.asks.${entry.values.level}`, LEVEL_FALLBACK[entry.values.level] ?? entry.values.level) : '';
+    // A switch recorded without where it ended (the request that flips it carries no state): say so, rather than "on" for a pause.
+    if (entry.action === 'cowork.toggled' && typeof entry.values.isActive !== 'boolean') return `${who} ${t('cowork_trail.did.toggled_either', 'paused or resumed it')}`;
     const what = t(`cowork_trail.did.${entry.action.replace(/^cowork\./, '')}`, fallback, { what: changedWords(entry.changed, t), state, level });
     return `${who} ${what}`;
 }

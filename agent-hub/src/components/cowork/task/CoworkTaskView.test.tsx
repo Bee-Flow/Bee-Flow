@@ -57,7 +57,7 @@ describe('CoworkTaskView', () => {
 
     it('keeps "Run for real now" off while its steps wait for approval, and says why on the button and under it', async () => {
         openTask({ plan: PLAN_WAITING, needs: [NEEDS_APPROVAL] });
-        await screen.findByTestId('cowork-need-card');
+        await screen.findByTestId('cowork-task-would-receive');
         const run = screen.getByRole('button', { name: 'Run for real now' });
         expect(run).toBeDisabled();
         expect(run).toHaveAttribute('title', 'It cannot run for real yet: its steps wait for your approval.');
@@ -72,6 +72,17 @@ describe('CoworkTaskView', () => {
         expect(screen.queryByTestId('cowork-task-held')).toBeNull();
         await user.click(run);
         await waitFor(() => expect(sent('POST', '/api/cowork/w1/run-now')).toBeTruthy());
+    });
+
+    it('the first approval is decided on what the test produced: Approve sends the fingerprint of the steps on screen, and no second card asks the same', async () => {
+        const { user, sent } = openTask({ plan: PLAN_WAITING, needs: [NEEDS_APPROVAL] });
+        const block = await screen.findByTestId('cowork-task-would-receive');
+        const approve = await within(block).findByRole('button', { name: 'Approve' });
+        expect(screen.queryByTestId('cowork-need-card')).toBeNull();
+        // Above Settings: the owner sees it before anything else of the task.
+        expect(block.compareDocumentPosition(screen.getByTestId('cowork-task-settings')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        await user.click(approve);
+        await waitFor(() => expect(sent('POST', '/api/cowork/w1/plan/approve')?.body).toEqual({ fingerprint: PLAN_WAITING.draft.fingerprint }));
     });
 
     it('shows what the test produced before the first approval, and "Change something" opens What', async () => {

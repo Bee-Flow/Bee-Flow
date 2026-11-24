@@ -22,6 +22,9 @@
  *   useLeave(open) for an element that should fade out before it is gone (a card that was answered, the Undo toast):
  *                    const { ref, mounted, leaving } = useLeave<HTMLDivElement>(open);
  *                    {mounted && <div ref={ref} className={leaving ? LEAVE : ENTER}>…</div>}
+ *   useReveal(open) for a row that opens in place: once it has opened it is scrolled into view when part of it is
+ *                  off screen (the row above it may have closed and pulled it up, or its body may reach under the fold).
+ *                    const ref = useReveal<HTMLDivElement>(open);
  *
  * No motion library: CSS keyframes driven by React state. Where the browser reports no animations (reduced motion, a
  * test's DOM), an element that leaves is gone at once.
@@ -75,6 +78,24 @@ export function useLeave<T extends HTMLElement = HTMLDivElement>(open: boolean):
         return () => { live = false; };
     }, [moving, open]);
     return { ref, mounted: open || moving, leaving: !open && moving, settled: open && !moving };
+}
+
+/** How long EXPAND takes (src/app.css), with a frame to spare: by then the row that opened and the one that closed have their final height. */
+const EXPANDED_AFTER_MS = 200;
+
+/** Keeps a row that just opened on screen. Put the ref on the row; it scrolls only when part of the row is outside. */
+export function useReveal<T extends HTMLElement = HTMLDivElement>(open: boolean): RefObject<T | null> {
+    const ref = useRef<T>(null);
+    const wasOpen = useRef(open);
+    useEffect(() => {
+        const opened = open && !wasOpen.current;
+        wasOpen.current = open;
+        if (!opened) return undefined;
+        const still = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const timer = window.setTimeout(() => ref.current?.scrollIntoView?.({ block: 'nearest', behavior: still ? 'auto' : 'smooth' }), still ? 0 : EXPANDED_AFTER_MS);
+        return () => window.clearTimeout(timer);
+    }, [open]);
+    return ref;
 }
 
 interface ExpandProps {

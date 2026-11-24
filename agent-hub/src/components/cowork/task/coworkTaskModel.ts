@@ -74,6 +74,20 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
     }));
 }
 
+/** An app the fixed steps use: its id, and its name as the Steps section says it. */
+export interface StepApp { id: string; label: string }
+
+/** The apps the fixed steps use, each once, in the order the steps run. */
+export function planApps(state: PlanState | null | undefined): StepApp[] {
+    const view = state?.draft?.view;
+    if (!view) return [];
+    const apps: StepApp[] = [];
+    for (const step of inRunOrder(view.steps, view.runOrder)) {
+        if (step.app && !apps.some((a) => a.id === step.app)) apps.push({ id: step.app, label: appLabel(step.app) });
+    }
+    return apps;
+}
+
 /** "Outlook: create draft" from the server, else the tool's words ("Outlook create draft"), never the bare name. */
 function toolTitle(tool: CoworkRunTool, t: TranslateFn): string {
     if (tool.label) return tool.label;

@@ -9,6 +9,7 @@
  */
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import CoworkTimeField from '../CoworkTimeField';
 import MailTriggerPanel from '../MailTriggerPanel';
 import { ENTER, TINT } from '../coworkMotion';
 import { cadenceLine } from '../coworkSchedule';
@@ -66,6 +67,9 @@ export function whenWords(item: CoworkItem, start: StartState | null | undefined
     }
 }
 
+/** A row of fields. A Field grows along it (its 160px is a width), so a Field always sits in one, never loose in the form's column. */
+const FIELD_ROW = 'flex flex-wrap gap-3';
+
 function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: ReactNode }) {
     return (
         <div className="flex-[1_1_160px] min-w-0 flex flex-col gap-1">
@@ -81,7 +85,7 @@ function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: strin
     const toggle = (day: string) => set({ days: draft.days.includes(day) ? draft.days.filter((d) => d !== day) : [...draft.days, day] });
     return (
         <>
-            <div className="flex flex-wrap gap-3">
+            <div className={FIELD_ROW}>
                 <Field id={`${id}-repeat`} label={t('cowork_task.when.how_often', 'How often')}>
                     <select id={`${id}-repeat`} className={FIELD} value={draft.repeat} onChange={(e) => set({ repeat: e.target.value as Repeat })}>
                         {REPEATS.map((r) => <option key={r || 'once'} value={r}>{t(REPEAT_WORDS[r][0], REPEAT_WORDS[r][1])}</option>)}
@@ -94,7 +98,7 @@ function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: strin
                 )}
                 {draft.repeat !== 'hourly' && (
                     <Field id={`${id}-time`} label={t('cowork_task.when.at', 'At')}>
-                        <input id={`${id}-time`} type="time" className={FIELD} value={draft.time} onChange={(e) => set({ time: e.target.value || '09:00' })} />
+                        <CoworkTimeField id={`${id}-time`} value={draft.time} onChange={(time) => set({ time })} />
                     </Field>
                 )}
             </div>
@@ -104,7 +108,7 @@ function Schedule({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: strin
                     <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby={`${id}-days`}>
                         {DAY_TOKENS.map((day) => (
                             <button key={day} type="button" aria-pressed={draft.days.includes(day)} onClick={() => toggle(day)}
-                                className={`min-w-9 min-h-9 pointer-coarse:min-w-11 pointer-coarse:min-h-11 px-2 rounded-lg border text-[13px] leading-5 font-medium ${TINT} ${draft.days.includes(day) ? CHOICE_ON : CHOICE_OFF}`}>
+                                className={`min-w-9 min-h-9 pointer-coarse:min-w-11 pointer-coarse:min-h-11! px-2 rounded-lg border text-[13px] leading-5 font-medium ${TINT} ${draft.days.includes(day) ? CHOICE_ON : CHOICE_OFF}`}>
                                 {t(DAY_WORDS[day][0], DAY_WORDS[day][1])}
                             </button>
                         ))}
@@ -194,11 +198,13 @@ function Kind({ draft, set, id, itemId, onOpenTask, t }: TargetProps) {
     const onEvent = draft.kind === 'after' || draft.kind === 'row' || draft.kind === 'file';
     return (
         <>
-            <Field id={`${id}-kind`} label={t('cowork_task.when.starts', 'It starts')}>
-                <select id={`${id}-kind`} className={FIELD} value={draft.kind} onChange={(e) => set({ kind: e.target.value as StartChoiceKind })}>
-                    {KINDS.map(([kind, key, en]) => <option key={kind} value={kind}>{t(key, en)}</option>)}
-                </select>
-            </Field>
+            <div className={FIELD_ROW}>
+                <Field id={`${id}-kind`} label={t('cowork_task.when.starts', 'It starts')}>
+                    <select id={`${id}-kind`} className={FIELD} value={draft.kind} onChange={(e) => set({ kind: e.target.value as StartChoiceKind })}>
+                        {KINDS.map(([kind, key, en]) => <option key={kind} value={kind}>{t(key, en)}</option>)}
+                    </select>
+                </Field>
+            </div>
             {draft.kind === 'schedule' && <Schedule draft={draft} set={set} id={id} t={t} />}
             {draft.kind === 'email' && (
                 <>
@@ -206,7 +212,7 @@ function Kind({ draft, set, id, itemId, onOpenTask, t }: TargetProps) {
                     <p className={`${META} rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2`}>{t('cowork_task.when.mail_note', 'A task that starts from a mail only drafts its reply, and the draft goes only to the person who sent that mail. It runs as one of your agents.')}</p>
                 </>
             )}
-            {onEvent && <Target draft={draft} set={set} id={id} itemId={itemId} onOpenTask={onOpenTask} t={t} />}
+            {onEvent && <div className={FIELD_ROW}><Target draft={draft} set={set} id={id} itemId={itemId} onOpenTask={onOpenTask} t={t} /></div>}
             {draft.kind === 'webhook' && <p className={META}>{t('cowork_task.when.webhook_hint', 'Any system that calls its address starts the task. The address is made when you save, and shown once.')}</p>}
         </>
     );

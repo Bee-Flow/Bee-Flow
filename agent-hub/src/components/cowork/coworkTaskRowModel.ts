@@ -19,7 +19,8 @@ const sameDay = (a: Date, b: Date): boolean => a.toDateString() === b.toDateStri
 
 /** "Today, 09:00", "Tomorrow, 09:00", "Tue 1 Dec, 09:00", on the reader's clock and in their language. */
 export function momentWords(at: Date, t: TranslateFn, locale: string, now: Date = new Date()): string {
-    const time = at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    // The 24-hour clock the schedules are written in ("Every Friday 16:00"), never an AM/PM beside it.
+    const time = at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
     if (sameDay(at, now)) return t('cowork_home.next.today', 'Today, {time}', { time });

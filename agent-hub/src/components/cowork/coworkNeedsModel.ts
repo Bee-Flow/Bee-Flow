@@ -39,7 +39,7 @@ export interface NeedCardData {
     title: string;
     /** A review or a decision: the run it is about. */
     runId?: string | null;
-    /** A review: the agent's reason. */
+    /** A review: the agent's reason. Steps that cannot run: which step, and why, in the server's plain words. */
     reason?: string | null;
     /** A check: the steps changed after an earlier approval (they may do more). */
     changed?: boolean;
@@ -119,7 +119,8 @@ function cardOf(need: CoworkNeed, item: CoworkItem | undefined): NeedCardData {
         case 'ai_failed': return { ...base, kind: 'fix', problem: need.kind, runId: need.runId };
         case 'failed': return { ...base, ...failedCard(need) };
         case 'setup': return { ...base, kind: 'setup', cause: need.cause ?? 'failed' };
-        default: return { ...base, ...planCard(need, item) };
+        // Steps that cannot run: the server's own sentence says which step and why (it names steps by their titles).
+        default: return { ...base, ...planCard(need, item), ...(need.plan === 'blocked' && need.reason ? { reason: need.reason } : {}) };
     }
 }
 

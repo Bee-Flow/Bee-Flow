@@ -41,7 +41,9 @@ function chainWords(view: ReceiptsView | undefined, t: TranslateFn): string {
         const [key, en] = PROBLEMS[problem.kind] ?? PROBLEMS.content;
         return t(key, en, { seq: problem.seq });
     }
+    if (view.missingRuns === 1) return t('cowork_task.receipts.missing_one', '1 finished run has no receipt.');
     if (view.missingRuns > 0) return t('cowork_task.receipts.missing', '{count} finished runs have no receipt.', { count: view.missingRuns });
+    if (view.verdict.count === 1) return t('cowork_task.receipts.ok_one', 'The one receipt checks out');
     return t('cowork_task.receipts.ok', 'All {count} receipts check out', { count: view.verdict.count });
 }
 
