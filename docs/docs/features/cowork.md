@@ -6,12 +6,12 @@ description: Recurring work that Bee Flow does for you, on a schedule or when so
 # Cowork
 
 Cowork does recurring work for you: "every weekday at 07:30, read the supplier mail and tell me which
-orders are late". You write what you want in one sentence; Cowork turns it into an item with a
+orders are late". You write what you want in one sentence; Cowork turns it into a task with a
 schedule, and runs it as you, with your connected apps, while you do something else.
 
 :::info[Free in Community]
 
-Coworks for yourself are free. Sharing with colleagues, approvals by someone else and the
+Tasks for yourself are free. Sharing with colleagues, approvals by someone else and the
 organisation settings need a licence with those features. See [Tiers](../licensing/tiers.md).
 
 :::
@@ -20,118 +20,135 @@ organisation settings need a licence with those features. See [Tiers](../licensi
 
 1. Open **Cowork** and type what should happen, and when. Or choose **Start from a template** to begin
    from work your organisation already set up.
-2. Check the proposal (title, schedule, apps) and confirm. The item runs at the next moment.
+2. Choose **Show what I understood**. Cowork answers with a card of four lines, each of which you can
+   change before anything starts:
+   - **What**: the work, in your sentence.
+   - **When**: the schedule, or what starts it.
+   - **Uses**: the apps it may use. Only the apps your sentence names are selected; add or remove one
+     with its chip.
+   - **Sends to**: you, and any address you add. When it sends to someone else, **Show me each message
+     first** is on.
+3. Choose **Set up and test**. Cowork sets the task up, tests it once without sending anything, and
+   tells you what the test produced.
 
-The home shows what **needs you** (a question, a review, a plan to approve), what runs **today**, the
-coworks colleagues **shared with you**, and what Cowork cost in AI this month.
+The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,
+and **Teamwork**. The gear opens your **Cowork preferences**; administrators also see **Admin rules**.
 
-## An item
+A task always has one of these states: Done, Failed, Needs you, Scheduled, Running, Testing, Paused or
+Nothing to do.
 
-An item has a short header (status, **Run now**, **Pause**), its brief, and three tabs:
+## A task
 
-- **Runs**: every run with what it did, what it cost, and, for a plan, each step.
-- **Plan**: the fixed steps the work follows (see below).
-- **Settings**: how it starts, who it is shared with, its budget, and every change made to it.
+A task opens as a page of its own. From top to bottom:
 
-### A plan: fixed steps instead of AI every time
+- its state, name and the buttons **Run for real now**, **Pause** and **Share**. A button that cannot be
+  used says why;
+- what **needs you**, or what it is doing right now, or its latest result;
+- **Settings**: four rows that always show their current value and open in place;
+- **Steps**, **People** and **History**.
 
-Work that is the same every time does not need an AI to work it out again. **Make a plan** lets Cowork
-draft fixed steps from your brief: read the mail, filter, look up the order table, write a draft. Only
-where judgement or writing is needed is there an AI step. You see in plain words what the plan may
-read, change and send, and you approve it. A plan that later wants to do more asks again.
+### Settings: What, When, Uses, Sends to
 
-- **Try it first** runs the plan on today's data without changing or sending anything.
-- Work that **starts on a new mail** can have a plan too. It saves a draft answer to the sender in your
-  mailbox; you read it and send it. A plan never sends an answer by itself.
-- **Make it routine**: after a few runs, Cowork can propose a plan from what those runs did, and shows
-  side by side that the plan finds the same items.
+Everything about one task is under the same four questions the card asked at the start.
 
-- **Replay on last month**: after you change a plan, replay it on what the earlier runs read. A replay
-  touches no app at all; it shows per run whether the new plan comes out the same, and says so plainly when
-  a run could not be replayed.
+- **What**: its name, the sentence, and a **target to track**.
+- **When**: its schedule, or what starts it: by hand, on a new mail, after another task, on a webhook,
+  when a row is added to a table, or when a file lands in a folder. Text that arrives from outside (a
+  mail, a webhook, a file) can fill the content of what Cowork writes, never who receives it or where
+  it goes.
+- **Uses**: the apps, how it works (the AI each time, an agent, or fixed steps), **what it remembers**
+  between runs, and its **spending limit**.
+- **Sends to**: who receives the result, and one choice for when it asks you:
+  **Ask me before every change or message**, **Show me each message first**, or **Don't ask** (offered
+  after ten good runs). After you let the same message to the same recipient through five times, Cowork
+  offers to let that one go on its own; one stop takes that away again.
 
-### A goal, measured every run
+### Steps: fixed steps instead of AI every time
 
-Give an item a goal in one sentence, such as "every supplier mail gets an answer within two working
+Work that is the same every time does not need an AI to work it out again. Cowork drafts fixed steps
+from your sentence (read the mail, filter, look up the order table, write a draft), with an AI step only
+where judgement or writing is needed. Before you see them, Cowork tests the steps itself and repairs
+what it can, such as a step that would run before the step it reads from.
+
+- The first time, you see **what the test produced** and who each sending step reaches, in plain words,
+  and you choose **Approve** or **Change something**. Steps that later want to do more ask again.
+- **Test, sends nothing** runs the steps on today's data without changing or sending anything.
+- **Compare with last month** runs changed steps on what the earlier runs read. It touches no app at
+  all, shows per run whether the outcome is the same, and says so plainly when a run could not be
+  compared.
+- Work that **starts on a new mail** can have fixed steps too. It saves a draft answer to the sender in
+  your mailbox; you read it and send it. It never sends an answer by itself.
+- When setting up the steps does not work, Cowork does not quietly switch to another way of working.
+  A card under **Needs you** says so and gives you the choice: **Try setting up again**, or **Let the AI
+  work it out every run**, which you can undo.
+
+### When something goes wrong
+
+A failed run is always a card under **Needs you**, on the home and on the task alike. It names the step
+and the cause in plain words and offers one action: sign in again, fix it, or look at what is wrong.
+What Cowork can repair without widening what the task may do, it repairs itself, tests, and reports with
+**Undo**. The raw message is under **Technical details**.
+
+### A target to track
+
+Give a task a target in one sentence, such as "every supplier mail gets an answer within two working
 days". Cowork drafts a small check for it, made of steps that only read and count; you approve the check,
-and after every run the item shows how it stands ("46 of 49 this week"), on its row, in Today and in the
-daily e-mail. Public holidays count as working days.
+and after every run the task shows how it stands ("46 of 49 this week"), on its row and in the morning
+e-mail. Public holidays count as working days.
 
-### How independent it may be
+### Spending limit
 
-Choose per item: **ask me about everything**, **ask before anything leaves Bee Flow**, or **on its
-own** (offered after ten good runs). A question waits under **Needs you**; the rest of the run waits
-with it. After you let the same step to the same recipient through five times, Cowork offers to let
-that one step go on its own. One stop takes that away again.
+Give a task a monthly AI limit in euros; at the limit it pauses itself and tells you. Testing, comparing
+and having steps made count against the limit too.
 
-### How it starts
+### People
 
-On a schedule, by hand, on a new mail, after another cowork, on a webhook, when a row is added to a
-table, or when a file lands in a folder. Text that arrives from outside (a mail, a webhook, a file) can
-fill the content of what Cowork writes, never who receives it or where it goes.
+- **Share** a task with colleagues of your organisation: they can see it and its runs, and one of them
+  can decide its questions. It keeps running as you, and only you change it.
+- **Send each result to a colleague's task**: the colleague accepts once; their task then starts after
+  yours, as them, with their own connections. Only the result goes on, and at most three tasks in a row
+  pass work along. **Teamwork** on the Cowork home sets this up for several people at once from one
+  description ("When my supplier mails are done, Ben checks the invoices. Questions go to purchasing:
+  Ben, or Lena when he is away."). It only proposes: a colleague's task joins when they accept it.
+- **Save as template / Export as file**: a template lets colleagues start from your task under **Start
+  from a template**. The file is signed and can be added on another Bee Flow: the signature is checked,
+  what its steps may do is worked out again, and the new task starts paused, waiting for approval.
+- **Give this task away**: a colleague becomes its owner and approves its steps again before it runs
+  as them.
 
-### Sharing and handing over
+### History
 
-Under **Settings → People** you can share an item with colleagues of your organisation: they can see
-it and its runs, and one of them can decide its questions. It keeps running as you, and only you change
-it. **Hand over** gives the item to a colleague; they approve its plan again before it runs as them.
+- **Runs**: every run, with what it did in plain words.
+- **Changes**: every change to the task, with **Restore** for an earlier version of its steps.
+- **Proof of each run**: every finished run leaves a receipt of which steps it ran, what it was allowed
+  to do, who approved it and what it did, in names and counts, never what it read or wrote. Receipts are
+  signed and chained, so a missing or changed one shows; you can download the chain for an audit.
+- **Delete this task** is at the very bottom.
 
-### Work together
+## Cowork preferences
 
-Coworks of different people can hand their results to each other on a **desk**. The easiest way in is
-the **Teamwork helper**: under **Settings → People**, choose **Help me set this up** (or **Set up
-teamwork** on the Cowork home) and write what should happen, for example "When my supplier mails are
-done, Ben checks the invoices. Questions go to purchasing: Ben, or Lena when he is away." The helper
-proposes the desk in a few sentences; change any part with its dropdown, then choose **Set it up**.
+Everything about you, for all your tasks:
 
-The helper only proposes; setting up follows the desk's rules. A colleague's cowork joins only when
-they accept it, it starts after yours only when they choose that, and a colleague's results reach your
-cowork only once they allow it. At most three hand-offs in a row go from one person to another. Each
-cowork keeps running as its own owner, with its own connections; only the result goes on. The result
-screen says what is done and what waits for whom. Everything else (more roles, away until, taking a
-cowork off) is under **All settings**.
-
-### Budget
-
-Give an item a monthly AI budget in euros; at the budget it pauses itself and tells you. Trying a plan,
-replaying it and having one made count against the budget too.
-
-### Receipts
-
-Every finished run leaves a receipt: which plan it ran, what it was allowed to do, who approved it and
-what it did, in names and counts, never what it read or wrote. Receipts are signed and chained, so a
-missing or changed one shows. An opened run shows its receipt; **Settings → Changes** says whether the
-chain holds and lets you download it for an audit.
-
-### Templates and package files
-
-**Save as template** (Settings → People) shares a cowork with your organisation; colleagues start from
-it under **Start from a template**. A template can also be downloaded as a signed file and added on
-another Bee Flow with **Add from a file**: the signature is checked, what its plan may do is worked out
-again, and the new item starts paused, with its plan waiting for your approval.
-
-### It notices what you repeat
-
-Switch on **Notice what I ask again and again** at the foot of the Cowork home. When you ask the same
-kind of thing in chat on the same weekday four weeks in a row, Cowork offers once to do it for you. It
-keeps only which apps a chat used and on which weekday, never what you asked; switching it off forgets
-it all.
+- **E-mail me each morning what needs me**.
+- **Suggest a task when I repeat a question**: when you ask the same kind of thing in chat on the same
+  weekday four weeks in a row, Cowork offers once to do it for you. It keeps only which apps a chat used
+  and on which weekday, never what you asked; switching it off forgets it all.
 
 ## For administrators
 
-Under **Security → Privacy Shield → Processing**, an organisation administrator sets, for every cowork
-of the organisation:
+**Admin rules** on the Cowork home (also under **Security → Privacy Shield → Processing**) holds what
+applies to every task of the organisation:
 
-- **Make every cowork read-only**: nothing runs, nothing changes, until switched off.
-- **How independent a cowork may be**: a ceiling on the levels above.
-- **Apps a cowork may use while nobody watches**: other apps are left out of every run.
-- **Monthly AI budget for all coworks**: at it, coworks stop running until the next month; you are
-  told once.
-- **Let people switch on "notice what I repeat"**: switch it off to stop it for everyone.
-- **Download the trail**: every change to a cowork in the organisation, without what the work says.
+- **Make every task read-only**: nothing runs, nothing changes, until switched off.
+- **How much a task may do without asking**: a ceiling on the "Ask me" choice above.
+- **Apps tasks may use without asking**: other apps are left out of every run.
+- **Monthly AI limit for all tasks**: at it, tasks stop running until the next month; you are told once.
+- **Let people switch on "Suggest a task when I repeat a question"**: switch it off to stop it for
+  everyone.
+- **Download the trail**: every change to a task in the organisation, without what the work says.
 
 ## Privacy
 
-A cowork runs as its owner and reaches only what its owner connected. What it sends without a send step
-reaches its owner alone. The Privacy Shield is on for prompt runs. The daily e-mail goes only to the
+A task runs as its owner and reaches only what its owner connected. What it sends without a send step
+reaches its owner alone. The Privacy Shield is on for prompt runs. The morning e-mail goes only to the
 owner, and the trail records who changed what, never the content of the work.
