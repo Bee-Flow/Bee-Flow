@@ -20,6 +20,7 @@ import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
 import { takeHandedBrief } from './coworkHandedBrief';
 import CoworkComposer from './CoworkComposer';
+import CoworkComposeCard from './CoworkComposeCard';
 import CoworkDetail from './CoworkDetail';
 import CoworkHome from './CoworkHome';
 import CoworkHomePane from './CoworkHomePane';
@@ -82,7 +83,9 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
         if (initialCoworkId) setSelectedId(initialCoworkId);
     }, [initialCoworkId]);
 
+    // One confirmation before anything exists: what the composer worked out waits as a card (./CoworkComposeCard.tsx).
     const cowork = useCoworkComposer({
+        confirm: true,
         weeklyOn: handed.weekday,
         onCreated: (created, payload) => {
             setBrief('');
@@ -208,6 +211,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                 minRows={2}
                 textareaRef={textareaRef}
             />
+            <CoworkComposeCard cowork={cowork} />
 
             {/* Page-level status: the load error, the "off it goes" flash and
                 the quota ceiling. The composer shows its own create errors.

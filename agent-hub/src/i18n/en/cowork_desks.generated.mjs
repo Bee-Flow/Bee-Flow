@@ -7,6 +7,7 @@
 
 export default {
     "cowork_desks.accept": "Accept",
+    "cowork_desks.accept_and_start": "Accept, and start \"{title}\" after {owner}'s \"{after}\"",
     "cowork_desks.choose": "Desk to put it on",
     "cowork_desks.choose_none": "Choose a desk",
     "cowork_desks.create": "Make a desk with it",
@@ -25,6 +26,7 @@ export default {
     "cowork_desks.home.heading": "Desks",
     "cowork_desks.home.made_by_you": "made by you",
     "cowork_desks.invitation": "{name} invited this cowork to the desk \"{desk}\". It joins only when you accept; it keeps running as you.",
+    "cowork_desks.invitation_start": "{name} invited this cowork to the desk \"{desk}\". Accepting starts it after {owner}'s \"{after}\", and it gets only the result of that run; it keeps running as you.",
     "cowork_desks.invited": "invited",
     "cowork_desks.join": "Put it on this desk",
     "cowork_desks.leave": "Take it off the desk",
@@ -32,6 +34,8 @@ export default {
     "cowork_desks.new_name": "Name of a new desk",
     "cowork_desks.new_placeholder": "For example: Invoices",
     "cowork_desks.on": "On the desk \"{desk}\".",
+    "cowork_desks.planned_applied": "Accepted. It starts after \"{after}\" now.",
+    "cowork_desks.planned_refused": "Accepted. It could not start after \"{after}\": {reason}",
     "cowork_desks.remove_desk": "Remove the desk",
     "cowork_desks.roles.add": "Add a role",
     "cowork_desks.roles.away": "Holder of {role} away until",

@@ -62,6 +62,29 @@ describe('CoworkDeskPanel', () => {
         await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/desks/d1/members/w1'))).toBe(true));
     });
 
+    it('an invitation that carries its start is accepted with one click, which says what it does', async () => {
+        let accepted = false;
+        calls = stubRecordingFetch(({ method, url }) => {
+            if (method === 'POST' && url.endsWith('/desks/d1/members/w1/accept')) {
+                accepted = true;
+                return jsonResponse({ ...VIEW, plannedStart: { afterTitle: 'Answer supplier mails', applied: false, reason: 'That cowork is no longer on the desk.' } });
+            }
+            if (url.endsWith('/api/cowork/w1/desk')) {
+                return jsonResponse({ desk: { id: 'd1', name: 'Invoices', accepted, deskRole: null, invitedBy: 'Ann', plannedAfter: accepted ? null : { id: 'radar', title: 'Answer supplier mails', ownerName: 'Ann' } } });
+            }
+            return jsonResponse(VIEW);
+        });
+        renderWithClient(<CoworkDeskPanel coworkId="w1" title="Invoice check" />);
+        const user = userEvent.setup();
+        expect(await screen.findByTestId('cowork-desk-invitation')).toHaveTextContent('Accepting starts it after Ann\'s "Answer supplier mails"');
+        await user.click(screen.getByRole('button', { name: 'Accept, and start "Invoice check" after Ann\'s "Answer supplier mails"' }));
+        await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1));
+        expect(calls.some((c) => c.method === 'PUT' && c.url.includes('/start'))).toBe(false);
+        // A start that was refused leaves the acceptance standing, and says why.
+        expect(await screen.findByTestId('cowork-desk-planned')).toHaveTextContent('Accepted. It could not start after "Answer supplier mails": That cowork is no longer on the desk.');
+        await screen.findByTestId('cowork-desk-on');
+    });
+
     it('on a desk: the coworks in the order work moves, the role that decides its questions, and leaving', async () => {
         serve({ id: 'd1', name: 'Invoices', accepted: true, deskRole: null, invitedBy: null });
         renderWithClient(<CoworkDeskPanel coworkId="w1" />);

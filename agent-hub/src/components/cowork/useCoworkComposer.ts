@@ -11,6 +11,11 @@
  * Whatever the user set by hand wins. Each chip records that it was touched,
  * and a touched chip is never overwritten by the composer — the AI fills in
  * the blanks, it does not overrule a decision the user already made.
+ *
+ * With `confirm`, nothing is created on send: what was worked out waits as a
+ * `draft`, shown as one plain card (./CoworkComposeCard.tsx). `start()`
+ * creates it; `change()` puts it back into the chips to adjust, and the next
+ * send keeps what the card showed unless a chip is changed.
  */
 import { useCallback, useState } from 'react';
 import { useCoworkAgents } from '@/api/queries/coworkReads';
@@ -33,7 +38,18 @@ export interface UseCoworkComposerOptions {
     /** Start set to run every week on this weekday (0 Sunday … 6 Saturday), at 09:00: "You ask this every Monday". */
     weeklyOn?: number | null;
     onCreated?: (created: CoworkItem, payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null) => void;
+    /** Show what was worked out for one confirmation (Start or Change) before anything is created. */
+    confirm?: boolean;
 }
+
+/** A cowork worked out from a brief that waits for its one confirmation. */
+export interface CoworkDraft {
+    payload: CoworkPayload | CoworkTriggerPayload;
+    spec: CoworkSpec | null;
+}
+
+/** The days and time a draft carried that the chips cannot show; kept for the next send until a chip changes. */
+type Carried = Pick<CoworkPayload, 'daysOfWeek' | 'timeOfDay'> | null;
 
 interface Touched {
     when: boolean;
@@ -62,6 +78,12 @@ export interface UseCoworkComposerReturn {
     summary: string;
     submit: (brief: string, opts?: { modelTier?: string }) => Promise<CoworkItem | null>;
     reset: () => void;
+    /** With `confirm`: what waits for Start or Change; null otherwise. */
+    draft: CoworkDraft | null;
+    /** Create the draft. */
+    start: () => Promise<CoworkItem | null>;
+    /** Put the draft back into the chips to adjust it, and close the card. */
+    change: () => void;
 }
 
 const DEFAULT_WHEN: WhenState = { presetId: 'now', date: '', time: '' };
@@ -74,7 +96,23 @@ function weeklyStart(weekday: number | null | undefined): WhenState | null {
     return first ? { presetId: 'custom', date: toDateInput(first), time: toTimeInput(first) } : null;
 }
 
-export default function useCoworkComposer({ enabled = true, weeklyOn = null, onCreated }: UseCoworkComposerOptions = {}): UseCoworkComposerReturn {
+const isTriggerPayload = (payload: CoworkPayload | CoworkTriggerPayload): payload is CoworkTriggerPayload => 'triggerKind' in payload && payload.triggerKind === 'app_event';
+
+/** The when-chip of a draft's first run: now, or that moment. */
+function whenOfDraft(payload: CoworkPayload | CoworkTriggerPayload): WhenState {
+    if (!('nextRunAt' in payload) || payload.startNow) return DEFAULT_WHEN;
+    const first = new Date(payload.nextRunAt);
+    return Number.isNaN(first.getTime()) ? DEFAULT_WHEN : { presetId: 'custom', date: toDateInput(first), time: toTimeInput(first) };
+}
+
+/** What a create call refused, as the sentence under the box. */
+function createError(err: unknown, t: ReturnType<typeof useTranslation>['t']): string {
+    return (err as CoworkRequestError)?.code === 'mail_not_connected'
+        ? t('cowork.mail_trigger.error_not_connected', 'That mail account is not connected. Connect it in Settings → Connections and try again.')
+        : messageOf(err, t('cowork.error.create_failed', 'Could not create this work'));
+}
+
+export default function useCoworkComposer({ enabled = true, weeklyOn = null, onCreated, confirm = false }: UseCoworkComposerOptions = {}): UseCoworkComposerReturn {
     // The two errors this hook raises itself are shown in the composer, so they
     // are copy like any other. A server-sent `err.message` is NOT translated
     // here — it is the server's sentence, and inventing a key per message would
@@ -94,6 +132,8 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
     const [error, setError] = useState<string | null>(null);
     // Which chips the user (or the surrounding chat) decided for themselves.
     const [touched, setTouched] = useState<Touched>({ when: !!weekly, repeat: !!weekly, agent: false });
+    const [draft, setDraft] = useState<CoworkDraft | null>(null);
+    const [carried, setCarried] = useState<Carried>(null);
 
     const ent = useEntitlements() as { loading: boolean; can: (id: string) => boolean };
     // Handing work to an agent is the same beta the server gates POST on — no
@@ -108,10 +148,12 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
     // mean that agent — the composer must not reassign it.
     const setWhen = useCallback((value: WhenState) => {
         setWhenState(value);
+        setCarried(null);
         setTouched(t => (t.when ? t : { ...t, when: true }));
     }, []);
     const setRepeatInterval = useCallback((value: string) => {
         setRepeatState(value);
+        setCarried(null);
         setTouched(t => (t.repeat ? t : { ...t, repeat: true }));
     }, []);
     const setAgentId = useCallback((value: string) => {
@@ -129,7 +171,21 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         setMailTrigger(null);
         setTouched({ when: false, repeat: false, agent: false });
         setError(null);
+        setDraft(null);
+        setCarried(null);
     }, []);
+
+    /** Create what was worked out, or hold it for its one confirmation. */
+    const finish = useCallback(async (payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null) => {
+        if (confirm) {
+            setDraft({ payload, spec });
+            return null;
+        }
+        const created = await createCowork(payload);
+        reset();
+        if (onCreated) onCreated(created, payload, spec);
+        return created;
+    }, [confirm, reset, onCreated]);
 
     // 'custom' with empty inputs is the one unschedulable state — block send
     // rather than silently falling back to "now".
@@ -157,10 +213,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
                     trigger: normaliseMailTrigger(mailTrigger),
                     ...(Array.isArray(enabledApps) ? { enabledApps } : {}),
                 };
-                const created = await createCowork(payload);
-                reset();
-                if (onCreated) onCreated(created, payload, null);
-                return created;
+                return await finish(payload, null);
             }
             // A composer failure must never cost the user their work — fall
             // back to their own words, which is what they got before this
@@ -173,7 +226,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
 
             const useRepeat = touched.repeat ? repeatInterval : (spec?.repeatInterval || '');
             const useAgent = touched.agent ? agentId : (spec?.agentId || '');
-            const useDays = touched.when ? null : (spec?.daysOfWeek || null);
+            const useDays = carried?.daysOfWeek ?? (touched.when ? null : (spec?.daysOfWeek || null));
 
             // A composed time becomes a concrete first run: the next one that
             // has not happened yet, so a daily 08:00 job created at 09:00
@@ -194,7 +247,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
                 time: useWhen.time,
                 repeatInterval: useRepeat,
                 daysOfWeek: useDays,
-                timeOfDay: !touched.when ? (spec?.timeOfDay || null) : null,
+                timeOfDay: carried?.timeOfDay ?? (!touched.when ? (spec?.timeOfDay || null) : null),
                 // An agent brings its own model, so the tier is only meaningful
                 // for agent-less work (the server ignores it otherwise).
                 modelTier: useAgent ? 'auto' : modelTier,
@@ -203,19 +256,47 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
             });
             if (!payload) { setError(t('cowork.error.pick_moment', 'Pick a date and time first.')); return null; }
 
-            const created = await createCowork(payload);
-            reset();
-            if (onCreated) onCreated(created, payload, spec);
-            return created;
+            return await finish(payload, spec);
         } catch (err) {
-            setError((err as CoworkRequestError)?.code === 'mail_not_connected'
-                ? t('cowork.mail_trigger.error_not_connected', 'That mail account is not connected. Connect it in Settings → Connections and try again.')
-                : messageOf(err, t('cowork.error.create_failed', 'Could not create this work')));
+            setError(createError(err, t));
             return null;
         } finally {
             setSubmitting(false);
         }
-    }, [when, repeatInterval, agentId, enabledApps, mailTrigger, touched, submitting, reset, onCreated, t]);
+    }, [when, repeatInterval, agentId, enabledApps, mailTrigger, touched, submitting, carried, finish, t]);
+
+    const start = useCallback(async () => {
+        if (!draft || submitting) return null;
+        setSubmitting(true);
+        setError(null);
+        try {
+            const created = await createCowork(draft.payload);
+            reset();
+            if (onCreated) onCreated(created, draft.payload, draft.spec);
+            return created;
+        } catch (err) {
+            setError(createError(err, t));
+            return null;
+        } finally {
+            setSubmitting(false);
+        }
+    }, [draft, submitting, reset, onCreated, t]);
+
+    // Back to the chips, holding what the card showed: the next send keeps it unless a chip is changed.
+    const change = useCallback(() => {
+        if (!draft) return;
+        const { payload } = draft;
+        if (!isTriggerPayload(payload)) {
+            setWhenState(whenOfDraft(payload));
+            setRepeatState(payload.repeatInterval || '');
+            setCarried(payload.daysOfWeek || payload.timeOfDay ? { daysOfWeek: payload.daysOfWeek, timeOfDay: payload.timeOfDay } : null);
+            setTouched((was) => ({ ...was, when: true, repeat: true }));
+        }
+        if (payload.agentId) setAgentState(payload.agentId);
+        setTouched((was) => ({ ...was, agent: was.agent || !!payload.agentId }));
+        setError(null);
+        setDraft(null);
+    }, [draft]);
 
     return {
         when, setWhen,
@@ -229,5 +310,6 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         scheduleReady,
         summary: mailTrigger ? describeMailTrigger(mailTrigger, t) : describeSchedule({ presetId: when.presetId, runAt: resolveWhen(when.presetId, when), repeatInterval }),
         submit, reset,
+        draft, start, change,
     };
 }

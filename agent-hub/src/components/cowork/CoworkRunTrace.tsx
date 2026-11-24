@@ -28,7 +28,7 @@ export function RunTraceView({ trace, t }: { trace: PlanRunTrace; t: TranslateFn
                     {t('cowork_plan.trace.not_recorded', 'The steps of this run were not recorded, or are no longer kept.')}
                 </p>
             )}
-            {trace.recorded && <CoworkPlanSteps steps={trace.steps} t={t} />}
+            {trace.recorded && <CoworkPlanSteps steps={trace.steps} t={t} folded />}
         </div>
     );
 }

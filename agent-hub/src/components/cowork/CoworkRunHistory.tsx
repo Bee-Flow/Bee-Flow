@@ -96,9 +96,15 @@ function startedByLine(triggerKind: string | undefined, t: (key: string | undefi
     return t('cowork.history.started_on_schedule', 'Started on schedule');
 }
 
-function RunRow({ run, coworkId, agentId, title }: { run: CoworkRun; coworkId: string; agentId?: string | null; title: string }) {
+/** The closed row's line on its own, for the item's Overview (./CoworkOverview.tsx): the same words as here. */
+export function RunOutcomeText({ run }: { run: CoworkRun }) {
+    const { t } = useTranslation();
+    return <>{outcomeLine(run, t)}</>;
+}
+
+function RunRow({ run, coworkId, agentId, title, startOpen = false }: { run: CoworkRun; coworkId: string; agentId?: string | null; title: string; startOpen?: boolean }) {
     const { t, locale } = useTranslation();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(startOpen);
     const status = runStatusToken(run.status);
     // Neutral states carry no token of their own; tertiary grey is what "this
     // state makes no claim" looks like — the same rule as the list rows.
@@ -257,9 +263,11 @@ interface CoworkRunHistoryProps {
     agentId?: string | null;
     /** The item's title, for the conversation it opens. */
     title?: string;
+    /** A run to show opened (a link from the Overview). */
+    openRunId?: string | null;
 }
 
-export default function CoworkRunHistory({ coworkId, reloadKey, agentId = null, title = '' }: CoworkRunHistoryProps) {
+export default function CoworkRunHistory({ coworkId, reloadKey, agentId = null, title = '', openRunId = null }: CoworkRunHistoryProps) {
     const { t } = useTranslation();
     // State carries the key it was fetched for, so "is this stale?" is derived
     // rather than announced by a setState in the effect body. Switching items
@@ -294,7 +302,7 @@ export default function CoworkRunHistory({ coworkId, reloadKey, agentId = null, 
     } else {
         body = (
             <div data-testid="cowork-run-list">
-                {state.runs.map(run => <RunRow key={run.id} run={run} coworkId={coworkId} agentId={agentId} title={title} />)}
+                {state.runs.map(run => <RunRow key={run.id} run={run} coworkId={coworkId} agentId={agentId} title={title} startOpen={run.id === openRunId} />)}
                 {state.total > state.runs.length && (
                     <p className="text-[11px] px-3.5 py-2.5 text-[var(--text-tertiary)]">
                         {t(

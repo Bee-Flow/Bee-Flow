@@ -75,6 +75,8 @@ function seed(items = []) {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    // The detail tests read the run history under Advanced: their viewer had it open (./coworkView.ts).
+    window.localStorage.setItem('bee-flow.cowork.advanced', '1');
     seed();
     api.createCowork.mockResolvedValue({ id: 'new', title: 'Send the digest' });
     api.listCoworkAgents.mockResolvedValue([]);
@@ -116,6 +118,8 @@ describe('CoworkPage — creating', () => {
             target: { value: 'Send the digest\nwith source links' },
         });
         await user.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         await waitFor(() => expect(api.createCowork).toHaveBeenCalledTimes(1));
         const payload = api.createCowork.mock.calls[0][0];
@@ -146,6 +150,8 @@ describe('CoworkPage — creating', () => {
         expect(screen.getByTestId('cowork-send')).toHaveTextContent('Schedule');
 
         await user.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
         await waitFor(() => expect(api.createCowork).toHaveBeenCalled());
         const payload = api.createCowork.mock.calls[0][0];
         expect(payload.repeatInterval).toBe('weekly');
@@ -176,6 +182,8 @@ describe('CoworkPage — creating', () => {
 
         await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Do the thing');
         await user.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         expect(await screen.findByText(/Maximum number of cowork items reached/)).toBeInTheDocument();
         expect(screen.getByTestId('cowork-brief-input')).toHaveValue('Do the thing');
@@ -197,6 +205,8 @@ describe('CoworkPage — creating', () => {
 
         await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await user.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         await waitFor(() => expect(api.createCowork).toHaveBeenCalled());
         expect(api.createCowork.mock.calls[0][0].modelTier).toBe('thinking');
@@ -224,6 +234,8 @@ describe('CoworkPage — creating', () => {
 
         await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await user.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         expect(await screen.findByTestId('cowork-detail')).toBeInTheDocument();
     });
@@ -734,6 +746,8 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
 
         await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await userEvent.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         const flash = await screen.findByText('Off it goes — the result lands in your notifications.');
         expect(flash.getAttribute('role')).toBe('status');
@@ -749,6 +763,8 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         await userEvent.click(screen.getByTestId('cowork-when-chip'));
         await userEvent.click(screen.getByText('Tomorrow morning'));
         await userEvent.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         expect(await screen.findByText('Scheduled.')).toBeInTheDocument();
     });
@@ -761,6 +777,8 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
             await screen.findByTestId('cowork-brief-input');
             await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
             await user.click(screen.getByTestId('cowork-send'));
+            // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+            await userEvent.click(await screen.findByTestId('cowork-compose-start'));
             await screen.findByText('Off it goes — the result lands in your notifications.');
 
             // The timer is armed in an effect after the render that shows the
@@ -788,6 +806,8 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
 
         await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await userEvent.click(screen.getByTestId('cowork-send'));
+        // One confirmation: the card that says what was worked out (./CoworkComposeCard.tsx).
+        await userEvent.click(await screen.findByTestId('cowork-compose-start'));
 
         await screen.findByTestId('cowork-detail');
         expect(screen.queryByText(/Off it goes/)).not.toBeInTheDocument();

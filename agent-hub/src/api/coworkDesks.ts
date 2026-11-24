@@ -5,7 +5,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiJson } from './typedRequest';
 
 export interface DeskSummary { id: string; name: string; isOwner: boolean }
-export interface ItemDesk { id: string; name: string; accepted: boolean; deskRole: string | null; invitedBy: string | null }
+export interface ItemDesk {
+    id: string; name: string; accepted: boolean; deskRole: string | null; invitedBy: string | null;
+    /** An invitation that carries its start: accepting starts it after this cowork of the desk (absent from an older server). */
+    plannedAfter?: { id: string; title: string; ownerName: string } | null;
+}
+/** How the start an accepted invitation carried went: applied, or refused with the reason; the acceptance stands either way. */
+export interface PlannedStart { afterTitle: string; applied: boolean; reason: string | null }
 export interface DeskMember {
     scheduleId: string; title: string; ownerName: string; mine: boolean; accepted: boolean; after: string | null;
     lastStatus: string | null; lastRunAt: string | null; deskRole: string | null;
@@ -58,9 +64,9 @@ export function useDeskView(deskId: string | null) {
 }
 
 /** A change to a desk; afterwards every desk read is read again. */
-function useDeskChange<V>(fn: (vars: V) => Promise<unknown>) {
+function useDeskChange<V, R = unknown>(fn: (vars: V) => Promise<R>) {
     const client = useQueryClient();
-    return useMutation<unknown, Error, V>({
+    return useMutation<R, Error, V>({
         mutationFn: fn,
         onSuccess: () => { void client.invalidateQueries({ queryKey: DESKS_KEY }); },
     });
@@ -76,7 +82,7 @@ export function useItemDeskActions(coworkId: string) {
             const made = await apiJson<'POST /api/cowork/desks', DeskView>('POST /api/cowork/desks', { body: { name } });
             return add(made.desk.id);
         }),
-        accept: useDeskChange<string>((deskId) => apiJson('POST /api/cowork/desks/{id}/members/{scheduleId}/accept', { params: params(deskId), body: {} })),
+        accept: useDeskChange<string, { plannedStart?: PlannedStart | null }>((deskId) => apiJson<'POST /api/cowork/desks/{id}/members/{scheduleId}/accept', { plannedStart?: PlannedStart | null }>('POST /api/cowork/desks/{id}/members/{scheduleId}/accept', { params: params(deskId), body: {} })),
         leave: useDeskChange<string>((deskId) => apiJson('DELETE /api/cowork/desks/{id}/members/{scheduleId}', { params: params(deskId) })),
         chooseRole: useDeskChange<{ deskId: string; deskRole: string | null }>(({ deskId, deskRole }) => apiJson('PUT /api/cowork/desks/{id}/members/{scheduleId}', { params: params(deskId), body: { deskRole } })),
     };

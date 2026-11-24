@@ -25,7 +25,9 @@ interface CoworkTabsProps {
     label: string;
 }
 
-const STORAGE_PREFIX = 'bee-flow.cowork.tab.';
+/** Where the chosen tab of an item is kept; a link into a tab (./coworkView.ts) writes it before the tabs mount. */
+export const TAB_STORAGE_PREFIX = 'bee-flow.cowork.tab.';
+const STORAGE_PREFIX = TAB_STORAGE_PREFIX;
 
 function readStored(scope: string): string | null {
     try {

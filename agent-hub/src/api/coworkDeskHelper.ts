@@ -26,6 +26,8 @@ type HelperNoteKind = 'desk_made' | 'added' | 'starts_after' | 'role_set' | 'inv
 export interface HelperNote {
     kind: HelperNoteKind;
     title?: string; afterTitle?: string; who?: string; role?: string; holderName?: string; standInName?: string | null; reason?: string; allowedByYou?: boolean;
+    /** their_start: the invitation carries the start, so accepting it is all the colleague does. */
+    planned?: boolean;
 }
 export interface HelperResult { deskId: string; done: HelperNote[]; waiting: HelperNote[] }
 

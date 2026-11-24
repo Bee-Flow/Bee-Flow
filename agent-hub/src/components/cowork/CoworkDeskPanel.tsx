@@ -10,7 +10,7 @@ import { Network } from 'lucide-react';
 import CoworkDeskChain from './CoworkDeskChain';
 import CoworkDeskRoles from './CoworkDeskRoles';
 import CoworkTeamworkHelper from './CoworkTeamworkHelper';
-import { useDeskView, useItemDesk, useItemDeskActions, useMyDesks, type DeskMember, type ItemDesk } from '@/api/coworkDesks';
+import { useDeskView, useItemDesk, useItemDeskActions, useMyDesks, type DeskMember, type ItemDesk, type PlannedStart } from '@/api/coworkDesks';
 import { useCoworkStart } from '@/api/coworkStart';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
@@ -53,17 +53,49 @@ function Join({ actions, t }: { actions: Actions; t: TranslateFn }) {
     );
 }
 
-/** Invited by the desk's maker: it joins only when I accept. */
-function Invitation({ desk, actions, t }: { desk: ItemDesk; actions: Actions; t: TranslateFn }) {
+/** How the start an accepted invitation carried went: it starts after that cowork now, or why not (accepted either way). */
+export function PlannedStartLine({ planned }: { planned: PlannedStart }) {
+    const { t } = useTranslation();
+    return planned.applied
+        ? <p role="status" className="text-[12px] text-[var(--text-secondary)]" data-testid="cowork-desk-planned">{t('cowork_desks.planned_applied', 'Accepted. It starts after "{after}" now.', { after: planned.afterTitle })}</p>
+        : <p role="alert" className="text-[12px] text-[var(--error-ink)]" data-testid="cowork-desk-planned">{t('cowork_desks.planned_refused', 'Accepted. It could not start after "{after}": {reason}', { after: planned.afterTitle, reason: planned.reason ?? '' })}</p>;
+}
+
+interface InvitationProps {
+    coworkId: string;
+    title: string;
+    desk: ItemDesk;
+    /** Told how the carried start went, once accepted. */
+    onAccepted?: (planned: PlannedStart | null) => void;
+}
+
+/**
+ * Invited by the desk's maker: it joins only when I accept. An invitation that carries its start says so, and one
+ * click accepts it and starts it after that cowork (server/usecases/coworkDesks.mts acceptOnDesk). Shown in the
+ * item's "Needs you" strip (./CoworkDetail.tsx) and on the desk panel here.
+ */
+export function CoworkDeskInvitation({ coworkId, title, desk, onAccepted }: InvitationProps) {
+    const { t } = useTranslation();
+    const actions = useItemDeskActions(coworkId);
+    const name = desk.invitedBy ?? t('cowork_desks.someone', 'Someone');
+    const after = desk.plannedAfter ?? null;
+    const accept = () => actions.accept.mutate(desk.id, { onSuccess: (result) => onAccepted?.(result?.plannedStart ?? null) });
     return (
         <div className="flex flex-col gap-2" data-testid="cowork-desk-invitation">
             <p className="text-[12px] text-[var(--text-secondary)]">
-                {t('cowork_desks.invitation', '{name} invited this cowork to the desk "{desk}". It joins only when you accept; it keeps running as you.', { name: desk.invitedBy ?? t('cowork_desks.someone', 'Someone'), desk: desk.name })}
+                {after
+                    ? t('cowork_desks.invitation_start', '{name} invited this cowork to the desk "{desk}". Accepting starts it after {owner}\'s "{after}", and it gets only the result of that run; it keeps running as you.', { name, desk: desk.name, owner: after.ownerName, after: after.title })
+                    : t('cowork_desks.invitation', '{name} invited this cowork to the desk "{desk}". It joins only when you accept; it keeps running as you.', { name, desk: desk.name })}
             </p>
-            <div className="flex gap-2">
-                <button type="button" className={BUTTON} disabled={actions.accept.isPending} onClick={() => actions.accept.mutate(desk.id)}>{t('cowork_desks.accept', 'Accept')}</button>
+            <div className="flex flex-wrap gap-2">
+                <button type="button" className={BUTTON} data-testid="cowork-desk-accept" disabled={actions.accept.isPending} onClick={accept}>
+                    {after
+                        ? t('cowork_desks.accept_and_start', 'Accept, and start "{title}" after {owner}\'s "{after}"', { title: title || t('cowork_needs.untitled', 'Untitled work'), owner: after.ownerName, after: after.title })
+                        : t('cowork_desks.accept', 'Accept')}
+                </button>
                 <button type="button" className={BUTTON} disabled={actions.leave.isPending} onClick={() => actions.leave.mutate(desk.id)}>{t('cowork_desks.decline', 'Decline')}</button>
             </div>
+            <Failure actions={actions} t={t} />
         </div>
     );
 }
@@ -125,7 +157,7 @@ function NoDesk({ actions, t, onHelper, startAll }: { actions: Actions; t: Trans
     );
 }
 
-export default function CoworkDeskPanel({ coworkId }: { coworkId: string }) {
+export default function CoworkDeskPanel({ coworkId, title = '' }: { coworkId: string; title?: string }) {
     const { t } = useTranslation();
     const query = useItemDesk(coworkId);
     const actions = useItemDeskActions(coworkId);
@@ -133,6 +165,7 @@ export default function CoworkDeskPanel({ coworkId }: { coworkId: string }) {
     // While the helper is open it stays, also after it set the desk up: its last screen says what waits for whom.
     const [helper, setHelper] = useState(false);
     const [allSettings, setAllSettings] = useState(false);
+    const [planned, setPlanned] = useState<PlannedStart | null>(null);
     if (helper) return <CoworkTeamworkHelper itemId={coworkId} onClose={() => setHelper(false)} onAllSettings={() => { setHelper(false); setAllSettings(true); }} />;
     return (
         <div data-testid="cowork-desk" className="flex flex-col gap-2">
@@ -144,7 +177,8 @@ export default function CoworkDeskPanel({ coworkId }: { coworkId: string }) {
                 {t('cowork_desks.hint', 'On a desk, coworks of colleagues hand work to each other. Each runs as its own owner, with its own connections: only the result goes on to the next.')}
             </p>
             {query.isSuccess && !desk && <NoDesk actions={actions} t={t} onHelper={() => setHelper(true)} startAll={allSettings} />}
-            {desk && !desk.accepted && <Invitation desk={desk} actions={actions} t={t} />}
+            {desk && !desk.accepted && <CoworkDeskInvitation coworkId={coworkId} title={title} desk={desk} onAccepted={setPlanned} />}
+            {planned && <PlannedStartLine planned={planned} />}
             {desk?.accepted && <OnDesk coworkId={coworkId} desk={desk} actions={actions} t={t} onHelper={() => setHelper(true)} />}
             <Failure actions={actions} t={t} />
         </div>

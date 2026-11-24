@@ -43,6 +43,8 @@
     "cowork_teamwork.note.starts_after": "\"{title}\" start na \"{after}\".",
     "cowork_teamwork.note.their_start": "{who} is gevraagd om in te stemmen. Het start zodra die \"{title}\" accepteert en het na \"{after}\" laat starten.",
     "cowork_teamwork.note.their_start_ask": "{who} is gevraagd om in te stemmen. Het start zodra die \"{title}\" accepteert en het na \"{after}\" laat starten, en de eigenaar van \"{after}\" het toestaat.",
+    "cowork_teamwork.note.their_start_planned": "{who} is gevraagd om in te stemmen. Accepteren zet \"{title}\" op het bureau en laat hem starten na \"{after}\".",
+    "cowork_teamwork.note.their_start_planned_ask": "{who} is gevraagd om in te stemmen. Accepteren zet \"{title}\" op het bureau en laat hem starten na \"{after}\"; hij krijgt die uitkomst zodra de eigenaar van \"{after}\" dat toestaat.",
     "cowork_teamwork.open": "Help me dit in te stellen",
     "cowork_teamwork.person_me": "{name} (jij)",
     "cowork_teamwork.proposal_heading": "Dit zou ik instellen:",

@@ -5,6 +5,9 @@ import CoworkDetail from './CoworkDetail';
 import { queryWrapper } from '../../test/queryWrapper';
 import type { ReactElement } from 'react';
 
+// These tests are about the panels under Advanced: their viewer had it open (remembered per viewer, ./coworkView.ts).
+beforeEach(() => { window.localStorage.setItem('bee-flow.cowork.advanced', '1'); });
+
 // A fresh React Query client per render: the hooks below read through one.
 const render = (ui: ReactElement, options?: RenderOptions<typeof import("@testing-library/dom/types/queries"),HTMLElement,HTMLElement>|undefined) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
 
