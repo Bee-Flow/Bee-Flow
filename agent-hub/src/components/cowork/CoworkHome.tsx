@@ -48,7 +48,7 @@ export default function CoworkHome({ onOpen, reloadKey = 0 }: { onOpen: (itemId:
     return (
         <>
             <CoworkNeedsYou onOpen={onOpen} reloadKey={reloadKey} />
-            {home && <Today entries={home.today} onOpen={onOpen} locale={lang} />}
+            {Array.isArray(home?.today) && <Today entries={home.today} onOpen={onOpen} locale={lang} />}
             <CoworkSharedWithMe />
             {home?.cost && home.cost.calls > 0 && (
                 <p className="mb-4 px-[18px] text-[12px] text-[var(--text-tertiary)]" data-testid="cowork-cost-month">
