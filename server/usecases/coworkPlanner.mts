@@ -203,14 +203,17 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     log.info(`[CoworkPlanner] ${item.id}: drafted ${steps.length} step(s) in ${loop.rounds} round(s) as automation ${automationId}`);
     const tried = deps.tries ? await tryAndRepair({ item, draft, automationId, loop: spec, blockingOf, signal: input.signal, onProgress: input.onProgress }, { ...deps, ...deps.tries }) : undefined;
     if (tried) log.info(`[CoworkPlanner] ${item.id}: ${tried.status} after ${tried.rounds} try-out(s)`);
-    const findings = await blockingOf(draft.def);
-    // A draft its try-outs never reached because of its wiring: Cowork fixes that by itself when it can, and tries it
-    // once. A draft that was tried is not tried again.
-    const repaired = tried && tried.status !== 'passed' && tried.status !== 'failed' && findings.length > 0 && deps.repairWiring
-        ? await deps.repairWiring({ ...item, planAutomationId: automationId }) : null;
-    if (repaired?.outcome === 'fixed') {
-        const fixedTried: TriedPlan = { status: repaired.tried ?? 'untried', summary: null, problems: repaired.notTried ? [repaired.notTried] : [], rounds: tried?.rounds ?? 0 };
-        return { automationId, summary: loop.summary, findings: [], rounds: loop.rounds, tried: fixedTried };
-    }
-    return { automationId, summary: loop.summary, findings, rounds: loop.rounds, ...(tried ? { tried } : {}) };
+    const outcome = await afterTries({ ...item, planAutomationId: automationId }, await blockingOf(draft.def), tried, deps);
+    return { automationId, summary: loop.summary, rounds: loop.rounds, ...outcome };
+}
+
+/**
+ * A draft its try-outs never reached because of a finding: Cowork fixes its wiring by itself when it can, and tries it
+ * once (./coworkPlanWiringRepair.mts). A draft that was tried is not tried again.
+ */
+async function afterTries(item: Item, findings: PlanFinding[], tried: TriedPlan | undefined, deps: PlannerDeps): Promise<Pick<MadePlan, 'findings' | 'tried'>> {
+    const untried = !!tried && tried.status !== 'passed' && tried.status !== 'failed';
+    const repaired = untried && findings.length > 0 && deps.repairWiring ? await deps.repairWiring(item) : null;
+    if (!tried || repaired?.outcome !== 'fixed') return { findings, ...(tried ? { tried } : {}) };
+    return { findings: [], tried: { status: repaired.tried ?? 'untried', summary: null, problems: repaired.notTried ? [repaired.notTried] : [], rounds: tried.rounds } };
 }
