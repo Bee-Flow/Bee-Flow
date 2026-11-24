@@ -81,8 +81,8 @@ test('every field a trail entry can name has its words, so the owner never reads
     const nl = require('../i18n/defaults/nl/cowork_trail.json').translations;
     assert.ok(AUDITED_FIELDS.includes('monthlyBudget') && AUDITED_FIELDS.includes('shares'));
     for (const field of AUDITED_FIELDS) {
-        assert.ok(typeof en[`cowork_trail.field.${field}`] === 'string', `English for ${field}`);
-        assert.ok(typeof nl[`cowork_trail.field.${field}`] === 'string', `Dutch for ${field}`);
+        assert.ok(typeof en[`cowork_trail.part.${field}`] === 'string', `English for ${field}`);
+        assert.ok(typeof nl[`cowork_trail.part.${field}`] === 'string', `Dutch for ${field}`);
     }
-    assert.strictEqual(en['cowork_trail.field.monthlyBudget'], 'the budget');
+    assert.strictEqual(en['cowork_trail.part.monthlyBudget'], 'the spending limit');
 });

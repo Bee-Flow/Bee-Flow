@@ -44,7 +44,7 @@ function wiringShape(value: unknown): WiringChange[] {
     return wiringChangesShape(value, MAX_AUDITED_WIRING);
 }
 
-/** Every field a trail entry can name: each has its words in the owner's language (i18n `cowork_trail.field.<name>`). */
+/** Every field a trail entry can name: each has its words in the owner's language (i18n `cowork_trail.part.<name>`). */
 export const AUDITED_FIELDS: readonly string[] = Object.freeze([...VALUE_FIELDS, ...NAME_ONLY_FIELDS, ...Object.keys(SHAPED_FIELDS)]);
 
 export const MAX_AUDITED_SHARES = 50;
