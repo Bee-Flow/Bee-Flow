@@ -876,7 +876,7 @@ export const WEB_RADII = {
 
 /** The admin font choices (applyTheme.ts FONT_STACKS) and the CSS stack each one sets. */
 export const WEB_FONT_STACKS = {
-    system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif",
     inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     plex: "'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     geist: "'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
