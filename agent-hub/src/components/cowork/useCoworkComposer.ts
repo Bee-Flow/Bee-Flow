@@ -175,9 +175,9 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         setCarried(null);
     }, []);
 
-    /** Create what was worked out, or hold it for its one confirmation. */
-    const finish = useCallback(async (payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null) => {
-        if (confirm) {
+    /** Create what was worked out, or (`held`) keep it for its one confirmation. */
+    const finish = useCallback(async (payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null, held = confirm) => {
+        if (held) {
             setDraft({ payload, spec });
             return null;
         }
@@ -270,30 +270,27 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         setSubmitting(true);
         setError(null);
         try {
-            const created = await createCowork(draft.payload);
-            reset();
-            if (onCreated) onCreated(created, draft.payload, draft.spec);
-            return created;
+            return await finish(draft.payload, draft.spec, false);
         } catch (err) {
             setError(createError(err, t));
             return null;
         } finally {
             setSubmitting(false);
         }
-    }, [draft, submitting, reset, onCreated, t]);
+    }, [draft, submitting, finish, t]);
 
     // Back to the chips, holding what the card showed: the next send keeps it unless a chip is changed.
     const change = useCallback(() => {
         if (!draft) return;
         const { payload } = draft;
-        if (!isTriggerPayload(payload)) {
+        const clock = !isTriggerPayload(payload);
+        if (clock) {
             setWhenState(whenOfDraft(payload));
             setRepeatState(payload.repeatInterval || '');
             setCarried(payload.daysOfWeek || payload.timeOfDay ? { daysOfWeek: payload.daysOfWeek, timeOfDay: payload.timeOfDay } : null);
-            setTouched((was) => ({ ...was, when: true, repeat: true }));
         }
         if (payload.agentId) setAgentState(payload.agentId);
-        setTouched((was) => ({ ...was, agent: was.agent || !!payload.agentId }));
+        setTouched((was) => ({ when: was.when || clock, repeat: was.repeat || clock, agent: was.agent || !!payload.agentId }));
         setError(null);
         setDraft(null);
     }, [draft]);

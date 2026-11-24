@@ -34,11 +34,23 @@ function readAdvancedOpen(): boolean {
     }
 }
 
-function writeAdvancedOpen(open: boolean): void {
+/** False when the storage is blocked or full: the choice then holds while this pane is open, and is not kept. */
+function writeAdvancedOpen(open: boolean): boolean {
     try {
         window.localStorage.setItem(ADVANCED_KEY, open ? '1' : '0');
+        return true;
     } catch {
-        // Blocked or full: the choice holds while this pane is open, and is not kept.
+        return false;
+    }
+}
+
+/** Store the tab a link asks for, where the tabs read it (./CoworkTabs.tsx); false when blocked: they open on the first. */
+function rememberTab(itemId: string, tab: AdvancedTab): boolean {
+    try {
+        window.sessionStorage.setItem(TAB_STORAGE_PREFIX + itemId, tab);
+        return true;
+    } catch {
+        return false;
     }
 }
 
@@ -55,13 +67,7 @@ const subscribe = (listener: () => void) => {
 export function focusCowork(request: Omit<CoworkFocus, 'seq'>): void {
     counter += 1;
     pending = { ...request, seq: counter };
-    if (request.tab) {
-        try {
-            window.sessionStorage.setItem(TAB_STORAGE_PREFIX + request.itemId, request.tab);
-        } catch {
-            // The tab list then opens on its first tab.
-        }
-    }
+    if (request.tab) rememberTab(request.itemId, request.tab);
     emit();
 }
 
