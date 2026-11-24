@@ -18,7 +18,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 interface RowProps { coworkId: string; open: boolean; onToggle: (id: string | null) => void; t: TranslateFn }
 
 /** A file name from a title: "Weekly sales numbers" reads "weekly-sales-numbers". */
-export function slugOf(title: string): string {
+function slugOf(title: string): string {
     return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'task';
 }
 
@@ -71,7 +71,7 @@ const PROBLEMS: Record<string, [string, string]> = {
 };
 
 /** Whether the chain holds, in one line. */
-export function chainWords(view: ReceiptsView | undefined, t: TranslateFn): string {
+function chainWords(view: ReceiptsView | undefined, t: TranslateFn): string {
     if (!view?.verdict || view.verdict.count === 0) return t('cowork_task.receipts.none', 'No receipts yet');
     const problem = view.verdict.problem;
     if (problem) {

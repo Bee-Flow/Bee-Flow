@@ -20,7 +20,7 @@ import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** What Cowork fixed by itself, in a sentence. */
-export function autoFixWords(fix: Pick<CoworkProposal, 'reasonCode' | 'stepTitle' | 'wiring' | 'decidedAt'>, t: TranslateFn): string {
+function autoFixWords(fix: Pick<CoworkProposal, 'reasonCode' | 'stepTitle' | 'wiring' | 'decidedAt'>, t: TranslateFn): string {
     const what = fix.reasonCode === 'wiring_fixed' && fix.wiring?.length
         ? wiringChangeWords(fix.wiring, t)
         : t('cowork_task.fix.reference', "'{step}' was reading the wrong field", { step: fix.stepTitle ?? '' });

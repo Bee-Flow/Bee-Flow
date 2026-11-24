@@ -23,7 +23,7 @@ export function taskModeOf(item: Pick<CoworkItem, 'agentId'>, plan: PlanState | 
 }
 
 /** What a step does, as its tile and its word show it. */
-export type StepSort = 'read' | 'change' | 'send' | 'ai' | 'ask';
+type StepSort = 'read' | 'change' | 'send' | 'ai' | 'ask';
 
 export interface TaskStep {
     id: string;
@@ -136,7 +136,7 @@ const FAILED: ReadonlySet<string> = new Set(['error', 'failed', 'needs_reauth', 
 export const runFailed = (run: Pick<CoworkRun, 'status'>): boolean => FAILED.has(run.status);
 
 /** The first line of a text that says anything, without Markdown marks. */
-export function firstLine(text: string | null | undefined): string {
+function firstLine(text: string | null | undefined): string {
     const lines = String(text ?? '').split('\n').map((raw) => raw.replace(/^\s*(?:[#>]+\s*|[-*+]\s+|\d+[.)]\s+)/, '').replace(/[*_`~]/g, '').trim());
     return lines.find((line) => /[\p{L}\p{N}]/u.test(line)) ?? '';
 }

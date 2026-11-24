@@ -92,15 +92,3 @@ export function noteText(n: HelperNote, t: TranslateFn): string {
     const [key, english] = NOTE_TEXT[variantOf(n)];
     return t(key, english, { title: n.title ?? '', after: n.afterTitle ?? '', who: n.who ?? '', role: n.role ?? '', holder: n.holderName ?? '', standIn: n.standInName ?? '', reason: n.reason ?? '' });
 }
-
-/** Why "Set it up" waits, in plain words. */
-export function notReadyText(reason: NotReady, t: TranslateFn): string {
-    switch (reason) {
-        case 'no_steps': return t('cowork_teamwork.not_ready.no_steps', 'Add at least one cowork.');
-        case 'unchosen': return t('cowork_teamwork.not_ready.unchosen', 'Choose a cowork for every step.');
-        case 'twice': return t('cowork_teamwork.not_ready.twice', 'Each cowork can come once.');
-        case 'crossings': return t('cowork_teamwork.not_ready.crossings', 'At most three hand-offs in a row can go from one person to another. Leave a step out.');
-        case 'holder': return t('cowork_teamwork.not_ready.holder', 'Choose who answers the questions, or leave the questions out.');
-        case 'name': return t('cowork_teamwork.not_ready.name', 'Give the desk a name.');
-    }
-}

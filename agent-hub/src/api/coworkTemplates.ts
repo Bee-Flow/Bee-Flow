@@ -7,7 +7,7 @@ import type { PlanDraft, PlanPermissions } from './coworkPlan.types';
 
 export interface TemplateCard { id: string; title: string; brief: string; repeatInterval: string | null; hasPlan: boolean; createdAt: string | null; mine: boolean }
 interface TemplatePlan { view: PlanDraft['view']; permissions: PlanPermissions; findings: PlanDraft['findings']; attachable: boolean }
-export interface TemplateView { template: TemplateCard & { savedBy: string | null; canDelete: boolean }; plan: TemplatePlan | null }
+interface TemplateView { template: TemplateCard & { savedBy: string | null; canDelete: boolean }; plan: TemplatePlan | null }
 export interface UsedTemplate { item: { id: string }; planAttached: boolean; findings: PlanDraft['findings'] }
 export interface SavedTemplate { template: TemplateCard; warnings: string[] }
 
@@ -20,32 +20,6 @@ export function useCoworkTemplates(enabled: boolean) {
         queryFn: async () => (await apiJson<'GET /api/cowork/templates', { templates?: TemplateCard[] }>('GET /api/cowork/templates')).templates ?? [],
         staleTime: 30_000,
         retry: false,
-    });
-}
-
-export function useCoworkTemplate(id: string | null) {
-    return useQuery<TemplateView, Error>({
-        queryKey: [...LIST_KEY, id],
-        enabled: !!id,
-        queryFn: () => apiJson<'GET /api/cowork/templates/{id}', TemplateView>('GET /api/cowork/templates/{id}', { params: { id: String(id) } }),
-        retry: false,
-    });
-}
-
-/** Add a template to my cowork: a new, paused item, its plan not approved. */
-export function useAddCoworkTemplate() {
-    const client = useQueryClient();
-    return useMutation<UsedTemplate, Error, string>({
-        mutationFn: (id) => apiJson<'POST /api/cowork/templates/{id}/use', UsedTemplate>('POST /api/cowork/templates/{id}/use', { params: { id }, body: {} }),
-        onSuccess: () => { void client.invalidateQueries({ queryKey: ['cowork', 'list'] }); },
-    });
-}
-
-export function useDeleteCoworkTemplate() {
-    const client = useQueryClient();
-    return useMutation<unknown, Error, string>({
-        mutationFn: (id) => apiJson<'DELETE /api/cowork/templates/{id}', unknown>('DELETE /api/cowork/templates/{id}', { params: { id } }),
-        onSuccess: () => { void client.invalidateQueries({ queryKey: LIST_KEY }); },
     });
 }
 

@@ -2,12 +2,6 @@
 // says. A repair is a need (the item's "Needs you" strip); a fixed-step offer is not (a quiet line on the Plan tab).
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CoworkProposal, ProposalReplay } from '@/api/coworkProposals';
-import { wiringChangeWords } from './coworkWiringModel';
-
-/** The open repair of an item, if there is one. */
-export function openRepair(list: readonly CoworkProposal[] | undefined): CoworkProposal | null {
-    return list?.find((p) => p.kind === 'repair' && p.status === 'open') ?? null;
-}
 
 /** The open fixed-step offer of an item, if there is one. */
 export function openOffer(list: readonly CoworkProposal[] | undefined): CoworkProposal | null {
@@ -27,12 +21,6 @@ export function autoFixed(list: readonly CoworkProposal[] | undefined): CoworkPr
     return list?.find((p) => AUTO_FIXES.has(p.reasonCode) && p.status === 'approved' && p.undoVersion !== null) ?? null;
 }
 
-/** "Fixed automatically: 'A week ago' now reads from 'Now', 'AI step' now waits for 'Get summary'." */
-export function autoFixLine(fix: Pick<CoworkProposal, 'reasonCode' | 'stepTitle' | 'wiring'>, t: TranslateFn): string {
-    if (fix.reasonCode !== 'wiring_fixed') return t('cowork_resolver.note.fixed', "Fixed automatically: step '{step}' was reading the wrong field.", { step: fix.stepTitle ?? '' });
-    return t('cowork_wiring.note.fixed', 'Fixed automatically: {changes}.', { changes: wiringChangeWords(fix.wiring, t) || (fix.stepTitle ?? '') });
-}
-
 /** Why a repair is offered, in one line. */
 export function repairLine(proposal: Pick<CoworkProposal, 'reasonCode' | 'stepTitle'>, t: TranslateFn): string {
     if (proposal.reasonCode === 'reference_unresolved') return t('cowork_resolver.repair.reference', "Step '{step}' found nothing to work on. A fix is ready.", { step: proposal.stepTitle ?? '' });
@@ -49,13 +37,5 @@ export function replayLine(replay: ProposalReplay | null, t: TranslateFn): strin
     if (!replay || replayed(replay) === 0) return t('cowork_proposals.replay.none', 'There were no past runs to replay it on.');
     return t('cowork_proposals.replay.result', 'Replayed on {full} past runs: {same} the same, {differs} different.', {
         full: replayed(replay), same: replay.same, differs: replayed(replay) - replay.same,
-    });
-}
-
-/** The quiet line of a fixed-step offer. */
-export function offerLine(proposal: CoworkProposal, t: TranslateFn): string {
-    const replay = proposal.replay;
-    return t('cowork_proposals.offer.line', 'One step can run without AI: the same in {same} of {full}.', {
-        same: replay?.same ?? 0, full: replay ? replayed(replay) : 0,
     });
 }

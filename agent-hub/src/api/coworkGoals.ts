@@ -10,7 +10,7 @@ interface GoalCheckStep { id: string; title: string; type: string; effect: GoalE
 
 interface GoalFinding { code: string; stepId: string | null; message: string }
 
-export interface GoalCheck {
+interface GoalCheck {
     automationId: string;
     steps: GoalCheckStep[];
     readsOnly: boolean;

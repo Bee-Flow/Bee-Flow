@@ -11,7 +11,7 @@ import type { ReplayRun, ReplayState } from '@/api/coworkReplay';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** "18 of 20 the same, 2 differ": only runs replayed in full count. */
-export function replayCounts(state: Pick<ReplayState, 'same' | 'differs'>, t: TranslateFn): string {
+function replayCounts(state: Pick<ReplayState, 'same' | 'differs'>, t: TranslateFn): string {
     const full = state.same + state.differs;
     if (full === 0) return t('cowork_task.replay.none', 'None of the past runs could be replayed in full.');
     if (state.differs === 0) return t('cowork_task.replay.all_same', '{same} of {full} the same', { same: state.same, full });

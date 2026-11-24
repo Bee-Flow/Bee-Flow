@@ -39,7 +39,7 @@ export interface EditDraft {
 const KIND_OF_START: Record<StartKind, StartChoiceKind> = { schedule: 'schedule', app_event: 'email', after_cowork: 'after', webhook: 'webhook', row: 'row', file: 'file' };
 
 /** How the task starts now: the start the server says, else its trigger. */
-export function startKindOf(item: Pick<CoworkItem, 'triggerKind' | 'trigger'>, start: StartState | null | undefined): StartChoiceKind {
+function startKindOf(item: Pick<CoworkItem, 'triggerKind' | 'trigger'>, start: StartState | null | undefined): StartChoiceKind {
     if (start) return KIND_OF_START[start.kind] ?? 'schedule';
     return isMailTriggerItem({ triggerKind: item.triggerKind ?? null, trigger: item.trigger }) ? 'email' : 'schedule';
 }

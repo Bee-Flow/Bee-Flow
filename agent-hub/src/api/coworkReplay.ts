@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiJson } from './typedRequest';
 
 type ReplayVerdict = 'same' | 'differs' | 'partial' | 'not_replayable';
-export type NotReplayableReason = 'too_old' | 'no_plan' | 'no_automation_run' | 'not_recorded' | 'failed';
+type NotReplayableReason = 'too_old' | 'no_plan' | 'no_automation_run' | 'not_recorded' | 'failed';
 
 export interface ReplayStart { replayId: string; fingerprint: string; total: number }
 

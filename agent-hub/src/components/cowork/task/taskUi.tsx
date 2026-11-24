@@ -26,7 +26,7 @@ export const META = 'text-[14px] text-[var(--text-secondary)]';
 export const ROW_ACTIONS = 'flex flex-wrap items-center gap-2';
 export const FIELD = 'w-full min-h-11 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[14px] text-[var(--text-primary)]';
 export const LABEL = 'text-[14px] font-medium text-[var(--text-primary)]';
-export const ALERT = 'text-[14px] text-[var(--error-ink)]';
+const ALERT = 'text-[14px] text-[var(--error-ink)]';
 
 const TAG = 'inline-flex items-center rounded-full px-[9px] py-0.5 text-[12px] font-semibold whitespace-nowrap';
 export const TAG_PLAIN = `${TAG} bg-[var(--bg-tertiary)] text-[var(--text-secondary)]`;

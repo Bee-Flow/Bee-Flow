@@ -28,7 +28,7 @@ export function sendsWords({ item, mode, sends }: { item: HeaderItem; mode: Task
     return t('cowork_task.head.sends_you', 'sends only to you');
 }
 
-export interface SharedBy { owner: string; role: 'viewer' | 'approver' }
+interface SharedBy { owner: string; role: 'viewer' | 'approver' }
 
 interface CoworkTaskHeaderProps {
     item: HeaderItem;

@@ -26,7 +26,7 @@ export interface PlanMaking {
 const IDLE: PlanMaking = { running: false, phase: null, steps: [], summary: '', error: null };
 
 /** The making after one more word from the planner. */
-export function afterProgress(making: PlanMaking, progress: PlanMakeProgress): PlanMaking {
+function afterProgress(making: PlanMaking, progress: PlanMakeProgress): PlanMaking {
     return { ...making, phase: progress.phase, steps: progress.phase === 'drafted' ? progress.steps : making.steps };
 }
 

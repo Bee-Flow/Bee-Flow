@@ -101,7 +101,7 @@ function testedLine(plan: PlanState | undefined, tryState: PlanTryState | null, 
     return tried ? { line: tried.line, ok: tried.tone === 'ok' } : null;
 }
 
-export interface TryOut {
+interface TryOut {
     state: PlanTryState | null;
     starting: boolean;
     error: unknown;

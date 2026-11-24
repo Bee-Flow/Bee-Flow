@@ -16,7 +16,7 @@ import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /** The shared view as the parts of the sheet read an item and its runs. */
-export function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] } {
+function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] } {
     const runs: CoworkRun[] = view.runs.map((r) => ({ id: r.id, status: r.status ?? '', startedAt: r.startedAt ?? '', result: r.result, durationMs: r.durationMs }));
     const item: CoworkItem = {
         id: view.item.id,

@@ -24,7 +24,7 @@ export interface DeskMember {
     decidesHandOff: boolean;
 }
 interface DeskRole { role: string; holderId: string | null; standInId: string | null; awayUntil: string | null; holderName: string | null; standInName: string | null; away: boolean }
-export interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
+interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
 export interface DeskView {
     desk: { id: string; name: string; isOwner: boolean; ownerName: string };
     /** In the order work moves along them. */
@@ -99,13 +99,5 @@ export function useDeskHandOff(deskId: string) {
     return {
         allow: useDeskChange<string>((scheduleId) => apiJson('POST /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId), body: {} })),
         withdraw: useDeskChange<string>((scheduleId) => apiJson('DELETE /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId) })),
-    };
-}
-
-/** What the desk's maker does: set its roles, remove it. */
-export function useDeskOwnerActions(deskId: string) {
-    return {
-        saveRoles: useDeskChange<RoleInput[]>((roles) => apiJson('PUT /api/cowork/desks/{id}/roles', { params: { id: deskId }, body: { roles } })),
-        remove: useDeskChange<void>(() => apiJson('DELETE /api/cowork/desks/{id}', { params: { id: deskId } })),
     };
 }

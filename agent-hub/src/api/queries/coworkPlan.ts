@@ -2,8 +2,8 @@
 // automations a plan can be made from.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { approveCoworkPlan, attachCoworkPlan, fixCoworkPlanWiring, getCoworkPlan, getCoworkPlanTry, getCoworkRunTrace, listPlanAutomations, removeCoworkPlan, startCoworkPlanTry } from '../coworkPlanApi';
-import type { PlanAutomation, PlanRunTrace, PlanState, PlanTryStart, PlanTryState, PlanWiringFix } from '../coworkPlan.types';
+import { approveCoworkPlan, attachCoworkPlan, getCoworkPlan, getCoworkPlanTry, getCoworkRunTrace, removeCoworkPlan, startCoworkPlanTry } from '../coworkPlanApi';
+import type { PlanRunTrace, PlanState, PlanTryStart, PlanTryState } from '../coworkPlan.types';
 
 /** Where the plan of an item is kept: what replaces it (an approval, a plan Cowork just made) writes here. */
 export const coworkPlanKey = (coworkId: string) => ['cowork', 'plan', coworkId] as const;
@@ -25,41 +25,6 @@ export function useCoworkPlanQuery(coworkId: string | null | undefined) {
         retry: false,
         // The card says "Tried once: …" as soon as the try-out is over.
         refetchInterval: (query) => (tryRunning(query.state.data) && query.state.dataUpdateCount < RUNNING_POLLS ? RUNNING_POLL_MS : false),
-    });
-}
-
-/**
- * Cowork fixes the wiring of the plan on screen by itself, once per plan: asked when the plan says it can
- * (`wiringFixable`), never again for the same fingerprint. The plan as it then is replaces what the card shows.
- */
-export function useCoworkPlanAutoFix(coworkId: string, state: PlanState | undefined) {
-    const client = useQueryClient();
-    const fingerprint = state?.wiringFixable ? state.draft?.fingerprint ?? '' : '';
-    return useQuery<PlanWiringFix, Error>({
-        queryKey: ['cowork', 'plan-fix-wiring', coworkId, fingerprint],
-        enabled: !!fingerprint,
-        queryFn: async () => {
-            const fixed = await fixCoworkPlanWiring(coworkId);
-            client.setQueryData(planKey(coworkId), fixed.state);
-            return fixed;
-        },
-        staleTime: Infinity,
-        gcTime: Infinity,
-        retry: false,
-        // Not again for the same plan: not on the next visit, and not after a refusal either ("Fix it for me" asks).
-        retryOnMount: false,
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-    });
-}
-
-/** "Fix it for me": the same fix, asked by the owner. */
-export function useCoworkPlanWiringFix(coworkId: string) {
-    const client = useQueryClient();
-    return useMutation<PlanWiringFix, Error, void>({
-        mutationFn: () => fixCoworkPlanWiring(coworkId),
-        onSuccess: (fixed) => { client.setQueryData(planKey(coworkId), fixed.state); },
     });
 }
 
@@ -108,22 +73,3 @@ export function useCoworkRunTrace(coworkId: string, runId: string) {
     });
 }
 
-const NO_AUTOMATIONS: PlanAutomation[] = [];
-
-/** The caller's own automations; a refusal (no automations in this organisation) or a failure is none. */
-export function usePlanAutomations(enabled: boolean): PlanAutomation[] {
-    const query = useQuery<PlanAutomation[]>({
-        queryKey: ['cowork', 'plan-automations'],
-        enabled,
-        staleTime: 30_000,
-        retry: false,
-        queryFn: async () => {
-            try {
-                return await listPlanAutomations();
-            } catch {
-                return NO_AUTOMATIONS;
-            }
-        },
-    });
-    return enabled ? query.data ?? NO_AUTOMATIONS : NO_AUTOMATIONS;
-}

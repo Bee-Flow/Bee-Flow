@@ -11,7 +11,7 @@ import type { CoworkItem } from './cowork.types';
 const LIVE_POLL_MS = 4000;
 const LIVE_POLLS = 150;
 
-export const coworkItemKey = (id: string) => ['cowork', 'item', id] as const;
+const coworkItemKey = (id: string) => ['cowork', 'item', id] as const;
 
 /** The item, or null when it is not the reader's own (gone, or someone else's: shared with them, or not at all). */
 export function useCoworkItem(id: string) {

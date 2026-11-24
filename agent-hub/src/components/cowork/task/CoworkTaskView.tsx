@@ -173,7 +173,7 @@ function OwnTask(props: OwnProps) {
     return <TaskMain {...props} facts={facts} onEdit={() => setEditing(true)} />;
 }
 
-export function CoworkTaskView(props: CoworkSheetPanelProps) {
+function CoworkTaskView(props: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const id = props.panel.kind === 'task' ? props.panel.id : '';
     const item = useCoworkItem(id);

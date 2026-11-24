@@ -6,7 +6,7 @@ import { apiJson } from './typedRequest';
 
 export type Independence = 'asks_everything' | 'asks_before_sending' | 'on_its_own';
 
-export interface LevelOption {
+interface LevelOption {
     level: Independence;
     open: boolean;
     /** The steps a run at this level asks about first. */

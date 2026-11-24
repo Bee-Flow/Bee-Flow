@@ -59,7 +59,3 @@ export function ownAutomationsOf(body: unknown): PlanAutomation[] {
     }
     return out;
 }
-
-export async function listPlanAutomations(): Promise<PlanAutomation[]> {
-    return ownAutomationsOf(await apiJson('GET /api/automation'));
-}
