@@ -58,8 +58,9 @@ export function withVerdict<C extends Contract>(contract: C, step: { reportOutco
         return { ...contract, effectiveSchema: next, outputContract: { ...contract.outputContract, schema: next } };
     }
     // A flat field map (`{ digest: 'string' }`, read as an object schema by ./aiStepEnum.js toToolParameters).
-    if (isPlain(schema) && !('type' in schema) && !('properties' in schema)) {
-        const next = { ...schema, [VERDICT_FIELD]: VERDICT_SCHEMA };
+    const map = schema as Record<string, unknown> | null;
+    if (isPlain(map) && !('type' in map) && !('properties' in map)) {
+        const next: Schema = { ...map, [VERDICT_FIELD]: VERDICT_SCHEMA };
         return { ...contract, effectiveSchema: next, outputContract: { ...contract.outputContract, schema: next } };
     }
     if (schema) return contract; // a list or a scalar schema: nothing to add a field to

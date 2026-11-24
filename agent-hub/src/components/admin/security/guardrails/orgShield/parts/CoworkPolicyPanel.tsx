@@ -1,7 +1,8 @@
 /**
  * The organisation's Cowork policy, for its administrators (server/routes/coworkPolicyRoutes.js): the most independent
  * level a cowork may run at, one switch that makes every cowork read-only, the apps a plan may use while nobody
- * watches, the monthly AI budget of all its coworks, and the trail of every change as a download. Saved at once, field by field, like the shield toggle above it.
+ * watches, whether Cowork may fix a broken reference by itself (decision 0050), the monthly AI budget of all its
+ * coworks, and the trail of every change as a download. Saved at once, field by field, like the shield toggle above it.
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +11,7 @@ import { apiJson, apiUrl } from '@/api/typedRequest';
 import type { TranslateFn } from '../tabs/checks/checksTypes';
 
 type Level = 'asks_everything' | 'asks_before_sending' | 'on_its_own';
-interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null; monthlyBudget?: number | null; habitsAllowed?: boolean }
+interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null; monthlyBudget?: number | null; habitsAllowed?: boolean; autoFix?: boolean }
 
 const keyOf = (orgId: string) => ['cowork-policy', orgId] as const;
 const LEVELS: Array<[Level, string, string]> = [
@@ -101,6 +102,15 @@ export default function CoworkPolicyPanel({ orgId, readOnly = false, t }: { orgI
                     description={t('cowork_policy.habits_desc', 'Each person decides for themselves, and it is off until they switch it on. It keeps which apps a chat used and on which weekday, never what was asked. Switching this off stops it for everyone.')}
                     checked={current.habitsAllowed !== false}
                     onChange={(next) => save.mutate({ habitsAllowed: next })}
+                    disabled={disabled}
+                />
+            </div>
+            <div className="border-t [border-color:var(--border-subtle)]">
+                <ToggleCard
+                    title={t('cowork_resolver.policy.auto_fix', 'Let Cowork fix a broken reference by itself')}
+                    description={t('cowork_resolver.policy.auto_fix_desc', 'When a step reads a list that is not there, Cowork may point it at the right one: only that reference changes, with exactly the same permissions, after a replay of the run proves it. The owner sees it and can undo it in one click. Saved at once.')}
+                    checked={current.autoFix !== false}
+                    onChange={(next) => save.mutate({ autoFix: next })}
                     disabled={disabled}
                 />
             </div>

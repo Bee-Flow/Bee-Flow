@@ -35,6 +35,10 @@ export function needWords(need: CoworkNeed, t: TranslateFn): NeedWords {
             return { line: t('cowork_needs.review', 'The agent asks you to look at something.'), detail: need.reason, action: 'open', button: open };
         case 'sign_in':
             return { line: t('cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'), detail: null, action: 'open', button: open };
+        case 'incomplete':
+            return { line: t('cowork_resolver.need.incomplete', 'Did not do its work last time: a step found nothing to work on.'), detail: null, action: 'open', button: open };
+        case 'ai_failed':
+            return { line: t('cowork_resolver.need.ai_failed', 'The AI said its last run failed.'), detail: null, action: 'open', button: open };
         case 'repair':
             return { line: repairLine({ reasonCode: need.repair?.reasonCode ?? '', stepTitle: need.repair?.stepTitle ?? null }, t), detail: null, action: 'open', button: t('cowork_proposals.need.see_fix', 'See the fix') };
         default:

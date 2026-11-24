@@ -21,4 +21,10 @@ describe('Waiting for you', () => {
         expect(readNeeds({ needs: [{ kind: 'review', itemId: 'w1', title: 'T' }, { kind: 'review' }, { itemId: 'w3' }] })).toHaveLength(1);
         expect(readNeeds(null)).toEqual([]);
     });
+
+    it('a run that did not do its work, or that its AI said failed, has its own sentence and opens its item', () => {
+        expect(needSentence({ kind: 'incomplete', itemId: 'w', title: '', plan: null }, t)).toMatch(/did not do its work/i);
+        expect(needSentence({ kind: 'ai_failed', itemId: 'w', title: '', plan: null }, t)).toMatch(/AI said/);
+        expect(needRoute({ kind: 'incomplete', itemId: 'w4', title: 'D', plan: null })).toBe('/cowork/w4');
+    });
 });

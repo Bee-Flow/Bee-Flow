@@ -21,6 +21,7 @@ export default {
     "cowork_trail.action.independence_set": "chose how independent it may be: {level}",
     "cowork_trail.action.plan_approved": "approved the plan",
     "cowork_trail.action.plan_attached": "chose the automation of its plan",
+    "cowork_trail.action.plan_auto_fixed": "fixed a step that was reading the wrong field (Cowork did this by itself; it can be undone)",
     "cowork_trail.action.plan_made": "had Cowork make a plan",
     "cowork_trail.action.plan_removed": "took the plan off",
     "cowork_trail.action.review_handled": "handled a review",

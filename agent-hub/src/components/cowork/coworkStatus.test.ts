@@ -118,4 +118,11 @@ describe('isInFlight', () => {
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0 })))).toBe(true);
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item()))).toBe(false);
     });
+
+    it('reads an item and a run that did not do their work as a failure, never as green', () => {
+        const token = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ lastStatus: 'incomplete' })));
+        expect(token.labelKey).toBe('cowork_resolver.status.incomplete');
+        expect(token.cssVar).toBe(STATUS_TOKENS.error.cssVar);
+        expect(runStatusToken('incomplete')).toBe(token);
+    });
 });

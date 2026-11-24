@@ -56,4 +56,13 @@ describe('CoworkPolicyPanel', () => {
         renderWithClient(<CoworkPolicyPanel orgId="org-1" t={t} />);
         expect(await screen.findByRole('link', { name: 'Download the trail (CSV)' })).toHaveAttribute('href', expect.stringMatching(/\/api\/cowork\/policy\/org-1\/audit$/));
     });
+
+    it('saves whether Cowork may fix a broken reference by itself; it is on until switched off', async () => {
+        serve();
+        renderWithClient(<CoworkPolicyPanel orgId="org-1" t={t} />);
+        const toggle = await screen.findByRole('switch', { name: /Let Cowork fix a broken reference by itself/ });
+        expect(toggle).toHaveAttribute('aria-checked', 'true');
+        await userEvent.setup().click(toggle);
+        await waitFor(() => expect(puts()).toEqual([{ autoFix: false }]));
+    });
 });

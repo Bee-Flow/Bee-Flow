@@ -18,8 +18,14 @@ export function madeFixed(list: readonly CoworkProposal[] | undefined): CoworkPr
     return list?.find((p) => p.kind === 'fixed_step' && p.status === 'approved' && p.undoVersion !== null) ?? null;
 }
 
+/** The newest reference Cowork fixed by itself that is still the plan, with its Undo (server core/cowork/repairs/autoResolve.mts). */
+export function autoFixed(list: readonly CoworkProposal[] | undefined): CoworkProposal | null {
+    return list?.find((p) => p.reasonCode === 'reference_fixed' && p.status === 'approved' && p.undoVersion !== null) ?? null;
+}
+
 /** Why a repair is offered, in one line. */
 export function repairLine(proposal: Pick<CoworkProposal, 'reasonCode' | 'stepTitle'>, t: TranslateFn): string {
+    if (proposal.reasonCode === 'reference_unresolved') return t('cowork_resolver.repair.reference', "Step '{step}' found nothing to work on. A fix is ready.", { step: proposal.stepTitle ?? '' });
     if (proposal.reasonCode === 'goal_under_target') return t('cowork_proposals.need.goal_under', 'Stayed under its goal three times in a row. A fix is ready.');
     return t('cowork_proposals.need.failed_twice', "Failed twice at '{step}'. A fix is ready.", { step: proposal.stepTitle ?? '' });
 }

@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiJson } from './typedRequest';
 
-type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'plan';
+type CoworkNeedKind = 'decision' | 'review' | 'sign_in' | 'repair' | 'incomplete' | 'ai_failed' | 'plan';
 type CoworkPlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface CoworkNeed {

@@ -26,6 +26,9 @@ function runLook(run: CoworkRun, t: TranslateFn, theme: Theme) {
     if (run.status === 'failed') {
         return { title: t('run_status.error', 'Failed'), icon: 'CircleAlert', color: theme.colors.error } as const;
     }
+    if (run.status === 'incomplete') {
+        return { title: t('cowork_resolver.status.incomplete', 'Did not do its work'), icon: 'CircleAlert', color: theme.colors.error } as const;
+    }
     if (run.status === 'needs_review') {
         return { title: t('cowork_review.status.needs_review', 'Needs review'), icon: 'Clock', color: theme.colors.warningInk } as const;
     }

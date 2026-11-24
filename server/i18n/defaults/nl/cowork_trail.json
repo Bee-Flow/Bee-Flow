@@ -15,6 +15,7 @@
     "cowork_trail.action.independence_set": "heeft gekozen hoe zelfstandig het mag zijn: {level}",
     "cowork_trail.action.plan_approved": "heeft het plan goedgekeurd",
     "cowork_trail.action.plan_attached": "heeft de automatisering van het plan gekozen",
+    "cowork_trail.action.plan_auto_fixed": "heeft een stap hersteld die het verkeerde veld las (Cowork deed dit zelf; het kan ongedaan worden gemaakt)",
     "cowork_trail.action.plan_made": "heeft Cowork een plan laten maken",
     "cowork_trail.action.plan_removed": "heeft het plan eraf gehaald",
     "cowork_trail.action.review_handled": "heeft een beoordeling afgehandeld",
