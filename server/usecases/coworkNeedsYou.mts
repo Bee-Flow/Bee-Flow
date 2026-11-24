@@ -37,9 +37,18 @@ export interface Need {
     reason: string | null;
     /** A plan: where it stands. */
     plan: PlanNeed | null;
+    /**
+     * A plan: how its last try-out of exactly this plan went (null: none of this plan), and whether Cowork can fix its
+     * wiring by itself (POST /:id/plan/fix-wiring). The home's card says "check the steps", "test it once" or "fix it"
+     * from these; absent on every other kind.
+     */
+    tried?: PlanTriedStatus | null;
+    fixable?: boolean;
     /** A repair: the proposal, why it was made, and the step it is about as the approved plan names it. */
     repair?: OpenRepair | null;
 }
+
+type PlanTriedStatus = NonNullable<PlanState['tried']>['status'];
 
 export interface OpenRepair { proposalId: string; reasonCode: string; stepTitle: string | null }
 
@@ -105,7 +114,10 @@ async function planNeedsOf(item: Item, deps: NeedsYouDeps): Promise<Need[]> {
     const title = item.title ?? '';
     const state = await deps.planStateOf(item).catch((e: unknown) => fallback('usecases/coworkNeedsYou:planState', e, null));
     const need = state ? planNeedOf(state) : null;
-    if (state && need) out.push({ kind: 'plan', itemId: item.id, title, runId: null, since: null, reason: planReasonOf(state, need), plan: need });
+    if (state && need) {
+        const tried = state.tried?.current ? state.tried.status : null;
+        out.push({ kind: 'plan', itemId: item.id, title, runId: null, since: null, reason: planReasonOf(state, need), plan: need, tried, fixable: state.wiringFixable === true });
+    }
     const fingerprint = state?.approved?.fingerprint ?? null;
     const repair = fingerprint && deps.openRepairOf
         ? await deps.openRepairOf(item, fingerprint).catch((e: unknown) => fallback('usecases/coworkNeedsYou:repair', e, null))

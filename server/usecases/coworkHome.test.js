@@ -72,3 +72,28 @@ test('an item with a goal shows its latest count next to how it works; one witho
     const unreadable = await homeOf('u1', DAY, NOW, { ...deps(), goalCounts: async () => { throw new Error('down'); } });
     assert.strictEqual(Object.hasOwn(unreadable.how.w2, 'goal'), false, 'an unreadable list shows no goal, and the home still answers');
 });
+
+const POLICY = { ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, habitsAllowed: true };
+
+test('the organisation\'s budget as a whole percentage of this month; none without a budget, an organisation or a reading', async () => {
+    /** @type {any[]} */
+    const asked = [];
+    const withBudget = {
+        ...deps(), orgOf: async () => 'org-1', policyOf: async () => ({ ...POLICY, monthlyBudget: 500 }),
+        orgCostSince: async (/** @type {string} */ orgId, /** @type {Date} */ since) => { asked.push([orgId, since.getDate()]); return { byCurrency: { EUR: 430.2 }, calls: 80 }; },
+    };
+    assert.deepStrictEqual((await homeOf('u1', DAY, NOW, withBudget)).budget, { percent: 86 });
+    assert.deepStrictEqual(asked, [['org-1', 1]], 'measured from the first of the month');
+    assert.strictEqual((await homeOf('u1', DAY, NOW, { ...withBudget, policyOf: async () => ({ ...POLICY, monthlyBudget: null }) })).budget, null);
+    assert.strictEqual((await homeOf('u1', DAY, NOW, { ...withBudget, orgOf: async () => null })).budget, null);
+    const unreadable = await homeOf('u1', DAY, NOW, { ...withBudget, orgCostSince: async () => { throw new Error('down'); } });
+    assert.strictEqual(unreadable.budget, null);
+    assert.strictEqual(unreadable.today.length, 2, 'the rest of the home still answers');
+});
+
+test('how each item\'s newest run ended, as its outcome code; an unreadable list is none', async () => {
+    const home = await homeOf('u1', DAY, NOW, { ...deps(), lastOutcomes: async () => ({ w1: 'nothing_to_do', w2: 'done' }) });
+    assert.deepStrictEqual(home.outcomes, { w1: 'nothing_to_do', w2: 'done' });
+    assert.deepStrictEqual((await homeOf('u1', DAY, NOW, deps())).outcomes, {});
+    assert.deepStrictEqual((await homeOf('u1', DAY, NOW, { ...deps(), lastOutcomes: async () => { throw new Error('down'); } })).outcomes, {});
+});

@@ -1,6 +1,7 @@
 /**
  * How Cowork runs really ended, read back (core/cowork/runOutcome.mts decides it, stores/coworkRunClose.mts writes it
- * as `cowork_runs.outcome_json`): for "Needs you" (usecases/coworkNeedsYou.mts) and for the automatic fix of a
+ * as `cowork_runs.outcome_json`): for "Needs you" (usecases/coworkNeedsYou.mts), the status on Cowork's home
+ * (usecases/coworkHome.mts: "Nothing to do") and for the automatic fix of a
  * reference (core/cowork/repairs/autoResolve.mts).
  *
  * Codes, ids and the plan's own references only: never a result, an error text or anything a run read.
@@ -33,8 +34,8 @@ function parsed(v: unknown): { kind?: string; [key: string]: unknown } | null {
     } catch { return null; }
 }
 
-/** The newest finished run per item of one owner, those of them that did not do their work. */
-const PROBLEMS_SQL = `
+/** The newest finished run per item of one owner. */
+const LAST_RUNS_SQL = `
     SELECT DISTINCT ON (r.schedule_id) r.schedule_id, r.id, r.status, r.outcome_json, r.finished_at
       FROM cowork_runs r JOIN cowork_schedules s ON s.id = r.schedule_id
      WHERE s.user_id = $1 AND r.finished_at IS NOT NULL AND r.status <> 'waiting'
@@ -43,12 +44,23 @@ const PROBLEMS_SQL = `
 export function makeCoworkRunOutcomes({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     async function lastRunProblems(userId: string): Promise<RunProblem[]> {
         await ready();
-        const rows = await db.getAll(PROBLEMS_SQL, [userId]);
+        const rows = await db.getAll(LAST_RUNS_SQL, [userId]);
         const out: RunProblem[] = [];
         for (const r of rows as Row[]) {
             const kind = parsed(r.outcome_json)?.kind;
             const problem = r.status === 'incomplete' ? 'incomplete' : r.status === 'error' && kind === 'ai_failed' ? 'ai_failed' : null;
             if (problem) out.push({ itemId: String(r.schedule_id), runId: String(r.id), kind: problem, since: iso(r.finished_at) });
+        }
+        return out;
+    }
+
+    /** How the newest finished run of each of the owner's items ended, as its outcome code (`nothing_to_do`, ...). */
+    async function lastOutcomes(userId: string): Promise<Record<string, string>> {
+        await ready();
+        const out: Record<string, string> = {};
+        for (const r of await db.getAll(LAST_RUNS_SQL, [userId]) as Row[]) {
+            const kind = parsed(r.outcome_json)?.kind;
+            if (typeof kind === 'string' && kind) out[String(r.schedule_id)] = kind;
         }
         return out;
     }
@@ -66,7 +78,7 @@ export function makeCoworkRunOutcomes({ db = nodeRequire('../db.js') as Db, read
         };
     }
 
-    return { lastRunProblems, judgedRun };
+    return { lastRunProblems, lastOutcomes, judgedRun };
 }
 
 export type CoworkRunOutcomes = ReturnType<typeof makeCoworkRunOutcomes>;
