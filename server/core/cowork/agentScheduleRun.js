@@ -84,11 +84,8 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             finalResponse = `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd. Open de chat om de uitvoering te bekijken.)_`;
         }
 
-        // The AI said the run failed (`cowork_report_outcome`, ./outcomeTool.mts): a failed run with its reason. It can
-        // only make the run worse; `done` never overrides anything.
-        const aiFailed = require('./outcomeTool.mts').failureOf(coworkRun);
-        if (aiFailed) throw aiFailed;
-
+        // The AI said the run failed (`cowork_report_outcome`, ./outcomeTool.mts): a failed run with its reason; never better.
+        require('./outcomeTool.mts').throwIfFailed(coworkRun);
         const truncated = finalResponse.length > 50000
             ? finalResponse.substring(0, 50000) + '\n\n… (truncated)'
             : finalResponse;

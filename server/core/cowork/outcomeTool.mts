@@ -72,6 +72,17 @@ export function outcomeClose(holder: Holder | null | undefined, err: Error | nul
     return kind === 'done' || kind === 'nothing_to_do' ? { outcome: { kind } } : {};
 }
 
+/** Throw the error a run fails with when its AI said it failed; nothing when it did not. */
+export function throwIfFailed(holder: Holder | null | undefined): void {
+    const err = failureOf(holder);
+    if (err) throw err;
+}
+
+/** A prompt run's tool dispatcher with the outcome tool answered on the run itself. */
+export function withOutcomeTool<T>(holder: Holder, dispatch: (name: string, args: unknown) => Promise<T>) {
+    return (name: string, args: unknown): Promise<T | ReturnType<typeof executeOutcomeTool>> => (name === OUTCOME_TOOL_NAME ? Promise.resolve(executeOutcomeTool(args, holder)) : dispatch(name, args));
+}
+
 /** The error a run fails with when its AI said it failed; null when it did not. */
 export function failureOf(holder: Holder | null | undefined): Error | null {
     const v = holder?.outcome;

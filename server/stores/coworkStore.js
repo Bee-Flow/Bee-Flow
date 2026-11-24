@@ -469,8 +469,7 @@ async function getDueSchedules() {
  */
 async function markCompleted(id, result, { producedOutput, ...close } = {}) {
     await initDB();
-    // A run that finished without doing its work (core/cowork/runOutcome.mts: a list step found no list) is no
-    // success: the item and its row say 'incomplete', which every count of "went wrong" includes (getRunStats).
+    // Finished without doing its work (core/cowork/runOutcome.mts): 'incomplete', counted with what went wrong.
     const incomplete = close.outcome?.kind === 'incomplete' && !close.waiting;
     await run(
         `UPDATE cowork_schedules

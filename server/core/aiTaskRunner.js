@@ -234,8 +234,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         run.runId = attempt.runId;
 
         const prep = await prepareTaskRun(task, run);
-        // The AI's own verdict on the run (./cowork/outcomeTool.mts), kept on `run`: it can only make the run worse.
-        require('./cowork/outcomeTool.mts').addOutcomeTool(prep.tools, run);
+        require('./cowork/outcomeTool.mts').addOutcomeTool(prep.tools, run); // the AI's verdict on the run, kept on `run`
         const terminationBase = () => ({
             user_id: task.userId || null,
             agent_id: task.agentId || null,
@@ -254,9 +253,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         const tierDefaults = TIER_DEFAULTS[task.modelTier] || TIER_DEFAULTS.thinking;
         const loop = await runPromptToolLoop({
             ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run, signal: deadline.signal,
-            dispatchTool: (toolName, toolArgs) => (toolName === 'cowork_report_outcome'
-                ? Promise.resolve(require('./cowork/outcomeTool.mts').executeOutcomeTool(toolArgs, run))
-                : dispatchTaskTool(task, run, prep.session, toolName, toolArgs)),
+            dispatchTool: require('./cowork/outcomeTool.mts').withOutcomeTool(run, (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs)),
             logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch((e) => fallback('core/aiTaskRunner:logTermination', e)),
         });
 
@@ -274,8 +271,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch((e) => bestEffort('core/aiTaskRunner:executeTask', e));
         }
         const finalResponse = promptRunOutcome(task, loop, { messages: prep.messages, tools: prep.tools });
-        const aiFailed = require('./cowork/outcomeTool.mts').failureOf(run);
-        if (aiFailed) throw aiFailed;
+        require('./cowork/outcomeTool.mts').throwIfFailed(run); // the AI said it failed: a failed run, with its reason
 
         // Move the schedule on, then close the run: once the item stops saying 'running', a tick must not find
         // this moment still due (the order the automation runner keeps too, runFinalize.js).

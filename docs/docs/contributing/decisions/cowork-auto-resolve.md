@@ -25,7 +25,7 @@ when the shape does not answer, with paths and titles only), `server/core/cowork
 `server/core/cowork/planRun.test.js` (an AI's "failed" fails the run with its reason; "done" does not clear an
 incomplete run; "nothing to do" over an empty list is a success), `server/core/cowork/repairs/autoResolve.test.js`
 (a patch that changes a tool or reads another step does not reach the same), `server/core/cowork/outcomeTool.test.js`,
-`server/core/automationRunner/aiStepVerdict.test.js`, `execAi.verdict.test.js`,
+`server/core/automationRunner/aiStepVerdict.test.js`, `execAi.structured.test.js`,
 `server/usecases/coworkPlanRefs.test.js`, `server/usecases/coworkPlanTry.test.js` (a missing path fails the
 try-out), `server/core/cowork/receipts/receiptFacts.outcome.test.js` (the outcome is a code on the receipt, the reason
 is not in it), `server/stores/coworkProposals.pg.test.js` (an AI-failed step counts toward the repair trigger).
