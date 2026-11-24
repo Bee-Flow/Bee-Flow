@@ -9,7 +9,7 @@ import CoworkPackageImport from './CoworkPackageImport';
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
-const PREVIEW = { title: 'Supplier radar', brief: 'Watch the suppliers.', repeatInterval: 'weekly', plan: null, signedBy: { keyId: 'abcd1234', thisInstallation: false } };
+const PREVIEW = { title: 'Supplier radar', brief: 'Watch the suppliers.', repeatInterval: 'weekly', plan: null, signedBy: { keyId: 'abcd1234', thisInstallation: false, organisation: 'unknown' } };
 const file = (text: string) => new File([text], 'cowork.json', { type: 'application/json' });
 
 describe('CoworkPackageImport', () => {
@@ -24,6 +24,17 @@ describe('CoworkPackageImport', () => {
         await user.click(screen.getByRole('button', { name: 'Add to my cowork' }));
         await waitFor(() => expect(onAdded).toHaveBeenCalledWith('w9'));
         expect(calls.find((c) => c.url.endsWith('/add'))?.body).toEqual({ package: { format: 'beeflow.cowork-package', v: 1 } });
+    });
+
+    it.each([
+        ['your_organisation', /Signed by your organisation on this Bee Flow/],
+        ['another_organisation', /by another organisation, not yours/],
+        ['unknown', /does not say by which organisation/],
+    ])('signed on this Bee Flow, it says which organisation: %s', async (organisation, text) => {
+        stubRecordingFetch(() => jsonResponse({ ...PREVIEW, signedBy: { keyId: 'abcd1234', thisInstallation: true, organisation } }));
+        renderWithClient(<CoworkPackageImport onAdded={vi.fn()} />);
+        await userEvent.setup().upload(screen.getByLabelText('Add from a file'), file(JSON.stringify({ format: 'beeflow.cowork-package', v: 1 })));
+        expect(await screen.findByText(text)).toBeInTheDocument();
     });
 
     it('a file that is not JSON is no package, and nothing is asked', async () => {

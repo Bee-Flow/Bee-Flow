@@ -56,6 +56,18 @@ export function triggerBringsOutsideText(definition: Definition | null | undefin
     return typeof provider === 'string' && OUTSIDE_TRIGGER_PROVIDERS.has(provider);
 }
 
+/**
+ * Does this plan start on a new mail? The item starts on one (../startKinds.mts asStartedBy marks it `app_event`), or
+ * the plan's own trigger is a mail event.
+ */
+export function startsOnMail(definition: Definition | null | undefined): boolean {
+    const trigger = definition?.trigger;
+    if (!trigger || typeof trigger !== 'object') return false;
+    if (trigger.startKind === 'app_event') return true;
+    const provider = trigger.kind === 'app_event' ? trigger.appEvent?.provider : null;
+    return typeof provider === 'string' && OUTSIDE_TRIGGER_PROVIDERS.has(provider);
+}
+
 export interface OutsideText {
     /** Steps whose OUTPUT carries outside text. */
     carries: Set<string>;

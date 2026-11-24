@@ -28,5 +28,7 @@ export default {
     "cowork_templates.saved": "Saved. Colleagues find it under \"Start from a template\".",
     "cowork_templates.saved_by": "saved by {name}",
     "cowork_templates.signed_elsewhere": "Signed by another Bee Flow (key {key}), and unchanged since. Add it only if you know where it comes from.",
-    "cowork_templates.signed_here": "Signed by this Bee Flow, and unchanged since.",
+    "cowork_templates.signed_here": "Signed by your organisation on this Bee Flow, and unchanged since.",
+    "cowork_templates.signed_here_other_org": "Signed on this Bee Flow by another organisation, not yours, and unchanged since. Add it only if you know where it comes from.",
+    "cowork_templates.signed_here_unknown_org": "Signed on this Bee Flow, but the file does not say by which organisation. Add it only if you know where it comes from.",
 };

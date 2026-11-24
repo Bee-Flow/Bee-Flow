@@ -12,7 +12,8 @@ description: Why a cowork travels as a template signed with the installation's E
 `agent-hub/src/components/cowork/CoworkPackageImport.tsx`.
 **Enforced by:** `server/usecases/coworkTemplates.test.js` (a package read back names its signer and what
 its plan may do, worked out again; a package changed after signing, or signed with another key than it
-names, is refused; adding one makes a paused item with the plan unapproved and runs nothing).
+names, is refused; adding one makes a paused item with the plan unapproved and runs nothing; the preview
+says whether the reader's own organisation signed it; a plan in the file is cleaned again).
 
 ## Context
 
@@ -27,6 +28,15 @@ way to slip a wider plan into someone's workspace: one that sends where the read
   must be that key's; the plan must have the fingerprint it was saved with; what it may do is worked out
   again from the plan and shown in the same words as a plan card. The preview says whether this
   installation signed it, or another one, with its key id.
+- **The organisation is signed in, the file is cleaned again:** one installation holds many organisations
+  and its key signs for all of them, so "signed by this Bee Flow" alone would read as trusted to a member of
+  another organisation on the same installation. The signed content therefore carries `origin`, a hash of
+  the organisation id under the signing key's id (not the id itself), and the preview reports
+  `organisation`: `your_organisation`, `another_organisation`, or `unknown` (a file from before the field,
+  which stays readable, or one from another installation); the import screen says which in plain words.
+  The plan in the file is put through the export sanitiser again (`buildExport`: pinned outputs, captured
+  data, connections, approvers, app links), because a signature only says who wrote the file, not that it
+  was written by `packageOf`; a plan the cleaning changed loses its fingerprint and is not attached.
 - **Adding runs nothing:** a new item of the reader's, paused, with the plan as an unapproved draft of
   their own. They try it on their own data and approve it like any plan.
 

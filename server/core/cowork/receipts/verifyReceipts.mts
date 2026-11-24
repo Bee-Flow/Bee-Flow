@@ -3,6 +3,10 @@
  * its number), names the hash of the one before it (no receipt taken out and the rest re-linked), still hashes to what
  * it says (nothing edited), and carries a valid signature of the installation's key. Pure: receipts and a public key
  * in, a verdict out. The first problem found is named; the rest of the chain is not trusted after it.
+ *
+ * A receipt without a signature is acceptable only BEFORE the chain's first signed one (issued while the installation
+ * had no key yet). After it, a missing signature is a `signature` problem: whoever can write the table can recompute
+ * every hash, and clearing the signature must not turn an edit into a chain that holds.
  */
 
 import { hashPayload, linkHash } from './receiptHash.mts';
@@ -35,10 +39,12 @@ function problemOf(r: StoredReceipt, expectedSeq: number, prevHash: string, key:
 export function verifyReceipts(receipts: StoredReceipt[], key: { keyId: string; publicKeyPem: string } | null): ChainVerdict {
     let prevHash = '';
     let unsigned = 0;
+    let signedSeen = false;
     for (const [i, r] of receipts.entries()) {
-        const kind = problemOf(r, i + 1, prevHash, key);
+        const kind = problemOf(r, i + 1, prevHash, key) ?? (!r.signature && signedSeen ? 'signature' : null);
         if (kind) return { ok: false, count: receipts.length, problem: { seq: r.seq, kind }, unsigned, head: null };
-        if (!r.signature) unsigned += 1;
+        if (r.signature) signedSeen = true;
+        else unsigned += 1;
         prevHash = r.hash;
     }
     const last = receipts.at(-1);

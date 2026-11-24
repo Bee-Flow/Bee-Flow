@@ -117,13 +117,13 @@ function definition(/** @type {{ send?: Record<string, unknown>, reply?: Record<
 }
 
 let n = 0;
-async function itemWith(/** @type {any} */ def) {
+async function itemWith(/** @type {any} */ def, /** @type {{ triggerKind?: string }} */ start = {}) {
     const userId = `u-poison-${++n}`;
     // The owner's Microsoft connection, as Settings → Connections stores it: the catalogue then offers Outlook. Every
     // call still ends at the mailbox above, which comes first in the dispatcher's walk.
     await require('../../stores/automationCredentialStore').upsertCredential({ userId, orgId: 'org-poison', provider: 'microsoft', accessToken: 'test-token', refreshToken: 'test-refresh', expiresAt: Date.now() + 3_600_000, scope: 'Mail.Read Mail.Send' });
     const automation = await automationStore.createAutomation({ userId, title: 'Supplier replies', definition: def, triggerType: 'manual' });
-    const schedule = await store.createSchedule({ userId, title: 'Supplier replies', prompt: 'Answer supplier mail.', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const schedule = await store.createSchedule({ userId, title: 'Supplier replies', prompt: 'Answer supplier mail.', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString(), ...start });
     const attached = await attachPlan({ item: await store.getSchedule(schedule.id), automationId: automation.id });
     return { userId, item: await store.getSchedule(schedule.id), attached };
 }
@@ -169,4 +169,10 @@ test('a plan in which the mail would pick the recipient, a tool, an address or a
         assert.ok(attached.draft.findings.length > 0, `refused: ${what}`);
         await assert.rejects(approvePlan({ item, fingerprint: attached.draft.fingerprint }), (/** @type {any} */ e) => e.status === 409 || e.status === 422, `cannot be approved: ${what}`);
     }
+});
+
+test('a plan a new mail starts may not send, not even to the supplier the plan names: it saves a draft (decision 0044)', async () => {
+    const { item, attached } = await itemWith(definition(), { triggerKind: 'app_event' });
+    assert.ok(attached.draft.findings.some((/** @type {any} */ f) => f.code === 'mail.sends' && f.stepId === 'send'), 'the send step is refused');
+    await assert.rejects(approvePlan({ item, fingerprint: attached.draft.fingerprint }), (/** @type {any} */ e) => e.status === 409 || e.status === 422, 'cannot be approved');
 });

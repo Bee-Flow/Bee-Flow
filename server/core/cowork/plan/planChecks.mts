@@ -21,6 +21,10 @@
  *               - it never picks what is changed (a file, folder, table or document id of such a step).
  *             It MAY fill the text of a message, a cell, a digest, and it may decide which of the plan's own branches
  *             runs: both branches were approved with the plan.
+ *   MAIL      a plan that starts on a new mail drafts; it never sends (decision 0044): every step that sends is refused,
+ *             whoever it goes to. A question for the owner and the result for the owner are not sending.
+ *   AS SHOWN  every step runs as the plan shows it: no step serves a saved output instead of running (`pinnedOutput`),
+ *             and none is switched off (`disabled`: a switched-off check always lets the flow through).
  *   ASK       a step that waits for a decision asks the plan's owner. It names no other approver, panel, stage or
  *             escalation: what the plan shows a person is on its card as "only to you", and that has to be true.
  */
@@ -28,7 +32,7 @@
 import { createRequire } from 'node:module';
 import type { Definition, DefStep, Effect, PlanFinding, ToolLookups } from './planTypes.mts';
 import { PLAN_TRIGGER_KINDS, isAnnotation, kindOfStepType, refusalOfStepType } from './coworkStepList.mts';
-import { outsideTextOf, type OutsideText } from './outsideText.mts';
+import { outsideTextOf, startsOnMail, type OutsideText } from './outsideText.mts';
 import { stepsOf, inputsOf, aiToolsOf, refsOfStep, refsOfValue, type WalkedStep } from './planWalk.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -77,6 +81,9 @@ const finding = (code: string, stepId: string | null, message: string): PlanFind
 /** A field that names something: a non-empty list, or any value that is not blank. */
 const names = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== '');
 
+/** Does this node carry a pinned output, which the runner serves instead of running it (core/automationRunner/stepDispatch.js)? */
+const pinned = (node: Record<string, unknown> | null | undefined): boolean => node?.pinnedOutput !== undefined && node?.pinnedOutput !== null;
+
 function shapeFindings(definition: Definition | null | undefined, steps: WalkedStep[]): PlanFinding[] {
     const out: PlanFinding[] = [];
     if (!definition || typeof definition !== 'object' || !Array.isArray(definition.steps)) {
@@ -86,6 +93,9 @@ function shapeFindings(definition: Definition | null | undefined, steps: WalkedS
     const kind = definition.trigger?.kind;
     if (typeof kind !== 'string' || !PLAN_TRIGGER_KINDS.includes(kind)) {
         out.push(finding('trigger.not_allowed', null, `A plan starts on a schedule, when its owner runs it, or on an event of a connected app; not on "${typeof kind === 'string' && kind ? kind : 'nothing'}".`));
+    }
+    if (pinned(definition.trigger)) {
+        out.push(finding('trigger.pinned', null, 'The start of this plan carries a saved sample that a run would use as its start data. A plan starts from what really starts it.'));
     }
     const layers = definition.layers;
     if (layers && typeof layers === 'object' && Object.keys(layers).length > 0) {
@@ -159,16 +169,33 @@ function fieldFindings(s: WalkedStep, effect: Effect, outside: OutsideText): Pla
     return out;
 }
 
-function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText): PlanFinding[] {
+/** A step that would not run as the plan shows it: it serves a saved output, or it is switched off (core/automationRunner/stepDispatch.js). */
+function asShownFindings(s: WalkedStep): PlanFinding[] {
+    const out: PlanFinding[] = [];
+    if (pinned(s.step)) {
+        out.push(finding('step.pinned', s.id, 'This step carries a saved output that would be used instead of running it. A plan runs every step for real.'));
+    }
+    if (s.step.disabled) {
+        out.push(finding('step.disabled', s.id, 'This step is switched off, so it would not run as the plan shows it. A plan has no switched-off steps.'));
+    }
+    return out;
+}
+
+function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText, onMail: boolean): PlanFinding[] {
     if (isAnnotation(s.type)) return [];
     const kind = kindOfStepType(s.type);
     if (kind === null) return [finding('step.not_allowed', s.id, refusalOfStepType(s.type))];
     const out: PlanFinding[] = kind === 'ai' ? aiFindings(s, outside) : kind === 'ask' ? askFindings(s) : [];
+    out.push(...asShownFindings(s));
     const tool = typeof s.step.tool === 'string' ? s.step.tool : '';
     if (s.type === 'integration_action' && tool && lookups.isOpenWebRead(tool) && outside.refsReadIt(refsOfStep(s.step), s)) {
         out.push(finding('web.input_from_outside', s.id, 'This step goes to the open web with an address or a query built from text written outside the workspace. That would carry the text out.'));
     }
     const effect = stepEffect(s.step);
+    // A question and a result for the owner "send" only to the owner (the bell, their own mail): those stay.
+    if (onMail && effect === 'sends' && kind !== 'ask' && kind !== 'deliver') {
+        out.push(finding('mail.sends', s.id, 'This plan starts on a new mail, and this step sends. A plan a mail starts saves a draft for its owner to send; it never sends itself.'));
+    }
     return out.concat(fieldFindings(s, effect, outside), tableFindings(s, effect, outside));
 }
 
@@ -178,5 +205,6 @@ export function checkPlan(definition: Definition | null | undefined, lookups: To
     const shape = shapeFindings(definition, steps);
     if (shape.some((f) => f.code === 'plan.shape')) return shape;
     const outside = outsideTextOf(definition, lookups);
-    return shape.concat(steps.flatMap((s) => stepFindings(s, lookups, outside)));
+    const onMail = startsOnMail(definition);
+    return shape.concat(steps.flatMap((s) => stepFindings(s, lookups, outside, onMail)));
 }

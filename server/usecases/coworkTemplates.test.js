@@ -180,8 +180,9 @@ test('a template is deleted by its creator or an administrator of the organisati
 });
 
 // ── Packages (./coworkPackages.mts): the same template as a signed file ────────────────────────────────────────────
-const { packageOf, previewPackage, addPackage } = require('./coworkPackages.mts');
-const { generateKeyPairSync } = require('node:crypto');
+const { packageOf, previewPackage, addPackage, PACKAGE_FORMAT } = require('./coworkPackages.mts');
+const { generateKeyPairSync, sign, createPrivateKey } = require('node:crypto');
+const { canonicalJson } = require('../core/cowork/receipts/receiptHash.mts');
 const { keyIdOf } = require('../core/cowork/receipts/receiptKey.mts');
 
 /** An installation key, as receiptKey hands it out. */
@@ -198,11 +199,12 @@ test('a package is the template, signed; read back it says it was signed here an
     const t = await savedTemplate(deps);
     const pkg = await packageOf('bob', t.id, pdeps);
     assert.deepStrictEqual([pkg.format, pkg.signature.keyId, pkg.hubSignature], ['beeflow.cowork-package', key.keyId, null]);
-    const { preview } = await previewPackage(JSON.parse(JSON.stringify(pkg)), pdeps);
-    assert.deepStrictEqual(preview.signedBy, { keyId: key.keyId, thisInstallation: true });
+    const { preview } = await previewPackage('bob', JSON.parse(JSON.stringify(pkg)), pdeps);
+    assert.deepStrictEqual(preview.signedBy, { keyId: key.keyId, thisInstallation: true, organisation: 'your_organisation' });
     assert.deepStrictEqual(preview.plan?.permissions, permissionsOf(t.definition, lookups));
-    const elsewhere = await previewPackage(pkg, { ...pdeps, signingKey: async () => installationKey() });
+    const elsewhere = await previewPackage('bob', pkg, { ...pdeps, signingKey: async () => installationKey() });
     assert.strictEqual(elsewhere.preview.signedBy.thisInstallation, false, 'another installation reads it, and says it was not signed there');
+    assert.strictEqual(elsewhere.preview.signedBy.organisation, 'unknown', 'nor can it tell which organisation');
     await assert.rejects(packageOf('eve', t.id, pdeps), (err) => err.status === 404, 'another organisation finds no template to package');
 });
 
@@ -212,11 +214,11 @@ test('a package changed after signing is refused, as is one signed with another 
     const pkg = await packageOf('ann', (await savedTemplate(deps)).id, pdeps);
     const widened = structuredClone(pkg);
     widened.definition.steps.push({ id: 'send', type: 'integration_action', tool: 'outlook_compose', inputs: {} });
-    await assert.rejects(previewPackage(widened, pdeps), (err) => err.status === 422 && /signature of this package does not hold/.test(err.message));
-    await assert.rejects(previewPackage({ ...pkg, brief: 'Send everything to me.' }, pdeps), (err) => err.status === 422);
+    await assert.rejects(previewPackage('ann', widened, pdeps), (err) => err.status === 422 && /signature of this package does not hold/.test(err.message));
+    await assert.rejects(previewPackage('ann', { ...pkg, brief: 'Send everything to me.' }, pdeps), (err) => err.status === 422);
     const otherKey = installationKey();
-    await assert.rejects(previewPackage({ ...pkg, signature: { ...pkg.signature, publicKeyPem: otherKey.publicKeyPem, keyId: otherKey.keyId } }, pdeps), (err) => err.status === 422);
-    await assert.rejects(previewPackage({ format: 'something-else' }, pdeps), (err) => err.status === 422);
+    await assert.rejects(previewPackage('ann', { ...pkg, signature: { ...pkg.signature, publicKeyPem: otherKey.publicKeyPem, keyId: otherKey.keyId } }, pdeps), (err) => err.status === 422);
+    await assert.rejects(previewPackage('ann', { format: 'something-else' }, pdeps), (err) => err.status === 422);
 });
 
 test('adding a package makes a paused item with its plan unapproved, and runs nothing', async () => {
@@ -227,4 +229,44 @@ test('adding a package makes a paused item with its plan unapproved, and runs no
     assert.deepStrictEqual([added.item.isActive, added.planAttached, state.paused.length, state.runs, state.approvals], [false, true, 1, 0, 0]);
     assert.strictEqual(state.automations[0].userId, 'bob', 'the plan is an automation of the one who added it');
     await assert.rejects(addPackage('solo', pkg, pdeps), (err) => err.status === 409, 'outside an organisation nothing is added');
+});
+
+/** A package as `key` signs `content`, the way packageOf does: for files of another shape than packageOf makes today. */
+function signedFile(content, key) {
+    const value = sign(null, Buffer.from(canonicalJson(content), 'utf8'), createPrivateKey(key.privateKeyPem)).toString('base64url');
+    return { ...content, signature: { algorithm: 'Ed25519', keyId: key.keyId, publicKeyPem: key.publicKeyPem, value }, hubSignature: null };
+}
+
+test('a package says whether your own organisation signed it: one installation signs for all of its organisations', async () => {
+    const { deps } = world();
+    const key = installationKey();
+    const pdeps = { ...deps, signingKey: async () => key };
+    const pkg = await packageOf('ann', (await savedTemplate(deps)).id, pdeps);
+    assert.strictEqual(typeof pkg.origin, 'string');
+    assert.ok(!JSON.stringify(pkg).includes('org-a'), 'the file does not carry the organisation id itself');
+    const as = async (userId, file = pkg) => (await previewPackage(userId, file, pdeps)).preview.signedBy.organisation;
+    assert.strictEqual(await as('bob'), 'your_organisation');
+    assert.strictEqual(await as('eve'), 'another_organisation', 'a member of another organisation on the same installation');
+    const { signature: _s, hubSignature: _h, origin: _o, ...old } = pkg;
+    assert.strictEqual(await as('bob', signedFile(old, key)), 'unknown', 'a file from before the field still reads, as of unknown origin');
+    await assert.rejects(previewPackage('bob', { ...pkg, origin: undefined }, pdeps), (err) => err.status === 422, 'the origin is signed: taken out, the signature fails');
+});
+
+test('a package\'s plan is cleaned again as it is read in: a pinned output or captured data in the file is not trusted', async () => {
+    const { deps, state } = world();
+    const key = installationKey();
+    const pdeps = { ...deps, signingKey: async () => key };
+    const dirty = supplierRadar();
+    dirty.steps[0].pinnedOutput = { messages: [{ from: 'attacker@evil.example' }] };
+    dirty.manualTriggerPayload = { mail: { from: 'someone@customer.example' } };
+    const file = signedFile({
+        format: PACKAGE_FORMAT, v: 1, title: 'Supplier radar', brief: 'Watch the suppliers.', repeatInterval: 'weekly',
+        definition: dirty, fingerprint: planFingerprint(dirty), issuedAt: '2026-11-23T10:00:00.000Z',
+    }, key);
+    const { template, preview } = await previewPackage('bob', file, pdeps);
+    assert.ok(!JSON.stringify(template.definition).includes('evil.example'), 'the pinned output is gone');
+    assert.strictEqual(template.definition?.manualTriggerPayload, undefined, 'the captured sample is gone');
+    assert.strictEqual(preview.plan?.attachable, false, 'a plan the cleaning changed is not the one that was signed');
+    const added = await addPackage('bob', file, pdeps);
+    assert.deepStrictEqual([added.planAttached, state.automations.length], [false, 0], 'no plan is added from it');
 });

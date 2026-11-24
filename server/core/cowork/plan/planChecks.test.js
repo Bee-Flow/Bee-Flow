@@ -243,5 +243,32 @@ test('a draft may answer the sender of the mail that started the run, and nothin
     assert.deepStrictEqual(started(draft('outlook_create_draft', { to: template('{{trigger.output.mail.from}}, boss@evil.example') })), ['send.destination_from_outside'], 'nothing added to it');
     assert.deepStrictEqual(started(draft('outlook_create_draft', { to: ref('trigger.output.mail.from'), cc: ref('trigger.output.mail.cc') })), ['send.destination_from_outside'], 'no cc from the mail');
     assert.deepStrictEqual(started(draft('outlook_create_draft', { to: ref('trigger.output.mail.body') })), ['send.destination_from_outside'], 'only the sender, not an address in the text');
-    assert.deepStrictEqual(started(draft('outlook_compose', { to: ref('trigger.output.mail.from') })), ['send.destination_from_outside'], 'a send stays refused');
+    assert.deepStrictEqual(started(draft('outlook_compose', { to: ref('trigger.output.mail.from') })), ['mail.sends', 'send.destination_from_outside'], 'a send stays refused');
+});
+
+test('a plan a mail starts never sends, not even to an address the plan names; telling or asking the owner stays (decision 0044)', () => {
+    const { asStartedBy } = require('../startKinds.mts');
+    const onMail = (steps) => checkPlan(asStartedBy(planOf(steps), { triggerKind: 'app_event' }), lookups).map((f) => [f.code, f.stepId]);
+    const send = { id: 's', type: 'integration_action', tool: 'outlook_compose', inputs: { to: literal('orders@hoekstra-staal.example'), body: ref('trigger.output.mail.subject') } };
+    assert.deepStrictEqual(onMail([send]), [['mail.sends', 's']]);
+    assert.deepStrictEqual(onMail([{ ...send, tool: 'outlook_reply_in_thread' }]), [['mail.sends', 's']]);
+    assert.deepStrictEqual(codes(planOf([send])), [], 'on the clock the same step may send');
+    const own = [
+        { id: 'd', type: 'integration_action', tool: 'outlook_create_draft', inputs: { to: ref('trigger.output.mail.from'), body: literal('Thanks') } },
+        { id: 'n', type: 'notification', title: 'A draft is ready', body: 'See your drafts.' },
+    ];
+    assert.deepStrictEqual(onMail(own), [], 'a draft and a note to the owner');
+    const mailTrigger = { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new' } };
+    assert.deepStrictEqual(codes(planOf([send], mailTrigger)), ['mail.sends'], 'a plan whose own trigger is a mail');
+});
+
+test('every step runs as the plan shows it: no saved output served instead, no switched-off step, no saved start data', () => {
+    const send = { id: 's', type: 'integration_action', tool: 'outlook_compose', inputs: { to: ref('steps.who.output.email'), body: literal('Hi') } };
+    const pinned = planOf([{ id: 'who', type: 'set', values: {}, pinnedOutput: { email: 'boss@evil.example' } }, send]);
+    assert.deepStrictEqual(checkPlan(pinned, lookups).map((f) => [f.code, f.stepId]), [['step.pinned', 'who']]);
+    const off = planOf([{ id: 'check', type: 'condition', disabled: true, condition: '{{steps.x.output}} < 100' }, send]);
+    assert.deepStrictEqual(checkPlan(off, lookups).map((f) => [f.code, f.stepId]), [['step.disabled', 'check']]);
+    const startPin = planOf([send], { id: 'trg', type: 'trigger', kind: 'manual', pinnedOutput: { email: 'boss@evil.example' } });
+    assert.deepStrictEqual(codes(startPin), ['trigger.pinned']);
+    assert.deepStrictEqual(codes(planOf([{ ...send, pinnedOutput: null, disabled: false }])), [], 'cleared fields are no finding');
 });

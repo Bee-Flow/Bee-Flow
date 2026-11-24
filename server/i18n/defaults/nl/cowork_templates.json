@@ -22,7 +22,9 @@
     "cowork_templates.saved": "Opgeslagen. Collega's vinden het onder \"Begin met een sjabloon\".",
     "cowork_templates.saved_by": "opgeslagen door {name}",
     "cowork_templates.signed_elsewhere": "Ondertekend door een andere Bee Flow (sleutel {key}), en sindsdien niet gewijzigd. Voeg het alleen toe als je weet waar het vandaan komt.",
-    "cowork_templates.signed_here": "Ondertekend door deze Bee Flow, en sindsdien niet gewijzigd."
+    "cowork_templates.signed_here": "Ondertekend door je eigen organisatie op deze Bee Flow, en sindsdien niet gewijzigd.",
+    "cowork_templates.signed_here_other_org": "Ondertekend op deze Bee Flow door een andere organisatie dan de jouwe, en sindsdien niet gewijzigd. Voeg het alleen toe als je weet waar het vandaan komt.",
+    "cowork_templates.signed_here_unknown_org": "Ondertekend op deze Bee Flow, maar het bestand zegt niet door welke organisatie. Voeg het alleen toe als je weet waar het vandaan komt."
   },
   "sameAsEnglish": []
 }

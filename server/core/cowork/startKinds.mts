@@ -32,5 +32,6 @@ export function asStartedBy(definition: Definition, item: { triggerKind?: string
     const trigger = definition.trigger && typeof definition.trigger === 'object' ? definition.trigger : {};
     // Marked, not renamed: the trigger keeps the kind the plan was made with, which the checks allow, and its output
     // reads as outside text (./plan/outsideText.mts triggerBringsOutsideText).
-    return { ...definition, trigger: { ...trigger, startedFromOutside: true } };
+    // `startKind` says WHICH event: a plan a mail starts drafts, it never sends (./plan/planChecks.mts, decision 0044).
+    return { ...definition, trigger: { ...trigger, startedFromOutside: true, startKind: item.triggerKind } };
 }
