@@ -5,7 +5,11 @@
  *             runs a prompt or an agent; and for an item with a goal, its latest count ("46 of 49 this week");
  *   today     what ran in the owner's day so far and what is still to come in it (the client says where its day
  *             starts and ends: the owner's clock, not the server's);
- *   cost      what the owner's Cowork runs cost in AI this calendar month (null: it could not be read).
+ *   cost      what the owner's Cowork runs cost in AI this calendar month (null: it could not be read);
+ *   budget    how much of the organisation's monthly Cowork AI budget is used, as a whole percentage (null: no budget,
+ *             no organisation, or it could not be read): the home warns from 80%. A percentage, never an amount;
+ *   outcomes  per item, how its newest finished run ended as an outcome code (`nothing_to_do`, `done`, ...): the home's
+ *             status says "Nothing to do" from it. Only items whose run recorded one.
  *
  * Titles, statuses and times; never what a run read or produced. The owner's own items only.
  */
@@ -38,6 +42,10 @@ export interface HomeDeps {
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
     /** The owner's goals with their latest good count (stores/coworkGoals.mts); without it, no item shows a goal. */
     goalCounts?: (userId: string) => Promise<GoalCount[]>;
+    /** What the organisation's coworks spent on AI since a moment (stores/coworkRunCosts.mts); without it, no budget. */
+    orgCostSince?: (orgId: string, since: Date) => Promise<RunCost>;
+    /** How each item's newest finished run ended (stores/coworkRunOutcomes.mts); without it, no outcomes. */
+    lastOutcomes?: (userId: string) => Promise<Record<string, string>>;
 }
 
 const defaults = (): HomeDeps => {
@@ -52,6 +60,8 @@ const defaults = (): HomeDeps => {
         orgOf: async (u) => ((await (nodeRequire('../stores/userStore.js') as { getUser: (id: string) => Promise<{ organizationId?: string | null } | null> }).getUser(u))?.organizationId || null),
         policyOf: (u) => policyOfOwner(u),
         goalCounts: (u) => (nodeRequire('../stores/coworkGoals.mts') as typeof import('../stores/coworkGoals.mts')).coworkGoals().countsOfOwner(u),
+        orgCostSince: (o, since) => (nodeRequire('../stores/coworkStore.js') as { orgCostSince: NonNullable<HomeDeps['orgCostSince']> }).orgCostSince(o, since),
+        lastOutcomes: (u) => (nodeRequire('../stores/coworkRunOutcomes.mts') as typeof import('../stores/coworkRunOutcomes.mts')).coworkRunOutcomes().lastOutcomes(u),
     };
 };
 
@@ -71,7 +81,13 @@ export interface GoalLine { sentence: string; targetPercent: number; met: number
 
 export interface TodayEntry { kind: 'ran' | 'next'; itemId: string; title: string; at: string | null; status: string | null; runId: string | null }
 
-export interface CoworkHome { how: Record<string, HowItWorks>; today: TodayEntry[]; cost: RunCost | null }
+export interface CoworkHome {
+    how: Record<string, HowItWorks>;
+    today: TodayEntry[];
+    cost: RunCost | null;
+    budget: { percent: number } | null;
+    outcomes: Record<string, string>;
+}
 
 const NONE = { fixed: 0, ai: 0, ask: 0, deliver: 0 };
 
@@ -90,6 +106,15 @@ async function goalsOf(userId: string, deps: HomeDeps): Promise<Map<string, Goal
     return new Map(counts.map((c) => [c.scheduleId, { sentence: c.sentence, targetPercent: c.targetPercent, met: c.met, total: c.total, period: c.period, measuredAt: c.measuredAt }]));
 }
 
+/** How much of the organisation's monthly budget its coworks used, in whole percent; null without one or unreadable. */
+async function budgetOf(organizationId: string | null, policy: CoworkPolicy, now: Date, deps: HomeDeps): Promise<CoworkHome['budget']> {
+    const budget = policy.monthlyBudget;
+    if (!organizationId || !deps.orgCostSince || budget === null || !(budget > 0)) return null;
+    const spent = await deps.orgCostSince(organizationId, monthStartOf(now)).then((c) => c.byCurrency.EUR ?? 0)
+        .catch((e: unknown) => fallback('usecases/coworkHome:budget', e, null));
+    return spent === null ? null : { percent: Math.round((spent / budget) * 100) };
+}
+
 /** The home of one owner, for the day [from, to) of the owner's clock. */
 export async function homeOf(userId: string, day: { from: string; to: string }, now: Date = new Date(), deps: HomeDeps = defaults()): Promise<CoworkHome> {
     const organizationId = deps.orgOf ? await deps.orgOf(userId).catch((e: unknown) => fallback('usecases/coworkHome:org', e, null)) : null;
@@ -101,6 +126,8 @@ export async function homeOf(userId: string, day: { from: string; to: string }, 
         deps.policyOf ? deps.policyOf(userId) : Promise.resolve(OPEN_POLICY),
     ]);
     const goals = await goalsOf(userId, deps);
+    const budget = await budgetOf(organizationId, policy, now, deps);
+    const outcomes = deps.lastOutcomes ? await deps.lastOutcomes(userId).catch((e: unknown) => fallback('usecases/coworkHome:outcomes', e, {})) : {};
     const how: Record<string, HowItWorks> = {};
     for (const item of items) {
         const works = await howOf(item, mayAsk, policy.ceiling, deps);
@@ -115,5 +142,5 @@ export async function homeOf(userId: string, day: { from: string; to: string }, 
     const ran: TodayEntry[] = runs.map((r) => ({ kind: 'ran', itemId: r.itemId, title: r.title, at: r.at, status: r.status, runId: r.runId }));
     // One timeline, earliest first: what ran, then what is to come.
     const today = [...ran, ...next].sort((a, b) => String(a.at ?? '').localeCompare(String(b.at ?? '')));
-    return { how, today, cost };
+    return { how, today, cost, budget, outcomes };
 }

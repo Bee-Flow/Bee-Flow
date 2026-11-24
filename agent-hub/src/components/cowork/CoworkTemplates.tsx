@@ -1,5 +1,5 @@
 /**
- * "Start from a template", next to the starters on the Cowork home (./CoworkPage.tsx): the coworks colleagues saved
+ * "Start from a template", in the Templates sheet of the Cowork page (./CoworkTemplatesPanel.tsx): the coworks colleagues saved
  * for the organisation. One of them shows its brief, its schedule and what its plan may do, in the words of the plan
  * card (./CoworkPlanCard.tsx MayDo); the server works that out from the plan itself each time. "Add to my cowork"
  * makes a new item, paused, whose plan waits for its owner's approval: adding runs nothing.
@@ -73,9 +73,17 @@ function TemplateDetail({ id, onBack, onAdded, t }: { id: string; onBack: () => 
     );
 }
 
-export default function CoworkTemplates({ onAdded }: { onAdded: (coworkId: string) => void }) {
+interface CoworkTemplatesProps {
+    onAdded: (coworkId: string) => void;
+    /** Open on the list (the Templates sheet, ./CoworkTemplatesPanel.tsx) instead of behind its button. */
+    startOpen?: boolean;
+    /** Its Close, when the list lives in something that closes (the sheet); otherwise Close folds it back. */
+    onClose?: () => void;
+}
+
+export default function CoworkTemplates({ onAdded, startOpen = false, onClose }: CoworkTemplatesProps) {
     const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(startOpen);
     const [openId, setOpenId] = useState<string | null>(null);
     const list = useCoworkTemplates(open);
     const templates = list.data ?? [];
@@ -91,7 +99,7 @@ export default function CoworkTemplates({ onAdded }: { onAdded: (coworkId: strin
         <section className="mt-4 w-full rounded-[10px] border px-[18px] py-3 flex flex-col gap-2 [border-color:var(--border-subtle)]" aria-labelledby="cowork-templates-heading" data-testid="cowork-templates">
             <div className="flex items-center justify-between gap-2">
                 <h2 id="cowork-templates-heading" className="text-[12.5px] font-semibold text-[var(--text-primary)]">{t('cowork_templates.heading', 'Templates from your organisation')}</h2>
-                <button type="button" className="text-[12px] text-[var(--text-tertiary)]" onClick={() => { setOpen(false); setOpenId(null); }}>{t('cowork_templates.close', 'Close')}</button>
+                <button type="button" className="text-[12px] text-[var(--text-tertiary)]" onClick={() => { if (onClose) onClose(); else { setOpen(false); setOpenId(null); } }}>{t('cowork_templates.close', 'Close')}</button>
             </div>
             {openId ? (
                 <TemplateDetail id={openId} onBack={() => setOpenId(null)} onAdded={onAdded} t={t} />

@@ -92,3 +92,26 @@ test('an item whose last run did not do its work is an entry; a repair that is r
     assert.deepStrictEqual(list.map((n) => [n.kind, n.itemId, n.runId]), [['repair', 'b', null], ['incomplete', 'a', 'r1'], ['ai_failed', 'c', 'r3']]);
     assert.ok(list.every((n) => n.reason === null), 'no text a run produced');
 });
+
+test('a plan entry says how its try-out of exactly this plan went and whether Cowork can fix its wiring', async () => {
+    const tried = (status, current) => ({ status, current, required: true, blocksApproval: status !== 'passed', summary: null, problems: [], rounds: 1 });
+    const states = {
+        a: state({ tried: tried('passed', true), wiringFixable: false }),
+        b: state({ tried: tried('passed', false) }),
+        c: state({ draft: { findings: [{ message: 'A step reads a step that runs after it.' }], fingerprint: 'f' }, tried: null, wiringFixable: true }),
+    };
+    const list = await needsYou('u1', {
+        getSchedules: async () => [
+            { id: 'a', userId: 'u1', title: 'Tested', planAutomationId: 'auto-1' },
+            { id: 'b', userId: 'u1', title: 'Tried an older version', planAutomationId: 'auto-2' },
+            { id: 'c', userId: 'u1', title: 'Wrong order', planAutomationId: 'auto-3' },
+        ],
+        listRunsWaitingForOwner: async () => [],
+        planStateOf: async (item) => states[item.id],
+    });
+    assert.deepStrictEqual(list.map((n) => [n.itemId, n.plan, n.tried, n.fixable]), [
+        ['a', 'first', 'passed', false],
+        ['b', 'first', null, false],
+        ['c', 'blocked', null, true],
+    ]);
+});

@@ -30,7 +30,7 @@ const dailyMail = {
 };
 /** @type {any[]} */
 const homes = [];
-const home = async (/** @type {string} */ userId, /** @type {any} */ day) => { homes.push([userId, day]); return { how: {}, today: [], cost: null }; };
+const home = async (/** @type {string} */ userId, /** @type {any} */ day) => { homes.push([userId, day]); return { how: {}, today: [], cost: null, budget: null, outcomes: {} }; };
 /** @type {{ readOnly: boolean }} */
 const policy = { readOnly: false };
 mountSideRoutes(router, { home, policyOf: async () => policy, needs: async (userId) => { asked.push(userId); return [/** @type {any} */ ({ kind: 'review', itemId: 'cw-1', title: 'T', runId: 'r1', since: null, reason: 'Look', plan: null })]; }, dailyMail });

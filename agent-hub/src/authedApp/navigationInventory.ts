@@ -92,11 +92,11 @@ export const INVENTORY: Row[] = [
     { page: 'meetingNotes', flags: '→ studio/meeting-notes', url: '/app/meeting-notes', lands: '/app/studio/meeting-notes', shows: { current: 'rail-meetingNotes' } },
     { page: 'webpages', flags: '→ studio/webpages (replace)', url: '/app/webpages', lands: '/app/studio/webpages', shows: { current: 'rail-webpages' } },
     // ── Cowork ────────────────────────────────────────────────────────────
-    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork', shows: { testId: 'cowork-welcome' }, nav: 'cowork' },
+    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork', shows: { testId: 'cowork-page' }, nav: 'cowork' },
     // From another page an item pushes (Back returns there); inside Cowork a row replaces (Back leaves Cowork).
-    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork/cw1', shows: { testId: 'cowork-welcome' }, nav: 'cowork/cw1' },
-    { page: 'cowork', flags: 'initialCoworkId (legacy)', url: '/app/work', shows: { testId: 'cowork-welcome' } },
-    { page: 'cowork', flags: 'initialCoworkId (legacy Studio tab)', url: '/app/studio/cowork/cw1', shows: { testId: 'cowork-welcome' } },
+    { page: 'cowork', flags: 'initialCoworkId', url: '/app/cowork/cw1', shows: { testId: 'cowork-page' }, nav: 'cowork/cw1' },
+    { page: 'cowork', flags: 'initialCoworkId (legacy)', url: '/app/work', shows: { testId: 'cowork-page' } },
+    { page: 'cowork', flags: 'initialCoworkId (legacy Studio tab)', url: '/app/studio/cowork/cw1', shows: { testId: 'cowork-page' } },
     // ── Documents, projects, published apps and forms ─────────────────────
     { page: 'documents', flags: 'initialDocumentId', url: '/app/documents', shows: { testId: 'documents-library' }, nav: 'documents' },
     { page: 'documents', flags: 'initialDocumentId', url: '/app/documents/d1', shows: { text: 'Document not found.' }, nav: 'documents/d1' },

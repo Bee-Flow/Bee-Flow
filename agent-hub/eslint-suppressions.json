@@ -7580,17 +7580,6 @@
       "count": 1
     }
   },
-  "src/components/cowork/CoworkPage.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/components/cowork/coworkSchedule.ts": {
     "complexity": {
       "count": 2

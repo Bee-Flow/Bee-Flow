@@ -15,6 +15,9 @@ export interface CoworkNeed {
     since: string | null;
     reason: string | null;
     plan: CoworkPlanNeed | null;
+    /** A plan: how the try-out of exactly this plan went (null: none), and whether Cowork can fix its wiring itself. */
+    tried?: 'running' | 'passed' | 'failed' | 'untried' | null;
+    fixable?: boolean;
     /** A repair Cowork worked out: why, and the step it is about. */
     repair?: { proposalId: string; reasonCode: string; stepTitle: string | null } | null;
 }

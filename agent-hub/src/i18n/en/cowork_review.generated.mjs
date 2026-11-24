@@ -18,7 +18,6 @@ export default {
     "cowork_review.history.open_conversation": "Open the conversation of this run",
     "cowork_review.history.started_by_answer": "Continued after your answer to a review",
     "cowork_review.history.waiting_line": "Waiting for your review: {reason}",
-    "cowork_review.list.count": "{count} to review",
     "cowork_review.notification.open_in_cowork": "Open in Cowork",
     "cowork_review.queue.answer_label": "Your answer or instruction",
     "cowork_review.queue.answer_placeholder": "For example: make the draft anyway, with the discount we agreed on the phone.",

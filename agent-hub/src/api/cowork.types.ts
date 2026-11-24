@@ -65,6 +65,8 @@ export interface CoworkItem {
     trigger?: MailTrigger | null;
     /** Runs that asked for review and wait for the owner (absent from an older server: read as 0). */
     openReviewCount?: number;
+    /** The automation its plan is made from; null without a plan. Its approvals are found by it. */
+    planAutomationId?: string | null;
 }
 
 /** How the owner handled a run that asked for review. */
@@ -218,9 +220,20 @@ export interface CoworkUpdate {
     monthlyBudget?: number | null;
 }
 
+/** The signed-in user as the Cowork page reads it: simple mode, and who administers what (utils/adminAccess.ts). */
+export type CoworkViewer = {
+    simpleMode?: boolean;
+    id?: string;
+    isAdmin?: boolean | null;
+    role?: string | null;
+    orgRole?: string | null;
+    organizationId?: string | null;
+    isHomeOrgAdmin?: boolean;
+};
+
 /** The props of the Cowork page. */
 export interface CoworkPageProps {
-    user?: { simpleMode?: boolean; id?: string } | null;
+    user?: CoworkViewer | null;
     isMobile?: boolean;
     initialCoworkId?: string | null;
     onNavigate?: (path: string) => void;
