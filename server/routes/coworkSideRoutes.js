@@ -18,6 +18,8 @@
  *                             the organisation (./coworkTemplateRoutes.js)
  *   GET, PUT, DELETE /:id/goal, POST /:id/goal/check, POST /:id/goal/approve → the goal of a cowork and the check
  *                             that measures it (./coworkGoalRoutes.js)
+ *   GET, POST /desks, GET, DELETE /desks/:id, PUT /desks/:id/roles, /desks/:id/members..., GET /:id/desk → desks of
+ *                             coworks of different owners that hand work to each other (./coworkDeskRoutes.js)
  *
  * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
  * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
@@ -84,6 +86,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkReplayRoutes').mountReplayRoutes(router);
     require('./coworkTemplateRoutes').mountTemplateRoutes(router);
     require('./coworkGoalRoutes').mountGoalRoutes(router);
+    require('./coworkDeskRoutes').mountDeskRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

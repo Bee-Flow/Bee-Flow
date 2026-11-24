@@ -103,6 +103,8 @@ const FIXTURES = [
             // The goal and its check: the owner's only (usecases/coworkGoals.mts).
             'GET /api/cowork/:id/goal', 'PUT /api/cowork/:id/goal', 'POST /api/cowork/:id/goal/check',
             'POST /api/cowork/:id/goal/approve', 'DELETE /api/cowork/:id/goal',
+            // The desk the cowork is on: its owner's only (usecases/coworkDesks.mts).
+            'GET /api/cowork/:id/desk',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.

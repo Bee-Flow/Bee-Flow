@@ -29,7 +29,8 @@ import { planFingerprint } from './plan/planPermissions.mts';
 import { planViewOf } from './plan/planView.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
-import { effectiveIndependence, withAsks } from './plan/planIndependence.mts';
+import { effectiveIndependence, withAsks, type QuestionRoute } from './plan/planIndependence.mts';
+import { questionRouteOf } from './deskQuestions.mts';
 import { sinceTriggerData, type SinceDeps } from './sinceLastTime.mts';
 import { asStartedBy } from './startKinds.mts';
 import { trustedSteps } from './planTrust.mts';
@@ -85,8 +86,8 @@ export interface PlanRunDeps {
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
     /** What the owner trusts per step and recipient (./planTrust.mts). */
     trustOf?: (scheduleId: string) => Promise<TrustRow[]>;
-    /** The colleague who decides the item's questions (usecases/coworkShares.mts), or null. */
-    approverOf?: (scheduleId: string) => Promise<string | null>;
+    /** Who decides the item's questions (./deskQuestions.mts: a desk role, or the colleague it is shared with), or null. */
+    approverOf?: (scheduleId: string) => Promise<string | QuestionRoute | null>;
     /** When the item's last good run started (./sinceLastTime.mts). */
     since?: SinceDeps;
 }
@@ -161,7 +162,7 @@ function defaults(deps: PlanRunDeps) {
         mayAsk: deps.mayAsk ?? mayAskByLicence,
         policyOf: deps.policyOf ?? ((userId: string) => policyOfOwner(userId)),
         trustOf: deps.trustOf ?? ((id: string) => (nodeRequire('../../stores/coworkTrust.mts') as typeof import('../../stores/coworkTrust.mts')).coworkTrust().listTrust(id)),
-        approverOf: deps.approverOf ?? ((id: string) => (nodeRequire('../../stores/coworkShares.mts') as typeof import('../../stores/coworkShares.mts')).coworkShares().approverOf(id)),
+        approverOf: deps.approverOf ?? ((id: string) => questionRouteOf(id)),
         since: deps.since,
     };
 }

@@ -18,7 +18,7 @@ const { rowToSchedule } = nodeRequire('./coworkRows.js') as Rows;
 export type CoworkItem = NonNullable<ReturnType<Rows['rowToSchedule']>>;
 const items = (rows: Row[]): CoworkItem[] => rows.map((r) => rowToSchedule(r as unknown as Parameters<Rows['rowToSchedule']>[0])).filter((x): x is CoworkItem => !!x);
 
-export interface RunOrigin { id: string; scheduleId: string; status: string; triggerKind: string | null; triggerRef: string | null; result: string | null }
+export interface RunOrigin { id: string; scheduleId: string; userId: string; status: string; triggerKind: string | null; triggerRef: string | null; result: string | null }
 
 const BY_FIELD = (kind: string, field: string) => `CASE WHEN trigger_kind = '${kind}' THEN trigger_json::jsonb ->> '${field}' END`;
 
@@ -53,10 +53,10 @@ export function makeCoworkStarts({ db = nodeRequire('../db.js') as Db, ready = a
     /** Where one run came from, and how it ended. */
     async function runOrigin(runId: string): Promise<RunOrigin | null> {
         await ready();
-        const r = await db.getOne('SELECT id, schedule_id, status, trigger_kind, trigger_ref, result FROM cowork_runs WHERE id = $1', [runId]);
+        const r = await db.getOne('SELECT id, schedule_id, user_id, status, trigger_kind, trigger_ref, result FROM cowork_runs WHERE id = $1', [runId]);
         if (!r) return null;
         return {
-            id: String(r.id), scheduleId: String(r.schedule_id), status: String(r.status),
+            id: String(r.id), scheduleId: String(r.schedule_id), userId: String(r.user_id), status: String(r.status),
             triggerKind: r.trigger_kind ? String(r.trigger_kind) : null, triggerRef: r.trigger_ref ? String(r.trigger_ref) : null,
             result: typeof r.result === 'string' ? r.result : null,
         };

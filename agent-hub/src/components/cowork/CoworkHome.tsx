@@ -1,8 +1,10 @@
 /**
  * Cowork's home, above the composer when no item is open (./CoworkPage.tsx): what waits for the owner
- * (./CoworkNeedsYou.tsx), the owner's day as one timeline, and what Cowork cost in AI this month.
+ * (./CoworkNeedsYou.tsx), the owner's day as one timeline, the desks the owner is on (./CoworkDesks.tsx), and what
+ * Cowork cost in AI this month.
  */
 import { CalendarDays } from 'lucide-react';
+import CoworkDesks from './CoworkDesks';
 import CoworkNeedsYou from './CoworkNeedsYou';
 import CoworkSharedWithMe from './CoworkSharedWithMe';
 import CoworkHabitsSwitch from './CoworkHabitsSwitch';
@@ -50,6 +52,7 @@ export default function CoworkHome({ onOpen, reloadKey = 0 }: { onOpen: (itemId:
             <CoworkNeedsYou onOpen={onOpen} reloadKey={reloadKey} />
             {Array.isArray(home?.today) && <Today entries={home.today} onOpen={onOpen} locale={lang} />}
             <CoworkSharedWithMe />
+            <CoworkDesks onOpen={onOpen} />
             {home?.cost && home.cost.calls > 0 && (
                 <p className="mb-4 px-[18px] text-[12px] text-[var(--text-tertiary)]" data-testid="cowork-cost-month">
                     {t('cowork.home.cost_month', 'AI this month: {cost}', { cost: formatCost(home.cost.byCurrency, lang) })}

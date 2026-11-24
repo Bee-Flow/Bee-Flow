@@ -77,7 +77,7 @@ test('after another cowork: the followers of a good run start with its title and
     const started = [];
     const deps = {
         runOrigin: async (/** @type {string} */ id) => runs[id] ?? null,
-        listFollowers: async (/** @type {string} */ id) => (id === 'A' ? [{ id: 'B' }, { id: 'C' }] : [{ id: 'A' }, { id: 'D' }]),
+        listFollowers: async (/** @type {string} */ id) => (id === 'A' ? [{ id: 'B', userId: 'u1' }, { id: 'C', userId: 'u1' }] : [{ id: 'A', userId: 'u1' }, { id: 'D', userId: 'u1' }]),
         start: async (/** @type {any} */ item, /** @type {any} */ event) => { started.push([item.id, event]); return true; },
     };
     assert.strictEqual(await afterRunEnded({ id: 'A', userId: 'u1', title: 'Supplier radar' }, 'r1', /** @type {any} */ (deps)), 2);

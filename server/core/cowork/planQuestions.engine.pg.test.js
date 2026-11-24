@@ -22,12 +22,11 @@
 const { test, before } = require('node:test');
 const assert = require('node:assert');
 
-const { pg, store } = require('./coworkEngine.testkit').coworkOnEngine();
+const engine = require('./coworkEngine.testkit');
+
+const { pg, store } = engine.coworkOnEngine();
 
 const automationStore = require('../../stores/automationStore');
-const { executeTask } = require('../aiTaskRunner');
-const { attachPlan, approvePlan } = require('../../usecases/coworkPlan.mts');
-const { chooseIndependence } = require('../../usecases/coworkIndependence.mts');
 const { decide, canDecide, featureLetsDecide } = require('../../automation/approvalService');
 const { coworkShares } = require('../../stores/coworkShares.mts');
 const { setCoworkPolicy } = require('../entitlements/coworkPolicy.mts');
@@ -72,20 +71,7 @@ require('node:test').after(() => {
 });
 
 /** An item of `owner` whose run asks before the mail, run until it waits; its question, its run and the item. */
-async function waitingQuestion(owner) {
-    const automation = await automationStore.createAutomation({ userId: owner, title: 'Supplier radar', definition: definition(), triggerType: 'manual' });
-    const created = await store.createSchedule({ userId: owner, title: 'Supplier radar', prompt: 'Tell me.', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
-    const attached = await attachPlan({ item: await store.getSchedule(created.id), automationId: automation.id });
-    await approvePlan({ item: await store.getSchedule(created.id), fingerprint: attached.draft.fingerprint });
-    await chooseIndependence({ item: await store.getSchedule(created.id), level: 'asks_before_sending' });
-    await executeTask(await store.getSchedule(created.id), { manual: true, store });
-    const [waiting] = await store.listRuns(created.id);
-    assert.strictEqual(waiting.status, 'waiting', `the run waits before the mail (${waiting.error})`);
-    const link = await store.getPlanRun(created.id, waiting.id);
-    const approval = await automationStore.getApprovalForRunStep(link.automationRunId, 'cowork_ask__send', { pendingOnly: true });
-    assert.ok(approval, 'the question is there to decide');
-    return { itemId: created.id, approval, run: await automationStore.getRun(link.automationRunId) };
-}
+const waitingQuestion = (/** @type {string} */ owner) => engine.waitingQuestion(store, { owner, title: 'Supplier radar', definition: definition() });
 
 /** The item's latest Cowork run once it no longer waits. */
 async function closedRun(itemId) {

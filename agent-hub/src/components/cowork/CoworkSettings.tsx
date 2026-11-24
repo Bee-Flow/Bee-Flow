@@ -1,11 +1,13 @@
 /**
- * The Settings tab of an item (./CoworkDetail.tsx): how it starts, the people it is shared with or handed to, its
+ * The Settings tab of an item (./CoworkDetail.tsx): how it starts, the people it is shared with or handed to (and the
+ * desk it works on with colleagues' coworks, ./CoworkDeskPanel.tsx), its
  * monthly AI budget, and the changes made to it. Plain headed sections in one column, each open: what used to be four
  * folded boxes of the same look is now read as one page.
  *
  * Rendered only while the tab is shown, so the panels below read their data then and not when the item opens.
  */
 import type { ReactNode } from 'react';
+import CoworkDeskPanel from './CoworkDeskPanel';
 import CoworkHandOver from './CoworkHandOver';
 import CoworkSaveTemplate from './CoworkSaveTemplate';
 import { ReceiptChain } from './CoworkReceipt';
@@ -69,6 +71,7 @@ export default function CoworkSettings({ item, busy, onEdit }: CoworkSettingsPro
             </Section>
             <Section id="people" heading={t('cowork_detail.settings.people', 'People')}>
                 <CoworkShare coworkId={item.id} />
+                <CoworkDeskPanel coworkId={item.id} />
                 <CoworkHandOver coworkId={item.id} />
                 <CoworkSaveTemplate coworkId={item.id} title={item.title} />
             </Section>

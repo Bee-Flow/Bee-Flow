@@ -335,6 +335,7 @@ const FIXTURES = [
     ...require('./tenantFixtures/meetings').FIXTURES,
     ...require('./tenantFixtures/personal').FIXTURES,
     ...require('./tenantFixtures/coworkTemplates').FIXTURES,
+    ...require('./tenantFixtures/coworkDesks').FIXTURES,
     ...require('./tenantFixtures/chat').FIXTURES,
     ...require('./tenantFixtures/compliance').FIXTURES,
     ...require('./tenantFixtures/support').FIXTURES,
