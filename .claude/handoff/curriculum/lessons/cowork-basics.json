@@ -83,7 +83,7 @@
       "id": "approve",
       "icon": "✅",
       "title": "The first approval shows what the test produced",
-      "bodyMd": "**Open and approve** opens the task as a page. Above its steps sits **This is what you would have received**: the actual text the test produced, from his real data, and who it would have gone to. Nothing was sent.\n\nBart reads it the way he would read tomorrow's digest. Then he chooses:\n\n- **Approve**: *Approved. It runs by itself from now on.*\n- **Change something**: opens the task's **What** so he can say it differently first.\n\nThat is the deal Cowork makes with you: you see a real result before it ever runs for real."
+      "bodyMd": "**Open and approve** opens the task as a page. At the top sits **This is what you would have received**: the actual text the test produced, from his real data, and who it would have gone to. Nothing was sent.\n\nBart reads it the way he would read tomorrow's digest. Then he chooses, on that same card:\n\n- **Approve**: *Approved. It runs by itself from now on.*\n- **Change something**: opens the task's **What** so he can say it differently first.\n\nThat is the deal Cowork makes with you: you see a real result before it ever runs for real."
     },
     {
       "type": "quiz",

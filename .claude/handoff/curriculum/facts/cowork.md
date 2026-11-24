@@ -1,7 +1,7 @@
 # Fact sheet — Cowork (`/app/cowork`)
 
 Audience: everyday users. Everything below was read from the code on branch
-`claude/cowork-v2-v3-redesign-w076uh` (2026-11-24), after the Cowork redesign ("round 2": one
+`claude/cowork-v2-v3-redesign-w076uh` (2026-11-24, including its label fixes of that day), after the Cowork redesign ("round 2": one
 column, a task as a page, the four questions What · When · Uses · Sends to). Exists: **yes** — a
 shipping surface (home page, task page, API, scheduler, fixed steps, notifications, mobile client).
 
@@ -144,11 +144,13 @@ nothing** (`routes/cowork.js`). The card is headed **This is what I understood**
 - Then a card under **Needs you**: *The steps are ready and tested. Check them once.* /
   *It does not run for real until you approve them.* with **Open and approve**
   (`cowork_home.need.check`, `check_sub`, `open_approve`).
-- On the task page the same card offers **Approve** and **Test, sends nothing**. Above the steps,
-  only while they wait for their first approval: **This is what you would have received** —
+- On the task page, in place of that card, the top shows **This is what you would have received** —
   *From the test, on your real data. It would have gone to {who}. Nothing was sent.* — with the
-  test's actual output and **Change something** (opens the What row) (`CoworkTaskTested.tsx`,
-  `cowork_task.tested.*`).
+  test's actual output, the question *The steps are ready and tested. Check them once.* (or *The steps
+  changed and may do more than you approved. Check them again.*) and three buttons: **Approve**,
+  **Change something** (opens the What row) and **Test, sends nothing** (`CoworkTaskTested.tsx`,
+  `cowork_task.tested.*`). Steps whose last test failed, or that changed since it, cannot be approved
+  yet (`cowork_task.steps.last_test_failed`, `test_stale`).
 - **Approve** → *Approved. It runs by itself from now on.* (`cowork_home.done.approved`), with Undo
   where the server allows it. Approving does NOT start a run (`POST /:id/plan/approve`).
 - **The hold** (`core/cowork/taskSetup.mts` `heldForSetup`): a task whose set-up is `wanted` or
@@ -190,14 +192,15 @@ One column, top to bottom:
      calls it (webhook)* (`TaskSetWhen.tsx` `KINDS`); on a schedule: **How often** (*Once*, *Every
      hour*, *Every day*, *Weekdays*, *On chosen days*, *Every two weeks*, *Every month*, *Every quarter*,
      *Every year*), days, time. Pause is in the header, not here.
-   - **Uses** — **Apps it may use** (chips you switch on/off), **How it works** (`cowork_task.edit.how`):
+   - **Uses** — **Apps it may use** (chips you switch on/off; for fixed steps a line *Its fixed steps use:
+     {apps}.*, and the closed row names the apps the steps use), **How it works** (`cowork_task.edit.how`):
      **The AI works it out every run** · **An agent of yours does it** (then **Which agent**) ·
      **Fixed steps**; then **What it remembers** (with **Clear what it remembers**) and **Spending
      limit** (*Monthly limit in euros*, empty = *No limit*; at the limit the task pauses and tells you).
    - **Sends to** — **Who receives it** (read-only here: *To send it to someone else, say so in the
      sentence under What.* — `cowork_task.sends.change_hint`), the one **Ask me** choice, and **Per
      person** trust.
-   - Saving: a name or a time is saved at once; a change to the sentence, the apps or "how it works"
+   - Saving: a name or a time takes effect at once (*Saving takes effect at once.*, `set.at_once_note`); a change to the sentence, the apps or "how it works"
      of a task with fixed steps is **Save and test** (*Cowork rebuilds the steps and tests them once.
      Nothing is sent. You approve the changed steps before it runs again.*); switching a fixed-steps
      task to the AI or an agent warns *Saving takes its fixed steps off…* (`cowork_task.set.*`,
@@ -315,7 +318,9 @@ details** (`cowork_task.technical`). A failed run also raises a notification tit
 
 **Apps it may use** (`TaskSetUses.tsx`): with no list of its own a task *uses the apps that are on for
 you*; switching one chip off or on gives it *its own list* (*It only uses the apps that are on here.*);
-all off reads **No apps** on the row. There is no button on the task page to go back to "no list of its
+all off means none (the closed row reads **No apps** for the AI or an agent). For fixed steps the closed
+row and the line *Its fixed steps use: {apps}.* name what the steps use, with a warning when one of those
+apps is not connected for you (`cowork_task.uses.steps_*`). There is no button on the task page to go back to "no list of its
 own". The organisation's **Apps tasks may use without asking** applies to every run, AI, agent or
 steps (`runApps.mts`).
 
@@ -327,8 +332,8 @@ steps (`runApps.mts`).
   repeat a question** (off unless you turn it on; keeps only which apps a chat used and on which weekday,
   forgets after 8 weeks) — `cowork_panels.settings.*`.
 - **Admin rules** (administrators): **Read-only mode** (*Tasks read and write drafts, but change and
-  send nothing.*), the ceiling on "Ask me", **Apps tasks may use without asking**, **Monthly AI budget**
-  (notice from 80 %, new runs refused at 100 %), **Automatic fixes**, **Allow “Suggest a task when I
+  send nothing.*), the ceiling on "Ask me", **Apps tasks may use without asking**, **Monthly spending limit**
+  (*For all tasks together, in euros a month*; notice from 80 %, new runs refused at 100 %), **Automatic fixes**, **Allow “Suggest a task when I
   repeat a question”**, **Proof of each run** (audit of every receipt) — `cowork_panels.org.*`.
 
 ---

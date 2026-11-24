@@ -2410,7 +2410,7 @@ const PRACTICE_TOPICS = {
             "Switching a task with fixed steps to the AI or an agent takes its fixed steps off; the screen warns 'Saving takes its fixed steps off' before the save.",
             "The Ask me choice under Sends to applies to fixed steps only; for the AI or an agent the row says the AI or the agent does the task and tells you afterwards what it did.",
             "An agent run writes its result into one chat thread of that agent that the task keeps using, and also reaches the notifications and the task's History.",
-            "Apps it may use: a task without its own list uses the apps that are on for you; switching a chip gives it its own list; all chips off reads 'No apps' and means it may use none.",
+            "Apps it may use: a task without its own list uses the apps that are on for you; switching a chip gives it its own list; all chips off means it may use none; on a task with fixed steps the Uses row names the apps the steps use.",
             "The agent choice is only offered when there are agents to pick; the list needs the permission to manage agents (Organisation Admin, Agent Admin, Agent Editor), which a Member does not have.",
             "A task may run as your own agent or a published agent of your organisation that you may chat with; otherwise the save is refused with 'Agent not found or not available to you', and without the feature with 'Running Cowork items as an agent is not enabled for this account'.",
             "If the agent's Memory is on, each run of the same task is given what earlier runs already covered, with dates, and told to skip it unless something changed; a task's own 'What it remembers' under Uses can be cleared so the next run starts fresh."

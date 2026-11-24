@@ -7,7 +7,7 @@
       ]
     },
     "learn.check.cowork-apps-scoped.own-list.hint": {
-      "nl": "Open Cowork en maak er een met één zin als Jouw taken leeg is. De eigen lijst van apps wordt in de taak bewaard, waar deze controle niet kan kijken: de rij Gebruikt op de taak is je bewijs.",
+      "nl": "Open Cowork en maak er een met één zin als Jouw taken leeg is. De eigen lijst van apps wordt in de taak bewaard, waar deze controle niet kan kijken: de chips onder Apps die ze mag gebruiken zijn je bewijs.",
       "was": [
         "Open Cowork en maak er een met een briefing van één regel als de lijst leeg is. De lijst Apps per item wordt in het item zelf opgeslagen, waar deze controle niet kan kijken — de teller onder \"Apps die het mag gebruiken\" is je bewijs."
       ]
@@ -489,7 +489,7 @@
       ]
     },
     "learn.cowork-run-as-agent.do.instruction": {
-      "nl": "Open Cowork en open een eigen taak vanuit Jouw taken, of maak er eerst een met één zin. Kies onder Instellingen Wijzigen op de rij Gebruikt, zet onder Apps die ze mag gebruiken minstens één app-chip uit, en sla op (op een taak met vaste stappen is dat Opslaan en testen). We controleren daarna of de taak in je eigen lijst staat; de rij Gebruikt, die nu de eigen apps van de taak noemt, is je bewijs.",
+      "nl": "Open Cowork en open een eigen taak vanuit Jouw taken, of maak er eerst een met één zin. Kies onder Instellingen Wijzigen op de rij Gebruikt, zet onder Apps die ze mag gebruiken minstens één app-chip uit, en sla op (op een taak met vaste stappen is dat Opslaan en testen). We controleren daarna of de taak in je eigen lijst staat; de chips onder Apps die ze mag gebruiken, die nu de eigen lijst van de taak tonen, zijn je bewijs.",
       "was": [
         "Open Cowork en selecteer een item dat van jou is, of maak er eerst een met een opdracht van één regel. Klik op Bewerken en zet onder Apps die het mag gebruiken minstens één app uit, zodat de teller niet meer alle apps toont. Klik op Opslaan. Daarna controleren we dat het item in je eigen Cowork-lijst staat; de teller is je bewijs."
       ]
@@ -609,7 +609,7 @@
       ]
     },
     "learn.cowork-run-as-agent.q-empty.q": {
-      "nl": "Saskia's rapport mag alleen redeneren over de tekst die het krijgt, dus onder Gebruikt zet ze elke app-chip uit en slaat op. De rij toont nu Geen apps. Wat heeft ze Cowork verteld?",
+      "nl": "Saskia's rapport wordt elke keer door de AI gedaan en mag alleen redeneren over de tekst die het krijgt. Onder Gebruikt zet ze elke app-chip uit en slaat op. De rij toont nu Geen apps. Wat heeft ze Cowork verteld?",
       "was": [
         "Saskia opent Bewerken bij haar maandelijkse HR-item en zet onder Apps die het mag gebruiken elke app uit. De teller zegt 0 van 9 ingeschakeld. Wat heeft ze Bee Flow verteld?"
       ]

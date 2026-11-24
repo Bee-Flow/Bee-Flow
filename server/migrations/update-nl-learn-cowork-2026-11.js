@@ -30,7 +30,7 @@ const DATA_FILE = path.join(__dirname, 'data', 'learn-cowork-2026-11-nl.json');
  * and knows nothing about the data file; pinning the data's hash here makes every data change a change to this file.
  * The test fails until it is updated.
  */
-const DATA_SHA256 = 'd2d6c4022f69d27ee1ebc09289255f37dea07e38075004e4875651058f39b471';
+const DATA_SHA256 = '42c2831028def14c4c9d8563f22f99b2a83b1a9299620f7e5a7810ce49c4f87c';
 
 /** @returns {string} hex sha256 of the data file */
 function dataHash() {

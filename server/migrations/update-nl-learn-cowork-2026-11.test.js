@@ -37,19 +37,27 @@ test('every reworded key is a Cowork lesson text that exists in English', () => 
     }
 });
 
-test('`was` is Dutch an install received: the learn-content catalogue as committed, or an earlier rewording', () => {
+/**
+ * The commit the Dutch was shipped from before this catalogue existed: the parent of the commit that added this file,
+ * or HEAD while the file is not committed yet.
+ */
+function shippedRev() {
+    const added = require('node:child_process').execFileSync('git', ['log', '--diff-filter=A', '--format=%H', '--', `${ME}.js`], { cwd: __dirname }).toString('utf8').trim().split('\n').filter(Boolean).pop();
+    return added ? `${added}^` : 'HEAD';
+}
+
+test('`was` is Dutch an install received: the catalogues as they were before this one, or an earlier rewording', () => {
     let shipped;
     try {
-        shipped = [gitShow('HEAD', 'data/learn-content-2026-10-nl.json'), ...SHIPPERS.slice(1).map((m) => gitShow('HEAD', `${m}.js`)),
-            ...fs.readdirSync(path.join(__dirname, 'data', 'admin-dashboard-2026-11')).map((f) => gitShow('HEAD', `data/admin-dashboard-2026-11/${f}`))].join('\n');
+        const rev = shippedRev();
+        const dashboard = gitShow(rev, 'data/admin-dashboard-2026-11/WP22-learn.json');
+        shipped = [gitShow(rev, 'data/learn-content-2026-10-nl.json'), ...SHIPPERS.slice(1).map((m) => gitShow(rev, `${m}.js`)), dashboard].join('\n');
     } catch {
-        return; // no git (an image build): the was texts were checked when the migration was written
+        return; // no git (an image build, a shallow clone): the was texts were checked when the migration was written
     }
-    for (const [key, { was, now }] of Object.entries(NL_REWORDED)) {
+    for (const [key, { was }] of Object.entries(NL_REWORDED)) {
         for (const w of was) {
             const forms = [w, JSON.stringify(w).slice(1, -1)];
-            // Once this commit is the HEAD, the catalogue holds `now`; the earlier texts are still in the history.
-            if (shipped.includes(JSON.stringify(now).slice(1, -1))) continue;
             assert.ok(forms.some((f) => shipped.includes(f)), `${key}: "${w.slice(0, 60)}…" never shipped`);
         }
     }

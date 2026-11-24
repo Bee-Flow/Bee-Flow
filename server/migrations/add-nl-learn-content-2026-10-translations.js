@@ -27,7 +27,7 @@ const DATA = require(path.join(__dirname, 'data', 'learn-content-2026-10-nl.json
  * knows nothing about the data file; pinning the data's hash here makes every data change a change to this
  * file. The test fails until it is updated.
  */
-const DATA_SHA256 = '720e8e879064a766ae5a15c60e7a3da593838f451ecb8bcf3b75bf85cd22d6a4';
+const DATA_SHA256 = '8ffac7235861b8424111308d0d66e1c46dd6df8ebd69a6a575f0ef3eaa7c5883';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 
