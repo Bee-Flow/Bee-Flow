@@ -1,7 +1,10 @@
 // The one confirmation before a new task exists (./coworkConfirmModel.ts): "Which day?" when the sentence did not
-// say when, what each answer schedules, the time, and who it sends to.
+// say when, what each answer schedules, the time, who it sends to, and how the owner's own choices outlive a new
+// reading of the sentence and end up in what Start sends.
 import { describe, expect, it } from 'vitest';
-import { appsNamedIn, dayWords, needsDay, sendsToWords, timeOf, withDay, withTime } from './coworkConfirmModel';
+import {
+    appsNamedIn, confirmView, dayWords, isAddress, needsDay, recipientsIn, schedulePartOf, startPayload, timeOf, withDay, withRecipient, withTime, withoutRecipient,
+} from './coworkConfirmModel';
 import type { CoworkPayload } from '@/api/cowork.types';
 
 const NOW = new Date(2026, 10, 24, 10, 0); // Tuesday 24 November, 10:00 local
@@ -53,17 +56,74 @@ describe('withDay and withTime', () => {
     });
 });
 
-describe('dayWords and sendsToWords', () => {
+describe('dayWords', () => {
     it('says the day part of When', () => {
         expect(dayWords(payload(), t, NOW)).toBe('Right away');
         expect(dayWords(withDay(payload(), 'once', '16:30', NOW), t, NOW)).toBe('Once, today');
         expect(dayWords(withDay(payload(), 'day', '08:00', NOW), t, NOW)).toBe('Every day');
     });
+});
 
-    it('sends to the addresses in the sentence, else only to its owner', () => {
-        expect(sendsToWords({ payload: payload(), spec: null }, t)).toBe('Only you');
-        expect(sendsToWords({ payload: payload({ prompt: 'Mail the list to finance@northwind.example and to sam@northwind.example.' }), spec: null }, t))
-            .toBe('finance@northwind.example, sam@northwind.example');
+describe('who it sends to', () => {
+    it('"me and sam@…" is both: the owner stays, with every address in the sentence, once each', () => {
+        expect(recipientsIn('Send it to me and sam@example.com.')).toEqual({ me: true, others: ['sam@example.com'] });
+        expect(recipientsIn('Mail the list to finance@northwind.example, and to Sam@northwind.example; cc (finance@northwind.example)'))
+            .toEqual({ me: true, others: ['finance@northwind.example', 'Sam@northwind.example'] });
+        expect(recipientsIn('Summarise my meetings')).toEqual({ me: true, others: [] });
+    });
+
+    it('knows an address by plain string checks', () => {
+        for (const ok of ['sam@example.com', ' sam.de.vries@mail.example.nl ']) expect(isAddress(ok), ok).toBe(true);
+        for (const bad of ['', 'sam', 'sam@', '@example.com', 'sam@example', 'sam@@example.com', 'sam @example.com', 'sam@example..com', 'sam@example.com.']) expect(isAddress(bad), bad).toBe(false);
+    });
+
+    it('adds an address once and takes one off; something that is no address changes nothing', () => {
+        const to = recipientsIn('send it to me and sam@example.com');
+        expect(withRecipient(to, ' jo@example.com ').others).toEqual(['sam@example.com', 'jo@example.com']);
+        expect(withRecipient(to, 'SAM@example.com')).toBe(to);
+        expect(withRecipient(to, 'jo')).toBe(to);
+        expect(withoutRecipient(to, 'sam@example.com')).toEqual({ me: true, others: [] });
+    });
+});
+
+describe('confirmView and startPayload', () => {
+    const apps = [{ id: 'fireflies', label: 'Fireflies.ai' }, { id: 'gmail', label: 'Gmail' }];
+    const weekly = payload({ title: 'Weekly meeting summary', prompt: 'Summarise last week’s meetings and mail the summary.', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00', startNow: undefined });
+    const sentence = 'Every Monday at 09:00, summarise last week’s Fireflies meetings and send it to me and sam@example.com';
+
+    it('shows what the sentence says: its name, only the apps it names, me and the address, and "show me first" on', () => {
+        const view = confirmView({ payload: weekly, spec: null }, {}, sentence, apps);
+        expect(view).toMatchObject({ title: 'Weekly meeting summary', apps: ['fireflies'], recipients: { me: true, others: ['sam@example.com'] }, sendsToOthers: true, showFirst: true });
+        expect(startPayload(view, true)).toMatchObject({
+            title: 'Weekly meeting summary', enabledApps: ['fireflies'], repeatInterval: 'weekly', daysOfWeek: ['mon'],
+            setup: { steps: true, sendsTo: ['me', 'sam@example.com'], askFirst: true },
+        });
+    });
+
+    it('a sentence that names no app and nobody else: Cowork picks the apps, and there is nothing to show first', () => {
+        const view = confirmView({ payload: payload(), spec: null }, {}, 'Summarise my meetings', apps);
+        expect(view).toMatchObject({ apps: null, sendsToOthers: false, showFirst: false });
+        const sent = startPayload(view, false) as CoworkPayload;
+        expect(sent.enabledApps).toBeUndefined();
+        expect(sent.setup).toEqual({ steps: false, sendsTo: ['me'] });
+    });
+
+    it('what the owner changed by hand wins, and survives a new reading of the sentence', () => {
+        const mine = { title: 'Monday digest', apps: [] as string[], recipients: { me: false, others: ['jo@example.com'] }, showFirst: false, schedule: schedulePartOf(withDay(weekly, 'fri', '16:00', NOW)) };
+        const reread = { payload: { ...weekly, title: 'Meeting summary for Sam', prompt: 'Summarise the Gmail threads for sam@example.com' }, spec: null };
+        const view = confirmView(reread, mine, `${sentence} and from Gmail`, apps);
+        expect(view).toMatchObject({ title: 'Monday digest', apps: [], recipients: { me: false, others: ['jo@example.com'] }, showFirst: false });
+        expect(startPayload(view, true)).toMatchObject({
+            title: 'Monday digest', prompt: 'Summarise the Gmail threads for sam@example.com', enabledApps: [], daysOfWeek: ['fri'], timeOfDay: '16:00',
+            setup: { steps: true, sendsTo: ['jo@example.com'], askFirst: false },
+        });
+        // A row they did not touch follows the new reading.
+        expect(confirmView(reread, { title: 'Monday digest' }, `${sentence} and from Gmail`, apps)).toMatchObject({ title: 'Monday digest', apps: ['fireflies', 'gmail'], recipients: { me: true, others: ['sam@example.com'] } });
+    });
+
+    it('an emptied name falls back to the one Cowork gave it', () => {
+        const view = confirmView({ payload: weekly, spec: null }, { title: '  ' }, sentence, apps);
+        expect(startPayload(view, true).title).toBe('Weekly meeting summary');
     });
 });
 

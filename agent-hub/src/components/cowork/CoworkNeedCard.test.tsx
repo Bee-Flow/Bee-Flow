@@ -38,22 +38,31 @@ async function press(need: NeedCardData, name: string, props: { solo?: boolean }
 }
 
 describe('CoworkNeedCard — the primary action of each kind', () => {
-    it('check, on the home: opens the task at its steps', async () => {
-        const { onOpenTask } = await press(card({ kind: 'check' }), 'Check the steps');
+    it('check, on the home: "Open and approve" opens the task at its steps', async () => {
+        const { onOpenTask } = await press(card({ kind: 'check', held: true }), 'Open and approve');
         expect(onOpenTask).toHaveBeenCalledWith('w1', 'steps');
         expect(screen.getByText('The steps are ready and tested. Check them once.')).toBeInTheDocument();
+        expect(screen.getByText('It does not run for real until you approve them.')).toBeInTheDocument();
     });
 
-    it('check, inside the task: approves the steps on screen', async () => {
-        await press(card({ kind: 'check', fingerprint: 'abc' }), 'Approve the steps', { solo: true });
+    it('check, inside the task: "Approve" approves the steps on screen, "Test, sends nothing" tries them once more', async () => {
+        await press(card({ kind: 'check', fingerprint: 'abc' }), 'Approve', { solo: true });
         await waitFor(() => expect(posted('/api/cowork/w1/plan/approve')?.body).toEqual({ fingerprint: 'abc' }));
         expect(screen.queryByRole('button', { name: /Weekly digest/ })).toBeNull();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Test, sends nothing' }));
+        await waitFor(() => expect(posted('/api/cowork/w1/plan/try')).toBeTruthy());
     });
 
-    it('first test: tries the steps once; Remove deletes the task', async () => {
-        await press(card({ kind: 'first_test' }), 'Test it now');
+    it('first test: tests the steps once; Remove asks first, and only then deletes the task', async () => {
+        await press(card({ kind: 'first_test' }), 'Test, sends nothing');
         await waitFor(() => expect(posted('/api/cowork/w1/plan/try')).toBeTruthy());
-        await userEvent.setup().click(screen.getByRole('button', { name: 'Remove' }));
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Remove' }));
+        expect(screen.getByText('Remove this task? This cannot be undone.')).toBeInTheDocument();
+        expect(posted('/api/cowork/w1', 'DELETE')).toBeUndefined();
+        await user.click(screen.getByRole('button', { name: 'Keep it' }));
+        await user.click(screen.getByRole('button', { name: 'Remove' }));
+        await user.click(screen.getByRole('button', { name: 'Remove the task' }));
         await waitFor(() => expect(posted('/api/cowork/w1', 'DELETE')).toBeTruthy());
     });
 
@@ -64,12 +73,80 @@ describe('CoworkNeedCard — the primary action of each kind', () => {
         expect(screen.getByText('The steps are in the wrong order, so it cannot run.')).toBeInTheDocument();
     });
 
-    it('fix of a run that did not do its work: runs it again; the way out lets the AI do it each time for a plan', async () => {
-        await press(card({ kind: 'fix', problem: 'incomplete' }), 'Run it again');
+    it('a run that did not do its work: "See what is wrong" opens the task at its steps; the way out runs it again', async () => {
+        const { onOpenTask } = await press(card({ kind: 'fix', problem: 'incomplete', words: { step: 'Get each meeting summary', source: null, app: null } }), 'See what is wrong');
+        expect(onOpenTask).toHaveBeenCalledWith('w1', 'steps');
+        expect(screen.getByText('‘Get each meeting summary’ found nothing to work on in the last run.')).toBeInTheDocument();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Run it again' }));
         await waitFor(() => expect(posted('/api/cowork/w1/run-now')).toBeTruthy());
-        vi.unstubAllGlobals();
-        await press(card({ kind: 'fix', problem: 'tried_failed', key: 'k2' }), 'Let the AI do it each time');
-        await waitFor(() => expect(posted('/api/cowork/w1/plan', 'DELETE')).toBeTruthy());
+    });
+
+    it('an app that is no longer allowed: names the app, says where to allow it, and offers one primary action', async () => {
+        const need = card({ kind: 'fix', problem: 'permission', hasSteps: true, words: { step: 'List last week’s meetings', source: null, app: 'Fireflies' } });
+        const { onOpenTask } = await press(need, 'See what is wrong');
+        expect(onOpenTask).toHaveBeenCalledWith('w1', undefined);
+        expect(screen.getByText('Fireflies is no longer allowed for this task.')).toBeInTheDocument();
+        expect(screen.getByText('Allow it again under Uses, or let the AI work it out every run.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Let the AI work it out every run' })).toBeInTheDocument();
+        const text = screen.getByTestId('cowork-need-card').textContent ?? '';
+        for (const raw of ['automation', 'fireflies_', 'permission to use']) expect(text).not.toContain(raw);
+    });
+
+    it('a step that could not read from another names both; a sign-in that ran out leads to signing in', async () => {
+        serve();
+        renderWithClient(<CoworkNeedCard need={card({ kind: 'fix', problem: 'reads', words: { step: 'Write the summary', source: 'Get each meeting summary', app: null } })} />);
+        expect(screen.getByText('‘Write the summary’ could not read what it needs from ‘Get each meeting summary’.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Run it again' })).toBeInTheDocument();
+        renderWithClient(<CoworkNeedCard need={card({ kind: 'fix', problem: 'signed_out', key: 'k2', words: { step: null, source: null, app: 'Gmail' } })} />);
+        expect(screen.getByText('The sign-in of Gmail ran out.')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Sign in again' })).toHaveAttribute('href', expect.stringContaining('/app/settings/'));
+    });
+
+    it('a run that just failed says so without the error', async () => {
+        const { onOpenTask } = await press(card({ kind: 'fix', problem: 'failed' }), 'See what is wrong');
+        expect(onOpenTask).toHaveBeenCalledWith('w1', undefined);
+        expect(screen.getByText('The last run failed.')).toBeInTheDocument();
+    });
+
+    it('a run that took too long is run again', async () => {
+        await press(card({ kind: 'fix', problem: 'timeout' }), 'Run it again');
+        await waitFor(() => expect(posted('/api/cowork/w1/run-now')).toBeTruthy());
+        expect(screen.getByText('The last run took too long and was stopped.')).toBeInTheDocument();
+    });
+
+    it('"Let the AI work it out every run" says what happened and can be undone: Undo puts the card back', async () => {
+        const { onDone } = await press(card({ kind: 'fix', problem: 'tried_failed', hasSteps: true }), 'Let the AI work it out every run');
+        await waitFor(() => expect(posted('/api/cowork/w1/setup', 'PUT')?.body).toEqual({ mode: 'ai' }));
+        expect(await screen.findByText('The AI works this task out on every run from now on.')).toBeInTheDocument();
+        expect(onDone).not.toHaveBeenCalled();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Undo' }));
+        await waitFor(() => expect(calls.filter((c) => c.method === 'PUT' && c.url.endsWith('/api/cowork/w1/setup')).map((c) => c.body)).toEqual([{ mode: 'ai' }, { mode: 'steps' }]));
+        expect(await screen.findByText('The test of the steps did not pass.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Let the AI work it out every run' })).toBeInTheDocument();
+    });
+
+    it('a set-up that did not work: says why and that the task waits; "Try setting up again" makes the steps once more', async () => {
+        const made = 'event: done\ndata: {"summary":"ok","state":{"automationId":"auto-1"}}\n\n';
+        calls = stubRecordingFetch(({ url }) => (url.endsWith('/plan/make') ? new Response(made, { status: 200, headers: { 'content-type': 'text/event-stream' } }) : jsonResponse({})));
+        const onDone = vi.fn();
+        renderWithClient(<CoworkNeedCard need={card({ kind: 'setup', cause: 'left' })} onDone={onDone} />);
+        expect(screen.getByText('Cowork could not set up the steps.')).toBeInTheDocument();
+        expect(screen.getByText('It was not finished: the page was closed while Cowork was setting up. Until you choose, this task does not run.')).toBeInTheDocument();
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Try setting up again' }));
+        await waitFor(() => expect(posted('/api/cowork/w1/plan/make')).toBeTruthy());
+        await waitFor(() => expect(onDone).toHaveBeenCalledWith('The steps are ready and tested. Open and approve them under Needs you.'));
+    });
+
+    it('a set-up that fails again keeps the task waiting and says so; choosing the AI there can be undone too', async () => {
+        calls = stubRecordingFetch(({ url }) => (url.endsWith('/plan/make') ? jsonResponse({ error: 'No AI model is configured for this workspace, so a plan cannot be made yet.' }, 409) : jsonResponse({})));
+        renderWithClient(<CoworkNeedCard need={card({ kind: 'setup', cause: 'no_model' })} />);
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Try setting up again' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('That did not work this time either. The task keeps waiting for you.');
+        await user.click(screen.getByRole('button', { name: 'Let the AI work it out every run' }));
+        await waitFor(() => expect(posted('/api/cowork/w1/setup', 'PUT')?.body).toEqual({ mode: 'ai' }));
+        await user.click(await screen.findByRole('button', { name: 'Undo' }));
+        expect(await screen.findByText('Cowork could not set up the steps.')).toBeInTheDocument();
     });
 
     it('repair: approves the fix with the fingerprint of the proposal looked at; Not now puts it aside', async () => {
@@ -146,7 +223,7 @@ describe('CoworkNeedCard — the primary action of each kind', () => {
     it('a refusal is said in the server\'s words under the buttons', async () => {
         calls = stubRecordingFetch(() => jsonResponse({ error: 'This plan cannot be approved yet.', code: 'cowork_plan_untried' }, 422));
         renderWithClient(<CoworkNeedCard need={card({ kind: 'first_test' })} />);
-        await userEvent.setup().click(screen.getByRole('button', { name: 'Test it now' }));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Test, sends nothing' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('This plan cannot be approved yet.');
     });
 });

@@ -47,7 +47,7 @@ describe('CoworkHome', () => {
         expect(rows.map((r) => within(r).getByTestId('cowork-status').dataset.status)).toEqual(['nothing', 'failed', 'paused']);
         expect(rows[0]).toHaveTextContent('Goal: Every meeting in it');
         expect(rows[0]).toHaveTextContent(/Next: (Today|Tomorrow), /);
-        expect(rows[1]).toHaveTextContent('On hold');
+        expect(rows[1]).toHaveTextContent('Waits for you');
         await userEvent.setup().click(rows[1]);
         expect(onOpenTask).toHaveBeenCalledWith('w2');
     });

@@ -20,7 +20,9 @@ function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
-        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0 });
+        // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up.
+        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: WAITS_FOR_STEPS });
+        if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: WAITS_FOR_STEPS });
         if (path === '/api/cowork/w1' && method === 'GET') return jsonResponse(items.find((i) => i.id === 'w1') ?? {}, items.some((i) => i.id === 'w1') ? 200 : 404);
         if (path === '/api/cowork/w1' && method === 'DELETE') return jsonResponse({ success: true });
         if (path === '/api/cowork/compose') return jsonResponse({ title: 'Meeting overview', prompt: 'Summarise', repeatInterval: 'daily', timeOfDay: '09:00' });
@@ -36,6 +38,7 @@ function serve(items: CoworkItem[] = [ITEM]) {
 }
 afterEach(() => { vi.unstubAllGlobals(); });
 
+const WAITS_FOR_STEPS = { steps: 'wanted', cause: null, since: null, sendsTo: { me: true, others: [] }, askFirst: null, canUndo: false };
 const path = (c: RecordedCall) => new URL(c.url, 'http://x').pathname;
 
 describe('CoworkPage', () => {
@@ -118,7 +121,7 @@ describe('CoworkPage', () => {
         renderWithClient(<CoworkPage />);
         expect(await screen.findByText('No tasks yet. Write one sentence above to start.')).toBeInTheDocument();
         await user.type(screen.getByLabelText('Describe the task in one sentence'), 'Every day at 9, summarise my meetings');
-        await user.click(screen.getByRole('button', { name: 'Continue' }));
+        await user.click(screen.getByRole('button', { name: 'Show what I understood' }));
         await user.click(await screen.findByRole('button', { name: 'Start' }));
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && path(c) === '/api/cowork/new/plan/make')).toBe(true));
     });

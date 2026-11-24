@@ -147,7 +147,7 @@ export function RepairCard(props: NeedKindProps) {
             <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !proposal} onClick={() => proposal && act.mutate({ run: () => approve.mutateAsync({ proposalId: proposal.id, fingerprint: proposal.fingerprint }), done: t('cowork_home.done.fix_approved', 'Approved. The fix is in the steps now.') })}>
                 {t('cowork_home.need.approve_fix', 'Approve the fix')}
             </button>
-            <button type="button" className={PILL_QUIET} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.snoozed', 'Fine. The task stays on hold; you find the fix in the task.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.fix_later', 'Fine. The task keeps waiting for you; you find the fix in the task.') })}>
                 {t('cowork_home.need.not_now', 'Not now')}
             </button>
         </>

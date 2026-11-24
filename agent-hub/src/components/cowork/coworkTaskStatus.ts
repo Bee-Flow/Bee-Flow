@@ -11,19 +11,23 @@
  *                last run that failed. Before Paused: the server pauses a task by itself when an app needs a
  *                sign-in again or a budget is reached, and that is not a pause its owner chose;
  *   Paused       switched off by its owner while it would start by itself;
- *   Needs you    a card that asks something (check the steps, a message to send, a review, ...), or a run that
- *                waits for a decision;
+ *   Needs you    a card that asks something (approve the steps, choose after a set-up that did not work, a message
+ *                to send, a review, ...), a run that waits for a decision, or a task that waits for its steps before it
+ *                runs at all;
  *   Nothing to do  the last run checked and found nothing to do (its outcome, server core/cowork/runOutcome.mts);
  *   Done         the last run went well;
  *   Scheduled    it has not run yet and waits for its start.
+ *
+ * One word per state: a task that failed says Failed and nothing beside it, and the server gives every failed task a
+ * card under Needs you (usecases/coworkNeedsYou.mts), so the home and the task always agree.
  */
-import { BLOCKS, type NeedCardKind } from './coworkNeedsModel';
+import { BLOCKS, waitsForSteps, type NeedCardKind } from './coworkNeedsModel';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 export type TaskStatus = 'done' | 'failed' | 'needs' | 'scheduled' | 'running' | 'testing' | 'paused' | 'nothing';
 
-type StatusItem = Pick<CoworkItem, 'id' | 'isActive' | 'lastStatus' | 'lastRunAt' | 'runCount' | 'currentRunStartedAt' | 'repeatInterval' | 'daysOfWeek' | 'triggerKind'>;
+type StatusItem = Pick<CoworkItem, 'id' | 'isActive' | 'lastStatus' | 'lastRunAt' | 'runCount' | 'currentRunStartedAt' | 'repeatInterval' | 'daysOfWeek' | 'triggerKind' | 'setup' | 'planId'>;
 
 export interface TaskStatusFacts {
     /** Cowork is setting up or trying its steps now. */
@@ -65,7 +69,7 @@ export function taskStatus(item: StatusItem, cards: ReadonlyArray<{ itemId: stri
     const block = blockOf(item.id, cards);
     if (block === 'failed' || FAILED_RUN.has(item.lastStatus ?? '')) return 'failed';
     if (item.isActive === false && startsByItself(item)) return 'paused';
-    if (block === 'needs' || WAITING_RUN.has(item.lastStatus ?? '')) return 'needs';
+    if (block === 'needs' || WAITING_RUN.has(item.lastStatus ?? '') || waitsForSteps(item)) return 'needs';
     return fromLastRun(item, facts.outcome);
 }
 

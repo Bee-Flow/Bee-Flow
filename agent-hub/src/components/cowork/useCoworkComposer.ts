@@ -13,10 +13,12 @@
  * the blanks, it does not overrule a decision the user already made.
  *
  * With `confirm`, nothing is created on send: what was worked out waits as a
- * `draft`, shown as one plain card (./CoworkComposeCard.tsx). `start()`
- * creates it; `change()` puts it back into the chips to adjust, and the next
- * send keeps what the card showed unless a chip is changed. `amend()` replaces what
- * the draft will create: the Cowork home's card asks "Which day?" with it.
+ * `draft`, shown as one plain card (./CoworkConfirmCard.tsx). `start()`
+ * creates it, or what the card made of it (the Cowork home's card hands in the
+ * draft with its owner's own choices: the name, the day, the apps, who it
+ * sends to); `change()` puts it back into the chips to adjust, and the next
+ * send keeps what the card showed unless a chip is changed. A send while a
+ * draft waits reads the sentence again and replaces the draft.
  */
 import { useCallback, useState } from 'react';
 import { useCoworkAgents } from '@/api/queries/coworkReads';
@@ -81,12 +83,10 @@ export interface UseCoworkComposerReturn {
     reset: () => void;
     /** With `confirm`: what waits for Start or Change; null otherwise. */
     draft: CoworkDraft | null;
-    /** Create the draft. */
-    start: () => Promise<CoworkItem | null>;
+    /** Create the draft, or `payload`: the draft as its card changed it. */
+    start: (payload?: CoworkPayload | CoworkTriggerPayload) => Promise<CoworkItem | null>;
     /** Put the draft back into the chips to adjust it, and close the card. */
     change: () => void;
-    /** Replace what the draft will create (the card's "Which day?" and time), keeping what the sentence said. */
-    amend: (payload: CoworkPayload | CoworkTriggerPayload) => void;
 }
 
 const DEFAULT_WHEN: WhenState = { presetId: 'now', date: '', time: '' };
@@ -268,12 +268,12 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         }
     }, [when, repeatInterval, agentId, enabledApps, mailTrigger, touched, submitting, carried, finish, t]);
 
-    const start = useCallback(async () => {
+    const start = useCallback(async (payload?: CoworkPayload | CoworkTriggerPayload) => {
         if (!draft || submitting) return null;
         setSubmitting(true);
         setError(null);
         try {
-            return await finish(draft.payload, draft.spec, false);
+            return await finish(payload ?? draft.payload, draft.spec, false);
         } catch (err) {
             setError(createError(err, t));
             return null;
@@ -311,7 +311,5 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         summary: mailTrigger ? describeMailTrigger(mailTrigger, t) : describeSchedule({ presetId: when.presetId, runAt: resolveWhen(when.presetId, when), repeatInterval }),
         submit, reset,
         draft, start, change,
-        // In the object, not a statement of its own: the hook is at its statement budget.
-        amend: useCallback((payload: CoworkPayload | CoworkTriggerPayload) => setDraft((was) => (was ? { ...was, payload } : was)), []),
     };
 }

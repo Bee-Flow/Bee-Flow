@@ -4,8 +4,8 @@
  *   On the home      a row of the "Needs you" list: the task it is about first (a link that opens it), then ONE plain
  *                    sentence, a line under it, what it is about (a message, a fix), and the buttons: one primary
  *                    action that resolves it and a secondary way out.
- *   Inside a task    (`solo`) the same without the task's name, as a tinted card of its own: amber for a question,
- *                    red for a problem.
+ *   Inside a task    (`solo`) the same without the task's name, as a flat card of its own with a coloured edge:
+ *                    amber for a question, red for a problem.
  *
  * An action runs through `useNeedAct`: the buttons wait while it runs, a refusal is said in the server's own words
  * under them, and afterwards every Cowork read is read again, so the card goes once its need is gone.
@@ -41,8 +41,8 @@ interface NeedFrameProps {
 }
 
 const SOLO_TONE: Readonly<Record<'failed' | 'needs', string>> = {
-    failed: 'rounded-2xl border border-[color-mix(in_srgb,var(--error)_30%,transparent)] bg-[color-mix(in_srgb,var(--error)_7%,transparent)]',
-    needs: 'rounded-2xl border border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_9%,transparent)]',
+    failed: 'rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-2 border-l-[var(--error-ink)] bg-[var(--bg-card)]',
+    needs: 'rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-2 border-l-[var(--warning-ink)] bg-[var(--bg-card)]',
 };
 
 const DOT: Readonly<Record<'failed' | 'needs', string>> = {
@@ -54,6 +54,7 @@ export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, 
     const { t } = useTranslation();
     const tone = BLOCKS[need.kind];
     return (
+        // motion: ENTER (and its leaving, when the card goes)
         <article className={`flex flex-col gap-3 p-4 ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
             <div className="flex flex-col gap-0.5 min-w-0">
                 {!solo && (
@@ -79,7 +80,7 @@ export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, 
 /** A box for what the card is about: the message that waits, the agent's question. */
 export function NeedBox({ children, testId }: { children: ReactNode; testId?: string }) {
     return (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3.5 py-3 text-[14px] whitespace-pre-wrap break-words text-[var(--text-secondary)]" data-testid={testId}>
+        <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-3 text-[14px] whitespace-pre-wrap break-words text-[var(--text-secondary)]" data-testid={testId}>
             {children}
         </div>
     );

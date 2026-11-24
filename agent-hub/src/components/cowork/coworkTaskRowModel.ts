@@ -1,14 +1,19 @@
 /**
  * The words of one row of "Your tasks" (./CoworkTaskRows.tsx) besides its title and status: when it runs and its goal
- * (left), and what comes next (right): "Next: Tomorrow, 09:00", "Now", "On hold", "Waits for a new mail", "Ran once".
- * Pure: the clock and the locale come in.
+ * (left), and what comes next (right): "Next: Tomorrow, 09:00", "Now", "Waits for you", "Waits for a new mail",
+ * "Ran once". Pure: the clock and the locale come in.
+ *
+ * A task that failed, and one that waits for its steps to be approved, never promises a next run: nothing happens
+ * until its owner did what its card under Needs you asks, so the row says "Waits for you". The status says the rest
+ * in its one word (./coworkTaskStatus.ts); there is no second word for it.
  */
+import { waitsForSteps } from './coworkNeedsModel';
 import { isMailTriggerItem } from './mailTrigger';
 import type { TaskStatus } from './coworkTaskStatus';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
-type RowItem = Pick<CoworkItem, 'isActive' | 'nextRunAt' | 'repeatInterval' | 'daysOfWeek' | 'trigger'> & { triggerKind?: string | null };
+type RowItem = Pick<CoworkItem, 'isActive' | 'nextRunAt' | 'repeatInterval' | 'daysOfWeek' | 'trigger' | 'setup' | 'planId'> & { triggerKind?: string | null };
 
 const sameDay = (a: Date, b: Date): boolean => a.toDateString() === b.toDateString();
 
@@ -48,7 +53,7 @@ const repeats = (item: RowItem): boolean => !!item.repeatInterval || (Array.isAr
 export function nextLine(item: RowItem, status: TaskStatus, t: TranslateFn, locale: string, now: Date = new Date()): string {
     if (status === 'running' || status === 'testing') return t('cowork_home.next.now', 'Now');
     if (status === 'paused') return '';
-    if (status === 'failed') return t('cowork_home.next.on_hold', 'On hold');
+    if (status === 'failed' || waitsForSteps(item)) return t('cowork_home.next.waits', 'Waits for you');
     const event = waitsFor(item, t);
     if (event) return event;
     const due = dueAt(item, now);

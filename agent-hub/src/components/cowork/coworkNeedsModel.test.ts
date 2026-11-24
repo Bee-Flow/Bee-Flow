@@ -1,7 +1,7 @@
 // What waits for the owner, as the cards of ./CoworkNeedCard.tsx (./coworkNeedsModel.ts): from "Needs you" and from
 // the desks the owner is on.
 import { describe, expect, it } from 'vitest';
-import { deskNeedCards, needCards } from './coworkNeedsModel';
+import { deskNeedCards, needCards, waitsForSteps } from './coworkNeedsModel';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { DeskView } from '@/api/coworkDesks';
 import type { CoworkNeed } from '@/api/coworkNeedsYou';
@@ -45,6 +45,41 @@ describe('needCards', () => {
         expect(cards[3].repair?.proposalId).toBe('pr-1');
         expect(cards.slice(4).map((c) => c.problem)).toEqual(['incomplete', 'ai_failed']);
         expect(new Set(cards.map((c) => c.key)).size).toBe(cards.length);
+    });
+});
+
+describe('needCards for what went wrong', () => {
+    it('a failed last run is a fix that names its problem, the step and the app; with steps the AI is a way out', () => {
+        const cards = needCards([
+            need({ kind: 'failed', runId: 'r9', hasSteps: true, failure: { cause: 'permission', step: 'List last week’s meetings', source: null, app: 'Fireflies' } }),
+            need({ kind: 'failed', failure: { cause: 'reads', step: 'Write the summary', source: 'Get each meeting summary', app: null } }),
+            need({ kind: 'failed', failure: { cause: 'sign_in', step: null, source: null, app: 'Gmail' } }),
+            need({ kind: 'failed', failure: { cause: 'nothing_found', step: 'Get each', source: null, app: null } }),
+            need({ kind: 'failed', failure: { cause: 'timeout', step: null, source: null, app: null } }),
+            need({ kind: 'failed', failure: { cause: 'other', step: null, source: null, app: null } }),
+            need({ kind: 'failed' }),
+        ], ITEMS);
+        expect(cards.map((c) => [c.kind, c.problem])).toEqual([
+            ['fix', 'permission'], ['fix', 'reads'], ['fix', 'signed_out'], ['fix', 'incomplete'], ['fix', 'timeout'], ['fix', 'failed'], ['fix', 'failed'],
+        ]);
+        expect(cards[0]).toMatchObject({ runId: 'r9', hasSteps: true, words: { step: 'List last week’s meetings', source: null, app: 'Fireflies' } });
+        expect(cards[1].hasSteps).toBe(false);
+        expect(cards[6].words).toEqual({ step: null, source: null, app: null });
+    });
+
+    it('a set-up that did not work is its own card, with why as a class', () => {
+        const cards = needCards([need({ kind: 'setup', cause: 'timeout' }), need({ kind: 'setup' })], ITEMS);
+        expect(cards.map((c) => [c.kind, c.cause])).toEqual([['setup', 'timeout'], ['setup', 'failed']]);
+    });
+
+    it('a check says whether the task waits for it: one started to get steps does, an older one runs meanwhile', () => {
+        const waits = { steps: 'wanted' as const, cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false };
+        const items: CoworkItem[] = [{ ...ITEMS[0], setup: waits, planId: null }, { ...ITEMS[0], id: 'w2' }];
+        const cards = needCards([need({ plan: 'first', tried: 'passed' }), need({ itemId: 'w2', plan: 'first', tried: 'passed' })], items);
+        expect(cards.map((c) => c.held)).toEqual([true, false]);
+        expect(waitsForSteps({ setup: waits, planId: 'plan-1' })).toBe(false);
+        expect(waitsForSteps({ setup: { ...waits, steps: 'ai' } })).toBe(false);
+        expect(waitsForSteps(undefined)).toBe(false);
     });
 });
 
