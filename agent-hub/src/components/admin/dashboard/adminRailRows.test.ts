@@ -34,7 +34,7 @@ describe('adminRailView: the Organisation sections as rows of the rail', () => {
         const rail = view(tabs(ORG_ADMIN_TABS), { githubAvailable: true, ncSectionAvailable: true, microsoft365: true });
         expect(block(rail, 'org')).toEqual([
             'organisation: organisation/info organisation/license people organisation/projects organisation/academy monitoring',
-            'ai: agents/chat organisation/models organisation/conversations organisation/memory organisation/meeting-notes',
+            'ai: agents/chat organisation/models organisation/conversations organisation/memory organisation/meeting-notes organisation/cowork',
             'security: organisation/auth access security/guardrails organisation/encryption organisation/mcp-access compliance',
             'connections: organisation/integrations organisation/mcp organisation/nextcloud-sync organisation/azure organisation/github-sync organisation/integration-cache',
         ]);

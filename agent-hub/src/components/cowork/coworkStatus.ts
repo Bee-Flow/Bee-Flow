@@ -81,13 +81,19 @@ export function isInFlight(item: CoworkItem): boolean {
     return item.lastStatus === 'running' || (!item.lastRunAt && !item.runCount);
 }
 
+/** Runs again by itself: on a clock (an interval or weekdays) or on a new email. Paused, it is paused, not finished. */
+function isRecurring(item: CoworkItem): boolean {
+    return !!item.repeatInterval || (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0) || item.triggerKind === 'app_event';
+}
+
 export function coworkStatus(item: CoworkItem): StatusToken {
     if (item.lastStatus === 'running') return tokenFor('running');
     // A schedule switched off because an account needs signing in again is not
     // a schedule the user paused, and must not read like one.
     if (item.lastStatus === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
     if (!item.lastRunAt && !item.runCount) return tokenFor(item.isActive ? 'queued' : 'idle');
-    if (!item.isActive && item.lastStatus === 'success') return tokenFor('success');
+    // A one-off that ran is finished; a recurring item switched off after a good run is paused.
+    if (!item.isActive && item.lastStatus === 'success') return tokenFor(isRecurring(item) ? 'paused' : 'success');
     if (!item.isActive) return tokenFor(item.lastStatus === 'error' ? 'error' : 'paused');
     return tokenFor(item.lastStatus);
 }

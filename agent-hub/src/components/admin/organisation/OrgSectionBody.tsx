@@ -30,7 +30,7 @@ import HomeOrgOnlyNotice from './HomeOrgOnlyNotice';
  */
 const SETTINGS_WIDTH_SECTIONS: ReadonlySet<string> = new Set([
     'info', 'auth', 'license', 'encryption', 'conversations', 'memory', 'projects', 'models', 'integration-cache', 'mcp-access',
-    'github-sync', 'nextcloud-sync', 'meeting-notes', 'azure', 'integrations',
+    'github-sync', 'nextcloud-sync', 'meeting-notes', 'azure', 'integrations', 'cowork',
 ]);
 
 /** The width of a section's page. */

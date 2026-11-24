@@ -38,6 +38,19 @@ describe('CoworkIndependence', () => {
         expect(screen.getByRole('radio', { name: /On its own/ })).toBeDisabled();
     });
 
+    it('a plan that only saves drafts is not called one that "changes and sends nothing"', async () => {
+        // It may change Outlook (saves drafts) and sends nothing: "ask before sending" has nothing to ask, but the plan
+        // still changes things, without asking. Only "ask about everything" with nothing to ask means it changes nothing.
+        serve(state({ options: [
+            { level: 'asks_everything', open: true, asksBefore: ['Save the reply as a draft'] },
+            { level: 'asks_before_sending', open: true, asksBefore: [] },
+            { level: 'on_its_own', open: false, asksBefore: [] },
+        ] }));
+        renderWithClient(<CoworkIndependence coworkId="w1" t={t} />);
+        expect(await screen.findByText('Nothing in this plan sends anything, so nothing waits. What it changes, it changes without asking.')).toBeInTheDocument();
+        expect(screen.queryByText(/changes and sends nothing/)).toBeNull();
+    });
+
     it('choosing a level saves it at once', async () => {
         serve(state());
         renderWithClient(<CoworkIndependence coworkId="w1" t={t} />);

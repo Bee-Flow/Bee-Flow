@@ -229,7 +229,7 @@ describe('AdminDashboard scope groups', () => {
         // Changed on purpose (wave 2): the target tree of the organisation block.
         expect(rowNames(nav.getByTestId('admin-rail-section-org'))).toEqual([
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Learning Center', 'Usage & monitoring',
-            'Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes',
+            'Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes', 'Cowork',
             'Preferred sign-in method', 'Access', 'Privacy Shield', 'Encryption', 'MCP client access', 'Compliance',
             'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automations',
         ]);
@@ -262,7 +262,7 @@ describe('AdminDashboard scope groups', () => {
         // Changed on purpose (wave 3): Nextcloud for the admin's own unbound organisation while pairing is offered.
         expect(rowNames(rail())).toEqual([
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
-            'Agents', 'Models', 'Conversations', 'Memory',
+            'Agents', 'Models', 'Conversations', 'Memory', 'Cowork',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access', 'Compliance',
             'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automations',
         ]);
@@ -285,7 +285,7 @@ describe('AdminDashboard scope groups', () => {
         // Changed on purpose (wave 3): Nextcloud for the admin's own unbound organisation while pairing is offered.
         expect(rowNames(rail())).toEqual([
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
-            'Models', 'Conversations', 'Memory',
+            'Models', 'Conversations', 'Memory', 'Cowork',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access',
             'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automations',
         ]);

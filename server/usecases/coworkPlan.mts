@@ -28,6 +28,7 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { licenceFindings, mayAskByLicence, type MayAsk } from '../core/cowork/plan/planLicence.mts';
 import { asStartedBy } from '../core/cowork/startKinds.mts';
+import { changesOf, type StepChange } from '../core/cowork/plan/planChanges.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -35,7 +36,7 @@ const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new 
 
 interface Item { id: string; userId: string; triggerKind?: string | null; planAutomationId?: string | null; planId?: string | null }
 type AutomationRow = SourceRow;
-interface ApprovedPlan { id: string; version: number; fingerprint: string; approvedAt: string | null; permissions: unknown }
+interface ApprovedPlan { id: string; version: number; fingerprint: string; approvedAt: string | null; permissions: unknown; definition?: unknown }
 
 export interface Deps {
     store: {
@@ -88,6 +89,8 @@ export interface PlanState {
     widens: string[];
     /** The draft is exactly the approved plan. */
     upToDate: boolean;
+    /** The steps of the draft that are new, gone or changed against the approved plan; empty while they are the same. */
+    stepChanges: StepChange[];
 }
 
 /** The plan as the automation holds it now, with what the owner's licence does not cover among its findings. */
@@ -117,6 +120,10 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         deps.store.getApprovedPlan(item.id),
     ]);
     const draft = automation ? await draftOf(automation, deps, item) : null;
+    const upToDate = !!draft && !!approvedRow && draft.fingerprint === approvedRow.fingerprint;
+    const stepChanges = automation && approvedRow?.definition && !upToDate
+        ? changesOf(approvedRow.definition as Definition, automation.definition as Definition, deps.lookups)
+        : [];
     const approved = approvedRow
         ? { version: approvedRow.version, fingerprint: approvedRow.fingerprint, approvedAt: approvedRow.approvedAt, permissions: approvedRow.permissions as PlanPermissions }
         : null;
@@ -125,7 +132,8 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         draft,
         approved,
         widens: draft ? widens(draft.permissions, approved?.permissions) : [],
-        upToDate: !!draft && !!approved && draft.fingerprint === approved.fingerprint,
+        upToDate,
+        stepChanges,
     };
 }
 

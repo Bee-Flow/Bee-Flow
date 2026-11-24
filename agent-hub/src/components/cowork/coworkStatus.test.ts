@@ -50,6 +50,17 @@ describe('coworkStatus', () => {
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success' })))).toBe(STATUS_TOKENS.success);
     });
 
+    it('reads a recurring item switched off after a good run as paused, never finished', () => {
+        // A weekly digest the owner paused is not done: it would run again the moment it is switched back on.
+        for (const recurring of [{ repeatInterval: 'weekly' }, { daysOfWeek: ['tue'] }, { triggerKind: 'app_event' }]) {
+            const paused = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success', ...recurring })));
+            expect(paused, JSON.stringify(recurring)).toBe(STATUS_TOKENS.paused);
+            expect(paused.labelEn).toBe('Paused');
+        }
+        const oneOff = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success', repeatInterval: null, daysOfWeek: [] })));
+        expect(oneOff.labelEn).toBe('Finished');
+    });
+
     it('reads a switched-off item as paused, and a failed one as failed', () => {
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'idle' })))).toBe(STATUS_TOKENS.paused);
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'error' })))).toBe(STATUS_TOKENS.error);

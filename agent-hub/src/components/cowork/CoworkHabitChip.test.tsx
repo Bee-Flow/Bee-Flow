@@ -19,6 +19,14 @@ describe('CoworkHabitChip', () => {
         expect(screen.queryByTestId('cowork-habit-chip')).toBeNull();
     });
 
+    it('sits under the header, never over the chat composer at the bottom', () => {
+        renderWithClient(<CoworkHabitChip />);
+        offer({ weekday: 1, brief: 'Which supplier orders are open?' });
+        const chip = screen.getByTestId('cowork-habit-chip');
+        expect(chip).toHaveClass('top-16');
+        expect(chip.className.split(' ').some((c) => c.startsWith('bottom-'))).toBe(false);
+    });
+
     it('ignores an event without a brief', () => {
         renderWithClient(<CoworkHabitChip />);
         offer({ weekday: 1 });
@@ -31,13 +39,13 @@ describe('CoworkHabitChip', () => {
         await userEvent.setup().click(screen.getByRole('button', { name: 'Make it a cowork' }));
         expect(window.location.pathname).toBe('/app/cowork');
         expect(window.location.search).not.toContain('brief');
-        expect(takeHandedBrief()).toBe('Which orders & invoices?');
-        expect(takeHandedBrief()).toBe('');
+        expect(takeHandedBrief()).toEqual({ brief: 'Which orders & invoices?', weekday: 1 });
+        expect(takeHandedBrief()).toEqual({ brief: '', weekday: null });
     });
 
     it('a brief an older link left in the address is read once and removed from it', () => {
         window.history.replaceState(null, '', '/app/cowork?brief=Old%20link&tab=runs');
-        expect(takeHandedBrief()).toBe('Old link');
+        expect(takeHandedBrief()).toEqual({ brief: 'Old link', weekday: null });
         expect(window.location.search).toBe('?tab=runs');
     });
 });

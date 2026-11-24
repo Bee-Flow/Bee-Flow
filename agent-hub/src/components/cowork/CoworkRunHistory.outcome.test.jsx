@@ -120,6 +120,14 @@ describe('CoworkRunHistory — what came out of the run (CW-13)', () => {
 });
 
 describe('CoworkRunHistory — how the outcome line is worded', () => {
+    it('lets the line wrap to two lines rather than cutting it to one letter on a narrow screen', async () => {
+        await renderHistory([run({ result: 'Weekly digest sent to the whole team, three items need a look' })]);
+        const line = screen.getByTestId('cowork-run-outcome');
+        expect(line).toHaveTextContent('Weekly digest sent to the whole team');
+        expect(line).toHaveClass('line-clamp-2', 'break-words');
+        expect(line).not.toHaveClass('truncate');
+    });
+
     it('shows the first line of the result with its Markdown marks taken off', async () => {
         await renderHistory([run({ result: '## **3 quotes** seen\n\n- one discount of 22%' })]);
         const summary = within(screen.getByTestId('cowork-run')).getByRole('button').textContent;

@@ -32,7 +32,6 @@ export default {
     "cowork_desks.new_name": "Name of a new desk",
     "cowork_desks.new_placeholder": "For example: Invoices",
     "cowork_desks.on": "On the desk \"{desk}\".",
-    "cowork_desks.owner": "{owner}'s",
     "cowork_desks.remove_desk": "Remove the desk",
     "cowork_desks.roles.add": "Add a role",
     "cowork_desks.roles.away": "Holder of {role} away until",

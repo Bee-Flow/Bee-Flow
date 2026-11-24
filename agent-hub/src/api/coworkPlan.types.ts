@@ -75,6 +75,16 @@ export interface PlanState {
     widens: string[];
     /** The draft is exactly the approved plan. */
     upToDate: boolean;
+    /** The steps that are new, gone or changed against the approved plan (server core/cowork/plan/planChanges.mts); absent from an older server. */
+    stepChanges?: PlanStepChange[];
+}
+
+/** One step of the draft against the approved plan. */
+export interface PlanStepChange {
+    id: string;
+    title: string;
+    kind: PlanStepKind;
+    change: 'added' | 'changed' | 'removed';
 }
 
 /** An automation the caller owns, as the picker lists it. */

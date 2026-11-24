@@ -107,7 +107,8 @@
     "admin_nav.mcp_servers_desc": "MCP-servers die voor elke organisatie zijn geïnstalleerd, en wat organisaties zelf mogen toevoegen.",
     "admin_nav.nextcloud_instances_desc": "De Nextclouds die met deze server zijn verbonden, en hoe het met hun connectors gaat.",
     "admin_nav.website_analytics_desc": "Bezoeken aan de productwebsite, in totalen.",
-    "admin_nav.release_notes_desc": "Schrijf en publiceer de release notes van elke versie."
+    "admin_nav.release_notes_desc": "Schrijf en publiceer de release notes van elke versie.",
+    "admin_nav.cowork_desc": "Hoe zelfstandig coworks mogen zijn, welke apps ze mogen gebruiken en wat ze aan AI mogen uitgeven."
   },
   "sameAsEnglish": [
     "admin_nav.group_platform",
@@ -116,6 +117,7 @@
     "admin_nav.privacy_shield",
     "admin_nav.nextcloud",
     "admin_nav.microsoft_365",
-    "admin_nav.mon_feedback"
+    "admin_nav.mon_feedback",
+    "admin_nav.cowork"
   ]
 }

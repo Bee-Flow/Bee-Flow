@@ -347,8 +347,8 @@ describe('CoworkPage — the list header (CW-02)', () => {
         render(withQueryClient(<CoworkPage />));
         const button = await screen.findByTestId('cowork-new');
         expect(button.textContent.trim()).toBe('New task');
-        expect(button.className).toContain('bg-[var(--accent-primary)]');
-        expect(button.className).toContain('text-[var(--accent-primary-fg)]');
+        expect(button.className).toContain('bg-[var(--button-primary-bg)]');
+        expect(button.className).toContain('text-[var(--button-primary-fg)]');
     });
 });
 

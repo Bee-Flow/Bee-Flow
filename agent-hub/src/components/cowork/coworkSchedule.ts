@@ -12,7 +12,7 @@
  */
 
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { CoworkPayload, RepeatOption, WhenPreset, WhenPresetId } from '../../api/cowork.types';
+import type { CoworkItem, CoworkPayload, RepeatOption, WhenPreset, WhenPresetId } from '../../api/cowork.types';
 
 interface ResolveWhenOptions {
     now?: Date;
@@ -81,6 +81,51 @@ export function repeatLabel(value: string | null | undefined, t: TranslateFn | n
     const opt = COWORK_REPEAT_OPTIONS.find(o => o.value === (value || ''));
     if (!opt) return value;
     return typeof t === 'function' ? t(opt.labelKey, opt.label) : opt.label;
+}
+
+/**
+ * The weekdays of a spec in the reader's own locale, in week order (never the order the array arrived in): one day by
+ * its full name, several by their short names. Noon on the anchor dates, so a DST jump at midnight names no wrong day.
+ */
+function dayNames(days: readonly string[]): { one: string | null; list: string } {
+    const set = new Set(days.map(d => String(d).toLowerCase().slice(0, 3)));
+    const picked = DOW_TOKENS.map((tok, i) => (set.has(tok) ? new Date(2024, 0, 7 + i, 12) : null)).filter((d): d is Date => d !== null);
+    const long = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+    const short = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+    if (picked.length === 1) return { one: long.format(picked[0]), list: long.format(picked[0]) };
+    return { one: null, list: picked.map(d => short.format(d)).join(', ') };
+}
+
+/** The days a weekly item runs on: its own list, or the weekday of its next run for a plain "every week". */
+function runDays(item: Pick<CoworkItem, 'repeatInterval' | 'daysOfWeek' | 'nextRunAt'>): string[] | null {
+    if (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0) return item.daysOfWeek;
+    if ((item.repeatInterval === 'weekly' || item.repeatInterval === 'biweekly') && item.nextRunAt) {
+        const next = new Date(item.nextRunAt);
+        if (!Number.isNaN(next.getTime())) return [DOW_TOKENS[next.getDay()]];
+    }
+    return null;
+}
+
+/**
+ * How a repeating item runs, in one line with its day and time: "Every Tuesday 06:30", "Every week on Tue, Thu 06:30",
+ * "Every 2 weeks on Monday", "Every day 08:00". Shared by the list row (./CoworkRow.tsx) and the detail (./CoworkBrief.tsx).
+ * A weekday list wins over the interval, as on the server (aiTaskStore.advanceNextRun): those days, every week.
+ */
+export function cadenceLine(item: Pick<CoworkItem, 'repeatInterval' | 'daysOfWeek' | 'nextRunAt' | 'timeOfDay'>, t: TranslateFn): string {
+    const days = runDays(item);
+    const ownDays = Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0;
+    let label: string;
+    if (days && item.repeatInterval === 'biweekly' && !ownDays) {
+        label = t('cowork.repeat.biweekly_on', 'Every 2 weeks on {days}', { days: dayNames(days).list });
+    } else if (days) {
+        const names = dayNames(days);
+        label = names.one
+            ? t('cowork.repeat.every_day_name', 'Every {day}', { day: names.one })
+            : t('cowork.repeat.weekly_on', 'Every week on {days}', { days: names.list });
+    } else {
+        label = repeatLabel(item.repeatInterval, t) || '';
+    }
+    return item.timeOfDay ? `${label} ${item.timeOfDay}` : label;
 }
 
 /** `YYYY-MM-DD` in local time — the value shape an <input type="date"> wants. */

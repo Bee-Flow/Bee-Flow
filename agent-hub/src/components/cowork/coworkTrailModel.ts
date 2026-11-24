@@ -33,7 +33,11 @@ const ACTION_FALLBACK: Record<string, string> = {
 const FIELD_FALLBACK: Record<string, string> = {
     title: 'the title', prompt: 'the brief', isActive: 'whether it runs', repeatInterval: 'the schedule', daysOfWeek: 'the schedule',
     timeOfDay: 'the schedule', timezone: 'the time zone', nextRunAt: 'the next run', modelTier: 'the model', agentId: 'the agent',
-    enabledApps: 'the apps', triggerKind: 'what starts it', trigger: 'what starts it',
+    enabledApps: 'the apps', triggerKind: 'what starts it', trigger: 'what starts it', monthlyBudget: 'the budget',
+    automationId: 'the automation', fingerprint: 'the plan', version: 'the plan version', action: 'how the review was handled',
+    level: 'how independent it may be', toUserId: 'who it belongs to', kind: 'what starts it', stepId: 'a step',
+    trusted: 'what may go on its own', answer: 'the answer', sentence: 'the goal', targetPercent: 'the target of the goal',
+    deskRole: 'the desk role', shares: 'who it is shared with',
 };
 
 const LEVEL_FALLBACK: Record<string, string> = {

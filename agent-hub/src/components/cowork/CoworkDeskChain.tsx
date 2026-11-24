@@ -55,7 +55,8 @@ export default function CoworkDeskChain({ deskId, members, onOpen }: { deskId: s
                                 ? <button type="button" className="flex-1 min-w-0 truncate text-left underline underline-offset-2 text-[var(--text-primary)]" onClick={() => onOpen(m.scheduleId)}>{title}</button>
                                 : <span className="flex-1 min-w-0 truncate text-[var(--text-primary)]">{title}</span>}
                             <span className="text-[var(--text-tertiary)]">
-                                {m.mine ? t('cowork_desks.yours', 'yours') : t('cowork_desks.owner', "{owner}'s", { owner: m.ownerName })}
+                                {/* The owner by name, not a possessive without its noun ("Lena Moreau's · Finished"). */}
+                                {m.mine ? t('cowork_desks.yours', 'yours') : m.ownerName}
                                 {!m.accepted && ` · ${t('cowork_desks.invited', 'invited')}`}
                                 {m.lastStatus && ` · ${t(token.labelKey, token.labelEn)}`}
                             </span>

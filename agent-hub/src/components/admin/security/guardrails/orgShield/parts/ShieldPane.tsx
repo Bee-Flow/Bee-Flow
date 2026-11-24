@@ -12,7 +12,6 @@ import type useOrgShield from '../useOrgShield';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { useLicenseContext } from '@/components/licensing/LicenseContext';
 import CoworkShieldToggle from './CoworkShieldToggle';
-import CoworkPolicyPanel from './CoworkPolicyPanel';
 
 type Shield = ReturnType<typeof useOrgShield>;
 type LicenceContext = ReturnType<typeof useLicenseContext>;
@@ -108,7 +107,6 @@ export default function ShieldPane({
                 />
             )}
             {tab === 'processing' && orgId && <CoworkShieldToggle orgId={orgId} readOnly={readOnly} t={t} />}
-            {tab === 'processing' && orgId && <CoworkPolicyPanel orgId={orgId} readOnly={readOnly} t={t} />}
             {tab === 'activity' && showActivityTab && (
                 <ActivityTab
                     t={t}

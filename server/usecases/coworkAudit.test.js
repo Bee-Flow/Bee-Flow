@@ -10,7 +10,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { changeOf, recordCowork, trailOf, TARGET_TYPE } = require('./coworkAudit.mts');
+const { changeOf, recordCowork, trailOf, TARGET_TYPE, AUDITED_FIELDS } = require('./coworkAudit.mts');
 
 test('a change names every field it touched, keeps the values of the schedule and the plan, and never copies the text of the work', () => {
     const change = changeOf({
@@ -72,4 +72,15 @@ test('an entry that names who got access reads back in the owner\'s trail', asyn
     const rows = [{ action: 'cowork.shares_set', created_at: '2026-11-23T09:00:00.000Z', changed_by: 'u1', new_values: changeOf({ shares }) }];
     const [entry] = await trailOf('cw-1', 'u1', { logAccessAudit: async () => {}, getAccessAuditLog: async () => rows });
     assert.deepStrictEqual([entry.changed, entry.values], [['shares'], { shares }]);
+});
+
+test('every field a trail entry can name has its words, so the owner never reads a raw name like "monthlyBudget"', () => {
+    const en = require('../i18n/defaults/en/cowork_trail.js');
+    const nl = require('../i18n/defaults/nl/cowork_trail.json').translations;
+    assert.ok(AUDITED_FIELDS.includes('monthlyBudget') && AUDITED_FIELDS.includes('shares'));
+    for (const field of AUDITED_FIELDS) {
+        assert.ok(typeof en[`cowork_trail.field.${field}`] === 'string', `English for ${field}`);
+        assert.ok(typeof nl[`cowork_trail.field.${field}`] === 'string', `Dutch for ${field}`);
+    }
+    assert.strictEqual(en['cowork_trail.field.monthlyBudget'], 'the budget');
 });

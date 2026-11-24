@@ -25,6 +25,12 @@ function lineOf(option: LevelOption, state: IndependenceState, t: TranslateFn): 
     }
     if (!option.open) return t('cowork_plan.level.needs_approvals', 'Asking needs approvals, which your organisation\'s plan does not include.');
     if (option.level === 'on_its_own') return t('cowork_plan.level.on_its_own_line', 'It runs as approved and asks nothing more.');
+    // "Ask before sending" asks only before what leaves Bee Flow: a plan that sends nothing may still change things
+    // (save a draft, fill in a table), and does so without asking. Only "ask about everything" with nothing to ask
+    // means the plan changes and sends nothing.
+    if (option.asksBefore.length === 0 && option.level === 'asks_before_sending') {
+        return t('cowork_plan.level.nothing_to_send', 'Nothing in this plan sends anything, so nothing waits. What it changes, it changes without asking.');
+    }
     if (option.asksBefore.length === 0) return t('cowork_plan.level.nothing_to_ask', 'Nothing in this plan would wait: it changes and sends nothing.');
     return t('cowork_plan.level.asks_line', 'Waits for your decision before: {steps}', { steps: option.asksBefore.join(', ') });
 }

@@ -83,8 +83,10 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
  *             screen for now; no mobile port planned in this round.
  *   org_mcp_access — MCP tokens and scopes for outside clients: an admin
  *             task done at a desk, where the token is pasted into a client.
+ *   cowork — the organisation's Cowork policy (budget, ceiling, allowed apps);
+ *             the phone app has no Cowork admin screen yet.
  */
-export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp', 'org_mcp_access'];
+export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp', 'org_mcp_access', 'cowork'];
 
 /** The phone's extra rows, listed after the web's. */
 export const MOBILE_ORG_SECTIONS: readonly OrgSection[] = [

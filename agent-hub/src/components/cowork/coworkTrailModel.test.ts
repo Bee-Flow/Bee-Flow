@@ -25,4 +25,13 @@ describe('changedWords', () => {
     it('keeps a field it has no word for as its name', () => {
         expect(changedWords(['colour'], t)).toBe('colour');
     });
+
+    it('says the budget, never the raw name "monthlyBudget", and has a word for every field the server audits', () => {
+        expect(trailLine(entry({ changed: ['monthlyBudget'] }), t)).toBe('You changed the budget');
+        // server/usecases/coworkAudit.mts AUDITED_FIELDS (its test holds the dictionary to the same list).
+        const audited = ['isActive', 'repeatInterval', 'daysOfWeek', 'timeOfDay', 'timezone', 'modelTier', 'agentId', 'triggerKind', 'nextRunAt',
+            'enabledApps', 'automationId', 'fingerprint', 'version', 'action', 'level', 'toUserId', 'monthlyBudget', 'kind', 'stepId', 'trusted',
+            'title', 'prompt', 'trigger', 'answer', 'sentence', 'targetPercent', 'deskRole', 'shares'];
+        for (const field of audited) expect(changedWords([field], t), field).not.toBe(field);
+    });
 });

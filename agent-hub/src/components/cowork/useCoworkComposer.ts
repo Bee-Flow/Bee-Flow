@@ -30,6 +30,8 @@ import { messageOf } from '../../utils/caughtError';
 
 export interface UseCoworkComposerOptions {
     enabled?: boolean;
+    /** Start set to run every week on this weekday (0 Sunday … 6 Saturday), at 09:00: "You ask this every Monday". */
+    weeklyOn?: number | null;
     onCreated?: (created: CoworkItem, payload: CoworkPayload | CoworkTriggerPayload, spec: CoworkSpec | null) => void;
 }
 
@@ -63,15 +65,25 @@ export interface UseCoworkComposerReturn {
 }
 
 const DEFAULT_WHEN: WhenState = { presetId: 'now', date: '', time: '' };
+const WEEK_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-export default function useCoworkComposer({ enabled = true, onCreated }: UseCoworkComposerOptions = {}): UseCoworkComposerReturn {
+/** The first run of "every week on this day": the next such day at 09:00. Null for no weekday. */
+function weeklyStart(weekday: number | null | undefined): WhenState | null {
+    const token = typeof weekday === 'number' ? WEEK_TOKENS[weekday] : undefined;
+    const first = token ? nextOccurrence('09:00', [token]) : null;
+    return first ? { presetId: 'custom', date: toDateInput(first), time: toTimeInput(first) } : null;
+}
+
+export default function useCoworkComposer({ enabled = true, weeklyOn = null, onCreated }: UseCoworkComposerOptions = {}): UseCoworkComposerReturn {
     // The two errors this hook raises itself are shown in the composer, so they
     // are copy like any other. A server-sent `err.message` is NOT translated
     // here — it is the server's sentence, and inventing a key per message would
     // silently swallow the real reason.
     const { t } = useTranslation();
-    const [when, setWhenState] = useState<WhenState>(DEFAULT_WHEN);
-    const [repeatInterval, setRepeatState] = useState('');
+    // A weekday handed over (./coworkHandedBrief.ts) is a choice the person already made: it counts as touched.
+    const [weekly] = useState(() => weeklyStart(weeklyOn));
+    const [when, setWhenState] = useState<WhenState>(weekly ?? DEFAULT_WHEN);
+    const [repeatInterval, setRepeatState] = useState(weekly ? 'weekly' : '');
     const [agentId, setAgentState] = useState('');
     // Which apps this one item may touch. null until the user opens the Apps
     // picker — that keeps "I didn't choose" (inherit the workspace-wide list)
@@ -81,7 +93,7 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     // Which chips the user (or the surrounding chat) decided for themselves.
-    const [touched, setTouched] = useState<Touched>({ when: false, repeat: false, agent: false });
+    const [touched, setTouched] = useState<Touched>({ when: !!weekly, repeat: !!weekly, agent: false });
 
     const ent = useEntitlements() as { loading: boolean; can: (id: string) => boolean };
     // Handing work to an agent is the same beta the server gates POST on — no

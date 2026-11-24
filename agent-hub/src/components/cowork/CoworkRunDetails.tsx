@@ -11,7 +11,7 @@ import { fullTimestamp } from './coworkFormat';
 import { openRunConversation, refusalReasonText, resolutionText } from './coworkReview';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CoworkRun, CoworkRunTool } from '../../api/cowork.types';
-import { formatCost } from '@/utils/formatCost';
+import { formatCostCents } from '@/utils/formatCost';
 
 function ToolLine({ tool, t }: { tool: CoworkRunTool; t: TranslateFn }) {
     const counts = [
@@ -99,7 +99,7 @@ export default function CoworkRunDetails({ run, agentId, title, t, locale = 'en'
         <>
             {run.cost && run.cost.calls > 0 && (
                 <p className="text-[11px] pb-2 text-[var(--text-tertiary)]" data-testid="cowork-run-cost-line">
-                    {t(run.cost.calls === 1 ? 'cowork.history.ai_cost' : 'cowork.history.ai_cost_plural', run.cost.calls === 1 ? 'AI: {cost}, {count} model call' : 'AI: {cost}, {count} model calls', { cost: formatCost(run.cost.byCurrency, locale), count: run.cost.calls })}
+                    {t(run.cost.calls === 1 ? 'cowork.history.ai_cost' : 'cowork.history.ai_cost_plural', run.cost.calls === 1 ? 'AI: {cost}, {count} model call' : 'AI: {cost}, {count} model calls', { cost: formatCostCents(run.cost.byCurrency, locale), count: run.cost.calls })}
                 </p>
             )}
             {run.mailSubject && (
