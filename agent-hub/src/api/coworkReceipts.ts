@@ -6,7 +6,7 @@ import { apiJson, apiUrl } from './typedRequest';
 import { ApiError } from './client';
 
 export interface ReceiptLine { seq: number; runId: string; at: string | null; status: unknown; kind: unknown; signed: boolean; payload: Record<string, unknown> }
-export interface ChainVerdict { ok: boolean; count: number; problem: { seq: number; kind: 'gap' | 'link' | 'content' | 'signature' } | null; unsigned: number }
+interface ChainVerdict { ok: boolean; count: number; problem: { seq: number; kind: 'gap' | 'link' | 'content' | 'signature' } | null; unsigned: number }
 export interface ReceiptsView { verdict: ChainVerdict; missingRuns: number; keyId: string | null; receipts: ReceiptLine[] }
 
 /** One run's receipt; null while it has none yet (the server answers 404). */
