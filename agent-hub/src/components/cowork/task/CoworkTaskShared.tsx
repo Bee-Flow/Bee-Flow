@@ -15,9 +15,10 @@ import { useSharedItem, useSharedWithMe, type SharedView } from '@/api/coworkSha
 import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
-/** The shared view as the parts of the sheet read an item and its runs. */
-function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] } {
-    const runs: CoworkRun[] = view.runs.map((r) => ({ id: r.id, status: r.status ?? '', startedAt: r.startedAt ?? '', result: r.result, durationMs: r.durationMs }));
+/** The shared view as the parts of the sheet read an item and its runs; an answer without its item reads as gone. */
+function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] } | null {
+    if (!view?.item) return null;
+    const runs: CoworkRun[] = (view.runs ?? []).map((r) => ({ id: r.id, status: r.status ?? '', startedAt: r.startedAt ?? '', result: r.result, durationMs: r.durationMs }));
     const item: CoworkItem = {
         id: view.item.id,
         title: view.item.title,
@@ -39,8 +40,9 @@ export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
     const view = useSharedItem(itemId);
     const owner = (useSharedWithMe().data ?? []).find((s) => s.id === itemId)?.ownerName ?? t('cowork_task.shared.someone', 'a colleague');
     if (view.isPending) return <p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>;
-    if (!view.data) return <p className={META} role="status" data-testid="cowork-task-gone">{t('cowork_task.gone', 'This task is gone, or it is not shared with you.')}</p>;
-    const { item, runs } = sharedAsItem(view.data);
+    const shared = view.data ? sharedAsItem(view.data) : null;
+    if (!view.data || !shared) return <p className={META} role="status" data-testid="cowork-task-gone">{t('cowork_task.gone', 'This task is gone, or it is not shared with you.')}</p>;
+    const { item, runs } = shared;
     const role = view.data.role === 'approver' ? 'approver' : 'viewer';
     return (
         <div className="flex flex-col gap-5" data-testid="cowork-task-shared">
