@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
-import SourcesTab from './SourcesTab';
+import SourcesTab, { lastUpdatedAt, searchableDocuments } from './SourcesTab';
 
 /**
  * The source table's job is to let someone pick the RIGHT row out of five,
@@ -119,4 +119,20 @@ it('a meeting source with no stored fields reads as the default, not as empty', 
         src({ id: 'a', kind: 'meeting_tag', name: 'Sales', documentCount: 1, config: { tag: 'sales' } }),
     ]} />);
     expect(screen.getByText(/summary, decisions · 1 meeting/)).toBeTruthy();
+});
+
+describe('SourcesTab counts and times', () => {
+    it('counts the documents the AI can search, as the knowledge base list does', () => {
+        expect(searchableDocuments({ documentCount: 2, processedCount: 1, redactedCount: 0 })).toBe(1);
+        expect(searchableDocuments({ documentCount: 3, processedCount: 1, redactedCount: 1 })).toBe(2);
+        // An older server without the split falls back to every row.
+        expect(searchableDocuments({ documentCount: 4 })).toBe(4);
+    });
+
+    it('gives a hand-filled source its own last change instead of "never"', () => {
+        const at = '2026-11-23T17:35:05.859Z';
+        expect(lastUpdatedAt({ id: 's', kind: 'text', name: 'x', refreshMode: 'manual', lastRefreshAt: null, updatedAt: at })).toBe(at);
+        expect(lastUpdatedAt({ id: 's', kind: 'webpage', name: 'x', refreshMode: 'scheduled', lastRefreshAt: null, updatedAt: at })).toBeNull();
+        expect(lastUpdatedAt({ id: 's', kind: 'webpage', name: 'x', refreshMode: 'scheduled', lastRefreshAt: '2026-11-01T00:00:00Z' })).toBe('2026-11-01T00:00:00Z');
+    });
 });

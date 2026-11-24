@@ -7,8 +7,15 @@
  *
  * The descriptions carry the conversation the model is meant to have: ask in
  * plain language, a few fields at a time, take what is already known, never
- * invent a value, and confirm before finishing.
+ * invent a value, do the final check, and confirm before finishing.
+ *
+ * TEMPLATE_FILL_TOOLS is what a person's own chat is offered. A project's team
+ * chat is offered the same (projects/chatTemplateFillTools.mts picks by name)
+ * plus TEAM_FILL_TOOLS: tagging a colleague and leaving a note, which need the
+ * project's people.
  */
+
+import { REVIEW_BRIEF } from '../core/documents/fillReviewer.mts';
 
 type ToolDef = {
     type: 'function',
@@ -53,7 +60,7 @@ export const TEMPLATE_FILL_TOOLS: ToolDef[] = [
         type: 'function',
         function: {
             name: 'template_fill_status',
-            description: `Where the template being filled in stands NOW: { documentId, name, values, missingRequired, issues, complete, filled, total, fields }. The user can also fill in fields themselves in the form under your reply, so call this at the start of every turn while a fill is going, BEFORE you ask anything, and never ask for a field that already has a value. ${DOC_ID}`,
+            description: `Where the template being filled in stands NOW: { documentId, name, values, missingRequired, issues, complete, checked, filled, total, fields } and, when there are any, openRemarks (the final check's remarks nobody dealt with yet), waitingFor (colleagues who were asked for fields) and notes (what people noted for each other). The user and their colleagues can also fill in fields themselves in the form under your reply, so call this at the start of every turn while a fill is going, BEFORE you ask anything, and never ask for a field that already has a value. ${DOC_ID}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -81,7 +88,7 @@ export const TEMPLATE_FILL_TOOLS: ToolDef[] = [
         type: 'function',
         function: {
             name: 'template_fill_finish',
-            description: `Finish the document being filled in. First sum up the filled-in values for the user and let them confirm; only then call this. When a required field is still missing it returns { complete: false, missingRequired } and nothing is finished: ask for those. When complete it returns { documentId, name, url, format, downloadUrl }: end your reply with the clickable link "[<name>](<url>)" (the user downloads it as PDF, or PowerPoint for a presentation, from the card under your reply). ${DOC_ID}`,
+            description: `Finish the document being filled in. Only after the final check (template_fill_review) and after the user agreed: sum up in a sentence or two, let them confirm, then call this. When a required field is still missing it returns { complete: false, missingRequired } and nothing is finished: ask for those. When it was never checked it returns { needsCheck: true }: do the check first. When complete it returns { documentId, name, url, format, downloadUrl }: end your reply with the clickable link "[<name>](<url>)" (the user downloads it as PDF, or PowerPoint for a presentation, and saves it in a project or a project folder, from the card under your reply). ${DOC_ID}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -93,15 +100,79 @@ export const TEMPLATE_FILL_TOOLS: ToolDef[] = [
     {
         type: 'function',
         function: {
-            name: 'document_add_to_project',
-            description: 'Add a document the user made (usually the one just filled in) to one of their projects, so the project\'s members see and edit it there. Only when the user asks for it. Without projectId it returns { projects: [{ id, name }] }: the projects this user may add to; ask which one unless the user named it. With projectId it files the document and returns { project, url }: end your reply with the clickable link "[<name>](<url>)".',
+            name: 'template_fill_review',
+            description: `The final check of what is filled in, before finishing: you read every filled-in value against its field (fields[].help, example, type) and against what the conversation says, and hand in your remarks. The form shows each remark at its field, where the user takes a suggested wording over with one click or keeps their own. ${REVIEW_BRIEF} A value the conversation contradicts is a "doubt". Call it once every required field is filled in (and again only when the user asks for another check). Returns { reviewed, checked, remarks }. Never change a value yourself because of the check: a rewrite is a suggestion until the user takes it over. ${DOC_ID}`,
             parameters: {
                 type: 'object',
-                required: ['documentId'],
+                properties: {
+                    documentId: { type: 'string', description: DOC_ID_PARAM },
+                    findings: {
+                        type: 'array',
+                        description: 'Your remarks; an empty list when every value is fine.',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                key: { type: 'string', description: 'The key of the field.' },
+                                kind: { type: 'string', enum: ['rewrite', 'doubt'] },
+                                suggestion: { type: 'string', description: 'For a rewrite: the improved text, with every fact kept.' },
+                                reason: { type: 'string', description: 'One short sentence for the user.' },
+                            },
+                            required: ['key', 'kind', 'reason'],
+                        },
+                    },
+                },
+                required: ['findings'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'document_add_to_project',
+            description: 'Save a document the user made (usually the one just filled in) in one of their projects, so the project\'s members see and edit it there, and optionally in a folder of that project\'s Documents tab (for example the customer\'s folder). Only when the user asks for it. Without projectId it returns { projects: [{ id, name }] }: the projects this user may add to; ask which one unless the user named it. With projectId it files the document and returns { url, folders: [{ id, name }] }; with `folder` too it also puts the document in that folder (made when the project has none by that name) and returns { folder }. End your reply with the clickable link "[<name>](<url>)". In a project\'s team chat the document is the project\'s already: pass only `folder` there.',
+            parameters: {
+                type: 'object',
                 properties: {
                     documentId: { type: 'string', description: 'The document\'s id, from template_fill_start or template_fill_finish.' },
                     projectId: { type: 'string', description: 'The id of the project, from the projects this tool listed. Leave out to list them.' },
+                    folder: { type: 'string', description: 'Optional: the name of a folder in that project, as the user said it (e.g. the customer\'s name). Made when it does not exist yet.' },
                 },
+            },
+        },
+    },
+];
+
+/** Only in a project's team chat: they need the project's people. */
+export const TEAM_FILL_TOOLS: ToolDef[] = [
+    {
+        type: 'function',
+        function: {
+            name: 'template_fill_ask_colleague',
+            description: `Tag a member of this project for the fields only they know: they get a notification, the form shows those fields as asked of them (with your message), and the request closes by itself once the fields have a value. Use it when the user says who should supply something ("Jan knows the price", "ask Lisa for the IBAN"), never on your own. Without \`person\` it returns { colleagues: [{ id, name }] }: who can be asked. Returns { asked: { person, fields } }. ${DOC_ID}`,
+            parameters: {
+                type: 'object',
+                properties: {
+                    documentId: { type: 'string', description: DOC_ID_PARAM },
+                    person: { type: 'string', description: 'Who to ask: their name as the user said it, or their id from `colleagues`.' },
+                    fields: { type: 'array', items: { type: 'string' }, description: 'The keys of the fields they should fill in.' },
+                    message: { type: 'string', description: 'Optional: what the user wants them to know, in a sentence.' },
+                },
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'template_fill_add_note',
+            description: `Leave a note for the others who fill in this document, at a field or on the document as a whole ("the price is still being negotiated, leave it"). Everyone sees it in the form. Only when the user asks for a note. ${DOC_ID}`,
+            parameters: {
+                type: 'object',
+                properties: {
+                    documentId: { type: 'string', description: DOC_ID_PARAM },
+                    field: { type: 'string', description: 'Optional: the key of the field the note is about. Left out, the note is on the whole document.' },
+                    text: { type: 'string', description: 'The note, at most 500 characters.' },
+                },
+                required: ['text'],
             },
         },
     },

@@ -142,15 +142,18 @@ export default function SpreadsheetEditor({ initial, variant, onBack, onRenamed,
                 sheet={sheet} notice={page.notice} chartError={chartCreatorOpen ? null : charts.error}
                 limit={grid.limit} onDismissLimit={grid.clearLimit} unsaved={page.unsaved}
             />
-            <SheetChartCreator
-                open={chartCreatorOpen && !sheet.readOnly}
-                onClose={() => setChartCreatorOpen(false)}
-                onCreate={(config: SheetChartConfig) => charts.addChart({ ...config, tab: sheet.activeTab })}
-                selection={selection}
-                selectionKind={grid.kind}
-                activeCell={grid.activeName}
-                columns={sheet.columns}
-            />
+            {/* mounted per opening, so the form starts from the current selection */}
+            {chartCreatorOpen && !sheet.readOnly && (
+                <SheetChartCreator
+                    open
+                    onClose={() => setChartCreatorOpen(false)}
+                    onCreate={(config: SheetChartConfig) => charts.addChart({ ...config, tab: sheet.activeTab })}
+                    selection={selection}
+                    selectionKind={grid.kind}
+                    activeCell={grid.activeName}
+                    columns={sheet.columns}
+                />
+            )}
             {sheet.loading && <SheetSkeleton />}
             {sheet.loadError && (
                 <SheetLoadError
@@ -159,7 +162,7 @@ export default function SpreadsheetEditor({ initial, variant, onBack, onRenamed,
                 />
             )}
             {ready && (
-                <div className="flex-1 min-h-0 flex">
+                <div className="@container/sheet relative flex-1 min-h-0 flex">
                     <div className="flex-1 min-w-0 min-h-0 flex flex-col" onBlur={onBlur}>
                         {formulaBarVisible && <FormulaBar grid={grid} readOnly={sheet.readOnly} locale={sheet.locale} onDone={() => gridRef.current?.focus()} />}
                         {Object.keys(sheet.cells).length === 0 && !sheet.readOnly && (

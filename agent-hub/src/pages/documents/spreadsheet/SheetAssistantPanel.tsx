@@ -22,13 +22,18 @@ export interface SheetAssistantPanelProps {
     onClose: () => void;
 }
 
+/**
+ * Beside the grid when the editor is wide enough (720px: the panel plus room for the grid),
+ * else over the grid's right side: in a narrow container a 360px column would hide the grid.
+ * Needs a `@container/sheet relative` parent (SpreadsheetEditor).
+ */
 export default function SheetAssistantPanel({ assistant, selection, selectionKind, tier, readOnly, onClose }: SheetAssistantPanelProps) {
     const { t } = useTranslation();
     const { messages, busy } = assistant;
     const ask = (text: string) => { assistant.send(text, selection, tier?.value ?? 'auto', selectionKind).catch(() => undefined); };
     return (
         <aside
-            className="flex flex-col w-[360px] max-w-full shrink-0 min-h-0 h-full border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+            className="flex flex-col w-[360px] max-w-full shrink-0 min-h-0 h-full border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] absolute inset-y-0 right-0 z-30 shadow-2xl @[720px]/sheet:static @[720px]/sheet:shadow-none"
             aria-label={t('spreadsheet.assistant.title', 'Assistant')} data-testid="sheet-assistant"
         >
             <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">

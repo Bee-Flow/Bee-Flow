@@ -6,6 +6,7 @@ import { withPickedAutomation } from './eventWiring.helpers';
 import AutomationPicker from './AutomationPicker';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
+import FlowCloseButton from './FlowCloseButton';
 import ActionFlowEditor from '../flow/ActionFlowEditor';
 import StepSettings from '../flow/StepSettings';
 import type { AppAction, AppDefinition, AppNode, FormFieldRef } from './appDefinition';
@@ -90,7 +91,7 @@ export default function ActionQuickEditor({
                 onClose={() => setFlowOpen(false)}
                 title={t('studio_apps_insp.actions.flow_title', 'What happens, step by step')}
                 description={t('studio_apps_insp.actions.flow_description', 'Each step runs in order. A branch runs only the path it takes.')}
-                size="full"
+                size="full" headerActions={<FlowCloseButton onClose={() => setFlowOpen(false)} />}
             >
                 {flowOpen ? (
                     <div className="h-[70vh]">

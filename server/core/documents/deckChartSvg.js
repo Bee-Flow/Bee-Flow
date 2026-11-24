@@ -13,83 +13,7 @@
  */
 
 const { readableOn, mix: mixHex } = require('./deckThemeOptions');
-
-/**
- * @param {string} v
- */
-function esc(v) {
-    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-/**
- * @param {number} n
- * @param {string} [unit]
- */
-function fmt(n, unit = '') {
-    if (typeof n !== 'number' || !Number.isFinite(n)) return '';
-    const abs = Math.abs(n);
-    /** @type {string} */
-    let s;
-    if (abs >= 1e6) s = `${(n / 1e6).toFixed(abs >= 1e7 ? 0 : 1).replace(/\.0$/, '')}M`;
-    else if (abs >= 1e4) s = `${(n / 1e3).toFixed(0)}k`;
-    else s = Number.isInteger(n) ? String(n) : n.toFixed(abs < 10 ? 2 : 1).replace(/\.?0+$/, '');
-    return unit ? `${s}${unit === '%' ? '%' : ` ${unit}`}` : s;
-}
-
-/**
- * A "nice" axis maximum (and minimum when negatives exist) with ~5 ticks.
- * @param {number} min
- * @param {number} max
- */
-function niceScale(min, max) {
-    const lo = Math.min(0, min);
-    const hi = Math.max(0, max);
-    const span = hi - lo || 1;
-    const raw = span / 5;
-    const mag = 10 ** Math.floor(Math.log10(raw));
-    const norm = raw / mag;
-    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
-    const niceLo = Math.floor(lo / step) * step;
-    const niceHi = Math.ceil(hi / step) * step || step;
-    /** @type {number[]} */
-    const ticks = [];
-    for (let v = niceLo; v <= niceHi + step / 2; v += step) ticks.push(Number(v.toFixed(10)));
-    return { min: niceLo, max: niceHi, ticks };
-}
-
-function seriesExtent(chart) {
-    let min = 0; let max = 0;
-    if (chart.stacked) {
-        chart.labels.forEach((_, i) => {
-            let pos = 0; let neg = 0;
-            for (const s of chart.series) { const v = s.values[i]; if (typeof v === 'number') { if (v >= 0) pos += v; else neg += v; } }
-            max = Math.max(max, pos); min = Math.min(min, neg);
-        });
-    } else {
-        for (const s of chart.series) for (const v of s.values) if (typeof v === 'number') { max = Math.max(max, v); min = Math.min(min, v); }
-    }
-    return { min, max };
-}
-
-/**
- * @param {number} x
- * @param {number} y
- * @param {number} width
- */
-function legendSvg(chart, th, x, y, width) {
-    if (chart.series.length < 2) return '';
-    /** @type {string[]} */
-    const items = [];
-    let cx = x;
-    chart.series.forEach((s, i) => {
-        const label = s.name || `Series ${i + 1}`;
-        const w = 18 + label.length * 7 + 18;
-        items.push(`<rect x="${cx}" y="${y - 9}" width="12" height="12" rx="2" fill="${th.chartColors[i % th.chartColors.length]}"/><text x="${cx + 17}" y="${y + 1}" font-size="12" fill="${th.muted}">${esc(label)}</text>`);
-        cx += w;
-        if (cx > x + width) cx = x;
-    });
-    return items.join('');
-}
+const { esc, fmt, fitLabel, axisLabels, niceScale, seriesExtent, legendLayout, legendSvg, LEGEND_ROW } = require('./deckChartSvgParts');
 
 /**
  * @param {{ min: number; max: number; ticks: number[]; }} scale
@@ -182,7 +106,13 @@ function columnSvg(chart, th, plot, scale, horizontal) {
                 const h = Math.max(0.5, (b - a) * plot.h);
                 const capped = !chart.stacked || si === chart.series.length - 1;
                 parts.push(capped ? `<path d="${barPath(Number(x.toFixed(1)), Number(yTop.toFixed(1)), Number(barW.toFixed(1)), Number(h.toFixed(1)), v >= 0)}" fill="${colour}"${stroke}/>` : `<rect x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${colour}"${stroke}/>`);
-                if (showValues && !chart.stacked) parts.push(`<text x="${(x + barW / 2).toFixed(1)}" y="${(v >= 0 ? yTop - 6 : yTop + h + 13).toFixed(1)}" font-size="11" text-anchor="middle" fill="${th.text}">${esc(fmt(v, chart.unit))}</text>`);
+                if (showValues && !chart.stacked) {
+                    // A negative bar's label goes below its end, or inside it
+                    // when that would reach the category labels.
+                    const inside = v < 0 && yTop + h + 13 > plot.y + plot.h - 2 && h > 18;
+                    const ly = v >= 0 ? yTop - 6 : (inside ? yTop + h - 6 : Math.min(yTop + h + 13, plot.y + plot.h - 2));
+                    parts.push(`<text x="${(x + barW / 2).toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" text-anchor="middle" fill="${inside ? readableOn(colour, null, 3) : th.text}">${esc(fmt(v, chart.unit))}</text>`);
+                }
             }
         });
         if (chart.stacked && showValues) {
@@ -190,10 +120,14 @@ function columnSvg(chart, th, plot, scale, horizontal) {
             if (horizontal) parts.push(`<text x="${(plot.x + posOf(Math.max(0, total)) * plot.w + 5).toFixed(1)}" y="${(plot.y + i * slot + slot / 2 + 4).toFixed(1)}" font-size="11" fill="${th.text}">${esc(fmt(total, chart.unit))}</text>`);
             else parts.push(`<text x="${(plot.x + i * slot + slot / 2).toFixed(1)}" y="${(plot.y + plot.h - posOf(Math.max(0, total)) * plot.h - 5).toFixed(1)}" font-size="11" text-anchor="middle" fill="${th.text}">${esc(fmt(total, chart.unit))}</text>`);
         }
-        // Category label
-        if (horizontal) parts.push(`<text x="${plot.x - 8}" y="${(plot.y + i * slot + slot / 2 + 4).toFixed(1)}" font-size="12" text-anchor="end" fill="${th.text}">${esc(label)}</text>`);
-        else parts.push(`<text x="${(plot.x + i * slot + slot / 2).toFixed(1)}" y="${plot.y + plot.h + 18}" font-size="12" text-anchor="middle" fill="${th.text}">${esc(label)}</text>`);
+        // Category label (horizontal: clipped to the gutter)
+        if (horizontal) parts.push(`<text x="${plot.x - 8}" y="${(plot.y + i * slot + slot / 2 + 4).toFixed(1)}" font-size="12" text-anchor="end" fill="${th.text}">${esc(fitLabel(label, plot.x - 16))}</text>`);
     });
+    if (!horizontal) {
+        for (const { i, text } of axisLabels(chart.labels, slot)) {
+            parts.push(`<text x="${(plot.x + i * slot + slot / 2).toFixed(1)}" y="${plot.y + plot.h + 18}" font-size="12" text-anchor="middle" fill="${th.text}">${esc(text)}</text>`);
+        }
+    }
     return parts.join('');
 }
 
@@ -224,19 +158,26 @@ function lineSvg(chart, th, plot, scale, area) {
         const colour = th.chartColors[si % th.chartColors.length];
         /** @type {{ x: number; y: number; v: number; base: number; }[]} */
         const pts = [];
+        // A gap (null) breaks the line: each run of points is its own path.
+        /** @type {{ x: number; y: number; v: number; base: number; }[][]} */
+        const runs = [[]];
         s.values.forEach((v, i) => {
-            if (typeof v !== 'number') return;
+            if (typeof v !== 'number') { if (runs[runs.length - 1].length) runs.push([]); return; }
             const val = chart.stacked && area ? stackBase[i] + v : v;
-            pts.push({ x: xAt(i), y: yAt(val), v, base: chart.stacked && area ? yAt(stackBase[i]) : zeroY });
+            const p = { x: xAt(i), y: yAt(val), v, base: chart.stacked && area ? yAt(stackBase[i]) : zeroY };
+            pts.push(p);
+            runs[runs.length - 1].push(p);
             if (chart.stacked && area) stackBase[i] += v;
         });
         if (!pts.length) return;
-        const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-        if (area) {
-            const back = pts.slice().reverse().map((p) => `L${p.x.toFixed(1)} ${p.base.toFixed(1)}`).join(' ');
-            parts.push(`<path d="${d} ${back} Z" fill="${colour}" fill-opacity="${chart.stacked ? 0.55 : 0.16}" stroke="none"/>`);
+        for (const run of runs.filter((r) => r.length)) {
+            const d = run.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+            if (area) {
+                const back = run.slice().reverse().map((p) => `L${p.x.toFixed(1)} ${p.base.toFixed(1)}`).join(' ');
+                parts.push(`<path d="${d} ${back} Z" fill="${colour}" fill-opacity="${chart.stacked ? 0.55 : 0.16}" stroke="none"/>`);
+            }
+            if (run.length > 1) parts.push(`<path d="${d}" fill="none" stroke="${colour}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
         }
-        parts.push(`<path d="${d}" fill="none" stroke="${colour}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`);
         // Markers with a surface ring; values only where they stay sparse,
         // otherwise just the endpoint.
         const sparse = n * chart.series.length <= 12;
@@ -245,9 +186,9 @@ function lineSvg(chart, th, plot, scale, area) {
             if (chart.showValues && (sparse || i === pts.length - 1)) parts.push(`<text x="${p.x.toFixed(1)}" y="${(p.y - 9).toFixed(1)}" font-size="11" text-anchor="middle" fill="${th.text}">${esc(fmt(p.v, chart.unit))}</text>`);
         });
     });
-    chart.labels.forEach((label, i) => {
-        parts.push(`<text x="${xAt(i).toFixed(1)}" y="${plot.y + plot.h + 18}" font-size="12" text-anchor="middle" fill="${th.text}">${esc(label)}</text>`);
-    });
+    for (const { i, text } of axisLabels(chart.labels, n > 1 ? stepX : plot.w)) {
+        parts.push(`<text x="${xAt(i).toFixed(1)}" y="${plot.y + plot.h + 18}" font-size="12" text-anchor="middle" fill="${th.text}">${esc(text)}</text>`);
+    }
     return parts.join('');
 }
 
@@ -305,7 +246,7 @@ function pieSvg(chart, th, box, donut) {
     chart.labels.forEach((label, i) => {
         if (lx + 20 > box.x + box.w) return;
         parts.push(`<rect x="${lx}" y="${(ly - 6).toFixed(1)}" width="12" height="12" rx="2" fill="${th.chartColors[i % th.chartColors.length]}"/>`);
-        parts.push(`<text x="${lx + 18}" y="${(ly + 4).toFixed(1)}" font-size="12" fill="${th.text}">${esc(label)}${values[i] ? ` <tspan fill="${th.muted}">${esc(fmt(values[i], chart.unit))}</tspan>` : ''}</text>`);
+        parts.push(`<text x="${lx + 18}" y="${(ly + 4).toFixed(1)}" font-size="12" fill="${th.text}">${esc(fitLabel(label, box.x + box.w - lx - 18 - (values[i] ? 60 : 0)))}${values[i] ? ` <tspan fill="${th.muted}">${esc(fmt(values[i], chart.unit))}</tspan>` : ''}</text>`);
         ly += lineH;
     });
     return parts.join('');
@@ -329,7 +270,6 @@ function chartSvg(chart, th, { width = 900, height = 480 } = {}) {
     /** @type {string[]} */
     const parts = [];
     const titleH = chart.title ? 26 : 0;
-    const legendH = chart.series.length > 1 ? 24 : 0;
     if (chart.title) parts.push(`<text x="${width / 2}" y="18" font-size="15" font-weight="600" text-anchor="middle" fill="${theme.text}">${esc(chart.title)}</text>`);
     const type = chart.type;
     if (type === 'pie' || type === 'donut') {
@@ -337,15 +277,20 @@ function chartSvg(chart, th, { width = 900, height = 480 } = {}) {
     } else {
         const horizontal = type === 'bar';
         const longest = Math.max(...chart.labels.map((l) => String(l).length), 1);
+        const plotX = horizontal ? Math.min(220, 20 + longest * 7) : 56;
+        const plotW = width - plotX - 24;
+        // Room for every row the legend wraps into.
+        const legendRows = legendLayout(chart, plotW).rows;
+        const legendH = legendRows ? 24 + (legendRows - 1) * LEGEND_ROW : 0;
         const plot = {
-            x: horizontal ? Math.min(220, 20 + longest * 7) : 56,
+            x: plotX,
             y: titleH + 14 + (chart.unit && type !== 'bar' ? 14 : 0),
-            w: width - (horizontal ? Math.min(220, 20 + longest * 7) : 56) - 24,
+            w: plotW,
             h: height - titleH - 14 - 30 - legendH,
         };
         const ext = seriesExtent(chart);
         // Headroom for the value labels on the tallest marks.
-        const scale = niceScale(ext.min, ext.max > 0 ? ext.max * 1.08 : ext.max);
+        const scale = niceScale(ext.min < 0 ? ext.min * 1.08 : ext.min, ext.max > 0 ? ext.max * 1.08 : ext.max);
         parts.push(axesSvg(scale, plot, theme, horizontal));
         if (type === 'line' || type === 'area') parts.push(lineSvg(chart, theme, plot, scale, type === 'area'));
         else parts.push(columnSvg(chart, theme, plot, scale, horizontal));
@@ -355,7 +300,7 @@ function chartSvg(chart, th, { width = 900, height = 480 } = {}) {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" font-family="${esc(theme.fontStack)}">${parts.join('')}</svg>`;
 }
 
-module.exports = { chartSvg, _test: { niceScale, fmt } };
+module.exports = { chartSvg, _test: { niceScale, fmt, fitLabel, axisLabels, legendLayout } };
 
 /**
  * @typedef {import('./deckModel').SlideChart} Chart

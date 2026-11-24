@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 
-const state=vi.hoisted(()=>({locale:'en',request:vi.fn()}));
-vi.mock('./documentsApi',()=>({documentRequest:state.request}));
+const state=vi.hoisted(()=>({locale:'en',request:vi.fn(),houseStyle:vi.fn()}));
+vi.mock('./documentsApi',()=>({documentRequest:state.request,getHouseStyle:state.houseStyle}));
 // The panel's strings are catalogue keys (documents.workspace.*) now, not
 // inline English/Dutch pairs picked by locale: the Dutch comes from the i18n
 // catalogue. This stand-in plays that catalogue for the keys the Dutch test reads.
@@ -17,11 +17,11 @@ const doc={id:'d',kind:'document',versionId:'v1',settings:{},contract:{instructi
     {key:'count',label:'Device count',type:'number',required:true},
 ],sections:[{id:'cloud-section',title:'Cloud controls',condition:{all:[{parameter:'cloud',operator:'equals',value:true}]}}]}};
 const props=()=>({doc,onSave:vi.fn(async patch=>({...doc,...patch,versionId:'v2'})),onBeforeAction:vi.fn(),onRefresh:vi.fn(),onInsert:vi.fn(),onSection:vi.fn()});
-beforeEach(()=>{sessionStorage.clear();state.locale='en';state.request.mockReset().mockResolvedValue({documents:[],updates:[]});});
+beforeEach(()=>{sessionStorage.clear();state.locale='en';state.request.mockReset().mockResolvedValue({documents:[],updates:[]});state.houseStyle.mockReset().mockResolvedValue({style:{}});});
 
-it('sends typed false and zero to the same validation endpoint and shows exclusion reasons',async()=>{
+it('a template takes sample data for its preview: typed false and zero go to the validation endpoint, with the exclusion reasons',async()=>{
     const user = userEvent.setup();
-    const p=props();state.request.mockResolvedValue({valid:true,sections:[{id:'cloud-section',title:'Cloud controls',state:'excluded',reason:'cloud equals false'}],html:'<p>Customer</p>'});
+    const p={...props(),doc:{...doc,kind:'template'}};state.request.mockResolvedValue({valid:true,sections:[{id:'cloud-section',title:'Cloud controls',state:'excluded',reason:'cloud equals false'}],html:'<p>Customer</p>'});
     render(<DocumentWorkspacePanel {...p} tab="preview"/>);
     await user.selectOptions(screen.getByLabelText('Cloud services'), 'false');
     await user.clear(screen.getByLabelText('Device count *'));
@@ -31,6 +31,22 @@ it('sends typed false and zero to the same validation endpoint and shows exclusi
     expect(state.request).toHaveBeenCalledWith('/d/validate',{values:{cloud:false,count:0},sectionOverrides:undefined});
     expect(screen.getByText('Cloud controls: Excluded')).toBeInTheDocument();
     expect(screen.getByText('cloud equals false')).toBeInTheDocument();
+});
+it('a document is filled in with the form every place shows, and what that form saved is what this panel works with',async()=>{
+    const user = userEvent.setup();
+    const p=props();state.request.mockResolvedValue({valid:true,sections:[],html:'<p>Customer</p>'});
+    const filled={...doc,settings:{sampleValues:{count:3}}};
+    const {rerender}=render(<DocumentWorkspacePanel {...p} doc={filled} tab="preview"/>);
+    // The shared form (it reads the document itself; no query client in this test, so it stays at its first line).
+    expect(screen.getByText('Loading the form…')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Device count *')).not.toBeInTheDocument();
+    // The form saved through its own route; the editor hands the panel the document as it is now.
+    rerender(<DocumentWorkspacePanel {...p} doc={{...filled,versionId:'v2',settings:{sampleValues:{count:4,cloud:true},filledBy:{count:{userId:'u1',at:'now'}}}}} tab="preview"/>);
+    await user.click(screen.getByText('Validate & preview'));
+    await screen.findByText('Ready to generate');
+    expect(state.request).toHaveBeenCalledWith('/d/validate',{values:{count:4,cloud:true},sectionOverrides:undefined});
+    // Nothing of the panel's own changed: it has nothing to save, so it cannot put older values back.
+    expect(p.onSave).not.toHaveBeenCalled();
 });
 it('keeps a proposed design unapplied until review, then pins its expected revision',async()=>{
     const user = userEvent.setup();
@@ -42,6 +58,26 @@ it('keeps a proposed design unapplied until review, then pins its expected revis
     expect(p.onSave).not.toHaveBeenCalled();
     await user.click(screen.getByText('Apply reviewed changes'));
     await waitFor(()=>expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({expectedVersionId:'v1',settings:{contract:doc.contract,design:{font:'serif'}}})));
+});
+it('the design tab shows the house style where the document chose nothing, and a change stores only that value',async()=>{
+    const user = userEvent.setup();
+    state.houseStyle.mockResolvedValue({style:{enabled:true,accent:'#c0f',ink:'#112233',font:'serif',logoWidthMm:30}});
+    const p=props();
+    render(<DocumentWorkspacePanel {...p} doc={{...doc,settings:{design:{preset:'neutral'}}}} tab="design"/>);
+    await waitFor(()=>expect(screen.getByLabelText('Accent color')).toHaveValue('#cc00ff'));
+    expect(screen.getByLabelText('Font')).toHaveValue('serif');
+    expect(screen.getByLabelText('Logo width (mm)')).toHaveValue(30);
+    await user.selectOptions(screen.getByLabelText('Font'), 'mono');
+    await user.click(screen.getByText('Preview design changes'));
+    expect(state.request).toHaveBeenCalledWith('/d/preview-changes',{design:{preset:'neutral',font:'mono'}});
+});
+it('saves the typed text before the server checks the stored document',async()=>{
+    const user = userEvent.setup();
+    const p={...props(),doc:{...doc,kind:'template'}};state.request.mockResolvedValue({valid:true,sections:[],html:''});
+    render(<DocumentWorkspacePanel {...p} tab="preview"/>);
+    await user.click(screen.getByText('Validate & preview'));
+    await waitFor(()=>expect(state.request).toHaveBeenCalledWith('/d/validate',expect.anything()));
+    expect(p.onBeforeAction.mock.invocationCallOrder[0]).toBeLessThan(state.request.mock.invocationCallOrder.at(-1));
 });
 it('offers Dutch controls and keyboard dismissal for the proposal dialog',async()=>{
     const user = userEvent.setup();

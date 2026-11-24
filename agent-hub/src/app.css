@@ -312,6 +312,20 @@
     display: none !important;
 }
 
+/* Popovers that open inside a blurred bar (`[data-solid-popover]`: the chat
+   composer's Skills, + menu, knowledge-base and media panels, and the chat
+   header's Documents and Webpage pickers). They paint --bg-primary/-secondary/
+   --bg-card, translucent in glass, and the bar's own backdrop-filter makes it
+   their backdrop root: a blur of theirs only sees the bar, so the conversation
+   text behind showed through. A solid fill is the only thing that works
+   there; `!important` because some set the background inline. */
+[data-theme="glass"] [data-solid-popover] {
+    background: #ffffff !important;
+}
+[data-theme="glass-dark"] [data-solid-popover] {
+    background: #0f172a !important;
+}
+
 /* Interactive states — surfaces brighten + blur more on hover, depress on
    active. Limited to surfaces that look like controls (buttons, cards with
    role=button). Static surfaces (sidebar chrome) skip this via :not([data-static]). */
@@ -345,6 +359,15 @@
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
     color: var(--text-primary);
+}
+
+/* The backdrop-filter above makes every glass input a stacking context, and a
+   stacking context paints like a positioned element: in DOM order. A search
+   icon laid over the field (an absolute element BEFORE the input) was then
+   painted under the input's translucent fill and read as dark-on-dark. Lift
+   such overlays back above the field, as they are in the other themes. */
+[data-theme^="glass"] .absolute:has(~ :is(input, textarea, select)) {
+    z-index: 1;
 }
 
 /* Dark Glass — inputs read as translucent dark panels so they're legible
@@ -1980,3 +2003,7 @@ pre.hljs {
         rgba(16, 185, 129, 0.02) 50%,
         rgba(255, 255, 255, 0.5) 100%);
 }
+
+/* --text-on-ink (index.css): opaque in the glass themes, where --bg-primary is transparent. */
+:root[data-theme="glass"] { --text-on-ink: #ffffff; }
+:root[data-theme="glass-dark"] { --text-on-ink: #0f172a; }

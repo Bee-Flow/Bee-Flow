@@ -30,7 +30,7 @@ export interface ActivityNames {
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
 export function activityCategory(action: string): ActivityCategory {
-    if (action.startsWith('member_')) return 'people';
+    if (action.startsWith('member_') || action === 'owner_changed') return 'people';
     if (action.startsWith('thread_') || action.startsWith('conversation_') || action.startsWith('chat.')) return 'chats';
     if (action.startsWith('resource_') || action.startsWith('kb_') || action.startsWith('file.')
         || action.startsWith('content.') || action.startsWith('doc.') || action.startsWith('comment.')) return 'content';
@@ -180,6 +180,20 @@ const SENTENCES: Record<string, (c: Ctx) => string> = {
     'comment.thread.deleted': commentSentence('project_home.activity.comment_thread_deleted', '{actor} deleted a comment thread on {thing}'),
     'comment.thread.updated': commentSentence('project_home.activity.comment_thread_updated', '{actor} changed how the AI takes part in a comment thread on {thing}'),
     'comment.mention': commentSentence('project_home.activity.comment_mention', '{actor} mentioned someone in a comment on {thing}'),
+    'sprint.created': ({ actor, t }) => t('project_activity.sprint_created', '{actor} planned a sprint', { actor }),
+    'sprint.deleted': ({ actor, t }) => t('project_activity.sprint_deleted', '{actor} deleted a sprint', { actor }),
+    owner_changed: ({ actor, names, d, t }) => {
+        const to = typeof d.to === 'string' ? d.to : null;
+        const subject = to && to === names.currentUserId ? t('project_home.activity.you_lower', 'you')
+            : names.person(to) || t('project_home.activity.a_person', 'someone');
+        return t('project_activity.owner_changed', '{actor} made {subject} the owner', { actor, subject });
+    },
+    project_archived: ({ actor, t }) => t('project_activity.project_archived', '{actor} archived the project', { actor }),
+    project_restored: ({ actor, t }) => t('project_activity.project_restored', '{actor} restored the project from the archive', { actor }),
+    stage_created: ({ actor, t }) => t('project_activity.stage_created', '{actor} added a stage to this Solution', { actor }),
+    stage_detached: ({ actor, t }) => t('project_activity.stage_detached', '{actor} detached a stage from this Solution', { actor }),
+    stage_paused: ({ actor, t }) => t('project_activity.stage_paused', '{actor} paused the automations of a stage', { actor }),
+    stage_resumed: ({ actor, t }) => t('project_activity.stage_resumed', '{actor} resumed the automations of a stage', { actor }),
 };
 
 function tx(c: Ctx, key: string, fallback: string): string {
@@ -204,5 +218,7 @@ export function describeActivity(item: ActivityEntry, names: ActivityNames, t: T
     const d = (item.details && typeof item.details === 'object' ? item.details : {}) as Record<string, unknown>;
     const sentence = SENTENCES[item.action];
     if (sentence) return sentence({ item, actor, names, t, d });
-    return t('project_home.activity.other', '{actor} made a change ({action})', { actor, action: item.action });
+    // An action this client has no sentence for yet (a newer server): say
+    // that something changed, never the raw code.
+    return t('project_activity.other', '{actor} made a change', { actor });
 }

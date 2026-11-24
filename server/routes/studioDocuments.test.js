@@ -90,7 +90,7 @@ test('a presentation previews as the slide viewer, and a draft (outline + look) 
     const saved=await dispatch('GET','/deck/preview');
     assert.equal(saved.statusCode,200);assert.match(saved.headers['Content-Type'],/text\/html/);
     assert.match(saved.headers['Content-Security-Policy'],/script-src 'unsafe-inline'/);
-    assert.match(saved.body,/class="deck-frame"/);assert.match(saved.body,/Kick-off \{\{customer\.name\}\}/,'the outline as written, tokens and all');
+    assert.match(saved.body,/class="deck-frame"/);assert.match(saved.body,/Kick-off \{\{customer\.name\}\}/,'without declared fields: the outline as written, tokens and all');
     assert.equal((saved.body.match(/class="deck-frame"/g) || []).length,3);
     const draft=await dispatch('POST','/deck/preview',{body:{bodyHtml:'# Other\n\n## X\n- 1\n\n## Y\n- 2\n\n## Z\n- 3',settings:{deck:{preset:'band'}}}});
     assert.equal(draft.statusCode,200);assert.match(draft.body,/Other/);assert.equal((draft.body.match(/class="deck-frame"/g) || []).length,4);
@@ -99,6 +99,21 @@ test('a presentation previews as the slide viewer, and a draft (outline + look) 
     assert.equal(empty.statusCode,200);assert.match(empty.body,/data-deck-empty/);
     assert.equal((await dispatch('POST','/security/preview',{body:{bodyHtml:'x'}})).statusCode,400,'a page has no draft preview');
     assert.equal((await dispatch('GET','/deck/preview',{user:'outsider'})).statusCode,404);
+});
+
+test('a presentation with fields shows its values in the viewer, and a value still needed as [Label]',async()=>{
+    const fields={ parameters:[{ key:'customer.name', label:'Customer name', type:'text', required:true }] };
+    const original=deck.settings;
+    deck.settings={ ...original, contract:fields };
+    try {
+        let res=await dispatch('GET','/deck/preview');
+        assert.match(res.body,/Kick-off ACME/);assert.doesNotMatch(res.body,/\{\{customer\.name\}\}/);
+        deck.settings={ deck:{ preset:'dark' }, contract:fields };
+        res=await dispatch('GET','/deck/preview');
+        assert.match(res.body,/Kick-off \[Customer name\]/);
+        const draft=await dispatch('POST','/deck/preview',{body:{settings:{deck:{preset:'band'}}}});
+        assert.match(draft.body,/Kick-off \[Customer name\]/,'the Look tab\'s draft preview fills the same way');
+    } finally { deck.settings=original; }
 });
 test('a presentation downloads as .pptx, and as the PDF deck; a page cannot become a .pptx',async()=>{
     renderCalls=[];

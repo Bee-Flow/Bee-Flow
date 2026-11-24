@@ -6,6 +6,7 @@ import { nOf } from './plural';
 import ScheduleMenu from './ScheduleMenu';
 import { DownloadOriginalButton, OpenInCloudLink } from './OriginalActions';
 import { sourceKind } from './sourceKinds';
+import { docPill, failureDetail, takenFrom } from './docText';
 import CloudFolderSummary from './CloudFolderSummary';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';
@@ -87,10 +88,7 @@ export default function SourceDetail({ kbId, kbName, source, canManage = false, 
                 } : undefined}
                 onBack={onBack}
                 backLabel={t('knowledge.back_to_kb', 'Back to {name}', { name: kbName || '' })}
-                statusChip={t('knowledge.doc_pill', '{total} files · {done} processed', {
-                    total: Number(counts.documentCount) || 0,
-                    done: (Number(counts.processedCount) || 0) + (Number(counts.redactedCount) || 0),
-                })}
+                statusChip={docPill(t, counts)}
                 primary={canManage ? (
                     <>
                         <button
@@ -254,10 +252,15 @@ function DocRow({ t, rel, doc, last, canManage, kbId, provider, onChanged }: Doc
                 </span>
             </span>
 
-            <span className={`truncate ${doc.extract_summary ? '[color:var(--text-secondary)]' : '[color:var(--text-tertiary)]'}`}>
+            <span
+                className={`truncate ${doc.extract_summary ? '[color:var(--text-secondary)]' : '[color:var(--text-tertiary)]'}`}
+                // The technical reason stays one hover away for whoever has to dig in.
+                title={failureDetail(doc)}
+            >
                 {/* The summary when there is one; otherwise the reason a file
-                    was skipped, which is more useful than an empty cell. */}
-                {doc.extract_summary || doc.status_reason || ''}
+                    was skipped, which is more useful than an empty cell. A
+                    failure says what to do in plain words, not the ingest error. */}
+                {takenFrom(t, doc)}
                 {doc.overlaps_document_id && (
                     <span className="text-[var(--text-tertiary)]">
                         {' · '}{t('knowledge.docs.overlaps', 'overlaps another source')}

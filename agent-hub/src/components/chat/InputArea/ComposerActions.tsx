@@ -187,7 +187,7 @@ const ComposerActions = ({
                    start typing and it turns back into Send. */
                 <button
                     onClick={onStartVoiceMode}
-                    className={`${compact ? 'p-1.5' : 'p-2'} composer-send-quiet text-[var(--bg-primary)] rounded-full transition-all shadow-sm active:scale-95 transform duration-100`}
+                    className={`${compact ? 'p-1.5' : 'p-2'} composer-send-quiet text-[var(--text-on-ink)] rounded-full transition-all shadow-sm active:scale-95 transform duration-100`}
                     title={t('chat.composer.voice_send_hint', 'Voice Chat (Beta) — talk with your assistant')}
                     aria-label={t('chat.composer.voice_send_label', 'Start voice chat')}
                     data-testid="voice-send-button"
@@ -198,7 +198,7 @@ const ComposerActions = ({
                 <button
                     onClick={onSend}
                     disabled={nothingToSend}
-                    className={`${compact ? 'p-1.5' : 'p-2'} text-[var(--bg-primary)] rounded-full transition-all shadow-sm active:scale-95 transform duration-100 ${
+                    className={`${compact ? 'p-1.5' : 'p-2'} text-[var(--text-on-ink)] rounded-full transition-all shadow-sm active:scale-95 transform duration-100 ${
                         nothingToSend
                             ? 'composer-send-quiet cursor-not-allowed'
                             : 'bg-[var(--text-primary)] hover:opacity-90'

@@ -9,7 +9,7 @@
  * the item's runs, its recipients or anything else that belongs to one person.
  *
  * `fingerprint` is the plan's fingerprint as it was saved (core/cowork/plan/planPermissions.mts planFingerprint); a
- * definition that no longer matches it is not offered as a plan. What a plan may do is NOT stored: it is worked out
+ * definition that does not match it is not offered as a plan. What a plan may do is NOT stored: it is worked out
  * from the definition every time the template is shown, so a stored list can never say less than the plan does.
  *
  * `created_by` is nullable: when the person who saved it is erased, the template stays the organisation's and the

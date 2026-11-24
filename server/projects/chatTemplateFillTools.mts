@@ -10,7 +10,12 @@
  *     in, in the chat and in the form under the answer;
  *   - "the fill this conversation is doing" is the team chat's, found among the
  *     project's documents, so a colleague who asks the AI next goes on with the
- *     same document instead of starting a second one.
+ *     same document instead of starting a second one;
+ *   - a member can be tagged for the fields only they know and notes left for
+ *     the others (template_fill_ask_colleague, template_fill_add_note): the
+ *     tools are handed the project's owner and editors by name (`colleagues`);
+ *   - document_add_to_project puts the document in one of the project's
+ *     folders (it is in the project already).
  *
  * Every call is checked when it runs, as the member who asked: editor of the
  * project, documents allowed in this kind of project, the project's
@@ -37,11 +42,14 @@ interface Deps {
     projectOrg: () => { projectOrgOf: (p: Project) => Promise<string>, belongsToProjectOrg: (userId: string, org: string) => Promise<boolean> },
     handlers?: () => Record<string, Handler>,
     definitions?: () => ToolDef[],
+    /** The project's owner and editors, by name (projects/fillColleagues.mts). */
+    colleagues?: (project: Project) => Promise<Array<{ id: string, name: string }>>,
 }
 
 /** The tool names, in the order the model is offered them. */
 export const PROJECT_TEMPLATE_FILL_TOOL_NAMES: readonly string[] = Object.freeze([
-    'document_templates_list', 'template_fill_start', 'template_fill_set_values', 'template_fill_status', 'template_fill_finish',
+    'document_templates_list', 'template_fill_start', 'template_fill_set_values', 'template_fill_status', 'template_fill_review',
+    'template_fill_finish', 'template_fill_ask_colleague', 'template_fill_add_note', 'document_add_to_project',
 ]);
 
 /** A tool answer with the document's link in the project (where its members open it), not in the Studio library. */
@@ -57,7 +65,12 @@ const TEAM_NOTE =' In this team chat the document is the project\'s: every membe
 export function makeProjectTemplateFillTools(deps: Deps) {
     // The chat's template tools, looked up by name (boot/featureModules.js): a project does not require an integration.
     const handlers = deps.handlers || (() => (featureModule('integrations/templateFillTools') as { TEMPLATE_FILL_HANDLERS: Record<string, Handler> }).TEMPLATE_FILL_HANDLERS);
-    const definitions = deps.definitions || (() => (featureModule('integrations/templateFillToolDefs') as { TEMPLATE_FILL_TOOLS: ToolDef[] }).TEMPLATE_FILL_TOOLS);
+    const definitions = deps.definitions || (() => {
+        const defs = featureModule('integrations/templateFillToolDefs') as { TEMPLATE_FILL_TOOLS: ToolDef[], TEAM_FILL_TOOLS: ToolDef[] };
+        return [...defs.TEMPLATE_FILL_TOOLS, ...defs.TEAM_FILL_TOOLS];
+    });
+    const colleagues = deps.colleagues || ((project: Project) => (nodeRequire('./fillColleagues.mts') as {
+        fillColleagues: (project: Project) => Promise<Array<{ id: string, name: string }>> }).fillColleagues(project));
 
     /** The definitions for a member who may edit a project that holds documents; none otherwise. */
     async function offered(project: Project, userId: string): Promise<ToolDef[]> {
@@ -72,7 +85,13 @@ export function makeProjectTemplateFillTools(deps: Deps) {
     /** One answer's run: `execute` for the loop, `touched` for the message that follows. */
     function forAnswer({ project, userId, chatId }: { project: Project, userId: string, chatId: string | null }) {
         const touched: Touched[] = [];
-        const ctx = { project: { id: project.id }, conversationId: chatId, documentScope: null };
+        // Asked once per answer, and only when a tool needs the names.
+        let people: Promise<Array<{ id: string, name: string }>> | null = null;
+        const everyone = () => (people ||= colleagues(project).catch((err) => {
+            log.warn(`[ProjectChatTools] colleagues of project ${project.id} unavailable: ${(err as Error).message}`);
+            return [];
+        }));
+        const ctx = { project: { id: project.id }, conversationId: chatId, documentScope: null, colleagues: everyone };
 
         async function gate(): Promise<string | null> {
             const role = await deps.getProjectRole(userId, project.id);

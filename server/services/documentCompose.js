@@ -79,7 +79,8 @@ body {
 }
 h1, h2, h3, h4, h5, h6 { break-after: avoid-page; page-break-after: avoid; margin: 0 0 .4em; line-height: 1.25; }
 p { margin: 0 0 .7em; }
-table { border-collapse: collapse; width: 100%; }
+/* Room under a table, so a line after it (a total) does not stick to its last row. */
+table { border-collapse: collapse; width: 100%; margin: 0 0 .9em; }
 /* Repeat the header row when a table of invoice lines runs over a page. */
 thead { display: table-header-group; }
 tfoot { display: table-footer-group; }

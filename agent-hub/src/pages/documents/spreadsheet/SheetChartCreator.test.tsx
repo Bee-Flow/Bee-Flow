@@ -48,6 +48,17 @@ describe('SheetChartCreator', () => {
         expect(onCreate).not.toHaveBeenCalled();
     });
 
+    test('stores the ranges and the anchor the way the grid names them', async () => {
+        const user = userEvent.setup();
+        const onCreate = setup();
+        await user.clear(screen.getByLabelText('Anchor cell'));
+        await user.type(screen.getByLabelText('Anchor cell'), ' $b$12 ');
+        await user.clear(screen.getByLabelText('Data range'));
+        await user.type(screen.getByLabelText('Data range'), 'b2:$c$4');
+        await user.click(screen.getByRole('button', { name: 'Add chart' }));
+        expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ anchor: 'B12', dataRange: 'B2:C4' }));
+    });
+
     test('stays open and says so when the chart cannot be saved', async () => {
         const user = userEvent.setup();
         const onClose = vi.fn();

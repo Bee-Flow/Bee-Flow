@@ -35,6 +35,7 @@ export function StepCard({ step, index, readOnly, refOptions, listStatus, onOpen
                 {index + 1}
             </span>
             <div className="flex-1 min-w-0 flex flex-wrap items-start gap-1.5">
+                {/* The `!` classes undo the glass themes' boxed field (app.css): the card is the field here. */}
                 <textarea
                     value={step.text}
                     onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onText(e.target.value)}
@@ -42,7 +43,7 @@ export function StepCard({ step, index, readOnly, refOptions, listStatus, onOpen
                     rows={1}
                     aria-label={t('skills_studio.steps.step_n', 'Step {n}', { n: index + 1 })}
                     placeholder={t('skills_studio.steps.placeholder', 'What happens in this step?')}
-                    className="w-full min-w-0 resize-y bg-transparent outline-none text-[13px] leading-[18px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
+                    className="w-full min-w-0 resize-y bg-transparent! border-0! shadow-none! [backdrop-filter:none]! outline-none text-[13px] leading-[18px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                 />
                 <RefPills
                     refs={step.refs}

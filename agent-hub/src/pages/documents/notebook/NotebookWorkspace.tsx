@@ -156,36 +156,39 @@ export default function NotebookWorkspace({
     return (
         <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* ── Header: the shared Studio object header ── */}
-            <StudioSectionHeader
-                kind={kind}
-                icon={icon}
-                title={title}
-                onRename={onRename}
-                renameRequest={renameRequest}
-                statusChip={statusChip}
-                onBack={onBack}
-                backLabel={backLabel || t('notebooks.back_to_documents', 'Documents')}
-                testId="notebook-header"
-                extras={(
-                    <>
-                        <div className="flex items-center gap-0.5 shrink-0" role="toolbar" aria-label={t('notebooks.view_toggles', 'Panels')}>
-                            {leftDrawer && (
-                                <HeaderToggle icon={leftDrawer.icon || PanelLeft} label={leftDrawer.label || t('notebooks.toggle_sources', 'Toggle Sources')} active={leftEffectiveOpen} onClick={toggleLeft} />
-                            )}
-                            {headerExtras.map((x) => (
-                                <HeaderToggle key={x.id} icon={x.icon} label={x.label} active={x.active} disabled={x.disabled} onClick={x.onClick} />
-                            ))}
-                            {rightDrawer && (
-                                <HeaderToggle icon={rightDrawer.icon || MessageSquare} label={rightDrawer.label || t('notebooks.toggle_chat', 'Toggle AI Chat')} active={rightEffectiveOpen} onClick={toggleRight} />
-                            )}
-                            {commandContext && (
-                                <HeaderToggle icon={CommandIcon} label={t('notebooks.command_palette', 'Command palette (⌘K)')} active={paletteOpen} onClick={() => setPaletteOpen(true)} />
-                            )}
-                        </div>
-                        {headerActions}
-                    </>
-                )}
-            />
+            {/* The anchor the version history drawer opens below, so it never covers these toggles. */}
+            <div className="shrink-0" data-drawer-anchor="">
+                <StudioSectionHeader
+                    kind={kind}
+                    icon={icon}
+                    title={title}
+                    onRename={onRename}
+                    renameRequest={renameRequest}
+                    statusChip={statusChip}
+                    onBack={onBack}
+                    backLabel={backLabel || t('notebooks.back_to_documents', 'Documents')}
+                    testId="notebook-header"
+                    extras={(
+                        <>
+                            <div className="flex items-center gap-0.5 shrink-0" role="toolbar" aria-label={t('notebooks.view_toggles', 'Panels')}>
+                                {leftDrawer && (
+                                    <HeaderToggle icon={leftDrawer.icon || PanelLeft} label={leftDrawer.label || t('notebooks.toggle_sources', 'Toggle Sources')} active={leftEffectiveOpen} onClick={toggleLeft} />
+                                )}
+                                {headerExtras.map((x) => (
+                                    <HeaderToggle key={x.id} icon={x.icon} label={x.label} active={x.active} disabled={x.disabled} onClick={x.onClick} />
+                                ))}
+                                {rightDrawer && (
+                                    <HeaderToggle icon={rightDrawer.icon || MessageSquare} label={rightDrawer.label || t('notebooks.toggle_chat', 'Toggle AI Chat')} active={rightEffectiveOpen} onClick={toggleRight} />
+                                )}
+                                {commandContext && (
+                                    <HeaderToggle icon={CommandIcon} label={t('notebooks.command_palette', 'Command palette (⌘K)')} active={paletteOpen} onClick={() => setPaletteOpen(true)} />
+                                )}
+                            </div>
+                            {headerActions}
+                        </>
+                    )}
+                />
+            </div>
 
             {/* ── Banners ── */}
             {banners}
@@ -197,11 +200,16 @@ export default function NotebookWorkspace({
                         {leftDrawer.node}
                     </Drawer>
                 )}
-                {secondaryLeft}
+                {/* Below desktop the outline and the comments float over the editor instead of squeezing it. */}
+                {secondaryLeft && (isDesktop ? secondaryLeft : (
+                    <div className="absolute inset-y-0 left-0 z-20 flex max-w-full shadow-2xl" data-testid="workspace-secondary-left">{secondaryLeft}</div>
+                ))}
                 <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
                     {children}
                 </div>
-                {secondaryRight}
+                {secondaryRight && (isDesktop ? secondaryRight : (
+                    <div className="absolute inset-y-0 right-0 z-20 flex max-w-full shadow-2xl bg-[var(--bg-primary)]" data-testid="workspace-secondary-right">{secondaryRight}</div>
+                ))}
                 {rightDrawer && (
                     <Drawer side="right" open={rightEffectiveOpen} width={isDesktop ? rightWidth : Math.min(rightWidth, 380)} resizable={isDesktop} mode={drawerMode} onResizeStart={startDrag} onClose={closeOverlay} label={rightDrawer.label}>
                         {rightDrawer.node}

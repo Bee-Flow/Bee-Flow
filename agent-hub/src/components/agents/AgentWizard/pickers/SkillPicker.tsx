@@ -75,7 +75,7 @@ export default function SkillPicker({ skills, selectedIds, automations = [], sea
                     <div className="max-h-64 overflow-y-auto divide-y divide-[var(--border-default)]">
                         {filtered.length === 0 && (
                             <div className="text-xs text-[var(--text-tertiary)] py-3 text-center">
-                                {t('agent_wizard.skills.empty')}
+                                {search ? t('agent_skills.no_match', 'No skills match your search') : t('agent_wizard.skills.empty_above', 'No skills yet — create one above.')}
                             </div>
                         )}
                         {filtered.map((s) => {

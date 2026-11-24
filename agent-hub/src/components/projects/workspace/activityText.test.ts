@@ -41,6 +41,13 @@ describe('describeActivity', () => {
         ['kind_set', { details: { kind: 'workspace' } }, 'Ada kept this as a project'],
         ['automation.run.failed', { details: { automationTitle: 'Nightly sync' } }, 'Nightly sync failed'],
         ['approval.requested', { actorId: undefined }, 'An approval was requested'],
+        ['sprint.created', { targetType: 'project_sprint', targetId: 's1' }, 'Ada planned a sprint'],
+        ['sprint.deleted', { targetType: 'project_sprint', targetId: 's1' }, 'Ada deleted a sprint'],
+        ['owner_changed', { details: { from: 'u1', to: 'u2' } }, 'Ada made Ben the owner'],
+        ['project_archived', {}, 'Ada archived the project'],
+        ['project_restored', {}, 'Ada restored the project from the archive'],
+        ['stage_created', { targetType: 'project', targetId: 'p2', details: { stage: 'test' } }, 'Ada added a stage to this Solution'],
+        ['stage_paused', {}, 'Ada paused the automations of a stage'],
     ] as Array<[string, Partial<ProjectActivityItem>, string]>)('%s → %s', (action, over, expected) => {
         expect(describeActivity(item(action, over), names, t)).toBe(expected);
     });
@@ -59,8 +66,8 @@ describe('describeActivity', () => {
         expect(describeActivity(item('kb_added', { actorId: 'left-long-ago' }), names, t)).toBe('Someone linked a knowledge base');
     });
 
-    it('keeps an unknown kind readable instead of dropping it', () => {
-        expect(describeActivity(item('something.new'), names, t)).toBe('Ada made a change (something.new)');
+    it('keeps an unknown kind readable instead of dropping it, without the raw action code', () => {
+        expect(describeActivity(item('something.new'), names, t)).toBe('Ada made a change');
     });
 });
 

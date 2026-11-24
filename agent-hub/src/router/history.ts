@@ -40,9 +40,22 @@ function readLocation(): RouteLocation {
     return { pathname, search, hash, state: window.history.state };
 }
 
-/** The address as last published. With nobody listening yet it is whatever the browser says. */
+function sameLocation(a: RouteLocation, b: RouteLocation): boolean {
+    return a.pathname === b.pathname && a.search === b.search && a.hash === b.hash && a.state === b.state;
+}
+
+/**
+ * The address as last published. With nobody listening yet it is whatever the
+ * browser says, but the same object while the address is unchanged: React
+ * reads the snapshot twice before it subscribes and warns (an infinite-loop
+ * guard) when the two reads are different objects.
+ */
 export function getLocation(): RouteLocation {
-    if (listeners.size === 0 || current === null) current = readLocation();
+    if (current === null) current = readLocation();
+    else if (listeners.size === 0) {
+        const now = readLocation();
+        if (!sameLocation(now, current)) current = now;
+    }
     return current;
 }
 

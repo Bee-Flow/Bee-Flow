@@ -26,6 +26,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
 
+let noHomeOrg = false;
+
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
 const pass = (req, res, next) => next();
@@ -52,7 +54,12 @@ const MOCKS = {
         publish: async (orgId, slug) => { touched.push({ what: 'publish', args: [orgId, slug] }); return { slug, current_version: 4, published_hash: 'h' }; },
     },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass },
-    './shared': { resolveOrgId: async () => 'orgA' },
+    './shared': {
+        resolveOrgId: async () => {
+            if (noHomeOrg) throw Object.assign(new Error('This action needs a home organisation.'), { status: 403, code: 'org_required' });
+            return 'orgA';
+        },
+    },
 };
 
 const MOCK_IDS = {};
@@ -187,4 +194,23 @@ test('publishing still freezes a version and writes the evidence row', async () 
 
 test('a publish may not carry a version of its own choosing', async () => {
     await refuses({ method: 'POST', url: '/iso/docs/x/publish', body: { version: 99 } }, 'body');
+});
+
+// ═══ GET /iso/docs/published/me ═════════════════════════════════════
+
+test('a user without a home organisation reads an empty policy list, not a 403', async () => {
+    noHomeOrg = true;
+    try {
+        const res = await dispatch({ method: 'GET', url: '/iso/docs/published/me' });
+        assert.strictEqual(res.statusCode, 200);
+        assert.deepStrictEqual(res.body, []);
+    } finally { noHomeOrg = false; }
+});
+
+test('the body of a published policy still needs a home organisation', async () => {
+    noHomeOrg = true;
+    try {
+        const res = await dispatch({ method: 'GET', url: '/iso/docs/published/x/body' });
+        assert.strictEqual(res.statusCode, 403);
+    } finally { noHomeOrg = false; }
 });

@@ -34,8 +34,10 @@ export interface DocumentParameter {
     instructions: string;
     /** Absent when the contract gives none; any JSON value otherwise. */
     example?: unknown;
-    /** A list's per-item field names. */
+    /** A list's per-item fields, by the name an author reads (label, else key). */
     fields: string[];
+    /** A yes/no parameter that decides these sections: a condition. Absent when it decides none. */
+    conditionForSections?: string[];
 }
 
 export interface DocumentSection {
@@ -62,13 +64,18 @@ export interface DocumentTemplate {
     /** The contract's parameters; absent from a server that sends placeholders only. */
     parameters?: DocumentParameter[];
     placeholders?: DocumentParameter[];
+    /** When it was last changed; tells two documents with the same name apart. */
+    updatedAt?: string;
 }
 
-/** A list field is `{ key, … }` in a contract and a bare name on a placeholder. */
+/** A list field is `{ key, label, … }` in a contract and a bare name on a placeholder; it reads as its label, else its key. */
 function fieldNames(raw: unknown): string[] {
     if (!Array.isArray(raw)) return [];
-    return raw.map((f) => (typeof f === 'string' ? f : field.str('')(pick(f, 'key')))).filter((k) => k !== '');
+    return raw.map((f) => (typeof f === 'string' ? f : field.str('')(pick(f, 'label')) || field.str('')(pick(f, 'key')))).filter((k) => k !== '');
 }
+
+const stringList = (raw: unknown): string[] | undefined =>
+    Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string' && v !== '') : undefined;
 
 const readParameterShape = shapeOf({
     key: field.str(''),
@@ -84,6 +91,8 @@ export function readDocumentParameter(raw: unknown): DocumentParameter {
     const p: DocumentParameter = { ...readParameterShape(raw), fields: fieldNames(pick(raw, 'fields')) };
     const example = pick(raw, 'example');
     if (example !== undefined) p.example = example;
+    const decides = stringList(pick(raw, 'conditionForSections'));
+    if (decides?.length) p.conditionForSections = decides;
     return p;
 }
 
@@ -121,6 +130,8 @@ export function readDocumentTemplates(raw: unknown): DocumentTemplate[] {
             const placeholders = readParameters(pick(row, 'placeholders'));
             if (parameters) out.parameters = parameters;
             if (placeholders) out.placeholders = placeholders;
+            const updatedAt = field.str('')(pick(row, 'updatedAt'));
+            if (updatedAt) out.updatedAt = updatedAt;
             return out;
         })
         .filter((d) => d.id !== '');

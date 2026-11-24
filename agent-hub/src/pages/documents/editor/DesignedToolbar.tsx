@@ -14,7 +14,13 @@ import type { PresencePeer } from '../useSectionPresence';
 import type { SaveState } from '../useDocumentAutosave';
 import PresenceAvatars from './PresenceAvatars';
 import SaveStatusChip from './SaveStatusChip';
-import { ICON_BUTTON, PRIMARY_BUTTON, TOOL_BUTTON, TOOL_BUTTON_ACTIVE } from './ui';
+import { ICON_BUTTON, PRIMARY_BUTTON, TOOL_BUTTON, TOOL_BUTTON_ACTIVE, TOOL_BUTTON_OFF } from './ui';
+
+// The toolbar is a container: when it runs out of room the quieter tools drop
+// their words first (the icon stays, with the word as its tooltip and name), so
+// the row never wraps a download button onto a second line.
+const LABEL_WIDE = 'hidden @[78rem]/toolbar:inline';
+const LABEL_MID = 'hidden @[66rem]/toolbar:inline';
 
 export type EditorMode = 'viewing' | 'editing';
 export type SidePanel = 'outline' | 'history' | 'comments' | 'suggestions' | null;
@@ -41,6 +47,8 @@ export interface DesignedToolbarProps {
     onToggleHouseStyle: () => void;
     onOpenInStudio?: () => void;
     onPrint: () => void;
+    /** Saves the settings and the typed text: the template file is built from the stored document. */
+    onBeforeExport?: () => Promise<void>;
     onDownload: (format: 'pdf' | 'pptx') => void;
 }
 
@@ -61,24 +69,28 @@ function SideButtons({ side, onSide, canComment, findOpen, onFind, isDeck }: Pic
                 </>
             )}
             {canComment && (
-                <button type="button" className={cls(side === 'comments')} aria-pressed={side === 'comments'} onClick={() => toggle('comments')} data-testid="document-comments-toggle">
-                    <MessageSquare size={14} aria-hidden="true" />{t('documents.comments', 'Comments')}
+                <button type="button" className={cls(side === 'comments')} aria-pressed={side === 'comments'} onClick={() => toggle('comments')} data-testid="document-comments-toggle"
+                    title={t('documents.comments', 'Comments')} aria-label={t('documents.comments', 'Comments')}>
+                    <MessageSquare size={14} aria-hidden="true" /><span className={LABEL_WIDE}>{t('documents.comments', 'Comments')}</span>
                 </button>
             )}
-            <button type="button" className={cls(side === 'history')} aria-pressed={side === 'history'} onClick={() => toggle('history')} data-testid="document-history-toggle">
-                <History size={14} aria-hidden="true" />{t('documents.history', 'History')}
+            <button type="button" className={cls(side === 'history')} aria-pressed={side === 'history'} onClick={() => toggle('history')} data-testid="document-history-toggle"
+                title={t('documents.history', 'History')} aria-label={t('documents.history', 'History')}>
+                <History size={14} aria-hidden="true" /><span className={LABEL_WIDE}>{t('documents.history', 'History')}</span>
             </button>
         </>
     );
 }
 
 /** The document as a .bftemplate file (body, stylesheet, fields, design), to import in another Bee Flow or library. */
-function TemplateFileButton({ id, name }: { id: string; name: string }) {
+function TemplateFileButton({ id, name, before }: { id: string; name: string; before?: () => Promise<void> }) {
     const { t } = useTranslation();
     const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
     const run = async () => {
         setState('busy');
         try {
+            // The file is built from the stored document: save what was typed first.
+            await before?.();
             await exportTemplateFile(id, name);
             setState('idle');
         } catch (err) {
@@ -87,10 +99,10 @@ function TemplateFileButton({ id, name }: { id: string; name: string }) {
         }
     };
     return (
-        <button type="button" className={TOOL_BUTTON} onClick={() => { void run(); }} disabled={state === 'busy'} data-testid="document-export-template"
+        <button type="button" className={TOOL_BUTTON} onClick={() => { void run(); }} disabled={state === 'busy'} data-testid="document-export-template" aria-label={t('doc_template_file.export_button', 'Template file')}
             title={t('doc_template_file.export_hint', 'Download as a .bftemplate file: the layout, styling and fields, to import elsewhere')}>
             {state === 'busy' ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <FileDown size={14} aria-hidden="true" />}
-            <span aria-live="polite">{state === 'failed' ? t('doc_template_file.export_failed_short', 'Export failed') : t('doc_template_file.export_button', 'Template file')}</span>
+            <span aria-live="polite" className={state === 'failed' ? undefined : LABEL_MID}>{state === 'failed' ? t('doc_template_file.export_failed_short', 'Export failed') : t('doc_template_file.export_button', 'Template file')}</span>
         </button>
     );
 }
@@ -100,8 +112,8 @@ function Downloads({ isDeck, downloading, onPrint, onDownload }: { isDeck: boole
     const spin = <Loader2 size={14} className="animate-spin" aria-hidden="true" />;
     return (
         <>
-            <button type="button" className={TOOL_BUTTON} onClick={onPrint} disabled={downloading} title={t('documents.print_hint', 'Opens the PDF with its page breaks, ready to print')} data-testid="document-print">
-                <Printer size={14} aria-hidden="true" />{t('documents.print', 'Print')}
+            <button type="button" className={TOOL_BUTTON} onClick={onPrint} disabled={downloading} title={t('documents.print_hint', 'Opens the PDF with its page breaks, ready to print')} aria-label={t('documents.print', 'Print')} data-testid="document-print">
+                <Printer size={14} aria-hidden="true" /><span className={LABEL_MID}>{t('documents.print', 'Print')}</span>
             </button>
             {isDeck && (
                 <button type="button" className={PRIMARY_BUTTON} onClick={() => onDownload('pptx')} disabled={downloading} data-testid="document-download-pptx">
@@ -122,11 +134,12 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
     const usesHouseStyle = doc.settings?.houseStyle !== false;
     const backLabel = isPanel ? t('documents.close', 'Close') : t('documents.back', 'Back to Documents');
     return (
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="document-toolbar">
+        <div className="@container/toolbar shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="document-toolbar" data-drawer-anchor="">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
             <button type="button" onClick={props.onLeave} className={ICON_BUTTON} aria-label={backLabel}>{isPanel ? <X size={17} /> : <ArrowLeft size={17} />}</button>
             <input key={`${doc.name}:${props.nameKey ?? 0}`} disabled={readOnly} defaultValue={doc.name} aria-label={t('documents.name', 'Document name')}
                 onBlur={(e) => props.onRename(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                className="flex-1 min-w-[8rem] bg-transparent text-sm font-semibold px-1.5 py-1 rounded outline-none focus:ring-1 focus:ring-[var(--accent-primary)] text-[var(--text-primary)]" />
+                className="flex-1 min-w-[6rem] bg-transparent text-sm font-semibold px-1.5 py-1 rounded outline-none focus:ring-1 focus:ring-[var(--accent-primary)] text-[var(--text-primary)]" />
             <SaveStatusChip state={props.save.state} lastSavedAt={props.save.lastSavedAt} onRetry={props.save.onRetry} onResolve={props.save.onResolve} />
             <PresenceAvatars peers={props.presence.peers} people={props.presence.people} sectionLabel={props.presence.sectionLabel} />
             <SegmentedControl size="sm" value={mode} onChange={props.onMode} ariaLabel={t('documents.mode.label', 'Mode')}
@@ -134,10 +147,11 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                     { value: 'viewing', label: t('documents.mode.viewing', 'Viewing'), icon: <Eye size={13} aria-hidden="true" /> },
                     { value: 'editing', label: isDeck ? t('documents.mode.editing_outline', 'Outline') : t('documents.mode.editing', 'Editing'), icon: <Pencil size={13} aria-hidden="true" />, disabled: readOnly },
                 ]} />
-            <button type="button" className={usesHouseStyle ? TOOL_BUTTON : `${TOOL_BUTTON} bg-transparent border border-[var(--border-subtle)] text-[var(--text-tertiary)]`}
+            <button type="button" className={usesHouseStyle ? TOOL_BUTTON : TOOL_BUTTON_OFF}
                 onClick={props.onToggleHouseStyle} disabled={readOnly} data-testid="document-house-style-toggle" data-on={String(usesHouseStyle)}
+                aria-label={usesHouseStyle ? t('documents.house_style_on', 'House style') : t('documents.house_style_off', 'No house style')}
                 title={usesHouseStyle ? t('doc_house_style.toggle_on_hint', 'This document follows the organisation\'s current house style. Click to turn it off for this document only.') : t('doc_house_style.toggle_off_hint', 'This document does not use the house style. Click to follow the organisation\'s current house style again.')}>
-                <Stamp size={14} aria-hidden="true" />{usesHouseStyle ? t('documents.house_style_on', 'House style') : t('documents.house_style_off', 'No house style')}
+                <Stamp size={14} aria-hidden="true" /><span className={LABEL_MID}>{usesHouseStyle ? t('documents.house_style_on', 'House style') : t('documents.house_style_off', 'No house style')}</span>
             </button>
             <SideButtons side={props.side} onSide={props.onSide} canComment={props.canComment} findOpen={props.findOpen} onFind={props.onFind} isDeck={isDeck} />
             <button type="button" className={ICON_BUTTON} onClick={props.onShortcuts} aria-label={t('documents.shortcuts.title', 'Keyboard shortcuts')}><Keyboard size={15} /></button>
@@ -146,8 +160,9 @@ export default function DesignedToolbar(props: DesignedToolbarProps) {
                     <Maximize2 size={15} />
                 </button>
             )}
-            {!isPanel && <TemplateFileButton id={doc.id} name={doc.name} />}
+            {!isPanel && <TemplateFileButton id={doc.id} name={doc.name} before={props.onBeforeExport} />}
             <Downloads isDeck={isDeck} downloading={props.downloading} onPrint={props.onPrint} onDownload={props.onDownload} />
+        </div>
         </div>
     );
 }

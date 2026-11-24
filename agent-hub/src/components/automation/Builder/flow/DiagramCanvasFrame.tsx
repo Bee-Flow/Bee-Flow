@@ -53,7 +53,7 @@ export default function DiagramCanvasFrame({
             // While a step is open in the drawer the host sets the canvas's
             // floor (BuildTab: 220px); a floor of our own would run the pane
             // under the drawer, zoom stack and minimap included.
-            className={`w-full h-full relative ${editingStepId ? '' : 'min-h-[320px]'}`}
+            className={`@container/canvas w-full h-full relative ${editingStepId ? '' : 'min-h-[320px]'}`}
             onDrop={edit.onDrop}
             onDragOver={edit.onDragOver}
             onDragLeave={edit.onDragLeave}

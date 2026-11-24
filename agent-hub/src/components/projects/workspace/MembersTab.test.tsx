@@ -30,7 +30,7 @@ beforeEach(() => { fetchMock.mockReset(); });
 describe('MembersTab', () => {
     it('distinguishes people and group grants, and explains the roles', async () => {
         renderTab('viewer', EDITOR_ID);
-        expect(await screen.findByText('3 people · 1 groups')).toBeInTheDocument();
+        expect(await screen.findByText('3 people · 1 group')).toBeInTheDocument();
         expect(screen.getByTestId('members-roles')).toHaveTextContent('Reads everything in the project, changes nothing.');
         expect(screen.queryByTestId('members-invite-open')).toBeNull();
     });
@@ -52,7 +52,7 @@ describe('MembersTab', () => {
 
     it('shows an editor the invite form only while the project lets editors invite', async () => {
         renderTab('editor', EDITOR_ID, { project: makeProject({ role: 'editor', editorsCanInvite: false }) });
-        await screen.findByText('3 people · 1 groups');
+        await screen.findByText('3 people · 1 group');
         expect(screen.queryByTestId('member-invite')).toBeNull();
         expect(screen.queryByTestId('members-invite-open')).toBeNull();
     });
@@ -73,13 +73,13 @@ describe('MembersTab', () => {
 
     it('shows nobody else the admin line', async () => {
         renderTab('viewer', VIEWER_ID);
-        await screen.findByText('3 people · 1 groups');
+        await screen.findByText('3 people · 1 group');
         expect(screen.queryByTestId('members-admin-transfer')).toBeNull();
     });
 
     it('disables role changes and removals while the project is archived', async () => {
         renderTab('owner', OWNER_ID, { readOnly: true });
-        await screen.findByText('3 people · 1 groups');
+        await screen.findByText('3 people · 1 group');
         const selects = screen.getAllByRole('combobox', { name: /^Role for / });
         expect(selects.length).toBeGreaterThan(0);
         for (const select of selects) {

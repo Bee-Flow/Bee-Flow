@@ -113,7 +113,9 @@ export default function NdvHeader(p: NdvHeaderProps) {
                 <button type="button" onClick={p.columns.onInput} aria-pressed={inputOn} title={inputOn ? t('automations.ndv.hide_input', 'Hide input') : t('automations.ndv.show_input', 'Show input')} aria-label={inputOn ? t('automations.ndv.hide_input', 'Hide input') : t('automations.ndv.show_input', 'Show input')} className={seg(inputOn)}>
                     {t('automations.ndv.incoming', 'Incoming')}
                 </button>
-                <span aria-hidden="true" className={`${seg(true)} @max-[960px]/ndvhead:hidden`}>{t('automations.ndv.settings', 'Settings')}</span>
+                {/* Always shown with the group: without the middle pill "Incoming | Continues on"
+                    read as a two-way switch with neither side on (the 1024px drawer). */}
+                <span aria-hidden="true" className={seg(true)}>{t('automations.ndv.settings', 'Settings')}</span>
                 <button type="button" onClick={p.columns.onOutput} aria-pressed={outputOn} title={outputOn ? t('automations.ndv.hide_output', 'Hide output') : t('automations.ndv.show_output', 'Show output')} aria-label={outputOn ? t('automations.ndv.hide_output', 'Hide output') : t('automations.ndv.show_output', 'Show output')} className={seg(outputOn)}>
                     {t('automations.ndv.continues', 'Continues on')}
                 </button>

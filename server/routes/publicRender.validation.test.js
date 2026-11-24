@@ -66,19 +66,21 @@ const router = require('./publicRender');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
 /** A GET as Express hands it over: req.query parsed the way its 'simple' parser does. */
-function get(url) {
+function get(url, headers = {}) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
+        const lower = Object.fromEntries(Object.entries({ host: 'beeflow.test', ...headers }).map(([k, v]) => [k.toLowerCase(), v]));
         const req = {
             method: 'GET', url, originalUrl: url, path: pathname,
-            query: querystring.parse(search), headers: {}, protocol: 'https',
-            get(h) { return h.toLowerCase() === 'host' ? 'beeflow.test' : undefined; },
+            query: querystring.parse(search), headers: lower, protocol: 'https',
+            get(h) { return lower[h.toLowerCase()]; },
         };
         const res = {
             statusCode: 200, headers: {},
             status(c) { this.statusCode = c; return this; },
             type() { return this; },
             set(k, v) { this.headers[String(k).toLowerCase()] = v; return this; },
+            append(k, v) { const key = String(k).toLowerCase(); this.headers[key] = [...[].concat(this.headers[key] || []), v]; return this; },
             redirect(status, location) { this.statusCode = status; this.location = location; resolve(this); return this; },
             send(b) { this.body = b; resolve(this); return this; },
         };
@@ -119,6 +121,42 @@ test('the consolidation still drops locale itself and keeps every other key', as
     const res = await get('/pricing?utm_campaign=q4&locale=NL-be');
     assert.strictEqual(res.statusCode, 301);
     assert.strictEqual(res.location, '/nl/pricing?utm_campaign=q4');
+});
+
+test('a blog address with ?locale= is consolidated onto its path URL as well', async () => {
+    // Pages were consolidated; blog posts answered 200 on every ?locale= form,
+    // so Search Console listed /blog/x, /blog/x?locale=nl and /nl/blog/x?locale=en.
+    const res = await get('/blog/some-post?locale=nl&utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/nl/blog/some-post?utm_source=news');
+    const index = await get('/nl/blog?locale=en');
+    assert.strictEqual(index.statusCode, 301);
+    assert.strictEqual(index.location, '/blog');
+});
+
+test('a Dutch browser on / is sent to /nl, never cached by a shared cache', async () => {
+    const res = await get('/?utm_source=news', { 'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8' });
+    assert.strictEqual(res.statusCode, 302);
+    assert.strictEqual(res.location, '/nl?utm_source=news');
+    assert.match(res.headers['cache-control'], /private/);
+    assert.match(res.headers['cache-control'], /no-store/);
+});
+
+test('/ stays English for an English browser and for a crawler without Accept-Language', async () => {
+    const en = await get('/', { 'Accept-Language': 'en-GB,en;q=0.9' });
+    assert.strictEqual(en.statusCode, 200);
+    assert.match(String(en.headers.vary), /Accept-Language/);
+    const bot = await get('/');
+    assert.strictEqual(bot.statusCode, 200);
+});
+
+test('picking English on the site sticks: the ?locale= redirect sets the cookie and / honours it', async () => {
+    const pick = await get('/nl?locale=en', { 'Accept-Language': 'nl-NL,nl' });
+    assert.strictEqual(pick.statusCode, 301);
+    assert.strictEqual(pick.location, '/');
+    assert.match(String(pick.headers['set-cookie']), /bf_site_locale=en/);
+    const back = await get('/', { 'Accept-Language': 'nl-NL,nl', Cookie: 'bf_site_locale=en' });
+    assert.strictEqual(back.statusCode, 200);
 });
 
 test('/legal/<doc> redirects to the CMS page of that name, locale kept', async () => {

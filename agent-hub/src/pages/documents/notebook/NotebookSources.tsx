@@ -56,7 +56,7 @@ export default function NotebookSources({
     dragOver, setDragOver, totalWords, readyCount, showMeetingNotes = true, readOnly = false,
     uploads = [], pendingDelete = null, onUndoDelete = null, onRetryUpload = null, onDismissUpload = null,
 }: NotebookSourcesProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const options = useMemo<AddOption[]>(() => {
         const all: AddOption[] = [
             { key: 'file', label: t('notebooks.add_opt_file', 'Upload file'), desc: t('notebooks.src_file_desc', 'PDF, Word, Excel, CSV…'), Icon: Upload },
@@ -205,10 +205,10 @@ export default function NotebookSources({
                 <div className="shrink-0 mx-3 mb-2 flex items-center justify-between px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]">
                     <span className="text-[11px] font-semibold" role="status">{t('notebooks.n_selected', { count: selected.size })}</span>
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => setConfirmBulk(true)} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-black/15 hover:bg-black/25 transition-colors">
+                        <button type="button" onClick={() => setConfirmBulk(true)} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-md bg-[color-mix(in_srgb,var(--accent-primary-fg)_15%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent-primary-fg)_25%,transparent)] transition-colors">
                             <Trash2 className="w-3 h-3" aria-hidden="true" /> {t('notebooks.delete', 'Delete')}
                         </button>
-                        <button type="button" onClick={clearSelection} className="text-[11px] font-medium px-2 py-1 rounded-md hover:bg-black/15 transition-colors">{t('common.cancel', 'Cancel')}</button>
+                        <button type="button" onClick={clearSelection} className="text-[11px] font-medium px-2 py-1 rounded-md hover:bg-[color-mix(in_srgb,var(--accent-primary-fg)_15%,transparent)] transition-colors">{t('common.cancel', 'Cancel')}</button>
                     </div>
                 </div>
             )}
@@ -219,7 +219,7 @@ export default function NotebookSources({
                 className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5 mx-2 mb-2 rounded-xl border-2 border-dashed transition-colors ${
                     dragOver
                         ? 'p-2 border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_8%,transparent)]'
-                        : 'px-1 py-1 border-[var(--border-subtle)] bg-transparent'
+                        : `px-1 py-1 bg-transparent ${sources.length === 0 ? 'border-[var(--border-subtle)]' : 'border-transparent'}`
                 }`}
                 onDragOver={(e) => { if (!dragId && !readOnly) { e.preventDefault(); setDragOver(true); } }}
                 onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false); }}
@@ -281,10 +281,14 @@ export default function NotebookSources({
                     <div className="flex items-center justify-between text-[11px] text-[var(--text-tertiary)]">
                         <span className="font-medium">
                             {allReady
-                                ? t('notebooks.all_n_sources_ready', { count: sources.length })
+                                ? (sources.length === 1
+                                    ? t('notebooks.all_n_sources_ready_one', 'The source is ready')
+                                    : t('notebooks.all_n_sources_ready', { count: sources.length }))
                                 : t('notebooks.n_of_m_ready', { ready: readyCount, total: sources.length })}
                         </span>
-                        <span>{t('notebooks.n_words', { count: totalWords.toLocaleString() })}</span>
+                        <span>{totalWords === 1
+                            ? t('notebooks.n_words_one', '{count} word', { count: totalWords.toLocaleString(resolvedLocale) })
+                            : t('notebooks.n_words', { count: totalWords.toLocaleString(resolvedLocale) })}</span>
                     </div>
                 </div>
             )}
@@ -293,7 +297,9 @@ export default function NotebookSources({
             <ConfirmDialog
                 open={confirmBulk}
                 title={t('notebooks.confirm_bulk_delete_title', 'Delete sources?')}
-                description={t('notebooks.confirm_bulk_delete_body', { count: selected.size })}
+                description={selected.size === 1
+                    ? t('notebooks.confirm_bulk_delete_body_one', "This permanently removes the source and its indexed content. This can't be undone.")
+                    : t('notebooks.confirm_bulk_delete_body', { count: selected.size })}
                 confirmLabel={t('notebooks.delete', 'Delete')}
                 cancelLabel={t('common.cancel', 'Cancel')}
                 destructive

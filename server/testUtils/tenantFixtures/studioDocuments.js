@@ -56,6 +56,11 @@ const FIXTURES = [
             'GET /api/studio-documents/:id/export',
             // Asking colleagues in a project for a filled-in template's fields, and closing that request.
             'POST /api/studio-documents/:id/value-requests', 'POST /api/studio-documents/:id/value-requests/:requestId/close',
+            // The assistant's final check of what is filled in, and the notes people leave each other at the fields.
+            'POST /api/studio-documents/:id/values/review',
+            // The document with its values, as the fill-in form shows it next to the fields.
+            'GET /api/studio-documents/:id/values/preview',
+            'POST /api/studio-documents/:id/field-notes', 'DELETE /api/studio-documents/:id/field-notes/:noteId',
             'GET /api/studio-documents/:id/suggestions', 'POST /api/studio-documents/:id/suggestions/:sid/accept',
             'POST /api/studio-documents/:id/suggestions/:sid/reject', 'POST /api/studio-documents/:id/suggestions/batch/:batchId/accept',
             'POST /api/studio-documents/:id/suggestions/batch/:batchId/reject',
@@ -64,7 +69,7 @@ const FIXTURES = [
         ],
         // The revision is `current`: reading one reads the document and the revision in one query, so for an
         // unknown revision the owner's 404 would be org A's; for `current` the owner gets a 200.
-        params: { ref: 'current', requestId: 'matrix-request' },
+        params: { ref: 'current', requestId: 'matrix-request', noteId: 'matrix-note' },
         // The routes whose schema runs before the document is looked up, with a body it accepts.
         bodies: {
             'POST /api/studio-documents/:id/ai-proposal': { message: 'A change that must not land here.' },
@@ -75,6 +80,7 @@ const FIXTURES = [
             'PATCH /api/studio-documents/:id': { name: NO_TEXT },
             'PUT /api/studio-documents/:id/values': { values: { title: NO_TEXT } },
             'POST /api/studio-documents/:id/value-requests': { fields: ['title'], assigneeIds: ['matrix-colleague'] },
+            'POST /api/studio-documents/:id/field-notes': { text: NO_TEXT },
         },
     },
     {

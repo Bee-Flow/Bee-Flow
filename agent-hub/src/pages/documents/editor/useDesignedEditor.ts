@@ -24,6 +24,28 @@ function initialMode(doc: StudioDocument): EditorMode {
     return 'editing';
 }
 
+/** Below Tailwind's `sm` (640px) the form and the picture do not fit side by side. */
+function wideEnough(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+    return !window.matchMedia('(max-width: 639.98px)').matches;
+}
+
+/**
+ * A document made from a template opens on its values, full screen: the sheet
+ * itself shows {{placeholders}}, which is the template's text, not what the
+ * document says. Beside a chat there is no room for the form next to it (the
+ * chat has the form), on a phone there is no room for both, and a
+ * presentation opens on its slides.
+ */
+function initialTab(doc: StudioDocument, fullScreen: boolean): WorkspaceTab | null {
+    if (!fullScreen || doc.kind !== 'document' || doc.docType === 'presentation' || !wideEnough()) return null;
+    // The GET's contract carries the inferred fields too; the stored one only those written down.
+    const contract = doc.contract as { parameters?: unknown } | undefined;
+    const stored = doc.settings?.contract as { parameters?: unknown } | undefined;
+    const fields = contract?.parameters ?? stored?.parameters;
+    return Array.isArray(fields) && fields.length > 0 ? 'preview' : null;
+}
+
 /** "Compare and choose" for a save that met somebody else's, and for a kept draft. */
 function useConflicts(s: ReturnType<typeof useDesignedDocument>) {
     const [open, setOpen] = useState(false);
@@ -60,8 +82,10 @@ function useConflicts(s: ReturnType<typeof useDesignedDocument>) {
     };
 }
 
-export default function useDesignedEditor({ initial, people, currentUserId, onRenamed }: {
+export default function useDesignedEditor({ initial, people, currentUserId, onRenamed, fullScreen = false }: {
     initial: StudioDocument; people: People; currentUserId: string | null; onRenamed?: (doc: StudioDocument) => void;
+    /** The editor has the whole screen (the Studio page), not the panel beside a chat. */
+    fullScreen?: boolean;
 }) {
     const canvasRef = useRef<CanvasHandle | null>(null);
     const workspaceRef = useRef<WorkspaceHandle | null>(null);
@@ -71,7 +95,7 @@ export default function useDesignedEditor({ initial, people, currentUserId, onRe
     const frame = useFrameState({ doc: s.doc, editing, currentUserId, extraPeople: people });
     const deck = useDeckDraft(s.doc.id, canvasRef);
     const conflicts = useConflicts(s);
-    const [tab, setTab] = useState<WorkspaceTab | null>(null);
+    const [tab, setTab] = useState<WorkspaceTab | null>(() => initialTab(initial, fullScreen));
     const [side, setSide] = useState<SidePanel>(null);
     const [find, setFind] = useState<FindState>({ open: false, focus: 0, result: null });
     const [shortcutsOpen, setShortcutsOpen] = useState(false);

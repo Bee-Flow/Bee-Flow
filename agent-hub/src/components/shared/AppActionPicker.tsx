@@ -119,7 +119,7 @@ function ActionRow({ action, app, on, readOnly, showEffect, txt, onToggle }: Act
             className="w-full flex items-start gap-3 px-3 py-2 rounded-lg text-left hover:bg-[var(--bg-secondary)] transition disabled:cursor-not-allowed"
         >
             <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-default)]'}`}>
-                {on && <Check size={12} className="text-[var(--bg-primary)]" />}
+                {on && <Check size={12} className="text-[var(--text-on-ink)]" />}
             </span>
             <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-2 flex-wrap">
@@ -365,7 +365,7 @@ function AppActionPickerSection({ search, setSearch, txt, filtered, emptyLabel, 
                         </span>
                         {count > 0 && (
                             <span
-                                className="text-[10px] font-semibold text-[var(--bg-primary)] bg-[var(--accent)] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center"
+                                className="text-[10px] font-semibold text-[var(--text-on-ink)] bg-[var(--accent)] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center"
                                 aria-label={`${count} selected`}
                             >
                                 {count}

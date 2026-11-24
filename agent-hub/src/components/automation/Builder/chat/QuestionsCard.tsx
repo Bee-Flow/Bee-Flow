@@ -169,7 +169,7 @@ export default function QuestionsCard({ questions, running = false, onAnswer }: 
         <div className="space-y-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-4">
             <div className="flex flex-wrap items-center gap-2">
                 {total > 1 && <button type="button" disabled={running || step === 0} onClick={() => goTo(step - 1)} className="rounded-xl px-3 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-40">{t('automations.assistant.questions_back', 'Back')}</button>}
-                <button type="button" disabled={running} onClick={next} className="ml-auto flex items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 font-medium text-[var(--bg-primary)] transition-opacity hover:opacity-90 disabled:opacity-50">
+                <button type="button" disabled={running} onClick={next} className="ml-auto flex items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 font-medium text-[var(--text-on-ink)] transition-opacity hover:opacity-90 disabled:opacity-50">
                     {total === 1 ? t('automations.assistant.questions_send_one', 'Send answer') : last ? t('automations.assistant.questions_send', 'Send answers') : t('automations.assistant.questions_next', 'Next')}<ArrowRight size={13} />
                 </button>
             </div>

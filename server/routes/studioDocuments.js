@@ -693,9 +693,9 @@ router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async
         if (!doc) return res.status(404).json({ error: 'Document not found' });
         // `edit=1` asks for the hand-editing bridge. The bytes are identical
         // otherwise, so a reader never carries the editor's script. A
-        // presentation has no bridge: its outline is edited as text.
+        // presentation has no bridge, and its viewer shows values ("[Label]" for a gap), not {{tokens}}.
         const mode = req.query.edit === '1' ? 'preview' : 'print';
-        sendPreview(res, await previewHtmlFor(req, doc, { mode }));
+        sendPreview(res, await previewHtmlFor(req, doc, { mode, ...(isDeckDocument(doc) ? require('../core/documents/fillPreview.mts').deckViewerValues(doc) : {}) }));
     } catch (err) {
         if (err && err.errorClass === 'document_empty') return sendPreview(res, emptyDeckHtml());
         sendStoreError(res, err, 'Failed to render document');
@@ -715,7 +715,7 @@ router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), a
         const draft = {};
         if (typeof req.body?.bodyHtml === 'string') draft.bodyHtml = req.body.bodyHtml.slice(0, documentStore.MAX_HTML_BYTES);
         if (req.body?.settings && typeof req.body.settings === 'object') draft.settings = req.body.settings;
-        sendPreview(res, await previewHtmlFor(req, doc, { draft }));
+        sendPreview(res, await previewHtmlFor(req, doc, { draft, ...require('../core/documents/fillPreview.mts').deckViewerValues({ ...doc, ...draft, settings: { ...doc.settings, ...draft.settings } }) }));
     } catch (err) {
         if (err && err.errorClass === 'document_empty') return sendPreview(res, emptyDeckHtml());
         if (err && /^deck_/.test(err.errorClass || '')) return res.status(422).json({ error: /** @type {Error} */ (err).message, code: err.errorClass });
@@ -813,7 +813,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
 router.use('/:id/versions', require('./studioDocuments/versions'));
 router.use('/', require('./studioDocuments/presence'));
 router.use('/', require('./studioDocuments/stream'));
-router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter, require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter);
+router.use('/', require('./studioDocuments/templateValues.mts').templateValuesRouter, require('./studioDocuments/templateFile.mts').templateFileRouter, require('./studioDocuments/valueRequests.mts').valueRequestsRouter, require('./studioDocuments/fieldNotes.mts').fieldNotesRouter);
 router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 

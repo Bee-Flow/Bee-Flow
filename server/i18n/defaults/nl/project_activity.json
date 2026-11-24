@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "project_activity.sprint_created": "{actor} plande een sprint",
+    "project_activity.sprint_deleted": "{actor} verwijderde een sprint",
+    "project_activity.owner_changed": "{actor} maakte {subject} eigenaar",
+    "project_activity.project_archived": "{actor} archiveerde het project",
+    "project_activity.project_restored": "{actor} haalde het project terug uit het archief",
+    "project_activity.stage_created": "{actor} voegde een omgeving toe aan deze Solution",
+    "project_activity.stage_detached": "{actor} koppelde een omgeving los van deze Solution",
+    "project_activity.stage_paused": "{actor} pauzeerde de automatiseringen van een omgeving",
+    "project_activity.stage_resumed": "{actor} hervatte de automatiseringen van een omgeving",
+    "project_activity.other": "{actor} heeft iets gewijzigd"
+  },
+  "sameAsEnglish": []
+}

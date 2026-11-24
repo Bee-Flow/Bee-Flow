@@ -10,7 +10,11 @@
 // page and the right-hand chat panel: the panel closes rather than going
 // back, and offers a jump to the full screen.
 
-import React from 'react';
+import React, { useState } from 'react';
+import { templateFillApi } from '@/api/templateFillApi';
+import FilledPreview from '@/components/documents/fill/FilledPreview';
+import { FILL_LINK } from '@/components/documents/fill/fillStyles';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 import useTranslation from '@/hooks/useTranslation';
 import DocumentCanvas from '../DocumentCanvas';
 import DeckOutlineEditor from '../DeckOutlineEditor';
@@ -28,6 +32,7 @@ import { slideAt } from './useDeckDraft';
 import type { WorkspaceHandle } from './useDesignedDocument';
 import useDesignedEditor, { type DesignedEditorState } from './useDesignedEditor';
 import WorkspaceTabs from './WorkspaceTabs';
+import type { PanelPlacement } from './ui';
 
 // The panel is plain JS (untyped props): typed here for what the editor passes.
 const DocumentWorkspacePanel = DocumentWorkspacePanelJs as unknown as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<WorkspaceHandle> }>;
@@ -53,29 +58,73 @@ function DeckPane({ e, isPanel }: { e: DesignedEditorState; isPanel: boolean }) 
     );
 }
 
+/**
+ * What the fill-in tab of a document shows where the sheet is: the document
+ * with its values. The page is read again for every revision the form's saves
+ * and the editor's own saves make, and follows the field the person is at.
+ */
+function useFilledView(s: DesignedEditorState['s']) {
+    const [revision, setRevision] = useState(s.doc.versionId || '');
+    const [spot, setSpot] = useState('');
+    useAdjustOnChange([s.doc.versionId], () => setRevision(s.doc.versionId || ''));
+    const onSynced = (out: { versionId?: string | null }) => {
+        if (out.versionId) setRevision(out.versionId);
+        s.fillSynced(out);
+    };
+    return { revision, spot, setSpot, onSynced };
+}
+
+/** Filling in a document shows it with its values; a template (sample data) and a deck (its own viewer) keep the sheet. */
+const showsFilled = (e: DesignedEditorState): boolean => e.tab === 'preview' && e.s.doc.kind === 'document' && !e.s.isDeck;
+
+/** The document with its values, over the sheet (which stays as it is underneath, unsaved typing included). */
+function FilledView({ e, view }: { e: DesignedEditorState; view: ReturnType<typeof useFilledView> }) {
+    const { t } = useTranslation();
+    const { s } = e;
+    return (
+        <div className="absolute inset-0 z-10 bg-[var(--bg-tertiary)]" data-testid="document-filled-view">
+            <FilledPreview documentId={s.doc.id} revision={view.revision} load={templateFillApi.preview} spot={view.spot}
+                actions={(
+                    <button type="button" onClick={e.leaving.attempt(() => e.setTab(null), 'switch')} className={FILL_LINK} data-testid="document-filled-view-close">
+                        {s.readOnly ? t('chat_templates.preview_show_text', 'Show the text') : t('chat_templates.preview_edit_text', 'Edit the text')}
+                    </button>
+                )} />
+        </div>
+    );
+}
+
 function Body({ e, isPanel, currentUser }: { e: DesignedEditorState; isPanel: boolean; currentUser: DesignedEditorProps['currentUser'] }) {
     const { s, frame, canvasRef } = e;
     const isDeck = s.isDeck;
+    const view = useFilledView(s);
+    const filled = showsFilled(e);
+    // Beside a chat the editor is too narrow to share: the panels open over the sheet. On a small screen too.
+    const placement: PanelPlacement = isPanel ? 'over' : 'over-narrow';
     return (
-        <div className={`flex-1 min-h-0 flex ${isPanel && isDeck ? 'flex-col' : 'flex-col sm:flex-row'}`}>
+        <div className={`relative flex-1 min-h-0 flex ${isPanel && isDeck ? 'flex-col' : 'flex-col sm:flex-row'}`}>
             {isDeck && e.editing && <DeckPane e={e} isPanel={isPanel} />}
-            <div className="flex-1 min-w-0 min-h-0">
+            <div className="relative flex-1 min-w-0 min-h-0">
+                {/* Under the filled view the sheet stays alive (unsaved typing included) but is not painted: a
+                    translucent theme background would otherwise show the {{placeholders}} through it. */}
+                <div className={`h-full w-full ${filled ? 'invisible' : ''}`} inert={filled}>
                 <DocumentCanvas
                     ref={canvasRef} documentId={s.doc.id} editing={e.editing && !isDeck} reloadKey={s.reloadKey} peers={frame.framePeers}
                     onDirty={s.autosave.markDirty} onError={(m) => s.setError(m)} onDeckReady={e.setSlideCount}
                     onCaret={frame.setCaretSection} onOutline={frame.setOutline} onStats={frame.setStats}
                     onSelection={(a) => { frame.selection.current = a; }} onFound={(result) => e.setFind((f) => ({ ...f, result }))} onKey={e.onKey}
                 />
+                </div>
+                {filled && <FilledView e={e} view={view} />}
             </div>
             {e.tab && (
                 <DocumentWorkspacePanel ref={e.workspaceRef} key={`${s.doc.id}:${s.panelEpoch}`} doc={s.doc} tab={e.tab} onSave={s.savePatch}
                     onPreviewDraft={isDeck ? e.deck.previewDraft : undefined}
                     onInsert={(key: string) => { e.setMode('editing'); canvasRef.current?.insert(key); }}
                     onSection={(id: string) => canvasRef.current?.section(id)} onBeforeAction={s.flushEditor}
-                    onRefresh={e.guarded(s.reload)} />
+                    onRefresh={e.guarded(s.reload)} onFillSynced={view.onSynced} onFillSpot={view.setSpot} wide={!isPanel && filled} placement={placement} />
             )}
             <DocumentSidePanels
-                side={e.side} onClose={() => e.setSide(null)} doc={s.doc} canEdit={!s.readOnly} currentUser={currentUser} people={frame.people}
+                placement={placement} side={e.side} onClose={() => e.setSide(null)} doc={s.doc} canEdit={!s.readOnly} currentUser={currentUser} people={frame.people}
                 outline={{ items: frame.outline, activeSection: frame.caretSection, busySections: frame.busySections, onGo: (item) => canvasRef.current?.scrollTo(item.index) }}
                 onRestored={e.onRestored}
                 comments={{
@@ -132,7 +181,7 @@ function Header({ e, isPanel, onBack, onOpenInStudio }: { e: DesignedEditorState
                 side={e.side} onSide={e.setSide} canComment={e.canComment} findOpen={e.find.open} onFind={e.openFind} onShortcuts={() => e.setShortcutsOpen(true)}
                 downloading={s.downloading} onLeave={leaving.attempt(() => onBack?.())} onRename={s.rename} nameKey={s.nameKey} onToggleHouseStyle={s.toggleHouseStyle}
                 onOpenInStudio={onOpenInStudio ? leaving.attempt(() => onOpenInStudio(s.doc.id)) : undefined}
-                onPrint={s.print} onDownload={s.download}
+                onPrint={s.print} onDownload={s.download} onBeforeExport={s.saveAll}
             />
             <WorkspaceTabs isDeck={s.isDeck} tab={e.tab} slideCount={e.slideCount} onTab={(next) => { leaving.attempt(() => e.setTab(next), 'switch')(); }} />
             <EditorNotices
@@ -152,16 +201,18 @@ function Header({ e, isPanel, onBack, onOpenInStudio }: { e: DesignedEditorState
 export default function DesignedEditor({ initial, people, variant, currentUser, onBack, onRenamed, onOpenInStudio }: DesignedEditorProps) {
     const { t } = useTranslation();
     const isPanel = variant === 'panel';
-    const e = useDesignedEditor({ initial, people, currentUserId: currentUser?.id || null, onRenamed });
+    const e = useDesignedEditor({ initial, people, currentUserId: currentUser?.id || null, onRenamed, fullScreen: !isPanel });
     const { s, frame } = e;
     const words = s.isDeck ? null : frame.stats?.words ?? null;
+    // While the document is shown with its values the sheet is covered: nothing is typed in it.
+    const typing = e.editing && !showsFilled(e);
     return (
         <div className="flex flex-col h-full bg-[var(--bg-primary)]" data-testid="designed-editor">
             <Header e={e} isPanel={isPanel} onBack={onBack} onOpenInStudio={onOpenInStudio} />
             <Body e={e} isPanel={isPanel} currentUser={currentUser} />
             <EditorStatusBar words={words} pages={s.isDeck ? null : frame.stats?.pages ?? null} slides={s.isDeck ? e.slideCount : null}
-                where={e.editing ? frame.sectionLabel(frame.caretSection) : null}
-                extra={e.editing && !s.isDeck ? <span>{t('documents.edit_hint_short', 'Pasted text arrives as plain text, so the layout survives.')}</span> : null} />
+                where={typing ? frame.sectionLabel(frame.caretSection) : null}
+                extra={typing && !s.isDeck ? <span>{t('documents.edit_hint_short', 'Pasted text arrives as plain text, so the layout survives.')}</span> : null} />
             <Dialogs e={e} />
         </div>
     );

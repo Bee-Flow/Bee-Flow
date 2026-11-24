@@ -59,7 +59,7 @@ class EditorErrorBoundary extends React.Component<BoundaryProps, BoundaryState> 
             {L.body || 'Your last saved version is safe. Try reloading the editor.'}
           </p>
           <button onClick={this.retry}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium [background:var(--accent-primary)] [color:white]!">
+            className="px-3 py-1.5 rounded-lg text-xs font-medium [background:var(--accent-primary)] text-[var(--accent-primary-fg)]!">
             {L.retry || 'Reload editor'}
           </button>
         </div>

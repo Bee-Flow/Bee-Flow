@@ -9,7 +9,9 @@ import type { MegaItem } from '../../components/admin/product-website/blockEdito
 import type { FeatureOption } from '../../shared/featureCatalog';
 import { logger } from '../../utils/logger';
 import { contractSavable, keyProblems, ruleIncomplete, type KeyProblem } from './editor/contractCheck';
-import ProjectFillTab from './editor/ProjectFillTab';
+import DocumentFillPanel from '@/components/documents/fill/DocumentFillPanel';
+import { adoptFillState } from './editor/fillState';
+import type { PanelPlacement } from './editor/ui';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
@@ -77,6 +79,20 @@ interface LibraryEntry { id: string; name: string }
 interface UpdateEntry { sectionId?: string; name: string }
 interface HistoryEntry { role: string; content: string | undefined }
 const PRESETS: Record<string, Record<string, string | number>> = {neutral:{accent:'#334155',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.5,margin:18},branded:{accent:'#d97706',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.6,margin:18},formal:{accent:'#1e3a5f',ink:'#172033',font:'serif',fontSize:12,lineHeight:1.6,margin:22}};
+/** A `#abc` colour as `#aabbcc`: what a colour input takes. */
+const longHex = (v: string) => /^#[\da-f]{3}$/i.test(v) ? '#' + v.slice(1).split('').map(c => c + c).join('') : v;
+/**
+ * The value the Design tab shows: the document's own choice, else what the document gets without one
+ * (the house style, or the base sheet). Mirrors designCss on the server: a neutral value under the
+ * neutral preset is what older clients stored with every edit, not a choice.
+ */
+function designValue(design: DocSettings['design'], key: string, fallback: string | number) {
+    const v = design?.[key];
+    const preset = design?.preset && design.preset !== 'neutral';
+    if (v === undefined || v === '' || (!preset && v === PRESETS.neutral[key])) return fallback;
+    return v as string | number;
+}
+interface HouseLook { enabled?: boolean; accent?: string; ink?: string; font?: string; logoWidthMm?: number }
 function readDraft(id: string): DraftState | null {
     try { return JSON.parse(sessionStorage.getItem(`document-settings-draft:${id}`) || 'null'); }
     catch { return null; }
@@ -106,7 +122,7 @@ function Parameter({ parameter:p, problem, onChange, onDelete, onInsert, nested=
     const { t } = useTranslation(); const set = (key: string,value: unknown)=>onChange({...p,[key]:value});
     const fieldProblems = keyProblems(p.fields || []);
     return <details className="rounded-lg border border-[var(--border-subtle)] p-3" open={!p.key || !!problem}>
-        <summary className="cursor-pointer text-sm font-medium">{p.label || p.key || t('documents.workspace.new_parameter', 'New parameter')} {p.required?'*':''}<span className="block text-xs font-normal text-[var(--text-muted)]">{p.summary || p.key}</span>{!p.instructions && <span className="block text-xs font-normal text-amber-600">{t('documents.workspace.instructions_need_review', 'Instructions need review')}</span>}</summary>
+        <summary className="cursor-pointer text-sm font-medium">{p.label || p.key || t('documents.workspace.new_parameter', 'New parameter')} {p.required?'*':''}<span className="block text-xs font-normal text-[var(--text-muted)]">{p.summary || p.key}</span>{!p.instructions && <span className="block text-xs font-normal text-[var(--warning-ink)]">{t('documents.workspace.instructions_need_review', 'Instructions need review')}</span>}</summary>
         <div className="space-y-3 mt-3">
             {field(t('documents.workspace.parameter_key', 'Parameter key'),<input className={input} value={p.key} aria-invalid={!!problem} onChange={e=>set('key',e.target.value)}/>)}<KeyHint problem={problem}/>
             {field(t('documents.workspace.label', 'Label'),<input className={input} value={p.label || ''} onChange={e=>set('label',e.target.value)}/>)}
@@ -218,9 +234,17 @@ interface DocumentWorkspacePanelProps {
     onPreviewDraft?: (draft: { settings: { deck: Record<string, string> } }) => void;
     tab: string;
     onRefresh: () => void;
+    /** The fill-in form saved through its own route: the editor takes the document as it is now. */
+    onFillSynced?: (out: { versionId?: string | null }) => void;
+    /** The passage of the document the person is filling in: the preview next to the form shows it. */
+    onFillSpot?: (text: string) => void;
+    /** More room for the form, where the screen has it. */
+    wide?: boolean;
+    /** Beside the document (default), over it (beside a chat), or over it on a small screen only. */
+    placement?: PanelPlacement;
 }
 
-const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft}: DocumentWorkspacePanelProps,ref) {
+const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,tab,onSave,onInsert,onSection,onRefresh,onBeforeAction,onPreviewDraft,onFillSynced,onFillSpot,wide=false,placement='beside'}: DocumentWorkspacePanelProps,ref) {
     const { t } = useTranslation();
     const isDeck = doc.docType === 'presentation';
     const currentSettings=()=>({...doc.settings,contract:doc.contract || doc.settings?.contract || {parameters:[],sections:[],instructions:''}});
@@ -237,7 +261,17 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     // The library place (type, sharing) is the owner's: the server refuses it from a project editor or a share.
     const ownsDocument=doc.deletable!==false;
     const setContract=(next: Partial<Contract>)=>setSettings(s=>({...s,contract:{...s.contract,...next}}));
-    const setDesign=(key: string | number,value: string | number | boolean)=>setSettings(s=>({...s,design:{...PRESETS.neutral,...s.design,[key]:value}}));
+    const setDesign=(key: string | number,value: string | number | boolean)=>setSettings(s=>({...s,design:{...s.design,[key]:value}}));
+    const [houseLook,setHouseLook]=useState<HouseLook | null>(null);
+    useEffect(()=>{
+        if(tab!=='design' || isDeck) return;
+        let alive=true;
+        getHouseStyle().then((body: { style?: HouseLook })=>{if(alive) setHouseLook(body.style || {});}).catch(()=>{if(alive) setHouseLook({});});
+        return ()=>{alive=false;};
+    },[tab,isDeck]);
+    // What the document looks like without a choice of its own: the house style, unless it opted out.
+    const houseOn=!!houseLook?.enabled && (settings as { houseStyle?: boolean }).houseStyle!==false;
+    const effective: Record<string, string | number>={accent:houseOn&&houseLook?.accent?longHex(houseLook.accent):'#1f2937',ink:houseOn&&houseLook?.ink?longHex(houseLook.ink):'#1a1d21',font:houseOn&&houseLook?.font||'sans',logoWidth:houseOn&&houseLook?.logoWidthMm||24};
     const action=async (fn: () => Promise<unknown>)=>{setBusy(true);setError('');try{await fn();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
     const savedState=useRef(JSON.stringify({settings:currentSettings(),kind:doc.kind || 'document',visibility:doc.visibility || 'private'}));
     const latestState=useRef<DraftState | null>(null);latestState.current={settings,kind,visibility};
@@ -266,7 +300,9 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         try{return await saving.current;}finally{saving.current=null;}
     };
     useImperativeHandle(ref,()=>({flush:save}));
-    const copyAsTemplate=<button className={button} onClick={()=>action(async()=>{if(!readOnly)await save();const r=await documentRequest(`/${doc.id}/duplicate`,{kind:'template'});setResult({message:t('documents.workspace.template_saved', 'Template saved')+': '+r.document.name});})}>{t('documents.workspace.save_a_copy_as_template', 'Save a copy as template')}</button>;
+    // Before the server works from the stored document (a copy, the library, a check, an update): the settings AND the typed text.
+    const saveAll=async()=>{await save();await onBeforeAction();};
+    const copyAsTemplate=<button className={button} onClick={()=>action(async()=>{if(!readOnly)await saveAll();const r=await documentRequest(`/${doc.id}/duplicate`,{kind:'template'});setResult({message:t('documents.workspace.template_saved', 'Template saved')+': '+r.document.name});})}>{t('documents.workspace.save_a_copy_as_template', 'Save a copy as template')}</button>;
     useEffect(()=>{
         if (JSON.stringify({settings,kind,visibility})!==savedState.current) {
             try {sessionStorage.setItem(`document-settings-draft:${doc.id}`,JSON.stringify({settings,kind,visibility,versionId:recovered?.versionId || doc.versionId,bodyHtml:doc.bodyHtml,css:doc.css}));}catch (err) { logger.debug('memory draft remains', err); }
@@ -274,11 +310,26 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         const warn=(e: BeforeUnloadEvent)=>{if(JSON.stringify({settings,kind,visibility})!==savedState.current){e.preventDefault();e.returnValue='';}};
         window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
     },[settings,kind,visibility,doc.id,doc.bodyHtml,doc.css,doc.versionId,recovered?.versionId]);
+    // What the fill-in form wrote (values, who filled what, requests, notes, the check) is the document's now:
+    // this panel's copy of the settings takes it as saved, so its next save cannot put older values back.
+    // AFTER the draft effect above, on purpose: in the commit that brings the new document that effect still
+    // compares the old copy with the old baseline (equal: no draft is kept); then both move on together here.
+    const fillSettings=doc.kind==='document'?doc.settings:undefined;
+    useEffect(()=>{
+        if(!fillSettings) return;
+        const saved=JSON.parse(savedState.current) as DraftState;
+        savedState.current=JSON.stringify({...saved,settings:adoptFillState(saved.settings,fillSettings)});
+        setSettings(s=>adoptFillState(s,fillSettings));
+    },[fillSettings]);
     useEffect(()=>{if(tab==='sections') {documentRequest('?kind=section&limit=200').then(r=>setLibrary(r.documents)).catch(e=>setError(e.message));documentRequest(`/${doc.id}/updates`).then(r=>setUpdates(r.updates || [])).catch(e=>setError(e.message));}},[tab,doc.id]);
-    return <aside className="w-full sm:w-80 shrink-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]">
+    // A document's own form saves as it is typed and has the preview next to it: with no section to
+    // switch on or off there is nothing left on this tab to save or to validate by hand.
+    const formOnly=tab==='preview' && doc.kind==='document' && sections.length===0;
+    const frame=placement==='over'?'absolute inset-y-0 right-0 z-20 w-full max-w-80 shadow-xl':`w-full ${wide?'sm:w-80 lg:w-[26rem]':'sm:w-80'} shrink-0${placement==='over-narrow'?' max-sm:absolute max-sm:inset-0 max-sm:z-20':''}`;
+    return <aside className={`${frame} min-h-0 overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4 space-y-4 text-[var(--text-primary)]`}>
         <h2 className="font-semibold">{({parameters:t('documents.workspace.parameters', 'Parameters'),sections:t('documents.workspace.sections', 'Sections'),design:isDeck?t('documents.workspace.look', 'Look'):t('documents.workspace.design', 'Design'),assistant:t('documents.workspace.ai_assistant', 'AI assistant'),preview:t('doc_editor.tab_fill_in', 'Fill in & preview')})[tab]}</h2>
         {error && <p role="alert" className="text-sm bg-red-500/10 p-2 rounded">{error}</p>}
-        {recovered && <div className="text-xs bg-amber-500/10 p-3 rounded space-y-2"><p>{t('documents.workspace.unsaved_settings_recovered_review', 'Unsaved settings recovered. Review them before saving.')}</p>
+        {recovered && <div className="text-xs bg-[var(--warning)]/10 p-3 rounded space-y-2"><p>{t('documents.workspace.unsaved_settings_recovered_review', 'Unsaved settings recovered. Review them before saving.')}</p>
             <button className={button} onClick={()=>action(async()=>{const r=await documentRequest('',{name:t('doc_editor.recovered_name', '{name} (recovered)', {name:doc.name}),kind:'document',docType:doc.docType,bodyHtml:recovered.bodyHtml || doc.bodyHtml,css:recovered.css || doc.css,settings});setResult({message:t('documents.workspace.recovered_copy_saved', 'Recovered copy saved')+': '+r.document.name});})}>{t('documents.workspace.save_recovered_copy', 'Save recovered copy')}</button>
             <button className={button} onClick={()=>{const next=currentSettings();setSettings(next);setKind(doc.kind || 'document');setVisibility(doc.visibility || 'private');savedState.current=JSON.stringify({settings:next,kind:doc.kind || 'document',visibility:doc.visibility || 'private'});setRecovered(null);try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch (err) { logger.debug('unavailable', err); }}}>{t('documents.workspace.discard_recovered_changes', 'Discard recovered changes')}</button>
         </div>}
@@ -293,17 +344,17 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
         </>}
         {tab==='sections' && <>
             <p className="text-xs text-[var(--text-muted)]">{t('documents.workspace.choose_when_each_section_applies', 'Choose when each section applies. Unknown customer data needs input before a final PDF.')}</p>
-            {sections.map((s,i)=><details key={s.id} className="border rounded-lg p-3"><summary className="cursor-pointer text-sm font-medium">{s.title}</summary><div className="space-y-3 mt-3"><button className={button} onClick={()=>onSection(s.id)}>{t('documents.workspace.find_in_document', 'Find in document')}</button>{field(t('documents.workspace.title', 'Title'),<input className={input} value={s.title} onChange={e=>setContract({sections:sections.map((x,j)=>i===j?{...x,title:e.target.value}:x)})}/>)}{field(t('documents.workspace.summary', 'Summary'),<textarea className={input} value={s.summary || ''} onChange={e=>setContract({sections:sections.map((x,j)=>i===j?{...x,summary:e.target.value}:x)})}/>)}<Rule rule={s.condition} parameters={parameters} onChange={condition=>setContract({sections:sections.map((x,j)=>i===j?{...x,condition}:x)})}/><button className={button} onClick={()=>action(async()=>{await save();await documentRequest(`/${doc.id}/sections/${s.id}/save`,{});setResult({message:t('documents.workspace.section_saved_to_your_library', 'Section saved to your library')});})}>{t('documents.workspace.save_to_section_library', 'Save to section library')}</button>{s.source && <p className="text-xs">{t('documents.workspace.linked_revision', 'Linked revision')}: {s.source.versionId.slice(0,8)}</p>}</div></details>)}
+            {sections.map((s,i)=><details key={s.id} className="border rounded-lg p-3"><summary className="cursor-pointer text-sm font-medium">{s.title}</summary><div className="space-y-3 mt-3"><button className={button} onClick={()=>onSection(s.id)}>{t('documents.workspace.find_in_document', 'Find in document')}</button>{field(t('documents.workspace.title', 'Title'),<input className={input} value={s.title} onChange={e=>setContract({sections:sections.map((x,j)=>i===j?{...x,title:e.target.value}:x)})}/>)}{field(t('documents.workspace.summary', 'Summary'),<textarea className={input} value={s.summary || ''} onChange={e=>setContract({sections:sections.map((x,j)=>i===j?{...x,summary:e.target.value}:x)})}/>)}<Rule rule={s.condition} parameters={parameters} onChange={condition=>setContract({sections:sections.map((x,j)=>i===j?{...x,condition}:x)})}/><button className={button} onClick={()=>action(async()=>{await saveAll();await documentRequest(`/${doc.id}/sections/${s.id}/save`,{});setResult({message:t('documents.workspace.section_saved_to_your_library', 'Section saved to your library')});})}>{t('documents.workspace.save_to_section_library', 'Save to section library')}</button>{s.source && <p className="text-xs">{t('documents.workspace.linked_revision', 'Linked revision')}: {s.source.versionId.slice(0,8)}</p>}</div></details>)}
             <button className={button} onClick={()=>action(async()=>{await onBeforeAction();const current=(await documentRequest(`/${doc.id}`)).document;const id='section-'+crypto.randomUUID();const next={...settings,contract:{...contract,sections:[...sections,{id,title:t('documents.workspace.new_section', 'New section'),summary:'',condition:null}]}};await onSave({settings:next,bodyHtml:current.bodyHtml+`<section data-doc-section="${id}"><h2>${t('documents.workspace.new_section', 'New section')}</h2><p>${t('documents.workspace.write_your_content_here', 'Write your content here.')}</p></section>`});acceptSettings(next);})}>{t('documents.workspace.add_section', 'Add section')}</button>
             {field(t('documents.workspace.insert_reusable_content', 'Insert reusable content'),<select className={input} value="" onChange={e=>{const sourceId=e.target.value;if(sourceId)action(async()=>{await save();await onBeforeAction();const latest=await documentRequest(`/${doc.id}`);const out=await documentRequest(`/${doc.id}/insert-section`,{sourceId,expectedVersionId:latest.document.versionId});acceptSettings({...out.document.settings,contract:out.document.contract || out.document.settings.contract});onRefresh();});}}><option value="">{t('documents.workspace.choose_section', 'Choose section…')}</option>{library.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>)}
-            {updates.map(u=><div className="rounded border p-3 space-y-2" key={u.sectionId || 'template'}><p className="text-sm">{t('documents.workspace.update_available', 'Update available')}: {u.name}</p><button className={button} onClick={()=>action(async()=>{await save();const r=await documentRequest(`/${doc.id}/review-update`,{sectionId:u.sectionId});setProposal(r);})}>{t('documents.workspace.review_changes', 'Review changes')}</button></div>)}
+            {updates.map(u=><div className="rounded border p-3 space-y-2" key={u.sectionId || 'template'}><p className="text-sm">{t('documents.workspace.update_available', 'Update available')}: {u.name}</p><button className={button} onClick={()=>action(async()=>{await saveAll();const r=await documentRequest(`/${doc.id}/review-update`,{sectionId:u.sectionId});setProposal(r);})}>{t('documents.workspace.review_changes', 'Review changes')}</button></div>)}
         </>}
         {tab==='design' && isDeck && <DeckLookTab settings={settings} setSettings={setSettings} onPreviewDraft={onPreviewDraft} disabled={busy || doc.editable===false}/>}
         {tab==='design' && !isDeck && <>
-            {field(t('documents.workspace.preset', 'Preset'),<select className={input} value={(settings.design?.preset || 'neutral') as string} onChange={e=>setSettings(s=>({...s,design:{...PRESETS[e.target.value],preset:e.target.value}}))}>{Object.keys(PRESETS).map(k=><option key={k}>{k}</option>)}</select>)}
-            {['accent','ink'].map(k=>field(k==='accent'?t('documents.workspace.accent_color', 'Accent color'):t('documents.workspace.text_color', 'Text color'),<input key={k} className={input+' h-10'} type="color" value={(settings.design?.[k] || PRESETS.neutral[k]) as string | number} onChange={e=>setDesign(k,e.target.value)}/>))}
-            {field(t('documents.workspace.font', 'Font'),<select className={input} value={(settings.design?.font as string | undefined) || 'sans'} onChange={e=>setDesign('font',e.target.value)}><option value="sans">{t('documents.workspace.font_sans', 'Sans serif')}</option><option value="serif">{t('documents.workspace.font_serif', 'Serif')}</option><option value="mono">{t('documents.workspace.font_mono', 'Monospace')}</option></select>)}
-            {[['fontSize',t('documents.workspace.font_size', 'Font size'),8,24,1,11],['lineHeight',t('documents.workspace.line_spacing', 'Line spacing'),1,2.5,0.1,1.5],['margin',t('documents.workspace.page_margins_mm', 'Page margins (mm)'),0,40,1,18],['logoWidth',t('documents.workspace.logo_width_mm', 'Logo width (mm)'),10,80,1,24]].map(([key,label,min,max,step,fallback])=>field(label,<input key={key} className={input} type="number" min={min} max={max} step={step} value={(settings.design?.[key] ?? fallback) as string | number} onChange={e=>setDesign(key,Number(e.target.value))}/>))}
+            {field(t('documents.workspace.preset', 'Preset'),<select className={input} value={(settings.design?.preset || 'neutral') as string} onChange={e=>setSettings(s=>({...s,design:e.target.value==='neutral'?{preset:'neutral'}:{...PRESETS[e.target.value],preset:e.target.value}}))}>{Object.keys(PRESETS).map(k=><option key={k}>{k}</option>)}</select>)}
+            {['accent','ink'].map(k=>field(k==='accent'?t('documents.workspace.accent_color', 'Accent color'):t('documents.workspace.text_color', 'Text color'),<input key={k} className={input+' h-10'} type="color" value={longHex(String(designValue(settings.design,k,effective[k])))} onChange={e=>setDesign(k,e.target.value)}/>))}
+            {field(t('documents.workspace.font', 'Font'),<select className={input} value={designValue(settings.design,'font',effective.font)} onChange={e=>setDesign('font',e.target.value)}><option value="sans">{t('documents.workspace.font_sans', 'Sans serif')}</option><option value="serif">{t('documents.workspace.font_serif', 'Serif')}</option><option value="mono">{t('documents.workspace.font_mono', 'Monospace')}</option></select>)}
+            {[['fontSize',t('documents.workspace.font_size', 'Font size'),8,24,1,11],['lineHeight',t('documents.workspace.line_spacing', 'Line spacing'),1,2.5,0.1,1.5],['margin',t('documents.workspace.page_margins_mm', 'Page margins (mm)'),0,40,1,18],['logoWidth',t('documents.workspace.logo_width_mm', 'Logo width (mm)'),10,80,1,24]].map(([key,label,min,max,step,fallback])=>field(label,<input key={key} className={input} type="number" min={min} max={max} step={step} value={key==='logoWidth'?designValue(settings.design,key,effective.logoWidth):(settings.design?.[key] ?? fallback) as string | number} onChange={e=>setDesign(key,Number(e.target.value))}/>))}
             {field(t('documents.workspace.paper_size', 'Paper size'),<select className={input} value={(settings.design?.pageSize || 'A4') as string} onChange={e=>setDesign('pageSize',e.target.value)}><option>A4</option><option>Letter</option></select>)}
             {field(t('documents.workspace.logo_position', 'Logo position'),<select className={input} value={(settings.design?.logoPosition || 'left') as string} onChange={e=>setDesign('logoPosition',e.target.value)}>{['left','center','right'].map(x=><option key={x}>{x}</option>)}</select>)}
             {['showHeader','showFooter'].map(key=><label className="flex gap-2 text-sm" key={key}><input type="checkbox" checked={(settings.design?.[key] as boolean | undefined)!==false} onChange={e=>setDesign(key,e.target.checked)}/>{key==='showHeader'?t('documents.workspace.show_header', 'Show header'):t('documents.workspace.show_footer', 'Show footer')}</label>)}
@@ -311,13 +362,13 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             <p className="text-xs text-[var(--text-muted)]">{t('documents.workspace.for_custom_layouts_ask_the_ai', 'For custom layouts, ask the AI assistant to convert the stylesheet to these controls. Review the preview before applying.')}</p>
         </>}
         {tab==='preview' && <>
-            <p className="text-xs">{doc.kind==='document'?t('documents.workspace.customer_values_are_stored_on_this', 'Customer values are stored on this private document.'):t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>
-            {/* In a project people fill it in together: the shared form, who filled what, and requests to colleagues. */}
-            {doc.kind==='document' && doc.projectId
-                ? <ProjectFillTab documentId={doc.id} projectId={doc.projectId}/>
+            {doc.kind!=='document' && <p className="text-xs">{t('documents.workspace.sample_data_is_used_only_for_this', 'Sample data is used only for this preview and is never saved to a shared template.')}</p>}
+            {/* A document is filled in with the form every place shows (the chat, a project's team chat, here): saved as it is typed, checked by the assistant, and in a project filled in together. A template only takes sample data for its preview. */}
+            {doc.kind==='document'
+                ? <DocumentFillPanel documentId={doc.id} place="editor" onSynced={onFillSynced} onSpot={onFillSpot}/>
                 : parameters.map(p=><div key={p.key}>{field((p.label || p.key)+(p.required?' *':''),<ValueInput parameter={p} value={settings.sampleValues?.[p.key]} onChange={v=>setSettings(s=>({...s,sampleValues:{...s.sampleValues,[p.key]:v}}))}/>)}<p className="text-xs text-[var(--text-muted)] mt-1">{p.summary}</p>{p.instructions && <details className="text-xs mt-1"><summary>{t('documents.workspace.instructions', 'Instructions')}</summary>{p.instructions}</details>}</div>)}
             {sections.map(s=>field(s.title,<select key={s.id} className={input} value={settings.sectionOverrides?.[s.id] || 'automatic'} onChange={e=>setSettings(x=>({...x,sectionOverrides:{...x.sectionOverrides,[s.id]:e.target.value}}))}><option value="automatic">{t('documents.workspace.automatic_rules', 'Automatic (rules)')}</option><option value="include">{t('documents.workspace.include', 'Include')}</option><option value="exclude">{t('documents.workspace.exclude', 'Exclude')}</option></select>))}
-            <button className={button} onClick={()=>action(async()=>{await save();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>
+            {!formOnly && <button className={button} onClick={()=>action(async()=>{await saveAll();setResult(await documentRequest(`/${doc.id}/validate`,{values:settings.sampleValues,sectionOverrides:settings.sectionOverrides}));})}>{t('documents.workspace.validate_preview', 'Validate & preview')}</button>}
         </>}
         {tab==='assistant' && <>
             {history.map((m,i)=><p key={i} className={'text-sm p-2 rounded '+(m.role==='user'?'bg-[var(--bg-tertiary)]':'')}>{m.content}</p>)}
@@ -325,7 +376,7 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
             <select className={input} value={mode} onChange={e=>setMode(e.target.value)} aria-label={t('documents.workspace.assistant_mode', 'Assistant mode')}><option value="design">{isDeck?t('documents.workspace.look_only', 'Look only'):t('documents.workspace.design_only', 'Design only')}</option><option value="content">{isDeck?t('documents.workspace.slides_and_outline', 'Slides and outline'):t('documents.workspace.content_and_template', 'Content and template')}</option>{!isDeck && <option value="applicability">{t('documents.workspace.suggest_applicable_sections', 'Suggest applicable sections')}</option>}</select>
             <button className={button} disabled={!message.trim() || busy} onClick={()=>action(async()=>{await save();await onBeforeAction();const next=await documentRequest(`/${doc.id}/ai-proposal`,{message,mode,values:settings.sampleValues,history});setProposal(next);setHistory(h=>[...h,{role:'user',content:message},{role:'assistant',content:next.explanation}]);setMessage('');})}>{t('documents.workspace.prepare_a_proposal', 'Prepare a proposal')}</button>
         </>}
-        {tab!=='assistant' && <button className={button+' w-full font-semibold'} onClick={()=>action(save)}>{busy?<Loader2 size={15} className="animate-spin mx-auto"/>:t('documents.workspace.save_changes', 'Save changes')}</button>}
+        {tab!=='assistant' && !formOnly && <button className={button+' w-full font-semibold'} onClick={()=>action(save)}>{busy?<Loader2 size={15} className="animate-spin mx-auto"/>:t('documents.workspace.save_changes', 'Save changes')}</button>}
         </fieldset>
         {/* Copying is open to everyone who may read the document, so a reader keeps this one action. */}
         {readOnly && tab==='parameters' && <fieldset disabled={busy}>{copyAsTemplate}</fieldset>}

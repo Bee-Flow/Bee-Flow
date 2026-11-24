@@ -75,6 +75,8 @@ const CASES = [
     ['generate_file xlsx with the default delimiter is no finding', [gf({ format: 'xlsx', delimiter: ';' })], {}, []],
     ['fill_document unknown document', [fd({ documentId: 'doc_x' })], {}, [`E action.fill_document_unknown @${P}[0].documentId`]],
     ['fill_document no document', [fd({ documentId: undefined })], {}, [`E action.step_field_required @${P}[0].documentId`, `E action.fill_document_missing @${P}[0].documentId`]],
+    ['fill_document none picked yet is a warning on a draft save', [fd({ documentId: '' })], { dataRefsAsWarnings: true }, [`W action.fill_document_missing @${P}[0].documentId`]],
+    ['fill_document none picked blocks publish', [fd({ documentId: '' })], {}, [`E action.fill_document_missing @${P}[0].documentId`]],
     ['fill_document half attach + unknown column', [fd({ attachToFieldKey: 'nope' })], {}, [`E action.fill_document_attach_partial @${P}[0]`, `W action.fill_document_field_unknown @${P}[0].attachToFieldKey`]],
     ['generate_presentation no slides', [gp({ slides: '  ' })], {}, [`E binding.invalid @${P}[0].slides`, `E action.generate_presentation_missing @${P}[0].slides`]],
     ['generate_presentation half attach + unknown column', [gp({ attachToFieldKey: 'nope' })], {}, [`E action.generate_presentation_attach_partial @${P}[0]`, `W action.generate_presentation_field_unknown @${P}[0].attachToFieldKey`]],

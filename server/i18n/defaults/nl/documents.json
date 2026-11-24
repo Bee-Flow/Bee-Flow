@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "documents.style.deck_template_read_failed": "Het sjabloondeck kon niet worden gelezen",
+    "documents.deck_sample.cover_title": "Kwartaalreview",
+    "documents.deck_sample.cover_subtitle": "Bestuursvergadering · Q3",
+    "documents.deck_sample.content_title": "Overzicht van facturen",
+    "documents.deck_sample.col_supplier": "Leverancier",
+    "documents.deck_sample.col_invoice": "Factuur",
+    "documents.deck_sample.col_total": "Totaal",
+    "documents.folder_empty": "Deze map bevat nog geen documenten."
+  },
+  "sameAsEnglish": []
+}

@@ -1,0 +1,7 @@
+{
+  "translations": {
+    "agent_wizard.skills.empty_above": "Nog geen skills. Maak er hierboven een aan.",
+    "agent_wizard.knowledge.no_kbs_action": "Nog geen kennisbanken. Voeg er een toe met ‘{action}’."
+  },
+  "sameAsEnglish": []
+}

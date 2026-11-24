@@ -252,6 +252,7 @@ test('buildPresentation — charts are NATIVE chart parts in the theme palette; 
     assert.match(bar, new RegExp(`srgbClr val="${theme.chartColors[1].slice(1)}"`), 'series 2 painted in the second palette colour');
     const donut = await zip.file(charts[1]).async('string');
     assert.match(donut, /<c:doughnutChart>/);
+    assert.match(donut, new RegExp(`srgbClr val="${theme.chartColors[1].slice(1)}"`), 'the second slice gets the second palette colour');
     assert.match(await zip.file('ppt/slides/slide2.xml').async('string'), /<c:chart /, 'the chart sits on the Omzet slide');
     const kpi = await zip.file('ppt/slides/slide4.xml').async('string');
     assert.match(kpi, /prst="roundRect"/);
@@ -341,4 +342,20 @@ test('buildPresentation — stampPptxCoreProperties writes "$" sequences in the 
     const stamped = await office._internal.stampPptxCoreProperties(out.buffer, { keywords: ['cost=$$5'], description: 'pay $$ or $& now' });
     const core = await (await JSZip.loadAsync(stamped)).file('docProps/core.xml').async('string');
     assert.ok(core.includes('<cp:keywords>cost=$$5</cp:keywords><dc:description>pay $$ or $&amp; now</dc:description></cp:coreProperties>'), core.slice(-300));
+});
+
+test('buildPresentation — a gap in a chart stays a gap (no zero, dispBlanksAs gap); a pie slice is never negative', async () => {
+    const { normalizeDeck } = require('../deckModel');
+    const deck = normalizeDeck({ title: 'Gaps', slides: [
+        { title: 'Line', chart: { type: 'line', labels: ['a', 'b', 'c'], series: [{ name: 's', values: [1, null, 3] }] } },
+        { title: 'Pie', chart: { type: 'pie', labels: ['a', 'b'], series: [{ name: 's', values: [-2, 5] }] } },
+    ] });
+    const out = await office.buildPresentation({ deck });
+    const zip = await JSZip.loadAsync(out.buffer);
+    const charts = Object.keys(zip.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f)).sort();
+    const line = await zip.file(charts[0]).async('string');
+    assert.match(line, /<c:dispBlanksAs val="gap"\/>/);
+    assert.match(line, /<c:pt idx="1"><c:v><\/c:v><\/c:pt>/, 'the missing value is empty, not 0');
+    const pie = await zip.file(charts[1]).async('string');
+    assert.doesNotMatch(pie, /<c:v>-2<\/c:v>/);
 });

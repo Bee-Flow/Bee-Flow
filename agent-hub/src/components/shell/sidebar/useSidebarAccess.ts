@@ -13,6 +13,7 @@ type LockReason = (id: string) => string | null;
 interface SidebarUser extends StudioNavUser {
     permissions?: string[] | null;
     simpleMode?: boolean;
+    organizationId?: string | null;
 }
 
 /**
@@ -78,7 +79,9 @@ export function useSidebarAccess({ user, isMobile, currentPage, hasPermissionPro
     const canBrowseApprovals = hasLicenseFeature('approvals') && hasPermission('use_approvals');
     const { pendingCount: pendingApprovalCount, hasApprovals } = useApprovalsNav({
         canBrowseApprovals,
-        isOrgAdmin: isOrgAdminUser(user),
+        // The org scope needs an organisation: a platform admin without one
+        // would only collect a 403 on every poll.
+        isOrgAdmin: isOrgAdminUser(user) && !!user?.organizationId,
     });
 
     return {

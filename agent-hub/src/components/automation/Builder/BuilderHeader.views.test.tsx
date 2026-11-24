@@ -80,10 +80,10 @@ describe('BuilderHeader: the name', () => {
         expect(name.getAttribute('title')).toBe(`${long}\nClick to rename`);
     });
 
-    it('the bar leaves 24px between the name and the centred views', () => {
+    it('the bar leaves 24px between the name and the views, and the name takes the room it needs', () => {
         const { container } = render(withQueryClient(<BuilderHeader {...props()} />));
         const bar = container.querySelector('.grid') as HTMLElement;
-        expect(bar.className).toContain('grid-cols-[1fr_auto_1fr]');
+        expect(bar.className).toContain('grid-cols-[minmax(0,auto)_1fr_auto]');
         expect(bar.className).toContain('gap-x-6');
     });
 });

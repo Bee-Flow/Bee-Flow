@@ -4,7 +4,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useEditorChrome } from '@/components/admin/Studio/AppStudio/editor/EditorChromeContext';
 import FormulaField from '../../logic/FormulaField';
 import FormField from '@/components/shared/FormField';
-import type { BindingDraft, SourceCardProps, SourceChooserProps, BindingFieldProps } from '../BindingField.types';
+import type { BindingDraft, SourceCardProps, SourceChooserProps, BindingFieldProps, CompactSourceChooserProps } from '../BindingField.types';
 import { sourceChoices, moreSourceChoices, modeOf, isUnset, skeletonFor, staticDisplay, parseStatic } from './BindingField.helpers';
 import { AggregateBinding } from './AggregateBinding';
 import { TableBinding } from './TableBinding';
@@ -89,6 +89,32 @@ function SourceChooser({ onPick, onCancel, disabled }: SourceChooserProps) {
     );
 }
 
+/** The same choice as one select: every source, the rarer ones included. */
+function CompactSourceChooser({ onPick, onCancel, disabled, label }: CompactSourceChooserProps) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center gap-2">
+            <select
+                className={INPUT_CLS}
+                value=""
+                onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
+                disabled={disabled}
+                aria-label={label
+                    ? t('builder_polish.binding_source_for', 'Where {label} comes from', { label })
+                    : t('studio_apps_panels.binding.where_from', 'Where should this come from?')}
+            >
+                <option value="">{t('builder_polish.binding_choose_source', 'Choose where this comes from…')}</option>
+                {[...sourceChoices(t), ...moreSourceChoices(t)].map((c) => <option key={c.kind} value={c.kind}>{c.title}</option>)}
+            </select>
+            {onCancel ? (
+                <button type="button" onClick={onCancel} className="shrink-0 text-xs text-[var(--text-secondary)] hover:underline">
+                    {t('studio_apps_panels.binding.keep_existing', 'Keep what’s there')}
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
 // ── the "this is what it shows" sentence ─────────────────────────────────────
 
 // ── record/records editor ────────────────────────────────────────────────────
@@ -109,6 +135,7 @@ export default function BindingField({
     singleValue = false,
     onBuild = null,
     disabled = false,
+    compact = false,
 }: BindingFieldProps) {
     const { t } = useTranslation();
     const chrome = useEditorChrome();
@@ -153,11 +180,20 @@ export default function BindingField({
     if (unset || choosing) {
         return (
             <FormField label={label} hint={hint}>
-                <SourceChooser
-                    onPick={pickSource}
-                    onCancel={unset ? null : () => setChoosing(false)}
-                    disabled={disabled}
-                />
+                {compact ? (
+                    <CompactSourceChooser
+                        onPick={pickSource}
+                        onCancel={unset ? null : () => setChoosing(false)}
+                        disabled={disabled}
+                        label={label}
+                    />
+                ) : (
+                    <SourceChooser
+                        onPick={pickSource}
+                        onCancel={unset ? null : () => setChoosing(false)}
+                        disabled={disabled}
+                    />
+                )}
             </FormField>
         );
     }

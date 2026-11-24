@@ -116,7 +116,7 @@ export default function ProposalCard({ proposal, running, applying = false, onAp
             <p className="text-[var(--text-tertiary)] leading-4">{t('handover.proposal.apply_hint', 'Saying yes in the chat does not make this change. Press Make the change to apply it, or Discard to drop it. The assistant hears which one you chose.')}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-            <button type="button" disabled={busy} onClick={() => onApply(excluded)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50"><Check size={12} />{applying && newTables ? t('automations.assistant.applying_tables', 'Creating table…') : t('handover.proposal.apply', 'Make the change')}</button>
+            <button type="button" disabled={busy} onClick={() => onApply(excluded)} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 bg-[var(--text-primary)] text-[var(--text-on-ink)] disabled:opacity-50"><Check size={12} />{applying && newTables ? t('automations.assistant.applying_tables', 'Creating table…') : t('handover.proposal.apply', 'Make the change')}</button>
             <button type="button" disabled={busy} onClick={onDiscard} className="rounded-lg px-2 py-1.5 hover:bg-[var(--bg-secondary)]">{t('automations.assistant.discard', 'Discard')}</button>
             <button type="button" onClick={onPreview} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 hover:bg-[var(--bg-secondary)]"><Eye size={12} />{t('automations.assistant.preview', 'Preview')}</button>
         </div>

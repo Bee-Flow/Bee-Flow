@@ -35,7 +35,7 @@ export default function SourceCard({
     selectable = false, selected = false, onToggleSelect,
     onDragStart, onDragOver, onDrop, dragging = false, readOnly = false,
 }: SourceCardProps) {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const meta = metaFor(source.type);
     const { Icon } = meta;
     const isProcessing = source.status === 'processing';
@@ -137,7 +137,9 @@ export default function SourceCard({
                     {isReady && (source.wordCount ?? 0) > 0 && (
                         <span className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
                             <Check className="w-3 h-3 text-[var(--success)]" aria-hidden="true" />
-                            {t('notebooks.n_words', { count: (source.wordCount ?? 0).toLocaleString() })}
+                            {source.wordCount === 1
+                                ? t('notebooks.n_words_one', '{count} word', { count: (1).toLocaleString(resolvedLocale) })
+                                : t('notebooks.n_words', { count: (source.wordCount ?? 0).toLocaleString(resolvedLocale) })}
                         </span>
                     )}
                     {isDuplicate && (
@@ -258,24 +260,25 @@ export default function SourceCard({
 }
 
 function SourceCardSection({ selectable, selected, t, source, onToggleSelect, readOnly }: { selectable: boolean; selected: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; source: SourceRow; onToggleSelect: ((id: string) => void) | undefined; readOnly: boolean; }) {
+    // The drag handle shows on hover only, so it floats over the card's left
+    // padding instead of taking a column of empty space before the type tile.
+    if (!selectable) {
+        return readOnly ? null : (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title={t('notebooks.drag_to_reorder', 'Drag to reorder')}>
+                <GripVertical className="w-3 h-3 text-[var(--text-tertiary)]" aria-hidden="true" />
+            </span>
+        );
+    }
     return <div className="shrink-0 flex flex-col items-center pt-0.5">
-        {selectable ? (
-            <button
-                type="button"
-                role="checkbox"
-                aria-checked={selected}
-                aria-label={t('notebooks.select_source', 'Select {name}', { name: source.name })}
-                onClick={(e) => { e.stopPropagation(); onToggleSelect?.(source.id); } }
-                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
-            >
-                {selected && <Check className="w-3 h-3 text-[var(--accent-primary-fg)]" aria-hidden="true" />}
-            </button>
-        ) : (
-            !readOnly && (
-                <span className="cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title={t('notebooks.drag_to_reorder', 'Drag to reorder')}>
-                    <GripVertical className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
-                </span>
-            )
-        )}
+        <button
+            type="button"
+            role="checkbox"
+            aria-checked={selected}
+            aria-label={t('notebooks.select_source', 'Select {name}', { name: source.name })}
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(source.id); } }
+            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
+        >
+            {selected && <Check className="w-3 h-3 text-[var(--accent-primary-fg)]" aria-hidden="true" />}
+        </button>
     </div>;
 }

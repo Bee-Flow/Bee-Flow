@@ -1,6 +1,7 @@
 // The right-hand panels of a document editor: the outline, the version
 // history (shared VersionHistoryPanel) and the comments (shared
-// CommentsPanel). One at a time, beside the document, never over it.
+// CommentsPanel). One at a time, beside the document, or over it where the
+// editor is too narrow to share (`placement`).
 
 import type { CommentAnchor } from '@/api/queries/comments';
 import type { ProjectRole } from '@/api/queries/projects';
@@ -12,6 +13,7 @@ import useTranslation from '@/hooks/useTranslation';
 import type { OutlineItem } from '../canvasBridge';
 import type { People, StudioDocument } from '../documentQueries';
 import OutlinePanel from './OutlinePanel';
+import { panelFrame, type PanelPlacement } from './ui';
 import type { SidePanel } from './DesignedToolbar';
 
 export interface DocumentSidePanelsProps {
@@ -37,6 +39,8 @@ export interface DocumentSidePanelsProps {
     };
     /** Pages only: the AI's proposed changes, beside the page. */
     suggestions?: Pick<SuggestionsPanelProps, 'focusedId' | 'onFocus' | 'highlight' | 'scrollToAnchor' | 'onAccepted'>;
+    /** Beside the document (default), or over it where there is no room (see ui.ts panelFrame). */
+    placement?: PanelPlacement;
 }
 
 /** The reader's role for the comments: the project's word, or what the document says they may do. */
@@ -46,13 +50,16 @@ function commentRole(doc: StudioDocument, canEdit: boolean): ProjectRole {
 
 export default function DocumentSidePanels(props: DocumentSidePanelsProps) {
     const { t } = useTranslation();
-    const { side, doc, onClose } = props;
+    const { side, doc, onClose, placement = 'beside' } = props;
     if (side === 'outline') {
-        return <OutlinePanel {...props.outline} onClose={onClose} />;
+        if (placement === 'beside') return <OutlinePanel {...props.outline} onClose={onClose} />;
+        return <div className={panelFrame(placement)}><OutlinePanel {...props.outline} onClose={onClose} fill /></div>;
     }
     if (side === 'history') {
         return (
-            <div className="w-[26rem] max-w-full shrink-0 min-h-0 border-l border-[var(--border-subtle)]" data-testid="document-history">
+            // The history is a drawer of its own (fixed, it widens to compare), so
+            // its wrapper takes no room: a column beside the sheet would stay empty.
+            <div className="contents" data-testid="document-history">
                 <VersionHistoryPanel
                     baseUrl={`/api/studio-documents/${encodeURIComponent(doc.id)}`}
                     canEdit={props.canEdit}
@@ -70,14 +77,14 @@ export default function DocumentSidePanels(props: DocumentSidePanelsProps) {
     }
     if (side === 'suggestions' && props.suggestions) {
         return (
-            <div className="w-80 max-w-full shrink-0 min-h-0 border-l border-[var(--border-subtle)]" data-testid="document-suggestions">
+            <div className={panelFrame(placement)} data-testid="document-suggestions">
                 <SuggestionsPanel documentId={doc.id} canEdit={props.canEdit} onClose={onClose} className="h-full" {...props.suggestions} />
             </div>
         );
     }
     if (side === 'comments' && doc.projectId) {
         return (
-            <div className="w-80 max-w-full shrink-0 min-h-0 border-l border-[var(--border-subtle)]" data-testid="document-comments">
+            <div className={panelFrame(placement)} data-testid="document-comments">
                 <CommentsPanel
                     projectId={doc.projectId}
                     targetType="document"

@@ -78,4 +78,10 @@ describe('sublineFor picks the form the count needs', () => {
         expect(s.key).toBe('knowledge.subline.text');
         expect(t(s.key, '', s.params)).toBe('pasted text · by Tessa');
     });
+
+    it('leaves out "by" when the creator has no name', () => {
+        const sub = sublineFor({ kind: 'text', createdBy: { name: undefined } });
+        expect(sub.key).toBe('knowledge.subline.text_anonymous');
+        expect(sub.params).toEqual({});
+    });
 });

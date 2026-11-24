@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-66 routes, 41 with a request schema. Back to the [endpoint reference](../reference.md).
+70 routes, 43 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -93,6 +93,23 @@ No request schema.
 | `kind` | one of `"document"`, `"template"`, `"section"` |  |  |
 
 ### `GET /api/studio-documents/:id/export`
+
+**Access:** Signed-in user
+
+No request schema.
+
+### `POST /api/studio-documents/:id/field-notes`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `key` | string |  | max length 200 |
+| `text` | string | yes | min length 1; max length 500 |
+
+### `DELETE /api/studio-documents/:id/field-notes/:noteId`
 
 **Access:** Signed-in user
 
@@ -378,6 +395,19 @@ No request schema.
 |-------|------|:--------:|-------|
 | `values` | object | yes |  |
 | `finish` | boolean |  |  |
+| `dismiss` | array of string |  | max items 200 |
+
+### `GET /api/studio-documents/:id/values/preview`
+
+**Access:** Signed-in user
+
+No request schema.
+
+### `POST /api/studio-documents/:id/values/review`
+
+**Access:** Signed-in user
+
+**Body:** object (no other keys)
 
 ### `GET /api/studio-documents/:id/versions`
 

@@ -95,7 +95,7 @@ export default function MailTriggerModal({ t, agent, onClose, onSaved }: MailTri
                         type="button"
                         onClick={submit}
                         disabled={busy || !isMailTriggerReady(trigger)}
-                        className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+                        className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--text-on-ink)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
                     >
                         {busy ? '…' : t('agent_schedules.mail_trigger_save', 'Start watching')}
                     </button>

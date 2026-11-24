@@ -193,6 +193,20 @@ const DocumentCanvas = forwardRef<CanvasHandle, DocumentCanvasProps>(function Do
     useEffect(() => { if (frame.readyRef.current) frame.send({ __beeflowDocEdit: true, editing }); }, [editing, frame]);
     const peersKey = JSON.stringify(peers || []);
     useEffect(() => { if (frame.readyRef.current) frame.send({ __beeflowDocPeers: true, peers: JSON.parse(peersKey) }); }, [peersKey, frame]);
+    // The desk follows the app's theme: a theme switch (data-theme, class or the knob variables on <html>)
+    // sends the new colour, without fitting again.
+    useEffect(() => {
+        if (typeof MutationObserver === 'undefined') return undefined;
+        let last = deskColour();
+        const observer = new MutationObserver(() => {
+            const desk = deskColour();
+            if (desk === last) return;
+            last = desk;
+            if (frame.readyRef.current) frame.send({ __beeflowDocTheme: true, desk });
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+        return () => observer.disconnect();
+    }, [frame]);
     const reportError = useEffectEvent(() => props.onError?.(t('documents.canvas.load_failed', 'Could not load the document preview.')));
     useEffect(() => { if (preview.isError) reportError(); }, [preview.isError]);
 

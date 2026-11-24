@@ -1,0 +1,14 @@
+{
+  "translations": {
+    "account_plan.free": "Gratis",
+    "account_plan.free_no_billing": "Geen abonnement, er wordt niets gefactureerd",
+    "account_plan.monthly_billing": "Maandelijkse facturering",
+    "account_plan.days_left_one": "Nog {count} dag in deze factuurperiode",
+    "account_plan.days_left": "Nog {count} dagen in deze factuurperiode",
+    "account_plan.no_limit": "Geen limiet",
+    "account_plan.knowledge_sources": "Kennisbronnen"
+  },
+  "sameAsEnglish": [
+    "account_plan.agents"
+  ]
+}

@@ -206,7 +206,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
                 <div className="p-8 m-6 rounded-xl border text-center bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <Building2 className="w-8 h-8 mx-auto mb-3 text-[var(--text-muted)]" aria-hidden="true" />
                     <p className="text-sm text-[var(--text-muted)]">
-                        {t('admin.shield_no_orgs', 'No organizations found. Create one in User Management first.')}
+                        {t('admin.shield_no_orgs', 'No organisations found. Create one under Whole server > Organisations first.')}
                     </p>
                 </div>
             ) : loadError ? (

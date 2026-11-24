@@ -76,7 +76,8 @@ describe('BuilderHeader: status wording', () => {
     it('a phone-width bar folds the status to its dot and the primary to its icon, keeping both names', () => {
         // Under 640px the words ran under the view menu (390px screenshot).
         setup(NEVER);
-        expect(screen.getByText('Draft · never live').className).toContain('@max-[640px]/bar:sr-only');
+        // The status words already fold below 900px (a 1024px laptop beside the Studio menu).
+        expect(screen.getByText('Draft · never live').className).toContain('@max-[900px]/bar:sr-only');
         const activate = screen.getByRole('button', { name: /Activate/ });
         expect(activate.querySelector('span')?.className).toContain('@max-[640px]/bar:sr-only');
         expect(screen.getByTestId('trigger-tile').className).toContain('@max-[640px]/bar:hidden');

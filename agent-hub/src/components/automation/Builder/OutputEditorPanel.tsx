@@ -168,7 +168,7 @@ function OutputSheetFooter({ t, saving, canRemove, onEmptyAnswers, onRemove, onC
                 type="button"
                 onClick={onApply}
                 disabled={saving}
-                className="text-[11px] px-2.5 py-0.5 rounded bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-85 disabled:opacity-40 transition"
+                className="text-[11px] px-2.5 py-0.5 rounded bg-[var(--text-primary)] text-[var(--text-on-ink)] hover:opacity-85 disabled:opacity-40 transition"
             >
                 {saving ? t('common.saving', 'Saving…') : t('automations.ndv.save_output', 'Save output')}
             </button>

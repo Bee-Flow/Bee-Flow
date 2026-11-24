@@ -1,6 +1,7 @@
 // The toolbar of a page: back, name, live presence (or the save status of a
 // page saved by revision), and the side panels, print and download.
 
+import { useEffect, useRef } from 'react';
 import { ArrowLeft, Download, History, ListTree, Loader2, Maximize2, MessageSquare, Printer, Search, Sparkles, X } from 'lucide-react';
 import CollabPresence from '@/editor/react/CollabPresence';
 import type { CollabHandle } from '@/editor/collab/useCollab';
@@ -24,7 +25,8 @@ export interface PageToolbarProps {
     openSuggestions?: number;
     downloading: boolean;
     onLeave: () => void;
-    onRename: (name: string) => void;
+    /** Settles once the rename is saved or refused. */
+    onRename: (name: string) => void | Promise<void>;
     onFind: () => void;
     onPrint: () => void;
     onDownload: () => void;
@@ -36,12 +38,18 @@ export default function PageToolbar(props: PageToolbarProps) {
     const { doc, isPanel, side } = props;
     const toggle = (panel: SidePanel) => props.onSide(side === panel ? null : panel);
     const cls = (on: boolean) => (on ? TOOL_BUTTON_ACTIVE : TOOL_BUTTON);
+    // The saved name, for the field to show again after an empty or refused rename (a saved one remounts it).
+    const savedName = useRef(doc.name);
+    useEffect(() => { savedName.current = doc.name; }, [doc.name]);
+    const rename = (input: HTMLInputElement) => {
+        void Promise.resolve(props.onRename(input.value)).then(() => { if (input.value.trim() !== savedName.current) input.value = savedName.current; });
+    };
     const backLabel = isPanel ? t('documents.close', 'Close') : t('documents.back', 'Back to Documents');
     return (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]" data-testid="page-toolbar">
             <button type="button" onClick={props.onLeave} className={ICON_BUTTON} aria-label={backLabel}>{isPanel ? <X size={17} /> : <ArrowLeft size={17} />}</button>
             <input key={doc.name} disabled={props.readOnly} defaultValue={doc.name} aria-label={t('documents.name', 'Document name')}
-                onBlur={(e) => props.onRename(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                onBlur={(e) => rename(e.currentTarget)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                 className="flex-1 min-w-[8rem] bg-transparent text-sm font-semibold px-1.5 py-1 rounded outline-none focus:ring-1 focus:ring-[var(--accent-primary)] text-[var(--text-primary)]" />
             {props.live
                 ? <CollabPresence handle={props.live} />

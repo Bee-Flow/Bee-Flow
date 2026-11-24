@@ -33,7 +33,7 @@ const MAX_CONCURRENT = 5;
  */
 async function refuseTask(task, reason, { manual, due, runId, quiet = false }) {
     // A run that holds its own row (a mail, an event, a follow-up) is not the item's moment: refusing it neither moves
-    // the clock nor switches a one-off item off. Told before this month: its row closes without a second notice.
+    // the clock nor switches a one-off item off. Already told this month: its row closes without a second notice.
     if (runId && quiet) return coworkStore.markError(task.id, reason, { runId });
     const attempt = runId ? { runId } : await claimAttempt(coworkStore, task, { manual, due });
     // failRun is untyped JavaScript; this is the shape its `close` option takes.

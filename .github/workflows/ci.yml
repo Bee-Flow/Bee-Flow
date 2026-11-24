@@ -176,6 +176,8 @@ jobs:
               - 'server/automation/builderTools/stepTypeTable.js'
               - 'server/core/cms/themeSpec.js'
               - 'server/core/documents/deckThemeOptions.js'
+              # required by deckThemeOptions.js (the colour maths it re-exports)
+              - 'server/core/documents/deckColour.js'
               # read as text by src/api/serverContract.test.ts
               - 'server/index.js'
               - 'server/auth/login/setupRoutes.js'
@@ -270,6 +272,8 @@ jobs:
               # required by automation/validate/constants.js (flowOrder and nodeDefs lockstep tests), and by that in turn
               - 'server/core/automationModel/constants.js'
               - 'server/core/documents/deckChart.js'
+              # required by deckChart.js (number parsing and cell splitting)
+              - 'server/core/documents/deckNumbers.js'
               - 'server/routes/compliance/*'
               - 'server/routes/datatables/*'
               - 'server/routes/integrations/*'
@@ -358,7 +362,7 @@ jobs:
               - 'server/automation/validate/{constants,helpers}.js'
               - 'server/core/automationModel/**'
               - 'server/core/cms/themeSpec.js'
-              - 'server/core/documents/{deckThemeOptions,documentContract,documentDiscovery,documentTemplate}.js'
+              - 'server/core/documents/{deckColour,deckThemeOptions,documentContract,documentDiscovery,documentTemplate}.js'
               - 'server/core/llm/{leakedToolCalls,partialJsonScan,screenConstraints,toolCallHygiene}.js'
               - 'server/db.js'
               - 'server/integrations/nextcloudTablesTools.js'

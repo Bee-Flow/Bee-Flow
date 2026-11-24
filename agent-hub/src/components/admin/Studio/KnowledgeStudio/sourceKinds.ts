@@ -210,7 +210,11 @@ export function sublineFor(source: SublineSource = {}): { key: string; params: R
         case 'text':
             // No count: a text source is one pasted snippet, and who pasted
             // it is the thing that tells rows apart.
-            return { key: 'knowledge.subline.text', params: { by: source.createdBy?.name || '' } };
+            // A creator without a name (a deleted or system account) gets no
+            // "by": a dangling "by" with nothing after it reads as a bug.
+            return source.createdBy?.name
+                ? { key: 'knowledge.subline.text', params: { by: source.createdBy.name } }
+                : { key: 'knowledge.subline.text_anonymous', params: {} };
         case 'automation':
             return { key: pluralKey('knowledge.subline.automation', docs), params: { count: docs } };
         default:

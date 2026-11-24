@@ -115,8 +115,10 @@ export function SettingsSidebar({
                 {resourceNavRows.map(renderTopRow)}
 
                 {/* Consumer Account section — for org-less cloud users.
-                    Hidden on mobile (user settings only). */}
-                {!isSimpleMode && !isMobile && isConsumerAccount && !canSeeOrg && (
+                    Hidden on mobile (user settings only). An admin who can see
+                    the organisation rows still gets it while one of its pages
+                    is open (reached by a link), so the open page has its row. */}
+                {!isSimpleMode && !isMobile && isConsumerAccount && (!canSeeOrg || CONSUMER_NAV_ITEMS.some(item => item.id === activeTab)) && (
                     <>
                         <NavDivider />
                         <p className={`${SECTION_LBL} px-3 pb-1 pt-1`}>

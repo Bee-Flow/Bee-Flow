@@ -55,4 +55,13 @@ describe('the history store', () => {
         expect(getLocation().pathname).toBe('/app/b');
         unsubscribe();
     });
+
+    it('returns the same snapshot while nobody listens and the address is unchanged', () => {
+        window.history.replaceState(null, '', '/app/same');
+        const first = getLocation();
+        expect(getLocation()).toBe(first);
+        window.history.replaceState(null, '', '/app/other');
+        expect(getLocation()).not.toBe(first);
+        expect(getLocation().pathname).toBe('/app/other');
+    });
 });

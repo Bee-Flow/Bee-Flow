@@ -3,7 +3,7 @@ import { renderWithClient as render } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
-import KnowledgeDetail from './KnowledgeDetail';
+import KnowledgeDetail, { hasUnsettledSources } from './KnowledgeDetail';
 import { asMock, omitted } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
@@ -241,5 +241,13 @@ describe('KnowledgeDetail search log tab', () => {
         await open({ canManage: true, tab: 'search-log' });
         expect(screen.queryByRole('radio', { name: /Search log/ })).toBeNull();
         expect(screen.queryByTestId('kb-tab-query-log')).toBeNull();
+    });
+});
+
+describe('hasUnsettledSources', () => {
+    it('waits while a refresh runs or files are still queued, not once everything is read', () => {
+        expect(hasUnsettledSources([{ id: 'a', kind: 'upload', name: 'x', status: 'idle', skippedCount: 1 }])).toBe(true);
+        expect(hasUnsettledSources([{ id: 'a', kind: 'webpage', name: 'x', status: 'refreshing' }])).toBe(true);
+        expect(hasUnsettledSources([{ id: 'a', kind: 'upload', name: 'x', status: 'idle', skippedCount: 0, processedCount: 2 }])).toBe(false);
     });
 });

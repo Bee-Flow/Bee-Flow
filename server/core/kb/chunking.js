@@ -257,9 +257,12 @@ function chunkText(text) {
         }
     }
 
-    // Filter out tiny chunks (< 20 tokens)
+    // Filter out tiny chunks (< 20 tokens): stray fragments of a longer text.
+    // A document that is short as a whole (a pasted sentence) keeps its
+    // chunks, or it would be refused as "no chunks" while it holds an answer.
     const MIN_TOKENS = 20;
-    const filtered = chunks.filter(c => c.token_count >= MIN_TOKENS);
+    const kept = chunks.filter(c => c.token_count >= MIN_TOKENS);
+    const filtered = kept.length > 0 ? kept : chunks;
 
     // Tag chunk types (ToC, content)
     for (const chunk of filtered) {

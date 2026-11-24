@@ -162,9 +162,10 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const emptyProject = !!query.data && all.length === 0 && view === 'list';
     const noMatch = !!query.data && all.length > 0 && shown.length === 0 && view !== 'planning';
     const ready = !!query.data && !emptyProject && !noMatch;
-    // List and hierarchy read best in a centred column; board and planning use the full width.
-    // The toolbar shares the frame so its left edge always lines up with the content.
-    const frame = view === 'board' || view === 'planning' ? 'w-full' : 'max-w-5xl mx-auto';
+    // List and hierarchy read best in a capped column; board and planning use the full width.
+    // Every view starts at the same left edge, so the toolbar does not jump when the view
+    // changes, and the toolbar shares the frame so it always lines up with the content.
+    const frame = view === 'board' || view === 'planning' ? 'w-full' : 'w-full max-w-5xl';
 
     return (
         <div className="h-full flex flex-col min-h-0" data-testid="project-tasks-tab">

@@ -27,6 +27,94 @@ function fail(message) {
     throw Object.assign(new Error(message), { status: 422, errorClass: 'document_section_invalid' });
 }
 
+// ── Scoping a section's stylesheet ───────────────────────────────────
+// A library section carries the stylesheet of the document it came from. Appended as it is, `h2 { … }` or
+// `:root { --doc-accent: … }` would restyle the whole document it is inserted into. So every rule is put
+// under the inserted section's own element: `h2` becomes `[data-doc-section="x"] h2`, and `:root`, `html`
+// and `body` become that element itself. Page geometry (@page) is the document's, and is left out.
+
+/**
+ * Split at the top level (outside strings, brackets and parentheses).
+ * @param {string} text @param {string} sep
+ */
+function splitTop(text, sep) {
+    const parts = []; let depth = 0; let quote = ''; let from = 0;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue; }
+        if (c === '"' || c === "'") quote = c;
+        else if (c === '(' || c === '[') depth++;
+        else if (c === ')' || c === ']') depth--;
+        else if (c === sep && depth === 0) { parts.push(text.slice(from, i)); from = i + 1; }
+    }
+    parts.push(text.slice(from));
+    return parts;
+}
+
+/** @param {string} selector @param {string} scope */
+function scopeSelector(selector, scope) {
+    const sel = selector.trim();
+    if (!sel) return '';
+    const words = sel.split(/\s+/);
+    // The document's own roots stand for the section's element.
+    while (words.length && /^(?::root|html|body)$/i.test(words[0])) words.shift();
+    return words.length ? `${scope} ${words.join(' ')}` : scope;
+}
+
+/**
+ * The top-level rules of a stylesheet: [prelude, body] pairs (comments removed).
+ * @param {string} css
+ * @returns {Array<[string, string]>}
+ */
+function cssRules(css) {
+    const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    /** @type {Array<[string, string]>} */
+    const rules = [];
+    let i = 0;
+    while (i < text.length) {
+        const { open, end, closed } = ruleEnd(text, i);
+        if (open >= 0 && closed) rules.push([text.slice(i, open).trim(), text.slice(open + 1, end)]);
+        i = end + 1;
+    }
+    return rules;
+}
+
+/**
+ * Where the rule starting at `from` opens its block and ends.
+ * @param {string} text @param {number} from
+ */
+function ruleEnd(text, from) {
+    let depth = 0; let quote = ''; let open = -1; let j = from;
+    for (; j < text.length; j++) {
+        const c = text[j];
+        if (quote) { if (c === '\\') j++; else if (c === quote) quote = ''; continue; }
+        if (c === '"' || c === "'") quote = c;
+        else if (c === ';' && depth === 0) break; // a statement without a block (@charset, @import)
+        else if (c === '{' && depth++ === 0) open = j;
+        else if (c === '}' && --depth === 0) break;
+    }
+    return { open, end: j, closed: depth === 0 };
+}
+
+/**
+ * A stylesheet whose every rule applies inside `scope` only.
+ * @param {string} css @param {string} scope
+ * @returns {string}
+ */
+function scopeCss(css, scope) {
+    return cssRules(css).map(([prelude, body]) => {
+        if (!prelude.startsWith('@')) {
+            const selectors = splitTop(prelude, ',').map(sel => scopeSelector(sel, scope)).filter(Boolean);
+            return selectors.length ? `${selectors.join(', ')} {${body}}` : '';
+        }
+        const name = prelude.slice(1).split(/[\s({]/)[0].toLowerCase();
+        // Conditional groups hold rules: scope those. Keyframes and fonts are names, not restyling.
+        if (['media', 'supports', 'container', 'layer'].includes(name)) { const inner = scopeCss(body, scope); return inner ? `${prelude} {\n${inner}\n}` : ''; }
+        if (name === 'keyframes' || name === 'font-face' || name.endsWith('-keyframes')) return `${prelude} {${body}}`;
+        return '';
+    }).filter(Boolean).join('\n');
+}
+
 // Keep the root condition as well as descendant rules. A library item must have
 // the same applicability as the content from which it was saved.
 /**
@@ -107,6 +195,7 @@ function insertSection(doc, source, sectionId, { replace = false } = {}) {
     let css = source.css || '';
     css = css.replace(/(\[data-doc-section\s*=\s*)(["']?)([\w-]+)\2(\s*\])/g,
         (match, before, quote, id, after) => ids.has(id) ? `${before}${quote}${ids.get(id)}${quote}${after}` : match);
+    css = scopeCss(css, `[data-doc-section="${sectionId}"]`);
     const start = `/* document-section:${sectionId}:start */`;
     const end = `/* document-section:${sectionId}:end */`;
     let originalCss = doc.css || '';
@@ -116,6 +205,6 @@ function insertSection(doc, source, sectionId, { replace = false } = {}) {
     return { bodyHtml: body.html(), css: `${originalCss.trimEnd()}\n${start}\n${css}\n${end}`,
         settings: { ...doc.settings, sectionOverrides, contract: normalizeContract(contract) } };
 }
-module.exports = { extractSection, insertSection, ruleKeys };
+module.exports = { extractSection, insertSection, ruleKeys, _test: { scopeCss } };
 
 /** @typedef {import('domhandler').AnyNode} AnyNode */

@@ -97,7 +97,7 @@ export function OptionalColour({ label, value, fallback, disabled, onChange, tes
             <span className="flex items-center gap-2 mt-1">
                 <input type="checkbox" checked={own} disabled={disabled} onChange={(e) => onChange(e.target.checked ? (fallback || '#123a5e') : '')} aria-label={`${label} own colour`} data-testid={testId ? `${testId}-own` : undefined} />
                 <input type="color" value={own ? value : (fallback || '#ffffff')} disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-9 h-9 rounded cursor-pointer" aria-label={label} data-testid={testId} />
-                <input type="text" value={own ? value : ''} placeholder={t('documents.deck.house_style_placeholder', 'house style')} disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-24 px-2 py-1 rounded text-sm font-mono" style={fieldStyle} />
+                <input type="text" value={own ? value : ''} placeholder={t('documents.deck.house_style_placeholder', 'house style')} disabled={disabled || !own} onChange={(e) => onChange(e.target.value)} className="w-28 min-w-0 px-2 py-1 rounded text-sm font-mono placeholder:font-sans" style={fieldStyle} />
             </span>
         </label>
     );
@@ -163,7 +163,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
             setDeck('template', template);
             setSuggestFor(template && template.content ? template.content.image : null);
         } catch (e) {
-            setTemplateError((e as Error).message || 'Failed to read the template deck');
+            setTemplateError((e as Error).message || t('documents.style.deck_template_read_failed', 'Failed to read the template deck'));
         } finally {
             setTemplateBusy(false);
         }
@@ -216,14 +216,16 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
     const logoMode = !isDoc ? null : (deck.logo === 'none' ? 'none' : (deck.logo ? 'own' : 'house'));
     const templateMode = !isDoc ? null : (deck.template === 'none' ? 'none' : (deck.template && typeof deck.template === 'object' ? 'own' : 'house'));
     return (
-        <div className="space-y-4">
+        // A container: the fields sit in a 20rem side panel and in the wide house-style
+        // dialog, so their columns follow the room they get, not the window (md: did).
+        <div className="@container space-y-4">
             <DeckLookFieldsSection t={t} isDoc={isDoc} opt={opt} deck={deck} disabled={disabled} setDeck={setDeck} testPrefix={testPrefix} />
             <div className="flex flex-wrap gap-4">
                 <OptionalColour label={t('documents.style.deck_accent', 'Accent')} value={deck.accent} fallback={(style.deck && style.deck.accent) || style.accent} disabled={disabled} onChange={(v) => setDeck('accent', v)} testId={`${testPrefix}-accent`} />
                 <OptionalColour label={t('documents.style.deck_background', 'Slide background')} value={deck.background} fallback={(style.deck && style.deck.background) || '#ffffff'} disabled={disabled} onChange={(v) => setDeck('background', v)} />
                 <OptionalColour label={t('documents.style.deck_text', 'Text')} value={deck.text} fallback={(style.deck && style.deck.text) || '#1a1d21'} disabled={disabled} onChange={(v) => setDeck('text', v)} />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 @xs:grid-cols-2 @xl:grid-cols-3 gap-3">
                 {select('titleFont', opt.fonts, 'documents.style.deck_title_font', 'Title typeface', { allowInherit: true })}
                 {select('bodyFont', opt.fonts, 'documents.style.deck_body_font', 'Body typeface', { allowInherit: true })}
                 {select('coverStyle', opt.coverStyles, 'documents.style.deck_cover', 'Cover')}
@@ -260,7 +262,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                         </label>
                         {logoMode === 'own' && <img src={deck.logo} alt="" className="h-8 max-w-24 object-contain rounded bg-[var(--bg-tertiary)]" data-testid={`${testPrefix}-logo-preview`} />}
                     </div>
-                    {logoError && <p className="text-xs mt-1 [color:var(--danger,#b91c1c)]!">{logoError}</p>}
+                    {logoError && <p className="text-xs mt-1 text-[var(--error-ink)]!">{logoError}</p>}
                 </div>
             )}
             <div>
@@ -296,7 +298,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                         <span className="px-3 py-1.5 rounded border text-xs border-[var(--border-default)]">{templateBusy ? t('documents.style.deck_template_reading', 'Reading…') : t('documents.style.deck_template_upload', 'Upload a .pptx')}</span>
                     </label>
                 ))}
-                {templateError && <p className="text-xs mt-1 [color:var(--danger,#b91c1c)]!" data-testid={`${testPrefix}-template-error`}>{templateError}</p>}
+                {templateError && <p className="text-xs mt-1 text-[var(--error-ink)]!" data-testid={`${testPrefix}-template-error`}>{templateError}</p>}
                 {suggestions.length > 0 && !disabled && (
                     <div className="mt-3 p-3 rounded-md text-sm bg-[var(--bg-tertiary)]" data-testid="house-style-template-suggestions">
                         <div className="font-medium mb-1 text-[var(--text-primary)]">{t('documents.style.deck_template_suggest', 'Match the house style to this template?')}</div>
@@ -331,7 +333,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
 function DeckLookFieldsSection({ t, isDoc, opt, deck, disabled, setDeck, testPrefix }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string; isDoc: boolean; opt: { presets: MegaItem[]; fonts: string[]; coverStyles: FeatureOption[]; tableStyles: FeatureOption[]; logoPlacements: FeatureOption[]; } | { presets: { id: string; label: string; description: string; }[]; fonts: string[]; coverStyles: { id: string; label: string; }[]; tableStyles: { id: string; label: string; }[]; logoPlacements: { id: string; label: string; }[]; }; deck: { preset?: string; accent?: string; background?: string; text?: string; titleFont?: string; bodyFont?: string; coverStyle?: string; tableStyle?: string; logoPlacement?: string; slideNumbers?: boolean | ""; brandOnSlides?: boolean | ""; footerText?: string; logo?: string; template?: DeckTemplate | string | null; }; disabled: boolean; setDeck: (key: string, value: unknown) => void; testPrefix: string; }) {
     return <div>
         <div className="text-xs mb-1.5 text-[var(--text-muted)]">{t('documents.style.deck_preset', 'Style')}</div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="radiogroup" aria-label={t('documents.style.deck_preset', 'Style')}>
+        <div className="grid grid-cols-2 @xl:grid-cols-4 gap-2" role="radiogroup" aria-label={t('documents.style.deck_preset', 'Style')}>
             {[...(isDoc ? [{ id: '', label: t('documents.style.deck_as_house', 'House style'), description: t('documents.style.deck_inherit_preset', 'The style the organisation chose.') }] : []), ...opt.presets].map((p) => {
                 const active = (deck.preset || '') === p.id;
                 return (
@@ -342,12 +344,12 @@ function DeckLookFieldsSection({ t, isDoc, opt, deck, disabled, setDeck, testPre
                         aria-checked={active}
                         disabled={disabled}
                         onClick={() => setDeck('preset', p.id)}
-                        className="text-left rounded-lg p-2.5 text-xs disabled:opacity-60"
+                        className="flex flex-col items-start justify-start text-left rounded-lg p-2.5 text-xs disabled:opacity-60"
                         style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-subtle)'}`, color: 'var(--text-primary)' }}
                         data-testid={`${testPrefix}-preset-${p.id || 'inherit'}`}
                     >
-                        <span className="block font-semibold">{p.label}</span>
-                        <span className="block mt-0.5 text-[var(--text-muted)]">{p.description}</span>
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{p.label}</span>
+                        <span className="block mt-0.5 text-[var(--text-muted)] [overflow-wrap:anywhere]">{p.description}</span>
                     </button>
                 );
             })}

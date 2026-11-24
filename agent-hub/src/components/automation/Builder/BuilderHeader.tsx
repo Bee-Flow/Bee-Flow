@@ -143,7 +143,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     return (
         // The container sits on the wrapper so the bar's own grid can answer it too.
         <div className="@container/bar">
-            <div className="grid grid-cols-[1fr_auto_1fr] @max-[640px]/bar:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 @max-[640px]/bar:gap-x-2 h-[52px] px-3.5 @max-[640px]/bar:px-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
+            <div className="grid grid-cols-[minmax(0,auto)_1fr_auto] @max-[640px]/bar:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 @max-[1280px]/bar:gap-x-3 @max-[640px]/bar:gap-x-2 h-[52px] px-3.5 @max-[640px]/bar:px-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
                 <div className="flex items-center gap-2.5 @max-[640px]/bar:gap-1 min-w-0 overflow-hidden">
                     {/* A host with its own back button (the playbook run page)
                         passes no onBack, so the room never shows two arrows. */}
@@ -192,13 +192,17 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {infoSlot && <div className="flex-shrink-0 @max-[1320px]/bar:hidden">{infoSlot}</div>}
                 </div>
 
-                <div className="flex justify-center min-w-0">
+                <div className="flex justify-center">
                     {onTabChange && (isStepMode
                         ? <ViewMenu tab={tab} onTabChange={onTabChange} />
                         : <ViewSwitcher tab={tab} onTabChange={onTabChange} counts={{ runs: counts?.runs7d ?? null, versions: counts?.versions ?? null }} />)}
                 </div>
 
-                <div className="flex items-center gap-2 @max-[640px]/bar:gap-1 justify-end min-w-0">
+                {/* No min-w-0: the right cluster keeps its natural width and the name
+                    gives way instead (the cluster used to overflow leftwards over the
+                    view switcher at 1024px, while at 1440px the name was cut at half
+                    the bar with room to spare: the old 1fr_auto_1fr split). */}
+                <div className="flex items-center gap-2 @max-[640px]/bar:gap-1 justify-end">
                     {tab === 'build' && onUndo && (
                         <div className="flex items-center gap-0.5 @max-[640px]/bar:hidden">
                             <button type="button" onClick={() => onUndo()} disabled={!canUndo} className={ICON_BTN}

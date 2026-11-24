@@ -13,6 +13,7 @@ import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave, { readDraft, type Draft } from '../useDocumentAutosave';
 import { errorCode, messageOf, errorStatus } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
+import { closePrintTab, openPrintTab, showInPrintTab } from './printTab';
 
 export interface WorkspaceHandle { flush?: () => Promise<void> }
 
@@ -23,7 +24,6 @@ export interface DesignedDocumentOptions {
     onRenamed?: (doc: StudioDocument) => void;
 }
 
-const PRINT_URL_TTL_MS = 60_000;
 
 /** An error as a sentence in the reader's language. */
 function useErrorText() {
@@ -75,25 +75,26 @@ function useDocumentOutput({ id, docRef, before, setError, setNotice, errorText 
             if (degraded) setNotice(t('documents.pdf_degraded', 'The PDF was made without the rendering container, so its layout is plainer than the screen.'));
         } catch (e) { failed(e, format); } finally { setDownloading(false); }
     };
-    /** Print: the rendered PDF, with its page breaks, in a tab of its own. */
+    /** Print: the rendered PDF, with its page breaks, in a tab of its own (opened in the click: see printTab.ts). */
     const print = async () => {
+        const tab = openPrintTab();
         setDownloading(true); setError(null); setInputNeeded(null);
         try {
             await before();
+            // No tab (the browser blocked it): the PDF is downloaded instead, to print from there.
+            if (!tab) { await downloadPdf(id, docRef.current?.name, docRef.current?.versionId); return; }
             const { blob } = await fetchRendered(id, docRef.current?.versionId, 'pdf');
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), PRINT_URL_TTL_MS);
-        } catch (e) { failed(e, 'pdf'); } finally { setDownloading(false); }
+            showInPrintTab(tab, blob);
+        } catch (e) { closePrintTab(tab); failed(e, 'pdf'); } finally { setDownloading(false); }
     };
-    return { download, print, downloading, inputNeeded, clearInputNeeded: () => setInputNeeded(null) };
+    return { download, print, downloading, inputNeeded, clearInputNeeded: () => setInputNeeded(null), saveAll: before };
 }
 
 /**
  * The chat can rewrite this document while it is open: save what was typed
  * (merged with the assistant's edit), then show the result.
  */
-function useChatUpdates(id: string, reload: () => Promise<void>, onError: (e: unknown) => void) {
+function useChatUpdates(id: string, reload: (opts?: { flush?: boolean }) => Promise<void>, onError: (e: unknown) => void) {
     useEffect(() => {
         const onUpdate = (e: Event) => {
             if ((e as CustomEvent).detail?.documentId !== id) return;
@@ -141,6 +142,52 @@ function useRename({ id, docRef, autosave, apply, onRenamed, setError, errorText
     return { rename, nameKey };
 }
 
+interface FillSyncOptions {
+    id: string;
+    docRef: React.RefObject<StudioDocument | null>;
+    apply: (next: StudioDocument) => void;
+    syncedTo: (doc: StudioDocument) => void;
+}
+
+/** How long after the form's last save the editor catches up: once per pause in typing, not per keystroke. */
+const FILL_SYNC_MS = 400;
+
+/**
+ * The fill-in form (the "Fill in & preview" tab) saves the values through its
+ * own route, and in a project colleagues save theirs too. Each answer of that
+ * route names the document's revision: when it is another one than the editor
+ * holds, the editor takes the document as it is now, so its next save (of the
+ * settings, or of the sheet) is made on that revision and with those values.
+ *
+ * Only when the SHEET did not change with it: the form's routes never touch
+ * the body, so then the frame still shows that revision and nothing has to be
+ * redrawn (a redraw would throw the cursor out of the sheet). When somebody
+ * else changed the sheet as well, nothing is taken over here: the next save
+ * finds the newer revision and merges, as it always did.
+ */
+function useFillSync({ id, docRef, apply, syncedTo }: FillSyncOptions) {
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+    return useCallback((out: { versionId?: string | null }) => {
+        if (!out.versionId || out.versionId === docRef.current?.versionId) return;
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(async () => {
+            const held = docRef.current;
+            try {
+                const latest = await getDocument(id) as StudioDocument;
+                // Saved here meanwhile (the editor's own autosave): that state is newer than what was just read.
+                if (!held || docRef.current !== held) return;
+                if (latest.bodyHtml !== held.bodyHtml || latest.css !== held.css) return;
+                apply({ ...held, ...latest });
+                syncedTo(latest);
+            } catch (err) {
+                // The form's own save succeeded; the editor catches up on its next save or reload.
+                logger.debug('the editor did not take over what the form saved', err);
+            }
+        }, FILL_SYNC_MS);
+    }, [id, docRef, apply, syncedTo]);
+}
+
 export default function useDesignedDocument({ initial, canvasRef, workspaceRef, onRenamed }: DesignedDocumentOptions) {
     const { t } = useTranslation();
     const errorText = useErrorText();
@@ -181,10 +228,16 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         await autosave.flush();
     }, [canvasRef, autosave]);
 
-    /** Show the server's newest state in the frame, after saving what was typed. */
-    const reload = useCallback(async () => {
-        await workspaceRef.current?.flush?.();
-        await flushEditor();
+    /**
+     * Show the server's newest state in the frame, after saving what was typed. `flush: false` when the
+     * server already holds what should be shown (a restored draft): the frame still has the old body, and
+     * flushing it would save that over the draft.
+     */
+    const reload = useCallback(async ({ flush = true }: { flush?: boolean } = {}) => {
+        if (flush) {
+            await workspaceRef.current?.flush?.();
+            await flushEditor();
+        }
         const latest = await getDocument(initial.id) as StudioDocument;
         apply({ ...docRef.current, ...latest });
         autosave.syncedTo(latest);
@@ -224,6 +277,8 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         }
     }, [flushEditor, autosave, initial.id, apply, canvasRef, t]);
 
+    const fillSynced = useFillSync({ id: initial.id, docRef, apply, syncedTo: autosave.syncedTo });
+
     const { rename, nameKey } = useRename({ id: initial.id, docRef, autosave, apply, onRenamed, setError, errorText });
 
     const toggleHouseStyle = useCallback(async () => {
@@ -236,6 +291,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
         } catch (e) { setError(errorText(e)); }
     }, [workspaceRef, savePatch, errorText]);
 
+    // The panel's settings and the typed text, both saved: before anything leaves as a file.
     const output = useDocumentOutput({ id: initial.id, docRef, before: async () => { await workspaceRef.current?.flush?.(); await flushEditor(); }, setError, setNotice, errorText });
 
     const onChatError = useCallback((err: unknown) => { if (errorStatus(err) !== 409) setError(errorText(err)); }, [errorText]);
@@ -244,7 +300,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
     const autosaveError = autosave.error ? errorText(autosave.error) : null;
     return {
         doc, docRef, apply, isDeck, readOnly, reloadKey, panelEpoch, setPanelEpoch, setReloadKey,
-        autosave, flushEditor, reload, savePatch, rename, nameKey, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
+        autosave, flushEditor, saveAll: output.saveAll, reload, savePatch, fillSynced, rename, nameKey, toggleHouseStyle, download: output.download, print: output.print, downloading: output.downloading,
         inputNeeded: output.inputNeeded, clearInputNeeded: output.clearInputNeeded,
         error: error || autosaveError, notice,
         clearError: () => { setError(null); setNotice(null); autosave.clearError(); },
@@ -259,7 +315,7 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
             if (!d) return;
             try {
                 await autosave.restoreDraft(d);
-                await reload();
+                await reload({ flush: false });
             } catch (err) { logger.debug('a conflict opens "compare and choose"; any other failure is on the save chip', err); }
         },
         discardDraft: () => { autosave.dropDraft(); setDraft(null); },

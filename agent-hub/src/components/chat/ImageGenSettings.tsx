@@ -96,6 +96,7 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
     return (
         <div
             ref={panelRef}
+            data-solid-popover
             className="absolute bottom-full mb-2 left-0 w-72 rounded-xl border shadow-2xl overflow-hidden z-50 bg-[var(--bg-secondary)] border-[var(--border-subtle)]"
         >
             {/* Header */}

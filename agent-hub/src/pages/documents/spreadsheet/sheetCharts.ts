@@ -130,22 +130,32 @@ export function chartDataFrom(config: SheetChartConfig, computed: Computed): Cha
     return points;
 }
 
-function typeProblem(config: Partial<SheetChartConfig>, data: ParsedRange): string | null {
-    if (config.type === 'kpi' && rangeSize(data) !== 1) return 'A KPI takes one cell.';
-    if (config.type === 'scatter' && !config.categoriesRange) return 'A scatter chart needs the x values as categories range.';
-    if (config.compareRange && !parseA1Range(config.compareRange)) return 'Compare cell is not valid.';
-    if (config.colors?.some((c) => !HEX.test(c))) return 'Colours must be hex like #4e79a7.';
+/** Why a chart config is refused; SheetChartCreator turns it into text. */
+export type ChartProblem =
+    | 'type' | 'data_range' | 'kpi_one_cell' | 'scatter_categories' | 'compare_range'
+    | 'colors' | 'categories_range' | 'anchor' | 'size';
+
+/** A typed cell or range as the grid names it: trimmed, without `$`, upper-case ("$b$12" -> "B12"). */
+export function normalizeRef(ref: string): string {
+    return ref.trim().split('$').join('').toUpperCase();
+}
+
+function typeProblem(config: Partial<SheetChartConfig>, data: ParsedRange): ChartProblem | null {
+    if (config.type === 'kpi' && rangeSize(data) !== 1) return 'kpi_one_cell';
+    if (config.type === 'scatter' && !config.categoriesRange) return 'scatter_categories';
+    if (config.compareRange && !parseA1Range(config.compareRange)) return 'compare_range';
+    if (config.colors?.some((c) => !HEX.test(c))) return 'colors';
     return null;
 }
 
-export function validateChart(config: Partial<Omit<SheetChartConfig, 'type'>> & { type?: string }): string | null {
-    if (!config.id || !config.type || !(CHART_TYPES as readonly string[]).includes(config.type)) return 'Chart needs a valid type.';
+export function validateChart(config: Partial<Omit<SheetChartConfig, 'type'>> & { type?: string }): ChartProblem | null {
+    if (!config.id || !config.type || !(CHART_TYPES as readonly string[]).includes(config.type)) return 'type';
     const data = parseA1Range(config.dataRange || '');
-    if (!data) return 'Chart needs a valid data range.';
+    if (!data) return 'data_range';
     const problem = typeProblem(config as Partial<SheetChartConfig>, data);
     if (problem) return problem;
-    if (config.categoriesRange && !parseA1Range(config.categoriesRange)) return 'Categories range is not valid.';
-    if (!parseA1Range(config.anchor || '')) return 'Chart needs a valid anchor cell.';
-    if (!config.width || !config.height) return 'Chart needs a size.';
+    if (config.categoriesRange && !parseA1Range(config.categoriesRange)) return 'categories_range';
+    if (!parseA1Range(config.anchor || '')) return 'anchor';
+    if (!config.width || !config.height) return 'size';
     return null;
 }

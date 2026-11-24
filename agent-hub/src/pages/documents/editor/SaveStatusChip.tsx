@@ -16,7 +16,9 @@ export interface SaveStatusChipProps {
     onResolve?: () => void;
 }
 
-const BASE = 'inline-flex items-center gap-1 text-[11px] shrink-0 text-[var(--text-tertiary)]';
+// No text colour here: each state sets its own (two arbitrary colour utilities on one element are
+// ordered by Tailwind, not by the class list, so the quiet grey would beat the error red).
+const BASE = 'inline-flex items-center gap-1 text-[11px] shrink-0';
 
 /** Re-render every 30 s while a "saved … ago" is on screen. */
 function useTick(active: boolean) {
@@ -35,14 +37,14 @@ export default function SaveStatusChip({ state, lastSavedAt, onRetry, onResolve 
     useTick(showsAge);
     if (state === 'error') {
         return (
-            <button type="button" onClick={onRetry} className={`${BASE} text-[var(--error)] hover:underline`} data-testid="document-save-state" data-state={state}>
+            <button type="button" onClick={onRetry} className={`${BASE} text-[var(--error-ink)] hover:underline`} data-testid="document-save-state" data-state={state}>
                 <AlertTriangle size={12} aria-hidden="true" />{t('documents.save.failed_retry', 'Not saved — retry')}
             </button>
         );
     }
     if (state === 'conflict') {
         return (
-            <button type="button" onClick={onResolve} className={`${BASE} text-[var(--warning,var(--text-primary))] hover:underline`} data-testid="document-save-state" data-state={state}>
+            <button type="button" onClick={onResolve} className={`${BASE} text-[var(--warning-ink)] hover:underline`} data-testid="document-save-state" data-state={state}>
                 <GitMerge size={12} aria-hidden="true" />{t('documents.save.needs_choice', 'Changed by someone else — choose')}
             </button>
         );
@@ -55,5 +57,5 @@ export default function SaveStatusChip({ state, lastSavedAt, onRetry, onResolve 
         ? <><Check size={12} aria-hidden="true" />{t('documents.save.saved_ago', 'Saved {time}', { time: rel(lastSavedAt) })}</>
         : null);
     if (!body) return <span className="w-16 shrink-0" data-testid="document-save-state" data-state={state} />;
-    return <span role="status" aria-live="polite" className={BASE} data-testid="document-save-state" data-state={state}>{body}</span>;
+    return <span role="status" aria-live="polite" className={`${BASE} text-[var(--text-tertiary)]`} data-testid="document-save-state" data-state={state}>{body}</span>;
 }

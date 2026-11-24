@@ -25,21 +25,20 @@ function UsageBar({ label, icon: Icon, used, limit, unit, color = '#3b82f6', per
                     <Icon className="w-3.5 h-3.5" style={{ color }} />
                     {label}
                 </div>
-                {!percentOnly && (
+                {isUnlimited ? (
+                    <span className="text-xs text-[var(--text-muted)]">{t('account_plan.no_limit', 'No limit')}</span>
+                ) : !percentOnly && (
                     <span className="text-xs text-[var(--text-muted)]">
                         {formatCompact(used)}{unit ? ` ${unit}` : ''} / {formatCompact(limit)}{unit ? ` ${unit}` : ''}
                     </span>
                 )}
             </div>
-            <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                        width: isUnlimited ? '0%' : `${pct}%`,
-                        background: isUnlimited ? 'transparent' : barColor,
-                    }}
-                />
-            </div>
+            {/* Without a limit there is nothing to fill: an empty bar would read as "0 used". */}
+            {!isUnlimited && (
+                <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: barColor }} />
+                </div>
+            )}
             {!isUnlimited && (
                 <div className="flex justify-end">
                     <span className={`text-[10px] font-medium ${isCritical ? 'text-red-500' : isWarning ? 'text-amber-500' : 'text-[var(--text-muted)]'}`}>
@@ -94,6 +93,18 @@ interface PlanSummaryCardProps {
     onPortal: () => void;
 }
 
+/**
+ * The line under the plan name. Only a subscription (or a trial) has a billing
+ * period to count down; the free plan says it has no billing instead.
+ */
+function billingLine({ trialing, hasActiveSub, daysLeft, t }: { trialing: boolean; hasActiveSub: boolean; daysLeft: number | null; t: ReturnType<typeof useTranslation>['t'] }): string {
+    if (!trialing && !hasActiveSub) return t('account_plan.free_no_billing', 'No subscription, nothing is billed');
+    if (daysLeft === null) return t('account_plan.monthly_billing', 'Monthly billing');
+    return daysLeft === 1
+        ? t('account_plan.days_left_one', '{count} day left in this billing period', { count: daysLeft })
+        : t('account_plan.days_left', '{count} days left in this billing period', { count: daysLeft });
+}
+
 /** The current plan, the billing period and (for paying customers) Manage billing. */
 export function PlanSummaryCard({ planName, trialing, hasActiveSub, daysLeft, showPortal, portalLoading, onPortal }: PlanSummaryCardProps) {
     const { t } = useTranslation();
@@ -107,13 +118,13 @@ export function PlanSummaryCard({ planName, trialing, hasActiveSub, daysLeft, sh
                         </div>
                         <div>
                             <p className="text-sm font-semibold text-[var(--text-primary)]">
-                                {planName === '__consumer_default__' ? 'Free' : (planName || 'Free')}
+                                {planName && planName !== '__consumer_default__' ? planName : t('account_plan.free', 'Free')}
                                 {trialing && (
                                     <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">{t('settings.consumer_license.trial_badge', 'TRIAL')}</span>
                                 )}
                             </p>
                             <p className="text-xs text-[var(--text-muted)]">
-                                {daysLeft !== null ? `${daysLeft} days remaining in billing period` : 'Monthly billing'}
+                                {billingLine({ trialing, hasActiveSub, daysLeft, t })}
                             </p>
                         </div>
                     </div>
@@ -130,8 +141,8 @@ export function PlanSummaryCard({ planName, trialing, hasActiveSub, daysLeft, sh
                     )}
                 </div>
             </div>
-            {/* The AI-usage percentage is shown once, as the "Usage This
-                Period" bar below (absolute € intentionally hidden). */}
+            {/* The AI-usage percentage is shown once, as the "Usage this
+                period" bar below (absolute € intentionally hidden). */}
         </div>
     );
 }
@@ -167,7 +178,7 @@ export function UsageThisPeriod({ billedCost, limits }: { billedCost: number; li
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4">
             <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="w-4 h-4 text-[var(--text-muted)]" />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_license.usage_this_period', 'Usage This Period')}</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_license.usage_this_period', 'Usage this period')}</h3>
             </div>
             <UsageBar label={t('org.ai_usage', 'AI usage')} icon={DollarSign} used={billedCost} limit={limits?.max_cost_per_month} color="#10b981" percentOnly />
         </div>
@@ -178,12 +189,12 @@ export function UsageThisPeriod({ billedCost, limits }: { billedCost: number; li
 export function PlanLimitsGrid({ limits }: { limits: Limits | null | undefined }) {
     const { t } = useTranslation();
     const items = [
-        { label: 'Agents', icon: Bot, val: limits?.max_agents, color: '#f59e0b' },
-        { label: 'Knowledge Sources', icon: Database, val: limits?.max_knowledge_sources, color: '#10b981' },
+        { label: t('account_plan.agents', 'Agents'), icon: Bot, val: limits?.max_agents, color: '#f59e0b' },
+        { label: t('account_plan.knowledge_sources', 'Knowledge sources'), icon: Database, val: limits?.max_knowledge_sources, color: '#10b981' },
     ];
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t('settings.consumer_license.plan_limits', 'Plan Limits')}</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t('settings.consumer_license.plan_limits', 'Plan limits')}</h3>
             <div className="grid grid-cols-2 gap-3">
                 {items.map(item => {
                     const Icon = item.icon;

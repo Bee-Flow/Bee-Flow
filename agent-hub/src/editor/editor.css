@@ -22,12 +22,12 @@
 .bf-content h3 { font-size: 1.12rem; font-weight: 600; margin: 0.5em 0 0.2em; }
 
 .bf-content a, .bf-content a.notebook-link {
-  color: #3b82f6;
+  color: var(--info-ink, #3b82f6);
   text-decoration: none;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.35);
+  border-bottom: 1px solid color-mix(in srgb, var(--info-ink, #3b82f6) 35%, transparent);
   cursor: pointer;
 }
-.bf-content a:hover { border-bottom-color: #3b82f6; }
+.bf-content a:hover { border-bottom-color: var(--info-ink, #3b82f6); }
 
 .bf-content ul, .bf-content ol { padding-left: 1.4em; margin: 0.3em 0; }
 .bf-content ul { list-style: disc; }
@@ -50,8 +50,8 @@
 }
 
 .bf-content code {
-  background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
+  background: color-mix(in srgb, var(--error, #dc2626) 8%, transparent);
+  color: var(--error-ink, #dc2626);
   padding: 0.1em 0.35em;
   border-radius: 4px;
   font-family: 'Fira Code', 'Roboto Mono', monospace;
@@ -275,8 +275,8 @@
 .bf-icon-button--active { background: color-mix(in srgb, var(--accent-primary) 15%, transparent); color: var(--accent-primary); }
 .bf-icon-button--primary { background: var(--accent-primary); color: var(--accent-primary-fg, #fff); }
 .bf-icon-button--primary:hover:not(:disabled) { background: var(--accent-primary); color: var(--accent-primary-fg, #fff); filter: brightness(1.05); }
-.bf-icon-button--danger { color: #ef4444; }
-.bf-icon-button--danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.bf-icon-button--danger { color: var(--error-ink, #ef4444); }
+.bf-icon-button--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--error, #ef4444) 10%, transparent); color: var(--error-ink, #ef4444); }
 .bf-text-button {
   padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;
   color: var(--text-secondary); border: 1px solid var(--border-default);
@@ -294,7 +294,7 @@
   display: flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 11px;
   color: var(--text-tertiary); border-bottom: 1px solid var(--border-subtle); background: var(--bg-secondary);
 }
-.bf-editor-notice { color: #b45309; }
+.bf-editor-notice { color: var(--warning-ink, #b45309); }
 
 /* ── presence (page headers) ── */
 .bf-presence-avatar {
@@ -309,10 +309,10 @@
   background: var(--bg-secondary); border: 1px solid var(--border-subtle);
 }
 .bf-presence-dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--text-tertiary); }
-.bf-presence-chip--live .bf-presence-dot { background: #10b981; }
-.bf-presence-chip--warn .bf-presence-dot { background: #f59e0b; }
-.bf-presence-chip--error { color: #b91c1c; }
-.bf-presence-chip--error .bf-presence-dot { background: #ef4444; }
+.bf-presence-chip--live .bf-presence-dot { background: var(--success, #10b981); }
+.bf-presence-chip--warn .bf-presence-dot { background: var(--warning, #f59e0b); }
+.bf-presence-chip--error { color: var(--error-ink, #b91c1c); }
+.bf-presence-chip--error .bf-presence-dot { background: var(--error, #ef4444); }
 
 /* a section someone else is editing cannot be dragged */
 .bf-drag-handle--locked { cursor: not-allowed; opacity: 0.5; }

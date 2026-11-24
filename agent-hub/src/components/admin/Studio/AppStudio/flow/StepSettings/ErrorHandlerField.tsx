@@ -48,6 +48,8 @@ export default function ErrorHandlerField({ label, value, onChange, disabled = f
                     size="sm"
                     disabled={disabled}
                     ariaLabel={label}
+                    // Three labels do not fit a 320px panel side by side: wrap, never clip.
+                    className="flex-wrap max-w-full self-start"
                 />
                 <span className="text-[11px] text-[var(--text-secondary)]">
                     {mode === 'stop'

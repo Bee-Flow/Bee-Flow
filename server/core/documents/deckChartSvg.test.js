@@ -84,3 +84,34 @@ test('text is escaped and nothing external or scripted can get in', () => {
     assert.ok(!/href=|url\(/.test(svg));
     assert.strictEqual(chartSvg(null, th), '');
 });
+
+test('fmt and the scale: no negative zero, a B tier, all-negative data ends at zero', () => {
+    assert.strictEqual(_test.fmt(-0.001), '0');
+    assert.strictEqual(_test.fmt(1e9), '1B');
+    assert.strictEqual(_test.fmt(2.5e9), '2.5B');
+    assert.strictEqual(_test.fmt(999999), '1M', 'a value that rounds to 1000k is written in the next tier');
+    const neg = _test.niceScale(-37, -5);
+    assert.strictEqual(neg.max, 0, 'no empty positive band');
+    assert.strictEqual(neg.min, -40);
+});
+
+test('a gap breaks a line instead of bridging it; long and many category labels are clipped or thinned', () => {
+    const gap = /** @type {SlideChart} */ (chartFromAny({ labels: ['a', 'b', 'c', 'd', 'e'], series: [{ name: 's', values: [1, 2, null, 4, 5] }] }, { type: 'line' }, []));
+    const svg = chartSvg(gap, th);
+    assert.strictEqual((svg.match(/<path d="M[^"]*" fill="none"/g) || []).length, 2, 'two runs, two strokes');
+    const long = /** @type {SlideChart} */ (chartFromAny({ labels: ['x'.repeat(60), 'b'], series: [{ name: 's', values: [1, 2] }] }, { type: 'bar' }, []));
+    assert.ok(!chartSvg(long, th).includes('x'.repeat(60)), 'a 60-character label is clipped to the gutter');
+    assert.ok(chartSvg(long, th).includes('…'));
+    const many = /** @type {SlideChart} */ (chartFromAny({ labels: Array.from({ length: 30 }, (_, i) => `Month ${i + 1}`), series: [{ name: 's', values: Array(30).fill(1) }] }, { type: 'column' }, []));
+    const shown = _test.axisLabels(many.labels, 820 / 30);
+    assert.ok(shown.length < 30 && shown.length > 5, `every n-th label (${shown.length})`);
+});
+
+test('the legend wraps BEFORE an item runs over and the plot leaves room for every row', () => {
+    const c = /** @type {SlideChart} */ (chartFromAny({ labels: ['a'], series: Array.from({ length: 8 }, (_, i) => ({ name: `A fairly long series name ${i}`, values: [i + 1] })) }, {}, []));
+    const { items, rows } = _test.legendLayout(c, 820);
+    assert.ok(rows > 1);
+    for (const it of items) assert.ok(it.x + 18 + it.label.length * 7 <= 820, 'no item starts a row it cannot finish');
+    const ys = [...chartSvg(c, th).matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="12" height="12"/g)].map((m) => Number(m[1]));
+    assert.strictEqual(new Set(ys).size, rows, 'one y per row');
+});

@@ -199,6 +199,8 @@ export default function StatusActionPill({
             <span
                 className={`flex items-center gap-2 pl-3 ${plan ? 'pr-2.5' : 'pr-3'} text-[11px] uppercase tracking-wide`}
                 style={cell}
+                // The word folds to sr-only in a narrow bar; the dot alone then says nothing to a mouse user.
+                title={label ?? statusWord(t, status)}
             >
                 <span className="h-2 w-2 rounded-full" style={dot} aria-hidden="true" />
                 <span className={fold.status || undefined}>{label ?? statusWord(t, status)}</span>

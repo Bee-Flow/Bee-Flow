@@ -58,7 +58,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
                     {t('meetings.upload_drop', 'Drop an audio file here, or click to browse')}
                 </div>
                 <div className="text-xs text-[var(--text-muted)]">
-                    {t('meetings.upload_formats', 'Supports .mp3, .wav, .m4a, .webm, .mp4 — up to ~2 hours')}
+                    {t('meetings.upload_formats_accepted', 'Supports .mp3, .wav, .m4a, .webm, .mp4 and other audio files, up to 500 MB')}
                 </div>
             </div>
 

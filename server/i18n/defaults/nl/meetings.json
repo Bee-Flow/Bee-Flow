@@ -6,7 +6,9 @@
     "meetings.admin_sources.open_access": "Toegang openen",
     "meetings.admin_sources.open_connections": "Status van integraties openen",
     "meetings.admin_sources.teams_setup_elsewhere": "Toestemming van de beheerder, de verbindingstest en import voor de hele organisatie voor Teams staan op de pagina Microsoft 365.",
-    "meetings.admin_sources.open_m365": "Microsoft 365 openen"
+    "meetings.admin_sources.open_m365": "Microsoft 365 openen",
+    "meetings.capture_tile_upload_formats": "Zet een .mp3-, .wav-, .m4a-, .webm- of .mp4-bestand neer.",
+    "meetings.upload_formats_accepted": "Ondersteunt .mp3, .wav, .m4a, .webm, .mp4 en andere audiobestanden, tot 500 MB"
   },
   "sameAsEnglish": [
     "meetings.admin_sources.talk_title",

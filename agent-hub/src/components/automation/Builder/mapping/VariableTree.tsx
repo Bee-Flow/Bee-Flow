@@ -241,7 +241,7 @@ function SampleChip() {
     const { t } = useTranslation();
     return (
         <span
-            className="ml-auto shrink-0 px-1 rounded text-[9px] leading-[14px] uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30"
+            className="ml-auto shrink-0 px-1 rounded text-[9px] leading-[14px] uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30 @max-[300px]/ndvside:hidden"
             title={t('automations.mapping.sample_chip_title', 'An example value. No run has shown this field yet: test a step to see the real one.')}
             data-testid="field-sample-chip"
         >
@@ -343,7 +343,9 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                     </button>
                 )}
                 {sample && desc.kind !== 'unknown' && <SampleChip />}
-                <span className={`${sample && desc.kind !== 'unknown' ? '' : 'ml-auto '}shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right`}>
+                {/* min-w-0, not shrink-0: in the 220px Comes-in column of a 1024px screen
+                    a value that would not give way pushed the row's chips out of the card. */}
+                <span className={`${sample && desc.kind !== 'unknown' ? '@max-[300px]/ndvside:ml-auto ' : 'ml-auto '}min-w-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right`}>
                     {desc.kind === 'unknown'
                         ? <span className="italic" title={t('automations.kind.unknown_hint', 'not seen yet — run the step above')}>{t('automations.kind.unknown_short', 'not seen yet')}</span>
                         : valueLabel(desc, value)}

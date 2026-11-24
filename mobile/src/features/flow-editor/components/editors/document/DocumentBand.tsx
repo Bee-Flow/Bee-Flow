@@ -14,7 +14,7 @@ import type { DocumentContract, DocumentTemplate } from '@/features/flow-editor/
 import { SelectField, type SelectOption } from '@/features/flow-editor/components/fields';
 import { SearchField } from '@/shared/ui';
 
-import { pickDocument, placeholderCount, SECTION_CHOICES, sectionChoice } from './fillDocumentModel';
+import { duplicateNameSuffix, pickDocument, placeholderCount, SECTION_CHOICES, sectionChoice } from './fillDocumentModel';
 import { RevisionReview } from './RevisionReview';
 import { say } from '../declarative/runtime';
 import { Band } from '../shared/Band';
@@ -40,7 +40,8 @@ const text = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 function documentOptions(editor: StepEditorProps, look: DocumentLookups, describe: (d: DocumentTemplate) => string): SelectOption[] {
     const id = text(editor.draft.documentId);
-    const options = (look.templates ?? []).map((d) => ({ value: d.id, label: d.name || d.id, description: describe(d) }));
+    const all = look.templates ?? [];
+    const options = all.map((d) => ({ value: d.id, label: `${d.name || d.id}${duplicateNameSuffix(d, all)}`, description: describe(d) }));
     // The step's own document, even when a search (or a lost share) leaves it out of the list.
     if (id && !look.picked) options.unshift({ value: id, label: text(editor.draft.documentName) || look.contract?.name || id, description: '' });
     return options;
@@ -61,12 +62,12 @@ export function DocumentBand({ editor, look }: { editor: StepEditorProps; look: 
                 required
                 value={id}
                 options={documentOptions(editor, look, (d) => say(t, placeholderCount(d)))}
-                prompt={look.templates === undefined ? t('mobile.flow.fill.loading', 'Loading your documents…') : t('mobile.flow.fill.pick', 'Pick a document…')}
+                prompt={look.templates === undefined ? t('builder_polish.fill_loading_documents', 'Loading your documents…') : t('builder_polish.fill_pick_document', 'Pick a document…')}
                 onChange={(next) => setMany(pickDocument(next, look.templates?.find((d) => d.id === next) ?? null))}
                 disabled={ctx.disabled}
                 testID="fill-document"
             />
-            {look.templatesFailed || look.contractFailed ? <Warn tone="error">{t('mobile.flow.fill.load_failed', 'Could not load your documents.')}</Warn> : null}
+            {look.templatesFailed || look.contractFailed ? <Warn tone="error">{t('builder_polish.fill_load_failed', 'Could not load your documents.')}</Warn> : null}
             {empty ? (
                 <Note>
                     {t(

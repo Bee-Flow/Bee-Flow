@@ -97,7 +97,6 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
     useSaveUnsent(p.collab, p.autosave, useCallback(() => editorRef.current?.getEditor?.()?.getHTML?.() ?? null, []));
     const [side, setSide] = useState<SidePanel>(null);
     const [outline, setOutline] = useState<OutlineItem[]>([]);
-    const [words, setWords] = useState<number | null>(null);
     const [conflictOpen, setConflictOpen] = useState(false);
     const sug = usePageSuggestions(initial.id, side, setSide);
     const [canComment, isPanel] = [!!initial.projectId, variant === 'panel'];
@@ -123,7 +122,7 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                 onOpenInStudio={onOpenInStudio ? () => { leave().then(() => onOpenInStudio(initial.id)); } : undefined}
             />
             <PageNotices p={p} onOpenConflict={() => setConflictOpen(true)} onOpenHistory={() => setSide('history')} />
-            <div className="flex-1 min-h-0 flex">
+            <div className="relative flex-1 min-h-0 flex">
                 <div className="flex-1 min-w-0 min-h-0 overflow-auto" data-testid="page-body"
                     onClick={(e) => {
                         // A click on a passage the AI proposes to change focuses its suggestion.
@@ -138,14 +137,13 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                             collab={p.live ? p.collab : null}
                             onSave={p.onSave}
                             onTocUpdate={onToc}
-                            onWordCountChange={setWords}
                             onUploadImage={p.uploadImage}
                             askAiEnabled={false}
                             placeholder={t('documents.page.placeholder', 'Start writing. Type # and a space for a heading, - for a list.')}
                         />
                     </div>
                 </div>
-                <DocumentSidePanels
+                <DocumentSidePanels placement={isPanel ? 'over' : 'over-narrow'}
                     side={side} onClose={() => setSide(null)} doc={p.doc} canEdit={!p.readOnly} currentUser={currentUser} people={people}
                     outline={{ items: outline, activeSection: null, busySections: {}, onGo: (item) => editorRef.current?.scrollToHeading?.(item.index) }}
                     onRestored={p.onRestored}
@@ -165,7 +163,8 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                     }}
                 />
             </div>
-            <EditorStatusBar words={words} extra={p.live ? <span>{t('documents.page.live_hint', 'Everyone in the project sees changes as they are typed.')}</span> : null} />
+            {/* The editor's toolbar already counts the words: the status line does not repeat it. */}
+            <EditorStatusBar words={null} extra={p.live ? <span>{t('documents.page.live_hint', 'Everyone in the project sees changes as they are typed.')}</span> : null} />
             {p.autosave.conflict && (
                 <ConflictDialog open={conflictOpen} conflict={p.autosave.conflict} onSave={resolve}
                     onDiscardMine={async () => { const latest = await p.autosave.discardMine(); setConflictOpen(false); if (latest) editorRef.current?.setContent?.(latest.bodyHtml); }}

@@ -161,7 +161,9 @@ describe('PageEditor: a page of one\'s own', () => {
     it('builds its outline from the headings, and prints the PDF in a tab of its own', async () => {
         collab.useCollab.mockReturnValue(null);
         api.fetchRendered.mockResolvedValue({ blob: new Blob(['%PDF']), degraded: false });
-        const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+        // The tab is opened in the click (a tab opened after the render is blocked), the PDF goes into it later.
+        const tab = { location: { href: '' }, closed: false, close: vi.fn() };
+        const openSpy = vi.spyOn(window, 'open').mockReturnValue(tab as never);
         URL.createObjectURL = vi.fn(() => 'blob:pdf');
         URL.revokeObjectURL = vi.fn();
         open({ projectId: null });
@@ -170,7 +172,37 @@ describe('PageEditor: a page of one\'s own', () => {
         await u.click(screen.getByTestId('document-outline-toggle'));
         expect(screen.getByTestId('document-outline')).toHaveTextContent('Agenda');
         await u.click(screen.getByTestId('document-print'));
-        await waitFor(() => expect(openSpy).toHaveBeenCalledWith('blob:pdf', '_blank'));
+        expect(openSpy).toHaveBeenCalledWith('', '_blank');
+        await waitFor(() => expect(tab.location.href).toBe('blob:pdf'));
+        openSpy.mockRestore();
+    });
+
+    it('a rename reads the newest revision after the pending save, and a refused one shows the saved name again', async () => {
+        collab.useCollab.mockReturnValue(null);
+        let answer!: (doc: unknown) => void;
+        api.updateDocument.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }))
+            .mockRejectedValueOnce(Object.assign(new Error('changed meanwhile'), { status: 409 }));
+        api.getDocument.mockResolvedValue({ ...PAGE, versionId: 'v2' });
+        open({ projectId: null });
+        const u = userEvent.setup();
+        await u.click(screen.getByRole('button', { name: 'save from editor' }));
+        const name = screen.getByLabelText('Document name') as HTMLInputElement;
+        await u.clear(name); await u.type(name, 'Agenda{Enter}');
+        // The body save is still out: the rename has not read "newest" yet.
+        expect(api.getDocument).not.toHaveBeenCalled();
+        await act(async () => { answer({ ...PAGE, bodyHtml: '<p>typed</p>', versionId: 'v2' }); });
+        await waitFor(() => expect(api.updateDocument).toHaveBeenCalledWith('pg1', { name: 'Agenda', expectedVersionId: 'v2' }));
+        await waitFor(() => expect(name.value).toBe('Minutes'));
+    });
+
+    it('a blocked print tab downloads the PDF instead of failing in silence', async () => {
+        collab.useCollab.mockReturnValue(null);
+        api.downloadPdf.mockResolvedValue({ degraded: false });
+        const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+        open({ projectId: null });
+        await userEvent.setup().click(screen.getByTestId('document-print'));
+        await waitFor(() => expect(api.downloadPdf).toHaveBeenCalledWith('pg1', 'Minutes', null));
+        expect(api.fetchRendered).not.toHaveBeenCalled();
         openSpy.mockRestore();
     });
 

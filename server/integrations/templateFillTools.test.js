@@ -175,7 +175,12 @@ test('template_fill_finish refuses while a required field is missing, then hands
     assert.deepStrictEqual(early.missingRequired, [{ key: 'date', label: 'Offer date' }]);
     assert.equal(early.downloadUrl, undefined);
 
-    await handlers.template_fill_set_values({ documentId, values: { date: '2026-03-01' } }, ctx, 'alice');
+    const last = await handlers.template_fill_set_values({ documentId, values: { date: '2026-03-01' } }, ctx, 'alice');
+    assert.match(last.message, /template_fill_review/, 'complete: the final check is next');
+    const unchecked = await handlers.template_fill_finish({ documentId }, ctx, 'alice');
+    assert.equal(unchecked.finished, false);
+    assert.equal(unchecked.needsCheck, true, 'never finished without the final check');
+    await handlers.template_fill_review({ documentId, findings: [] }, ctx, 'alice');
     const done = await handlers.template_fill_finish({ documentId }, ctx, 'alice');
     assert.equal(done.complete, true);
     assert.equal(done.finished, true);
@@ -189,6 +194,7 @@ test('a presentation from a team template downloads as PowerPoint', async () => 
     const { documentId, error } = await handlers.template_fill_start({ templateId: 'tpl-team' }, ctx, 'alice');
     assert.ifError(error);
     await handlers.template_fill_set_values({ documentId, values: { title: 'Kick-off' } }, ctx, 'alice');
+    await handlers.template_fill_review({ documentId, findings: [] }, ctx, 'alice');
     const done = await handlers.template_fill_finish({ documentId }, ctx, 'alice');
     assert.equal(done.format, 'pptx');
     assert.equal(done.downloadUrl, `/api/studio-documents/${documentId}/pptx`);
@@ -234,6 +240,7 @@ test('set_values, status and finish without a documentId use this conversation\'
     const turn = laterTurn();
     await handlers.template_fill_set_values({ values: { date: '2026-03-01' } }, turn, 'alice');
     assert.ok(turn.documentScope.has(documentId), 'the found fill joins the turn\'s scope as the chat\'s own');
+    assert.equal((await handlers.template_fill_review({ findings: [] }, laterTurn(), 'alice')).documentId, documentId);
     const done = await handlers.template_fill_finish({}, laterTurn(), 'alice');
     assert.equal(done.finished, true);
     assert.equal(done.documentId, documentId);
@@ -243,6 +250,7 @@ test('a finished fill is not continued, and without an active fill the tools say
     const { handlers, ctx, store } = setup();
     const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-team' }, ctx, 'alice');
     await handlers.template_fill_set_values({ values: { title: 'Kick-off' } }, ctx, 'alice');
+    await handlers.template_fill_review({ findings: [] }, ctx, 'alice');
     await handlers.template_fill_finish({}, ctx, 'alice');
     assert.ok(store.docs.get(documentId).settings.templateFill.finishedAt, 'finishing marks the link');
     const none = await handlers.template_fill_set_values({ values: { title: 'x' } }, laterTurn(), 'alice');
@@ -273,6 +281,8 @@ test('every answer about a document starts with its documentId, so a cut-off pre
         await handlers.template_fill_set_values({ values: { notes: 'x' } }, ctx, 'alice'),
         await handlers.template_fill_set_values({ values: 'nope' }, ctx, 'alice'),
         await handlers.template_fill_status({}, ctx, 'alice'),
+        await handlers.template_fill_review({ findings: [{ key: 'notes', kind: 'doubt', reason: 'A single letter.' }] }, ctx, 'alice'),
+        await handlers.template_fill_review({ findings: 'nope' }, ctx, 'alice'),
         await handlers.template_fill_finish({}, ctx, 'alice'),
     ];
     for (const a of answers) assert.ok(JSON.stringify(a).startsWith(`{"documentId":"${start.documentId}"`), JSON.stringify(a).slice(0, 60));
@@ -306,9 +316,16 @@ test('document_add_to_project lists the user\'s projects, then files this conver
         targets: async (userId) => (userId === 'alice' ? [{ id: 'p1', name: 'Van Dijk' }] : []),
         fileDocument: async (userId, documentId, projectId) => {
             filed.push({ userId, documentId, projectId });
+            if (projectId === 'p1') store.docs.get(documentId).projectId = 'p1';
             return projectId === 'p1' ? { ok: true, project: { id: 'p1', name: 'Van Dijk' } } : { ok: false, error: 'Project not found.' };
         },
+        folders: async () => [{ id: 'f1', name: 'Customers' }],
+        placeInFolder: async (userId, projectId, documentId, folder) => {
+            placed.push({ userId, projectId, documentId, folder });
+            return folder === 'full' ? { ok: false, error: 'This project has as many folders as it may have.' } : { ok: true, folder: { id: 'f2', name: folder }, created: folder !== 'Customers' };
+        },
     };
+    const placed = [];
     const handlers = makeTemplateFillHandlers({ store, filing: () => filing });
     const ctx = { documentScope: scope(), conversationId: 'conv-1' };
     const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
@@ -320,7 +337,21 @@ test('document_add_to_project lists the user\'s projects, then files this conver
     const out = await handlers.document_add_to_project({ documentId, projectId: 'p1' }, ctx, 'alice');
     assert.equal(out.added, true);
     assert.equal(out.url, `/app/projects/p1/documents/${documentId}`);
+    assert.deepStrictEqual(out.project, { id: 'p1', name: 'Van Dijk' });
+    assert.deepStrictEqual(out.folders, [{ id: 'f1', name: 'Customers' }], 'the folders it can go in next');
     assert.deepStrictEqual(filed, [{ userId: 'alice', documentId, projectId: 'p1' }]);
+    assert.equal(placed.length, 0, 'no folder named: it stays at the top');
+
+    // The customer's folder: the document is in the project already, so it is only put in the folder (made when new).
+    const inFolder = await handlers.document_add_to_project({ documentId, projectId: 'p1', folder: 'Van Dijk BV' }, ctx, 'alice');
+    assert.deepStrictEqual(inFolder.folder, { id: 'f2', name: 'Van Dijk BV' });
+    assert.equal(inFolder.folderCreated, true);
+    assert.equal(filed.length, 1, 'not filed a second time');
+    assert.deepStrictEqual(placed, [{ userId: 'alice', projectId: 'p1', documentId, folder: 'Van Dijk BV' }]);
+    assert.match(inFolder.message, /folder "Van Dijk BV"/);
+    const noRoom = await handlers.document_add_to_project({ documentId, projectId: 'p1', folder: 'full' }, ctx, 'alice');
+    assert.equal(noRoom.added, true, 'it is in the project all the same');
+    assert.match(noRoom.folderError, /as many folders/);
 
     const refused = await handlers.document_add_to_project({ documentId, projectId: 'p2' }, ctx, 'alice');
     assert.match(refused.error, /Project not found/);
@@ -333,6 +364,120 @@ test('document_add_to_project reaches no document outside the conversation, and 
     const ctx = { documentScope: scope(), conversationId: 'conv-1' };
     assert.equal((await handlers.document_add_to_project({ documentId: 'doc-plain', projectId: 'p1' }, ctx, 'alice')).error, NOT_SHARED);
     assert.match((await handlers.document_add_to_project({ projectId: 'p1' }, ctx, 'alice')).error, /documentId is required/);
-    const team = await handlers.document_add_to_project({ documentId: 'x' }, { ...ctx, project: { id: 'p1' } }, 'alice');
-    assert.match(team.error, /already the project/);
+});
+
+// ── The final check ─────────────────────────────────────────────────
+
+test('template_fill_review keeps the assistant\'s remarks at their fields, and only the ones that say something', async () => {
+    const { handlers, ctx, store } = setup();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    await handlers.template_fill_set_values({ values: { client_name: 'van dijk groep', amount: 10, date: '2026-03-01', notes: 'deliver asap pls, call b4' } }, ctx, 'alice');
+    const out = await handlers.template_fill_review({ findings: [
+        { key: 'notes', kind: 'rewrite', suggestion: 'Please deliver as soon as possible, and call beforehand.', reason: 'Written out in full.' },
+        { key: 'client_name', kind: 'doubt', reason: 'This looks like a trade name, not the legal name.' },
+        { key: 'amount', kind: 'rewrite', suggestion: '11', reason: 'A number is never rewritten.' },
+        { key: 'plan', kind: 'doubt', reason: 'Empty fields are not remarked on.' },
+        { key: 'nope', kind: 'doubt', reason: 'Unknown field.' },
+        { key: 'date', kind: 'doubt', reason: '' },
+    ] }, ctx, 'alice');
+    assert.equal(out.reviewed, true);
+    assert.equal(out.checked, 4);
+    assert.deepStrictEqual(out.remarks.map((remark) => `${remark.key}:${remark.kind}`), ['notes:rewrite', 'client_name:doubt']);
+    assert.equal(out.dropped, 4);
+    const kept = store.docs.get(documentId).settings.fillReview;
+    assert.equal(kept.source, 'chat');
+    assert.equal(kept.by, 'alice');
+    assert.equal(kept.findings.length, 2);
+    assert.equal(store.docs.get(documentId).settings.sampleValues.notes, 'deliver asap pls, call b4', 'a rewrite is a suggestion: nothing is changed');
+
+    const status = await handlers.template_fill_status({}, ctx, 'alice');
+    assert.equal(status.checked, true);
+    assert.deepStrictEqual(keysOf(status.openRemarks), ['notes', 'client_name']);
+    // The person changes the doubted value: that remark is gone, the other stays.
+    await handlers.template_fill_set_values({ values: { client_name: 'Van Dijk Groep B.V.' } }, ctx, 'alice');
+    const after = await handlers.template_fill_status({}, ctx, 'alice');
+    assert.deepStrictEqual(keysOf(after.openRemarks), ['notes']);
+    const done = await handlers.template_fill_finish({}, ctx, 'alice');
+    assert.equal(done.finished, true);
+    assert.equal(done.openRemarks, 1, 'finishing with a remark left open says so');
+});
+
+// ── Together, in a project ──────────────────────────────────────────
+
+function teamKit() {
+    const store = fakeStore();
+    const notified = [];
+    const people = [{ id: 'alice', name: 'Alice' }, { id: 'bob', name: 'Bob de Vries' }, { id: 'bea', name: 'Bea Bos' }];
+    const placed = [];
+    const filing = {
+        targets: async () => [], fileDocument: async () => assert.fail('a project document is not filed again'),
+        folders: async () => [{ id: 'f1', name: 'Customers' }],
+        placeInFolder: async (userId, projectId, documentId, folder) => { placed.push({ userId, projectId, documentId, folder }); return { ok: true, folder: { id: 'f1', name: 'Customers' }, created: false }; },
+    };
+    const ask = {
+        notify: async (n) => { notified.push(n); },
+        name: async (_user, key, vars) => `${key} ${JSON.stringify(vars)}`,
+        projectRole: async (userId) => (people.some((person) => person.id === userId) ? 'editor' : null),
+    };
+    const handlers = makeTemplateFillHandlers({ store, filing: () => filing, ask });
+    // The fake store lets a document's owner write, so the asker is the one who started the fill.
+    const ctx = { documentScope: scope(), conversationId: 'chat-1', project: { id: 'p1' }, colleagues: async () => people };
+    return { store, handlers, ctx, notified, placed };
+}
+
+test('in a team chat a colleague is tagged by name for fields, and the value the assistant stores closes the request', async () => {
+    const { store, handlers, ctx, notified } = teamKit();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    assert.equal(store.docs.get(documentId).projectId, 'p1');
+
+    const who = await handlers.template_fill_ask_colleague({ fields: ['amount'] }, ctx, 'alice');
+    assert.deepStrictEqual(who.colleagues.map((person) => person.name), ['Bob de Vries', 'Bea Bos'], 'without a person: who can be asked, not the asker');
+    assert.match((await handlers.template_fill_ask_colleague({ person: 'B', fields: ['amount'] }, ctx, 'alice')).error, /more than one person/);
+    assert.match((await handlers.template_fill_ask_colleague({ person: 'Carol', fields: ['amount'] }, ctx, 'alice')).error, /Nobody called "Carol"/);
+    assert.match((await handlers.template_fill_ask_colleague({ person: 'bob', fields: ['nope'] }, ctx, 'alice')).error, /at least one field/);
+
+    const asked = await handlers.template_fill_ask_colleague({ person: 'bob', fields: ['amount'], message: 'Incl. the discount' }, ctx, 'alice');
+    assert.deepStrictEqual(asked.asked, { person: 'Bob de Vries', fields: ['amount'] });
+    assert.equal(notified.length, 1);
+    assert.equal(notified[0].userId, 'bob');
+    assert.match(notified[0].message, /"person":"Alice"/);
+    assert.equal(notified[0].link, `/app/projects/p1/documents/${documentId}`);
+
+    const status = await handlers.template_fill_status({}, ctx, 'alice');
+    assert.deepStrictEqual(status.waitingFor, [{ person: 'Bob de Vries', askedBy: 'Alice', fields: ['amount'], message: 'Incl. the discount' }]);
+
+    // The answer comes in through the chat: stored by the assistant, it counts as filled in and answers the request.
+    const set = await handlers.template_fill_set_values({ values: { amount: 1250 } }, ctx, 'alice');
+    assert.equal(set.requestsAnswered, 1);
+    const settings = store.docs.get(documentId).settings;
+    assert.deepStrictEqual({ userId: settings.filledBy.amount.userId, via: settings.filledBy.amount.via }, { userId: 'alice', via: 'ai' });
+    assert.ok(settings.valueRequests[0].doneAt, 'the request closed');
+    assert.equal(notified.length, 2, 'who asked is told');
+    assert.equal((await handlers.template_fill_status({}, ctx, 'alice')).waitingFor, undefined);
+});
+
+test('in a team chat a note is left for the others, and the document goes into a folder of the project', async () => {
+    const { store, handlers, ctx, placed } = teamKit();
+    const { documentId } = await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    const noted = await handlers.template_fill_add_note({ field: 'amount', text: 'Still being negotiated, leave it.' }, ctx, 'alice');
+    assert.equal(noted.noted, true);
+    assert.match((await handlers.template_fill_add_note({ field: 'nope', text: 'x' }, ctx, 'alice')).error, /not in this document/);
+    assert.match((await handlers.template_fill_add_note({ text: ' ' }, ctx, 'alice')).error, /Write the note/);
+    assert.equal(store.docs.get(documentId).settings.fieldNotes.length, 1);
+    const status = await handlers.template_fill_status({}, ctx, 'alice');
+    assert.deepStrictEqual(status.notes, [{ by: 'Alice', field: 'amount', text: 'Still being negotiated, leave it.' }]);
+
+    const where = await handlers.document_add_to_project({}, ctx, 'alice');
+    assert.deepStrictEqual(where.folders, [{ id: 'f1', name: 'Customers' }], 'in the project already: only the folder is left to choose');
+    const out = await handlers.document_add_to_project({ folder: 'customers' }, ctx, 'alice');
+    assert.deepStrictEqual(out.folder, { id: 'f1', name: 'Customers' });
+    assert.deepStrictEqual(placed, [{ userId: 'alice', projectId: 'p1', documentId, folder: 'customers' }]);
+});
+
+test('tagging a colleague and leaving a note are a team chat\'s: a person\'s own chat is told so', async () => {
+    const { handlers, ctx } = setup();
+    await handlers.template_fill_start({ templateId: 'tpl-own' }, ctx, 'alice');
+    assert.match((await handlers.template_fill_ask_colleague({ person: 'bob', fields: ['amount'] }, ctx, 'alice')).error, /team chat/);
+    assert.match((await handlers.template_fill_add_note({ text: 'x' }, ctx, 'alice')).error, /team chat/);
+    assert.ok(!TEMPLATE_FILL_TOOLS.some((t) => ['template_fill_ask_colleague', 'template_fill_add_note'].includes(t.function.name)), 'and it is not offered them');
 });

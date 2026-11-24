@@ -33,3 +33,18 @@ test('the printed page carries the sheet, the house style layer and a sanitised 
     assert.doesNotMatch(html, /tracker\.example|<script>x/);
     assert.doesNotMatch(html, /__beeflowDoc/, 'print mode carries no editing bridge');
 });
+
+test('a task prints its box and text on one line, a done one struck through', () => {
+    assert.match(PAGE_CSS, /li\[data-type="taskItem"\] \{ display: flex;/);
+    assert.match(PAGE_CSS, /li\[data-type="taskItem"\]\[data-checked="true"\] > div \{ text-decoration: line-through;/);
+    assert.match(PAGE_CSS, /li\[data-type="taskItem"\] > label \{ display: none; \}/, 'the editor\'s checkbox label is not a second box');
+});
+
+test('a diagram prints as its source text under a caption, escaped', () => {
+    const code = 'graph TD; A-->B["<b>é</b>"]';
+    const b64 = Buffer.from(code, 'utf8').toString('base64');
+    const out = forCompose({ docType: 'page', bodyHtml: `<p>x</p><div data-type="mermaid-diagram" data-code="${b64}"></div>` });
+    assert.match(out.bodyHtml, /<figure class="doc-diagram"><figcaption>Diagram<\/figcaption><pre>graph TD; A--&gt;B\["&lt;b&gt;é&lt;\/b&gt;"\]<\/pre><\/figure>/);
+    const html = composeDocument(out, { mode: 'print' });
+    assert.match(html, /figure class="doc-diagram"/, 'the sanitiser keeps it');
+});

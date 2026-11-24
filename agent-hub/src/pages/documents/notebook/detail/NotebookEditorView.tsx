@@ -17,6 +17,7 @@ import VersionHistoryPanel from '@/components/versions/VersionHistoryPanel';
 import CommentsPanel from '@/components/comments/CommentsPanel';
 import useTranslation from '@/hooks/useTranslation';
 import useRelativeTime from '@/hooks/useRelativeTime';
+import useViewport from '@/hooks/useViewport';
 import useModelTiers from '../hooks/useModelTiers';
 import useExportTargets from '../hooks/useExportTargets';
 import useSourcesPolling, { type NotebookSource } from '../hooks/useSourcesPolling';
@@ -70,8 +71,9 @@ const NotebookTOC = NotebookTOCJs;
 
 export default function NotebookEditorView({ data, user, onBack, onListChanged, onOpenProject, onReload, variant = 'page', onOpenInStudio }: NotebookEditorViewProps) {
     const inPanel = variant === 'panel';
-    const { t, locale } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const rel = useRelativeTime();
+    const { isDesktop } = useViewport();
     const nb = data.notebook;
     const project = data.project;
     const readOnly = !canEditNotebook(nb.role);
@@ -180,15 +182,20 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
 
     const onToc = useCallback((items: unknown[]) => {
         setTocItems(items || []);
-        if (!tocTouched.current && (items || []).length >= TOC_AUTO_OPEN_AT) { tocTouched.current = true; setTocOpen(true); }
-    }, []);
+        // Below desktop the outline would cover the editor: it opens only on request there.
+        if (isDesktop && !tocTouched.current && (items || []).length >= TOC_AUTO_OPEN_AT) { tocTouched.current = true; setTocOpen(true); }
+    }, [isDesktop]);
 
     const empty = isEmptyDocument(docState.autosave.documentContent);
     const hasExportContent = !empty;
     const showMeetingNotes = user?.featureFlags?.meeting_notes !== false
         && (user?.isAdmin || user?.permissions?.includes('all') || (Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('meeting_notes')));
-    const meta = t('notebooks.detail_meta', '{sources} sources · {words} words · Created {when}', {
-        sources: sources.sources.length, words: docWords.toLocaleString(locale), when: rel(nb.createdAt),
+    const sourceCount = sources.sources.length;
+    const wordCount = docWords.toLocaleString(resolvedLocale);
+    const meta = t('notebooks.detail_meta_counts', '{sources} · {words} · Created {when}', {
+        sources: sourceCount === 1 ? t('notebooks.n_sources_one', '{count} source', { count: sourceCount }) : t('notebooks.n_sources', '{count} sources', { count: sourceCount }),
+        words: docWords === 1 ? t('notebooks.n_words_one', '{count} word', { count: wordCount }) : t('notebooks.n_words', '{count} words', { count: wordCount }),
+        when: rel(nb.createdAt),
     });
 
     const commandContext = useMemo(() => ({

@@ -85,6 +85,7 @@ const MediaCreationPanel = ({
             {open && (
                 <div
                     ref={mediaMenuRef}
+                    data-solid-popover
                     className="absolute bottom-full left-0 mb-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-xl p-1.5 min-w-[180px] z-50"
                 >
                     {showImageGen && (

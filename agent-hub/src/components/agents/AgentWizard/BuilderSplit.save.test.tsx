@@ -69,7 +69,7 @@ describe('BuilderSplit — standalone bootstrap', () => {
         await waitFor(() => expect((authFetch as Mock).mock.calls.length).toBeGreaterThanOrEqual(6));
         const urls = (authFetch as Mock).mock.calls.map(([u]) => String(u));
         const boot = ['/api/skills', '/ai/user-settings', '/agents/categories', '/auth/groups',
-            '/ai/config/tiers-for-user?taskType=direct_chat', '/automation'];
+            '/ai/config/tiers-for-user?taskType=direct_chat', '/api/automation'];
         const idx = boot.map(b => urls.indexOf(b));
         expect(idx.every(i => i >= 0)).toBe(true);
         expect([...idx].sort((a, b) => a - b)).toEqual(idx);

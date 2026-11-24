@@ -32,7 +32,7 @@ export default function PresetCard({
             disabled={disabled}
             onClick={() => onSelect(id)}
             aria-pressed={selected}
-            className="text-left p-3 rounded-xl border transition-all"
+            className="flex flex-col justify-start text-left p-3 rounded-xl border transition-all"
             style={{
                 borderColor: selected ? 'var(--accent-primary)' : 'var(--border-default)',
                 background: selected ? 'var(--bg-card-hover)' : 'var(--bg-card)',

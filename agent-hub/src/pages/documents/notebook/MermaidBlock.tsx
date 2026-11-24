@@ -68,6 +68,32 @@ export function svgToPngDataUrl(svgString: string, width: number = 1200) {
     });
 }
 
+/* ── Toolbar button ── declared at module level so it keeps its identity across renders */
+function ToolbarBtn({ onClick, title, active, children }: ToolbarBtnProps) {
+    return (
+        <button
+            onClick={onClick}
+            title={title}
+            className="mermaid-toolbar-btn"
+            style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '4px 10px', borderRadius: '20px',
+                background: active
+                    ? 'rgba(59, 130, 246, 0.18)'
+                    : 'rgba(255, 255, 255, 0.6)',
+                border: `1px solid ${active ? 'rgba(59, 130, 246, 0.3)' : 'rgba(0, 0, 0, 0.06)'}`,
+                color: active ? '#1d4ed8' : '#64748b',
+                cursor: 'pointer', fontSize: '11px', fontWeight: 600,
+                transition: 'all 0.2s ease',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+            }}
+        >
+            {children}
+        </button>
+    );
+}
+
 /* ── Main Component ───────────────────────────────────── */
 
 export default function MermaidBlock({ code, onCodeChange, editable = true }: MermaidBlockProps) {
@@ -201,30 +227,6 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
         URL.revokeObjectURL(url);
     }, []);
 
-    /* ── Toolbar button helper ── */
-    const ToolbarBtn = ({ onClick, title, active, children }: ToolbarBtnProps) => (
-        <button
-            onClick={onClick}
-            title={title}
-            className="mermaid-toolbar-btn"
-            style={{
-                display: 'flex', alignItems: 'center', gap: '4px',
-                padding: '4px 10px', borderRadius: '20px',
-                background: active
-                    ? 'rgba(59, 130, 246, 0.18)'
-                    : 'rgba(255, 255, 255, 0.6)',
-                border: `1px solid ${active ? 'rgba(59, 130, 246, 0.3)' : 'rgba(0, 0, 0, 0.06)'}`,
-                color: active ? '#1d4ed8' : '#64748b',
-                cursor: 'pointer', fontSize: '11px', fontWeight: 600,
-                transition: 'all 0.2s ease',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-            }}
-        >
-            {children}
-        </button>
-    );
-
     return (
         <>
             <div
@@ -234,7 +236,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 contentEditable={false}
             >
                 {/* ── Glassmorphism Header ── */}
-                <MermaidBlockSection t={t} ToolbarBtn={ToolbarBtn} setShowCode={setShowCode} showCode={showCode} handleCopy={handleCopy} copied={copied} handleDownloadSVG={handleDownloadSVG} setFullscreen={setFullscreen} />
+                <MermaidBlockSection t={t} setShowCode={setShowCode} showCode={showCode} handleCopy={handleCopy} copied={copied} handleDownloadSVG={handleDownloadSVG} setFullscreen={setFullscreen} />
 
                 {/* ── Code Editor ── */}
                 {showCode ? (
@@ -251,7 +253,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 ) : (
                     /* ── Diagram Render Area ── */
                     <div className="mermaid-diagram-area">
-                        {error ? (
+                        {error && (
                             <div className="mermaid-error">
                                 <div className="[font-weight:600] [margin-bottom:4px] [display:flex] [align-items:center] [gap:6px]">
                                     <span className="[font-size:14px]">⚠️</span> {t('notebooks.mermaid_error_title', 'Diagram Error')}
@@ -263,26 +265,25 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                                     {t('notebooks.mermaid_edit_code', 'Edit Code')}
                                 </button>
                             </div>
-                        ) : (
-                            <>
-                                {/* Loading skeleton */}
-                                {!ready && (
-                                    <div className="mermaid-skeleton">
-                                        <Loader2 size={20} className="mermaid-skeleton-spinner [animation:spin_1s_linear_infinite] [color:var(--accent-primary)]" />
-                                        <span className="[font-size:12px] [color:var(--text-muted)] [margin-top:8px]">{t('notebooks.mermaid_rendering', 'Rendering diagram…')}</span>
-                                    </div>
-                                )}
-                                <div
-                                    ref={containerRef}
-                                    className="mermaid-svg-container"
-                                    style={{
-                                        opacity: ready ? 1 : 0,
-                                        transform: ready ? 'translateY(0)' : 'translateY(4px)',
-                                        transition: 'opacity 0.4s ease, transform 0.4s ease',
-                                    }}
-                                />
-                            </>
                         )}
+                        {/* Loading skeleton. The area is always white, so a fixed dark grey, not a theme token. */}
+                        {!error && !ready && (
+                            <div className="mermaid-skeleton">
+                                <Loader2 size={20} className="mermaid-skeleton-spinner [animation:spin_1s_linear_infinite] [color:var(--accent-primary)]" />
+                                <span className="[font-size:12px] [color:#475569] [margin-top:8px]">{t('notebooks.mermaid_rendering', 'Rendering diagram…')}</span>
+                            </div>
+                        )}
+                        {/* Stays mounted after an error, so the next code change can render into it. */}
+                        <div
+                            ref={containerRef}
+                            className="mermaid-svg-container"
+                            hidden={!!error}
+                            style={{
+                                opacity: ready ? 1 : 0,
+                                transform: ready ? 'translateY(0)' : 'translateY(4px)',
+                                transition: 'opacity 0.4s ease, transform 0.4s ease',
+                            }}
+                        />
                     </div>
                 )}
             </div>
@@ -328,7 +329,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
     );
 }
 
-function MermaidBlockSection({ t, ToolbarBtn, setShowCode, showCode, handleCopy, copied, handleDownloadSVG, setFullscreen }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; ToolbarBtn: ({ onClick, title, active, children }: ToolbarBtnProps) => React.JSX.Element; setShowCode: React.Dispatch<React.SetStateAction<boolean>>; showCode: boolean; handleCopy: () => void; copied: boolean; handleDownloadSVG: () => void; setFullscreen: React.Dispatch<React.SetStateAction<boolean>>; }) {
+function MermaidBlockSection({ t, setShowCode, showCode, handleCopy, copied, handleDownloadSVG, setFullscreen }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setShowCode: React.Dispatch<React.SetStateAction<boolean>>; showCode: boolean; handleCopy: () => void; copied: boolean; handleDownloadSVG: () => void; setFullscreen: React.Dispatch<React.SetStateAction<boolean>>; }) {
     return <div className="mermaid-block-header">
         <span className="mermaid-block-title">
             <span className="mermaid-block-icon">

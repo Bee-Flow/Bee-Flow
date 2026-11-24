@@ -471,6 +471,9 @@
     "DELETE /api/studio-documents/:id": {
       "gate": "auth"
     },
+    "DELETE /api/studio-documents/:id/field-notes/:noteId": {
+      "gate": "auth"
+    },
     "DELETE /api/studio-documents/:id/sheet/tabs/:tabId": {
       "gate": "handler",
       "via": "route"
@@ -3023,6 +3026,9 @@
       "gate": "auth"
     },
     "GET /api/studio-documents/:id/updates": {
+      "gate": "auth"
+    },
+    "GET /api/studio-documents/:id/values/preview": {
       "gate": "auth"
     },
     "GET /api/studio-documents/:id/versions": {
@@ -6467,6 +6473,9 @@
     "POST /api/studio-documents/:id/duplicate": {
       "gate": "auth"
     },
+    "POST /api/studio-documents/:id/field-notes": {
+      "gate": "auth"
+    },
     "POST /api/studio-documents/:id/insert-section": {
       "gate": "auth"
     },
@@ -6516,6 +6525,9 @@
       "gate": "auth"
     },
     "POST /api/studio-documents/:id/value-requests/:requestId/close": {
+      "gate": "auth"
+    },
+    "POST /api/studio-documents/:id/values/review": {
       "gate": "auth"
     },
     "POST /api/studio-documents/:id/versions": {
