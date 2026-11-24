@@ -1,12 +1,13 @@
 /**
  * "Waiting for you": everything in Cowork that waits for its owner, at the top of the Cowork home (./CoworkPage.tsx).
- * A decision of a plan run is made under Approvals; anything else opens its item, where the review card, the plan
- * card or the sign-in hint is. While nothing waits, only the switch of the daily e-mail of this list shows.
+ * A decision of a plan run is made under Approvals; anything else opens its item, where the review card or the
+ * sign-in hint is; "See the plan" and "See the fix" open it on Advanced → Plan (./coworkView.ts). While nothing waits, only the switch of the daily e-mail of this list shows.
  */
 import { BellRing } from 'lucide-react';
 import Toggle from '../shared/Toggle';
 import { useCoworkDailyMail, useCoworkNeedsYou } from '../../api/coworkNeedsYou';
 import { approvalsLink, needWords } from './coworkNeedsModel';
+import { focusCowork } from './coworkView';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { CoworkNeed } from '../../api/coworkNeedsYou';
 import type { TranslateFn } from '../../hooks/useTranslation';
@@ -30,7 +31,7 @@ function NeedRow({ need, onOpen, t }: { need: CoworkNeed; onOpen: (itemId: strin
             </div>
             {words.action === 'approvals'
                 ? <a className={BUTTON} href={approvalsLink()}>{words.button}</a>
-                : <button type="button" className={BUTTON} onClick={() => onOpen(need.itemId)}>{words.button}</button>}
+                : <button type="button" className={BUTTON} onClick={() => { if (words.tab) focusCowork({ itemId: need.itemId, tab: words.tab }); onOpen(need.itemId); }}>{words.button}</button>}
         </li>
     );
 }

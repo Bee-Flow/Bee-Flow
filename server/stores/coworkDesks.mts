@@ -6,7 +6,9 @@
  *   cowork_desk_members  the coworks on it. An item joins only when ITS owner accepts (`accepted_at`, `accepted_by`):
  *                        it counts as accepted while the person who accepted is still its owner, so an item handed to
  *                        a colleague waits for the new owner. The owner's per-item setting `desk_role` names the role
- *                        that decides its questions. One desk per item;
+ *                        that decides its questions. One desk per item. An invitation may carry the start its
+ *                        owner is asked to take (`planned_after_schedule_id`: start after that cowork of the desk);
+ *                        accepting applies it once (usecases/coworkDesks.mts acceptOnDesk), and it is then cleared;
  *   cowork_desk_roles    who holds a role (`holder_id`), who stands in (`stand_in_id`), and until when the holder is
  *                        away (`away_until`);
  *   cowork_desk_follows  the hand-offs across owners that the LEADING item's owner allowed: the follower `follower_id`
@@ -69,6 +71,8 @@ export const COWORK_DESKS_DDL: readonly string[] = Object.freeze([
         allowed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (desk_id, leader_id, follower_id)
     )`,
+    // The start an invitation asks for (the Teamwork helper): accepting applies it through chooseStart, then clears it.
+    'ALTER TABLE cowork_desk_members ADD COLUMN IF NOT EXISTS planned_after_schedule_id TEXT',
 ]);
 
 /** A person `u` who counts on desk `d`: an active member of its organisation now. */
@@ -99,7 +103,11 @@ export interface DeskMember {
 }
 export interface DeskRole { role: string; holderId: string | null; standInId: string | null; awayUntil: string | null }
 export interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
-export interface Membership { deskId: string; deskName: string; deskOwnerId: string; organizationId: string; accepted: boolean; deskRole: string | null; addedBy: string | null }
+export interface Membership {
+    deskId: string; deskName: string; deskOwnerId: string; organizationId: string; accepted: boolean; deskRole: string | null; addedBy: string | null;
+    /** The cowork an invitation asks this one to start after once accepted; null when it asks no start. */
+    plannedAfterId: string | null;
+}
 /** The role an item's questions go to, with who holds it now. */
 export interface QuestionRole { deskId: string; role: string; holderId: string | null; standInId: string | null; awayUntil: string | null }
 
@@ -183,7 +191,7 @@ function memberRows({ db, ready }: Part) {
     async function membershipOf(scheduleId: string): Promise<Membership | null> {
         await ready();
         const r = await db.getOne(
-            `SELECT m.desk_id, (${ACCEPTED('m', 's')}) AS accepted, m.desk_role, m.added_by, d.name, d.owner_id, d.organization_id
+            `SELECT m.desk_id, (${ACCEPTED('m', 's')}) AS accepted, m.desk_role, m.added_by, m.planned_after_schedule_id, d.name, d.owner_id, d.organization_id
                FROM cowork_desk_members m JOIN cowork_desks d ON d.id = m.desk_id JOIN cowork_schedules s ON s.id = m.schedule_id
               WHERE m.schedule_id = $1`,
             [scheduleId],
@@ -191,7 +199,7 @@ function memberRows({ db, ready }: Part) {
         if (!r) return null;
         return {
             deskId: String(r.desk_id), deskName: String(r.name ?? ''), deskOwnerId: String(r.owner_id), organizationId: String(r.organization_id),
-            accepted: r.accepted === true, deskRole: str(r.desk_role), addedBy: str(r.added_by),
+            accepted: r.accepted === true, deskRole: str(r.desk_role), addedBy: str(r.added_by), plannedAfterId: str(r.planned_after_schedule_id),
         };
     }
 
@@ -232,7 +240,17 @@ function memberRows({ db, ready }: Part) {
         await ready();
         await db.run('UPDATE cowork_desk_members SET desk_role = $3 WHERE desk_id = $1 AND schedule_id = $2', [deskId, scheduleId, role]);
     }
-    return { listMembers, membershipOf, addMember, acceptMember, removeMember, setDeskRole };
+    /** The start an invitation asks for (start after `afterId`), or none. Only while the item is not accepted. */
+    async function setPlannedAfter(deskId: string, scheduleId: string, afterId: string | null): Promise<boolean> {
+        await ready();
+        const rows = await db.getAll(
+            `UPDATE cowork_desk_members SET planned_after_schedule_id = $3 WHERE desk_id = $1 AND schedule_id = $2 AND (accepted_at IS NULL OR $3::text IS NULL)
+             RETURNING schedule_id`,
+            [deskId, scheduleId, afterId],
+        );
+        return rows.length > 0;
+    }
+    return { listMembers, membershipOf, addMember, acceptMember, removeMember, setDeskRole, setPlannedAfter };
 }
 
 /** The hand-offs across owners that the leading item's owner allows (and withdraws). */

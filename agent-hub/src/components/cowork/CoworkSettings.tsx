@@ -71,7 +71,7 @@ export default function CoworkSettings({ item, busy, onEdit }: CoworkSettingsPro
             </Section>
             <Section id="people" heading={t('cowork_detail.settings.people', 'People')}>
                 <CoworkShare coworkId={item.id} />
-                <CoworkDeskPanel coworkId={item.id} />
+                <CoworkDeskPanel coworkId={item.id} title={item.title} />
                 <CoworkHandOver coworkId={item.id} />
                 <CoworkSaveTemplate coworkId={item.id} title={item.title} />
             </Section>

@@ -7,6 +7,9 @@
  *   - a desk belongs to an organisation: only its active members make one, see one, or are on one;
  *   - an owner puts their own cowork on a desk; the desk's maker may invite a cowork of someone else that they can
  *     see (it is shared with them), and it joins only when its owner accepts;
+ *   - an invitation may carry the start its owner is asked to take (the Teamwork helper: start after the cowork before
+ *     it). Accepting applies that start as the accepting owner, through usecases/coworkStart.mts chooseStart with all
+ *     its checks; a start that is refused leaves the acceptance standing and says why;
  *   - the desk's maker sets the roles (holder, stand-in, away until); each owner chooses, per item, which role decides
  *     its questions, and is told (title and role name only) when the holder or stand-in of that role changes;
  *   - a cowork that starts after a colleague's cowork on the desk receives that cowork's result only once the
@@ -30,7 +33,7 @@ interface Person { id: string; organizationId?: string | null; status?: string |
 interface Item { id: string; userId: string; title?: string | null }
 
 export interface DeskDeps {
-    desks: Pick<CoworkDesks, 'createDesk' | 'deleteDesk' | 'desksOf' | 'listMembers' | 'membershipOf' | 'addMember' | 'acceptMember' | 'removeMember' | 'setDeskRole' | 'setRoles' | 'listRoles' | 'allowFollow' | 'withdrawFollow'>;
+    desks: Pick<CoworkDesks, 'createDesk' | 'deleteDesk' | 'desksOf' | 'listMembers' | 'membershipOf' | 'addMember' | 'acceptMember' | 'removeMember' | 'setDeskRole' | 'setRoles' | 'listRoles' | 'allowFollow' | 'withdrawFollow' | 'setPlannedAfter'>;
     getUser: (id: string) => Promise<Person | null>;
     listMembers: (orgId: string) => Promise<Person[]>;
     getSchedule: (id: string) => Promise<Item | null>;
@@ -38,6 +41,11 @@ export interface DeskDeps {
     sharedWith: (scheduleId: string, userId: string) => Promise<boolean>;
     /** A Cowork notice in the person's notifications (stores/notificationStore.js). */
     notify: (n: { userId: string; category: string; title: string; message: string; link: string }) => Promise<unknown>;
+    /**
+     * Start `scheduleId` after `afterId`, as its owner (usecases/coworkStart.mts chooseStart, with all its checks). Used
+     * when an accepted invitation carried a planned start; absent: the planned start is left for the owner to choose.
+     */
+    startAfter?: (scheduleId: string, afterId: string) => Promise<unknown>;
 }
 
 const defaults = (): DeskDeps => {
@@ -50,6 +58,13 @@ const defaults = (): DeskDeps => {
         getSchedule: (id) => (nodeRequire('../stores/coworkStore.js') as { getSchedule: DeskDeps['getSchedule'] }).getSchedule(id),
         sharedWith: async (id, userId) => (await shares().roleOf(id, userId)) !== null,
         notify: (n) => (nodeRequire('../stores/notificationStore.js') as { createNotification: DeskDeps['notify'] }).createNotification(n),
+        startAfter: async (scheduleId, afterId) => {
+            type Start = Parameters<typeof import('./coworkStart.mts')['chooseStart']>[0]['item'];
+            const item = await (nodeRequire('../stores/coworkStore.js') as { getSchedule: (id: string) => Promise<Start | null> }).getSchedule(scheduleId);
+            if (!item) throw refuse(404, 'That cowork does not exist.');
+            const starts = nodeRequire('./coworkStart.mts') as typeof import('./coworkStart.mts');
+            return starts.chooseStart({ item, choice: { kind: 'after_cowork', scheduleId: afterId } });
+        },
     };
 };
 
@@ -175,12 +190,49 @@ export async function addToDesk({ userId, deskId, scheduleId }: { userId: string
     return viewOf(userId, desk, deps);
 }
 
-/** The owner of an invited cowork accepts it on the desk. */
-export async function acceptOnDesk({ userId, deskId, scheduleId }: { userId: string; deskId: string; scheduleId: string }, deps: DeskDeps = defaults()): Promise<DeskView> {
+/**
+ * The desk's maker asks, with an invitation, that the invited cowork starts after another cowork on the desk once its
+ * owner accepts (the Teamwork helper, ./coworkDeskHelperApply.mts). It changes nothing until then.
+ */
+export async function planStartAfter({ userId, deskId, followerId, leaderId }: { userId: string; deskId: string; followerId: string; leaderId: string }, deps: DeskDeps = defaults()): Promise<void> {
+    const desk = await visibleDesk(userId, deskId, deps);
+    const [follower, leader] = await Promise.all([deps.desks.membershipOf(followerId), deps.desks.membershipOf(leaderId)]);
+    const invited = desk.ownerId === userId && follower?.deskId === deskId && !follower.accepted && leader?.deskId === deskId && followerId !== leaderId;
+    if (!invited || !(await deps.desks.setPlannedAfter(deskId, followerId, leaderId))) throw refuse(404, 'There is no invitation for that cowork.');
+}
+
+/** How the start an accepted invitation carried went: applied, or refused with the reason (the acceptance stands). */
+export interface PlannedStart { afterTitle: string; applied: boolean; reason: string | null }
+
+const errorText = (e: unknown): string => (e instanceof HttpError ? (e as Error).message : 'It could not be set. Choose it under How it starts.');
+
+/** Apply the start an invitation carried, once, as the owner who just accepted it. */
+async function applyPlannedStart(deskId: string, scheduleId: string, afterId: string | null, deps: DeskDeps): Promise<PlannedStart | null> {
+    if (!afterId || !deps.startAfter) return null;
+    await deps.desks.setPlannedAfter(deskId, scheduleId, null);
+    const [leader, leaderOn] = await Promise.all([deps.getSchedule(afterId), deps.desks.membershipOf(afterId)]);
+    const afterTitle = leader?.title || 'Untitled work';
+    if (!leader || leaderOn?.deskId !== deskId) return { afterTitle, applied: false, reason: 'That cowork is no longer on the desk.' };
+    if (!leaderOn.accepted) return { afterTitle, applied: false, reason: 'That cowork is not on the desk yet. Choose the start once it is, under How it starts.' };
+    try {
+        await deps.startAfter(scheduleId, afterId);
+        return { afterTitle, applied: true, reason: null };
+    } catch (e) {
+        if (!(e instanceof HttpError)) fallback('usecases/coworkDesks:plannedStart', e, null);
+        return { afterTitle, applied: false, reason: errorText(e) };
+    }
+}
+
+/**
+ * The owner of an invited cowork accepts it on the desk. When the invitation carried a start (start after a cowork on
+ * the desk), it is applied now; a start that is refused leaves the acceptance standing, and `plannedStart` says why.
+ */
+export async function acceptOnDesk({ userId, deskId, scheduleId }: { userId: string; deskId: string; scheduleId: string }, deps: DeskDeps = defaults()): Promise<DeskView & { plannedStart: PlannedStart | null }> {
     const desk = await visibleDesk(userId, deskId, deps);
     const membership = await deps.desks.membershipOf(scheduleId);
     if (membership?.deskId !== deskId || !(await deps.desks.acceptMember(deskId, scheduleId, userId))) throw refuse(404, 'There is no invitation for that cowork.');
-    return viewOf(userId, desk, deps);
+    const plannedStart = await applyPlannedStart(deskId, scheduleId, membership.plannedAfterId, deps);
+    return { ...(await viewOf(userId, desk, deps)), plannedStart };
 }
 
 /** Take a cowork off a desk: its owner (leave, or decline an invitation) or the desk's maker (remove). */
@@ -302,12 +354,24 @@ export async function deleteDesk({ userId, deskId }: { userId: string; deskId: s
     return { removed: true };
 }
 
-export interface ItemDesk { desk: { id: string; name: string; accepted: boolean; deskRole: string | null; invitedBy: string | null } | null }
+/** The start an invitation asks for: the cowork on the desk it would start after, and its owner's name. */
+interface PlannedAfter { id: string; title: string; ownerName: string }
+export interface ItemDesk { desk: { id: string; name: string; accepted: boolean; deskRole: string | null; invitedBy: string | null; plannedAfter: PlannedAfter | null } | null }
+
+/** The cowork an invitation asks to start after, while it is on the same desk; else null. */
+async function plannedAfterOf(deskId: string, afterId: string | null, deps: DeskDeps): Promise<PlannedAfter | null> {
+    if (!afterId) return null;
+    const [leader, leaderOn] = await Promise.all([deps.getSchedule(afterId), deps.desks.membershipOf(afterId)]);
+    if (!leader || leaderOn?.deskId !== deskId) return null;
+    return { id: leader.id, title: leader.title || 'Untitled work', ownerName: nameOf(await deps.getUser(leader.userId)) };
+}
 
 /** The desk one of my coworks is on or invited to (its Settings tab). */
 export async function itemDesk(item: Item, deps: DeskDeps = defaults()): Promise<ItemDesk> {
     const membership = await deps.desks.membershipOf(item.id);
     if (!membership) return { desk: null };
-    const invitedBy = !membership.accepted && membership.addedBy && membership.addedBy !== item.userId ? nameOf(await deps.getUser(membership.addedBy)) : null;
-    return { desk: { id: membership.deskId, name: membership.deskName, accepted: membership.accepted, deskRole: membership.deskRole, invitedBy } };
+    const invited = !membership.accepted;
+    const invitedBy = invited && membership.addedBy && membership.addedBy !== item.userId ? nameOf(await deps.getUser(membership.addedBy)) : null;
+    const plannedAfter = invited ? await plannedAfterOf(membership.deskId, membership.plannedAfterId, deps) : null;
+    return { desk: { id: membership.deskId, name: membership.deskName, accepted: membership.accepted, deskRole: membership.deskRole, invitedBy, plannedAfter } };
 }

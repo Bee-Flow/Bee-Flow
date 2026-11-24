@@ -66,7 +66,9 @@ test('own coworks join at once; another owner\'s cowork is invited, seen only by
     await shares.setShares(intake, [{ userId: 'ann', role: 'viewer' }], 'bob');
     const invited = await desksUseCase.addToDesk({ userId: 'ann', deskId: desk.id, scheduleId: intake }, deps);
     assert.deepStrictEqual(invited.members.map((m) => [m.title, m.ownerName, m.accepted]), [['Supplier radar', 'Ann', true], ['Invoice intake', 'Bob', false]]);
-    assert.deepStrictEqual((await desksUseCase.itemDesk({ id: intake, userId: 'bob' }, deps)).desk, { id: desk.id, name: 'Flow', accepted: false, deskRole: null, invitedBy: 'Ann' });
+    assert.deepStrictEqual((await desksUseCase.itemDesk({ id: intake, userId: 'bob' }, deps)).desk, { id: desk.id, name: 'Flow', accepted: false, deskRole: null, invitedBy: 'Ann', plannedAfter: null });
+    await assert.rejects(desksUseCase.planStartAfter({ userId: 'bob', deskId: desk.id, followerId: intake, leaderId: radar }, deps), refused(404), 'only the desk\'s maker plans the start of an invitation');
+    await assert.rejects(desksUseCase.planStartAfter({ userId: 'ann', deskId: desk.id, followerId: radar, leaderId: intake }, deps), refused(404), 'an accepted cowork keeps its start its owner\'s');
     await assert.rejects(desksUseCase.acceptOnDesk({ userId: 'ann', deskId: desk.id, scheduleId: intake }, deps), refused(404), 'the maker cannot accept for the owner');
     const accepted = await desksUseCase.acceptOnDesk({ userId: 'bob', deskId: desk.id, scheduleId: intake }, deps);
     assert.deepStrictEqual(accepted.members.map((m) => [m.title, m.mine, m.accepted]), [['Supplier radar', false, true], ['Invoice intake', true, true]]);

@@ -1253,6 +1253,7 @@ declare namespace DbRow {
         created_at: Date;
         desk_id: string;
         desk_role: string | null;
+        planned_after_schedule_id: string | null;
         schedule_id: string;
     }
     /** Row of `cowork_desk_roles`. */

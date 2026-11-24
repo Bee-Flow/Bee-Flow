@@ -47,6 +47,8 @@ module.exports = {
     "cowork_teamwork.note.starts_after": "\"{title}\" starts after \"{after}\".",
     "cowork_teamwork.note.their_start": "{who} has been asked to agree. It starts once they accept \"{title}\" and start it after \"{after}\".",
     "cowork_teamwork.note.their_start_ask": "{who} has been asked to agree. It starts once they accept \"{title}\" and start it after \"{after}\", and the owner of \"{after}\" allows it.",
+    "cowork_teamwork.note.their_start_planned": "{who} has been asked to agree. Accepting puts \"{title}\" on the desk and starts it after \"{after}\".",
+    "cowork_teamwork.note.their_start_planned_ask": "{who} has been asked to agree. Accepting puts \"{title}\" on the desk and starts it after \"{after}\"; it gets that result once the owner of \"{after}\" allows it.",
     "cowork_teamwork.open": "Help me set this up",
     "cowork_teamwork.person_me": "{name} (you)",
     "cowork_teamwork.proposal_heading": "This is what I would set up:",

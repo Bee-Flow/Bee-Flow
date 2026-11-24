@@ -4,7 +4,7 @@
  * because they are rarer and Delete is the one that cannot be undone.
  */
 import { useEffect, useRef } from 'react';
-import { MoreHorizontal, Pause, Pencil, Play, Power, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pause, Pencil, Play, Power, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { isMailTriggerItem } from './mailTrigger';
 import { kindIcon, kindTileStyle } from '../shared/kindColors';
 import { statusLabel } from '../shared/statusTokens';
@@ -30,6 +30,8 @@ interface ActionsMenuProps {
     t: TranslateFn;
     busy?: boolean;
     onEdit: () => void;
+    /** Opens Advanced (the Runs, Plan and Settings tabs) under the Overview; absent: no such entry. */
+    onAdvanced?: () => void;
     onDelete: () => void;
 }
 
@@ -37,7 +39,7 @@ interface ActionsMenuProps {
  * Edit and Delete behind one small button. A native disclosure, so it opens with Enter or Space and the two actions
  * stay in the document; it closes on Escape, on a click outside it, and once an action is chosen.
  */
-function ActionsMenu({ t, busy, onEdit, onDelete }: ActionsMenuProps) {
+function ActionsMenu({ t, busy, onEdit, onAdvanced, onDelete }: ActionsMenuProps) {
     const ref = useRef<HTMLDetailsElement>(null);
     const close = () => { if (ref.current) ref.current.open = false; };
     useEffect(() => {
@@ -75,6 +77,15 @@ function ActionsMenu({ t, busy, onEdit, onDelete }: ActionsMenuProps) {
                 >
                     <Pencil aria-hidden="true" className="w-3.5 h-3.5" />{t('cowork.detail.edit', 'Edit')}
                 </button>
+                {onAdvanced && (
+                    <button
+                        type="button" data-testid="cowork-menu-advanced"
+                        onClick={() => { close(); onAdvanced(); }}
+                        className={`${MENU_ITEM} text-[var(--text-primary)]`}
+                    >
+                        <SlidersHorizontal aria-hidden="true" className="w-3.5 h-3.5" />{t('cowork_overview.advanced', 'Advanced')}
+                    </button>
+                )}
                 <button
                     type="button" disabled={busy} data-testid="cowork-delete"
                     aria-label={t('cowork.detail.delete', 'Delete this cowork')}
@@ -97,6 +108,7 @@ export interface DetailHeaderProps {
     needsCount?: number;
     onShowNeeds?: () => void;
     onEdit: () => void;
+    onAdvanced?: () => void;
     onToggle: (id: string) => void;
     onDelete: (item: CoworkItem) => void;
     onRunNow: (id: string) => void;
@@ -116,7 +128,7 @@ function NeedsBadge({ count, t, onClick }: { count: number; t: TranslateFn; onCl
     );
 }
 
-export default function DetailHeader({ item, status, t, busy, needsCount = 0, onShowNeeds, onEdit, onToggle, onDelete, onRunNow }: DetailHeaderProps) {
+export default function DetailHeader({ item, status, t, busy, needsCount = 0, onShowNeeds, onEdit, onAdvanced, onToggle, onDelete, onRunNow }: DetailHeaderProps) {
     const tile = kindTileStyle('agent', 26);
     // The status word carries the pill on its own EXCEPT while a run is in
     // flight and the server told us when it started. That is the one moment
@@ -172,7 +184,7 @@ export default function DetailHeader({ item, status, t, busy, needsCount = 0, on
                     {item.isActive ? <Pause className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
                     {item.isActive ? t('cowork.detail.pause', 'Pause') : t('cowork.detail.resume', 'Resume')}
                 </button>
-                <ActionsMenu t={t} busy={busy} onEdit={onEdit} onDelete={() => onDelete(item)} />
+                <ActionsMenu t={t} busy={busy} onEdit={onEdit} onAdvanced={onAdvanced} onDelete={() => onDelete(item)} />
             </div>
         </div>
     );

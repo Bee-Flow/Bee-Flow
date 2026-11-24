@@ -59,8 +59,15 @@ function cadenceText(item: CoworkItem, t: TranslateFn) {
     return cadenceLine(item, t);
 }
 
-/** The brief in the user's own words, and the context it runs under. */
-export default function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: CoworkAgent[]; t: TranslateFn }) {
+/**
+ * The brief in the user's own words, and the context it runs under. Under Advanced the goal line is left out
+ * (`withGoal={false}`): the Overview already shows it.
+ */
+export default function AssignmentCard({ item, agents, t, withGoal = true }: { item: CoworkItem; agents?: CoworkAgent[]; t: TranslateFn; withGoal?: boolean }) {
+    return <BriefCard item={item} agents={agents} t={t} goal={withGoal ? <CoworkGoal coworkId={item.id} /> : null} />;
+}
+
+function BriefCard({ item, agents, t, goal }: { item: CoworkItem; agents?: CoworkAgent[]; t: TranslateFn; goal: ReactNode }) {
     const agent = item.agentId && Array.isArray(agents)
         ? agents.find(a => a.id === item.agentId)
         : null;
@@ -88,7 +95,7 @@ export default function AssignmentCard({ item, agents, t }: { item: CoworkItem; 
             </p>
             {/* The goal line: one sentence under the brief that says what "done well" means for this work, and what
                 its check counted after the last run (./CoworkGoal.tsx). */}
-            <CoworkGoal coworkId={item.id} />
+            {goal}
             <div className="flex gap-1.5 flex-wrap pt-0.5">
                 <Pill icon={Clock} tone="var(--type-trigger)">{cadenceText(item, t)}</Pill>
                 {item.isActive && item.nextRunAt && (

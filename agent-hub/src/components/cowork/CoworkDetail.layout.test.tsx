@@ -1,5 +1,6 @@
 // The calm layout of an item: the header with its small menu and a "Needs you" badge only while something waits,
-// the strip that holds what waits, the brief, and three tabs of which only the chosen one reads its data.
+// the strip that holds what waits, the Overview, and under Advanced the brief and three tabs of which only the chosen
+// one reads its data. Advanced itself is ./CoworkOverview.test.tsx's; here its viewer had it open.
 // The network is the seam (a recording fetch), no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -38,12 +39,16 @@ function renderDetail(over: Partial<CoworkItem> = {}) {
 /** The settings panels' reads: none of them may happen before the Settings tab is shown. */
 const settingsReads = () => calls.filter((c) => /\/(shares|colleagues|audit|start)$/.test(c.url));
 
-beforeEach(() => { window.sessionStorage.clear(); });
+/** The viewer had Advanced open (remembered per viewer, ./coworkView.ts). */
+const openAdvanced = () => { window.localStorage.setItem('bee-flow.cowork.advanced', '1'); };
+
+beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('CoworkDetail — the layout', () => {
-    it('opens on the Runs tab: the figures as one line above the history', async () => {
+    it('opens Advanced on the Runs tab: the figures as one line above the history', async () => {
         serve();
+        openAdvanced();
         renderDetail();
         const panel = screen.getByRole('tabpanel');
         expect(screen.getByRole('tab', { name: 'Runs' })).toHaveAttribute('aria-selected', 'true');
@@ -54,6 +59,7 @@ describe('CoworkDetail — the layout', () => {
 
     it('reads the settings panels only once their tab is shown', async () => {
         serve();
+        openAdvanced();
         renderDetail();
         await screen.findByTestId('cowork-history');
         expect(settingsReads()).toHaveLength(0);
@@ -67,13 +73,14 @@ describe('CoworkDetail — the layout', () => {
     it('shows no badge and no strip while nothing waits', async () => {
         serve();
         renderDetail();
-        await screen.findByTestId('cowork-history');
+        await screen.findByTestId('cowork-overview-runs');
         expect(screen.queryByTestId('cowork-needs-badge')).toBeNull();
         expect(screen.queryByTestId('cowork-needs-strip')).toBeNull();
     });
 
     it('a run that waits shows "Needs you (1)" in the header, and the badge takes the reader to the strip', async () => {
         serve([waiting]);
+        openAdvanced();
         renderDetail();
         const badge = await screen.findByTestId('cowork-needs-badge');
         expect(badge).toHaveTextContent('Needs you (1)');
@@ -104,6 +111,7 @@ describe('CoworkDetail — the layout', () => {
 
     it('an item that starts on a new mail is offered a plan like any other (it drafts its replies)', async () => {
         serve();
+        openAdvanced();
         renderDetail({ triggerKind: 'app_event', trigger: { provider: 'gmail', event: 'mail.new', filter: {} } } as Partial<CoworkItem>);
         await userEvent.setup().click(screen.getByRole('tab', { name: 'Plan' }));
         // Its licence decides, as for any item: nothing says that a mail start rules a plan out.

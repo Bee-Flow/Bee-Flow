@@ -34,7 +34,7 @@ const PROPOSAL: DeskProposal = {
 const RESULT: HelperResult = {
     deskId: 'd1',
     done: [{ kind: 'desk_made', title: 'Supplier invoices' }, { kind: 'added', title: 'Answer supplier mails' }, { kind: 'role_set', role: 'Purchasing', holderName: 'Lena', standInName: null }],
-    waiting: [{ kind: 'their_start', title: 'Invoice check', afterTitle: 'Answer supplier mails', who: 'Ben', allowedByYou: true }],
+    waiting: [{ kind: 'their_start', title: 'Invoice check', afterTitle: 'Answer supplier mails', who: 'Ben', allowedByYou: true, planned: true }],
 };
 
 function serve(proposal: DeskProposal = PROPOSAL) {
@@ -76,7 +76,7 @@ describe('CoworkTeamworkHelper', () => {
             draft: { deskName: 'Supplier invoices', chain: ['mails', 'invoices'], roles: [{ role: 'Purchasing', holderId: 'ben', standInId: 'lena' }] },
         });
         expect(result).toHaveTextContent('The desk "Supplier invoices" is made.');
-        expect(within(screen.getByTestId('cowork-teamwork-waiting')).getByText(/^Ben has been asked to agree\. It starts once they accept "Invoice check"/)).toBeInTheDocument();
+        expect(within(screen.getByTestId('cowork-teamwork-waiting')).getByText(/^Ben has been asked to agree\. Accepting puts "Invoice check" on the desk and starts it after "Answer supplier mails"\./)).toBeInTheDocument();
     });
 
     it('says plainly what it could not match, and offers the dropdown instead', async () => {

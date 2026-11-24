@@ -7,9 +7,11 @@
  *
  * What only someone else can do stays theirs, and the answer says who it waits for:
  *   - a colleague's cowork is invited and joins only when its owner accepts; they are told what is asked of them;
- *   - that colleague chooses to start their cowork after the one before it (their start is theirs to set). When the
- *     cowork before it is the caller's, the caller's yes to that hand-off is given now, since they asked for it
- *     (allowHandOffAhead); otherwise its owner is asked to allow it, as on the desk;
+ *   - the invitation carries the start: accepting it starts their cowork after the one before it, as them, through
+ *     chooseStart with its checks (planStartAfter; usecases/coworkDesks.mts acceptOnDesk), so they agree with one
+ *     click. A cowork of theirs that is on the desk already keeps its start theirs to choose. When the cowork before it
+ *     is the caller's, the caller's yes to that hand-off is given now, since they asked for it (allowHandOffAhead);
+ *     otherwise its owner is asked to allow it, as on the desk;
  *   - the three hand-offs between people in a row (core/cowork/afterCowork.mts) are refused before anything is made.
  *
  * The use cases each write on their own, so there is no one transaction around them: everything is checked before the
@@ -55,6 +57,8 @@ export interface ApplyNote {
     title?: string; afterTitle?: string; who?: string; role?: string; holderName?: string; standInName?: string | null; reason?: string;
     /** their_start: the caller already allowed the hand-off from their own cowork. */
     allowedByYou?: boolean;
+    /** their_start: the invitation carries the start, so accepting it is all the colleague does. */
+    planned?: boolean;
 }
 export interface ApplyResult { deskId: string; done: ApplyNote[]; waiting: ApplyNote[] }
 
@@ -81,10 +85,10 @@ interface Run { userId: string; myName: string; view: DeskView; deps: ApplyDeps;
 
 /** Tell a colleague what the caller asks of their cowork; a notice that does not go out changes nothing. */
 async function askColleague(run: Run, step: CoworkChoice, after: CoworkChoice | null): Promise<void> {
-    const asks = after ? ` and to start it after "${after.title}"` : '';
+    const asks = after ? ` Accepting puts it on the desk and starts it after "${after.title}".` : '';
     await run.deps.notify({
         userId: step.ownerId, category: 'cowork', title: 'A colleague asks for your cowork on a desk',
-        message: `${run.myName} asks to put your "${step.title}" on the desk "${run.view.desk.name}"${asks}. Open it to accept or decline; it keeps running as you.`,
+        message: `${run.myName} asks to put your "${step.title}" on the desk "${run.view.desk.name}".${asks} Open it to accept or decline; it keeps running as you.`,
         link: `/app/cowork/${step.scheduleId}`,
     }).catch((e: unknown) => fallback('usecases/coworkDeskHelperApply:askColleague', e, null));
 }
@@ -131,12 +135,17 @@ async function myStart(run: Run, leader: CoworkChoice, follower: CoworkChoice): 
     if (!leader.mine) run.waiting.push({ kind: 'allow', title: follower.title, afterTitle: leader.title, who: leader.ownerName });
 }
 
-/** A colleague's cowork that should start after the one before it: their choice; the caller's yes is given ahead. */
+/**
+ * A colleague's cowork that should start after the one before it: their choice, which an invitation carries so that
+ * accepting applies it; the caller's yes is given ahead.
+ */
 async function theirStart(run: Run, leader: CoworkChoice, follower: CoworkChoice): Promise<void> {
-    if (leader.mine) {
-        await run.deps.desks().allowHandOffAhead({ userId: run.userId, deskId: run.view.desk.id, leaderId: leader.scheduleId, followerId: follower.scheduleId }, run.deps.deskDeps);
-    }
-    run.waiting.push({ kind: 'their_start', title: follower.title, afterTitle: leader.title, who: follower.ownerName, allowedByYou: leader.mine });
+    const d = run.deps.desks();
+    const deskId = run.view.desk.id;
+    if (leader.mine) await d.allowHandOffAhead({ userId: run.userId, deskId, leaderId: leader.scheduleId, followerId: follower.scheduleId }, run.deps.deskDeps);
+    const invited = run.view.members.some((m) => m.scheduleId === follower.scheduleId && !m.accepted);
+    if (invited) await d.planStartAfter({ userId: run.userId, deskId, followerId: follower.scheduleId, leaderId: leader.scheduleId }, run.deps.deskDeps);
+    run.waiting.push({ kind: 'their_start', title: follower.title, afterTitle: leader.title, who: follower.ownerName, allowedByYou: leader.mine, ...(invited ? { planned: true } : {}) });
 }
 
 /** Each hand-off of the chain; one that is refused is reported with its reason, the others go on. */

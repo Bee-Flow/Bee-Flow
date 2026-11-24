@@ -11,6 +11,8 @@ export interface NeedWords {
     detail: string | null;
     action: NeedAction;
     button: string;
+    /** Where on the item it opens: the Plan tab under Advanced for a plan or a fix; absent: the item's Overview. */
+    tab?: 'plan';
 }
 
 const APPROVALS_LINK = '/app/studio/approvals';
@@ -40,8 +42,8 @@ export function needWords(need: CoworkNeed, t: TranslateFn): NeedWords {
         case 'ai_failed':
             return { line: t('cowork_resolver.need.ai_failed', 'The AI said its last run failed.'), detail: null, action: 'open', button: open };
         case 'repair':
-            return { line: repairLine({ reasonCode: need.repair?.reasonCode ?? '', stepTitle: need.repair?.stepTitle ?? null }, t), detail: null, action: 'open', button: t('cowork_proposals.need.see_fix', 'See the fix') };
+            return { line: repairLine({ reasonCode: need.repair?.reasonCode ?? '', stepTitle: need.repair?.stepTitle ?? null }, t), detail: null, action: 'open', button: t('cowork_proposals.need.see_fix', 'See the fix'), tab: 'plan' };
         default:
-            return { line: planLine(need, t), detail: need.reason, action: 'open', button: t('cowork_needs.see_plan', 'See the plan') };
+            return { line: planLine(need, t), detail: need.reason, action: 'open', button: t('cowork_needs.see_plan', 'See the plan'), tab: 'plan' };
     }
 }

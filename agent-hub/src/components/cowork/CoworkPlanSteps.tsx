@@ -4,11 +4,15 @@
  * what it changed or sent. In a try-out a step that would change or send is marked as held back, and its preview
  * says "would have".
  *
+ * In a real run's steps (`folded`), a step reads as its plain title and how it went; what it got or did sits one
+ * level deeper, under "Details", since it is the raw data the step handled.
+ *
  * Presentation only.
  */
 import { Check, CircleDashed, Loader2, Minus, ShieldCheck, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { shortDuration, tryToneOf } from './coworkPlanTryModel';
+import { plainStepTitle } from './coworkOverviewModel';
 import type { TryTone } from './coworkPlanTryModel';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { PlanEffect, PlanTryStep } from '../../api/coworkPlan.types';
@@ -37,12 +41,15 @@ function previewLabel(step: PlanTryStep, t: TranslateFn): string {
     return t(`cowork_plan.trace.preview.${step.effect}`, DONE_PREVIEW[step.effect]);
 }
 
-/** What a step got, or what it changed or sent: folded away until asked for. */
-function Preview({ step, t }: { step: PlanTryStep; t: TranslateFn }) {
+/** What a step got, or what it changed or sent: folded away until asked for; under "Details" in a real run. */
+function Preview({ step, folded, t }: { step: PlanTryStep; folded: boolean; t: TranslateFn }) {
     if (!step.preview) return null;
     return (
-        <details className="group">
-            <summary className="cursor-pointer text-[11.5px] text-[var(--text-secondary)] marker:text-[var(--text-tertiary)]">{previewLabel(step, t)}</summary>
+        <details className="group" data-testid="cowork-step-details">
+            <summary className="cursor-pointer text-[11.5px] text-[var(--text-secondary)] marker:text-[var(--text-tertiary)]">
+                {folded ? t('cowork_overview.step.details', 'Details') : previewLabel(step, t)}
+            </summary>
+            {folded && <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{previewLabel(step, t)}</p>}
             <pre className="mt-1 max-h-48 overflow-auto rounded-md px-2.5 py-2 text-[11.5px] leading-[1.45] whitespace-pre-wrap break-words bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                 {step.preview}
             </pre>
@@ -62,7 +69,7 @@ function StepMarks({ step, tone, t }: { step: PlanTryStep; tone: TryTone; t: Tra
     );
 }
 
-function StepRow({ step, t }: { step: PlanTryStep; t: TranslateFn }) {
+function StepRow({ step, folded, t }: { step: PlanTryStep; folded: boolean; t: TranslateFn }) {
     const tone = tryToneOf(step);
     const Icon = TONE_ICON[tone];
     const duration = shortDuration(step.durationMs);
@@ -75,21 +82,21 @@ function StepRow({ step, t }: { step: PlanTryStep; t: TranslateFn }) {
             </span>
             <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className={`text-[13px] break-words ${quiet ? 'text-[var(--text-tertiary)]' : 'font-medium text-[var(--text-primary)]'}`}>{step.title}</span>
+                    <span className={`text-[13px] break-words ${quiet ? 'text-[var(--text-tertiary)]' : 'font-medium text-[var(--text-primary)]'}`}>{plainStepTitle(step, t)}</span>
                     <StepMarks step={step} tone={tone} t={t} />
                     {duration && <span className="ml-auto text-[11.5px] tabular-nums text-[var(--text-tertiary)]">{duration}</span>}
                 </div>
                 {step.error && <p className="text-[12px] text-[var(--error-ink)]">{step.error}</p>}
-                <Preview step={step} t={t} />
+                <Preview step={step} folded={folded} t={t} />
             </div>
         </li>
     );
 }
 
-export default function CoworkPlanSteps({ steps, t }: { steps: PlanTryStep[]; t: TranslateFn }) {
+export default function CoworkPlanSteps({ steps, t, folded = false }: { steps: PlanTryStep[]; t: TranslateFn; folded?: boolean }) {
     return (
         <ol className="flex flex-col">
-            {steps.map((step) => <StepRow key={step.id} step={step} t={t} />)}
+            {steps.map((step) => <StepRow key={step.id} step={step} folded={folded} t={t} />)}
         </ol>
     );
 }

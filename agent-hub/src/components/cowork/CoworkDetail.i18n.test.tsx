@@ -34,6 +34,9 @@ import CoworkDetail from './CoworkDetail';
 import type { ReactNode } from 'react';
 import { renderWithClient } from '../../test/render';
 
+// These tests are about the panels under Advanced: their viewer had it open (remembered per viewer, ./coworkView.ts).
+beforeEach(() => { window.localStorage.setItem('bee-flow.cowork.advanced', '1'); });
+
 const item = {
     id: 'w1',
     title: 'Weekly digest',

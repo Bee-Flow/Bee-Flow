@@ -72,6 +72,8 @@ const NOTE_TEXT: Record<string, [string, string]> = {
     invited: ['cowork_teamwork.note.invited', '{who} has been asked to agree. "{title}" joins once they do.'],
     their_start: ['cowork_teamwork.note.their_start', '{who} has been asked to agree. It starts once they accept "{title}" and start it after "{after}".'],
     their_start_ask: ['cowork_teamwork.note.their_start_ask', '{who} has been asked to agree. It starts once they accept "{title}" and start it after "{after}", and the owner of "{after}" allows it.'],
+    their_start_planned: ['cowork_teamwork.note.their_start_planned', '{who} has been asked to agree. Accepting puts "{title}" on the desk and starts it after "{after}".'],
+    their_start_planned_ask: ['cowork_teamwork.note.their_start_planned_ask', '{who} has been asked to agree. Accepting puts "{title}" on the desk and starts it after "{after}"; it gets that result once the owner of "{after}" allows it.'],
     allow: ['cowork_teamwork.note.allow', '{who} is asked to allow that "{title}" gets the result of "{after}". Until then it receives nothing.'],
     start_later: ['cowork_teamwork.note.start_later', 'Once {who} accepts "{after}", open the helper again to start "{title}" after it.'],
     needs_runner: ['cowork_teamwork.note.needs_runner', '"{title}" keeps its own start: give it an agent or a plan first, then it can start after another cowork.'],
@@ -80,6 +82,7 @@ const NOTE_TEXT: Record<string, [string, string]> = {
 
 const variantOf = (n: HelperNote): string => {
     if (n.kind === 'role_set' && n.standInName) return 'role_set_stand_in';
+    if (n.kind === 'their_start' && n.planned) return n.allowedByYou ? 'their_start_planned' : 'their_start_planned_ask';
     if (n.kind === 'their_start' && !n.allowedByYou) return 'their_start_ask';
     return n.kind;
 };

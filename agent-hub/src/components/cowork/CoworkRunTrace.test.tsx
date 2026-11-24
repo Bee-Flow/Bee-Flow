@@ -41,6 +41,24 @@ describe('RunTraceView', () => {
         expect(screen.getByTestId('cowork-plan-try-step-digest').getAttribute('data-tone')).toBe('skipped');
     });
 
+    it('names each step by its plain title, never by its id or tool name, and keeps the raw data under Details', () => {
+        const trace = realRun();
+        trace.steps = trace.steps.map((s, i) => (i === 0 ? { ...s, title: 'a_b858bb' } : i === 1 ? { ...s, title: 'outlook_create_draft' } : s));
+        render(<RunTraceView trace={trace} t={t} />);
+        const block = screen.getByTestId('cowork-run-trace');
+        const titles = within(block).getAllByRole('listitem').map((li) => li.querySelector('span[class*="text-[13px]"]')?.textContent);
+        expect(titles.slice(0, 2)).toEqual(['A fixed step', 'Outlook create draft']);
+        expect(block.textContent).not.toContain('a_b858bb');
+        expect(block.textContent).not.toContain('outlook_create_draft');
+        // What a step got is one level deeper: a closed "Details", with its label and the data inside it.
+        for (const details of within(block).getAllByTestId('cowork-step-details')) {
+            expect(details).not.toHaveAttribute('open');
+            expect(details.querySelector('summary')?.textContent).toBe('Details');
+            expect(details.querySelector('pre')).not.toBeNull();
+        }
+        expect(within(screen.getByTestId('cowork-plan-try-step-mail')).getByText('What it got').closest('details')).not.toBeNull();
+    });
+
     it('says so when the steps were not recorded or are no longer kept, and lists no made-up outcome', () => {
         render(<RunTraceView trace={realRun({ recorded: false })} t={t} />);
         expect(screen.getByTestId('cowork-run-trace-not-recorded').textContent).toContain('no longer kept');

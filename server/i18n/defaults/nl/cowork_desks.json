@@ -1,6 +1,7 @@
 {
   "translations": {
     "cowork_desks.accept": "Accepteren",
+    "cowork_desks.accept_and_start": "Accepteren, en \"{title}\" starten na \"{after}\" van {owner}",
     "cowork_desks.choose": "Bureau om het op te zetten",
     "cowork_desks.choose_none": "Kies een bureau",
     "cowork_desks.create": "Maak er een bureau mee",
@@ -19,12 +20,15 @@
     "cowork_desks.home.heading": "Bureaus",
     "cowork_desks.home.made_by_you": "door jou gemaakt",
     "cowork_desks.invitation": "{name} heeft deze cowork uitgenodigd op het bureau \"{desk}\". Hij doet pas mee als jij accepteert; hij blijft als jou draaien.",
+    "cowork_desks.invitation_start": "{name} heeft deze cowork uitgenodigd op het bureau \"{desk}\". Accepteren laat hem starten na \"{after}\" van {owner}, en hij krijgt alleen de uitkomst van die run; hij blijft als jou draaien.",
     "cowork_desks.invited": "uitgenodigd",
     "cowork_desks.join": "Op dit bureau zetten",
     "cowork_desks.leave": "Van het bureau halen",
     "cowork_desks.new_name": "Naam van een nieuw bureau",
     "cowork_desks.new_placeholder": "Bijvoorbeeld: Facturen",
     "cowork_desks.on": "Op het bureau \"{desk}\".",
+    "cowork_desks.planned_applied": "Geaccepteerd. Hij start nu na \"{after}\".",
+    "cowork_desks.planned_refused": "Geaccepteerd. Hij kon niet na \"{after}\" starten: {reason}",
     "cowork_desks.remove_desk": "Het bureau verwijderen",
     "cowork_desks.roles.add": "Een rol toevoegen",
     "cowork_desks.roles.away": "Houder van {role} afwezig tot en met",
