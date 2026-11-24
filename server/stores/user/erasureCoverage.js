@@ -87,6 +87,9 @@ const ERASURE_COVERAGE = Object.freeze({
     cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
     cowork_habit_signals: { mode: 'deleted', column: 'user_id' },
     cowork_habit_offers: { mode: 'deleted', column: 'user_id' },
+    // A replay of a plan and its per-run verdicts (counts and step ids): the owner's, gone with the account.
+    cowork_replays: { mode: 'deleted', column: 'user_id' },
+    cowork_replay_events: { mode: 'cascade', parent: 'cowork_replays' },
     // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
     cowork_shares: { mode: 'deleted', column: 'user_id' },
     // A template belongs to the organisation it was saved in: it stays, without the name of who saved it.

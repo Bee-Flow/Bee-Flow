@@ -35,6 +35,11 @@ export function canTry(state: PlanState): boolean {
     return (status === 'first' || status === 'changed' || status === 'approved') && (state.draft?.findings.length ?? 0) === 0;
 }
 
+/** A changed plan can be replayed on the past runs before it is approved: only a change nothing blocks. */
+export function canReplay(state: PlanState): boolean {
+    return planStatusOf(state) === 'changed' && canApprove(state);
+}
+
 /** The kinds in the order a person reads them, with how many steps of each; kinds without a step are left out. */
 export function makeUpParts(makeUp: Record<PlanStepKind, number> | null | undefined): Array<{ kind: PlanStepKind; count: number }> {
     const order: PlanStepKind[] = ['fixed', 'ai', 'ask', 'deliver'];

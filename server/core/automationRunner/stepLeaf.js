@@ -10,6 +10,7 @@
 'use strict';
 
 const { preflightBlankInputs } = require('./blankInputs');
+const { recordedStepResult } = require('./recordedReads.mts');
 
 /**
  * @param {any} deps  execution.js's RUN_DEPS
@@ -23,6 +24,9 @@ function makeLeafRunner(deps, dispatchStep) {
     const { execFlatten } = deps;
     return async function runStepLeaf(step, ctx_, state_, mode_) {
         preflightBlankInputs(step, state_, mode_, ctx_);
+        // A replay answers a step that would reach outside from its recording (./recordedReads.mts, dry runs only).
+        const recorded = recordedStepResult(step, ctx_, state_, mode_);
+        if (recorded) return recorded;
         switch (step.type) {
             case 'integration_action': return e.execIntegrationAction(step, ctx_, state_, mode_);
             case 'ai_step':            return e.execAiStep(step, ctx_, state_, mode_);
