@@ -34,6 +34,7 @@ describe('CoworkSettings', () => {
         expect(container.querySelector('details')).toBeNull();
         const people = screen.getByRole('region', { name: 'People' });
         expect(within(people).getByTestId('cowork-share')).toBeInTheDocument();
+        expect(within(people).getByRole('heading', { name: 'Work on this together' })).toBeInTheDocument();
         expect(within(people).getByTestId('cowork-hand-over')).toBeInTheDocument();
         expect(await screen.findByLabelText('Starts')).toBeInTheDocument();
     });

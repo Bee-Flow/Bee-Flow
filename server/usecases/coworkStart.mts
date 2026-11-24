@@ -3,8 +3,8 @@
  * (core/cowork/startKinds.mts). A new mail is chosen in the item's edit form, as before.
  *
  *   - an event start needs an agent or a plan: a prompt on its own cannot act on what an event brings;
- *   - after another cowork: one of the owner's own items, never itself, never one that (through others) follows this
- *     one;
+ *   - after another cowork: one of the owner's own items, or an item of another owner accepted on the same desk
+ *     (stores/coworkDesks.mts), never itself, never one that (through others) follows this one;
  *   - a webhook: a new secret token each time it is chosen, sent as `Authorization: Bearer <token>` to POST
  *     /api/cowork/hooks; the token is shown once and only its hash is kept;
  *   - a table: one the owner can read through its own sharing;
@@ -39,6 +39,8 @@ export interface StartDeps {
     syncSubscription: (item: Item) => Promise<unknown>;
     canReadTable: (userId: string, datatableId: string) => Promise<boolean>;
     clientHost: () => string;
+    /** Are both items accepted on one desk (stores/coworkDesks.mts)? Without it, only the owner's own items. */
+    sameDesk?: (a: string, b: string) => Promise<boolean>;
 }
 
 const defaults = (): StartDeps => ({
@@ -47,7 +49,11 @@ const defaults = (): StartDeps => ({
     syncSubscription: (item) => (nodeRequire('../automation/subscriptionSync.js') as { syncCoworkMailTrigger: (s: Item) => Promise<unknown> }).syncCoworkMailTrigger(item),
     canReadTable: ownerCanRead,
     clientHost: () => (nodeRequire('../utils/appPaths.js') as { clientHost: () => string }).clientHost(),
+    sameDesk: (a, b) => (nodeRequire('../stores/coworkDesks.mts') as typeof import('../stores/coworkDesks.mts')).coworkDesks().sameDesk(a, b),
 });
+
+/** May the item start after `target`: one of its owner's own, or one on the same desk. */
+const mayStartAfter = async (item: Item, target: Item, deps: StartDeps): Promise<boolean> => target.userId === item.userId || (!!deps.sameDesk && await deps.sameDesk(item.id, target.id));
 
 export interface StartState {
     kind: string;
@@ -70,7 +76,7 @@ export async function startOf(item: Item, deps: StartDeps = defaults()): Promise
     const after = afterId ? await deps.getSchedule(afterId) : null;
     return {
         kind,
-        after: after && after.userId === item.userId ? { id: after.id, title: after.title || 'Untitled work' } : null,
+        after: after && await mayStartAfter(item, after, deps) ? { id: after.id, title: after.title || 'Untitled work' } : null,
         datatableId: kind === 'row' ? str(t.datatableId) : null,
         inFolder: kind === 'file' ? str(t.inFolder) : null,
         hasAddress: kind === 'webhook' && !!str(t.tokenHash),
@@ -100,8 +106,9 @@ async function triggerFor(item: Item, choice: StartChoice, deps: StartDeps): Pro
             return { trigger: null, address: null };
         case 'after_cowork': {
             const target = await deps.getSchedule(choice.scheduleId);
-            if (!target || target.userId !== item.userId) throw refuse(404, 'That cowork does not exist.');
-            if (target.id === item.id || await closesALoop(item.id, target, deps)) throw refuse(409, 'That would make the two run each other in a circle.');
+            if (target?.id === item.id) throw refuse(409, 'A cowork cannot start after itself.');
+            if (!target || !(await mayStartAfter(item, target, deps))) throw refuse(404, 'That cowork does not exist.');
+            if (await closesALoop(item.id, target, deps)) throw refuse(409, 'That would make the two run each other in a circle.');
             return { trigger: { scheduleId: target.id }, address: null };
         }
         case 'webhook': {

@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1988 operations. */
+/** 1998 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2567,6 +2567,28 @@ export interface ApiOperations {
         enabled: boolean;
         timeZone: string;
     }>;
+    'GET /api/cowork/desks': Op;
+    'POST /api/cowork/desks': Op<NoParams, UndeclaredQuery, {
+        name: string;
+    }>;
+    'GET /api/cowork/desks/{id}': Op<{ id: string | number }>;
+    'DELETE /api/cowork/desks/{id}': Op<{ id: string | number }>;
+    'POST /api/cowork/desks/{id}/members': Op<{ id: string | number }, UndeclaredQuery, {
+        scheduleId: string;
+    }>;
+    'PUT /api/cowork/desks/{id}/members/{scheduleId}': Op<{ id: string | number; scheduleId: string | number }, UndeclaredQuery, {
+        deskRole: string | null;
+    }>;
+    'DELETE /api/cowork/desks/{id}/members/{scheduleId}': Op<{ id: string | number; scheduleId: string | number }>;
+    'POST /api/cowork/desks/{id}/members/{scheduleId}/accept': Op<{ id: string | number; scheduleId: string | number }, UndeclaredQuery, Record<string, never>>;
+    'PUT /api/cowork/desks/{id}/roles': Op<{ id: string | number }, UndeclaredQuery, {
+        roles: Array<{
+            awayUntil?: string | null;
+            holderId: string;
+            role: string;
+            standInId?: string | null;
+        }>;
+    }>;
     'GET /api/cowork/home': Op<NoParams, {
         from: string;
         to: string;
@@ -2617,6 +2639,7 @@ export interface ApiOperations {
     }>;
     'DELETE /api/cowork/{id}': Op<{ id: string | number }>;
     'GET /api/cowork/{id}/audit': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/desk': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/hand-over': Op<{ id: string | number }, UndeclaredQuery, {
         toUserId: string;
     }>;

@@ -87,6 +87,11 @@ const ERASURE_COVERAGE = Object.freeze({
     cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
     // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
     cowork_shares: { mode: 'deleted', column: 'user_id' },
+    // A desk is the organisation's: it stays, handed to its oldest remaining admin. A role a person held goes with
+    // them (the desk owner names a new holder); where they only stood in, the role stays without a stand-in. The
+    // coworks on a desk (cowork_desk_members) go with their owner's items, by the foreign key to cowork_schedules.
+    cowork_desks: { mode: 'reassigned', column: 'owner_id', org: 'organization_id' },
+    cowork_desk_roles: { mode: 'deleted', column: 'holder_id', detach: 'stand_in_id' },
     // A template belongs to the organisation it was saved in: it stays, without the name of who saved it.
     cowork_templates: { mode: 'detached', column: 'created_by' },
     studio_documents: { mode: 'deleted', column: 'user_id' },

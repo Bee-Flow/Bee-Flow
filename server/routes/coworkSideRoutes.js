@@ -14,6 +14,8 @@
  *   GET /shared, GET /shared/:id, GET/PUT /:id/shares → sharing with a team (./coworkShareRoutes.js)
  *   GET /templates, GET/DELETE /templates/:id, POST /templates/:id/use, POST /:id/save-as-template → templates from
  *                             the organisation (./coworkTemplateRoutes.js)
+ *   GET, POST /desks, GET, DELETE /desks/:id, PUT /desks/:id/roles, /desks/:id/members..., GET /:id/desk → desks of
+ *                             coworks of different owners that hand work to each other (./coworkDeskRoutes.js)
  *
  * In front of all of them, and of every item route after them: while the caller's organisation has made Cowork
  * read-only, nothing that changes a cowork is accepted (423). Its administrators' policy and the shield stay open, so the
@@ -77,6 +79,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkShareRoutes').mountShareRoutes(router);
     require('./coworkReceiptRoutes').mountReceiptRoutes(router);
     require('./coworkTemplateRoutes').mountTemplateRoutes(router);
+    require('./coworkDeskRoutes').mountDeskRoutes(router);
 }
 
 module.exports = { mountSideRoutes };

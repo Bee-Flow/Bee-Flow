@@ -17,7 +17,8 @@ import { createRequire } from 'node:module';
 import type { Definition, ToolLookups } from './plan/planTypes.mts';
 import { planFingerprint } from './plan/planPermissions.mts';
 import { runCopyOf } from './plan/planRunCopy.mts';
-import { isIndependence, withAsks } from './plan/planIndependence.mts';
+import { isIndependence, withAsks, type QuestionRoute } from './plan/planIndependence.mts';
+import { questionRouteOf } from './deskQuestions.mts';
 import { toolLookups } from './plan/planLookups.mts';
 import { policyOfOwner, runRefusalOf, type CoworkPolicy } from '../entitlements/coworkPolicy.mts';
 import { unattendedRefusal } from './planPolicy.mts';
@@ -28,16 +29,14 @@ const { ContinuationRefused } = nodeRequire('../automationRunner/heldDefinitions
 interface PlanOfRun { automationId: string; definition: unknown; fingerprint: string; independence?: string | null; trustedSteps?: string[]; scheduleId?: string; userId?: string }
 export interface HeldDeps {
     getPlanOfAutomationRun: (automationRunId: string) => Promise<PlanOfRun | null>;
-    /** The colleague who decides the item's questions (usecases/coworkShares.mts), or null. */
-    approverOf?: (scheduleId: string) => Promise<string | null>;
+    /** Who decides the item's questions (./deskQuestions.mts: a desk role, or the colleague it is shared with), or null. */
+    approverOf?: (scheduleId: string) => Promise<string | QuestionRoute | null>;
     /** The owner's organisation's Cowork policy (../entitlements/coworkPolicy.mts). */
     policyOf?: (userId: string) => Promise<CoworkPolicy>;
     lookups?: ToolLookups;
 }
 
-const defaultApprover = (scheduleId: string): Promise<string | null> => (scheduleId
-    ? (nodeRequire('../../stores/coworkShares.mts') as typeof import('../../stores/coworkShares.mts')).coworkShares().approverOf(scheduleId)
-    : Promise.resolve(null));
+const defaultApprover = (scheduleId: string): Promise<QuestionRoute | null> => questionRouteOf(scheduleId);
 
 const defaults = (): HeldDeps => ({
     getPlanOfAutomationRun: (id) => (nodeRequire('../../stores/coworkStore.js') as HeldDeps).getPlanOfAutomationRun(id),

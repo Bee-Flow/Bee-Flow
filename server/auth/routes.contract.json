@@ -183,6 +183,12 @@
     "DELETE /api/cowork/:id/plan": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/desks/:id": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/desks/:id/members/:scheduleId": {
+      "gate": "auth"
+    },
     "DELETE /api/cowork/templates/:id": {
       "gate": "auth"
     },
@@ -1814,6 +1820,9 @@
     "GET /api/cowork/:id/audit": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/desk": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/hand-over/colleagues": {
       "gate": "auth"
     },
@@ -1857,6 +1866,12 @@
       "gate": "auth"
     },
     "GET /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/desks": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/desks/:id": {
       "gate": "auth"
     },
     "GET /api/cowork/home": {
@@ -5280,6 +5295,15 @@
     "POST /api/cowork/compose": {
       "gate": "auth"
     },
+    "POST /api/cowork/desks": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members/:scheduleId/accept": {
+      "gate": "auth"
+    },
     "POST /api/cowork/hooks": {
       "gate": "handler",
       "via": "mount"
@@ -7436,6 +7460,12 @@
       "gate": "auth"
     },
     "PUT /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/desks/:id/members/:scheduleId": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/desks/:id/roles": {
       "gate": "auth"
     },
     "PUT /api/cowork/policy/:orgId": {

@@ -98,6 +98,8 @@ const FIXTURES = [
             // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
             'POST /api/cowork/:id/save-as-template',
             'GET /api/cowork/:id/audit',
+            // The desk the cowork is on: its owner's only (usecases/coworkDesks.mts).
+            'GET /api/cowork/:id/desk',
             'DELETE /api/cowork/:id',
         ],
         // The review and plan bodies are validated before the ownership check.

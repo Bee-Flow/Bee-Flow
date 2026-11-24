@@ -71,17 +71,31 @@ export function askTargets(definition: Definition | null | undefined, level: Ind
 }
 
 /**
- * The question in front of one target, as an approval step of the engine. It asks the run's owner, or the colleague
- * the owner shared the cowork with to decide (usecases/coworkShares.mts): the engine assigns it to them.
+ * Where a run's questions go (../deskQuestions.mts): the person asked, and, for a desk role, the stand-in it moves to
+ * when it is not answered in time, with a line that says so.
  */
-function questionFor(target: AskTarget, assignee: string | null): DefStep {
+export interface QuestionRoute { userId: string; escalateTo?: string | null; escalateAfterHours?: number | null; note?: string | null }
+
+/** The approval settings of a question for its route: the person asked, and where it moves after how long. */
+function approvalFor(route: QuestionRoute): Record<string, unknown> {
+    const moves = route.escalateTo && route.escalateAfterHours ? { escalateTo: { userId: route.escalateTo }, escalateAfterHours: route.escalateAfterHours } : {};
+    return { assignee: { userId: route.userId }, ...moves };
+}
+
+/**
+ * The question in front of one target, as an approval step of the engine. It asks the run's owner, or the person the
+ * route names (the colleague the owner shared the cowork with to decide, usecases/coworkShares.mts, or a desk role's
+ * holder or stand-in): the engine assigns it to them.
+ */
+function questionFor(target: AskTarget, route: QuestionRoute | null): DefStep {
     const what = target.effect === 'sends' ? 'Before it sends' : 'Before it changes something';
+    const note = route?.note ? ` ${route.note}` : '';
     return {
         id: `${ASK_PREFIX}${target.id}`,
         type: 'approval',
         label: `${what}: ${target.title}`,
-        prompt: `${what}: "${target.title}". Approve to let it go ahead, or reject to stop this run here.`,
-        ...(assignee ? { approval: { assignee: { userId: assignee } } } : {}),
+        prompt: `${what}: "${target.title}". Approve to let it go ahead, or reject to stop this run here.${note}`,
+        ...(route ? { approval: approvalFor(route) } : {}),
     };
 }
 
@@ -90,17 +104,19 @@ interface Edge { from?: unknown; to?: unknown; [key: string]: unknown }
 /**
  * The plan with a question in front of every step this level asks about; the plan itself when it asks about none.
  * `trusted`: the steps its owner lets go on their own (./planTrust.mts); a question goes only when every step it is
- * about is one of them. `assignee`: the colleague who decides the questions, when the owner named one.
+ * about is one of them. `assignee`: who decides the questions, when the owner named someone (a colleague's id, or a
+ * route with a desk role's stand-in).
  */
-export function withAsks(definition: Definition, level: Independence, lookups: ToolLookups, trusted: ReadonlySet<string> = new Set(), assignee: string | null = null): Definition {
+export function withAsks(definition: Definition, level: Independence, lookups: ToolLookups, trusted: ReadonlySet<string> = new Set(), assignee: string | QuestionRoute | null = null): Definition {
     const targets = askTargets(definition, level, lookups).filter((t) => !t.steps.every((id) => trusted.has(id)));
     if (targets.length === 0 || !Array.isArray(definition.steps)) return definition;
     let steps = [...(definition.steps as DefStep[])];
     let edges = Array.isArray(definition.edges) ? [...(definition.edges as Edge[])] : [];
+    const route = typeof assignee === 'string' ? (assignee ? { userId: assignee } : null) : assignee;
     for (const target of targets) {
         const at = steps.findIndex((s) => s?.id === target.id);
         if (at < 0) continue;
-        const question = questionFor(target, assignee);
+        const question = questionFor(target, route);
         steps = [...steps.slice(0, at), question, ...steps.slice(at)];
         // Whatever led to the step leads to its question; the question leads to the step.
         edges = edges.map((e) => (e.to === target.id ? { ...e, to: question.id } : e));

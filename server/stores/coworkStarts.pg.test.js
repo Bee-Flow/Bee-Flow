@@ -52,7 +52,7 @@ test('where a run came from, and the latest run of an item', async () => {
     const id = await item('u-origin');
     const runId = /** @type {string} */ (await store.markRunning(id, { triggerKind: 'manual' }));
     await store.markCompleted(id, 'Done.', { runId });
-    assert.deepStrictEqual(await starts.runOrigin(runId), { id: runId, scheduleId: id, status: 'success', triggerKind: 'manual', triggerRef: null, result: 'Done.' });
+    assert.deepStrictEqual(await starts.runOrigin(runId), { id: runId, scheduleId: id, userId: 'u-origin', status: 'success', triggerKind: 'manual', triggerRef: null, result: 'Done.' });
     assert.strictEqual(await starts.latestRunId(id), runId);
     assert.strictEqual(await starts.runOrigin('no-run'), null);
 });

@@ -1235,6 +1235,32 @@ declare namespace DbRow {
         updated_at: Date;
         user_id: string;
     }
+    /** Row of `cowork_desk_members`. */
+    interface CoworkDeskMembers {
+        accepted_at: Date | null;
+        accepted_by: string | null;
+        added_by: string | null;
+        created_at: Date;
+        desk_id: string;
+        desk_role: string | null;
+        schedule_id: string;
+    }
+    /** Row of `cowork_desk_roles`. */
+    interface CoworkDeskRoles {
+        away_until: Date | null;
+        desk_id: string;
+        holder_id: string;
+        role: string;
+        stand_in_id: string | null;
+    }
+    /** Row of `cowork_desks`. */
+    interface CoworkDesks {
+        created_at: Date;
+        id: string;
+        name: string;
+        organization_id: string;
+        owner_id: string;
+    }
     /** Row of `cowork_plans`. */
     interface CoworkPlans {
         approved_at: Date;

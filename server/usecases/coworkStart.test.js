@@ -65,3 +65,20 @@ test('a table the owner can read; a folder; the clock only with a time; an event
     assert.deepStrictEqual(w.synced, ['row', 'file'], 'the subscription follows every start that was saved');
     assert.deepStrictEqual((await startOf({ ...ITEM, triggerKind: 'file', trigger: { inFolder: '/A' } }, w.deps)).inFolder, '/A');
 });
+
+test('on a desk: an item of another owner on the same desk may be followed; following itself is refused on save', async () => {
+    const items = {
+        w1: ITEM,
+        theirs: { id: 'theirs', userId: 'u2', title: 'Invoice intake', triggerKind: 'schedule' },
+        elsewhere: { id: 'elsewhere', userId: 'u3', title: 'Not on the desk', triggerKind: 'schedule' },
+    };
+    const w = world(items);
+    const deps = { ...w.deps, sameDesk: async (/** @type {string} */ a, /** @type {string} */ b) => a === 'w1' && b === 'theirs' };
+    const state = await chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'theirs' } }, deps);
+    assert.deepStrictEqual(state.after, { id: 'theirs', title: 'Invoice intake' });
+    await assert.rejects(chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'elsewhere' } }, deps), (/** @type {any} */ e) => e.status === 404);
+    await assert.rejects(chooseStart({ item: ITEM, choice: { kind: 'after_cowork', scheduleId: 'w1' } }, deps), (/** @type {any} */ e) => e.status === 409 && /itself/.test(e.message));
+    assert.deepStrictEqual(w.set, [['w1', 'after_cowork', { scheduleId: 'theirs' }]], 'only the desk item was saved');
+    const left = await startOf({ ...ITEM, triggerKind: 'after_cowork', trigger: { scheduleId: 'theirs' } }, { ...w.deps, sameDesk: async () => false });
+    assert.strictEqual(left.after, null, 'once off the desk, the other owner\'s title is not shown');
+});

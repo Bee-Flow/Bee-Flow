@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-54 routes, 31 with a request schema. Back to the [endpoint reference](../reference.md).
+64 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -77,6 +77,12 @@ No request schema.
 No request schema.
 
 ### `GET /api/cowork/:id/audit`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/desk`
 
 **Access:** Signed-in user · middleware `trainingGate`
 
@@ -353,6 +359,121 @@ No request schema.
 |-------|------|:--------:|-------|
 | `enabled` | boolean | yes |  |
 | `timeZone` | string | yes | min length 1; max length 64 |
+
+## `desks`
+
+### `GET /api/cowork/desks`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `POST /api/cowork/desks`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string | yes | min length 1; max length 80 |
+
+### `GET /api/cowork/desks/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `DELETE /api/cowork/desks/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/desks/:id/members`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+### `PUT /api/cowork/desks/:id/members/:scheduleId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `deskRole` | string or null | yes |  |
+
+### `DELETE /api/cowork/desks/:id/members/:scheduleId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/desks/:id/members/:scheduleId/accept`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `PUT /api/cowork/desks/:id/roles`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `roles` | array of object | yes | max items 20 |
+| `roles[].role` | string | yes | min length 1; max length 40 |
+| `roles[].holderId` | string | yes | min length 1; max length 200 |
+| `roles[].standInId` | string or null |  |  |
+| `roles[].awayUntil` | string (date-time) or null |  |  |
 
 ## `home`
 
