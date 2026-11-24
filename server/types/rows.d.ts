@@ -1235,6 +1235,30 @@ declare namespace DbRow {
         updated_at: Date;
         user_id: string;
     }
+    /** Row of `cowork_goal_results`. */
+    interface CoworkGoalResults {
+        error: string | null;
+        measured_at: Date;
+        met: number | null;
+        ok: boolean;
+        period: string | null;
+        run_id: string;
+        schedule_id: string;
+        total: number | null;
+    }
+    /** Row of `cowork_goals`. */
+    interface CoworkGoals {
+        approved_at: Date | null;
+        approved_definition_json: string | null;
+        check_automation_id: string | null;
+        created_at: Date;
+        fingerprint: string | null;
+        measure_claimed_at: Date | null;
+        schedule_id: string;
+        sentence: string;
+        target_percent: number;
+        user_id: string;
+    }
     /** Row of `cowork_habit_offers`. */
     interface CoworkHabitOffers {
         offered_at: Date;

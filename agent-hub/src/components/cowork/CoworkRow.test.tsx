@@ -271,3 +271,22 @@ describe('CoworkRow — runs waiting for review', () => {
         expect(screen.queryByTestId('cowork-row-review-count')).toBeNull();
     });
 });
+
+describe('CoworkRow — the goal', () => {
+    beforeEach(cleanup);
+    const how = { kind: 'plan' as const, fixed: 3, ai: 0, ask: 0, deliver: 1, level: null };
+    const goal = { sentence: 'Every supplier mail gets an answer within two working days', targetPercent: 95, met: 46, total: 49, period: 'this week', measuredAt: null };
+
+    it('shows the latest count of an item with a goal', () => {
+        renderRow({}, { how: { ...how, goal } });
+        expect(screen.getByTestId('cowork-row-goal')).toHaveTextContent('Goal: 46 of 49 this week');
+    });
+
+    it('says a goal was not measured yet, and shows nothing for an item without one', () => {
+        renderRow({}, { how: { ...how, goal: { ...goal, met: null, total: null, period: null } } });
+        expect(screen.getByTestId('cowork-row-goal')).toHaveTextContent('Goal: not measured yet');
+        cleanup();
+        renderRow({}, { how });
+        expect(screen.queryByTestId('cowork-row-goal')).toBeNull();
+    });
+});

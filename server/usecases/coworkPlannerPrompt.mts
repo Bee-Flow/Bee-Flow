@@ -44,37 +44,52 @@ type Schema = { type?: string; function?: { name?: string; parameters?: Record<s
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => !!x && typeof x === 'object' && !Array.isArray(x);
 
-/** The batch builder's schema with its `type` enum narrowed to what a plan may hold. The original is not touched. */
-function narrowedAddSteps(schema: Schema): Schema {
+/** The batch builder's schema with its `type` enum narrowed to what `mayAdd` allows. The original is not touched. */
+function narrowedAddSteps(schema: Schema, mayAdd: (type: unknown) => boolean): Schema {
     const copy = structuredClone(schema);
     const params = copy.function?.parameters;
     const steps = isObj(params) && isObj(params.properties) ? params.properties.steps : null;
     const entry = isObj(steps) && isObj(steps.items) && isObj(steps.items.properties) ? steps.items.properties.type : null;
-    if (isObj(entry) && Array.isArray(entry.enum)) entry.enum = entry.enum.filter(plannerMayAdd);
+    if (isObj(entry) && Array.isArray(entry.enum)) entry.enum = entry.enum.filter(mayAdd);
     return copy;
+}
+
+/** A menu of the builder's tools: the planner's names, with the batch builder narrowed to `mayAdd`. */
+export function toolMenu(schemas: Schema[], mayAdd: (type: unknown) => boolean): Schema[] {
+    return schemas
+        .filter((t) => typeof t.function?.name === 'string' && PLANNER_TOOL_NAMES.has(t.function.name))
+        .map((t) => (t.function?.name === 'builder_add_steps' ? narrowedAddSteps(t, mayAdd) : t));
 }
 
 /** The planner's tool menu, from the builder's full list. */
 export function plannerTools(schemas: Schema[]): Schema[] {
-    return schemas
-        .filter((t) => typeof t.function?.name === 'string' && PLANNER_TOOL_NAMES.has(t.function.name))
-        .map((t) => (t.function?.name === 'builder_add_steps' ? narrowedAddSteps(t) : t));
+    return toolMenu(schemas, plannerMayAdd);
 }
+
+/** What a menu refuses, and in which words: what is being made, and why a step type may not be in it. */
+export interface MenuWords { making: string; mayAdd: (type: unknown) => boolean; whyNot: (type: unknown) => string }
 
 /**
  * Why this tool call is not carried out, as a sentence the model reads, or null when it may go ahead. A tool that is
- * not on the menu, and a batch that holds a step type a plan may not have (refused as a whole, so nothing is half
+ * not on the menu, and a batch that holds a step type `mayAdd` does not allow (refused as a whole, so nothing is half
  * built).
  */
-export function plannerRefusal(name: string, args: unknown): string | null {
-    if (!PLANNER_TOOL_NAMES.has(name)) return `The tool "${name}" is not available when making a plan. Use builder_add_steps and the tools that correct a step.`;
+export function menuRefusal(name: string, args: unknown, words: MenuWords): string | null {
+    if (!PLANNER_TOOL_NAMES.has(name)) return `The tool "${name}" is not available when making ${words.making}. Use builder_add_steps and the tools that correct a step.`;
     if (name !== 'builder_add_steps') return null;
     const steps = isObj(args) && Array.isArray(args.steps) ? args.steps : [];
     for (const [index, entry] of steps.entries()) {
         const type = isObj(entry) ? entry.type : undefined;
-        if (!plannerMayAdd(type)) return `Entry ${index} was not added, and neither was the rest of this call: ${refusalOfStepType(type)} Build the plan without it.`;
+        if (!words.mayAdd(type)) return `Entry ${index} was not added, and neither was the rest of this call: ${words.whyNot(type)} Build ${words.making.replace(/^an? /, 'the ')} without it.`;
     }
     return null;
+}
+
+const PLAN_WORDS: MenuWords = { making: 'a plan', mayAdd: plannerMayAdd, whyNot: refusalOfStepType };
+
+/** The planner's refusal of a tool call (menuRefusal with a plan's words). */
+export function plannerRefusal(name: string, args: unknown): string | null {
+    return menuRefusal(name, args, PLAN_WORDS);
 }
 
 export interface PromptParts {

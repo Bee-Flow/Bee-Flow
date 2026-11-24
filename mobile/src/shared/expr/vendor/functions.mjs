@@ -18,64 +18,11 @@
  */
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
-import { addToEpoch, epochDiff, requireDateUnit, validFields } from './dates.mjs';
+import { addToEpoch, epochDiff, requireDateUnit, toEpoch } from './dates.mjs';
+import { WORKDAY_FUNCTIONS, WORKDAY_FUNCTION_DOCS } from './workdays.mjs';
 import { joinTexts, padStartCp, splitCp, substringCp } from './codePoints.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 import { LIST_FUNCTIONS, sumOf } from './lists.mjs';
-
-// ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
-// Dates are ISO strings. We parse to a UTC instant MANUALLY so a bare
-// 'YYYY-MM-DDTHH:MM:SS' (no zone) means the same thing in every JS engine —
-// `new Date(isoWithoutZone)` is LOCAL-time in browsers but UTC for date-only,
-// which would break client/server identity. Everything below is UTC.
-//
-// The month/day parts accept ONE or two digits and `/` as well as `-`, because
-// '2026-9-2' and '2026/09/02' are what spreadsheets, CSV exports and hand-typed
-// values actually look like, and both name one unambiguous UTC day.
-//
-// There is deliberately NO `Date.parse` fallback for anything else. It used to
-// be here, and it is the one thing in this file that broke the header's
-// determinism promise twice over: `Date.parse('2026-9-2')` is read in the
-// LOCAL zone, so the same expression on the same data rendered "2 september"
-// on a UTC server and "1 september" in a browser in Amsterdam — a whole day of
-// drift between the builder's preview and the run that follows it. And for
-// non-ISO text ('Sep 2, 2026') its result is engine-defined, so V8 and
-// JavaScriptCore need not even agree on whether it parses. Text we cannot read
-// deterministically is not read at all: `formatDate` then returns '', exactly
-// as it already did for 'not a date'.
-const DATE_ONLY = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/;
-const DATE_TIME = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
-
-// The widest instant a JS Date can hold. Past it every getUTC* reads NaN, and
-// the month/weekday tables below would be indexed on NaN — which threw a bare
-// TypeError out of a file whose header promises a benign fallback. A
-// nanosecond epoch (Prometheus, Kubernetes, Cassandra, plenty of webhooks) is
-// the everyday way to land here: 1.76e18 is a perfectly finite number.
-const MAX_EPOCH = 8.64e15;
-
-/** An epoch only when it is one a Date can actually represent. */
-function inRange(epoch) {
-    return Number.isFinite(epoch) && Math.abs(epoch) <= MAX_EPOCH ? epoch : null;
-}
-
-function toEpoch(iso) {
-    if (iso == null) return null;
-    if (typeof iso === 'number') return inRange(iso);
-    const s = String(iso).trim();
-    let m = DATE_ONLY.exec(s);
-    if (m) return validFields(+m[1], +m[2], +m[3], 0, 0, 0) ? inRange(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
-    m = DATE_TIME.exec(s);
-    if (!m) return null;
-    const [, y, mo, d, h, mi, se, zone] = m;
-    if (!validFields(+y, +mo, +d, +h, +mi, se ? +se : 0)) return null;
-    let epoch = Date.UTC(+y, +mo - 1, +d, +h, +mi, se ? +se : 0);
-    if (zone && zone !== 'Z') {
-        const sign = zone[0] === '-' ? -1 : 1;
-        const zz = zone.slice(1).replace(':', '');
-        epoch -= sign * ((+zz.slice(0, 2)) * 60 + (+zz.slice(2, 4))) * 60000;
-    }
-    return inRange(epoch);
-}
 
 function pad(n, w = 2) { return String(Math.abs(n)).padStart(w, '0'); }
 
@@ -665,6 +612,7 @@ export const FUNCTIONS = {
     weekday: (iso) => { const e = toEpoch(iso); return e == null ? null : new Date(e).getUTCDay(); }, // 0=Sun
     isBefore: (a, b) => { const ea = toEpoch(a); const eb = toEpoch(b); return ea == null || eb == null ? false : ea < eb; },
     isAfter: (a, b) => { const ea = toEpoch(a); const eb = toEpoch(b); return ea == null || eb == null ? false : ea > eb; },
+    ...WORKDAY_FUNCTIONS, // workdaysBetween, addWorkdays (workdays.mjs)
 };
 
 // Rich metadata for the inspector's syntax-help panel. Kept next to the
@@ -752,6 +700,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'weekday', signature: 'weekday(date)', description: 'Day of week 0–6 (Sun=0) of an ISO date (UTC).' },
     { name: 'isBefore', signature: 'isBefore(a, b)', description: 'True when ISO date a is before b.' },
     { name: 'isAfter', signature: 'isAfter(a, b)', description: 'True when ISO date a is after b.' },
+    ...WORKDAY_FUNCTION_DOCS,
 ];
 
 export const EXPR_FUNCTION_NAMES = Object.keys(FUNCTIONS);

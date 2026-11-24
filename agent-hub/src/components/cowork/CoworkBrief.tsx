@@ -21,6 +21,7 @@ import { describeMoment, repeatLabel } from './coworkSchedule';
 import { describeMailTrigger, isMailTriggerItem } from './mailTrigger';
 import { TIER_META, tierLabel } from '../licensing/tierMeta';
 import { kindColorVar, kindIcon } from '../shared/kindColors';
+import CoworkGoal from './CoworkGoal';
 import type { CoworkAgent, CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -85,8 +86,9 @@ export default function AssignmentCard({ item, agents, t }: { item: CoworkItem; 
             >
                 {item.prompt}
             </p>
-            {/* The goal line goes here: one sentence under the brief that says what "done well" means for this work,
-                once an item can carry a goal. Nothing renders until then. */}
+            {/* The goal line: one sentence under the brief that says what "done well" means for this work, and what
+                its check counted after the last run (./CoworkGoal.tsx). */}
+            <CoworkGoal coworkId={item.id} />
             <div className="flex gap-1.5 flex-wrap pt-0.5">
                 <Pill icon={Clock} tone="var(--type-trigger)">{cadenceText(item, t)}</Pill>
                 {item.isActive && item.nextRunAt && (

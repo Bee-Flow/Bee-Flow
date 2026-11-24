@@ -354,6 +354,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/cowork-packages',
             'contributing/decisions/cowork-notices-repeats',
             'contributing/decisions/cowork-replay',
+            'contributing/decisions/cowork-goals',
           ],
         },
       ],

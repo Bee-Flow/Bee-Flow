@@ -180,6 +180,9 @@
     "DELETE /api/cowork/:id": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/:id/goal": {
+      "gate": "auth"
+    },
     "DELETE /api/cowork/:id/plan": {
       "gate": "auth"
     },
@@ -1812,6 +1815,9 @@
       "gate": "auth"
     },
     "GET /api/cowork/:id/audit": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/goal": {
       "gate": "auth"
     },
     "GET /api/cowork/:id/hand-over/colleagues": {
@@ -5262,6 +5268,12 @@
     "POST /api/cowork": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/goal/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/goal/check": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/hand-over": {
       "gate": "auth"
     },
@@ -7436,6 +7448,9 @@
       ]
     },
     "PUT /api/cowork/:id": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/goal": {
       "gate": "auth"
     },
     "PUT /api/cowork/:id/plan": {

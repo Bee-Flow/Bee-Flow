@@ -118,6 +118,8 @@
     "a ? [1] : b": "ExprError: Unexpected token: [",
     "len([1])": "ExprError: Unexpected token: [",
     "map(a, { id: it.id })": "ExprError: Unexpected character in expression: {",
-    "sum(map(range(3), it))": "ExprError: Unknown function: range"
+    "sum(map(range(3), it))": "ExprError: Unknown function: range",
+    "workdaysBetween(a, b)": "ExprError: Unknown function: workdaysBetween",
+    "addWorkdays(a, 1)": "ExprError: Unknown function: addWorkdays"
   }
 }

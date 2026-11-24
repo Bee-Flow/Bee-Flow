@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-61 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
+66 routes, 42 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -81,6 +81,71 @@ No request schema.
 **Access:** Signed-in user · middleware `trainingGate`
 
 No request schema.
+
+### `GET /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `PUT /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `sentence` | string | yes | min length 1; max length 500 |
+| `targetPercent` | integer |  | min 1; max 100 |
+
+### `DELETE /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/:id/goal/approve`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fingerprint` | string | yes | min length 64; max length 64 |
+
+### `POST /api/cowork/:id/goal/check`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
 
 ### `POST /api/cowork/:id/hand-over`
 
