@@ -61,10 +61,10 @@ const DOT: Readonly<Record<'failed' | 'needs', string>> = {
 export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, error, open = true }: NeedFrameProps) {
     const { t } = useTranslation();
     const tone = BLOCKS[need.kind];
-    const leave = useLeave<HTMLElement>(open);
-    if (!leave.mounted) return null;
+    const { ref, mounted, leaving } = useLeave<HTMLElement>(open);
+    if (!mounted) return null;
     return (
-        <article ref={leave.ref} className={`flex flex-col gap-3 p-4 ${leave.leaving ? LEAVE : ENTER} ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
+        <article ref={ref} className={`flex flex-col gap-3 p-4 ${leaving ? LEAVE : ENTER} ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
             <div className="flex flex-col gap-0.5 min-w-0">
                 {!solo && (
                     <button

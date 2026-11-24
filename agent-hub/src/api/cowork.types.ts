@@ -89,7 +89,7 @@ export interface CoworkSetup {
 }
 
 /** What the confirmation sends with a new task: fixed steps or not, who it sends to ("me" and addresses), and "show me first". */
-export interface CoworkSetupChoice {
+interface CoworkSetupChoice {
     steps?: boolean;
     sendsTo?: string[];
     askFirst?: boolean;

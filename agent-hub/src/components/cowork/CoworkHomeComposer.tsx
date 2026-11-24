@@ -39,7 +39,7 @@ export interface CoworkHomeComposerProps {
 }
 
 /** How long after the last keystroke an edited sentence is read again. */
-export const REREAD_MS = 700;
+const REREAD_MS = 700;
 const RETRY_MS = 200;
 
 function SetupProgress({ setup, t }: { setup: TaskSetup; t: TranslateFn }) {

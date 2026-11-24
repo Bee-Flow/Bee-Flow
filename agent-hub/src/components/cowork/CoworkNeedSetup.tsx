@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CoworkProgress from './CoworkProgress';
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './coworkUi';
+import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { setupPhaseOf } from './useTaskSetup';
 import { makeCoworkPlan } from '@/api/coworkPlanMake';
 import { chooseCoworkSetup } from '@/api/coworkSetup';
@@ -20,7 +20,7 @@ import type { CoworkSetupCause } from '@/api/cowork.types';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 /** How long Undo is offered after "Let the AI work it out every run". */
-export const UNDO_MS = 8000;
+const UNDO_MS = 8000;
 
 /** The task is the AI's now: say so, and offer Undo for a few seconds. `onBack`: Undo worked, show the card again. */
 export function AiChosen({ need, solo, onOpenTask, onDone, onBack }: NeedKindProps & { onBack: () => void }) {
@@ -34,7 +34,7 @@ export function AiChosen({ need, solo, onOpenTask, onDone, onBack }: NeedKindPro
         return () => clearTimeout(timer);
     }, [mutate, stands]);
     const actions = (
-        <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: async () => { await chooseCoworkSetup(need.itemId, 'steps'); onBack(); }, settle: false })}>
+        <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: async () => { await chooseCoworkSetup(need.itemId, 'steps'); onBack(); }, settle: false })}>
             {t('cowork_home.need.undo', 'Undo')}
         </button>
     );
@@ -98,10 +98,10 @@ export function SetupCard(props: NeedKindProps) {
     const labels = [t('cowork_home.setup.steps', 'Setting up the steps'), t('cowork_home.setup.testing', 'Testing once, nothing is sent')];
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: again.run, done: t('cowork_home.setup.done', 'The steps are ready and tested. Open and approve them under Needs you.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: again.run, done: t('cowork_home.setup.done', 'The steps are ready and tested. Open and approve them under Needs you.') })}>
                 {again.phase === null ? t('cowork_home.setup_card.again', 'Try setting up again') : t('cowork_home.setup_card.setting_up', 'Setting up…')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={ai.choose}>{t('cowork_home.fix.ai_every_run', 'Let the AI work it out every run')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={ai.choose}>{t('cowork_home.fix.ai_every_run', 'Let the AI work it out every run')}</button>
         </>
     );
     return (

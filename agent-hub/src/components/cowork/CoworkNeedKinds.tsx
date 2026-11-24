@@ -7,7 +7,7 @@
  */
 import { useState } from 'react';
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './coworkUi';
+import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import { deleteCowork, toggleCowork } from '@/api/coworkApi';
 import { approveCoworkPlan, startCoworkPlanTry } from '@/api/coworkPlanApi';
@@ -24,15 +24,15 @@ export function CheckCard({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     const fingerprint = need.fingerprint;
     const actions = solo ? (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending || !fingerprint} onClick={() => fingerprint && act.mutate({ run: () => approveCoworkPlan(need.itemId, fingerprint), done: t('cowork_home.done.approved', 'Approved. It runs by itself from now on.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !fingerprint} onClick={() => fingerprint && act.mutate({ run: () => approveCoworkPlan(need.itemId, fingerprint), done: t('cowork_home.done.approved', 'Approved. It runs by itself from now on.') })}>
                 {t('cowork_home.need.approve', 'Approve')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => startCoworkPlanTry(need.itemId), done: t('cowork_home.done.testing', 'Testing once. Nothing is changed or sent.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => startCoworkPlanTry(need.itemId), done: t('cowork_home.done.testing', 'Testing once. Nothing is changed or sent.') })}>
                 {t('cowork_home.need.test', 'Test, sends nothing')}
             </button>
         </>
     ) : (
-        <button type="button" className={BUTTON_PRIMARY} onClick={() => onOpenTask(need.itemId, 'steps')}>{t('cowork_home.need.open_approve', 'Open and approve')}</button>
+        <button type="button" className={PILL_PRIMARY} onClick={() => onOpenTask(need.itemId, 'steps')}>{t('cowork_home.need.open_approve', 'Open and approve')}</button>
     );
     return (
         <NeedFrame
@@ -49,17 +49,17 @@ export function FirstTestCard({ need, solo, onOpenTask, onDone }: NeedKindProps)
     const [removing, setRemoving] = useState(false);
     const actions = removing ? (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => deleteCowork(need.itemId), done: t('cowork_home.done.removed', 'Removed.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => deleteCowork(need.itemId), done: t('cowork_home.done.removed', 'Removed.') })}>
                 {t('cowork_home.need.remove_task', 'Remove the task')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => setRemoving(false)}>{t('cowork_home.need.keep', 'Keep it')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => setRemoving(false)}>{t('cowork_home.need.keep', 'Keep it')}</button>
         </>
     ) : (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => startCoworkPlanTry(need.itemId), done: t('cowork_home.done.testing', 'Testing once. Nothing is changed or sent.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => startCoworkPlanTry(need.itemId), done: t('cowork_home.done.testing', 'Testing once. Nothing is changed or sent.') })}>
                 {t('cowork_home.need.test', 'Test, sends nothing')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => setRemoving(true)}>{t('cowork_home.need.remove', 'Remove')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => setRemoving(true)}>{t('cowork_home.need.remove', 'Remove')}</button>
         </>
     );
     return (
@@ -77,8 +77,8 @@ export function SignInCard({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     const act = useNeedAct(onDone);
     const actions = (
         <>
-            <a className={BUTTON_PRIMARY} href={settingsPathForTab('integrations')}>{t('cowork_home.need.sign_in', 'Sign in again')}</a>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => toggleCowork(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
+            <a className={PILL_PRIMARY} href={settingsPathForTab('integrations')}>{t('cowork_home.need.sign_in', 'Sign in again')}</a>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => toggleCowork(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
                 {t('cowork_home.need.turn_on', 'Turn it back on')}
             </button>
         </>
@@ -101,10 +101,10 @@ export function InvitationCard({ need, solo, onOpenTask, onDone }: NeedKindProps
     if (!desk) return null;
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => desks.accept.mutateAsync(desk.id), done: t('cowork_home.done.joined', 'Accepted. It is on the desk now.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => desks.accept.mutateAsync(desk.id), done: t('cowork_home.done.joined', 'Accepted. It is on the desk now.') })}>
                 {t('cowork_home.need.accept', 'Accept')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => desks.leave.mutateAsync(desk.id), done: t('cowork_home.done.declined', 'Declined.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => desks.leave.mutateAsync(desk.id), done: t('cowork_home.done.declined', 'Declined.') })}>
                 {t('cowork_home.need.decline', 'Decline')}
             </button>
         </>
@@ -128,10 +128,10 @@ export function HandOffCard({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     if (!handOff) return null;
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => allow.mutateAsync(handOff.followerId), done: t('cowork_home.done.allowed', 'Allowed. Each result of this task goes on to it.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => allow.mutateAsync(handOff.followerId), done: t('cowork_home.done.allowed', 'Allowed. Each result of this task goes on to it.') })}>
                 {t('cowork_home.need.allow', 'Allow')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => setLater(true)}>{t('cowork_home.need.not_now', 'Not now')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => setLater(true)}>{t('cowork_home.need.not_now', 'Not now')}</button>
         </>
     );
     return (

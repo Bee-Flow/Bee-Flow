@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { NeedBox, NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import CoworkProposalDetails from './CoworkProposalDetails';
 import { repairLine } from './coworkProposalModel';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, FIELD_WIDE, LABEL, LINK_BUTTON } from './coworkUi';
+import { FIELD_WIDE, LABEL, LINK_BUTTON, PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { resolveCoworkReview } from '@/api/coworkApi';
 import { useDecideApproval, usePendingApproval, type PendingApproval } from '@/api/coworkApprovals';
 import { useCoworkTrust } from '@/api/coworkIndependence';
@@ -38,10 +38,10 @@ function TrustQuestion({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     const to = offer.recipient;
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => choose.mutateAsync({ stepId: offer.stepId, recipient: to, trusted: true }), done: t('cowork_home.done.trusted', 'From now on it sends to {to} without asking.', { to }) })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => choose.mutateAsync({ stepId: offer.stepId, recipient: to, trusted: true }), done: t('cowork_home.done.trusted', 'From now on it sends to {to} without asking.', { to }) })}>
                 {t('cowork_home.need.always_allow', 'Always allow')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: async () => null, done: t('cowork_home.done.keeps_asking', 'Sent. It keeps asking before it sends to {to}.', { to }) })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: async () => null, done: t('cowork_home.done.keeps_asking', 'Sent. It keeps asking before it sends to {to}.', { to }) })}>
                 {t('cowork_home.need.keep_asking', 'Keep asking')}
             </button>
         </>
@@ -63,10 +63,10 @@ function SendQuestion({ props, approval }: { props: NeedKindProps; approval: Pen
     if (sent) return <TrustQuestion {...props} />;
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: async () => { await decide.mutateAsync({ id: approval.id, decision: 'approve' }); setSent(true); }, settle: false })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: async () => { await decide.mutateAsync({ id: approval.id, decision: 'approve' }); setSent(true); }, settle: false })}>
                 {t('cowork_home.need.send', 'Send')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => act.mutate({ run: () => decide.mutateAsync({ id: approval.id, decision: 'reject' }), done: t('cowork_home.done.not_sent', 'Not sent.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => decide.mutateAsync({ id: approval.id, decision: 'reject' }), done: t('cowork_home.done.not_sent', 'Not sent.') })}>
                 {t('cowork_home.need.dont_send', 'Don’t send')}
             </button>
         </>
@@ -88,8 +88,8 @@ export function SendCard(props: NeedKindProps) {
     if (pending.data) return <SendQuestion props={props} approval={pending.data} />;
     const actions = (
         <>
-            <a className={BUTTON_PRIMARY} href={APPROVALS_LINK}>{t('cowork_home.need.to_approvals', 'Open in Approvals')}</a>
-            <button type="button" className={BUTTON_SECONDARY} onClick={() => props.onOpenTask(props.need.itemId)}>{t('cowork_home.need.open_task', 'Open the task')}</button>
+            <a className={PILL_PRIMARY} href={APPROVALS_LINK}>{t('cowork_home.need.to_approvals', 'Open in Approvals')}</a>
+            <button type="button" className={PILL_QUIET} onClick={() => props.onOpenTask(props.need.itemId)}>{t('cowork_home.need.open_task', 'Open the task')}</button>
         </>
     );
     return <NeedFrame {...props} title={t('cowork_home.need.send_title', 'A message waits for you')} sub={t('cowork_home.need.send_sub', 'Nothing is sent until you say so.')} actions={actions} />;
@@ -107,17 +107,17 @@ export function ReviewCard(props: NeedKindProps) {
     const fieldId = `cowork-need-note-${need.key}`;
     const actions = asking ? (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending || !note.trim()} onClick={() => answer(note.trim(), t('cowork_home.done.redo', 'Sent. It works your note in.'))}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !note.trim()} onClick={() => answer(note.trim(), t('cowork_home.done.redo', 'Sent. It works your note in.'))}>
                 {t('cowork_home.need.send_note', 'Send note and redo')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => setAsking(false)}>{t('cowork_home.need.cancel', 'Cancel')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => setAsking(false)}>{t('cowork_home.need.cancel', 'Cancel')}</button>
         </>
     ) : (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending || !runId} onClick={() => answer(t('cowork_home.review.approved_answer', 'Approved. Go ahead.'), t('cowork_home.done.approved_result', 'Approved.'))}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !runId} onClick={() => answer(t('cowork_home.review.approved_answer', 'Approved. Go ahead.'), t('cowork_home.done.approved_result', 'Approved.'))}>
                 {t('cowork_home.need.approve', 'Approve')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending} onClick={() => setAsking(true)}>{t('cowork_home.need.ask_changes', 'Ask for changes')}</button>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => setAsking(true)}>{t('cowork_home.need.ask_changes', 'Ask for changes')}</button>
         </>
     );
     const extra = (
@@ -144,10 +144,10 @@ export function RepairCard(props: NeedKindProps) {
     const { approve, dismiss } = useCoworkProposalActions(need.itemId);
     const actions = (
         <>
-            <button type="button" className={BUTTON_PRIMARY} disabled={act.isPending || !proposal} onClick={() => proposal && act.mutate({ run: () => approve.mutateAsync({ proposalId: proposal.id, fingerprint: proposal.fingerprint }), done: t('cowork_home.done.fix_approved', 'Approved. The fix is in the steps now.') })}>
+            <button type="button" className={PILL_PRIMARY} disabled={act.isPending || !proposal} onClick={() => proposal && act.mutate({ run: () => approve.mutateAsync({ proposalId: proposal.id, fingerprint: proposal.fingerprint }), done: t('cowork_home.done.fix_approved', 'Approved. The fix is in the steps now.') })}>
                 {t('cowork_home.need.approve_fix', 'Approve the fix')}
             </button>
-            <button type="button" className={BUTTON_SECONDARY} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.fix_later', 'Fine. The task keeps waiting for you; you find the fix in the task.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending || !need.repair} onClick={() => need.repair && act.mutate({ run: () => dismiss.mutateAsync(need.repair?.proposalId ?? ''), done: t('cowork_home.done.fix_later', 'Fine. The task keeps waiting for you; you find the fix in the task.') })}>
                 {t('cowork_home.need.not_now', 'Not now')}
             </button>
         </>

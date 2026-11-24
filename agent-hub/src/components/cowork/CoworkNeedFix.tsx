@@ -11,7 +11,7 @@
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import { AiChosen, useAiChoice } from './CoworkNeedSetup';
 import type { NeedProblem, NeedWords } from './coworkNeedsModel';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './coworkUi';
+import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import { runCoworkNow } from '@/api/coworkApi';
 import { fixCoworkPlanWiring } from '@/api/coworkPlanApi';
@@ -102,7 +102,7 @@ const LABELS: Readonly<Record<FixMove, Copy>> = {
 };
 
 /** The sentence of a problem, with the step and the app it can name. */
-export function fixTitle(problem: NeedProblem, words: NeedWords | undefined, t: TranslateFn): string {
+function fixTitle(problem: NeedProblem, words: NeedWords | undefined, t: TranslateFn): string {
     const has = (word: keyof NeedWords): boolean => !!words?.[word];
     const options = TITLES[problem] ?? TITLES.failed;
     const [, copy] = options.find(([needs]) => needs.every(has)) ?? options[options.length - 1] ?? TITLES.failed[0];
@@ -133,7 +133,7 @@ export function FixCard(props: NeedKindProps) {
     return (
         <NeedFrame
             {...props} title={fixTitle(problem, need.words, t)} sub={sub ? t(...sub) : null} error={act.error}
-            actions={<>{button(plan.primary, BUTTON_PRIMARY)}{button(plan.secondary[way], BUTTON_SECONDARY)}</>}
+            actions={<>{button(plan.primary, PILL_PRIMARY)}{button(plan.secondary[way], PILL_QUIET)}</>}
         />
     );
 }
