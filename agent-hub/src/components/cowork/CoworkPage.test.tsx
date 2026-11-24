@@ -4,7 +4,7 @@
 // The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkPage from './CoworkPage';
@@ -51,6 +51,15 @@ function expectNoOverlay() {
     // A page is a child of the Cowork column itself, not a portal next to it.
     expect(screen.getByTestId('cowork-page')).toContainElement(screen.getByTestId('cowork-page-frame'));
 }
+
+// Each page is its own chunk (./coworkSheetPanels.ts). Loading them here keeps the first load of a chunk, which is slow
+// on a busy runner, out of the one second a test waits for a page to appear.
+beforeAll(async () => {
+    await Promise.all([
+        import('./task/CoworkTaskView'), import('./task/CoworkTaskShared'), import('./panels/CoworkSettingsPanel'),
+        import('./panels/CoworkTeamworkPanel'), import('./panels/CoworkTemplatesPanel'), import('./panels/CoworkOrgPanel'),
+    ]);
+}, 60_000);
 
 describe('CoworkPage', () => {
     it('opens a task from its row as a page in place of the home, says so in the address, and "Tasks" goes back to the row', async () => {
