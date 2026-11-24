@@ -27,4 +27,13 @@ describe('Waiting for you', () => {
         expect(needSentence({ kind: 'ai_failed', itemId: 'w', title: '', plan: null }, t)).toMatch(/AI said/);
         expect(needRoute({ kind: 'incomplete', itemId: 'w4', title: 'D', plan: null })).toBe('/cowork/w4');
     });
+
+    it('a failed run, a set-up that did not work and a fix that is ready never read as a plan to approve', () => {
+        const first = needSentence({ kind: 'plan', itemId: 'w', title: '', plan: 'first' }, t);
+        const lines = ['failed', 'setup', 'repair'].map((kind) => needSentence({ kind, itemId: 'w', title: '', plan: null }, t));
+        expect(lines[0]).toMatch(/last run failed/);
+        expect(lines[1]).toMatch(/could not set up its steps/);
+        expect(lines[2]).toMatch(/worked out a fix/);
+        expect(lines).not.toContain(first);
+    });
 });
