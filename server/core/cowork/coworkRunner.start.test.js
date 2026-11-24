@@ -117,7 +117,7 @@ test('while the organisation has made Cowork read-only, a start runs nothing: th
     mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {string} */ message, /** @type {unknown} */ close) => { errors.push([message, close]); });
     mock.method(coworkStore, 'advanceSchedule', async () => null);
     mock.method(coworkStore, 'getSchedule', async () => item);
-    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
     await runner.executeCowork(item, { due: true }, { policyOf: readOnly });
     assert.equal(errors.length, 1);
     assert.match(String(/** @type {any[]} */ (errors[0])[0]), /read-only/);
@@ -127,7 +127,7 @@ test('the apps the organisation lets run while nobody watches travel with the ru
     const item = { id: 's3', userId: 'u1', title: 'Mail desk', prompt: 'Answer.', repeatInterval: 'hourly', nextRunAt: new Date().toISOString() };
     /** @type {any[]} */
     const started = [];
-    const policyOf = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: ['gmail'], monthlyBudget: null });
+    const policyOf = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: ['gmail'], monthlyBudget: null, habitsAllowed: true });
     await runner.executeCowork(item, { manual: true }, { policyOf, budgetRefusal: async () => null, orgRefusal: async () => null, executeTask: /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); }) });
     assert.deepEqual(started.map((t) => [t.id, t.unattendedApps]), [['s3', ['gmail']]]);
 });
@@ -143,8 +143,8 @@ test('a follow-up after a review is refused like any start: by a read-only organ
     /** @type {any[]} */
     const started = [];
     const executeTask = /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); });
-    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: null });
-    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
     await runner.executeCowork(item, { trigger: { runId: 'follow-1' } }, { policyOf: readOnly, budgetRefusal: async () => null, executeTask });
     await runner.executeCowork(item, { trigger: { runId: 'follow-2' } }, { policyOf: open, orgRefusal: async () => null, budgetRefusal: async () => 'This cowork reached its monthly budget.', executeTask });
     assert.equal(started.length, 0, 'nothing ran');
@@ -167,7 +167,7 @@ test('over the organisation\'s budget: the first due run of an item fails with t
     /** @type {any[]} */
     const started = [];
     const executeTask = /** @type {any} */ (async (/** @type {any} */ task) => { started.push(task); });
-    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 50 });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 50, habitsAllowed: true });
     const reason = "Your organisation's Cowork budget of €50.00 for this month is used up";
     let quiet = false;
     const orgRefusal = async () => ({ reason, quiet });
@@ -190,8 +190,8 @@ test('a refused mail or event run of a one-off item leaves the item on, and one 
     mock.method(coworkStore, 'updateTask', async (/** @type {string} */ _id, /** @type {any} */ patch) => { updates.push(patch); });
     mock.method(coworkStore, 'markError', async (/** @type {string} */ _id, /** @type {any} */ message, /** @type {any} */ close) => { errors.push([String(message), close]); });
     mock.method(coworkStore, 'advanceSchedule', async () => null);
-    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null });
-    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 10 });
+    const readOnly = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: true, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
+    const open = async () => ({ ceiling: /** @type {const} */ ('on_its_own'), readOnly: false, unattendedApps: null, monthlyBudget: 10, habitsAllowed: true });
     await runner.executeCowork(item, { trigger: { runId: 'mail-1' } }, { policyOf: readOnly });
     await runner.executeCowork(item, { trigger: { runId: 'hook-1' } }, { policyOf: open, orgRefusal: async () => ({ reason: 'Budget used up.', quiet: true }) });
     assert.ok(!updates.some((u) => u.isActive === false), 'the item stays on');

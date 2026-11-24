@@ -107,6 +107,8 @@ const STORE_MODULES = [
     { name: 'coworkDailyMailStore', file: './stores/coworkDailyMail.mts' },
     // The run receipts of Cowork items (cowork_receipts); refers to cowork_schedules, so after coworkStore.
     { name: 'coworkReceiptsStore', file: './stores/coworkReceipts.mts' },
+    // What a person repeats in chat, as hashes and weeks, when they switched it on (cowork_habit_signals, _offers). No FKs.
+    { name: 'coworkHabitsStore', file: './stores/coworkHabits.mts' },
     // Cowork templates of an organisation (cowork_templates, stores/ddl/cowork-templates-2026-11.js). No FKs.
     { name: 'coworkTemplatesStore', file: './stores/coworkTemplates.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },

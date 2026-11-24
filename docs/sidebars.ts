@@ -352,6 +352,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/cowork-run-receipts',
             'contributing/decisions/cowork-mail-plans',
             'contributing/decisions/cowork-packages',
+            'contributing/decisions/cowork-notices-repeats',
           ],
         },
       ],

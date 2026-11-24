@@ -32,6 +32,7 @@ const PolicyBody = z.object({
     readOnly: flag('readOnly is true or false.').optional(),
     unattendedApps: z.array(z.string({ error: APPS_TEXT }).min(1, { error: APPS_TEXT }).max(100, { error: APPS_TEXT }), { error: APPS_TEXT }).max(200, { error: APPS_TEXT }).nullable().optional(),
     monthlyBudget: z.number({ error: BUDGET_TEXT }).positive({ error: BUDGET_TEXT }).max(10_000_000, { error: BUDGET_TEXT }).nullable().optional(),
+    habitsAllowed: flag('habitsAllowed is true or false.').optional(),
 }).strict();
 
 /** Members read; a platform admin (null) reads every organisation. @param {import('express').Request<{ orgId: string }>} req */

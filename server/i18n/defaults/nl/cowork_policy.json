@@ -12,6 +12,8 @@
     "cowork_policy.ceiling.asks_everything": "Hoogstens: alles vragen",
     "cowork_policy.ceiling.on_its_own": "Geen plafond: een cowork mag zelfstandig draaien",
     "cowork_policy.failed": "Dat is niet opgeslagen. Probeer het opnieuw.",
+    "cowork_policy.habits": "Mensen mogen \"merk op wat ik herhaal\" aanzetten",
+    "cowork_policy.habits_desc": "Ieder beslist dat zelf, en het staat uit tot iemand het aanzet. Het bewaart welke apps een chat gebruikte en op welke weekdag, nooit wat er gevraagd werd. Dit uitzetten stopt het voor iedereen.",
     "cowork_policy.read_only": "Maak elke cowork alleen-lezen",
     "cowork_policy.read_only_desc": "Er draait niets en er wordt niets gemaakt of gewijzigd tot je dit uitzet. Meteen opgeslagen.",
     "cowork_policy.save_apps": "Opslaan",

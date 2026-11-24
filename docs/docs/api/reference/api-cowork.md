@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-57 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
+59 routes, 35 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -354,6 +354,24 @@ No request schema.
 | `enabled` | boolean | yes |  |
 | `timeZone` | string | yes | min length 1; max length 64 |
 
+## `habits`
+
+### `GET /api/cowork/habits`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/habits`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `on` | boolean | yes |  |
+
 ## `home`
 
 ### `GET /api/cowork/home`
@@ -433,6 +451,7 @@ No request schema.
 | `readOnly` | boolean |  |  |
 | `unattendedApps` | array of string or null |  |  |
 | `monthlyBudget` | number or null |  |  |
+| `habitsAllowed` | boolean |  |  |
 
 ### `GET /api/cowork/policy/:orgId/audit`
 

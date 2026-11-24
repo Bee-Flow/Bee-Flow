@@ -1859,6 +1859,9 @@
     "GET /api/cowork/daily-mail": {
       "gate": "auth"
     },
+    "GET /api/cowork/habits": {
+      "gate": "auth"
+    },
     "GET /api/cowork/home": {
       "gate": "auth"
     },
@@ -7445,6 +7448,9 @@
       "gate": "auth"
     },
     "PUT /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/habits": {
       "gate": "auth"
     },
     "PUT /api/cowork/policy/:orgId": {

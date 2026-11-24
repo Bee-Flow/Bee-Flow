@@ -5,6 +5,7 @@
 import { CalendarDays } from 'lucide-react';
 import CoworkNeedsYou from './CoworkNeedsYou';
 import CoworkSharedWithMe from './CoworkSharedWithMe';
+import CoworkHabitsSwitch from './CoworkHabitsSwitch';
 import { todayWords } from './coworkHomeModel';
 import { useCoworkHome } from '../../api/coworkHome';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -54,6 +55,7 @@ export default function CoworkHome({ onOpen, reloadKey = 0 }: { onOpen: (itemId:
                     {t('cowork.home.cost_month', 'AI this month: {cost}', { cost: formatCost(home.cost.byCurrency, lang) })}
                 </p>
             )}
+            <CoworkHabitsSwitch />
         </>
     );
 }

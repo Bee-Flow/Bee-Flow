@@ -72,6 +72,7 @@ async function finalizeStreamTurn(turn) {
     if (!isEphemeral) {
         await scheduleMemoryExtraction(turn);
     }
+    if (!isEphemeral) await noticeRepeat(turn);
 
     // Transparency: emit the accumulated raw (pre-un-tokenise) LLM
     // response once per turn, gated by the org's `showRawPayload` toggle,
@@ -94,6 +95,30 @@ async function finalizeStreamTurn(turn) {
         userMessageRedacted: turn.processedUserMessage !== turn.userMessage,
         model: modelToUse,
     };
+}
+
+/**
+ * "It notices what you repeat" (core/cowork/habits/habitSignals.mts): a person's own chat turn that used an app is
+ * noted as a hash and a week, when that person switched it on. Not a Cowork run, not an unattended turn. When the same
+ * kind of turn came four weeks in a row on this weekday, the chat offers once, before the turn's `done`, to let Cowork
+ * do it (the browser fills in the brief from the message on screen). It waits at most half a second: noting it never
+ * holds a turn up, and a failure changes nothing.
+ * @param {{ userId?: string, agentId?: string, toolCalls?: Array<{ name?: unknown }>, messageMetadata?: { coworkRun?: unknown, unattended?: unknown } | null, onEvent?: (event: string, data: unknown) => void }} turn
+ */
+async function noticeRepeat({ userId, agentId, toolCalls, messageMetadata, onEvent }) {
+    if (!userId || !agentId || messageMetadata?.coworkRun || messageMetadata?.unattended || !Array.isArray(toolCalls) || toolCalls.length === 0) return;
+    const toolNames = toolCalls.map((c) => (typeof c?.name === 'string' ? c.name : '')).filter(Boolean);
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let timer;
+    const late = new Promise((resolve) => { timer = setTimeout(() => resolve(null), 500); });
+    try {
+        const offer = await Promise.race([require('../cowork/habits/habitSignals.mts').noteTurn({ userId, agentId, toolNames }), late]);
+        if (offer) onEvent?.('cowork_suggestion', offer);
+    } catch (e) {
+        bestEffort('core/agentRuntime/finalizeTurn:noticeRepeat', e);
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 /**

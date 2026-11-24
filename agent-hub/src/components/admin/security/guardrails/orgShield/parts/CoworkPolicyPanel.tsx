@@ -10,7 +10,7 @@ import { apiJson, apiUrl } from '@/api/typedRequest';
 import type { TranslateFn } from '../tabs/checks/checksTypes';
 
 type Level = 'asks_everything' | 'asks_before_sending' | 'on_its_own';
-interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null; monthlyBudget?: number | null }
+interface Policy { ceiling: Level; readOnly: boolean; unattendedApps: string[] | null; monthlyBudget?: number | null; habitsAllowed?: boolean }
 
 const keyOf = (orgId: string) => ['cowork-policy', orgId] as const;
 const LEVELS: Array<[Level, string, string]> = [
@@ -94,6 +94,15 @@ export default function CoworkPolicyPanel({ orgId, readOnly = false, t }: { orgI
                         {t('cowork_policy.save_apps', 'Save')}
                     </button>
                 </div>
+            </div>
+            <div className="border-t [border-color:var(--border-subtle)]">
+                <ToggleCard
+                    title={t('cowork_policy.habits', 'Let people switch on "notice what I repeat"')}
+                    description={t('cowork_policy.habits_desc', 'Each person decides for themselves, and it is off until they switch it on. It keeps which apps a chat used and on which weekday, never what was asked. Switching this off stops it for everyone.')}
+                    checked={current.habitsAllowed !== false}
+                    onChange={(next) => save.mutate({ habitsAllowed: next })}
+                    disabled={disabled}
+                />
             </div>
             <BudgetField current={current.monthlyBudget ?? null} disabled={disabled} t={t} onSave={(budget, done) => save.mutate({ monthlyBudget: budget }, { onSuccess: done })} />
             <div className="px-4 py-3 border-t [border-color:var(--border-subtle)] flex items-center justify-between gap-3">

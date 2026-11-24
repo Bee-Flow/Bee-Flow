@@ -76,6 +76,7 @@ function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = 
     require('./coworkStartRoutes').mountStartRoutes(router);
     require('./coworkShareRoutes').mountShareRoutes(router);
     require('./coworkReceiptRoutes').mountReceiptRoutes(router);
+    require('./coworkHabitRoutes').mountHabitRoutes(router);
     require('./coworkTemplateRoutes').mountTemplateRoutes(router);
 }
 

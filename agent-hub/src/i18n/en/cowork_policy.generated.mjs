@@ -18,6 +18,8 @@ export default {
     "cowork_policy.ceiling.asks_everything": "At most: ask about everything",
     "cowork_policy.ceiling.on_its_own": "No ceiling: a cowork may run on its own",
     "cowork_policy.failed": "That did not save. Try again.",
+    "cowork_policy.habits": "Let people switch on \"notice what I repeat\"",
+    "cowork_policy.habits_desc": "Each person decides for themselves, and it is off until they switch it on. It keeps which apps a chat used and on which weekday, never what was asked. Switching this off stops it for everyone.",
     "cowork_policy.read_only": "Make every cowork read-only",
     "cowork_policy.read_only_desc": "Nothing runs, and nothing is created or changed, until you switch this off. Saved at once.",
     "cowork_policy.save_apps": "Save",

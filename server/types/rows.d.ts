@@ -1235,6 +1235,21 @@ declare namespace DbRow {
         updated_at: Date;
         user_id: string;
     }
+    /** Row of `cowork_habit_offers`. */
+    interface CoworkHabitOffers {
+        offered_at: Date;
+        tools_hash: string;
+        user_id: string;
+    }
+    /** Row of `cowork_habit_signals`. */
+    interface CoworkHabitSignals {
+        agent_id: string;
+        created_at: Date;
+        iso_week: string;
+        tools_hash: string;
+        user_id: string;
+        weekday: number;
+    }
     /** Row of `cowork_plans`. */
     interface CoworkPlans {
         approved_at: Date;

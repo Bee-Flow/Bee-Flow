@@ -21,8 +21,8 @@ const memory = () => {
 beforeEach(() => { _clearCoworkPolicyCache(); });
 
 test('nothing stored is the open policy; what is not understood is the open value of that field', () => {
-    assert.deepStrictEqual(normalizePolicy(null), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null });
-    assert.deepStrictEqual(normalizePolicy({ ceiling: 'never', readOnly: 'yes', unattendedApps: ['outlook', ' outlook ', 3, 'datatables'], monthlyBudget: -5 }), { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables', 'outlook'], monthlyBudget: null });
+    assert.deepStrictEqual(normalizePolicy(null), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
+    assert.deepStrictEqual(normalizePolicy({ ceiling: 'never', readOnly: 'yes', unattendedApps: ['outlook', ' outlook ', 3, 'datatables'], monthlyBudget: -5 }), { ceiling: 'on_its_own', readOnly: false, unattendedApps: ['datatables', 'outlook'], monthlyBudget: null, habitsAllowed: true });
 });
 
 test('a monthly budget is a positive amount in euros, rounded to cents; anything else is no limit', () => {
@@ -44,7 +44,7 @@ test('stored per organisation; a change is read at once; an unreadable policy is
     await setCoworkPolicy('org-1', { readOnly: true }, store);
     assert.strictEqual((await resolveCoworkPolicy('org-1', store)).readOnly, true);
     assert.match(runRefusalOf(await resolveCoworkPolicy('org-1', store)) ?? '', /read-only/);
-    assert.deepStrictEqual(await resolveCoworkPolicy(null, store), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null });
+    assert.deepStrictEqual(await resolveCoworkPolicy(null, store), { ceiling: 'on_its_own', readOnly: false, unattendedApps: null, monthlyBudget: null, habitsAllowed: true });
     const broken = { getConfig: async () => { throw new Error('down'); }, setConfig: async () => {} };
     const strict = await resolveCoworkPolicy('org-2', broken);
     assert.deepStrictEqual([strict.readOnly, strict.ceiling, strict.unreadable], [true, 'asks_everything', true]);

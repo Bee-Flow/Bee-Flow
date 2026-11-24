@@ -25,6 +25,7 @@ const AgentHub = lazy(() => import('./AgentHub'));
 const MfaSetupGate = lazy(() => import('./pages/login/MfaSetupGate'));
 const EncryptionSetup = lazy(() => import('./pages/EncryptionSetup'));
 const DlpPreviewModal = lazy(() => import('./components/chat/DlpPreviewModal'));
+const CoworkHabitChip = lazy(() => import('./components/cowork/CoworkHabitChip'));
 const OnboardingTour = lazy(() => import('./components/onboarding/OnboardingTour'));
 const LessonPlayerHost = lazy(() => import('./components/onboarding/LessonPlayerHost'));
 import ErrorBoundary from './components/shell/ErrorBoundary';
@@ -580,9 +581,8 @@ function AppRecorderProvider({ user, navigateToPage, isAuthenticated, currentPag
                     </div>
 
                     {/* Pre-flight DLP preview modal — globally mounted, listens for
-            `beeflow:dlp_preview` window events emitted by useChatEngine. */}
-                    {isAuthenticated && <DlpPreviewModal />}
-
+            `beeflow:dlp_preview` window events emitted by useChatEngine; and the Cowork offer for a repeated ask. */}
+                    {isAuthenticated && <><DlpPreviewModal /><CoworkHabitChip /></>}
 
                     {/* Global Meeting Notes surfaces — mounted once, available from any page. */}
                     {isAuthenticated && <CaptureModal />}
