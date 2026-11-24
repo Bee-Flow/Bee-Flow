@@ -120,8 +120,11 @@ function ShowFirst({ view, onChoose, t }: ConfirmRowProps) {
     );
 }
 
-/** Sends to: "Me" and the addresses as chips, "Add an address", and "Show me each message first". */
-export function SendsToRow({ view, onChoose, t }: ConfirmRowProps) {
+/**
+ * Sends to: "Me" and the addresses as chips, "Add an address", and "Show me each message first". Only fixed steps can
+ * hold a message until its owner has seen it: without them (`steps` false) the row says so instead of offering it.
+ */
+export function SendsToRow({ view, onChoose, t, steps }: ConfirmRowProps & { steps: boolean }) {
     const to = view.recipients;
     const nobody = !to.me && to.others.length === 0;
     return (
@@ -137,7 +140,11 @@ export function SendsToRow({ view, onChoose, t }: ConfirmRowProps) {
                 )}
             </ul>
             <AddAddress onAdd={(address) => onChoose({ recipients: withRecipient(to, address) })} t={t} />
-            <Expand open={view.sendsToOthers}><ShowFirst view={view} onChoose={onChoose} t={t} /></Expand>
+            <Expand open={view.sendsToOthers}>
+                {steps
+                    ? <ShowFirst view={view} onChoose={onChoose} t={t} />
+                    : <p className={`m-0 ${META}`} data-testid="cowork-confirm-sends-ai">{t('cowork_home.confirm.sends_ai', 'The AI sends what it writes by itself. Showing you each message first needs fixed steps, which your organisation does not have.')}</p>}
+            </Expand>
         </div>
     );
 }

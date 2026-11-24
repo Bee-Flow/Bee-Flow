@@ -67,7 +67,7 @@ export default function CoworkTaskRows({ items, cards, home, testingId, onOpen }
                 const when = (
                     <>
                         {whenLine(item, t)}
-                        {goal && <> · <span className="text-[var(--text-secondary)]">{t('cowork_home.row.goal', 'Goal: {goal}', { goal })}</span></>}
+                        {goal && <> · <span className="text-[var(--text-secondary)]">{t('cowork_home.row.target', 'Target: {goal}', { goal })}</span></>}
                     </>
                 );
                 return <TaskRow key={item.id} index={index} title={item.title || t('cowork_home.untitled', 'Untitled task')} status={status} when={when} next={nextLine(item, status, t, locale || 'en')} onOpen={() => onOpen(item.id)} />;

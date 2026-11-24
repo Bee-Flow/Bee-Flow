@@ -11,8 +11,8 @@ schedule, and runs it as you, with your connected apps, while you do something e
 
 :::info[Free in Community]
 
-Tasks for yourself are free. Sharing with colleagues, approvals by someone else and the
-organisation settings need a licence with those features. See [Tiers](../licensing/tiers.md).
+Tasks for yourself are free, and so is sharing them with colleagues. Fixed steps need a licence with
+automations, and letting a task ask you first needs one with approvals. See [Tiers](../licensing/tiers.md).
 
 :::
 
@@ -136,16 +136,21 @@ Everything about you, for all your tasks:
 
 ## For administrators
 
-**Admin rules** on the Cowork home (also under **Security → Privacy Shield → Processing**) holds what
-applies to every task of the organisation:
+**Admin rules** on the Cowork home holds what applies to every task of the organisation:
 
-- **Make every task read-only**: nothing runs, nothing changes, until switched off.
-- **How much a task may do without asking**: a ceiling on the "Ask me" choice above.
-- **Apps tasks may use without asking**: other apps are left out of every run.
-- **Monthly AI limit for all tasks**: at it, tasks stop running until the next month; you are told once.
-- **Let people switch on "Suggest a task when I repeat a question"**: switch it off to stop it for
-  everyone.
-- **Download the trail**: every change to a task in the organisation, without what the work says.
+- **Read-only mode**: tasks read and write drafts, but change and send nothing, until you switch it off.
+- **Automatic fixes**: Cowork repairs a broken step by itself when the fix needs no new permission. The
+  owner sees it and can undo it.
+- **Apps tasks may use without asking**: an app that is off here is left out of every run nobody watches.
+- **Monthly spending limit** for all tasks together: everyone sees a notice from 80%, and at 100% new
+  runs are refused until you raise it or the month ends.
+- **Allow "Suggest a task when I repeat a question"**: switch it off to stop it for everyone. Each person
+  still has to turn it on, and you never see what it noticed.
+- **Proof of each run**: check that no receipt of any task was changed or removed, and export the audit
+  file.
+
+How much a task may do without asking, and the trail of every change to a task (without what the work
+says), are under **Security → Privacy Shield → Processing**.
 
 ## Privacy
 

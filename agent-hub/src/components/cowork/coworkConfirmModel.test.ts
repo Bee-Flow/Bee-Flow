@@ -108,6 +108,13 @@ describe('confirmView and startPayload', () => {
         expect(sent.setup).toEqual({ steps: false, sendsTo: ['me'] });
     });
 
+    it('without fixed steps nothing can be shown first, so the start does not ask for it', () => {
+        const view = confirmView({ payload: payload(), spec: null }, {}, 'Summarise my meetings and send it to sam@example.com', apps);
+        expect(view).toMatchObject({ sendsToOthers: true, showFirst: true });
+        expect((startPayload(view, true) as CoworkPayload).setup).toMatchObject({ steps: true, askFirst: true });
+        expect((startPayload(view, false) as CoworkPayload).setup).toEqual({ steps: false, sendsTo: expect.arrayContaining(['sam@example.com']) });
+    });
+
     it('what the owner changed by hand wins, and survives a new reading of the sentence', () => {
         const mine = { title: 'Monday digest', apps: [] as string[], recipients: { me: false, others: ['jo@example.com'] }, showFirst: false, schedule: schedulePartOf(withDay(weekly, 'fri', '16:00', NOW)) };
         const reread = { payload: { ...weekly, title: 'Meeting summary for Sam', prompt: 'Summarise the Gmail threads for sam@example.com' }, spec: null };

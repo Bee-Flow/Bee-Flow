@@ -12,6 +12,7 @@ import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import { deleteCowork, toggleCowork } from '@/api/coworkApi';
 import { approveCoworkPlan, startCoworkPlanTry } from '@/api/coworkPlanApi';
 import { useDeskHandOff, useItemDeskActions } from '@/api/coworkDesks';
+import { apiJson } from '@/api/typedRequest';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /** The steps are ready: on the home, open the task to approve them; inside it, approve them or test them once more. */
@@ -72,13 +73,22 @@ export function FirstTestCard({ need, solo, onOpenTask, onDone }: NeedKindProps)
 }
 
 /** An app's sign-in ran out and the task paused itself: sign in, then switch it back on. */
+/**
+ * Switch a paused task on. Signing in again already resumes the tasks that paused for it, and the switch is a flip:
+ * a task that is on by now is left on, not paused again.
+ */
+async function turnOn(itemId: string): Promise<void> {
+    const item = await apiJson<'GET /api/cowork/{id}', { isActive?: boolean }>('GET /api/cowork/{id}', { params: { id: itemId } });
+    if (item.isActive !== true) await toggleCowork(itemId);
+}
+
 export function SignInCard({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     const { t } = useTranslation();
     const act = useNeedAct(onDone);
     const actions = (
         <>
             <a className={PILL_PRIMARY} href={settingsPathForTab('integrations')}>{t('cowork_home.need.sign_in', 'Sign in again')}</a>
-            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => toggleCowork(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
+            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => turnOn(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
                 {t('cowork_home.need.turn_on', 'Turn it back on')}
             </button>
         </>

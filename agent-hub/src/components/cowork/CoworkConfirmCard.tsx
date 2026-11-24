@@ -110,9 +110,9 @@ export interface CoworkConfirmCardProps {
     onCancel: () => void;
 }
 
-interface RowsProps { view: ConfirmView; asking: boolean; mustPick: boolean; setChanging: (changing: boolean) => void; onChoose: (change: Partial<ConfirmChoices>) => void; catalogue: ReadonlyArray<{ id: string; label: string }>; t: TranslateFn }
+interface RowsProps { view: ConfirmView; steps: boolean; asking: boolean; mustPick: boolean; setChanging: (changing: boolean) => void; onChoose: (change: Partial<ConfirmChoices>) => void; catalogue: ReadonlyArray<{ id: string; label: string }>; t: TranslateFn }
 
-function ConfirmRows({ view, asking, mustPick, setChanging, onChoose, catalogue, t }: RowsProps) {
+function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, catalogue, t }: RowsProps) {
     const clock = isClockPayload(view.payload);
     return (
         <dl className="grid grid-cols-1 sm:grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 items-start m-0">
@@ -127,7 +127,7 @@ function ConfirmRows({ view, asking, mustPick, setChanging, onChoose, catalogue,
             <dt className={ROW_LABEL}>{t('cowork_home.confirm.sends_to', 'Sends to')}</dt>
             <dd className={`${ROW_VALUE} mb-0`}>
                 {clock
-                    ? <SendsToRow view={view} onChoose={onChoose} t={t} />
+                    ? <SendsToRow view={view} onChoose={onChoose} t={t} steps={steps} />
                     : <span data-testid="cowork-confirm-sends">{t('cowork_home.confirm.sends_sender', 'The sender of each mail, as a draft')}</span>}
             </dd>
         </dl>
@@ -150,7 +150,7 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">
             <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'This is what I understood')}</h2>
-            <ConfirmRows view={view} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
+            <ConfirmRows view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
             <p className={META}>{hintOf(mustPick, steps, t)}</p>
             {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
             {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}

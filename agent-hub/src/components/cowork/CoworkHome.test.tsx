@@ -45,7 +45,7 @@ describe('CoworkHome', () => {
         const { onOpenTask } = home();
         const rows = await screen.findAllByTestId('cowork-task-row');
         expect(rows.map((r) => within(r).getByTestId('cowork-status').dataset.status)).toEqual(['nothing', 'failed', 'paused']);
-        expect(rows[0]).toHaveTextContent('Goal: Every meeting in it');
+        expect(rows[0]).toHaveTextContent('Target: Every meeting in it');
         expect(rows[0]).toHaveTextContent(/Next: (Today|Tomorrow), /);
         await userEvent.setup().click(rows[1]);
         expect(onOpenTask).toHaveBeenCalledWith('w2');

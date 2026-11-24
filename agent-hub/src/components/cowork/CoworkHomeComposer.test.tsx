@@ -133,6 +133,19 @@ describe('CoworkHomeComposer', () => {
         expect((created()?.body as { setup: { askFirst: boolean } }).setup.askFirst).toBe(false);
     });
 
+    it('without fixed steps the card does not offer "Show me each message first": it says the AI sends by itself', async () => {
+        serve(WEEKLY);
+        const { onCreated } = renderComposer({ steps: false });
+        const { user, card } = await write('Every Monday, mail the summary to sam@example.com');
+        expect(within(card).queryByRole('switch', { name: 'Show me each message first' })).toBeNull();
+        expect(within(card).getByTestId('cowork-confirm-sends-ai')).toHaveTextContent('The AI sends what it writes by itself.');
+        await user.click(within(card).getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(onCreated).toHaveBeenCalled());
+        const setup = (created()?.body as { setup: { steps: boolean; sendsTo: string[] } }).setup;
+        expect(setup).toMatchObject({ steps: false, sendsTo: expect.arrayContaining(['sam@example.com']) });
+        expect(setup).not.toHaveProperty('askFirst');
+    });
+
     it('Uses pre-selects only the apps the sentence names; apps can be added and taken off, and they are saved with the task', async () => {
         serve(WEEKLY);
         const { onCreated } = renderComposer();

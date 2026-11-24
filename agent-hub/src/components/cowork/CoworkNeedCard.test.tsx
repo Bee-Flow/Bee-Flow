@@ -172,6 +172,15 @@ describe('CoworkNeedCard — the primary action of each kind', () => {
         await waitFor(() => expect(posted('/api/cowork/w1/toggle')).toBeTruthy());
     });
 
+    it('sign-in: a task that signing in already resumed is left on, not paused by the flip', async () => {
+        calls = stubRecordingFetch(({ url }) => jsonResponse(url.endsWith('/api/cowork/w1') ? { id: 'w1', isActive: true } : {}));
+        const onDone = vi.fn();
+        renderWithClient(<CoworkNeedCard need={card({ kind: 'sign_in' })} onDone={onDone} />);
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Turn it back on' }));
+        await waitFor(() => expect(onDone).toHaveBeenCalledWith('It is on again.'));
+        expect(posted('/api/cowork/w1/toggle')).toBeUndefined();
+    });
+
     it('send: shows the message, approves it, then asks "always allow this recipient?" and trusts it', async () => {
         const need = card({ kind: 'send', runId: 'r1', automationId: 'auto-1' });
         serve();

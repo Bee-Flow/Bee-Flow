@@ -252,6 +252,7 @@ export function startPayload(view: ConfirmView, steps: boolean): CoworkPayload |
         ...view.payload,
         title,
         ...(view.apps ? { enabledApps: view.apps } : {}),
-        setup: { steps, sendsTo: sendsToList(view.recipients), ...(view.sendsToOthers ? { askFirst: view.showFirst } : {}) },
+        // Only fixed steps can show a message first: without them the card did not offer it, so nothing is asked for.
+        setup: { steps, sendsTo: sendsToList(view.recipients), ...(steps && view.sendsToOthers ? { askFirst: view.showFirst } : {}) },
     };
 }
