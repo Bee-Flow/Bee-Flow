@@ -29,28 +29,26 @@ function firefliesWorld() {
         TOOLS,
         /** @type {Array<{ id: string, title: string, date: string, participants: string[] }>} */
         meetings: [1, 2].map((n) => ({ id: `t${n}`, title: `${MARKER} weekly ${n}`, date: '2026-11-17', participants: [`p${n}@example.com`] })),
-        /** @type {Array<{ tool: string, inputs: any }>} */
+        /** @type {Array<{ tool: string, inputs: Record<string, unknown> }>} */
         calls: [],
-        /** @type {any[]} */
+        /** @type {unknown[]} */
         modelRequests: [],
     };
-    /** @type {Record<string, any>} */
-    const original = {};
+    const toolDispatcher = require('../tools/toolDispatcher');
+    const integrationTools = require('../integrations/integrationTools');
+    const original = { executeTool: toolDispatcher.executeTool, getIntegrationTools: integrationTools.getIntegrationTools };
     /** @type {http.Server | null} */
     let server = null;
 
     before(async () => {
-        const toolDispatcher = require('../tools/toolDispatcher');
-        const integrationTools = require('../integrations/integrationTools');
-        Object.assign(original, { toolDispatcher, integrationTools, executeTool: toolDispatcher.executeTool, getIntegrationTools: integrationTools.getIntegrationTools });
-        toolDispatcher.executeTool = async (/** @type {string} */ tool, /** @type {any} */ inputs) => {
+        toolDispatcher.executeTool = async (/** @type {string} */ tool, /** @type {Record<string, unknown>} */ inputs) => {
             world.calls.push({ tool, inputs });
             if (tool === 'fireflies_list_transcripts') return { results: world.meetings, count: world.meetings.length, message: `Found ${world.meetings.length} transcript(s).` };
             const meeting = world.meetings.find((m) => m.id === inputs?.transcriptId);
             if (!meeting) throw new Error(`Fireflies has no transcript "${inputs?.transcriptId}"`);
             return { id: meeting.id, title: meeting.title, summary: { overview: `${MARKER} overview of ${meeting.id}` } };
         };
-        integrationTools.getIntegrationTools = async () => (/** @type {any} */ ({ tools: TOOLS.map((name) => ({ type: 'function', function: { name } })) }));
+        integrationTools.getIntegrationTools = async () => (/** @type {Awaited<ReturnType<typeof original.getIntegrationTools>>} */ (/** @type {unknown} */ ({ tools: TOOLS.map((name) => ({ type: 'function', function: { name } })) })));
 
         server = http.createServer((req, res) => {
             let raw = '';
@@ -68,8 +66,8 @@ function firefliesWorld() {
     });
 
     after(async () => {
-        original.toolDispatcher.executeTool = original.executeTool;
-        original.integrationTools.getIntegrationTools = original.getIntegrationTools;
+        toolDispatcher.executeTool = original.executeTool;
+        integrationTools.getIntegrationTools = original.getIntegrationTools;
         await new Promise((resolve) => { server?.close(() => resolve(null)); });
     });
 

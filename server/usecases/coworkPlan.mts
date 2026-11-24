@@ -188,7 +188,8 @@ export async function planStateOf(item: Item, deps: Deps = defaultDeps()): Promi
         widens: draft ? widens(draft.permissions, approved?.permissions) : [],
         upToDate,
         stepChanges,
-        tried: await triedFor(item, automation, draft, deps),
+        // A try-out of an earlier plan says nothing about the approved one on screen (a fix Cowork approved with its own proof).
+        tried: await triedFor(item, automation, draft, deps).then((t) => (t && !t.current && upToDate ? null : t)),
     };
 }
 

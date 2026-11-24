@@ -10,7 +10,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { planStateOf, attachPlan, approvePlan, removePlan } = require('./coworkPlan.mts');
+const { planStateOf, attachPlan, approvePlan, removePlan, triedOf } = require('./coworkPlan.mts');
 const { planFingerprint, permissionsOf } = require('../core/cowork/plan/planPermissions.mts');
 const { fakeLookups, planOf, supplierRadar, literal } = require('../core/cowork/plan/plan.testkit');
 
@@ -200,4 +200,22 @@ test('taking the plan off leaves the item without one', async () => {
     const after = await removePlan({ item: ITEM }, deps);
     assert.strictEqual(state.detached, 1);
     assert.deepStrictEqual(after, { automationId: null, draft: null, approved: null, widens: [], upToDate: false, stepChanges: [], tried: null });
+});
+
+test('the last try-out: a plan Cowork made waits for one that passed, a failed one blocks, another automation\'s says nothing', () => {
+    const record = (over) => ({ automationId: 'auto-1', fingerprint: 'fp-1', tryId: 'try-1', status: 'passed', required: true, summary: null, problems: [], rounds: 1, at: '', ...over });
+    assert.strictEqual(triedOf(record(), 'auto-1', 'fp-1').blocksApproval, false, 'it passed for exactly this plan');
+    assert.deepStrictEqual([triedOf(record(), 'auto-1', 'fp-2').current, triedOf(record(), 'auto-1', 'fp-2').blocksApproval], [false, true], 'the plan changed since');
+    assert.strictEqual(triedOf(record({ status: 'failed', required: false }), 'auto-1', 'fp-1').blocksApproval, true, 'a failed try-out of this plan blocks');
+    assert.strictEqual(triedOf(record({ status: 'failed', required: false }), 'auto-1', 'fp-2').blocksApproval, false, 'of another version it does not');
+    assert.strictEqual(triedOf(record(), 'auto-2', 'fp-1'), null);
+    assert.strictEqual(triedOf(null, 'auto-1', 'fp-1'), null);
+});
+
+test('approval waits for the try-out a plan Cowork made needs; what Cowork proves itself does not', async () => {
+    const { deps } = world();
+    const fp = (await planStateOf(ITEM, deps)).draft.fingerprint;
+    deps.tryOf = async () => ({ automationId: 'auto-1', fingerprint: fp, tryId: 't', status: 'failed', required: true, summary: null, problems: ["'X' failed (error)."], rounds: 3, at: '' });
+    await assert.rejects(approvePlan({ item: ITEM, fingerprint: fp }, deps), (e) => e.status === 422 && e.code === 'cowork_plan_untried' && /'X' failed/.test(e.message));
+    await approvePlan({ item: ITEM, fingerprint: fp, proven: true }, deps);
 });
