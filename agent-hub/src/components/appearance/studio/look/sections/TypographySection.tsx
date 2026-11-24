@@ -10,7 +10,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 const FONT_SAMPLE = 'The quick brown fox jumps over the lazy dog.';
 
 const FONT_STACKS_PREVIEW: Record<string, string> = {
-    system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif",
     inter: "'Inter', sans-serif",
     plex: "'IBM Plex Sans', sans-serif",
     geist: "'Geist', sans-serif",
