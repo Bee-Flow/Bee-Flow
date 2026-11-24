@@ -19,11 +19,15 @@ export interface PlanStep {
     readsOutsideText: boolean;
     /** 0 at the top level, 1 inside a loop. */
     depth: number;
+    /** It only reshapes or guards data between the steps that do the work; absent from an older server. */
+    helper?: boolean;
 }
 
 interface PlanView {
     trigger: string | null;
     steps: PlanStep[];
+    /** The ids of `steps` in the order they run (server core/cowork/plan/planOrder.mts); absent from an older server. */
+    runOrder?: string[];
     makeUp: Record<PlanStepKind, number>;
 }
 

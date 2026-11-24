@@ -60,7 +60,7 @@ function eventWhen(item: ItemFacts, t: TranslateFn): string | null {
 }
 
 /** "Every weekday 16:30", "When a new e-mail arrives in Outlook", "Once, Dec 1 at 06:30", "Right away". */
-function whenPart(facts: OverviewFacts, t: TranslateFn): string {
+export function whenPart(facts: Pick<OverviewFacts, 'item' | 'startsNow'>, t: TranslateFn): string {
     const { item } = facts;
     const event = eventWhen(item, t);
     if (event) return event;

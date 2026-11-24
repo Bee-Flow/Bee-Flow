@@ -1,5 +1,5 @@
 /**
- * A plan as a person reads it: its steps in order, each with what kind of work it is (done the same way every run,
+ * A plan as a person reads it: its steps (and the order they run in, ./planOrder.mts), each with what kind of work it is (done the same way every run,
  * done by a model, waiting for a person, a result), what it does to the world, and whether it reads outside text.
  * The line "5 fixed, 2 AI, 1 waits for you" is counted here.
  *
@@ -8,7 +8,8 @@
 
 import { createRequire } from 'node:module';
 import type { Definition, DefStep, Effect, PlanStep, PlanView, StepKind, ToolLookups } from './planTypes.mts';
-import { isAnnotation, kindOfStepType } from './coworkStepList.mts';
+import { isAnnotation, isHelperStepType, kindOfStepType } from './coworkStepList.mts';
+import { runOrderOf } from './planOrder.mts';
 import { outsideTextOf } from './outsideText.mts';
 import { stepsOf } from './planWalk.mts';
 
@@ -59,8 +60,11 @@ export function planViewOf(definition: Definition | null | undefined, lookups: T
             tool,
             readsOutsideText: kind === 'ai' && outside.reads.has(s.id),
             depth: s.depth,
+            helper: isHelperStepType(s.type),
         });
     }
     const kind = definition?.trigger?.kind;
-    return { trigger: typeof kind === 'string' && kind ? kind : null, steps, makeUp };
+    const shown = new Set(steps.map((s) => s.id));
+    const runOrder = runOrderOf(definition).filter((id) => shown.has(id));
+    return { trigger: typeof kind === 'string' && kind ? kind : null, steps, runOrder, makeUp };
 }

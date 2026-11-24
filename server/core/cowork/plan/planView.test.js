@@ -94,6 +94,28 @@ test('a built-in tool no app owns has no app', () => {
 
 test('nothing to read gives an empty view, not an error', () => {
     for (const plan of [null, undefined, {}, { steps: 'no' }]) {
-        assert.deepStrictEqual(planViewOf(plan, lookups), { trigger: null, steps: [], makeUp: { fixed: 0, ai: 0, ask: 0, deliver: 0 } });
+        assert.deepStrictEqual(planViewOf(plan, lookups), { trigger: null, steps: [], runOrder: [], makeUp: { fixed: 0, ai: 0, ask: 0, deliver: 0 } });
     }
+});
+
+test('the view says the order the steps run in: the edges decide, not the order they are written down in', () => {
+    const plan = planOf([
+        { id: 'write', type: 'ai_step', prompt: 'Sum up {{steps.read.output.messages}}' },
+        { id: 'read', type: 'integration_action', tool: 'outlook_search' },
+        { id: 'send', type: 'notification', title: 'Digest', body: '{{steps.write.output.text}}' },
+    ]);
+    plan.edges = [{ from: 'trg', to: 'read' }, { from: 'read', to: 'write' }, { from: 'write', to: 'send' }];
+    const view = planViewOf(plan, lookups);
+    assert.deepStrictEqual(view.steps.map((s) => s.id), ['write', 'read', 'send'], 'the steps stay in the order of the definition');
+    assert.deepStrictEqual(view.runOrder, ['read', 'write', 'send']);
+});
+
+test('a step that only reshapes data is a helper step; a step that does the work is not', () => {
+    const plan = planOf([
+        { id: 'read', type: 'integration_action', tool: 'outlook_search' },
+        { id: 'trim', type: 'filter', arrayRef: '{{steps.read.output.messages}}' },
+        { id: 'sum', type: 'ai_step', prompt: 'x' },
+        { id: 'tell', type: 'notification', title: 'Done', body: 'Done.' },
+    ]);
+    assert.deepStrictEqual(planViewOf(plan, lookups).steps.map((s) => [s.id, s.helper]), [['read', false], ['trim', true], ['sum', false], ['tell', false]]);
 });

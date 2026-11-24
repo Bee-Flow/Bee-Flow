@@ -90,6 +90,19 @@ export function refusalOfStepType(type: unknown): string {
     return `A plan cannot hold "${name}": it is not on the list of steps Cowork runs.`;
 }
 
+/**
+ * Step types that only reshape or guard the data between the steps that do the work: a person reads the plan without
+ * them, and sees them behind "Show N helper steps". Every one of them is a fixed step that changes and sends nothing.
+ */
+const HELPERS: ReadonlySet<string> = new Set([
+    'set', 'datetime', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'code', 'tokenize', 'untokenize', 'guard',
+]);
+
+/** Does this step type only reshape or guard data on the way (a helper step)? */
+export function isHelperStepType(type: unknown): boolean {
+    return typeof type === 'string' && HELPERS.has(type);
+}
+
 /** Every step type a plan may hold, sorted (the planner is told this list, and tests pin it). */
 export function planStepTypes(): string[] {
     return Object.keys(KINDS).sort();

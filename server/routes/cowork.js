@@ -381,8 +381,12 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
             coworkStore.listRuns(req.params.id, { limit, offset }),
             coworkStore.getRunCount(req.params.id),
         ]);
-        // What each run cost in AI (usecases/coworkCosts.mts): the history never fails on it.
-        res.json({ runs: await require('../usecases/coworkCosts.mts').withRunCosts(req.params.id, runs, coworkStore), total });
+        // What each run cost in AI (usecases/coworkCosts.mts): the history never fails on it. Each tool a run used carries
+        // what a person calls it and what it does (usecases/coworkRunWords.mts), so no screen shows a raw tool name.
+        const costed = await require('../usecases/coworkCosts.mts').withRunCosts(req.params.id, runs, coworkStore);
+        const { withToolWords } = require('../usecases/coworkRunWords.mts');
+        const { toolLookups } = require('../core/cowork/plan/planLookups.mts');
+        res.json({ runs: withToolWords(costed, toolLookups()), total });
     } catch (err) {
         fail(res, err, 'Runs');
     }

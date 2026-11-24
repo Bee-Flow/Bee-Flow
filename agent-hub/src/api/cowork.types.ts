@@ -88,6 +88,12 @@ export interface CoworkRunTool {
     failed: number;
     refused: number;
     reasons: string[];
+    /** What a person calls it ("Outlook: create draft"); null or absent when nobody named it (server usecases/coworkRunWords.mts). */
+    label?: string | null;
+    /** What it does to the world; absent from an older server. */
+    effect?: 'reads' | 'writes' | 'sends';
+    /** One of Cowork's own tools (asking for a review, giving its verdict): no step of the work. */
+    internal?: boolean;
 }
 
 /** What one run did, in names and counts only. */

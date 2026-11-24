@@ -67,12 +67,16 @@ export interface PlanStep {
     readsOutsideText: boolean;
     /** 0 at the top level, 1 inside a loop, and so on. */
     depth: number;
+    /** It only reshapes or guards data between the steps that do the work (./coworkStepList.mts isHelperStepType). */
+    helper: boolean;
 }
 
 export interface PlanView {
     /** What starts the plan: 'schedule', 'manual', 'app_event'; null when the definition names none. */
     trigger: string | null;
     steps: PlanStep[];
+    /** The ids of `steps` in the order they run (./planOrder.mts): the order of the plan's edges, not of the definition. */
+    runOrder: string[];
     /** How many steps of each kind: the "5 fixed, 2 AI, 1 waits for you" line. */
     makeUp: Record<StepKind, number>;
 }
