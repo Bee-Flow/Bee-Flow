@@ -16,8 +16,8 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const VIEW: DeskView = {
     desk: { id: 'd1', name: 'Invoices', isOwner: false, ownerName: 'Ann' },
     members: [
-        { scheduleId: 'radar', title: 'Supplier radar', ownerName: 'Ann', mine: false, accepted: true, after: null, lastStatus: 'success', lastRunAt: null, deskRole: null },
-        { scheduleId: 'w1', title: 'Invoice intake', ownerName: 'Bob', mine: true, accepted: true, after: 'radar', lastStatus: null, lastRunAt: null, deskRole: null },
+        { scheduleId: 'radar', title: 'Supplier radar', ownerName: 'Ann', mine: false, accepted: true, after: null, lastStatus: 'success', lastRunAt: null, deskRole: null, handOff: null, decidesHandOff: false },
+        { scheduleId: 'w1', title: 'Invoice intake', ownerName: 'Bob', mine: true, accepted: true, after: 'radar', lastStatus: null, lastRunAt: null, deskRole: null, handOff: 'waiting', decidesHandOff: false },
     ],
     roles: [{ role: 'invoices', holderId: 'cas', standInId: 'dan', awayUntil: null, holderName: 'Cas', standInName: 'Dan', away: false }],
     colleagues: [],
@@ -77,6 +77,34 @@ describe('CoworkDeskPanel', () => {
         expect(calls.find((c) => c.url.endsWith('/w1/start'))?.body).toEqual({ kind: 'after_cowork', scheduleId: 'radar' });
         await user.click(screen.getByRole('button', { name: 'Take it off the desk' }));
         await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
+    });
+
+    it('a cowork that follows a colleague\'s says it waits; the colleague allows it once, and can stop it again', async () => {
+        serve({ id: 'd1', name: 'Invoices', accepted: true, deskRole: null, invitedBy: null });
+        const { unmount } = renderWithClient(<CoworkDeskPanel coworkId="w1" />);
+        expect(await screen.findByTestId('cowork-desk-hand-off')).toHaveTextContent('Receives nothing until Ann allows it to get the result of "Supplier radar".');
+        expect(screen.queryByRole('button', { name: 'Allow' })).toBeNull();
+        unmount();
+
+        // As Ann, on her radar: Bob's intake asks for its result.
+        const [radar, intake] = VIEW.members;
+        const asAnn = (handOff: 'waiting' | 'allowed'): DeskView => ({
+            ...VIEW,
+            members: [{ ...radar, mine: true, scheduleId: 'w1' }, { ...intake, mine: false, scheduleId: 'bobs', after: 'w1', handOff, decidesHandOff: true }],
+        });
+        serve({ id: 'd1', name: 'Invoices', accepted: true, deskRole: null, invitedBy: null }, asAnn('waiting'));
+        const user = userEvent.setup();
+        const view = renderWithClient(<CoworkDeskPanel coworkId="w1" />);
+        expect(await screen.findByTestId('cowork-desk-hand-off')).toHaveTextContent('Asks to receive the result of your "Supplier radar". It runs as Bob.');
+        await user.click(screen.getByRole('button', { name: 'Allow' }));
+        await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/desks/d1/members/bobs/hand-off'))).toBe(true));
+        view.unmount();
+
+        serve({ id: 'd1', name: 'Invoices', accepted: true, deskRole: null, invitedBy: null }, asAnn('allowed'));
+        renderWithClient(<CoworkDeskPanel coworkId="w1" />);
+        expect(await screen.findByTestId('cowork-desk-hand-off')).toHaveTextContent('Receives the result of your "Supplier radar".');
+        await user.click(screen.getByRole('button', { name: 'Stop sending it' }));
+        await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/desks/d1/members/bobs/hand-off'))).toBe(true));
     });
 
     it('the desk\'s maker sets the roles as one list: holder, stand-in, away until', async () => {

@@ -39,7 +39,16 @@ const pass = (_req, _res, next) => next();
 
 const router = express.Router();
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountGoalRoutes(router, { loadItem, goals: () => /** @type {any} */ (goals), orgOf: async () => 'org-1', draftLimit: pass, moduleGate: pass });
+/** The items whose AI budget is used up this month. */
+const spent = new Set(['cw-spent']);
+/** @type {string[]} */
+let budgetAsked = [];
+const spendLeft = async (/** @type {{ id: string }} */ item) => {
+    budgetAsked.push(item.id);
+    if (spent.has(item.id)) throw new HttpError(409, 'cowork_budget_used', 'This cowork has used its AI budget for this month.');
+};
+const loadAny = async (/** @type {string} */ id, /** @type {string} */ userId) => (id === 'cw-spent' && userId === 'u1' ? /** @type {any} */ ({ id, userId }) : loadItem(id, userId));
+mountGoalRoutes(router, { loadItem: loadAny, goals: () => /** @type {any} */ (goals), orgOf: async () => 'org-1', draftLimit: pass, moduleGate: pass, spendLeft });
 const api = serve('/api/cowork', router, { user: { id: 'u1' } });
 after(api.close);
 
@@ -85,4 +94,15 @@ test('a goal is one sentence and a whole percentage; approving takes a fingerpri
     assert.deepStrictEqual(asked, []);
     assert.strictEqual((await api.call('PUT', '/api/cowork/cw-1/goal', { body: { sentence: 'A goal' } })).status, 200);
     assert.deepStrictEqual(asked, [['saveGoal', { item: 'cw-1', sentence: 'A goal', targetPercent: 100 }]], 'the target is 100 when none is given');
+});
+
+test('drafting a check is AI: an item or organisation at its budget is refused before the model is asked', async () => {
+    asked = [];
+    budgetAsked = [];
+    const refused = await api.call('POST', '/api/cowork/cw-spent/goal/check', { body: {} });
+    assert.strictEqual(refused.status, 409);
+    assert.deepStrictEqual(asked, [], 'the use case never drafted');
+    assert.strictEqual((await api.call('POST', '/api/cowork/cw-1/goal/check', { body: {} })).status, 200);
+    assert.deepStrictEqual(budgetAsked, ['cw-spent', 'cw-1'], 'the budget is read for every draft');
+    assert.deepStrictEqual(asked.map(([name]) => name), ['draftCheck']);
 });

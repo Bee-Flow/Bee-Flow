@@ -19,7 +19,8 @@ export type AuditAction =
     | 'cowork.plan_attached' | 'cowork.plan_approved' | 'cowork.plan_removed' | 'cowork.plan_made'
     | 'cowork.review_handled' | 'cowork.independence_set' | 'cowork.handed_over' | 'cowork.start_set' | 'cowork.trust_set' | 'cowork.shares_set'
     | 'cowork.goal_set' | 'cowork.goal_check_approved' | 'cowork.goal_removed'
-    | 'cowork.desk_joined' | 'cowork.desk_accepted' | 'cowork.desk_role_set' | 'cowork.desk_left';
+    | 'cowork.desk_joined' | 'cowork.desk_accepted' | 'cowork.desk_role_set' | 'cowork.desk_left'
+    | 'cowork.desk_hand_off_allowed' | 'cowork.desk_hand_off_withdrawn';
 
 /** Fields whose values may be kept: they say when and how the work runs, not what it is about. */
 const VALUE_FIELDS: readonly string[] = Object.freeze([

@@ -192,6 +192,9 @@
     "DELETE /api/cowork/desks/:id/members/:scheduleId": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/desks/:id/members/:scheduleId/hand-off": {
+      "gate": "auth"
+    },
     "DELETE /api/cowork/templates/:id": {
       "gate": "auth"
     },
@@ -5338,6 +5341,9 @@
       "gate": "auth"
     },
     "POST /api/cowork/desks/:id/members/:scheduleId/accept": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members/:scheduleId/hand-off": {
       "gate": "auth"
     },
     "POST /api/cowork/hooks": {

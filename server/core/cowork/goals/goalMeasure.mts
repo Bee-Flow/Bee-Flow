@@ -6,6 +6,10 @@
  *     so, and are asked again here, before the run), and a dry run simulates whatever would change or send anything
  *     all the same. Nobody answers a pause: a check holds no step that waits for one.
  *   - AS APPROVED. The definition the owner approved is what runs, not the check's automation of the moment.
+ *   - UNDER THE ORGANISATION'S POLICY. A check runs while nobody watches, like a plan run: the owner's Cowork policy
+ *     (../../entitlements/coworkPolicy.mts) is asked before it starts, with the same refusals as a plan run
+ *     (../planRun.mts, ../planHeldDefinition.mts): read-only or unreadable, or an app the organisation does not let
+ *     run unattended. A refusal is a failed measurement with that reason; nothing of the check runs.
  *   - COALESCED. At most one measurement per item per window (MEASURE_WINDOW_MS): runs that end close together are
  *     measured once, claimed in the store, so two servers agree.
  *   - APART. A check that fails, or throws, never touches the cowork's run: the run has ended and said so before this
@@ -22,6 +26,8 @@ import { withIsolatedScripts } from '../plan/planRunCopy.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../plan/planSource.mts';
 import { onRunEnded, type EndedItem } from '../runEnded.mts';
 import { countOf, goalCheckFindings } from './goalCheck.mts';
+import { unattendedRefusal } from '../planPolicy.mts';
+import { policyOfOwner, runRefusalOf, type CoworkPolicy } from '../../entitlements/coworkPolicy.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../../telemetry/log.js') as { info: (m: string) => void; warn: (m: string) => void };
@@ -39,6 +45,8 @@ export interface MeasureDeps {
     isManaged: (automation: AutomationRow) => Promise<boolean>;
     executeAutomation: (automation: AutomationRow, opts: Record<string, unknown>) => Promise<RunRow | null | undefined>;
     lookups: ToolLookups;
+    /** The Cowork policy of the owner's organisation, asked before every check. */
+    policyOf: (userId: string) => Promise<CoworkPolicy>;
     now: () => Date;
 }
 
@@ -48,6 +56,7 @@ const defaults = (): MeasureDeps => ({
     isManaged: isManagedByStage,
     executeAutomation: (a, o) => (nodeRequire('../../automationRunner') as { executeAutomation: MeasureDeps['executeAutomation'] }).executeAutomation(a, o),
     lookups: (nodeRequire('../plan/planLookups.mts') as typeof import('../plan/planLookups.mts')).toolLookups(),
+    policyOf: (userId) => policyOfOwner(userId),
     now: () => new Date(),
 });
 
@@ -62,6 +71,9 @@ const REASON_MAX = 200;
 async function runCheck(item: EndedItem, checkAutomationId: string | null, definition: Definition, deps: MeasureDeps) {
     const findings = goalCheckFindings(definition, deps.lookups);
     if (findings.length > 0) throw new CheckRefused(`The check may not run: ${findings[0]?.message ?? ''}`);
+    const policy = await deps.policyOf(item.userId);
+    const refusal = runRefusalOf(policy) ?? unattendedRefusal(definition, deps.lookups, policy, 'the check did not run');
+    if (refusal) throw new CheckRefused(refusal.slice(0, REASON_MAX));
     const automation = await planSourceOf(checkAutomationId, item.userId, deps);
     if (!automation) throw new CheckRefused('The automation of the check is gone or no longer yours.');
     const row = await deps.executeAutomation({ ...automation, definition: withIsolatedScripts(definition) }, {

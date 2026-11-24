@@ -18,14 +18,7 @@ import { createRequire } from 'node:module';
 
 const nodeRequire = createRequire(import.meta.url);
 
-type Row = Record<string, unknown>;
-type Client = { query: (sql: string, params?: unknown[]) => Promise<{ rows: Row[] }> };
-type Db = {
-    getAll: (sql: string, params?: unknown[]) => Promise<Row[]>;
-    getOne: (sql: string, params?: unknown[]) => Promise<Row | null>;
-    run: (sql: string, params?: unknown[]) => Promise<unknown>;
-    withTransaction: <T>(fn: (client: Client) => Promise<T>) => Promise<T>;
-};
+import type { Row, Client, CoworkDb as Db } from './lib/coworkDb.mts';
 
 export const COWORK_PROPOSALS_DDL: readonly string[] = Object.freeze([
     `CREATE TABLE IF NOT EXISTS cowork_proposals (

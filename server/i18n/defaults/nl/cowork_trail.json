@@ -3,6 +3,8 @@
     "cowork_trail.action.created": "heeft dit werk aangemaakt",
     "cowork_trail.action.deleted": "heeft het verwijderd",
     "cowork_trail.action.desk_accepted": "heeft het op een bureau geaccepteerd",
+    "cowork_trail.action.desk_hand_off_allowed": "heeft het de uitkomst laten ontvangen van de cowork waarna het start",
+    "cowork_trail.action.desk_hand_off_withdrawn": "heeft gestopt het de uitkomst te sturen van de cowork waarna het start",
     "cowork_trail.action.desk_joined": "heeft het op een bureau gezet",
     "cowork_trail.action.desk_left": "heeft het van een bureau gehaald",
     "cowork_trail.action.desk_role_set": "heeft gekozen welke bureaurol over de vragen beslist",

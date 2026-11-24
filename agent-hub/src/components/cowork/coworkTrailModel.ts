@@ -26,6 +26,8 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.desk_accepted': 'accepted it on a desk',
     'cowork.desk_role_set': 'chose which desk role decides its questions',
     'cowork.desk_left': 'took it off a desk',
+    'cowork.desk_hand_off_allowed': 'let it receive the result of the cowork it starts after',
+    'cowork.desk_hand_off_withdrawn': 'stopped sending it the result of the cowork it starts after',
 };
 
 const FIELD_FALLBACK: Record<string, string> = {

@@ -12,7 +12,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 function DeskBody({ id, onOpen }: { id: string; onOpen: (itemId: string) => void }) {
     const view = useDeskView(id).data;
     if (!view) return null;
-    return <div className="pl-3 pt-1" data-testid="cowork-desk-view"><CoworkDeskChain members={view.members} onOpen={onOpen} /></div>;
+    return <div className="pl-3 pt-1" data-testid="cowork-desk-view"><CoworkDeskChain deskId={view.desk.id} members={view.members} onOpen={onOpen} /></div>;
 }
 
 export default function CoworkDesks({ onOpen }: { onOpen: (itemId: string) => void }) {

@@ -9,6 +9,8 @@ export default {
     "cowork_trail.action.created": "created this work",
     "cowork_trail.action.deleted": "deleted it",
     "cowork_trail.action.desk_accepted": "accepted it on a desk",
+    "cowork_trail.action.desk_hand_off_allowed": "let it receive the result of the cowork it starts after",
+    "cowork_trail.action.desk_hand_off_withdrawn": "stopped sending it the result of the cowork it starts after",
     "cowork_trail.action.desk_joined": "put it on a desk",
     "cowork_trail.action.desk_left": "took it off a desk",
     "cowork_trail.action.desk_role_set": "chose which desk role decides its questions",

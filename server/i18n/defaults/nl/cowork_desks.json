@@ -9,6 +9,11 @@
     "cowork_desks.decline": "Weigeren",
     "cowork_desks.empty": "Nog geen coworks op dit bureau.",
     "cowork_desks.failed": "Dat is niet gelukt. Probeer het opnieuw.",
+    "cowork_desks.hand_off.allow": "Toestaan",
+    "cowork_desks.hand_off.allowed": "Krijgt het resultaat van je \"{title}\".",
+    "cowork_desks.hand_off.asks": "Vraagt om het resultaat van je \"{title}\". Het draait als {owner}.",
+    "cowork_desks.hand_off.waiting": "Krijgt niets tot {owner} toestaat dat het het resultaat van \"{title}\" krijgt.",
+    "cowork_desks.hand_off.withdraw": "Niet meer sturen",
     "cowork_desks.heading": "Hier samen aan werken",
     "cowork_desks.hint": "Op een bureau geven coworks van collega's elkaar werk door. Elk draait als zijn eigen eigenaar, met zijn eigen koppelingen: alleen het resultaat gaat door naar de volgende.",
     "cowork_desks.home.heading": "Bureaus",
@@ -39,7 +44,7 @@
     "cowork_desks.start_after": "Start het na",
     "cowork_desks.start_after_none": "Kies een cowork van een collega",
     "cowork_desks.start_after_save": "Start het na die",
-    "cowork_desks.start_after_saved": "Opgeslagen. Het krijgt alleen het resultaat van die run.",
+    "cowork_desks.start_after_saved": "Opgeslagen. Het krijgt alleen het resultaat van die run, zodra de eigenaar ervan dat toestaat.",
     "cowork_desks.yours": "van jou"
   },
   "sameAsEnglish": [

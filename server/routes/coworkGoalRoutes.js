@@ -4,7 +4,8 @@
  *
  *   GET    /:id/goal         → the sentence, the target, the check in plain words, the last counts and their trend
  *   PUT    /:id/goal         → write the sentence and the target; a new sentence takes the check off
- *   POST   /:id/goal/check   → have Cowork draft the check from the sentence (a model's time: limited per person, and
+ *   POST   /:id/goal/check   → have Cowork draft the check from the sentence (a model's time: limited per person, counted
+ *                              against the item's and the organisation's AI budgets (core/cowork/spendGate.mts), and
  *                              behind the switch of the automation module, as a check is an automation)
  *   POST   /:id/goal/approve → approve the check the caller read (its fingerprint)
  *   DELETE /:id/goal         → take the goal off, with what it measured
@@ -43,6 +44,7 @@ const DRAFTS_PER_MINUTE = 4;
  *   orgOf: (req: import('express').Request, userId: string) => Promise<string | null>,
  *   draftLimit: import('express').RequestHandler<{ id: string }>,
  *   moduleGate: import('express').RequestHandler<{ id: string }>,
+ *   spendLeft: (item: { id: string, userId: string, monthlyBudget?: number | null }) => Promise<void>,
  * }} GoalRouteDeps
  */
 
@@ -54,6 +56,7 @@ const defaults = () => ({
         .catch((/** @type {unknown} */ e) => fallback('routes/coworkGoalRoutes:orgOf', e, null)),
     draftLimit: perUserRateLimit({ windowMs: 60_000, max: DRAFTS_PER_MINUTE, name: 'cowork-goal-check' }),
     moduleGate: requireModule('automation'),
+    spendLeft: (item) => require('../core/cowork/spendGate.mts').assertSpendLeft(item),
 });
 
 /**
@@ -71,7 +74,7 @@ function callerSignal(res) {
  * @param {Partial<GoalRouteDeps>} [overrides]
  */
 function mountGoalRoutes(router, overrides = {}) {
-    const { loadItem, goals, orgOf, draftLimit, moduleGate } = { ...defaults(), ...overrides };
+    const { loadItem, goals, orgOf, draftLimit, moduleGate, spendLeft } = { ...defaults(), ...overrides };
     router.get('/:id/goal', validate({ params: Params }), async (req, res) => {
         res.json(await goals().goalOf(await loadItem(req.params.id, userIdOf(req))));
     });
@@ -82,6 +85,7 @@ function mountGoalRoutes(router, overrides = {}) {
     router.post('/:id/goal/check', moduleGate, draftLimit, validate({ params: Params, body: DraftBody }), async (req, res) => {
         const userId = userIdOf(req);
         const item = await loadItem(req.params.id, userId);
+        await spendLeft(item); // drafting a check is AI too: it counts against the budgets (core/cowork/spendGate.mts)
         const userOrgId = await orgOf(req, userId);
         res.json(await goals().draftCheck({ item, session: req.session, userOrgId, signal: callerSignal(res) }));
     });

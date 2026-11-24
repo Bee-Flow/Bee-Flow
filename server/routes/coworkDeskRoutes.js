@@ -6,11 +6,15 @@
  *   POST /desks                                    → { name }: make one in the caller's organisation
  *   GET /desks/:id                                 → the desk: its coworks in the order work moves, roles, last status
  *   DELETE /desks/:id                              → remove it (its maker)
- *   PUT /desks/:id/roles                           → { roles: [{ role, holderId, standInId?, awayUntil? }] } (its maker)
+ *   PUT /desks/:id/roles                           → { roles: [{ role, holderId, standInId?, awayUntil? }] } (its maker;
+ *                                                    the owners of coworks using a role that changed hands are told)
  *   POST /desks/:id/members                        → { scheduleId }: put my cowork on it, or invite one shared with me
  *   POST /desks/:id/members/:scheduleId/accept     → the owner of an invited cowork accepts it
  *   PUT /desks/:id/members/:scheduleId             → { deskRole }: the role that decides that cowork's questions (its owner)
  *   DELETE /desks/:id/members/:scheduleId          → take a cowork off (its owner, or the desk's maker)
+ *   POST /desks/:id/members/:scheduleId/hand-off   → let that colleague's cowork, which starts after one of mine,
+ *                                                    receive its result (the owner of the cowork it follows; once)
+ *   DELETE /desks/:id/members/:scheduleId/hand-off → withdraw that again
  *   GET /:id/desk                                  → the desk my cowork is on or invited to (its owner)
  *
  * Mounted by ./coworkSideRoutes.js, before the item routes and behind routes/cowork.js's requireAuth.
@@ -74,6 +78,12 @@ function mountDeskRoutes(router, overrides = {}) {
     });
     router.delete('/desks/:id/members/:scheduleId', validate({ params: MemberParams }), async (req, res) => {
         res.json(await useCase().leaveDesk({ userId: userIdOf(req), deskId: req.params.id, scheduleId: req.params.scheduleId }));
+    });
+    router.post('/desks/:id/members/:scheduleId/hand-off', validate({ params: MemberParams, body: AcceptBody }), async (req, res) => {
+        res.json(await useCase().allowHandOff({ userId: userIdOf(req), deskId: req.params.id, scheduleId: req.params.scheduleId }));
+    });
+    router.delete('/desks/:id/members/:scheduleId/hand-off', validate({ params: MemberParams }), async (req, res) => {
+        res.json(await useCase().withdrawHandOff({ userId: userIdOf(req), deskId: req.params.id, scheduleId: req.params.scheduleId }));
     });
     router.get('/:id/desk', async (req, res) => {
         res.json(await useCase().itemDesk(await loadItem(req.params.id, userIdOf(req))));

@@ -30,6 +30,7 @@ const FIXTURES = [
         routes: [
             'GET /api/cowork/desks/:id', 'PUT /api/cowork/desks/:id/roles', 'POST /api/cowork/desks/:id/members',
             'POST /api/cowork/desks/:id/members/:scheduleId/accept', 'PUT /api/cowork/desks/:id/members/:scheduleId',
+            'POST /api/cowork/desks/:id/members/:scheduleId/hand-off', 'DELETE /api/cowork/desks/:id/members/:scheduleId/hand-off',
             'DELETE /api/cowork/desks/:id/members/:scheduleId', 'DELETE /api/cowork/desks/:id',
         ],
         bodies: {
@@ -37,6 +38,7 @@ const FIXTURES = [
             'POST /api/cowork/desks/:id/members': { scheduleId: 'a-cowork-of-the-caller' },
             'POST /api/cowork/desks/:id/members/:scheduleId/accept': {},
             'PUT /api/cowork/desks/:id/members/:scheduleId': { deskRole: null },
+            'POST /api/cowork/desks/:id/members/:scheduleId/hand-off': {},
         },
         params: { scheduleId: 'a-cowork-on-the-desk' },
         orgAdminCaller: true,

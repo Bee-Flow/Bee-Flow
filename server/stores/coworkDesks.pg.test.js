@@ -1,7 +1,7 @@
 // @typecheck
 /**
  * Desks on a real Postgres (PGlite): an item joins only once its owner accepted, the followers of a run are found
- * across owners on one desk only, and every read counts a person only while they are an active member of the desk's
+ * across owners on one desk only and only once the leading item's owner allowed the hand-off, and every read counts a person only while they are an active member of the desk's
  * organisation (a member who left stops counting, someone of another organisation never counts).
  *
  * Run: cd server && node --test stores/coworkDesks.pg.test.js
@@ -67,6 +67,11 @@ test('followers across owners: accepted members of the same desk that start afte
         await desks.addMember({ deskId: desk.id, scheduleId: id, addedBy: accepted ? owner : 'ann', accepted });
     }
     for (const id of [b, outsider, invited]) await starts.setStart(id, 'after_cowork', { scheduleId: a });
+    assert.deepStrictEqual(await desks.deskFollowers(a), [], 'nothing of Ann goes to Bob before Ann allows it');
+    for (const id of [b, outsider, invited]) {
+        const owner = /** @type {any} */ (await store.getSchedule(id)).userId;
+        await desks.allowFollow({ deskId: desk.id, leaderId: a, followerId: id, followerOwner: owner, allowedBy: 'ann' });
+    }
     assert.deepStrictEqual((await desks.deskFollowers(a)).map((i) => i.id), [b], 'not the outsider, not the invitation');
     assert.deepStrictEqual((await desks.listMembers(desk.id)).map((m) => m.title), ['A', 'B', 'C'], 'the outsider is no member of the desk');
     assert.strictEqual((await desks.listMembers(desk.id))[1].afterId, a);
@@ -93,4 +98,49 @@ test('a role holder or stand-in counts only while they are an active member of t
     await desks.deleteDesk(desk.id);
     assert.strictEqual(await desks.getDesk(desk.id), null);
     assert.deepStrictEqual(await desks.listRoles(desk.id), [], 'the roles go with the desk');
+});
+
+test('a hand-off across owners needs the yes of the leading item\'s owner: once, until withdrawn or either item changes hands', async () => {
+    const desk = await desks.createDesk({ organizationId: 'org-a', ownerId: 'cas', name: 'Consent' });
+    const radar = await item('ann', 'Supplier radar');
+    const intake = await item('bob', 'Invoice intake');
+    const annsOwn = await item('ann', 'Ann\'s report');
+    for (const id of [radar, intake, annsOwn]) {
+        const owner = /** @type {any} */ (await store.getSchedule(id)).userId;
+        await desks.addMember({ deskId: desk.id, scheduleId: id, addedBy: owner, accepted: true });
+    }
+    for (const id of [intake, annsOwn]) await starts.setStart(id, 'after_cowork', { scheduleId: radar });
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id), [annsOwn], 'following one\'s own cowork needs nothing; Bob\'s waits');
+    const shown = async () => Object.fromEntries((await desks.listMembers(desk.id)).map((m) => [m.title, m.afterAllowed]));
+    assert.deepStrictEqual(await shown(), { 'Supplier radar': false, 'Invoice intake': false, 'Ann\'s report': true });
+    assert.strictEqual(await desks.followAllowed(radar, intake), false);
+
+    await desks.allowFollow({ deskId: desk.id, leaderId: radar, followerId: intake, followerOwner: 'bob', allowedBy: 'bob' });
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id), [annsOwn], 'a yes of anyone but the leader\'s owner counts for nothing');
+    await desks.allowFollow({ deskId: desk.id, leaderId: radar, followerId: intake, followerOwner: 'bob', allowedBy: 'ann' });
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id).sort(), [annsOwn, intake].sort());
+    assert.strictEqual(await desks.followAllowed(radar, intake), true);
+    assert.strictEqual((await shown())['Invoice intake'], true);
+
+    /** Hand `id` to `to`, who accepts it on the desk again. */
+    const handTo = async (/** @type {string} */ id, /** @type {string} */ to) => {
+        await pg.query('UPDATE cowork_schedules SET user_id = $2 WHERE id = $1', [id, to]);
+        assert.strictEqual(await desks.acceptMember(desk.id, id, to), true);
+    };
+    await handTo(radar, 'dan');
+    assert.ok(!(await desks.deskFollowers(radar)).some((i) => i.id === intake), 'a leader handed to Dan: Dan is asked again');
+    await handTo(radar, 'ann');
+    await handTo(intake, 'cas');
+    assert.ok(!(await desks.deskFollowers(radar)).some((i) => i.id === intake), 'a follower handed to Cas: Ann is asked again');
+    await handTo(intake, 'bob');
+    assert.ok((await desks.deskFollowers(radar)).some((i) => i.id === intake), 'back with the people Ann said yes to');
+
+    assert.strictEqual(await desks.withdrawFollow(desk.id, radar, intake), true);
+    assert.deepStrictEqual((await desks.deskFollowers(radar)).map((i) => i.id), [annsOwn], 'withdrawn: Bob\'s cowork receives nothing any more');
+    assert.strictEqual(await desks.withdrawFollow(desk.id, radar, intake), false);
+
+    await desks.allowFollow({ deskId: desk.id, leaderId: radar, followerId: intake, followerOwner: 'bob', allowedBy: 'ann' });
+    assert.strictEqual(await desks.removeMember(desk.id, intake), true);
+    await desks.addMember({ deskId: desk.id, scheduleId: intake, addedBy: 'bob', accepted: true });
+    assert.strictEqual(await desks.followAllowed(radar, intake), false, 'taken off the desk and put back: Ann is asked again');
 });

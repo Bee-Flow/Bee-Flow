@@ -19,7 +19,7 @@ const DAYS: Array<[string, string]> = [
 interface Offer { weekday: number; brief: string }
 
 /** Open the Cowork page with this brief in its box (CoworkPage.tsx takes it once). */
-export function openCoworkWithBrief(brief: string): void {
+function openCoworkWithBrief(brief: string): void {
     handBrief(brief);
     navigate('/app/cowork');
 }

@@ -23,7 +23,10 @@ const userOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req
 const SIDE_ROUTES = new Set(['compose', 'daily-mail', 'shared', 'hooks', 'needs-you', 'home', 'policy', 'templates', 'receipts', 'shield', 'packages', 'habits']);
 
 /** @type {Record<string, import('../usecases/coworkAudit.mts').AuditAction>} `/desks/:id/members/:scheduleId[/…]`, by method and tail. */
-const DESK_MEMBER_ACTIONS = { 'POST accept': 'cowork.desk_accepted', 'PUT ': 'cowork.desk_role_set', 'DELETE ': 'cowork.desk_left' };
+const DESK_MEMBER_ACTIONS = {
+    'POST accept': 'cowork.desk_accepted', 'PUT ': 'cowork.desk_role_set', 'DELETE ': 'cowork.desk_left',
+    'POST hand-off': 'cowork.desk_hand_off_allowed', 'DELETE hand-off': 'cowork.desk_hand_off_withdrawn',
+};
 
 /**
  * A desk change that concerns one cowork: an entry on that cowork's trail. `POST /desks/:id/members` names it in its body.

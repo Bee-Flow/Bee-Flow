@@ -93,6 +93,7 @@ test('the action is read from the method and the path; anything else is no chang
         ['DELETE', '/cw-1/goal', { action: 'cowork.goal_removed', id: 'cw-1' }], ['POST', '/cw-1/goal/check', null],
         ['POST', '/desks/d1/members', { action: 'cowork.desk_joined', id: 'cw-1' }], ['POST', '/desks/d1/members/cw-1/accept', { action: 'cowork.desk_accepted', id: 'cw-1' }],
         ['PUT', '/desks/d1/members/cw-1', { action: 'cowork.desk_role_set', id: 'cw-1' }], ['DELETE', '/desks/d1/members/cw-1', { action: 'cowork.desk_left', id: 'cw-1' }],
+        ['POST', '/desks/d1/members/cw-1/hand-off', { action: 'cowork.desk_hand_off_allowed', id: 'cw-1' }], ['DELETE', '/desks/d1/members/cw-1/hand-off', { action: 'cowork.desk_hand_off_withdrawn', id: 'cw-1' }],
         ['POST', '/desks', null], ['PUT', '/desks/d1/roles', null],
     ]);
     for (const [method, path, expected] of cases) assert.deepStrictEqual(actionOf(method, path, { scheduleId: 'cw-1' }), expected, `${method} ${path}`);

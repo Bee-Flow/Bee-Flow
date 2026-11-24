@@ -8,6 +8,8 @@
  *     Bob and never Ann (the pool is the seam that records the queries, testUtils/pglitePool.js);
  *   - it receives only the result text of Ann's run (not even her item's title), and its plan is approved as one
  *     whose start brings outside text;
+ *   - nothing of Ann's goes to Bob before Ann allowed it on the desk (usecases/coworkDesks.mts allowHandOff), and
+ *     Ann is told that Bob's cowork asks;
  *   - a follower whose owner is in another organisation never starts, and one whose owner left the organisation stops
  *     counting.
  *
@@ -38,6 +40,7 @@ const automationStore = require('../../stores/automationStore');
 const { registerToolFamily, unregisterToolFamily, NOT_HANDLED } = require('../tools/toolFamilyRegistry');
 const { attachPlan, approvePlan } = require('../../usecases/coworkPlan.mts');
 const { chooseStart } = require('../../usecases/coworkStart.mts');
+const { allowHandOff } = require('../../usecases/coworkDesks.mts');
 const { coworkDesks, initDB: initDesks } = require('../../stores/coworkDesks.mts');
 const { coworkStarts } = require('../../stores/coworkStarts.mts');
 const { afterRunEnded } = require('./afterCowork.mts');
@@ -151,6 +154,11 @@ test('a hand-off from Ann\'s cowork runs Bob\'s cowork as Bob, with only the res
     const desk = await coworkDesks().createDesk({ organizationId: ORG, ownerId: 'ann', name: 'Invoices' });
     const radar = await onDesk(desk.id, 'ann', 'Supplier radar');
     const intake = await follower(desk.id, 'bob', radar);
+    const asks = (await pg.query('SELECT title, link FROM notifications WHERE user_id = $1', ['ann'])).rows;
+    assert.deepStrictEqual(asks.map((n) => n.link), [`/app/cowork/${radar}`], 'Ann is told that a colleague\'s cowork asks for her results');
+    assert.strictEqual(await handOff(radar, await radarEnded(radar)), 0, 'nothing of Ann\'s goes to Bob before she allows it');
+    assert.deepStrictEqual(await store.listRuns(intake), []);
+    await allowHandOff({ userId: 'ann', deskId: desk.id, scheduleId: intake });
     // As the run checks it (core/cowork/planRun.mts): its start brings outside text, and the draft's body reads it.
     const asRun = asStartedBy(intakeDefinition(), /** @type {any} */ (await store.getSchedule(intake)));
     assert.strictEqual(triggerBringsOutsideText(asRun), true, 'the hand-off reads as outside text');
@@ -184,6 +192,7 @@ test('a follower in another organisation never starts; a member who left stops c
     await assert.rejects(follower(desk.id, 'eve', radar), (/** @type {any} */ e) => e.status === 404, 'someone of another organisation cannot choose to start after it');
     const outsider = await follower(desk.id, 'eve', radar, true);
     const dans = await follower(desk.id, 'dan', radar);
+    await allowHandOff({ userId: 'ann', deskId: desk.id, scheduleId: dans });
     await pg.query(`UPDATE users SET "organizationId" = 'org-left' WHERE id = 'dan'`);
     assert.strictEqual(await handOff(radar, await radarEnded(radar)), 0, 'nobody started');
     assert.deepStrictEqual(await store.listRuns(outsider), [], 'the outsider\'s cowork did not run, though its start names the radar');
