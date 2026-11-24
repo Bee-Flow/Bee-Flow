@@ -10,8 +10,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { recipientOf, stepsUnder, trustedSteps, recordJourneyDecisions, ANY_RECIPIENT } = require('./planTrust.mts');
-const { fakeLookups, planOf, literal } = require('./plan/plan.testkit');
+const { recipientOf, sendsToOf, stepsUnder, trustedSteps, recordJourneyDecisions, ANY_RECIPIENT, OWNER_RECIPIENT } = require('./planTrust.mts');
+const { fakeLookups, planOf, literal, supplierRadar } = require('./plan/plan.testkit');
 
 const lookups = fakeLookups();
 const send = { id: 'send', type: 'integration_action', label: 'Mail the supplier', tool: 'outlook_compose', inputs: { to: literal('Orders@Supplier.example'), body: literal('Hi') } };
@@ -23,6 +23,13 @@ test('the recipient a plan fixes, or any recipient when the plan picks it from d
     assert.strictEqual(recipientOf(loop.body[0]), ANY_RECIPIENT);
     assert.deepStrictEqual(stepsUnder(plan, 'each', lookups).map((s) => s.id), ['answer']);
     assert.deepStrictEqual(stepsUnder(plan, 'send', lookups).map((s) => s.id), ['send']);
+});
+
+test('who each sending step reaches: a result its owner, a mail the address the plan fixes or any, and a step that sends nothing is left out', () => {
+    assert.deepStrictEqual(sendsToOf(plan, lookups), { send: 'orders@supplier.example', answer: ANY_RECIPIENT });
+    // The running example only drafts its replies (a change, not a send); its digest is a result for its owner.
+    assert.deepStrictEqual(sendsToOf(supplierRadar(), lookups), { digest: OWNER_RECIPIENT });
+    assert.deepStrictEqual(sendsToOf(null, lookups), {});
 });
 
 test('cc, bcc and attendees are recipients too: the key holds all of them, and one picked from data is any recipient', () => {

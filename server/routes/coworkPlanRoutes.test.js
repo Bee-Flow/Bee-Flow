@@ -24,8 +24,12 @@ const OWNER = { id: 'u1' };
 
 /** @type {Array<[string, Record<string, unknown>]>} */
 let asked = [];
+/** What the plan reads as; a test sets a plan whose test passed and that waits for its approval. */
+let planNow = STATE;
+const TRIED_RESULT = { stepId: 'digest', title: 'Supplier radar', text: '3 orders are overdue.' };
+const tried = { triedResultOf: async ({ item }) => { asked.push(['triedResultOf', { item: item.id }]); return TRIED_RESULT; } };
 const plan = {
-    planStateOf: async (item) => { asked.push(['planStateOf', { item: item.id }]); return STATE; },
+    planStateOf: async (item) => { asked.push(['planStateOf', { item: item.id }]); return planNow; },
     attachPlan: async ({ item, automationId }) => { asked.push(['attachPlan', { item: item.id, automationId }]); return STATE; },
     approvePlan: async ({ item, fingerprint }) => { asked.push(['approvePlan', { item: item.id, fingerprint }]); return STATE; },
     removePlan: async ({ item }) => { asked.push(['removePlan', { item: item.id }]); return STATE; },
@@ -59,7 +63,7 @@ const loadItem = async (id, userId) => {
 const router = express.Router();
 // The session check routes/cowork.js puts in front of every Cowork route.
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountPlanRoutes(router, { loadItem, plan: () => plan, tryOut: () => tryOut, trace: () => trace, independence: () => /** @type {any} */ (independence), wiring: () => /** @type {any} */ (wiring), tryLimit: roomy(), fixLimit: roomy() });
+mountPlanRoutes(router, { loadItem, plan: () => /** @type {any} */ (plan), tried: () => tried, tryOut: () => tryOut, trace: () => trace, independence: () => /** @type {any} */ (independence), wiring: () => /** @type {any} */ (wiring), tryLimit: roomy(), fixLimit: roomy() });
 const api = serve('/api/cowork', router, { user: OWNER });
 after(api.close);
 
@@ -81,7 +85,8 @@ test('each plan route hands the use case the item and what was asked, and answer
     asked = [];
     for (const [method, url, body] of ROUTES) {
         const res = await api.call(method, url, { body });
-        assert.deepStrictEqual([res.status, res.body], [200, STATE], `${method} ${url}`);
+        // Reading the plan also says what its test produced: nothing, for a plan that was not tried.
+        assert.deepStrictEqual([res.status, res.body], [200, method === 'GET' ? { ...STATE, triedResult: null } : STATE], `${method} ${url}`);
     }
     assert.deepStrictEqual(asked, [
         ['planStateOf', { item: 'cw-1' }],
@@ -89,6 +94,27 @@ test('each plan route hands the use case the item and what was asked, and answer
         ['approvePlan', { item: 'cw-1', fingerprint: FINGERPRINT }],
         ['removePlan', { item: 'cw-1' }],
     ]);
+});
+
+test('reading a plan whose test passed and that waits for its approval says what that test produced; an approved or untested plan does not', async () => {
+    const passed = { status: 'passed', current: true, required: true, blocksApproval: false, summary: null, problems: [], rounds: 1, wiringFixed: [] };
+    const cases = /** @type {Array<[string, Record<string, unknown>, unknown]>} */ ([
+        ['tested, waits for approval', { tried: passed }, TRIED_RESULT],
+        ['approved as it is', { tried: passed, upToDate: true }, null],
+        ['its test failed', { tried: { ...passed, status: 'failed' } }, null],
+        ['the test was of an earlier plan', { tried: { ...passed, current: false } }, null],
+    ]);
+    try {
+        for (const [name, over, expected] of cases) {
+            asked = [];
+            planNow = /** @type {any} */ ({ ...STATE, ...over });
+            const res = await api.call('GET', '/api/cowork/cw-1/plan');
+            assert.deepStrictEqual([res.status, res.body.triedResult], [200, expected], name);
+            assert.strictEqual(asked.some(([what]) => what === 'triedResultOf'), expected !== null, `${name}: the try-out is read only when it is shown`);
+        }
+    } finally {
+        planNow = STATE;
+    }
 });
 
 test('a plan is its owner\'s: no session is 401, another person 403, an unknown item 404, and the use case is never reached', async () => {
