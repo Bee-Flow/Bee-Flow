@@ -15,7 +15,8 @@
  * With `confirm`, nothing is created on send: what was worked out waits as a
  * `draft`, shown as one plain card (./CoworkComposeCard.tsx). `start()`
  * creates it; `change()` puts it back into the chips to adjust, and the next
- * send keeps what the card showed unless a chip is changed.
+ * send keeps what the card showed unless a chip is changed. `amend()` replaces what
+ * the draft will create: the Cowork home's card asks "Which day?" with it.
  */
 import { useCallback, useState } from 'react';
 import { useCoworkAgents } from '@/api/queries/coworkReads';
@@ -84,6 +85,8 @@ export interface UseCoworkComposerReturn {
     start: () => Promise<CoworkItem | null>;
     /** Put the draft back into the chips to adjust it, and close the card. */
     change: () => void;
+    /** Replace what the draft will create (the card's "Which day?" and time), keeping what the sentence said. */
+    amend: (payload: CoworkPayload | CoworkTriggerPayload) => void;
 }
 
 const DEFAULT_WHEN: WhenState = { presetId: 'now', date: '', time: '' };
@@ -308,5 +311,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         summary: mailTrigger ? describeMailTrigger(mailTrigger, t) : describeSchedule({ presetId: when.presetId, runAt: resolveWhen(when.presetId, when), repeatInterval }),
         submit, reset,
         draft, start, change,
+        // In the object, not a statement of its own: the hook is at its statement budget.
+        amend: useCallback((payload: CoworkPayload | CoworkTriggerPayload) => setDraft((was) => (was ? { ...was, payload } : was)), []),
     };
 }

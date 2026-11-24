@@ -18,7 +18,6 @@ export default {
     "cowork_proposals.need.failed_twice": "Failed twice at '{step}'. A fix is ready.",
     "cowork_proposals.need.goal_under": "Stayed under its goal three times in a row. A fix is ready.",
     "cowork_proposals.need.mail": "Cowork worked out a fix for its plan. It changes nothing until you approve it.",
-    "cowork_proposals.need.see_fix": "See the fix",
     "cowork_proposals.never_alone": "Nothing changes until you approve it.",
     "cowork_proposals.not_now": "Not now",
     "cowork_proposals.offer.approve": "Make it a fixed step",

@@ -5,12 +5,6 @@
 module.exports = {
     "cowork_overview.advanced": "Advanced",
     "cowork_overview.advanced_hide": "Hide advanced",
-    "cowork_overview.compose.apps": "It may use {apps}.",
-    "cowork_overview.compose.change": "Change",
-    "cowork_overview.compose.heading": "Start this cowork?",
-    "cowork_overview.compose.no_apps": "It uses no apps.",
-    "cowork_overview.compose.start": "Start",
-    "cowork_overview.compose.workspace_apps": "It may use the apps of your workspace.",
     "cowork_overview.heading": "Overview",
     "cowork_overview.holds.answer_only": "It only writes an answer for you.",
     "cowork_overview.holds.asks_before_sending": "Nothing is sent without you.",

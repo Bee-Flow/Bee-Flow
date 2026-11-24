@@ -9,7 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkDetail from './CoworkDetail';
-import CoworkNeedsYou from './CoworkNeedsYou';
+import CoworkNeedCard from './CoworkNeedCard';
+import { COWORK_SHEET_PANELS } from './coworkSheetPanels';
 import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 
 const ITEM = {
@@ -88,15 +89,16 @@ describe('CoworkOverview', () => {
         expect(within(rows[0]).getAllByRole('button')[0]).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('"See the plan" on the Cowork home opens the item on Advanced → Plan', async () => {
+    it('"Check the steps" on the Cowork home opens the task on Advanced → Plan', async () => {
         serve();
         function Home() {
             const [open, setOpen] = useState<string | null>(null);
-            return <><CoworkNeedsYou onOpen={setOpen} />{open && detail()}</>;
+            const openTask = (id: string, focus?: 'steps') => { COWORK_SHEET_PANELS.task.prepare?.({ kind: 'task', id, focus }); setOpen(id); };
+            return <><CoworkNeedCard need={{ key: 'k', kind: 'check', itemId: 'w1', title: ITEM.title }} onOpenTask={openTask} />{open && detail()}</>;
         }
         const user = userEvent.setup();
         renderWithClient(<Home />);
-        await user.click(await screen.findByRole('button', { name: 'See the plan' }));
+        await user.click(await screen.findByRole('button', { name: 'Check the steps' }));
         expect(await screen.findByRole('tab', { name: 'Plan' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByTestId('cowork-advanced-toggle')).toHaveAttribute('aria-expanded', 'true');
         // A link is not the viewer's own choice: it is not remembered as such.

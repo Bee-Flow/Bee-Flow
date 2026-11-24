@@ -24,7 +24,6 @@
     "cowork_goals.not_measured": "nog niet gemeten",
     "cowork_goals.reads_only": "Alleen lezen: de controle verandert en verstuurt niets.",
     "cowork_goals.remove": "Het doel weghalen",
-    "cowork_goals.row": "Doel: {count}",
     "cowork_goals.sentence_label": "Het doel, in één zin",
     "cowork_goals.sentence_placeholder": "Elke mail van een leverancier krijgt binnen twee werkdagen antwoord",
     "cowork_goals.target_label": "Deel dat het moet halen (%)",

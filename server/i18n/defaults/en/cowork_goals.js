@@ -27,7 +27,6 @@ module.exports = {
     "cowork_goals.not_measured": "not measured yet",
     "cowork_goals.reads_only": "Reads only: the check changes and sends nothing.",
     "cowork_goals.remove": "Take the goal off",
-    "cowork_goals.row": "Goal: {count}",
     "cowork_goals.sentence_label": "The goal, in one sentence",
     "cowork_goals.sentence_placeholder": "Every supplier mail gets an answer within two working days",
     "cowork_goals.target_label": "Share that should meet it (%)",
