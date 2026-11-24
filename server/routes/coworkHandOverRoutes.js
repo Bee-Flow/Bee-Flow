@@ -13,8 +13,8 @@ const { validate } = require('../core/http/validate');
 const { z } = require('../core/http/schemaParts');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 
-const USER_TEXT = 'toUserId is the id of a colleague.';
-const HandOverBody = z.object({ toUserId: z.string({ error: USER_TEXT }).min(1, { error: USER_TEXT }).max(200, { error: USER_TEXT }) }).strict();
+const COLLEAGUE_ID_TEXT = 'toUserId is the id of a colleague.';
+const HandOverBody = z.object({ toUserId: z.string({ error: COLLEAGUE_ID_TEXT }).min(1, { error: COLLEAGUE_ID_TEXT }).max(200, { error: COLLEAGUE_ID_TEXT }) }).strict();
 
 /** Mounted behind routes/cowork.js's requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
