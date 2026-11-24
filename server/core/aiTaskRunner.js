@@ -569,7 +569,7 @@ module.exports = {
 
 /**
  * The schedule fields a run reads (coworkStore's rowToSchedule shape).
- * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null, planId?: string | null, unattendedApps?: string[] | null }} CoworkTask
+ * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null, planId?: string | null, unattendedApps?: string[] | null, setup?: import('../stores/coworkSetup.mts').TaskSetup | null }} CoworkTask
  */
 
 /**

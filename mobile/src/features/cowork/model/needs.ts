@@ -18,6 +18,10 @@ const SENTENCES: Readonly<Record<string, Sentence>> = {
     sign_in: ['cowork_needs.sign_in', 'An app needs you to sign in again. It paused itself.'],
     incomplete: ['cowork_resolver.need.incomplete', 'Did not do its work last time: a step found nothing to work on.'],
     ai_failed: ['cowork_resolver.need.ai_failed', 'The AI said its last run failed.'],
+    // The same sentences the morning mail uses (server/jobs/coworkDailyMail.mts).
+    repair: ['cowork_proposals.need.mail', 'Cowork worked out a fix for its plan. It changes nothing until you approve it.'],
+    setup: ['cowork_home.mail.setup', 'Cowork could not set up its steps. It waits until you choose what to do.'],
+    failed: ['cowork_home.mail.failed', 'Its last run failed. Open it to see what is wrong.'],
     'plan:first': FIRST_PLAN,
     'plan:changed': ['cowork_needs.plan.changed', 'The plan changed and may do more than you approved. Approve it again.'],
     'plan:blocked': ['cowork_needs.plan.blocked', 'The plan cannot run as it is.'],

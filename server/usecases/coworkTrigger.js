@@ -4,12 +4,14 @@
  * new mail (`triggerKind: 'app_event'`) instead of the clock. What it needs
  * before it is stored (a trigger that can work, an agent, a connected mailbox),
  * what an update does to the clock and trigger columns, and the subscription
- * that create / update / toggle / delete keep in step.
+ * that create / update / toggle / delete keep in step. And a new item's first
+ * run when it is to start right away (`startNowRun`).
  */
 
 const { HttpError } = require('../core/http/errors');
 const coworkStore = require('../stores/coworkStore');
 const { bestEffort } = require('../utils/bestEffort');
+const log = require('../telemetry/log');
 const { TRIGGER_TEXT, NEXT_RUN_TEXT } = require('./coworkTexts');
 
 /**
@@ -118,4 +120,28 @@ async function planTriggerUpdate({ existing, body, resolvedAgentId, userId, sess
     return { kind, trigger: isEvent ? trigger : null, patch: { ...clock, ...eventFields }, syncs: isEvent || existing.triggerKind === 'app_event' };
 }
 
-module.exports = { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate };
+/**
+ * `startNow`: fire the first run immediately instead of waiting for the tick.
+ * A one-off has next_run_at = now and is_active = true on insert, so the very
+ * next tick would run it a second time: take it off the scheduler before
+ * firing. A repeating one keeps its schedule: manual:true leaves next_run_at
+ * pointing at the next occurrence. "Repeating" includes daysOfWeek-only specs
+ * ("every Monday 09:00"), which carry no repeatInterval.
+ * @param {CoworkItem} schedule
+ * @param {{ repeatInterval?: string | null, daysOfWeek?: string[] | null }} norm
+ */
+async function startNowRun(schedule, norm) {
+    if (!norm.repeatInterval && !(Array.isArray(norm.daysOfWeek) && norm.daysOfWeek.length > 0)) {
+        await coworkStore.updateSchedule(schedule.id, { isActive: false });
+        schedule.isActive = false;
+    }
+    setImmediate(async () => {
+        try {
+            await require('../core/cowork/coworkRunner').executeCowork(schedule, { manual: true });
+        } catch (err) {
+            log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
+        }
+    });
+}
+
+module.exports = { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate, startNowRun };

@@ -101,6 +101,30 @@ test('the model is given the brief and the catalog, the planner\'s menu only, an
     assert.ok(system.includes(ITEM.prompt) && system.includes('outlook_search') && system.includes('Title: Supplier radar'));
     assert.deepStrictEqual(first.messages.map((m) => m.role), ['system', 'user']);
     assert.ok(first.options.signal instanceof AbortSignal);
+    assert.ok(!system.includes('Send the result to'), 'an item whose owner chose no recipients gets its brief as written');
+});
+
+test('who the owner chose to send to on the confirmation reaches the model as the last line of the brief', async () => {
+    const { deps, seen, input } = world();
+    const item = { ...ITEM, setup: { sendsTo: { me: true, others: ['sam@example.com'] } } };
+    await makePlan(input({ item }), deps);
+    const system = seen.chats[0].messages[0].content;
+    assert.ok(system.includes(`${ITEM.prompt}\n\nSend the result to: me, sam@example.com.`), 'the plan is drafted for exactly these recipients');
+    assert.strictEqual(item.prompt, ITEM.prompt, 'the sentence of the task stays as its owner wrote it');
+});
+
+test('the apps the owner chose on the confirmation are the ones the model is told to build with', async () => {
+    const chosen = world();
+    await makePlan(chosen.input({ item: { ...ITEM, enabledApps: ['outlook'], setup: { sendsTo: { me: true, others: [] } } } }), chosen.deps);
+    assert.ok(chosen.seen.chats[0].messages[0].content.includes(`${ITEM.prompt}\n\nUse only these apps: outlook.\n\nSend the result to: me.`));
+
+    const none = world();
+    await makePlan(none.input({ item: { ...ITEM, enabledApps: [], setup: { sendsTo: null } } }), none.deps);
+    assert.ok(none.seen.chats[0].messages[0].content.includes(`${ITEM.prompt}\n\nUse no apps: the AI only writes.`));
+
+    const older = world();
+    await makePlan(older.input({ item: { ...ITEM, enabledApps: ['outlook'] } }), older.deps);
+    assert.ok(!older.seen.chats[0].messages[0].content.includes('Use only these apps'), 'a task nobody confirmed this way keeps its brief as it is');
 });
 
 test('every round is booked as planner usage of its owner, and the page hears what is being drafted', async () => {

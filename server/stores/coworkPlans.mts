@@ -90,6 +90,12 @@ function rowToPlan(r: Row | null | undefined): ApprovedPlan | null {
     };
 }
 
+/** Its owner chose to take the plan off, so an item that waited for its steps (./coworkSetup.mts) waits no longer. */
+const DETACH_SQL = `
+    UPDATE cowork_schedules SET plan_automation_id = NULL, plan_id = NULL,
+           setup_state = CASE WHEN setup_state IN ('wanted', 'failed') THEN 'ai' ELSE setup_state END
+     WHERE id = $1`;
+
 export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     /**
      * Name the automation this item's plan is made from. An approved plan, if any, stays until a new one is approved.
@@ -108,7 +114,7 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
     /** Take the plan off the item: it runs as a prompt or as its agent again. */
     async function detachPlan(scheduleId: string): Promise<void> {
         await ready();
-        await db.run('UPDATE cowork_schedules SET plan_automation_id = NULL, plan_id = NULL WHERE id = $1', [scheduleId]);
+        await db.run(DETACH_SQL, [scheduleId]);
     }
 
     /** Write the plan as approved, as the item's next version, and point the item at it. */

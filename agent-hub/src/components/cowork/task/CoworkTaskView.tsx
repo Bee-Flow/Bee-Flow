@@ -33,6 +33,7 @@ import CoworkTaskSettings from './CoworkTaskSettings';
 import CoworkTaskShared from './CoworkTaskShared';
 import CoworkTaskSteps from './CoworkTaskSteps';
 import CoworkTaskTested, { triedResultOf } from './CoworkTaskTested';
+import { canTry } from '../coworkPlanModel';
 import { latestRunOf, liveRunOf, taskModeOf } from './coworkTaskModel';
 import { BTN_LINK, Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
@@ -123,7 +124,10 @@ function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: 
         <>
             {done && <p role="status" className={META} data-testid="cowork-task-done">{done}</p>}
             {facts.cards.filter((need) => need !== check).map((need) => <CoworkNeedCard key={need.key} need={need} solo onOpenTask={onOpenTask} onDone={setDone} />)}
-            {facts.plan && !facts.live && <CoworkTaskTested coworkId={item.id} plan={facts.plan} fingerprint={check?.fingerprint ?? null} onApproved={setDone} onChange={onChange} t={t} />}
+            {facts.plan && !facts.live && (
+                <CoworkTaskTested coworkId={item.id} plan={facts.plan} fingerprint={check?.fingerprint ?? null} changed={!!check?.changed} onApproved={setDone} onChange={onChange}
+                    onTest={() => facts.tryOut.start.mutate()} testing={facts.tryOut.start.isPending || !canTry(facts.plan)} t={t} />
+            )}
             {facts.live && <CoworkTaskLive coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
             {quiet && (
                 <>

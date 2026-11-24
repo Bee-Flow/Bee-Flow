@@ -30,7 +30,7 @@ describe('taskStatus', () => {
 
     it('a card that says something is wrong makes it Failed, one that asks makes it Needs you; only its own cards count', () => {
         for (const kind of ['fix', 'repair', 'sign_in'] as const) expect(taskStatus(item(), [card(kind)])).toBe('failed');
-        for (const kind of ['check', 'first_test', 'send', 'review', 'hand_off', 'invitation'] as const) expect(taskStatus(item(), [card(kind)])).toBe('needs');
+        for (const kind of ['check', 'first_test', 'setup', 'send', 'review', 'hand_off', 'invitation'] as const) expect(taskStatus(item(), [card(kind)])).toBe('needs');
         expect(taskStatus(item(), [card('check'), card('fix')])).toBe('failed');
         expect(taskStatus(item(), [card('fix', 'someone-else')])).toBe('done');
     });
@@ -51,6 +51,16 @@ describe('taskStatus', () => {
     it('a run that waits for a decision or a review is Needs you without a card too', () => {
         expect(taskStatus(item({ lastStatus: 'waiting' }))).toBe('needs');
         expect(taskStatus(item({ lastStatus: 'needs_review' }))).toBe('needs');
+    });
+
+    it('a task that waits for its steps is Needs you before it ever ran, with or without its card on screen yet', () => {
+        const waits = { steps: 'wanted' as const, cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false };
+        const fresh = item({ lastStatus: null, lastRunAt: null, runCount: 0, setup: waits, planId: null });
+        expect(taskStatus(fresh)).toBe('needs');
+        expect(taskStatus({ ...fresh, setup: { ...waits, steps: 'failed', cause: 'unclear' } }, [card('setup')])).toBe('needs');
+        expect(taskStatus(fresh, [], { testing: true })).toBe('testing');
+        expect(taskStatus({ ...fresh, planId: 'plan-1' })).toBe('scheduled');
+        expect(taskStatus({ ...fresh, setup: { ...waits, steps: 'ai' } })).toBe('scheduled');
     });
 
     it('says each status in the shared words', () => {

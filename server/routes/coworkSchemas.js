@@ -7,6 +7,7 @@
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { TRIGGER_TEXT, NEXT_RUN_TEXT } = require('../usecases/coworkTexts');
+const { isAddress, MAX_ADDRESS, MAX_RECIPIENTS } = require('../core/cowork/taskSetup.mts');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -108,9 +109,25 @@ const scheduleFields = {
     enabledApps: enabledAppsField.optional(),
 };
 
+// What the confirmation of a new task sends with it (usecases/coworkSetup.mts): whether it is to get fixed steps, who
+// it sends to ("me" and e-mail addresses) and whether its owner sees each message first.
+const SETUP_TEXT = 'setup is { steps?: true or false, sendsTo?: a list of "me" and e-mail addresses, askFirst?: true or false }.';
+const SENDS_TO_TEXT = `setup.sendsTo is a list of at most ${MAX_RECIPIENTS + 1} entries: "me", or an e-mail address.`;
+const recipient = z.string({ error: SENDS_TO_TEXT }).trim().max(MAX_ADDRESS, SENDS_TO_TEXT)
+    .refine((v) => v.toLowerCase() === 'me' || isAddress(v), { error: SENDS_TO_TEXT });
+const setupField = z.object({
+    steps: z.boolean({ error: SETUP_TEXT }).optional(),
+    sendsTo: z.array(recipient, { error: SENDS_TO_TEXT }).max(MAX_RECIPIENTS + 1, SENDS_TO_TEXT).optional(),
+    askFirst: z.boolean({ error: SETUP_TEXT }).optional(),
+}, { error: typeError({ invalid: SETUP_TEXT }) }).strict();
+// PUT /:id/setup: let the AI work it out every run ('ai'), or back to the steps it had ('steps', its Undo).
+const MODE_TEXT = "mode is 'ai' or 'steps'.";
+const SetupModeBody = z.object({ mode: z.enum(['ai', 'steps'], { error: MODE_TEXT }) }).strict();
+
 const CreateBody = z.object({
     ...scheduleFields,
     startNow: z.boolean({ error: typeError({ invalid: 'startNow is true or false.' }) }).optional(),
+    setup: setupField.optional(),
 }).strict().superRefine((b, ctx) => {
     const issue = (/** @type {string} */ path, /** @type {string} */ message) => ctx.addIssue({ code: 'custom', path: [path], message });
     if (b.triggerKind === 'app_event') {
@@ -182,4 +199,4 @@ const TRUST_TEXT = 'stepId and recipient are text of at most 300 characters; tru
 const trustText = z.string({ error: TRUST_TEXT }).min(1, { error: TRUST_TEXT }).max(300, { error: TRUST_TEXT });
 const TrustBody = z.object({ stepId: trustText, recipient: trustText, trusted: z.boolean({ error: TRUST_TEXT }) }).strict();
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, TrustBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, SetupModeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, TrustBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

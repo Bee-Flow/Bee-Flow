@@ -37,10 +37,16 @@ const pass = (req, res, next) => next();
  */
 function apiWith({ ready = async () => ({ brief: 'b', modelId: 'm' }), make = async () => ({ automationId: 'auto-new', summary: 'It reads the mail.', findings: [], rounds: 2 }), moduleGate = pass, makeLimit = pass } = {}) {
     const asked = /** @type {Array<[string, Record<string, unknown>]>} */ ([]);
+    const setUp = /** @type {Array<[string, Record<string, unknown>]>} */ ([]);
     const router = express.Router();
     router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
     mountPlannerRoutes(router, {
         loadItem, moduleGate, makeLimit,
+        spendLeft: async () => {},
+        setup: () => ({
+            setupStarted: async (item) => { setUp.push(['started', { item: item.id }]); },
+            setupFailed: async ({ item, err, left }) => { setUp.push(['failed', { item: item.id, code: /** @type {{ code?: string }} */ (err).code ?? null, left: left === true }]); },
+        }),
         orgOf: async () => 'org-1',
         record: async (action, id, by, fields) => { asked.push(['record', { action, id, by, fields }]); },
         planner: () => ({
@@ -51,7 +57,7 @@ function apiWith({ ready = async () => ({ brief: 'b', modelId: 'm' }), make = as
     });
     const api = serve('/api/cowork', router, { user: OWNER });
     after(api.close);
-    return { api, asked };
+    return { api, asked, setUp };
 }
 
 /** The events of a stream answer, heartbeats left out. @param {string} text */
@@ -133,4 +139,18 @@ test('it stands behind the automation module and a named limit per person, both 
     const real = express.Router();
     mountPlannerRoutes(real, { loadItem });
     assert.deepStrictEqual(limitersOn(real, 'post', '/:id/plan/make'), ['cowork-plan-make']);
+});
+
+test('a task that waits for its steps hears how its set-up went: started, and failed with what ended it, never switched to the AI', async () => {
+    const fine = apiWith();
+    await fine.api.call('POST', URL);
+    assert.deepStrictEqual(fine.setUp, [['started', { item: 'cw-1' }]]);
+
+    const empty = apiWith({ make: async () => { throw new HttpError(422, 'cowork_planner_empty', 'No plan could be made for this brief.'); } });
+    await empty.api.call('POST', URL);
+    assert.deepStrictEqual(empty.setUp, [['started', { item: 'cw-1' }], ['failed', { item: 'cw-1', code: 'cowork_planner_empty', left: false }]]);
+
+    const noModel = apiWith({ ready: async () => { throw new HttpError(409, 'cowork_planner_no_model', 'No AI model is configured for this workspace, so a plan cannot be made yet.'); } });
+    assert.strictEqual((await noModel.api.call('POST', URL)).status, 409);
+    assert.deepStrictEqual(noModel.setUp, [['failed', { item: 'cw-1', code: 'cowork_planner_no_model', left: false }]], 'a refusal before the stream is a failed set-up too');
 });

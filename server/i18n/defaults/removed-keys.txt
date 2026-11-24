@@ -3588,7 +3588,7 @@ cowork_task.offer.routine_safe
 cowork_task.replay.running
 
 # Cowork task page, walked in a browser: the save note no longer reads as "already saved", Admin rules says
-# "spending limit" like the task does, "Continue" says what it shows, and Failed has no second word beside it.
+# "spending limit" like the task does.
 cowork_task.set.save_note
 cowork_task.set.plain_note
 cowork_panels.org.budget_over
@@ -3597,5 +3597,26 @@ cowork_panels.org.budget_heading
 cowork_panels.org.budget_label
 cowork_panels.org.budget_save
 cowork_panels.org.budget_off
+
+# Cowork round 2, the confirmation and the Needs-you cards: every text that changed got a new key ("Show what I
+# understood", "Set up and test", "Let the AI work it out every run", "Waits for you" instead of "On hold", ...),
+# and the confirmation's Uses and Sends to are chips now.
+cowork_home.confirm.after_start
+cowork_home.confirm.named_apps
+cowork_home.confirm.new_task
+cowork_home.confirm.sends_you
+cowork_home.confirm.start
 cowork_home.continue
+cowork_home.done.ai_each_time
+cowork_home.done.snoozed
+cowork_home.fix.ai_each_time
+cowork_home.fix.ai_failed
+cowork_home.fix.choose
+cowork_home.fix.gone_sub
+cowork_home.need.approve_steps
+cowork_home.need.check_steps
+cowork_home.need.test_now
+cowork_home.need.try_now
 cowork_home.next.on_hold
+cowork_home.setup.failed
+cowork_home.setup.ready

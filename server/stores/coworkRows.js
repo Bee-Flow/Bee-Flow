@@ -21,6 +21,8 @@ function safeParseJSON(str, fallback) {
     try { return JSON.parse(/** @type {string} */ (str)); } catch (_) { return fallback; }
 }
 
+const { setupViewOf } = require('./coworkSetup.mts');
+
 /** @type {string[] | null} */
 const NO_LIST = null;
 /** @type {EventTrigger | null} */
@@ -64,7 +66,8 @@ function rowToSchedule(r) {
 
 /**
  * The plan fields of an item: the automation its plan is made from and the approved plan a run executes (both null:
- * it runs as a prompt or as its agent), how independent it may be, and its monthly AI budget in euros.
+ * it runs as a prompt or as its agent), how independent it may be, its monthly AI budget in euros, and what its owner
+ * chose on its confirmation with where its set-up stands (./coworkSetup.mts; null: nobody set it up that way).
  * @param {DbRow.CoworkSchedules} r
  */
 function planFieldsOf(r) {
@@ -73,6 +76,7 @@ function planFieldsOf(r) {
         planId: r.plan_id || null,
         independence: r.independence || null,
         monthlyBudget: r.monthly_budget === null || r.monthly_budget === undefined ? null : Number(r.monthly_budget),
+        setup: setupViewOf(r.setup_state, r.setup_json),
     };
 }
 
@@ -111,6 +115,8 @@ function rowToRun(r) {
         // Where a plan run failed (core/cowork/runOutcome.mts stepFailedFactsOf): step ids and a code, for the
         // Overview's plain sentence. Only on a run that failed at a step.
         ...failureOf(r.outcome_json),
+        // How it really ended, as a code and the step it is about (cowork_runs.outcome_json); null when none was kept.
+        outcome: outcomeOf(r.outcome_json),
         // run_context_json is deliberately not here: it is the server's, for a follow-up run.
     };
 }
@@ -126,6 +132,23 @@ function failureOf(json) {
     try { v = typeof json === 'string' && json ? JSON.parse(json) : null; } catch { v = null; }
     if (!v || v.kind !== 'step_failed' || typeof v.stepId !== 'string') return {};
     return { failure: { stepId: v.stepId, errorClass: typeof v.errorClass === 'string' ? v.errorClass : null, sourceStepId: typeof v.sourceStepId === 'string' ? v.sourceStepId : null } };
+}
+
+/**
+ * How a run ended, as its row keeps it: the code (`done`, `nothing_to_do`, `incomplete`, `ai_failed`, `step_failed`)
+ * and the step it is about with the step that one reads (ids of the plan; for an incomplete run, of its first list
+ * that did not resolve). Null when the row kept no outcome.
+ * @param {unknown} json
+ * @returns {{ kind: string, stepId: string | null, sourceStepId: string | null } | null}
+ */
+function outcomeOf(json) {
+    /** @type {{ kind?: unknown, stepId?: unknown, sourceStepId?: unknown, unresolved?: unknown } | null} */
+    let v = null;
+    try { v = typeof json === 'string' && json ? JSON.parse(json) : null; } catch { v = null; }
+    if (!v || typeof v.kind !== 'string' || !v.kind) return null;
+    /** @type {{ stepId?: unknown, sourceStepId?: unknown }} */
+    const at = Array.isArray(v.unresolved) && v.unresolved[0] && typeof v.unresolved[0] === 'object' ? v.unresolved[0] : v;
+    return { kind: v.kind, stepId: typeof at.stepId === 'string' ? at.stepId : null, sourceStepId: typeof at.sourceStepId === 'string' ? at.sourceStepId : null };
 }
 
 /**

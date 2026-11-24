@@ -4,9 +4,10 @@
  * usecases/coworkPlanTryResult.mts), with who it would have gone to. Nothing was sent: it is the test's own output, so
  * the owner approves what they have seen.
  *
- * The decision is on the card itself: Approve (the steps on screen, by their fingerprint) and "Change something",
- * which opens What in Settings, where the sentence is. The page shows this card in place of the "check the steps"
- * card of Needs you, so there is one place to decide.
+ * The decision is on the card itself, under what the test produced: what is asked ("The steps are ready and tested.
+ * Check them once."), then Approve (the steps on screen, by their fingerprint), "Change something" (opens What in
+ * Settings, where the sentence is) and "Test, sends nothing" (once more). The page shows this card in place of the
+ * "check the steps" card of Needs you, so there is one place to decide and one Approve on the page.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { ENTER } from '../coworkMotion';
@@ -27,14 +28,19 @@ interface CoworkTaskTestedProps {
     plan: PlanState;
     /** The fingerprint of the steps on screen, which approving sends; without one (nothing waits for approval) there is no Approve. */
     fingerprint: string | null;
+    /** The steps changed after an earlier approval: they are checked again, not for the first time. */
+    changed?: boolean;
     /** The steps were approved: one sentence that says so. */
     onApproved: (message: string) => void;
+    /** Test the steps once more; `testing` while a test cannot be started (one is starting, or the steps cannot be tested). */
+    onTest: () => void;
+    testing: boolean;
     /** Open What in Settings. */
     onChange: () => void;
     t: TranslateFn;
 }
 
-export default function CoworkTaskTested({ coworkId, plan, fingerprint, onApproved, onChange, t }: CoworkTaskTestedProps) {
+export default function CoworkTaskTested({ coworkId, plan, fingerprint, changed = false, onApproved, onTest, testing, onChange, t }: CoworkTaskTestedProps) {
     const client = useQueryClient();
     const { approve } = useCoworkPlanActions(coworkId);
     const result = triedResultOf(plan);
@@ -59,9 +65,17 @@ export default function CoworkTaskTested({ coworkId, plan, fingerprint, onApprov
                 {result.title && <span className="text-[14px] font-semibold text-[var(--text-primary)] break-words">{result.title}</span>}
                 <p className="m-0 max-h-80 overflow-y-auto text-[14px] leading-[1.55] whitespace-pre-wrap break-words text-[var(--text-primary)]" data-testid="cowork-task-would-receive-text">{result.text}</p>
             </div>
+            {fingerprint && (
+                <p className="m-0 text-[14px] leading-5 font-medium text-[var(--text-primary)]" data-testid="cowork-task-would-receive-ask">
+                    {changed
+                        ? t('cowork_home.need.check_changed', 'The steps changed and may do more than you approved. Check them again.')
+                        : t('cowork_home.need.check', 'The steps are ready and tested. Check them once.')}
+                </p>
+            )}
             <div className={ROW_ACTIONS}>
                 {fingerprint && <button type="button" className={BTN_PRIMARY} disabled={approve.isPending} onClick={() => onApprove(fingerprint)}>{t('cowork_task.tested.approve', 'Approve')}</button>}
                 <button type="button" className={BTN_QUIET} onClick={onChange}>{t('cowork_task.tested.change', 'Change something')}</button>
+                <button type="button" className={BTN_QUIET} disabled={testing || approve.isPending} onClick={onTest}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>
             </div>
             <Failure error={approve.error} t={t} />
         </section>

@@ -4,7 +4,7 @@
 // The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkPage from './CoworkPage';
@@ -23,7 +23,9 @@ function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
-        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0 });
+        // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
+        if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
+        if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
         if (path === '/api/cowork/w1' && method === 'GET') return jsonResponse(items.find((i) => i.id === 'w1') ?? {}, items.some((i) => i.id === 'w1') ? 200 : 404);
         if (path === '/api/cowork/compose') return jsonResponse({ title: 'Meeting overview', prompt: 'Summarise', repeatInterval: 'daily', timeOfDay: '09:00' });
         if (path === '/api/cowork/home') return jsonResponse({ how: {}, today: [], cost: null });
@@ -51,6 +53,15 @@ function expectNoOverlay() {
     // A page is a child of the Cowork column itself, not a portal next to it.
     expect(screen.getByTestId('cowork-page')).toContainElement(screen.getByTestId('cowork-page-frame'));
 }
+
+// Each page is its own chunk (./coworkSheetPanels.ts). Loading them here keeps the first load of a chunk, which is slow
+// on a busy runner, out of the one second a test waits for a page to appear.
+beforeAll(async () => {
+    await Promise.all([
+        import('./task/CoworkTaskView'), import('./task/CoworkTaskShared'), import('./panels/CoworkSettingsPanel'),
+        import('./panels/CoworkTeamworkPanel'), import('./panels/CoworkTemplatesPanel'), import('./panels/CoworkOrgPanel'),
+    ]);
+}, 60_000);
 
 describe('CoworkPage', () => {
     it('opens a task from its row as a page in place of the home, says so in the address, and "Tasks" goes back to the row', async () => {

@@ -15,7 +15,7 @@ import { FIELD, LABEL, META } from './taskUi';
 import { useSettingRow, type SettingRowForm } from './useTaskSettingsSave';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import type { CoworkAgent } from '@/api/cowork.types';
-import type { TaskMode } from './coworkTaskModel';
+import type { StepApp, TaskMode } from './coworkTaskModel';
 import type { TaskDraft } from './coworkTaskSettingsModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -36,13 +36,28 @@ export function howWords(mode: TaskMode, agentName: string | null, t: TranslateF
 
 const CHIP = `inline-flex items-center gap-1.5 min-h-9 pointer-coarse:min-h-11! px-3 rounded-lg border text-[13px] leading-5 font-medium ${TINT}`;
 
+/**
+ * What the fixed steps use, in one line, so the row never contradicts the Steps section; with a warning when a step
+ * needs an app that is not among the owner's (the run would stop at that step). Null for a task without fixed steps.
+ */
+function stepAppsLine(stepApps: readonly StepApp[] | null, connected: ReadonlySet<string> | null, t: TranslateFn): { line: string; missing: boolean } | null {
+    if (!stepApps) return null;
+    if (stepApps.length === 0) return { line: t('cowork_task.uses.steps_none', 'Its fixed steps use no app.'), missing: false };
+    const apps = stepApps.map((a) => a.label).join(', ');
+    const missing = connected ? stepApps.filter((a) => !connected.has(a.id)).map((a) => a.label) : [];
+    if (missing.length === 0) return { line: t('cowork_task.uses.steps_use', 'Its fixed steps use: {apps}.', { apps }), missing: false };
+    return { line: t('cowork_task.uses.steps_missing', 'Its fixed steps use: {apps}. Not connected for you now: {missing}. The steps that need it stop until it is connected.', { apps, missing: missing.join(', ') }), missing: true };
+}
+
 /** The apps it may use: one chip each, pressed while it is on. */
-function Apps({ draft, set, id, t }: { draft: TaskDraft; set: Set; id: string; t: TranslateFn }) {
+function Apps({ draft, set, id, stepApps, t }: { draft: TaskDraft; set: Set; id: string; stepApps: readonly StepApp[] | null; t: TranslateFn }) {
     const { availableApps, isAppEnabled, toggleApp, appsKnown, appsUnavailable } = useCoworkApps({ value: draft.apps, onChange: (apps) => set({ apps }) });
     const apps = availableApps.filter((a) => !a.isStep);
+    const used = stepAppsLine(draft.mode === 'steps' ? stepApps : null, appsKnown ? new Set(availableApps.map((a) => a.id)) : null, t);
     return (
         <div className="flex flex-col gap-2" data-testid="cowork-task-apps">
             <span className={PART_H} id={`${id}-apps`}>{t('cowork_task.uses.apps', 'Apps it may use')}</span>
+            {used && <p className={`m-0 text-[14px] leading-5 ${used.missing ? 'text-[var(--warning-ink)]' : 'text-[var(--text-primary)]'}`} data-testid="cowork-task-step-apps">{used.line}</p>}
             {apps.length > 0 && (
                 <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${id}-apps`}>
                     {apps.map((app) => (
@@ -94,6 +109,8 @@ function HowItWorks({ draft, set, agents, mayPlan, id, t }: { draft: TaskDraft; 
 
 interface TaskSetUsesProps {
     form: SettingRowForm;
+    /** The apps its fixed steps use; null for a task without fixed steps. */
+    stepApps?: readonly StepApp[] | null;
     agents: CoworkAgent[];
     /** The organisation has automations: a task may get fixed steps. */
     mayPlan: boolean;
@@ -103,13 +120,13 @@ interface TaskSetUsesProps {
     t: TranslateFn;
 }
 
-export default function TaskSetUses({ form, agents, mayPlan, limit, locale, t }: TaskSetUsesProps) {
+export default function TaskSetUses({ form, stepApps = null, agents, mayPlan, limit, locale, t }: TaskSetUsesProps) {
     const { draft, set, submit, bar } = useSettingRow('uses', form);
     const id = `cowork-task-uses-${form.itemId}`;
     return (
         <>
             <form className="flex flex-col gap-4" onSubmit={(e) => { void submit(e); }}>
-                <Apps draft={draft} set={set} id={id} t={t} />
+                <Apps draft={draft} set={set} id={id} stepApps={stepApps} t={t} />
                 <HowItWorks draft={draft} set={set} agents={agents} mayPlan={mayPlan} id={id} t={t} />
                 <SaveBar state={bar} onCancel={form.onDone} t={t} />
             </form>

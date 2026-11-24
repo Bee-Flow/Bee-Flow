@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-90 routes, 61 with a request schema. Back to the [endpoint reference](../reference.md).
+91 routes, 62 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -40,6 +40,10 @@ No request schema.
 | `agentId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |
 | `startNow` | boolean |  |  |
+| `setup` | object |  | no other keys |
+| `setup.steps` | boolean |  |  |
+| `setup.sendsTo` | array of string |  | max items 21 |
+| `setup.askFirst` | boolean |  |  |
 
 ### `GET /api/cowork/:id`
 
@@ -455,6 +459,16 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `title` | string |  | min length 1; max length 120 |
+
+### `PUT /api/cowork/:id/setup`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"ai"`, `"steps"` | yes |  |
 
 ### `GET /api/cowork/:id/shares`
 
