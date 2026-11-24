@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const { executePlanRun, resultTextOf } = require('./planRun.mts');
 const { planFingerprint } = require('./plan/planPermissions.mts');
 const { OWNER_ONLY_NOTIFICATIONS } = require('./plan/planRunCopy.mts');
-const { fakeLookups, planOf, supplierRadar, literal } = require('./plan/plan.testkit');
+const { fakeLookups, planOf, supplierRadar, literal, withVerdicts } = require('./plan/plan.testkit');
 
 const task = { id: 's1', userId: 'u1', title: 'Supplier radar', repeatInterval: 'daily', nextRunAt: '2026-11-23T07:30:00.000Z' };
 
@@ -55,8 +55,7 @@ test('it runs the approved copy, live, as the owner: never the automation\'s own
     const { automation, opts } = h.seen.executed[0];
     const { notificationSettings, ...steps } = automation.definition;
     // Its AI steps are asked for their own verdict (planRunCopy.mts); nothing else differs from the plan as approved.
-    const asApproved = supplierRadar();
-    assert.deepStrictEqual(steps, { ...asApproved, steps: asApproved.steps.map((st) => (st.type === 'ai_step' ? { ...st, reportOutcome: true } : st)) }, 'the plan as approved');
+    assert.deepStrictEqual(steps, withVerdicts(supplierRadar()), 'the plan as approved');
     assert.strictEqual(notificationSettings, OWNER_ONLY_NOTIFICATIONS);
     assert.deepStrictEqual([automation.id, automation.userId, automation.version], ['auto-1', 'u1', 7], 'the automation lends its identity');
     assert.deepStrictEqual([opts.triggerKind, opts.mode, opts.startedByUserId], ['manual', 'live', 'u1']);

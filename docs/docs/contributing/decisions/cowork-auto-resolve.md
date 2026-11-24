@@ -84,6 +84,7 @@ repairs of 0048 only listen for a step that FAILS twice: this one did not fail.
   run that did nothing. A plan whose list legitimately came back empty still reads as a success.
 - A run that paused for a decision is judged only when it first stops; its follow-up after the decision closes it as
   before (`core/cowork/planRunFollowUp.mts`).
-- An AI step that answered in text now answers `{ answer, coworkOutcome }` in a plan run; its output is the text again,
-  so nothing downstream changes. A model that gives no verdict gives none, and the run is judged without it.
+- An AI step that answered in text now answers `{ answer, coworkOutcome }` in a plan run, on the prompt route as
+  before (it is offered no tool, also not an answer tool: a step that reads outside text keeps being offered nothing);
+  its output is the text again, so nothing downstream changes. A model that gives no verdict gives none, and the run is judged without it.
 - The receipt carries an `outcome` code only when a run was judged, so earlier receipts read as before.

@@ -12,7 +12,7 @@ const assert = require('node:assert');
 const { planSourceOf, isManagedByStage } = require('./planSource.mts');
 const { runCopyOf, OWNER_ONLY_NOTIFICATIONS } = require('./planRunCopy.mts');
 const { planFingerprint } = require('./planPermissions.mts');
-const { supplierRadar } = require('./plan.testkit');
+const { supplierRadar, withVerdicts } = require('./plan.testkit');
 const { normalizeNotificationSettings } = require('../../automationModel/notificationDefaults');
 
 const rows = {
@@ -42,7 +42,7 @@ test('the copy a run executes is the approved plan with the run\'s notifications
     const approved = { ...supplierRadar(), notificationSettings: { onApproval: { enabled: true, channels: ['bell', 'talk'], recipients: [{ type: 'approver' }], talkRoom: 'approvals' } } };
     const before = planFingerprint(approved);
     const copy = runCopyOf(approved);
-    assert.deepStrictEqual([copy.steps, copy.edges, copy.trigger], [approved.steps, approved.edges, approved.trigger]);
+    assert.deepStrictEqual([copy.steps, copy.edges, copy.trigger], [withVerdicts(approved).steps, approved.edges, approved.trigger], 'its AI steps asked for their verdict');
     assert.strictEqual(copy.notificationSettings, OWNER_ONLY_NOTIFICATIONS);
     assert.strictEqual(planFingerprint(approved), before, 'the approved plan is not touched');
     assert.ok(approved.notificationSettings.onApproval.talkRoom, 'nor are its own settings');

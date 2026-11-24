@@ -26,5 +26,7 @@ export function todayWords(entry: TodayEntry, t: TranslateFn): string {
     if (entry.status === 'success') return t('cowork.today.done', 'Done');
     if (entry.status === 'running') return t('cowork.today.running', 'Running now');
     if (entry.status === 'waiting' || entry.status === 'needs_review') return t('cowork.today.waiting', 'Waits for you');
+    // It finished without doing its work (server core/cowork/runOutcome.mts): a problem, in its own words.
+    if (entry.status === 'incomplete') return t('cowork_resolver.status.incomplete', 'Did not do its work');
     return t('cowork.today.failed', 'Did not finish');
 }
