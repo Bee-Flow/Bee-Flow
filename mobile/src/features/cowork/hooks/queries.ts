@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import {
+    getGoal,
     getRunReceipt,
     getSchedule,
     getShared,
@@ -74,6 +75,17 @@ export function useRunReceipt(id: string, runId: string, enabled: boolean) {
         queryKey: coworkKeys.receipt(id, runId),
         queryFn: ({ signal }) => getRunReceipt(id, runId, signal),
         enabled: enabled && Boolean(id) && Boolean(runId),
+        staleTime: 60_000,
+        retry: false,
+    });
+}
+
+/** The item's goal and how it stands; null without a goal. */
+export function useGoal(id: string) {
+    return useQuery({
+        queryKey: coworkKeys.goal(id),
+        queryFn: ({ signal }) => getGoal(id, signal),
+        enabled: Boolean(id),
         staleTime: 60_000,
         retry: false,
     });

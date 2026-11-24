@@ -24,6 +24,7 @@ import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useConfirm } from '@/shared/patterns';
 import { Button, ErrorState, LoadingState, Screen, ScreenHeader, Section, Text, useToast } from '@/shared/ui';
 
+import { GoalNote } from '../components/GoalNote';
 import { ReviewCard } from '../components/ReviewCard';
 import { ScheduleHistory } from '../components/ScheduleHistory';
 import { ScheduleSummary } from '../components/ScheduleSummary';
@@ -97,6 +98,7 @@ function CoworkDetailBody({
             <WaitingReviewCard scheduleId={schedule.id} runs={runs} />
 
             <ScheduleSummary schedule={schedule} />
+            <GoalNote scheduleId={schedule.id} />
 
             <Section title={t('cowork.edit.what_it_does', 'What it does')}>
                 <Text variant="body" tone="secondary" selectable>

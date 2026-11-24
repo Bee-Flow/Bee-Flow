@@ -120,3 +120,10 @@ export interface CoworkNeed {
     title: string;
     plan: string | null;
 }
+
+/** An item's goal as the phone shows it: the sentence and its latest count (server/usecases/coworkGoals.mts). */
+export interface CoworkGoalLine {
+    sentence: string;
+    met: number | null;
+    total: number | null;
+}

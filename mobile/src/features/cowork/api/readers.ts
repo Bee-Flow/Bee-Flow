@@ -10,6 +10,7 @@
 import { field, nullable, pick, shapeListOf, shapeOf } from '@/core/api/contract';
 
 import type {
+    CoworkGoalLine,
     ComposedCowork,
     CoworkNeed,
     CoworkReceipt,
@@ -152,3 +153,14 @@ export const readReceipt: (raw: unknown) => CoworkReceipt | null = nullable((raw
     at: field.strOrNull(pick(raw, 'at')),
     signed: pick(raw, 'signed') === true,
 }));
+
+/** `GET /api/cowork/:id/goal` → its sentence and latest count; null when the item has no goal. */
+export function readGoalLine(raw: unknown): CoworkGoalLine | null {
+    const goal = pick(raw, 'goal');
+    const sentence = pick(goal, 'sentence');
+    if (typeof sentence !== 'string' || !sentence) return null;
+    const count = pick(goal, 'count');
+    const met = pick(count, 'met');
+    const total = pick(count, 'total');
+    return { sentence, met: typeof met === 'number' ? met : null, total: typeof total === 'number' ? total : null };
+}

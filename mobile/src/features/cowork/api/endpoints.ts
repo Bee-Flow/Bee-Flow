@@ -19,6 +19,7 @@ import {
     readComposed,
     readNeeds,
     readReceipt,
+    readGoalLine,
     readRuns,
     readSchedule,
     readSchedules,
@@ -28,6 +29,7 @@ import {
 import type { CoworkPayload } from '../model/schedule';
 import type {
     ComposedCowork,
+    CoworkGoalLine,
     CoworkNeed,
     CoworkReceipt,
     CoworkRun,
@@ -122,4 +124,9 @@ export async function resolveReview(id: string, runId: string, action: ReviewAct
         `${path(id)}/runs/${encodeURIComponent(runId)}/review`,
         action === 'answer' ? { action, answer: (answer ?? '').trim() } : { action },
     );
+}
+
+/** An item's goal line: its sentence and latest count, or null without a goal. */
+export async function getGoal(id: string, signal?: AbortSignal): Promise<CoworkGoalLine | null> {
+    return readGoalLine(await api.get<unknown>(`${path(id)}/goal`, { signal }));
 }
