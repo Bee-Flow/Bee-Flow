@@ -2,6 +2,13 @@
   "translations": {
     "cowork_trail.action.created": "heeft dit werk aangemaakt",
     "cowork_trail.action.deleted": "heeft het verwijderd",
+    "cowork_trail.action.desk_accepted": "heeft het op een bureau geaccepteerd",
+    "cowork_trail.action.desk_joined": "heeft het op een bureau gezet",
+    "cowork_trail.action.desk_left": "heeft het van een bureau gehaald",
+    "cowork_trail.action.desk_role_set": "heeft gekozen welke bureaurol over de vragen beslist",
+    "cowork_trail.action.goal_check_approved": "heeft de controle van het doel goedgekeurd",
+    "cowork_trail.action.goal_removed": "heeft het doel weggehaald",
+    "cowork_trail.action.goal_set": "heeft het doel ingesteld",
     "cowork_trail.action.handed_over": "heeft het overgedragen aan een collega",
     "cowork_trail.action.independence_set": "heeft gekozen hoe zelfstandig het mag zijn: {level}",
     "cowork_trail.action.plan_approved": "heeft het plan goedgekeurd",

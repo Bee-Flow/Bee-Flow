@@ -71,3 +71,15 @@ test('ISO weeks: a gap breaks the row', () => {
     const at = monday(0);
     assert.strictEqual(inARow([isoWeekOf(monday(0)), isoWeekOf(monday(1)), isoWeekOf(monday(3)), isoWeekOf(monday(4))], at), false);
 });
+
+test('a Wednesday turn earlier in the week does not hide the Friday habit: four Fridays still give the offer', async () => {
+    on.add('cas');
+    const at = (weeksAgo, day) => new Date(Date.parse('2026-11-18T09:00:00Z') + (day === 'fri' ? 2 : 0) * 86_400_000 - weeksAgo * 7 * 86_400_000);
+    const turn = (when) => noteTurn({ userId: 'cas', agentId: 'a1', toolNames: ['outlook_search'], at: when }, deps);
+    let offer = null;
+    for (const weeksAgo of [3, 2, 1, 0]) {
+        if (weeksAgo % 2 === 1) await turn(at(weeksAgo, 'wed')); // two Wednesdays only: not a habit of their own
+        offer = await turn(at(weeksAgo, 'fri'));
+    }
+    assert.deepStrictEqual(offer, { weekday: 5, weeks: 4 });
+});

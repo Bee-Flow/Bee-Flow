@@ -41,7 +41,7 @@ const job = { code: 'return 1', inputs: {} };
 test('no more than COWORK_SANDBOX_MAX_CHILDREN (default 4) children run at once; the next starts when one ends', async () => {
     assert.strictEqual(MAX_CHILDREN, 4);
     const { children, fork } = standInFork();
-    const runs = Array.from({ length: MAX_CHILDREN + 1 }, () => runCodeIsolated(job, { fork }));
+    const runs = Array.from({ length: MAX_CHILDREN + 1 }, (_, i) => runCodeIsolated({ ...job, concurrencyKey: `org-${i}` }, { fork }));
     await tick();
     assert.strictEqual(children.length, MAX_CHILDREN, 'the fifth script waits for a slot');
     children[0].answer();
@@ -60,6 +60,20 @@ test('a script that waits too long for a slot fails its step with a plain messag
     assert.strictEqual(children.length, 1, 'the refused script never started a process');
     children[0].answer();
     await first;
+});
+
+test('one organisation holds at most CODE_STEP_MAX_CONCURRENCY_PER_ORG (default 2) children; another still gets a slot', async () => {
+    const { children, fork } = standInFork();
+    const slots = createChildSlots({ maxChildren: 4, maxPerOrg: 2, waitMs: 1000 });
+    const ofA = [1, 2, 3].map(() => runCodeIsolated({ ...job, concurrencyKey: 'org-a' }, { fork, slots }));
+    const ofB = runCodeIsolated({ ...job, concurrencyKey: 'org-b' }, { fork, slots });
+    await tick();
+    assert.strictEqual(children.length, 3, 'two of org A and the one of org B run; the third of org A waits');
+    for (const child of children) child.answer();
+    await tick();
+    assert.strictEqual(children.length, 4);
+    children[3].answer();
+    await Promise.all([...ofA, ofB]);
 });
 
 test('a child that ends without an answer frees its slot too', async () => {

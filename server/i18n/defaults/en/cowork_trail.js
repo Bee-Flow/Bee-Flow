@@ -5,6 +5,13 @@
 module.exports = {
     "cowork_trail.action.created": "created this work",
     "cowork_trail.action.deleted": "deleted it",
+    "cowork_trail.action.desk_accepted": "accepted it on a desk",
+    "cowork_trail.action.desk_joined": "put it on a desk",
+    "cowork_trail.action.desk_left": "took it off a desk",
+    "cowork_trail.action.desk_role_set": "chose which desk role decides its questions",
+    "cowork_trail.action.goal_check_approved": "approved the check of its goal",
+    "cowork_trail.action.goal_removed": "took its goal off",
+    "cowork_trail.action.goal_set": "set its goal",
     "cowork_trail.action.handed_over": "handed it over to a colleague",
     "cowork_trail.action.independence_set": "chose how independent it may be: {level}",
     "cowork_trail.action.plan_approved": "approved the plan",

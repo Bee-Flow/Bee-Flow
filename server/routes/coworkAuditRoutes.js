@@ -4,7 +4,8 @@
  *
  *   - every change that succeeded is written to the organisation's access audit log (usecases/coworkAudit.mts):
  *     creating, changing, switching on or off and deleting an item, naming, approving, making and taking off its
- *     plan, handling a review. One middleware, so a route added later is not forgotten; the action is read from the
+ *     plan, handling a review, setting, approving the check of or removing its goal, and putting it on a desk, accepting
+ *     it there, choosing the role that decides its questions or taking it off (an entry on that cowork's trail). One middleware, so a route added later is not forgotten; the action is read from the
  *     method and the path, the fields from the request through the use case's allow-list;
  *   - GET /:id/audit → the item's trail, for its owner.
  *
@@ -21,23 +22,47 @@ const userOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req
 /** Routes beside the items (their first part is no item id): a change there is not a change to an item. */
 const SIDE_ROUTES = new Set(['compose', 'daily-mail', 'shared', 'hooks', 'needs-you', 'home', 'policy', 'templates', 'receipts', 'shield', 'packages', 'habits']);
 
+/** @type {Record<string, import('../usecases/coworkAudit.mts').AuditAction>} `/desks/:id/members/:scheduleId[/…]`, by method and tail. */
+const DESK_MEMBER_ACTIONS = { 'POST accept': 'cowork.desk_accepted', 'PUT ': 'cowork.desk_role_set', 'DELETE ': 'cowork.desk_left' };
+
 /**
- * The action a request is, from its method and its path below /api/cowork; null for one that changes nothing.
+ * A desk change that concerns one cowork: an entry on that cowork's trail. `POST /desks/:id/members` names it in its body.
  * @param {string} method
- * @param {string} path
+ * @param {string[]} parts
+ * @param {unknown} body
  * @returns {{ action: import('../usecases/coworkAudit.mts').AuditAction, id: string | null } | null}
  */
-function actionOf(method, path) {
+function deskActionOf(method, parts, body) {
+    if (parts[2] !== 'members') return null;
+    if (method === 'POST' && parts.length === 3) {
+        const named = /** @type {{ scheduleId?: unknown } | null} */ (body && typeof body === 'object' ? body : null)?.scheduleId;
+        return typeof named === 'string' && named ? { action: 'cowork.desk_joined', id: named } : null;
+    }
+    const action = DESK_MEMBER_ACTIONS[`${method} ${parts.slice(4).join('/')}`];
+    return action && parts[3] ? { action, id: parts[3] } : null;
+}
+
+/**
+ * The action a request is, from its method and its path below /api/cowork (and, for a desk member, the body that names
+ * the cowork); null for one that changes nothing.
+ * @param {string} method
+ * @param {string} path
+ * @param {unknown} [body]
+ * @returns {{ action: import('../usecases/coworkAudit.mts').AuditAction, id: string | null } | null}
+ */
+function actionOf(method, path, body) {
     const parts = path.split('/').filter(Boolean);
     const [id = null, ...rest] = parts;
     const tail = rest.join('/');
     if (method === 'POST' && parts.length === 0) return { action: 'cowork.created', id: null };
+    if (id === 'desks') return deskActionOf(method, parts, body);
     if (!id || SIDE_ROUTES.has(id)) return null;
     /** @type {Record<string, import('../usecases/coworkAudit.mts').AuditAction>} */
     const byRoute = {
         'PUT ': 'cowork.updated', 'DELETE ': 'cowork.deleted', 'POST toggle': 'cowork.toggled',
         'PUT plan': 'cowork.plan_attached', 'POST plan/approve': 'cowork.plan_approved', 'DELETE plan': 'cowork.plan_removed',
         'PUT plan/independence': 'cowork.independence_set', 'POST hand-over': 'cowork.handed_over', 'PUT start': 'cowork.start_set', 'PUT plan/trust': 'cowork.trust_set', 'PUT shares': 'cowork.shares_set',
+        'PUT goal': 'cowork.goal_set', 'POST goal/approve': 'cowork.goal_check_approved', 'DELETE goal': 'cowork.goal_removed',
     };
     const direct = byRoute[`${method} ${tail}`];
     if (direct) return { action: direct, id };
@@ -74,7 +99,7 @@ function mountAuditRoutes(router, overrides = {}) {
     const { record, trail, loadItem } = { ...defaults(), ...overrides };
 
     router.use((req, res, next) => {
-        const found = actionOf(req.method, req.path);
+        const found = actionOf(req.method, req.path, req.body);
         if (!found) return next();
         const json = res.json.bind(res);
         /** @type {unknown} */

@@ -66,7 +66,7 @@ test('the home is read for the caller\'s own day; a day that is not two ISO time
     }
 });
 
-test('while the organisation has made Cowork read-only, every change is refused; reading, the policy and the daily mail stay open', async () => {
+test('while the organisation has made Cowork read-only, every change is refused; reading, the policy, the daily mail and the habits switch stay open', async () => {
     router.post('/:id/toggle', (req, res) => { res.json({ toggled: req.params.id }); });
     policy.readOnly = true;
     try {
@@ -74,6 +74,7 @@ test('while the organisation has made Cowork read-only, every change is refused;
         assert.deepStrictEqual([refused.status, refused.body.code], [423, 'cowork_read_only']);
         assert.strictEqual((await api.call('GET', '/api/cowork/cw-1')).status, 200);
         assert.strictEqual((await api.call('PUT', '/api/cowork/daily-mail', { body: { enabled: false, timeZone: 'UTC' } })).status, 200);
+        assert.notStrictEqual((await api.call('PUT', '/api/cowork/habits', { body: { on: false } })).status, 423);
     } finally {
         policy.readOnly = false;
     }

@@ -259,6 +259,8 @@ function startSupportAndSyncJobs() {
     try { require('../core/cowork/afterCowork.mts').start(); } catch (err) { log.warn('[Server] Cowork after-cowork start failed:', err.message); }
     // Every closed Cowork run gets a signed receipt (core/cowork/receipts/issueReceipts.mts).
     try { require('../core/cowork/receipts/issueReceipts.mts').start(); } catch (err) { log.warn('[Server] Cowork receipts start failed:', err.message); }
+    // "It notices what you repeat" forgets, daily, notes over eight weeks old and every note of a person who is off or not allowed (core/cowork/habits/habitSweep.mts).
+    try { require('../core/cowork/habits/habitSweep.mts').start(); } catch (err) { log.warn('[Server] Cowork habit sweep start failed:', err.message); }
     // A cowork with a goal is measured by its approved check after its runs (core/cowork/goals/goalMeasure.mts).
     try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
     // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.

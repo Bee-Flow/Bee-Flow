@@ -19,8 +19,8 @@ const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../../../telemetry/log.js') as { warn: (m: string) => void };
 
 export const WEEKS_IN_A_ROW = 4;
-const KEEP_WEEKS = 8;
-const WEEK_MS = 7 * 86_400_000;
+export const KEEP_WEEKS = 8;
+export const WEEK_MS = 7 * 86_400_000;
 export const HABITS_KEY = (userId: string): string => `cowork_habits_user_${userId}`;
 
 export interface HabitDeps {
@@ -35,12 +35,17 @@ export interface HabitDeps {
     };
 }
 
-const defaults = (): HabitDeps => {
+/** Did this person switch it on, and does their organisation allow it? (Also the daily sweep's test, ./habitSweep.mts.) */
+export async function habitsOn(userId: string): Promise<boolean> {
     const config = nodeRequire('../../../stores/configStore.js') as { getConfig: (k: string) => Promise<unknown> };
     const { policyOfOwner } = nodeRequire('../../entitlements/coworkPolicy.mts') as typeof import('../../entitlements/coworkPolicy.mts');
+    return (await config.getConfig(HABITS_KEY(userId))) === true && (await policyOfOwner(userId)).habitsAllowed !== false;
+}
+
+const defaults = (): HabitDeps => {
     const { appIdForTool } = nodeRequire('../../agentRuntime/toolPolicy/appIndex.js') as { appIdForTool: (n: string) => string | null };
     return {
-        enabled: async (userId) => (await config.getConfig(HABITS_KEY(userId))) === true && (await policyOfOwner(userId)).habitsAllowed !== false,
+        enabled: habitsOn,
         appOf: (n) => appIdForTool(n),
         store: (nodeRequire('../../../stores/coworkHabits.mts') as typeof import('../../../stores/coworkHabits.mts')).coworkHabits(),
     };

@@ -40,7 +40,8 @@ const HomeQuery = z.object({ from: isoTime, to: isoTime }).strict()
 /** Mounted behind routes/cowork.js's requireAuth, which guarantees the session user. @param {import('express').Request} req */
 const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
 
-const STAYS_OPEN = ['/policy/', '/shield/', '/daily-mail'];
+// Switching habits off is how a person erases what was noted, so it stays open too.
+const STAYS_OPEN = ['/policy/', '/shield/', '/daily-mail', '/habits'];
 
 /**
  * Refuse every change while the caller's organisation has made Cowork read-only.

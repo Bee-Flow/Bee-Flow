@@ -10,9 +10,10 @@
  *     steps; what it returns is its output, and the plan's own steps do everything else;
  *   - it is killed when the script's own wall limit plus a margin passes, or when it ends in any other way than with
  *     an answer; the API process only ever sees an answer or an error;
- *   - at most COWORK_SANDBOX_MAX_CHILDREN children (default 4) run at once in this process (the slots of
- *     ./codeSandboxSlots.js): the next script waits its turn, and one that waits longer than CHILD_WAIT_MS fails its
- *     step with a plain "busy" message rather than piling up processes without end.
+ *   - at most COWORK_SANDBOX_MAX_CHILDREN children (default 4) run at once in this process, and at most
+ *     CODE_STEP_MAX_CONCURRENCY_PER_ORG (default 2) of one organisation (the slots of ./codeSandboxSlots.js), so one
+ *     organisation's long scripts never hold every slot: the next script waits its turn, and one that waits longer
+ *     than CHILD_WAIT_MS fails its step with a plain "busy" message rather than piling up processes without end.
  *
  * Two walls, then: the V8 isolate inside the child, and the child process around it.
  */
@@ -22,7 +23,7 @@
 const path = require('node:path');
 const { fork } = require('node:child_process');
 const { envInt } = require('../utils/envNumber.mts');
-const { createSlots } = require('./codeSandboxSlots');
+const { createSlots, MAX_PER_KEY } = require('./codeSandboxSlots');
 
 const CHILD = path.join(__dirname, 'codeSandboxChild.js');
 const CHILD_HEAP_MB = 128;
@@ -35,11 +36,11 @@ const CHILD_WAIT_MS = 20_000;
 const BUSY = 'Too many scripts are running on this server right now, so this step did not start. Try again in a moment.';
 
 /**
- * Slots for children: one cap for the whole process, which every org's scripts share.
- * @param {{ maxChildren?: number, waitMs?: number }} [opts]
+ * Slots for children: one cap for the whole process, which every org's scripts share, and a smaller one per org.
+ * @param {{ maxChildren?: number, maxPerOrg?: number, waitMs?: number }} [opts]
  */
-function createChildSlots({ maxChildren = MAX_CHILDREN, waitMs = CHILD_WAIT_MS } = {}) {
-    return createSlots({ maxTotal: maxChildren, maxPerKey: maxChildren, maxWaitMs: waitMs, busyMessage: BUSY });
+function createChildSlots({ maxChildren = MAX_CHILDREN, maxPerOrg = MAX_PER_KEY, waitMs = CHILD_WAIT_MS } = {}) {
+    return createSlots({ maxTotal: maxChildren, maxPerKey: Math.min(maxPerOrg, maxChildren), maxWaitMs: waitMs, busyMessage: BUSY });
 }
 const childSlots = createChildSlots();
 
@@ -57,13 +58,14 @@ function childEnv(env = process.env) {
 /**
  * Run one script in a child process, once a slot is free. Resolves with what the script returned and what it logged;
  * rejects with the script's own error, a time-out, the child's end, or a wait for a slot that took too long.
+ * `concurrencyKey` is the organisation the slot is counted against; it never reaches the child.
  * `deps` (tests): the slots and the fork to use.
- * @param {{ code: string, inputs?: unknown, limits?: Record<string, number>, mode?: 'live' | 'test' }} job
- * @param {{ slots?: { acquireSlot: () => Promise<() => void> }, fork?: typeof fork }} [deps]
+ * @param {{ code: string, inputs?: unknown, limits?: Record<string, number>, mode?: 'live' | 'test', concurrencyKey?: string | null }} job
+ * @param {{ slots?: { acquireSlot: (args?: { key?: string }) => Promise<() => void> }, fork?: typeof fork }} [deps]
  * @returns {Promise<{ result: unknown, logs: string[] }>}
  */
 async function runCodeIsolated(job, deps = {}) {
-    const release = await (deps.slots ?? childSlots).acquireSlot();
+    const release = await (deps.slots ?? childSlots).acquireSlot(job.concurrencyKey ? { key: job.concurrencyKey } : {});
     try {
         return await runInChild(job, deps.fork ?? fork);
     } finally {

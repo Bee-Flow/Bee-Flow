@@ -88,6 +88,13 @@ test('the action is read from the method and the path; anything else is no chang
         ['GET', '/cw-1', null],
         // Beside the items: a switch of the daily mail, a webhook call, a template, the policy are no change to an item.
         ['PUT', '/daily-mail', null], ['POST', '/hooks', null], ['DELETE', '/templates/t1', null], ['PUT', '/policy/org-1', null],
+        // A goal, and a desk change that concerns one cowork, are entries on that cowork's trail; the desk itself is not.
+        ['PUT', '/cw-1/goal', { action: 'cowork.goal_set', id: 'cw-1' }], ['POST', '/cw-1/goal/approve', { action: 'cowork.goal_check_approved', id: 'cw-1' }],
+        ['DELETE', '/cw-1/goal', { action: 'cowork.goal_removed', id: 'cw-1' }], ['POST', '/cw-1/goal/check', null],
+        ['POST', '/desks/d1/members', { action: 'cowork.desk_joined', id: 'cw-1' }], ['POST', '/desks/d1/members/cw-1/accept', { action: 'cowork.desk_accepted', id: 'cw-1' }],
+        ['PUT', '/desks/d1/members/cw-1', { action: 'cowork.desk_role_set', id: 'cw-1' }], ['DELETE', '/desks/d1/members/cw-1', { action: 'cowork.desk_left', id: 'cw-1' }],
+        ['POST', '/desks', null], ['PUT', '/desks/d1/roles', null],
     ]);
-    for (const [method, path, expected] of cases) assert.deepStrictEqual(actionOf(method, path), expected, `${method} ${path}`);
+    for (const [method, path, expected] of cases) assert.deepStrictEqual(actionOf(method, path, { scheduleId: 'cw-1' }), expected, `${method} ${path}`);
+    assert.strictEqual(actionOf('POST', '/desks/d1/members', {}), null, 'a desk join that names no cowork is no entry');
 });

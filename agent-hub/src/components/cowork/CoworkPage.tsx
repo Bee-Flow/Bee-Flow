@@ -18,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import useModelTierSelection from '../../hooks/useModelTierSelection';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
-import { briefFromAddress } from './coworkBriefFromAddress';
+import { takeHandedBrief } from './coworkHandedBrief';
 import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
 import CoworkHome from './CoworkHome';
@@ -39,8 +39,8 @@ const NO_ITEMS: CoworkItem[] = [];
 export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
     const [actionError, setActionError] = useState<string | null | undefined>(null);
-    // A brief handed over in the address ("Make it a cowork", ./CoworkHabitChip.tsx) fills the box once.
-    const [brief, setBrief] = useState(briefFromAddress);
+    // A brief handed over by "Make it a cowork" (./CoworkHabitChip.tsx, ./coworkHandedBrief.ts) fills the box once.
+    const [brief, setBrief] = useState(takeHandedBrief);
     const [busy, setBusy] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(initialCoworkId);
     const [editingId, setEditingId] = useState<string | null>(null);

@@ -279,7 +279,7 @@ function makeFetchHttpBridge(step, ctx, mode, guard) {
 async function runInSandbox(step, ctx, run) {
     const { inputs, rehearsal, mode, allowedTools, guard } = run;
     if (step.isolated === true) {
-        const ran = await sandbox().runCodeIsolated({ code: step.code, inputs, limits: step.limits || {}, mode: rehearsal ? 'test' : 'live' });
+        const ran = await sandbox().runCodeIsolated({ code: step.code, inputs, limits: step.limits || {}, mode: rehearsal ? 'test' : 'live', concurrencyKey: ctx.orgId || ctx.userId || null });
         return { ...ran, http: { calls: 0 }, calls: null };
     }
     return sandbox().runCode({

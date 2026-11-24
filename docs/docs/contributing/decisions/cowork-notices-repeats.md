@@ -25,14 +25,19 @@ most private thing in Bee Flow.
 
 - **No words are kept.** A turn is reduced to its agent and a sha256 of the app tools it used, with the
   weekday and the ISO week. Only a turn that used at least one app counts. The brief of the cowork that
-  is offered comes from the message on the person's own screen, never from the server.
+  is offered comes from the message on the person's own screen, never from the server, and goes to the
+  Cowork page through that browser tab's storage, never in the address (where it would stay in the browser
+  history and in proxy logs).
 - **Per person, off by default.** Nothing is noted until the person switches it on in Cowork. Switching it
   off deletes everything noted. An organisation's administrators can switch it off for everyone; an
   unreadable policy counts as off.
 - **One offer.** Four weeks in a row on the same weekday give one chip under the chat answer; it is never
   offered again for that kind of turn. Accepting opens Cowork with the brief filled in; nothing is created
   until the person confirms.
-- **Kept eight weeks**, and removed with the person's account.
+- **Kept eight weeks**, and removed with the person's account. A daily sweep
+  (`core/cowork/habits/habitSweep.mts`) removes older notes for everyone, and all notes of a person who is
+  no longer on or whose organisation no longer allows it. Switching it off stays possible while Cowork is
+  read-only, since it is how a person erases what was noted.
 
 ## Consequences
 

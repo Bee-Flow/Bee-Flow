@@ -32,7 +32,7 @@ test('an isolated code step runs out of process with only its code, inputs and l
     const out = /** @type {any} */ (await execCode({ id: 'c1', type: 'code', code: 'return 1 + 2', inputs: {}, isolated: true }, ctx, state, 'live'));
     assert.deepStrictEqual(out.output.result, { total: 3 });
     assert.strictEqual(isolated.length, 1);
-    assert.deepStrictEqual(Object.keys(isolated[0]).sort(), ['code', 'inputs', 'limits', 'mode'], 'no bridges go along');
+    assert.deepStrictEqual(Object.keys(isolated[0]).sort(), ['code', 'concurrencyKey', 'inputs', 'limits', 'mode'], 'no bridges go along, only the org its slot counts against');
     assert.strictEqual(inProcess, 0);
     await execCode({ id: 'c2', type: 'code', code: 'return 1', inputs: {} }, ctx, state, 'live');
     assert.strictEqual(inProcess, 1);

@@ -19,6 +19,13 @@ const ACTION_FALLBACK: Record<string, string> = {
     'cowork.start_set': 'changed how it starts',
     'cowork.trust_set': 'changed what may go on its own',
     'cowork.shares_set': 'changed who it is shared with',
+    'cowork.goal_set': 'set its goal',
+    'cowork.goal_check_approved': 'approved the check of its goal',
+    'cowork.goal_removed': 'took its goal off',
+    'cowork.desk_joined': 'put it on a desk',
+    'cowork.desk_accepted': 'accepted it on a desk',
+    'cowork.desk_role_set': 'chose which desk role decides its questions',
+    'cowork.desk_left': 'took it off a desk',
 };
 
 const FIELD_FALLBACK: Record<string, string> = {
