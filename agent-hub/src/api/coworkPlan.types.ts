@@ -59,6 +59,18 @@ export interface PlanDraft {
     permissions: PlanPermissions;
     findings: PlanFinding[];
     fingerprint: string;
+    /**
+     * Who each step that sends reaches, by step id: 'owner', the addresses the plan fixes (joined by a comma), or '*'
+     * when it picks them from data (server core/cowork/planTrust.mts sendsToOf); absent from an older server.
+     */
+    recipients?: Record<string, string>;
+}
+
+/** What the last test of a plan produced (server usecases/coworkPlanTryResult.mts): what its owner would have received. */
+interface PlanTriedResult {
+    stepId: string;
+    title: string | null;
+    text: string;
 }
 
 interface ApprovedPlan {
@@ -85,6 +97,8 @@ export interface PlanState {
     tried?: PlanTried | null;
     /** Not approved, it cannot run because of its wiring, and Cowork can fix that by itself (POST …/plan/fix-wiring). */
     wiringFixable?: boolean;
+    /** Only from GET …/plan, while a tested plan waits for its approval: what that test produced; else null or absent. */
+    triedResult?: PlanTriedResult | null;
 }
 
 /** One change Cowork made to the wiring, in the plan's titles. */

@@ -44,7 +44,7 @@ function RunItem({ run, titleOf, t }: { run: ReplayRun; titleOf: StepTitleOf; t:
 
 export default function CoworkTaskReplay({ state, titleOf, onClose, t }: { state: ReplayState; titleOf: StepTitleOf; onClose: () => void; t: TranslateFn }) {
     const [showSame, setShowSame] = useState(false);
-    if (!state.done) return <section className={CARD}><CoworkProgress labels={[t('cowork_task.replay.running', 'Replaying last month\'s runs. No app is touched.')]} phase={0} /></section>;
+    if (!state.done) return <section className={CARD}><CoworkProgress labels={[t('cowork_task.replay.comparing', "Running today's steps on last month's runs. No app is touched.")]} phase={0} /></section>;
     const replayed = state.runs.filter((r) => r.verdict !== 'not_replayable');
     const same = replayed.filter((r) => r.verdict === 'same');
     const other = replayed.filter((r) => r.verdict !== 'same');

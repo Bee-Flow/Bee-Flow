@@ -4,7 +4,7 @@
  * cards with their 16px padding, the "Fixed … · Undo" note, rows that open in place, and the receipt mark. Bee Flow
  * tokens only; the look and its rules are ../coworkUi.ts, the motion ../coworkMotion.ts.
  */
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { Check, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { FOCUS_RING } from '../../shared/buttonClasses';
@@ -56,27 +56,12 @@ export function ReceiptMark({ seq, signed, t }: { seq: number; signed: boolean; 
 }
 
 /** The chevron of a row that opens in place: once open it points the other way, by being the other icon. */
-function Chevron({ open }: { open: boolean }) {
+export function Chevron({ open }: { open: boolean }) {
     const Icon = open ? ChevronUp : ChevronDown;
     return <Icon aria-hidden="true" size={16} className="flex-shrink-0 text-[var(--text-tertiary)]" />;
 }
 
 const ROW_HEAD = `w-full min-h-11 px-4 flex items-center gap-3 text-left hover:bg-[var(--item-hover-bg)] ${TINT} ${FOCUS_RING}`;
-
-/** A card of rows that opens in place as a whole. */
-export function Fold({ label, children }: { label: string; children: ReactNode }) {
-    const [open, setOpen] = useState(false);
-    const bodyId = useId();
-    return (
-        <div className={`${SURFACE} overflow-hidden`} data-testid="cowork-task-more">
-            <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)} className={`${ROW_HEAD} justify-between text-[14px] leading-5 font-semibold text-[var(--text-primary)]`}>
-                <span>{label}</span>
-                <Chevron open={open} />
-            </button>
-            <Expand open={open} id={bodyId} className="flex flex-col">{children}</Expand>
-        </div>
-    );
-}
 
 interface FoldRowProps {
     id: string;

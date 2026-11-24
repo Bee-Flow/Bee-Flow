@@ -139,7 +139,10 @@ export interface CoworkRun {
     status: string;
     startedAt: string;
     durationMs?: number | null;
+    /** The raw reason a run stopped; shown only under "Technical details". */
     error?: string | null;
+    /** What happened, in the reader's own words (server usecases/coworkRunWords.mts); null or absent when the server has none. */
+    plain?: string | null;
     result?: string | null;
     producedOutput?: boolean | null;
     triggerKind?: string;

@@ -41,6 +41,7 @@ import { WIRING_BLOCKING } from '../core/cowork/plan/planWiring.mts';
 import { selfFixOf, type WiringChange } from '../core/cowork/plan/planWiringFix.mts';
 import type { PlanTryRecord, TryStatus } from '../stores/coworkPlanTries.mts';
 import type { TrySummary } from '../core/cowork/plan/planTryFacts.mts';
+import { sendsToOf } from '../core/cowork/planTrust.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -90,6 +91,8 @@ export interface PlanDraft {
     permissions: PlanPermissions;
     findings: PlanFinding[];
     fingerprint: string;
+    /** Who each step that sends reaches, by step id: 'owner', the addresses the plan fixes, or '*' when it picks them from data (core/cowork/planTrust.mts sendsToOf). */
+    recipients: Record<string, string>;
 }
 
 /** What Cowork shows of an item's plan. */
@@ -160,6 +163,7 @@ export async function draftOf(automation: AutomationRow, deps: Pick<Deps, 'looku
         // A list a step works through that the earlier step's described output does not have (planRefs.mts).
         findings: [...checkPlan(asStartedBy(definition, item), deps.lookups), ...refFindings(definition, deps.lookups), ...await licenceFindings(definition, owner, deps.mayAsk), ...fenced],
         fingerprint: planFingerprint(definition),
+        recipients: sendsToOf(definition, deps.lookups),
     };
 }
 

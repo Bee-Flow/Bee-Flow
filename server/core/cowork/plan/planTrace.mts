@@ -73,9 +73,21 @@ function durationOf(row: RunStepRow): number | null {
 const filled = (value: unknown): boolean => previewOf(value) !== null;
 
 /** The message a result step would deliver, as a try-out records it; else the output itself. */
-function messageOf(output: unknown): unknown {
+export function messageOf(output: unknown): unknown {
     const would = output && typeof output === 'object' ? (output as { wouldNotify?: unknown }).wouldNotify : undefined;
     return would === undefined ? output : would;
+}
+
+/** The longest text a value holds, however it is nested (a message's body, a draft's text); '' when it holds none. */
+export function longestText(value: unknown): string {
+    let best = '';
+    const visit = (v: unknown, depth: number): void => {
+        if (typeof v === 'string') { if (v.length > best.length) best = v; return; }
+        if (!v || typeof v !== 'object' || depth > 4) return;
+        for (const inner of Object.values(v)) visit(inner, depth + 1);
+    };
+    visit(value, 0);
+    return best;
 }
 
 /** What a step's preview is made from: see the header. Null when showing anything would show made-up data. */
@@ -87,7 +99,7 @@ function shownOf(step: { kind: StepKind; effect: Effect }, row: RunStepRow, simu
 }
 
 /** The last attempt of each step: the one that counts. */
-function lastAttempts(rows: RunStepRow[]): Map<string, RunStepRow> {
+export function lastAttempts(rows: RunStepRow[]): Map<string, RunStepRow> {
     const last = new Map<string, RunStepRow>();
     for (const row of rows) {
         const seen = last.get(row.stepId);

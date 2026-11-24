@@ -37,7 +37,12 @@ router.post('/', (req, res) => { res.status(201).json({ id: 'cw-new' }); });
 router.put('/:id', (req, res) => { res.json({ success: true }); });
 router.delete('/:id', (req, res) => { res.json({ success: true }); });
 router.post('/:id/toggle', (req, res) => { res.json({ isActive: false }); });
-router.post('/:id/plan/approve', (req, res) => { res.status(409).json({ error: 'changed' }); });
+const SEEN = 'b'.repeat(64);
+const EARLIER = 'c'.repeat(64);
+// An approval of the plan that was looked at makes version 3; any other fingerprint is refused.
+router.post('/:id/plan/approve', (req, res) => { if (req.body.fingerprint === SEEN) res.json({ approved: { version: 3, fingerprint: SEEN } }); else res.status(409).json({ error: 'changed' }); });
+// Bringing version 1 back approves it again, as version 4.
+router.post('/:id/plan/restore', (req, res) => { res.json({ approved: { version: 4, fingerprint: EARLIER } }); });
 router.post('/:id/runs/:runId/review', (req, res) => { res.json({ ok: true }); });
 router.get('/:id/runs', (req, res) => { res.json({ runs: [] }); });
 const api = serve('/api/cowork', router, { user: { id: 'u1', organizationId: 'org-1' } });
@@ -66,6 +71,17 @@ test('a refused change and a read are not written', async () => {
     await api.call('GET', '/api/cowork/cw-1/runs');
     await settled();
     assert.deepStrictEqual(written, []);
+});
+
+test('an approval is written with the version it made, and bringing an earlier version back is an approval of that new version', async () => {
+    written = [];
+    await api.call('POST', '/api/cowork/cw-1/plan/approve', { body: { fingerprint: SEEN } });
+    await api.call('POST', '/api/cowork/cw-1/plan/restore', { body: { version: 1 } });
+    await settled();
+    assert.deepStrictEqual(written.map(([action, id, , fields]) => [action, id, fields]), [
+        ['cowork.plan_approved', 'cw-1', { fingerprint: SEEN, version: 3 }],
+        ['cowork.plan_approved', 'cw-1', { version: 4, fingerprint: EARLIER }],
+    ]);
 });
 
 test('the trail is its owner\'s to read', async () => {

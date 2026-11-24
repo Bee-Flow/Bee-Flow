@@ -71,6 +71,8 @@ function actionOf(method, path, body) {
     const byRoute = {
         'PUT ': 'cowork.updated', 'DELETE ': 'cowork.deleted', 'POST toggle': 'cowork.toggled',
         'PUT plan': 'cowork.plan_attached', 'POST plan/approve': 'cowork.plan_approved', 'DELETE plan': 'cowork.plan_removed',
+        // An earlier version approved again ("Restore", "Undo") is an approval too.
+        'POST plan/restore': 'cowork.plan_approved',
         'PUT plan/independence': 'cowork.independence_set', 'POST hand-over': 'cowork.handed_over', 'PUT start': 'cowork.start_set', 'PUT plan/trust': 'cowork.trust_set', 'PUT shares': 'cowork.shares_set',
         'PUT goal': 'cowork.goal_set', 'POST goal/approve': 'cowork.goal_check_approved', 'DELETE goal': 'cowork.goal_removed',
         'PUT setup': setupActionOf(body),
@@ -86,6 +88,17 @@ function idInAnswer(body) {
     const b = /** @type {{ id?: unknown, schedule?: { id?: unknown } } | null} */ (body && typeof body === 'object' ? body : null);
     const id = b?.id ?? b?.schedule?.id;
     return typeof id === 'string' && id ? id : null;
+}
+
+/**
+ * What an approval's answer adds to its entry: the version it made and that version's fingerprint, so the trail can
+ * offer to bring exactly that version back (POST /:id/plan/restore). Nothing for any other answer.
+ * @param {unknown} answer
+ * @returns {Record<string, unknown>}
+ */
+function approvedIn(answer) {
+    const approved = /** @type {{ approved?: { version?: unknown, fingerprint?: unknown } | null } | null} */ (answer && typeof answer === 'object' ? answer : null)?.approved;
+    return approved && typeof approved.version === 'number' ? { version: approved.version, fingerprint: approved.fingerprint } : {};
 }
 
 /**
@@ -122,7 +135,8 @@ function mountAuditRoutes(router, overrides = {}) {
             if (!id) return;
             const user = userOf(req);
             const fields = req.body && typeof req.body === 'object' ? /** @type {Record<string, unknown>} */ (req.body) : null;
-            void record(found.action, id, { userId: user.id, organizationId: user.organizationId ?? null }, fields);
+            const carried = found.action === 'cowork.plan_approved' ? { ...fields, ...approvedIn(answer) } : fields;
+            void record(found.action, id, { userId: user.id, organizationId: user.organizationId ?? null }, carried);
         });
         next();
     });

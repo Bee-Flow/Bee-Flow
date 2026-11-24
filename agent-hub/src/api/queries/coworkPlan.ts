@@ -44,14 +44,20 @@ const TRY_POLL_MS = 1200;
 /**
  * "Try it first": start a try-out of the item's plan and follow it until it is over. `started` is the try-out this
  * screen started (with the fingerprint of the plan it tries), `state` how it is going; the read repeats while it runs.
+ * Once it is over the plan is read again: how it was tested, and what that test produced, are the plan's to say.
  */
 export function useCoworkPlanTry(coworkId: string) {
+    const client = useQueryClient();
     const start = useMutation<PlanTryStart, Error, void>({ mutationFn: () => startCoworkPlanTry(coworkId) });
     const started = start.data ?? null;
     const follow = useQuery<PlanTryState, Error>({
         queryKey: ['cowork', 'plan-try', coworkId, started?.tryId ?? ''],
         enabled: !!started,
-        queryFn: () => getCoworkPlanTry(coworkId, (started as PlanTryStart).tryId),
+        queryFn: async () => {
+            const state = await getCoworkPlanTry(coworkId, (started as PlanTryStart).tryId);
+            if (state.done) void client.invalidateQueries({ queryKey: planKey(coworkId) });
+            return state;
+        },
         refetchInterval: (query) => (query.state.data?.done || query.state.error ? false : TRY_POLL_MS),
         staleTime: 0,
         retry: false,

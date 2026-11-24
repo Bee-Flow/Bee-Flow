@@ -31,7 +31,7 @@ function makingPhases(making: PlanMaking, t: TranslateFn): { labels: string[]; p
         labels: [
             t('cowork_task.live.make_think', 'Working out the steps'),
             t('cowork_task.live.make_save', 'Saving them'),
-            t('cowork_task.live.make_try', 'Trying them once. Nothing is changed or sent.'),
+            t('cowork_task.live.make_test', 'Testing them once. Nothing is changed or sent.'),
             t('cowork_task.live.make_ready', 'Ready for your check'),
         ],
     };
@@ -71,7 +71,7 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
 export default function CoworkTaskLive({ coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
     if (making.running) return <LiveCard heading={t('cowork_task.live.setting_up', 'Setting up')} testing {...makingPhases(making, t)} />;
     if (tryState && !tryState.done) {
-        return <LiveCard heading={t('cowork_task.live.trying', 'Trying it. Nothing is changed or sent.')} testing {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
+        return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} testing {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
     }
     if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} t={t} />;
     return null;

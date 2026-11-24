@@ -17,6 +17,7 @@ import type { Definition, ToolLookups } from '../core/cowork/plan/planTypes.mts'
 import { routineSignals, hintsOf, MIN_RUNS, type RoutineSignals, type RunLike } from '../core/cowork/routineSignals.mts';
 import { compareResults, type Comparison } from '../core/cowork/routineCompare.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
+import { longestText } from '../core/cowork/plan/planTrace.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -62,15 +63,7 @@ export async function hintsFor(item: Item, deps: RoutineDeps = defaults()): Prom
 
 /** The longest text a result step's row holds (a try-out keeps it as `wouldNotify`): what the result said. */
 function deliveredText(row: StepRow | undefined): string {
-    let best = '';
-    const visit = (v: unknown, depth: number): void => {
-        if (typeof v === 'string') { if (v.length > best.length) best = v; return; }
-        if (!v || typeof v !== 'object' || depth > 4) return;
-        for (const inner of Object.values(v)) visit(inner, depth + 1);
-    };
-    visit(row?.output, 0);
-    if (!best) visit(row?.input, 0);
-    return best;
+    return longestText(row?.output) || longestText(row?.input);
 }
 
 export interface RoutineComparison extends Comparison {
