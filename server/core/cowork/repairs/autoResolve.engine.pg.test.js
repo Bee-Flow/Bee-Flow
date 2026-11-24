@@ -24,17 +24,17 @@ const assert = require('node:assert');
 
 const { pg, store } = require('../coworkEngine.testkit').coworkOnEngine();
 
+const { autoResolve, autoResolveDeps } = require('../../../usecases/coworkAutoResolve.mts');
+const { checkAfterRun, stop, AUTO_FIX_APPROVER } = require('./autoResolve.mts');
 const automationStore = require('../../../stores/automationStore');
 const proposalsStore = require('../../../stores/coworkProposals.mts');
 const { executeTask } = require('../../aiTaskRunner');
 const { attachPlan } = require('../../../usecases/coworkPlan.mts');
-const { autoResolve, autoResolveDeps } = require('../../../usecases/coworkAutoResolve.mts');
 const { proposalsOf } = require('../../../usecases/coworkProposals.mts');
 const { restoreVersion } = require('../../../usecases/coworkPlanVersions.mts');
 const { trailOf } = require('../../../usecases/coworkAudit.mts');
 const { permissionsOf, planFingerprint } = require('../plan/planPermissions.mts');
 const { toolLookups } = require('../plan/planLookups.mts');
-const { checkAfterRun, stop, AUTO_FIX_APPROVER } = require('./autoResolve.mts');
 
 const OWNER = 'u-auto-fix-engine';
 const MARKER = 'MARKER-7f3a-do-not-leak';
