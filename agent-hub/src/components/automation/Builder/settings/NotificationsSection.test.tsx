@@ -72,7 +72,7 @@ describe('NotificationsSection', () => {
         const error = screen.getByTestId('notify-event-onError');
         await user.click(within(error).getByRole('button', { name: '+ add' }));
         await user.type(within(error).getByRole('combobox', { name: 'Add a person or group' }), 'fin');
-        await user.click(await within(error).findByRole('button', { name: /Finance/ }));
+        await user.click(await within(error).findByRole('option', { name: /Finance/ }));
         expect(lastSettings(onSave).onError.recipients).toEqual([{ type: 'owner' }, { type: 'group', id: 'g1' }]);
     });
 

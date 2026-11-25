@@ -28,12 +28,10 @@ const { validate } = require('../../core/http/validate');
 const { HttpError, notFound } = require('../../core/http/errors');
 const S = require('./schemas');
 const { isOrgAdminForOrg } = require('../../auth/admin/orgAdminGuards');
-const { displayNameOf } = require('../../core/documents/documentPeople');
 const { projectOrgOf, belongsToProjectOrg } = require('../../projects/projectOrg');
 // Something a project compliance check reads changed (ids only).
 const { signalProjectChanged } = require('../../usecases/projects/complianceSignal');
 const { memberAvatar, makeMemberDirectory } = require('../../usecases/projects/memberDirectory');
-const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {{ requireProjectRole: typeof import('../../auth/projectAccess').requireProjectRole, // middleware named requireProjectRoleMw
@@ -186,29 +184,21 @@ function makeMembersRouter(deps) {
          */
         const matches = (label) => !needle || String(label).toLowerCase().includes(needle);
 
-        const members = await Promise.resolve(userStore.getOrgMembersForDirectory(orgId)).catch((err) => {
-            log.warn('[Projects] principals: directory unavailable:', err.message);
-            return [];
-        });
-        const people = (members || [])
-            // The fallback chain ends in the username, which an SSO login makes an e-mail address: never let one out.
-            .map(u => { const label = displayNameOf(u); return { row: u, name: label && !String(label).includes('@') ? label : String(u.id) }; })
-            .filter(p => matches(p.name))
-            .slice(0, PRINCIPALS_MAX);
+        const people = await userStore.searchOrgDirectoryNames(orgId, needle, PRINCIPALS_MAX);
 
         // The directory carries no picture itself: one batched read over the people on screen.
         const pictures = new Map();
         if (people.length && typeof userStore.getUserAvatarsByIds === 'function') {
             try {
-                for (const r of await userStore.getUserAvatarsByIds(people.map(p => p.row.id))) pictures.set(String(r.id), r);
+                for (const r of await userStore.getUserAvatarsByIds(people.map(p => p.id))) pictures.set(String(r.id), r);
             } catch (err) { log.warn('[Projects] principals: avatars unavailable:', /** @type {Error} */ (err).message); }
         }
-        const users = people.map(({ row, name }) => {
-            const picture = pictures.has(String(row.id)) ? memberAvatar(project.id, String(row.id), pictures.get(String(row.id))) : null;
-            return { id: String(row.id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
+        const users = people.map(({ id, name }) => {
+            const picture = pictures.has(String(id)) ? memberAvatar(project.id, String(id), pictures.get(String(id))) : null;
+            return { id: String(id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
         });
 
-        const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch((e) => fallback('routes/projects/members:makeMembersRouter', e, [])) || [])
+        const orgGroups = (await userStore.getAllGroups() || [])
             .filter(g => String(g.organizationId || '') === orgId && matches(g.name || g.id))
             .slice(0, PRINCIPALS_MAX);
         let counts = new Map();

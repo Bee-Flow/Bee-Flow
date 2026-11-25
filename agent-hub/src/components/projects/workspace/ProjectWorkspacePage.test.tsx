@@ -112,18 +112,18 @@ describe('ProjectWorkspacePage — navigation', () => {
         const api = serve();
         renderPage();
         expect(await screen.findByTestId('project-overview-tab')).toBeInTheDocument();
-        const bar = within(await screen.findByRole('radiogroup', { name: 'Project sections' }));
-        await waitFor(() => expect(bar.getByRole('radio', { name: 'Members3' })).toBeInTheDocument());
-        expect(bar.getByRole('radio', { name: 'Documents1' })).toBeInTheDocument();
-        expect(bar.getByRole('radio', { name: 'Meetings' })).toBeInTheDocument();
+        const bar = within(await screen.findByRole('combobox', { name: 'Project sections' }));
+        await waitFor(() => expect(bar.getByRole('option', { name: 'Members (3)' })).toBeInTheDocument());
+        expect(bar.getByRole('option', { name: 'Documents (1)' })).toBeInTheDocument();
+        expect(bar.getByRole('option', { name: 'Meetings' })).toBeInTheDocument();
         expect(api.callsTo('POST', '/api/projects/p1/presence').length).toBeGreaterThan(0);
     });
 
     it('leaves Notebooks out of the rail, and tells every section, for a reader who may not use notebooks', async () => {
         serve();
         renderPage({ notebooksEnabled: false });
-        expect(await screen.findByRole('radio', { name: /^Documents/ })).toBeInTheDocument();
-        expect(screen.queryByRole('radio', { name: /^Notebooks/ })).toBeNull();
+        expect(await screen.findByRole('option', { name: /^Documents/ })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: /^Notebooks/ })).toBeNull();
         expect(screen.getByTestId('project-overview-tab')).toBeInTheDocument();
         expect(screen.queryByTestId('quick-notebook')).toBeNull();
     });
@@ -140,16 +140,16 @@ describe('ProjectWorkspacePage — navigation', () => {
         renderPage({ initialTab: 'notebooks' });
         expect(await screen.findByTestId('section-notebooks')).toBeInTheDocument();
         expect(lastPropsOf('notebooks').notebooksEnabled).toBe(true);
-        expect(screen.getByRole('radio', { name: /^Notebooks/ })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /^Notebooks/ })).toBeInTheDocument();
     });
 
     it('switches sections from the rail and reports the route', async () => {
         serve();
         const { props, user } = renderPage();
-        await user.click(await screen.findByRole('radio', { name: /^Activity/ }));
+        await user.selectOptions(await screen.findByRole('combobox', { name: 'Project sections' }), 'activity');
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(props.onRouteChange).toHaveBeenLastCalledWith('activity', null);
-        expect(screen.getByRole('radio', { name: /^Activity/ })).toBeChecked();
+        expect(screen.getByRole('combobox', { name: 'Project sections' })).toHaveValue('activity');
     });
 
     it('asks before leaving Settings with unsaved edits, and keeps them when the person stays', async () => {
@@ -157,12 +157,12 @@ describe('ProjectWorkspacePage — navigation', () => {
         const { props, user } = renderPage({ initialTab: 'settings' });
         const name = await screen.findByTestId('project-field-name');
         await user.type(name, ' 2');
-        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
+        await user.selectOptions(await screen.findByRole('combobox', { name: 'Project sections' }), 'activity');
         expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
         expect(props.onRouteChange).not.toHaveBeenCalled();
         await user.click(screen.getByRole('button', { name: 'Keep editing' }));
         expect(screen.getByTestId('project-field-name')).toHaveValue('Launch plan 2');
-        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
+        await user.selectOptions(await screen.findByRole('combobox', { name: 'Project sections' }), 'activity');
         await user.click(await screen.findByRole('button', { name: 'Leave without saving' }));
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(props.onRouteChange).toHaveBeenLastCalledWith('activity', null);
@@ -214,7 +214,7 @@ describe('ProjectWorkspacePage — navigation', () => {
         serve();
         const { user } = renderPage({ initialTab: 'settings' });
         await user.type(await screen.findByTestId('project-field-name'), ' draft');
-        await user.click(screen.getByRole('radio', { name: /^Settings/ }));
+        await user.selectOptions(await screen.findByRole('combobox', { name: 'Project sections' }), 'settings');
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -222,7 +222,7 @@ describe('ProjectWorkspacePage — navigation', () => {
         serve();
         const { user } = renderPage({ initialTab: 'settings' });
         await screen.findByTestId('project-field-name');
-        await user.click(screen.getByRole('radio', { name: /^Activity/ }));
+        await user.selectOptions(await screen.findByRole('combobox', { name: 'Project sections' }), 'activity');
         expect(await screen.findByTestId('project-activity-tab')).toBeInTheDocument();
         expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
     });
@@ -294,9 +294,9 @@ describe('ProjectWorkspacePage — phone section bar', () => {
     it('lists the rail rows in rail order with the task count and skips Notebooks when they are off', async () => {
         serve(makeProject(), { 'GET /api/projects/p1/tasks': { tasks: [{ id: 't1', status: 'todo', assigneeIds: [] }, { id: 't2', status: 'done', assigneeIds: [] }] } });
         renderPage({ notebooksEnabled: false });
-        const bar = await screen.findByRole('radiogroup', { name: 'Project sections' });
-        await waitFor(() => expect(within(bar).getAllByRole('radio').map((r) => r.textContent)).toEqual(
-            ['Overview', 'Chats1', 'Tasks1', 'Meetings', 'Documents1', 'Knowledge0', 'Members3', 'Activity', 'Settings'],
+        const bar = await screen.findByRole('combobox', { name: 'Project sections' });
+        await waitFor(() => expect(within(bar).getAllByRole('option').map((r) => r.textContent)).toEqual(
+            ['Overview', 'Chats (1)', 'Tasks (1)', 'Meetings', 'Documents (1)', 'Knowledge (0)', 'Members (3)', 'Activity', 'Settings'],
         ));
     });
 });
@@ -399,9 +399,9 @@ describe('ProjectWorkspacePage — what changed', () => {
             'GET /api/projects/p1/chats': { chats: [{ id: 'c1', title: 'Standup', unread: 2 }] },
         });
         renderPage();
-        expect(await screen.findByRole('radio', { name: 'Documents•' })).toBeInTheDocument();
-        expect(await screen.findByRole('radio', { name: 'Chats•' })).toBeInTheDocument();
-        expect(screen.queryByRole('radio', { name: /^Notebooks•/ })).toBeNull();
+        expect(await screen.findByRole('option', { name: 'Documents (New changes)' })).toBeInTheDocument();
+        expect(await screen.findByRole('option', { name: 'Chats (New changes)' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: /^Notebooks .*New changes/ })).toBeNull();
         expect(api.callsTo('POST', '/api/projects/p1/visit')).toHaveLength(1);
     });
 
@@ -416,12 +416,27 @@ describe('ProjectWorkspacePage — what changed', () => {
         expect(api.callsTo('POST', '/api/projects/p1/items/document/d1/seen')).toHaveLength(0);
         await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/items/document/d1/seen')).toHaveLength(1), { timeout: 5000 });
         // The section in view shows no dot of its own.
-        expect(screen.queryByRole('radio', { name: /^Documents•/ })).toBeNull();
+        expect(screen.queryByRole('option', { name: /^Documents .*New changes/ })).toBeNull();
     });
 });
 
 describe('ProjectWorkspacePage — archived', () => {
     const archived = () => makeProject({ archivedAt: '2026-10-01T10:00:00Z', archivedBy: OWNER_ID });
+
+    it('opens project search from the compact bar and keeps archived search results read-only', async () => {
+        serve(archived(), {
+            'GET /api/projects/p1/search': { items: [{ type: 'task', id: 't1', title: 'Launch checklist' }], nextCursor: null },
+            'GET /api/projects/p1/pins': { items: [] },
+        });
+        const onSearchOpenChange = vi.fn();
+        const { props, view, user } = renderPage({ onSearchOpenChange });
+        await user.click(await screen.findByRole('button', { name: 'Search this project' }));
+        expect(onSearchOpenChange).toHaveBeenCalledWith(true);
+        view.rerender(withQueryClient(<PageInHub {...props} searchOpen />));
+        const dialog = await screen.findByRole('dialog');
+        expect(await within(dialog).findByRole('button', { name: /Launch checklist/ })).toBeEnabled();
+        expect(within(dialog).queryByRole('button', { name: 'Pin for everyone' })).toBeNull();
+    });
 
     it('shows the band with who archived it, and Restore (owner) calls the mutation', async () => {
         const api = serve(archived(), { 'POST /api/projects/p1/restore': { success: true, archivedAt: null } });

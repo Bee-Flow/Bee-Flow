@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { UserPlus, Users } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { filterPrincipals, usePeopleDirectory, type Principal } from '@/api/queries/automation/people';
@@ -12,6 +12,7 @@ import { filterPrincipals, usePeopleDirectory, type Principal } from '@/api/quer
 export interface PrincipalSource {
     principals: Principal[];
     loading: boolean;
+    failed?: boolean;
     onQuery: (q: string) => void;
     /** Characters needed before the source is asked. */
     minChars: number;
@@ -35,8 +36,8 @@ function usePrincipalHits({ automationId, source, query, open, exclude, groupsOn
     return { hits, loading, typedEnough };
 }
 
-function PrincipalList({ id, source, typedEnough, loading, hits, onPick }: {
-    id: string; source: PrincipalSource | undefined; typedEnough: boolean; loading: boolean; hits: Principal[]; onPick: (p: Principal) => void;
+function PrincipalList({ id, source, typedEnough, loading, hits, active, onPick }: {
+    id: string; source: PrincipalSource | undefined; typedEnough: boolean; loading: boolean; hits: Principal[]; active: number; onPick: (p: Principal) => void;
 }) {
     const { t } = useTranslation();
     return (
@@ -56,14 +57,11 @@ function PrincipalList({ id, source, typedEnough, loading, hits, onPick }: {
             {typedEnough && !loading && hits.length === 0 && (
                 <li className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{t('automations.people.no_match', 'Nobody found')}</li>
             )}
-            {hits.map(p => (
-                <li key={`${p.type}:${p.id}`} role="option" aria-selected={false}>
-                    <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => onPick(p)}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--bg-tertiary)]"
-                    >
+            {hits.map((p, index) => (
+                <li key={`${p.type}:${p.id}`} role="none">
+                    <button type="button" tabIndex={-1} id={`${id}-${index}`} role="option" aria-selected={index === active}
+                        onMouseDown={e => e.preventDefault()} onClick={() => onPick(p)}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 cursor-pointer text-left text-xs hover:bg-[var(--bg-tertiary)] ${index === active ? 'bg-[var(--item-active-bg)]' : ''}`}>
                         <PrincipalAvatar principal={p} />
                         <span className="min-w-0">
                             <span className="block truncate font-medium text-[var(--text-primary)]">{p.name}</span>
@@ -91,8 +89,15 @@ export default function PrincipalPicker({ automationId, source, onPick, exclude,
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [open, setOpen] = useState(false);
+    const [active, setActive] = useState(-1);
     const listId = useId();
     const { hits, loading, typedEnough } = usePrincipalHits({ automationId, source, query, open: open || autoFocus, exclude, groupsOnly });
+
+    const expanded = open && !source?.failed;
+    const activeId = expanded && hits[active] ? `${listId}-${active}` : undefined;
+    useEffect(() => {
+        if (activeId) document.getElementById(activeId)?.scrollIntoView?.({ block: 'nearest' });
+    }, [activeId]);
 
     const pick = (p: Principal) => {
         onPick(p);
@@ -111,17 +116,37 @@ export default function PrincipalPicker({ automationId, source, onPick, exclude,
                     value={query}
                     autoFocus={autoFocus}
                     role="combobox"
-                    aria-expanded={open}
-                    aria-controls={listId}
+                    aria-expanded={expanded}
+                    aria-autocomplete="list"
+                    aria-activedescendant={activeId}
+                    aria-controls={expanded ? listId : undefined}
                     aria-label={label ?? (groupsOnly ? t('automations.people.add_group', 'Add a group') : t('automations.people.add', 'Add a person or group'))}
                     placeholder={placeholder ?? (groupsOnly ? t('automations.people.add_group_placeholder', 'Add a group…') : t('automations.people.add_placeholder', 'Add a person or group…'))}
-                    onFocus={() => setOpen(true)}
-                    onBlur={() => setTimeout(() => setOpen(false), 150)}
-                    onChange={(e) => { setQuery(e.target.value); setOpen(true); source?.onQuery(e.target.value); }}
+                    onFocus={() => { setActive(-1); setOpen(true); }}
+                    onClick={() => setOpen(true)}
+                    onBlur={() => setOpen(false)}
+                    onKeyDown={e => {
+                        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                        if (e.key === 'Escape' && expanded) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpen(false);
+                        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setOpen(true);
+                            const last = hits.length - 1;
+                            setActive(e.key === 'ArrowDown' ? Math.min(expanded ? active + 1 : 0, last)
+                                : !expanded || active <= 0 ? last : active - 1);
+                        } else if (e.key === 'Enter' && expanded) {
+                            e.preventDefault();
+                            if (hits[active]) pick(hits[active]);
+                        }
+                    }}
+                    onChange={(e) => { setQuery(e.target.value); setActive(-1); setOpen(true); source?.onQuery(e.target.value); }}
                     className="flex-1 min-w-0 bg-transparent outline-none text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                 />
             </label>
-            {open && <PrincipalList id={listId} source={source} typedEnough={typedEnough} loading={loading} hits={hits} onPick={pick} />}
+            {expanded && <PrincipalList id={listId} source={source} typedEnough={typedEnough} loading={loading} hits={hits} active={active} onPick={pick} />}
         </div>
     );
 }

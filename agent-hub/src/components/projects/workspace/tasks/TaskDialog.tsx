@@ -19,8 +19,9 @@ import { ChecklistEditor, MAX_LABELS, TypeIcon, typeLabel } from './TaskFields';
 import TaskProperties from './TaskProperties';
 import { LinkedResources, RelatedTasks, SubItems } from './TaskRelations';
 import TaskDescription, { useImproveIntoForm } from './TaskDescription';
+import { isImeEnter } from '../chat/ime';
 import { ICON_BUTTON, SectionHeader, useAutoGrow } from './taskDialogParts';
-import { canContainWorkItem, retainSprintLabels, sprintName, storyPoints, workItemType, visibleLabels, type WorkItemType } from './taskPlanning';
+import { canContainWorkItem, replaceVisibleLabels, sprintName, storyPoints, workItemType, visibleLabels, type WorkItemType } from './taskPlanning';
 import './projectTasks.css';
 
 const MAX_TITLE = 200;
@@ -141,14 +142,14 @@ function useDirtyGuard(dirty: boolean, canEdit: boolean, busy: boolean, onClose:
 }
 
 /** The bar that replaces a confirm: what to do with the unsaved changes. */
-function UnsavedBar({ formId, busy, onDiscard, onKeep }: { formId: string; busy: boolean; onDiscard: () => void; onKeep: () => void }) {
+function UnsavedBar({ formId, busy, invalid, onDiscard, onKeep }: { formId: string; busy: boolean; invalid: boolean; onDiscard: () => void; onKeep: () => void }) {
     const { t } = useTranslation();
     return (
         <div role="alert" data-testid="task-unsaved-bar" className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)]">
             <span className="flex-1 min-w-0 text-[13px] text-[var(--text-primary)]">{t('project_home.unsaved_changes', 'Unsaved changes')}</span>
             <GhostButton onClick={onKeep} disabled={busy}>{t('project_tasks.keep_editing', 'Keep editing')}</GhostButton>
             <SecondaryButton onClick={onDiscard} disabled={busy} data-testid="task-unsaved-discard">{t('project_home.discard', 'Discard')}</SecondaryButton>
-            <PrimaryButton type="submit" form={formId} busy={busy} data-testid="task-unsaved-save">{t('project_chat.save', 'Save')}</PrimaryButton>
+            <PrimaryButton type="submit" form={formId} busy={busy} disabled={invalid} data-testid="task-unsaved-save">{t('project_chat.save', 'Save')}</PrimaryButton>
         </div>
     );
 }
@@ -180,12 +181,19 @@ export default function TaskDialog(props: TaskDialogProps) {
     const parentOptions = useParentOptions(task, taskPool, itemType);
 
     const userLabels = visibleLabels(labels);
-    const plannedLabels = retainSprintLabels(labels, userLabels);
+    // A title or label edit must preserve planning data written by older clients.
+    // Drop an obsolete fallback only when its own field changes (including clearing points).
+    const plannedLabels = labels.filter(label => {
+        if (label.startsWith('bf:type:')) return task && itemType === workItemType(task);
+        if (label.startsWith('bf:points:')) return task && points === storyPoints(task);
+        return true;
+    });
     const labelsOverflow = plannedLabels.length > MAX_LABELS;
     const input: TaskInput = { title: clean, description, status, priority, itemType, parentTaskId, storyPoints: points, labels: plannedLabels, checklist, assigneeIds, links, startDate: startDate || null, dueDate: dueDate || null };
     const [initial] = useState(() => JSON.stringify(input));
     const { requestClose, pending, keepEditing } = useDirtyGuard(JSON.stringify(input) !== initial, canEdit, busy, onClose);
     const invalidDates = !!(startDate && dueDate && startDate > dueDate);
+    const invalid = !clean || invalidDates || labelsOverflow;
     const newTitles: Record<WorkItemType, string> = {
         epic: t('project_tasks.new_epic', 'New epic'),
         story: t('project_tasks.new_story', 'New story'),
@@ -194,7 +202,7 @@ export default function TaskDialog(props: TaskDialogProps) {
     };
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!clean || locked || invalidDates) return;
+        if (locked || invalid) return;
         onSubmit(input, openedAs.current ? changedFields(openedAs.current, input) : input);
     };
     const openLink = onOpenLink ? (l: TaskLink) => requestClose(() => onOpenLink(l)) : undefined;
@@ -215,7 +223,7 @@ export default function TaskDialog(props: TaskDialogProps) {
             title={<TaskHeading name={name} itemType={itemType} trail={trail} editing={!!task} />}
             footer={(
                 <div className="flex flex-col gap-2 w-full">
-                    {pending && <UnsavedBar formId={`${ids}-form`} busy={busy} onDiscard={pending} onKeep={keepEditing} />}
+                    {pending && <UnsavedBar formId={`${ids}-form`} busy={busy} invalid={invalid} onDiscard={pending} onKeep={keepEditing} />}
                     <div className="flex items-center gap-2 w-full">
                     {task && onDelete && canEdit && (
                         <button type="button" onClick={onDelete} disabled={busy} aria-label={t('project_tasks.delete', 'Delete')} title={t('project_tasks.delete', 'Delete')}
@@ -226,7 +234,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                     <span className="flex-1" />
                     <SecondaryButton onClick={() => requestClose()} disabled={busy}>{canEdit ? t('project_content.cancel', 'Cancel') : t('project_tasks.close', 'Close')}</SecondaryButton>
                     {canEdit && (
-                        <PrimaryButton type="submit" form={`${ids}-form`} busy={busy} disabled={!clean || invalidDates || labelsOverflow}>
+                        <PrimaryButton type="submit" form={`${ids}-form`} busy={busy} disabled={invalid}>
                             {task ? t('project_chat.save', 'Save') : t('project_tasks.create', 'Create task')}
                         </PrimaryButton>
                     )}
@@ -240,7 +248,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                             <label htmlFor={`${ids}-title`} className="sr-only">{t('project_tasks.title_label', 'What needs to be done?')}</label>
                             <textarea id={`${ids}-title`} ref={titleRef} rows={1} value={title} maxLength={MAX_TITLE} autoFocus disabled={locked}
                                 placeholder={t('project_tasks.title_placeholder', 'Task title')}
-                                onKeyDown={(e) => { if (e.key !== 'Enter') return; e.preventDefault(); e.currentTarget.form?.requestSubmit(); }}
+                                onKeyDown={(e) => { if (e.key !== 'Enter' || isImeEnter(e)) return; e.preventDefault(); e.currentTarget.form?.requestSubmit(); }}
                                 onChange={e => setTitle(e.target.value.replace(/\n/g, ' '))}
                                 className="block w-full resize-none overflow-hidden bg-transparent border-0 p-0 text-[18px] font-semibold leading-snug text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:ring-0 disabled:opacity-100" />
                         </div>
@@ -270,7 +278,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                         itemType={itemType} onItemType={changeType} points={points} onPoints={setPoints}
                         parentTaskId={parentTaskId} parentOptions={parentOptions} parent={trail[trail.length - 1] || null} onParent={setParentTaskId}
                         sprint={sprintName({ labels })}
-                        labels={userLabels} onLabels={next => setLabels(retainSprintLabels(labels, next))}
+                        labels={userLabels} onLabels={next => setLabels(replaceVisibleLabels(labels, next))}
                         maxLabels={Math.max(0, MAX_LABELS - (plannedLabels.length - userLabels.length))} labelsOverflow={labelsOverflow}
                         labelSuggestions={props.labelSuggestions} onOpen={openLink} />
                 </aside>

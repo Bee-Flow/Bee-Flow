@@ -134,7 +134,7 @@ describe('ProjectMembersPanel — invite', () => {
         await user.type(box, 'n');
         expect(await screen.findByTestId('principal-min-chars')).toBeInTheDocument();
         await user.type(box, 'i');
-        expect(await screen.findByRole('button', { name: /Nina Newcomer/ })).toBeInTheDocument();
+        expect(await screen.findByRole('option', { name: /Nina Newcomer/ })).toBeInTheDocument();
         expect(api.callsTo('GET', '/api/projects/p1/principals')[0].query.get('q')).toBe('ni');
         await user.clear(box);
         await user.type(box, 'ol');
@@ -143,13 +143,34 @@ describe('ProjectMembersPanel — invite', () => {
         expect(within(screen.getByRole('listbox')).queryByText('Olivia Owner')).toBeNull();
         await user.clear(box);
         await user.type(box, 'nina');
-        await user.click(await screen.findByRole('button', { name: /Nina Newcomer/ }));
+        await screen.findByRole('option', { name: /Nina Newcomer/ });
+        await user.keyboard('{ArrowDown}');
+        expect(within(screen.getByRole('listbox')).getByRole('option', { selected: true })).toHaveTextContent('Nina Newcomer');
+        await user.keyboard('{Enter}');
+        expect(screen.getByTestId('member-invite-role')).toHaveFocus();
+        expect(api.callsTo('POST', '/api/projects/p1/share')).toHaveLength(0);
         await user.selectOptions(screen.getByTestId('member-invite-role'), 'editor');
         await user.click(screen.getByTestId('member-invite-submit'));
         await waitFor(() => expect(api.callsTo('POST', '/api/projects/p1/share')).toHaveLength(1));
+        expect(await screen.findByText('Nina Newcomer added as Editor.')).toBeInTheDocument();
+        expect(screen.getByTestId('member-invite-role')).toHaveValue('viewer');
         expect(api.callsTo('POST', '/api/projects/p1/share')[0].body).toEqual({
             sharedWithType: 'user', sharedWithId: NEWCOMER_ID, permission: 'editor',
         });
+    });
+
+    it('offers retry for a directory error and keeps the name being searched', async () => {
+        const api = serve({ 'GET /api/projects/p1/principals': reply(400, { error: 'Unavailable' }) });
+        const user = userEvent.setup();
+        renderPanel('owner', OWNER_ID);
+        const box = await screen.findByRole('combobox', { name: 'Search people and groups' });
+        await user.type(box, 'ni');
+        expect(await screen.findByText('Could not search for people and groups.')).toBeInTheDocument();
+        expect(screen.queryByText('Nobody found')).not.toBeInTheDocument();
+        api.routes['GET /api/projects/p1/principals'] = { users: [{ id: NEWCOMER_ID, name: 'Nina' }], groups: [] };
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByRole('option', { name: /Nina/ })).toBeInTheDocument();
+        expect(box).toHaveValue('ni');
     });
 
     it('says to ask the owner when the principals search is refused (403), with no id field', async () => {
@@ -166,7 +187,7 @@ describe('ProjectMembersPanel — invite', () => {
         const user = userEvent.setup();
         renderPanel('owner', OWNER_ID);
         await user.type(await screen.findByRole('combobox', { name: 'Search people and groups' }), 'sa');
-        const hit = await screen.findByRole('button', { name: /Sales/ });
+        const hit = await screen.findByRole('option', { name: /Sales/ });
         expect(hit).toHaveTextContent('group · 7 people');
         await user.click(hit);
         await user.click(screen.getByTestId('member-invite-submit'));

@@ -45,8 +45,8 @@ export function withPlanningMeta(labels: string[], patch: { sprint?: string | nu
     return next;
 }
 export function visibleLabels(labels: string[]) { return labels.filter(label => !label.startsWith(META)); }
-export function retainSprintLabels(oldLabels: string[], nextLabels: string[]) {
-    return [...nextLabels, ...oldLabels.filter(isSprintLabel)];
+export function replaceVisibleLabels(oldLabels: string[], nextLabels: string[]) {
+    return [...visibleLabels(nextLabels), ...oldLabels.filter(label => label.startsWith(META))];
 }
 
 // ── Hierarchy (epic → story → task) ─────────────────────────────────────────

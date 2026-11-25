@@ -23,7 +23,13 @@ const MOCKS = {
         getUser: async () => null,
         getGroup: async () => null,
         getAllGroups: async () => fx.groups,
-        getOrgMembersForDirectory: async (orgId) => { fx.asked.push(orgId); return fx.members.filter(m => m.organizationId === orgId); },
+        searchOrgDirectoryNames: async (orgId, q, limit) => {
+            fx.asked.push(orgId);
+            if (fx.directoryError) throw fx.directoryError;
+            return fx.members.filter(m => m.organizationId === orgId)
+                .map(m => ({ id: m.id, name: m.displayName || m.id }))
+                .filter(m => m.name.toLowerCase().includes(q)).slice(0, limit);
+        },
         getUserAvatarsByIds: async (ids) => fx.avatars.filter(a => ids.includes(a.id)),
     },
     '../stores/automationStore': {
@@ -81,6 +87,7 @@ function get(url) {
 }
 
 function reset() {
+    fx.directoryError = null;
     fx.role = 'viewer';
     fx.project = { id: 'p1', name: 'P1', ownerId: 'alice', organizationId: 'org1' };
     fx.members = [
@@ -146,13 +153,11 @@ test('without q the first people and groups are listed, capped at 20 each', asyn
     assert.strictEqual(res.body.groups.length, 20);
 });
 
-test('a member whose only name is an e-mail address shows as the id, never the address', async () => {
+test('a directory outage returns an error the picker can retry', async () => {
     reset();
-    fx.members = [{ id: 'sso1', username: 'x@y.nl', organizationId: 'org1' }];
-    const res = await get('/p1/principals');
-    assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(res.body.users.map(u => u.name), ['sso1']);
-    assert.ok(!JSON.stringify(res.body).includes('@'), 'no @ anywhere in the answer');
+    fx.directoryError = new Error('directory unavailable');
+    const res = await get('/p1/principals?q=an');
+    assert.strictEqual(res.statusCode, 500);
 });
 
 test('a non-member gets 404', async () => {

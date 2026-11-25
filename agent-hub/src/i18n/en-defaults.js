@@ -41180,6 +41180,8 @@ const EN_DEFAULTS = {
     "project_counts.new_messages_one": "{n} new message",
     "project_counts.backlog_hint": "Open tasks that are not in a sprint",
     "project_counts.unscheduled_hint": "Tasks without a start or due date",
+    "project_members.search_failed": "Could not search for people and groups.",
+    "project_members.added": "{name} added as {role}.",
     "sanctions.entries": "{count} entries",
     "sanctions.interval": "Refreshed every {hours} hours while an organisation uses the lists.",
     "sanctions.interval_off": "Automatic refresh is off on this server (SANCTIONS_REFRESH_INTERVAL_HOURS=0).",
