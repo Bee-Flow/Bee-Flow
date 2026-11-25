@@ -46,7 +46,11 @@ stub('../stores/studioAppStore', {
     // exactly what the real store answers for project_id NULL.
     canReadStudioAppAsync: async (...a) => canReadStudioApp(...a),
 });
-stub('../stores/userStore', { getUser: async (id) => ({ id }) });
+stub('../stores/userStore', {
+    getUser: async id => ({ id, role: 'builder' }),
+    getAllGroups: async () => [],
+    getAllRoles: async () => [{ id: 'builder', permissions: ['manage_apps'] }],
+});
 stub('../auth/audience', {
     resolveAudienceContext: async (req) => ({
         userId: req.session?.user?.id || null,

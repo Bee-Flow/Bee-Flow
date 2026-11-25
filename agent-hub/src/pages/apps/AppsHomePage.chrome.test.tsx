@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -129,11 +130,11 @@ describe('AppsHomePage header', () => {
 });
 
 describe('AppsHomePage — the way to the build side', () => {
-    const renderWith = async (licence: boolean, capability: boolean) => {
+    const renderWith = async (licence: boolean, capability: boolean, mayManageApps = true) => {
         gate.licence = licence;
         gate.capability = capability;
         asMock(studioAppsApi.listAccessible).mockResolvedValue({ apps: [app('a1')] });
-        render(<AppsHomePage />);
+        render(<AppsHomePage mayManageApps={mayManageApps} />);
         await screen.findByText('App a1');
     };
     const button = () => screen.queryByRole('link', { name: 'Build in Studio' });
@@ -154,7 +155,7 @@ describe('AppsHomePage — the way to the build side', () => {
     });
 
     it('stays away for a reader who only uses apps', async () => {
-        await renderWith(false, false);
+        await renderWith(true, true, false);
         expect(button()).not.toBeInTheDocument();
     });
 });

@@ -61,3 +61,20 @@ test('the endpoint accepts the token /mcp already mints', async () => {
     // And an unknown token authenticates nobody on this path either.
     assert.equal(await mcpServer.authenticateToken('Bearer bfmcp.abc.short'), null);
 });
+
+test('a licensed reader only gets Studio tools while they hold manage_apps', async (t) => {
+    const userId = 'studio-author';
+    t.mock.method(require('../stores/userStore'), 'getUser', async () => ({ organizationId: 'org1' }));
+    t.mock.method(require('../core/entitlements/entitlements'), 'hasCapability', async () => true);
+    let canBuild = false;
+    t.mock.method(require('../auth/permissions'), 'hasPermission', async (id, permission) =>
+        id === userId && permission === 'manage_apps' && canBuild);
+    const list = () => studio.handleRpc({ id: 1, method: 'tools/list' }, userId);
+    assert.deepEqual((await list()).result.tools, []);
+    canBuild = true;
+    assert.ok((await list()).result.tools.length > 0);
+    canBuild = false;
+    const reply = await studio.handleRpc({ id: 2, method: 'tools/call', params: { name: 'studio_get_guide' } }, userId);
+    assert.equal(reply.result.isError, true);
+    assert.match(reply.result.content[0].text, /manage_apps/);
+});

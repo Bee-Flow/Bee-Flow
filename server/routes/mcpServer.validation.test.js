@@ -49,6 +49,7 @@ const MOCKS = {
         rpcDenied: (res, status, id = null) => res.set('WWW-Authenticate', 'Bearer realm="bee-flow"').status(status)
             .json({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Unauthorized' } }),
     },
+    '../auth/permissions': { hasPermission: async (userId, permission) => userId === 'u1' && permission === 'manage_apps' },
     '../appStudio/mcpBuilder': builder('studio'),
     '../automation/mcpBuilder': builder('automations'),
     '../core/entitlements/entitlements': { hasCapability: async () => true },

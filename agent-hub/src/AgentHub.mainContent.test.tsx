@@ -111,6 +111,12 @@ describe('AgentHub main content — which slot wins', () => {
         expect(await screen.findByTestId('slot-apps', {}, ARRIVES)).toBeInTheDocument();
     });
 
+    it('refuses a direct directory link without use_apps', () => {
+        renderHub({ currentPage: 'apps', user: MEMBER });
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByTestId('slot-apps')).toBeNull();
+    });
+
     it('a published form is shown signed in, with the webpages entitlement', async () => {
         renderHub({ currentPage: 'formView', formViewToken: 'tok-1' });
         expect(await screen.findByTestId('slot-form-view', {}, ARRIVES)).toBeInTheDocument();

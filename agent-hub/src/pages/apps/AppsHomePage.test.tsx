@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,8 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // labels below are the English the call sites ask for.
 vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
-// Hoisted mock of the studio-apps API — AppsHomePage merges listAccessible +
-// listMine (published-only) into the consumer directory.
+// The consumer directory reads the audience list and leaves the editor gallery alone.
 vi.mock('../../components/admin/Studio/AppStudio/studioAppsApi', () => {
     const studioAppsApi = { listAccessible: vi.fn(), listMine: vi.fn() };
     return { default: studioAppsApi, studioAppsApi };
@@ -49,21 +49,19 @@ describe('AppsHomePage', () => {
         expect(crmLink).toHaveAttribute('href', '/app/apps/a1');
     });
 
-    it('merges owned-published apps and drops drafts + duplicates', async () => {
+    it('includes owned publications and drops drafts without loading the editor gallery', async () => {
         asMock(studioAppsApi.listAccessible).mockResolvedValue({
-            apps: [{ id: 'a1', name: 'Shared App', isPublished: true }],
-        });
-        asMock(studioAppsApi.listMine).mockResolvedValue({
             apps: [
-                { id: 'a1', name: 'Shared App', isPublished: true }, // duplicate of accessible
+                { id: 'a1', name: 'Shared App', isPublished: true },
                 { id: 'a2', name: 'My Published', isPublished: true },
-                { id: 'a3', name: 'My Draft', isPublished: false },   // dropped
+                { id: 'a3', name: 'My Draft', isPublished: false },
             ],
         });
 
         render(<AppsHomePage />);
 
         await screen.findByText('Shared App');
+        expect(studioAppsApi.listMine).not.toHaveBeenCalled();
         expect(screen.getByText('My Published')).toBeInTheDocument();
         expect(screen.queryByText('My Draft')).not.toBeInTheDocument();
         // Deduped: only one "Shared App" tile in the directory grid. Scoped to

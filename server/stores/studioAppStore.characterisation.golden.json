@@ -1529,18 +1529,36 @@
   "value": true,
   "trace": [
    {
-    "ch": "getOne",
-    "sql": "SELECT 1 FROM studio_apps WHERE user_id = $1 LIMIT 1",
+    "ch": "getAll",
+    "sql": "SELECT id, user_id, organization_id, project_id, name, description, icon, accent_color, category, definition_version, published_version, is_published, shared_groups, nextcloud_menu, published_at, created_at, updated_at, template_id, template_version, template_install_hash FROM studio_apps WHERE user_id = $1 OR (is_published = TRUE AND organization_id IS NOT NULL AND organization_id = ANY($2::text[])) ORDER BY updated_at DESC",
     "params": [
-     "x"
+     "x",
+     [
+      "org1"
+     ]
+    ]
+   },
+   {
+    "ch": "getOne",
+    "sql": "SELECT 1 FROM studio_apps WHERE project_id IS NOT NULL LIMIT 1",
+    "params": []
+   },
+   {
+    "ch": "dep",
+    "name": "listUserProjects",
+    "args": [
+     "x",
+     [
+      "g1"
+     ]
     ]
    },
    {
     "ch": "getAll",
-    "sql": "SELECT id, is_published, organization_id, shared_groups FROM studio_apps WHERE is_published = TRUE AND organization_id = ANY($1::text[]) LIMIT 50",
+    "sql": "SELECT id, user_id, organization_id, project_id, name, description, icon, accent_color, category, definition_version, published_version, is_published, shared_groups, nextcloud_menu, published_at, created_at, updated_at, template_id, template_version, template_install_hash FROM studio_apps WHERE project_id = ANY($1::text[]) AND is_published = TRUE ORDER BY updated_at DESC",
     "params": [
      [
-      "org1"
+      "p1"
      ]
     ]
    }

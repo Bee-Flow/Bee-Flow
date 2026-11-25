@@ -5,11 +5,6 @@
  */
 
 const { dep } = require('./deps');
-const { parseJSONObject: parseJSON } = require('../lib/json');
-const { initDB } = require('./schema');
-
-const { getOne, getAll } = dep('db');
-
 // ── Access predicates (pure) ────────────────────────────────────────
 
 /**
@@ -18,7 +13,7 @@ const { getOne, getAll } = dep('db');
  * shared_groups=[] meaning the whole org. Mirrors canReadWebpage.
  */
 function canReadStudioApp(app, userId, userGroupIds = [], userOrgIds = []) {
-    if (!app) return false;
+    if (!app || !userId) return false;
     if (app.userId === userId) return true;
     if (!app.isPublished) return false;
     if (!app.organizationId) return false;
@@ -37,8 +32,8 @@ function canReadStudioApp(app, userId, userGroupIds = [], userOrgIds = []) {
  * callers that cannot await (the templates, the pure filters), and they keep
  * the old behaviour to the letter.
  *
- * ADDITIVE, NEVER A DOWNGRADE. It is only ever consulted after the sync
- * predicate has already said no, so an app that was readable stays readable.
+ * The owner retains preview access. Reading somebody else's app requires use_apps
+ * and either its publication audience or membership in the app's project.
  *
  * READ ONLY. Filing an app into a project does not make the project's members
  * its authors — canWriteStudioApp stays owner-only for the acts-as-author
@@ -51,10 +46,12 @@ function canReadStudioApp(app, userId, userGroupIds = [], userOrgIds = []) {
  * standalone app (project_id IS NULL) and an unpublished one both stay exactly
  * as private as they were.
  */
-async function canReadStudioAppAsync(app, userId, userGroupIds = [], userOrgIds = []) {
+async function canReadStudioAppAsync(app, userId, userGroupIds = [], userOrgIds = [], /** @type {import('../../core/entitlements/entitlementTypes').SessionLike | null} */ session = null) {
+    if (!app || !userId) return false;
+    if (app.userId === userId) return true;
+    if (!app.isPublished || !await dep('mayUseSharedApps')(userId, session)) return false;
     if (canReadStudioApp(app, userId, userGroupIds, userOrgIds)) return true;
-    if (!app || !app.projectId || !userId) return false;
-    if (!app.isPublished) return false;
+    if (!app.projectId) return false;
     const { getProjectRole } = dep('projectAccess')();
     return !!(await getProjectRole(userId, app.projectId));
 }
@@ -63,36 +60,8 @@ async function canReadStudioAppAsync(app, userId, userGroupIds = [], userOrgIds 
 // acts-as-author, so shared editors could otherwise point the owner's
 // credentials at arbitrary automations by rewiring the definition.
 function canWriteStudioApp(app, userId) {
-    if (!app) return false;
+    if (!app || !userId) return false;
     return app.userId === userId;
 }
 
-/**
- * Cheap existence check: does the user have at least one app they can see
- * (own, or published into their org/groups)? Group-share membership is
- * checked in JS (mirrors getAccessibleStudioApps), so we fetch a tiny
- * candidate window rather than a bare EXISTS.
- */
-async function userHasAnyStudioAppAccess(userId, userGroupIds = [], userOrgIds = []) {
-    await initDB();
-    if (!userId) return false;
-    const orgIds = Array.isArray(userOrgIds) ? userOrgIds : [...(userOrgIds || [])];
-    const groupIds = Array.isArray(userGroupIds) ? userGroupIds : [];
-    const owned = await getOne(`SELECT 1 FROM studio_apps WHERE user_id = $1 LIMIT 1`, [userId]);
-    if (owned) return true;
-    if (orgIds.length === 0) return false;
-    const rows = await getAll(
-        `SELECT id, is_published, organization_id, shared_groups
-           FROM studio_apps
-          WHERE is_published = TRUE AND organization_id = ANY($1::text[])
-          LIMIT 50`,
-        [orgIds]
-    );
-    return rows.some(r => {
-        const groups = parseJSON(r.shared_groups, []);
-        if (!Array.isArray(groups) || groups.length === 0) return true; // entire-org publish
-        return groups.some(g => groupIds.includes(g));
-    });
-}
-
-module.exports = { canReadStudioApp, canReadStudioAppAsync, canWriteStudioApp, userHasAnyStudioAppAccess };
+module.exports = { canReadStudioApp, canReadStudioAppAsync, canWriteStudioApp };

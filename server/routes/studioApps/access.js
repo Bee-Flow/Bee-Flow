@@ -67,11 +67,15 @@ async function audienceFor(req) {
  * truth and the one thing they can act on. The body carries no name and no
  * owner; a published-to-groups app reveals nothing more than that it exists.
  * @param {import('express').Response} res
- * @param {{ isPublished?: boolean, organizationId?: string | null }} app
+ * @param {{ isPublished?: boolean, organizationId?: string | null, sharedGroups?: string[] }} app
  * @param {string[]} orgIdArr
+ * @param {string[]} userGroups
  */
-function refuseRead(res, app, orgIdArr) {
+function refuseRead(res, app, orgIdArr, userGroups) {
     if (app.isPublished && app.organizationId && orgIdArr.includes(app.organizationId)) {
+        if (!app.sharedGroups?.length || app.sharedGroups.some(id => userGroups.includes(id))) {
+            return res.status(403).json({ error: "Permission 'use_apps' required" });
+        }
         return res.status(403).json({
             error: 'This app is shared with specific groups in your organisation',
             code: 'not_in_audience',

@@ -237,14 +237,14 @@ test('kb and skill need the permission their CREATE route enforces, not their li
         },
     })));
     const body = await (await post()).json();
-    for (const gone of ['kb', 'skill', 'agent']) {
+    for (const gone of ['kb', 'skill', 'agent', 'app']) {
         assert.ok(!body.available.includes(gone), `${gone} needs a create permission this caller lacks`);
         assert.ok(!enumOfLastCall().includes(gone), `${gone} must not even be a word the model may answer`);
     }
     // A plain "no" is not "unknown", and the kinds with no create permission
     // at all are untouched.
     assert.deepStrictEqual(body.undecided, []);
-    assert.deepStrictEqual(body.available, ['automation', 'form', 'datatable', 'app', 'webpage', 'solution']);
+    assert.deepStrictEqual(body.available, ['automation', 'form', 'datatable', 'webpage', 'solution']);
 });
 
 test('a permission the caller HAS puts kb and skill back', async () => {

@@ -11,6 +11,7 @@ const { parseJSONObject: parseJSON } = require('../lib/json');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { changedKeysOf } = require('../lib/managedParts');
 const { initDB } = require('./schema');
+const { canReadStudioApp } = require('./access');
 const { guardOf, inTx, serializeDefinition } = require('./shared');
 const { META_COLS, mapAppMetaRow, mapAppRow } = require('./rowMappers');
 const { rollback } = require('../../utils/txRollback');
@@ -119,7 +120,9 @@ async function userProjectIds(userId, userGroupIds = []) {
  * column was added ("regardless of is_published/shared_groups"); the comment
  * has been corrected rather than the rule widened.
  */
-async function getAccessibleStudioApps(userId, userGroupIds = [], userOrgIds = []) {
+async function getAccessibleStudioApps(userId, userGroupIds = [], userOrgIds = [], /** @type {import('../../core/entitlements/entitlementTypes').SessionLike | null} */ session = null) {
+    if (!userId) return [];
+    if (!await dep('mayUseSharedApps')(userId, session)) return getStudioAppsByUser(userId);
     await initDB();
     const orgIds = Array.isArray(userOrgIds) ? userOrgIds : [...(userOrgIds || [])];
     const groupIds = Array.isArray(userGroupIds) ? userGroupIds : [];
@@ -132,15 +135,8 @@ async function getAccessibleStudioApps(userId, userGroupIds = [], userOrgIds = [
     );
     const visible = rows
         .map(mapAppMetaRow)
-        .filter(a => {
-            if (a.userId === userId) return true;
-            if (!a.isPublished) return false;
-            const groups = Array.isArray(a.sharedGroups) ? a.sharedGroups : [];
-            if (groups.length === 0) return true; // entire-org publish
-            return groups.some(g => groupIds.includes(g));
-        });
+        .filter(a => canReadStudioApp(a, userId, groupIds, orgIds));
 
-    if (!userId) return visible;
     // Cheap guard before the membership lookup: on an install where no app is
     // filed into a project at all there is nothing to widen, and this costs one
     // index probe (idx_studio_apps_project is partial on exactly this predicate)
@@ -166,6 +162,10 @@ async function getAccessibleStudioApps(userId, userGroupIds = [], userOrgIds = [
     // One list, one order. The two queries each come back newest-first; the
     // merge has to restore that across them.
     return visible.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
+
+async function userHasAnyStudioAppAccess(userId, userGroupIds = [], userOrgIds = [], session = null) {
+    return (await getAccessibleStudioApps(userId, userGroupIds, userOrgIds, session)).length > 0;
 }
 
 const APP_CARD_COLUMNS = {
@@ -308,6 +308,7 @@ module.exports = {
     getStudioApp,
     getStudioAppsByUser,
     getAccessibleStudioApps,
+    userHasAnyStudioAppAccess,
     updateStudioApp,
     setTemplateStamp,
     setTemplateProvenance,

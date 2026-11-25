@@ -26,8 +26,8 @@
  * THE GATE HERE IS "MAY CREATE", NOT "MAY SEE". That is the one place this
  * table deliberately DIFFERS from counts.js, and the difference is not
  * cosmetic: counts.js gates a NUMBER on a rail, this router gates a sentence
- * that says "I'll make this for you". Three kinds have a create route with a
- * permission of its own, and all three carry it here:
+ * that says "I'll make this for you". Four kinds have a create route with a
+ * permission of its own, and all four carry it here:
  *
  *   agent  routes/agents/crud.js:287  requirePermission('manage_agents')
  *   kb     routes/knowledgeBases/create.js:17 requirePermission('manage_knowledge')
@@ -99,7 +99,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 // The gate helpers and the lazy dependency factory are shared with the other
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
-    makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, solutionsGate,
+    makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, appAuthoringGate, solutionsGate,
 } = require('./shared');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -185,7 +185,7 @@ const ROUTE_KINDS = Object.freeze(/** @type {RouteKind[]} */ ([
     {
         key: 'app',
         blurb: 'A small internal app with its own screens, lists and buttons that people use interactively.',
-        gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
+        gate: appAuthoringGate,
     },
     {
         key: 'webpage',

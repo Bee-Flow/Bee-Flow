@@ -67,7 +67,12 @@ function canReadStudioApp(app, userId, _groups = [], orgIds = []) {
     return [...(orgIds || [])].includes(app.organizationId);
 }
 
-stub('../stores/userStore', { getUser: async (id) => ({ id }), touchLastSeen: async () => {} });
+stub('../stores/userStore', {
+    getUser: async id => ({ id, role: id === OWNER ? 'builder' : 'reader' }),
+    getAllGroups: async () => [],
+    getAllRoles: async () => [{ id: 'builder', permissions: ['manage_apps'] }],
+    touchLastSeen: async () => {},
+});
 stub('../stores/studioAppStore', {
     getStudioApp: async (id) => apps.get(id) || null,
     canReadStudioApp,

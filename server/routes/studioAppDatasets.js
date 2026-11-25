@@ -192,7 +192,7 @@ async function loadVisibleApp(/** @type {import('express').Request<any, any, any
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
     if (app.userId !== userId) {
         const { orgIdArr, userGroups } = await audienceFor(req);
-        if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr)) {
+        if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr, req.session)) {
             res.status(404).json({ error: 'App not found' });
             return null;
         }

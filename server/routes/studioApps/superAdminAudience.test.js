@@ -108,3 +108,20 @@ test('webpages: the same rule for the page list', async () => {
     assert.ok(listed.includes(ids.pageA), 'the org-wide page of their own organisation is listed');
     assert.ok(!listed.includes(ids.pageB), 'a page of another organisation is not');
 });
+
+test('withdrawing use_apps removes a shared publication from both the list and the runtime', async () => {
+    const reader = { ...AUTHOR_A, id: 'u-role-reader', username: 'role-reader', email: 'reader@sa.test' };
+    await require('../../stores/userStore').createUser({ ...reader, passwordHash: 'x' });
+    const { setOrgRolePermissions } = require('../../auth/orgRolePolicy');
+    const { invalidatePermissionCache } = require('../../auth/permissions');
+    const list = async () => (await apps.call('GET', '/api/studio-apps', { user: reader })).body.apps;
+    const runtime = () => apps.call('GET', `/api/studio-apps/${ids.orgWideA}/runtime`, { user: reader });
+    assert.ok((await list()).some(app => app.id === ids.orgWideA));
+    assert.equal((await runtime()).status, 200);
+    await setOrgRolePermissions(ORG_A, 'member', ['manage_apps']);
+    await invalidatePermissionCache(reader.id);
+    assert.deepEqual(await list(), []);
+    const denied = await runtime();
+    assert.equal(denied.status, 403);
+    assert.match(denied.body.error, /use_apps/);
+});

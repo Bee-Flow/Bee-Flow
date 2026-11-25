@@ -1,5 +1,6 @@
 import { AlertCircle, LayoutGrid, Search } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { usePublishedStudioApps, type AppDirectoryScope } from '@/api/queries/publishedStudioApps';
 import { studioAppsApi } from '@/components/admin/Studio/AppStudio/studioAppsApi';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { useEntitlements } from '@/components/licensing/EntitlementsContext';
@@ -10,7 +11,7 @@ import scopedStorage from '@/utils/scopedStorage';
 import type { DirectoryApp, CategoryFilterProps, ErrorBannerProps, ToolbarProps } from '../AppsHomePage.types';
 import { logger } from '@/utils/logger';
 import { APP_TILE, RECENTS_KEY, REMEMBERED, RECENTS_SHOWN, CATEGORY_LABELS, PILL_CLASSES, CARD_CLASSES, CARD_STYLE, GRID_CLASSES, GENERIC_LOAD_ERROR } from './AppsHomePage.constants';
-import { categoriesInView, visibleUnder, matchesQuery, byName, isPublished } from './AppsHomePage.helpers';
+import { categoriesInView, visibleUnder, matchesQuery } from './AppsHomePage.helpers';
 import { Directory } from './Directory';
 export { RECENTS_SHOWN } from './AppsHomePage.constants';
 
@@ -199,49 +200,30 @@ function Toolbar({ count, query, onQuery, canBuild }: ToolbarProps) {
     );
 }
 
-export default function AppsHomePage() {
-    const { t } = useTranslation();
-    const [apps, setApps] = useState<DirectoryApp[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | typeof GENERIC_LOAD_ERROR | null>(null);
-    const [category, setCategory] = useState('all');
-    const [query, setQuery] = useState('');
+const EMPTY_DIRECTORY: DirectoryApp[] = [];
 
-    // The way to the build side, for readers who have it. Same gate as the
-    // sidebar's Studio > Apps row (studioApps.jsx: licence × capability) so
-    // the button and the nav entry cannot disagree about who may build; both
-    // context hooks answer `false` with no provider above them, which is the
-    // safe way to be wrong.
+function useAppDirectory(scope?: AppDirectoryScope | null) {
+    const directory = usePublishedStudioApps(studioAppsApi.listAccessible, scope);
+    return {
+        apps: directory.data ?? EMPTY_DIRECTORY,
+        loading: directory.isPending,
+        error: directory.isError ? directory.error?.message || GENERIC_LOAD_ERROR : null,
+        retry: async () => { await directory.refetch(); },
+    };
+}
+
+function useCanBuildApps(mayManageApps: boolean) {
     const { hasFeature } = useLicenseContext();
     const { can } = useEntitlements();
-    const canBuild = !!(hasFeature?.('app_studio') && can?.('app_studio'));
+    return mayManageApps && hasFeature('app_studio') && can('app_studio');
+}
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const [accessible, mine] = await Promise.all([
-                studioAppsApi.listAccessible(),
-                studioAppsApi.listMine(),
-            ]);
-            // listAccessible is already published-only server-side; filter
-            // defensively. listMine holds drafts too, so keep only published.
-            const shared = (accessible?.apps || []).filter(isPublished);
-            const ownedPublished = (mine?.apps || []).filter(isPublished);
-            // Dedupe by id (an owned app can also appear in accessible).
-            const byId = new Map<string, DirectoryApp>();
-            for (const a of [...shared, ...ownedPublished]) {
-                if (a?.id && !byId.has(a.id)) byId.set(a.id, a);
-            }
-            setApps([...byId.values()].sort(byName));
-        } catch (err) {
-            setError((err as Error)?.message || GENERIC_LOAD_ERROR);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
+export default function AppsHomePage({ scope, mayManageApps = false }: { scope?: AppDirectoryScope | null; mayManageApps?: boolean }) {
+    const { t } = useTranslation();
+    const { apps, loading, error, retry } = useAppDirectory(scope);
+    const canBuild = useCanBuildApps(mayManageApps);
+    const [category, setCategory] = useState('all');
+    const [query, setQuery] = useState('');
 
     // Read ONCE per mount. Opening an app leaves this page, so there is nothing
     // to keep in sync while it is on screen — and a stable snapshot means the
@@ -294,7 +276,7 @@ export default function AppsHomePage() {
                 canBuild={canBuild}
             />
 
-            {error && <ErrorBanner message={error} onRetry={load} />}
+            {error && <ErrorBanner message={error} onRetry={retry} />}
 
             {hasDirectory && (
                 <div className="shrink-0 px-4 pt-3 flex items-center flex-wrap gap-x-3 gap-y-2">

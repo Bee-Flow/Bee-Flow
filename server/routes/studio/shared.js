@@ -144,6 +144,14 @@ const permission = async (d, req, perm) => {
 };
 
 /**
+ * Studio app results and suggestions open the editor.
+ * @param {import('express').Request} req
+ * @param {Pick<GateDeps, 'modules' | 'entitlements' | 'permissions'>} d
+ */
+const appAuthoringGate = async (req, d) => (await moduleActive(d, 'apps'))
+    && (await capability(d, req, 'app_studio')) && (await permission(d, req, 'manage_apps'));
+
+/**
  * Solutions: routes/projects.js's mount gate (requireModule('projects') +
  * requireCapability('projects')) plus the operator kill switch
  * (feature_projects_enabled). counts.js, search.js, attentionChecks.js and
@@ -211,6 +219,7 @@ module.exports = {
     licenceAllows,
     capability,
     permission,
+    appAuthoringGate,
     solutionsGate,
     visibleKnowledgeBasesFor,
     visibleSolutionsFor,

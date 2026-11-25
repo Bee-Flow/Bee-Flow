@@ -70,8 +70,8 @@ const {
 // on GET /agents/all; see the header of that file for why it may not become a second implementation.
 const { groundedOn, groundingVerdict } = require('../../core/agentRuntime/agentGrounding');
 const {
-    moduleActive, licenceAllows, capability, permission, userIdOf,
-    solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
+    moduleActive, licenceAllows, permission, userIdOf,
+    appAuthoringGate, solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -540,11 +540,11 @@ const SOURCES = [
         key: 'appValidation',
         kind: 'app',
         // routes/studioApps.js's mount gate, as counts.js and search.js read it.
-        gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
+        gate: appAuthoringGate,
         load: async (req, d) => {
             const { gaps, miss } = gapCollector();
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
-            const all = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, [...(memberOrgIds ?? orgIds ?? [])]);
+            const all = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, [...(memberOrgIds ?? orgIds ?? [])], req.session);
             // ONLY APPS THIS PERSON CAN OPEN IN THE EDITOR. "Show me" goes to
             // /app/studio/apps/:id, and canWriteStudioApp is owner-only — a row
             // about a colleague's published app would hand out a button that

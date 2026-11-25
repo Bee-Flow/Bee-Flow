@@ -47,7 +47,7 @@ const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new 
 const { fontMaxBytes } = nodeRequire('../appStudio/appFontRoles.js') as { fontMaxBytes: () => number };
 const studioAppStore = nodeRequire('../stores/studioAppStore.js') as {
     getStudioApp: (id: string) => Promise<StudioApp | null>;
-    canReadStudioAppAsync: (app: StudioApp, userId: string, groups: string[], orgIds: string[]) => Promise<boolean>;
+    canReadStudioAppAsync: (app: StudioApp, userId: string, groups: string[], orgIds: string[], session: Request['session']) => Promise<boolean>;
 };
 
 /** A per-minute budget from the environment: the default when unset or not a whole number, none at all for 0. */
@@ -101,7 +101,7 @@ async function visibleApp(req: Request): Promise<StudioApp> {
     if (!app || !userId) throw notFound();
     if (app.userId === userId) return app;
     const { orgIdArr, userGroups } = await audienceFor(req);
-    if (!app.isPublished || !(await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr))) throw notFound();
+    if (!app.isPublished || !(await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr, req.session))) throw notFound();
     return app;
 }
 

@@ -68,7 +68,7 @@ const { validate } = require('../../core/http/validate');
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
     makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission,
-    solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
+    appAuthoringGate, solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -242,11 +242,11 @@ const KINDS = [
         // the apps you can open, which is what "Apps 4" on an org rail means.
         // (/mine is the recents panel's list: what YOU build.)
         key: 'apps',
-        gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
+        gate: appAuthoringGate,
         count: async (req, d) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
             const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
-            const apps = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
+            const apps = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr, req.session);
             return { count: apps.length, owners: apps.map(ownerOf) };
         },
     },

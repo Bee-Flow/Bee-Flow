@@ -298,7 +298,7 @@ tagGate(requireAdmin, { axis: 'rbac', anyOf: ['manage_users', 'all'] });
 // recover WHICH permission it enforces — without the tag it is just an anonymous
 // arrow and the route table reads "USE:anonymous". The tag is a non-enumerable
 // Symbol.for property: it changes nothing at request time.
-const requirePermission = (permissionId) => {
+const requireAnyPermission = (...permissionIds) => {
     return tagGate(async (req, res, next) => {
         if (!req.session || !req.session.isAuthenticated || !req.session.user) {
             return res.status(401).json({ error: 'Not authenticated' });
@@ -306,13 +306,16 @@ const requirePermission = (permissionId) => {
 
         const userId = req.session.user?.id;
 
-        if (await hasPermission(userId, permissionId, req.session)) {
+        const held = await getUserPermissions(userId, req.session);
+        if (held.includes('all') || permissionIds.some(id => held.includes(id))) {
             next();
         } else {
-            res.status(403).json({ error: `Permission '${permissionId}' required` });
+            res.status(403).json({ error: `Permission '${permissionIds.join("' or '")}' required` });
         }
-    }, { axis: 'rbac', anyOf: [permissionId, 'all'] });
+    }, { axis: 'rbac', anyOf: [...permissionIds, 'all'] });
 };
+
+const requirePermission = (permissionId) => requireAnyPermission(permissionId);
 
 const requirePluginAdmin = async (req, res, next) => {
     if (!req.session || !req.session.isAuthenticated || !req.session.user) {
@@ -364,6 +367,7 @@ module.exports = {
     hasPermission,
     requireAdmin,
     requirePermission,
+    requireAnyPermission,
     requirePluginAdmin,
     resolveUserOrgIds,
     resolvePermissionsByOrg,

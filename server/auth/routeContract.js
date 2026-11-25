@@ -93,10 +93,12 @@ function chainClass(route) {
     if (platform) return { gate: 'platform', via: platform.kind || 'platform' };
     const rbac = tags.filter((g) => g.axis === 'rbac');
     if (rbac.length) {
-        // Several rbac gates AND together; the caller must satisfy each, so the
-        // effective set is the narrowest. Keep the union for the widening check:
-        // a route that drops one gate can only widen that union.
-        const anyOf = [...new Set(rbac.flatMap((g) => g.anyOf || []))].sort();
+        // In a chain every gate must pass. A narrower gate implies a broader
+        // one (e.g. manage_apps implies use_apps OR manage_apps).
+        const clauses = rbac.map(g => g.anyOf || []);
+        const required = clauses.filter(ids => !clauses.some(other =>
+            other.length < ids.length && other.every(id => ids.includes(id))));
+        const anyOf = [...new Set(required.flat())].sort();
         return { gate: 'permission', anyOf };
     }
     const scoped = tags.find((g) => g.axis === 'scoped');

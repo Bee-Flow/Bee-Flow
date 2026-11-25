@@ -97,6 +97,14 @@ test('every App Studio write and publish route requires manage_apps', () => {
     }
 });
 
+test('the internal app API requires an app role, with a separate permission for the AI builder', () => {
+    const src = read('index.js');
+    const base = src.indexOf("app.use('/api/studio-apps', requireAnyPermission('use_apps', 'manage_apps'))");
+    const builder = src.indexOf("app.use('/api/studio-apps/builder',");
+    assert.ok(base >= 0 && base < builder);
+    assert.match(src.slice(builder).split('\n')[0], /requireManageApps,/);
+});
+
 // Playbooks create an automation, a table and an app on the caller's behalf —
 // the same authoring permission gates every write (2026-09-13).
 // A folder since the router was split per resource group; readRouter reads

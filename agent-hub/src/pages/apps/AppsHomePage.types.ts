@@ -1,3 +1,5 @@
+import type { DirectoryApp } from '@/api/queries/publishedStudioApps';
+export type { DirectoryApp } from '@/api/queries/publishedStudioApps';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -5,10 +7,7 @@ import type { Dispatch, SetStateAction } from 'react';
 /**
  * AppsHomePage — the consumer directory at /app/apps.
  *
- * A gallery of every PUBLISHED app the signed-in user can open: the apps shared
- * with them (studioAppsApi.listAccessible, which the server already filters to
- * published + audience-matched) plus their own published apps
- * (studioAppsApi.listMine, filtered to published here). Tiles link to the
+ * The server's audience list includes the user's own apps. The directory keeps published rows. Tiles link to the
  * standalone run view at /app/apps/:id (AppRunPage). This is the end-user
  * surface — no editor chrome, no create/rename/delete.
  *
@@ -25,21 +24,6 @@ import type { Dispatch, SetStateAction } from 'react';
  * actually opened. See the appRecents block below for where that signal comes
  * from and, just as importantly, where it deliberately does not.
  */
-
-/** One app as the directory lists it (studio apps API row). */
-export interface DirectoryApp {
-    id: string;
-    name?: string;
-    description?: string;
-    icon?: string;
-    accentColor?: string;
-    category?: string;
-    publishedAt?: string;
-    isPublished?: boolean;
-    is_published?: boolean;
-    projectId?: string;
-    updatedAt?: string;
-}
 
 export type TFn = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 

@@ -1,9 +1,7 @@
 /**
  * App Studio v2 DATA API — route security model.
  *
- * Drives the REAL Express router with require-cache-stubbed stores + a fake
- * in-memory SQLite data engine (studioAppDbStore), via the stubbed req/res
- * dispatch harness from studioAppsRun.test.js. Asserts:
+ * Exercises the Express router with stubbed stores and an in-memory SQLite database.
  *   • create stamps created_by from the SESSION (body created_by/id ignored);
  *   • non-owner can't hit owner-only schema/members (403);
  *   • unpublished + non-owner → 404 (no existence leak);
@@ -21,7 +19,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Database = require('better-sqlite3');
-const { insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
+const { directoryModel, insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
 const stub = (path, exports) => { const filename = require.resolve(path); require.cache[filename] = { id: filename, filename, loaded: true, exports }; };
 const apps = new Map();
 const models = new Map();      // appId → { model, modelVersion }
@@ -41,7 +39,6 @@ const userRows = new Map();       // userId → { email, groups, organizationId 
 const memdb = new Database(':memory:'); // one shared engine, per-app-namespaced by `tasks`
 memdb.exec(`CREATE TABLE tasks (id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT,
     org_id TEXT, title TEXT, region TEXT, amount INTEGER)`);
-
 
 
 stub('../stores/studioAppStore', {
@@ -115,7 +112,9 @@ stub('../stores/studioAppDbStore', {
 stub('../stores/userStore', {
     // requireAuth confirms the session's user still exists; without this the
     // suite only passed because that check used to fail open on an error.
-    getUser: async (id) => ({ id, ...(userRows.get(id) || {}) }),
+    getUser: async (id) => ({ id, role: id === 'reader-owner' ? 'reader' : 'builder', ...(userRows.get(id) || {}) }),
+    getAllGroups: async () => [],
+    getAllRoles: async () => [{ id: 'builder', permissions: ['manage_apps'] }, { id: 'reader', permissions: ['use_apps'] }],
     getOrgMembersForDirectory: async (orgId, limit) => {
         directoryCalls.push({ orgId, limit });
         return directoryRows;
@@ -177,7 +176,6 @@ function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups 
 // ── Fixtures ────────────────────────────────────────────────────────
 const OWNER = 'owner-1';
 const ORG = 'org1';
-
 
 let seq = 0;
 function makeApp({ published = true, owner = OWNER, org = ORG, sharedGroups = [], model = baseModel() } = {}) {
@@ -735,12 +733,6 @@ test('oversized create body → 413', async () => {
 // This one is reachable by anyone who can open a published app, so what it
 // refuses matters as much as what it returns.
 
-function directoryModel() {
-    const m = baseModel();
-    m.directory = { orgMembers: true };
-    return m;
-}
-
 test.beforeEach(() => {
     directoryCalls.length = 0;
     directoryRows = [
@@ -997,4 +989,11 @@ test('a rule on viewer.groups reads the groups of the user row, never the sessio
     model.tables[0].access.rowFilters.member = 'record.org_id == viewer.organizationId';
     const advised = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
     assert.match(advised.body.warnings[0], /table "tasks" role "member": viewer\.organizationId .* use viewer\.orgId/);
+});
+
+test('a reader who owns an app still needs manage_apps to change its schema', async () => {
+    const app = makeApp({ owner: 'reader-owner' });
+    const res = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: 'reader-owner', body: { model: baseModel() } });
+    assert.equal(res.statusCode, 403);
+    assert.match(res.body.error, /manage_apps/);
 });

@@ -81,6 +81,7 @@ const connectorSync = require('../appStudio/connectorSync');
 const { resolveAudienceContext } = require('../auth/audience');
 const { connectorRunLimiter, connectorSyncLimiter } = require('../appStudio/rateLimits');
 const { requireAuth } = require('../auth/permissions');
+const { requireManageApps } = require('./studioApps/access');
 
 // Form/params ride in the JSON body; 64KB is far above any real connector call
 // and far below the app-definition ceiling (same budget as the action bridge).
@@ -107,7 +108,7 @@ async function loadVisibleApp(req, res) {
     if (app.userId !== userId) {
         const { orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
         const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
-        if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr)) {
+        if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr, req.session)) {
             res.status(404).json({ error: 'App not found' });
             return null;
         }
@@ -168,7 +169,6 @@ function sendConnectorError(res, err) {
     throw err;
 }
 
-// ── GET /:id/data/connectors ────────────────────────────────────────
 // Safe projection for any reader — never fixedArgs / url / credentials.
 router.get('/:id/data/connectors', requireAuth, async (req, res) => {
     const app = await loadVisibleApp(req, res);
@@ -270,7 +270,7 @@ function describeToolFamily(toolName) {
 // a table, a row identity and an incremental strategy the owner just confirms.
 // This is the single authority for detection: the picker, the table proposal and
 // the sync engine all read this one answer, so they cannot drift.
-router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, requireManageApps, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -358,7 +358,7 @@ router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorS
 // ── POST /:id/data/connectors/:connectorId/sync ─────────────────────
 // "Refresh now". The same engine the schedule and the on-view kick use, so what
 // the owner sees when they press the button is exactly what happens at 3am.
-router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Refreshing a connector') }), async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/sync', requireAuth, requireManageApps, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Refreshing a connector') }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -381,7 +381,7 @@ router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSync
 // the sync just writes zero rows, forever, looking healthy. Gmail is worse —
 // sending from an unverified alias fails only at send time, long after the
 // author thought they were done. So the author gets to ask now.
-router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Verifying a connector') }), async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/verify', requireAuth, requireManageApps, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Verifying a connector') }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -583,7 +583,7 @@ router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connect
 // ── GET /:id/data/connectors/sync-status ────────────────────────────
 // Last run, next run, rows written and the last error per connector — what the
 // editor shows next to "Refresh now" so a silently failing sync is visible.
-router.get('/:id/data/connectors/sync-status', requireAuth, async (req, res) => {
+router.get('/:id/data/connectors/sync-status', requireAuth, requireManageApps, async (req, res) => {
     const app = await loadOwnedApp(req, res);
     if (!app) return;
     const states = await studioAppDataStore.listSyncStates(app.id);
