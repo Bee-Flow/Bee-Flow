@@ -555,7 +555,6 @@ const AgentHub = ({
         <Suspense fallback={<LazyFallback />}>
         <ProjectLiveProvider projectId={showProjectsStore && activeProjectId ? activeProjectId : null} currentUserId={user?.id ?? null}>
         <div className="flex h-full bg-[var(--bg-primary)] overflow-hidden">
-            {/* Sidebar */}
             <Sidebar
                 key={JSON.stringify([user?.id, user?.organizationId])}
                 isOpen={sidebarOpen}

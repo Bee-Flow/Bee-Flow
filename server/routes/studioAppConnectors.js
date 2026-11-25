@@ -169,7 +169,6 @@ function sendConnectorError(res, err) {
     throw err;
 }
 
-// ── GET /:id/data/connectors ────────────────────────────────────────
 // Safe projection for any reader — never fixedArgs / url / credentials.
 router.get('/:id/data/connectors', requireAuth, async (req, res) => {
     const app = await loadVisibleApp(req, res);

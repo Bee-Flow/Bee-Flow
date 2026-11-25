@@ -60,4 +60,8 @@ function insertTaskRow(memdb, org, { id, by, region = 'EU', amount = 10, title =
         VALUES (?,?,?,?,?,?,?,?)`).run(id, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', by, org, title, region, amount);
 }
 
-module.exports = { insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel };
+function directoryModel() {
+    return { ...baseModel(), directory: { orgMembers: true } };
+}
+
+module.exports = { directoryModel, insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel };

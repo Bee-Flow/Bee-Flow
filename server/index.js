@@ -529,11 +529,7 @@ app.use('/api/studio-documents', require('./routes/studioDocuments'));
 // per-group grants.
 app.use('/api/webpages', requireModule('webpages'), requireCapability('webpages'), requireTraining('webpages'), require('./routes/webpages'));
 app.use('/api/webpages', requireModule('webpages'), requireCapability('webpages'), require('./routes/webpageExport'));
-// App Studio — compound beta (license 'app_studio' AND the app_studio beta).
-// The AI-builder router mounts BEFORE the CRUD router so its /builder/* paths
-// are never captured by the CRUD router's /:id params (mirrors the
-// /api/automation/builder ordering above). The run router shares the CRUD
-// mount path (webpages-style multi-router mount).
+// Mount the builder before CRUD so /builder resolves before /:id.
 const { requireAnyPermission } = require('./auth/permissions');
 const { requireManageApps } = require('./routes/studioApps/access');
 // Both the published directory and Studio use this API. Each resource still checks its audience or owner.

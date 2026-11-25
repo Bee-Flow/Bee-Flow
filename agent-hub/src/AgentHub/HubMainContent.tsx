@@ -109,6 +109,13 @@ function studioSlot({ studioRoute, onCloseStudio, modelTiers, setStudioFullscree
     );
 }
 
+function appsSlot({ user, hasPermission, t }: HubMainContentProps) {
+    if (!hasPermission('use_apps')) {
+        return <p role="alert" className="p-6">{t('admin.access_denied_title', 'Access Denied')}</p>;
+    }
+    return <AppsHomePage scope={user} key={JSON.stringify([user?.id, user?.organizationId])} mayManageApps={hasPermission('manage_apps')} />;
+}
+
 function agentDesignerSlot(props: HubMainContentProps) {
     const { user, initialDesignerAgentId, onCloseAgentDesigner, onNavigate, hasPermission } = props;
     /* Unified Agent Studio: list + wizard split layout. Replaces the
@@ -277,9 +284,7 @@ export default function HubMainContent(props: HubMainContentProps) {
            Cowork, for the same reason: the sidebar stays. Tiles
            link on to the standalone run view at /app/apps/:id,
            which IS full-viewport. */
-        props.hasPermission('use_apps')
-            ? <AppsHomePage key={JSON.stringify([user?.id, user?.organizationId])} mayManageApps={props.hasPermission('manage_apps')} />
-            : <p role="alert" className="p-6">{props.t('admin.access_denied_title', 'Access Denied')}</p>
+        appsSlot(props)
     ) : currentPage === 'forms' ? (
         /* Published-forms directory (/app/forms). A tile opens the
            form itself, in this tab, at /app/forms/:token. */

@@ -1,3 +1,5 @@
+import type { DirectoryApp } from '@/api/queries/publishedStudioApps';
+export type { DirectoryApp } from '@/api/queries/publishedStudioApps';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -22,21 +24,6 @@ import type { Dispatch, SetStateAction } from 'react';
  * actually opened. See the appRecents block below for where that signal comes
  * from and, just as importantly, where it deliberately does not.
  */
-
-/** One app as the directory lists it (studio apps API row). */
-export interface DirectoryApp {
-    id: string;
-    name?: string;
-    description?: string;
-    icon?: string;
-    accentColor?: string;
-    category?: string;
-    publishedAt?: string;
-    isPublished?: boolean;
-    is_published?: boolean;
-    projectId?: string;
-    updatedAt?: string;
-}
 
 export type TFn = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 

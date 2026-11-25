@@ -15,13 +15,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/studio-apps`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -35,13 +35,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `PUT /api/studio-apps/:id`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -55,13 +55,13 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/actions/:actionId/background`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -81,7 +81,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/:actionId/run`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -98,7 +98,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/:actionId/runs/end`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -117,7 +117,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -151,7 +151,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step/stream`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -185,7 +185,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/actions/jobs`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -197,7 +197,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/actions/jobs/:jobId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -208,7 +208,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/jobs/:jobId/cancel`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -221,7 +221,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/actions/jobs/:jobId/resume`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnJob`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnJob`
 
 **Path parameters**
 
@@ -239,19 +239,19 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `GET /api/studio-apps/:id/ai-capabilities`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/ai/chat`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -270,7 +270,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/assets`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -282,7 +282,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/assets`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireOwnedApp`, `uploadGuardMiddleware`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireOwnedApp`, `uploadGuardMiddleware`
 
 **Path parameters**
 
@@ -296,7 +296,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/assets/:assetId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -309,7 +309,7 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id/assets/:assetId`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -322,7 +322,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/check`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -333,7 +333,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/attachments`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `uploadGuardMiddleware`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `uploadGuardMiddleware`
 
 **Path parameters**
 
@@ -352,7 +352,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/data/attachments/:fileId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -365,7 +365,7 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id/data/attachments/:fileId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -378,7 +378,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/data/attachments/:fileId/preview`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -391,7 +391,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/attachments/materialize`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -412,7 +412,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/batch`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 **Body**
 
@@ -422,13 +422,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/data/connectors`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/data/connectors/:connectorId/inspect`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -438,7 +438,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/connectors/:connectorId/run`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -448,25 +448,25 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/connectors/:connectorId/sync`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `POST /api/studio-apps/:id/data/connectors/:connectorId/verify`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `GET /api/studio-apps/:id/data/connectors/sync-status`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/data/empty`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 **Body**
 
@@ -476,13 +476,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/data/export`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/data/query`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 **Query**
 
@@ -492,13 +492,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/data/tables`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/studio-apps/:id/data/tables/:tableId/records`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -518,37 +518,37 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/data/tables/:tableId/records`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/studio-apps/:id/data/tables/:tableId/records/:recordId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `PATCH /api/studio-apps/:id/data/tables/:tableId/records/:recordId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 No request schema.
 
 ### `DELETE /api/studio-apps/:id/data/tables/:tableId/records/:recordId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/studio-apps/:id/datasets`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/datasets`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 **Body**
 
@@ -562,7 +562,7 @@ No request schema.
 
 ### `PUT /api/studio-apps/:id/datasets/:datasetId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireJson` · the handler also checks who the caller is
 
 **Body**
 
@@ -576,13 +576,13 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id/datasets/:datasetId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `PUT /api/studio-apps/:id/definition`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -593,7 +593,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/documents`
 
-**Access:** Capability `app_studio` · middleware `trainingGate`
+**Access:** Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -605,7 +605,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/documents/:docId`
 
-**Access:** Capability `app_studio` · middleware `trainingGate`
+**Access:** Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -624,7 +624,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/documents/:docId/versions`
 
-**Access:** Capability `app_studio` · middleware `trainingGate`
+**Access:** Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -642,7 +642,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/documents/compare`
 
-**Access:** Capability `app_studio` · middleware `trainingGate`
+**Access:** Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -664,7 +664,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/large-datasets`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Path parameters**
 
@@ -676,7 +676,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/large-datasets`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -696,7 +696,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/large-datasets/:datasetId`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Path parameters**
 
@@ -709,7 +709,7 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id/large-datasets/:datasetId`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -722,7 +722,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/large-datasets/:datasetId/complete`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Path parameters**
 
@@ -737,7 +737,7 @@ No request schema.
 
 ### `PUT /api/studio-apps/:id/large-datasets/:datasetId/parts/:n`
 
-**Access:** Signed-in user · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Licence feature `large_datasets` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Path parameters**
 
@@ -751,13 +751,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/members`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/members`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -768,13 +768,13 @@ No request schema.
 
 ### `DELETE /api/studio-apps/:id/members/:userId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `PATCH /api/studio-apps/:id/nextcloud-menu`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -784,25 +784,25 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/public-pages`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/public-pages`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `DELETE /api/studio-apps/:id/public-pages/:token`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `PATCH /api/studio-apps/:id/publish`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body**
 
@@ -813,7 +813,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/ref`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -824,7 +824,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/runs`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -840,7 +840,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/runs/:runId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Path parameters**
 
@@ -851,7 +851,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/runtime`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -861,25 +861,25 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/runtime/connectors/:connectorId/refresh`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `GET /api/studio-apps/:id/runtime/connectors/status`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `GET /api/studio-apps/:id/schema`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `PUT /api/studio-apps/:id/schema`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -892,19 +892,19 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/template-upgrade`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `GET /api/studio-apps/:id/triggers`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 No request schema.
 
 ### `PUT /api/studio-apps/:id/triggers/:triggerId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 **Path parameters**
 
@@ -921,7 +921,7 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/triggers/:triggerId/webhook`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp` · the handler also checks who the caller is
 
 **Path parameters**
 
@@ -932,7 +932,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 **Path parameters**
 
@@ -945,7 +945,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
 
 **Path parameters**
 
@@ -958,13 +958,13 @@ No request schema.
 
 ### `GET /api/studio-apps/:id/versions`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/studio-apps/:id/versions/:versionId/restore`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
@@ -972,13 +972,13 @@ No request schema.
 
 ### `GET /api/studio-apps/builder/session/:appId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `POST /api/studio-apps/builder/stream`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
@@ -986,7 +986,7 @@ No request schema.
 
 ### `GET /api/studio-apps/catalog`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
@@ -994,7 +994,7 @@ No request schema.
 
 ### `POST /api/studio-apps/import`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
@@ -1002,7 +1002,7 @@ No request schema.
 
 ### `GET /api/studio-apps/mine`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
@@ -1010,25 +1010,25 @@ No request schema.
 
 ### `GET /api/studio-apps/templates`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
 ### `GET /api/studio-apps/templates/:templateId`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `DELETE /api/studio-apps/templates/:templateId`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/studio-apps/templates/:templateId/export`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 **Query**
 
@@ -1038,7 +1038,7 @@ No request schema.
 
 ### `POST /api/studio-apps/templates/import`
 
-**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
@@ -1046,7 +1046,7 @@ No request schema.
 
 ### `GET /api/studio-apps/usage`
 
-**Access:** Signed-in user · Admin of their own organisation · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Admin of their own organisation · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
 
@@ -1054,7 +1054,7 @@ No request schema.
 
 ### `GET /api/studio-apps/usage-counts`
 
-**Access:** Signed-in user · Capability `app_studio` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_apps` or `manage_apps` · Capability `app_studio` · the handler also checks who the caller is
 
 **Query**
 

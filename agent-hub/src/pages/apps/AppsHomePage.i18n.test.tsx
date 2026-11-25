@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
+import { screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

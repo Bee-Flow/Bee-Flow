@@ -440,19 +440,42 @@
       ]
     },
     "DELETE /api/studio-apps/:id/data/attachments/:fileId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "DELETE /api/studio-apps/:id/data/tables/:tableId/records/:recordId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "DELETE /api/studio-apps/:id/datasets/:datasetId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "DELETE /api/studio-apps/:id/large-datasets/:datasetId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "DELETE /api/studio-apps/:id/members/:userId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "DELETE /api/studio-apps/:id/public-pages/:token": {
       "gate": "permission",
@@ -2855,121 +2878,304 @@
       "gate": "auth"
     },
     "GET /api/studio-apps": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/actions/jobs": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/actions/jobs/:jobId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/actions/runs/:runId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/ai-capabilities": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/assets": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/assets/:assetId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/attachments/:fileId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/attachments/:fileId/preview": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/connectors": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/connectors/sync-status": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/export": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/tables": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/tables/:tableId/records": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/data/tables/:tableId/records/:recordId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/datasets": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/documents": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/documents/:docId": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/documents/:docId/versions": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/large-datasets": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/large-datasets/:datasetId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/members": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/public-pages": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/ref": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/runs": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/runs/:runId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/runtime": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/runtime/connectors/status": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/schema": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/:id/triggers": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "GET /api/studio-apps/:id/triggers/:triggerId/webhook": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "GET /api/studio-apps/:id/versions": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/builder/session/:appId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "GET /api/studio-apps/catalog": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/mine": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/templates": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/templates/:templateId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/templates/:templateId/export": {
       "gate": "permission",
@@ -2979,11 +3185,20 @@
       ]
     },
     "GET /api/studio-apps/usage": {
-      "gate": "scope",
-      "via": "orgAdminOfOwnOrg"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-apps/usage-counts": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "GET /api/studio-documents": {
       "gate": "auth"
@@ -4238,7 +4453,12 @@
       "gate": "auth"
     },
     "PATCH /api/studio-apps/:id/data/tables/:tableId/records/:recordId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "PATCH /api/studio-apps/:id/nextcloud-menu": {
       "gate": "permission",
@@ -6362,28 +6582,68 @@
       ]
     },
     "POST /api/studio-apps/:id/actions/:actionId/background": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/:actionId/run": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/:actionId/runs/end": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/:actionId/step": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/:actionId/step/stream": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/jobs/:jobId/cancel": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/actions/jobs/:jobId/resume": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/ai/chat": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/assets": {
       "gate": "permission",
@@ -6393,53 +6653,126 @@
       ]
     },
     "POST /api/studio-apps/:id/check": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/attachments": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/attachments/materialize": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/batch": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/connectors/:connectorId/inspect": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/connectors/:connectorId/run": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/connectors/:connectorId/sync": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/connectors/:connectorId/verify": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/empty": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/query": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/data/tables/:tableId/records": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/datasets": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/documents/compare": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/large-datasets": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/large-datasets/:datasetId/complete": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/members": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/public-pages": {
       "gate": "permission",
@@ -6449,7 +6782,12 @@
       ]
     },
     "POST /api/studio-apps/:id/runtime/connectors/:connectorId/refresh": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "POST /api/studio-apps/:id/template-upgrade": {
       "gate": "permission",
@@ -6459,10 +6797,18 @@
       ]
     },
     "POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/versions/:versionId/restore": {
       "gate": "permission",
@@ -6472,7 +6818,11 @@
       ]
     },
     "POST /api/studio-apps/builder/stream": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/import": {
       "gate": "permission",
@@ -7811,7 +8161,11 @@
       ]
     },
     "PUT /api/studio-apps/:id/datasets/:datasetId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "PUT /api/studio-apps/:id/definition": {
       "gate": "permission",
@@ -7821,13 +8175,26 @@
       ]
     },
     "PUT /api/studio-apps/:id/large-datasets/:datasetId/parts/:n": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps",
+        "use_apps"
+      ]
     },
     "PUT /api/studio-apps/:id/schema": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "PUT /api/studio-apps/:id/triggers/:triggerId": {
-      "gate": "auth"
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "PUT /api/studio-documents/:id/sharing": {
       "gate": "auth"

@@ -29,7 +29,6 @@
  * that says "I'll make this for you". Four kinds have a create route with a
  * permission of its own, and all four carry it here:
  *
- *   app    routes/studioApps/crud.js requireManageApps
  *   agent  routes/agents/crud.js:287  requirePermission('manage_agents')
  *   kb     routes/knowledgeBases/create.js:17 requirePermission('manage_knowledge')
  *   skill  routes/skills.js:161       requirePermission('manage_skills')

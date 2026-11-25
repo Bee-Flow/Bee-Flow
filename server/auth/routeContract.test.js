@@ -101,3 +101,11 @@ test('a stronger class is never a finding', () => {
     assert.equal(rc.isWeaker({ gate: 'permission', anyOf: ['a'] }, { gate: 'permission', anyOf: ['a', 'b'] }), false);
     assert.equal(rc.isWeaker({ gate: 'handler' }, { gate: 'handler' }), false);
 });
+
+test('a broad mount permission does not widen a stricter route permission', () => {
+    const readerOrBuilder = { axis: 'rbac', anyOf: ['use_apps', 'manage_apps', 'all'] };
+    const builder = { axis: 'rbac', anyOf: ['manage_apps', 'all'] };
+    for (const gates of [[readerOrBuilder, builder], [builder, readerOrBuilder]]) {
+        assert.deepEqual(rc.classify(route({ gates }), ctx()), { gate: 'permission', anyOf: ['all', 'manage_apps'] });
+    }
+});

@@ -9714,11 +9714,6 @@
       "count": 1
     }
   },
-  "src/pages/apps/AppsHomePage/index.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/documents/DeckLookFields.tsx": {
     "complexity": {
       "count": 2
