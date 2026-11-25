@@ -382,6 +382,7 @@ describe('TasksTab: keyboard and saving', () => {
 
     it('saves only what was changed, so a colleague\'s change to another field is not undone', async () => {
         const user = userEvent.setup();
+        tasks[1].labels = ['bf:points:8', 'launch', 'bf:type:story', 'bf:sprint:Week 1'];
         renderTab();
         await user.click(await screen.findByTestId('project-task-2'));
         const title = await screen.findByDisplayValue('Task 2');
@@ -390,6 +391,32 @@ describe('TasksTab: keyboard and saving', () => {
         await user.click(screen.getByRole('button', { name: 'Save' }));
         await waitFor(() => expect(client.patch).toHaveBeenCalled());
         expect(client.patch.mock.calls[0][1]).toEqual({ title: 'Renamed' });
+    });
+
+    it('keeps legacy planning labels on a label edit and removes only the fallback for cleared points', async () => {
+        const user = userEvent.setup();
+        tasks[1].labels = ['bf:points:8', 'bf:type:story', 'bf:sprint:Week 1'];
+        renderTab();
+        await user.click(await screen.findByTestId('project-task-2'));
+        await user.type(await screen.findByLabelText('Add a label'), 'handover{Enter}');
+        await user.selectOptions(screen.getByLabelText('Story points'), '');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', {
+            labels: ['handover', 'bf:type:story', 'bf:sprint:Week 1'], storyPoints: null,
+        }));
+    });
+
+    it('leaves the task title open when Enter confirms an IME candidate', async () => {
+        const { fireEvent } = await import('@testing-library/react');
+        const user = userEvent.setup();
+        renderTab();
+        await user.click(await screen.findByTestId('project-task-2'));
+        const title = await screen.findByDisplayValue('Task 2');
+        await user.type(title, '確認');
+        fireEvent.keyDown(title, { key: 'Enter', keyCode: 229 });
+        expect(client.patch).not.toHaveBeenCalled();
+        await user.keyboard('{Enter}');
+        await waitFor(() => expect(client.patch).toHaveBeenCalledExactlyOnceWith('/api/projects/p1/tasks/2', { title: 'Task 2確認' }));
     });
 
     it('sends nothing when nothing was changed', async () => {

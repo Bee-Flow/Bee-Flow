@@ -16,6 +16,7 @@ const {
     createUser, updateUser, deleteUser, getUserByNcUid, hasMirroredNcUsers, findOrgMemberIdByEmail,
     createUserWithSeatCheck, SeatCapExceededError, touchLastSeen, replacePasswordHash,
 } = require('./user/users');
+const { searchOrgDirectoryNames } = require('./user/directoryNames.mts');
 const { completePasswordReset } = require('./user/passwordReset');
 const { claimNcInstanceForOrganization } = require('./user/orgNcInstance.mts');
 const { orgIdsWithVerifiedAdminAtDomain } = require('./user/verifiedAdminDomains.mts');
@@ -89,7 +90,7 @@ const {
 } = require('./user/billingLifecycle');
 
 module.exports = {
-    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken, createUser, updateUser, deleteUser,
+    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, searchOrgDirectoryNames, getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken, createUser, updateUser, deleteUser,
     createUserWithSeatCheck, SeatCapExceededError, PlanInUseError, touchLastSeen, replacePasswordHash, completePasswordReset,
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId, createOrganization, updateOrganization, deleteOrganization,
     findUnboundOrgByEmailDomain, claimNcInstanceForOrganization, orgIdsWithVerifiedAdminAtDomain,

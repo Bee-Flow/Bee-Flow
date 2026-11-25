@@ -1,0 +1,7 @@
+{
+  "translations": {
+    "project_members.search_failed": "Zoeken naar personen en groepen is mislukt.",
+    "project_members.added": "{name} is toegevoegd als {role}."
+  },
+  "sameAsEnglish": []
+}

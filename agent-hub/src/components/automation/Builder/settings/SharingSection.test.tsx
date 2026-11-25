@@ -133,7 +133,7 @@ describe('SharingSection', () => {
         const dialog = await screen.findByRole('dialog');
         await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Role for the new person or group' }), 'edit');
         await user.type(within(dialog).getByRole('combobox', { name: 'Add a person or group' }), 'pie');
-        await user.click(await within(dialog).findByRole('button', { name: /Piet/ }));
+        await user.click(await within(dialog).findByRole('option', { name: /Piet/ }));
         const put = calls.filter(c => c.method === 'PUT').at(-1);
         expect((put?.body as { shares: unknown[] }).shares).toContainEqual({ principalType: 'user', principalId: 'u3', role: 'edit' });
     });

@@ -8,7 +8,7 @@ import { registerNavigationGuard } from '@/utils/unsavedNavigation';
 // needs arrives as the common tab props (types.ts). The chat and content
 // sections are separate chunks, loaded when first opened.
 
-import { AlertTriangle, History, Package } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, History, Package, Search } from 'lucide-react';
 import React, { Suspense, useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
 import { ApiError } from '@/api/client';
 import { useProjectVisitQuery, type ChangeItemType } from '@/api/queries/projectChanges';
@@ -17,7 +17,6 @@ import {
 } from '@/api/queries/projects';
 import useTranslation from '@/hooks/useTranslation';
 import { lazy as lazyWithReload } from '@/utils/lazyWithReload';
-import SegmentedControl from '../../shared/SegmentedControl';
 import useConfirm from '../../shared/useConfirm';
 import ActivityTab from './ActivityTab';
 import ArchivedBand from './ArchivedBand';
@@ -38,7 +37,7 @@ import {
     type ChatsTabProps, type ContentTabProps, type ProjectWorkspacePageProps, type WorkspaceIntent, type WorkspaceTabId,
     type WorkspaceTabProps, type WorkspaceUser,
 } from './types';
-import { ErrorText, LoadingRow, Notice, PrimaryButton, SecondaryButton } from './workspaceUi';
+import { ErrorText, LoadingRow, Notice, PrimaryButton, SecondaryButton, SelectField } from './workspaceUi';
 
 /** A section in its own chunk, typed against the contract it must honour. */
 function tabChunk<P>(importer: () => Promise<{ default: React.ComponentType<P> }>): React.ComponentType<P> {
@@ -300,23 +299,31 @@ function Workspace(props: WorkspaceProps) {
     return (
         <div className="h-full flex min-h-0 bg-[var(--bg-primary)]" data-testid="project-workspace">
             <main className="flex-1 min-w-0 flex flex-col min-h-0">
-                <div className="md:hidden flex items-center gap-2 p-2 border-b border-[var(--border-default)] overflow-x-auto">
-                    <SecondaryButton onClick={() => { void Promise.resolve(leave()).then((ok) => { if (ok) onClose(); }); }}>{t('project_home.all_projects', 'All projects')}</SecondaryButton>
-                    <span className="flex items-center gap-1.5 min-w-0 max-w-[40%] shrink-0" data-testid="project-bar-name">
+                <div className="md:hidden flex items-center gap-2 p-2 border-b border-[var(--border-default)]">
+                    <SecondaryButton aria-label={t('project_home.all_projects', 'All projects')} onClick={() => { void Promise.resolve(leave()).then((ok) => { if (ok) onClose(); }); }}>
+                        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                    </SecondaryButton>
+                    <span className="flex items-center gap-1.5 flex-1 min-w-0" data-testid="project-bar-name">
                         <span className="flex items-center justify-center shrink-0" style={projectTileStyle(project.color, 20)} aria-hidden="true">{projectIcon(project.icon)}</span>
                         <span className="truncate text-sm font-medium text-[var(--text-primary)]">{project.name}</span>
                     </span>
-                    <SegmentedControl
-                        size="sm"
-                        ariaLabel={t('project_home.rail.label', 'Project sections')}
-                        value={plainRoute.tab}
-                        onChange={(tab) => go(tab)}
-                        options={groups.flatMap((g) => g.items.map((item) => ({
-                            value: item.id,
-                            label: item.label,
-                            badge: unread.tabs[item.id] && item.id !== plainRoute.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
-                        })))}
-                    />
+                    {props.onSearchOpenChange && (
+                        <SecondaryButton onClick={() => props.onSearchOpenChange?.(true)} aria-label={t('project_home.search_project', 'Search this project')}>
+                            <Search className="w-4 h-4" aria-hidden="true" />
+                        </SecondaryButton>
+                    )}
+                    <SelectField size="sm" aria-label={t('project_home.rail.label', 'Project sections')}
+                        wrapperClassName="relative max-w-[45%]" className="w-full" value={plainRoute.tab}
+                        onChange={event => go(normalizeWorkspaceTab(event.target.value))}>
+                        {groups.every(group => group.items.every(item => item.id !== plainRoute.tab)) &&
+                            <option value={plainRoute.tab} disabled>{t(`project_home.tab.${plainRoute.tab}`, plainRoute.tab)}</option>}
+                        {groups.map(group => <optgroup key={group.id} label={group.label}>
+                            {group.items.map(item => {
+                                const badge = unread.tabs[item.id] && item.id !== plainRoute.tab ? t('project_home.rail.unread', 'New changes') : counts[item.id];
+                                return <option key={item.id} value={item.id}>{item.label}{badge != null ? ` (${badge})` : ''}</option>;
+                            })}
+                        </optgroup>)}
+                    </SelectField>
                 </div>
                 {/* An open team chat shows its own band above its composer. */}
                 {!(plainRoute.tab === 'chats' && plainRoute.sub) && <ConnectionBand className="px-4 pt-3" />}
@@ -337,7 +344,7 @@ function Workspace(props: WorkspaceProps) {
                 </div>
             </main>
             {confirmDialog}
-            <ProjectSearchPanel projectId={projectId} role={role} open={!!props.searchOpen} onClose={() => props.onSearchOpenChange?.(false)} onOpenTab={route.go} onOpenThread={props.onOpenThread} />
+            <ProjectSearchPanel projectId={projectId} role={project.archivedAt ? 'viewer' : role} open={!!props.searchOpen} onClose={() => props.onSearchOpenChange?.(false)} onOpenTab={route.go} onOpenThread={props.onOpenThread} />
         </div>
     );
 }
