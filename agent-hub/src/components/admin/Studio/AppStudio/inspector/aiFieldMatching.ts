@@ -20,6 +20,8 @@ export interface TableColumn {
 
 /** One output field of an ai_extract schema. */
 export interface SchemaField {
+    items?: { type: 'string' | 'number' | 'boolean' | 'object'; fields?: SchemaField[] };
+    fields?: SchemaField[];
     name?: string;
     type?: string;
     description?: string;

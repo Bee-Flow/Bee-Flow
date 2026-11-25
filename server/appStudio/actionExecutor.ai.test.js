@@ -117,9 +117,9 @@ stub('./aiRuntime', {
         return { structured: isExtract ? aiState.structured : aiState.genStructured };
     },
     runTextWithTools: async (app, model, args) => { calls.runText.push(args); return { text: aiState.text }; },
-    fieldsToObjectSchema: (fields) => ({ type: 'object', properties: Object.fromEntries((fields || []).map((f) => [f.name, { type: 'string' }])) }),
-    normalizeSchemaFields: (fields) => (Array.isArray(fields) ? fields.filter((f) => f && f.name).map((f) => ({ name: f.name, type: f.type || 'string', required: !!f.required })) : []),
-    coerceRowToFields: (row, fields) => { const o = {}; for (const f of fields) o[f.name] = row ? row[f.name] : undefined; return o; },
+    fieldsToObjectSchema: realAiRuntime.fieldsToObjectSchema,
+    normalizeSchemaFields: realAiRuntime.normalizeSchemaFields,
+    coerceRowToFields: realAiRuntime.coerceRowToFields,
     MAX_EXTRACT_ROWS: 500,
 });
 
@@ -261,6 +261,20 @@ test('ai_extract (no writeTo): returns extracted rows without touching the DB', 
     assert.strictEqual(r.result.written, 0);
     assert.strictEqual(batchCalls.length, 0, 'no inserts without writeTo');
     assert.strictEqual(calls.extractDocuments[0].descriptors.length, 1);
+});
+
+test('ai_extract uses the declared list shape inside each row', async () => {
+    const step = {
+        kind: 'ai_extract', source: { kind: 'formula', expr: 'form.doc' },
+        schema: [{ name: 'lines', type: 'array', items: { type: 'object', fields: [{ name: 'qty', type: 'number' }] } }],
+    };
+    const formValues = { doc: { kind: 'studio_attachment', fileId: 'f1', name: 'order.pdf' } };
+    aiState.structured = { rows: [{ lines: [{ qty: '3', extra: true }] }] };
+    const r = await actionExecutor.executeDataStep(app, model, step, ctx({ formValues }));
+    assert.deepStrictEqual(r.result.rows, [{ lines: [{ qty: 3 }] }]);
+    const row = calls.runStructured[0].parameters.properties.rows.items;
+    assert.deepStrictEqual(row.required, ['lines']);
+    assert.deepStrictEqual(row.properties.lines.items.properties.qty.type, ['number', 'null']);
 });
 
 test('ai_extract (writeTo): inserts one record per extracted row in ONE transaction', async () => {

@@ -16,6 +16,8 @@ app_run_action runs ONE action on the server as the app owner (owner only) and r
 - Data bindings resolve on the server like a click: record, records and aggregate read the table as the owner (row access applies). A records binding without limit reads 50 rows (what a screen gets); a loop source reads at most 200 (the loop cap). A required filter without a value reads no rows. Formula-valued groupBy / aggregates / sort / limit are resolved first; pick and a record's path apply after the read. dataset and connector bindings are not read here.
 - Step paths: steps[i] (top of a sequence), action[0] (a bare action), .then[i], .else[i], .cases[k].steps[i], .default[i], and a loop body .steps[i] (one path for every iteration; the report carries iteration).
 
+In app_set_action, ai_extract and structured ai_generate accept array fields such as { "name": "lines", "type": "array", "items": { "type": "object", "fields": [{ "name": "quantity", "type": "number", "required": true }] } }. Item types are string, number, boolean and object. Omitting items requests a list of strings. Each declared object key appears in structured output, with null allowed for optional fields.
+
 Mocks: mock: { "<step path>": <answer> } gives an AI or read step a fixed MODEL answer. The step's own post-processing still runs on it, so a schema or prompt change shows up:
 - ai_generate (text): "a string" or { "text": "…" } → { text, citations: [] } (markdownToHtml applies).
 - ai_generate (output "structured"): { "<field>": value, … } → coerced to the step's schema (unknown keys dropped, missing ones null).

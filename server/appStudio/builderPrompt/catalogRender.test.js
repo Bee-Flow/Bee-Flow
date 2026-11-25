@@ -592,7 +592,8 @@ test('the validation types in the catalog are the ones the tool surface declares
 // member access on call results, map/filter/some/every with it, the regex subset — 58_259 chars.
 // 2026-11-10, the prompt diet (reset once, by its one writer): rare material on request, the
 // statements MAP 6.4 lists said one way, nested list shapes shown — 44_990 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'ebb07da075ce19ac1235c38397db32fae7fa78968522a4da4a966c4d2e8e749b';
+// 2026-11-25, typed array items in AI output schemas — 45_288 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'a1ba8f6be8b4ee1f5f2e47665c645ef16a6da4cca6f1fb84e866814af8adff2c';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

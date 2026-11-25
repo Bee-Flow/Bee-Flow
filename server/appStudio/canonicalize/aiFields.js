@@ -6,12 +6,13 @@
 
 'use strict';
 
-const { isObject, truncate, deepCopy } = require('./shared');
+const { isObject, truncate, deepCopy, HARD_DEPTH_CAP } = require('./shared');
 const { LIMITS } = require('../componentSpecs/limits');
 const { cleanBinding, cleanRecordFilter } = require('./bindings');
 
 // ── Native AI field cleaners (shared by cleanStep + canonAction) ─────────────
-const AI_SCHEMA_TYPES = new Set(['string', 'number', 'boolean', 'date', 'array', 'object']);
+const { AI_SCHEMA_FIELD_TYPES } = require('../componentSpecs/actionSpecsActionKinds');
+const { cleanFieldShape } = require('../aiFieldShape.mts');
 
 function cleanStringList(v) {
     if (!Array.isArray(v)) return [];
@@ -22,8 +23,8 @@ function cleanStringList(v) {
  * @param {string} path
  * @param {((arg0: string, arg1: string, arg2: string) => void) | undefined} push
  */
-function cleanAiSchema(v, path, push) {
-    if (!Array.isArray(v)) return [];
+function cleanAiSchema(v, path, push, depth = 0) {
+    if (depth > HARD_DEPTH_CAP || !Array.isArray(v)) return [];
     const out = [];
     const seen = new Set();
     for (const f of v) {
@@ -36,10 +37,12 @@ function cleanAiSchema(v, path, push) {
             }
             break;
         }
-        const field = { name: f.name, type: AI_SCHEMA_TYPES.has(f.type) ? f.type : 'string' };
+        const field = { name: f.name, type: AI_SCHEMA_FIELD_TYPES.includes(f.type) ? f.type : 'string' };
         const description = cleanSchemaDescription(f, path, push);
         if (description) field.description = description;
         if (f.required === true) field.required = true;
+        Object.assign(field, cleanFieldShape(f, (nested, suffix) =>
+            cleanAiSchema(nested, `${path}[${out.length}].${suffix}`, push, depth + 1)));
         out.push(field);
     }
     return out;

@@ -39,6 +39,8 @@ export function canonicalSchema(fields: SchemaField[]): SchemaField[] {
     return fields.map((f) => ({
         name: f.name,
         type: f.type || 'string',
+        ...(f.type === 'array' && f.items ? { items: f.items } : {}),
+        ...(f.type === 'object' && f.fields ? { fields: f.fields } : {}),
         ...(typeof f.description === 'string' && f.description ? { description: f.description } : {}),
         ...(f.required === true ? { required: true } : {}),
     }));

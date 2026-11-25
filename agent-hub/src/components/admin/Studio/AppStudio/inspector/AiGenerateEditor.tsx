@@ -136,7 +136,7 @@ export function SchemaFieldsEditor({ fields, onChange, disabled, hint }: SchemaF
                             <select
                                 className={`${INPUT_CLS} max-w-[8rem]`}
                                 value={f.type || 'string'}
-                                onChange={(e) => update(i, { type: e.target.value })}
+                                onChange={(e) => update(i, { type: e.target.value, items: undefined, fields: undefined })}
                                 disabled={disabled}
                                 aria-label={t('studio_apps_insp.ai_actions.field_type_aria', 'Field {n} type', { n: i + 1 })}
                             >

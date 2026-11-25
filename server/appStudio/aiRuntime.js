@@ -56,7 +56,9 @@ const MAX_SYSTEM_CHARS = 24000;
 const { MAX_AI_SCHEMA_FIELDS: MAX_SCHEMA_FIELDS, MAX_AI_SCHEMA_FIELD_DESC: MAX_SCHEMA_FIELD_DESC } = require('./componentSpecs/limits').LIMITS;
 const MAX_EXTRACT_ROWS = 500;  // rows a single ai_extract may produce/insert
 
-const SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'object'];
+const { AI_SCHEMA_FIELD_TYPES: SCHEMA_FIELD_TYPES } = require('./componentSpecs/actionSpecsActionKinds');
+const { cleanFieldShape } = require('./aiFieldShape.mts');
+const { HARD_DEPTH_CAP } = require('./canonicalize/shared');
 
 /**
  * Can this model be shown a picture?
@@ -195,31 +197,35 @@ async function modelSupportsNativeDocuments(modelId) {
 
 // ── Schema helpers ──────────────────────────────────────────────────────────
 
-/** One declared output field → JSON Schema property. */
+/** A normalized output field or item declaration → JSON Schema. */
 function fieldToJsonSchema(field) {
-    const desc = (typeof field.description === 'string' && field.description.trim())
-        ? field.description.trim().slice(0, MAX_SCHEMA_FIELD_DESC) : undefined;
+    const description = field.description?.trim();
+    const annotations = description ? { description } : {};
     switch (field.type) {
-        case 'number': return { type: 'number', ...(desc ? { description: desc } : {}) };
-        case 'boolean': return { type: 'boolean', ...(desc ? { description: desc } : {}) };
-        case 'date': return { type: 'string', description: [desc, 'ISO 8601 date (YYYY-MM-DD)'].filter(Boolean).join(' — ') };
-        case 'array': return { type: 'array', items: {}, ...(desc ? { description: desc } : {}) };
-        case 'object': return { type: 'object', ...(desc ? { description: desc } : {}) };
-        case 'string':
-        default: return { type: 'string', ...(desc ? { description: desc } : {}) };
+        case 'date': return { type: 'string', description: [description, 'ISO 8601 date (YYYY-MM-DD)'].filter(Boolean).join(' — ') };
+        case 'array': {
+            const item = field.items;
+            const items = item?.type === 'object' ? objectSchema(item.fields || []) : { type: item?.type || 'string' };
+            return { type: 'array', items, ...annotations };
+        }
+        case 'object':
+            // A legacy free-form object still takes the non-strict tool route.
+            return { ...(field.fields ? objectSchema(field.fields) : { type: 'object', properties: {}, additionalProperties: true }), ...annotations };
+        default: return { type: field.type, ...annotations };
     }
 }
 
-/** A list of { name, type, description, required? } fields → object JSON Schema. */
-function fieldsToObjectSchema(fields) {
-    const list = normalizeSchemaFields(fields);
+function objectSchema(fields) {
     const properties = {};
-    const required = [];
-    for (const f of list) {
-        properties[f.name] = fieldToJsonSchema(f);
-        if (f.required) required.push(f.name);
+    for (const field of fields) {
+        const schema = fieldToJsonSchema(field);
+        properties[field.name] = field.required ? schema : { ...schema, type: [schema.type, 'null'] };
     }
-    return { type: 'object', properties, ...(required.length ? { required } : {}), additionalProperties: false };
+    return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
+}
+
+function fieldsToObjectSchema(fields) {
+    return objectSchema(normalizeSchemaFields(fields));
 }
 
 /**
@@ -235,9 +241,10 @@ function fieldsToObjectSchema(fields) {
  *
  * Trimming is still right — a schema is not a place for an essay — but doing it
  * without a word is not. Same for dropping fields past the 40-field cap.
+ * @returns {SchemaField[]}
  */
-function normalizeSchemaFields(fields) {
-    if (!Array.isArray(fields)) return [];
+function normalizeSchemaFields(fields, depth = 0) {
+    if (!Array.isArray(fields) || depth > HARD_DEPTH_CAP) return [];
     const seen = new Set();
     const out = [];
     for (const raw of fields) {
@@ -254,6 +261,7 @@ function normalizeSchemaFields(fields) {
             type: SCHEMA_FIELD_TYPES.includes(raw.type) ? raw.type : 'string',
             description: rawDesc.slice(0, MAX_SCHEMA_FIELD_DESC),
             required: !!raw.required,
+            ...cleanFieldShape(raw, (nested) => normalizeSchemaFields(nested, depth + 1)),
         });
         if (out.length >= MAX_SCHEMA_FIELDS) {
             if (fields.length > MAX_SCHEMA_FIELDS) {
@@ -324,11 +332,21 @@ function coerceValue(type, value) {
     }
 }
 
+function coerceField(field, value) {
+    const result = coerceValue(field.type, value);
+    if (result === null) return null;
+    if (field.type === 'array' && field.items) {
+        const shape = field.items.type === 'object' ? { fields: [], ...field.items } : field.items;
+        return result.map((item) => coerceField(shape, item));
+    }
+    return field.type === 'object' && field.fields ? coerceRowToFields(result, field.fields) : result;
+}
+
 /** Coerce an untrusted object against declared fields, dropping unknown keys. */
 function coerceRowToFields(row, fields) {
     const out = {};
     if (!row || typeof row !== 'object') return out;
-    for (const f of fields) out[f.name] = coerceValue(f.type, row[f.name]);
+    for (const f of fields) out[f.name] = coerceField(f, row[f.name]);
     return out;
 }
 
@@ -743,7 +761,7 @@ module.exports = {
 
 /** @typedef {{ id: string, userId: string, organizationId?: string | null, name?: string }} AppRef */
 
-/** @typedef {{ name: string, type: string, description: string, required: boolean }} SchemaField */
+/** @typedef {{ name: string, type: string, description: string, required: boolean, fields?: SchemaField[], items?: { type: string, fields?: SchemaField[] } }} SchemaField */
 
 /** @typedef {string | object[]} UserContent  plain text, or content blocks */
 

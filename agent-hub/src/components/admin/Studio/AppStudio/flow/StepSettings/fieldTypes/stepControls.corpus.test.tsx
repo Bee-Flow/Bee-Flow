@@ -137,6 +137,14 @@ describe('AI step: schema, writeTo with replaceWhere, prompt, knowledge bases, c
         expect((h.kept().schema as unknown[]).at(-1)).toEqual({ name: 'field', type: 'string' });
     });
 
+    it('keeps an array item declaration when a sibling field is added', async () => {
+        const user = userEvent.setup();
+        const field = { name: 'lines', type: 'array', items: { type: 'object', fields: [{ name: 'qty', type: 'number' }] } };
+        const h = renderField({ ...extractLines(), schema: [field] }, 'schema');
+        await user.click(await screen.findByRole('button', { name: '+ Add field' }));
+        expect((h.kept().schema as unknown[])[0]).toEqual(field);
+    });
+
     it('replaceWhere: a clause and an OR group are written as the server keeps them; switching it off removes it', async () => {
         const user = userEvent.setup();
         const h = renderField(extractLines(), 'writeTo');
