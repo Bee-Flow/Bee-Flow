@@ -25,6 +25,8 @@ if [[ "$service" == server ]]; then
         test -z "$(find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -print)"
         test -z "$(find /usr -type f -path "*/Archive/Tar*" -print)"
         test ! -e /usr/lib/systemd/systemd-homed
+        # The system libssl reachability reviews depend on Node bundling OpenSSL.
+        node -e '\''require("assert/strict").equal(process.config.variables.node_shared_openssl, false)'\''
         node -e '\''const a=require("assert/strict");a.equal(process.version,"v22.23.5");a.equal(require("/usr/local/lib/node_modules/npm/package.json").version,"12.2.1");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json").version,"5.0.12");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/http-cache-semantics/package.json").version,"4.3.0");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/undici/package.json").version,"6.29.1");const vm=require("isolated-vm");const isolate=new vm.Isolate({memoryLimit:16});a.equal(isolate.createContextSync().evalSync("6*7"),42);isolate.dispose();'\''
         npm --version
         docker --version | grep -q "version 29.9.2,"

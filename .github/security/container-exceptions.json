@@ -766,6 +766,30 @@
         "https://security-tracker.debian.org/tracker/CVE-2026-124709",
         "https://openssl-library.org/news/secadv/20261117.txt"
       ]
+    },
+    {
+      "id": "CVE-2026-107494",
+      "images": [
+        "server"
+      ],
+      "packages": [
+        "libssl3t64",
+        "openssl",
+        "openssl-provider-legacy"
+      ],
+      "versions": [
+        "3.5.9-1~deb13u1"
+      ],
+      "requiredUser": "node",
+      "runtimeCheck": true,
+      "reviewedAt": "2026-11-25",
+      "expires": "2026-12-09",
+      "reason": "OpenSSL rates this QUIC denial-of-service issue Low. Debian trixie has no fixed package as of the review date. Recheck when Debian publishes its fix or when this review expires.",
+      "reachability": "Exposure requires a QUIC connection using the affected system libssl. The server starts node index.js and serves HTTP over TCP port 3001. Server and bundled component code do not create QUIC connections or invoke the OpenSSL CLI. Node links its own OpenSSL, which the runtime check verifies. The Docker CLI uses Go's TLS stack.",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-107494",
+        "https://openssl-library.org/news/secadv/20261124.txt"
+      ]
     }
   ]
 }
