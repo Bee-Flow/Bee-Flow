@@ -53,8 +53,8 @@ describe('CoworkTaskView', () => {
         openTask({ item: { ...ITEM, lastStatus: 'running' }, runs: [{ ...RUN, status: 'running' }] });
         const progress = await screen.findByTestId('cowork-task-progress');
         expect(screen.getByTestId('cowork-task-header')).toHaveTextContent('Running');
-        expect(progress.querySelector('.cowork-trail')).toBeVisible();
-        expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-trail')).toHaveLength(1);
+        expect(progress.querySelector('.cowork-orb')).toBeVisible();
+        expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-orb')).toHaveLength(1);
     });
 
     it('only shows the selected panel and supports keyboard navigation between tabs', async () => {

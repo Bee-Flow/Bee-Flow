@@ -224,8 +224,8 @@ export default function CoworkHomeComposer(props: CoworkHomeComposerProps) {
     const { setup, finished } = props;
     const scene = finished ? 'finished' : setup || brief.starting ? 'setup' : brief.cowork.draft ? 'review' : brief.cowork.submitting ? 'preview' : 'write';
     let content: ReactNode;
-    if (finished) content = <CoworkActivity title={finished.title} message={finished.message} position={1} tone="rest">
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+    if (finished) content = <CoworkActivity title={finished.title} message={finished.message} tone="rest">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <button type="button" className={BUTTON_PRIMARY} onClick={finished.onOpen}>{t('cowork_home.activity.open', 'Open task')}</button>
             <button type="button" className={LINK_BUTTON} onClick={finished.onReset}>{t('cowork_home.activity.another', 'Create another task')}</button>
         </div>

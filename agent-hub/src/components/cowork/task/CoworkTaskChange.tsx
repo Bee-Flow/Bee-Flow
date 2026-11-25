@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { PlanDraft, PlanParameter } from '@/api/coworkPlan.types';
 import { recipientWord } from './coworkTaskSendsModel';
 import CoworkSurface from '../CoworkSurface';
-import CoworkActivity, { CoworkTrail } from '../CoworkActivity';
+import CoworkActivity from '../CoworkActivity';
+import CoworkOrb from '../CoworkOrb';
 import CoworkProposalDetails from '../CoworkProposalDetails';
 import { BTN_QUIET, FIELD, Failure, META, ROW_ACTIONS } from './taskUi';
 import type { SettingRowId } from './coworkTaskSettingsModel';
@@ -41,7 +42,7 @@ function ParameterPicker({ fields, parameter, label, t, onPick }: {
 }
 
 function ProposalActivity({ message, preparing }: { message: string; preparing: boolean }) {
-    return <CoworkActivity message={message} position={preparing ? .27 : .82} tone={preparing ? 'thinking' : 'executing'} />;
+    return <CoworkActivity message={message} tone={preparing ? 'thinking' : 'executing'} />;
 }
 
 function changeScene(activity: string | null, result: string | null, proposal: CoworkProposal | undefined) {
@@ -81,12 +82,11 @@ export default function CoworkTaskChange({ coworkId, approved, draft, live, onSe
         <summary className="cursor-pointer font-medium">{t('cowork_task.edit.task', 'Adjust this task')}</summary>
         <CoworkSurface scene={scene}>
             <div className="mt-3 flex flex-col gap-3">
-                {activity ? <ProposalActivity message={activity} preparing={requestChange.isPending} /> : result ? <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CoworkActivity message={result} tone="rest" position={1} />
+                {activity ? <ProposalActivity message={activity} preparing={requestChange.isPending} /> : result ? <CoworkActivity message={result} tone="rest">
                     <button className={BTN_QUIET} onClick={() => { approve.reset(); dismiss.reset(); }}>{t('cowork_task.edit.task', 'Adjust this task')}</button>
-                </div> : <>
+                </CoworkActivity> : <>
                     {proposal ? <>
-                        <CoworkTrail position={.65} tone="rest" />
+                        <CoworkOrb tone="rest" />
                         <ProposalPreview proposal={proposal} label={label} t={t} />
                         <div className={ROW_ACTIONS}>
                             <button className={BTN_QUIET} disabled={live} onClick={() => approve.mutate({ proposalId: proposal.id, fingerprint: proposal.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>

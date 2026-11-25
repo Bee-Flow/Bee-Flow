@@ -19,7 +19,7 @@ function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: Tr
     const steps = trace?.recorded ? trace.steps : [];
     const active = steps.findLast((step) => step.status === 'running');
     return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
-        tone={active?.kind === 'ai' ? 'thinking' : 'executing'} position={active ? steps.indexOf(active) / steps.length : 0} testId="cowork-task-progress"
+        tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
         message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 

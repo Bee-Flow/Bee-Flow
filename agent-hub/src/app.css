@@ -1638,36 +1638,64 @@ pre.hljs {
 
 .cowork-home:has([data-cowork-engaged="true"]) > .cowork-home-sections { display: none; }
 
-/* The ink and its tip share a path, so interrupted and reversed transitions stay joined. */
+/* Only the neural volume breathes. Its caption stays on the same baseline between steps. */
 .cowork-activity {
     display: grid;
-    justify-items: start;
-    gap: .4rem;
-    padding: clamp(1rem, 3vw, 1.5rem);
+    justify-items: center;
+    align-content: center;
+    gap: .65rem;
+    padding: clamp(1.25rem, 4vw, 2.25rem) 1.25rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     background: var(--bg-card);
+    text-align: center;
 }
-.cowork-trail { display: block; width: min(16rem, 100%); height: auto; color: var(--type-ai, var(--info-ink, var(--accent-primary))); }
-.cowork-trail[data-tone="repair"] { color: var(--warning-ink); }
-.cowork-trail[data-tone="rest"] { color: var(--text-secondary); }
-.cowork-trail-base { stroke: var(--border-default); }
-.cowork-trail-ink, .cowork-worker { stroke: currentColor; }
-.cowork-worker-field { opacity: .12; }
-.cowork-worker-petal { stroke: color-mix(in srgb, currentColor 54%, var(--bg-card)); }
-.cowork-worker-light { stroke: var(--bg-card); }
+.cowork-orb {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, clamp(11rem, 24vw, 15.5rem));
+    aspect-ratio: 1;
+    margin-inline: auto;
+    pointer-events: none;
+}
+.cowork-orb::before {
+    content: "";
+    position: absolute;
+    inset: -6%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--type-ai, var(--accent-primary)) 15%, transparent) 36%, transparent);
+}
+.cowork-orb-volume { position: absolute; inset: 0; }
+.cowork-orb-volume img, .cowork-orb-light { display: block; width: 100%; height: 100%; }
+.cowork-orb-light { position: absolute; inset: 0; }
+.cowork-orb-signal { stroke: #e6f8ff; stroke-width: .36; stroke-linecap: round; opacity: 0; }
+.cowork-orb[data-tone="repair"] .cowork-orb-signal { stroke: #f6e7ff; }
+.cowork-activity-caption { min-width: 0; max-width: 100%; }
+.cowork-activity-current {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(1rem, 2vw, 1.125rem);
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
 .cowork-activity-label { display: inline-block; }
 @media (prefers-reduced-motion: no-preference) {
-    .cowork-trail { transition: color 250ms ease; }
-    .cowork-trail-ink, .cowork-worker { transition: stroke-dashoffset 420ms cubic-bezier(.25,.8,.25,1); }
-    .cowork-trail:not([data-tone="rest"]) .cowork-worker-petal { animation: coworkBreathe 1.8s ease-in-out infinite alternate; }
-    .cowork-trail[data-tone="executing"] .cowork-worker-petal { animation-name: coworkCarry; animation-duration: .85s; }
-    .cowork-trail[data-tone="repair"] .cowork-worker-petal { animation-name: coworkRegroup; animation-duration: 1.35s; }
+    .cowork-orb:not([data-tone="rest"]) .cowork-orb-volume { animation: coworkBreathe 7s ease-in-out infinite; }
+    .cowork-orb-signal { stroke-dasharray: .16 1; animation: coworkSignal 1.85s ease-in-out both; }
     .cowork-activity-label { animation: coworkStepArrives 200ms ease-out backwards; }
 }
-@keyframes coworkBreathe { from { transform: translate(-4px, -3px); } to { transform: translate(0, -7px); stroke-width: 6; } }
-@keyframes coworkCarry { from { transform: translate(-3px, -3px); } to { transform: translate(-9px, -1px); stroke-width: 5; } }
-@keyframes coworkRegroup { from { transform: translate(3px, -5px); } to { transform: translate(-2px, -1px); stroke-width: 9; } }
+@keyframes coworkBreathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.065); }
+}
+@keyframes coworkSignal {
+    0% { opacity: 0; stroke-dashoffset: .16; }
+    22% { opacity: .72; }
+    78% { opacity: .5; }
+    100% { opacity: 0; stroke-dashoffset: -1; }
+}
 @keyframes coworkStepArrives { from { opacity: .25; transform: translateY(5px); } }
 
 /* A row or disclosure opening in place (<Expand open>): the wrapper is a
