@@ -215,11 +215,12 @@ export interface PlanRunTrace {
 }
 
 /** What the planner says while it drafts a plan (server/usecases/coworkPlanner.mts). */
+export type OrbStep = Pick<PlanStep, 'id' | 'kind'> & Partial<Pick<PlanStep, 'app' | 'type'>>;
 export interface PlanningTestStep { app?: string | null; type?: string; kind?: PlanStepKind; title: string; number: number; total: number }
 
 export type PlanMakeProgress =
     | { phase: 'thinking'; round: number }
-    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'> & { app?: string | null }> }
+    | { phase: 'drafted'; round: number; steps: Array<OrbStep & { title: string }> }
     | { phase: 'saving' }
     | { phase: 'trying'; round: number; step?: PlanningTestStep }
     | { phase: 'repairing'; round: number };

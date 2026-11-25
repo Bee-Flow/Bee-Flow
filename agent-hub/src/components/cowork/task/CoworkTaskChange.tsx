@@ -1,3 +1,4 @@
+import { inRunOrder } from './coworkTaskModel';
 import { useState } from 'react';
 import type { PlanDraft, PlanParameter } from '@/api/coworkPlan.types';
 import { recipientWord } from './coworkTaskSendsModel';
@@ -65,7 +66,7 @@ function proposalVisual(preparing: boolean, discarding: boolean, discarded: bool
     const apps = draft?.permissions.grants.map(grant => grant.app);
     const action = preparing ? 'edit' : discarding ? 'discard' : 'saving';
     const tone = preparing ? 'thinking' : 'executing';
-    return { apps, action, tone, done: discarded ? 'discard' : 'rest' } as const;
+    return { apps, flow: inRunOrder(draft?.view.steps ?? [], draft?.view.runOrder), action, tone, done: discarded ? 'discard' : 'rest' } as const;
 }
 
 export default function CoworkTaskChange({ coworkId, approved, draft, live, onSetting, t }: {
@@ -86,11 +87,11 @@ export default function CoworkTaskChange({ coworkId, approved, draft, live, onSe
         <summary className="cursor-pointer font-medium">{t('cowork_task.edit.task', 'Adjust this task')}</summary>
         <CoworkSurface scene={scene}>
             <div className="mt-3 flex flex-col gap-3">
-                {activity ? <CoworkActivity message={activity} tone={visual.tone} work={visual} /> : result ? <CoworkActivity message={result} work={{ apps: visual.apps, action: visual.done }} tone="rest">
+                {activity ? <CoworkActivity message={activity} tone={visual.tone} work={visual} /> : result ? <CoworkActivity message={result} work={{ apps: visual.apps, flow: visual.flow, action: visual.done }} tone="rest">
                     <button className={BTN_QUIET} onClick={() => { approve.reset(); dismiss.reset(); }}>{t('cowork_task.edit.task', 'Adjust this task')}</button>
                 </CoworkActivity> : <>
                     {proposal ? <>
-                        <CoworkOrb tone="rest" work={{ apps: visual.apps }} />
+                        <CoworkOrb tone="rest" work={{ apps: visual.apps, flow: visual.flow }} />
                         <ProposalPreview proposal={proposal} label={label} t={t} />
                         <div className={ROW_ACTIONS}>
                             <button className={BTN_QUIET} disabled={live} onClick={() => approve.mutate({ proposalId: proposal.id, fingerprint: proposal.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>

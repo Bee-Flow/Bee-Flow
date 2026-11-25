@@ -1,3 +1,4 @@
+import { inRunOrder } from './coworkTaskModel';
 /**
  * What an opened task is doing right now (./CoworkTaskView.tsx), in place of its latest result: Cowork setting up its
  * steps, a try-out (nothing is changed or sent), or a run. Each shows its parts as they go (../CoworkProgress.tsx): a
@@ -14,12 +15,12 @@ import type { PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A run that follows the steps shows them from its trace; any other run is one line. */
-function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: TranslateFn }) {
+function RunLive({ coworkId, run, runOrder, t }: { coworkId: string; run: CoworkRun; runOrder?: string[]; t: TranslateFn }) {
     const trace = useCoworkRunTrace(coworkId, run.id).data;
-    const steps = trace?.recorded ? trace.steps : [];
+    const steps = trace?.recorded ? inRunOrder(trace.steps, runOrder) : [];
     const active = steps.findLast((step) => step.status === 'running');
     return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
-        work={{ apps: [active?.app], stepType: active?.type }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
+        work={{ apps: [active?.app], stepType: active?.type, flow: steps, focus: active ? steps.indexOf(active) : undefined }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
         message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 
@@ -40,10 +41,10 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
 }
 
 export default function CoworkTaskLive({ startingTest, coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep, making.steps.flatMap(s => s.app ? [s.app] : []))} />;
+    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep, making.steps.flatMap(s => s.app ? [s.app] : []), making.steps)} />;
     if (startingTest || (tryState && !tryState.done)) {
         return <CoworkTestProgress state={tryState} runOrder={runOrder} t={t} />;
     }
-    if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} t={t} />;
+    if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} runOrder={runOrder} t={t} />;
     return <CoworkActivity tone="executing" message={t('cowork_task.live.working', 'Working on it')} />;
 }

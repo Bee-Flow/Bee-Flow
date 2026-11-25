@@ -32,7 +32,7 @@ export default function CoworkTestProgress({ state, runOrder, t }: Props) {
         })
         : t('cowork_task.test.wait', 'Waiting for the next test step…');
     return <section className="cowork-activity">
-        <CoworkOrb work={{ action: 'testing', apps: [current?.app], stepType: current?.type }} activity={summary} tone={current?.kind === 'ai' ? 'thinking' : 'executing'} />
+        <CoworkOrb work={{ action: 'testing', apps: [current?.app], stepType: current?.type, flow: steps, focus: current ? steps.indexOf(current) : undefined }} activity={summary} tone={current?.kind === 'ai' ? 'thinking' : 'executing'} />
         <h3 ref={heading} tabIndex={-1} className="cowork-activity-current" aria-live="polite" aria-atomic="true"><span key={summary} className="cowork-activity-label">{summary}</span></h3>
         {steps.length > 0 && <details className="mt-2 w-full text-left"><summary className="mx-auto w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]">{t('cowork_task.flow.details', 'Details')}</summary>
         <ol className="m-0 mt-2 list-none p-0">

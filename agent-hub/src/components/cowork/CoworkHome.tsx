@@ -170,7 +170,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
             <CoworkHomeComposer stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
                 onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup}
                 finished={finished && finished.seed === seed ? {
-                    apps: finished.task.enabledApps, title: finished.task.title, message: finished.message, onOpen: () => { onOpenTask(finished.task.id); setFinished(null); },
+                    flow: finished.task.flow, apps: finished.task.enabledApps, title: finished.task.title, message: finished.message, onOpen: () => { onOpenTask(finished.task.id); setFinished(null); },
                     onReset: () => setFinished(null),
                 } : undefined} />
             <div className="cowork-home-sections flex flex-col gap-9">

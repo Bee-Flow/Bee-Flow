@@ -22,6 +22,8 @@ automations, and letting a task ask you first needs one with approvals. See [Tie
 2. For a task with fixed steps, choose **Set up and test**. Cowork works out the steps and tests them. If it needs a schedule or destination, it asks. If you requested delivery, you can review the recipients first.
 3. Follow the current step as Cowork works. During a test you can see which step it is trying and when it is repairing a problem. Open the finished task to review the result and approve the steps for real runs.
 
+The orb shows the task’s steps in execution order. It draws app icons as coloured networks. As each step starts, its icon moves forward and the previous step recedes. With reduced motion enabled, the current step appears in a still frame.
+
 Choose **Advanced** before starting to select a model or add a specific step. **Preview task** lets you review and edit the name, schedule, apps and requested recipients. Workspaces without fixed steps use a preview and ask before starting the task.
 
 The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,

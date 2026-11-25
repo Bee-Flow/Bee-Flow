@@ -13,14 +13,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { makeCoworkPlan } from '@/api/coworkPlanMake';
 import { apiJson } from '@/api/typedRequest';
-import type { PlanMakeProgress, PlanningTestStep } from '@/api/coworkPlan.types';
+import type { OrbStep, PlanMakeProgress, PlanningTestStep } from '@/api/coworkPlan.types';
 import type { CoworkItem } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export interface TaskSetup { apps?: string[] | null; id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
+export interface TaskSetup { flow?: OrbStep[]; apps?: string[] | null; id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
 
 /** The task to set up: the new task itself, or just its id and name (it is then read first). */
-export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup' | 'enabledApps'>>;
+export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup' | 'enabledApps'>> & { flow?: OrbStep[] };
 
 /** Does the task wait for its steps? Read from the task itself when the caller did not hand its set-up in. */
 async function wantsSteps(task: TaskToSetUp): Promise<boolean | null> {
@@ -45,12 +45,13 @@ export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp
         const control = new AbortController();
         running.current = control;
         let apps = task.enabledApps;
+        let flow = task.flow;
         const settle = async (message: string) => {
             await client.invalidateQueries({ queryKey: ['cowork'] });
             if (control.signal.aborted) return;
             running.current = null;
             setSetup(null);
-            onDone(message, { ...task, enabledApps: apps });
+            onDone(message, { ...task, enabledApps: apps, flow });
         };
         setSetup({ apps, id: task.id, title: task.title, phase: 'checking' });
         const wanted = await wantsSteps(task);
@@ -65,8 +66,9 @@ export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp
         }
         setSetup({ apps, id: task.id, title: task.title, phase: 'thinking' });
         const progress = (p: PlanMakeProgress) => {
+            if (p.phase === 'drafted') flow = p.steps;
             if (p.phase === 'drafted') apps = p.steps.flatMap(step => step.app ? [step.app] : []);
-            setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, apps, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
+            setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, apps, flow, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
         };
         let ready = false;
         try {

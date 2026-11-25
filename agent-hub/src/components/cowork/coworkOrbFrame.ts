@@ -139,43 +139,84 @@ function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: N
     }
 }
 
-function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, point: { x: number; y: number }, scale: number, time: number) {
+interface Pattern { marks: (NeuralGlyph | null)[]; focus: number; ordered: boolean; echo?: { since: number; glyph: NeuralGlyph } }
+interface Site { x: number; y: number; depth: number; scale: number }
+
+function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site, time: number) {
     ctx.save();
-    ctx.translate(point.x, point.y);
-    ctx.scale(scale, scale);
+    ctx.translate(site.x, site.y);
+    ctx.scale(site.scale, site.scale);
+    const shade = ctx.createRadialGradient(0, 0, 6, 0, 0, 23);
+    shade.addColorStop(0, 'rgba(19,32,78,.82)');
+    shade.addColorStop(1, 'rgba(19,32,78,0)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(-23, -23, 46, 46);
     ctx.translate(-20, -20);
-    ctx.strokeStyle = '#bfd9f4';
-    ctx.fillStyle = '#e2efff';
-    ctx.lineWidth = .57;
+    ctx.strokeStyle = glyph.ink;
+    ctx.lineWidth = .95;
+    ctx.stroke(glyph.outline);
+    ctx.strokeStyle = '#a9c7e8';
+    ctx.lineWidth = .55;
     ctx.stroke(glyph.links);
-    ctx.fill(glyph.nodes);
+    for (const [colour, nodes] of glyph.colours) {
+        ctx.fillStyle = colour;
+        ctx.fill(nodes);
+    }
     for (const [i, p] of glyph.sparks.entries()) {
         const pulse = Math.max(0, Math.sin(time * 1.7 + i * 2.4));
-        if (pulse > .6) lightPoint(ctx, p.x, p.y, 1.2, pulse * .8);
+        if (pulse > .6) lightPoint(ctx, p.x, p.y, .95, pulse * .7 * site.depth);
     }
     ctx.restore();
 }
 
-// Keep the marks facing the viewer while their junctions drift with the volume.
-function drawWork(ctx: CanvasRenderingContext2D, marks: (NeuralGlyph | null)[], time: number, network: NeuralNetwork, project: Project) {
-    const sites = [[0, -5], [-46, 26], [46, 23], [15, -53]];
-    for (const [i, glyph] of marks.entries()) {
-        if (!glyph) continue;
-        const x = sites[i][0] + 3 * Math.sin(time * .52 + i), y = sites[i][1] + 2 * Math.cos(time * .46 + i);
-        const root = project(network.neurons[30 + i].position);
-        ctx.beginPath();
-        ctx.moveTo(root.x, root.y);
-        ctx.bezierCurveTo(root.x + 7, root.y - 8, x - 12, y + 14, x, y);
-        if (i) ctx.quadraticCurveTo(x * .32, y + 5, 3 * Math.sin(time * .52), -5 + 2 * Math.cos(time * .46));
-        ctx.strokeStyle = 'rgba(184,222,255,.72)';
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = .72;
-        ctx.stroke();
-        paintMark(ctx, glyph, { x, y }, i ? .64 : .8, time);
+function siteAt(i: number, count: number, focus: number, time: number): Site {
+    if (count === 1) return { x: 4 * Math.sin(time * .38), y: 3 * Math.cos(time * .41), depth: 1, scale: 1.42 };
+    const angle = (i - focus) * TAU / count + .36 * Math.sin(time * .32);
+    const depth = .5 + .5 * Math.cos(angle);
+    return { x: 67 * Math.sin(angle) + 9 * Math.cos(angle), y: 44 * Math.cos(angle) - 17 * Math.sin(angle) - 7,
+        depth, scale: .45 + .97 * depth };
+}
+
+function connectSites(ctx: CanvasRenderingContext2D, a: Site, b: Site, phase: number) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const cx = (a.x + b.x) * .5 - dy * .20, cy = (a.y + b.y) * .5 + dx * .20;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+    ctx.lineWidth = .85;
+    ctx.strokeStyle = 'rgba(181,221,255,.85)';
+    ctx.stroke();
+    if (phase < 0 || phase > 1) return;
+    const back = 1 - phase;
+    lightPoint(ctx, back * back * a.x + 2 * back * phase * cx + phase * phase * b.x,
+        back * back * a.y + 2 * back * phase * cy + phase * phase * b.y, 1.6, .9);
+}
+
+function drawWork(ctx: CanvasRenderingContext2D, pattern: Pattern, time: number, network: NeuralNetwork, project: Project) {
+    const { marks, focus, ordered } = pattern;
+    const sites = marks.map((_, i) => siteAt(i, marks.length, focus, time));
+    const pulse = (time * 1.4) % Math.max(1, sites.length - 1);
+    ctx.globalAlpha = 1;
+    for (let i = 1; i < sites.length; i++) {
+        connectSites(ctx, sites[i - 1], sites[ordered ? i : sites.length - 1], pulse - (i - 1));
+    }
+    if (pattern.echo && time - pattern.echo.since < 2.5) {
+        const fade = (time - pattern.echo.since) / 2.5;
+        ctx.globalAlpha = .55 * (1 - fade);
+        paintMark(ctx, pattern.echo.glyph, { x: -48 * fade, y: 26 - 60 * fade, depth: 0, scale: 1.2 - .88 * fade }, time);
+    }
+    for (const i of sites.map((_, i) => i).sort((a, b) => sites[a].depth - sites[b].depth)) {
+        const site = sites[i], mark = marks[i];
+        if (!mark) continue;
+        const root = project(network.neurons[(30 + i) % network.neurons.length].position);
+        ctx.globalAlpha = .25;
+        connectSites(ctx, { ...site, x: root.x, y: root.y }, site, -1);
+        ctx.globalAlpha = .40 + .60 * site.depth;
+        paintMark(ctx, mark, site, time);
     }
 }
 
-export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, marks: (NeuralGlyph | null)[]) {
+export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, pattern: Pattern) {
     const size = ctx.canvas.width;
     ctx.resetTransform();
     ctx.clearRect(0, 0, size, size);
@@ -187,6 +228,6 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
     drawGrains(ctx, project, geometry.dust);
     drawNetwork(ctx, project, geometry.network, time, beat);
-    drawWork(ctx, marks, time, geometry.network, project);
+    drawWork(ctx, pattern, time, geometry.network, project);
     ctx.globalAlpha = 1;
 }

@@ -103,7 +103,7 @@ export interface LoopDeps {
 /** What the page is told while a draft is being made. */
 export type DraftProgress =
     | { phase: 'thinking'; round: number }
-    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind' | 'app'>> }
+    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind' | 'app' | 'type'>> }
     | { phase: 'saving' };
 
 const TITLE_MAX = 120;
@@ -232,7 +232,15 @@ async function draftLoop(input: LoopInput & { signal: AbortSignal }, deps: LoopD
         }
         if (!mutated) continue;
         applyPreferredTier(draft.def, input.preferredTier);
-        onProgress?.({ phase: 'drafted', round, steps: planViewOf(draft.def, deps.lookups).steps.map((s) => ({ id: s.id, title: s.title, kind: s.kind, app: s.app })) });
+        if (onProgress) {
+            const view = planViewOf(draft.def, deps.lookups);
+            const byId = new Map(view.steps.map(step => [step.id, step]));
+            const steps = view.runOrder.flatMap(id => {
+                const step = byId.get(id);
+                return step ? [{ id, title: step.title, kind: step.kind, app: step.app, type: step.type }] : [];
+            });
+            onProgress({ phase: 'drafted', round, steps });
+        }
         const report = planReport(builder.errorsOf(draft.def), await findingsOf(draft.def));
         if (report) messages.push({ role: 'user', content: report });
     }
