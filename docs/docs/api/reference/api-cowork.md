@@ -257,6 +257,7 @@ No request schema.
 
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
+| `replaceId` | string |  | min length 1; max length 200 |
 | `fromRuns` | boolean |  |  |
 
 ### `POST /api/cowork/:id/plan/replay`

@@ -209,7 +209,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
                     title: titleFromBrief(text),
                     prompt: text,
                     repeatInterval: null,
-                    modelTier: 'auto',
+                    modelTier: agentId ? 'auto' : modelTier || 'auto',
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                     agentId,
                     triggerKind: 'app_event',

@@ -222,7 +222,7 @@ function recordBrowserPeers(startUrl, answer) {
 }
 
 // ─── Notebook Tools (formerly Workspace) ───────────────────────
-const { NOTEBOOK_TOOLS } = require('./notebookToolNames');
+const { NOTEBOOK_TOOLS } = require('../core/integrations/notebookToolNames');
 const { fallback } = require('../utils/bestEffort');
 
 /**

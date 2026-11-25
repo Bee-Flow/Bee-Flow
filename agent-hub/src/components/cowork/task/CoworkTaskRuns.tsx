@@ -6,6 +6,8 @@
  *
  * A run's raw error is shown only under "Technical details" in its opened row, never in a line a person reads.
  */
+import { Code2, Workflow, Sparkles, Send } from 'lucide-react';
+import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import { useId, useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
 import { Expand, TINT } from '../coworkMotion';
@@ -14,7 +16,7 @@ import { taskStatusLabel } from '../coworkTaskStatus';
 import { runFailed, runLine, runMarkdown, runReason, runStatus } from './coworkTaskModel';
 import { TechnicalDetails } from './taskRows';
 import { BTN_LINK, Chevron, LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
-import { plainStepTitle } from '../coworkOverviewModel';
+import { plainStepTitle, scriptSummary } from '../coworkOverviewModel';
 import { useCoworkRunTrace } from '@/api/queries/coworkPlan';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useReceipts, useRunReceipt } from '@/api/coworkReceipts';
@@ -40,12 +42,23 @@ function RunSteps({ coworkId, runId, t }: { coworkId: string; runId: string; t: 
     const trace = useCoworkRunTrace(coworkId, runId);
     if (trace.isPending) return <p role="status">{t('cowork_task.trace.loading', 'Loading run steps…')}</p>;
     if (!trace.data?.recorded) return <p>{t('cowork_task.trace.missing', 'Step details are unavailable for this run.')}</p>;
-    return <ol>{trace.data.steps.map((step) => <li className="py-1" key={step.id}>
-        {plainStepTitle(step, t)} · {step.status === 'not_reached' ? t('cowork_task.trace.skipped', 'Not reached') :
-            step.status === 'success' ? t('cowork_task.trace.done', 'Done') :
-            step.error || step.status === 'failed' || step.status === 'error' ? t('cowork_task.trace.failed', 'Failed') : step.status}
-        <TechnicalDetails text={step.error} t={t} />
-    </li>)}</ol>;
+    return <ol className="list-none space-y-2 p-0">{trace.data.steps.map((step) => {
+        const Icon = step.type === 'code' ? Code2 : step.kind === 'ai' ? Sparkles : step.kind === 'deliver' ? Send : Workflow;
+        return (
+            <li className="flex items-start gap-2" key={step.id}>
+                <span aria-hidden="true" className="mt-0.5">
+                    <IntegrationLogo integrationId={step.app} fallback={<Icon size={16} />} />
+                </span>
+                <div>
+                    {plainStepTitle(step, t)} · {step.status === 'not_reached' ? t('cowork_task.trace.skipped', 'Not reached') :
+                        step.status === 'success' ? t('cowork_task.trace.done', 'Done') :
+                        step.error || step.status === 'failed' || step.status === 'error' ? t('cowork_task.trace.failed', 'Failed') : step.status}
+                    {step.type === 'code' && <p className="m-0 text-[13px] text-[var(--text-secondary)]">{scriptSummary(step, t)}</p>}
+                    <TechnicalDetails text={step.error} t={t} />
+                </div>
+            </li>
+        );
+    })}</ol>;
 }
 
 function RunRow({ run, coworkId, open, onToggle, withReceipts, onSteps, t }: { run: CoworkRun; coworkId: string; open: boolean; onToggle: () => void; withReceipts: boolean; onSteps?: () => void; t: TranslateFn }) {

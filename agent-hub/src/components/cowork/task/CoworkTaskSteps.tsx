@@ -11,7 +11,7 @@
  *     month" (no app at all, ./CoworkTaskReplay.tsx).
  */
 import { useState } from 'react';
-import { Check, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
+import { Check, Code2, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
 import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
@@ -38,6 +38,7 @@ const AI_MARK = 'AI';
 
 function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
+    if (step.script) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-secondary)]`}><Code2 size={16} /></span>;
     if (step.helper) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-tertiary)]`}>·</span>;
     const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
     const Icon = step.sort === 'ai' ? null : ICON[step.sort];
@@ -58,7 +59,7 @@ function StepItem({ step, t }: { step: TaskStep; t: TranslateFn }) {
                     <span className="break-words">{step.title}</span>
                     {step.changed && <span className={TAG_WARN}>{t('cowork_task.steps.changed', 'Changed')}</span>}
                 </div>
-                <div className="text-[13px] text-[var(--text-tertiary)] break-words" data-testid="cowork-task-step-word">{stepWord(step, t)}{step.app ? ` · ${step.app}` : ''}</div>
+                <div className="text-[13px] text-[var(--text-tertiary)] break-words" data-testid="cowork-task-step-word">{step.script ? step.description : stepWord(step, t)}{step.app ? ` · ${step.app}` : ''}</div>
             </div>
         </li>
     );
@@ -164,6 +165,7 @@ interface CoworkTaskStepsProps {
     live: boolean;
     /** Someone else's task: the steps are shown, nothing is tested. */
     readOnly: boolean;
+    onRebuild?: () => void;
     t: TranslateFn;
 }
 
@@ -183,7 +185,14 @@ function TestAndCompare({ coworkId, plan, tryOut, live, titleOf, t }: Pick<Cowor
     );
 }
 
-export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, t }: CoworkTaskStepsProps) {
+function NotebookRepair({ plan, live, onRebuild, t }: Pick<CoworkTaskStepsProps, 'plan' | 'live' | 'onRebuild' | 't'>) {
+    if (!onRebuild || !plan?.draft?.findings.some((f) => f.code === 'step.chat_notebook')) return null;
+    return <button type="button" className={BTN_QUIET} disabled={live} onClick={onRebuild}>
+        {t('cowork_task.steps.replace_notebook', 'Rebuild and test for delivery in Cowork')}
+    </button>;
+}
+
+export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, onRebuild, t }: CoworkTaskStepsProps) {
     const [between, setBetween] = useState(false);
     const fixed = mode === 'steps' && !!plan;
     const steps = fixed ? planSteps(plan, t) : runSteps(latestRun, t);
@@ -197,6 +206,7 @@ export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agent
             {shown.length > 0
                 ? <ol className="list-none m-0 p-0">{shown.map((step) => <StepItem key={step.id} step={step} t={t} />)}</ol>
                 : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}
+            <NotebookRepair plan={plan} live={live} onRebuild={onRebuild} t={t} />
             <BetweenToggle count={steps.filter((s) => s.helper).length} open={between} onToggle={() => setBetween((v) => !v)} t={t} />
             {tested && <TestedLine tested={tested} t={t} />}
             {tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter((s) => s.held && s.status !== 'not_reached')} t={t} />}

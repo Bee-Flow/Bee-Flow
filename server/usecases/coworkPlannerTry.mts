@@ -88,21 +88,21 @@ export async function tryAndRepair(input: TryRoundsInput, deps: TryRoundDeps): P
     const extra = (rounds: number) => ({ required: true, rounds });
     let last: TryVerdict | null = null;
     let tried = 0;
-    let attemptedReferenceRepair = false;
+    let attemptedStaticRepair = false;
     while (tried < MAX_TRY_ROUNDS) {
         const round = tried + 1;
         input.signal?.throwIfAborted();
         const def = input.draft.def;
         const blocking = await input.blockingOf(def);
-        const report = blocking.every((f) => f.code === REF_FINDING) ? planReport([], blocking) : null;
-        if (blocking.length && (!report || attemptedReferenceRepair)) {
+        const report = blocking.every((f) => f.code === REF_FINDING || f.code === 'step.chat_notebook') ? planReport([], blocking) : null;
+        if (blocking.length && (!report || attemptedStaticRepair)) {
             return kept(input, untriedRecord(input.automationId, def, blocking.map((f) => f.message), extra(tried)), deps);
         }
         try { await deps.spendLeft(input.item); } catch (e) {
             return kept(input, untriedRecord(input.automationId, def, [`Not tried: ${(e as Error).message}`], extra(tried)), deps);
         }
         if (report) {
-            attemptedReferenceRepair = true;
+            attemptedStaticRepair = true;
             await repair(input, report, round, deps);
             // Revalidate the draft and check the budget again before testing it.
             continue;

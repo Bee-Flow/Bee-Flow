@@ -34,7 +34,7 @@ export const MAX_AMEND_ROUNDS = 6;
 /** The whole working out of a change, in ms. */
 export const AMEND_MAX_MS = 150_000;
 
-interface Item { id: string; userId: string; title?: string | null; triggerKind?: string | null }
+interface Item { modelTier?: string | null; id: string; userId: string; title?: string | null; triggerKind?: string | null }
 
 export type AmendDeps = LoopDeps & Pick<PlannerDeps, 'ownerRefusal' | 'resolveModel' | 'mayAsk'>;
 
@@ -70,7 +70,7 @@ export async function amendPlan(input: AmendInput, deps: AmendDeps = amendDeps()
     const owner = { userId: item.userId, organizationId: userOrgId };
     const refusal = await deps.ownerRefusal(owner);
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', 'This account can no longer run a plan.');
-    const modelId = await deps.resolveModel({ userOrgId, userId: item.userId });
+    const modelId = await deps.resolveModel({ userOrgId, userId: item.userId, modelTier: item.modelTier });
     if (!modelId) throw new HttpError(409, 'cowork_planner_no_model', 'No AI model is configured for this workspace.');
 
     const catalog = await deps.builder.catalogFor(item.userId, null);
@@ -89,7 +89,7 @@ export async function amendPlan(input: AmendInput, deps: AmendDeps = amendDeps()
     });
     const menu = { tools: plannerTools(deps.builder.toolSchemas), refusal: plannerRefusal };
     const loop = await draftWithin(
-        { draft, modelId, system, ask: input.facts.kind === 'owner_request' ? input.ownerRequest || '' : 'Change the plan as the facts call for.', menu, maxRounds: MAX_AMEND_ROUNDS, findingsOf, bookOn: input.bookOn ?? null },
+        { draft, preferredTier: item.modelTier, modelId, system, ask: input.facts.kind === 'owner_request' ? input.ownerRequest || '' : 'Change the plan as the facts call for.', menu, maxRounds: MAX_AMEND_ROUNDS, findingsOf, bookOn: input.bookOn ?? null },
         input.signal, { code: 'cowork_amend_timeout', message: 'Working out a change took too long.' }, deps,
     );
     return { definition: draft.def, summary: loop.summary, rounds: loop.rounds };

@@ -85,6 +85,16 @@ test('from a brief to a plan: the model looks up the tools, builds the steps in 
     assert.deepStrictEqual(seen.attached, [['cw-1', 'auto-new']]);
 });
 
+test('rebuilding uses the selected tier for planning and stores it on the AI steps', async () => {
+    const { deps, input, seen } = world();
+    deps.resolveModel = async ({ modelTier }) => modelTier === 'fast' ? 'fast-model' : null;
+    const item = { ...ITEM, modelTier: 'fast', planAutomationId: 'current' };
+    await assert.rejects(makePlan(input({ item, replaceId: 'stale' }), deps), httpError(409, 'cowork_plan_refused'));
+    await makePlan(input({ item, replaceId: 'current' }), deps);
+    assert.deepStrictEqual([...new Set(seen.chats.map((chat) => chat.modelId))], ['fast-model']);
+    assert.strictEqual(stepsOf(seen).find((step) => step.type === 'ai_step').modelTier, 'fast');
+});
+
 test('the trigger stays the item\'s own business: the draft keeps the builder\'s manual trigger', async () => {
     const { deps, seen, input } = world();
     await makePlan(input(), deps);

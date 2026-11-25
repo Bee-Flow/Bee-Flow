@@ -111,6 +111,7 @@ function serveTask(world: World = {}) {
         if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
         if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
         // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
+        if (path.includes('/ai/config/tiers-for-user')) return jsonResponse({ auto: {}, fast: { label: 'Fast', modelId: 'mail-model' } });
         if (path.endsWith('/ai/user-settings')) return jsonResponse({ isMicrosoftUser: true });
         return jsonResponse(others[path] ?? {});
     });

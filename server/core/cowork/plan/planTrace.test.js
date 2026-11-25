@@ -13,6 +13,17 @@ const assert = require('node:assert');
 const { previewOf, runIsOver, traceSteps } = require('./planTrace.mts');
 const { fakeLookups, supplierRadar } = require('./plan.testkit');
 
+test('history gets the integration and documented script purpose from the executed plan', () => {
+    const plan = supplierRadar();
+    plan.steps.push({ id: 'thread', type: 'code', label: 'Group mail by thread', inputs: { messages: {} },
+        code: '/** Brings related messages together. */\nasync function main(inputs) { return inputs.messages; }' });
+    const steps = traceSteps(plan, [], { done: true, simulated: false }, fakeLookups());
+    assert.ok(steps.find((s) => s.id === 'mail').app);
+    const script = steps.find((s) => s.id === 'thread');
+    assert.deepStrictEqual([script.title, script.description, script.type, script.inputNames],
+        ['Group mail by thread', 'Brings related messages together.', 'code', ['messages']]);
+});
+
 test('a preview is short text: long values are cut, empty ones are nothing', () => {
     assert.strictEqual(previewOf('  hello  '), 'hello');
     assert.strictEqual(previewOf({ a: 1 }), '{\n "a": 1\n}');

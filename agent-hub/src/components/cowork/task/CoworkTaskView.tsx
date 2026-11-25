@@ -128,6 +128,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
         document.getElementById(`${tabId}-tab-${next}`)?.focus();
     };
 
+    const rebuild = () => { void facts.maker.start(false, facts.plan?.automationId ?? undefined); openTab('result'); };
     return (
         <div className="flex flex-col gap-6" data-testid="cowork-task-view">
             <TopOfTask item={item} facts={facts} onRun={() => openTab('result')} onShare={() => { setPeople('share'); openTab('people'); }} t={t} />
@@ -135,9 +136,9 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
                 result: <NowOfTask item={item} facts={facts} mayPlan={mayPlan} open={open} locale={locale} t={t}
                     onChange={() => { setSetting('what'); openTab('settings'); }} />,
                 settings: <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} open={setting} onOpen={setSetting}
-                    onRebuild={() => { void facts.maker.start(); openTab('result'); }}
+                    onRebuild={rebuild}
                     onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />,
-                steps: <><CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate} live={facts.live} onSetting={(row) => { setSetting(row); openTab('settings'); }} t={t} /><CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false}
+                steps: <><CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate} live={facts.live} onSetting={(row) => { setSetting(row); openTab('settings'); }} t={t} /><CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false} onRebuild={rebuild}
                     agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
                     tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} /></>,
                 people: <CoworkTaskPeople coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,

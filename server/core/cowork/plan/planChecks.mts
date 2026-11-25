@@ -37,6 +37,7 @@ import { stepsOf, inputsOf, aiToolsOf, refsOfStep, refsOfValue, type WalkedStep 
 
 const nodeRequire = createRequire(import.meta.url);
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
+const { NOTEBOOK_TOOLS } = nodeRequire('../../integrations/notebookToolNames.js') as { NOTEBOOK_TOOLS: ReadonlySet<string> };
 const { MAIL_APPS } = nodeRequire('../../agentRuntime/toolPolicy/mailAccess.js') as { MAIL_APPS: Record<string, { draft: string; reply: string }> };
 
 /**
@@ -188,6 +189,9 @@ function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText,
     const out: PlanFinding[] = kind === 'ai' ? aiFindings(s, outside) : kind === 'ask' ? askFindings(s) : [];
     out.push(...asShownFindings(s));
     const tool = typeof s.step.tool === 'string' ? s.step.tool : '';
+    if (NOTEBOOK_TOOLS.has(tool)) {
+        out.push(finding('step.chat_notebook', s.id, 'This notebook action requires an open chat notebook. Deliver the result in Cowork with a notification step.'));
+    }
     if (s.type === 'integration_action' && tool && lookups.isOpenWebRead(tool) && outside.refsReadIt(refsOfStep(s.step), s)) {
         out.push(finding('web.input_from_outside', s.id, 'This step goes to the open web with an address or a query built from text written outside the workspace. That would carry the text out.'));
     }

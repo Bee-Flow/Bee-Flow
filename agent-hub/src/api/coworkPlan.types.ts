@@ -12,6 +12,9 @@ export interface PlanStep {
     type: string;
     kind: PlanStepKind;
     title: string;
+    description?: string | null;
+    scriptNumber?: number;
+    inputNames?: string[];
     effect: PlanEffect;
     app: string | null;
     tool: string | null;
@@ -167,6 +170,11 @@ export interface PlanTryStart {
 
 /** One plan step of a try-out (server/usecases/coworkPlanTry.mts). */
 export interface PlanTryStep {
+    type?: string;
+    app?: string;
+    description?: string | null;
+    scriptNumber?: number;
+    inputNames?: string[];
     id: string;
     title: string;
     kind: PlanStepKind;

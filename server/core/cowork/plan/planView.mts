@@ -14,6 +14,7 @@ import { outsideTextOf } from './outsideText.mts';
 import { stepsOf } from './planWalk.mts';
 
 const nodeRequire = createRequire(import.meta.url);
+const { parseJsDoc } = nodeRequire('../../automationModel/codeSafety/jsdoc.js') as { parseJsDoc: (value: string, line: number) => { description: string | null } };
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
 
 /** Words for a name: `fireflies_list_transcripts` reads "Fireflies list transcripts". */
@@ -34,6 +35,14 @@ function titleOf(step: DefStep, type: string, lookups: ToolLookups): string {
     return lookups.labelOfTool?.(tool)?.trim() || humanised(tool);
 }
 
+function scriptDetails(step: DefStep, scriptNumber: number) {
+    const code = typeof step.code === 'string' ? step.code.trimStart() : '';
+    const end = code.startsWith('/**') ? code.indexOf('*/', 3) : -1;
+    const description = end < 0 ? null : parseJsDoc(code.slice(2, end), 1).description?.slice(0, 240);
+    const inputNames = step.inputs && typeof step.inputs === 'object' ? Object.keys(step.inputs).slice(0, 5) : [];
+    return { scriptNumber, description, inputNames };
+}
+
 const emptyMakeUp = (): Record<StepKind, number> => ({ fixed: 0, ai: 0, ask: 0, deliver: 0 });
 
 /**
@@ -44,6 +53,7 @@ export function planViewOf(definition: Definition | null | undefined, lookups: T
     const outside = outsideTextOf(definition, lookups);
     const makeUp = emptyMakeUp();
     const steps: PlanStep[] = [];
+    let scripts = 0;
     for (const s of stepsOf(definition)) {
         if (isAnnotation(s.type)) continue;
         const kind = kindOfStepType(s.type) ?? 'fixed';
@@ -55,6 +65,7 @@ export function planViewOf(definition: Definition | null | undefined, lookups: T
             kind,
             title: titleOf(s.step, s.type, lookups),
             // A plan's script runs with no network, no apps and no secrets (./planRunCopy.mts): it changes and sends nothing.
+            ...(s.type === 'code' ? scriptDetails(s.step, ++scripts) : {}),
             effect: s.type === 'code' ? 'reads' : stepEffect(s.step),
             app: tool ? lookups.appOfTool(tool) : null,
             tool,

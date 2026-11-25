@@ -102,12 +102,11 @@ export function makeCoworkPlans({ db = nodeRequire('../db.js') as Db, ready = as
      * `onlyIfNone`: only when the item names none yet (the planner, which drafted for an item without a plan). Answers
      * whether the item now names it.
      */
-    async function attachPlanAutomation(scheduleId: string, automationId: string, { onlyIfNone = false }: { onlyIfNone?: boolean } = {}): Promise<boolean> {
+    async function attachPlanAutomation(scheduleId: string, automationId: string, { onlyIfNone = false, replaceId }: { onlyIfNone?: boolean; replaceId?: string } = {}): Promise<boolean> {
         await ready();
-        const row = await db.getOne(
-            `UPDATE cowork_schedules SET plan_automation_id = $2 WHERE id = $1 AND (NOT $3 OR plan_automation_id IS NULL) RETURNING id`,
-            [scheduleId, automationId, onlyIfNone],
-        );
+        const row = replaceId
+            ? await db.getOne('UPDATE cowork_schedules SET plan_automation_id = $2, plan_id = NULL WHERE id = $1 AND plan_automation_id = $3 RETURNING id', [scheduleId, automationId, replaceId])
+            : await db.getOne('UPDATE cowork_schedules SET plan_automation_id = $2 WHERE id = $1 AND (NOT $3 OR plan_automation_id IS NULL) RETURNING id', [scheduleId, automationId, onlyIfNone]);
         return !!row;
     }
 

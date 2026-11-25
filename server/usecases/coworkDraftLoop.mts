@@ -13,6 +13,7 @@
 
 import { createRequire } from 'node:module';
 import type { Definition, PlanFinding, PlanStep, ToolLookups } from '../core/cowork/plan/planTypes.mts';
+import { stepsOf } from '../core/cowork/plan/planWalk.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { planReport, type ValidationRecord } from './coworkPlannerPrompt.mts';
 
@@ -180,6 +181,7 @@ async function runTool(call: ToolCall, draft: DraftWrap, builder: BuilderPort, m
 export interface LoopResult { summary: string; rounds: number }
 
 export interface LoopInput {
+    preferredTier?: string | null;
     draft: DraftWrap;
     modelId: string;
     system: string;
@@ -193,6 +195,13 @@ export interface LoopInput {
     bookOn?: string | null;
     /** A conversation to go on with (the planner after a try-out): the loop adds to it, and `system` and `ask` are not sent again. */
     messages?: Message[];
+}
+
+function applyPreferredTier(definition: Definition, tier?: string | null) {
+    if (!tier || tier === 'auto') return;
+    for (const { type, step } of stepsOf(definition)) {
+        if (type === 'ai_step') step.modelTier = tier;
+    }
 }
 
 /** The model and its tools, until the model stops, the rounds are used up or the caller gave up. */
@@ -220,6 +229,7 @@ async function draftLoop(input: LoopInput & { signal: AbortSignal }, deps: LoopD
             messages.push({ role: 'tool', tool_call_id: call.id, content: builder.resultText(done.result) });
         }
         if (!mutated) continue;
+        applyPreferredTier(draft.def, input.preferredTier);
         onProgress?.({ phase: 'drafted', round, steps: planViewOf(draft.def, deps.lookups).steps.map((s) => ({ id: s.id, title: s.title, kind: s.kind })) });
         const report = planReport(builder.errorsOf(draft.def), await findingsOf(draft.def));
         if (report) messages.push({ role: 'user', content: report });

@@ -19,7 +19,7 @@ const { validate } = require('../core/http/validate');
 const { z, bodyOf } = require('../core/http/schemaParts');
 
 // POST /:id/plan/make: nothing, or { fromRuns: true } to make the item's past runs routine.
-const PlanMakeBody = bodyOf({ fromRuns: z.boolean({ error: 'fromRuns is true or false.' }).optional() }, 'Making a plan');
+const PlanMakeBody = bodyOf({ replaceId: z.string().min(1).max(200).optional(), fromRuns: z.boolean({ error: 'fromRuns is true or false.' }).optional() }, 'Making a plan');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { openSse } = require('../core/http/sseHelpers');
@@ -87,7 +87,7 @@ function mountPlannerRoutes(router, overrides = {}) {
         const userOrgId = await orgOf(req, userId);
         let prepared;
         try {
-            prepared = await planner().readyToPlan({ item, userOrgId });
+            prepared = await planner().readyToPlan({ item, userOrgId, replaceId: req.body?.replaceId });
             await spendLeft(item); // drafting a plan is AI too: it counts against the budgets (core/cowork/spendGate.mts)
         } catch (err) {
             // A task that waits for its steps keeps waiting, and says why (usecases/coworkSetup.mts): never the AI by itself.
@@ -102,7 +102,7 @@ function mountPlannerRoutes(router, overrides = {}) {
         const stream = openSse(res, { heartbeat: true, flush: true });
         try {
             const made = await planner().makePlan({
-                item, prepared, session: req.session, userOrgId, signal: stream.signal, hints,
+                item, prepared, replaceId: req.body?.replaceId, session: req.session, userOrgId, signal: stream.signal, hints,
                 onProgress: (progress) => stream.send('progress', progress),
             });
             // The trail (usecases/coworkAudit.mts): written here, once the plan exists.

@@ -60,6 +60,9 @@ export interface PlanStep {
     type: string;
     kind: StepKind;
     title: string;
+    description?: string | null;
+    scriptNumber?: number;
+    inputNames?: string[];
     effect: Effect;
     app: string | null;
     tool: string | null;

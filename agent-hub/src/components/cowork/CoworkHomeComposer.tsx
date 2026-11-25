@@ -22,6 +22,7 @@ import { ENTER } from './coworkMotion';
 import { ALERT, BUTTON_PRIMARY, CARD, LINK_BUTTON, META } from './coworkUi';
 import useCoworkComposer, { type UseCoworkComposerReturn } from './useCoworkComposer';
 import type { TaskSetup } from './useTaskSetup';
+import TierSlider from '../licensing/TierSlider';
 import useModelTierSelection from '@/hooks/useModelTierSelection';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { CoworkItem, CoworkPayload, CoworkTriggerPayload } from '@/api/cowork.types';
@@ -110,7 +111,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
     const [choices, setChoices] = useState<ConfirmChoices>({});
     const [starting, setStarting] = useState(false);
     const box = useRef<HTMLTextAreaElement>(null);
-    const { selectedTier } = useModelTierSelection({ storageKey: 'coworkTier' });
+    const { selectedTier, setSelectedTier, modelTiers } = useModelTierSelection({ storageKey: 'coworkTier', taskType: 'automation' });
     const cowork = useCoworkComposer({ confirm: true, weeklyOn: handed.weekday });
     const reread = useReread(cowork, selectedTier);
     const { reset } = cowork;
@@ -138,7 +139,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
     const start = async (payload: CoworkPayload | CoworkTriggerPayload) => {
         stop();
         setStarting(true);
-        const created = await cowork.start(payload);
+        const created = await cowork.start(payload.agentId ? payload : { ...payload, modelTier: selectedTier });
         setStarting(false);
         if (!created) return;
         setText('');
@@ -164,6 +165,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
                     className="w-full px-4 pt-4 pb-3 sm:px-5 min-h-[88px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 />
+                {Object.keys(modelTiers).length > 0 && <div className="px-4 pb-2"><TierSlider tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} variant="input" /></div>}
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>
             {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
