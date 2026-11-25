@@ -57,7 +57,7 @@ const { MAX_AI_SCHEMA_FIELDS: MAX_SCHEMA_FIELDS, MAX_AI_SCHEMA_FIELD_DESC: MAX_S
 const MAX_EXTRACT_ROWS = 500;  // rows a single ai_extract may produce/insert
 
 const { AI_SCHEMA_FIELD_TYPES: SCHEMA_FIELD_TYPES } = require('./componentSpecs/actionSpecsActionKinds');
-const { cleanFieldShape } = require('./aiFieldShape.mts');
+const { cleanFieldShape, objectSchema } = require('./aiFieldShape.mts');
 const { HARD_DEPTH_CAP } = require('./canonicalize/shared');
 
 /**
@@ -196,33 +196,6 @@ async function modelSupportsNativeDocuments(modelId) {
 }
 
 // ── Schema helpers ──────────────────────────────────────────────────────────
-
-/** A normalized output field or item declaration → JSON Schema. */
-function fieldToJsonSchema(field) {
-    const description = field.description?.trim();
-    const annotations = description ? { description } : {};
-    switch (field.type) {
-        case 'date': return { type: 'string', description: [description, 'ISO 8601 date (YYYY-MM-DD)'].filter(Boolean).join(' — ') };
-        case 'array': {
-            const item = field.items;
-            const items = item?.type === 'object' ? objectSchema(item.fields || []) : { type: item?.type || 'string' };
-            return { type: 'array', items, ...annotations };
-        }
-        case 'object':
-            // A legacy free-form object still takes the non-strict tool route.
-            return { ...(field.fields ? objectSchema(field.fields) : { type: 'object', properties: {}, additionalProperties: true }), ...annotations };
-        default: return { type: field.type, ...annotations };
-    }
-}
-
-function objectSchema(fields) {
-    const properties = {};
-    for (const field of fields) {
-        const schema = fieldToJsonSchema(field);
-        properties[field.name] = field.required ? schema : { ...schema, type: [schema.type, 'null'] };
-    }
-    return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
-}
 
 function fieldsToObjectSchema(fields) {
     return objectSchema(normalizeSchemaFields(fields));
@@ -761,7 +734,7 @@ module.exports = {
 
 /** @typedef {{ id: string, userId: string, organizationId?: string | null, name?: string }} AppRef */
 
-/** @typedef {{ name: string, type: string, description: string, required: boolean, fields?: SchemaField[], items?: { type: string, fields?: SchemaField[] } }} SchemaField */
+/** @typedef {import('./aiFieldShape.mts').SchemaField} SchemaField */
 
 /** @typedef {string | object[]} UserContent  plain text, or content blocks */
 

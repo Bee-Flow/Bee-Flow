@@ -17,3 +17,52 @@ export function cleanFieldShape<T>(
     }
     return { items: { type: item.type } };
 }
+
+export interface SchemaField extends FieldShape<SchemaField> {
+    name: string;
+    type: string;
+    description: string;
+    required: boolean;
+}
+
+type PropertySchema = {
+    type: string;
+    description?: string;
+    items?: PropertySchema;
+    properties?: ObjectSchema['properties'];
+    additionalProperties?: boolean;
+};
+
+type ObjectSchema = {
+    type: 'object';
+    properties: Record<string, Omit<PropertySchema, 'type'> & { type: string | string[] }>;
+    required: string[];
+    additionalProperties: boolean;
+};
+
+/** A normalized output field or item declaration → JSON Schema. */
+function fieldToJsonSchema(field: SchemaField): PropertySchema {
+    const description = field.description?.trim();
+    const annotations = description ? { description } : {};
+    switch (field.type) {
+        case 'date': return { type: 'string', description: [description, 'ISO 8601 date (YYYY-MM-DD)'].filter(Boolean).join(' — ') };
+        case 'array': {
+            const item = field.items;
+            const items = item?.type === 'object' ? objectSchema(item.fields || []) : { type: item?.type || 'string' };
+            return { type: 'array', items, ...annotations };
+        }
+        case 'object':
+            // A legacy free-form object still takes the non-strict tool route.
+            return { ...(field.fields ? objectSchema(field.fields) : { type: 'object', properties: {}, additionalProperties: true }), ...annotations };
+        default: return { type: field.type, ...annotations };
+    }
+}
+
+export function objectSchema(fields: SchemaField[]): ObjectSchema {
+    const properties: ObjectSchema['properties'] = {};
+    for (const field of fields) {
+        const schema = fieldToJsonSchema(field);
+        properties[field.name] = field.required ? schema : { ...schema, type: [schema.type, 'null'] };
+    }
+    return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
+}
