@@ -228,6 +228,17 @@ async function wiringOf(item: Item, p: Proposal, undoVersion: number | null, dep
         .map((c) => ({ kind: c.kind, step: titles.get(c.stepId) ?? c.stepId, other: titles.get(c.otherId) ?? c.otherId }));
 }
 
+function ownerChangeDetails(proposal: Proposal, approved: Approved | null, lookups: ToolLookups) {
+    if (proposal.status !== 'open' || proposal.reasonCode !== 'owner_request' || !approved) return {};
+    const definition = proposal.definition as Definition;
+    const before = parametersOf(approved.definition as Definition);
+    const parameterChanges = parametersOf(definition).flatMap((param) => {
+        const old = before.find((b) => b.stepId === param.stepId && b.field === param.field);
+        return old && old.value !== param.value ? [{ ...param, before: old.value }] : [];
+    });
+    return { parameterChanges, recipients: [...new Set(Object.values(sendsToOf(definition, lookups)))] };
+}
+
 async function viewOf(item: Item, p: Proposal, approved: Approved | null, deps: ProposalDeps): Promise<ProposalView> {
     const open = p.status === 'open';
     const replay = p.replayId && (open || p.kind === 'fixed_step') ? await deps.replay.stateOf(item, p.replayId) : null;
@@ -235,20 +246,13 @@ async function viewOf(item: Item, p: Proposal, approved: Approved | null, deps: 
     const current = p.status === 'approved' && (p.kind === 'fixed_step' || AUTO_FIX_REASONS.has(p.reasonCode)) && approved?.fingerprint === p.fingerprint;
     const undoVersion = current ? await deps.plans.versionWithFingerprint(item.id, p.baseFingerprint) : null;
     const wiring = await wiringOf(item, p, undoVersion, deps);
-    const ownerEdit = open && approved && p.reasonCode === 'owner_request';
-    const before = ownerEdit ? parametersOf(approved.definition as Definition) : [];
-    const parameterChanges = ownerEdit ? parametersOf(p.definition as Definition).flatMap((param) => {
-        const old = before.find((b) => b.stepId === param.stepId && b.field === param.field);
-        return old && old.value !== param.value ? [{ ...param, before: old.value }] : [];
-    }) : [];
     return {
-        ...(parameterChanges.length ? { parameterChanges } : {}),
+        ...ownerChangeDetails(p, approved, deps.lookups),
         id: p.id, kind: p.kind, reasonCode: p.reasonCode, stepId: p.stepId, stepTitle: p.stepTitle, status: p.status, fingerprint: p.fingerprint,
         createdAt: p.createdAt, decidedAt: p.decidedAt, widens: p.widens,
         changes: open && approved ? changesOf(approved.definition as Definition, p.definition as Definition, deps.lookups) : [],
         replay: replay ? { done: replay.done, total: replay.total, same: replay.same, differs: replay.differs, partial: replay.partial, notReplayable: replay.notReplayable } : null,
         undoVersion,
-        ...(open && p.reasonCode === 'owner_request' ? { recipients: [...new Set(Object.values(sendsToOf(p.definition as Definition, deps.lookups)))] } : {}),
         ...(wiring ? { wiring } : {}),
     };
 }

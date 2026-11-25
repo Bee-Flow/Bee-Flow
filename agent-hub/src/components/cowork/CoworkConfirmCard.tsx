@@ -135,6 +135,14 @@ function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, cat
     );
 }
 
+function targetQuestion(target: 'folder' | 'table' | 'recipient' | undefined, t: TranslateFn) {
+    return target && {
+        folder: t('cowork_home.confirm.target_folder', 'Which folder should receive the files?'),
+        table: t('cowork_home.confirm.target_table', 'Which table should receive the rows?'),
+        recipient: t('cowork_home.confirm.target_recipient', 'Who should receive the result?'),
+    }[target];
+}
+
 export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose, rereading = false, onStart, onClarify, onCancel }: CoworkConfirmCardProps) {
     const { t } = useTranslation();
     const steps = useMayHaveSteps();
@@ -148,11 +156,7 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     // Only a sentence that said no day holds the start back; changing a day the card understood does not.
     const mustPick = needsDay(draft) && !choices.schedule;
     const target = draft.spec?.missingTarget;
-    const question = target && {
-        folder: t('cowork_home.confirm.target_folder', 'Which folder should receive the files?'),
-        table: t('cowork_home.confirm.target_table', 'Which table should receive the rows?'),
-        recipient: t('cowork_home.confirm.target_recipient', 'Who should receive the result?'),
-    }[target];
+    const question = targetQuestion(target, t);
     const asking = changing || mustPick;
     const busy = cowork.submitting || rereading;
     return (

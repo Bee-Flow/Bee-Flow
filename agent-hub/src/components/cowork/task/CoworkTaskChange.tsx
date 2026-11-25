@@ -4,15 +4,28 @@ import { recipientWord } from './coworkTaskSendsModel';
 import CoworkProposalDetails from '../CoworkProposalDetails';
 import { BTN_QUIET, FIELD, Failure, META, ROW_ACTIONS } from './taskUi';
 import type { SettingRowId } from './coworkTaskSettingsModel';
-import { useCoworkProposalActions, useCoworkProposals } from '@/api/coworkProposals';
+import { type CoworkProposal, useCoworkProposalActions, useCoworkProposals } from '@/api/coworkProposals';
 import type { TranslateFn } from '@/hooks/useTranslation';
+
+function availableParameters(draft: PlanDraft | null | undefined) {
+    return draft?.parameters ?? [];
+}
+
+function ProposalPreview({ proposal, label, t }: { proposal: CoworkProposal; label: (p: PlanParameter) => string; t: TranslateFn }) {
+    return <>
+                <p className={META}>{t('cowork_task.edit.passed', 'The proposed steps passed their test. Review the changes before approving.')}</p>
+                {!!proposal.recipients?.length && <p>{t('cowork_task.set.sends', 'Sends to')} · {proposal.recipients.map((to) => recipientWord(to, t)).join(', ')}</p>}
+                {proposal.parameterChanges?.map((p) => <p className="break-words" key={JSON.stringify([p.stepId, p.field])}>{label(p)} · {p.before} → {p.value}</p>)}
+                <CoworkProposalDetails proposal={proposal} t={t} />
+    </>;
+}
 
 export default function CoworkTaskChange({ coworkId, approved, draft, live, onSetting, t }: {
     coworkId: string; approved: boolean; draft?: PlanDraft | null; live: boolean; onSetting: (row: SettingRowId) => void; t: TranslateFn;
 }) {
     const [instruction, setInstruction] = useState('');
     const [parameter, setParameter] = useState<PlanParameter | null>(null);
-    const fields = draft?.parameters ?? [];
+    const fields = availableParameters(draft);
     const label = (p: PlanParameter) => (draft?.view.steps.find((s) => s.id === p.stepId)?.title ?? p.stepId) + ' · ' + ({
         query: t('cowork_task.param.query', 'Search filter'), folder: t('cowork_task.param.folder', 'Folder'),
         path: t('cowork_task.param.path', 'File path'), subject: t('cowork_task.param.subject', 'Subject'),
@@ -31,10 +44,7 @@ export default function CoworkTaskChange({ coworkId, approved, draft, live, onSe
                 <button className={BTN_QUIET} onClick={() => onSetting('sends')}>{t('cowork_task.set.sends', 'Sends to')}</button>
             </div>
             {proposal ? <>
-                <p className={META}>{t('cowork_task.edit.passed', 'The proposed steps passed their test. Review the changes before approving.')}</p>
-                {!!proposal.recipients?.length && <p>{t('cowork_task.set.sends', 'Sends to')} · {proposal.recipients.map((to) => recipientWord(to, t)).join(', ')}</p>}
-                {proposal.parameterChanges?.map((p) => <p className="break-words" key={JSON.stringify([p.stepId, p.field])}>{label(p)} · {p.before} → {p.value}</p>)}
-                <CoworkProposalDetails proposal={proposal} t={t} />
+                <ProposalPreview proposal={proposal} label={label} t={t} />
                 <div className={ROW_ACTIONS}>
                     <button className={BTN_QUIET} disabled={busy} onClick={() => approve.mutate({ proposalId: proposal.id, fingerprint: proposal.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>
                     <button className={BTN_QUIET} disabled={busy} onClick={() => dismiss.mutate(proposal.id)}>{t('cowork_task.edit.discard', 'Discard proposal')}</button>

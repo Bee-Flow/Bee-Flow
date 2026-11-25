@@ -95,6 +95,14 @@ function ComposerButtons({ reading, disabled, onTemplates, t }: { reading: boole
     );
 }
 
+function canRead(text: string, atLimit: boolean, cowork: UseCoworkComposerReturn) {
+    return !!text.trim() && !atLimit && !cowork.draft && !cowork.submitting;
+}
+
+function showExamples(atLimit: boolean, text: string, cowork: UseCoworkComposerReturn) {
+    return !atLimit && !text && !cowork.draft;
+}
+
 export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onTemplates, onCreated, setup }: CoworkHomeComposerProps) {
     const { t } = useTranslation();
     const [handed] = useState(takeHandedBrief);
@@ -117,15 +125,15 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
     }
     useEffect(() => { if (seeded) box.current?.focus({ preventScroll: true }); }, [seeded]);
 
-    const go = () => { if (text.trim() && !atLimit && !cowork.draft) void cowork.submit(text, { modelTier: selectedTier }); };
+    const ready = canRead(text, atLimit, cowork);
+    const go = () => { if (ready) void cowork.submit(text, { modelTier: selectedTier }); };
     const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
     };
     const edit = (next: string) => {
         setText(next);
-        if (!next.trim()) { close(); return; }
-        if (!cowork.draft) return;
-        reread.edit(next);
+        if (next.trim()) { if (cowork.draft) reread.edit(next); }
+        else close();
     };
     const start = async (payload: CoworkPayload | CoworkTriggerPayload) => {
         stop();
@@ -156,9 +164,9 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
                     className="w-full min-h-[56px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
                 />
-                <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!text.trim() || !!cowork.draft || cowork.submitting || atLimit} onTemplates={onTemplates} t={t} />
+                <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>
-            {!atLimit && !text && !cowork.draft && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
+            {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
             {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
             {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (
