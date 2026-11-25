@@ -6,7 +6,7 @@
  *     server" list is refused and never run. The check reads the values the
  *     call really carries: the notebook dispatches in token space and restores
  *     real values at its own write boundary (document edits, new sources), so
- *     those are checked on the real values; a web search keeps its tokens;
+ *     document edits and web searches are checked on the restored values;
  *   - what the model reads of a tool result has those categories stripped;
  *   - the knowledge-base passages the turn injects without a tool call are
  *     stripped against the "Own server" list, as notebook_kb_search results are.

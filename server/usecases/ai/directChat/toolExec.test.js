@@ -81,7 +81,7 @@ const restore = installResolveStub({
     '../../../core/dlp/applyTokenMapToOutbound': {
         untokeniseToolArgs: (args, map) => {
             untok.calls.push({ args, map });
-            return untok.impl ? untok.impl(args, map) : args;
+            return untok.impl ? untok.impl(args, map) : require('../../../core/dlp/applyTokenMapToOutbound.js').untokeniseToolArgs(args, map);
         },
     },
     '../../../stores/guardrailEventStore': {
@@ -101,7 +101,7 @@ const restore = installResolveStub({
     },
     '../../../core/privacy/piiDetection': {
         detectPii: (...a) => pii.impl(...a),
-        restoreTokens: (t) => t,
+        restoreTokens: require('../../../utils/piiTokenRestore').restoreTokens,
     },
     '../../../stores/usageStore': {
         logUsage: async (row) => { if (kinds.usageThrows) throw new Error('usage table down'); usage.rows.push(row); },
@@ -253,44 +253,21 @@ test('T3 PII monitor-only: audit row pii_detected, dispatch still runs', async (
     assert.deepStrictEqual(events[events.length - 1], ['tool_end', { name: 'agent_search', result: { found: true } }]);
 });
 
-// ── T4: DLP untokenise gate ──────────────────────────────────────────
-test('T4 untokenise runs for write tools, not for search tools', async () => {
-    dlp.map = { '[email_1]': 'a@b.c' };
+test('search and URL tools receive mapped values unless the tool policy refuses the call', async () => {
+    const url = 'https://example.org/article';
+    const email = 'a@example.org';
+    dlp.map = { '[organization_29]': 'Example Company', '[email_1]': email, '[url_89]': url };
     const { ctx } = mkCtx();
-    await executeDirectChatToolCall(mkToolCall('gmail_send', { to: '[email_1]' }), ctx);
-    assert.strictEqual(untok.calls.length, 1);
-    assert.deepStrictEqual(untok.calls[0].map, { '[email_1]': 'a@b.c' });
+    await executeDirectChatToolCall(mkToolCall('agent_search', { query: '[organization_29] [email_1] [unknown_7]' }), ctx);
+    assert.equal(dispatcher.calls[0].args.query, 'Example Company a@example.org [unknown_7]');
+    await executeDirectChatToolCall(mkToolCall('read_url', { url: '[url_89]', find: '[email_1]' }), ctx);
+    assert.deepEqual(dispatcher.calls[1].args, { url, find: email });
 
-    untok.calls = [];
-    await executeDirectChatToolCall(mkToolCall('agent_search', { query: '[email_1]' }), ctx);
-    assert.strictEqual(untok.calls.length, 0);
-});
-
-// ── T4b: read_url is a web tool: tokens stay, URL + find get the PII guard ──
-test('T4b read_url keeps DLP tokens and is PII-checked like a search query', async () => {
-    dlp.map = { '[email_1]': 'a@b.c' };
-    pii.impl = async () => ({ hasPii: true, entities: [{ label: 'Email' }] });
-    const { ctx, events } = mkCtx({
-        webSearchGuardPiiCategories: ['Email'],
-        webSearchGuardEnabled: true,
-    });
-    untok.calls = [];
-    const out = await executeDirectChatToolCall(mkToolCall('read_url', { url: 'https://x.org/?u=a@b.c', find: '38A' }), ctx);
-    assert.strictEqual(untok.calls.length, 0);
-    assert.strictEqual(dispatcher.calls.length, 0, 'blocked before dispatch');
-    assert.match(JSON.parse(out.content).error, /Web search blocked/);
-    assert.strictEqual(guardrails.rows[0].violation_type, 'pii');
-    assert.strictEqual(events[1][0], 'tool_end');
-});
-
-test('read_url resolves a saved URL token when URL masking is switched off', async () => {
-    const url = 'https://help.openai.com/en/articles/20001519-custom-gpt-retirement-and-migration-faq';
-    dlp.map = { '[url_89]': url, '[person_1]': 'Jan' };
-    for (const [categories, expected] of [[['Email'], url], [['Email', 'URL'], '[url_89]'], [[], '[url_89]']]) {
-        const { ctx } = mkCtx({ orgShield: { enabled: true, piiDetectionCategories: categories } });
-        await executeDirectChatToolCall(mkToolCall('read_url', { url: '[url_89]', find: '[person_1]' }), ctx);
-        assert.deepStrictEqual(dispatcher.calls.at(-1).args, { url: expected, find: '[person_1]' });
-    }
+    pii.impl = async text => ({ hasPii: text.includes(email), entities: [{ label: 'Email' }] });
+    const blocked = mkCtx({ webSearchGuardEnabled: true, webSearchGuardPiiCategories: ['Email'] });
+    const refusal = await executeDirectChatToolCall(mkToolCall('agent_search', { query: '[email_1]' }), blocked.ctx);
+    assert.match(refusal.content, /Web search blocked/);
+    assert.equal(dispatcher.calls.length, 2);
 });
 
 // ── T5: tier-tool-params memo ────────────────────────────────────────
@@ -777,7 +754,7 @@ const GOLDEN_CALLS = [
     { name: 'a name that was not offered', call: mkToolCall('kb_fetch', { ids: ['1'] }), ctx: { getOfferedToolNames: () => new Set(['my_tool']) }, setup: () => { dlp.map = TOKEN_MAP; } },
     { name: 'tokens are restored for a tool that writes', call: mkToolCall('gmail_send', { to: '[email_1]' }), setup: () => { dlp.map = TOKEN_MAP; } },
     ...['agent_search', 'web_search', 'search', 'brave_search', 'browse_web', 'read_url', 'Agent_Search'].map((tool) => (
-        { name: `tokens stay in ${tool}`, call: mkToolCall(tool, { query: '[email_1]', url: 'https://example.test/[email_1]' }), setup: () => { dlp.map = TOKEN_MAP; } })),
+        { name: `tokens restored in ${tool}`, call: mkToolCall(tool, { query: '[email_1]', url: 'https://example.test/[email_1]' }), setup: () => { dlp.map = TOKEN_MAP; } })),
     { name: 'an empty token map restores nothing', call: mkToolCall('gmail_send', { to: '[email_1]' }) },
     { name: 'a notebook write that was not asked for', call: mkToolCall('notebook_write', { content: 'x' }), ctx: { notebookWriteGate: { allowed: false, reason: 'The user did not ask for a notebook change.' } } },
     { name: 'a notebook write that was asked for', call: mkToolCall('notebook_insert', { content: 'x' }), ctx: { notebookWriteGate: { allowed: true } } },

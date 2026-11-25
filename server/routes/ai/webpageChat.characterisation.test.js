@@ -323,7 +323,7 @@ const SCENARIOS = {
         body: { message: 'hello', webpageId: 'wp-1', modelTier: 'auto' },
         rounds: [{ throw: 'provider down' }],
     },
-    'shield on: tokenised attachment, args restored except search, reply untokenised': {
+    'shield on: tokenised attachment, args restored for search and edits, reply untokenised': {
         setup: { shield: { enabled: true }, attachmentAction: 'tokenise' },
         body: { message: 'use the contact', webpageId: 'wp-1', attachments: [textAtt('contact.txt', `mail ${SYNTH_EMAIL}`)] },
         rounds: [

@@ -120,20 +120,9 @@ function createToolDispatcher({
         let toolArgs = {};
         try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/webpageChat/tools:dispatchToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
 
-        // Restore DLP tokens before the tool runs, so a write-side tool gets
-        // the real value instead of the `[email_1]` placeholder the model was
-        // shown. Without this the token was written verbatim into
-        // the page/file the tool edits. Search queries keep their tokens so no
-        // PII reaches an external search provider — same carve-out as
-        // ../directChat/toolExec.js, which this mirrors.
-        if (!/^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '')) {
-            try {
-                const _argMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
-                if (_argMap && Object.keys(_argMap).length) {
-                    toolArgs = require('../../../core/dlp/applyTokenMapToOutbound').untokeniseToolArgs(toolArgs, _argMap);
-                }
-            } catch (err) { fallback('routes/ai/webpageChat/tools:dispatchToolCall#2', err); /* best-effort: leave args tokenized on error */ }
-        }
+        const { untokeniseToolArgs, buildReverseReplacer } = require('../../../core/dlp/applyTokenMapToOutbound');
+        const map = require('../../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
+        toolArgs = untokeniseToolArgs(toolArgs, map);
 
         log.info(`[WebpageChat] Tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
         send('tool_start', { name: toolName, args: toolArgs });
@@ -278,7 +267,11 @@ function createToolDispatcher({
         /**
          * @param {string} content
          */
-        const forModel = (content) => shieldGate.forModel(content, toolName);
+        const forModel = async (content) => {
+            const allowed = await shieldGate.forModel(content, toolName);
+            const replace = buildReverseReplacer(map);
+            return replace ? replace(allowed) : allowed;
+        };
         if (isScreenshotResult) {
             return { role: 'tool', tool_call_id: toolCall.id, content: await forModel(String(toolResult.content || 'Screenshot captured.')) };
         }

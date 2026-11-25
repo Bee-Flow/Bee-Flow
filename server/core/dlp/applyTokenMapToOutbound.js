@@ -149,8 +149,7 @@ function applyTokenMapToMessages({ conversationId, messages }) {
  * were never restored — so `[email_1]` was written verbatim into the Google Doc
  * (BFSF-171). This deep-walks the parsed args object and restores every string.
  *
- * Callers should NOT apply this to web/agent-search query args, to keep real PII
- * off external search providers.
+ * Apply the tool policy to the restored arguments before dispatch.
  */
 function untokeniseToolArgs(args, convMap) {
     if (!convMap || !Object.keys(convMap).length) return args;
