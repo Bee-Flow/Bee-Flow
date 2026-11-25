@@ -149,6 +149,7 @@ async function resolveOrgShield(orgId) {
         // azurePiiEnabled / localPiiEnabled are kept on the persisted doc for
         // backwards-compatibility (old saves still parse) but are not surfaced
         // here and are ignored at runtime by piiDetection.js's gate.
+        explicitPiiCategories: shield.explicitPiiCategories === true,
         piiDetectionCategories: shield.piiDetectionCategories || [],
         piiDetectionConfidenceThreshold: shield.piiDetectionConfidenceThreshold,
         piiDetectionAction: shield.piiDetectionAction || globalConfig.piiDetectionAction || 'block',

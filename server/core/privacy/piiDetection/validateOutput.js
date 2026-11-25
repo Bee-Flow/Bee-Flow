@@ -7,30 +7,15 @@
 
 const log = require('../../../telemetry/log');
 const { buildAllowMatcher, filterAllowedEntities } = require('../../dlp/allowTerms');
-const { ALL_PII_CATEGORY_IDS, LEGACY_CATEGORY_ALIASES, DEFAULT_PII_CONFIDENCE_THRESHOLD } = require('./categories');
+const { ALL_PII_CATEGORY_IDS, DEFAULT_PII_CONFIDENCE_THRESHOLD } = require('./categories');
 const { cacheKey, cacheGet, cacheSet } = require('./scanCache');
 const { classifyDegradation } = require('./degradation');
 const { tokenizeText } = require('./tokenizer');
 const { detectPii } = require('./detect');
 const { isCustomTypeId } = require('../customTypes/ids');
-const { withBuiltinDefault } = require('../customTypes/plan');
 
 function getAIConfig() {
     return require('../../aiAgent').getAIConfig();
-}
-
-/**
- * The stored list, aliased, with ids nobody knows dropped. "Your own data"
- * ids stay (the scan resolves them), and a list whose built-in part is empty
- * keeps meaning "every built-in category" when custom ids sit next to it.
- * @param {string[]} list
- */
-function _shieldCategories(list) {
-    const aliases = /** @type {Record<string, string>} */ (LEGACY_CATEGORY_ALIASES);
-    const known = list
-        .map(id => aliases[id] || id)
-        .filter(id => ALL_PII_CATEGORY_IDS.includes(id) || isCustomTypeId(id));
-    return withBuiltinDefault(known);
 }
 
 /** What a log line may say about an entity: a custom type by id, never by its name. */
@@ -180,7 +165,7 @@ async function validateOutputForPii(content) {
     if (!aiConfig.piiDetectionEnabled) return;
     if (!content || content.length < 3) return;
 
-    const _outCats = aiConfig.piiDetectionCategories || ALL_PII_CATEGORY_IDS;
+    const _outCats = aiConfig.piiDetectionCategories?.length ? aiConfig.piiDetectionCategories : ALL_PII_CATEGORY_IDS;
     const _outThreshold = aiConfig.piiDetectionConfidenceThreshold ?? DEFAULT_PII_CONFIDENCE_THRESHOLD;
     const key = cacheKey('assistant_output', content, _outCats, _outThreshold);
     const cached = cacheGet(key);
@@ -278,4 +263,4 @@ async function validateOutputForPii(content) {
     }
 }
 
-module.exports = { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii };
+module.exports = { getAIConfig, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii };

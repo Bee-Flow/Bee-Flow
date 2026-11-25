@@ -120,7 +120,8 @@ async function applyCustomTypes(resolved, shield, orgId, opts = {}) {
     registry.syncOrg(orgId, enforced);
     const ids = new Set(enforced.map(t => t.id));
 
-    resolved.piiDetectionCategories = withBuiltinDefault(keepKnown(withMigratedIds(resolved.piiDetectionCategories, state), ids));
+    const categories = keepKnown(withMigratedIds(resolved.piiDetectionCategories, state), ids);
+    resolved.piiDetectionCategories = shield.explicitPiiCategories ? categories : withBuiltinDefault(categories);
     const policy = resolved.toolPiiPolicy;
     if (policy && typeof policy === 'object') {
         const ext = keepKnown(policy.external?.blockCategories || [], ids);

@@ -58,9 +58,9 @@ const auditInput = (g, violation_type, violation_categories, action_taken) => gu
  * @param {string | null | undefined} convId  none in an incognito chat: nothing to hydrate
  */
 async function hydrateTokenMap(convId) {
-    if (!convId) return;
-    try { await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(convId); }
-    catch (err) { bestEffort('routes/ai/directChat/inputPrivacyGates:hydrateTokenMap', err); /* hydration is best-effort */ }
+    if (!convId) return null;
+    try { return await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(convId); }
+    catch (err) { bestEffort('routes/ai/directChat/inputPrivacyGates:hydrateTokenMap', err); return null; }
 }
 
 /**
@@ -140,8 +140,9 @@ function applyPiiTokens(g, piiResult) {
 /**
  * Run validateInputForPii under a "Protecting your data…" phase.
  * @param {GateCtx} g
+ * @param {Awaited<ReturnType<typeof hydrateTokenMap>>} existingTokenMap
  */
-async function detectPii(g) {
+async function detectPii(g, existingTokenMap) {
     const { messages, orgShield, userId, send, chatSignal } = g;
     const { validateInputForPii } = require('../../../core/privacy/piiDetection');
     // The org Privacy Shield's master `enabled` flag is the only switch
@@ -154,7 +155,7 @@ async function detectPii(g) {
     // never look like a hang.
     const ps = startPrivacyScanPhase(send, messageText(messages[messages.length - 1]));
     try {
-        const piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, null, { vaultUserId: userId, onProgress: ps.onProgress, report: chatSignal ? chatSignal.pii : undefined });
+        const piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId, onProgress: ps.onProgress, report: chatSignal ? chatSignal.pii : undefined });
         log.info(`[DirectChat] PII validateInputForPii returned: ${piiResult ? `entities=${piiResult.entities?.length ?? 'n/a'} tokenized=${!!piiResult.tokenizedText}` : 'null'}`);
         return piiResult;
     } catch (innerErr) {
@@ -227,10 +228,10 @@ async function runPiiGate(g) {
     }
     // Diagnostic on every turn, so support can correlate to a convId.
     log.info(`[DirectChat] PII gate: convId=${convId} shield=${orgShield ? 'present' : 'NULL'} source=${shieldSource} enabled=${orgShield?.enabled} action=${orgShield?.piiDetectionAction || 'default'} dlpWillHandleHere=${dlpWillHandleHere}`);
-    await hydrateTokenMap(convId);
+    const existingTokenMap = await hydrateTokenMap(convId);
     if (dlpWillHandleHere) return {};
     try {
-        const piiResult = await detectPii(g);
+        const piiResult = await detectPii(g, existingTokenMap);
         if (piiResult && piiResult.tokenizedText) return applyPiiTokens(g, piiResult);
         return {};
     } catch (piiError) {

@@ -135,3 +135,16 @@ test('an oversize message is not pre-warmed (windowed scans are too expensive to
     await new Promise(r => setTimeout(r, 80));
     assert.strictEqual(requests.length, 0);
 });
+
+test('saving None skips the guard in prewarm and in the interactive scan', async () => {
+    const args = {
+        messages: [{ role: 'user', content: 'contact jan@voorbeeld.nl today' }],
+        orgShieldConfig: { ...SHIELD, explicitPiiCategories: true, piiDetectionCategories: [] },
+        providerConfig: PROVIDER, orgId: 'o1', conversationId: 'empty-selection',
+    };
+    dlpRunner.preWarmPiiScan(args);
+    const result = await dlpRunner.scan(args);
+    assert.deepEqual(result.findings, []);
+    assert.equal(result.action, 'allow');
+    assert.deepEqual(requests, []);
+});

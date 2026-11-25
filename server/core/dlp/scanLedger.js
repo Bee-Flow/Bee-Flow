@@ -138,7 +138,7 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
     const detectPii = detect || require('../privacy/piiDetection').detectPii;
     const str = typeof text === 'string' ? text : '';
     const stats = { segments: 0, hits: 0, fresh: 0 };
-    if (!str) return { entities: [], degraded: false, degradedReason: null, stats };
+    if (!str || categories?.length === 0) return { entities: [], degraded: false, degradedReason: null, stats };
 
     const segments = segmentText(str, { maxChars: MAX_REQUEST_CHARS, overlapChars: WINDOW_OVERLAP_CHARS });
     stats.segments = segments.length;

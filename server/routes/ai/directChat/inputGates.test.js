@@ -44,7 +44,7 @@ const piiDetection = {
     windowCountFor: () => 1,
 };
 const dlpRunner = {
-    getConversationTokenMapAsync: async () => ({}),
+    getConversationTokenMapAsync: async () => fx.previousTokens || {},
     getConversationTokenMap: () => ({}),
     mergeTokenMap: () => {},
 };
@@ -120,6 +120,17 @@ function assertNoSecretLogged(lines) {
 }
 
 const TOKENISE_SHIELD = { enabled: true, piiDetectionAction: 'tokenize', rulesWithNames: [], scope: {} };
+
+test('a follow-up scan receives the stored conversation tokens', async () => {
+    fx.shield = TOKENISE_SHIELD;
+    fx.previousTokens = { '[email_1]': 'first@example.org' };
+    let seed;
+    fx.validate = async (...args) => { seed = args[4]; return null; };
+    try {
+        await turn();
+        assert.deepStrictEqual(seed, fx.previousTokens);
+    } finally { delete fx.previousTokens; }
+});
 
 test('a tokenised turn logs no message text and no token value', async () => {
     fx.shield = TOKENISE_SHIELD;

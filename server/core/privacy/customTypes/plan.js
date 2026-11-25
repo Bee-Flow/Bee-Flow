@@ -11,7 +11,7 @@
  * aside so the scan can report them degraded.
  */
 
-const { ALL_PII_CATEGORY_IDS } = require('../piiDetection/categories');
+const { ALL_PII_CATEGORY_IDS, LEGACY_CATEGORY_ALIASES } = require('../piiDetection/categories');
 const { isCustomTypeId, sha256 } = require('./ids');
 const { specDigest } = require('./spec');
 const { compileTypes } = require('./compile');
@@ -37,6 +37,19 @@ function withBuiltinDefault(list) {
     return [...ALL_PII_CATEGORY_IDS, ...new Set(list.filter(isCustomTypeId))];
 }
 
+/** The admin selection. Older rows used an empty built-in selection for all built-ins.
+ * @param {Record<string, unknown> | null | undefined} shield
+ * @returns {string[] | null}
+ */
+function selectedPiiCategories(shield) {
+    const list = shield?.piiDetectionCategories;
+    if (!Array.isArray(list)) return null;
+    const known = list.map(id => LEGACY_CATEGORY_ALIASES[id] || id)
+        .filter(id => ALL_PII_CATEGORY_IDS.includes(id) || isCustomTypeId(id));
+    if (shield.explicitPiiCategories === true) return known;
+    return known.length ? withBuiltinDefault(known) : null;
+}
+
 /**
  * Categories for a scan in an org context that would otherwise pass `null` (every
  * built-in): every built-in, plus the org's custom types that are switched on
@@ -44,9 +57,16 @@ function withBuiltinDefault(list) {
  * which keeps those scans exactly as they were.
  * @param {any} shield  a resolved shield
  * @param {'external'|'internal'|null} [toolClass]  null = both classes
+ * @param {string[]} [effectiveBlock] When preparing model content, scan the AI selection and this tool's effective block list.
  * @returns {string[]|null}
  */
-function scanCategoriesFor(shield, toolClass = null) {
+function scanCategoriesFor(shield, toolClass = null, effectiveBlock) {
+    if (effectiveBlock) {
+        const selected = selectedPiiCategories(shield);
+        if (selected) return [...new Set([...selected, ...effectiveBlock])];
+        const custom = effectiveBlock.filter(isCustomTypeId);
+        return custom.length ? [...ALL_PII_CATEGORY_IDS, ...custom] : null;
+    }
     const detect = Array.isArray(shield?.piiDetectionCategories) ? shield.piiDetectionCategories : [];
     const classes = toolClass ? [toolClass] : ['external', 'internal'];
     const block = classes.flatMap(c => shield?.toolPiiPolicy?.[c]?.blockCategories || []);
@@ -139,4 +159,4 @@ async function planScan(categories, opts = {}) {
 
 function _resetPlanCache() { _compiled.clear(); }
 
-module.exports = { planScan, hasCustomIds, withBuiltinDefault, scanCategoriesFor, _resetPlanCache };
+module.exports = { selectedPiiCategories, planScan, hasCustomIds, withBuiltinDefault, scanCategoriesFor, _resetPlanCache };

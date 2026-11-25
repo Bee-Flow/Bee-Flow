@@ -42,7 +42,7 @@
 
 const crypto = require('crypto');
 const {
-    detectPii, tokenizeText, ALL_PII_CATEGORY_IDS, LEGACY_CATEGORY_ALIASES,
+    detectPii, tokenizeText,
     // Aliased: `scanBudgetMs`/`windowCountFor` next to this file's own page
     // budgets would read as more of the same, and they are not — they are the
     // chat path's numbers, borrowed here to keep the two in step.
@@ -50,7 +50,7 @@ const {
 } = require('../privacy/piiDetection');
 const { mergeTokenMap, getConversationTokenMap, getConversationPref } = require('./dlpRunner');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
-const { withBuiltinDefault } = require('../privacy/customTypes/plan');
+const { selectedPiiCategories } = require('../privacy/customTypes/plan');
 const log = require('../../telemetry/log');
 
 // Deployment-level overrides for the three scan budgets below.
@@ -140,7 +140,7 @@ const SCAN_CACHE_MAX = 200;
 const _scanCache = new Map();
 
 function _policyTag(orgShield) {
-    const cats = Array.isArray(orgShield?.piiDetectionCategories) ? orgShield.piiDetectionCategories.slice().sort().join(',') : '';
+    const cats = selectedPiiCategories(orgShield)?.slice().sort().join(',') ?? 'all';
     const t = orgShield?.piiDetectionConfidenceThreshold ?? '';
     const a = orgShield?.piiDetectionAction || orgShield?.privacyAction || '';
     const p = _resolveLargeInputPolicy(orgShield);
@@ -228,29 +228,6 @@ function _resolveLargeInputPolicy(orgShield) {
     const explicit = orgShield?.attachmentLargeInputPolicy;
     if (explicit === 'fail_open' || explicit === 'fail_closed') return explicit;
     return _resolveFailureMode(orgShield);
-}
-
-// Legacy ids FIRST, then the whitelist — the order is the whole point.
-//
-// A shield saved before a category rename still stores e.g.
-// `EUNationalIdentificationNumber`. validateInputForPii aliases it to the
-// canonical id (piiDetection.js:LEGACY_CATEGORY_ALIASES), which is why typing a
-// BSN into chat is still redacted. Filtering first DROPS the legacy id instead,
-// so the very same BSN inside an uploaded PDF was scanned for every category the
-// org selected EXCEPT that one, and the document reached the model with the
-// national ID in the clear. One stored field must not mean two different things
-// depending on which door the text came through.
-function _resolveCategories(orgShield) {
-    const cats = orgShield?.piiDetectionCategories;
-    if (Array.isArray(cats) && cats.length > 0) {
-        // "Your own data" ids are kept, not filtered away as unknown: dropping
-        // them would scan an uploaded file for everything EXCEPT the org's own
-        // data, the same one-field-two-meanings bug as the legacy ids above.
-        return withBuiltinDefault(cats
-            .map(id => LEGACY_CATEGORY_ALIASES[id] || id)
-            .filter(id => ALL_PII_CATEGORY_IDS.includes(id) || isCustomTypeId(id)));
-    }
-    return null; // null = detect everything the backend supports
 }
 
 function _resolveThreshold(orgShield) {
@@ -404,7 +381,8 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
     if (!text || text.length < 3) {
         return { action: 'pass', text: text || '', findings: [], summary: { count: 0, byCategory: {}, pages: {} }, tokenMap: null };
     }
-    if (!_piiEnabled(orgShield)) {
+    const categories = selectedPiiCategories(orgShield);
+    if (!_piiEnabled(orgShield) || categories?.length === 0) {
         return { action: 'pass', text, findings: [], summary: { count: 0, byCategory: {}, pages: {} }, tokenMap: null };
     }
 
@@ -436,7 +414,6 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
     }
 
     const largeInputPolicy = _resolveLargeInputPolicy(orgShield);   // unscanned-portion policy
-    const categories = _resolveCategories(orgShield);
     const threshold = _resolveThreshold(orgShield);
     const effMaxPages = Number.isFinite(orgShield?.attachmentMaxPages) ? orgShield.attachmentMaxPages : maxPages;
     const ceilingMs = Number.isFinite(orgShield?.attachmentScanBudgetMs) ? orgShield.attachmentScanBudgetMs : maxScanMs;

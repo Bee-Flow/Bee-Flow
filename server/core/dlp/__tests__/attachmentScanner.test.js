@@ -805,3 +805,15 @@ test('a cache hit still yields "ask" when the CURRENT org is in ask mode, even i
     assert.strictEqual(r2.action, 'ask', 'the action must reflect the CURRENT org, not whatever produced the cache entry');
     assert.strictEqual(r2.text, text, 'ask must not have redacted anything');
 });
+
+test('None passes an attachment even when its page count exceeds the scan budget', async () => {
+    const text = 'first@example.org';
+    lastCategories = undefined;
+    const result = await scanAttachmentText({
+        text, filename: 'contact.pdf', pages: [{ pageNumber: 1, text }], maxPages: 0,
+        orgShield: { enabled: true, explicitPiiCategories: true, piiDetectionCategories: [], attachmentLargeInputPolicy: 'fail_closed' },
+    });
+    assert.equal(result.action, 'pass');
+    assert.equal(result.text, text);
+    assert.equal(lastCategories, undefined);
+});

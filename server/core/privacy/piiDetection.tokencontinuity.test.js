@@ -138,3 +138,11 @@ test('tokenizeText itself continues numbering (the primitive this relies on)', (
 
     assert.notDeepStrictEqual(Object.keys(a.tokenMap), Object.keys(b.tokenMap));
 });
+
+test('saving None takes effect even for a message cached under the legacy default', async () => {
+    const messages = turn(`Contact ${ALICE} over deze link`);
+    const legacy = { ...shield, piiDetectionCategories: [] };
+    assert.ok((await validateInputForPii(messages, true, legacy))?.tokenMap);
+    assert.equal(await validateInputForPii(messages, true, { ...legacy, explicitPiiCategories: true }), null);
+    assert.ok((await validateInputForPii(messages, true, legacy))?.tokenMap);
+});

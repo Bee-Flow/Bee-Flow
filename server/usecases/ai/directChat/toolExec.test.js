@@ -283,6 +283,16 @@ test('T4b read_url keeps DLP tokens and is PII-checked like a search query', asy
     assert.strictEqual(events[1][0], 'tool_end');
 });
 
+test('read_url resolves a saved URL token when URL masking is switched off', async () => {
+    const url = 'https://help.openai.com/en/articles/20001519-custom-gpt-retirement-and-migration-faq';
+    dlp.map = { '[url_89]': url, '[person_1]': 'Jan' };
+    for (const [categories, expected] of [[['Email'], url], [['Email', 'URL'], '[url_89]'], [[], '[url_89]']]) {
+        const { ctx } = mkCtx({ orgShield: { enabled: true, piiDetectionCategories: categories } });
+        await executeDirectChatToolCall(mkToolCall('read_url', { url: '[url_89]', find: '[person_1]' }), ctx);
+        assert.deepStrictEqual(dispatcher.calls.at(-1).args, { url: expected, find: '[person_1]' });
+    }
+});
+
 // ── T5: tier-tool-params memo ────────────────────────────────────────
 test('T5 memo: one getConfig per shared getter; fixedParams flow through', async () => {
     configHolder.impl = async () => ({ fast: { my_tool: { p: 1 } } });

@@ -1,5 +1,6 @@
 // @typecheck
 'use strict';
+const { selectedPiiCategories } = require('../privacy/customTypes/plan');
 const { _stringify } = require('./safetyLeaves');
 const { PII_SCAN_WINDOW, _detectPii, _scanText } = require('./safetyScan');
 const { mintTokensFor, tokenizeIntoVault, egressMode, maskTokens, prepareForEgress, restoreForRunState, logEgress } = require('./safetyEgress');
@@ -125,7 +126,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
         // Includes the org's own data types ("Your own data"): the resolver
         // puts their ids in this list and detectPii runs them, so automations
         // hide the same terms chat does.
-        categories: (shield && shield.piiDetectionCategories) || aiConfig.piiDetectionCategories || null,
+        categories: selectedPiiCategories(shield || aiConfig),
         // What to do when the detector is unreachable or only partly ran.
         // The org shield is where this setting lives; AIConfig never carries it.
         failureMode: (shield && (shield.piiFailureMode || shield.dlpFailureMode)) || 'fail_closed',

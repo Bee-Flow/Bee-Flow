@@ -84,6 +84,14 @@ test('list helpers: empty built-in part means every built-in', () => {
     assert.equal(scanCategoriesFor({ piiDetectionCategories: ['Email'] }, 'external'), null, 'no custom types: today\'s null');
 });
 
+test('a tool result hides the selected categories and strips its effective block list', () => {
+    const shield = { explicitPiiCategories: true, piiDetectionCategories: ['Email', A] };
+    assert.deepEqual(scanCategoriesFor(shield, 'external', ['ApiKeyOrSecret', B]), ['Email', A, 'ApiKeyOrSecret', B]);
+    assert.deepEqual(scanCategoriesFor({ ...shield, piiDetectionCategories: [] }, 'external', []), []);
+    assert.deepEqual(scanCategoriesFor({ ...shield, piiDetectionCategories: [A] }, 'internal', []), [A]);
+    assert.equal(scanCategoriesFor({ piiDetectionCategories: [] }, 'external', []), null);
+});
+
 test('planScan: split, unknown ids after one refresh, types given directly', async () => {
     assert.equal(await planScan(['Person', 'Email']), null, 'a list without custom ids keeps today\'s path');
     registry.syncOrg('org1', [W(A, 'Projects', 'project_code', ['Falcon']),

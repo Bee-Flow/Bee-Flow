@@ -259,6 +259,20 @@ const SCENARIOS = {
     },
 };
 
+test('the notebook input scan receives the mapping from its previous turn', async () => {
+    const previous = { '[email_1]': 'first@example.org' };
+    let seed;
+    await runScenario({
+        setup: {
+            shield: { enabled: true }, tokenMap: previous,
+            validate: async (...args) => { seed = args[4]; return null; },
+        },
+        body: { message: 'follow up', notebookId: 'nb-1' },
+        rounds: [{ events: [['text', { text: 'Done.' }]] }],
+    });
+    assert.deepStrictEqual(seed, previous);
+});
+
 const results = {};
 for (const [name, s] of Object.entries(SCENARIOS)) {
     test(name, async () => {

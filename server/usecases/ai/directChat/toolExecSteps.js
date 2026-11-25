@@ -18,6 +18,7 @@ const { isBuilderTool, executeBuilderTool } = require('../../../integrations/web
 const { isDocumentTool, executeDocumentTool } = require('../../../integrations/documentBuilderTools');
 const { isDbTool, executeDbTool } = require('../../../integrations/webpageDbTools');
 const { executeProposeWebpagePlan } = require('../../../integrations/webpagePlanTool');
+const { selectedPiiCategories } = require('../../../core/privacy/customTypes/plan');
 const { untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { isNotebookWriteTool } = require('./notebookWriteGate');
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
@@ -53,12 +54,24 @@ const KEEPS_TOKENS = /^(agent_search|web_search|search|brave_search|browse_web|r
  * @param {string} toolName
  * @param {ToolArgs} toolArgs
  * @param {string | null | undefined} convId
+ * @param {ToolCtx["orgShield"]} shield
  * @returns {ToolArgs}
  */
-function restoreDlpTokens(toolName, toolArgs, convId) {
-    if (KEEPS_TOKENS.test(toolName || '')) return toolArgs; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- KEEPS_TOKENS is an anchored list of tool names
+function restoreDlpTokens(toolName, toolArgs, convId, shield) {
+    // Older conversation maps can still contain URL tokens after the admin
+    // turns URL masking off. Recover only the destination of this page read.
+    const categories = selectedPiiCategories(shield);
+    const restoreUrl = toolName === 'read_url' && typeof toolArgs.url === 'string'
+        && /^\[url_\d+\]$/.test(toolArgs.url) && Array.isArray(categories)
+        && !categories.includes('URL');
+    if (!restoreUrl && KEEPS_TOKENS.test(toolName || '')) return toolArgs; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- KEEPS_TOKENS is an anchored list of tool names
     try {
+        /** @type {Record<string, string>} */
         const _argMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(convId);
+        if (restoreUrl) {
+            const url = _argMap?.[toolArgs.url];
+            return typeof url === 'string' ? { ...toolArgs, url } : toolArgs;
+        }
         if (_argMap && Object.keys(_argMap).length) return untokeniseToolArgs(toolArgs, _argMap);
     } catch (err) { fallback('usecases/ai/directChat/toolExec:executeDirectChatToolCall#2', err); /* best-effort */ }
     return toolArgs;

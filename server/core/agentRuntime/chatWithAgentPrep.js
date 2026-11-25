@@ -93,9 +93,10 @@ async function shieldIncomingMessages({ messages, agent, userId, userAuth, conve
     // detectPii() in piiDetection.js routes between the in-process
     // Transformers.js detector and the optional GLiNER guard service.
     const orgPiiEnabled = !!orgShield?.enabled;
+    const existingTokenMap = conversation?.id ? await dlpRunner.getConversationTokenMapAsync(conversation.id) : null;
     if (aiConfigForPii?.piiDetectionEnabled || orgPiiEnabled) {
         try {
-            const piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, userAuth?.piiActionOverride || null, null, { vaultUserId: userAuth?.userId || null });
+            const piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, userAuth?.piiActionOverride || null, existingTokenMap, { vaultUserId: userAuth?.userId || null });
 
             if (piiResult && piiResult.tokenizedText) {
                 // Redact/tokenize mode: replace last user message with tokenized version
