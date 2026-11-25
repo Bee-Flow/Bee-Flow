@@ -75,6 +75,13 @@ test('the last attempt of the result step counts, a long text is cut, and a titl
     assert.ok(long?.text.endsWith('…'));
 });
 
+test('a long AI answer is unwrapped before the preview is cut', () => {
+    const answer = `# Digest\n\n- ${'x'.repeat(5000)}`;
+    const rows = [{ stepId: 'digest', attempts: 1, output: { wouldNotify: { body: JSON.stringify({ answer }) } } }];
+    const result = resultIn(supplierRadar(), rows, fakeLookups());
+    assert.strictEqual(result?.text, `${answer.slice(0, 4000)}…`);
+});
+
 test('a plan without a result for its owner shows what its last sending step would have sent; a plan that sends nothing shows nothing', () => {
     const lookups = fakeLookups();
     const mails = planOf([

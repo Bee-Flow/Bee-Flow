@@ -23,6 +23,7 @@ import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import type { PlanTryRecord } from '../stores/coworkPlanTries.mts';
+import { parseJsonText } from '../shared/expr/path.mjs';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -62,15 +63,21 @@ const TITLE_MAX = 200;
 
 const cut = (text: string, max: number): string => (text.length > max ? `${text.slice(0, max)}…` : text);
 
+/** Decode before capping the preview so the cap cannot leave an invalid JSON envelope. */
+function previewText(raw: string): string {
+    const answer: unknown = parseJsonText(raw)?.answer;
+    return (typeof answer === 'string' && answer.trim() ? answer : raw).trim();
+}
+
 /** What one sending step would have delivered or sent, as text; null when its row says nothing. */
 function saidBy(step: PlanStep, row: RunStepRow): TriedResult | null {
     if (step.kind !== 'deliver') {
-        const text = longestText(row.input).trim();
+        const text = previewText(longestText(row.input));
         return text ? { stepId: step.id, title: null, text: cut(text, TEXT_MAX) } : null;
     }
     const message = messageOf(row.output);
     const { title, body } = (message && typeof message === 'object' ? message : {}) as { title?: unknown; body?: unknown };
-    const text = (typeof body === 'string' && body.trim() ? body : longestText(message)).trim();
+    const text = previewText(typeof body === 'string' && body.trim() ? body : longestText(message));
     if (!text) return null;
     return { stepId: step.id, title: typeof title === 'string' && title.trim() && title.trim() !== text ? cut(title.trim(), TITLE_MAX) : null, text: cut(text, TEXT_MAX) };
 }

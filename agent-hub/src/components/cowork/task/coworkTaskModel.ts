@@ -9,6 +9,7 @@
  *   - which runs are on the go, which one is the latest result, and each run with its status word and one plain line.
  *     A run's raw error is never part of that line: the server's own plain sentence is (`plain`), or a general one.
  */
+import { parseJsonText } from '@shared/expr/path.mjs';
 import { appLabel, appsByEffect } from '../coworkPlanModel';
 import { plainStepTitle } from '../coworkOverviewModel';
 import { recipientWord } from './coworkTaskSendsModel';
@@ -34,6 +35,7 @@ export interface TaskStep {
     sort: StepSort;
     /** The app's name ("Outlook"), or null for a step no app does. */
     app: string | null;
+    integrationId: string | null;
     helper: boolean;
     /** Changed or new since the steps were last approved. */
     changed: boolean;
@@ -68,6 +70,7 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
         title: plainStepTitle(step, t),
         sort: sortOfPlanStep(step),
         app: step.app ? appLabel(step.app) : null,
+        integrationId: step.app ?? null,
         helper: !!step.helper,
         changed: changed.has(step.id),
         to: state.draft?.recipients?.[step.id] ?? null,
@@ -102,12 +105,13 @@ export function runSteps(run: CoworkRun | null | undefined, t: TranslateFn): Tas
         title: toolTitle(tool, t),
         sort: SORT_OF_EFFECT[tool.effect ?? 'writes'],
         app: tool.app ? appLabel(tool.app) : null,
+        integrationId: tool.app ?? null,
         helper: false,
         changed: false,
         to: null,
     }));
     if (!run) return steps;
-    return [...steps, { id: 'ai-result', title: t('cowork_task.steps.ai_result', 'Write the result'), sort: 'ai', app: null, helper: false, changed: false, to: null }];
+    return [...steps, { id: 'ai-result', title: t('cowork_task.steps.ai_result', 'Write the result'), sort: 'ai', app: null, integrationId: null, helper: false, changed: false, to: null }];
 }
 
 /** "Sends to you", "Sends to sam@hoekstra.example"; plain "Sends" when the plan does not say to whom. */
@@ -168,6 +172,17 @@ function firstLine(text: string | null | undefined): string {
     return lines.find((line) => /[\p{L}\p{N}]/u.test(line)) ?? '';
 }
 
+/** A stored result may be the JSON output of an AI step bound as a whole to the message. */
+function resultMarkdown(text: string): string {
+    const answer: unknown = parseJsonText(text)?.answer;
+    return typeof answer === 'string' && answer.trim() ? answer : text;
+}
+
+export function runMarkdown(run: CoworkRun): string {
+    if (runFailed(run) || !run.result?.trim()) return '';
+    return resultMarkdown(run.result);
+}
+
 const WAITING: ReadonlySet<string> = new Set(['waiting', 'needs_review', 'awaiting_approval']);
 
 /** A run in the one status vocabulary (../coworkTaskStatus.ts): Running, Needs you, Failed, Nothing to do or Done. */
@@ -187,14 +202,14 @@ function openLine(run: CoworkRun, t: TranslateFn): string | null {
 }
 
 /** One plain line for a run: the server's own sentence when it has one, else what came out of it, or that it stopped. */
-export function runLine(run: CoworkRun, t: TranslateFn): string {
+export function runLine(run: CoworkRun, t: TranslateFn, markdown = runMarkdown(run)): string {
     const open = openLine(run, t);
     if (open) return open;
     const plain = firstLine(run.plain);
     if (plain) return plain;
     if (run.error || runFailed(run)) return t('cowork_task.run.stopped', 'It stopped before it was done.');
     if (run.producedOutput === false) return t('cowork_task.run.nothing', 'Nothing to do this time.');
-    return firstLine(run.result) || t('cowork_task.run.no_text', 'It finished without a text.');
+    return firstLine(markdown) || t('cowork_task.run.no_text', 'It finished without a text.');
 }
 
 /**

@@ -16,9 +16,10 @@ import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
 import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
 import CoworkTaskReplay from './CoworkTaskReplay';
-import { Section, TechnicalDetails } from './taskRows';
+import { TechnicalDetails } from './taskRows';
 import { BTN_LINK, BTN_QUIET, Failure, META, ROW_ACTIONS, TAG_WARN } from './taskUi';
 import { useCoworkPlanReplay } from '@/api/coworkReplay';
+import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import type { CoworkRun } from '@/api/cowork.types';
 import type { PlanState, PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -38,9 +39,13 @@ function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
     if (step.helper) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-tertiary)]`}>·</span>;
     const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
-    if (step.sort === 'ai') return <span aria-hidden="true" className={tone}>{AI_MARK}</span>;
-    const Icon = ICON[step.sort];
-    return <span aria-hidden="true" className={tone}><Icon size={16} /></span>;
+    const Icon = step.sort === 'ai' ? null : ICON[step.sort];
+    const fallback = Icon ? <Icon size={16} /> : AI_MARK;
+    return (
+        <span aria-hidden="true" className={tone}>
+            {step.integrationId ? <IntegrationLogo integrationId={step.integrationId} size={18} fallback={fallback} /> : fallback}
+        </span>
+    );
 }
 
 function StepItem({ step, t }: { step: TaskStep; t: TranslateFn }) {
@@ -186,7 +191,7 @@ export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agent
     const tested = mode === 'steps' ? testedOf(plan, tryOut.state, t) : null;
     const titleOf = (id: string) => steps.find((s) => s.id === id)?.title ?? null;
     return (
-        <Section id="cowork-task-steps-h" heading={t('cowork_task.steps.heading', 'Steps')} testId="cowork-task-steps">
+        <div className="flex flex-col gap-3" data-testid="cowork-task-steps">
             <p className={META}>{leadOf(mode, agentName, t)}</p>
             {shown.length > 0
                 ? <ol className="list-none m-0 p-0">{shown.map((step) => <StepItem key={step.id} step={step} t={t} />)}</ol>
@@ -195,6 +200,6 @@ export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agent
             {tested && <TestedLine tested={tested} t={t} />}
             <MayList may={may} t={t} />
             {fixed && !readOnly && <TestAndCompare coworkId={coworkId} plan={plan} tryOut={tryOut} live={live} titleOf={titleOf} t={t} />}
-        </Section>
+        </div>
     );
 }

@@ -8,7 +8,7 @@ import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { Check, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { Expand, TINT, useReveal } from '../coworkMotion';
-import { ALERT, BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, CARD_INSET, FIELD_WIDE, FOCUS_INSET, LINK_BUTTON, LINK_INLINE, SECTION_HEADING } from '../coworkUi';
+import { ALERT, BUTTON_DANGER, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, CARD_INSET, FIELD_WIDE, FOCUS_INSET, LINK_BUTTON, LINK_INLINE } from '../coworkUi';
 import { errorMessage } from '@/utils/caughtError';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -19,7 +19,6 @@ export const BTN_QUIET = BUTTON_SECONDARY;
 export const BTN_LINK = LINK_BUTTON;
 /** The action that cannot be taken back. */
 export const BTN_DANGER = BUTTON_DANGER;
-export const SECTION_H = SECTION_HEADING;
 
 const CARD_BODY = 'p-4 flex flex-col gap-3 min-w-0 text-[var(--text-primary)]';
 export const CARD = `${SURFACE} ${CARD_BODY}`;

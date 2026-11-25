@@ -12,6 +12,8 @@ const row = (id: string) => screen.findByTestId(`cowork-task-setting-${id}`);
 const value = (id: string) => screen.getByTestId(`cowork-task-setting-${id}-value`);
 /** Open a row by its button (the first button in it: its name, its value and "Change"). */
 async function openRow(user: ReturnType<typeof openTask>['user'], id: string) {
+    const tab = await screen.findByRole('tab', { name: 'Settings' });
+    if (tab.getAttribute('aria-selected') === 'false') await user.click(tab);
     const el = await row(id);
     await user.click(within(el).getAllByRole('button')[0]);
     return el;
@@ -20,7 +22,8 @@ const TASK = '/api/cowork/w1';
 
 describe('CoworkTaskSettings', () => {
     it('shows the current value of all four rows in plain words while they are closed', async () => {
-        openTask();
+        const { user } = openTask();
+        await user.click(await screen.findByRole('tab', { name: 'Settings' }));
         await row('what');
         expect(value('what')).toHaveTextContent('Sum up the week.');
         expect(value('when')).toHaveTextContent('09:00');

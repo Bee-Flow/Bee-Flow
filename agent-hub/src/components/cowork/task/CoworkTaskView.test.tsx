@@ -5,7 +5,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { softClasses } from '../crisp.testkit';
-import { NEEDS_APPROVAL, PLAN_WAITING, RUN, openTask } from './taskWorld.testkit';
+import { NEEDS_APPROVAL, NO_PLAN, PLAN_WAITING, RUN, openTask } from './taskWorld.testkit';
 
 const AUTO_FIX = {
     id: 'pr-auto', kind: 'repair', reasonCode: 'reference_fixed', stepId: 'read', stepTitle: 'Read the mail', status: 'approved', fingerprint: 'f'.repeat(64),
@@ -15,6 +15,11 @@ const FAILED_RUN = { id: 'r0', status: 'error', startedAt: '2026-11-22T08:00:00.
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
+async function selectTab(user: ReturnType<typeof openTask>['user'], name: string) {
+    await user.click(await screen.findByRole('tab', { name }));
+    return screen.getByRole('tabpanel', { name });
+}
+
 describe('the task page is crisp', () => {
     it('nothing that holds text carries a transform, a filter or a backdrop filter at rest: closed, and with every row opened', async () => {
         const { user } = openTask({ plan: PLAN_WAITING, needs: [NEEDS_APPROVAL], runs: [FAILED_RUN, RUN], colleagues: [{ id: 'u2', name: 'Bo Jansen' }] });
@@ -22,14 +27,19 @@ describe('the task page is crisp', () => {
         await screen.findByTestId('cowork-task-would-receive');
         await waitFor(() => expect(within(page).getAllByTestId('cowork-task-run')).toHaveLength(2));
         expect(softClasses(page)).toEqual([]);
-        // Every row that opens in place, one after another: the four of Settings, People's, History's, and a run.
-        const rows = ['cowork-task-setting-what', 'cowork-task-setting-when', 'cowork-task-setting-uses', 'cowork-task-setting-sends',
-            'cowork-task-row-share', 'cowork-task-row-pass', 'cowork-task-row-template', 'cowork-task-row-give', 'cowork-task-row-changes', 'cowork-task-row-proof'];
-        for (const id of rows) {
-            const head = within(within(page).getByTestId(id)).getAllByRole('button')[0];
-            await user.click(head);
-            expect(head).toHaveAttribute('aria-expanded', 'true');
-            expect(softClasses(page), id).toEqual([]);
+        const rowsByTab = {
+            Settings: ['cowork-task-setting-what', 'cowork-task-setting-when', 'cowork-task-setting-uses', 'cowork-task-setting-sends'],
+            People: ['cowork-task-row-share', 'cowork-task-row-pass', 'cowork-task-row-template', 'cowork-task-row-give'],
+            History: ['cowork-task-row-changes', 'cowork-task-row-proof'],
+        };
+        for (const [tab, ids] of Object.entries(rowsByTab)) {
+            const panel = await selectTab(user, tab);
+            for (const id of ids) {
+                const head = within(within(panel).getByTestId(id)).getAllByRole('button')[0];
+                await user.click(head);
+                expect(head).toHaveAttribute('aria-expanded', 'true');
+                expect(softClasses(panel), id).toEqual([]);
+            }
         }
         await user.click(within(within(page).getAllByTestId('cowork-task-run')[0]).getByRole('button'));
         await user.click(within(page).getByRole('button', { name: 'Technical details' }));
@@ -39,20 +49,66 @@ describe('the task page is crisp', () => {
 });
 
 describe('CoworkTaskView', () => {
-    it('lists the steps in run order, the in-between step folded until asked for, and names who the sending step reaches', async () => {
+    it('only shows the selected panel and supports keyboard navigation between tabs', async () => {
         const { user } = openTask();
+        const result = await screen.findByRole('tab', { name: 'Result', selected: true });
+        const panel = screen.getByRole('tabpanel', { name: 'Result' });
+        expect(result).toHaveAttribute('aria-controls', panel.id);
+        expect(panel).toHaveAttribute('aria-labelledby', result.id);
+        expect(screen.getByTestId('cowork-task-settings')).not.toBeVisible();
+        result.focus();
+        await user.keyboard('{ArrowRight}');
+        expect(screen.getByRole('tab', { name: 'Settings', selected: true })).toHaveFocus();
+        expect(panel).not.toBeVisible();
+        expect(screen.getByRole('tabpanel', { name: 'Settings' })).toBeVisible();
+    });
+
+    it('renders an existing JSON-wrapped Markdown result on the Result tab and in its history row', async () => {
+        const result = JSON.stringify({ answer: '# Weekoverzicht meetings\n\n- **Veiligheid**\n- Actiepunten' });
+        const { user } = openTask({ runs: [{ ...RUN, result }] });
+        const latest = within(await screen.findByRole('tabpanel', { name: 'Result' }));
+        expect(await latest.findByRole('heading', { name: 'Weekoverzicht meetings' })).toBeVisible();
+        expect(latest.getAllByRole('listitem')).toHaveLength(2);
+        expect(latest.getByText('Veiligheid', { selector: 'strong' })).toBeVisible();
+
+        const history = within(await selectTab(user, 'History'));
+        expect(history.getByTestId('cowork-task-run-line')).toHaveTextContent(/^Weekoverzicht meetings$/);
+        await user.click(within(history.getByTestId('cowork-task-run')).getByRole('button'));
+        expect(history.getByRole('heading', { name: 'Weekoverzicht meetings' })).toBeVisible();
+        expect(history.getByText('Veiligheid', { selector: 'strong' })).toBeVisible();
+    });
+
+    it('opens the Steps tab from a steps shortcut and shows them in run order with in-between steps folded', async () => {
+        const { user } = openTask({}, { kind: 'task', id: 'w1', focus: 'steps' });
+        expect(await screen.findByRole('tabpanel', { name: 'Steps' })).toBeVisible();
         const steps = await screen.findByTestId('cowork-task-steps');
         await waitFor(() => expect(within(steps).getAllByTestId('cowork-task-step')).toHaveLength(3));
         expect(within(steps).getAllByTestId('cowork-task-step').map((li) => li.textContent)).toEqual([
             expect.stringContaining('Read the mail'), expect.stringContaining('Write the digest'), expect.stringContaining('Tell me'),
         ]);
         expect(within(steps).getAllByTestId('cowork-task-step-word').at(-1)).toHaveTextContent('Sends to you');
+        expect(within(steps).getAllByTestId('cowork-task-step')[0].querySelector('svg')).toHaveAttribute('viewBox', '0 0 48 48');
         await user.click(within(steps).getByRole('button', { name: 'Show 1 in-between step' }));
         expect(within(steps).getAllByTestId('cowork-task-step').map((li) => li.textContent)).toEqual([
             expect.stringContaining('Read the mail'), expect.stringContaining('Keep this weekIn-between step'), expect.stringContaining('Write the digest'), expect.stringContaining('Tell me'),
         ]);
         expect(within(steps).getByRole('button', { name: 'Test, sends nothing' })).toBeEnabled();
         expect(within(steps).getByRole('button', { name: 'Compare with last month' })).toBeEnabled();
+    });
+
+    it('shows the Fireflies logo and keeps the action icon for an app without a registered icon', async () => {
+        const { user } = openTask({ plan: NO_PLAN, runs: [{ ...RUN, activity: { tools: [
+            { name: 'fireflies_list_transcripts', label: 'List meetings', app: 'fireflies', effect: 'reads', ok: 1 },
+            { name: 'internal_reader', label: 'Read archives', app: 'archive-connector', effect: 'reads', ok: 1 },
+        ] } }] });
+        const steps = within(await selectTab(user, 'Steps'));
+        await steps.findByText('List meetings');
+        const [fireflies, archive, ai] = steps.getAllByTestId('cowork-task-step');
+        expect(fireflies).toHaveTextContent('Reads · Fireflies');
+        expect(fireflies.querySelector('svg')).toHaveAttribute('viewBox', '22 20 24 24');
+        expect(archive).toHaveTextContent('Reads · Archive connector');
+        expect(archive.querySelector('svg')).toHaveClass('lucide-file-search');
+        expect(ai).toHaveTextContent('AI');
     });
 
     it('keeps "Run for real now" off while its steps wait for approval, and says why on the button and under it', async () => {
@@ -70,8 +126,10 @@ describe('CoworkTaskView', () => {
         const run = await screen.findByRole('button', { name: 'Run for real now' });
         await waitFor(() => expect(run).toBeEnabled());
         expect(screen.queryByTestId('cowork-task-held')).toBeNull();
+        await selectTab(user, 'History');
         await user.click(run);
         await waitFor(() => expect(sent('POST', '/api/cowork/w1/run-now')).toBeTruthy());
+        expect(screen.getByRole('tab', { name: 'Result', selected: true })).toHaveFocus();
     });
 
     it('the first approval is decided on what the test produced: Approve sends the fingerprint of the steps on screen, and no second card asks the same', async () => {
@@ -79,8 +137,7 @@ describe('CoworkTaskView', () => {
         const block = await screen.findByTestId('cowork-task-would-receive');
         const approve = await within(block).findByRole('button', { name: 'Approve' });
         expect(screen.queryByTestId('cowork-need-card')).toBeNull();
-        // Above Settings: the owner sees it before anything else of the task.
-        expect(block.compareDocumentPosition(screen.getByTestId('cowork-task-settings')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByRole('tabpanel', { name: 'Result' })).toContainElement(block);
         await user.click(approve);
         await waitFor(() => expect(sent('POST', '/api/cowork/w1/plan/approve')?.body).toEqual({ fingerprint: PLAN_WAITING.draft.fingerprint }));
     });
@@ -93,6 +150,7 @@ describe('CoworkTaskView', () => {
         expect(within(block).getByTestId('cowork-task-would-receive-text')).toHaveTextContent('Three invoices are overdue. Two meetings moved.');
         expect(screen.queryByLabelText('What should be done?')).toBeNull();
         await user.click(within(block).getByRole('button', { name: 'Change something' }));
+        expect(screen.getByRole('tab', { name: 'Settings', selected: true })).toHaveFocus();
         expect(screen.getByLabelText('What should be done?')).toHaveValue('Sum up the week.');
     });
 
@@ -113,17 +171,21 @@ describe('CoworkTaskView', () => {
 
     it('Share in the header opens the Share row under People', async () => {
         const { user } = openTask({ colleagues: [{ id: 'u2', name: 'Bo Jansen' }] });
+        await selectTab(user, 'People');
         const people = await screen.findByTestId('cowork-task-people');
         const shareRow = () => within(within(people).getByTestId('cowork-task-row-share')).getAllByRole('button')[0];
         expect(shareRow()).toHaveAttribute('aria-expanded', 'false');
         expect(shareRow()).toHaveTextContent('Not shared');
+        await selectTab(user, 'Result');
         await user.click(within(screen.getByTestId('cowork-task-actions')).getByRole('button', { name: 'Share' }));
+        expect(screen.getByRole('tab', { name: 'People', selected: true })).toHaveFocus();
         expect(shareRow()).toHaveAttribute('aria-expanded', 'true');
         expect(await within(people).findByLabelText('Colleague')).toHaveValue('u2');
     });
 
     it('gives the task away only after the in-page confirmation that says it leaves the list, then closes the page', async () => {
         const { user, sent, close } = openTask({ colleagues: [{ id: 'u2', name: 'Bo Jansen' }] });
+        await selectTab(user, 'People');
         const people = await screen.findByTestId('cowork-task-people');
         await user.click(within(people).getByRole('button', { name: 'Give this task away' }));
         await user.click(await within(people).findByRole('button', { name: 'Give it away…' }));
@@ -141,6 +203,7 @@ describe('CoworkTaskView', () => {
             { action: 'cowork.updated', at: '2026-11-19T09:00:00.000Z', byYou: true, changed: ['title'], values: {} },
         ];
         const { user, sent } = openTask({ audit });
+        await selectTab(user, 'History');
         const history = await screen.findByTestId('cowork-task-history');
         await user.click(within(history).getByRole('button', { name: /^Changes/ }));
         const changes = await within(history).findAllByTestId('cowork-task-change');
@@ -159,6 +222,7 @@ describe('CoworkTaskView', () => {
         const history = await screen.findByTestId('cowork-task-history');
         await waitFor(() => expect(within(history).getAllByTestId('cowork-task-run')).toHaveLength(2));
         expect(screen.getByTestId('cowork-task-result-text')).toHaveTextContent('It stopped before it was done.');
+        await selectTab(user, 'History');
         expect(within(history).getAllByTestId('cowork-task-run-line')[0]).toHaveTextContent('It stopped before it was done.');
         expect(document.body).not.toHaveTextContent(raw);
         await user.click(within(within(history).getAllByTestId('cowork-task-run')[0]).getByRole('button'));
@@ -176,16 +240,18 @@ describe('CoworkTaskView', () => {
     });
 
     it('has no receipt on the result card: the proof of each run is under History', async () => {
-        openTask();
+        const { user } = openTask();
         const result = await screen.findByTestId('cowork-task-result');
         await waitFor(() => expect(result).toHaveTextContent('3 invoices are overdue.'));
         expect(result).not.toHaveTextContent('Receipt');
-        expect(within(await screen.findByTestId('cowork-task-history')).getByRole('button', { name: /^Proof of each run/ })).toBeInTheDocument();
+        const history = await selectTab(user, 'History');
+        expect(within(history).getByRole('button', { name: /^Proof of each run/ })).toBeInTheDocument();
     });
 
     it('deletes only after the in-page confirm at the very bottom, then closes the page', async () => {
         const { user, sent, close } = openTask();
-        await user.click(await screen.findByRole('button', { name: 'Delete this task' }));
+        await selectTab(user, 'History');
+        await user.click(screen.getByRole('button', { name: 'Delete this task' }));
         expect(screen.getByTestId('cowork-task-delete-confirm')).toHaveTextContent("Delete 'Weekly digest'?");
         expect(sent('DELETE', '/api/cowork/w1')).toBeUndefined();
         await user.click(screen.getByRole('button', { name: 'Keep it' }));
@@ -197,13 +263,13 @@ describe('CoworkTaskView', () => {
     });
 
     it('has no Edit screen and no More drawer', async () => {
-        openTask();
-        await screen.findByTestId('cowork-task-settings');
+        const { user } = openTask();
+        await selectTab(user, 'Settings');
         for (const name of ['Edit', 'More', 'Run now']) expect(screen.queryByRole('button', { name })).toBeNull();
     });
 
     it('shows someone else\'s task read only: who shared it, its result, its runs, and no actions', async () => {
-        const { calls } = openTask({
+        const { calls, user } = openTask({
             item: null,
             shared: { role: 'viewer', item: { id: 'w1', title: 'Stock check', prompt: 'Check the stock.', repeatInterval: 'daily', nextRunAt: null, lastStatus: 'success', isActive: true, triggerKind: 'schedule' }, runs: [{ id: 'r9', status: 'success', startedAt: '2026-11-23T08:00:00.000Z', result: 'All in stock.', durationMs: 900 }] },
         });
@@ -211,6 +277,8 @@ describe('CoworkTaskView', () => {
         expect(await within(shared).findByTestId('cowork-task-shared-by')).toHaveTextContent('Shared by Sam Peters');
         expect(within(shared).getByTestId('cowork-task-when')).toHaveTextContent('as Sam Peters set it up');
         expect(within(shared).getByTestId('cowork-task-result-text')).toHaveTextContent('All in stock.');
+        expect(within(shared).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Result', 'History']);
+        expect(within(await selectTab(user, 'History')).getByTestId('cowork-task-run-line')).toHaveTextContent('All in stock.');
         for (const name of ['Run for real now', 'Pause', 'Share', 'Delete this task']) expect(within(shared).queryByRole('button', { name })).toBeNull();
         expect(calls.some((c) => c.method !== 'GET')).toBe(false);
     });
