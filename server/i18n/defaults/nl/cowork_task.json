@@ -282,6 +282,8 @@
     "cowork_task.template.saved": "Opgeslagen. Collega's vinden het onder 'Beginnen met een sjabloon'. Je gegevens en geheugen horen er niet bij.",
     "cowork_task.template.saved_button": "Opgeslagen",
     "cowork_task.template.signed": "Ondertekend",
+    "cowork_task.tabs.label": "Taakdetails",
+    "cowork_task.tabs.result": "Resultaat",
     "cowork_task.tested.approve": "Goedkeuren",
     "cowork_task.tested.change": "Iets wijzigen",
     "cowork_task.tested.heading": "Dit zou je hebben ontvangen",

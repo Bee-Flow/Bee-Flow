@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
 import { PassBody, TemplateBody } from './TaskPeopleResults';
-import { ROWS, Section } from './taskRows';
+import { ROWS } from './taskRows';
 import { BTN_PRIMARY, BTN_QUIET, FIELD, Failure, FoldRow, LABEL, META, ROW_ACTIONS } from './taskUi';
 import { useCoworkColleagues, useCoworkHandOver } from '@/api/coworkHandOver';
 import { useCoworkShares, type Share, type ShareRole } from '@/api/coworkShares';
@@ -162,7 +162,7 @@ export default function CoworkTaskPeople({ coworkId, title, open, onOpen, onGone
     const sharedWith = useSharedWith(coworkId, t);
     const row = (id: PeopleRowId) => ({ id, open: open === id, onToggle: (next: string | null) => onOpen(next as PeopleRowId | null) });
     return (
-        <Section id="cowork-task-people-h" heading={t('cowork_task.people.heading', 'People')} testId="cowork-task-people">
+        <div className="flex flex-col gap-3" data-testid="cowork-task-people">
             <div className={ROWS}>
                 <FoldRow {...row('share')} label={t('cowork_task.more.share', 'Share')} value={sharedWith}>
                     <ShareBody coworkId={coworkId} t={t} />
@@ -177,6 +177,6 @@ export default function CoworkTaskPeople({ coworkId, title, open, onOpen, onGone
                     <GiveAwayBody coworkId={coworkId} title={title} onGone={onGone} t={t} />
                 </FoldRow>
             </div>
-        </Section>
+        </div>
     );
 }

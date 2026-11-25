@@ -12,8 +12,9 @@ import { SWAP } from '../coworkMotion';
 import { autoFixed } from '../coworkProposalModel';
 import { momentWords } from '../coworkTaskRowModel';
 import { wiringChangeWords } from '../coworkWiringModel';
-import { runFailed, runLine } from './coworkTaskModel';
+import { runFailed, runLine, runMarkdown } from './coworkTaskModel';
 import { CARD, CARD_HEAD, Failure, META, UndoNote } from './taskUi';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useCoworkProposalActions, useCoworkProposals } from '@/api/coworkProposals';
 import { formatDate } from '@/utils/dateFormatters';
 import type { CoworkProposal } from '@/api/coworkProposals';
@@ -84,7 +85,7 @@ export default function CoworkTaskResult({ item, latest, locale = 'en', t }: Cow
     if (!latest) return <section className={CARD} data-testid="cowork-task-result"><NoResultYet item={item} locale={locale} t={t} /></section>;
     const ended = endedWords(latest, t);
     const next = nextWords(item, t, locale);
-    const text = runFailed(latest) || !latest.result ? runLine(latest, t) : latest.result;
+    const markdown = runMarkdown(latest);
     return (
         <section className={CARD} data-testid="cowork-task-result">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -93,7 +94,9 @@ export default function CoworkTaskResult({ item, latest, locale = 'en', t }: Cow
                 </div>
                 {next && <span className={META}>{next}</span>}
             </div>
-            <p key={latest.id} className={`${SWAP} text-[14px] leading-[1.55] whitespace-pre-wrap break-words line-clamp-[12] text-[var(--text-primary)]`} data-testid="cowork-task-result-text">{text}</p>
+            <div key={latest.id} className={`${SWAP} min-w-0 break-words`} data-testid="cowork-task-result-text">
+                {markdown ? <MarkdownRenderer content={markdown} /> : <p className="whitespace-pre-wrap">{runLine(latest, t, markdown)}</p>}
+            </div>
         </section>
     );
 }

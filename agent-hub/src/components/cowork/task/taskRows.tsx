@@ -1,6 +1,6 @@
 /**
  * What the sections of an opened task (./CoworkTaskView.tsx) are laid out with, next to the shared recipes of
- * ./taskUi.tsx: a section with its heading, the bordered list its rows sit in, one row of Settings (its name, its
+ * ./taskUi.tsx: the bordered list the rows sit in, one row of Settings (its name, its
  * current value in plain words, and what it holds once opened in place), the bar a row's form saves with, and the
  * "Technical details" disclosure that is the only place a raw error is shown.
  *
@@ -10,7 +10,7 @@ import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ENTER, Expand, SWAP, TINT, useReveal } from '../coworkMotion';
 import { CARD as SURFACE, FOCUS_INSET } from '../coworkUi';
-import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Chevron, Failure, META, ROW_ACTIONS, SECTION_H, TAG_OK } from './taskUi';
+import { BTN_LINK, BTN_PRIMARY, BTN_QUIET, Chevron, Failure, META, ROW_ACTIONS, TAG_OK } from './taskUi';
 import type { SaveState } from './useTaskSettingsSave';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -23,15 +23,6 @@ export const PART = 'flex flex-col gap-2.5 pt-4 border-t border-[var(--border-su
 /** A choice that is on, and one that is off (an app, a day, a way of working): a solid border and fill, no tint. */
 export const CHOICE_ON = 'border-[var(--accent-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)]';
 export const CHOICE_OFF = 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)]';
-
-export function Section({ id, heading, testId, children }: { id: string; heading: string; testId: string; children: ReactNode }) {
-    return (
-        <section aria-labelledby={id} className="flex flex-col gap-3" data-testid={testId}>
-            <h2 id={id} className={`${SECTION_H} scroll-mt-4`}>{heading}</h2>
-            {children}
-        </section>
-    );
-}
 
 interface SettingRowProps<Id extends string> {
     id: Id;

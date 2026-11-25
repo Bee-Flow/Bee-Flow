@@ -42,6 +42,8 @@ export interface TabsProps<TId extends string = string> {
     items: readonly TabItem<TId>[];
     /** Accessible name describing what the tabset controls. */
     ariaLabel?: string;
+    /** Shared prefix for the tab IDs and the corresponding panel IDs. */
+    idPrefix?: string;
     /** Compact vs. roomy density. */
     size?: 'sm' | 'md';
     className?: string;
@@ -52,10 +54,12 @@ export default function Tabs<TId extends string = string>({
     onChange,
     items,
     ariaLabel,
+    idPrefix,
     size = 'md',
     className = '',
 }: TabsProps<TId>) {
-    const baseId = useId();
+    const generatedId = useId();
+    const baseId = idPrefix ?? generatedId;
     const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent, currentIdx: number) => {

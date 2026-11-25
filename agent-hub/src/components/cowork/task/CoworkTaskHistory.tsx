@@ -16,7 +16,7 @@ import { fullTimestamp } from '../coworkFormat';
 import { ENTER } from '../coworkMotion';
 import { trailLine } from '../coworkTrailModel';
 import CoworkTaskRuns from './CoworkTaskRuns';
-import { ROWS, Section } from './taskRows';
+import { ROWS } from './taskRows';
 import { BTN_DANGER, BTN_LINK, BTN_QUIET, CARD, Failure, FoldRow, META, ROW_ACTIONS, TAG_ACCENT, TAG_PLAIN } from './taskUi';
 import { useCoworkProposalActions } from '@/api/coworkProposals';
 import { receiptsUrl, useReceipts, type ReceiptsView } from '@/api/coworkReceipts';
@@ -151,7 +151,7 @@ export default function CoworkTaskHistory({ item, runs, plan, onGone, t }: Cowor
     const proof = chainWords(useReceipts(item.id).data, t);
     const row = (id: HistoryRowId) => ({ id, open: open === id, onToggle: (next: string | null) => setOpen(next as HistoryRowId | null) });
     return (
-        <Section id="cowork-task-history-h" heading={t('cowork_task.history.heading', 'History')} testId="cowork-task-history">
+        <div className="flex flex-col gap-3" data-testid="cowork-task-history">
             <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />
             <div className={ROWS}>
                 <FoldRow {...row('changes')} label={t('cowork_task.history.changes', 'Changes')}>
@@ -162,6 +162,6 @@ export default function CoworkTaskHistory({ item, runs, plan, onGone, t }: Cowor
                 </FoldRow>
             </div>
             <DeleteTask item={item} onGone={onGone} t={t} />
-        </Section>
+        </div>
     );
 }
