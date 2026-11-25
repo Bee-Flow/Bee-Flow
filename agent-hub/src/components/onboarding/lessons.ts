@@ -963,13 +963,6 @@ const COWORK_BASICS_STEPS: LessonStep[] = [
         bodyFallback: 'Describe the work here — “Bee Flow runs it and reports back.” The button reads Run when it starts now, Schedule when it starts later.',
     },
     {
-        id: 'cwb-chips', target: '[data-tour="cowork-options"]', placement: 'top',
-        optional: true, timeoutMs: 6000, icon: '🎛️',
-        titleKey: 'learn.cowork-basics.chips.title', titleFallback: 'Three chips steer everything',
-        bodyKey: 'learn.cowork-basics.chips.body',
-        bodyFallback: 'When (now, tonight, next Monday, a moment you pick) · Repeat (once, every day, every weekday, …) · and who runs it — plain Bee Flow or one of your agents.',
-    },
-    {
         type: STEP_TYPES.SLIDE, id: 'cwb-chips-detail', icon: '🎛️',
         titleKey: 'learn.cowork-basics.chips-detail.title', titleFallback: 'The chips, precisely',
         bodyMdKey: 'learn.cowork-basics.chips-detail.body',

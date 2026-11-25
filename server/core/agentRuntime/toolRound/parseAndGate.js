@@ -14,6 +14,7 @@
 const { _stableStringify } = require('./toolContent');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { outsideTextRefusal, ceilingRefusal } = require('../../cowork/runActivity.mts');
 
 /**
  * Parse the model's arguments. A parse failure is surfaced as the call's
@@ -97,6 +98,23 @@ function gateOfferedName(rc, deps, { toolCall, toolName, toolArgs }) {
                 blocked: true,
                 policyRefused: true,
             },
+        };
+    }
+    // ── Gate 1a: a Cowork run keeps to its apps and its follow-up ceiling, also for a name it was not offered. ──
+    const ceiling = ceilingRefusal(rc.messageMetadata?.coworkRun, toolName);
+    if (ceiling) {
+        log.warn(`[AgentRuntime] Refused tool '${toolName}': outside the Cowork run's ceiling`);
+        onEvent('tool_start', { name: toolName, args: toolArgs });
+        return { verdict: _verdict, refusal: { toolCall, toolName, toolArgs, finalToolResult: `[${ceiling}]`, blocked: true, policyRefused: true } };
+    }
+    // ── Gate 1b: a Cowork run that read outside text sends nothing more (core/cowork/outsideTextGuard.mts). ──
+    const outside = outsideTextRefusal(rc.messageMetadata?.coworkRun, toolName, { mailRun: !!rc.messageMetadata?.mailTrigger });
+    if (outside) {
+        log.warn(`[AgentRuntime] Held tool '${toolName}': the Cowork run read outside text`);
+        onEvent('tool_start', { name: toolName, args: toolArgs });
+        return {
+            verdict: _verdict,
+            refusal: { toolCall, toolName, toolArgs, finalToolResult: `[${outside}]`, blocked: true, policyReason: 'outside_text' },
         };
     }
     return { verdict: _verdict, refusal: null };

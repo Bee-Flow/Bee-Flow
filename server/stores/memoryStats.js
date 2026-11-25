@@ -159,8 +159,46 @@ async function pruneExpiredCoverage() {
     return rowCount || 0;
 }
 
+/**
+ * Clear what one schedule of one owner remembers: its live coverage rows step aside (status 'superseded'), so the
+ * next run starts fresh and the owner can still undo it. Returns the ids it cleared.
+ * @param {string} userId
+ * @param {string} scheduleId
+ * @returns {Promise<string[]>}
+ */
+async function clearScheduleCoverage(userId, scheduleId) {
+    await initDB();
+    const rows = await getAll(
+        `UPDATE user_memories SET status = 'superseded', updated_at = NOW()
+         WHERE user_id = $1 AND source_schedule_id = $2 AND type = $3 AND status = 'active'
+         RETURNING id`,
+        [userId, scheduleId, SCHEDULE_COVERAGE_TYPE]
+    );
+    return rows.map((r) => String(r.id));
+}
+
+/**
+ * Undo a clear: the given rows of this schedule and owner that were cleared, and have not run out since, are live again.
+ * @param {string} userId
+ * @param {string} scheduleId
+ * @param {string[]} ids
+ * @returns {Promise<number>}
+ */
+async function restoreScheduleCoverage(userId, scheduleId, ids) {
+    if (ids.length === 0) return 0;
+    await initDB();
+    const { rowCount } = await run(
+        `UPDATE user_memories SET status = 'active', updated_at = NOW()
+         WHERE user_id = $1 AND source_schedule_id = $2 AND type = $3 AND status = 'superseded'
+           AND id = ANY($4::text[]) AND (expires_at IS NULL OR expires_at > NOW())`,
+        [userId, scheduleId, SCHEDULE_COVERAGE_TYPE, ids]
+    );
+    return rowCount || 0;
+}
+
 module.exports = {
     SCHEDULE_COVERAGE_TYPE, SCHEDULE_COVERAGE_TTL_DAYS,
     getMemoryStats, countActiveMemoriesForUser, countOrgMemoryStats,
     upsertScheduleCoverage, getScheduleCoverage, pruneExpiredCoverage,
+    clearScheduleCoverage, restoreScheduleCoverage,
 };

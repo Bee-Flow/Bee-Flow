@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "cowork_policy.apps": "Apps die een plan mag gebruiken als niemand meekijkt",
+    "cowork_policy.apps_hint": "App-id's, gescheiden door komma's, zoals outlook, datatables. Leeg: elke app.",
+    "cowork_policy.audit": "Download het spoor (CSV)",
+    "cowork_policy.audit_hint": "Elke wijziging aan een cowork in deze organisatie: wie, wat en wanneer; nooit wat het werk zegt.",
+    "cowork_policy.budget": "Maandbudget voor AI van alle coworks",
+    "cowork_policy.budget_hint": "In euro, geteld vanaf de 1e van de maand over alle coworks van de organisatie. Bij het budget stoppen coworks tot de volgende maand; je krijgt daar één keer bericht van. Leeg: geen grens.",
+    "cowork_policy.budget_invalid": "Vul een bedrag boven 0 in, of laat het leeg.",
+    "cowork_policy.ceiling": "Hoe zelfstandig een cowork mag zijn",
+    "cowork_policy.ceiling.asks_before_sending": "Hoogstens: vragen voordat iets Bee Flow verlaat",
+    "cowork_policy.ceiling.asks_everything": "Hoogstens: alles vragen",
+    "cowork_policy.ceiling.on_its_own": "Geen plafond: een cowork mag zelfstandig draaien",
+    "cowork_policy.failed": "Dat is niet opgeslagen. Probeer het opnieuw.",
+    "cowork_policy.habits": "Mensen mogen \"merk op wat ik herhaal\" aanzetten",
+    "cowork_policy.habits_desc": "Ieder beslist dat zelf, en het staat uit tot iemand het aanzet. Het bewaart welke apps een chat gebruikte en op welke weekdag, nooit wat er gevraagd werd. Dit uitzetten stopt het voor iedereen.",
+    "cowork_policy.read_only": "Maak elke cowork alleen-lezen",
+    "cowork_policy.read_only_desc": "Er draait niets en er wordt niets gemaakt of gewijzigd tot je dit uitzet. Meteen opgeslagen.",
+    "cowork_policy.save_apps": "Opslaan",
+    "cowork_policy.save_budget": "Budget opslaan"
+  },
+  "sameAsEnglish": []
+}

@@ -6,6 +6,7 @@
  *
  *   knowledge-source arm   a `live` source must stop answering from rows that are gone
  *   webpage snapshots      a public share bakes the rows in as static HTML
+ *   cowork starts          an item that starts when rows of this table change (core/cowork/tableStart.mts)
  *
  * Loaded at boot by boot/featureRegistrations.js. Requires are lazy, so loading
  * this file costs nothing.
@@ -22,4 +23,8 @@ onDatatableChanged(
 onDatatableChanged(
     (id) => require('../core/webpages/webpageShareReconciler').onDatatableChanged(id),
     'public webpage snapshots',
+);
+onDatatableChanged(
+    (id) => require('../core/cowork/tableStart.mts').onTableChanged(id),
+    'cowork items that start on a table',
 );

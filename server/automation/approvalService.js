@@ -29,6 +29,7 @@ const {
 const { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision } = require('./approvalDecision');
 const { castStageVote, castPanelVote, nextStageRemindAt } = require('./approvalVotes');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { hasRunnerPort, runnerPort } = require('../core/automationRunner/featurePorts');
 
 /**
  * Lazy backfill: a run paused before the approvals table existed (or whose
@@ -95,6 +96,32 @@ async function ensureApprovalForRun(run, automation) {
  */
 
 /**
+ * A feature that started the journey may narrow who decides its questions
+ * (the runner port `approvalDeciders`: Cowork, core/cowork/planQuestionDecider.mts,
+ * lets only the item's owner or its CURRENT approver decide, whoever the row
+ * was assigned to when the run started). Asked on every path to a decision,
+ * the Nextcloud reaction path included; a refusal is the one any non-assignee
+ * gets. Without the port, the rulebook alone decides.
+ * @param {Approval} approval
+ * @param {string} deciderId
+ */
+async function refusedByFeature(approval, deciderId) {
+    if (!hasRunnerPort('approvalDeciders')) return null;
+    const port = /** @type {{ mayDecide: (a: Approval, by: string) => Promise<boolean> }} */ (/** @type {unknown} */ (runnerPort('approvalDeciders')));
+    return (await port.mayDecide(approval, deciderId)) ? null : outcome(403, { error: 'You cannot decide this approval.' });
+}
+
+/**
+ * The same question for a screen: may this person decide it, as far as the feature that started the journey says?
+ * A decide button follows the decision's own rule, so a former approver is not shown one they cannot use.
+ * @param {Approval} approval
+ * @param {string} deciderId
+ */
+async function featureLetsDecide(approval, deciderId) {
+    return (await refusedByFeature(approval, deciderId)) === null;
+}
+
+/**
  * The decision. `approval` is the pending row (already authz-checked by the
  * caller via canDecide); `run` is the actionable leg (resolveActionableRun).
  * Returns {code, body} ready for res.status(code).json(body).
@@ -104,6 +131,8 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
     if (approval.status !== 'pending') {
         return outcome(409, { error: `This approval was already ${approval.status}.`, status: approval.status });
     }
+    const refused = await refusedByFeature(approval, deciderId);
+    if (refused) return refused;
     // Four-eyes, enforced here as well as in canDecide: the Nextcloud
     // reaction path checks seats, not canDecide, and reaches decide directly.
     if (isOwnDeploymentRequest(approval, deciderId)) {
@@ -349,7 +378,7 @@ async function validateApprovalAssignees(definition, ownerId) {
 }
 
 module.exports = {
-    decide, withdraw, canDecide, canView, ensureApprovalForRun, validateApprovalAssignees,
+    decide, withdraw, canDecide, canView, featureLetsDecide, ensureApprovalForRun, validateApprovalAssignees,
     isRunless, userDisplayName,
     // Panel machinery — the routes render progress; tests pin the rulebook.
     hasPanel, panelProgress, voteSummary, seatIndexFor,

@@ -47,7 +47,6 @@ vi.mock('../../hooks/useIntegrationStatus', () => ({
 
 import { renderWithClient } from '@/test/render';
 import CoworkComposer, { COWORK_PLACEHOLDER } from './CoworkComposer';
-import CoworkEditForm from './CoworkEditForm';
 import CoworkOptionsBar from './CoworkOptionsBar';
 import { COWORK_REPEAT_OPTIONS, WHEN_PRESETS } from './coworkSchedule';
 import CoworkWelcome, { COWORK_HEADING, COWORK_SUBHEADING, COWORK_STARTER_ITEMS } from './CoworkWelcome';
@@ -75,9 +74,6 @@ const coworkStub = (over = {}) => ({
     ...over,
 });
 
-/** Every «key» the render put on screen. */
-const keysOnScreen = (container) =>
-    [...(container.innerHTML.matchAll(/«([\w.-]+)»/g))].map(m => m[1]);
 
 describe('CW-01 — CoworkWelcome', () => {
     it('translates the heading and the subheading', () => {
@@ -211,77 +207,6 @@ describe('CW-01 — CoworkOptionsBar', () => {
         setup({ agents: [{ id: 'a1', name: '' }] });
         await user.click(screen.getByTestId('cowork-agent-chip'));
         expect(screen.getByText('«cowork.agent.untitled»')).toBeInTheDocument();
-    });
-});
-
-describe('CW-01 — CoworkEditForm', () => {
-    const item = {
-        id: 'c1',
-        title: 'Monthly digest',
-        prompt: 'Summarise the month',
-        repeatInterval: 'weekly',
-        daysOfWeek: [],
-        nextRunAt: '2026-02-03T09:00:00.000Z',
-    };
-    const setup = (over = {}) => renderWithClient(
-        <CoworkEditForm item={item} onSave={vi.fn()} onCancel={vi.fn()} {...over} />,
-    );
-
-    it('translates every field label and both buttons', () => {
-        const { container } = setup();
-        for (const key of [
-            'cowork.edit.name', 'cowork.edit.what_it_does', 'cowork.edit.what_it_does_hint',
-            'cowork.edit.next_run', 'cowork.edit.at', 'cowork.edit.repeat',
-            'cowork.edit.save', 'cowork.edit.cancel',
-        ]) {
-            expect(screen.getAllByText(`«${key}»`).length).toBeGreaterThan(0);
-        }
-        // The user's own title and prompt are values, not copy.
-        expect(screen.getByTestId('cowork-edit-title')).toHaveValue('Monthly digest');
-        expect(container.textContent).not.toContain('What it does');
-    });
-
-    it('translates the day buttons — "Mo" is copy, "mon" is the stored token', () => {
-        const { container } = setup();
-        const mon = screen.getByTestId('cowork-edit-day-mon');
-        expect(mon.textContent).toBe('«cowork.day.mon»');
-        expect(container.textContent).not.toMatch(/\bMo\b/);
-    });
-
-    it('the repeat <select> shows translated options', () => {
-        setup();
-        const opts = [...screen.getByTestId('cowork-edit-repeat').options].map(o => o.textContent);
-        expect(opts).toEqual(COWORK_REPEAT_OPTIONS.map(o => `«${o.labelKey}»`));
-    });
-
-    it('the saving label is its own key, not one key holding two words', () => {
-        setup({ saving: true });
-        expect(screen.getByTestId('cowork-edit-save').textContent).toContain('«cowork.edit.saving»');
-    });
-
-    it('the apps counter interpolates rather than concatenating English around numbers', () => {
-        catalog.state = {
-            availableApps: [{ id: 'gmail', label: 'Gmail' }, { id: 'drive', label: 'Drive' }],
-            isAppEnabled: () => true,
-            toggleApp: vi.fn(),
-        };
-        const { container } = setup();
-        expect(screen.getByText('«cowork.edit.apps_enabled_count»')).toBeInTheDocument();
-        expect(container.textContent).not.toContain(' of ');
-    });
-
-    it('the two apps hints are two KEYS, chosen by whether the item has its own list', () => {
-        catalog.state = {
-            availableApps: [{ id: 'gmail', label: 'Gmail' }],
-            isAppEnabled: () => true,
-            toggleApp: vi.fn(),
-        };
-        const inherited = setup();
-        expect(keysOnScreen(inherited.container)).toContain('cowork.edit.apps_inherit_hint');
-        inherited.unmount();
-
-        const own = setup({ item: { ...item, enabledApps: ['gmail'] } });
-        expect(keysOnScreen(own.container)).toContain('cowork.edit.apps_own_hint');
     });
 });
 

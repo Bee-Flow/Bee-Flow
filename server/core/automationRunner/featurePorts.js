@@ -16,6 +16,10 @@
  *   core/meetingNotes/runnerPorts.js  meetingImports (a separate module the
  *                               scheduler drives, not a feature, but the runner
  *                               should not pull the whole meeting pipeline in)
+ *   core/cowork/runnerPorts.js  heldDefinitions (./heldDefinitions.js): a journey
+ *                               Cowork started keeps its approved plan across a pause;
+ *                               approvalDeciders: who may decide the questions it asks
+ *                               (automation/approvalService.js asks before a decision)
  *
  * boot/featureRegistrations.js loads them for the server; a test that drives
  * the real code path through a port loads the registering module itself, or

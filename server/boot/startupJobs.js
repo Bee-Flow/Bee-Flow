@@ -255,6 +255,23 @@ function startSupportAndSyncJobs() {
     // The public sanctions lists (EU, UN, NL, OFAC, UK): daily, only while an organisation has the
     // integration on (SANCTIONS_REFRESH_INTERVAL_HOURS, 0 = off). Advisory-locked across pods.
     try { require('../jobs/sanctionsListRefresh.mts').start(); } catch (err) { log.warn('[Server] Sanctions list refresh load failed:', err.message); }
+    // Coworks that start after another one hear the runs that end (core/cowork/afterCowork.mts).
+    try { require('../core/cowork/afterCowork.mts').start(); } catch (err) { log.warn('[Server] Cowork after-cowork start failed:', err.message); }
+    // Every closed Cowork run gets a signed receipt (core/cowork/receipts/issueReceipts.mts).
+    try { require('../core/cowork/receipts/issueReceipts.mts').start(); } catch (err) { log.warn('[Server] Cowork receipts start failed:', err.message); }
+    // "It notices what you repeat" forgets, daily, notes over eight weeks old and every note of a person who is off or not allowed (core/cowork/habits/habitSweep.mts).
+    try { require('../core/cowork/habits/habitSweep.mts').start(); } catch (err) { log.warn('[Server] Cowork habit sweep start failed:', err.message); }
+    // A cowork with a goal is measured by its approved check after its runs (core/cowork/goals/goalMeasure.mts).
+    try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
+    // A plan that keeps failing, or a goal that stays under target, gets a repair proposed (never applied); the work is in usecases/.
+    try { require('../core/cowork/repairs/repairTriggers.mts').start((item, trigger) => require('../usecases/coworkProposals.mts').proposeRepair(item, trigger)); } catch (err) { log.warn('[Server] Cowork repairs start failed:', err.message); }
+    // A run that did not do its work because a step read a list that is not there gets that reference fixed by itself,
+    // when the fix reaches exactly what the plan reaches and a replay proves it (decision 0050); the work is in usecases/.
+    try { require('../core/cowork/repairs/autoResolve.mts').start((item, run, fact) => require('../usecases/coworkAutoResolve.mts').autoResolve(item, run, fact)); } catch (err) { log.warn('[Server] Cowork auto-fix start failed:', err.message); }
+    // Weekly: a steady AI step is offered as a fixed one when a replay proves it (core/cowork/cheaper/stableSteps.mts).
+    try { require('../core/cowork/cheaper/stableSteps.mts').start((item, step) => require('../usecases/coworkProposals.mts').offerFixedStep(item, step)); } catch (err) { log.warn('[Server] Cowork steady-step offers start failed:', err.message); }
+    // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
+    try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).
     try { require('../jobs/memoryTelemetry').start(); } catch (err) { log.warn('[Server] Memory telemetry load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners

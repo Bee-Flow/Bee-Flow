@@ -78,7 +78,7 @@ describe('the Organisation tab for a platform admin', () => {
         const group = (eyebrow: string) => groupRows(eyebrow).map(a => a.textContent);
         // Changed on purpose (wave 2): the target tree's rows, labels and groups.
         expect(group('Workspace')).toEqual(['Organisation info', 'Licence & usage', 'People', 'Projects', 'Learning Center', 'Usage & monitoring']);
-        expect(group('AI & agents')).toEqual(['Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes']);
+        expect(group('AI & agents')).toEqual(['Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes', 'Cowork']);
         expect(group('Security & access')).toEqual(['Preferred sign-in method', 'Access', 'Privacy Shield', 'Encryption', 'MCP client access']);
         // Org A has GitHub (the kit's availability): the row follows the organisation, not the viewer's own link.
         expect(group('Connections')).toEqual(['Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automations']);

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-12 routes, 7 with a request schema. Back to the [endpoint reference](../reference.md).
+91 routes, 62 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -40,6 +40,10 @@ No request schema.
 | `agentId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |
 | `startNow` | boolean |  |  |
+| `setup` | object |  | no other keys |
+| `setup.steps` | boolean |  |  |
+| `setup.sendsTo` | array of string |  | max items 21 |
+| `setup.askFirst` | boolean |  |  |
 
 ### `GET /api/cowork/:id`
 
@@ -68,8 +72,323 @@ No request schema.
 | `agentId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |
 | `isActive` | boolean |  |  |
+| `monthlyBudget` | number or null |  |  |
 
 ### `DELETE /api/cowork/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/audit`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/desk`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `PUT /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `sentence` | string | yes | min length 1; max length 500 |
+| `targetPercent` | integer |  | min 1; max 100 |
+
+### `DELETE /api/cowork/:id/goal`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/:id/goal/approve`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fingerprint` | string | yes | min length 64; max length 64 |
+
+### `POST /api/cowork/:id/goal/check`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `POST /api/cowork/:id/hand-over`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `toUserId` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/:id/hand-over/colleagues`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/memory`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `POST /api/cowork/:id/memory/clear`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body:** object (no other keys)
+
+### `POST /api/cowork/:id/memory/restore`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `ids` | array of string | yes | max items 100 |
+
+### `GET /api/cowork/:id/plan`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/plan`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `automationId` | string | yes | min length 1; max length 200 |
+
+### `DELETE /api/cowork/:id/plan`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body:** object (no other keys)
+
+### `POST /api/cowork/:id/plan/approve`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fingerprint` | string | yes | min length 64; max length 64 |
+
+### `POST /api/cowork/:id/plan/fix-wiring`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body:** object (no other keys)
+
+### `GET /api/cowork/:id/plan/independence`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/plan/independence`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `level` | one of `"asks_everything"`, `"asks_before_sending"`, `"on_its_own"` | yes |  |
+
+### `POST /api/cowork/:id/plan/make`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fromRuns` | boolean |  |  |
+
+### `POST /api/cowork/:id/plan/replay`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `limit` | integer |  | min 1; max 50 |
+
+### `GET /api/cowork/:id/plan/replay/:replayId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `replayId` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/:id/plan/restore`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `version` | integer | yes | min 1; max 1000000 |
+
+### `GET /api/cowork/:id/plan/trust`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/plan/trust`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `stepId` | string | yes | min length 1; max length 300 |
+| `recipient` | string | yes | min length 1; max length 300 |
+| `trusted` | boolean | yes |  |
+
+### `POST /api/cowork/:id/plan/try`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body:** object (no other keys)
+
+### `GET /api/cowork/:id/plan/try/:tryId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `tryId` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/:id/plan/try/:tryId/compare`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `tryId` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/:id/proposals`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/:id/proposals/:proposalId/approve`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `proposalId` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fingerprint` | string | yes | min length 64; max length 64 |
+
+### `POST /api/cowork/:id/proposals/:proposalId/dismiss`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `proposalId` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `GET /api/cowork/:id/receipts`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/:id/routine`
 
 **Access:** Signed-in user · middleware `trainingGate`
 
@@ -92,6 +411,17 @@ No request schema.
 | `limit` | integer |  | min 1; max 100 |
 | `offset` | integer |  | min 0; max 9007199254740991 |
 
+### `GET /api/cowork/:id/runs/:runId/receipt`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `runId` | string | yes | min length 1; max length 200 |
+
 ### `POST /api/cowork/:id/runs/:runId/review`
 
 **Access:** Signed-in user · middleware `trainingGate`
@@ -102,6 +432,73 @@ No request schema.
 |-------|------|:--------:|-------|
 | `action` | one of `"answer"`, `"done_myself"`, `"not_needed"` | yes |  |
 | `answer` | string |  | max length 4000 |
+
+### `GET /api/cowork/:id/runs/:runId/trace`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `runId` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/:id/save-as-template`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `title` | string |  | min length 1; max length 120 |
+
+### `PUT /api/cowork/:id/setup`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"ai"`, `"steps"` | yes |  |
+
+### `GET /api/cowork/:id/shares`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/shares`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `shares` | array of object | yes | max items 50 |
+| `shares[].userId` | string | yes | min length 1; max length 200 |
+| `shares[].role` | one of `"viewer"`, `"approver"` | yes |  |
+
+### `GET /api/cowork/:id/start`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/:id/start`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body:** object
 
 ### `GET /api/cowork/:id/stats`
 
@@ -128,6 +525,231 @@ No request schema.
 | `brief` | string | yes | min length 1 |
 | `timezone` | string or null |  |  |
 
+## `daily-mail`
+
+### `GET /api/cowork/daily-mail`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/daily-mail`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+| `timeZone` | string | yes | min length 1; max length 64 |
+
+## `desks`
+
+### `GET /api/cowork/desks`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `POST /api/cowork/desks`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string | yes | min length 1; max length 80 |
+
+### `GET /api/cowork/desks/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `DELETE /api/cowork/desks/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/desks/:id/members`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+### `PUT /api/cowork/desks/:id/members/:scheduleId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `deskRole` | string or null | yes |  |
+
+### `DELETE /api/cowork/desks/:id/members/:scheduleId`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/desks/:id/members/:scheduleId/accept`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `POST /api/cowork/desks/:id/members/:scheduleId/hand-off`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
+
+### `DELETE /api/cowork/desks/:id/members/:scheduleId/hand-off`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `scheduleId` | string | yes | min length 1; max length 200 |
+
+### `PUT /api/cowork/desks/:id/roles`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `roles` | array of object | yes | max items 20 |
+| `roles[].role` | string | yes | min length 1; max length 40 |
+| `roles[].holderId` | string | yes | min length 1; max length 200 |
+| `roles[].standInId` | string or null |  |  |
+| `roles[].awayUntil` | string (date-time) or null |  |  |
+
+### `POST /api/cowork/desks/helper/apply`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `itemId` | string |  | min length 1; max length 200 |
+| `draft` | object | yes | no other keys |
+| `draft.deskName` | string | yes | min length 1; max length 80 |
+| `draft.chain` | array of string | yes | min items 1; max items 5 |
+| `draft.roles` | array of object | yes | max items 1 |
+| `draft.roles[].role` | string | yes | min length 1; max length 40 |
+| `draft.roles[].holderId` | string | yes | min length 1; max length 200 |
+| `draft.roles[].standInId` | string or null |  |  |
+
+### `POST /api/cowork/desks/helper/draft`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `text` | string | yes | min length 1; max length 1000 |
+| `itemId` | string |  | min length 1; max length 200 |
+
+## `habits`
+
+### `GET /api/cowork/habits`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `PUT /api/cowork/habits`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `on` | boolean | yes |  |
+
+## `home`
+
+### `GET /api/cowork/home`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `from` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
+| `to` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
+
+## `hooks`
+
+### `POST /api/cowork/hooks`
+
+**Access:** middleware `trainingGate`
+
+**Body:** object
+
 ## `mail-providers`
 
 ### `GET /api/cowork/mail-providers`
@@ -135,4 +757,175 @@ No request schema.
 **Access:** Signed-in user · middleware `trainingGate`
 
 No request schema.
+
+## `needs-you`
+
+### `GET /api/cowork/needs-you`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+## `packages`
+
+### `POST /api/cowork/packages/add`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `package` | object | yes |  |
+
+### `POST /api/cowork/packages/preview`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `package` | object | yes |  |
+
+## `policy`
+
+### `GET /api/cowork/policy/:orgId`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+No request schema.
+
+### `PUT /api/cowork/policy/:orgId`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `ceiling` | one of `"asks_everything"`, `"asks_before_sending"`, `"on_its_own"` |  |  |
+| `readOnly` | boolean |  |  |
+| `unattendedApps` | array of string or null |  |  |
+| `monthlyBudget` | number or null |  |  |
+| `habitsAllowed` | boolean |  |  |
+| `autoFix` | boolean |  |  |
+
+### `GET /api/cowork/policy/:orgId/audit`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+No request schema.
+
+### `GET /api/cowork/policy/mine`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/policy/mine/org`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/policy/mine/receipts-audit`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+## `receipts`
+
+### `GET /api/cowork/receipts/key`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+## `shared`
+
+### `GET /api/cowork/shared`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/shared/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+## `shield`
+
+### `GET /api/cowork/shield/:orgId`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+No request schema.
+
+### `PUT /api/cowork/shield/:orgId`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+
+## `templates`
+
+### `GET /api/cowork/templates`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+No request schema.
+
+### `GET /api/cowork/templates/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `DELETE /api/cowork/templates/:id`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `GET /api/cowork/templates/:id/package`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+### `POST /api/cowork/templates/:id/use`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body:** object (no other keys)
 

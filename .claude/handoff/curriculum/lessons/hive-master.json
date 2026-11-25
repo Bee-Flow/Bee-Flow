@@ -14,7 +14,7 @@
       "id": "brief",
       "icon": "👑",
       "title": "The requirements — the how is yours",
-      "bodyMd": "There is no walkthrough this time. A capstone hands you an outcome and lets you decide how to reach it — and what you walk away with is not a score, but a workspace that is still doing your work on Monday.\n\nThree things must exist, for real, in your workspace:\n\n1. **An automation on a schedule that has actually run.**\n2. **A cowork item you delegated.**\n3. **A builder artifact** — an agent of your own, *or* a knowledge base with at least one document.\n\nWork you did in earlier courses counts. The check step reads your live workspace, so nothing has to be rebuilt for the exam — and the next step, before any explanation, asks you to judge five real cases.\n\nThe checklist stops at three rows. The capstone does not: the last steps ask you to answer for the decisions your three things run on — who was allowed to build them, what the shield does to them, which encryption tier they sit on, and where a published agent turns up in a register. Back at **Van Dijk Groep**, the sixty-person installation firm from the earlier courses: Bilal builds, Sanne works in chat, and Marieke, the organisation admin, is the one who has to answer."
+      "bodyMd": "There is no walkthrough this time. A capstone hands you an outcome and lets you decide how to reach it — and what you walk away with is not a score, but a workspace that is still doing your work on Monday.\n\nThree things must exist, for real, in your workspace:\n\n1. **An automation on a schedule that has actually run.**\n2. **A Cowork task you delegated.**\n3. **A builder artifact** — an agent of your own, *or* a knowledge base with at least one document.\n\nWork you did in earlier courses counts. The check step reads your live workspace, so nothing has to be rebuilt for the exam — and the next step, before any explanation, asks you to judge five real cases.\n\nThe checklist stops at three rows. The capstone does not: the last steps ask you to answer for the decisions your three things run on — who was allowed to build them, what the shield does to them, which encryption tier they sit on, and where a published agent turns up in a register. Back at **Van Dijk Groep**, the sixty-person installation firm from the earlier courses: Bilal builds, Sanne works in chat, and Marieke, the organisation admin, is the one who has to answer."
     },
     {
       "type": "sim",
@@ -45,9 +45,9 @@
           },
           {
             "id": "cowork",
-            "left": "A cowork item \"List unanswered quotes\", sent on Monday",
+            "left": "A Cowork task \"List unanswered quotes\", set up on Monday",
             "right": "Requirement two — met",
-            "note": "Requirement two asks only that a cowork item of your own exists: you describe the work in plain language, say when it should run, and press Schedule (or Run, when the moment is \"Run now\")."
+            "note": "Requirement two asks only that a Cowork task of your own exists: you write one sentence, choose Show what I understood, and press Set up and test (or Start). It counts as soon as it exists, even while its steps wait for your approval."
           },
           {
             "id": "empty-kb",
@@ -70,7 +70,7 @@
       "id": "req-two",
       "icon": "🤝",
       "title": "Requirement two: something you delegated",
-      "bodyMd": "Requirement two is a **cowork item**. Cowork is the sidebar row under New Chat: you describe the work in plain language, say when it should run, and Bee Flow reports back in your notifications.\n\nBilal writes one sentence — *Every Friday, list the quotes from this week that nobody has answered yet* — sets **Repeat** to *Every week*, picks a moment under **When**, and presses **Schedule**. (The same button reads **Run** when the moment is \"Run now\".)\n\nThe criterion ticks as soon as a cowork item of yours exists. Delegate something you genuinely want back, though: the item keeps running long after this lesson closes, and a throwaway brief becomes a throwaway e-mail every Friday."
+      "bodyMd": "Requirement two is a **Cowork task**. Cowork is the sidebar row under New Chat: you write one sentence saying what should happen and when, and Bee Flow reports back.\n\nBilal writes *Every Friday at 16:00, list the quotes from this week that nobody has answered yet, and send it to me*, chooses **Show what I understood**, checks the four lines of the card (What, When, Uses, Sends to) and presses **Set up and test**. (Where the organisation has no fixed steps, the button reads **Start**.)\n\nThe criterion ticks as soon as a task of yours exists. Approve its steps and let it run, though: the task keeps working long after this lesson closes, and a throwaway sentence becomes a throwaway result every Friday."
     },
     {
       "type": "quiz",
@@ -113,12 +113,12 @@
     {
       "type": "quiz",
       "id": "q-gap",
-      "question": "Bilal has a schedule-triggered digest automation that dry-ran on Thursday, an agent he made in the wizard but never published, and a cowork brief he typed on Monday and left sitting in the box unsent. Which requirement is still unmet?",
+      "question": "Bilal has a schedule-triggered digest automation that dry-ran on Thursday, an agent he made in the wizard but never published, and a Cowork sentence he typed on Monday, read back on the card, and never confirmed. Which requirement is still unmet?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "The cowork requirement — an unsent brief is not an item yet",
+          "label": "The Cowork requirement — a card he never confirmed is not a task yet",
           "correct": true
         },
         {
@@ -137,10 +137,10 @@
           "id": "d",
           "label": "None of them — all three are met, the checklist is just out of date",
           "correct": false,
-          "feedback": "The checklist re-runs by itself every few seconds while the step is open, so staleness is rarely the problem. The cowork item genuinely does not exist until the brief is sent."
+          "feedback": "The checklist re-runs by itself every few seconds while the step is open, so staleness is rarely the problem. The task genuinely does not exist until he presses Set up and test (or Start)."
         }
       ],
-      "explanation": "Text in a composer is not an artifact. Pressing Run or Schedule creates the cowork item, and the row ticks on the next pass of the check."
+      "explanation": "Text in a box, and a card that only shows what Cowork understood, are not artifacts. Set up and test (or Start) creates the task, and the row ticks on the next pass of the check."
     },
     {
       "type": "slide",
@@ -197,7 +197,7 @@
       "icon": "🏆",
       "checkId": "hive-master",
       "title": "Prove it",
-      "instruction": "Make the three things exist in your own workspace — your real work is the best subject. The checklist reads exactly three rows: (1) an automation of yours whose trigger is On a schedule and that has at least one run, a dry-run included; (2) a cowork item you created; (3) an agent of your own, or a knowledge base holding at least one document. Rows your role or licence cannot reach are hidden, not failed. Anything built before today counts, the list re-runs every few seconds, and \"Check my work\" answers now.",
+      "instruction": "Make the three things exist in your own workspace — your real work is the best subject. The checklist reads exactly three rows: (1) an automation of yours whose trigger is On a schedule and that has at least one run, a dry-run included; (2) a Cowork task you created, even one whose steps still wait for your approval; (3) an agent of your own, or a knowledge base holding at least one document. Rows your role or licence cannot reach are hidden, not failed. Anything built before today counts, the list re-runs every few seconds, and \"Check my work\" answers now.",
       "launch": {
         "navigateTo": "studio/automations",
         "label": "Open Automations"
@@ -219,7 +219,7 @@
       "id": "done",
       "icon": "🐝",
       "title": "You run a working hive",
-      "bodyMd": "That was not a quiz. Those are real, running things that keep working after this window closes. The **Hive Master** badge lands in Achievements, and four finished courses from the built-in catalogue earn the **Bee Flow AI Practitioner** certificate as well.\n\nWhat you can do now:\n\n- Build an automation that starts on a schedule, and prove it with a dry-run before it touches anything real.\n- Delegate repeating work to a cowork item instead of spending another Friday on it.\n- Ship a builder artifact — an agent of your own, or a knowledge base an agent can search.\n- Say who decided that you could, what the shield does to it, which encryption tier it runs on, and which register it shows up in.\n\nKeep the habit: read **Studio → Runs & log** the way you would check on a new colleague, pause anything you stop trusting, and when a task repeats twice, automate or delegate it the same day."
+      "bodyMd": "That was not a quiz. Those are real, running things that keep working after this window closes. The **Hive Master** badge lands in Achievements, and four finished courses from the built-in catalogue earn the **Bee Flow AI Practitioner** certificate as well.\n\nWhat you can do now:\n\n- Build an automation that starts on a schedule, and prove it with a dry-run before it touches anything real.\n- Delegate repeating work to a Cowork task instead of spending another Friday on it.\n- Ship a builder artifact — an agent of your own, or a knowledge base an agent can search.\n- Say who decided that you could, what the shield does to it, which encryption tier it runs on, and which register it shows up in.\n\nKeep the habit: read **Studio → Runs & log** the way you would check on a new colleague, pause anything you stop trusting, and when a task repeats twice, automate or delegate it the same day."
     }
   ],
   "rubrics": {
@@ -227,8 +227,8 @@
       "title": "Handover note for the capstone build",
       "task": "Describe the three artifacts built for the Hive Master challenge — what each does and which requirement it meets — then name one admin decision the build depends on and where it is taken, and one further repeating task with the trigger it should get and why.",
       "criteria": [
-        "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a cowork item, and an agent or a knowledge base with a document — and says in one line what each actually does.",
-        "Maps each artifact to the requirement it satisfies, correctly (schedule automation, cowork, builder artifact).",
+        "Names three concrete artifacts of the learner's own — a schedule-triggered automation that has run, a Cowork task, and an agent or a knowledge base with a document — and says in one line what each actually does.",
+        "Maps each artifact to the requirement it satisfies, correctly (schedule automation, Cowork task, builder artifact).",
         "Names one real admin decision the build depends on and where it is taken: \"Also protect automations\" on the Privacy Shield, the encryption tier an unattended automation needs, the role or group grant that permits building, or the processing register a published agent lands in — or, for a non-admin, the decision to be confirmed, its screen and who confirms it.",
         "Names one further repeating task and picks a trigger for it from the real palette (schedule, form, webhook, app event, agent call, Studio App).",
         "Justifies the trigger choice by what starts the work — a clock, a submission, an event in a connected app — not by preference."
@@ -241,7 +241,7 @@
     "title": "The Hive Master capstone",
     "summary": "What the capstone checklist asks for, what counts as proof, why a row can be missing, and the admin decisions the three things depend on.",
     "facts": [
-      "The capstone asks for three things: a schedule-triggered automation that has run, a cowork item of your own, and an agent of your own or a knowledge base with at least one document.",
+      "The capstone asks for three things: a schedule-triggered automation that has run, a Cowork task of your own, and an agent of your own or a knowledge base with at least one document.",
       "Only an automation whose trigger is \"On a schedule\" satisfies the automation requirement; manual, form and webhook automations do not.",
       "A dry-run counts as a run — \"Dry-run (preview)\" is described in the app as \"No real actions, a safe preview\" — and how a run ended is not part of the criterion, so a failed run still shows the automation has fired.",
       "For the builder requirement an agent counts as soon as it exists and belongs to you (publishing decides who else may use it and is not required), and a knowledge base counts once it holds at least one document; system-seeded agents and system-managed knowledge bases do not count.",

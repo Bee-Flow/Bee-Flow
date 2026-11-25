@@ -10,7 +10,11 @@
  *     formAnswers: { pages: { [formPageStepId]: { [field]: value } } } | null,
  *     approvals:   { [approvalStepId]: { decision: 'approve'|'reject', answers: { [field]: value } } } | null,
  *     aiAnswers:   'live' | 'cache',     (default 'live')
+ *     recordedReads: { byKey, unchanged, outputHashes, skipUpstream, recordedOnly } | absent
  *   }
+ *
+ * `recordedReads` answers reads from an earlier run's recordings instead of
+ * the app (./recordedReads.mts, Cowork's replay); absent, reads stay live.
  *
  * A step the harness has nothing for is synthesised and named in the run's
  * warnings (scenario_missing, core/automationRunner/dryPause.mts).
@@ -24,6 +28,7 @@
 'use strict';
 
 const { deepFreeze } = require('../../utils/deepFreeze');
+const { normalizeRecordedReads } = require('./recordedReads.mts');
 
 const SOURCE_KINDS = new Set(['golden', 'scenario', 'run']);
 const DECISIONS = new Set(['approve', 'reject']);
@@ -52,7 +57,7 @@ function normalizeApprovals(raw) {
 
 /**
  * @param {any} harness
- * @returns {Readonly<{ source: { kind: 'golden'|'scenario'|'run', id: string|null }, formAnswers: { pages: Record<string, Record<string, any>> }|null, approvals: Record<string, { decision: 'approve'|'reject', answers: Record<string, any> }>|null, aiAnswers: 'live'|'cache' }>|null}
+ * @returns {Readonly<{ source: { kind: 'golden'|'scenario'|'run', id: string|null }, formAnswers: { pages: Record<string, Record<string, any>> }|null, approvals: Record<string, { decision: 'approve'|'reject', answers: Record<string, any> }>|null, aiAnswers: 'live'|'cache', recordedReads?: import('./recordedReads.mts').RecordedReads }>|null}
  *   null when no harness was given
  */
 function normalizeHarness(harness) {
@@ -67,6 +72,7 @@ function normalizeHarness(harness) {
         }
         formAnswers = { pages };
     }
+    const recordedReads = normalizeRecordedReads(harness.recordedReads);
     return deepFreeze({
         source: {
             kind: SOURCE_KINDS.has(src.kind) ? src.kind : 'scenario',
@@ -75,6 +81,7 @@ function normalizeHarness(harness) {
         formAnswers,
         approvals: normalizeApprovals(harness.approvals),
         aiAnswers: AI_ANSWERS.has(harness.aiAnswers) ? harness.aiAnswers : 'live',
+        ...(recordedReads ? { recordedReads } : {}),
     });
 }
 

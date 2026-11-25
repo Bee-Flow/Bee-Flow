@@ -5,10 +5,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { composeCowork, createSchedule, deleteSchedule, runNow, toggleSchedule } from '../api/endpoints';
+import { composeCowork, createSchedule, deleteSchedule, resolveReview, runNow, toggleSchedule } from '../api/endpoints';
 import { coworkKeys } from '../api/keys';
 import { proposalFrom, type Proposal } from '../model/proposal';
-import type { ComposedCowork } from '../model/types';
+import type { ComposedCowork, ReviewAction } from '../model/types';
 
 interface Handlers {
     onSuccess?: () => void;
@@ -83,5 +83,20 @@ export function useCreateSchedule(onCreated: () => void) {
             onCreated();
             void queryClient.invalidateQueries({ queryKey: coworkKeys.schedules });
         },
+    });
+}
+
+/** Handle the review a run waits on. Its history, the schedule and "Waiting for you" all changed. */
+export function useResolveReview(id: string, runId: string, handlers: Handlers = {}) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (v: { action: ReviewAction; answer?: string }) => resolveReview(id, runId, v.action, v.answer),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: coworkKeys.runs(id) });
+            void queryClient.invalidateQueries({ queryKey: coworkKeys.schedule(id) });
+            void queryClient.invalidateQueries({ queryKey: coworkKeys.needsYou });
+            handlers.onSuccess?.();
+        },
+        onError: handlers.onError,
     });
 }

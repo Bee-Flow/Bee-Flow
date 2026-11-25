@@ -1,0 +1,8 @@
+{
+  "translations": {
+    "cowork_shield.desc": "Cowork-werk zonder agent roept de AI rechtstreeks aan, volgens een schema, zonder dat iemand meekijkt. Met dit aan wordt het net zo gecontroleerd als chat. Wordt meteen opgeslagen.",
+    "cowork_shield.failed": "Dat is niet opgeslagen. Probeer het opnieuw.",
+    "cowork_shield.title": "Bescherm ook Cowork-promptruns"
+  },
+  "sameAsEnglish": []
+}

@@ -99,6 +99,8 @@ export function statusToken(status: RunStatus | null | undefined): StatusToken {
     // is the legacy first-run confirmation: no run reaches it any more, a row
     // from before still reads as one more decision (runPhase says the same).
     if (lower === 'failed') return TOKENS.error as StatusToken;
+    // A Cowork run that finished without doing its work (server core/cowork/runOutcome.mts): a failure, never green.
+    if (lower === 'incomplete') return TOKENS.error as StatusToken;
     if (lower === 'awaiting_confirm') return TOKENS.awaiting_approval as StatusToken;
     if (lower === 'paused_breakpoint') return TOKENS.paused as StatusToken;
     return own(TOKENS, lower) ?? idle;

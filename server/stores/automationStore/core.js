@@ -121,6 +121,9 @@ const MIGRATIONS = [
     // binding_warnings JSONB on run steps: the mappings that found nothing
     // while the step ran (the runner's binding log). Additive, no backfill.
     'automation-run-step-binding-warnings-2026-10',
+    // verdict JSONB on run steps: an AI step's own verdict on its work, when
+    // Cowork asked for one (core/automationRunner/aiStepVerdict.mts). Additive.
+    'automation-run-step-verdict-2026-11',
     // automation_agent_bindings: which agents may call an agent_call automation.
     // A table, not a definition field, so no copy of an automation carries a grant.
     'automation-agent-bindings-2026-10',

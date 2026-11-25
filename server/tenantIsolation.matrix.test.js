@@ -84,7 +84,7 @@ before(async () => {
     }
     let index = 0;
     for (const f of FIXTURES) {
-        const id = await f.create({ orgId: ORG_B, userId: USER_B.id, index: ++index });
+        const id = await f.create({ orgId: ORG_B, userId: USER_B.id, index: ++index, outsiderId: USER_A.id });
         const api = h.serve(f.mount, f.router(), { user: USER_A });
         servers.push(api);
         created.set(f.kind, { id, api });

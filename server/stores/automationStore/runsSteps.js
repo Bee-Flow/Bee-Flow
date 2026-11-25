@@ -1,8 +1,7 @@
 // @typecheck
 const { initDB, run, getOne, getAll } = require('./core');
 const { rowToRun, rowToRunStep } = require('./rowMappers');
-const { redactForPersistence, safeOutputKeysForTool } = require('./runLogRedaction');
-const { truncatePayload } = require('./payloadTruncation');
+const { redactorFor, persistedInputOf, stripNulDeep } = require('./persistedInput.mts');
 const { persistableOutput } = require('./runFullOutputs');
 const { persistableBindingWarnings } = require('./bindingWarnings');
 const log = require('../../telemetry/log');
@@ -16,7 +15,7 @@ async function recordRunStep(args) {
  * recordRunStep's body over an injected `run(sql, params)`, so a test can put
  * its real SQL against an in-process Postgres without mocking the store's db.
  */
-async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null, identityUserId = null }) {
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null, identityUserId = null, verdict = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -31,35 +30,11 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     // Exempt known public-identifier fields for this tool (e.g. a Nextcloud
     // Talk room `token`) from the key-name redaction — they're not credentials
     // and downstream steps need them. Secret shapes/values are still masked.
-    const allowKeys = safeOutputKeysForTool(toolName);
-    /**
-     * @param {string} v
-     */
-    const redact = (v) => redactForPersistence(v, { secretValues, allowKeys, publicValues }).value;
-    // NUL bytes can't live in jsonb/text columns — Postgres rejects them with
-    // "unsupported Unicode escape sequence" and aborts the whole run record.
-    // A single NUL in extracted tool output (e.g. a CID-font PDF) would
-    // otherwise kill the run here, so scrub it at this persistence chokepoint.
-    // Strip real NUL characters from the RAW value (string leaves, walked
-    // recursively) BEFORE JSON.stringify — NOT via a post-hoc regex on the
-    // already-stringified JSON. A regex against the stringified form (the
-    // old approach) corrupted the JSON whenever a string value contained a
-    // literal backslash immediately followed by the 6-char text 'u0000':
-    // JSON.stringify escapes that backslash to two backslashes, so matching
-    // one backslash + 'u0000' stripped the wrong span and left a dangling
-    // unescaped backslash before the closing quote, failing the jsonb insert.
-    const NUL = String.fromCharCode(0);
-    const stripNulDeep = (v) => {
-        if (typeof v === 'string') return v.indexOf(NUL) === -1 ? v : v.split(NUL).join('');
-        if (Array.isArray(v)) return v.map(stripNulDeep);
-        if (v && typeof v === 'object') {
-            const out = {};
-            for (const k of Object.keys(v)) out[k] = stripNulDeep(v[k]);
-            return out;
-        }
-        return v;
-    };
-    const inputJson = input != null ? JSON.stringify(stripNulDeep(truncatePayload(redact(input)).value)) : null;
+    // The masking pass and the input form come from ./persistedInput.mts: a replay that looks a recorded read up by
+    // its input computes the same form (core/automationRunner/recordedReads.mts). NUL bytes can't live in jsonb/text
+    // columns (stripNulDeep says why it walks the raw value).
+    const redact = redactorFor({ secretValues, publicValues, toolName });
+    const inputJson = input != null ? JSON.stringify(persistedInputOf(input, { secretValues, publicValues, toolName })) : null;
     // A kb_query_log step's output holds decrypted KB log text: the stored copy is emptied of it,
     // or the run history would outlive the log's retention and erasure.
     const storedOutput = stepType === 'kb_query_log' ? require('../kb/queryLog/redact.mts').redactLogStepOutput(output) : output;
@@ -67,7 +42,7 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
         ? await persistableOutput({ value: redact(storedOutput), ref: { runId, stepId, attempts }, clean: stripNulDeep })
         : null;
     const outputJson = outputValue != null ? JSON.stringify(stripNulDeep(outputValue)) : null;
-    const errorText = error ? redact(String(error)).replace(/\u0000/g, '') : null;
+    const errorText = error ? String(redact(String(error))).replace(/\u0000/g, '') : null;
     // parent_step_id is set on INSERT only (deliberately absent from the
     // conflict-update list): a step's nesting parent is fixed by the graph
     // shape at dispatch time and never changes across attempt upserts.
@@ -88,8 +63,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     const warnings = persistableBindingWarnings(bindingWarnings, { clean: (v) => stripNulDeep(redact(v)) });
     const warningsJson = warnings ? JSON.stringify(warnings) : null;
     await run(
-        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings, identity_user_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings, identity_user_id, verdict)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
          ON CONFLICT (run_id, step_id, attempts) DO UPDATE SET
             status = EXCLUDED.status,
             finished_at = EXCLUDED.finished_at,
@@ -111,7 +86,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             tools_withheld = COALESCE(EXCLUDED.tools_withheld, automation_run_steps.tools_withheld),
             error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info),
             binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings),
-            identity_user_id = COALESCE(EXCLUDED.identity_user_id, automation_run_steps.identity_user_id)`,
+            identity_user_id = COALESCE(EXCLUDED.identity_user_id, automation_run_steps.identity_user_id),
+            verdict = COALESCE(EXCLUDED.verdict, automation_run_steps.verdict)`,
         [
             runId, stepId, parentStepId || null, stepType, attempts, status,
             startedAt || null, finishedAt || null,
@@ -125,6 +101,9 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             errorInfoJson,
             warningsJson,
             identityUserId || null,
+            // An AI step's verdict (core/automationRunner/aiStepVerdict.mts): an outcome code and one sentence,
+            // redacted like `error`.
+            verdict != null ? JSON.stringify(stripNulDeep(redact(verdict))) : null,
         ],
     );
 }

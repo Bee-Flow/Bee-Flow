@@ -33,10 +33,11 @@
  * (not read yet / read failed / payload); this hook just carries that through
  * instead of flattening it into an empty array.
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import useAppsCatalog from '../../hooks/useAppsCatalog';
 import type { CatalogApp } from '../../hooks/useAppsCatalog';
 import { useIntegrationStatus } from '../../hooks/useIntegrationStatus';
+import { useMyCoworkPolicy } from '../../api/coworkPolicy';
 
 /** One frozen empty list, so "we don't know" is a stable identity. */
 const EMPTY_APPS: CatalogApp[] = [];
@@ -69,7 +70,17 @@ export default function useCoworkApps({ agentIntegrations = null, value = null, 
     // unknown state gets recorded as an explicit, stored permission on a
     // schedule that runs unattended. So while we cannot read the workspace we
     // offer nothing, and the surfaces say so instead (`appsUnavailable`).
-    const availableApps = appsKnown ? catalogueApps : EMPTY_APPS;
+    //
+    // The organisation may also have named the apps a cowork may use while
+    // nobody watches (its Cowork policy). A run leaves the others out anyway
+    // (server/core/cowork/runApps.mts); offering them here would only promise
+    // what the run will not do. Steps are not apps and always stay.
+    const policy = useMyCoworkPolicy().data;
+    const allowed = policy?.unattendedApps ?? null;
+    const availableApps = useMemo(() => {
+        if (!appsKnown) return EMPTY_APPS;
+        return allowed ? catalogueApps.filter((a) => a.isStep || allowed.includes(a.id)) : catalogueApps;
+    }, [appsKnown, allowed, catalogueApps]);
 
     const hasOwnList = Array.isArray(value);
 

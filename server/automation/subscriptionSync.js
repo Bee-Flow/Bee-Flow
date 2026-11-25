@@ -341,6 +341,8 @@ async function assertMailTriggerReady(userId, trigger) {
  *   trigger?: { provider?: string, event?: string, filter?: Record<string, unknown> | null } | null }} schedule
  */
 async function syncCoworkMailTrigger(schedule) {
+    // The one entry for an item's subscription: an item that starts on a new file has its own kind of row.
+    if (schedule.triggerKind === 'file') return require('./coworkFileSubscription').syncCoworkFileTrigger(schedule, revokeCoworkMailTrigger);
     const trig = schedule.trigger;
     if (schedule.isActive === false || schedule.triggerKind !== 'app_event' || !trig?.provider) {
         await revokeCoworkMailTrigger(schedule.id);

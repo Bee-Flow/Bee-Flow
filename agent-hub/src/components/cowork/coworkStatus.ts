@@ -45,6 +45,16 @@ const NEEDS_REAUTH_TOKEN: StatusToken = {
 };
 
 /**
+ * `waiting`: a plan run that reached a step where its owner decides, under Approvals. Closed for good once the
+ * decision is made and the rest of the plan ran (server core/cowork/planRunFollowUp.mts).
+ */
+const WAITING_TOKEN: StatusToken = {
+    ...tokenFor('awaiting_approval'),
+    labelKey: 'cowork_plan.status.run_waiting',
+    labelEn: 'Waiting for your decision',
+};
+
+/**
  * `needs_review`: a run that finished and asked its owner to decide (the agent's
  * cowork_request_review). The tone of a run waiting for approval, because that is
  * what it is: nothing broke, a person is needed.
@@ -56,18 +66,42 @@ const NEEDS_REVIEW_TOKEN: StatusToken = {
 };
 
 /**
+ * `incomplete`: a plan run that finished without doing its work (server core/cowork/runOutcome.mts: a step that works
+ * through a list found none). The tone of a failure, because the server counts it as one, never green.
+ */
+const INCOMPLETE_TOKEN: StatusToken = {
+    ...tokenFor('error'),
+    labelKey: 'cowork_resolver.status.incomplete',
+    labelEn: 'Did not do its work',
+};
+
+/**
  * The token for ONE run row's status — the same lookup as `tokenFor`, plus
- * cowork's own `needs_reauth` and `needs_review`.
+ * cowork's own `needs_reauth`, `needs_review`, `waiting` and `incomplete`.
  */
 export function runStatusToken(status: string | null | undefined): StatusToken {
+    if (status === 'incomplete') return INCOMPLETE_TOKEN;
     if (status === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
     if (status === 'needs_review') return NEEDS_REVIEW_TOKEN;
+    if (status === 'waiting') return WAITING_TOKEN;
     return tokenFor(status);
 }
 
-/** True while an item is running or has not produced its first run yet. */
+/** Active and set to start more than a minute from now: it waits for its clock, nothing is on the go. */
+function waitsForItsClock(item: CoworkItem): boolean {
+    if (item.isActive === false || !item.nextRunAt) return false;
+    const at = Date.parse(item.nextRunAt);
+    return Number.isFinite(at) && at > Date.now() + 60_000;
+}
+
+/** True while an item is running, or about to produce its first run (not one that only waits for a later start). */
 export function isInFlight(item: CoworkItem): boolean {
-    return item.lastStatus === 'running' || (!item.lastRunAt && !item.runCount);
+    return item.lastStatus === 'running' || (!item.lastRunAt && !item.runCount && !waitsForItsClock(item));
+}
+
+/** Runs again by itself: on a clock (an interval or weekdays) or on a new email. Paused, it is paused, not finished. */
+function isRecurring(item: CoworkItem): boolean {
+    return !!item.repeatInterval || (Array.isArray(item.daysOfWeek) && item.daysOfWeek.length > 0) || item.triggerKind === 'app_event';
 }
 
 export function coworkStatus(item: CoworkItem): StatusToken {
@@ -75,8 +109,10 @@ export function coworkStatus(item: CoworkItem): StatusToken {
     // A schedule switched off because an account needs signing in again is not
     // a schedule the user paused, and must not read like one.
     if (item.lastStatus === 'needs_reauth') return NEEDS_REAUTH_TOKEN;
+    if (item.lastStatus === 'incomplete') return INCOMPLETE_TOKEN;
     if (!item.lastRunAt && !item.runCount) return tokenFor(item.isActive ? 'queued' : 'idle');
-    if (!item.isActive && item.lastStatus === 'success') return tokenFor('success');
+    // A one-off that ran is finished; a recurring item switched off after a good run is paused.
+    if (!item.isActive && item.lastStatus === 'success') return tokenFor(isRecurring(item) ? 'paused' : 'success');
     if (!item.isActive) return tokenFor(item.lastStatus === 'error' ? 'error' : 'paused');
     return tokenFor(item.lastStatus);
 }

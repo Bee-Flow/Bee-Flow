@@ -30,6 +30,13 @@ export type RunClose = {
     conversationId?: string | null;
     runContext?: unknown;
     mailSubject?: string | null;
+    /** A plan run that waits for its owner's decision: closed as 'waiting', and closed for good when the decision is made. */
+    waiting?: boolean;
+    /**
+     * How the run really ended (core/cowork/runOutcome.mts OutcomeFacts): kept on the row as facts; an 'incomplete'
+     * one closes the run as 'incomplete' (stores/coworkStore.js markCompleted).
+     */
+    outcome?: { kind: string; [key: string]: unknown } | null;
 };
 
 export type CloseOpts = RunClose & { status: string; result?: unknown; error?: unknown; producedOutput?: boolean };
@@ -74,11 +81,12 @@ export function makeRunClose({ db = nodeRequire('../db.js') as Db, ready = async
                  mail_subject = COALESCE($9, mail_subject),
                  review_reason = $10,
                  review_question = $11,
-                 review_summary = $12
+                 review_summary = $12,
+                 outcome_json = COALESCE($13, outcome_json)
              WHERE id = $5`,
             [o.status, o.result ?? null, o.error ?? null, produced, openRun.id,
                 o.conversationId || null, jsonOrNull(o.activity), jsonOrNull(o.runContext), o.mailSubject || null,
-                o.review?.reason || null, o.review?.question || null, o.review?.summary || null],
+                o.review?.reason || null, o.review?.question || null, o.review?.summary || null, jsonOrNull(o.outcome)],
         );
         return openRun.id as string;
     }

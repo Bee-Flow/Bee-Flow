@@ -24,11 +24,14 @@ import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useConfirm } from '@/shared/patterns';
 import { Button, ErrorState, LoadingState, Screen, ScreenHeader, Section, Text, useToast } from '@/shared/ui';
 
+import { GoalNote } from '../components/GoalNote';
+import { ReviewCard } from '../components/ReviewCard';
 import { ScheduleHistory } from '../components/ScheduleHistory';
 import { ScheduleSummary } from '../components/ScheduleSummary';
-import { useDeleteSchedule, useRunScheduleNow, useToggleSchedule } from '../hooks/mutations';
+import { useDeleteSchedule, useResolveReview, useRunScheduleNow, useToggleSchedule } from '../hooks/mutations';
 import { useSchedule, useScheduleRuns } from '../hooks/queries';
-import type { CoworkRun, CoworkSchedule } from '../model/types';
+import { waitingReview } from '../model/review';
+import type { CoworkRun, CoworkSchedule, ReviewAction } from '../model/types';
 
 const makeStyles = (theme: Theme) =>
     StyleSheet.create({
@@ -62,6 +65,22 @@ function useScheduleActions(id: string) {
     return { toggle, fireNow, remove, askRemove };
 }
 
+/** The review a run waits on, as one card on top; answering it sends the agent on. */
+function WaitingReviewCard({ scheduleId, runs }: { scheduleId: string; runs: CoworkRun[] | undefined }) {
+    const { toast } = useToast();
+    const [pending, setPending] = React.useState<ReviewAction | null>(null);
+    const waiting = waitingReview(runs);
+    const resolve = useResolveReview(scheduleId, waiting?.runId ?? '', {
+        onError: (error) => toast(describeError(error).message, 'error'),
+    });
+    if (!waiting) return null;
+    const act = (action: ReviewAction, answer: string) => {
+        setPending(action);
+        resolve.mutate({ action, answer }, { onSettled: () => setPending(null) });
+    };
+    return <ReviewCard review={waiting.review} pending={pending} onAct={act} />;
+}
+
 function CoworkDetailBody({
     schedule,
     runs,
@@ -76,7 +95,10 @@ function CoworkDetailBody({
     const { toggle, fireNow, remove, askRemove } = actions;
     return (
         <ScrollView contentContainerStyle={styles.content}>
+            <WaitingReviewCard scheduleId={schedule.id} runs={runs} />
+
             <ScheduleSummary schedule={schedule} />
+            <GoalNote scheduleId={schedule.id} />
 
             <Section title={t('cowork.edit.what_it_does', 'What it does')}>
                 <Text variant="body" tone="secondary" selectable>
@@ -106,7 +128,7 @@ function CoworkDetailBody({
                 />
             </View>
 
-            <ScheduleHistory runCount={schedule.runCount} runs={runs} />
+            <ScheduleHistory scheduleId={schedule.id} runCount={schedule.runCount} runs={runs} />
 
             <Text variant="caption" tone="tertiary">
                 {t('mobile.cowork.edit_on_web', 'Changing what this asks for is desktop work — open it in the web app.')}

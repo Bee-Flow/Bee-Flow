@@ -103,6 +103,25 @@ const STORE_MODULES = [
     // standalone `npm run db:migrate` never created those tables — they only
     // appeared once the app booted and something required the store.
     { name: 'coworkStore', file: './stores/coworkStore' },
+    // Whether an owner gets the daily Cowork e-mail, and the day it was last sent (cowork_daily_mail). No FKs.
+    { name: 'coworkDailyMailStore', file: './stores/coworkDailyMail.mts' },
+    // The run receipts of Cowork items (cowork_receipts); refers to cowork_schedules, so after coworkStore.
+    { name: 'coworkReceiptsStore', file: './stores/coworkReceipts.mts' },
+    // What a person repeats in chat, as hashes and weeks, when they switched it on (cowork_habit_signals, _offers). No FKs.
+    { name: 'coworkHabitsStore', file: './stores/coworkHabits.mts' },
+    // The replays of Cowork plans (cowork_replays, cowork_replay_events); refers to cowork_schedules, so after coworkStore.
+    { name: 'coworkReplaysStore', file: './stores/coworkReplays.mts' },
+    // The goals of Cowork items and what their checks measured (cowork_goals, cowork_goal_results); refer to
+    // cowork_schedules, so after coworkStore.
+    { name: 'coworkGoalsStore', file: './stores/coworkGoals.mts' },
+    // Desks of coworks of different owners (cowork_desks, cowork_desk_members, cowork_desk_roles, cowork_desk_follows); refer to
+    // cowork_schedules, so after coworkStore.
+    { name: 'coworkDesksStore', file: './stores/coworkDesks.mts' },
+    // What Cowork proposes to change in a plan, and when it last tried (cowork_proposals, cowork_proposal_attempts);
+    // refer to cowork_schedules, so after coworkStore.
+    { name: 'coworkProposalsStore', file: './stores/coworkProposals.mts' },
+    // Cowork templates of an organisation (cowork_templates, stores/ddl/cowork-templates-2026-11.js). No FKs.
+    { name: 'coworkTemplatesStore', file: './stores/coworkTemplates.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
     // Owns integration_activity_log — and integrationCacheStore's
     // scopes migration reads that table. Without this registration that

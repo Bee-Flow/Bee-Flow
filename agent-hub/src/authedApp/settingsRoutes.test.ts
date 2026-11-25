@@ -201,6 +201,7 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
             org_nextcloud_sync: 'nextcloud-sync',
             org_meeting_templates: 'meeting-templates',
             org_azure: 'azure',
+            cowork: 'cowork',
         });
         for (const [id, url] of Object.entries(SETTINGS_ACCOUNT_ID_TO_URL)) {
             expect(settingsPathForTab(id)).toBe(`/app/settings/account/${url}`);
@@ -241,6 +242,7 @@ describe('the organisation pages moved to the admin dashboard (desktop)', () => 
         encryption: 'admin/organisation/encryption',
         ai_context: 'admin/organisation/conversations',
         integration_cache: 'admin/organisation/integration-cache',
+        cowork: 'admin/organisation/cowork',
         org_meeting_templates: 'admin/organisation/meeting-notes',
         org_integrations: 'admin/organisation/integrations',
         org_mcp: 'admin/organisation/mcp',

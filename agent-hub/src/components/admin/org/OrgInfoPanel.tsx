@@ -24,6 +24,7 @@ import { familyAvailable } from '@/utils/integrationAvailability';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import OrgEncryptionEditor from '../security/encryption/OrgEncryptionEditor';
 import OrgShieldEditor from '../security/guardrails/orgShield/OrgShieldEditor';
+import CoworkPolicyPanel from '../security/guardrails/orgShield/parts/CoworkPolicyPanel';
 
 interface OrgInfoPanelUser extends OrgInfoUser {
     featureFlags?: { deploymentMode?: string; projects?: boolean; [key: string]: unknown } | null;
@@ -147,6 +148,13 @@ const PARTS: Readonly<Record<string, (c: PartContext) => ReactNode>> = {
         <div className="animate-fadeIn space-y-8">
             <OrgIntegrationCacheEditor orgId={c.form.orgData.id} />
             <OrgAutomationImageAiEditor orgId={c.form.orgData.id} />
+        </div>
+    ),
+    // The organisation's Cowork policy: its own row, not a part of the Privacy Shield, whose steps are closed while the
+    // Shield is off. Each field saves at once.
+    cowork: (c) => (
+        <div className="animate-fadeIn">
+            <CoworkPolicyPanel orgId={c.form.orgData.id} t={c.t} />
         </div>
     ),
 };

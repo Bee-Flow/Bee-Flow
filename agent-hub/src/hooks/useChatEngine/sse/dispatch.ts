@@ -1,5 +1,6 @@
 import { answerPartHandlers } from './handlers/answerParts';
 import { contentHandlers } from './handlers/content';
+import { coworkHandlers } from './handlers/cowork';
 import { draftHandlers } from './handlers/drafts';
 import { guardrailHandlers } from './handlers/guardrail';
 import { notebookHandlers } from './handlers/notebook';
@@ -42,6 +43,7 @@ export const SSE_HANDLERS = buildHandlerTable([
     notebookHandlers,
     webpageHandlers,
     privacyHandlers,
+    coworkHandlers,
 ]);
 
 /**

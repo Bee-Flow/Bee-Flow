@@ -92,6 +92,7 @@
    "CREATE INDEX IF NOT EXISTS idx_usage_org ON ai_usage_log(organization_id)",
    "CREATE INDEX IF NOT EXISTS idx_usage_conversation ON ai_usage_log(conversation_id)",
    "CREATE INDEX IF NOT EXISTS idx_usage_swarm_run ON ai_usage_log(swarm_run_id) WHERE swarm_run_id IS NOT NULL",
+   "CREATE INDEX IF NOT EXISTS idx_usage_run ON ai_usage_log(run_id) WHERE run_id IS NOT NULL",
    "CREATE INDEX IF NOT EXISTS idx_usage_parent_call ON ai_usage_log(parent_call_id) WHERE parent_call_id IS NOT NULL",
    "CREATE INDEX IF NOT EXISTS idx_usage_org_timestamp ON ai_usage_log(organization_id, timestamp DESC)",
    "CREATE INDEX IF NOT EXISTS idx_usage_user_timestamp ON ai_usage_log(user_id, timestamp DESC)",

@@ -14,25 +14,22 @@
 'use strict';
 
 const crypto = require('crypto');
-const { pool } = require('../db');
+const { pool, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 
 /**
- * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: any[], rowCount?: number | null }>, withTransaction?: <T>(fn: (client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> }) => Promise<T>) => Promise<T> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeCoworkTriggerStore(db, { ready = async () => {} } = {}) {
     /**
-     * Open the run for one event, or answer null when this (schedule, event) already has one. The schedule is
-     * checked against its owner in the same statement.
-     * @param {{ scheduleId: string, userId: string, triggerRef: string, triggerKind?: string }} p
-     * @returns {Promise<string | null>} the id of the opened run
+     * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> }} q
+     * @param {unknown[]} params
      */
-    async function claimEventRun({ scheduleId, userId, triggerRef, triggerKind = 'mail' }) {
-        await ready();
+    async function insertClaim(q, params) {
         // The run and the schedule's 'running' status in one statement: a run
         // is never open on a schedule that does not say so.
-        const res = await db.query(
+        const res = await q.query(
             `WITH r AS (
                 INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind, trigger_ref)
                 SELECT $1, s.id, s.user_id, 'running', $4, $5
@@ -43,9 +40,33 @@ function makeCoworkTriggerStore(db, { ready = async () => {} } = {}) {
                 UPDATE cowork_schedules SET last_status = 'running' WHERE id IN (SELECT schedule_id FROM r)
              )
              SELECT id FROM r`,
-            [crypto.randomUUID(), scheduleId, userId, triggerKind, triggerRef],
+            params,
         );
         return res.rows[0]?.id ?? null;
+    }
+
+    /**
+     * Open the run for one event, or answer null when this (schedule, event) already has one. The schedule is
+     * checked against its owner in the same statement.
+     * With `cap`, at most `cap.max` runs of this kind in the last `cap.sinceMs`, counted and claimed atomically.
+     * @param {{ scheduleId: string, userId: string, triggerRef: string, triggerKind?: string, cap?: { max: number, sinceMs: number } | null }} p
+     * @returns {Promise<string | null>} the id of the opened run
+     */
+    async function claimEventRun({ scheduleId, userId, triggerRef, triggerKind = 'mail', cap = null }) {
+        await ready();
+        const params = [crypto.randomUUID(), scheduleId, userId, triggerKind, triggerRef];
+        if (!cap || !db.withTransaction) return insertClaim(db, params);
+        // Counted and claimed under the item's lock: a burst of events cannot all see a count under the cap.
+        return db.withTransaction(async (client) => {
+            await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`cowork_event_claim:${scheduleId}`]);
+            const recent = await client.query(
+                `SELECT COUNT(*)::int AS n FROM cowork_runs
+                  WHERE schedule_id = $1 AND trigger_kind = $2 AND started_at > NOW() - ($3::bigint * INTERVAL '1 millisecond')`,
+                [scheduleId, triggerKind, Math.max(0, Math.floor(cap.sinceMs))],
+            );
+            if ((recent.rows[0]?.n || 0) >= cap.max) return null;
+            return insertClaim(client, params);
+        });
     }
 
     /**
@@ -69,5 +90,5 @@ const initDB = makeStoreInit('CoworkTriggerStore', async () => { await require('
 
 module.exports = {
     makeCoworkTriggerStore,
-    ...makeCoworkTriggerStore({ query: (sql, params) => pool.query(sql, params) }, { ready: initDB }),
+    ...makeCoworkTriggerStore({ query: (sql, params) => pool.query(sql, params), withTransaction }, { ready: initDB }),
 };

@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1950 operations. */
+/** 2029 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2547,6 +2547,11 @@ export interface ApiOperations {
         nextRunAt?: string;
         prompt: string;
         repeatInterval?: 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | null;
+        setup?: {
+            askFirst?: boolean;
+            sendsTo?: Array<string>;
+            steps?: boolean;
+        };
         startNow?: boolean;
         timeOfDay?: string | null;
         timezone?: string | null;
@@ -2562,7 +2567,93 @@ export interface ApiOperations {
         brief: string;
         timezone?: string | null;
     }>;
+    'GET /api/cowork/daily-mail': Op;
+    'PUT /api/cowork/daily-mail': Op<NoParams, UndeclaredQuery, {
+        enabled: boolean;
+        timeZone: string;
+    }>;
+    'GET /api/cowork/desks': Op;
+    'POST /api/cowork/desks': Op<NoParams, UndeclaredQuery, {
+        name: string;
+    }>;
+    'POST /api/cowork/desks/helper/apply': Op<NoParams, UndeclaredQuery, {
+        draft: {
+            chain: Array<string>;
+            deskName: string;
+            roles: Array<{
+                holderId: string;
+                role: string;
+                standInId?: string | null;
+            }>;
+        };
+        itemId?: string;
+    }>;
+    'POST /api/cowork/desks/helper/draft': Op<NoParams, UndeclaredQuery, {
+        itemId?: string;
+        text: string;
+    }>;
+    'GET /api/cowork/desks/{id}': Op<{ id: string | number }>;
+    'DELETE /api/cowork/desks/{id}': Op<{ id: string | number }>;
+    'POST /api/cowork/desks/{id}/members': Op<{ id: string | number }, UndeclaredQuery, {
+        scheduleId: string;
+    }>;
+    'PUT /api/cowork/desks/{id}/members/{scheduleId}': Op<{ id: string | number; scheduleId: string | number }, UndeclaredQuery, {
+        deskRole: string | null;
+    }>;
+    'DELETE /api/cowork/desks/{id}/members/{scheduleId}': Op<{ id: string | number; scheduleId: string | number }>;
+    'POST /api/cowork/desks/{id}/members/{scheduleId}/accept': Op<{ id: string | number; scheduleId: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/desks/{id}/members/{scheduleId}/hand-off': Op<{ id: string | number; scheduleId: string | number }, UndeclaredQuery, Record<string, never>>;
+    'DELETE /api/cowork/desks/{id}/members/{scheduleId}/hand-off': Op<{ id: string | number; scheduleId: string | number }>;
+    'PUT /api/cowork/desks/{id}/roles': Op<{ id: string | number }, UndeclaredQuery, {
+        roles: Array<{
+            awayUntil?: string | null;
+            holderId: string;
+            role: string;
+            standInId?: string | null;
+        }>;
+    }>;
+    'GET /api/cowork/habits': Op;
+    'PUT /api/cowork/habits': Op<NoParams, UndeclaredQuery, {
+        on: boolean;
+    }>;
+    'GET /api/cowork/home': Op<NoParams, {
+        from: string;
+        to: string;
+    }>;
+    'POST /api/cowork/hooks': Op<NoParams, UndeclaredQuery, Record<string, unknown>>;
     'GET /api/cowork/mail-providers': Op;
+    'GET /api/cowork/needs-you': Op;
+    'POST /api/cowork/packages/add': Op<NoParams, UndeclaredQuery, {
+        package: Record<string, unknown>;
+    }>;
+    'POST /api/cowork/packages/preview': Op<NoParams, UndeclaredQuery, {
+        package: Record<string, unknown>;
+    }>;
+    'GET /api/cowork/policy/mine': Op;
+    'GET /api/cowork/policy/mine/org': Op;
+    'GET /api/cowork/policy/mine/receipts-audit': Op;
+    'GET /api/cowork/policy/{orgId}': Op<{ orgId: string | number }>;
+    'PUT /api/cowork/policy/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
+        autoFix?: boolean;
+        ceiling?: 'asks_everything' | 'asks_before_sending' | 'on_its_own';
+        habitsAllowed?: boolean;
+        monthlyBudget?: number | null;
+        readOnly?: boolean;
+        unattendedApps?: Array<string> | null;
+    }>;
+    'GET /api/cowork/policy/{orgId}/audit': Op<{ orgId: string | number }>;
+    'GET /api/cowork/receipts/key': Op;
+    'GET /api/cowork/shared': Op;
+    'GET /api/cowork/shared/{id}': Op<{ id: string | number }>;
+    'GET /api/cowork/shield/{orgId}': Op<{ orgId: string | number }>;
+    'PUT /api/cowork/shield/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
+        enabled: boolean;
+    }>;
+    'GET /api/cowork/templates': Op;
+    'GET /api/cowork/templates/{id}': Op<{ id: string | number }>;
+    'DELETE /api/cowork/templates/{id}': Op<{ id: string | number }>;
+    'GET /api/cowork/templates/{id}/package': Op<{ id: string | number }>;
+    'POST /api/cowork/templates/{id}/use': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/cowork/{id}': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}': Op<{ id: string | number }, UndeclaredQuery, {
         agentId?: string | null;
@@ -2570,6 +2661,7 @@ export interface ApiOperations {
         enabledApps?: Array<string> | null;
         isActive?: boolean;
         modelTier?: string | null;
+        monthlyBudget?: number | null;
         nextRunAt?: string;
         prompt?: string;
         repeatInterval?: 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly' | null;
@@ -2584,14 +2676,104 @@ export interface ApiOperations {
         triggerKind?: 'schedule' | 'app_event';
     }>;
     'DELETE /api/cowork/{id}': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/audit': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/desk': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/goal': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/goal': Op<{ id: string | number }, UndeclaredQuery, {
+        sentence: string;
+        targetPercent?: number;
+    }>;
+    'DELETE /api/cowork/{id}/goal': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/goal/approve': Op<{ id: string | number }, UndeclaredQuery, {
+        fingerprint: string;
+    }>;
+    'POST /api/cowork/{id}/goal/check': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/{id}/hand-over': Op<{ id: string | number }, UndeclaredQuery, {
+        toUserId: string;
+    }>;
+    'GET /api/cowork/{id}/hand-over/colleagues': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/memory': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/memory/clear': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/{id}/memory/restore': Op<{ id: string | number }, UndeclaredQuery, {
+        ids: Array<string>;
+    }>;
+    'GET /api/cowork/{id}/plan': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/plan': Op<{ id: string | number }, UndeclaredQuery, {
+        automationId: string;
+    }>;
+    'DELETE /api/cowork/{id}/plan': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'POST /api/cowork/{id}/plan/approve': Op<{ id: string | number }, UndeclaredQuery, {
+        fingerprint: string;
+    }>;
+    'POST /api/cowork/{id}/plan/fix-wiring': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'GET /api/cowork/{id}/plan/independence': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/plan/independence': Op<{ id: string | number }, UndeclaredQuery, {
+        level: 'asks_everything' | 'asks_before_sending' | 'on_its_own';
+    }>;
+    'POST /api/cowork/{id}/plan/make': Op<{ id: string | number }, UndeclaredQuery, {
+        fromRuns?: boolean;
+    }>;
+    'POST /api/cowork/{id}/plan/replay': Op<{ id: string | number }, UndeclaredQuery, {
+        limit?: number;
+    }>;
+    'GET /api/cowork/{id}/plan/replay/{replayId}': Op<{ id: string | number; replayId: string | number }>;
+    'POST /api/cowork/{id}/plan/restore': Op<{ id: string | number }, UndeclaredQuery, {
+        version: number;
+    }>;
+    'GET /api/cowork/{id}/plan/trust': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/plan/trust': Op<{ id: string | number }, UndeclaredQuery, {
+        recipient: string;
+        stepId: string;
+        trusted: boolean;
+    }>;
+    'POST /api/cowork/{id}/plan/try': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
+    'GET /api/cowork/{id}/plan/try/{tryId}': Op<{ id: string | number; tryId: string | number }>;
+    'GET /api/cowork/{id}/plan/try/{tryId}/compare': Op<{ id: string | number; tryId: string | number }>;
+    'GET /api/cowork/{id}/proposals': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/proposals/{proposalId}/approve': Op<{ id: string | number; proposalId: string | number }, UndeclaredQuery, {
+        fingerprint: string;
+    }>;
+    'POST /api/cowork/{id}/proposals/{proposalId}/dismiss': Op<{ id: string | number; proposalId: string | number }, UndeclaredQuery, Record<string, never>>;
+    'GET /api/cowork/{id}/receipts': Op<{ id: string | number }>;
+    'GET /api/cowork/{id}/routine': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/run-now': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
     'GET /api/cowork/{id}/runs': Op<{ id: string | number }, {
         limit?: number;
         offset?: number;
     }>;
+    'GET /api/cowork/{id}/runs/{runId}/receipt': Op<{ id: string | number; runId: string | number }>;
     'POST /api/cowork/{id}/runs/{runId}/review': Op<{ id: string | number; runId: string | number }, UndeclaredQuery, {
         action: 'answer' | 'done_myself' | 'not_needed';
         answer?: string;
+    }>;
+    'GET /api/cowork/{id}/runs/{runId}/trace': Op<{ id: string | number; runId: string | number }>;
+    'POST /api/cowork/{id}/save-as-template': Op<{ id: string | number }, UndeclaredQuery, {
+        title?: string;
+    }>;
+    'PUT /api/cowork/{id}/setup': Op<{ id: string | number }, UndeclaredQuery, {
+        mode: 'ai' | 'steps';
+    }>;
+    'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {
+        shares: Array<{
+            role: 'viewer' | 'approver';
+            userId: string;
+        }>;
+    }>;
+    'GET /api/cowork/{id}/start': Op<{ id: string | number }>;
+    'PUT /api/cowork/{id}/start': Op<{ id: string | number }, UndeclaredQuery, {
+        kind: 'schedule';
+    } | {
+        kind: 'after_cowork';
+        scheduleId: string;
+    } | {
+        kind: 'webhook';
+    } | {
+        datatableId: string;
+        kind: 'row';
+    } | {
+        inFolder: string;
+        kind: 'file';
     }>;
     'GET /api/cowork/{id}/stats': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/toggle': Op<{ id: string | number }, UndeclaredQuery, Record<string, never>>;
@@ -3382,7 +3564,7 @@ export interface ApiOperations {
             subject?: string;
             title?: string;
         };
-        templateId: 'verification' | 'welcome' | 'dsr_ack' | 'dsr_extension' | 'dsr_result' | 'project_collab';
+        templateId: 'verification' | 'welcome' | 'dsr_ack' | 'dsr_extension' | 'dsr_result' | 'project_collab' | 'cowork_daily';
     }>;
     'POST /api/languages/{code}/email-templates/{templateId}/preview': Op<{ code: string | number; templateId: string | number }, UndeclaredQuery, {
         fields?: {

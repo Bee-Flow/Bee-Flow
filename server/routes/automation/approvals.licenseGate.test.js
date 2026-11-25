@@ -111,6 +111,7 @@ mock(path.join(SERVER, 'automation/approvalService'), {
     ensureApprovalForRun: async () => null,
     canView: () => true,
     canDecide: () => true,
+    featureLetsDecide: async () => true,
     hasStages: () => false,
     hasPanel: () => false,
     decide: async ({ decision }) => {

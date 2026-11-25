@@ -14,7 +14,7 @@ describe('the Organisation tab: which sections a viewer gets', () => {
     // Changed on purpose (wave 2): the target tree's sections (AI context split, Meeting notes, Models, Knowledge bases).
     it('an organisation admin on cloud with every gate open gets the full set, in nav order', () => {
         expect(ids({ githubAvailable: true, ncSectionAvailable: true, microsoft365: true, canManageKnowledge: true })).toEqual([
-            'info', 'license', 'projects', 'academy', 'knowledge-bases', 'models', 'conversations', 'memory', 'meeting-notes',
+            'info', 'license', 'projects', 'academy', 'knowledge-bases', 'models', 'conversations', 'memory', 'meeting-notes', 'cowork',
             'auth', 'encryption', 'mcp-access', 'integrations', 'mcp', 'nextcloud-sync', 'azure', 'github-sync', 'integration-cache',
         ]);
     });
@@ -86,7 +86,7 @@ describe('the Organisation tab: which sections a viewer gets', () => {
         const inGroup = (group: string) => ORG_HUB_SECTIONS.filter(s => s.group === group).map(s => s.id);
         // Changed on purpose (wave 2): Sign-in and MCP client access are Security & access, the answer cache Connections.
         expect(inGroup('organisation')).toEqual(['info', 'license', 'projects', 'academy']);
-        expect(inGroup('ai')).toEqual(['knowledge-bases', 'models', 'conversations', 'memory', 'meeting-notes']);
+        expect(inGroup('ai')).toEqual(['knowledge-bases', 'models', 'conversations', 'memory', 'meeting-notes', 'cowork']);
         expect(inGroup('security')).toEqual(['auth', 'encryption', 'mcp-access']);
         expect(inGroup('connections')).toEqual(['integrations', 'mcp', 'nextcloud-sync', 'azure', 'github-sync', 'integration-cache']);
         const moved = Object.values(SETTINGS_ORG_ADMIN_TARGETS).filter(t => t.startsWith('admin/organisation/')).map(t => t.slice('admin/organisation/'.length));

@@ -1322,7 +1322,7 @@
     {
       "id": "course-cowork",
       "title": "Cowork: Delegate Your Work",
-      "desc": "Hand a job to Bee Flow once and have it run unattended — now, tonight, or every weekday morning.",
+      "desc": "Hand a job to Bee Flow in one sentence, check what it understood, approve its tested steps once, and let it run on its own.",
       "icon": "🤝",
       "level": "beginner",
       "track": "power",
@@ -1335,54 +1335,78 @@
         "desc": "Handed real recurring work over to Bee Flow."
       },
       "audience": "The employee who already chats daily and keeps re-typing the same Monday-morning request.",
-      "learningRationale": "The block here is trust, not mechanics: handing work to something unattended feels like losing control. So chapter 1 shows the whole loop including where the result lands before asking for anything, chapter 2 teaches the brief as a piece of writing (nobody will be there to answer a follow-up question), and chapter 3 makes them ship one real item, watch it run, and then read a failure — because a first failed run with no idea where to look is what kills the habit in week two.",
+      "learningRationale": "The block here is trust, not mechanics: handing work to something unattended feels like losing control. So chapter 1 shows the whole loop before asking for anything, including the card that shows what Cowork understood and the approval of what the test produced before anything runs for real; chapter 2 teaches the one sentence as a piece of writing that has to fill What, When, Uses and Sends to, because nobody will be there to answer a follow-up question; chapter 3 makes them ship one real task, approve it, run it, correct it in Settings and read a failure card, because a first failure with no idea where to look is what kills the habit in week two; chapter 4 decides who does the work and what a task may use.",
       "lessons": [
         {
           "id": "cowork-basics",
           "title": "Work that runs without you",
-          "desc": "What a Cowork item is, where its result lands, and how it differs from a chat.",
+          "desc": "What a Cowork task is, how one sentence becomes one, why it waits for your approval, and where its result lands.",
           "icon": "🤝",
-          "estMinutes": 10,
+          "estMinutes": 11,
           "areas": [
             "cowork"
           ],
-          "learningGoal": "After this lesson you can describe the full life of a Cowork item — from the sentence you type to the notification that reports back — and say which jobs belong in Cowork rather than in chat.",
+          "learningGoal": "After this lesson you can describe the full life of a Cowork task, from the sentence you type to the result that reports back, and say which jobs belong in Cowork rather than in chat.",
           "stepOutline": [
             {
               "kind": "slide",
-              "purpose": "Chat answers you here; Cowork goes away and reports back"
+              "purpose": "Chat answers you here; Cowork does recurring work for you and reports back"
             },
             {
               "kind": "tour",
-              "purpose": "Spotlight nav-cowork: the list, the running count, New task"
+              "purpose": "Spotlight nav-cowork: the home, the badge counts tasks that are switched on"
             },
             {
               "kind": "tour",
-              "purpose": "Spotlight cowork-composer: one box, three chips"
+              "purpose": "Spotlight cowork-composer: one sentence, then Show what I understood"
             },
             {
               "kind": "slide",
-              "purpose": "The composer rewrites your sentence into the instruction that runs"
+              "purpose": "The card answers with four lines: What, When, Uses, Sends to"
             },
             {
               "kind": "quiz",
-              "purpose": "Where a finished run's result actually appears"
+              "purpose": "Reading the sentence creates nothing until Set up and test"
             },
             {
               "kind": "slide",
-              "purpose": "Touched chips win — the AI only fills the blanks"
+              "purpose": "Set up and test: fixed steps, tested once, nothing sent"
+            },
+            {
+              "kind": "slide",
+              "purpose": "The first approval shows what the test produced"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "An unapproved task does not run"
             },
             {
               "kind": "sim",
-              "purpose": "Match pairs: four jobs onto chat, run now, or a repeat"
-            },
-            {
-              "kind": "quiz",
-              "purpose": "Who else can see your Cowork items"
+              "purpose": "Match pairs: four jobs onto chat, once, every weekday, every month"
             },
             {
               "kind": "slide",
-              "purpose": "The detail pane: assignment, figures, What happened"
+              "purpose": "The home: Needs you, Your tasks, Shared with you, Teamwork, the eight status words"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "Nothing to do is not a failure"
+            },
+            {
+              "kind": "slide",
+              "purpose": "A task opens as a page: header, Settings, Steps, People, History"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "Who else can see your task"
+            },
+            {
+              "kind": "exercise",
+              "purpose": "ex-cowork-basics-life: walk one task from sentence to result"
+            },
+            {
+              "kind": "slide",
+              "purpose": "What you can do now"
             }
           ],
           "gate": {},
@@ -1394,50 +1418,62 @@
         {
           "id": "cowork-briefs",
           "title": "Writing a brief nobody has to clarify",
-          "desc": "The unattended prompt: what to produce, the detail that makes it useful, when it runs.",
+          "desc": "One sentence that fills What, When, Uses and Sends to correctly, and what to correct on the card before you start.",
           "icon": "📝",
-          "estMinutes": 9,
+          "estMinutes": 10,
           "areas": [
             "cowork",
             "prompting"
           ],
-          "learningGoal": "After this lesson you can write a cowork brief that produces something useful at 07:30 with nobody at the keyboard, and set the timing and the apps yourself instead of leaving them to a guess.",
+          "learningGoal": "After this lesson you can write the one sentence for a Cowork task so that the card's four lines come out right, and correct the lines that did not before you press Set up and test.",
           "stepOutline": [
             {
               "kind": "slide",
-              "purpose": "The runner never asks a follow-up question — ever"
+              "purpose": "Nobody is there to answer a follow-up question"
             },
             {
               "kind": "slide",
-              "purpose": "Three parts: what to produce, the useful detail, the cadence"
+              "purpose": "One sentence, four answers: What, When, Uses, Sends to"
             },
             {
               "kind": "sim",
-              "purpose": "Match pairs: four vague briefs onto what they forgot to say"
+              "purpose": "Match pairs: four sentences onto the card line that comes out wrong"
+            },
+            {
+              "kind": "slide",
+              "purpose": "How Cowork reads each line: name, fixed hours, named apps, written addresses"
             },
             {
               "kind": "quiz",
-              "purpose": "A brief that asks a question: what comes back"
+              "purpose": "A team name is not an address"
             },
             {
               "kind": "tour",
-              "purpose": "Spotlight cowork-options: When, Repeat, Run as, Apps"
+              "purpose": "Spotlight cowork-composer: try a sentence, the card appears below"
             },
             {
               "kind": "slide",
-              "purpose": "Narrowing the apps it may use, and how to go back"
+              "purpose": "What you can correct on the card"
             },
             {
               "kind": "quiz",
-              "purpose": "Now + Once versus Now + Every weekday"
-            },
-            {
-              "kind": "exercise",
-              "purpose": "ex-cowork-brief: write the brief for your Monday job"
+              "purpose": "A line changed by hand survives a re-read of the sentence"
             },
             {
               "kind": "slide",
-              "purpose": "Run as an agent when the job needs knowledge or tools"
+              "purpose": "Show me each message first when it sends to someone else"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "Unticking Show me each message first does not make it send on its own"
+            },
+            {
+              "kind": "exercise",
+              "purpose": "ex-cowork-brief: the sentence for the job you redo every week"
+            },
+            {
+              "kind": "slide",
+              "purpose": "What you can do now"
             }
           ],
           "gate": {}
@@ -1445,37 +1481,45 @@
         {
           "id": "cowork-hands-on",
           "title": "Ship one real delegation — and repair it",
-          "desc": "Create, run, correct and pause a Cowork item, then read a failed run without guessing.",
+          "desc": "Create a Cowork task, approve its tested steps, run it for real, correct it in Settings, and read a failure without guessing.",
           "icon": "🚀",
-          "estMinutes": 12,
+          "estMinutes": 13,
           "areas": [
             "cowork"
           ],
-          "learningGoal": "After this lesson you have one Cowork item that has actually run, and you can turn a failed run into a fixed one without guessing.",
+          "learningGoal": "After this lesson you have one Cowork task that has really run, and you can turn a failure card into a fixed task without guessing.",
           "stepOutline": [
             {
               "kind": "slide",
-              "purpose": "What you are about to create, and how to undo it"
-            },
-            {
-              "kind": "action",
-              "purpose": "Create your first item (check: cowork-first — GET /api/cowork returns a schedule you own)"
+              "purpose": "What you are about to make"
             },
             {
               "kind": "slide",
-              "purpose": "Reading the figures: lifetime runs versus kept history"
+              "purpose": "Pause versus Delete this task, and the limit of 10 tasks"
+            },
+            {
+              "kind": "slide",
+              "purpose": "From Set up and test to the first real run"
+            },
+            {
+              "kind": "action",
+              "purpose": "Make, approve and run a task (check: cowork-first — GET /api/cowork returns a task you own that has run for real)"
             },
             {
               "kind": "quiz",
-              "purpose": "Runs 42 next to Succeeded 3 — why that is not data loss"
+              "purpose": "Run for real now is off: what it waits for"
             },
             {
               "kind": "slide",
-              "purpose": "Edit: name, instruction, next run, repeat, only-on days"
+              "purpose": "Reading the task after its first run: result, Steps, History"
             },
             {
-              "kind": "action",
-              "purpose": "Run it now and read its history (check: cowork-ran — GET /api/cowork/:id/runs returns at least one run)"
+              "kind": "quiz",
+              "purpose": "Nothing to do is not a failure"
+            },
+            {
+              "kind": "slide",
+              "purpose": "Correct it under Settings: saved at once, or Save and test"
             },
             {
               "kind": "quiz",
@@ -1483,23 +1527,23 @@
             },
             {
               "kind": "slide",
-              "purpose": "The failure notification and where it links to"
+              "purpose": "A failure is a card under Needs you with one action"
             },
             {
               "kind": "sim",
-              "purpose": "Match pairs: four failure lines onto the right fix"
+              "purpose": "Match pairs: four failure cards onto the button that resolves them"
             },
             {
               "kind": "quiz",
-              "purpose": "'Nothing to report' is not a failure — why"
+              "purpose": "Where an expired sign-in is repaired"
+            },
+            {
+              "kind": "exercise",
+              "purpose": "ex-cowork-hands-on-repair: change a recipient and a time without starting over"
             },
             {
               "kind": "slide",
-              "purpose": "Needs sign-in: an expired connection pauses the schedule"
-            },
-            {
-              "kind": "slide",
-              "purpose": "When to split a brief instead of debugging it"
+              "purpose": "What you can do now"
             }
           ],
           "gate": {},
@@ -1511,15 +1555,15 @@
         {
           "id": "cowork-run-as-agent",
           "title": "Who does the work, and what it may touch",
-          "desc": "Run as: what a linked agent takes over, where its results pile up, and how the item's own Apps list decides what a run may reach.",
+          "desc": "Settings → Uses: fixed steps, the AI every run, or one of your agents, and the task's own list of apps.",
           "icon": "🤝",
-          "estMinutes": 10,
+          "estMinutes": 11,
           "areas": [
             "cowork",
             "agents"
           ],
           "gate": {},
-          "learningGoal": "After this lesson you can decide whether a cowork item should run as a plain prompt or as one of your agents, link or unlink it afterwards, and set the item's own Apps list — including the empty one — knowing what each choice changes.",
+          "learningGoal": "After this lesson you can choose under Settings → Uses whether a Cowork task works as fixed steps, as the AI every run, or as one of your agents, switch it afterwards knowing what that changes, and give the task its own list of apps.",
           "stepOutline": [
             {
               "kind": "slide",
@@ -1527,31 +1571,59 @@
             },
             {
               "kind": "slide",
-              "purpose": "The parts and what each one does"
-            },
-            {
-              "kind": "quiz",
-              "purpose": "Scenario: pick the right move"
-            },
-            {
-              "kind": "slide",
-              "purpose": "The steps, in the order a user takes them"
+              "purpose": "How it works: fixed steps, the AI every run, an agent of yours"
             },
             {
               "kind": "sim",
-              "purpose": "Diagnose or assemble it before doing it"
+              "purpose": "Match pairs: what an agent brings to the task"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "Where an agent task writes its results"
             },
             {
               "kind": "slide",
-              "purpose": "What goes wrong and how you notice"
+              "purpose": "What it remembers versus the agent's Memory"
+            },
+            {
+              "kind": "sim",
+              "purpose": "Order: hand an existing task to an agent"
+            },
+            {
+              "kind": "slide",
+              "purpose": "What you give up: fixed steps and Ask me"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "Ask me no longer applies once an agent does the work"
+            },
+            {
+              "kind": "slide",
+              "purpose": "Apps it may use: no own list, its own list, no apps"
+            },
+            {
+              "kind": "quiz",
+              "purpose": "No apps is an answer, not a blank"
+            },
+            {
+              "kind": "slide",
+              "purpose": "Why the agent choice may be missing"
+            },
+            {
+              "kind": "action",
+              "purpose": "Give one task its own list of apps (check: cowork-apps-scoped — GET /api/cowork returns a task you own)"
+            },
+            {
+              "kind": "slide",
+              "purpose": "What breaks once an agent is in the picture"
             },
             {
               "kind": "quiz",
               "purpose": "Diagnose the failure"
             },
             {
-              "kind": "action",
-              "purpose": "Do it for real — verified in your workspace"
+              "kind": "exercise",
+              "purpose": "ex-cowork-run-as-agent-decide: decide who does the work"
             },
             {
               "kind": "slide",
@@ -6609,7 +6681,7 @@
             },
             {
               "kind": "slide",
-              "purpose": "Requirement two: a Cowork item you delegated and that produced a result"
+              "purpose": "Requirement two: a Cowork task you delegated and that produced a result"
             },
             {
               "kind": "slide",

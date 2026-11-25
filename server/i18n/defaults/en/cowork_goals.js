@@ -1,0 +1,36 @@
+// @typecheck strict
+// English GUI defaults — namespace "cowork_goals": every key whose part before the first "." is "cowork_goals".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    "cowork_goals.add": "Add a goal",
+    "cowork_goals.approve": "Approve the check",
+    "cowork_goals.approved": "The check is approved. It runs after every run of this work.",
+    "cowork_goals.change": "Change",
+    "cowork_goals.changed": "The check changed since it was approved. Approve it again.",
+    "cowork_goals.check_heading": "How the goal is checked after every run",
+    "cowork_goals.close": "Close",
+    "cowork_goals.count": "{met} of {total}",
+    "cowork_goals.draft": "Draft the check",
+    "cowork_goals.drafting": "Drafting the check…",
+    "cowork_goals.effect.reads": "reads",
+    "cowork_goals.effect.sends": "sends something",
+    "cowork_goals.effect.writes": "changes something",
+    "cowork_goals.failed": "That did not work. Try again.",
+    "cowork_goals.holidays": "Working days are Monday to Friday. Public holidays count as working days.",
+    "cowork_goals.last_failed": "The last check could not count: {reason}",
+    "cowork_goals.line": "Goal: {sentence}",
+    "cowork_goals.mail_heading": "Your goals:",
+    "cowork_goals.mail_line": "• {title}: {measured} (goal: {sentence})",
+    "cowork_goals.not_allowed": "This check cannot be approved:",
+    "cowork_goals.not_approved": "The check is not approved yet: nothing is measured until you approve it.",
+    "cowork_goals.not_measured": "not measured yet",
+    "cowork_goals.reads_only": "Reads only: the check changes and sends nothing.",
+    "cowork_goals.remove": "Take the goal off",
+    "cowork_goals.sentence_label": "The goal, in one sentence",
+    "cowork_goals.sentence_placeholder": "Every supplier mail gets an answer within two working days",
+    "cowork_goals.target_label": "Share that should meet it (%)",
+    "cowork_goals.trend.down": "going down",
+    "cowork_goals.trend.flat": "steady",
+    "cowork_goals.trend.up": "going up",
+};

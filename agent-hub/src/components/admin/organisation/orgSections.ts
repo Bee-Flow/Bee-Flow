@@ -8,7 +8,7 @@
 // (dashboard/adminRailRows).
 
 import {
-    BookOpen, Brain, Cloud, CreditCard, DatabaseZap, FileText, FolderGit2, FolderKanban, GraduationCap, Info, Layers,
+    BookOpen, Brain, Cloud, CreditCard, DatabaseZap, FileText, FolderGit2, FolderKanban, GraduationCap, Handshake, Info, Layers,
     Link2, Lock, LogIn, MessagesSquare, Plug, RefreshCw, ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -83,6 +83,13 @@ export const ORG_HUB_SECTIONS: readonly OrgHubSection[] = [
         id: 'meeting-notes', labelKey: 'admin_nav.meeting_notes', labelFallback: 'Meeting notes',
         descriptionKey: 'admin_nav.meeting_notes_desc', descriptionFallback: 'Summary templates, and the meeting services the notes come from.',
         icon: FileText, group: 'ai',
+    },
+    {
+        // The organisation's Cowork policy (budget, habits, read-only, independence ceiling, allowed apps): its own row,
+        // so it is there whether or not the organisation uses the Privacy Shield.
+        id: 'cowork', labelKey: 'admin_nav.cowork', labelFallback: 'Cowork',
+        descriptionKey: 'admin_nav.cowork_desc', descriptionFallback: 'How independent coworks may be, which apps they may use and what they may spend on AI.',
+        icon: Handshake, group: 'ai',
     },
     {
         id: 'auth', labelKey: 'org_signin.nav',

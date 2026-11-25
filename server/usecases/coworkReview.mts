@@ -34,8 +34,18 @@ type MailContext = { provider: 'gmail' | 'outlook'; messageId: string; threadId?
 type RunContext = { offeredTools?: unknown; unattended?: boolean; mail?: MailContext | null } | null;
 type ReviewRun = {
     id: string; status: string; followupDepth?: number; conversationId?: string | null; mailSubject?: string | null;
-    review: Review | null; runContext: RunContext;
+    review: Review | null; runContext: RunContext; triggerKind?: string | null; activity?: { readOutsideText?: boolean } | null;
 };
+
+/**
+ * Did the run a follow-up continues have outside text in its conversation: it was started by a mail or an event, or it
+ * read a mailbox or the open web on the way. The follow-up then starts marked (core/cowork/outsideTextGuard.mts), as
+ * the outside text is still in the conversation it continues.
+ */
+export function hadOutsideText(run: ReviewRun): boolean {
+    const { startsWithOutsideText } = nodeRequire('../core/cowork/startKinds.mts') as { startsWithOutsideText: (kind: unknown) => boolean };
+    return !!run.runContext?.mail || startsWithOutsideText(run.triggerKind) || run.activity?.readOutsideText === true;
+}
 type Schedule = { id: string; userId: string; agentId?: string | null; title?: string; prompt?: string; lastStatus?: string | null } & Record<string, unknown>;
 
 export type Deps = {
@@ -54,7 +64,8 @@ function defaultDeps(): Deps {
         store: nodeRequire('../stores/coworkStore.js'),
         startRun: (task, trigger) => {
             setImmediate(() => {
-                nodeRequire('../core/aiTaskRunner.js').executeTask(task, { trigger })
+                // Through executeCowork like every start: a read-only organisation or a spent budget refuses it too.
+                nodeRequire('../core/cowork/coworkRunner.js').executeCowork(task, { trigger })
                     .catch((e: Error) => log.error(`[Cowork] follow-up run of ${task.id} failed to start: ${e.message}`));
             });
         },
@@ -123,6 +134,7 @@ async function followUpTrigger(
     return {
         runId: followUpRunId,
         toolCeiling,
+        ...(hadOutsideText(run) ? { outsideText: true } : {}),
         mailSubject: subject,
         prompt: buildFollowUpPrompt(String(schedule.prompt || ''), run.review, answer),
         scheduleText: 'This is a follow-up of an earlier run of this Cowork item: its owner answered the review that run asked for.',

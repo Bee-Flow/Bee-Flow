@@ -231,3 +231,100 @@ test('a store that hands back no run id leaves run_id null', async () => {
     await flush();
     assert.strictEqual(logged[0].run_id, null);
 });
+
+// ── The claim and the time limit of a plain-prompt run ──────────────────
+// (in this file because it has the runner's harness: the store is handed in,
+// the adapter answers from `script`.)
+
+test('a refused claim (null) runs nothing: no model call, no outcome, no failure, no usage', async () => {
+    resetScenario();
+    script = []; // an adapter call would throw 'unexpected adapter call' and end in markError
+    const store = { ...fakeStore, markRunning: async () => { storeCalls.push('markRunning'); return null; } };
+
+    await executeTask({ id: 'cw11', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store, due: true });
+    await flush();
+
+    assert.deepStrictEqual(storeCalls, ['markRunning'], 'another attempt holds this schedule: nothing is written here');
+    assert.strictEqual(logged.length, 0);
+});
+
+test('the tick asks for a schedule that is still due; a run-now does not', async () => {
+    resetScenario();
+    const asked = [];
+    const store = { ...fakeStore, markRunning: async (id, opts) => { asked.push(opts); return null; } };
+
+    await executeTask({ id: 'cw12', userId: 'u1', title: 'T', prompt: 'Do it.' }, { store, due: true });
+    await executeTask({ id: 'cw12', userId: 'u1', title: 'T', prompt: 'Do it.' }, { store, manual: true });
+
+    assert.deepStrictEqual(asked, [{ triggerKind: 'schedule', due: true }, { triggerKind: 'manual', due: false }]);
+});
+
+test('a run past its time limit starts no further tool call or model round, and fails with the reason', async () => {
+    resetScenario();
+    const errors = [];
+    const store = { ...fakeStore, markError: async (id, err) => { storeCalls.push('markError'); errors.push(err); } };
+    // The first model round outlives the limit and then asks for a tool; the second round must never be asked for.
+    const slow = new Promise((resolve) => setTimeout(() => resolve({
+        content: null, toolCalls: [{ id: 'c1', function: { name: 'outlook_search', arguments: '{}' } }],
+        usage: { prompt_tokens: 4, completion_tokens: 2 },
+    }), 60));
+    script = [slow, { content: 'Too late.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+
+    await executeTask({ id: 'cw13', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store, due: true, maxMs: 20 });
+    await flush();
+
+    assert.strictEqual(script.length, 1, 'the second model round was never started');
+    assert.strictEqual(errors.length, 1);
+    assert.strictEqual(errors[0].name, 'RunDeadlineError');
+    assert.match(errors[0].message, /it took longer than a run may take/);
+    assert.ok(!storeCalls.includes('markCompleted'));
+    assert.ok(storeCalls.includes('advanceSchedule'), 'a repeating item still moves on to its next moment');
+    assert.strictEqual(logged.length, 1, 'the tokens of the round that did run are still accounted for');
+});
+
+test('an item with an approved plan runs as its plan: no model call of the prompt path, and the plan path claims it', async () => {
+    resetScenario();
+    script = []; // the prompt path would call the adapter and fail on 'unexpected adapter call'
+    const asked = [];
+    // The plan path asks the store for the approved plan after the claim; a refused claim ends it there.
+    const store = { ...fakeStore, getApprovedPlan: async () => ({ id: 'plan-1' }), markRunning: async (id, opts) => { asked.push([id, opts]); return null; } };
+
+    await executeTask({ id: 'cw14', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1', agentId: 'agent-1' }, { store, due: true });
+    await flush();
+
+    assert.deepStrictEqual(asked, [['cw14', { triggerKind: 'schedule', due: true }]], 'claimed once, by the plan path');
+    assert.strictEqual(logged.length, 0);
+});
+
+test('a run a new mail started is no plan run, even on an item that still names a plan', async () => {
+    resetScenario();
+    script = [];
+    let planAsked = false;
+    const store = { ...fakeStore, markRunning: async () => null, getApprovedPlan: async () => { planAsked = true; return null; } };
+    await executeTask({ id: 'cw15', userId: 'u1', title: 'T', prompt: 'Do it.', planId: 'plan-1' }, { store, trigger: { kind: 'mail', messageId: 'm1' } });
+    await flush();
+    assert.strictEqual(planAsked, false);
+});
+
+test('a scheduled run moves its schedule on before it says it is no longer running, on success and on failure', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+    await executeTask({ id: 'cw16', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store: fakeStore, due: true });
+    await flush();
+    assert.ok(storeCalls.indexOf('advanceSchedule') !== -1 && storeCalls.indexOf('advanceSchedule') < storeCalls.indexOf('markCompleted'), storeCalls.join(', '));
+
+    resetScenario();
+    script = [new Error('the provider is down')];
+    await executeTask({ id: 'cw17', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', repeatInterval: 'daily' }, { store: fakeStore, due: true });
+    await flush();
+    assert.ok(storeCalls.indexOf('advanceSchedule') !== -1 && storeCalls.indexOf('advanceSchedule') < storeCalls.indexOf('markError'), storeCalls.join(', '));
+});
+
+test('an item whose plan was taken off after the tick read it runs as its prompt, not as a failed plan', async () => {
+    resetScenario();
+    script = [{ content: 'Done.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+    const store = { ...fakeStore, getApprovedPlan: async () => null };
+    await executeTask({ id: 'cw18', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Do it.', planId: 'plan-gone' }, { store });
+    await flush();
+    assert.ok(storeCalls.includes('markCompleted') && !storeCalls.includes('markError'), storeCalls.join(', '));
+});

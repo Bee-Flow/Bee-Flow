@@ -19,6 +19,7 @@
 
 import { createRequire } from 'node:module';
 import crypto from 'node:crypto';
+import { planTriggerOf } from './mailPlanStart.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -67,7 +68,7 @@ export function isAutomaticFetched(fetched: Row | null): boolean {
 }
 
 type Schedule = {
-    id: string; userId: string; agentId: string | null; isActive: boolean; title?: string; prompt?: string;
+    id: string; userId: string; agentId: string | null; planId?: string | null; isActive: boolean; title?: string; prompt?: string;
     triggerKind?: string; conversationId?: string | null;
 } & Row;
 
@@ -88,7 +89,8 @@ function defaultDeps(): Deps {
         claim: (p) => triggerStore.claimEventRun(p),
         countRecent: (p) => triggerStore.countRecentEventRuns(p),
         fetchMessage: fetchProviderMessage,
-        executeTask: (task, opts) => nodeRequire('../aiTaskRunner.js').executeTask(task, opts),
+        // Through the Cowork runner, which asks the organisation's policy first.
+        executeTask: (task, opts) => nodeRequire('./coworkRunner.js').executeCowork(task, opts),
         maxPerHour: () => envByteLimit(MAX_PER_HOUR_ENV, DEFAULT_MAX_PER_HOUR),
     };
 }
@@ -301,7 +303,7 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
     const schedule = await deps.getSchedule(scheduleId);
     if (!schedule || schedule.userId !== userId) { log.info(`[MailTrigger] schedule ${scheduleId} gone or not owned by the subscriber; skipping`); return; }
     if (!schedule.isActive) { log.info(`[MailTrigger] schedule ${scheduleId} is paused; skipping`); return; }
-    if (schedule.triggerKind !== 'app_event' || !schedule.agentId) { log.warn(`[MailTrigger] schedule ${scheduleId} is not an agent mail trigger; skipping`); return; }
+    if (schedule.triggerKind !== 'app_event' || (!schedule.agentId && !schedule.planId)) { log.warn(`[MailTrigger] schedule ${scheduleId} is neither an agent nor a plan on a mail; skipping`); return; }
     const provider = toolProvider(sub.provider);
     if (!provider) { log.warn(`[MailTrigger] schedule ${scheduleId}: unsupported provider; skipping`); return; }
 
@@ -321,13 +323,20 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
         return;
     }
 
+    // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start. Decided before
+    // the claim: the claim opens a history row and marks the schedule running, and a mail that starts no run must
+    // leave neither behind. An open row with nothing behind it reads "Running" until the reaper closes it as a
+    // failure, half an hour later.
+    if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
+
     // A duplicate (redelivery, overlapping poll) stops here, silently.
     const runId = await deps.claim({ scheduleId, userId, triggerRef: messageId });
     if (!runId) return;
 
-    // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start.
-    if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
     const mail = shapeMessage(payload, fetched, messageId, mailbox);
+    // An item with an approved plan runs as that plan: the mail is its start data, text from outside
+    // (core/cowork/startKinds.mts asStartedBy). It drafts a reply; it never sends one (decision 0044).
+    if (schedule.planId) return deps.executeTask({ ...schedule, conversationId: null }, { trigger: planTriggerOf(runId, provider, mail) });
 
     const mailTrigger = {
         provider, messageId, threadId: mail.threadId, mailbox,

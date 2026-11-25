@@ -7,6 +7,7 @@
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { TRIGGER_TEXT, NEXT_RUN_TEXT } = require('../usecases/coworkTexts');
+const { isAddress, MAX_ADDRESS, MAX_RECIPIENTS } = require('../core/cowork/taskSetup.mts');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -108,9 +109,25 @@ const scheduleFields = {
     enabledApps: enabledAppsField.optional(),
 };
 
+// What the confirmation of a new task sends with it (usecases/coworkSetup.mts): whether it is to get fixed steps, who
+// it sends to ("me" and e-mail addresses) and whether its owner sees each message first.
+const SETUP_TEXT = 'setup is { steps?: true or false, sendsTo?: a list of "me" and e-mail addresses, askFirst?: true or false }.';
+const SENDS_TO_TEXT = `setup.sendsTo is a list of at most ${MAX_RECIPIENTS + 1} entries: "me", or an e-mail address.`;
+const recipient = z.string({ error: SENDS_TO_TEXT }).trim().max(MAX_ADDRESS, SENDS_TO_TEXT)
+    .refine((v) => v.toLowerCase() === 'me' || isAddress(v), { error: SENDS_TO_TEXT });
+const setupField = z.object({
+    steps: z.boolean({ error: SETUP_TEXT }).optional(),
+    sendsTo: z.array(recipient, { error: SENDS_TO_TEXT }).max(MAX_RECIPIENTS + 1, SENDS_TO_TEXT).optional(),
+    askFirst: z.boolean({ error: SETUP_TEXT }).optional(),
+}, { error: typeError({ invalid: SETUP_TEXT }) }).strict();
+// PUT /:id/setup: let the AI work it out every run ('ai'), or back to the steps it had ('steps', its Undo).
+const MODE_TEXT = "mode is 'ai' or 'steps'.";
+const SetupModeBody = z.object({ mode: z.enum(['ai', 'steps'], { error: MODE_TEXT }) }).strict();
+
 const CreateBody = z.object({
     ...scheduleFields,
     startNow: z.boolean({ error: typeError({ invalid: 'startNow is true or false.' }) }).optional(),
+    setup: setupField.optional(),
 }).strict().superRefine((b, ctx) => {
     const issue = (/** @type {string} */ path, /** @type {string} */ message) => ctx.addIssue({ code: 'custom', path: [path], message });
     if (b.triggerKind === 'app_event') {
@@ -124,11 +141,13 @@ const CreateBody = z.object({
 });
 
 // Every field optional: an update names only what it changes.
+const BUDGET_TEXT = 'monthlyBudget is an amount in euros from 0 to 100000, or null for no limit.';
 const UpdateBody = z.object({
     ...scheduleFields,
     title: scheduleFields.title.optional(),
     prompt: scheduleFields.prompt.optional(),
     isActive: z.boolean({ error: typeError({ invalid: 'isActive is true or false.' }) }).optional(),
+    monthlyBudget: z.number({ error: typeError({ invalid: BUDGET_TEXT }) }).min(0, BUDGET_TEXT).max(100_000, BUDGET_TEXT).nullable().optional(),
 }).strict();
 
 // toggle / run-now act on the schedule as it is.
@@ -162,4 +181,22 @@ const ReviewBody = z.object({
     }
 });
 
-module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, ReviewBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };
+// PUT /:id/plan and POST /:id/plan/approve (usecases/coworkPlan.mts): the automation a plan is made
+// from, and the fingerprint of the plan its owner looked at (SHA-256, core/cowork/plan/planPermissions.mts).
+const AUTOMATION_ID_TEXT = 'automationId is the id of one of your automations.';
+const PlanAttachBody = z.object({ automationId: worded(AUTOMATION_ID_TEXT).trim().min(1, AUTOMATION_ID_TEXT).max(200, AUTOMATION_ID_TEXT) }).strict();
+const FINGERPRINT_TEXT = 'fingerprint is the fingerprint of the plan you looked at.';
+const PlanApproveBody = z.object({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }).strict();
+// GET /:id/plan/try/:tryId (usecases/coworkPlanTry.mts): the item and the try-out that was started for it.
+const PlanTryParams = z.object({ id: z.string().min(1).max(200), tryId: z.string().min(1).max(200) });
+// GET /:id/runs/:runId/trace (usecases/coworkRunTrace.mts): the item and one of its runs.
+const RunTraceParams = z.object({ id: z.string().min(1).max(200), runId: z.string().min(1).max(200) });
+// PUT /:id/plan/independence (usecases/coworkIndependence.mts): one of the three levels.
+const LEVEL_TEXT = 'level is asks_everything, asks_before_sending or on_its_own.';
+const IndependenceBody = z.object({ level: z.enum(['asks_everything', 'asks_before_sending', 'on_its_own'], { error: LEVEL_TEXT }) }).strict();
+// PUT /:id/plan/trust (usecases/coworkTrust.mts): one step and recipient, trusted or not.
+const TRUST_TEXT = 'stepId and recipient are text of at most 300 characters; trusted is true or false.';
+const trustText = z.string({ error: TRUST_TEXT }).min(1, { error: TRUST_TEXT }).max(300, { error: TRUST_TEXT });
+const TrustBody = z.object({ stepId: trustText, recipient: trustText, trusted: z.boolean({ error: TRUST_TEXT }) }).strict();
+
+module.exports = { CreateBody, UpdateBody, NoBody, ComposeBody, SetupModeBody, RunsQuery, ReviewBody, PlanAttachBody, PlanApproveBody, PlanTryParams, RunTraceParams, IndependenceBody, TrustBody, isKnownTimezone, TRIGGER_TEXT, NEXT_RUN_TEXT };

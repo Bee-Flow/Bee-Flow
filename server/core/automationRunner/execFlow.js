@@ -252,7 +252,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     const results = [];
     let failed = 0;
     let anyItemSynthesised = false;
-    const withheldTools = new Map();
+    const extras = require('./forEachExtras.mts').fanOutExtras(); // withheld tools, the AI's verdict
     // §WS2.5 — step.retry applies PER ITEM here. A fan-out is N executions of the
     // step body, so retrying the WHOLE forEach from the outer dispatch loop would
     // re-run already-succeeded items. We own retry at the item level instead.
@@ -294,10 +294,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
                 const r = await runLeaf(step, ctx, subState, mode);
                 out = r?.output ?? null;
                 if (r?.dryRunSynthesised) anyItemSynthesised = true;
-                // An AI step's withheld tools (handoff 5), once per fan-out.
-                if (Array.isArray(r?.toolsWithheld)) {
-                    for (const n of r.toolsWithheld) if (!withheldTools.has(n)) withheldTools.set(n, r.toolsWithheldReasons?.[n] || 'unavailable');
-                }
+                extras.note(r);
                 ok = true;
                 break;
             } catch (e) {
@@ -360,7 +357,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
         // Propagate dry-run taint: a fan-out over synthetic data (or whose
         // items were synthesized) produces synthetic aggregate results.
         ...(mode === 'dry_run' && (sourceSynthetic || anyItemSynthesised) ? { dryRunSynthesised: true, dryRunFallback: 'synthetic_input' } : {}),
-        ...(withheldTools.size ? { toolsWithheld: [...withheldTools.keys()], toolsWithheldReasons: Object.fromEntries(withheldTools) } : {}),
+        ...extras.result(),
     };
 }
 

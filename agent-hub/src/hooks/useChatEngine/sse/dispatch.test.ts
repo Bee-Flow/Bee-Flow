@@ -5,6 +5,8 @@ import type { SseDispatchContext, SseDispatchIds, SseEventData } from '../types'
 
 /** Every `case` label of the switch the handler table replaced, plus events added since (document_open). */
 const SWITCH_EVENTS = [
+    // Since the switch: the one offer of "it notices what you repeat" (handlers/cowork.ts).
+    'cowork_suggestion',
     'ping', 'content', 'phase', 'thinking_start', 'thinking', 'thinking_stop',
     'content_replace', 'content_redact', 'swarm_started', 'swarm_phase_started',
     'swarm_phase_completed', 'swarm_clarification_required', 'swarm_completed',

@@ -46,6 +46,7 @@ const { resolveAiStepTools } = require('./aiStepTools');
 const { buildAiStepMessages } = require('./aiStepMessages');
 const { answerAiStep, prepareAiAnswer } = require('./aiStepAnswer');
 const stepImages = require('./aiStepImages.mts');
+const { withVerdict, splitVerdict } = require('./aiStepVerdict.mts');
 
 // What ./execIntegrationAction, ./integrationActionGates and ./aiStepGrounding
 // use from the server's large import cycle. They are required HERE and handed
@@ -286,7 +287,8 @@ async function execAiStep(step, ctx, runState, mode) {
     const { maxOutputTokens, modelId, cfg, adapter } = await resolveAiStepModel(tier, aiStepOverride, resolvedTier);
     const prompted = captureBindingMisses(() => interpolateAiStepPrompt(step, runState));
     const { resolvedInputs, promptText } = prompted.value;
-    const contract = resolveAiStepOutputContract(step, ctx, agent.stepSkills, skillCtx);
+    // A step asked for its own verdict (`reportOutcome`, ./aiStepVerdict.mts) answers it in its structured output.
+    const contract = withVerdict(resolveAiStepOutputContract(step, ctx, agent.stepSkills, skillCtx), step);
     const { effectiveSchema, outputContract } = contract;
 
     // Thinking: an AI step never asked for it, so a thinking-capable model
@@ -357,6 +359,8 @@ async function execAiStep(step, ctx, runState, mode) {
     }));
 
     const piiSummary = safety.buildPiiSummary(answer.categories);
+    // The verdict comes out of the output before anything binds to it; it is recorded beside it.
+    const { output: answered, verdict } = splitVerdict(answer.output, contract);
     // `toolsWithheld` rides next to piiSummary, not in the output: the output
     // is the bindable namespace, and a step that suddenly gains a key there
     // breaks every downstream ref that walks over it. Like `reused` in
@@ -364,7 +368,8 @@ async function execAiStep(step, ctx, runState, mode) {
     // automation_run_steps has no column for it — and this is the producing
     // half of that.
     const result = {
-        output: answer.output, _tier: resolvedTier,
+        output: answered, _tier: resolvedTier,
+        ...(verdict ? { verdict } : {}),
         ...(piiSummary ? { piiSummary } : {}),
         // Checks that ran, and whether the answer was reused instead of asked for.
         ...(answer.checkReport ? { checkReport: answer.checkReport } : {}),

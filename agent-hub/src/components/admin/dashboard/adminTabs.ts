@@ -86,7 +86,7 @@ export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string;
 export const ADMIN_RAIL_ORDER: readonly string[] = [
     // The organisation block.
     'organisation/info', 'organisation/license', 'people', 'organisation/projects', 'organisation/academy', 'monitoring',
-    'agents/chat', 'organisation/knowledge-bases', 'organisation/models', 'organisation/conversations', 'organisation/memory', 'organisation/meeting-notes',
+    'agents/chat', 'organisation/knowledge-bases', 'organisation/models', 'organisation/conversations', 'organisation/memory', 'organisation/meeting-notes', 'organisation/cowork',
     'organisation/auth', 'access', 'security/guardrails', 'organisation/encryption', 'organisation/mcp-access', 'compliance',
     'organisation/integrations', 'organisation/mcp', 'organisation/nextcloud-sync', 'organisation/azure', 'organisation/github-sync', 'organisation/integration-cache',
     // The whole-server block.

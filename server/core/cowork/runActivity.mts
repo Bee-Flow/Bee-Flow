@@ -17,16 +17,20 @@
  */
 
 import { createRequire } from 'node:module';
+import { createOutsideTextMark, holdCall, type OutsideTextMark } from './outsideTextGuard.mts';
+import { withinApps } from './runApps.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
 /** The internal tool an agent in a Cowork run calls when a person has to decide (./reviewTool.mts). */
 export const REVIEW_TOOL_NAME = 'cowork_request_review';
+/** The internal tool the AI of a Cowork run gives its own verdict with (./outcomeTool.mts). */
+export const OUTCOME_TOOL_NAME = 'cowork_report_outcome';
 
 /** The refusal codes a stored activity may carry; anything else is stored as 'other'. */
 export const REFUSAL_REASONS: ReadonlySet<string> = new Set([
     'privacy_shield', 'privacy_shield_unavailable', 'guardrail', 'not_offered',
-    'needs_confirmation', 'declined', 'invalid_arguments', 'aborted', 'other',
+    'needs_confirmation', 'declined', 'invalid_arguments', 'aborted', 'outside_text', 'other',
 ]);
 
 export interface ReviewRequest { reason: string; question: string | null; summary: string | null }
@@ -37,12 +41,20 @@ export interface CoworkRunContext {
     kind: 'cowork_run';
     /** Tool names a follow-up run may be offered at most (null: no ceiling, an ordinary run). */
     toolCeiling: string[] | null;
+    /** The apps the organisation lets run while nobody watches (./runApps.mts); null: every app. */
+    appCeiling: string[] | null;
+    /** Which app a whole tool belongs to (./runApps.mts by default; a test hands its own). */
+    toolAppOf?: ToolAppOf;
     tools: Map<string, ToolTally>;
     staticSkills: Set<string>;
     activatedSkills: Set<string>;
     offered: Set<string>;
     review: ReviewRequest | null;
+    /** The AI's own verdict on the run (`cowork_report_outcome`, ./outcomeTool.mts), when it gave one. */
+    outcome?: { outcome: 'done' | 'nothing_to_do' | 'failed'; reason: string | null } | null;
     appOf: (toolName: string) => string | null;
+    /** Whether the run has read text written outside the workspace (./outsideTextGuard.mts). */
+    outsideText: OutsideTextMark;
 }
 
 /** A settled tool call as the tool round hands it over (core/agentRuntime/toolRoundExecutor.js ToolCallOutcome). */
@@ -60,9 +72,12 @@ export interface StoredActivity {
     tools: Array<{ name: string; app: string | null; ok: number; failed: number; refused: number; reasons: string[] }>;
     skills: Array<{ id: string; name: string; how: 'static' | 'activated' }>;
     toolCalls: number;
+    /** The run read text written outside the workspace; from then on it sent nothing to other people. */
+    readOutsideText?: boolean;
 }
 
 type ToolDef = { function?: { name?: unknown } | null } | null | undefined;
+type ToolAppOf = (tool: ToolDef) => string | null | undefined;
 
 function defaultAppOf(toolName: string): string | null {
     try {
@@ -73,22 +88,43 @@ function defaultAppOf(toolName: string): string | null {
     }
 }
 
-export function createRunActivity({ toolCeiling = null, appOf = defaultAppOf }: { toolCeiling?: string[] | null; appOf?: (toolName: string) => string | null } = {}): CoworkRunContext {
+export function createRunActivity({ toolCeiling = null, appCeiling = null, toolAppOf, appOf = defaultAppOf, startsWithOutsideText = false }: {
+    toolCeiling?: string[] | null;
+    appCeiling?: string[] | null;
+    toolAppOf?: ToolAppOf;
+    appOf?: (toolName: string) => string | null;
+    /** An event started the run with its data in the prompt (./eventRun.mts): it read outside text before its first step. */
+    startsWithOutsideText?: boolean;
+} = {}): CoworkRunContext {
     return {
         kind: 'cowork_run',
         toolCeiling: Array.isArray(toolCeiling) ? toolCeiling.filter((n) => typeof n === 'string') : null,
+        appCeiling: Array.isArray(appCeiling) ? appCeiling.filter((n) => typeof n === 'string') : null,
+        ...(toolAppOf ? { toolAppOf } : {}),
         tools: new Map(),
         staticSkills: new Set(),
         activatedSkills: new Set(),
         offered: new Set(),
         review: null,
+        outcome: null,
         appOf,
+        outsideText: { ...createOutsideTextMark(), seen: startsWithOutsideText },
     };
 }
 
 /** The run context of a Cowork run on a turn's message metadata, or undefined for any other turn. */
 export function coworkRunOf(messageMetadata: Record<string, unknown> | null | undefined): unknown {
     return messageMetadata ? messageMetadata.coworkRun : undefined;
+}
+
+/**
+ * The outside-text rule for one call of a Cowork run (./outsideTextGuard.mts): the sentence the model reads when the
+ * call is held, else null. Not a Cowork run, or a run a new mail started (its own allow-list): never held here.
+ */
+export function outsideTextRefusal(ctx: unknown, toolName: string, { mailRun = false }: { mailRun?: boolean } = {}): string | null {
+    if (!isRunActivity(ctx) || mailRun) return null;
+    if (!ctx.outsideText) ctx.outsideText = createOutsideTextMark();
+    return holdCall(ctx.outsideText, toolName);
 }
 
 export function isRunActivity(ctx: unknown): ctx is CoworkRunContext {
@@ -157,13 +193,28 @@ export function offeredToolNames(ctx: CoworkRunContext): string[] {
 }
 
 /**
- * A follow-up run is never offered a tool its original run was not: everything outside the ceiling is taken out.
- * The review tool stays (a follow-up may ask again). No ceiling (an ordinary run): the list as given.
+ * What a Cowork run is offered. A tool of an app the organisation does not let run while nobody watches is taken out
+ * (./runApps.mts). A follow-up run is never offered a tool its original run was not: everything outside the ceiling is
+ * taken out, and the review tool stays (a follow-up may ask again). No ceilings (an ordinary run): the list as given.
  */
 export function applyToolCeiling<T extends ToolDef>(ctx: unknown, tools: T[]): T[] {
-    if (!isRunActivity(ctx) || !ctx.toolCeiling || !Array.isArray(tools)) return tools;
-    const allowed = new Set([...ctx.toolCeiling, REVIEW_TOOL_NAME]);
-    return tools.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
+    if (!isRunActivity(ctx) || !Array.isArray(tools)) return tools;
+    const within = withinApps(tools, ctx.appCeiling, ctx.toolAppOf);
+    if (!ctx.toolCeiling) return within;
+    const allowed = new Set([...ctx.toolCeiling, REVIEW_TOOL_NAME, OUTCOME_TOOL_NAME]);
+    return within.filter((t) => typeof t?.function?.name === 'string' && allowed.has(t.function.name as string));
+}
+
+export const CEILING_REFUSAL = 'This tool is not open to this Cowork run (its organisation does not let that app run while nobody watches, or a follow-up keeps to what its run was offered), so it was not called.';
+
+/**
+ * The same ceilings at the moment of a call, for a name the model calls without having been offered it (an agent
+ * without stored tool grants lets such a name through to the dispatcher). Null when the call may go on.
+ */
+export function ceilingRefusal(ctx: unknown, toolName: string): string | null {
+    if (!isRunActivity(ctx)) return null;
+    const tool = { function: { name: toolName } };
+    return applyToolCeiling(ctx, [tool]).length === 0 ? CEILING_REFUSAL : null;
 }
 
 /** Every skill id the run noted (static and activated), for the one lookup of their names. */
@@ -188,5 +239,5 @@ export function summariseActivity(ctx: CoworkRunContext, skillNames: Map<string,
         if (name) skills.push({ id, name: name.slice(0, 200), how: 'activated' });
     }
     const toolCalls = tools.reduce((n, t) => n + t.ok + t.failed + t.refused, 0);
-    return { tools, skills, toolCalls };
+    return { tools, skills, toolCalls, ...(ctx.outsideText?.seen ? { readOutsideText: true } : {}) };
 }

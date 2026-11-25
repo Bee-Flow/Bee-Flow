@@ -14,26 +14,21 @@
 
 'use strict';
 
-const { test, before, after } = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert');
+const { coworkStoreOnPglite } = require('./coworkStore.testkit');
 
-process.env.NODE_ENV = 'test';
-
-const { usePglitePool } = require('../testUtils/pglitePool');
-
-const { pg, close } = usePglitePool();
-const store = require('./coworkStore');
+const { pg, store } = coworkStoreOnPglite();
+const triggerStore = require('./coworkTriggerStore');
 
 const USER = 'u-review';
 /** @type {string} */
 let scheduleId;
 
 before(async () => {
-    await store.initDB();
     const s = await store.createSchedule({ userId: USER, title: 'Mail desk', prompt: 'Answer new mail.', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString(), agentId: 'agent-1' });
     scheduleId = /** @type {{ id: string }} */ (s).id;
 });
-after(close);
 
 const REVIEW = { reason: 'The discount is not agreed.', question: 'Which discount applies?', summary: 'Read the mail.' };
 const ACTIVITY = { tools: [{ name: 'outlook_create_draft', app: 'outlook', ok: 0, failed: 0, refused: 1, reasons: ['privacy_shield'] }], skills: [{ id: 's1', name: 'Tone', how: 'static' }], toolCalls: 1 };
@@ -41,10 +36,14 @@ const CONTEXT = { mail: { provider: 'outlook', messageId: 'm1', threadId: 't1', 
 
 /** @type {string} */
 let reviewRunId;
+/** @type {string} */
+let followUpRunId;
 
 test('a run that asked for a review closes as needs_review, on its own row, with what it did', async () => {
     reviewRunId = /** @type {string} */ (await store.markRunning(scheduleId));
-    const laterRun = /** @type {string} */ (await store.markRunning(scheduleId));
+    // A second run on the same item while the first is busy: a run started by a mail. markRunning itself is one
+    // claim per item (./coworkStore.claim.pg.test.js), so the overlap is opened the way it really happens.
+    const laterRun = /** @type {string} */ (await triggerStore.claimEventRun({ scheduleId, userId: USER, triggerRef: 'mail-overlap-1' }));
     await store.markCompleted(scheduleId, 'Waiting for your decision.', {
         runId: reviewRunId, review: REVIEW, activity: ACTIVITY, conversationId: 'conv-1', runContext: CONTEXT, mailSubject: 'Offer Q3',
     });
@@ -75,6 +74,7 @@ test('the run context of a run is there for the follow-up, and only for its own 
 test('an answer resolves the review once and opens the follow-up in the same conversation, one step deeper', async () => {
     const res = await store.resolveReview({ scheduleId, runId: reviewRunId, userId: USER, resolution: 'answered', followUp: true });
     assert.ok(res?.followUpRunId);
+    followUpRunId = /** @type {string} */ (res?.followUpRunId);
     assert.strictEqual(res?.run?.review?.resolution, 'answered');
     assert.strictEqual(res?.run?.review?.resolvedBy, USER);
     assert.ok(res?.run?.review?.resolvedAt);
@@ -88,6 +88,9 @@ test('an answer resolves the review once and opens the follow-up in the same con
 });
 
 test('closing without a follow-up records how, and a run that is not waiting cannot be resolved', async () => {
+    // The follow-up of the answer above finishes first: while it holds the item, no other run is claimed.
+    assert.strictEqual(await store.markRunning(scheduleId), null);
+    await store.markCompleted(scheduleId, 'Answered.', { runId: followUpRunId });
     const runId = /** @type {string} */ (await store.markRunning(scheduleId));
     await store.markCompleted(scheduleId, 'Waiting.', { runId, review: { reason: 'x', question: null, summary: null } });
     const res = await store.resolveReview({ scheduleId, runId, userId: USER, resolution: 'done_myself', followUp: false });
@@ -103,4 +106,32 @@ test('a failed run closes its own row with its activity', async () => {
     await store.markError(scheduleId, new Error('model down'), { runId, activity: ACTIVITY, conversationId: 'conv-9' });
     const run = (await store.listRuns(scheduleId)).find((r) => r?.id === runId);
     assert.deepStrictEqual([run?.status, run?.error, run?.conversationId, run?.activity?.toolCalls], ['error', 'model down', 'conv-9', 1]);
+});
+
+test('the runs waiting for their owner: an unhandled review and a plan run waiting for a decision, only the owner\'s own', async () => {
+    const s = await store.createSchedule({ userId: 'u-needs', title: 'Waits', prompt: 'P', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const review = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Look at this.', { runId: review, review: { reason: 'Two invoices look the same.' } });
+    const waiting = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Waiting.', { runId: waiting, waiting: true });
+    const plain = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Done.', { runId: plain });
+    const list = await store.listRunsWaitingForOwner('u-needs');
+    assert.deepStrictEqual(list.map((r) => [r.runId, r.status]).sort(), [[review, 'needs_review'], [waiting, 'waiting']].sort());
+    assert.strictEqual(list.find((r) => r.runId === review)?.reason, 'Two invoices look the same.');
+    assert.deepStrictEqual(await store.listRunsWaitingForOwner('someone-else'), []);
+});
+
+test('the owner\'s runs of a day, newest first with their item\'s title; another day and another person are not in it', async () => {
+    const s = await store.createSchedule({ userId: 'u-today', title: 'Daily digest', prompt: 'P', repeatInterval: 'daily', nextRunAt: new Date(Date.now() + 86_400_000).toISOString() });
+    const first = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await store.markCompleted(s.id, 'Done.', { runId: first });
+    const second = /** @type {string} */ (await store.markRunning(s.id, { triggerKind: 'manual' }));
+    await pg.query(`UPDATE cowork_runs SET started_at = started_at + interval '1 second' WHERE id = $1`, [second]);
+    const from = new Date(Date.now() - 3_600_000).toISOString();
+    const to = new Date(Date.now() + 3_600_000).toISOString();
+    const day = await store.listRunsBetween('u-today', from, to);
+    assert.deepStrictEqual(day.map((r) => [r.runId, r.title]), [[second, 'Daily digest'], [first, 'Daily digest']]);
+    assert.deepStrictEqual(await store.listRunsBetween('u-today', to, new Date(Date.now() + 7_200_000).toISOString()), []);
+    assert.deepStrictEqual(await store.listRunsBetween('someone-else', from, to), []);
 });

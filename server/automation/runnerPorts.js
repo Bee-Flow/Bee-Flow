@@ -59,6 +59,8 @@ registerRunnerPorts({
         /** @type {typeof import('./codeSandbox').isAvailable} */ isAvailable: (...args) => codeSandbox().isAvailable(...args),
         /** @type {typeof import('./codeSandbox').loadError} */ loadError: (...args) => codeSandbox().loadError(...args),
         /** @type {typeof import('./codeSandbox').runCode} */ runCode: (...args) => codeSandbox().runCode(...args),
+        // A Cowork plan's script: in a child process of its own, with no bridges (./codeSandboxProcess.js).
+        /** @type {typeof import('./codeSandboxProcess').runCodeIsolated} */ runCodeIsolated: (...args) => require('./codeSandboxProcess').runCodeIsolated(...args),
         /** @type {typeof import('./codeSandbox').defaultFetchHttp} */ defaultFetchHttp: (...args) => codeSandbox().defaultFetchHttp(...args),
         secretsNotConfiguredMessage: () => codeSandbox().SECRETS_NOT_CONFIGURED_MESSAGE,
     },

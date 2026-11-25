@@ -286,7 +286,7 @@ router.get('/approvals/:id', async (req, res) => {
     // not merely "holds a seat".
     let votes = null;
     let progress = null;
-    let canDecideNow = approval.status === 'pending' && approvalService.canDecide(approval, viewer);
+    let canDecideNow = approval.status === 'pending' && approvalService.canDecide(approval, viewer) && await approvalService.featureLetsDecide(approval, viewer.userId);
     if (approvalService.hasStages(approval) || approvalService.hasPanel(approval)) {
         const voteRows = await automationStore.getApprovalVotes(approval.id).catch((e) => fallback('routes/automation/approvals:anon#4', e, []));
         votes = voteRows.map(approvalService.voteSummary);

@@ -9,7 +9,7 @@ const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
 const { logAccessAudit } = require('./audit');
 const billingPorts = require('./billingPorts'); // the billing services install these: see billingPorts.js
-const { applyDefaultEncryptionTier } = require('../initialTier');
+const { applyNewOrganisationDefaults } = require('./newOrgDefaults');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
@@ -190,16 +190,9 @@ async function createOrganization(orgData, { autoGrantTrial = true } = {}) {
                 log.warn(`[UserStore] No subscription plans exist — new org '${id}' created WITHOUT a plan (unlimited until one is assigned). Run server/seed-plans.js or the default-org-plan migration.`);
             }
         } catch (e) { log.warn('[UserStore] Failed to auto-assign default plan:', e.message); }
-        // Encryption tier for the new org. AWAITED, and placed here on purpose:
-        // entitlement is resolved from the org's plan, so it has to run after the
-        // plan assignment above, and before the caller attaches the founding user
-        // — any write that beats it is written in plaintext. It narrows to 'none'
-        // on every failure and never throws, so org creation cannot fail on it.
-        try {
-            await applyDefaultEncryptionTier(id, { userStore: { updateOrganization, logAccessAudit } });
-        } catch (e) {
-            log.error('[UserStore] initial encryption tier could not be applied:', e.message);
-        }
+        // The encryption tier and Cowork's shield (./newOrgDefaults.js). AWAITED, and placed here on purpose: after
+        // the plan assignment above, before the caller attaches the founding user. Never throws.
+        await applyNewOrganisationDefaults(id, { updateOrganization, logAccessAudit });
         // Fire-and-forget: if a global trial-offer plan is configured for orgs,
         // start the trial in Stripe asynchronously. Failure must not block org
         // creation; trialService swallows errors and logs warnings.

@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "cowork_resolver.need.ai_failed": "De AI zei dat de laatste run mislukt is.",
+    "cowork_resolver.need.incomplete": "Heeft de vorige keer zijn werk niet gedaan: een stap vond niets om aan te werken.",
+    "cowork_resolver.note.failed": "Dat lukte niet. Probeer het opnieuw.",
+    "cowork_resolver.note.fixed": "Vanzelf hersteld: stap '{step}' las het verkeerde veld.",
+    "cowork_resolver.note.undo": "Ongedaan maken",
+    "cowork_resolver.note.undoing": "Bezig met ongedaan maken…",
+    "cowork_resolver.policy.auto_fix": "Laat Cowork een kapotte verwijzing zelf herstellen",
+    "cowork_resolver.policy.auto_fix_desc": "Als een stap een lijst leest die er niet is, mag Cowork hem op de juiste lijst zetten: alleen die verwijzing verandert, met precies dezelfde rechten, nadat een herhaling van de run laat zien dat het werkt. De eigenaar ziet het en kan het met één klik ongedaan maken. Wordt meteen opgeslagen.",
+    "cowork_resolver.repair.reference": "Stap '{step}' vond niets om aan te werken. Er ligt een oplossing klaar.",
+    "cowork_resolver.status.incomplete": "Heeft zijn werk niet gedaan"
+  },
+  "sameAsEnglish": []
+}

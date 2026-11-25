@@ -27,11 +27,11 @@
  *     (core/privacy/piiDetection — block on degraded guard per piiFailureMode),
  *     never "shield unavailable ⇒ run unshielded".
  *
- * The consumer (executeTask's non-agent path + the effective state on the
- * Cowork API) lands separately; nothing in this release reads the flag into
- * behaviour yet. Turning it ON for new orgs is an explicit write at
- * org-creation time that ships together with the write UI — NOT a reader
- * default, which must stay off for the rollback story above.
+ * The consumer is executeTask's non-agent path (core/aiTaskRunner.js). A NEW
+ * organisation starts with the shield ON through an explicit write at
+ * creation (enableForNewOrganisation, stores/user/organizations.js); an
+ * organisation admin switches it (routes/coworkShieldSettings.js). The
+ * reader default stays off, for the rollback story above.
  */
 
 const configStore = require('../../stores/configStore');
@@ -92,13 +92,38 @@ async function isCoworkShieldEnabled(orgId) {
     return (await resolveCoworkShieldFlag(orgId)).enabled;
 }
 
-/** Drop the memoised value for an org (for the future settings route's save). */
+/** Drop the memoised value for an org (the settings route's save). */
 function invalidateCoworkShieldFlag(orgId) {
     _cache.delete(orgId);
 }
 
+/**
+ * An organisation admin's choice (routes/coworkShieldSettings.js): stored as an explicit row, so it is "configured"
+ * from then on.
+ * @param {string} orgId
+ * @param {boolean} enabled
+ */
+async function setCoworkShield(orgId, enabled) {
+    await configStore.setConfig(coworkShieldConfigKey(orgId), { enabled: enabled === true });
+    invalidateCoworkShieldFlag(orgId);
+}
+
+/**
+ * A NEW organisation starts with the shield ON (the explicit write at creation this module's header promised).
+ * Only when it has no row yet: an organisation that chose, or that predates the switch, keeps what it has.
+ * @param {string} orgId
+ */
+async function enableForNewOrganisation(orgId) {
+    if (!orgId) return;
+    const existing = await configStore.getConfig(coworkShieldConfigKey(orgId));
+    if (existing !== null && existing !== undefined) return;
+    await setCoworkShield(orgId, true);
+}
+
 module.exports = {
     resolveCoworkShieldFlag,
+    setCoworkShield,
+    enableForNewOrganisation,
     isCoworkShieldEnabled,
     invalidateCoworkShieldFlag,
     normalizeCoworkShieldFlag,

@@ -5,6 +5,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { withQueryClient } from '@/test/queryWrapper';
 import CoworkComposer, { COWORK_PLACEHOLDER } from './CoworkComposer';
 
 /**
@@ -94,7 +95,7 @@ function setup(over = {}) {
         ...over,
     };
     delete props.coworkOver;
-    const utils = render(<CoworkComposer {...props} />);
+    const utils = render(withQueryClient(<CoworkComposer {...props} />));
     return { ...utils, props };
 }
 
@@ -139,9 +140,9 @@ describe('CoworkComposer — the box itself', () => {
 
     it('hands the caller\'s ref the textarea itself', () => {
         const ref = React.createRef();
-        render(
+        render(withQueryClient(
             <CoworkComposer value="" onChange={vi.fn()} onSubmit={vi.fn()} cowork={coworkStub()} textareaRef={ref} />,
-        );
+        ));
         expect(ref.current).toBe(screen.getByTestId('cowork-brief-input'));
     });
 
@@ -232,7 +233,7 @@ describe('CoworkComposer — the send button', () => {
         const uncaught = vi.fn();
         window.addEventListener('error', uncaught);
         try {
-            render(<CoworkComposer value="x" onChange={vi.fn()} cowork={coworkStub()} />);
+            render(withQueryClient(<CoworkComposer value="x" onChange={vi.fn()} cowork={coworkStub()} />));
             expect(() => fireEvent.click(send())).not.toThrow();
         } finally {
             window.removeEventListener('error', uncaught);
@@ -421,7 +422,7 @@ describe('CoworkComposer — the Apps picker', () => {
             const [value, setValue] = React.useState('Mail the team');
             return <CoworkComposer value={value} onChange={setValue} onSubmit={vi.fn()} cowork={coworkStub()} />;
         }
-        render(<Host />);
+        render(withQueryClient(<Host />));
         // Caret parked mid-brief, which is what React would restore to.
         const box = brief();
         box.focus();
@@ -556,7 +557,7 @@ describe('CoworkComposer — the caret after a seed', () => {
 
     it('moves the caret once, after a seed lands', async () => {
         const user = userEvent.setup();
-        render(<Host />);
+        render(withQueryClient(<Host />));
         moves.mockClear();
         await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
@@ -566,7 +567,7 @@ describe('CoworkComposer — the caret after a seed', () => {
     });
 
     it('does not move the caret on ordinary typing', () => {
-        render(<Host />);
+        render(withQueryClient(<Host />));
         moves.mockClear();
         fireEvent.change(brief(), { target: { value: 'Mail the team about' } });
         expect(moves).not.toHaveBeenCalled();
@@ -578,7 +579,7 @@ describe('CoworkComposer — the caret after a seed', () => {
         // The flag would then still be set at the NEXT keystroke, and the
         // caret would leap to the end in the middle of someone's sentence,
         // long after the app they picked.
-        render(<Host dropFirstChange />);
+        render(withQueryClient(<Host dropFirstChange />));
         await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         expect(brief().value).toBe('Mail the team');  // the host really dropped it

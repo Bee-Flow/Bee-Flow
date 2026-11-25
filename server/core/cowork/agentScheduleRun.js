@@ -16,7 +16,11 @@ const log = require('../../telemetry/log');
 const { extractCoverageTopics } = require('./coverageTopics');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { createRunActivity } = require('./runActivity.mts');
-const { rowIdOf, skillNamesOf, conversationForRun, runCloseOf, runNotification } = require('./agentRunRecord.mts');
+const { appsOfRun } = require('./runApps.mts');
+const { skillNamesOf, conversationForRun, runCloseOf, runNotification, startedOutside } = require('./agentRunRecord.mts');
+const { startRunDeadline } = require('./runDeadline.mts');
+const { claimAttempt } = require('./runClaim.mts');
+const { agentRoutinesAllowed } = require('./agentRoutinesGate.mts');
 
 /**
  * Execute a schedule as its agent: dispatch through the full agent runtime so
@@ -26,33 +30,40 @@ const { rowIdOf, skillNamesOf, conversationForRun, runCloseOf, runNotification }
  *
  * `trigger` marks a run started by an event (a new mail) rather than the clock: see EventRunTrigger.
  */
-async function executeAgentRun(task, { manual = false, store = require('../../stores/coworkStore'), trigger = /** @type {EventRunTrigger | null} */ (null) } = {}, deps) {
+async function executeAgentRun(task, { manual = false, store = require('../../stores/coworkStore'), trigger = /** @type {EventRunTrigger | null} */ (null), due = false, maxMs = /** @type {number | undefined} */ (undefined) } = {}, deps) {
     const { scheduleText, resolveUserSession, isRepeating, failRun, NOTIFICATION } = deps;
     const services = servicesOf(deps);
     const startTime = Date.now();
     log.info(`[AITaskRunner] Executing ${task.id} as agent ${task.agentId}`);
 
     // What the run does, in names and counts (./runActivity.mts); a follow-up carries the ceiling of the run it continues.
-    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null });
+    const coworkRun = createRunActivity({ toolCeiling: trigger?.toolCeiling ?? null, appCeiling: appsOfRun(task), startsWithOutsideText: trigger?.outsideText === true });
     /** @type {{ runId: string | null, agent: RuntimeAgent | null, conversationId: string | null, parts: ReturnType<typeof eventRunParts> | null }} */
     const run = { runId: trigger?.runId ?? null, agent: null, conversationId: null, parts: null };
+    // The time limit of this run (./runDeadline.mts): the agent runtime takes the signal and stops the turn on it.
+    const deadline = startRunDeadline(maxMs);
 
     try {
-        // coworkStore labels the row it opens with it; an event run's row was opened at the claim (coworkTriggerStore).
-        if (!trigger) run.runId = rowIdOf(await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' }));
+        // The claim (./runClaim.mts): refused when another attempt holds this schedule or (`due`, the tick) its
+        // moment was already run; nothing ran here then. An event run's row was opened at its own claim.
+        if (!trigger) {
+            const attempt = await claimAttempt(store, task, { manual, due });
+            if (!attempt) return;
+            run.runId = attempt.runId;
+        }
 
         const agent = await services.agentStore.getForRuntime(task.agentId);
         if (!agent) throw new Error(`Linked agent ${task.agentId} no longer exists`);
         run.agent = agent;
         if (!(await services.canRunAgent(agent, task.userId))) throw new Error('Schedule agent is no longer available to this user — refusing to run');
-        if (!(await agentRoutinesAllowed(task, agent, store, run.runId))) {
+        if (!(await agentRoutinesAllowed(task, agent, store, { runId: run.runId, eventRun: !!trigger, orgHasBetaFeature: services.orgHasBetaFeature }))) {
             if (trigger) await store.markError(task.id, 'agent_routines unavailable', { runId: run.runId }); // an event is not retried: close its row
             return;
         }
 
         const userAuth = await buildScheduleUserAuth(task, agent, resolveUserSession, services.buildUserAuth);
         run.parts = eventRunParts(task, scheduleText, trigger);
-        run.parts.extraMetadata = { ...run.parts.extraMetadata, coworkRun, conversationOrigin: 'cowork' };
+        run.parts.extraMetadata = { ...run.parts.extraMetadata, coworkRun, conversationOrigin: 'cowork', signal: deadline.signal };
         const thread = { ...task, conversationId: await conversationForRun(task, services.agentStore) };
         const { result, finalResponse: streamed, collected, replaced } = await runScheduleAgent(thread, agent, userAuth, run.parts, services.chatWithAgentStream);
         run.conversationId = result?.conversationId || task.conversationId || null;
@@ -73,26 +84,22 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             finalResponse = `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd. Open de chat om de uitvoering te bekijken.)_`;
         }
 
+        // The AI said the run failed (`cowork_report_outcome`, ./outcomeTool.mts): a failed run with its reason; never better.
+        require('./outcomeTool.mts').throwIfFailed(coworkRun);
         const truncated = finalResponse.length > 50000
             ? finalResponse.substring(0, 50000) + '\n\n… (truncated)'
             : finalResponse;
 
         // Persist conversation id back onto the task so future runs append to
-        // the same chat thread.
-        if (result?.conversationId && result.conversationId !== task.conversationId) {
+        // the same chat thread. Not the conversation of a run a mail or an event
+        // started: its outside text would sit unmarked in the next run's context.
+        if (result?.conversationId && result.conversationId !== task.conversationId && !startedOutside(trigger)) {
             try { await store.updateTask(task.id, { conversationId: result.conversationId }); }
             catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun', err); /* non-fatal */ }
         }
 
-        await store.markCompleted(task.id, truncated, await runCloseOf(task, run, coworkRun, trigger, services.skillNames));
-        await storeScheduleCoverage(task, agent, truncated);
-
-        // The notification opens the run in Cowork, where its conversation, its activity and a review live.
-        try {
-            await services.notificationStore.createNotification(runNotification(task, agent, truncated, { trigger, review: coworkRun.review, shape: NOTIFICATION }));
-        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
-
-        // Schedule advance — same rules as legacy tasks; an event run touches neither the clock nor is_active.
+        // Schedule advance — same rules as legacy tasks; an event run touches neither the clock nor is_active. It comes
+        // BEFORE the row closes: once the item stops saying 'running', a tick must not find this moment still due.
         if (trigger) {
             log.info(`[AITaskRunner] Event run for ${task.id} completed (${Date.now() - startTime}ms)`);
         } else if (isRepeating(task) && !manual) {
@@ -104,53 +111,45 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             await store.updateTask(task.id, { isActive: false });
             log.info(`[AITaskRunner] Schedule ${task.id} completed (one-time, ${Date.now() - startTime}ms)`);
         }
-    } catch (err) {
-        log.error(`[AITaskRunner] Schedule ${task.id} failed:`, /** @type {Error} */ (err).message);
-        if (!err?._terminationLogged) {
-            services.terminationStore.logTermination({
-                user_id: task.userId || null,
-                agent_id: task.agentId || null,
-                agent_name: task.title || null,
-                source: 'schedule',
-                conversation_id: task.conversationId || task.id || null,
-                duration_ms: Date.now() - startTime,
-                termination_type: 'error',
-                ...sanitizeError(err),
-            }).catch((e) => bestEffort('core/cowork/agentScheduleRun:executeAgentRun#3', e));
-        }
-        // An event run is never a one-off: a failure must not take the trigger off (failRun deactivates a failed one-off).
-        const close = await runCloseOf(task, run, coworkRun, trigger, services.skillNames).catch((e) => fallback('core/cowork/agentScheduleRun:executeAgentRun#4', e, { runId: run.runId }));
-        await failRun(task, err, { manual: manual || !!trigger, store, close: { ...close, review: null } });
+        await store.markCompleted(task.id, truncated, { ...await runCloseOf(task, run, coworkRun, trigger, services.skillNames), ...require('./outcomeTool.mts').outcomeClose(coworkRun) });
+        await storeScheduleCoverage(task, agent, truncated);
+
+        // The notification opens the run in Cowork, where its conversation, its activity and a review live.
+        try {
+            await services.notificationStore.createNotification(runNotification(task, agent, truncated, { trigger, review: coworkRun.review, shape: NOTIFICATION }));
+        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
+
+    } catch (caught) {
+        // A run stopped by its deadline surfaces as the runtime's abort error; the owner reads why it stopped.
+        await failAgentRun(task, deadline.reasonFor(caught), caught, { run, coworkRun, trigger, manual, store, startTime, services, failRun });
+    } finally {
+        deadline.clear();
     }
 }
 
 /**
- * Per-org beta-feature gate. The HTTP create/edit surfaces already refuse to
- * create schedules run as an agent without `agent_routines`, but an org that
- * *had* the feature enabled and later disabled it would keep firing
- * previously-scheduled schedules without this check. False when the run is
- * skipped: disabled (the run is marked as an error), or the feature service
- * degraded (FeatureServiceUnavailableError → don't burn the attempt; leave
- * the task to be retried on the next tick, 60s).
+ * A run as an agent that failed: write its termination row unless the runtime already did, close its own history row
+ * with what it did, and hand it to failRun (mark, move on, notify). `err` is what the owner reads; `caught` is what
+ * was thrown (an abort error, when the deadline passed).
  */
-async function agentRoutinesAllowed(task, agent, store, runId = /** @type {string | null} */ (null)) {
-    if (!agent.organization_id) return true;
-    try {
-        const { orgHasBetaFeature } = require('../entitlements/betaFeatures');
-        const allowed = await orgHasBetaFeature(agent.organization_id, 'agent_routines');
-        if (!allowed) {
-            await store.markError(task.id, 'agent_routines beta disabled for organisation', { runId });
-            log.info(`[AITaskRunner] skipped schedule ${task.id} — agent_routines disabled for org ${agent.organization_id}`);
-            return false;
-        }
-        return true;
-    } catch (e) {
-        if (e && /** @type {Error} */ (e).name === 'FeatureServiceUnavailableError') {
-            log.warn(`[AITaskRunner] beta lookup degraded — deferring schedule ${task.id}: ${/** @type {Error} */ (e).message}`);
-            return false; // markRunning already set; ticks pick it back up on retry
-        }
-        throw e;
+async function failAgentRun(task, reason, caught, { run, coworkRun, trigger, manual, store, startTime, services, failRun }) {
+    const err = /** @type {Error} */ (reason);
+    log.error(`[AITaskRunner] Schedule ${task.id} failed:`, err.message);
+    if (!(/** @type {{ _terminationLogged?: boolean } | null} */ (caught))?._terminationLogged) {
+        services.terminationStore.logTermination({
+            user_id: task.userId || null,
+            agent_id: task.agentId || null,
+            agent_name: task.title || null,
+            source: 'schedule',
+            conversation_id: task.conversationId || task.id || null,
+            duration_ms: Date.now() - startTime,
+            termination_type: 'error',
+            ...sanitizeError(err),
+        }).catch((e) => bestEffort('core/cowork/agentScheduleRun:failAgentRun', e));
     }
+    // An event run is never a one-off: a failure must not take the trigger off (failRun deactivates a failed one-off).
+    const close = await runCloseOf(task, run, coworkRun, trigger, services.skillNames).catch((e) => fallback('core/cowork/agentScheduleRun:failAgentRun#2', e, { runId: run.runId }));
+    await failRun(task, err, { manual: manual || !!trigger, store, close: { ...close, review: null, ...require('./outcomeTool.mts').outcomeClose(coworkRun, err) } });
 }
 
 /**
@@ -212,6 +211,8 @@ function servicesOf(deps) {
         chatWithAgentStream: own.chatWithAgentStream || require('../agentRuntime').chatWithAgentStream,
         buildUserAuth: own.buildUserAuth || require('../../auth/automationAuth').buildUserAuth,
         canRunAgent: own.canRunAgent || require('./coworkAgentAccess.mts').canRunCoworkAgent,
+        // Undefined unless handed in: agentRoutinesAllowed then reads the entitlement service itself.
+        orgHasBetaFeature: own.orgHasBetaFeature,
         skillNames: own.skillNames || skillNamesOf,
     };
 }
@@ -370,7 +371,8 @@ module.exports = { executeAgentRun };
  * (usecases/coworkReview.mts): the prompt to run (the schedule's text plus the event as marked data, or the reviewer's
  * answer), the extra message metadata (`unattended`, `mailTrigger`), and how its notification reads. Its history row
  * is already open: `runId` names it. A follow-up also carries `toolCeiling`, the tool names the run it continues was
- * offered, and a mail run the subject for the review queue.
+ * offered, and a mail run the subject for the review queue. `outsideText`: the event's data is in the prompt
+ * (./eventRun.mts), so the run counts as one that read outside text from its first step.
  * @typedef {{
  *   prompt: string,
  *   scheduleText?: string,
@@ -379,6 +381,7 @@ module.exports = { executeAgentRun };
  *   runId?: string | null,
  *   toolCeiling?: string[] | null,
  *   mailSubject?: string | null,
+ *   outsideText?: boolean,
  * }} EventRunTrigger
  */
 
@@ -390,6 +393,6 @@ module.exports = { executeAgentRun };
  *   isRepeating: (task: ScheduleTask) => boolean,
  *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore'), close?: Record<string, unknown> }) => Promise<void>,
  *   NOTIFICATION: { category: string, link: string | null, prefix: string },
- *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any, canRunAgent?: (agent: any, userId: string) => Promise<boolean>, skillNames?: (ids: string[], orgId: string | null, userId: string) => Promise<Map<string, string>> },
+ *   services?: { agentStore?: any, notificationStore?: any, terminationStore?: any, chatWithAgentStream?: any, buildUserAuth?: any, canRunAgent?: (agent: any, userId: string) => Promise<boolean>, skillNames?: (ids: string[], orgId: string | null, userId: string) => Promise<Map<string, string>>, orgHasBetaFeature?: (orgId: string, feature: string) => Promise<boolean> },
  * }} AgentRunDeps
  */

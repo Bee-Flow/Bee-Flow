@@ -40,7 +40,7 @@ export const GENERATED_COURSES = [
     {
         id: "course-cowork", pathId: "everyday",
         titleKey: "learn.course.cowork.title", titleFallback: "Cowork: Delegate Your Work",
-        descKey: "learn.course.cowork.desc", descFallback: "Hand a job to Bee Flow once and have it run unattended — now, tonight, or every weekday morning.",
+        descKey: "learn.course.cowork.desc", descFallback: "Hand a job to Bee Flow in one sentence, check what it understood, approve its tested steps once, and let it run on its own.",
         icon: "🤝", level: "beginner", track: "power",
         lessonIds: ["cowork-basics","cowork-briefs","cowork-hands-on","cowork-run-as-agent"],
         prereqCourseIds: [],

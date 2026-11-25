@@ -110,7 +110,7 @@ describe('the Nextcloud and desktop entry points', () => {
         await bootAt(`${NC_ROOT}?ncStudioApp=not-an-id`);
     });
     it('?ncPath= swaps the address for the in-app path before the first render', async () => {
-        await bootAt('/?ncPath=%2Fapp%2Fcowork', { testId: 'cowork-welcome' });
+        await bootAt('/?ncPath=%2Fapp%2Fcowork', { testId: 'cowork-page' });
         await expectAt('/app/cowork');
     });
 
@@ -133,7 +133,7 @@ describe('the Nextcloud and desktop entry points', () => {
     });
     // A task is a Cowork item (the run notification links /app/cowork/<id>).
     it('beeflow://tasks/<id> → /app/tasks/<id> opens that Cowork item, at its own address', async () => {
-        await bootAt('/app/tasks/cw1', { testId: 'cowork-welcome' });
+        await bootAt('/app/tasks/cw1', { testId: 'cowork-page' });
         await expectAt('/app/cowork/cw1');
     });
     it('the forwarding address is not a history entry: Back from the target leaves the app page', async () => {

@@ -46,6 +46,14 @@ const ANSWERS: Record<string, unknown> = {
     '/api/reminders': [],
 };
 
+const WAITING = {
+    needs: [
+        { kind: 'decision', itemId: 's1', title: 'Invoice run', runId: 'cr1', since: STARTED, reason: null, plan: null },
+        { kind: 'plan', itemId: 's2', title: 'Offer drafts', runId: null, since: null, reason: null, plan: 'first' },
+    ],
+    count: 2,
+};
+
 // Mutations too are kept forever: a finished mutation's default five-minute
 // garbage-collection timer would otherwise hold the test worker open.
 const client = () =>
@@ -83,6 +91,15 @@ describe('CoworkHubScreen', () => {
             'Everything else',
             'Recent activity',
         ]) {
+            expect(screen.getByText(text)).toBeTruthy();
+        }
+    });
+
+    it('puts what of the owner\'s Cowork work waits for them right under the notices', async () => {
+        (api.get as jest.Mock).mockImplementation((path: string) => Promise.resolve(path === '/api/cowork/needs-you' ? WAITING : (ANSWERS[path] ?? null)));
+        await draw();
+        expect(await screen.findByText('Waiting for you')).toBeTruthy();
+        for (const text of ['Invoice run', 'A step waits for your decision.', 'Offer drafts', 'Its plan waits for your approval.']) {
             expect(screen.getByText(text)).toBeTruthy();
         }
     });

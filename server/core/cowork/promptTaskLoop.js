@@ -10,6 +10,7 @@
  * from the server's stores.
  */
 const log = require('../../telemetry/log');
+const { createOutsideTextMark, holdCall } = require('./outsideTextGuard.mts');
 
 // Schedules that fan out across several topics (news digests, multi-source
 // research) routinely chain 6-8 tool calls before producing a final answer.
@@ -51,13 +52,24 @@ function toolCallMessage(response) {
 }
 
 /**
+ * Stop a run whose signal aborted (its deadline passed, ./runDeadline.mts):
+ * throws the reason the signal was aborted with.
+ * @param {AbortSignal | undefined} signal
+ */
+function stopIfAborted(signal) {
+    if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error('The run was stopped');
+}
+
+/**
  * Execute one round's tool calls in order, pushing a `tool` message for each.
  * A call the shield refuses is never dispatched.
  * @param {LoopToolCall[]} toolCalls
- * @param {{ messages: object[], shieldGate: ShieldGate, dispatchTool: DispatchTool }} opts
+ * @param {{ messages: object[], shieldGate: ShieldGate, dispatchTool: DispatchTool, signal?: AbortSignal, outsideText?: import('./outsideTextGuard.mts').OutsideTextMark }} opts
  */
-async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
+async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool, signal, outsideText }) {
     for (const tc of toolCalls) {
+        // Past the run's deadline no further tool call starts.
+        stopIfAborted(signal);
         const toolName = tc.function.name;
         let toolArgs;
         try {
@@ -69,6 +81,13 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
         }
 
         log.info(`[AITaskRunner]   Tool call: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
+
+        // Once the run read outside text it sends nothing more (./outsideTextGuard.mts).
+        const held = outsideText ? holdCall(outsideText, toolName) : null;
+        if (held) {
+            messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ error: held }) });
+            continue;
+        }
 
         const refusal = await shieldGate.refuse(toolName, toolArgs);
         if (refusal) {
@@ -110,20 +129,27 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
  *   dispatchTool: DispatchTool,
  *   logTermination: (type: string) => unknown,
  *   run: { lastIter?: number },
+ *   signal?: AbortSignal,
  * }} opts
  */
-async function runPromptToolLoop({ adapter, config, modelId, messages, tools, tierDefaults, usageAcc, shieldGate, dispatchTool, logTermination, run }) {
+async function runPromptToolLoop({ adapter, config, modelId, messages, tools, tierDefaults, usageAcc, shieldGate, dispatchTool, logTermination, run, signal }) {
     let finalResponse = '';
     let lastAssistantContent = ''; // tracks any non-empty assistant text seen across iterations
     let hitIterationCap = true;    // flipped to false if the loop exits via `break`
+    // Whether this run has read outside text: from then on it sends nothing to other people (./outsideTextGuard.mts).
+    const outsideText = createOutsideTextMark();
 
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
         run.lastIter = iter + 1;
+        // Past the run's deadline no further model round starts, and the
+        // adapter cancels the call in flight on the same signal.
+        stopIfAborted(signal);
         const response = await adapter.chat(config.apiKey, config.url, modelId, messages, {
             maxTokens: tierDefaults.maxTokens,
             temperature: tierDefaults.temperature ?? 0.7,
             tools: tools.length > 0 ? tools : undefined,
             toolChoice: tools.length > 0 ? 'auto' : undefined,
+            signal,
         });
         // adapter.chat returns normalised usage (non-stream Claude/Gemini
         // included); the accumulator also accepts a raw provider block.
@@ -143,7 +169,7 @@ async function runPromptToolLoop({ adapter, config, modelId, messages, tools, ti
         // Handle tool calls if present
         if (response.toolCalls && response.toolCalls.length > 0) {
             messages.push(toolCallMessage(response));
-            await runToolCalls(response.toolCalls, { messages, shieldGate, dispatchTool });
+            await runToolCalls(response.toolCalls, { messages, shieldGate, dispatchTool, signal, outsideText });
             // Continue the loop to let the model process tool results
             continue;
         }
@@ -156,4 +182,30 @@ async function runPromptToolLoop({ adapter, config, modelId, messages, tools, ti
     return { finalResponse, lastAssistantContent, hitIterationCap };
 }
 
-module.exports = { runPromptToolLoop, MAX_TOOL_ITERATIONS };
+/**
+ * The result text of a plain-prompt run: never empty, at most 50,000 chars.
+ * @param {{ id: string }} task
+ * @param {{ finalResponse: string, lastAssistantContent: string, hitIterationCap: boolean }} loop
+ * @param {{ messages: unknown[], tools: unknown[] }} prep
+ */
+function promptRunOutcome(task, { finalResponse, lastAssistantContent, hitIterationCap }, { messages, tools }) {
+    if (!finalResponse || !finalResponse.trim()) {
+        log.warn(`[AITaskRunner] Schedule ${task.id} produced no outcome text. ` +
+            `hitIterationCap=${hitIterationCap}, ` +
+            `messages=${messages.length}, ` +
+            `tools=${tools.length}, ` +
+            `lastInterim=${lastAssistantContent.length} chars`);
+        finalResponse = hitIterationCap
+            ? `_(Deze cowork bereikte de limiet van ${MAX_TOOL_ITERATIONS} tool-aanroepen voordat een eindresultaat werd geproduceerd. Splits de prompt op of koppel een agent met grotere context.)_`
+            : `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_`;
+    }
+
+    // Truncate if needed (safety net — ignore task.maxResultLength since DB defaults to 2000)
+    const maxLen = 50000;
+    if (finalResponse.length > maxLen) {
+        finalResponse = finalResponse.substring(0, maxLen) + '\n\n… (truncated)';
+    }
+    return finalResponse;
+}
+
+module.exports = { runPromptToolLoop, promptRunOutcome, MAX_TOOL_ITERATIONS };

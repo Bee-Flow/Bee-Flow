@@ -114,7 +114,7 @@ beforeEach(() => {
 describe('OrganisationSection — which section renders what', () => {
     it('shows OrgInfoPanel for every id in the shared SECTIONS list, and passes the id straight through', () => {
         expect(INFO_SECTIONS.map(s => s.id)).toEqual([
-            'license', 'auth', 'privacy', 'encryption', 'ai_context', 'integration_cache', 'info',
+            'license', 'auth', 'privacy', 'encryption', 'ai_context', 'integration_cache', 'cowork', 'info',
         ]);
         for (const { id } of INFO_SECTIONS) {
             cleanup();

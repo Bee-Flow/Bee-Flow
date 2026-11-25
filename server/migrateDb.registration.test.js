@@ -101,6 +101,8 @@ const EXEMPT = new Map([
     // Lazy DDL modules the owning store calls from its own init (they lived in migrations/
     // until 2026-10; they are in no boot ladder and no ledger): the store is the registered owner.
     ['stores/ddl/cowork-2026-08.js', 'DDL-module van coworkStore, door die store zelf aangeroepen'],
+    ['stores/ddl/cowork-plans-2026-11.js', 'DDL module of coworkStore (Cowork plans), applied by that store itself'],
+    ['stores/ddl/cowork-templates-2026-11.js', 'DDL module of stores/coworkTemplates.mts (Cowork templates), applied by that store itself (ladder)'],
     ['stores/ddl/integration-connections-2026-06.js', 'DDL-module van integrationConnectionStore, door die store zelf aangeroepen'],
     ['stores/ddl/integration-response-cache-2026-09.js', 'DDL-module van integrationCacheStore, door die store zelf aangeroepen'],
     ['stores/ddl/org-custom-integrations-2026-06.js', 'DDL-module van orgCustomIntegrationStore, door die store zelf aangeroepen'],

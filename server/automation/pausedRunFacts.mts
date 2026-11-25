@@ -136,13 +136,15 @@ export async function pendingApprovalFor(run: Row | null | undefined, viewer: Ap
     const approval = await store.getApprovalForRunStep(runId, stepId, { pendingOnly: true });
     if (!approval) return null;
     const { canDecide } = nodeRequire('./approvalRulebook') as { canDecide: (a: Row, v: ApprovalViewer | null) => boolean };
+    const { featureLetsDecide } = nodeRequire('./approvalService') as { featureLetsDecide: (a: Row, userId: string) => Promise<boolean> };
     const profile = profileView(run);
     return {
         approvalId: String(approval.id),
         prompt: typeof approval.prompt === 'string' ? approval.prompt : '',
         detailsMd: str(approval.detailsMd),
         fields: Array.isArray(approval.fields) ? approval.fields : [],
-        canDecide: !!viewer && canDecide(approval, viewer),
+        // The rulebook, and the feature that started the journey (Cowork: only the owner or the CURRENT approver).
+        canDecide: !!viewer && canDecide(approval, viewer) && await featureLetsDecide(approval, viewer.userId),
         waitingOn: waitingOnOf(approval),
         isTest: typeof approval.isTest === 'boolean' ? approval.isTest : profile?.kind !== 'production',
     };

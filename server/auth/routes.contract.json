@@ -180,6 +180,24 @@
     "DELETE /api/cowork/:id": {
       "gate": "auth"
     },
+    "DELETE /api/cowork/:id/goal": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/desks/:id": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/desks/:id/members/:scheduleId": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/desks/:id/members/:scheduleId/hand-off": {
+      "gate": "auth"
+    },
+    "DELETE /api/cowork/templates/:id": {
+      "gate": "auth"
+    },
     "DELETE /api/datatables/:id": {
       "gate": "permission",
       "anyOf": [
@@ -1808,13 +1826,121 @@
     "GET /api/cowork/:id": {
       "gate": "auth"
     },
+    "GET /api/cowork/:id/audit": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/desk": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/goal": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/hand-over/colleagues": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/memory": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan/independence": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan/replay/:replayId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan/trust": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan/try/:tryId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/plan/try/:tryId/compare": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/proposals": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/receipts": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/routine": {
+      "gate": "auth"
+    },
     "GET /api/cowork/:id/runs": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/runs/:runId/receipt": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/runs/:runId/trace": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/shares": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/:id/start": {
       "gate": "auth"
     },
     "GET /api/cowork/:id/stats": {
       "gate": "auth"
     },
+    "GET /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/desks": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/desks/:id": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/habits": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/home": {
+      "gate": "auth"
+    },
     "GET /api/cowork/mail-providers": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/needs-you": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/:orgId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/:orgId/audit": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/mine": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/mine/org": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/policy/mine/receipts-audit": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/receipts/key": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/shared": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/shared/:id": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/shield/:orgId": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/templates": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/templates/:id": {
+      "gate": "auth"
+    },
+    "GET /api/cowork/templates/:id/package": {
       "gate": "auth"
     },
     "GET /api/datatables": {
@@ -5178,16 +5304,89 @@
     "POST /api/cowork": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/goal/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/goal/check": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/hand-over": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/memory/clear": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/memory/restore": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/fix-wiring": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/make": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/replay": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/restore": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/plan/try": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/proposals/:proposalId/approve": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/:id/proposals/:proposalId/dismiss": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/run-now": {
       "gate": "auth"
     },
     "POST /api/cowork/:id/runs/:runId/review": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/save-as-template": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/toggle": {
       "gate": "auth"
     },
     "POST /api/cowork/compose": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members/:scheduleId/accept": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/:id/members/:scheduleId/hand-off": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/helper/apply": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/desks/helper/draft": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/hooks": {
+      "gate": "handler",
+      "via": "mount"
+    },
+    "POST /api/cowork/packages/add": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/packages/preview": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/templates/:id/use": {
       "gate": "auth"
     },
     "POST /api/csp-report": {
@@ -7327,6 +7526,45 @@
       ]
     },
     "PUT /api/cowork/:id": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/goal": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan/independence": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/plan/trust": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/setup": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/shares": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/:id/start": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/daily-mail": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/desks/:id/members/:scheduleId": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/desks/:id/roles": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/habits": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/policy/:orgId": {
+      "gate": "auth"
+    },
+    "PUT /api/cowork/shield/:orgId": {
       "gate": "auth"
     },
     "PUT /api/datatables/:id/nextcloud": {

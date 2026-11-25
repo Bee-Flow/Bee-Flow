@@ -32,6 +32,8 @@ const USER_COLUMNS = Object.freeze([
     // A personal knowledge base is keyed by its creator; support threads,
     // notification events and app view logs name the person they concern.
     'tenant_id', 'requester_user_id', 'recipient_user_id', 'viewer_user_id',
+    // A role on a Cowork desk names who holds it and who stands in.
+    'holder_id', 'stand_in_id',
 ]);
 
 /**

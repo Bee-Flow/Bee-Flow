@@ -14,20 +14,135 @@
  */
 
 const coworkStore = require('../../stores/coworkStore');
-const { executeTask } = require('../aiTaskRunner');
+const { executeTask, failRun } = require('../aiTaskRunner');
+const { claimAttempt } = require('./runClaim.mts');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { runMaxMs } = require('./runDeadline.mts');
+const { isRepeating } = require('./runShared.mts');
+const { heldForSetup, briefWithRecipients } = require('./taskSetup.mts');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
 
 /**
- * Run one schedule now. `manual` leaves next_run_at alone.
- * @param {Parameters<typeof executeTask>[0]} schedule
- * @param {{ manual?: boolean }} [opts]
+ * A run the organisation's policy stopped: a row of its own that fails with the reason, so the schedule moves on and
+ * the owner sees why. A mail run already holds its row (`runId`).
+ * @param {Parameters<typeof executeTask>[0]} task
+ * @param {string} reason
+ * @param {{ manual: boolean, due: boolean, runId: string | null, quiet?: boolean }} opts
  */
-async function executeCowork(schedule, { manual = false } = {}) {
-    return executeTask(schedule, { manual, store: coworkStore });
+async function refuseTask(task, reason, { manual, due, runId, quiet = false }) {
+    // A run that holds its own row (a mail, an event, a follow-up) is not the item's moment: refusing it neither moves
+    // the clock nor switches a one-off item off. Already told this month: its row closes without a second notice.
+    if (runId && quiet) return coworkStore.markError(task.id, reason, { runId });
+    const attempt = runId ? { runId } : await claimAttempt(coworkStore, task, { manual, due });
+    // failRun is untyped JavaScript; this is the shape its `close` option takes.
+    const fail = /** @type {(t: typeof task, e: Error, o: { manual: boolean, store: typeof coworkStore, close: { runId: string | null } }) => Promise<unknown>} */ (/** @type {unknown} */ (failRun));
+    if (attempt) await fail(task, new Error(reason), { manual: manual || !!runId, store: coworkStore, close: { runId: attempt.runId } });
+}
+
+/**
+ * @typedef {{ policyOf?: (userId: string) => Promise<import('../entitlements/coworkPolicy.mts').CoworkPolicy>, budgetRefusal?: (task: Parameters<typeof executeTask>[0]) => Promise<string | null>, orgRefusal?: (task: Parameters<typeof executeTask>[0], budget: number | null) => Promise<{ reason: string, quiet: boolean } | null>, executeTask?: typeof executeTask }} StartDeps
+ */
+
+/**
+ * What stops this start, in order: the organisation's policy (read-only, unreadable), its monthly budget and
+ * subscription limits (./orgBudget.mts, told once and then quiet), the item's own budget (./runBudget.mts, at which
+ * the item pauses itself).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {StartDeps} deps
+ * @returns {Promise<{ ownerPolicy: import('../entitlements/coworkPolicy.mts').CoworkPolicy, refusal: string | null, quiet: boolean }>}
+ */
+async function startRefusal(schedule, deps) {
+    const policy = require('../entitlements/coworkPolicy.mts');
+    const ownerPolicy = await (deps.policyOf || policy.policyOfOwner)(schedule.userId);
+    const policyRefusal = policy.runRefusalOf(ownerPolicy);
+    if (policyRefusal) return { ownerPolicy, refusal: policyRefusal, quiet: false };
+    const org = await (deps.orgRefusal || require('./orgBudget.mts').orgBudgetRefusal)(schedule, ownerPolicy.monthlyBudget ?? null);
+    if (org) return { ownerPolicy, refusal: org.reason, quiet: org.quiet };
+    return { ownerPolicy, refusal: await (deps.budgetRefusal || require('./runBudget.mts').budgetRefusal)(schedule), quiet: false };
+}
+
+/**
+ * Say that a run ended (./runEnded.mts): the items that start after this one hear it (./afterCowork.mts).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ */
+async function announceEnd(schedule) {
+    const starts = require('../../stores/coworkStarts.mts').coworkStarts();
+    const latest = await starts.latestRunId(schedule.id).catch((/** @type {unknown} */ e) => fallback('core/cowork/coworkRunner:latestRunId', e, null));
+    require('./runEnded.mts').runEnded(schedule, latest);
+}
+
+/**
+ * A task that waits for its owner (its steps are not set up or not approved, and they did not say the AI may do it,
+ * ./taskSetup.mts) does not start by itself. A repeating one moves on to its next moment, so it stays truthful about
+ * when it would run; a one-off keeps its moment (the tick does not read it, stores/coworkStore.js getDueSchedules);
+ * a run that holds its own row (an event, a follow-up) closes with the reason, quietly.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ due: boolean, runId: string | null }} how
+ */
+async function holdForSetup(schedule, { due, runId }) {
+    if (runId) return coworkStore.markError(schedule.id, 'This task waits for its owner: its steps are not approved yet.', { runId });
+    if (due && isRepeating(schedule)) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
+    return null;
+}
+
+/**
+ * Run one schedule now. `manual` leaves next_run_at alone. `due` is the tick's
+ * own: the run is for a moment that was due when the tick read it, and the
+ * claim then requires that it still is (two replicas read the same due row).
+ * `trigger`: a run a new mail started (./mailTriggerRun.mts) or a review's
+ * follow-up, which holds its row. Every start goes through here, so the
+ * organisation's policy and budgets are asked first (./startRefusal above).
+ * A refusal the owner already heard this month lets a due moment move on
+ * without a failed run.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ manual?: boolean, due?: boolean, trigger?: any }} [opts]
+ * @param {StartDeps} [deps]
+ */
+async function executeCowork(schedule, { manual = false, due = false, trigger = null } = {}, deps = {}) {
+    if (!manual && heldForSetup(schedule)) return holdForSetup(schedule, { due, runId: runIdOf(trigger) });
+    return startCowork(schedule, { manual, due, trigger }, deps);
+}
+
+/** The row a start holds for itself (an event, a follow-up), or null. @param {{ runId?: string | null } | null} trigger */
+const runIdOf = (trigger) => trigger?.runId ?? null;
+
+/**
+ * The task as a run reads it: with the apps it may use while nobody watches (./runApps.mts), so no runner reads the
+ * policy again, and with who its owner chose to send to as the last line of what the AI reads (./taskSetup.mts).
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {import('../entitlements/coworkPolicy.mts').CoworkPolicy} ownerPolicy
+ */
+function taskOfRun(schedule, ownerPolicy) {
+    const task = { ...schedule, unattendedApps: ownerPolicy.unattendedApps };
+    return typeof schedule.prompt === 'string' ? { ...task, prompt: briefWithRecipients(schedule.prompt, schedule.setup) } : task;
+}
+
+/**
+ * Start a schedule that does not wait for its owner: the policy and the budgets first, then the run.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ manual: boolean, due: boolean, trigger: any }} how
+ * @param {StartDeps} deps
+ */
+async function startCowork(schedule, { manual, due, trigger }, deps) {
+    const { ownerPolicy, refusal, quiet } = await startRefusal(schedule, deps);
+    const silent = quiet && due && !trigger && isRepeating(schedule);
+    if (silent) return coworkStore.advanceSchedule(schedule.id, schedule.nextRunAt, schedule.repeatInterval, schedule.daysOfWeek);
+    if (refusal) return refuseTask(schedule, refusal, { manual, due, runId: trigger?.runId ?? null, quiet });
+    await (deps.executeTask || executeTask)(taskOfRun(schedule, ownerPolicy), { manual, due, store: coworkStore, ...(trigger ? { trigger } : {}) });
+    await announceEnd(schedule);
+}
+
+/**
+ * How long a run may be open before the reaper closes it as interrupted: at
+ * least thirty minutes, and always ten minutes more than a run may take
+ * (./runDeadline.mts), so the reaper only ever closes what a stopped server
+ * left behind and never a run its own deadline is about to end.
+ */
+function staleAfterMs() {
+    return Math.max(30 * 60_000, runMaxMs() + 10 * 60_000);
 }
 
 async function processDueCowork() {
@@ -36,7 +151,7 @@ async function processDueCowork() {
         // an open history row behind, and getDueSchedules skips 'running' — so
         // without this sweep that schedule never runs again. Reaping before
         // the query means a wedged item recovers on the very next tick.
-        await coworkStore.reapStaleRuns().catch((e) => bestEffort('core/cowork/coworkRunner:processDueCowork', e));
+        await coworkStore.reapStaleRuns({ olderThanMs: staleAfterMs() }).catch((e) => bestEffort('core/cowork/coworkRunner:processDueCowork', e));
 
         const due = await coworkStore.getDueSchedules();
         if (due.length === 0) return;
@@ -45,7 +160,7 @@ async function processDueCowork() {
 
         for (let i = 0; i < due.length; i += MAX_CONCURRENT) {
             const batch = due.slice(i, i + MAX_CONCURRENT);
-            await Promise.allSettled(batch.map(s => executeCowork(s)));
+            await Promise.allSettled(batch.map(s => executeCowork(s, { due: true })));
         }
     } catch (err) {
         log.error('[CoworkRunner] Background checker error:', /** @type {Error} */ (err).message);
@@ -123,6 +238,8 @@ function start() {
         setTimeout(pruneOldRuns, 30_000),
     ];
     for (const timer of _timers) timer.unref?.();
+    // A plan run that waited for its owner's decision is closed when its journey ends (./planRunFollowUp.mts).
+    require('./planRunFollowUp.mts').start();
     log.info('[CoworkRunner] Background runner started (60s interval)');
     return true;
 }
@@ -132,12 +249,14 @@ function stop() {
     // clearTimeout cancels an interval as well: both are the same kind of handle.
     for (const timer of _timers || []) clearTimeout(timer);
     _timers = null;
+    require('./planRunFollowUp.mts').stop();
 }
 
 module.exports = {
     processDueCowork,
     executeCowork,
     pruneOldRuns,
+    staleAfterMs,
     start,
     stop,
     // Exposed so a settings/UI surface can state the real window instead of

@@ -42,11 +42,11 @@ export const OUTSIDE_READS: ReadonlySet<string> = new Set([
  * Tools that are not in the side-effect map but only work on what the run itself has: kept. `cowork_request_review`
  * (core/cowork/reviewTool.mts) only writes a review request onto the run's own history row.
  */
-export const RUN_LOCAL_TOOLS: ReadonlySet<string> = new Set(['kb_fetch', 'activate_skill', 'cowork_request_review']);
+export const RUN_LOCAL_TOOLS: ReadonlySet<string> = new Set(['kb_fetch', 'activate_skill', 'cowork_request_review', 'cowork_report_outcome']);
 
 /** Tools whose use does not take the run outside the triggering thread. */
 const THREAD_TOOLS: ReadonlySet<string> = new Set([
-    'activate_skill', 'cowork_request_review',
+    'activate_skill', 'cowork_request_review', 'cowork_report_outcome',
     ...Object.values(MAIL_APPS).flatMap((a) => [a.draft, a.reply]),
 ]);
 /** Mail reads that stay in the thread when what they read belongs to it. */

@@ -11,19 +11,44 @@
  * `/api/cowork` in server/index.js.
  */
 
-import { api } from '@/core/api/client';
+import { ApiError, api } from '@/core/api/client';
 import { nullable } from '@/core/api/contract';
 import { withId } from '@/shared/lib/withId';
 
-import { readComposed, readRuns, readSchedule, readSchedules } from './readers';
+import {
+    readComposed,
+    readNeeds,
+    readReceipt,
+    readGoalLine,
+    readRuns,
+    readSchedule,
+    readSchedules,
+    readShared,
+    readSharedView,
+} from './readers';
 import type { CoworkPayload } from '../model/schedule';
-import type { ComposedCowork, CoworkRun, CoworkSchedule } from '../model/types';
+import type {
+    ComposedCowork,
+    CoworkGoalLine,
+    CoworkNeed,
+    CoworkReceipt,
+    CoworkRun,
+    CoworkSchedule,
+    ReviewAction,
+    SharedItem,
+    SharedView,
+} from '../model/types';
 
 const path = (id: string) => `/api/cowork/${encodeURIComponent(id)}`;
 
 export async function listSchedules(signal?: AbortSignal): Promise<CoworkSchedule[]> {
     // An id-less row has no detail screen, no toggle and no delete — skip it.
     return withId(readSchedules(await api.get<unknown>('/api/cowork', { signal })));
+}
+
+/** Everything of the caller's Cowork work that waits for them, most urgent first. */
+export async function listNeedsYou(signal?: AbortSignal): Promise<CoworkNeed[]> {
+    return readNeeds(await api.get<unknown>('/api/cowork/needs-you', { signal }));
 }
 
 export async function getSchedule(id: string, signal?: AbortSignal): Promise<CoworkSchedule | null> {
@@ -68,4 +93,40 @@ export async function runNow(id: string): Promise<void> {
 
 export async function deleteSchedule(id: string): Promise<void> {
     await api.delete(path(id));
+}
+
+/** Someone else's work that is shared with the caller, as a viewer or as the one who decides its questions. */
+export async function listShared(signal?: AbortSignal): Promise<SharedItem[]> {
+    return readShared(await api.get<unknown>('/api/cowork/shared', { signal }));
+}
+
+/** One shared item, read only (the owner's own edit routes refuse anyone else). */
+export async function getShared(id: string, signal?: AbortSignal): Promise<SharedView | null> {
+    return readSharedView(await api.get<unknown>(`/api/cowork/shared/${encodeURIComponent(id)}`, { signal }));
+}
+
+/**
+ * One run's receipt. A 404 is the answer "no receipt yet" (the sweep writes it
+ * a few minutes after the run closed), not a failure: it reads as null.
+ */
+export async function getRunReceipt(id: string, runId: string, signal?: AbortSignal): Promise<CoworkReceipt | null> {
+    try {
+        return readReceipt(await api.get<unknown>(`${path(id)}/runs/${encodeURIComponent(runId)}/receipt`, { signal }));
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+    }
+}
+
+/** Handle a run that asked its owner: answer it (the agent continues), or close it as done by hand or not needed. */
+export async function resolveReview(id: string, runId: string, action: ReviewAction, answer?: string): Promise<void> {
+    await api.post(
+        `${path(id)}/runs/${encodeURIComponent(runId)}/review`,
+        action === 'answer' ? { action, answer: (answer ?? '').trim() } : { action },
+    );
+}
+
+/** An item's goal line: its sentence and latest count, or null without a goal. */
+export async function getGoal(id: string, signal?: AbortSignal): Promise<CoworkGoalLine | null> {
+    return readGoalLine(await api.get<unknown>(`${path(id)}/goal`, { signal }));
 }

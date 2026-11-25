@@ -50,6 +50,17 @@ describe('coworkStatus', () => {
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success' })))).toBe(STATUS_TOKENS.success);
     });
 
+    it('reads a recurring item switched off after a good run as paused, never finished', () => {
+        // A weekly digest the owner paused is not done: it would run again the moment it is switched back on.
+        for (const recurring of [{ repeatInterval: 'weekly' }, { daysOfWeek: ['tue'] }, { triggerKind: 'app_event' }]) {
+            const paused = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success', ...recurring })));
+            expect(paused, JSON.stringify(recurring)).toBe(STATUS_TOKENS.paused);
+            expect(paused.labelEn).toBe('Paused');
+        }
+        const oneOff = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'success', repeatInterval: null, daysOfWeek: [] })));
+        expect(oneOff.labelEn).toBe('Finished');
+    });
+
     it('reads a switched-off item as paused, and a failed one as failed', () => {
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'idle' })))).toBe(STATUS_TOKENS.paused);
         expect(coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ isActive: false, lastStatus: 'error' })))).toBe(STATUS_TOKENS.error);
@@ -91,6 +102,8 @@ describe('runStatusToken', () => {
         expect(runStatusToken('success')).toBe(STATUS_TOKENS.success);
         expect(runStatusToken('error')).toBe(STATUS_TOKENS.error);
         expect(runStatusToken('running')).toBe(STATUS_TOKENS.running);
+        const waiting = runStatusToken('waiting');
+        expect([waiting.labelKey, waiting.labelEn, waiting.cssVar]).toEqual(['cowork_plan.status.run_waiting', 'Waiting for your decision', STATUS_TOKENS.awaiting_approval.cssVar]);
         expect(runStatusToken('who-knows')).toBe(STATUS_TOKENS.idle);
     });
 
@@ -115,5 +128,20 @@ describe('isInFlight', () => {
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastStatus: 'running' })))).toBe(true);
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0 })))).toBe(true);
         expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item()))).toBe(false);
+    });
+
+    it('does not count a never-run item that waits for a later start as running', () => {
+        const later = new Date(Date.now() + 3 * 3600_000).toISOString();
+        const soon = new Date(Date.now() + 10_000).toISOString();
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0, nextRunAt: later })))).toBe(false);
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ lastRunAt: null, runCount: 0, nextRunAt: soon })))).toBe(true);
+        expect(isInFlight(partial<Parameters<typeof isInFlight>[0]>(item({ isActive: false, lastRunAt: null, runCount: 0, nextRunAt: later })))).toBe(true);
+    });
+
+    it('reads an item and a run that did not do their work as a failure, never as green', () => {
+        const token = coworkStatus(partial<Parameters<typeof coworkStatus>[0]>(item({ lastStatus: 'incomplete' })));
+        expect(token.labelKey).toBe('cowork_resolver.status.incomplete');
+        expect(token.cssVar).toBe(STATUS_TOKENS.error.cssVar);
+        expect(runStatusToken('incomplete')).toBe(token);
     });
 });

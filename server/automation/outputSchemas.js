@@ -21,6 +21,7 @@ const { OUTPUT_SCHEMAS_NEXTCLOUD_FILES } = require('./outputSchemasNextcloudFile
 const { OUTPUT_SCHEMAS_NEXTCLOUD_GROUPWARE } = require('./outputSchemasNextcloudGroupware');
 const { OUTPUT_SCHEMAS_NEXTCLOUD_APPS } = require('./outputSchemasNextcloudApps');
 const { OUTPUT_SCHEMAS_TWOBA } = require('./outputSchemasTwoba.mts');
+const { OUTPUT_SCHEMAS_FIREFLIES } = require('./outputSchemasFireflies.mts');
 
 /**
  * One tool's entry.
@@ -39,6 +40,7 @@ const OUTPUT_SCHEMAS = {
     ...OUTPUT_SCHEMAS_NEXTCLOUD_GROUPWARE,
     ...OUTPUT_SCHEMAS_NEXTCLOUD_APPS,
     ...OUTPUT_SCHEMAS_TWOBA,
+    ...OUTPUT_SCHEMAS_FIREFLIES,
 };
 
 /**

@@ -87,7 +87,7 @@ No request schema.
 
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
-| `templateId` | one of `"verification"`, `"welcome"`, `"dsr_ack"`, `"dsr_extension"`, `"dsr_result"`, `"project_collab"` | yes |  |
+| `templateId` | one of `"verification"`, `"welcome"`, `"dsr_ack"`, `"dsr_extension"`, `"dsr_result"`, `"project_collab"`, `"cowork_daily"` | yes |  |
 | `fields` | object | yes | no other keys |
 | `fields.subject` | string |  |  |
 | `fields.title` | string |  |  |

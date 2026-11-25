@@ -10,6 +10,7 @@ import { evaluate, tryEvaluate, parseExpr, compile, collectEachCalls, readsItem,
 import { CASES } from './corpus.mjs';
 import { COLLECTION_CASES } from './corpusCollections.mjs';
 import { COLLECTION_FUNCTION_DOCS } from './collections.mjs';
+import { WORKDAY_FUNCTION_DOCS } from './workdays.mjs';
 import { MAX_RANGE_ITEMS, MAX_LITERAL_DEPTH, getMaxValueNodes, setMaxValueNodes, DEFAULT_MAX_VALUE_NODES, getMaxEachSteps, setMaxEachSteps } from './limits.mjs';
 
 test('every addition is documented, callable and marked since: 3', () => {
@@ -20,8 +21,9 @@ test('every addition is documented, callable and marked since: 3', () => {
         const doc = EXPR_FUNCTIONS.find((d) => d.name === name);
         assert.equal(doc?.since, 3, `${name} carries since: 3`);
     }
-    // Nothing older gained the mark.
-    assert.deepEqual(EXPR_FUNCTIONS.filter((d) => d.since !== undefined).map((d) => d.name), names);
+    // Nothing older gained the mark; the working-day functions (workdays.mjs) are additions of the same version.
+    const workdays = WORKDAY_FUNCTION_DOCS.map((d) => d.name);
+    assert.deepEqual(EXPR_FUNCTIONS.filter((d) => d.since !== undefined).map((d) => d.name).sort(), [...names, ...workdays].sort());
     assert.deepEqual([...EXPR_FUNCTIONS.map((d) => d.name)].sort(), [...EXPR_FUNCTION_NAMES].sort());
 });
 

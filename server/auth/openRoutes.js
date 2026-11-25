@@ -58,6 +58,10 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
         reden: 'the address of a webhook trigger of a published Studio app: another system delivers without a session, and the HMAC signature over timestamp, delivery id and the bytes sent is the credential (per-trigger secret, constant-time compare, replay window). An unknown address, a wrong signature, a paused trigger and an unpublished app are the same 404; per-address and per-trigger rate limits; the endpoint row, never the request, names the app and the trigger.',
         bewijs: { file: 'routes/studioAppWebhook.mts', marker: 'sameSignature' },
     }],
+    ['POST /api/cowork/hooks', {
+        reden: 'the address of a cowork that starts on a webhook: another system calls it without a session, and the bearer token in its Authorization header is the credential (32 random characters; only its sha-256 is stored). A missing, unknown or malformed token and a paused item are the same 404; per-token and per-caller rate limits, 64 kB of JSON at most; the run goes through the Cowork runner, so the organisation policy and the item budget apply.',
+        bewijs: { file: 'routes/coworkHookRoutes.js', marker: 'findByHookHash' },
+    }],
     ['mount:/api/mod', {
         reden: 'dynamische dispatcher voor remote modules — routers ontstaan bij module-activatie en zijn statisch onzichtbaar; het pakketkanaal is getekend/geverifieerd en dispatchRouter 404-verbergt inactieve modules.',
         bewijs: { file: 'modules/packageLoader.js', marker: 'dispatchRouter' },

@@ -22,11 +22,19 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const { runDdl } = require('./lib/_ddl');
 const { advanceNextRun } = require('./aiTaskStore');
+const { nextRunAfter } = require('./coworkNextRun.mts');
 const log = require('../telemetry/log');
 const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
+const { HELD_ONE_OFF } = require('./coworkSetup.mts');
 const coworkReviews = require('./coworkReviews.mts').makeCoworkReviews({ ready: () => initDB() });
 const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => initDB() });
+// The claim of one attempt, and giving it back (./coworkClaims.mts).
+const { markRunning, releaseRun } = require('./coworkClaims.mts').makeCoworkClaims({ ready: () => initDB() });
 const { RUN_COLUMNS } = require('./ddl/cowork-review-2026-11');
+const { PLAN_DDL } = require('./ddl/cowork-plans-2026-11');
+const { makeCoworkPlans, makeCoworkPlanJourneys } = require('./coworkPlans.mts');
+const coworkPlans = makeCoworkPlans({ ready: () => initDB() }); // the plan of an item, as approved
+const coworkJourneys = makeCoworkPlanJourneys({ ready: () => initDB() }); // the journeys of its runs
 
 // The schema lives in ../migrations/cowork-2026-08.js and is applied from here
 // (same convention as studioAppStore) so a plain `npm run db:migrate` — which
@@ -55,6 +63,7 @@ async function _initDB() {
         `ALTER TABLE cowork_runs ADD COLUMN IF NOT EXISTS produced_output BOOLEAN`,
         // The review queue and the per-run activity.
         ...RUN_COLUMNS,
+        ...PLAN_DDL, // plans: the approved plan of an item, the automation run behind a run of one
     ]);
     log.info('[CoworkStore] PostgreSQL initialized');
 }
@@ -119,6 +128,7 @@ const FIELD_MAP = {
     // Needed by the reauth pause: resumeNeedsReauthForUser only matches rows
     // whose last_status is 'needs_reauth', so the pause must be able to set it.
     lastStatus: 'last_status',
+    monthlyBudget: 'monthly_budget', // euros a month on AI, null: no limit (core/cowork/runBudget.mts)
 };
 
 async function updateSchedule(id, updates) {
@@ -308,7 +318,7 @@ async function getRunStats(scheduleId) {
     const r = await getOne(
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE status = 'success')::int AS success,
-                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status NOT IN ('success', 'needs_review'))::int AS failed,
+                COUNT(*) FILTER (WHERE finished_at IS NOT NULL AND status NOT IN ('success', 'needs_review', 'waiting'))::int AS failed,
                 COUNT(*) FILTER (WHERE status = 'needs_review')::int AS needs_review,
                 AVG(duration_ms) FILTER (WHERE finished_at IS NOT NULL) AS avg_duration_ms
            FROM cowork_runs
@@ -434,30 +444,12 @@ async function getDueSchedules() {
     const rows = await getAll(
         `SELECT * FROM cowork_schedules
          WHERE next_run_at <= NOW()
-           AND trigger_kind = 'schedule'
-           AND is_active = TRUE
-           AND last_status != 'running'
+           AND trigger_kind = 'schedule' AND is_active = TRUE AND last_status != 'running'
+           AND NOT (${HELD_ONE_OFF})
          ORDER BY next_run_at ASC
          LIMIT 20`,
     );
     return rows.map(rowToSchedule);
-}
-
-/**
- * Opens a history row as well as flipping the schedule to 'running', once per
- * attempt (the granularity the history wants), and answers the row's id (null
- * for an unknown schedule) so the runner can stamp `run_id` on its ledger rows.
- * @returns {Promise<string | null>}
- */
-async function markRunning(id, { triggerKind = 'schedule' } = {}) {
-    await initDB();
-    const res = await run(
-        `WITH flipped AS (UPDATE cowork_schedules SET last_status = 'running' WHERE id = $2 RETURNING user_id)
-         INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind)
-         SELECT $1, $2, user_id, 'running', $3 FROM flipped RETURNING id`,
-        [crypto.randomUUID(), id, triggerKind],
-    );
-    return res?.rows?.[0]?.id ?? null;
 }
 
 /**
@@ -477,16 +469,19 @@ async function markRunning(id, { triggerKind = 'schedule' } = {}) {
  */
 async function markCompleted(id, result, { producedOutput, ...close } = {}) {
     await initDB();
+    // Finished without doing its work (core/cowork/runOutcome.mts): 'incomplete', counted with what went wrong.
+    const incomplete = close.outcome?.kind === 'incomplete' && !close.waiting;
     await run(
         `UPDATE cowork_schedules
-         SET last_status = 'success',
+         SET last_status = $3,
              last_result = $1,
              last_run_at = NOW(),
              run_count = run_count + 1
          WHERE id = $2`,
-        [result, id],
+        [result, id, incomplete ? 'incomplete' : 'success'],
     );
-    await _closeOpenRun(id, { status: close.review?.reason ? 'needs_review' : 'success', result, producedOutput, ...close });
+    const status = close.waiting ? 'waiting' : incomplete ? 'incomplete' : close.review?.reason ? 'needs_review' : 'success';
+    await _closeOpenRun(id, { status, result, producedOutput, ...close });
 }
 
 /**
@@ -515,11 +510,19 @@ async function markError(id, error, close = {}) {
 }
 
 /**
+ * Move a repeating schedule to its next moment, or switch a one-off off.
+ *
+ * The next moment is the first one still ahead (./coworkNextRun.mts): after
+ * downtime the item has just run once, and the moments it missed are skipped
+ * rather than replayed one per minute tick.
+ * @param {string} id
  * @param {string | number | Date} currentNextRun
+ * @param {string | null | undefined} interval
+ * @param {string[] | null} [daysOfWeek]
  */
 async function advanceSchedule(id, currentNextRun, interval, daysOfWeek = null) {
     await initDB();
-    const next = advanceNextRun(currentNextRun, interval, daysOfWeek);
+    const next = nextRunAfter(currentNextRun, interval, daysOfWeek, advanceNextRun);
     if (next) {
         await run('UPDATE cowork_schedules SET next_run_at = $1 WHERE id = $2', [next, id]);
         return next;
@@ -547,13 +550,15 @@ module.exports = {
     reapStaleRuns,
     deleteRunsOlderThan,
     getDueSchedules,
-    // The review queue (./coworkReviews.mts).
-    getOpenReviewCounts: coworkReviews.getOpenReviewCounts,
-    countOpenReviews: coworkReviews.countOpenReviews,
-    getRunForReview: coworkReviews.getRunForReview,
-    resolveReview: coworkReviews.resolveReview,
+    // The review queue and the runs waiting for their owner (./coworkReviews.mts).
+    ...coworkReviews,
+    // Plans (./coworkPlans.mts): attach, detach, approve, the approved plan, and the plan a run followed.
+    ...coworkPlans,
+    ...coworkJourneys,
+    ...require('./coworkRunCosts.mts').makeCoworkRunCosts({ ready: () => initDB() }), // what runs cost in AI
     // Runner surface — names match aiTaskStore so executeTask can take either.
     markRunning,
+    releaseRun,
     markCompleted,
     markError,
     advanceSchedule,

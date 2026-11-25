@@ -10,8 +10,10 @@
  * POST   /:id/toggle    → pause / resume
  * POST   /:id/run-now   → force an immediate run
  * GET    /:id/runs      → execution history, newest first
+ * PUT    /:id/setup     → let the AI work it out every run, or back to the steps it had (./coworkSetupRoutes.js)
  * GET    /:id/stats     → the aggregate behind the figure cards
  * POST   /:id/runs/:runId/review → handle a run that asked for review (./coworkReviewRoutes.js)
+ * GET, PUT, DELETE /:id/plan and POST /:id/plan/approve → the item's plan (./coworkPlanRoutes.js)
  *
  * An item is started by its clock (`triggerKind: 'schedule'`, the default) or by
  * an event (`triggerKind: 'app_event'` + `trigger: { provider, event, filter? }`,
@@ -72,7 +74,10 @@ const { requireAuth } = require('../auth/permissions');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
 const { mountReviewRoutes, withReviewCounts, reviewCountOf } = require('./coworkReviewRoutes');
-const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
+const { mountPlanRoutes } = require('./coworkPlanRoutes');
+const { mountPlannerRoutes } = require('./coworkPlannerRoutes');
+const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate, startNowRun } = require('../usecases/coworkTrigger');
+const { heldForSetup } = require('../core/cowork/taskSetup.mts');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 
@@ -106,30 +111,6 @@ async function resolveAgentId(agentId, userId, session) {
     return agent.id;
 }
 
-/**
- * `startNow`: fire the first run immediately instead of waiting for the tick.
- * A one-off has next_run_at = now and is_active = true on insert, so the very
- * next tick would run it a second time: take it off the scheduler before
- * firing. A repeating one keeps its schedule: manual:true leaves next_run_at
- * pointing at the next occurrence. "Repeating" includes daysOfWeek-only specs
- * ("every Monday 09:00"), which carry no repeatInterval.
- * @param {NonNullable<Awaited<ReturnType<typeof coworkStore.getSchedule>>>} schedule
- * @param {{ repeatInterval?: string | null, daysOfWeek?: string[] | null }} norm
- */
-async function startNowRun(schedule, norm) {
-    if (!norm.repeatInterval && !(Array.isArray(norm.daysOfWeek) && norm.daysOfWeek.length > 0)) {
-        await coworkStore.updateSchedule(schedule.id, { isActive: false });
-        schedule.isActive = false;
-    }
-    setImmediate(async () => {
-        try {
-            await executeCowork(schedule, { manual: true });
-        } catch (err) {
-            log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
-        }
-    });
-}
-
 // Load a schedule and assert the caller owns it (404 / 403).
 const loadOwned = require('../usecases/coworkItems.mts').loadOwnedItem;
 
@@ -144,8 +125,7 @@ function fail(res, err, _label) {
 /**
  * CW-06 — "Running since 08:00:04".
  *
- * Purely additive: `currentRunStartedAt` comes from the open history row
- * (cowork_runs WHERE finished_at IS NULL), not from a new column, and NOTHING is renamed — the Expo app reads this payload, and a rename there would be a broken APK without a red test.
+ * `currentRunStartedAt` comes from the open history row (cowork_runs WHERE finished_at IS NULL); the Expo app reads this payload, so nothing in it is renamed.
  *
  * Null is the normal value: a schedule that is not running has nothing open.
  * The open row is deliberately the source and not `lastStatus === 'running'`: those two diverge as soon as reapStaleRuns clears a stuck attempt.
@@ -156,7 +136,10 @@ function withCurrentRun(schedule, startedAt) {
     return schedule;
 }
 
+require('./coworkHookRoutes').mountHookRoutes(router); // POST /hooks: open, its bearer token is the credential
 router.use(requireAuth);
+require('./coworkAuditRoutes').mountAuditRoutes(router); // the trail of every change, and GET /:id/audit
+require('./coworkSideRoutes').mountSideRoutes(router); // GET /needs-you, GET/PUT /shield/:orgId (no item id)
 
 // GET / — every schedule, newest first, enriched with the linked agent's
 // name/avatar so the overview can render a row without an extra round-trip.
@@ -176,7 +159,7 @@ router.get('/', async (req, res) => {
             }));
             for (const s of schedules) {
                 const a = s.agentId && agentMap.get(s.agentId);
-                if (a) { s.agentName = a.name; s.agentAvatar = a.avatar; }
+                if (a) Object.assign(s, { agentName: a.name, agentAvatar: a.avatar });
             }
         }
 
@@ -213,7 +196,10 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
         const schedule = await coworkStore.createSchedule(newItemFields(userId, norm, resolvedAgentId, trigger));
 
         if (isEvent) await syncNewEventItem(schedule);
-        if (startNow === true) await startNowRun(schedule, norm);
+        // What its owner chose on the confirmation (usecases/coworkSetup.mts): fixed steps, who it sends to, and
+        // whether they see each message first. A task that waits for its steps does not run before they are approved.
+        schedule.setup = await require('../usecases/coworkSetup.mts').startSetup({ item: schedule, chosen: norm.setup, organizationId: req.session.user.organizationId ?? null });
+        if (startNow === true && !heldForSetup(schedule)) await startNowRun(schedule, norm);
 
         res.json(schedule);
     } catch (err) {
@@ -235,7 +221,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
         const ok = await coworkStore.updateSchedule(req.params.id, {
             title, prompt, modelTier, isActive,
             timezone: norm.timezone,
-            enabledApps: norm.enabledApps,
+            enabledApps: norm.enabledApps, monthlyBudget: norm.monthlyBudget,
             ...(resolvedAgentId !== undefined ? { agentId: resolvedAgentId } : {}),
             ...plan.patch,
         });
@@ -289,8 +275,8 @@ router.post('/:id/toggle', validate({ body: NoBody }), async (req, res) => {
         // Resuming needs the mailbox connected; pausing never does.
         if (isEvent && next && existing.trigger) await assertTriggerUsable(userId, { ...existing.trigger, filter: existing.trigger.filter ?? null });
         const ok = await coworkStore.updateSchedule(req.params.id, { isActive: next });
-        // Pause deletes the subscription (and the Graph one), resume makes a fresh one.
-        if (isEvent) await mailTriggers().syncCoworkMailTrigger({ ...existing, isActive: next });
+        // Pause deletes the subscription (a mail's, with the Graph one; a folder's), resume makes a fresh one.
+        if (isEvent || existing.triggerKind === 'file') await mailTriggers().syncCoworkMailTrigger({ ...existing, isActive: next });
         res.json({ success: ok, isActive: next });
     } catch (err) {
         fail(res, err, 'Toggle');
@@ -309,6 +295,8 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (req, res) => {
         if (existing.lastStatus === 'running') {
             return res.status(400).json({ error: 'This cowork is already running' });
         }
+        // Its steps are not approved and its owner did not say the AI may do it: nothing runs for real yet.
+        if (heldForSetup(existing)) throw new HttpError(409, 'cowork_waits_for_steps', 'This task waits for you: approve its steps first, or let the AI work it out every run.');
 
         // Don't block the response on a run that can take minutes.
         setImmediate(async () => {
@@ -376,13 +364,21 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
             coworkStore.listRuns(req.params.id, { limit, offset }),
             coworkStore.getRunCount(req.params.id),
         ]);
-        res.json({ runs, total });
+        // What each run cost in AI (usecases/coworkCosts.mts): the history never fails on it. Each tool a run used carries
+        // what a person calls it and what it does (usecases/coworkRunWords.mts), so no screen shows a raw tool name.
+        const costed = await require('../usecases/coworkCosts.mts').withRunCosts(req.params.id, runs, coworkStore);
+        // `plain`: how each run ended in its owner's words (the step and the cause); the raw error stays beside it.
+        const words = require('../usecases/coworkRunWords.mts');
+        res.json({ runs: await words.withPlainWords(req.params.id, words.withToolWords(costed)), total });
     } catch (err) {
         fail(res, err, 'Runs');
     }
 });
 
 mountReviewRoutes(router); // POST /:id/runs/:runId/review
+require('./coworkSetupRoutes').mountSetupRoutes(router); // PUT /:id/setup
+mountPlanRoutes(router); // GET, PUT, DELETE /:id/plan and POST /:id/plan/approve
+mountPlannerRoutes(router); // POST /:id/plan/make
 
 // GET /:id/stats — the figures behind the four cards (CW-11).
 //
@@ -399,6 +395,8 @@ router.get('/:id/stats', async (req, res) => {
         const stats = await coworkStore.getRunStats(req.params.id);
         res.json({
             ...stats,
+            // What this item's runs cost in AI this calendar month, per currency (null: it could not be read).
+            costThisMonth: await require('../usecases/coworkCosts.mts').monthCostOf(userId, req.params.id, coworkStore),
             // Lifetime, from the schema itself: survives the retention sweep that
             // shrinks `total` after 90 days. "Run 42 times" should be THIS number,
             // not the number of stored rows.

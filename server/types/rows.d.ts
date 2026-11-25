@@ -591,6 +591,7 @@ declare namespace DbRow {
         step_id: string;
         step_type: string;
         tools_withheld: Json | null;
+        verdict: Json | null;
     }
     /** Row of `automation_run_tables`. */
     interface AutomationRunTables {
@@ -1227,17 +1228,180 @@ declare namespace DbRow {
         project_id: string | null;
         run_id: string;
     }
+    /** Row of `cowork_daily_mail`. */
+    interface CoworkDailyMail {
+        enabled: boolean;
+        last_sent_on: Date | null;
+        time_zone: string;
+        updated_at: Date;
+        user_id: string;
+    }
+    /** Row of `cowork_desk_follows`. */
+    interface CoworkDeskFollows {
+        allowed_at: Date;
+        allowed_by: string;
+        desk_id: string;
+        follower_id: string;
+        follower_owner: string;
+        leader_id: string;
+    }
+    /** Row of `cowork_desk_members`. */
+    interface CoworkDeskMembers {
+        accepted_at: Date | null;
+        accepted_by: string | null;
+        added_by: string | null;
+        created_at: Date;
+        desk_id: string;
+        desk_role: string | null;
+        planned_after_schedule_id: string | null;
+        schedule_id: string;
+    }
+    /** Row of `cowork_desk_roles`. */
+    interface CoworkDeskRoles {
+        away_until: Date | null;
+        desk_id: string;
+        holder_id: string;
+        role: string;
+        stand_in_id: string | null;
+    }
+    /** Row of `cowork_desks`. */
+    interface CoworkDesks {
+        created_at: Date;
+        id: string;
+        name: string;
+        organization_id: string;
+        owner_id: string;
+    }
+    /** Row of `cowork_goal_results`. */
+    interface CoworkGoalResults {
+        error: string | null;
+        measured_at: Date;
+        met: number | null;
+        ok: boolean;
+        period: string | null;
+        run_id: string;
+        schedule_id: string;
+        total: number | null;
+    }
+    /** Row of `cowork_goals`. */
+    interface CoworkGoals {
+        approved_at: Date | null;
+        approved_definition_json: string | null;
+        check_automation_id: string | null;
+        created_at: Date;
+        fingerprint: string | null;
+        measure_claimed_at: Date | null;
+        schedule_id: string;
+        sentence: string;
+        target_percent: number;
+        user_id: string;
+    }
+    /** Row of `cowork_habit_offers`. */
+    interface CoworkHabitOffers {
+        offered_at: Date;
+        tools_hash: string;
+        user_id: string;
+    }
+    /** Row of `cowork_habit_signals`. */
+    interface CoworkHabitSignals {
+        agent_id: string;
+        created_at: Date;
+        iso_week: string;
+        tools_hash: string;
+        user_id: string;
+        weekday: number;
+    }
+    /** Row of `cowork_plans`. */
+    interface CoworkPlans {
+        approved_at: Date;
+        approved_by: string;
+        automation_id: string;
+        definition_json: string;
+        fingerprint: string;
+        id: string;
+        permissions_json: string;
+        schedule_id: string;
+        version: number;
+    }
+    /** Row of `cowork_proposal_attempts`. */
+    interface CoworkProposalAttempts {
+        attempted_at: Date;
+        kind: string;
+        schedule_id: string;
+    }
+    /** Row of `cowork_proposals`. */
+    interface CoworkProposals {
+        base_fingerprint: string;
+        created_at: Date;
+        decided_at: Date | null;
+        definition_json: string;
+        fingerprint: string;
+        id: string;
+        kind: string;
+        reason_code: string;
+        replay_id: string | null;
+        schedule_id: string;
+        status: string;
+        step_id: string | null;
+        step_title: string | null;
+        user_id: string;
+        widens_json: string;
+    }
+    /** Row of `cowork_receipts`. */
+    interface CoworkReceipts {
+        created_at: Date;
+        hash: string;
+        key_id: string | null;
+        payload_hash: string;
+        payload_json: string;
+        prev_hash: string;
+        run_id: string;
+        schedule_id: string;
+        seq: number;
+        signature: string | null;
+    }
+    /** Row of `cowork_replay_events`. */
+    interface CoworkReplayEvents {
+        created_at: Date;
+        differing_steps: Json;
+        missing_steps: number;
+        past_run_id: string;
+        past_started_at: Date | null;
+        reason: string | null;
+        replay_id: string;
+        verdict: string;
+    }
+    /** Row of `cowork_replays`. */
+    interface CoworkReplays {
+        differs: number;
+        fingerprint: string;
+        finished_at: Date | null;
+        id: string;
+        not_replayable: number;
+        partial: number;
+        same: number;
+        schedule_id: string;
+        started_at: Date;
+        status: string;
+        total: number;
+        user_id: string;
+    }
     /** Row of `cowork_runs`. */
     interface CoworkRuns {
         activity_json: string | null;
+        automation_run_id: string | null;
         conversation_id: string | null;
+        decided_at: Date | null;
         duration_ms: number | null;
         error: string | null;
         finished_at: Date | null;
         followup_depth: number;
         id: string;
+        independence: string | null;
         mail_subject: string | null;
+        outcome_json: string | null;
         parent_run_id: string | null;
+        plan_id: string | null;
         produced_output: boolean | null;
         result: string | null;
         review_question: string | null;
@@ -1252,6 +1416,7 @@ declare namespace DbRow {
         status: string;
         trigger_kind: string;
         trigger_ref: string | null;
+        trusted_steps: string | null;
         user_id: string;
     }
     /** Row of `cowork_schedules`. */
@@ -1262,16 +1427,23 @@ declare namespace DbRow {
         days_of_week: string | null;
         enabled_apps: string | null;
         id: string;
+        independence: string | null;
         is_active: boolean | null;
         last_result: string | null;
         last_run_at: Date | null;
         last_status: string | null;
         max_result_length: number | null;
         model_tier: string | null;
+        monthly_budget: string | null;
         next_run_at: Date | null;
+        plan_automation_id: string | null;
+        plan_id: string | null;
+        plan_try_json: string | null;
         prompt: string;
         repeat_interval: string | null;
         run_count: number | null;
+        setup_json: string | null;
+        setup_state: string | null;
         time_of_day: string | null;
         timezone: string | null;
         title: string;
@@ -1279,6 +1451,36 @@ declare namespace DbRow {
         trigger_json: string | null;
         trigger_kind: string;
         user_id: string;
+    }
+    /** Row of `cowork_shares`. */
+    interface CoworkShares {
+        added_by: string;
+        created_at: Date;
+        role: string;
+        schedule_id: string;
+        user_id: string;
+    }
+    /** Row of `cowork_templates`. */
+    interface CoworkTemplates {
+        brief: string;
+        created_at: Date;
+        created_by: string | null;
+        definition: Json | null;
+        fingerprint: string | null;
+        id: string;
+        organization_id: string;
+        repeat_interval: string | null;
+        title: string;
+        updated_at: Date;
+    }
+    /** Row of `cowork_trust`. */
+    interface CoworkTrust {
+        let_through: number;
+        recipient: string;
+        schedule_id: string;
+        step_id: string;
+        trusted: boolean;
+        updated_at: Date;
     }
     /** Row of `datatable_grants`. */
     interface DatatableGrants {

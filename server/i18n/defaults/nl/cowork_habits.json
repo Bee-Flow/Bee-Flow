@@ -1,0 +1,17 @@
+{
+  "translations": {
+    "cowork_habits.day.0": "zondag",
+    "cowork_habits.day.1": "maandag",
+    "cowork_habits.day.2": "dinsdag",
+    "cowork_habits.day.3": "woensdag",
+    "cowork_habits.day.4": "donderdag",
+    "cowork_habits.day.5": "vrijdag",
+    "cowork_habits.day.6": "zaterdag",
+    "cowork_habits.make": "Maak er een cowork van",
+    "cowork_habits.not_now": "Niet nu",
+    "cowork_habits.offer": "Je vraagt dit elke {day}. Zal Cowork het voor je doen?",
+    "cowork_habits.switch": "Merk op wat ik steeds opnieuw vraag",
+    "cowork_habits.switch_hint": "Cowork bewaart alleen welke apps een chat gebruikte en op welke weekdag, nooit wat je vroeg. Na vier weken op rij biedt het één keer aan om het voor je te doen. Uitzetten wist alles."
+  },
+  "sameAsEnglish": []
+}

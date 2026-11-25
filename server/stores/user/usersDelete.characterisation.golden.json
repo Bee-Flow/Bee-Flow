@@ -990,6 +990,60 @@
     ]
    },
    {
+    "sql": "DELETE FROM \"cowork_daily_mail\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_habit_signals\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_habit_offers\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_replays\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_goals\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_proposals\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_shares\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_desk_roles\" WHERE \"holder_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"cowork_desk_roles\" SET \"stand_in_id\" = NULL WHERE \"stand_in_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
     "sql": "DELETE FROM \"studio_documents\" WHERE \"user_id\" = $1",
     "params": [
      "full-leaver"
@@ -1272,6 +1326,12 @@
     ]
    },
    {
+    "sql": "UPDATE \"cowork_templates\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
     "sql": "UPDATE \"guardrail_events\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
     "params": [
      "full-leaver"
@@ -1471,6 +1531,18 @@
    },
    {
     "sql": "UPDATE \"automation_imports\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_desks\" WHERE \"owner_id\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"cowork_desks\" WHERE \"owner_id\" = $1",
     "params": [
      "full-leaver"
     ]
@@ -1958,14 +2030,14 @@
   "errorLines": [
    "[UserStore] erasure step 'certificate lookups' failed for user 'fault-1' (57014)"
   ],
-  "statements": 251,
-  "trace": "5a0fd91790aa8bea1baac9d6daacd04228332400256003085e5f1d4fa679b15e",
+  "statements": 263,
+  "trace": "ac1f80fb17e1cfb614145caa650399da7c7205bf7743dbcc7860b0ef3622aa0a",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "b6973a2183d9a2a0ddffdd9e5545d209b8a02197d37c7c8d30f6210a69902c7a",
+   "trace": "7091195beb9228e22b3897ba6d7e23343ddd3ca4486a413e326a659196714ae7",
    "left": 1
   }
  },
@@ -1986,14 +2058,14 @@
   "errorLines": [
    "[UserStore] erasure step 'config keys' failed for user 'fault-2' (57014)"
   ],
-  "statements": 243,
-  "trace": "0efa945542b9002b5e25cd0df547e344abb765f7e01a27bb2a530a285c53a3ee",
+  "statements": 255,
+  "trace": "59ccd8e3fcaf94321e78f20e7250dd40549deb5f9eabbc42e3086bfc5803dd2b",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "8ac231d58a3f614c5111fe1da61369fb5f4d008c6bf814fcc3665c31b3d78c6a",
+   "trace": "496c496ab703819ae2ac6b8dab9ceebb19f6538d1913e8e1db3f5f1c89180935",
    "left": 0
   }
  },
@@ -2015,14 +2087,14 @@
    "[SessionCache] bustSessionsForUser error: canceling statement due to statement timeout",
    "[UserStore] erasure step 'sessions' failed for user 'fault-3' (57014)"
   ],
-  "statements": 252,
-  "trace": "baa1e3cc56e74688ff5d35b2535bec46a3c86ee3b35e38319eb9a6ea7f0e852c",
+  "statements": 264,
+  "trace": "6538a4e529b280aac17bf46d1261bb8df01192edcd1bf7c7c73b0d70350eca34",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "af7d29d5414ae4a260316c25a9d396604ddad33b4ac27f941dd9b34bb6cc0a6c",
+   "trace": "34f9083410d1324a5adc982b5cef0877515752d19333feae0b9f1110fd9da47a",
    "left": 0
   }
  },
@@ -2043,14 +2115,14 @@
   "errorLines": [
    "[UserStore] erasure step 'mcp_tokens' failed for user 'fault-4' (57014)"
   ],
-  "statements": 252,
-  "trace": "4725673d51964dae16873cebc57af0c99a339438454e7284b0530dddcd7523a3",
+  "statements": 264,
+  "trace": "7b66a994dfb12580e3f53f61a8625175d8d17e97183fd4c79a6f91fa294689b2",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "956be75bdce20b6e4b74b256e35bc7b61fa48cb1560c548ec9d9a48b114c1ff8",
+   "trace": "b0bea586d3cf59eb9e277372d43365513bd768f3cf62ce917c39910a0d485030",
    "left": 0
   }
  },
@@ -2071,14 +2143,14 @@
   "errorLines": [
    "[UserStore] erasure step 'mcp credentials' failed for user 'fault-5' (57014)"
   ],
-  "statements": 250,
-  "trace": "841fb61c04d8d7f97a0684a7aa2e2ae8e0c4fda602b1222a09af3c28ca5afe81",
+  "statements": 262,
+  "trace": "553c34459079432bbc3ce629799ff9a1452324554f366328bee6d0cda351ca77",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "5ee2507b1dc0bb0ea24f5849e35bd2efc5c1749e13a8c425acd10e10516ad625",
+   "trace": "9ad47f7825a2b517b05a880035ad6bef4c90cef4aaf3be47353df70a79a23d0a",
    "left": 0
   }
  },
@@ -2099,14 +2171,14 @@
   "errorLines": [
    "[UserStore] erasure step 'cms upload tickets' failed for user 'fault-6' (57014)"
   ],
-  "statements": 251,
-  "trace": "0c63dc5b9d74068a1c58fee00e2b6e22cdea5100b7b747832820516bc06ed283",
+  "statements": 263,
+  "trace": "b6fbb8821cc0d631d6c0192cd48aea135f90671cc21f674b7a51a3a5a9ea4c32",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "6c275affb2eef75402467e9e9a3639a4db2914e00e353a09a17cfb4be2b3d9f9",
+   "trace": "8de54fde60de4be32c6536a80f575f50d7e253f82a2a32f3669f78686e7462b6",
    "left": 0
   }
  },
@@ -2127,14 +2199,14 @@
   "errorLines": [
    "[UserStore] erasure step 'notebooks' failed for user 'fault-7' (ECONNREFUSED)"
   ],
-  "statements": 252,
-  "trace": "de815c546e5880fbd55a8ede0313c8cf51f0b5918392437daa5c7f7801e275cc",
+  "statements": 264,
+  "trace": "34ea458e605093eb8e53021919730e05861bcf896260436a8f227d49675fd86c",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "be9bc56068a0d56ac516391b3c5c16f6c842e1ecb002a12147c68b11dbc95c6f",
+   "trace": "c00509029a2d09a2e0c57f1c3cf3e0feffffd9d73b1fe97fe5a01a1fa852b508",
    "left": 0
   }
  },
@@ -2155,14 +2227,14 @@
   "errorLines": [
    "[UserStore] erasure step 'notebook_conversations' failed for user 'fault-8' (57014)"
   ],
-  "statements": 252,
-  "trace": "1cb658729374ecbd7ed05fc6a6c73c54e5e4ac316d08df217cb1b9c89617b016",
+  "statements": 264,
+  "trace": "51ddb338ba387c2e92d074de087628a3f25a86667c0a68e793b8699917ae0f1c",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "92888f2559f66dafc1aa236a1561be61e8d8d6cf1fd719a6c5b626cb4d8e8e29",
+   "trace": "9ff899f645c026c5c95e2172cf698544c18827a01580701026ebf04d9c973bfa",
    "left": 0
   }
  },
@@ -2185,14 +2257,14 @@
    "[UserStore] erasure step 'user_memories' failed for user 'fault-9' (57014)",
    "[UserStore] deleting owned project p-fault-9 failed: canceling statement due to statement timeout"
   ],
-  "statements": 252,
-  "trace": "211a1d4d7f2e816150813791130ee82814144b1fbff54a29b1f5bb4b6da6a108",
+  "statements": 264,
+  "trace": "0e69b684a06f710cde3f858ef6ebdd28f299b5eb9bc35c668fab77ba11123d1a",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "e81bed08f3d82193b234ec3332036b500635dae3157682668faa9cf67b6b9461",
+   "trace": "b534c5270ccffda7d1ed2f31da452441a7655d4877ad373f59691598abe01a80",
    "left": 0
   }
  },
@@ -2213,14 +2285,14 @@
   "errorLines": [
    "[UserStore] erasure step 'pii_vault_entries' failed for user 'fault-10' (57014)"
   ],
-  "statements": 252,
-  "trace": "ae73b0743f906e75015e8b34749ec9eb2c8f8235f09cc5e7c6ed8edaec50ddc9",
+  "statements": 264,
+  "trace": "1aacf0b6877bf9d363c1c56fb5f00954b608486f39074822114dc0b2933e3e1f",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "7912e24912d9cb7f00b884158f03341c15870161b52a074c5647dc3a169f9269",
+   "trace": "fe56214aa87f4be0d4c68dfc676978b115fadf6174cf0aa4652eb937a58ef236",
    "left": 0
   }
  },
@@ -2241,14 +2313,14 @@
   "errorLines": [
    "[UserStore] erasure step 'pii_vault_counters' failed for user 'fault-11' (57014)"
   ],
-  "statements": 252,
-  "trace": "afafad5183a57fd9d020dd6a59a189ca679e481d82984f8ee93ebaf7e4c1e33a",
+  "statements": 264,
+  "trace": "3d453b4a9231cbf83431c0737cb105f002895d8c7bd088b19439da47f5f5215d",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "ee04d9bbf146e444c7056fb4ea10e24dd141b086b0c67bd96afccbbaa619177a",
+   "trace": "d937124fb74d264f9538c18ed8421a06311100f27cca22533e3f3d728be1f7cb",
    "left": 0
   }
  },
@@ -2271,14 +2343,14 @@
    "[UserStore] erasure step 'conversations' failed for user 'fault-12' (57014)",
    "[UserStore] erasure step 'agents' failed for user 'fault-12' (57014)"
   ],
-  "statements": 249,
-  "trace": "25afeabfe4983e3c6c1e12632c19cc3989ac34e6ba823eef05eb1f58d8fe70de",
+  "statements": 261,
+  "trace": "ad05c16b158fbb90810670e922eb90d8e32f4bcdb8a4469c92b07c4b80ebe501",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "5502b8b5bd5632b94317a50f45d8a4464a4a7ba3475ac73e52e880c7f0fc5fd2",
+   "trace": "fa9975ea869c565f2f01a1b0b734aba1fed606e480d04b259f401a00ac631537",
    "left": 0
   }
  },
@@ -2299,14 +2371,14 @@
   "errorLines": [
    "[UserStore] erasure step 'execution_history' failed for user 'fault-13' (57014)"
   ],
-  "statements": 252,
-  "trace": "a8381edca39160bba55cfc25da526117dfffb711da1c0fe9e9c581f84186505d",
+  "statements": 264,
+  "trace": "ab1b127d73688e403ab7e43a3240ab2c9cf5f83dd139c1e808879e5f7f1cc57f",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "5b0410dd3464cf1d0a9cd546c538301252fd97f64752b32a1cc2c22db8b4ea3b",
+   "trace": "3a13cd28306ce617ac21226fb0feb611c7685d2e163fc6420bdeb06f8d60046f",
    "left": 0
   }
  },
@@ -2327,14 +2399,14 @@
   "errorLines": [
    "[UserStore] erasure step 'message_feedback' failed for user 'fault-14' (57014)"
   ],
-  "statements": 252,
-  "trace": "b71416dfd6e945bfa444e187ca8e55c4d5ef0704eeab0a1e34dbb13ad83974c7",
+  "statements": 264,
+  "trace": "960d934410789fecdf379979b6e21657b6c89c87e3fb9a3f228ef782acfb4e0b",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "ddd4e29c9ac09031a7c4f6c420796f3d21e76c6b0b82363b2cf2a380b5b2593f",
+   "trace": "fe93efd4f2d27a34aa5bf8b743661dd7a455a493d95dd936bc65095242d1c075",
    "left": 0
   }
  },
@@ -2355,14 +2427,14 @@
   "errorLines": [
    "[UserStore] erasure step 'ai_usage_log' failed for user 'fault-15' (57014)"
   ],
-  "statements": 252,
-  "trace": "8952e577a9968df4d61ccca23f8d3acf79835167e2b15d410cd2b77c09a7ab48",
+  "statements": 264,
+  "trace": "cc72f0c4ae52c03db7b686c624c4665980bb640d179fd4eefa20ddfd59633d19",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "f25fc2fe0e3d0aedc8d5e615eab32e9a5d5202b5a93e26ac41a97ea85bb532b3",
+   "trace": "62db70a97074d71cfde19add5260cd3a09f735aa35e1c0e8aa2f3381262d13e2",
    "left": 0
   }
  },
@@ -2383,14 +2455,14 @@
   "errorLines": [
    "[UserStore] erasure step 'chat_signal_objections' failed for user 'fault-16' (57014)"
   ],
-  "statements": 252,
-  "trace": "d5b0b896a1869a59495d3280ea6b1e245b68cb8e94211c7ff092136a9c7163e2",
+  "statements": 264,
+  "trace": "0b40367b3542ec0828b1428041bc138347ebb75b176c8de16016233b3858194c",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "d13dae51bfcbb6a6441759712f4aea01e54bd86388825e8cfadaf35bc4e746ac",
+   "trace": "44d0375a7e1cc6d060869e384d5f473dbefca3c686c1fe5ef2ec093ade2f1d12",
    "left": 0
   }
  },
@@ -2411,14 +2483,14 @@
   "errorLines": [
    "[UserStore] erasure step 'kb_query_log' failed for user 'fault-17' (57014)"
   ],
-  "statements": 251,
-  "trace": "4361d753a3b46cc2cc4f72319285d519d142933cd5a918275481fcf57462ff07",
+  "statements": 263,
+  "trace": "fd65036b7a7e73b8e66dad2046972b1feee699481ed047ee8bc6b6ecaf984221",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "c375fa713e9fc8e06aa0ac59db7879f1d1dbc1e21d59091687da4abfa2bfff4a",
+   "trace": "f8be68a477489fcb7ae024063b64d545aa96d8f1b6d5b58ed85d616ec16d9394",
    "left": 0
   }
  },
@@ -2439,14 +2511,14 @@
   "errorLines": [
    "[UserStore] erasure step 'suggestion traces' failed for user 'fault-18' (57014)"
   ],
-  "statements": 252,
-  "trace": "ca2be07e111ce09050170956fe778a684c2ea5ae92f729f37b79d6ffbb47490c",
+  "statements": 264,
+  "trace": "90da9b03df6038d9d1fca79513096e14564054e72c1c76a05cc3a5b0814ebf5f",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "fe01420ff84bb23db8c011568bcbdd0f205c4293807cff0ca745feda0b96b177",
+   "trace": "27fe367a60717bfbdc4731ed07f982831f031483e353821e4dc83b43474c3f37",
    "left": 0
   }
  },
@@ -2467,14 +2539,14 @@
   "errorLines": [
    "[UserStore] erasure step 'automation_credentials' failed for user 'fault-19' (57014)"
   ],
-  "statements": 252,
-  "trace": "a693c776315e0076e644753960796917a477fd23a90fee4c6e6f417c6ef63517",
+  "statements": 264,
+  "trace": "29b634bc26526aac55d092b4f4455c5cbd578ad4a4284bf1629f27bacdc13de6",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "caeba7acb94e69fad5e95173b90440f445bad8f410ed3d67dcab9aeb24fcd130",
+   "trace": "8825710e7906c08ede2b554f47a07df8e91a32299ecf5838452554270e95c7f9",
    "left": 0
   }
  },
@@ -2495,14 +2567,14 @@
   "errorLines": [
    "[UserStore] erasure step 'integration cache' failed for user 'fault-20' (57014)"
   ],
-  "statements": 252,
-  "trace": "66b5010e33699716b4de54f519cbf26bd79527962b109c7ff1042a50f3800cc3",
+  "statements": 264,
+  "trace": "317d7363762322b262f0b492cf9a16fa92add947b89081b9c88320a87d4715f6",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "f1e5db83dd658aeabadf312adda51ae9bea13a8c86c24dc2193345da1a9d2a52",
+   "trace": "ce7480f91c76b94d6005f19eb50e25a890ecd9238d0360edc9fcfbc746db13f2",
    "left": 0
   }
  },
@@ -2525,14 +2597,14 @@
    "[UserStore] erasure step 'connection_grants' failed for user 'fault-21' (57014)",
    "[UserStore] erasure step 'integration_connections' failed for user 'fault-21' (57014)"
   ],
-  "statements": 252,
-  "trace": "dc7415524bb43565acae84c44c068750b2106972df50c6b1a95d6b0e61baa5eb",
+  "statements": 264,
+  "trace": "9bfa5ae7fa40712b7b07c2ae254d0c48f93eaac7e094474d13f76877b56a4fe8",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "6750bb4ef8ff687616e8e5cfb1e112779cba1f4581c621b737fa8ffbeecf82d8",
+   "trace": "9e375fe8ce497fa234376a2b89be41243a347b2d66b9f590ba1cb461bc1eb858",
    "left": 0
   }
  },
@@ -2553,14 +2625,14 @@
   "errorLines": [
    "[UserStore] erasure step 'integration_connections' failed for user 'fault-22' (57014)"
   ],
-  "statements": 252,
-  "trace": "4d70f3f0e32f9fac07c926aa1dad0b026810a38d324187401dc8ceaa5e4dffd1",
+  "statements": 264,
+  "trace": "39b152fbc584efc3d8cda4f05e91ec3fda228e4da4399323132273eac6a7d361",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "ce4a81cf97cc3bc26a2dd4ff340cd2828765551371d0fd473ec4c07b3106007e",
+   "trace": "5378f40340d987cab99484a7110ce64b55216817bda8833286f91f6c983fae3b",
    "left": 0
   }
  },
@@ -2581,14 +2653,14 @@
   "errorLines": [
    "[UserStore] erasure step 'voiceprints' failed for user 'fault-23' (57014)"
   ],
-  "statements": 252,
-  "trace": "c2ab75c07c425ab05dba21304a665e9fba7a2ef9adb1d1030a08f1873c8e848b",
+  "statements": 264,
+  "trace": "bae81b8f1471f9a05d9bffb4cc4229eb7df1115c150b386ecbb889a7456ffe86",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "072a4884d3a703ba0bd2d4a93c840d01a3090527eb871fe6f872f25c731fe8b5",
+   "trace": "cd82d79e1d2dbbd36bd335c36a99c26df7f188f13c353e357de7f5c11a2363c7",
    "left": 0
   }
  },
@@ -2609,14 +2681,14 @@
   "errorLines": [
    "[UserStore] deleting owned project p-fault-24 failed: teardown refused"
   ],
-  "statements": 252,
-  "trace": "eb45d2ff6a8572d4b1b49f6194843e86459c826b9ffe68ff4601e6018229a3b4",
+  "statements": 264,
+  "trace": "96ba9a1616cd26b484d4bf7d719711b4a7dde4f564e7195854f9795ca5412f40",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "754f02d3cc8f0574ac167811cddc8f00311b94ad3aff942ad40f8e850f61e284",
+   "trace": "838b2bf8d95a0c08a5a7f84cc8fc7d903ca3ae6f9928fcdbadcd5778bf0d56fa",
    "left": 0
   }
  },
@@ -2639,14 +2711,14 @@
    "[UserStore] deleting owned project p-fault-25 failed: canceling statement due to statement timeout",
    "[UserStore] erasure step 'project_shares' failed for user 'fault-25' (57014)"
   ],
-  "statements": 251,
-  "trace": "f86de24f18a026481f878cece124e35d1bf3c5e95861c33760bb929c530536bb",
+  "statements": 263,
+  "trace": "0cfdb55eeabba8a5bb4ec8a9ed2d72c4746a2800d376377a0b46353fbdf631ff",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "0b7efa300052100f3d3f0ff7ffaab2edfeb3326c5854303697c24f6439c0cbcf",
+   "trace": "170750e6dd24d998aa5d989b222c0bbc055d4bb38af0af57fd1a379f0fca484e",
    "left": 0
   }
  },
@@ -2667,14 +2739,14 @@
   "errorLines": [
    "[UserStore] erasing comments failed: canceling statement due to statement timeout"
   ],
-  "statements": 251,
-  "trace": "c70ce093bbdc05ba7f53e826ef72694636e89e6c3a32edce04fd2b601a45e4d0",
+  "statements": 263,
+  "trace": "b8f3914cc073482e7cda17dea650d225df28faa8e1aa82b23df06ee331e368ec",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "f3f79615e6c34a00070e6a746152fca18137c186f7e84c3664117a7e9a7ece97",
+   "trace": "10fdd118317fde54e7a73811895e33e349a281c3fa1fc784a448df15a17b98e8",
    "left": 0
   }
  },
@@ -2695,14 +2767,14 @@
   "errorLines": [
    "[UserStore] erasure step 'agents' failed for user 'fault-27' (57014)"
   ],
-  "statements": 252,
-  "trace": "b3ce8c25e7e81183b0fdb47952a47b5aa018e56c7fa7feced879381d7abb18ec",
+  "statements": 264,
+  "trace": "b18056baef918ea6901964b1a639b4bd77860d18d0c462dda0f37bd985542ee8",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "446712ae4ce5d7ed55acfdf10bd5b77c15149437f6d8e7b43f4a31048a063df2",
+   "trace": "fda8269201051118c9f0b2b04a815c8645fec489a643ead6563e23016c39bed1",
    "left": 0
   }
  },
@@ -2723,14 +2795,14 @@
   "errorLines": [
    "[UserStore] erasure step 'reminders' failed for user 'fault-28' (57014)"
   ],
-  "statements": 252,
-  "trace": "d782792256343be2515488bd2867f59e2ac74630f67d574b794c5815356e054f",
+  "statements": 264,
+  "trace": "be105d44e720c35da81975a2c9e632f8aa7c7b37a8f2fd75a0709c1de371554c",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "593e4d4f427a31965e9f8ac98afb3c90091c747faa8e321670afdc689eeaf4f0",
+   "trace": "8fd2729a89d6610766608a053adfb38afae34ef0fa07c688662db8bdec30342c",
    "left": 0
   }
  },
@@ -2751,14 +2823,14 @@
   "errorLines": [
    "[UserStore] erasure step 'datatables' failed for user 'fault-29' (57014)"
   ],
-  "statements": 250,
-  "trace": "7eb68756cf2c543618fb154d50959f44c6a89bccba7f6215e5f054fd523e2467",
+  "statements": 262,
+  "trace": "d951cd6cebcb39f63a79ea6db84ab44d913d5f50569866a9421f66f109189ba7",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "a03d6e65c32c40bf6bb47bdfb9f3a31488a3e9aa4bf5dbff42d9b96c555824f2",
+   "trace": "748f7b5d0f7ee9da9297c7cfcb2388ea72eb8993d4c9b3361b16e31dd70d46af",
    "left": 0
   }
  },
@@ -2779,14 +2851,14 @@
   "errorLines": [
    "[UserStore] erasure step 'notifications' failed for user 'fault-30' (57014)"
   ],
-  "statements": 252,
-  "trace": "b3b55e728f569a4d2aeebaa5debf994a2271e6fbde84ce074eb390037eae461c",
+  "statements": 264,
+  "trace": "dd74ea06350a657a7708cc8971388f5fc57dd5e478b4c2cfd0cb3a6ede7c41b2",
   "accountKept": 1,
   "retry": {
    "outcome": {
     "returned": true
    },
-   "trace": "fb5e66a2617690abdc25825e545ce5e2bf98013b291f687622711e2e8094ed86",
+   "trace": "3c9215945eb7690bfcb5d27fc38c40bf22c49f9dd3e4d069df394e1ec9321032",
    "left": 0
   }
  }

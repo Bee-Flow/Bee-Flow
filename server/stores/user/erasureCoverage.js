@@ -84,6 +84,29 @@ const ERASURE_COVERAGE = Object.freeze({
     ai_task_termination_log: { mode: 'deleted', column: 'user_id' },
     cowork_schedules: { mode: 'deleted', column: 'user_id' },
     cowork_runs: { mode: 'cascade', parent: 'cowork_schedules' },
+    cowork_daily_mail: { mode: 'deleted', column: 'user_id' },
+    cowork_habit_signals: { mode: 'deleted', column: 'user_id' },
+    cowork_habit_offers: { mode: 'deleted', column: 'user_id' },
+    // A replay of a plan and its per-run verdicts (counts and step ids): the owner's, gone with the account.
+    cowork_replays: { mode: 'deleted', column: 'user_id' },
+    cowork_replay_events: { mode: 'cascade', parent: 'cowork_replays' },
+    // A goal and what its check measured go with the item they are about.
+    cowork_goals: { mode: 'deleted', column: 'user_id' },
+    cowork_goal_results: { mode: 'cascade', parent: 'cowork_schedules' },
+    // What Cowork proposed to change in a plan (a definition of the owner's plan): the owner's, gone with the account.
+    cowork_proposals: { mode: 'deleted', column: 'user_id' },
+    cowork_proposal_attempts: { mode: 'cascade', parent: 'cowork_schedules' },
+    // A colleague's place on someone else's cowork goes with their account; the cowork stays its owner's.
+    cowork_shares: { mode: 'deleted', column: 'user_id' },
+    // A desk is the organisation's: it stays, handed to its oldest remaining admin. A role a person held goes with
+    // them (the desk owner names a new holder); where they only stood in, the role stays without a stand-in. The
+    // coworks on a desk (cowork_desk_members) go with their owner's items, by the foreign key to cowork_schedules.
+    // The hand-offs a leading item's owner allowed (cowork_desk_follows) go with either item the same way.
+    cowork_desk_follows: { mode: 'cascade', parent: 'cowork_schedules' },
+    cowork_desks: { mode: 'reassigned', column: 'owner_id', org: 'organization_id' },
+    cowork_desk_roles: { mode: 'deleted', column: 'holder_id', detach: 'stand_in_id' },
+    // A template belongs to the organisation it was saved in: it stays, without the name of who saved it.
+    cowork_templates: { mode: 'detached', column: 'created_by' },
     studio_documents: { mode: 'deleted', column: 'user_id' },
     studio_document_versions: { mode: 'cascade', parent: 'studio_documents' },
     studio_document_folders: { mode: 'deleted', column: 'user_id' },

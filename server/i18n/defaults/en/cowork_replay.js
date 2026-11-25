@@ -1,0 +1,28 @@
+// @typecheck strict
+// English GUI defaults — namespace "cowork_replay": every key whose part before the first "." is "cowork_replay".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    "cowork_replay.again": "Replay again",
+    "cowork_replay.heading": "Replay on last month",
+    "cowork_replay.headline.all_same": "{same} of {full} the same",
+    "cowork_replay.headline.none_full": "None of the past runs could be replayed in full.",
+    "cowork_replay.headline.one_differs": "{same} of {full} the same, 1 differs",
+    "cowork_replay.headline.some_differ": "{same} of {full} the same, {differs} differ",
+    "cowork_replay.hint": "Runs the changed plan on what the earlier runs read. Nothing is read from your apps, changed or sent.",
+    "cowork_replay.line.differs": "Replayed in full: it comes out different.",
+    "cowork_replay.line.not_replayable": "Could not be replayed: {reason}",
+    "cowork_replay.line.partial": "Replayed in part: {count} steps had no recording. They are new, or ask something different than then.",
+    "cowork_replay.line.partial_one": "Replayed in part: 1 step had no recording. It is new, or asks something different than then.",
+    "cowork_replay.line.same": "Replayed in full: it comes out the same.",
+    "cowork_replay.reason.failed": "the replay of this run stopped with an error.",
+    "cowork_replay.reason.no_automation_run": "it left nothing to replay.",
+    "cowork_replay.reason.no_plan": "it did not follow a plan.",
+    "cowork_replay.reason.not_recorded": "what it read is no longer kept.",
+    "cowork_replay.reason.too_old": "it is older than the run history keeps.",
+    "cowork_replay.replaying": "Replaying…",
+    "cowork_replay.running": "Replaying the plan on the past runs…",
+    "cowork_replay.start": "Replay on last month",
+    "cowork_replay.starting": "Starting…",
+    "cowork_replay.stopped": "The replay stopped before every past run was replayed.",
+};

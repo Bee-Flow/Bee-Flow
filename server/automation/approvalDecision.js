@@ -214,16 +214,18 @@ async function resumeDecidedRun({ approval, run, deciderId, trimmedReason, coerc
         // steps.<id>.output.votes when they care.
         votes: votes ? votes.map(voteSummary) : [],
     });
+    /** @type {string | null} why a feature refused the continuation, in words for the owner */
+    let refusal = null;
     /** @type {{ kind: 'finished', run: any } | { kind: 'pending', runId: string } | null} */
     const resumed = await startCapped((onRunCreated) => runner.resumeFromStep(run.id, approval.stepId, { decision: decisionOutput, userId: deciderId, onRunCreated }),
         { respond, label: 'approvalService/resume' })
-        .catch((e) => { log.error('[approvalService] resume error:', e.message); return null; });
+        .catch((e) => { log.error('[approvalService] resume error:', e.message); refusal = refusalOf(e); return null; });
     const childId = resumed?.kind === 'finished' ? resumed.run?.id : resumed?.runId;
 
     // The continuation never started, so there is no run to follow: the
     // parent ends in error rather than "success — continuation running", and
     // the answer says so. The decision itself stands (written above).
-    if (!childId) return resumeFailed({ approval, run, decision, decidedAt });
+    if (!childId) return resumeFailed({ approval, run, decision, decidedAt, refusal });
 
     await automationStore.updateRun(run.id, {
         status: 'success',
@@ -238,15 +240,27 @@ async function resumeDecidedRun({ approval, run, deciderId, trimmedReason, coerc
 }
 
 /**
+ * The words of a refusal to continue (core/automationRunner/heldDefinitions.js
+ * ContinuationRefused), or null for any other failure: those stay in the log.
+ * @param {unknown} err
+ */
+function refusalOf(err) {
+    const { ContinuationRefused } = require('../core/automationRunner/heldDefinitions');
+    return err instanceof ContinuationRefused ? err.message : null;
+}
+
+/**
  * The decision was recorded but its continuation could not start: the
  * parent run ends in error `resume_failed` (it would otherwise say "success"
- * with nothing after it) and the caller gets a 500 naming the code.
- * @param {{ approval: any, run: any, decision: 'approve' | 'reject', decidedAt: string }} p
+ * with nothing after it) and the caller gets a 500 naming the code. A
+ * feature's refusal to continue is added in its own words.
+ * @param {{ approval: any, run: any, decision: 'approve' | 'reject', decidedAt: string, refusal?: string | null }} p
  */
-async function resumeFailed({ approval, run, decision, decidedAt }) {
-    const error = decision === 'approve'
+async function resumeFailed({ approval, run, decision, decidedAt, refusal = null }) {
+    const failed = decision === 'approve'
         ? 'The approval was recorded, but the run could not continue.'
         : 'The rejection was recorded, but the run could not continue on its rejected branch.';
+    const error = refusal ? `${failed} ${refusal}` : failed;
     await automationStore.updateRun(run.id, {
         status: 'error',
         error,

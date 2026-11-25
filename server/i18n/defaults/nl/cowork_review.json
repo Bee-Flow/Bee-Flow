@@ -12,7 +12,6 @@
     "cowork_review.history.open_conversation": "Open het gesprek van deze run",
     "cowork_review.history.started_by_answer": "Verder gegaan na je antwoord op een beoordeling",
     "cowork_review.history.waiting_line": "Wacht op je beoordeling: {reason}",
-    "cowork_review.list.count": "{count} te beoordelen",
     "cowork_review.notification.open_in_cowork": "Openen in Cowork",
     "cowork_review.queue.answer_label": "Je antwoord of instructie",
     "cowork_review.queue.answer_placeholder": "Bijvoorbeeld: maak toch een concept, met de korting die we telefonisch hebben afgesproken.",

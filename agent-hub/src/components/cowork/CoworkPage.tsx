@@ -1,457 +1,140 @@
 /**
- * /app/cowork — everything you handed to Bee Flow, in one place.
+ * /app/cowork: what the owner handed to Bee Flow, as one calm column. The home (./CoworkHome.tsx) lists it; a task,
+ * Cowork preferences, Teamwork, Templates and Admin rules each open as a full PAGE in the same column, in place of the
+ * home and under a "Tasks" link back to it (./CoworkPageFrame.tsx). Nothing lies over the page: no sheet, no scrim.
+ * What each page shows is ./coworkSheetPanels.ts.
  *
- * This page replaces two half-surfaces. The sidebar's "Work" page could create
- * items and pause them but never showed a run history or let you fix a
- * schedule the composer had inferred wrong; Studio → Cowork could do both but
- * sat three clicks away under a different word, and had no way to make
- * anything. Splitting "create" from "correct" across two screens is what made
- * the feature feel like several features.
- *
- * Left column: the composer, then the list. Right pane: the selected item with
- * its full history — or, when nothing is selected, the welcome that used to be
- * the whole page. Deep-linkable at /app/cowork/:id.
+ * A page has an address (`/app/cowork/<id>` for a task, `/app/cowork/preferences`, …), so the browser's Back returns
+ * to the home and a page can be linked to. The address decides on arrival and whenever it changes; a click sets the
+ * page and the address together. The home stays mounted while a page is open (a sentence being written, a set-up in
+ * progress and the place in the list are kept); on the way back the focus returns to what opened the page. The home
+ * and a page arrive the same way (ENTER of ./coworkMotion.ts).
  */
-import { CalendarClock, Plus, RefreshCw, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import useModelTierSelection from '../../hooks/useModelTierSelection';
-import useTranslation from '../../hooks/useTranslation';
-import Modal from '../shared/Modal';
-import CoworkComposer from './CoworkComposer';
-import CoworkDetail from './CoworkDetail';
-import CoworkRow, { ReviewCountPill } from './CoworkRow';
-import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
-import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
-import { useCoworkAgents } from '../../api/queries/coworkReads';
-import { isInFlight } from './coworkStatus';
-import useCoworkComposer from './useCoworkComposer';
-import type { CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
-import { errorMessage } from '../../utils/caughtError';
-import { createdFlash, saveErrorMessage } from './mailTrigger';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { Settings } from 'lucide-react';
+import CoworkHome from './CoworkHome';
+import CoworkPageFrame from './CoworkPageFrame';
+import type { TaskFocus } from './CoworkNeedFrame';
+import { ENTER } from './coworkMotion';
+import { COWORK_SHEET_PANELS, pageName, pageOfSegment, pageSegment, samePage, type CoworkSheetPanel } from './coworkSheetPanels';
+import { ICON_BUTTON, LINK_INLINE, META } from './coworkUi';
+import { administersOrg } from './coworkViewer';
+import useCoworkList from './useCoworkList';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { CoworkPageProps } from '@/api/cowork.types';
 
-const NO_ITEMS: CoworkItem[] = [];
-
-export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
+/** The page's name for a screen reader: a task's title, else the kind's own name. */
+function usePageLabel(page: CoworkSheetPanel | null): string {
     const { t } = useTranslation();
-    const [actionError, setActionError] = useState<string | null | undefined>(null);
-    const [brief, setBrief] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(initialCoworkId);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [pendingDelete, setPendingDelete] = useState<CoworkItem | null>(null);
-    const [flash, setFlash] = useState<string | null>(null);
-    // Bumped after any mutation so an open history refetches without a reload.
-    const [reloadKey, setReloadKey] = useState(0);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const items = useCoworkList().data?.items;
+    if (!page) return '';
+    const title = page.kind === 'task' ? items?.find((i) => i.id === page.id)?.title : null;
+    return title || pageName(page.kind, t);
+}
 
-    // Results arrive asynchronously (the runner reports into notifications), so
-    // the list is read again every 10 s while something is mid-run rather than
-    // showing "Starting…" until the user reloads; it stops as soon as it settles.
-    // A failed read keeps the list and says so.
-    const listQuery = useQuery<{ items: CoworkItem[]; maxItems: number }>({
-        queryKey: ['cowork', 'list'],
-        staleTime: 0,
-        retry: false,
-        refetchInterval: (q) => ((q.state.data as { items: CoworkItem[] } | undefined)?.items.some(isInFlight) ? 10_000 : false),
-        refetchIntervalInBackground: true,
-        queryFn: listCowork,
-    });
-    const items = listQuery.data?.items ?? NO_ITEMS;
-    const maxItems = listQuery.data?.maxItems ?? 10;
-    const loading = listQuery.isPending;
-    const loadError = listQuery.error ? errorMessage(listQuery.error) : null;
-    const { refetch } = listQuery;
-    const refresh = useCallback(async () => { await refetch(); }, [refetch]);
+/** The page shown, following the address: it decides on arrival and whenever it changes (Back, Forward, a link). */
+function usePageOfAddress(segment: string | null): [CoworkSheetPanel | null, (next: CoworkSheetPanel | null) => void] {
+    const [page, setPage] = useState<CoworkSheetPanel | null>(() => pageOfSegment(segment));
+    const [linked, setLinked] = useState(segment);
+    if (segment !== linked) {
+        setLinked(segment);
+        const next = pageOfSegment(segment);
+        // The page a click just opened keeps what the click said (a task opened at its steps).
+        if (!samePage(next, page)) setPage(next);
+    }
+    return [page, setPage];
+}
 
-    // Only the edit form's "Run as" picker needs these; an empty list simply
-    // hides the field, which is the right outcome outside the agent beta.
-    const agents = useCoworkAgents();
-
-    // A deep link wins on arrival; after that the user's clicks decide.
-    useEffect(() => {
-        if (initialCoworkId) setSelectedId(initialCoworkId);
-    }, [initialCoworkId]);
-
-    const cowork = useCoworkComposer({
-        onCreated: (created, payload) => {
-            setBrief('');
-            setFlash(createdFlash(payload, t));
-            // Select what was just created: the history it is about to fill is then on screen.
-            if (created?.id) setSelectedId(created.id);
-            refresh();
-        },
-    });
-
-    useEffect(() => {
-        if (!flash) return undefined;
-        const t = setTimeout(() => setFlash(null), 4000);
-        return () => clearTimeout(t);
-    }, [flash]);
-
-    // Cowork keeps its own remembered tier, separate from the chat's: a daily
-    // digest and a conversation are different jobs and deserve different
-    // budgets. Until this existed the page sent no tier at all, so everything
-    // scheduled here silently ran on 'auto'.
-    const { modelTiers, selectedTier, setSelectedTier } = useModelTierSelection({
-        storageKey: 'coworkTier',
-    });
-
-    const atLimit = items.length >= maxItems;
-    const send = () => {
-        if (atLimit) return;
-        cowork.submit(brief, { modelTier: selectedTier });
-    };
-
-    // ONE count, from ONE predicate. The header pill, the poll below and the
-    // sidebar badge are the same question — "is anything on the go, and how
-    // much of it" — and the moment two of them derive it their own way they
-    // drift: the badge used to count `isActive`, so six schedules with two
-    // running showed a 5 (CW-02/CW-18).
-    const inFlightCount = useMemo(() => items.filter(isInFlight).length, [items]);
-
-    const selected = useMemo(
-        () => items.find(i => i.id === selectedId) || null,
-        [items, selectedId],
-    );
-
-    const select = useCallback((id: string) => {
-        setSelectedId(id);
-        // Switching rows abandons an open edit: carrying the form over to a
-        // different item would save one item's text onto another.
-        setEditingId(null);
-        setActionError(null);
-        if (onNavigate) onNavigate(`cowork/${id}`);
-    }, [onNavigate]);
-
-    const withBusy = useCallback(async (fn: () => Promise<unknown>) => {
-        setBusy(true);
-        setActionError(null);
-        try {
-            await fn();
-            await refresh();
-            setReloadKey(k => k + 1);
-        } catch (err) {
-            setActionError(errorMessage(err));
-        } finally {
-            setBusy(false);
+/**
+ * Where the reader was on the home, kept while a page is open: what opened the page gets the focus back, and the
+ * column scrolls back to where it stood. What opened it is the control last pressed on the home (`pressed`, since not
+ * every browser focuses a button on a click), else what has the focus; `fallback` takes the focus when nothing on the
+ * home opened the page (a link).
+ */
+function useHomePlace(pageKey: string | null) {
+    const open = pageKey !== null;
+    const scroller = useRef<HTMLDivElement>(null);
+    const fallback = useRef<HTMLParagraphElement>(null);
+    const place = useRef<{ opener: HTMLElement | null; top: number } | null>(null);
+    const lastPressed = useRef<HTMLElement | null>(null);
+    const pressed = useCallback((e: MouseEvent<HTMLElement>) => {
+        lastPressed.current = e.target instanceof Element ? e.target.closest<HTMLElement>('button, a[href]') : null;
+    }, []);
+    const remember = useCallback(() => {
+        if (place.current) return;
+        const active = document.activeElement;
+        const focused = active instanceof HTMLElement && active !== document.body ? active : null;
+        place.current = { opener: lastPressed.current ?? focused, top: scroller.current?.scrollTop ?? 0 };
+    }, []);
+    // Before the paint: a page starts at its top, and the home comes back where it was left.
+    useLayoutEffect(() => {
+        const column = scroller.current;
+        if (open) {
+            if (column) column.scrollTop = 0;
+            return;
         }
-    }, [refresh]);
+        const was = place.current;
+        if (!was) return;
+        place.current = null;
+        if (column) column.scrollTop = was.top;
+        const target = was.opener?.isConnected ? was.opener : fallback.current;
+        target?.focus({ preventScroll: true });
+    }, [open, pageKey]);
+    // A page the address opened (a link, Forward) is left the same way: to the home's own heading.
+    useEffect(() => {
+        if (open && !place.current) place.current = { opener: null, top: 0 };
+    }, [open]);
+    return { scroller, fallback, remember, pressed };
+}
 
-    const handleRunNow = useCallback((id: string) => withBusy(async () => {
-        await runCoworkNow(id);
-        setFlash('Running — the result lands in your notifications.');
-    }), [withBusy]);
+export default function CoworkPage({ user = null, initialCoworkId = null, onNavigate }: CoworkPageProps) {
+    const { t } = useTranslation();
+    const [page, setPage] = usePageOfAddress(initialCoworkId);
+    const [seed, setSeed] = useState<{ text: string; n: number } | null>(null);
+    const label = usePageLabel(page);
+    const { scroller, fallback, remember, pressed } = useHomePlace(page ? pageSegment(page) : null);
 
-    const handleToggle = useCallback((id: string) => withBusy(() => toggleCowork(id)), [withBusy]);
+    const open = useCallback((next: CoworkSheetPanel) => {
+        remember();
+        setPage(next);
+        onNavigate?.(`cowork/${pageSegment(next)}`);
+    }, [onNavigate, remember, setPage]);
+    const openTask = useCallback((id: string, focus?: TaskFocus) => open({ kind: 'task', id, ...(focus ? { focus } : {}) }), [open]);
+    const close = useCallback(() => {
+        setPage(null);
+        onNavigate?.('cowork');
+    }, [onNavigate, setPage]);
+    const fillComposer = useCallback((text: string) => {
+        setSeed((was) => ({ text, n: (was?.n ?? 0) + 1 }));
+        close();
+    }, [close]);
 
-    const handleDelete = useCallback(async () => {
-        const item = pendingDelete;
-        setPendingDelete(null);
-        if (!item) return;
-        await withBusy(async () => {
-            await deleteCowork(item.id);
-            setSelectedId(prev => (prev === item.id ? null : prev));
-        });
-    }, [pendingDelete, withBusy]);
-
-    const handleSave = useCallback(async (patch: CoworkUpdate) => {
-        if (!selectedId) return;
-        setBusy(true);
-        setActionError(null);
-        try {
-            await updateCowork(selectedId, patch);
-            // Leave edit mode only on success, so a rejected save keeps the
-            // user's edits on screen instead of discarding them.
-            setEditingId(null);
-            await refresh();
-        } catch (err) {
-            setActionError(saveErrorMessage(err, t));
-        } finally {
-            setBusy(false);
-        }
-    }, [selectedId, refresh, t]);
-
-    // ── Composer ────────────────────────────────────────────
-    // Lives in the wide right-hand pane, directly under the promise it answers
-    // — not in the 320px list column, where the chips wrapped onto three rows
-    // and the brief was two words per line.
-    const composer = (
-        <>
-            <CoworkComposer
-                value={brief}
-                onChange={setBrief}
-                onSubmit={send}
-                cowork={cowork}
-                modelTiers={modelTiers}
-                selectedTier={selectedTier}
-                onTierChange={setSelectedTier}
-                simpleMode={!!user?.simpleMode || isMobile}
-                isMobile={isMobile}
-                // Under a full-height hero a single-line box reads as an
-                // afterthought; in the chat the same component starts at one
-                // row and grows. Two, not three — a brief is usually a
-                // sentence, and an empty box the size of a paragraph reads as
-                // a demand for one.
-                minRows={2}
-                textareaRef={textareaRef}
-            />
-
-            {/* Page-level status: the load error, the "off it goes" flash and
-                the quota ceiling. The composer shows its own create errors.
-                This is also the only place the quota is spelled out — a
-                permanent "4/10 in use" under the box was noise nine times out
-                of ten, and the tenth time it needs to be a warning anyway. */}
-            {(flash || loadError || atLimit) && (
-                <div
-                    className="mt-3 rounded-xl px-3 py-2 text-[12px]"
-                    role="status"
-                    style={{
-                        background: 'var(--bg-secondary)',
-                        color: loadError ? 'var(--danger, #dc2626)' : 'var(--text-secondary)',
-                    }}
-                >
-                    {loadError || flash
-                        || `You've used all ${maxItems} cowork slots. Delete or finish one to add more.`}
-                </div>
-            )}
-        </>
-    );
-
-    // ── List ────────────────────────────────────────────────
-    // One flat list, in the order the server sent it (newest first).
-    //
-    // It used to be two sections, "Running & scheduled" over "Done & paused",
-    // and those headings were doing the row's job: the status was a small
-    // coloured icon with no word, so the only way to learn that something had
-    // stopped was which heading it had drifted under. Now that every row says
-    // "Running" / "Paused" / "Failed" out loud (CW-03), the split costs more
-    // than it gives — it reorders the list out from under someone the moment
-    // an item finishes, and it hides the newest thing they made under a
-    // heading two screens down.
-    const rows = items.map(item => (
-        <CoworkRow
-            key={item.id}
-            item={item}
-            selected={item.id === selectedId}
-            onSelect={select}
-        />
-    ));
-
-    // The dotted card under the rows. It states the ONE thing this screen
-    // cannot show — where Cowork stops and the Builder starts — and it is
-    // there whether the list is empty or full (CW-05). The old copy only
-    // appeared at zero items, so the boundary was explained exactly once, to
-    // someone who had not yet met either side of it.
-    const explainer = (
-        <p
-            data-testid="cowork-explainer"
-            className="mt-3 mx-1 px-3 py-2.5 rounded-[9px] border border-dashed text-[11px] leading-relaxed border-[var(--border-default)] text-[var(--text-tertiary)]"
-        >
-            {t(
-                'cowork.list.explainer',
-                'Cowork is the short way: you write down what needs to happen, not how. If it has to take more steps, the same brief opens in the Builder.',
-            )}
-        </p>
-    );
-
-    // Phones get one pane at a time: the composer and the list stacked in a
-    // single scroll, or — once a row is tapped — the detail on its own. The
-    // desktop split would put a 320px column next to a 40px one.
-    const showList = !isMobile || !selected;
-    const showPane = !isMobile || !!selected;
-
+    const Page = page ? COWORK_SHEET_PANELS[page.kind].component : null;
     return (
-        <div className="flex-1 flex min-h-0 min-w-0 bg-[var(--bg-primary)]">
-            {showList && (
-            <aside
-                className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0 [border-color:var(--border-subtle)]!`}
-            >
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">
-                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">{t('sidebar.cowork', 'Cowork')}</span>
-                    {/* The tally, and only when there is one to tell. A
-                        permanent "0 running" is a fact nobody asked for; the
-                        pill exists to be noticed. */}
-                    {inFlightCount > 0 && (
-                        <span
-                            data-testid="cowork-running-count"
-                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 [background:color-mix(in_srgb,var(--type-ai)_14%,transparent)] [color:var(--type-ai)]!"
-                        >
-                            {t('cowork.list.running_count', '{count} running', { count: inFlightCount })}
-                        </span>
-                    )}
-                    <ReviewCountPill count={items.reduce((n, i) => n + (i.openReviewCount || 0), 0)} testId="cowork-review-count" />
-                    <div className="ml-auto flex items-center gap-1">
-                        <button
-                            type="button"
-                            onClick={refresh}
-                            disabled={loading || busy}
-                            aria-label={t('cowork.list.refresh', 'Refresh')}
-                            data-testid="cowork-refresh"
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50 text-[var(--text-tertiary)]"
-                        >
-                            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-                        {/* The one filled button on this column, and the thing
-                            the screen is for. Clearing the selection is what
-                            brings the composer back — it lives in the pane on
-                            the right, so this button reveals it rather than
-                            opening anything of its own. */}
-                        <button
-                            type="button"
-                            onClick={() => { setSelectedId(null); setEditingId(null); textareaRef.current?.focus(); }}
-                            disabled={busy}
-                            data-testid="cowork-new"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                        >
-                            <Plus className="w-3.5 h-3.5 flex-shrink-0" />
-                            {t('cowork.list.new', 'New task')}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-3 pt-1">
-                    {/* On a phone there is no second pane to put the composer
-                        in, so it rides above the list instead. */}
-                    {isMobile && (
-                        <div className="px-1 pt-2 pb-1">
-                            <CoworkWelcomeHeader className="text-center mb-4" />
-                            {composer}
-                        </div>
-                    )}
-                    {loading && items.length === 0 && (
-                        <p className="px-2 pt-3 text-[12px] text-[var(--text-tertiary)]">
-                            {t('cowork.list.loading', 'Loading…')}
-                        </p>
-                    )}
-                    <div className="flex flex-col gap-0.5 pt-1">{rows}</div>
-                    {explainer}
-                </div>
-            </aside>
-            )}
-
-            {showPane && (
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-                    {actionError && editingId === null && (
-                        <p className="m-4 text-[12px] text-red-600 dark:text-red-400" role="alert">{actionError}</p>
-                    )}
-                    {selected ? (
-                        <CoworkDetail
-                            item={selected}
-                            agents={agents}
-                            onRunNow={handleRunNow}
-                            onToggle={handleToggle}
-                            onDelete={setPendingDelete}
-                            onSave={handleSave}
-                            editing={editingId === selected.id}
-                            onEdit={() => { setActionError(null); setEditingId(selected.id); }}
-                            onCancelEdit={() => { setActionError(null); setEditingId(null); }}
-                            saveError={actionError}
-                            busy={busy}
-                            reloadKey={reloadKey}
-                        />
-                    ) : (
-                        <div className="h-full overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-6 py-10">
-                            <div className="w-full max-w-2xl">
-                                <CoworkWelcomeHeader />
-                                {composer}
-
-                                {/* Starters only while there is nothing real to
-                                    look at — otherwise they compete with the
-                                    user's own work for attention. */}
-                                {items.length === 0 ? (
-                                    <div className="mt-5 flex flex-col gap-2">
-                                        {/* The keyed table, not the flattened
-                                            COWORK_STARTERS strings: those drop
-                                            the keys, so this page printed the
-                                            English while the chat welcome —
-                                            same four sentences, same file —
-                                            showed the translation. */}
-                                        {COWORK_STARTER_ITEMS.map(({ key, en }) => {
-                                            const text = t(key, en);
-                                            return (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() => { setBrief(text); textareaRef.current?.focus(); }}
-                                                data-testid="cowork-starter"
-                                                className="text-left px-3.5 py-2.5 rounded-xl border text-[12.5px] transition-colors hover:bg-[var(--bg-secondary)] [background:var(--bg-card)]! [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
-                                            >
-                                                {text}
-                                            </button>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <p className="mt-6 text-[13px] flex items-center gap-2 justify-center text-[var(--text-tertiary)]">
-                                        <CalendarClock className="w-4 h-4 flex-shrink-0" />
-                                        {t('cowork.pick_left', 'Or pick something on the left to see when it runs and how every run went.')}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ── Delete confirm ──────────────────────────────────── */}
-            {pendingDelete && (
-                <Modal
-                    open
-                    onClose={() => setPendingDelete(null)}
-                    variant="bare"
-                    size="auto"
-                    zIndex={1000}
-                    label={t('cowork.delete.heading', 'Delete this cowork?')}
-                >
-                    <div
-                        className="w-full max-w-sm rounded-2xl border shadow-2xl p-5 bg-[var(--bg-primary)] border-[var(--border-default)]"
-                    >
-                        <div className="text-[14px] font-semibold mb-1 text-[var(--text-primary)]">
-                            {t('cowork.delete.heading', 'Delete this cowork?')}
-                        </div>
-                        {/* The title travels as a PARAMETER, not as a child
-                            between two JSX fragments: a translator has to be
-                            able to move it inside the sentence, and half a
-                            sentence either side of a name is not translatable
-                            at all in most languages. */}
-                        <p className="text-[12.5px] mb-4 text-[var(--text-secondary)]">
-                            {t(
-                                'cowork.delete.consequence',
-                                '“{title}” stops running and its history is removed. This can’t be undone.',
-                                { title: pendingDelete.title },
-                            )}
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setPendingDelete(null)}
-                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-                            >
-                                {t('cowork.delete.cancel', 'Cancel')}
+        <div ref={scroller} className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)] text-[14px] leading-5 text-[var(--text-primary)]" data-testid="cowork-page">
+            <div className="max-w-[760px] mx-auto px-4 pt-6 pb-24">
+                <div hidden={!!page} className={page ? 'hidden' : `${ENTER} flex flex-col gap-6`} onClickCapture={pressed}>
+                    <header className="flex items-center gap-2">
+                        <p ref={fallback} tabIndex={-1} className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{t('sidebar.cowork', 'Cowork')}</p>
+                        {administersOrg(user) && (
+                            <button type="button" className={LINK_INLINE} onClick={() => open({ kind: 'org' })} data-testid="cowork-admin-rules">
+                                {pageName('org', t)}
                             </button>
-                            <button
-                                onClick={handleDelete}
-                                data-testid="cowork-confirm-delete"
-                                className="px-3.5 py-2 rounded-lg text-[12.5px] font-semibold text-white bg-red-500 hover:bg-red-600"
-                            >
-                                {t('cowork.delete.confirm', 'Delete')}
-                            </button>
-                        </div>
-                    </div>
-                </Modal>
-            )}
-
-            {/* Phones: a selected item takes the whole screen, so it needs a way back. */}
-            {isMobile && selected && (
-                <button
-                    type="button"
-                    onClick={() => { setSelectedId(null); setEditingId(null); }}
-                    aria-label={t('cowork.list.back', 'Back to the list')}
-                    className="fixed top-3 right-3 z-[900] p-2 rounded-full border shadow-sm bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                >
-                    <X className="w-4 h-4" />
-                </button>
-            )}
+                        )}
+                        <button type="button" className={ICON_BUTTON} aria-label={pageName('settings', t)} title={pageName('settings', t)} onClick={() => open({ kind: 'settings' })} data-testid="cowork-preferences">
+                            <Settings aria-hidden="true" size={16} />
+                        </button>
+                    </header>
+                    <CoworkHome onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+                </div>
+                {page && Page && (
+                    <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close}>
+                        <Suspense fallback={<p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>}>
+                            <Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} />
+                        </Suspense>
+                    </CoworkPageFrame>
+                )}
+            </div>
         </div>
     );
 }

@@ -201,6 +201,8 @@ test('an automatic mail (Auto-Submitted other than no, or a list / bulk Preceden
         const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: headers }) });
         await mod.runForEvent(sub, { messageId: `auto-${headers.autoSubmitted}${headers.precedence}` }, deps);
         assert.strictEqual(state.ran.length, 0, JSON.stringify(headers));
+        // Decided before the claim: the claim opens a history row and marks the item running, and nothing closes it.
+        assert.strictEqual(state.claims.size, 0, `no run row is opened for it: ${JSON.stringify(headers)}`);
     }
     const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: { autoSubmitted: 'no', precedence: '' } }) });
     await mod.runForEvent(sub, { messageId: 'human-1' }, deps);
@@ -228,4 +230,23 @@ test('Outlook: "sender contains" / "subject contains" are decided on the fetched
     const { deps, state } = fakeDeps({ fetchMessage: async () => { throw new Error('no token'); } });
     await mod.runForEvent(outlook({ from: 'ann' }), { messageId: 'o2' }, deps);
     assert.strictEqual(state.ran.length, 0, 'an unreadable mail does not pass a sender filter');
+});
+
+test('an item with an approved plan runs that plan on the mail: the mail is start data, and no agent prompt is built', async () => {
+    const { deps, state } = fakeDeps({ getSchedule: async () => ({ ...schedule, agentId: null, planId: 'plan-1' }) });
+    await mod.runForEvent(sub, { messageId: 'g2', threadId: 'T1' }, deps);
+    assert.strictEqual(state.ran.length, 1);
+    const { task, trigger } = state.ran[0];
+    assert.strictEqual(task.conversationId, null);
+    assert.deepStrictEqual([trigger.runId, trigger.plan, trigger.payload.start, trigger.prompt], ['run-g2', true, 'app_event', undefined]);
+    assert.strictEqual(trigger.payload.mail.from, 'Ann <ann@ext.com>');
+    assert.strictEqual(trigger.payload.mail.subject, 'Offer for Q3');
+    assert.match(trigger.payload.mail.body, /ignore all previous instructions/, 'the text goes as data; what may use it is the plan\'s checks');
+});
+
+test('an item with neither an agent nor a plan starts nothing on a mail', async () => {
+    const { deps, state } = fakeDeps({ getSchedule: async () => ({ ...schedule, agentId: null, planId: null }) });
+    await mod.runForEvent(sub, { messageId: 'g3', threadId: 'T1' }, deps);
+    assert.strictEqual(state.ran.length, 0);
+    assert.strictEqual(state.claims.size, 0);
 });

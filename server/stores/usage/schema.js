@@ -126,6 +126,8 @@ async function _initDB() {
         `CREATE INDEX IF NOT EXISTS idx_usage_conversation ON ai_usage_log(conversation_id)`,
         // Swarm aggregation indexes
         `CREATE INDEX IF NOT EXISTS idx_usage_swarm_run ON ai_usage_log(swarm_run_id) WHERE swarm_run_id IS NOT NULL`,
+        // What one run cost (an automation run, an app action run, a Cowork run: stores/coworkRunCosts.mts).
+        `CREATE INDEX IF NOT EXISTS idx_usage_run ON ai_usage_log(run_id) WHERE run_id IS NOT NULL`,
         `CREATE INDEX IF NOT EXISTS idx_usage_parent_call ON ai_usage_log(parent_call_id) WHERE parent_call_id IS NOT NULL`,
         // Phase 2: composite index for the most common dashboard query pattern:
         // filter by org + date range, ordered by most recent first
