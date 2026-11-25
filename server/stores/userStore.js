@@ -11,11 +11,12 @@
 
 require('./user/schema');
 const {
-    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, searchOrgDirectoryNames,
+    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
     createUser, updateUser, deleteUser, getUserByNcUid, hasMirroredNcUsers, findOrgMemberIdByEmail,
     createUserWithSeatCheck, SeatCapExceededError, touchLastSeen, replacePasswordHash,
 } = require('./user/users');
+const { searchOrgDirectoryNames } = require('./user/directoryNames.mts');
 const { completePasswordReset } = require('./user/passwordReset');
 const { claimNcInstanceForOrganization } = require('./user/orgNcInstance.mts');
 const { orgIdsWithVerifiedAdminAtDomain } = require('./user/verifiedAdminDomains.mts');

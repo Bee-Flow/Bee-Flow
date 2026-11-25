@@ -121,22 +121,6 @@ async function getOrgMembersForDirectory(organizationId, limit = 500) {
     `, [organizationId, capped]);
 }
 
-/** Search the names a project invite picker can display, before limiting its results. */
-async function searchOrgDirectoryNames(organizationId, query, limit) {
-    if (!organizationId) return [];
-    await initDB();
-    return getAll(`
-        WITH directory AS (
-            SELECT id, COALESCE(NULLIF(TRIM("displayName"), ''), NULLIF(username, ''), id) AS label
-            FROM users WHERE "organizationId" = $1 AND COALESCE(status, 'active') = 'active'
-        ), names AS (
-            SELECT id, CASE WHEN STRPOS(label, '@') > 0 THEN id ELSE label END AS name FROM directory
-        )
-        SELECT id, name FROM names WHERE STRPOS(LOWER(name), LOWER($2)) > 0
-        ORDER BY name, id LIMIT $3
-    `, [organizationId, query, limit]);
-}
-
 async function getUser(userId) {
     await initDB();
     const u = await getOne('SELECT * FROM users WHERE id = $1', [userId]);
@@ -407,7 +391,7 @@ async function replacePasswordHash(userId, expectedHash, newHash) {
 }
 
 module.exports = {
-    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, searchOrgDirectoryNames,
+    getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
     createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, hasMirroredNcUsers, findOrgMemberIdByEmail,
     stagesRunBy, assertNotStageRunAs,

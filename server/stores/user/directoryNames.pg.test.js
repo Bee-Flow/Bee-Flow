@@ -6,7 +6,7 @@ const { test, before, after } = require('node:test');
 const { usePglitePool } = require('../../testUtils/pglitePool');
 const { pg, close } = usePglitePool();
 const { initDB } = require('./schema');
-const { searchOrgDirectoryNames } = require('./users');
+const { searchOrgDirectoryNames } = require('./directoryNames.mts');
 
 before(async () => {
     await initDB();
