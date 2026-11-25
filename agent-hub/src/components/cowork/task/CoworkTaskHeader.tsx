@@ -44,7 +44,7 @@ function SharedLine({ shared, t }: { shared: SharedBy; t: TranslateFn }) {
 export default function CoworkTaskHeader({ item, status, meta, sharedBy = null, t }: CoworkTaskHeaderProps) {
     return (
         <header className="flex flex-col gap-1.5" data-testid="cowork-task-header">
-            <div key={status} className={SWAP}><CoworkStatusPill status={status} /></div>
+            <div key={status} className={SWAP}><CoworkStatusPill status={status} animate={false} /></div>
             <h1 className="m-0 text-[20px] leading-7 font-semibold break-words text-[var(--text-primary)] outline-none">
                 {item.title || t('cowork_task.head.untitled', 'Untitled task')}
             </h1>

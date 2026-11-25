@@ -233,3 +233,28 @@ describe('CoworkHomeComposer', () => {
         ]);
     });
 });
+
+it('asks for the destination, reads the answer and only then enables setup', async () => {
+    serve((brief) => ({ ...WEEKLY, ...(brief.includes('Orders') ? {} : { missingTarget: 'table' }) }));
+    renderComposer();
+    const { user, card } = await write('Every Monday add new rows to a table');
+    expect(within(card).getByTestId('cowork-confirm-start')).toBeDisabled();
+    await user.type(within(card).getByLabelText('Which table should receive the rows?'), 'Orders');
+    await user.click(within(card).getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(within(card).getByTestId('cowork-confirm-start')).toBeEnabled());
+    expect(created()).toBeUndefined();
+});
+
+it('the file example asks for the folder and table in turn and leaves the result editable', async () => {
+    serve(WEEKLY);
+    renderComposer();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Register Nextcloud files' }));
+    await user.type(screen.getByLabelText('Which Nextcloud folder should Cowork check?'), '/Intake');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(screen.getByLabelText('Which table should Cowork use?'), 'Incoming');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect((box() as HTMLTextAreaElement).value).toContain('folder /Intake');
+    expect((box() as HTMLTextAreaElement).value).toContain('table Incoming');
+    expect(composed()).toHaveLength(0);
+});

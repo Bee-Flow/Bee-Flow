@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ENTER } from '../coworkMotion';
 import { recipientWord } from './coworkTaskSendsModel';
 import { BTN_PRIMARY, BTN_QUIET, CARD, CARD_HEAD, Failure, META, ROW_ACTIONS } from './taskUi';
+import CoworkEffectPreview from './CoworkEffectPreview';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useCoworkPlanActions } from '@/api/queries/coworkPlan';
 import type { PlanState } from '@/api/coworkPlan.types';
@@ -56,18 +57,19 @@ export default function CoworkTaskTested({ coworkId, plan, fingerprint, changed 
     });
     return (
         <section className={`${CARD} ${ENTER}`} aria-labelledby="cowork-task-tested-h" data-testid="cowork-task-would-receive">
-            <h2 id="cowork-task-tested-h" className={`${CARD_HEAD} m-0`}>{t('cowork_task.tested.heading', 'This is what you would have received')}</h2>
+            <h2 id="cowork-task-tested-h" className={`${CARD_HEAD} m-0`}>{result.effects?.length ? t('cowork_task.preview.heading', 'What this test would change or send') : t('cowork_task.tested.heading', 'This is what you would have received')}</h2>
             <p className={META}>
                 {to
                     ? t('cowork_task.tested.to', 'From the test, on your real data. It would have gone to {who}. Nothing was sent.', { who: to })
                     : t('cowork_task.tested.safe', 'From the test, on your real data. Nothing was sent.')}
             </p>
-            <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2.5">
+            <CoworkEffectPreview effects={result.effects ?? []} t={t} />
+            {result.text && <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2.5">
                 {result.title && <span className="text-[14px] font-semibold text-[var(--text-primary)] break-words">{result.title}</span>}
                 <div className="min-w-0 break-words text-[var(--text-primary)]" data-testid="cowork-task-would-receive-text">
                     <MarkdownRenderer content={result.text} />
                 </div>
-            </div>
+            </div>}
             {fingerprint && (
                 <p className="m-0 text-[14px] leading-5 font-medium text-[var(--text-primary)]" data-testid="cowork-task-would-receive-ask">
                     {changed

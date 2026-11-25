@@ -11,9 +11,11 @@ import { fullTimestamp } from '../coworkFormat';
 import { Expand, TINT } from '../coworkMotion';
 import { FOCUS_INSET } from '../coworkUi';
 import { taskStatusLabel } from '../coworkTaskStatus';
-import { runLine, runMarkdown, runReason, runStatus } from './coworkTaskModel';
+import { runFailed, runLine, runMarkdown, runReason, runStatus } from './coworkTaskModel';
 import { TechnicalDetails } from './taskRows';
-import { Chevron, LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
+import { BTN_LINK, Chevron, LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
+import { plainStepTitle } from '../coworkOverviewModel';
+import { useCoworkRunTrace } from '@/api/queries/coworkPlan';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useReceipts, useRunReceipt } from '@/api/coworkReceipts';
 import type { CoworkRun } from '@/api/cowork.types';
@@ -34,7 +36,19 @@ function Receipt({ coworkId, runId, t }: { coworkId: string; runId: string; t: T
     );
 }
 
-function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: CoworkRun; coworkId: string; open: boolean; onToggle: () => void; withReceipts: boolean; t: TranslateFn }) {
+function RunSteps({ coworkId, runId, t }: { coworkId: string; runId: string; t: TranslateFn }) {
+    const trace = useCoworkRunTrace(coworkId, runId);
+    if (trace.isPending) return <p role="status">{t('cowork_task.trace.loading', 'Loading run steps…')}</p>;
+    if (!trace.data?.recorded) return <p>{t('cowork_task.trace.missing', 'Step details are unavailable for this run.')}</p>;
+    return <ol>{trace.data.steps.map((step) => <li className="py-1" key={step.id}>
+        {plainStepTitle(step, t)} · {step.status === 'not_reached' ? t('cowork_task.trace.skipped', 'Not reached') :
+            step.status === 'success' ? t('cowork_task.trace.done', 'Done') :
+            step.error || step.status === 'failed' || step.status === 'error' ? t('cowork_task.trace.failed', 'Failed') : step.status}
+        <TechnicalDetails text={step.error} t={t} />
+    </li>)}</ol>;
+}
+
+function RunRow({ run, coworkId, open, onToggle, withReceipts, onSteps, t }: { run: CoworkRun; coworkId: string; open: boolean; onToggle: () => void; withReceipts: boolean; onSteps?: () => void; t: TranslateFn }) {
     const status = runStatus(run);
     const bodyId = useId();
     const markdown = runMarkdown(run);
@@ -58,6 +72,10 @@ function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: Cowor
                 {reason !== line && reason !== markdown.trim() && <span className="whitespace-pre-wrap break-words" data-testid="cowork-task-run-detail">{reason}</span>}
                 {markdown && <MarkdownRenderer content={markdown} className="min-w-0 break-words" />}
                 <TechnicalDetails text={run.error} t={t} />
+                {withReceipts && open && run.planId && <RunSteps coworkId={coworkId} runId={run.id} t={t} />}
+                {open && run.planId && runFailed(run) && onSteps && <button type="button" className={BTN_LINK} onClick={onSteps}>
+                    {t('cowork_task.trace.review', 'Review and test the steps')}
+                </button>}
                 {withReceipts && <Receipt coworkId={coworkId} runId={run.id} t={t} />}
             </Expand>
         </li>
@@ -71,10 +89,11 @@ interface CoworkTaskRunsProps {
     withReceipts: boolean;
     /** What the list is called where it is shown. */
     heading: string;
+    onSteps?: () => void;
     t: TranslateFn;
 }
 
-export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, t }: CoworkTaskRunsProps) {
+export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, onSteps, t }: CoworkTaskRunsProps) {
     const [open, setOpen] = useState<string | null>(null);
     const done = runs.filter((r) => r.status !== 'running').slice(0, SHOWN);
     return (
@@ -83,7 +102,7 @@ export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, 
             {done.length === 0 && <p className="text-[14px] text-[var(--text-secondary)]">{t('cowork_task.runs.none', 'It has not run yet.')}</p>}
             <ul className="list-none m-0 p-0">
                 {done.map((run) => (
-                    <RunRow key={run.id} run={run} coworkId={coworkId} open={open === run.id} onToggle={() => setOpen((o) => (o === run.id ? null : run.id))} withReceipts={withReceipts} t={t} />
+                    <RunRow key={run.id} run={run} coworkId={coworkId} open={open === run.id} onToggle={() => setOpen((o) => (o === run.id ? null : run.id))} withReceipts={withReceipts} onSteps={onSteps} t={t} />
                 ))}
             </ul>
         </div>

@@ -54,7 +54,9 @@ interface PlanFinding {
 }
 
 /** The plan as its automation holds it now. */
+export interface PlanParameter { stepId: string; field: 'query' | 'folder' | 'path' | 'subject' | 'to'; value: string }
 export interface PlanDraft {
+    parameters?: PlanParameter[];
     view: PlanView;
     permissions: PlanPermissions;
     findings: PlanFinding[];
@@ -68,6 +70,7 @@ export interface PlanDraft {
 
 /** What the last test of a plan produced (server usecases/coworkPlanTryResult.mts): what its owner would have received. */
 interface PlanTriedResult {
+    effects?: Array<Pick<PlanTryStep, 'id' | 'title' | 'effect' | 'preview'>>;
     stepId: string;
     title: string | null;
     text: string;

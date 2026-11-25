@@ -110,7 +110,7 @@ const FIXTURES = [
             // The desk the cowork is on: its owner's only (usecases/coworkDesks.mts).
             'GET /api/cowork/:id/desk',
             // What Cowork proposes to change in a plan, and "Undo": the owner's only (usecases/coworkProposals.mts).
-            'GET /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals/:proposalId/approve',
+            'GET /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals/:proposalId/approve',
             'POST /api/cowork/:id/proposals/:proposalId/dismiss', 'POST /api/cowork/:id/plan/restore',
             // Letting the AI work it out every run, and its Undo: the owner's only (usecases/coworkSetup.mts).
             'PUT /api/cowork/:id/setup',
@@ -128,6 +128,7 @@ const FIXTURES = [
             'PUT /api/cowork/:id/shares': { shares: [] },
             'PUT /api/cowork/:id/goal': { sentence: 'Every mail gets an answer within two working days', targetPercent: 95 },
             'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
+            'POST /api/cowork/:id/proposals': { instruction: 'Shorten the summary' },
             'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
             'POST /api/cowork/:id/plan/restore': { version: 1 },
             'POST /api/cowork/:id/memory/restore': { ids: ['a-memory-of-the-owner'] },

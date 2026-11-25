@@ -174,3 +174,29 @@ test('dismissing changes nothing; the open repair shows in Needs you only while 
     await proposeRepair(ITEM, { reasonCode: 'goal_under_target', runId: 'run-3', targetPercent: 95, percents: [70, 71, 72] }, deps, async () => null);
     assert.deepStrictEqual(seen.amend[1].facts, { kind: 'goal_under', targetPercent: 95, percents: [70, 71, 72] });
 });
+
+test('an owner edit is tested on the amended copy before it is offered for approval', async () => {
+    const { deps, seen } = world();
+    const request = { kind: 'repair', reasonCode: 'owner_request', facts: { kind: 'owner_request' }, ownerRequest: 'Read open orders', stepId: null, stepTitle: null };
+    const tested = [];
+    const testCopy = async ({ definition }) => { tested.push(definition); return { passed: true }; };
+    await assert.rejects(propose(ITEM, request, { ...deps, tryDefinition: async () => ({ passed: false, problems: ['No order table'] }) }), /No order table/);
+    assert.equal(deps.store.rows.size, 0);
+    assert.equal(await propose(ITEM, request, { ...deps, tryDefinition: testCopy }), 'proposed');
+    assert.deepEqual(tested, [REPAIRED]);
+    assert.equal(seen.amend[0].ownerRequest, 'Read open orders');
+    assert.equal(await openRepairOf(ITEM, planFingerprint(BASE), deps), null);
+    assert.deepEqual(seen.approvals, []);
+});
+
+test('editing a known parameter tests exactly the changed literal and shows the old and new values', async () => {
+    const { deps, seen } = world();
+    const request = { ...REPAIR, reasonCode: 'owner_request', parameter: { stepId: 'orders', field: 'query', before: 'orders', value: 'open orders' } };
+    const withTry = { ...deps, tryDefinition: async ({ definition }) => { assert.deepEqual(definition, REPAIRED); return { passed: true }; } };
+    assert.equal(await propose(ITEM, { ...request, parameter: { ...request.parameter, before: 'stale' } }, withTry), 'unchanged');
+    assert.equal(await propose(ITEM, request, withTry), 'proposed');
+    const { proposals: [proposal] } = await proposalsOf(ITEM, deps);
+    assert.deepEqual(proposal.parameterChanges, [request.parameter]);
+    assert.equal(seen.amend.length, 0);
+    assert.equal(deps.plans.approved.fingerprint, planFingerprint(BASE));
+});

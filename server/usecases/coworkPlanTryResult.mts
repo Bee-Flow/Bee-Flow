@@ -17,7 +17,7 @@
 
 import { createRequire } from 'node:module';
 import type { Definition, PlanStep, ToolLookups } from '../core/cowork/plan/planTypes.mts';
-import { lastAttempts, longestText, messageOf, type RunStepRow } from '../core/cowork/plan/planTrace.mts';
+import { lastAttempts, traceSteps, longestText, messageOf, type RunStepRow } from '../core/cowork/plan/planTrace.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { toolLookups } from '../core/cowork/plan/planLookups.mts';
@@ -56,6 +56,7 @@ export interface TriedResult {
     stepId: string;
     title: string | null;
     text: string;
+    effects?: Array<{ id: string; title: string; effect: string; preview: string | null }>;
 }
 
 const TEXT_MAX = 4000;
@@ -108,5 +109,11 @@ export async function triedResultOf({ item }: { item: Item }, deps: TriedResultD
     if (planFingerprint(definition) !== record.fingerprint) return null;
     const run = await deps.getRun(record.tryId);
     if (!run || run.automationId !== automation.id || run.mode !== 'dry_run') return null;
-    return resultIn(definition, await deps.getRunSteps(record.tryId), deps.lookups);
+    const rows = await deps.getRunSteps(record.tryId);
+    const result = resultIn(definition, rows, deps.lookups);
+    const effects = traceSteps(definition, rows, { done: true, simulated: true }, deps.lookups)
+        .filter((s) => s.held && s.status !== 'not_reached' && s.id !== result?.stepId)
+        .map(({ id, title, effect, preview }) => ({ id, title, effect, preview }));
+    if (!effects.length) return result;
+    return { ...(result ?? { stepId: '', title: null, text: '' }), effects };
 }

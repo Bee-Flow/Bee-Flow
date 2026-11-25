@@ -5557,6 +5557,9 @@
     "POST /api/cowork/:id/plan/try": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/proposals": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/proposals/:proposalId/approve": {
       "gate": "auth"
     },

@@ -5,7 +5,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { softClasses } from '../crisp.testkit';
-import { NEEDS_APPROVAL, NO_PLAN, PLAN_WAITING, RUN, openTask } from './taskWorld.testkit';
+import { ITEM, NEEDS_APPROVAL, NO_PLAN, PLAN_WAITING, RUN, openTask } from './taskWorld.testkit';
 
 const AUTO_FIX = {
     id: 'pr-auto', kind: 'repair', reasonCode: 'reference_fixed', stepId: 'read', stepTitle: 'Read the mail', status: 'approved', fingerprint: 'f'.repeat(64),
@@ -49,6 +49,14 @@ describe('the task page is crisp', () => {
 });
 
 describe('CoworkTaskView', () => {
+    it('shows one spinner at the active step of a running task', async () => {
+        openTask({ item: { ...ITEM, lastStatus: 'running' }, runs: [{ ...RUN, status: 'running' }] });
+        const progress = await screen.findByTestId('cowork-task-progress');
+        expect(screen.getByTestId('cowork-task-header')).toHaveTextContent('Running');
+        expect(progress.querySelector('.cowork-spin')).toBeVisible();
+        expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-spin')).toHaveLength(1);
+    });
+
     it('only shows the selected panel and supports keyboard navigation between tabs', async () => {
         const { user } = openTask();
         const result = await screen.findByRole('tab', { name: 'Result', selected: true });

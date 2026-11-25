@@ -58,6 +58,7 @@ Fields:
 - "daysOfWeek": array of "sun","mon","tue","wed","thu","fri","sat" when the user named specific days; otherwise null.
 - "timeOfDay": "HH:MM" (24h) when a time is stated or clearly implied; otherwise null.
     Vague parts of day map to: morning/ochtend = "08:00", midday/middag = "12:00", afternoon = "14:00", evening/avond = "18:00", night/nacht = "21:00".
+- "missingTarget": only when a required destination for a write or send is missing, return "folder", "table", or "recipient". Choose the first missing destination only. A sender filter is not a recipient. A result for the owner already has its recipient. Otherwise omit this field. Never invent the missing destination.
 - "runOnce": true when this should run a single time, false when it repeats.
 - "agentId": the id of the agent that should run this, ONLY when the brief clearly asks for a specific agent. Otherwise null.
 - "agentQuote": when you set agentId, the exact words from the brief that named the agent, copied verbatim. Otherwise null.
@@ -125,7 +126,7 @@ function titleFromBrief(brief) {
  */
 /**
  * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
- *   timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
+ *   missingTarget?: string, timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
  *   what the model replied; every field is untrusted
  */
 /**
@@ -199,6 +200,7 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
     return {
         title: cleanText(obj.title, MAX_TITLE) || titleFromBrief(brief),
         prompt: cleanText(obj.prompt, MAX_PROMPT) || String(brief || '').trim(),
+        ...(['folder', 'table', 'recipient'].includes(obj.missingTarget) ? { missingTarget: obj.missingTarget } : {}),
         repeatInterval,
         daysOfWeek,
         timeOfDay,

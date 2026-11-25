@@ -201,6 +201,7 @@ export interface CoworkAgent {
 
 /** What POST /api/cowork/compose answers; every field may be missing. */
 export interface CoworkSpec {
+    missingTarget?: 'folder' | 'table' | 'recipient';
     title?: string;
     prompt?: string;
     repeatInterval?: string;

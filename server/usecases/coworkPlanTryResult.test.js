@@ -98,3 +98,11 @@ test('a plan without a result for its owner shows what its last sending step wou
     assert.strictEqual(resultIn(planOf([mails.steps[0]]), rows, lookups), null);
     assert.strictEqual(resultIn(supplierRadar(), [], lookups), null, 'a result step the try-out never reached');
 });
+
+test('a write-only test shows the recorded row input to the owner', async () => {
+    const definition = planOf(supplierRadar().steps.filter((step) => step.id === 'table'));
+    const { deps } = world({ definition, rows: [{ stepId: 'table', status: 'success', input: { amount: 501 } }] });
+    const result = await triedResultOf({ item: ITEM }, deps);
+    assert.equal(result?.effects?.[0].effect, 'writes');
+    assert.deepEqual(JSON.parse(result.effects[0].preview), { amount: 501 });
+});
