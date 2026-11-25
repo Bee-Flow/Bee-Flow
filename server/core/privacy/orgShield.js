@@ -145,10 +145,7 @@ async function resolveOrgShield(orgId) {
             ? { userInput: !!shield.scope.userInput, agentOutput: !!shield.scope.agentOutput }
             : { userInput: true, agentOutput: true },
         action: shield.action || 'delete',
-        // PII detection — the master `enabled` flag above is the single switch.
-        // azurePiiEnabled / localPiiEnabled are kept on the persisted doc for
-        // backwards-compatibility (old saves still parse) but are not surfaced
-        // here and are ignored at runtime by piiDetection.js's gate.
+        // The master switch governs detection. The explicit flag distinguishes a saved empty selection from legacy defaults.
         explicitPiiCategories: shield.explicitPiiCategories === true,
         piiDetectionCategories: shield.piiDetectionCategories || [],
         piiDetectionConfidenceThreshold: shield.piiDetectionConfidenceThreshold,
