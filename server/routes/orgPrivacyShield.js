@@ -22,6 +22,8 @@
  * The GETs read nothing from the query and have no schema.
  */
 
+const { selectedPiiCategories } = require('../core/privacy/customTypes/plan');
+const { ALL_PII_CATEGORY_IDS } = require('../core/privacy/piiDetection/categories');
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
@@ -380,6 +382,7 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
     // the (potentially shared) configStore reference.
     const clamps = await _tierClamps({ organizationId: orgId, userId: req.session?.user?.id });
     const responseConfig = JSON.parse(JSON.stringify(config));
+    responseConfig.piiDetectionCategories = selectedPiiCategories(responseConfig) ?? [...ALL_PII_CATEGORY_IDS];
     const clampedFields = _applyTierClamps(responseConfig, clamps);
 
     // "Your own data": always the type list (migrated from the old terms when
@@ -472,6 +475,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
         euModeEnabled: !!euModeEnabled,
         webSearchGuardEnabled: !!webSearchGuardEnabled,
         disableSearchOnUpload: !!disableSearchOnUpload,
+        explicitPiiCategories: Array.isArray(piiDetectionCategories),
         piiDetectionCategories: [..._builtInPart(piiDetectionCategories), ...custom.lists.pii],
         piiDetectionConfidenceThreshold: typeof piiDetectionConfidenceThreshold === 'number' ? piiDetectionConfidenceThreshold : 0.7,
         piiDetectionAction: piiDetectionAction && ['block', 'tokenize', 'warn'].includes(piiDetectionAction) ? piiDetectionAction : 'block',

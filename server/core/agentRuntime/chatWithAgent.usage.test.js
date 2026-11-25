@@ -51,7 +51,7 @@ const restore = installResolveStub({
     '../llm/promptUtils': { processSystemPrompt: (s) => s },
     '../privacy/piiDetection': { validateInputForPii: async () => null },
     '../privacy/orgShield': { resolveShieldFor: async () => null },
-    '../dlp/dlpRunner': { getConversationTokenMap: () => ({}), mergeTokenMap: () => {} },
+    '../dlp/dlpRunner': { getConversationTokenMapAsync: async () => ({}), getConversationTokenMap: () => ({}), mergeTokenMap: () => {} },
     '../dlp/tokenPreservationPrompt': { buildTokenPreservationAddendum: () => '' },
     '../dlp/applyTokenMapToOutbound': { applyTokenMapToOutbound: ({ systemPrompt, messages }) => ({ systemPrompt, messages }) },
     '../../telemetry/metrics': { recordAgentRun: () => {} },

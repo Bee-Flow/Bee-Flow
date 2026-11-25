@@ -10,6 +10,7 @@
  * OCR fallbacks, URL→Markdown, deduplication, etc.).
  */
 
+const { selectedPiiCategories } = require('../../core/privacy/customTypes/plan');
 const notebookStore = require('../../stores/notebookStore');
 const kbStore = require('../../stores/knowledgeBases');
 const { countWords } = require('../../utils/text');
@@ -216,8 +217,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
                 // correctness, and ingestion must not fail over a memo.
                 try {
                     const { detectWithLedger } = require('../../core/dlp/scanLedger');
-                    const cats = Array.isArray(shield?.piiDetectionCategories) && shield.piiDetectionCategories.length
-                        ? shield.piiDetectionCategories : null;
+                    const cats = selectedPiiCategories(shield);
                     const thr = Number.isFinite(shield?.piiDetectionConfidenceThreshold)
                         ? shield.piiDetectionConfidenceThreshold : undefined;
                     const warm = await detectWithLedger(text, { categories: cats, threshold: thr, scope: 'g' });

@@ -91,9 +91,9 @@ const restore = installResolveStub({
     './agentTools': { getAgentTools: async () => (fx.offered || [fx.toolCall.name]).map((name) => ({ type: 'function', function: { name, parameters: {} } })) },
     './toolPolicy': { mayLendOwnerConnection: () => false },
     '../llm/promptUtils': { processSystemPrompt: (s) => s },
-    '../privacy/piiDetection': { validateInputForPii: async (messages) => (fx.validateInput ? fx.validateInput(messages) : null), restoreTokens },
+    '../privacy/piiDetection': { validateInputForPii: async (...args) => (fx.validateInput ? fx.validateInput(...args) : null), restoreTokens },
     '../privacy/orgShield': { resolveShieldFor: async () => fx.shield },
-    '../dlp/dlpRunner': { getConversationTokenMap: tokenMaps.getConversationTokenMap, mergeTokenMap: (id, map) => tokenMaps._mergeIntoTokenMap(id, map) },
+    '../dlp/dlpRunner': { getConversationTokenMapAsync: tokenMaps.getConversationTokenMap, getConversationTokenMap: tokenMaps.getConversationTokenMap, mergeTokenMap: (id, map) => tokenMaps._mergeIntoTokenMap(id, map) },
     '../dlp/tokenPreservationPrompt': { buildTokenPreservationAddendum: () => '' },
     '../dlp/applyTokenMapToOutbound': realOutbound,
     '../../telemetry/metrics': { recordAgentRun: () => {} },
@@ -284,4 +284,15 @@ test('without a token map the reply and the arguments pass through untouched', a
     const out = await chatWithAgent('agent-1', 'user-1', 'send it');
     assert.strictEqual(out.message, 'Sent to [email_1].');
     assert.deepStrictEqual(fx.dispatched[0].args, { to: '[email_1]' });
+});
+
+test('a resumed agent turn seeds the scan and resolves the earlier email at dispatch', async () => {
+    reset({ shield: TOKENISING, toolCall: { name: 'gmail_send', args: { to: '[email_1]' } } });
+    const previous = { '[email_1]': 'first@example.org' };
+    tokenMaps._mergeIntoTokenMap('conv-1', previous);
+    let seed;
+    fx.validateInput = (...args) => { seed = args[4]; return null; };
+    await chatWithAgent('agent-1', 'user-1', 'Mail the first contact');
+    assert.deepStrictEqual(seed, previous);
+    assert.equal(fx.dispatched[0].args.to, previous['[email_1]']);
 });

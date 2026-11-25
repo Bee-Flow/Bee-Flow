@@ -18,6 +18,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { installAgentTurnHarness, turnState, resetTurnState, fn } = require('./agentTurn.testkit');
 
+const ARTICLE = 'https://help.openai.com/en/articles/20001519-custom-gpt-retirement-and-migration-faq';
 const EMAIL = 'jan@example.test';
 const S = { ...turnState(), toolMessages: [], scans: [] };
 const TOOLS = [fn('kb_search'), fn('web_lookup')];
@@ -58,7 +59,7 @@ const kit = installAgentTurnHarness(S, {
                         results: [{ chunk_id: 'c1', title: 'Notes', content: `contact ${EMAIL}` }],
                     };
                 }
-                return { results: [`contact ${EMAIL}`] };
+                return { results: [`contact ${EMAIL} about ${ARTICLE}`] };
             },
         },
     },
@@ -74,11 +75,13 @@ async function runTurn() {
 // about, and report the planted address as an Email entity.
 const piiDetection = require('../privacy/piiDetection');
 const realDetect = piiDetection.detectPii;
-piiDetection.detectPii = async (text) => {
+piiDetection.detectPii = async (text, categories) => {
     if (!String(text).includes(EMAIL)) return { hasPii: false, entities: [] };
     S.scans.push(String(text));
-    const offset = String(text).indexOf(EMAIL);
-    return { hasPii: true, entities: [{ text: EMAIL, category: 'Email', label: 'Email Address', offset, length: EMAIL.length }] };
+    const entities = [[EMAIL, 'Email'], [ARTICLE, 'URL']]
+        .filter(([value, category]) => text.includes(value) && (!categories || categories.includes(category)))
+        .map(([value, category]) => ({ text: value, category, label: category, offset: text.indexOf(value), length: value.length }));
+    return { hasPii: entities.length > 0, entities };
 };
 test.after(() => { piiDetection.detectPii = realDetect; });
 
@@ -116,4 +119,25 @@ test('privacy_scan_knowledge_bases=false still strips a blocked category from a 
     await runTurn();
     assert.ok(!toolContent('call_kb').includes(EMAIL));
     assert.match(toolContent('call_kb'), /\[blocked:email\]/);
+});
+
+test('the URL in a tool result survives an email-only or empty selection', async () => {
+    for (const categories of [['Email'], [], ['URL']]) {
+        reset({ explicitPiiCategories: true, piiDetectionCategories: categories });
+        await runTurn();
+        const result = toolContent('call_web');
+        assert.equal(result.includes(ARTICLE), !categories.includes('URL'));
+        assert.equal(result.includes(EMAIL), !categories.includes('Email'));
+        if (!categories.length) assert.equal(S.scans.length, 0);
+    }
+});
+
+test('an empty AI selection still strips a category blocked for the tool', async () => {
+    reset({
+        explicitPiiCategories: true, piiDetectionCategories: [],
+        toolPiiPolicy: { external: { blockCategories: [] }, internal: { blockCategories: ['Email'] } },
+    });
+    await runTurn();
+    assert.match(toolContent('call_kb'), /\[blocked:email\]/);
+    assert.ok(!toolContent('call_kb').includes(EMAIL));
 });

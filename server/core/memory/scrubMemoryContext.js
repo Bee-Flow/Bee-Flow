@@ -16,6 +16,7 @@
  * PII path behaves in guardrailsRunner — availability issues shouldn't brick
  * the whole chat surface.
  */
+const { selectedPiiCategories } = require('../privacy/customTypes/plan');
 const log = require('../../telemetry/log');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 const { displayNameFor } = require('../privacy/customTypes/registry');
@@ -77,9 +78,7 @@ async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] }
         // platform defaults. Deliberately lower the threshold slightly so we
         // err on the side of over-scrubbing stored memories — this is not an
         // outbound prompt gate, it's defence-in-depth against leakage.
-        const enabledCategories = (orgShield?.piiDetectionCategories?.length
-            ? orgShield.piiDetectionCategories
-            : ALL_PII_CATEGORY_IDS) || null;
+        const enabledCategories = selectedPiiCategories(orgShield) ?? ALL_PII_CATEGORY_IDS ?? null;
         const threshold = typeof orgShield?.piiDetectionConfidenceThreshold === 'number'
             ? Math.min(orgShield.piiDetectionConfidenceThreshold, 0.70)
             : (DEFAULT_PII_CONFIDENCE_THRESHOLD || 0.70);
@@ -231,9 +230,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
     let enabledCategories = null;
     try {
         d = deps || realTokenizeDeps();
-        enabledCategories = (orgShield?.piiDetectionCategories?.length
-            ? orgShield.piiDetectionCategories
-            : d.ALL_PII_CATEGORY_IDS) || null;
+        enabledCategories = selectedPiiCategories(orgShield) ?? d.ALL_PII_CATEGORY_IDS ?? null;
         const threshold = typeof orgShield?.piiDetectionConfidenceThreshold === 'number'
             ? Math.min(orgShield.piiDetectionConfidenceThreshold, 0.70)
             : (d.DEFAULT_PII_CONFIDENCE_THRESHOLD || 0.70);

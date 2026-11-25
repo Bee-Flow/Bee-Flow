@@ -23,7 +23,7 @@ const { noteToolOutcome } = require('../../cowork/runActivity.mts');
 
 /**
  * One result's concurrent PII pre-scan.
- * @typedef {{ content: string, scanStr: string, threshold: number, pii: Awaited<ReturnType<typeof import('../../privacy/piiDetection').detectPii>>, failed: boolean }} PreScan
+ * @typedef {{ content: string, scanStr: string, threshold: number, categories: string[] | null, pii: Awaited<ReturnType<typeof import('../../privacy/piiDetection').detectPii>>, failed: boolean }} PreScan
  */
 
 /**
@@ -132,15 +132,15 @@ async function preScanToolResults(rc, deps, toolResults) {
             if (typeof content !== 'string' || content.length === 0) continue;
             const scanStr = content.slice(0, MAX_TOOL_CONTENT_BYTES);
             /** @type {PreScan} */
-            const entry = { content, scanStr, threshold: _preThreshold, pii: null, failed: false };
+            const entry = { content, scanStr, threshold: _preThreshold, categories: null, pii: null, failed: false };
             try {
-                // Every built-in category, as before, plus the
-                // org's own data types that are hidden from the
-                // AI or blocked for this tool's class.
+                // Hide the AI selection and strip the categories blocked for this tool.
                 const _kbOff = kbTokenisingOff(dlpShield, toolResults[i]);
                 const _resBlock = Array.isArray(toolResults[i].blockCats) ? toolResults[i].blockCats : [];
                 if (_kbOff && _resBlock.length === 0) continue; // nothing to strip, nothing to tokenise
-                const _resCats = _kbOff ? _resBlock : scanCategoriesFor(dlpShield, _toolClassOf(toolResults[i].toolName));
+                const _resCats = _kbOff ? _resBlock : scanCategoriesFor(dlpShield, _toolClassOf(toolResults[i].toolName), _resBlock);
+                if (_resCats?.length === 0) continue;
+                entry.categories = _resCats;
                 entry.pii = await _detectPii(scanStr, _resCats, _preThreshold);
             } catch (e) {
                 // Fail-open, exactly as the in-loop version did.
@@ -223,8 +223,8 @@ function logSuccessEgress(rc, deps, result, _preScan) {
                 grant_id: _lent ? _lent.grantId : null,
             },
             // Reuse the redaction scan instead of issuing a SECOND guard
-            // call for the same bytes. Both scan with categories=null, so
-            // when the thresholds agree and this text is genuinely a prefix
+            // call for the same bytes and the same category selection. When
+            // the thresholds agree and this text is genuinely a prefix
             // of what was already scanned, the entities within range are
             // exactly what a fresh scan would return.
             //
@@ -239,7 +239,8 @@ function logSuccessEgress(rc, deps, result, _preScan) {
             // fields can carry PII that reaches the user but not the model.
             fullScan: async (/** @type {string} */ _payloadText, /** @type {number | undefined} */ threshold) => {
                 const logText = resultText.slice(0, 5000);
-                if (_preScan && !_preScan.failed && _preScan.pii
+                const categories = scanCategoriesFor(dlpShield, _toolClassOf(toolName));
+                if (_preScan && JSON.stringify(_preScan.categories) === JSON.stringify(categories) && !_preScan.failed && _preScan.pii
                     && _preScan.threshold === threshold
                     && _preScan.scanStr.startsWith(logText)) {
                     const entities = (_preScan.pii.entities || [])
@@ -247,7 +248,7 @@ function logSuccessEgress(rc, deps, result, _preScan) {
                     return { hasPii: entities.length > 0, entities };
                 }
                 const { detectPii } = deps.piiDetection();
-                return detectPii(logText, scanCategoriesFor(dlpShield, _toolClassOf(toolName)), threshold);
+                return detectPii(logText, categories, threshold);
             },
         });
     } catch (e) { bestEffort('core/agentRuntime/toolRound/results:logSuccessEgress', e); /* ignore integration logging errors */ }

@@ -38,6 +38,7 @@ const log = require('../../../telemetry/log');
  * @param {number} [confidenceThreshold]
  */
 async function detectPii(text, enabledCategories = null, confidenceThreshold = DEFAULT_PII_CONFIDENCE_THRESHOLD, opts = {}) {
+    if (enabledCategories?.length === 0) return { hasPii: false, entities: [] };
     if (hasCustomIds(enabledCategories)) {
         const plan = await planScan(enabledCategories, { customTypes: opts?.customTypes });
         if (plan) return detectWithCustomTypes(String(text ?? ''), enabledCategories, confidenceThreshold, plan, opts);

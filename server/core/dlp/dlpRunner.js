@@ -20,6 +20,7 @@
  * interactive path and the auto path in the same function.
  */
 
+const { selectedPiiCategories } = require('../privacy/customTypes/plan');
 const { detectPii } = require('../privacy/piiDetection');
 const { buildAllowMatcher, filterAllowedEntities } = require('./allowTerms');
 const { classifyProvider } = require('../providers/classification');
@@ -82,9 +83,7 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
         // guard calls, too expensive to risk discarding on a guardrail rewrite.
         const { MAX_REQUEST_CHARS } = require('../privacy/piiDetection');
         if (text.length > MAX_REQUEST_CHARS) return;
-        const piiCategories = Array.isArray(orgShieldConfig.piiDetectionCategories) && orgShieldConfig.piiDetectionCategories.length > 0
-            ? orgShieldConfig.piiDetectionCategories
-            : null;
+        const piiCategories = selectedPiiCategories(orgShieldConfig);
         const piiThreshold = typeof orgShieldConfig.piiDetectionConfidenceThreshold === 'number'
             ? orgShieldConfig.piiDetectionConfidenceThreshold
             : undefined;
@@ -136,9 +135,7 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
     // own data types; when the guard isn't installed it returns null (or
     // `guardAbsent` with the org's own matches) — a scan failure, below.
     const piiEnabled = !!orgShieldConfig.enabled;
-    const piiCategories = Array.isArray(orgShieldConfig.piiDetectionCategories) && orgShieldConfig.piiDetectionCategories.length > 0
-        ? orgShieldConfig.piiDetectionCategories
-        : null;
+    const piiCategories = selectedPiiCategories(orgShieldConfig);
     const piiThreshold = typeof orgShieldConfig.piiDetectionConfidenceThreshold === 'number'
         ? orgShieldConfig.piiDetectionConfidenceThreshold
         : undefined;

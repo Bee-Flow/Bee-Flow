@@ -20,13 +20,12 @@
  * (core/dlp/attachmentScanner.js), with an assertion added.
  */
 
-const { tokenizeText, ALL_PII_CATEGORY_IDS } = require('../privacy/piiDetection');
+const { tokenizeText } = require('../privacy/piiDetection');
 const { resolveSpanOverlaps } = require('./spanOverlap');
 const { mergeTokenMap, getConversationTokenMap } = require('./dlpRunner');
 const { detectWithLedger } = require('./scanLedger');
 const { _resolveFailureMode } = require('./attachmentScanner');
-const { isCustomTypeId } = require('../privacy/customTypes/ids');
-const { withBuiltinDefault } = require('../privacy/customTypes/plan');
+const { selectedPiiCategories } = require('../privacy/customTypes/plan');
 const log = require('../../telemetry/log');
 
 // A separator the model never sees and that cannot occur in cleaned unit text,
@@ -39,15 +38,7 @@ function _action(orgShield) {
     if (legacy === 'tokenize' || legacy === 'redact') return 'tokenize';
     return orgShield?.privacyAction === 'block' ? 'block' : 'tokenize';
 }
-function _categories(orgShield) {
-    const cats = orgShield?.piiDetectionCategories;
-    // "Your own data" ids stay in the list (detectPii resolves them); an empty
-    // built-in part still means every built-in category.
-    if (Array.isArray(cats) && cats.length > 0) {
-        return withBuiltinDefault(cats.filter(id => ALL_PII_CATEGORY_IDS.includes(id) || isCustomTypeId(id)));
-    }
-    return null;
-}
+
 function _threshold(orgShield) {
     const t = orgShield?.piiDetectionConfidenceThreshold;
     return Number.isFinite(t) ? t : undefined;
@@ -60,7 +51,7 @@ function _enabled(orgShield) {
 /**
  * @param {object} params
  * @param {string[]} params.units      Texts that will literally appear in the prompt.
- * @param {object}   params.orgShield
+ * @param {Record<string, unknown>} params.orgShield
  * @param {string}   [params.conversationId]
  * @param {string}   [params.scope]    Ledger scope (see scanLedger).
  * @returns {Promise<{units:string[], blocked:boolean, reason:string|null,
@@ -79,7 +70,7 @@ async function composeScan({ units, orgShield, conversationId, scope } = /** @ty
     // The separator must not occur inside a unit or the split below would not
     // line up with the inputs.
     const clean = list.map(u => (u.includes(SEP) ? u.split(SEP).join(' ') : u));
-    const categories = _categories(orgShield);
+    const categories = selectedPiiCategories(orgShield);
     const threshold = _threshold(orgShield);
 
     /** @type {{ offset: number; length: number; category: string; label?: string; confidence?: number; alsoCategories?: string[]; }[]} */

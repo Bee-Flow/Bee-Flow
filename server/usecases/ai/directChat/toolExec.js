@@ -95,7 +95,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     const unoffered = require('./offeredToolGate.mts').refuseUnofferedTool(toolCall, toolName, ctx);
     if (unoffered) return unoffered;
     // Search queries keep their tokens, so PII is not leaked to external search providers.
-    toolArgs = restoreDlpTokens(toolName, toolArgs, ctx.convId);
+    toolArgs = restoreDlpTokens(toolName, toolArgs, ctx.convId, ctx.orgShield);
 
     const notebookRefusal = notebookWriteRefusal(toolCall, toolName, toolArgs, ctx);
     if (notebookRefusal) return notebookRefusal;

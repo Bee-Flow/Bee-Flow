@@ -146,11 +146,16 @@ function fullPayload(overrides = {}) {
         assert.deepStrictEqual(getNew.body.piiDetectionCategories, ['Person', 'Email', 'PhoneNumber'],
             'an org that never saved should seed categories from the global blob');
 
+        storeBlobs[STORE_KEY] = { enabled: true, piiDetectionCategories: [] };
+        const legacy = await request('GET', `/api/org-privacy-shield/${ORG_ID}`);
+        assert.deepStrictEqual(legacy.body.piiDetectionCategories, require('../core/privacy/piiDetection/categories').ALL_PII_CATEGORY_IDS);
+
         // ── 2. Saved EMPTY categories must stay empty on reload (A1 bug) ──
         const putEmpty = await request('PUT', `/api/org-privacy-shield/${ORG_ID}`, {
             body: fullPayload({ piiDetectionCategories: [] }),
         });
         assert.strictEqual(putEmpty.status, 200);
+        assert.strictEqual(storeBlobs[STORE_KEY].explicitPiiCategories, true);
         const getEmpty = await request('GET', `/api/org-privacy-shield/${ORG_ID}`);
         assert.deepStrictEqual(getEmpty.body.piiDetectionCategories, [],
             'a deliberately-saved empty category list must NOT be resurrected from the global blob');

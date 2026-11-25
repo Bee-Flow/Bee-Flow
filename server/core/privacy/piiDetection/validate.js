@@ -16,7 +16,7 @@
 // validateInputForPii runs (request time, not load time) aiAgent has long
 // finished initialising.
 const log = require('../../../telemetry/log');
-const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii } = require('./validateOutput');
+const { getAIConfig, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii } = require('./validateOutput');
 
 /**
  * The Error this module throws: the PII verdict (or the reason detection was
@@ -32,6 +32,7 @@ const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAll
 
 const configStore = require('../../../stores/configStore');
 // Leaf modules, no requires back into this file — safe inside the cycle above.
+const { selectedPiiCategories } = require('../customTypes/plan');
 const { ALL_PII_CATEGORY_IDS, LEGACY_CATEGORY_ALIASES, DEFAULT_PII_CONFIDENCE_THRESHOLD, MASKING_ACTIONS } = require('./categories');
 const { cacheKey, cacheGet, cacheSet } = require('./scanCache');
 const { classifyDegradation } = require('./degradation');
@@ -80,9 +81,7 @@ async function resolveScanScope(aiConfig, orgShieldConfig) {
     try {
         const shieldConfig = orgShieldConfig || await legacyStoredShield();
         if (shieldConfig) {
-            if (Array.isArray(shieldConfig.piiDetectionCategories) && shieldConfig.piiDetectionCategories.length > 0) {
-                enabledCategories = _shieldCategories(shieldConfig.piiDetectionCategories);
-            }
+            enabledCategories = selectedPiiCategories(shieldConfig) ?? ALL_PII_CATEGORY_IDS;
             if (typeof shieldConfig.piiDetectionConfidenceThreshold === 'number') {
                 confidenceThreshold = shieldConfig.piiDetectionConfidenceThreshold;
             }

@@ -53,7 +53,7 @@ const cache = new Map();
  */
 function cacheKey(channel, text, enabledCategories, confidenceThreshold, customKey = null) {
     const digest = crypto.createHash('sha256').update(text, 'utf8').digest('hex');
-    const cats = Array.isArray(enabledCategories) && enabledCategories.length
+    const cats = Array.isArray(enabledCategories)
         ? [...enabledCategories].sort().join(',')
         : 'all';
     const thr = typeof confidenceThreshold === 'number' ? confidenceThreshold.toFixed(4) : 'default';

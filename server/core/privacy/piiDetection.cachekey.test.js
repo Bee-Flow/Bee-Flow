@@ -93,7 +93,7 @@ test('identical inputs produce a stable key', () => {
 test('empty / missing category list is distinct from a narrow one', () => {
     const t = 'mijn email is jan@example.nl';
     const all = cacheKey('user_input', t, null, 0.7);
-    assert.strictEqual(all, cacheKey('user_input', t, [], 0.7), 'empty means all');
+    assert.notStrictEqual(all, cacheKey('user_input', t, [], 0.7), 'none and all must not share results');
     assert.notStrictEqual(all, cacheKey('user_input', t, ['Email'], 0.7));
 });
 

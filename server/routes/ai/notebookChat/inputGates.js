@@ -173,8 +173,9 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
         // here, matching the mergeTokenMap key below) before tokenisation
         // runs so turn 2+ reuses tokens minted on turn 1 instead of
         // leaking them to the LLM as literal text. Idempotent.
+        let existingTokenMap = null;
         if (notebookId) {
-            try { await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); }
+            try { existingTokenMap = await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); }
             catch (err) { bestEffort('routes/ai/notebookChat/inputGates:runInputPiiGate', err); /* hydration is best-effort */ }
         }
         if (orgPiiEnabled) {
@@ -182,7 +183,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
             const _np = startPrivacyScanPhase(send, messageText(messages[messages.length - 1]));
             let piiResult;
             try {
-                piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, null, { onProgress: _np.onProgress });
+                piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, null, existingTokenMap, { onProgress: _np.onProgress });
             } finally {
                 _np.end();
             }

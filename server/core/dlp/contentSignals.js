@@ -74,8 +74,7 @@ function _shieldScans(shield) {
 
 /** @param {Shield} shield */
 function _categoriesOf(shield) {
-    const cats = shield?.piiDetectionCategories;
-    return Array.isArray(cats) && cats.length ? cats : null;
+    return require('../privacy/customTypes/plan').selectedPiiCategories(shield);
 }
 
 /**
