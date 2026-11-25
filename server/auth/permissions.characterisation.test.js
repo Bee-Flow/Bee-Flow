@@ -143,7 +143,7 @@ test('export keys are exactly the monolith\'s, in order', () => {
         'SYSTEM_PERMISSIONS', 'getOrgRolePermissions', 'OAUTH_PROVIDERS', 'MICROSOFT_SCOPES',
         'microsoftRefreshScope', 'loadConfig', 'saveConfig', 'requireAuth', 'getUserPermissions',
         'resolveUserPermissionsForAudit', 'hasPermission', 'requireAdmin', 'requireSuperAdmin',
-        'requirePermission', 'requirePluginAdmin', 'resolveUserOrgIds', 'resolvePrimaryOrgId',
+        'requirePermission', 'requireAnyPermission', 'requirePluginAdmin', 'resolveUserOrgIds', 'resolvePrimaryOrgId',
         'isSuperAdmin', 'isSuperAdminUser', 'isOrgAdminForOrg', '_evalOrgAdmin', 'requireOrgAdmin',
         'requirePrimaryOrgAdmin', 'assertUserCanUseOrg', 'validateSharedGroupsForOrg',
         'invalidatePermissionCache', 'invalidateAllPermissionCaches', 'invalidateUserExistenceCache',
@@ -383,6 +383,11 @@ test('requireAdmin / requirePermission / requirePluginAdmin', async () => {
     assert.deepEqual((await run(perms.requireAdmin, anon)).body, { error: 'Not authenticated' });
     assert.equal((await run(perms.requireAdmin, p)).status, 'next');
     assert.deepEqual(await run(perms.requireAdmin, plain).then((r) => [r.status, r.body]), [403, { error: 'Admin access required' }]);
+
+    const either = perms.requireAnyPermission('manage_apps', 'use_forms');
+    assert.equal((await run(either, anon)).status, 401);
+    assert.equal((await run(either, p)).status, 'next');
+    assert.equal((await run(either, plain)).status, 403);
 
     const gate = perms.requirePermission('use_forms');
     assert.equal((await run(gate, anon)).status, 401);

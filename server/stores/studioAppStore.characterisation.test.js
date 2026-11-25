@@ -121,6 +121,7 @@ crypto.randomBytes = (n) => Buffer.alloc(n, 7);
 test.after(() => { crypto.randomUUID = realUUID; crypto.randomBytes = realRandomBytes; });
 
 const store = require('./studioAppStore');
+require('./studioApp/deps').install({ mayUseSharedApps: async () => true });
 
 const results = {};
 async function capture(name, fn) {

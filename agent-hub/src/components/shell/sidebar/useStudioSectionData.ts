@@ -5,7 +5,7 @@ import { useRuntimeStudioApps } from '@/moduleRuntime/registry';
 import { API_BASE } from '@/utils/helpers';
 import { rankStudioItems } from '@/utils/studioRecents';
 import { STUDIO_RECENT_SOURCES, normaliseRecentItems } from '@/utils/studioRecentSources';
-import { studioAppsApi } from '../../admin/Studio/AppStudio/studioAppsApi';
+import { loadPublishedStudioApps } from '@/api/publishedStudioApps';
 import { makeCanUse } from '../../admin/Studio/studioApps';
 import type { RecentItem } from '@/utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
@@ -19,7 +19,8 @@ export type { RecentItem };
 
 interface StudioSectionDataOptions {
     currentPage?: string;
-    canUseCapability: Check;
+    canSeeApps: boolean;
+    hasPermission: Check;
     hasLicenseFeature: Check;
     user: Parameters<typeof makeCanUse>[0];
     countsEnabled?: boolean;
@@ -34,7 +35,7 @@ interface StudioSectionDataOptions {
    poll is the ONE eager fetch in here (see useStudioCounts for why it is
    eager where everything below is hover-lazy); a member with no Studio row
    must not pay for it. */
-export function useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled = false }: StudioSectionDataOptions) {
+export function useStudioSectionData({ currentPage, canSeeApps, hasPermission, hasLicenseFeature, user, countsEnabled = false }: StudioSectionDataOptions) {
     // Runtime (remotely-installed) modules contribute extra Studio sections;
     // they join the group after the built-ins, exactly like the old tab bar.
     const runtimeStudioApps = useRuntimeStudioApps();
@@ -42,12 +43,6 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
     // The rail's numbers: one gate-aware aggregate, absent until known.
     const { counts: studioCounts, makers: studioMakers } = useStudioCounts({ enabled: !!countsEnabled });
 
-    // Published apps for the Apps group — the same merge AppsHomePage does
-    // (accessible ∪ own, published only), but alphabetical: a menu should not
-    // reshuffle every time someone saves. Loaded once, then refreshed when
-    // entering the directory or coming back from Studio (where publishing
-    // happens) — not on every page change.
-    const canSeeApps = canUseCapability('app_studio');
     const [publishedApps, setPublishedApps] = useState<PublishedApp[]>([]);
     // Whether the Apps ROW belongs in the menu at all. The capability says the
     // person is allowed an apps directory; this says there is one to look at.
@@ -59,35 +54,20 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
     useEffect(() => {
         const prev = prevPageRef.current;
         prevPageRef.current = currentPage;
-        if (!canSeeApps) return undefined;
+        if (!canSeeApps) {
+            appsLoadedRef.current = false;
+            setPublishedApps([]);
+            setHasApps(false);
+            return undefined;
+        }
         if (appsLoadedRef.current && currentPage !== 'apps' && prev !== 'studio') return undefined;
         let cancelled = false;
         (async () => {
-            // Per-call catches: a consumer without builder rights may 403 on
-            // /mine, and the shared directory must still fill the menu.
-            const [accessible, mine] = await Promise.all([
-                studioAppsApi.listAccessible().catch(() => null),
-                studioAppsApi.listMine().catch(() => null),
-            ]);
-            if (cancelled) return;
-            const isPublished = (a?: { isPublished?: boolean; is_published?: boolean } | null) => !!(a?.isPublished ?? a?.is_published);
-            const byId = new Map<string, PublishedApp>();
-            for (const a of [...(accessible?.apps || []), ...(mine?.apps || [])]) {
-                if (a?.id && isPublished(a) && !byId.has(a.id)) byId.set(a.id, a);
-            }
-            const apps = [...byId.values()].sort((a: PublishedApp, b: PublishedApp) => (a.name || '').localeCompare(b.name || ''));
+            const apps = await loadPublishedStudioApps().catch(() => null);
+            if (cancelled || !apps) return;
             setPublishedApps(apps);
-            // Only when BOTH calls answered. If they both failed we know
-            // nothing, and "nothing" must not be mistaken for "none" — that
-            // would take the row away over a dropped connection.
-            if (accessible || mine) {
-                setHasApps(apps.length > 0);
-                writeNavHas('apps', apps.length > 0);
-            }
-            // Claimed AFTER the load, not before — see the note on
-            // formsLoadedRef below. Claiming it up front meant StrictMode's
-            // second pass skipped the fetch while the first pass's result had
-            // already been discarded as cancelled, leaving the menu empty.
+            setHasApps(apps.length > 0);
+            writeNavHas('apps', apps.length > 0);
             appsLoadedRef.current = true;
         })();
         return () => { cancelled = true; };
@@ -98,7 +78,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
     // findable while they are away. Same refresh discipline as the apps above —
     // once, then on entering Forms or returning from Studio, where forms are
     // built.
-    const canSeeForms = hasLicenseFeature('automations') && makeCanUse(user)('automations');
+    const canSeeForms = hasPermission('use_forms') && hasLicenseFeature('automations') && makeCanUse(user)('automations');
     const [publishedForms, setPublishedForms] = useState<PublishedForm[]>([]);
     // Same idea as hasApps: the licence says forms are allowed here, this says
     // the organisation has actually published one.
@@ -118,7 +98,12 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
     useEffect(() => {
         const prev = prevPageForFormsRef.current;
         prevPageForFormsRef.current = currentPage;
-        if (!canSeeForms) return undefined;
+        if (!canSeeForms) {
+            formsLoadedRef.current = false;
+            setPublishedForms([]);
+            setHasForms(false);
+            return undefined;
+        }
         if (formsLoadedRef.current && currentPage !== 'forms' && prev !== 'studio') return undefined;
         let cancelled = false;
         (async () => {

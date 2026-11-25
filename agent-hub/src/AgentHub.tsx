@@ -557,6 +557,7 @@ const AgentHub = ({
         <div className="flex h-full bg-[var(--bg-primary)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
+                key={JSON.stringify([user?.id, user?.organizationId])}
                 isOpen={sidebarOpen}
                 isMobile={isMobile}
                 onClose={() => setSidebarOpen(false)}

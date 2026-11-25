@@ -118,6 +118,7 @@ seedModule('./projectStore', {
 });
 
 const store = require('./studioAppStore');
+require('./studioApp/deps').install({ mayUseSharedApps: async (_userId, session) => session?.mayUseSharedApps !== false });
 
 // ── Fixtures ────────────────────────────────────────────────────────
 
@@ -332,4 +333,13 @@ test('a membership lookup that THROWS denies, and does not take the directory do
     } finally {
         failure.listUserProjects = false;
     }
+});
+
+test('a builder without use_apps sees only owned apps, even with project or group membership', async () => {
+    const session = { mayUseSharedApps: false };
+    assert.equal(await store.canReadStudioAppAsync(IN_PROJECT, 'bob', [], ['org1'], session), false);
+    assert.equal(await store.canReadStudioAppAsync(PUBLISHED, 'bob', [], ['org1'], session), false);
+    assert.equal(await store.canReadStudioAppAsync(OWNED, 'alice', [], [], session), true);
+    const listed = await store.getAccessibleStudioApps('bob', [], ['org1'], session);
+    assert.ok(listed.every(app => app.userId === 'bob'));
 });

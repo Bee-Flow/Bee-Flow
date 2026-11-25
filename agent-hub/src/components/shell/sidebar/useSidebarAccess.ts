@@ -65,7 +65,8 @@ export function useSidebarAccess({ user, isMobile, currentPage, hasPermissionPro
         && canSeeStudioFor({ user, sections: studioNavSections(STUDIO_APPS, gateCtx) });
 
     // Published apps/forms + per-Studio-section recent items + counts for the flyouts.
-    const data = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: studioCountsEnabled });
+    const canSeeApps = canUseCapability('app_studio') && hasPermission('use_apps');
+    const data = useStudioSectionData({ currentPage, canSeeApps, hasPermission, hasLicenseFeature, user, countsEnabled: studioCountsEnabled });
 
     const studioSections = studioNavSections([...STUDIO_APPS, ...data.runtimeStudioApps], gateCtx);
     const canSeeStudio = studioSurface && canSeeStudioFor({ user, sections: studioSections });

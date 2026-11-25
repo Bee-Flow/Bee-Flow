@@ -191,7 +191,7 @@ describe('AppsHomePage i18n — the chrome around the grid', () => {
     it('translates the header: the counted pill and the Studio button', async () => {
         gate.open = true;
         asMock(studioAppsApi.listAccessible).mockResolvedValue({ apps: [app('a1'), app('a2')] });
-        render(<AppsHomePage />);
+        render(<AppsHomePage mayManageApps />);
         await screen.findByText('App a1');
 
         const bar = within(screen.getByTestId('apps-toolbar'));

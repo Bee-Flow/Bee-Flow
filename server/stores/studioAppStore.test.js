@@ -212,6 +212,7 @@ require.cache['mock-dbstore'] = { id: 'mock-dbstore', exports: mockDbStore };
 require.cache['mock-storage'] = { id: 'mock-storage', exports: mockStorage };
 
 const store = require('./studioAppStore');
+require('./studioApp/deps').install({ mayUseSharedApps: async () => true });
 const { LIMITS } = require('../appStudio/componentSpecs');
 
 function resetTables() {

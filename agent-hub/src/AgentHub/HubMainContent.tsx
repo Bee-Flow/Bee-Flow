@@ -84,8 +84,6 @@ export interface HubMainContentProps {
 // one AgentHub rendered inline (each slot directly in the main column), so
 // nothing remounts that did not before.
 
-const canManageAgentsOf = (user: User) => (user?.permissions || []).some((p: string) => p === 'all' || p === 'manage_agents');
-
 /** Shown in place of the agent editor to someone without manage_agents. */
 function noEditorAccess({ t, onNavigate }: HubMainContentProps) {
     return (
@@ -121,7 +119,7 @@ function agentDesignerSlot(props: HubMainContentProps) {
        /agents/all, so a user without the permission reaching here
        (via the marketplace pencil or a direct URL) just saw a broken
        load-error/retry loop (BFSF-181). Block the mount instead. */
-    return canManageAgentsOf(user) ? (
+    return props.hasPermission('manage_agents') ? (
         <AgentStudio
             user={user}
             initialAgentId={initialDesignerAgentId}
@@ -143,7 +141,7 @@ function agentWizardSlot(props: HubMainContentProps) {
        to Agents" button: a user without manage_agents landed full-screen on a grid whose /agents/all
        returns 403 — only an error banner, no action at all. Not a data leak (the server refuses), but
        precisely the broken state that BFSF-181 closed at the other door. */
-    return canManageAgentsOf(user) ? (
+    return props.hasPermission('manage_agents') ? (
         <AgentStudio
             user={user}
             initialAgentId={null}
@@ -175,7 +173,7 @@ function marketplaceSlot(props: HubMainContentProps) {
                routing the user into a studio that 403s (BFSF-181).
                Hidden on mobile entirely: phones are view/chat-only, the
                agent editor route is blocked there. */
-            onEditAgent={(!isMobile && canManageAgentsOf(user))
+            onEditAgent={(!isMobile && props.hasPermission('manage_agents'))
                 ? (agent?: { id: string } | null) => { setShowMarketplace(false); onNavigate(agent ? `agentDesigner:${agent.id}` : 'agentDesigner'); }
                 : undefined}
             user={user}
@@ -279,7 +277,9 @@ export default function HubMainContent(props: HubMainContentProps) {
            Cowork, for the same reason: the sidebar stays. Tiles
            link on to the standalone run view at /app/apps/:id,
            which IS full-viewport. */
-        <AppsHomePage />
+        props.hasPermission('use_apps')
+            ? <AppsHomePage key={JSON.stringify([user?.id, user?.organizationId])} mayManageApps={props.hasPermission('manage_apps')} />
+            : <p role="alert" className="p-6">{props.t('admin.access_denied_title', 'Access Denied')}</p>
     ) : currentPage === 'forms' ? (
         /* Published-forms directory (/app/forms). A tile opens the
            form itself, in this tab, at /app/forms/:token. */

@@ -53,23 +53,3 @@ export function isNewlyPublished(app: DirectoryApp | null | undefined, now: numb
     // wrong, and a badge is not the place to argue about it.
     return at <= now && now - at < NEW_FOR_MS;
 }
-
-/**
- * Directory order: by NAME.
- *
- * It used to be `updatedAt` — "last touched by whoever built it", which for a
- * reader is noise: an app moves to the front because someone fixed a label in
- * it. The design asks for "most used", but this product has no honest usage
- * number yet (the only run log counts action runs and misses whole categories
- * of app), and a line that names a sort the data cannot support is worse than
- * a plain one. Name it is — the same order the sidebar's Studio flyout
- * already uses, so two surfaces stop answering the question two ways, and the
- * one order a reader can predict well enough to aim at.
- */
-export function byName(a: DirectoryApp, b: DirectoryApp) {
-    return String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {
-        numeric: true, sensitivity: 'base',
-    });
-}
-
-export const isPublished = (a: DirectoryApp | null | undefined) => !!(a?.isPublished ?? a?.is_published);

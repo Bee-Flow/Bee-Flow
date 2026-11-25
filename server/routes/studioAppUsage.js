@@ -75,7 +75,7 @@ router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async 
     const { userId, orgIds, memberOrgIds, userGroups } = await resolveAudienceContext(req);
     // The orgs the caller belongs to, as the gallery reads them (studioApps/access.js audienceFor).
     const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
-    const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
+    const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr, req.session);
     const counts = await usageStore.getStudioAppRunCounts(apps.map((/** @type {{ id: string }} */ a) => a.id)
 , { window });
     res.json({

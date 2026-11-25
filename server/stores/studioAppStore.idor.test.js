@@ -62,6 +62,7 @@ const mock = createRecordingDb({
 mock.attachPool(); // the real ../db over the recording pool
 
 const store = require('./studioAppStore');
+require('./studioApp/deps').install({ mayUseSharedApps: async () => true });
 
 const calls = mock.calls;
 const reset = () => mock.reset();

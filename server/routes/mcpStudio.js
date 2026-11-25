@@ -18,13 +18,14 @@
  * ── Gate ────────────────────────────────────────────────────────────────────
  * Off unless STUDIO_MCP_ENABLED=1. index.js only requires and mounts this file
  * when appStudio/mcpBuilder.isEnabled() says so, so on a default install the
- * path does not exist and the module is never even loaded. Three more gates sit
- * behind it, and all four must pass:
+ * path does not exist and the module is never even loaded. Four more gates sit
+ * behind it, and all five must pass:
  *
  *   1. STUDIO_MCP_ENABLED=1                          (operator, this file)
  *   2. a valid `bfmcp.…` bearer token                (per user, mcpServer.js)
  *   3. the app_studio capability for that user       (licence/entitlements)
- *   4. canWriteStudioApp on the target app           (per app, mcpBuilder.js)
+ *   4. the manage_apps authoring permission
+ *   5. canWriteStudioApp on the target app           (per app, mcpBuilder.js)
  *
  * The env flag is what makes this safe to ship enabled-nowhere: an endpoint
  * that authors application logic with a static token is exactly the kind of
@@ -120,11 +121,12 @@ async function assertCapability(userId) {
     const orgId = await require('../stores/userStore').getUser(userId)
         .then((u) => u?.organizationId || null)
         .catch((e) => fallback('routes/mcpStudio:assertCapability', e, null));
-    const ok = await hasCapability('app_studio', { userId, orgId });
+    const { hasPermission } = require('../auth/permissions');
+    const ok = await hasCapability('app_studio', { userId, orgId }) && await hasPermission(userId, 'manage_apps');
     // Without this line the symptom is an empty tool list and no explanation
     // anywhere — the client shows a server with nothing on it and the operator
     // has no way to tell "licence" from "misconfigured".
-    if (!ok) log.warn(`[studio-mcp] app_studio capability denied for user=${userId} org=${orgId || '-'} — advertising no tools`);
+    if (!ok) log.warn(`[studio-mcp] App Studio authoring denied for user=${userId} org=${orgId || '-'} — advertising no tools`);
     return ok;
 }
 
@@ -187,7 +189,7 @@ async function handleRpc(message, userId, access = null, deps = {}) {
 
             if (!await entitled(userId)) {
                 return rpcResult(id, {
-                    content: [{ type: 'text', text: 'App Studio is not available on this account (the app_studio capability is not licensed for it).' }],
+                    content: [{ type: 'text', text: 'App Studio is not available on this account (the app_studio capability and manage_apps permission are required).' }],
                     isError: true,
                 });
             }

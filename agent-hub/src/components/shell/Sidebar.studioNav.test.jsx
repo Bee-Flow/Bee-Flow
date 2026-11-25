@@ -671,9 +671,9 @@ describe('Sidebar — Apps flyout (published apps)', () => {
             apps: [
                 { id: 'a1', name: 'Quote intake', description: 'Turn a PO into a quote', isPublished: true, icon: 'FileText', accentColor: '#0F766E' },
                 { id: 'a3', name: 'Draft thing', isPublished: false },
+                { id: 'a2', name: 'Order lookup', is_published: true },
             ],
         });
-        studioAppsApi.listMine.mockResolvedValue({ apps: [{ id: 'a2', name: 'Order lookup', is_published: true }] });
     });
 
     it('lists published apps (accessible ∪ own, drafts excluded) under All apps', async () => {
@@ -702,8 +702,7 @@ describe('Sidebar — Apps flyout (published apps)', () => {
 
     it('goes away when the org role does not grant use_apps', async () => {
         renderSidebar({ hasPermission: (p) => p !== 'use_apps' });
-        // Wait out the published-apps load — the row must not appear after it.
-        await waitFor(() => expect(storeMock.data['sidebar_has_apps']).toBe('1'));
+        expect(studioAppsApi.listAccessible).not.toHaveBeenCalled();
         expect(screen.queryByTestId('nav-apps')).toBeNull();
     });
 
@@ -743,7 +742,6 @@ describe('Sidebar — the Forms row', () => {
     it('goes away when the org role does not grant use_forms', async () => {
         serve({ forms: [{ id: 'f1', title: 'Leave request', live: true }] });
         renderSidebar({ hasPermission: (p) => p !== 'use_forms' });
-        await waitFor(() => expect(storeMock.data['sidebar_has_forms']).toBe('1'));
         expect(screen.queryByTestId('nav-forms')).toBeNull();
     });
 

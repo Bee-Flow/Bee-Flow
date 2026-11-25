@@ -72,7 +72,7 @@ const { validate } = require('../../core/http/validate');
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
     makeLazyDeps, userIdOf, moduleActive, licenceAllows, capability, permission,
-    solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
+    appAuthoringGate, solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -248,11 +248,11 @@ const KINDS = [
         // routes/studioApps.js GET / → getAccessibleStudioApps(userId, groups,
         // orgIds): your own plus every app published into your org/groups.
         key: 'apps',
-        gate: async (req, d) => (await moduleActive(d, 'apps')) && (await capability(d, req, 'app_studio')),
+        gate: appAuthoringGate,
         search: async (req, d, q) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
             const orgIdArr = [...(memberOrgIds ?? orgIds ?? [])];
-            const apps = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
+            const apps = await d.studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr, req.session);
             return apps.filter((a) => matchesName(a, q));
         },
     },

@@ -95,6 +95,7 @@ module.exports = {
     requireAdmin: resolve.requireAdmin,
     requireSuperAdmin: orgGates.requireSuperAdmin,
     requirePermission: resolve.requirePermission,
+    requireAnyPermission: resolve.requireAnyPermission,
     requirePluginAdmin: resolve.requirePluginAdmin,
     resolveUserOrgIds: resolve.resolveUserOrgIds,
     resolvePrimaryOrgId: orgGates.resolvePrimaryOrgId,

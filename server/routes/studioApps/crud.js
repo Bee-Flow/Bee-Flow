@@ -47,7 +47,7 @@ const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
     const { userId, orgIdArr, userGroups } = await audienceFor(req);
-    const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
+    const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr, req.session);
     res.json({ apps: apps.map(sanitizeAppRow) });
 });
 
@@ -223,8 +223,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     }
 
     const { orgIdArr, userGroups } = await audienceFor(req);
-    if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr)) {
-        return refuseRead(res, app, orgIdArr);
+    if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr, req.session)) {
+        return refuseRead(res, app, orgIdArr, userGroups);
     }
     // Non-owner reader: meta + the frozen published copy only — never the
     // owner's working draft.

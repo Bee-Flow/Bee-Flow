@@ -90,6 +90,7 @@ const MemberBody = bodyOf({
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
+const { requireManageApps } = require('./studioApps/access');
 const { requireAuth } = require('../auth/permissions');
 // What every handler shares (limits, budgets, gates, the data context), then
 // the handler bodies. This file keeps the request schemas and the route table.
@@ -119,15 +120,15 @@ router.post('/:id/data/batch', requireAuth, readLimiter, requireJson, jsonBody, 
 // ── Datasets, schema and members ────────────────────────────────────
 
 router.get('/:id/datasets', requireAuth, readLimiter, Admin.listDatasets);
-router.post('/:id/datasets', requireAuth, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: DatasetBody }), Admin.createDataset);
-router.put('/:id/datasets/:datasetId', requireAuth, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: DatasetBody }), Admin.updateDataset);
-router.delete('/:id/datasets/:datasetId', requireAuth, writeLimiter, Admin.deleteDataset);
+router.post('/:id/datasets', requireAuth, requireManageApps, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: DatasetBody }), Admin.createDataset);
+router.put('/:id/datasets/:datasetId', requireAuth, requireManageApps, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: DatasetBody }), Admin.updateDataset);
+router.delete('/:id/datasets/:datasetId', requireAuth, requireManageApps, writeLimiter, Admin.deleteDataset);
 router.get('/:id/schema', requireAuth, Admin.getSchema);
-router.put('/:id/schema', requireAuth, jsonBody, bodySizeGuard, validate({ body: SchemaBody }), Admin.putSchema);
-router.post('/:id/data/empty', requireAuth, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: EmptyBody }), Empty.emptyData);
+router.put('/:id/schema', requireAuth, requireManageApps, jsonBody, bodySizeGuard, validate({ body: SchemaBody }), Admin.putSchema);
+router.post('/:id/data/empty', requireAuth, requireManageApps, writeLimiter, requireJson, jsonBody, bodySizeGuard, validate({ body: EmptyBody }), Empty.emptyData);
 router.get('/:id/members', requireAuth, Admin.listMembers);
-router.post('/:id/members', requireAuth, jsonBody, bodySizeGuard, validate({ body: MemberBody }), Admin.addMember);
-router.delete('/:id/members/:userId', requireAuth, Admin.removeMember);
+router.post('/:id/members', requireAuth, requireManageApps, jsonBody, bodySizeGuard, validate({ body: MemberBody }), Admin.addMember);
+router.delete('/:id/members/:userId', requireAuth, requireManageApps, Admin.removeMember);
 
 // Map body-parser failures to JSON (default handler answers HTML).
 router.use((/** @type {Error & { type?: string, status?: number, statusCode?: number }} */ err, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {

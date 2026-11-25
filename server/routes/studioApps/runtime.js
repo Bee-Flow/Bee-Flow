@@ -279,8 +279,8 @@ router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), /** @pa
         return res.status(404).json({ error: 'App not found' });
     }
     const { orgIdArr, userGroups } = await audienceFor(req);
-    if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr)) {
-        return refuseRead(res, app, orgIdArr);
+    if (!await studioAppStore.canReadStudioAppAsync(app, userId, userGroups, orgIdArr, req.session)) {
+        return refuseRead(res, app, orgIdArr, userGroups);
     }
     res.json({
         id: app.id,

@@ -1,6 +1,6 @@
 import { AlertCircle, LayoutGrid, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { studioAppsApi } from '@/components/admin/Studio/AppStudio/studioAppsApi';
+import { loadPublishedStudioApps } from '@/api/publishedStudioApps';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
@@ -10,7 +10,7 @@ import scopedStorage from '@/utils/scopedStorage';
 import type { DirectoryApp, CategoryFilterProps, ErrorBannerProps, ToolbarProps } from '../AppsHomePage.types';
 import { logger } from '@/utils/logger';
 import { APP_TILE, RECENTS_KEY, REMEMBERED, RECENTS_SHOWN, CATEGORY_LABELS, PILL_CLASSES, CARD_CLASSES, CARD_STYLE, GRID_CLASSES, GENERIC_LOAD_ERROR } from './AppsHomePage.constants';
-import { categoriesInView, visibleUnder, matchesQuery, byName, isPublished } from './AppsHomePage.helpers';
+import { categoriesInView, visibleUnder, matchesQuery } from './AppsHomePage.helpers';
 import { Directory } from './Directory';
 export { RECENTS_SHOWN } from './AppsHomePage.constants';
 
@@ -199,7 +199,7 @@ function Toolbar({ count, query, onQuery, canBuild }: ToolbarProps) {
     );
 }
 
-export default function AppsHomePage() {
+export default function AppsHomePage({ mayManageApps = false }: { mayManageApps?: boolean }) {
     const { t } = useTranslation();
     const [apps, setApps] = useState<DirectoryApp[]>([]);
     const [loading, setLoading] = useState(true);
@@ -214,26 +214,13 @@ export default function AppsHomePage() {
     // safe way to be wrong.
     const { hasFeature } = useLicenseContext();
     const { can } = useEntitlements();
-    const canBuild = !!(hasFeature?.('app_studio') && can?.('app_studio'));
+    const canBuild = !!(mayManageApps && hasFeature?.('app_studio') && can?.('app_studio'));
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const [accessible, mine] = await Promise.all([
-                studioAppsApi.listAccessible(),
-                studioAppsApi.listMine(),
-            ]);
-            // listAccessible is already published-only server-side; filter
-            // defensively. listMine holds drafts too, so keep only published.
-            const shared = (accessible?.apps || []).filter(isPublished);
-            const ownedPublished = (mine?.apps || []).filter(isPublished);
-            // Dedupe by id (an owned app can also appear in accessible).
-            const byId = new Map<string, DirectoryApp>();
-            for (const a of [...shared, ...ownedPublished]) {
-                if (a?.id && !byId.has(a.id)) byId.set(a.id, a);
-            }
-            setApps([...byId.values()].sort(byName));
+            setApps(await loadPublishedStudioApps());
         } catch (err) {
             setError((err as Error)?.message || GENERIC_LOAD_ERROR);
         } finally {

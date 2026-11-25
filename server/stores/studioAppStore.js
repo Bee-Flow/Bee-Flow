@@ -42,6 +42,8 @@ require('./studioApp/deps').install({
     engineFlag: () => require('../utils/engineFlag'),
     projectStore: () => require('./projectStore'),
     projectAccess: () => require('../auth/projectAccess'),
+    /** @param {string} userId @param {import('../core/entitlements/entitlementTypes').SessionLike | null} session */
+    mayUseSharedApps: (userId, session) => require('../auth/permissions').hasPermission(userId, 'use_apps', session),
     studioAppDbStore: () => require('./studioAppDbStore'),
     storageStore: () => require('./storageStore'),
     automationUsageSync: () => require('../appStudio/automationUsageSync'),
@@ -49,11 +51,11 @@ require('./studioApp/deps').install({
 
 const { initDB } = require('./studioApp/schema');
 const {
-    getStudioApp, getStudioAppsByUser, getAccessibleStudioApps, setTemplateStamp, setTemplateProvenance,
+    getStudioApp, getStudioAppsByUser, getAccessibleStudioApps, userHasAnyStudioAppAccess, setTemplateStamp, setTemplateProvenance,
 } = require('./studioApp/apps');
 const { MAX_VERSIONS_PER_APP, createVersionSnapshot, listVersions, getVersion } = require('./studioApp/versions');
 const {
-    canReadStudioApp, canReadStudioAppAsync, canWriteStudioApp, userHasAnyStudioAppAccess,
+    canReadStudioApp, canReadStudioAppAsync, canWriteStudioApp,
 } = require('./studioApp/access');
 const {
     SNAPSHOT_MAX_BYTES, PINNED_SNAPSHOT_KEYS, SNAPSHOT_TRIM_MARKER, getBuilderSession, clearBuilderSession,

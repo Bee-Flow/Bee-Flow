@@ -127,8 +127,8 @@ function secondaryLists(p: ResolvedSidebarProps, access: SidebarState['access'])
     const { data } = access;
     return {
         studioSections: access.canSeeStudio && access.studioSections.length > 0 ? access.studioSections : null,
-        publishedApps: access.canUseCapability('app_studio') && access.hasPermission('use_apps') && data.hasApps ? data.publishedApps : null,
-        publishedForms: data.canSeeForms && access.hasPermission('use_forms') && data.hasForms && !p.isMobile ? data.publishedForms : null,
+        publishedApps: data.canSeeApps && data.hasApps ? data.publishedApps : null,
+        publishedForms: data.canSeeForms && data.hasForms && !p.isMobile ? data.publishedForms : null,
     };
 }
 

@@ -115,7 +115,9 @@ stub('../stores/studioAppDbStore', {
 stub('../stores/userStore', {
     // requireAuth confirms the session's user still exists; without this the
     // suite only passed because that check used to fail open on an error.
-    getUser: async (id) => ({ id, ...(userRows.get(id) || {}) }),
+    getUser: async (id) => ({ id, role: id === 'reader-owner' ? 'reader' : 'builder', ...(userRows.get(id) || {}) }),
+    getAllGroups: async () => [],
+    getAllRoles: async () => [{ id: 'builder', permissions: ['manage_apps'] }, { id: 'reader', permissions: ['use_apps'] }],
     getOrgMembersForDirectory: async (orgId, limit) => {
         directoryCalls.push({ orgId, limit });
         return directoryRows;
@@ -997,4 +999,11 @@ test('a rule on viewer.groups reads the groups of the user row, never the sessio
     model.tables[0].access.rowFilters.member = 'record.org_id == viewer.organizationId';
     const advised = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
     assert.match(advised.body.warnings[0], /table "tasks" role "member": viewer\.organizationId .* use viewer\.orgId/);
+});
+
+test('a reader who owns an app still needs manage_apps to change its schema', async () => {
+    const app = makeApp({ owner: 'reader-owner' });
+    const res = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: 'reader-owner', body: { model: baseModel() } });
+    assert.equal(res.statusCode, 403);
+    assert.match(res.body.error, /manage_apps/);
 });
