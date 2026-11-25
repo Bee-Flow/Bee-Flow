@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Check, Circle, CircleAlert, Play } from 'lucide-react';
 import type { PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import { CoworkTrail } from '../CoworkActivity';
 import { plainStepTitle } from '../coworkOverviewModel';
 import { inRunOrder } from './coworkTaskModel';
 
@@ -25,13 +26,18 @@ export default function CoworkTestProgress({ state, runOrder, t }: Props) {
     useEffect(() => { heading.current?.focus(); }, []);
     const steps = inRunOrder(state?.steps ?? [], runOrder);
     const current = steps.findLast(step => step.status === 'running');
+    const lastStarted = steps.findLastIndex(step => !['queued', 'pending', 'not_reached'].includes(step.status));
+    const index = current ? steps.indexOf(current) : lastStarted;
+    const position = (index + 1) / (steps.length + 1);
     const summary = current
         ? t('cowork_task.test.current', 'Testing step {number} of {total}: {title}', {
             number: steps.indexOf(current) + 1, total: steps.length, title: plainStepTitle(current, t),
         })
         : t('cowork_task.test.wait', 'Waiting for the next test step…');
     return <section className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4">
-        <h3 ref={heading} tabIndex={-1} className="m-0 text-[15px] font-semibold" aria-live="polite" aria-atomic="true">{summary}</h3>
+        <CoworkTrail position={position} tone={current?.kind === 'ai' ? 'thinking' : 'executing'} />
+        <h3 ref={heading} tabIndex={-1} className="m-0 text-[15px] font-semibold" aria-live="polite" aria-atomic="true"><span key={summary} className="cowork-activity-label">{summary}</span></h3>
+        {steps.length > 0 && <details className="mt-2"><summary className="w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]">{t('cowork_task.flow.details', 'Details')}</summary>
         <ol className="m-0 mt-2 list-none p-0">
             {steps.map(step => {
                 const active = step.status === 'running';
@@ -43,6 +49,6 @@ export default function CoworkTestProgress({ state, runOrder, t }: Props) {
                     <span>{stateLabel(step.status, t)}</span>
                 </li>;
             })}
-        </ol>
+        </ol></details>}
     </section>;
 }

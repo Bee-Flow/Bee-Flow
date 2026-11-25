@@ -82,8 +82,8 @@ function TopOfTask({ item, facts, onRun, onShare, t }: { item: CoworkItem; facts
     return (
         <>
             <CoworkTaskHeader item={item} status={facts.status} t={t} />
-            <CoworkTaskActions item={item} heldBy={facts.heldBy} busy={actions.runNow.isPending || actions.toggle.isPending} t={t}
-                onRunNow={() => { actions.runNow.mutate(); onRun(); }} onToggle={() => actions.toggle.mutate()} onShare={onShare} />
+            {!facts.live && <CoworkTaskActions item={item} heldBy={facts.heldBy} busy={actions.runNow.isPending || actions.toggle.isPending} t={t}
+                onRunNow={() => { actions.runNow.mutate(); onRun(); }} onToggle={() => actions.toggle.mutate()} onShare={onShare} />}
             <Failure error={actions.runNow.error || actions.toggle.error} t={t} />
         </>
     );
@@ -104,7 +104,7 @@ function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: 
                 <CoworkTaskTested coworkId={item.id} plan={facts.plan} fingerprint={check?.fingerprint ?? null} changed={!!check?.changed} onApproved={setDone} onChange={onChange}
                     onTest={() => facts.tryOut.start.mutate()} testing={facts.tryOut.start.isPending || !canTry(facts.plan)} t={t} />
             )}
-            {facts.live && <CoworkTaskLive coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
+            {facts.live && <CoworkTaskLive startingTest={facts.startingTest} coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
             {quiet && (
                 <>
                     <AutoFixNote coworkId={item.id} t={t} />

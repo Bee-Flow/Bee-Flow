@@ -145,7 +145,8 @@ describe('CoworkPage', () => {
         serve();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage />);
-        await user.click(screen.getByRole('button', { name: 'Start from a template' }));
+        await user.click(screen.getByText('Start from a template'));
+        await user.click(screen.getByRole('button', { name: 'All templates' }));
         expect(await screen.findByRole('heading', { level: 1, name: 'Start from a template' })).toBeInTheDocument();
         expectNoOverlay();
         await user.click(await screen.findByRole('button', { name: 'Use “Monday summary”' }));
@@ -194,7 +195,8 @@ describe('the Cowork page is crisp', () => {
         renderWithClient(<CoworkPage user={ADMIN} />);
         await screen.findByRole('button', { name: /Weekly digest/ });
         expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);
-        for (const [opener, shows] of [['Cowork preferences', 'cowork-settings-panel'], ['Admin rules', 'cowork-org-panel'], ['Start from a template', 'cowork-templates-panel']] as const) {
+        for (const [opener, shows] of [['Cowork preferences', 'cowork-settings-panel'], ['Admin rules', 'cowork-org-panel'], ['All templates', 'cowork-templates-panel']] as const) {
+            if (opener === 'All templates') await user.click(screen.getByText('Start from a template'));
             await user.click(screen.getByRole('button', { name: opener }));
             await screen.findByTestId(shows);
             expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);

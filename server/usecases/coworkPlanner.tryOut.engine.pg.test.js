@@ -70,7 +70,7 @@ function idOf(messages, handle) {
 const repairById = ({ messages }) => calls(['builder_update_step', { stepId: idOf(messages, 'sums'), patch: { inputs: { transcriptId: ref('loop.t.id') } } }]);
 
 function planner(script) {
-    const seen = { chats: [], progress: [], spends: 0 };
+    const seen = { chats: [], progress: [], steps: [], spends: 0 };
     let turn = 0;
     const real = plannerDeps();
     const deps = {
@@ -102,7 +102,7 @@ test('the first draft fails its try-out, the facts go back without a meeting tit
     const reports = [];
     const repair = (input) => { reports.push(input.messages.at(-1)); return repairById(input); };
     const { deps, seen } = planner([INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE, repair, DONE]);
-    made = { item, result: await makePlan({ item, userOrgId: null, onProgress: (p) => seen.progress.push(p.phase) }, deps), seen };
+    made = { item, result: await makePlan({ item, userOrgId: null, onProgress: (p) => p.step ? seen.steps.push({ round: p.round, ...p.step }) : seen.progress.push(p.phase) }, deps), seen };
     const { result } = made;
 
     assert.deepStrictEqual([result.tried.status, result.tried.rounds, result.findings], ['passed', 2, []]);
@@ -110,6 +110,11 @@ test('the first draft fails its try-out, the facts go back without a meeting tit
     assert.strictEqual(result.tried.summary.ai, 1);
     assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('trying')), ['trying', 'repairing', 'trying']);
     assert.strictEqual(seen.spends, 2, 'one try-out per round, each through the budget');
+
+    assert.deepStrictEqual(seen.steps.filter(s => s.round === 2).map(({ number, total, title }) => [number, total, title]),
+        BATCH.map((step, i) => [i + 1, BATCH.length, step.spec.label]));
+    assert.strictEqual(seen.steps.find(s => s.title === 'Write the overview').kind, 'ai');
+    assert.ok(seen.steps.some(s => s.round === 1 && s.title === 'Get summaries'));
 
     const [report] = reports;
     assert.strictEqual(report.role, 'user');
@@ -170,7 +175,7 @@ test('a bad list reference gets a targeted repair before the first dry run', asy
         } }]);
     };
     const { deps, seen } = planner([INSPECT, calls(['builder_add_steps', { steps }]), DONE, fixReference, DONE]);
-    const result = await makePlan({ item, onProgress: (p) => seen.progress.push(p.phase) }, deps);
+    const result = await makePlan({ item, onProgress: (p) => p.step ? seen.steps.push({ round: p.round, ...p.step }) : seen.progress.push(p.phase) }, deps);
     assert.deepStrictEqual([result.tried.status, result.tried.rounds], ['passed', 1]);
     assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('saving')), ['saving', 'repairing', 'trying']);
 });

@@ -18,18 +18,11 @@ automations, and letting a task ask you first needs one with approvals. See [Tie
 
 ## Start
 
-1. Open **Cowork** and type what should happen, and when. Or choose **Start from a template** to begin
-   from work your organisation already set up.
-2. Choose **Show what I understood**. Cowork answers with a card of four lines, each of which you can
-   change before anything starts:
-   - **What**: the work, in your sentence.
-   - **When**: the schedule, or what starts it.
-   - **Uses**: the apps it may use. Only the apps your sentence names are selected; add or remove one
-     with its chip.
-   - **Sends to**: you, and any address you add. When it sends to someone else, **Show me each message
-     first** is on.
-3. Choose **Set up and test**. Cowork sets the task up, tests it once without sending anything, and
-   tells you what the test produced. The task does not run for real until you have approved its steps.
+1. Open **Cowork** and describe what should happen and when. **Start from a template** offers examples and your organisation's templates.
+2. For a task with fixed steps, choose **Set up and test**. Cowork works out the steps and tests them. If it needs a schedule or destination, it asks. If you requested delivery, you can review the recipients first.
+3. Follow the current step as Cowork works. During a test you can see which step it is trying and when it is repairing a problem. Open the finished task to review the result and approve the steps for real runs.
+
+Choose **Advanced** before starting to select a model or add a specific step. **Preview task** lets you review and edit the name, schedule, apps and requested recipients. Workspaces without fixed steps use a preview and ask before starting the task.
 
 The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,
 and **Teamwork**. The gear opens your **Cowork preferences**; administrators also see **Admin rules**.
@@ -41,8 +34,7 @@ Nothing to do.
 
 A task opens as a page of its own. From top to bottom:
 
-- its state, name and the buttons **Run for real now**, **Pause** and **Share**. A button that cannot be
-  used says why;
+- its state and name, with **Run for real now** when the task can run. **Task actions** holds pause, resume and sharing options;
 - what **needs you**, or what it is doing right now, or its latest result;
 - **Settings**: four rows that always show their current value and open in place;
 - **Steps**, **People** and **History**.

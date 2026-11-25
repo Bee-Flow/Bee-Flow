@@ -49,12 +49,12 @@ describe('the task page is crisp', () => {
 });
 
 describe('CoworkTaskView', () => {
-    it('shows one spinner at the active step of a running task', async () => {
+    it('shows one activity indicator for a running task', async () => {
         openTask({ item: { ...ITEM, lastStatus: 'running' }, runs: [{ ...RUN, status: 'running' }] });
         const progress = await screen.findByTestId('cowork-task-progress');
         expect(screen.getByTestId('cowork-task-header')).toHaveTextContent('Running');
-        expect(progress.querySelector('.cowork-spin')).toBeVisible();
-        expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-spin')).toHaveLength(1);
+        expect(progress.querySelector('.cowork-trail')).toBeVisible();
+        expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-trail')).toHaveLength(1);
     });
 
     it('only shows the selected panel and supports keyboard navigation between tabs', async () => {
@@ -114,6 +114,7 @@ describe('CoworkTaskView', () => {
         const panel = within(await screen.findByRole('tabpanel', { name: 'Steps' }));
         await user.click(await panel.findByRole('button', { name: 'Test, sends nothing' }));
         expect(await panel.findByText('Testing step 2 of 3: Keep this week')).toBeVisible();
+        await user.click(panel.getByText('Details', { selector: 'summary' }));
         expect(panel.getByText('Keep this week').closest('li')).toHaveAttribute('aria-current', 'step');
         expect(panel.getByText('Tell me').closest('li')).toHaveTextContent('Waiting');
         done = true;
@@ -159,14 +160,11 @@ describe('CoworkTaskView', () => {
         expect(ai).toHaveTextContent('AI');
     });
 
-    it('keeps "Run for real now" off while its steps wait for approval, and says why on the button and under it', async () => {
+    it('offers the approval while its steps wait and explains why they cannot run yet', async () => {
         openTask({ plan: PLAN_WAITING, needs: [NEEDS_APPROVAL] });
         await screen.findByTestId('cowork-task-would-receive');
-        const run = screen.getByRole('button', { name: 'Run for real now' });
-        expect(run).toBeDisabled();
-        expect(run).toHaveAttribute('title', 'It cannot run for real yet: its steps wait for your approval.');
+        expect(screen.queryByRole('button', { name: 'Run for real now' })).toBeNull();
         expect(screen.getByTestId('cowork-task-held')).toHaveTextContent('It cannot run for real yet: its steps wait for your approval.');
-        expect(run).toHaveAccessibleDescription('It cannot run for real yet: its steps wait for your approval.');
     });
 
     it('runs for real when nothing waits, and says nothing is held back', async () => {
@@ -197,6 +195,7 @@ describe('CoworkTaskView', () => {
         expect(block).toHaveTextContent('It would have gone to you. Nothing was sent.');
         expect(within(block).getByTestId('cowork-task-would-receive-text')).toHaveTextContent('Three invoices are overdue. Two meetings moved.');
         expect(screen.queryByLabelText('What should be done?')).toBeNull();
+        await user.click(within(block).getByText('Advanced'));
         await user.click(within(block).getByRole('button', { name: 'Change something' }));
         expect(screen.getByRole('tab', { name: 'Settings', selected: true })).toHaveFocus();
         expect(screen.getByLabelText('What should be done?')).toHaveValue('Sum up the week.');
@@ -225,6 +224,7 @@ describe('CoworkTaskView', () => {
         expect(shareRow()).toHaveAttribute('aria-expanded', 'false');
         expect(shareRow()).toHaveTextContent('Not shared');
         await selectTab(user, 'Result');
+        await user.click(screen.getByText('Task actions'));
         await user.click(within(screen.getByTestId('cowork-task-actions')).getByRole('button', { name: 'Share' }));
         expect(screen.getByRole('tab', { name: 'People', selected: true })).toHaveFocus();
         expect(shareRow()).toHaveAttribute('aria-expanded', 'true');

@@ -15,7 +15,7 @@ import CoworkTaskFlow from './CoworkTaskFlow';
 import { Check, TriangleAlert } from 'lucide-react';
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
-import { planMayDo, planSteps, runMayDo, runSteps, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
+import { planMayDo, planSteps, runMayDo, runSteps, type MayDo, type TaskMode } from './coworkTaskModel';
 import CoworkEffectPreview from './CoworkEffectPreview';
 import CoworkTaskReplay from './CoworkTaskReplay';
 import { TechnicalDetails } from './taskRows';
@@ -143,22 +143,17 @@ function testInProgress(tryOut: TryOut) {
     return !tryOut.error && (tryOut.starting || (!!tryOut.state && !tryOut.state.done));
 }
 
-function StepsOverview({ steps, tryOut, plan, t }: Pick<CoworkTaskStepsProps, 'tryOut' | 'plan' | 't'> & { steps: TaskStep[] }) {
-    if (testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan?.draft?.view.runOrder} t={t} />;
-    if (steps.length) return <CoworkTaskFlow steps={steps} t={t} />;
-    return <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>;
-}
-
 export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, onRebuild, t }: CoworkTaskStepsProps) {
     const fixed = mode === 'steps' && !!plan;
     const steps = fixed ? planSteps(plan, t) : runSteps(latestRun, t);
     const may = fixed ? planMayDo(plan, t) : runMayDo(steps);
-    const tested = mode === 'steps' && !testInProgress(tryOut) && !tryOut.error ? testedOf(plan, tryOut.state, t) : null;
+    if (testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan?.draft?.view.runOrder} t={t} />;
+    const tested = mode === 'steps' && !tryOut.error ? testedOf(plan, tryOut.state, t) : null;
     const titleOf = (id: string) => steps.find((s) => s.id === id)?.title ?? null;
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-steps">
             <p className={META}>{leadOf(mode, agentName, t)}</p>
-            <StepsOverview steps={steps} tryOut={tryOut} plan={plan} t={t} />
+            {steps.length ? <CoworkTaskFlow steps={steps} t={t} /> : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}
             <NotebookRepair plan={plan} live={live} onRebuild={onRebuild} t={t} />
             {tested && <TestedLine tested={tested} t={t} />}
             {tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter((s) => s.held && s.status !== 'not_reached')} t={t} />}

@@ -35,7 +35,7 @@ describe('the Cowork motion in the stylesheet', () => {
         expect(rule(`.${SWAP}`)).toMatch(/backwards\s*;/);
         expect(withoutKeyframes).not.toMatch(/\b(transform|filter|backdrop-filter|will-change)\s*:/);
         // Only the spinner and activity mark loop; the latter is opt-in to motion.
-        expect(motion).toMatch(/prefers-reduced-motion: no-preference[^}]+coworkBreathe/);
+        expect(motion).toMatch(/prefers-reduced-motion: no-preference[\s\S]*?coworkBreathe/);
         expect(withoutKeyframes.match(/infinite/g)).toHaveLength(2);
         expect(rule(`.${SPIN}`)).toContain('infinite');
         const durations = [...withoutKeyframes.replace(rule(`.${SPIN}`), '').matchAll(/animation:[^;]*?(\d+)ms/g)].map((m) => Number(m[1]));

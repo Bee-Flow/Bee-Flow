@@ -4,42 +4,27 @@
  * run that follows the steps its own steps (the run's trace), a try-out the steps it tries, the setting up the phases
  * of making the steps.
  */
-import CoworkActivity, { setupMessage } from '../CoworkActivity';
-import CoworkProgress from '../CoworkProgress';
+import CoworkActivity, { setupActivity } from '../CoworkActivity';
+import CoworkTestProgress from './CoworkTestProgress';
 import { plainStepTitle } from '../coworkOverviewModel';
-import { inRunOrder } from './coworkTaskModel';
-import { CARD, CARD_HEAD } from './taskUi';
 import { useCoworkRunTrace } from '@/api/queries/coworkPlan';
 import type { PlanMaking } from '@/hooks/useCoworkPlanMaker';
 import type { CoworkRun } from '@/api/cowork.types';
-import type { PlanTryState, PlanTryStep } from '@/api/coworkPlan.types';
+import type { PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
-
-const OPEN_STEP: ReadonlySet<string> = new Set(['pending', 'running', 'queued']);
-
-/** The steps as labels, and the phase: the first step that is not over yet. */
-function stepPhases(steps: readonly PlanTryStep[], t: TranslateFn): { labels: string[]; phase: number } {
-    const at = steps.findIndex((s) => OPEN_STEP.has(s.status));
-    return { labels: steps.map((s) => plainStepTitle(s, t)), phase: at === -1 ? steps.length : at };
-}
-
-function LiveCard({ heading, labels, phase }: { heading: string; labels: string[]; phase: number }) {
-    return (
-        <section className={CARD} data-testid="cowork-task-live" aria-label={heading}>
-            <div className={CARD_HEAD}>{heading}</div>
-            <CoworkProgress labels={labels} phase={phase} testId="cowork-task-progress" />
-        </section>
-    );
-}
 
 /** A run that follows the steps shows them from its trace; any other run is one line. */
 function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: TranslateFn }) {
     const trace = useCoworkRunTrace(coworkId, run.id).data;
-    const parts = trace?.recorded && trace.steps.length > 0 ? stepPhases(trace.steps, t) : { labels: [t('cowork_task.live.working', 'Working on it')], phase: 0 };
-    return <LiveCard heading={t('cowork_task.live.running', 'Running now')} {...parts} />;
+    const steps = trace?.recorded ? trace.steps : [];
+    const active = steps.findLast((step) => step.status === 'running');
+    return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
+        tone={active?.kind === 'ai' ? 'thinking' : 'executing'} position={active ? steps.indexOf(active) / steps.length : 0} testId="cowork-task-progress"
+        message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 
 interface CoworkTaskLiveProps {
+    startingTest?: boolean;
     coworkId: string;
     making: PlanMaking;
     tryState: PlanTryState | null;
@@ -54,11 +39,11 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
     return making.running || (!!tryState && !tryState.done) || !!liveRun;
 }
 
-export default function CoworkTaskLive({ coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <CoworkActivity testId="cowork-task-live" message={setupMessage(making.phase, t)} />;
-    if (tryState && !tryState.done) {
-        return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
+export default function CoworkTaskLive({ startingTest, coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
+    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep)} />;
+    if (startingTest || (tryState && !tryState.done)) {
+        return <CoworkTestProgress state={tryState} runOrder={runOrder} t={t} />;
     }
     if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} t={t} />;
-    return null;
+    return <CoworkActivity tone="executing" message={t('cowork_task.live.working', 'Working on it')} />;
 }

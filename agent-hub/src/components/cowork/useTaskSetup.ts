@@ -13,11 +13,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { makeCoworkPlan } from '@/api/coworkPlanMake';
 import { apiJson } from '@/api/typedRequest';
-import type { PlanMakeProgress } from '@/api/coworkPlan.types';
+import type { PlanMakeProgress, PlanningTestStep } from '@/api/coworkPlan.types';
 import type { CoworkItem } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export interface TaskSetup { id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking' }
+export interface TaskSetup { id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
 
 /** The task to set up: the new task itself, or just its id and name (it is then read first). */
 export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup'>>;
@@ -63,7 +63,7 @@ export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp
             return;
         }
         setSetup({ id: task.id, title: task.title, phase: 'thinking' });
-        const progress = (p: PlanMakeProgress) => setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, phase: p.phase } : s));
+        const progress = (p: PlanMakeProgress) => setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
         let ready = false;
         try {
             const outcome = await makeCoworkPlan(task.id, { signal: control.signal, onProgress: progress });

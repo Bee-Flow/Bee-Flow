@@ -22,7 +22,7 @@ import CoworkTaskRows, { CoworkSharedRows } from './CoworkTaskRows';
 import { ENTER, LEAVE, useLeave } from './coworkMotion';
 import type { NeedCardData } from './coworkNeedsModel';
 import { pageName, type CoworkSheetPanel } from './coworkSheetPanels';
-import { ALERT, BUTTON_PRIMARY, CARD, LINK_BUTTON, LIST_ROW, META } from './coworkUi';
+import { ALERT, CARD, LINK_BUTTON, LIST_ROW, META } from './coworkUi';
 import useCoworkList from './useCoworkList';
 import useCoworkNeedCards from './useCoworkNeedCards';
 import useTaskSetup, { type TaskToSetUp } from './useTaskSetup';
@@ -166,18 +166,14 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
         void begin(item);
     }, [client, begin]);
     return (
-        <div className="flex flex-col gap-9" data-testid="cowork-home">
-            {finished && finished.seed === seed ? <section className={`${CARD} ${ENTER} flex flex-col items-start gap-3 p-5`}>
-                <h2 className="m-0 break-words text-[18px] font-semibold">{finished.task.title}</h2>
-                <p role="status" className={META}>{finished.message}</p>
-                <div className="flex flex-wrap items-center gap-4">
-                    <button type="button" className={BUTTON_PRIMARY} onClick={() => { onOpenTask(finished.task.id); setFinished(null); }}>
-                        {t('cowork_home.activity.open', 'Open task')}
-                    </button>
-                    <button type="button" className={LINK_BUTTON} onClick={() => setFinished(null)}>{t('cowork_home.activity.another', 'Create another task')}</button>
-                </div>
-            </section> : <CoworkHomeComposer stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed} onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />}
-            {!setup && <>
+        <div className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
+            <CoworkHomeComposer stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
+                onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup}
+                finished={finished && finished.seed === seed ? {
+                    title: finished.task.title, message: finished.message, onOpen: () => { onOpenTask(finished.task.id); setFinished(null); },
+                    onReset: () => setFinished(null),
+                } : undefined} />
+            <div className="cowork-home-sections flex flex-col gap-9">
                 <FlashLine flash={flash} />
                 <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
                 <NeedsSection cards={cards} onOpenTask={onOpenTask} onDone={say} />
@@ -188,7 +184,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
                     </Section>
                 )}
                 <TeamworkEntry onOpen={() => onOpenPanel({ kind: 'teamwork' })} />
-            </>}
+            </div>
         </div>
     );
 }

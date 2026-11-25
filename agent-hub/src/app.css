@@ -1612,8 +1612,7 @@ pre.hljs {
 /* ── Cowork motion (components/cowork/coworkMotion.ts) ─────────────────────
    The whole motion vocabulary of the Cowork page: an element arriving, a row
    opening in place, a value changing, an element leaving, and a spinner while
-   work is in progress. Small on purpose: nothing moves more than 4px, nothing
-   lasts over 200ms, and nothing loops but the spinner.
+   work is in progress. Forms settle in place; the activity stroke moves when work advances.
 
    The resting state is clean. A text layer that keeps a `transform` loses its
    sharp rendering on many Linux and Windows screens, so the arrival fills
@@ -1637,39 +1636,39 @@ pre.hljs {
 .cowork-leave { animation: coworkLeave 120ms ease-in forwards; }
 .cowork-spin { animation: spin 800ms linear infinite; }
 
-/* A quiet activity mark. Only its outline breathes, so the label stays still. */
+.cowork-home:has([data-cowork-engaged="true"]) > .cowork-home-sections { display: none; }
+
+/* The ink and its tip share a path, so interrupted and reversed transitions stay joined. */
 .cowork-activity {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    display: grid;
+    justify-items: start;
+    gap: .4rem;
     padding: clamp(1rem, 3vw, 1.5rem);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     background: var(--bg-card);
 }
-.cowork-activity-mark {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    color: var(--type-ai);
-    background: color-mix(in srgb, currentColor 8%, var(--bg-card));
-}
-.cowork-activity-mark > span {
-    width: 1.1rem;
-    height: 1.1rem;
-    border: 2px solid currentColor;
-    border-radius: 48% 62% 52% 38%;
-    box-shadow: inset 3px -2px 0 color-mix(in srgb, currentColor 35%, transparent);
-}
+.cowork-trail { display: block; width: min(16rem, 100%); height: auto; color: var(--type-ai, var(--info-ink, var(--accent-primary))); }
+.cowork-trail[data-tone="repair"] { color: var(--warning-ink); }
+.cowork-trail[data-tone="rest"] { color: var(--text-secondary); }
+.cowork-trail-base { stroke: var(--border-default); }
+.cowork-trail-ink, .cowork-worker { stroke: currentColor; }
+.cowork-worker-field { opacity: .12; }
+.cowork-worker-petal { stroke: color-mix(in srgb, currentColor 54%, var(--bg-card)); }
+.cowork-worker-light { stroke: var(--bg-card); }
+.cowork-activity-label { display: inline-block; }
 @media (prefers-reduced-motion: no-preference) {
-    .cowork-activity-mark > span { animation: coworkBreathe 3s ease-in-out infinite alternate; }
+    .cowork-trail { transition: color 250ms ease; }
+    .cowork-trail-ink, .cowork-worker { transition: stroke-dashoffset 420ms cubic-bezier(.25,.8,.25,1); }
+    .cowork-trail:not([data-tone="rest"]) .cowork-worker-petal { animation: coworkBreathe 1.8s ease-in-out infinite alternate; }
+    .cowork-trail[data-tone="executing"] .cowork-worker-petal { animation-name: coworkCarry; animation-duration: .85s; }
+    .cowork-trail[data-tone="repair"] .cowork-worker-petal { animation-name: coworkRegroup; animation-duration: 1.35s; }
+    .cowork-activity-label { animation: coworkStepArrives 200ms ease-out backwards; }
 }
-@keyframes coworkBreathe {
-    to { border-radius: 62% 40% 58% 50%; transform: scale(1.12) rotate(12deg); }
-}
+@keyframes coworkBreathe { from { transform: translate(-4px, -3px); } to { transform: translate(0, -7px); stroke-width: 6; } }
+@keyframes coworkCarry { from { transform: translate(-3px, -3px); } to { transform: translate(-9px, -1px); stroke-width: 5; } }
+@keyframes coworkRegroup { from { transform: translate(3px, -5px); } to { transform: translate(-2px, -1px); stroke-width: 9; } }
+@keyframes coworkStepArrives { from { opacity: .25; transform: translateY(5px); } }
 
 /* A row or disclosure opening in place (<Expand open>): the wrapper is a
    one-row grid whose row grows from 0fr to 1fr, so the height animates without

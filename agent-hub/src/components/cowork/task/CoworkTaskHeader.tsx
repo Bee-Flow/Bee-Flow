@@ -89,18 +89,23 @@ export function CoworkTaskActions({ item, heldBy, busy, onRunNow, onToggle, onSh
     return (
         <div className="flex flex-col gap-2" data-testid="cowork-task-actions">
             <div className={ROW_ACTIONS}>
-                {!byMail && (
-                    <button type="button" className={BTN_PRIMARY} disabled={!!heldBy || busy} title={why ?? undefined} aria-describedby={why ? whyId : undefined} onClick={onRunNow}>
+                {!byMail && !heldBy && (
+                    <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={onRunNow}>
                         <Play aria-hidden="true" size={16} />{t('cowork_task.action.run_for_real', 'Run for real now')}
                     </button>
                 )}
-                <button type="button" className={BTN_QUIET} disabled={live || busy} title={live ? why ?? undefined : undefined} onClick={onToggle}>
-                    {paused ? <Play aria-hidden="true" size={16} /> : <Pause aria-hidden="true" size={16} />}
-                    {paused ? t('cowork_task.action.resume', 'Resume') : t('cowork_task.action.pause', 'Pause')}
-                </button>
-                <button type="button" className={BTN_QUIET} onClick={onShare}>
-                    <Share2 aria-hidden="true" size={16} />{t('cowork_task.more.share', 'Share')}
-                </button>
+                <details>
+                    <summary className="cursor-pointer py-2 text-[13px] text-[var(--text-secondary)]">{t('cowork_home.activity.task_actions', 'Task actions')}</summary>
+                    <div className={ROW_ACTIONS}>
+                        <button type="button" className={BTN_QUIET} disabled={live || busy} title={live ? why ?? undefined : undefined} onClick={onToggle}>
+                            {paused ? <Play aria-hidden="true" size={16} /> : <Pause aria-hidden="true" size={16} />}
+                            {paused ? t('cowork_task.action.resume', 'Resume') : t('cowork_task.action.pause', 'Pause')}
+                        </button>
+                        <button type="button" className={BTN_QUIET} onClick={onShare}>
+                            <Share2 aria-hidden="true" size={16} />{t('cowork_task.more.share', 'Share')}
+                        </button>
+                    </div>
+                </details>
             </div>
             {why && <p key={why} id={whyId} className={`${META} ${SWAP}`} data-testid="cowork-task-held">{why}</p>}
             {byMail && !why && <p className={META}>{t('cowork_task.held.by_mail', 'It starts when a new e-mail arrives, so it cannot be started by hand.')}</p>}

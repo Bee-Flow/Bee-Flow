@@ -47,11 +47,15 @@ function renderComposer({ steps = true, stepTypes = [] as string[] } = {}) {
 
 const box = () => screen.getByLabelText('Task instructions');
 
-async function write(text: string) {
+async function write(text: string, advanced = true) {
     const user = userEvent.setup();
     await user.type(box(), text);
-    await user.click(screen.getByRole('button', { name: 'Preview task' }));
-    return { user, card: await screen.findByTestId('cowork-confirm') };
+    if (advanced && !screen.getByText('Advanced').closest('details')?.open) await user.click(screen.getByText('Advanced'));
+    await user.click(screen.getByTestId('cowork-continue'));
+    const card = await screen.findByTestId('cowork-confirm');
+    const toggle = within(card).queryByRole('button', { name: 'Advanced', expanded: false });
+    if (advanced && toggle) await user.click(toggle);
+    return { user, card };
 }
 
 const WEEKLY: CoworkSpec = { title: 'Weekly meeting summary', prompt: 'Summarise last week’s meetings and mail the summary', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00' };
@@ -62,6 +66,7 @@ describe('CoworkHomeComposer', () => {
         renderComposer({ stepTypes: ['condition'] });
         const user = userEvent.setup();
         await user.type(box(), 'Review my emails');
+        await user.click(screen.getByText('Advanced'));
         await user.click(screen.getByText('Choose a step'));
         await user.click(screen.getByRole('button', { name: 'Condition' }));
         expect(box()).toHaveValue('Review my emails\nUse the Condition step.');
@@ -72,14 +77,16 @@ describe('CoworkHomeComposer', () => {
         serve({});
         const { onTemplates } = renderComposer();
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What should be done for you?');
-        expect(screen.getByRole('button', { name: 'Preview task' })).toBeDisabled();
-        await userEvent.setup().click(screen.getByRole('button', { name: 'Start from a template' }));
+        expect(screen.getByRole('button', { name: 'Set up and test' })).toBeDisabled();
+        await userEvent.setup().click(screen.getByText('Start from a template'));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'All templates' }));
         expect(onTemplates).toHaveBeenCalled();
     });
 
     it('shows the model choice inline and saves the chosen tier on the new task', async () => {
         serve(WEEKLY, { auto: {}, pro: { modelId: 'deep-model' } });
         renderComposer();
+        await userEvent.setup().click(screen.getByText('Advanced'));
         const picker = await screen.findByRole('combobox', { name: 'AI model' });
         const user = userEvent.setup();
         await user.selectOptions(picker, 'pro');
@@ -96,6 +103,8 @@ describe('CoworkHomeComposer', () => {
         await user.type(box(), 'Lees de mail van sam@example.com.{Enter}Vat die samen in Cowork.');
         expect(box()).toHaveValue('Lees de mail van sam@example.com.\nVat die samen in Cowork.');
         expect(composed()).toHaveLength(0);
+        await user.click(screen.getByText('Advanced'));
+        await user.click(box());
         await user.keyboard('{Control>}{Enter}{/Control}');
         const card = await screen.findByTestId('cowork-confirm');
         expect(within(card).getByText('Available in this Cowork task')).toBeVisible();
@@ -265,6 +274,28 @@ describe('CoworkHomeComposer', () => {
         expect(screen.getByText('You have 10 tasks, the most you can have. Delete one to add another.')).toBeInTheDocument();
     });
 
+    it('starts the held test from the brief in one action when no choice is needed', async () => {
+        serve(WEEKLY);
+        const { onCreated } = renderComposer();
+        const user = userEvent.setup();
+        await user.type(box(), 'Every Monday, summarise my meetings here');
+        await user.click(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+        expect(created()?.body).toMatchObject({ setup: { steps: true, sendsTo: [] } });
+        expect(screen.queryByTestId('cowork-confirm')).toBeNull();
+    });
+
+    it('keeps optional fields and controls out of the simple review and leaves the requested delivery visible', async () => {
+        serve({ ...WEEKLY, delivery: { quote: 'mail sam@example.com', to: ['sam@example.com'] } });
+        renderComposer();
+        const { user, card } = await write('Every Monday, mail sam@example.com', false);
+        expect(within(card).getByText(/Sends to · sam@example.com/)).toBeVisible();
+        expect(within(card).queryByRole('textbox')).toBeNull();
+        expect(within(card).getByRole('button', { name: 'Set up and test' })).toBeEnabled();
+        await user.click(within(card).getByRole('button', { name: 'Advanced' }));
+        expect(within(card).getByLabelText('Task name')).toHaveValue(WEEKLY.title);
+    });
+
     it('shows only the current setup phase and keeps creation controls out of the way', () => {
         serve({});
         renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 'trying' }} />));
@@ -290,6 +321,7 @@ it('the file example asks for the folder and table in turn and leaves the result
     serve(WEEKLY);
     renderComposer();
     const user = userEvent.setup();
+    await user.click(screen.getByText('Start from a template'));
     await user.click(screen.getByRole('button', { name: 'Register Nextcloud files' }));
     await user.type(screen.getByLabelText('Which Nextcloud folder should Cowork check?'), '/Intake');
     await user.click(screen.getByRole('button', { name: 'Continue' }));

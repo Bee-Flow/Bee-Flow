@@ -14,6 +14,7 @@
  * stays outside that cycle (lint:scc-ratchet).
  */
 
+const { bestEffort } = require('../../utils/bestEffort');
 const { classifyUnknownError } = require('../automationErrors');
 const { safeDescribeStepError } = require('../../utils/stepErrorInfo');
 const { resolveDeep, withBindingLog } = require('../automationModel/bind');
@@ -245,11 +246,11 @@ async function handleStepFailure(deps, err, f) {
  * recurses through it) calls to execute a single step.
  *
  * @param {any} deps  execution.js's RUN_DEPS
- * @param {{ run: import('./runSetup').RunRow, cancelSignal: AbortSignal, runPolicy: import('./runPolicy').RunPolicy }} args
+ * @param {{ run: import('./runSetup').RunRow, cancelSignal: AbortSignal, runPolicy: import('./runPolicy').RunPolicy, onDryRunStep?: (id: string) => void }} args
  *   `run` is the run row (its id addresses the cancel flag), `cancelSignal` the run's in-process
  *   cancel signal, `runPolicy` the automation's run policy (default retry)
  */
-function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
+function makeStepDispatcher(deps, { run, cancelSignal, runPolicy, onDryRunStep }) {
     const { isCancelRequested } = deps;
     const { execForEachStep } = deps.engine;
 
@@ -299,6 +300,8 @@ function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
         }
         const notRun = pinnedOrDisabled(step, state_, stepStartedAt);
         if (notRun) return notRun;
+        // Private to this test run. An observer disconnecting must never fail the step.
+        try { onDryRunStep?.(step.id); } catch (error) { bestEffort('automationRunner:dryRunStep', error); }
 
         // A mapping that finds nothing while the step runs is written down
         // (bind.js withBindingLog) and reported on the step row, the run's

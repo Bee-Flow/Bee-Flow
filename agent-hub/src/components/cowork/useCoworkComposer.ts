@@ -60,6 +60,12 @@ interface Touched {
     agent: boolean;
 }
 
+interface SubmitOptions {
+    modelTier?: string;
+    /** Only the home can opt into creating a fixed plan that is held for testing and approval. */
+    prepareTest?: (draft: CoworkDraft) => CoworkPayload | null;
+}
+
 export interface UseCoworkComposerReturn {
     when: WhenState;
     setWhen: (value: WhenState) => void;
@@ -79,7 +85,7 @@ export interface UseCoworkComposerReturn {
     setError: (value: string | null) => void;
     scheduleReady: boolean;
     summary: string;
-    submit: (brief: string, opts?: { modelTier?: string }) => Promise<CoworkItem | null>;
+    submit: (brief: string, opts?: SubmitOptions) => Promise<CoworkItem | null>;
     reset: () => void;
     /** With `confirm`: what waits for Start or Change; null otherwise. */
     draft: CoworkDraft | null;
@@ -196,7 +202,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
         ? !!agentId && isMailTriggerReady(mailTrigger)
         : !!resolveWhen(when.presetId, when);
 
-    const submit = useCallback(async (brief: string, { modelTier }: { modelTier?: string } = {}) => {
+    const submit = useCallback(async (brief: string, { modelTier, prepareTest }: SubmitOptions = {}) => {
         const text = String(brief || '').trim();
         if (!text || submitting) return null;
 
@@ -259,6 +265,11 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
             });
             if (!payload) { setError(t('cowork.error.pick_moment', 'Pick a date and time first.')); return null; }
 
+            const test = prepareTest?.({ payload, spec });
+            if (test) {
+                setDraft({ payload, spec });
+                return await finish(test, spec, false);
+            }
             return await finish(payload, spec);
         } catch (err) {
             setError(createError(err, t));

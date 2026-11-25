@@ -13,10 +13,11 @@
  * its card only after a try-out of exactly that plan passed. A plan that never passed says honestly what still fails.
  */
 
+import { planViewOf } from '../core/cowork/plan/planView.mts';
 import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
 import { REF_FINDING } from './coworkPlanRefs.mts';
 import { planReport } from './coworkPlannerPrompt.mts';
-import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
+import type { Definition, PlanFinding, StepKind } from '../core/cowork/plan/planTypes.mts';
 import type { SourceRow } from '../core/cowork/plan/planSource.mts';
 import type { PlanTryRecord } from '../stores/coworkPlanTries.mts';
 import type { DraftProgress, DraftWrap, LoopDeps, LoopInput, Message } from './coworkDraftLoop.mts';
@@ -34,7 +35,7 @@ interface Item { id: string; userId: string; monthlyBudget?: number | null }
 /** What the try rounds need besides the draft loop. */
 export interface TryRoundDeps extends LoopDeps {
     /** Run the definition of the plan automation once in test mode, wait for it and judge it. */
-    tryOut: (input: { item: Item; automation: SourceRow; definition: Definition }) => Promise<TryVerdict>;
+    tryOut: (input: { item: Item; automation: SourceRow; definition: Definition; onDryRunStep?: (id: string) => void }) => Promise<TryVerdict>;
     getAutomation: (id: string) => Promise<SourceRow | null>;
     /** Throws when the item's or the organisation's budget is used up. */
     spendLeft: (item: Item) => Promise<void>;
@@ -42,7 +43,7 @@ export interface TryRoundDeps extends LoopDeps {
 }
 
 /** What a draft is told when a try-out found something, and what the page hears. */
-export type TryProgress = DraftProgress | { phase: 'trying'; round: number } | { phase: 'repairing'; round: number };
+export type TryProgress = DraftProgress | { phase: 'trying'; round: number; step?: { number: number; total: number; title: string; kind: StepKind } } | { phase: 'repairing'; round: number };
 
 export interface TryRoundsInput {
     item: Item;
@@ -83,6 +84,20 @@ async function kept(input: TryRoundsInput, record: PlanTryRecord, deps: TryRound
     return { status: record.status, summary: record.summary, problems: record.problems, rounds: record.rounds };
 }
 
+/** Describe the step that actually started, by its position in this version of the plan. */
+function testObserver(input: TryRoundsInput, round: number, deps: TryRoundDeps) {
+    const publish = input.onProgress;
+    if (!publish) return undefined;
+    const { steps, runOrder } = planViewOf(input.draft.def, deps.lookups);
+    const byId = new Map(steps.map(step => [step.id, step]));
+    const positions = new Map(runOrder.map((id, index) => [id, index + 1]));
+    return (id: string) => {
+        const number = positions.get(id);
+        const step = byId.get(id);
+        if (number && step && !input.signal?.aborted) publish({ phase: 'trying', round, step: { number, total: runOrder.length, title: step.title, kind: step.kind } });
+    };
+}
+
 /** Try the stored draft, repair it from what the try-out found, and try again; at most MAX_TRY_ROUNDS try-outs. */
 export async function tryAndRepair(input: TryRoundsInput, deps: TryRoundDeps): Promise<TriedPlan> {
     const extra = (rounds: number) => ({ required: true, rounds });
@@ -110,7 +125,7 @@ export async function tryAndRepair(input: TryRoundsInput, deps: TryRoundDeps): P
         const automation = await deps.getAutomation(input.automationId);
         if (!automation) return kept(input, untriedRecord(input.automationId, def, ['The plan could not be tried: its automation is gone.'], extra(tried)), deps);
         input.onProgress?.({ phase: 'trying', round });
-        last = await deps.tryOut({ item: input.item, automation, definition: def });
+        last = await deps.tryOut({ item: input.item, automation, definition: def, onDryRunStep: testObserver(input, round, deps) });
         tried = round;
         if (last.passed || round === MAX_TRY_ROUNDS) break;
         if (!await repair(input, tryReport(last.facts), round, deps)) break;

@@ -93,12 +93,14 @@ function hintOf(asking: boolean, steps: boolean, t: TranslateFn): string {
 }
 
 /** Whether the organisation has automations: then a new task gets fixed steps, set up and tested before it runs. */
-function useMayHaveSteps(): boolean {
+export function useMayHaveSteps(): boolean {
     const ent = useEntitlements() as { loading: boolean; can?: (id: string) => boolean };
     return !ent.loading && typeof ent.can === 'function' && ent.can('automations');
 }
 
 export interface CoworkConfirmCardProps {
+    advanced: boolean;
+    onAdvanced: () => void;
     cowork: UseCoworkComposerReturn;
     /** What the owner typed: the apps and the addresses it names are read from it. */
     sentence: string;
@@ -139,6 +141,35 @@ function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, cat
     );
 }
 
+function ReviewSummary({ view, steps, mustPick, onChoose, t }: Pick<RowsProps, 'view' | 'steps' | 'mustPick' | 'onChoose' | 't'>) {
+    const { payload, recipients } = view;
+    const names = [...(recipients.me ? [t('cowork_home.confirm.me', 'Me')] : []), ...recipients.others];
+    const delivery = !isClockPayload(payload) ? t('cowork_home.confirm.sends_sender', 'The sender of each mail, as a draft')
+        : names.length ? [t('cowork_home.confirm.sends_to', 'Sends to'), names.join(', ')].join(' · ')
+            : t('cowork_home.confirm.in_task', 'Available in this Cowork task');
+    return <div className="grid gap-1">
+        <strong className="break-words text-[17px]">{view.title}</strong>
+        {mustPick ? <WhenField payload={payload} asking mustPick setChanging={() => {}} onChoose={onChoose} />
+            : <p className={META}>{dayWords(payload, t)} {isClockPayload(payload) && hasTimeOfDay(payload) && timeOf(payload)}</p>}
+        <p className={META}>{delivery}</p>
+        {view.sendsToOthers && <p className={META}>{steps && view.showFirst
+            ? t('cowork_home.confirm.show_first_on', 'Nothing goes to someone else before you have seen it, under Needs you.')
+            : steps ? t('cowork_home.confirm.show_first_off', 'Cowork still shows you each message at first. After 10 runs you let through, you can choose “Don’t ask” in the task.')
+                : t('cowork_home.confirm.sends_ai', 'The AI sends what it writes by itself. Showing you each message first needs fixed steps, which your organisation does not have.')}</p>}
+    </div>;
+}
+
+function ReviewFields({ advanced, ...props }: RowsProps & { advanced: boolean }) {
+    if (!advanced) return <ReviewSummary {...props} />;
+    return <>
+        <details className="rounded-lg bg-[var(--bg-secondary)] px-3 py-2 text-[13px]">
+            <summary className="cursor-pointer font-medium">{props.t('cowork_home.confirm.instructions', 'View task instructions')}</summary>
+            <p className="mt-2 whitespace-pre-wrap break-words text-[var(--text-secondary)]">{props.view.payload.prompt}</p>
+        </details>
+        <ConfirmRows {...props} />
+    </>;
+}
+
 function targetQuestion(target: 'folder' | 'table' | 'recipient' | undefined, t: TranslateFn) {
     return target && {
         folder: t('cowork_home.confirm.target_folder', 'Which folder should receive the files?'),
@@ -164,7 +195,7 @@ function AskDestination({ question, busy, onClarify, onCancel, error, t }: {
     </section>;
 }
 
-export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose, rereading = false, onStart, onClarify, onCancel }: CoworkConfirmCardProps) {
+export default function CoworkConfirmCard({ advanced, onAdvanced, cowork, sentence, choices, onChoose, rereading = false, onStart, onClarify, onCancel }: CoworkConfirmCardProps) {
     const { t } = useTranslation();
     const steps = useMayHaveSteps();
     const { availableApps } = useCoworkApps();
@@ -184,11 +215,8 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">
             <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'Review your task')}</h2>
-            <details className="rounded-lg bg-[var(--bg-secondary)] px-3 py-2 text-[13px]">
-                <summary className="cursor-pointer font-medium">{t('cowork_home.confirm.instructions', 'View task instructions')}</summary>
-                <p className="mt-2 whitespace-pre-wrap break-words text-[var(--text-secondary)]">{view.payload.prompt}</p>
-            </details>
-            <ConfirmRows view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
+            <ReviewFields advanced={advanced} view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
+            <button type="button" aria-expanded={advanced} className={LINK_INLINE + ' self-start'} onClick={onAdvanced}>{t('cowork_overview.advanced', 'Advanced')}</button>
             <p className={META}>{hintOf(mustPick, steps, t)}</p>
             {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
             {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}

@@ -80,11 +80,11 @@ export function verdictOf(definition: Definition, steps: Parameters<typeof facts
 }
 
 /** Run `definition` of the item's plan automation once in test mode, wait for it, and judge it. */
-export async function tryDefinition({ item, automation, definition }: { item: Item; automation: SourceRow; definition: Definition }, deps: TryOutDeps = tryOutDeps()): Promise<TryVerdict> {
+export async function tryDefinition({ item, automation, definition, onDryRunStep }: { item: Item; automation: SourceRow; definition: Definition; onDryRunStep?: (id: string) => void }, deps: TryOutDeps = tryOutDeps()): Promise<TryVerdict> {
     const row = await deps.executeAutomation({ ...automation, definition: withIsolatedScripts(definition) }, {
         triggerKind: 'dry_run', mode: 'dry_run', startedByUserId: item.userId, origin: 'api',
         // Nobody answers a pause in a try-out: an approval is answered with a marked, made-up answer.
-        pausesRequested: false,
+        pausesRequested: false, onDryRunStep,
     });
     if (!row?.id) return { tryId: null, status: 'error', passed: false, facts: [], summary: { reads: [], ai: 0, held: 0 }, problems: ['The try-out did not start.'] };
     const steps = await recordedStepsOf(row.id, deps.recording);

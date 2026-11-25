@@ -10,7 +10,7 @@
  *              ../../api/coworkSetup.ts). Without Undo the choice stands and the card goes.
  */
 import { useEffect, useRef, useState } from 'react';
-import CoworkActivity, { setupMessage } from './CoworkActivity';
+import CoworkActivity, { setupActivity } from './CoworkActivity';
 import type { PlanMakeProgress } from '@/api/coworkPlan.types';
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
@@ -70,14 +70,14 @@ const CAUSE: Readonly<Record<CoworkSetupCause, readonly [string, string]>> = {
 /** Setting the steps up again, from the card: its phases while it runs, and a stop when the card goes. */
 function useSetUpAgain(itemId: string, t: TranslateFn) {
     const running = useRef<AbortController | null>(null);
-    const [phase, setPhase] = useState<PlanMakeProgress['phase'] | null>(null);
+    const [phase, setPhase] = useState<PlanMakeProgress | null>(null);
     useEffect(() => () => running.current?.abort(), []);
     const run = async () => {
         const control = new AbortController();
         running.current = control;
-        setPhase('thinking');
+        setPhase({ phase: 'thinking', round: 0 });
         try {
-            const outcome = await makeCoworkPlan(itemId, { signal: control.signal, onProgress: (p) => setPhase(p.phase) });
+            const outcome = await makeCoworkPlan(itemId, { signal: control.signal, onProgress: setPhase });
             if (outcome.error !== null) throw new Error(t('cowork_home.setup_card.again_failed', 'That did not work this time either. The task keeps waiting for you.'));
         } finally {
             setPhase(null);
@@ -95,7 +95,7 @@ export function SetupCard(props: NeedKindProps) {
     const again = useSetUpAgain(need.itemId, t);
     if (ai.chosen) return <AiChosen {...props} onBack={ai.back} />;
     const [key, en] = CAUSE[need.cause ?? 'failed'] ?? CAUSE.failed;
-    if (again.phase) return <CoworkActivity title={need.title} message={setupMessage(again.phase, t)} testId="cowork-setup-again" />;
+    if (again.phase) return <CoworkActivity title={need.title} {...setupActivity(again.phase.phase, t, again.phase.phase === 'trying' ? again.phase.step : undefined)} testId="cowork-setup-again" />;
     const actions = (
         <>
             <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={() => act.mutate({ run: again.run, done: t('cowork_home.setup.done', 'The steps are ready and tested. Open and approve them under Needs you.') })}>
