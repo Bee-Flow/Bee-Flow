@@ -16,6 +16,15 @@ function observeSize(inner: HTMLElement, updated: () => void) {
     return () => observer.disconnect();
 }
 
+function sceneChanged(last: { scene: string } | null, scene: string, preference?: MediaQueryList) {
+    return last?.scene !== scene && !preference?.matches;
+}
+
+function animateArrival(inner: HTMLElement, continuous: boolean, easing: string) {
+    if (continuous) return;
+    return inner.animate([{ opacity: .58, transform: 'translateY(5px)' }, { opacity: 1, transform: 'none' }], { duration: 230, easing });
+}
+
 /** Resize the same surface between actions. Only the current form is mounted and interactive. */
 export default function CoworkSurface({ scene, children }: { scene: string; children: ReactNode }) {
     const frame = useRef<HTMLDivElement>(null);
@@ -36,13 +45,13 @@ export default function CoworkSurface({ scene, children }: { scene: string; chil
         const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
         let arrival: Animation | undefined;
         const stop = () => { resize.current?.cancel(); resize.current = null; arrival?.cancel(); };
-        const changed = last?.scene !== scene && !media?.matches;
+        const changed = sceneChanged(last, scene, media);
         if (changed && canResize(outer, from, height)) {
             const easing = 'cubic-bezier(.22,.8,.22,1)';
             const move = resizeTo(outer, from, height, easing);
             resize.current = move;
             if (move) move.onfinish = () => { if (resize.current === move) resize.current = null; };
-            if (!(last?.hasOrb && hasOrb)) arrival = inner.animate([{ opacity: .58, transform: 'translateY(5px)' }, { opacity: 1, transform: 'none' }], { duration: 230, easing });
+            arrival = animateArrival(inner, hasOrb && Boolean(last?.hasOrb), easing);
         }
         const observer = observeSize(inner, () => {
             const next = inner.getBoundingClientRect().height;

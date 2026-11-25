@@ -21,6 +21,11 @@ function advanceLayers(layers: OrbPattern[], target: number, seconds: number) {
     }
 }
 
+function fitCanvas(el: HTMLCanvasElement) {
+    const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(3, Math.max(2, window.devicePixelRatio || 1))));
+    if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
+}
+
 export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?: ActivityTone; activity?: string; work?: OrbWork }) {
     const [marks, setMarks] = useState<(NeuralGlyph | null)[]>([]);
     const canvas = useRef<HTMLCanvasElement>(null);
@@ -53,11 +58,9 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         if (!ctx) return;
         const model = geometry ??= makeOrbGeometry();
         const state = clock.current;
-        const draw = () => drawOrbFrame(ctx, model, state.time, state.beat, layers.current);
-        repaint.current = draw;
+        const draw = repaint.current = () => drawOrbFrame(ctx, model, state.time, state.beat, layers.current);
         const resize = () => {
-            const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(3, Math.max(2, window.devicePixelRatio || 1))));
-            if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
+            fitCanvas(el);
             draw();
         };
         let visible = true;
