@@ -163,7 +163,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
         void begin({ id: item.id, title: item.title });
     }, [client, begin]);
     return (
-        <div className="flex flex-col gap-7" data-testid="cowork-home">
+        <div className="flex flex-col gap-9" data-testid="cowork-home">
             <CoworkHomeComposer atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed} onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
             <FlashLine flash={flash} />
             <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
