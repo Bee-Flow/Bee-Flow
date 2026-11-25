@@ -4,6 +4,7 @@
  * run that follows the steps its own steps (the run's trace), a try-out the steps it tries, the setting up the phases
  * of making the steps.
  */
+import CoworkActivity, { setupMessage } from '../CoworkActivity';
 import CoworkProgress from '../CoworkProgress';
 import { plainStepTitle } from '../coworkOverviewModel';
 import { inRunOrder } from './coworkTaskModel';
@@ -20,20 +21,6 @@ const OPEN_STEP: ReadonlySet<string> = new Set(['pending', 'running', 'queued'])
 function stepPhases(steps: readonly PlanTryStep[], t: TranslateFn): { labels: string[]; phase: number } {
     const at = steps.findIndex((s) => OPEN_STEP.has(s.status));
     return { labels: steps.map((s) => plainStepTitle(s, t)), phase: at === -1 ? steps.length : at };
-}
-
-/** The phases of making the steps, the current one turning. */
-function makingPhases(making: PlanMaking, t: TranslateFn): { labels: string[]; phase: number } {
-    const phase = making.phase === 'saving' ? 1 : making.phase === 'trying' || making.phase === 'repairing' ? 2 : 0;
-    return {
-        phase,
-        labels: [
-            t('cowork_task.live.make_think', 'Working out the steps'),
-            t('cowork_task.live.make_save', 'Saving them'),
-            making.phase === 'repairing' ? t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') : t('cowork_task.live.make_test', 'Testing them once. Nothing is changed or sent.'),
-            t('cowork_task.live.make_ready', 'Ready for your check'),
-        ],
-    };
 }
 
 function LiveCard({ heading, labels, phase }: { heading: string; labels: string[]; phase: number }) {
@@ -68,7 +55,7 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
 }
 
 export default function CoworkTaskLive({ coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <LiveCard heading={t('cowork_task.live.setting_up', 'Setting up')} {...makingPhases(making, t)} />;
+    if (making.running) return <CoworkActivity testId="cowork-task-live" message={setupMessage(making.phase, t)} />;
     if (tryState && !tryState.done) {
         return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
     }

@@ -20,6 +20,7 @@ import {
     dayChoiceOf, WEEK_DAYS, confirmView, dayWords, hasTimeOfDay, isClockPayload, needsDay, schedulePartOf, startPayload, timeOf, withDay, withTime,
     type ConfirmChoices, type ConfirmView, type DayChoice,
 } from './coworkConfirmModel';
+import CoworkActivity from './CoworkActivity';
 import CoworkTimeField from './CoworkTimeField';
 import { repeatLabel } from './coworkSchedule';
 import useCoworkApps from './useCoworkApps';
@@ -146,12 +147,28 @@ function targetQuestion(target: 'folder' | 'table' | 'recipient' | undefined, t:
     }[target];
 }
 
+function AskDestination({ question, busy, onClarify, onCancel, error, t }: {
+    question: string; busy: boolean; onClarify: (text: string) => void; onCancel: () => void; error: string | null; t: TranslateFn;
+}) {
+    const [answer, setAnswer] = useState('');
+    return <section className={`${CARD} ${ENTER} p-4`} data-testid="cowork-confirm" data-tour="cowork-options">
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
+            e.preventDefault();
+            if (answer.trim() && !busy) { onClarify(question + ' ' + answer.trim()); setAnswer(''); }
+        }}>
+            <label className="flex min-w-0 flex-1 flex-col gap-2 text-[15px] font-semibold">{question}<input className={FIELD_WIDE} value={answer} maxLength={300} onChange={(e) => setAnswer(e.target.value)} /></label>
+            <button type="button" className={LINK_INLINE} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
+            <button className={BUTTON_PRIMARY} disabled={busy || !answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
+        </form>
+        {error && <p role="alert" className={ALERT}>{error}</p>}
+    </section>;
+}
+
 export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose, rereading = false, onStart, onClarify, onCancel }: CoworkConfirmCardProps) {
     const { t } = useTranslation();
     const steps = useMayHaveSteps();
     const { availableApps } = useCoworkApps();
     const [changing, setChanging] = useState(false);
-    const [answer, setAnswer] = useState('');
     const draft = cowork.draft;
     if (!draft) return null;
     const catalogue = availableApps.filter((a) => !a.isStep);
@@ -162,6 +179,8 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     const question = targetQuestion(target, t);
     const asking = changing || mustPick;
     const busy = cowork.submitting || rereading;
+    if (question && busy) return <CoworkActivity message={t('cowork_home.activity.preview', 'Preparing your task preview…')} testId="cowork-confirm" />;
+    if (question) return <AskDestination question={question} busy={busy} onClarify={onClarify} onCancel={onCancel} error={cowork.error} t={t} />;
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">
             <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'Review your task')}</h2>
@@ -170,18 +189,11 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
                 <p className="mt-2 whitespace-pre-wrap break-words text-[var(--text-secondary)]">{view.payload.prompt}</p>
             </details>
             <ConfirmRows view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
-            {question && <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
-                e.preventDefault();
-                if (answer.trim() && !busy) { onClarify(question + ' ' + answer.trim()); setAnswer(''); }
-            }}>
-                <label>{question}<input className={FIELD_WIDE} value={answer} maxLength={300} onChange={(e) => setAnswer(e.target.value)} /></label>
-                <button className={LINK_INLINE} disabled={busy || !answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
-            </form>}
             <p className={META}>{hintOf(mustPick, steps, t)}</p>
             {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
             {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}
             <div className="flex flex-wrap items-center gap-2">
-                <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={!!question || mustPick || busy} onClick={() => onStart(startPayload(view, steps))}>
+                <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={mustPick || busy} onClick={() => onStart(startPayload(view, steps))}>
                     {startLabel(cowork.submitting && !rereading, steps, t)}
                 </button>
                 <button type="button" className={BUTTON_SECONDARY} disabled={cowork.submitting && !rereading} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>

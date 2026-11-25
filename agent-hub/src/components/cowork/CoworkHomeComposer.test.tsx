@@ -224,6 +224,7 @@ describe('CoworkHomeComposer', () => {
         await user.type(within(card).getByLabelText('Task name'), 'Digest for Sam');
         await user.click(within(card).getByRole('button', { name: 'Remove Me' }));
 
+        await user.click(screen.getByText('Edit task instructions'));
         await user.type(box(), ' and jo@example.com, on Friday');
         expect(screen.getByTestId('cowork-confirm')).toBeInTheDocument();
         await waitFor(() => expect(composed()).toHaveLength(2), { timeout: 4000 });
@@ -243,6 +244,7 @@ describe('CoworkHomeComposer', () => {
         serve(WEEKLY);
         renderComposer();
         const { user } = await write('Every Monday, summarise my meetings');
+        await user.click(screen.getByText('Edit task instructions'));
         await user.clear(box());
         expect(screen.queryByTestId('cowork-confirm')).toBeNull();
     });
@@ -263,14 +265,13 @@ describe('CoworkHomeComposer', () => {
         expect(screen.getByText('You have 10 tasks, the most you can have. Delete one to add another.')).toBeInTheDocument();
     });
 
-    it('shows the set-up of a new task as phases', () => {
+    it('shows only the current setup phase and keeps creation controls out of the way', () => {
         serve({});
-        renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 1 }} />));
+        renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 'trying' }} />));
         expect(softClasses(screen.getByTestId('cowork-setup'))).toEqual([]);
-        const steps = within(screen.getByTestId('cowork-setup')).getAllByRole('listitem');
-        expect(steps.map((s) => [s.textContent, s.dataset.state])).toEqual([
-            ['Setting up the steps', 'did'], ['Testing once, nothing is sent', 'now'], ['Ready for your check', 'next'],
-        ]);
+        expect(screen.getByRole('status')).toHaveTextContent('Testing once, nothing is sent');
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ready for your check')).not.toBeInTheDocument();
     });
 });
 
@@ -278,10 +279,10 @@ it('asks for the destination, reads the answer and only then enables setup', asy
     serve((brief) => ({ ...WEEKLY, ...(brief.includes('Orders') ? {} : { missingTarget: 'table' }) }));
     renderComposer();
     const { user, card } = await write('Every Monday add new rows to a table');
-    expect(within(card).getByTestId('cowork-confirm-start')).toBeDisabled();
+    expect(within(card).queryByTestId('cowork-confirm-start')).toBeNull();
     await user.type(within(card).getByLabelText('Which table should receive the rows?'), 'Orders');
     await user.click(within(card).getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(within(card).getByTestId('cowork-confirm-start')).toBeEnabled());
+    expect(await screen.findByTestId('cowork-confirm-start', {}, { timeout: 4000 })).toBeEnabled();
     expect(created()).toBeUndefined();
 });
 

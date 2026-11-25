@@ -34,8 +34,9 @@ describe('the Cowork motion in the stylesheet', () => {
         expect(rule(`.${ENTER}`)).toMatch(/animation:\s*coworkEnter\s+160ms\s+ease-out\s+backwards\s*;/);
         expect(rule(`.${SWAP}`)).toMatch(/backwards\s*;/);
         expect(withoutKeyframes).not.toMatch(/\b(transform|filter|backdrop-filter|will-change)\s*:/);
-        // Nothing but the spinner loops, and nothing lasts over 200ms.
-        expect(withoutKeyframes.match(/infinite/g)).toHaveLength(1);
+        // Only the spinner and activity mark loop; the latter is opt-in to motion.
+        expect(motion).toMatch(/prefers-reduced-motion: no-preference[^}]+coworkBreathe/);
+        expect(withoutKeyframes.match(/infinite/g)).toHaveLength(2);
         expect(rule(`.${SPIN}`)).toContain('infinite');
         const durations = [...withoutKeyframes.replace(rule(`.${SPIN}`), '').matchAll(/animation:[^;]*?(\d+)ms/g)].map((m) => Number(m[1]));
         expect(durations.length).toBeGreaterThan(0);

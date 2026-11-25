@@ -29,28 +29,35 @@ describe('useTaskSetup', () => {
         const { onDone, hook } = setUp(({ url }) => (url.endsWith('/plan/make') ? stream(MADE) : jsonResponse({})));
         await act(async () => { await hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: WAITS }); });
         expect(made()).toHaveLength(1);
-        expect(onDone).toHaveBeenCalledWith('The steps are ready and tested. Open and approve them under Needs you.');
+        expect(onDone).toHaveBeenCalledWith('Your task is ready for review.', expect.objectContaining({ id: 'new' }));
         expect(hook.result.current.setup).toBeNull();
     });
 
     it('a set-up that fails never becomes "the AI does it": the task waits, and the message says where to choose', async () => {
         const { onDone, hook } = setUp(({ url }) => (url.endsWith('/plan/make') ? stream('event: error\ndata: {"error":"No plan could be made for this brief.","code":"cowork_planner_empty"}\n\n') : jsonResponse({})));
         await act(async () => { await hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: WAITS }); });
-        expect(onDone).toHaveBeenCalledWith('Cowork could not set up the steps. The task waits: choose what to do under Needs you.');
+        expect(onDone).toHaveBeenCalledWith('Setup stopped. Open the task to see what needs your attention.', expect.objectContaining({ id: 'new' }));
         expect(String(onDone.mock.calls[0]?.[0])).not.toMatch(/AI does|plan/i);
+    });
+
+    it('asks for attention when a plan was saved but its test stopped approval', async () => {
+        const outcome = { state: { automationId: 'auto-1', tried: { status: 'failed', blocksApproval: true } } };
+        const { onDone, hook } = setUp(() => stream('event: done\ndata: ' + JSON.stringify(outcome) + '\n\n'));
+        await act(async () => { await hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: WAITS }); });
+        expect(onDone).toHaveBeenCalledWith('Setup stopped. Open the task to see what needs your attention.', expect.objectContaining({ id: 'new' }));
     });
 
     it('a refusal before the making even starts is the same: it waits, nothing is decided for its owner', async () => {
         const { onDone, hook } = setUp(({ url }) => (url.endsWith('/plan/make') ? jsonResponse({ error: 'No AI model is configured for this workspace, so a plan cannot be made yet.' }, 409) : jsonResponse({})));
         await act(async () => { await hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: WAITS }); });
-        expect(onDone).toHaveBeenCalledWith('Cowork could not set up the steps. The task waits: choose what to do under Needs you.');
+        expect(onDone).toHaveBeenCalledWith('Setup stopped. Open the task to see what needs your attention.', expect.objectContaining({ id: 'new' }));
     });
 
     it('a task whose organisation has no fixed steps is the AI\'s from the start: nothing is set up, and it says so', async () => {
         const { onDone, hook } = setUp(() => jsonResponse({}));
         await act(async () => { await hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: { ...WAITS, steps: null } }); });
         expect(made()).toHaveLength(0);
-        expect(onDone).toHaveBeenCalledWith('Started. The AI works this task out on every run.');
+        expect(onDone).toHaveBeenCalledWith('Started. The AI works this task out on every run.', expect.objectContaining({ id: 'new' }));
     });
 
     it('given only its id and name, it reads the task first to know whether it waits for its steps', async () => {
@@ -76,7 +83,7 @@ describe('useTaskSetup', () => {
         const hook = renderHookWithClient(() => useTaskSetup(onDone));
         let run: Promise<void> = Promise.resolve();
         act(() => { run = hook.result.current.begin({ id: 'new', title: 'Meeting overview', setup: WAITS }); });
-        await waitFor(() => expect(hook.result.current.setup).toEqual({ id: 'new', title: 'Meeting overview', phase: 0 }));
+        await waitFor(() => expect(hook.result.current.setup).toEqual({ id: 'new', title: 'Meeting overview', phase: 'thinking' }));
         await waitFor(() => expect(signal).toBeTruthy());
         hook.unmount();
         await run;

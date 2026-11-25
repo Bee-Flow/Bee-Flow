@@ -1,7 +1,7 @@
 /**
  * The motion of the Cowork page, as class names. The keyframes and rules are in src/app.css ("Cowork motion"); this
  * file is the only place that names them. Subtle on purpose: nothing moves more than 4px, nothing lasts over 200ms,
- * nothing loops but the spinner, and `prefers-reduced-motion: reduce` switches all of it off.
+ * only active work indicators loop, and `prefers-reduced-motion: reduce` switches all of it off.
  *
  * At rest nothing here leaves a `transform` (or a filter) on an element: text on a transformed layer renders soft on
  * many screens. ENTER fills backwards only, so the finished element carries no transform at all.

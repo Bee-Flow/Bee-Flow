@@ -139,9 +139,15 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
                 settings: <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} open={setting} onOpen={setSetting}
                     onRebuild={rebuild}
                     onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />,
-                steps: <><CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate} live={facts.live} onSetting={(row) => { setSetting(row); openTab('settings'); }} t={t} /><CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false} onRebuild={rebuild}
-                    agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
-                    tryOut={{ state: facts.tryOut.state, starting: facts.startingTest, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} /></>,
+                steps: <>
+                    <CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate}
+                        live={facts.live} onSetting={(row) => { setSetting(row); openTab('settings'); }} t={t} />
+                    <div className={facts.live ? undefined : 'peer-open/change:hidden'}>
+                        <CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t}
+                            live={facts.live} readOnly={false} onRebuild={rebuild} agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
+                            tryOut={{ state: facts.tryOut.state, starting: facts.startingTest, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />
+                    </div>
+                </>,
                 people: <CoworkTaskPeople coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,
                 history: <CoworkTaskHistory onSteps={() => openTab('steps')} item={item} runs={facts.runs} plan={facts.plan} onGone={close} t={t} />,
             }} />
