@@ -40665,6 +40665,8 @@ const EN_DEFAULTS = {
     "cowork_task.template.saved": "Saved. Colleagues find it under 'Start from a template'. Your data and memory are not part of it.",
     "cowork_task.template.saved_button": "Saved",
     "cowork_task.template.signed": "Signed",
+    "cowork_task.tabs.label": "Task details",
+    "cowork_task.tabs.result": "Result",
     "cowork_task.tested.approve": "Approve",
     "cowork_task.tested.change": "Change something",
     "cowork_task.tested.heading": "This is what you would have received",

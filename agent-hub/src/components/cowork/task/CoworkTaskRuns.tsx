@@ -1,7 +1,7 @@
 /**
  * The runs of an opened task ("Runs" under History, ./CoworkTaskHistory.tsx; "Earlier runs" of a task someone shared,
  * ./CoworkTaskShared.tsx): one row per run with when, its status word and one plain line. Opened, why it went that way
- * in plain words (the server's own sentence, the review's reason, or a general one) and its receipt, with "Signature
+ * in plain words, its full result and its receipt, with "Signature
  * checked" once the receipt is signed and the chain of receipts holds.
  *
  * A run's raw error is shown only under "Technical details" in its opened row, never in a line a person reads.
@@ -11,9 +11,10 @@ import { fullTimestamp } from '../coworkFormat';
 import { Expand, TINT } from '../coworkMotion';
 import { FOCUS_INSET } from '../coworkUi';
 import { taskStatusLabel } from '../coworkTaskStatus';
-import { runLine, runReason, runStatus } from './coworkTaskModel';
+import { runLine, runMarkdown, runReason, runStatus } from './coworkTaskModel';
 import { TechnicalDetails } from './taskRows';
 import { Chevron, LABEL, ReceiptMark, ROW_ACTIONS, TAG_OK } from './taskUi';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useReceipts, useRunReceipt } from '@/api/coworkReceipts';
 import type { CoworkRun } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -36,8 +37,8 @@ function Receipt({ coworkId, runId, t }: { coworkId: string; runId: string; t: T
 function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: CoworkRun; coworkId: string; open: boolean; onToggle: () => void; withReceipts: boolean; t: TranslateFn }) {
     const status = runStatus(run);
     const bodyId = useId();
-    const line = runLine(run, t);
-    // The same sentence as the row's own line is not said twice once the row is open.
+    const markdown = runMarkdown(run);
+    const line = runLine(run, t, markdown);
     const reason = runReason(run, t);
     return (
         <li className="border-t first:border-t-0 border-[var(--border-subtle)]" data-testid="cowork-task-run">
@@ -54,7 +55,8 @@ function RunRow({ run, coworkId, open, onToggle, withReceipts, t }: { run: Cowor
                 <span className="col-start-3 row-start-1 sm:col-start-4"><Chevron open={open} /></span>
             </button>
             <Expand open={open} id={bodyId} className="pb-3.5 flex flex-col gap-2 text-[14px] leading-5 text-[var(--text-primary)]">
-                {reason !== line && <span className="whitespace-pre-wrap break-words" data-testid="cowork-task-run-detail">{reason}</span>}
+                {reason !== line && reason !== markdown.trim() && <span className="whitespace-pre-wrap break-words" data-testid="cowork-task-run-detail">{reason}</span>}
+                {markdown && <MarkdownRenderer content={markdown} className="min-w-0 break-words" />}
                 <TechnicalDetails text={run.error} t={t} />
                 {withReceipts && <Receipt coworkId={coworkId} runId={run.id} t={t} />}
             </Expand>

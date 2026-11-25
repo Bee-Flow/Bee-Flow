@@ -4,9 +4,11 @@
  * usecases/coworkShares.mts sharedView). No actions: only its owner changes it, and a reader who may answer does so
  * where its questions arrive.
  */
+import { useId, useState } from 'react';
 import CoworkTaskHeader from './CoworkTaskHeader';
 import CoworkTaskResult from './CoworkTaskResult';
 import CoworkTaskRuns from './CoworkTaskRuns';
+import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
 import { latestRunOf } from './coworkTaskModel';
 import { whenLine } from '../coworkOverviewModel';
 import { taskStatus } from '../coworkTaskStatus';
@@ -35,6 +37,16 @@ function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] }
     return { item, runs };
 }
 
+function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] }) {
+    const { t, locale } = useTranslation();
+    const tabId = useId();
+    const [tab, setTab] = useState<TaskTab>('result');
+    return <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={{
+        result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
+        history: <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />,
+    }} />;
+}
+
 export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const itemId = panel.kind === 'shared' || panel.kind === 'task' ? panel.id : '';
@@ -48,8 +60,7 @@ export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
     return (
         <div className="flex flex-col gap-6" data-testid="cowork-task-shared">
             <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
-            <CoworkTaskResult item={item} latest={latestRunOf(runs)} t={t} />
-            <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />
+            <SharedTaskTabs key={item.id} item={item} runs={runs} />
         </div>
     );
 }

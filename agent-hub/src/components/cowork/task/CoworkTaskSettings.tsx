@@ -22,7 +22,7 @@ import { limitWords } from './TaskSetKeeps';
 import { planApps } from './coworkTaskModel';
 import { askLevelOf, askNote, reachesOthers, recipientsOf, sendsValue } from './coworkTaskSendsModel';
 import { draftOf, type DraftRowId, type SettingRowId } from './coworkTaskSettingsModel';
-import { ROWS, Section, SettingRow } from './taskRows';
+import { ROWS, SettingRow } from './taskRows';
 import { useCoworkGoal } from '@/api/coworkGoals';
 import { useCoworkIndependence } from '@/api/coworkIndependence';
 import { useCoworkStart } from '@/api/coworkStart';
@@ -109,7 +109,7 @@ export default function CoworkTaskSettings(props: CoworkTaskSettingsProps) {
     const form = (id: DraftRowId): SettingRowForm => ({ itemId: item.id, initial, onRebuild, onDone: () => onOpen(null), onSaved: () => { setSaved(id); onOpen(null); }, locked: live });
     const row = (id: SettingRowId) => ({ id, open: open === id, saved: saved === id, onToggle: onOpen, t });
     return (
-        <Section id="cowork-task-settings-h" heading={t('cowork_task.set.heading', 'Settings')} testId="cowork-task-settings">
+        <div className="flex flex-col gap-3" data-testid="cowork-task-settings">
             <div className={ROWS}>
                 <SettingRow {...row('what')} label={t('cowork_task.set.what', 'What')} {...words.what}>
                     <TaskSetWhat form={form('what')} t={t} />
@@ -124,6 +124,6 @@ export default function CoworkTaskSettings(props: CoworkTaskSettingsProps) {
                     <TaskSetSendsTo coworkId={item.id} mode={mode} hasApprovedSteps={words.hasApprovedSteps} othersReached={words.sends.othersReached} recipients={words.sends.recipients} t={t} />
                 </SettingRow>
             </div>
-        </Section>
+        </div>
     );
 }
