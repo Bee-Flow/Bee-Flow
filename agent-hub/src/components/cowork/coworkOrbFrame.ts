@@ -21,7 +21,7 @@ function drawCore(ctx: CanvasRenderingContext2D, project: Project) {
 // All layers pass through the same moving volume. Reuse one projected point to
 // keep tens of thousands of short-lived objects out of the animation loop.
 function projector(time: number) {
-    const yaw = time * .39 + .44;
+    const yaw = time * .27 + .44;
     const sine = Math.sin(yaw), cosine = Math.cos(yaw);
     const twist = .26 * Math.sin(time * .61), flex = .14 * Math.cos(time * .43);
     const lift = .17 * Math.sin(time * .37 + .7), wave = .11 * Math.sin(time * .69 + .45);
@@ -290,7 +290,7 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
     drawGrains(ctx, project, geometry.dust);
     drawStarBand(ctx, project, geometry.stars);
-    drawNetwork(ctx, project, geometry.network, time, beat);
-    for (const pattern of patterns) drawWork(ctx, pattern, time, geometry.network, project);
+    drawNetwork(ctx, project, geometry.network, time * .46, beat);
+    for (const pattern of patterns) drawWork(ctx, pattern, time * .55, geometry.network, project);
     ctx.globalAlpha = 1;
 }
