@@ -63,6 +63,38 @@ test('a schema field description of 2000 is kept, 2001 is rejected naming both n
     assert.ok(r._fixHint);
 });
 
+test('app_set_action preserves nested array items for extraction and generation', async () => {
+    const schema = [{ name: 'lines', type: 'array', items: { type: 'object', fields: [
+        { name: 'title', type: 'string', required: true },
+        { name: 'scores', type: 'array', items: { type: 'number' } },
+    ] } }];
+    const action = generate({ output: 'structured', schema });
+    action.steps.push({ kind: 'ai_extract', source: src('file'), schema });
+    const wrap = wrapOf();
+    const result = await applySetActionTool(wrap, { action });
+    assert.ok(!result.error, result.error);
+    for (const step of wrap.def.actions[result.actionId].steps) assert.deepEqual(step.schema, schema);
+});
+
+test('app_set_action identifies malformed items and nested fields before saving', async () => {
+    for (const [shape, suffix] of [
+        [{ type: 'string', items: { type: 'number' } }, 'items'],
+        [{ type: 'array', items: null }, 'items'],
+        [{ type: 'array', items: {} }, 'items.type'],
+        [{ type: 'array', items: { type: 'array' } }, 'items.type'],
+        [{ type: 'array', items: { type: 'string', fields: [] } }, 'items.fields'],
+        [{ type: 'array', items: { type: 'object', properties: {} } }, 'items.properties'],
+        [{ type: 'array', items: { type: 'object', fields: {} } }, 'items.fields'],
+        [{ type: 'array', items: { type: 'object', fields: [{ name: 'n', type: 'bad' }] } }, 'items.fields[0].type'],
+    ]) {
+        const wrap = wrapOf();
+        const action = generate({ output: 'structured', schema: [{ name: 'lines', ...shape }] });
+        const result = await applySetActionTool(wrap, { action });
+        assert.ok(result.errors?.some((e) => e.path.endsWith(`.schema[0].${suffix}`)), JSON.stringify(result));
+        assert.deepEqual(wrap.def.actions, {});
+    }
+});
+
 test('a prompt of 32000 chars is kept, 32001 is rejected', async () => {
     const ok = await applySetActionTool(wrapOf(), { action: generate({ prompt: 'p'.repeat(LIMITS.MAX_AI_PROMPT_LEN) }) });
     assert.ok(!ok.error, JSON.stringify(ok));

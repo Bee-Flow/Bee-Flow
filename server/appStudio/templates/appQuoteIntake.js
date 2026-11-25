@@ -2545,7 +2545,14 @@ module.exports = {
                                 documentMode: 'auto',
                                 output: 'structured',
                                 schema: [
-                                    { name: 'regels', type: 'array', description: 'One entry per order line: an object {partnummer, aantal, omschrijving} exactly as printed', required: true },
+                                    {
+                                        name: 'regels', type: 'array', description: 'One entry per order line: an object {partnummer, aantal, omschrijving} exactly as printed', required: true,
+                                        items: { type: 'object', fields: [
+                                            { name: 'partnummer', type: 'string' },
+                                            { name: 'aantal', type: 'number' },
+                                            { name: 'omschrijving', type: 'string' },
+                                        ] },
+                                    },
                                 ],
                                 modelTier: 'thinking',
                                 knowledgeBaseIds: [],
@@ -2729,7 +2736,16 @@ module.exports = {
                                         documentMode: 'auto',
                                         output: 'structured',
                                         schema: [
-                                            { name: 'afwijkingen', type: 'array', description: 'One object {veld, waarde_bon, waarde_offerte, ernst, toelichting} per discrepancy', required: true },
+                                            {
+                                                name: 'afwijkingen', type: 'array', description: 'One object {veld, waarde_bon, waarde_offerte, ernst, toelichting} per discrepancy', required: true,
+                                                items: { type: 'object', fields: [
+                                                    { name: 'veld', type: 'string' },
+                                                    { name: 'waarde_bon', type: 'string' },
+                                                    { name: 'waarde_offerte', type: 'string' },
+                                                    { name: 'ernst', type: 'string' },
+                                                    { name: 'toelichting', type: 'string' },
+                                                ] },
+                                            },
                                         ],
                                         modelTier: 'thinking',
                                         knowledgeBaseIds: [],

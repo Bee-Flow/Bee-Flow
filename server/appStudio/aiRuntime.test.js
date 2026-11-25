@@ -306,7 +306,8 @@ test('fieldsToObjectSchema + coercion helpers', () => {
         { name: 'bad name', type: 'string' }, // invalid identifier — dropped
     ]);
     assert.deepStrictEqual(Object.keys(schema.properties), ['amount', 'paid']);
-    assert.deepStrictEqual(schema.required, ['amount']);
+    assert.deepStrictEqual(schema.required, ['amount', 'paid']);
+    assert.deepStrictEqual(schema.properties.paid.type, ['boolean', 'null']);
     assert.strictEqual(aiRuntime.coerceValue('number', '€ 12.50'), 12.5);
     assert.strictEqual(aiRuntime.coerceValue('boolean', 'yes'), true);
     assert.deepStrictEqual(aiRuntime.coerceRowToFields({ amount: '3', extra: 'x' }, [{ name: 'amount', type: 'number' }]), { amount: 3 });

@@ -1610,7 +1610,7 @@
         "tbl_qimat": 18
       },
       "seededRows": 45,
-      "bytes": 119456,
+      "bytes": 119826,
       "requires": [
         {
           "kind": "connector",
@@ -1634,7 +1634,7 @@
       "seed"
     ],
     "title": "Quote intake",
-    "sha": "5d9dc018c3258f6105dfb7f69e6e6683fec8ee4517eaf05c68eeec422957c704"
+    "sha": "c71aab3965720069b33b9fda4ad24d95ee9a56f418871ac125e8edc8ea750d45"
   },
   "app-quote-intake/rows": {
     "ok": true,
@@ -1648,7 +1648,7 @@
         "tbl_qiop": 3
       },
       "seededRows": 45,
-      "bytes": 119456,
+      "bytes": 119826,
       "requires": [
         {
           "kind": "connector",
@@ -1672,7 +1672,7 @@
       "seed"
     ],
     "title": "Quote intake",
-    "sha": "eecf5c38e65e2435d7de565f380aed1ed0ac618de7f7778e1794bb05c136f02d"
+    "sha": "522f4fa023a228036f457a015eefd00bba8c7a8d2687204b54e26ebf3a5a3c66"
   },
   "app-quote-intake/oneRow": {
     "ok": true,
@@ -1686,7 +1686,7 @@
         "tbl_qimat": 1
       },
       "seededRows": 3,
-      "bytes": 116810,
+      "bytes": 117180,
       "requires": [
         {
           "kind": "connector",
@@ -1712,7 +1712,7 @@
       "seed"
     ],
     "title": "Quote intake",
-    "sha": "ed17aa35a6d52240516ba52be68e1ac615b72d40734916d5d9d0017b9e4a8b39"
+    "sha": "d18a9d460d0cc1efcd87c2e0d6b8788367746b51e363246b39156fd7126fec72"
   },
   "app-quote-intake/noModel": {
     "ok": true,
@@ -1722,7 +1722,7 @@
       "tables": 0,
       "seededTables": {},
       "seededRows": 0,
-      "bytes": 100489,
+      "bytes": 100859,
       "requires": [
         {
           "kind": "connector",
@@ -1757,7 +1757,7 @@
       "definition"
     ],
     "title": "Quote intake",
-    "sha": "0160493574ce826d5921a8268532af5bfeb873e600b58835569eb405025a9bc0"
+    "sha": "536f41756010e98cab43810433cd6243d2a09b640f65d710e88d628de7cbb6ea"
   },
   "app-quote-intake/fullMeta": {
     "ok": true,
@@ -1771,7 +1771,7 @@
         "tbl_qimat": 18
       },
       "seededRows": 45,
-      "bytes": 119561,
+      "bytes": 119931,
       "requires": [
         {
           "kind": "connector",
@@ -1798,7 +1798,7 @@
       "datasets"
     ],
     "title": "Quote intake copy",
-    "sha": "4ade0be75c38569b636cc3627fcfe6c32e975cb195d51e247cd68ba9fe8df5a8"
+    "sha": "2dd441686116c585b200d8c8f27548a03ef4214de86bfe3144ce4902714db7fb"
   },
   "app-sprint-board/asIs": {
     "ok": true,

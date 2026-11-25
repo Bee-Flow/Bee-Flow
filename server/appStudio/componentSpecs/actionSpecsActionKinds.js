@@ -52,7 +52,7 @@ const TOAST_TONES = ['info', 'success', 'warning', 'danger'];
 // (ACTION_SPECS — bare v1 actions wired to a control) and the sequence-step
 // catalog (STEP_SPECS). Handled server-side by appStudio/aiRuntime.js +
 // actionExecutor.js. Field types beyond the record kinds:
-//   'aiSchema'  — [{ name, type, description?, required? }] output field list
+//   'aiSchema'  — [{ name, type, description?, required?, items? }] output field list
 //                 (type ∈ AI_SCHEMA_FIELD_TYPES)
 //   'aiWriteTo' — { tableId, mapping: { [column]: <schema field name> },
 //                   upsertOn?: <column> | upsertKey?: [<column>, ...] (1..5) — a

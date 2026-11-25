@@ -14,11 +14,11 @@ const {
     STEP_KINDS,
     STEP_SPECS,
     DATA_MUTATING_STEP_KINDS,
-    AI_SCHEMA_FIELD_TYPES,
     TOAST_TONES,
 } = require('../componentSpecs');
 const { pickClosestId } = require('../../utils/closestId.mts');
 const { isObject } = require('./shared');
+const { validateAiSchema } = require('./aiSchema.mts');
 const { checkServerFormulas } = require('./formulas');
 const {
     checkTableRef,
@@ -379,38 +379,6 @@ function validateApprovalOnDecided(value, path, ctx) {
             pushE({ code: 'action.approval_hook_invalid', severity: 'error', path: `${path}.set.${outcome}`, message: `set.${outcome} must be a { column: value } map.`, hint: 'Values are literals or templates like "{{reason}}".' });
         }
     }
-}
-
-// An AI output schema: a non-empty list of { name, type, description?, required? }
-// field definitions with unique identifier names and legal types.
-/**
- * @param {string} field
- * @param {string} path
- */
-function validateAiSchema(field, value, path, ctx) {
-    const { pushE } = ctx;
-    if (!Array.isArray(value)) { pushE({ code: 'action.ai_schema_invalid', severity: 'error', path, message: `\`${field}\` must be an array of { name, type } fields.`, hint: 'Add at least one output field.' }); return; }
-    if (value.length === 0) { pushE({ code: 'action.ai_schema_empty', severity: 'error', path, message: `\`${field}\` needs at least one output field.`, hint: 'Declare the fields the AI should return.' }); return; }
-    if (value.length > LIMITS.MAX_AI_SCHEMA_FIELDS) { pushE({ code: 'action.ai_schema_too_large', severity: 'error', path, message: `\`${field}\` has ${value.length} fields — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELDS}.`, hint: 'Reduce the number of output fields.' }); return; }
-    const seen = new Set();
-    value.forEach((f, i) => {
-        const fp = `${path}[${i}]`;
-        if (!isObject(f)) { pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: fp, message: 'Each schema field must be an object { name, type }.', hint: 'Provide a name and a type.' }); return; }
-        if (typeof f.name !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,59}$/.test(f.name)) {
-            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.name`, message: `Schema field name ${JSON.stringify(f.name)} must start with a letter and use only letters, digits and underscores.`, hint: 'Rename the field.' });
-            return;
-        }
-        if (seen.has(f.name)) { pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.name`, message: `Duplicate schema field name "${f.name}".`, hint: 'Field names must be unique.' }); return; }
-        seen.add(f.name);
-        if (!AI_SCHEMA_FIELD_TYPES.includes(f.type)) {
-            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.type`, message: `Schema field "${f.name}" has invalid type ${JSON.stringify(f.type)}.`, hint: `Use one of: ${AI_SCHEMA_FIELD_TYPES.join(', ')}.` });
-        }
-        if (f.description !== undefined && typeof f.description !== 'string') {
-            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.description`, message: `Schema field "${f.name}" description must be a string.`, hint: 'Pass the description as plain text.' });
-        } else if (typeof f.description === 'string' && f.description.length > LIMITS.MAX_AI_SCHEMA_FIELD_DESC) {
-            pushE({ code: 'action.ai_schema_invalid', severity: 'error', path: `${fp}.description`, message: `Schema field "${f.name}" description is ${f.description.length} chars — the maximum is ${LIMITS.MAX_AI_SCHEMA_FIELD_DESC}.`, hint: 'Shorten the description.' });
-        }
-    });
 }
 
 // The optional ai_extract write-to target: { tableId, mapping?: { column: fieldName } }.
