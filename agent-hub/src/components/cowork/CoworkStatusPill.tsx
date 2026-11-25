@@ -19,12 +19,12 @@ const TONE: Readonly<Record<TaskStatus, string>> = {
     paused: TAG_PLAIN,
 };
 
-export default function CoworkStatusPill({ status }: { status: TaskStatus }) {
+export default function CoworkStatusPill({ status, animate = true }: { status: TaskStatus; animate?: boolean }) {
     const { t } = useTranslation();
     const live = status === 'running' || status === 'testing';
     return (
         <span key={status} className={`${TONE[status]} ${SWAP}`} data-testid="cowork-status" data-status={status}>
-            {live
+            {live && animate
                 ? <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full border-2 border-current border-t-transparent ${SPIN}`} />
                 : <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-current" />}
             {taskStatusLabel(status, t)}

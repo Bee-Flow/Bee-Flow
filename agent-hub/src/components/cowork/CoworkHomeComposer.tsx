@@ -86,7 +86,7 @@ function useReread(cowork: UseCoworkComposerReturn, modelTier: string | undefine
 /** Under the box: "Start from a template", and the button that reads the sentence. */
 function ComposerButtons({ reading, disabled, onTemplates, t }: { reading: boolean; disabled: boolean; onTemplates: () => void; t: TranslateFn }) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-2 sm:px-5">
             <button type="button" className={LINK_BUTTON} onClick={onTemplates}>{t('cowork_home.from_template', 'Start from a template')}</button>
             <button type="submit" className={BUTTON_PRIMARY} data-testid="cowork-continue" disabled={disabled}>
                 {reading ? t('cowork_home.reading', 'Reading…') : t('cowork_home.show_understood', 'Show what I understood')}
@@ -148,10 +148,10 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
 
     return (
         <section aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
-            <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
+            <h1 id="cowork-ask-heading" className="m-0 text-[24px] sm:text-[28px] leading-tight tracking-tight font-semibold text-[var(--text-primary)]">
                 {t('cowork_home.ask', 'What should be done for you?')}
             </h1>
-            <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
+            <form className={`${CARD} overflow-hidden flex flex-col focus-within:ring-2 focus-within:ring-[var(--focus-ring)]`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
                 <label htmlFor="cowork-brief" className="sr-only">{t('cowork_home.brief_label', 'Describe the task in one sentence')}</label>
                 <textarea
                     id="cowork-brief"
@@ -162,7 +162,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     onChange={(e) => edit(e.target.value)}
                     onKeyDown={onKey}
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
-                    className="w-full min-h-[56px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
+                    className="w-full px-4 pt-4 pb-3 sm:px-5 min-h-[88px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 />
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>
