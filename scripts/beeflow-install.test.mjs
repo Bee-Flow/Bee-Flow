@@ -135,6 +135,7 @@ function world(t) {
     fs.writeFileSync(path.join(assets, 'beeflow-install.sh'), '# the installer of this release\n');
     const sums = [...RELEASE_FILES, 'beeflow-install.sh'].map((file) => `${crypto.createHash('sha256').update(fs.readFileSync(path.join(assets, file))).digest('hex')}  ${file}\n`);
     fs.writeFileSync(path.join(assets, 'SHA256SUMS'), sums.join(''));
+    fs.renameSync(path.join(assets, '.env.selfhost.example'), path.join(assets, 'default.env.selfhost.example'));
 
     const api = path.join(dir, 'api', 'repos', 'Bee-Flow', 'Bee-Flow');
     fs.mkdirSync(api, { recursive: true });

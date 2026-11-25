@@ -428,6 +428,12 @@ fetch_release() { # tag
         warn "Release $1 carries no checksums (it is from before this installer). Its files come from the repository and could NOT be checked."
     fi
     for f in $RELEASE_FILES; do
+        # GitHub publishes leading-dot assets with a "default" prefix.
+        # Preserve the local name used in SHA256SUMS and by selfhost.sh.
+        if [ "$checked" = 1 ] && [ "$f" = .env.selfhost.example ] &&
+            curl -fsSL "$base/default.env.selfhost.example" -o "$DOWNLOAD_DIR/$f" 2>/dev/null; then
+            continue
+        fi
         if ! curl -fsSL "$base/$f" -o "$DOWNLOAD_DIR/$f"; then
             drop_download
             die "Could not download $f of release $1. Nothing was changed."

@@ -26,6 +26,10 @@ on:
       tag:
         description: 'Existing release tag to publish as :latest again (e.g. v2026.10.09)'
         required: true
+      installer_only:
+        description: 'Repair the installer of the current latest release'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,8 +41,8 @@ concurrency:
 jobs:
   latest:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch'
-      || (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v')) }}
+      ${{ (github.event_name == 'workflow_dispatch' && !inputs.installer_only)
+      || (github.event_name == 'release' && !github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -47,15 +51,6 @@ jobs:
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       IMAGE_PREFIX: ghcr.io/bee-flow
-      # A copy of every released image next to the Kapsule cluster. Pulls from
-      # GHCR into nl-ams run at ~1.5 MB/s (the server image takes 7 minutes, the
-      # guard image longer, and containerd pulls one image per node at a time),
-      # which is what timed out every production rollout on 2026-10-28. The
-      # same digest from this registry pulls in seconds. Written only when the
-      # SCW_REGISTRY_SECRET_KEY secret is set; deploy-prd.yml reads it through
-      # vars.PRD_IMAGE_PREFIX.
-      MIRROR_PREFIX: rg.nl-ams.scw.cloud/beeflow
-      SCW_REGISTRY_SECRET_KEY: ${{ secrets.SCW_REGISTRY_SECRET_KEY }}
     steps:
       - name: Check the tag before it reaches git or the registry
         run: |
@@ -156,35 +151,6 @@ jobs:
             echo "| \`${svc}\` | \`${commit:0:9}\` | \`${digest}\` |" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/plan.txt"
 
-      - name: Log in to the Scaleway registry
-        if: ${{ env.SCW_REGISTRY_SECRET_KEY != '' }}
-        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
-        with:
-          registry: rg.nl-ams.scw.cloud
-          username: nologin
-          password: ${{ secrets.SCW_REGISTRY_SECRET_KEY }}
-
-      - name: Copy the released images to the Scaleway registry
-        if: ${{ env.SCW_REGISTRY_SECRET_KEY != '' }}
-        run: |
-          set -euo pipefail
-          # The same digest under the same tags, plus sha-<commit> so deploy-prd.yml
-          # finds the exact release build there the way it does on GHCR. Copied
-          # by digest, so the mirror is byte-identical and a rerun is a no-op.
-          # skopeo, not crane: crane uploads a large layer in chunks and the
-          # Scaleway registry refuses the second chunk (RANGE_INVALID, seen on
-          # the first fill); skopeo sends each layer in one request. --all keeps
-          # every platform of a multi-arch manifest.
-          skopeo --version
-          echo "### Mirror ${MIRROR_PREFIX}" >> "$GITHUB_STEP_SUMMARY"
-          while read -r svc commit digest; do
-            src="docker://${IMAGE_PREFIX}/${svc}@${digest}"
-            for t in "$TAG" prod latest "sha-${SHA}"; do
-              skopeo copy --all --retry-times 3 --quiet "$src" "docker://${MIRROR_PREFIX}/${svc}:${t}"
-            done
-            echo "- \`${MIRROR_PREFIX}/${svc}\` @ \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
-          done < "$RUNNER_TEMP/plan.txt"
-
   # The installer of this release, as a file of the release itself:
   # `releases/latest/download/beeflow-install.sh` is the address the docs and
   # the Nextcloud connector's setup page give. One script, the same for
@@ -211,9 +177,22 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the release before repairing its latest installer
+        if: ${{ inputs.installer_only }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          if [[ "$TAG" != "$latest" ]]; then
+            echo "::error::Installer repair requires the current latest release ($latest)."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: release_source
         with:
-          ref: ${{ env.TAG }}
+          ref: refs/tags/${{ env.TAG }}
           persist-credentials: false
 
       # A release from before the installer existed has nothing to publish here.
@@ -240,8 +219,23 @@ jobs:
           bash -n selfhost.sh
           sha256sum beeflow-install.sh selfhost.sh docker-compose.from-registry.yml .env.selfhost.example > SHA256SUMS
           sha256sum beeflow-install.sh > beeflow-install.sh.sha256
-          gh release upload "$TAG" beeflow-install.sh beeflow-install.sh.sha256 selfhost.sh \
-            docker-compose.from-registry.yml .env.selfhost.example SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+          # GitHub normalizes leading dots in asset names. Use its stable public
+          # name on upload and keep the installed name in SHA256SUMS.
+          cp .env.selfhost.example "$RUNNER_TEMP/default.env.selfhost.example"
+          assets="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets')"
+          for file in beeflow-install.sh beeflow-install.sh.sha256 selfhost.sh docker-compose.from-registry.yml "$RUNNER_TEMP/default.env.selfhost.example" SHA256SUMS; do
+            name="${file##*/}"
+            remote="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .digest' <<< "$assets")"
+            if [[ -n "$remote" ]]; then
+              expected="sha256:$(sha256sum "$file" | cut -d' ' -f1)"
+              if [[ "$remote" != "$expected" ]]; then
+                echo "::error::Published $name differs from the release tag. Check the asset before replacing it."
+                exit 1
+              fi
+              continue
+            fi
+            gh release upload "$TAG" "$file" --repo "$GITHUB_REPOSITORY"
+          done
 
       # The same script as a container that carries this release's files.
       - name: Stage the image's files
@@ -272,7 +266,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ env.TAG }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.release_source.outputs.commit }}
 
       # "Latest" on the releases page is what the documented download address
       # (releases/latest/download/…) follows. Say it here, so a release of
