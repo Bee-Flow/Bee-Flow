@@ -23,7 +23,7 @@ import { ENTER } from './coworkMotion';
 import { ALERT, BUTTON_PRIMARY, CARD, LINK_BUTTON, META } from './coworkUi';
 import useCoworkComposer, { type UseCoworkComposerReturn } from './useCoworkComposer';
 import type { TaskSetup } from './useTaskSetup';
-import TierSlider from '../licensing/TierSlider';
+import CoworkModelPicker from './CoworkModelPicker';
 import useModelTierSelection from '@/hooks/useModelTierSelection';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { CoworkItem, CoworkPayload, CoworkTriggerPayload } from '@/api/cowork.types';
@@ -171,7 +171,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, stepTypes, seed 
                     edit([text.trimEnd(), t('cowork_home.use_step', 'Use the {step} step.', { step: label })].filter(Boolean).join('\n'));
                     box.current?.focus();
                 }} />}
-                {Object.keys(modelTiers).length > 0 && <div className="px-4 pb-2"><TierSlider tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} variant="input" /></div>}
+                {Object.keys(modelTiers).length > 0 && <div className="px-4 pb-2"><CoworkModelPicker tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} t={t} /></div>}
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>
             {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}

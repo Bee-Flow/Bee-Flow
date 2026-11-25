@@ -19,9 +19,10 @@ const created = (): RecordedCall | undefined => calls.find((c) => c.method === '
 const composed = (): RecordedCall[] => calls.filter((c) => pathOf(c) === '/api/cowork/compose');
 
 /** The server: what it makes of the sentence (per call, so an edit can be read differently), and a workspace with Fireflies and Gmail. */
-function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec)) {
+function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec), tiers = {}) {
     calls = stubRecordingFetch((call) => {
         const path = pathOf(call);
+        if (path.endsWith('/config/tiers-for-user')) return jsonResponse(tiers);
         if (path === '/api/cowork/compose') return jsonResponse(typeof spec === 'function' ? spec((call.body as { brief: string }).brief) : spec);
         if (path === '/api/cowork' && call.method === 'POST') return jsonResponse({ id: 'new', title: (call.body as { title: string }).title, runCount: 0 });
         if (path.endsWith('/ai/user-settings')) return jsonResponse({ hasFirefliesKey: true, isGoogleUser: true });
@@ -74,6 +75,18 @@ describe('CoworkHomeComposer', () => {
         expect(screen.getByRole('button', { name: 'Show what I understood' })).toBeDisabled();
         await userEvent.setup().click(screen.getByRole('button', { name: 'Start from a template' }));
         expect(onTemplates).toHaveBeenCalled();
+    });
+
+    it('shows the model choice inline and saves the chosen tier on the new task', async () => {
+        serve(WEEKLY, { auto: {}, pro: { modelId: 'deep-model' } });
+        renderComposer();
+        const picker = await screen.findByRole('combobox', { name: 'AI model' });
+        const user = userEvent.setup();
+        await user.selectOptions(picker, 'pro');
+        expect(picker).toHaveDisplayValue('Deep Thinking · deep-model');
+        const { card } = await write('Summarise the meetings every Monday at 09:00');
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ modelTier: 'pro' }));
     });
 
     it('a sentence without a day: the card asks "Which day?", and "Set up and test" waits for the answer', async () => {
