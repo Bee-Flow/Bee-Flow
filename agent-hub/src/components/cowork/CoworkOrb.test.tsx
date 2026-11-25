@@ -31,11 +31,14 @@ it('advances one scene through successive steps and keeps moving after completio
     expect([...frames.keys()]).toEqual(scheduled);
     expect(lastTime()).toBe(first);
     frame(80); frame(130);
-    expect(lastTime()).toBeGreaterThan(first);
+    expect(lastTime() - first).toBeCloseTo(first * (30 / (1000 / 30) + 1));
     rerender(<CoworkOrb tone="rest" />);
     const finished = lastTime();
     frame(140); frame(190);
-    expect(lastTime()).toBeGreaterThan(finished);
+    expect(lastTime() - finished).toBeCloseTo(first * (10 / (1000 / 30) + 1));
+    const beforeStall = lastTime();
+    frame(1190);
+    expect(lastTime() - beforeStall).toBeCloseTo(first);
     vi.mocked(useReducedMotion).mockReturnValue(true);
     rerender(<CoworkOrb tone="thinking" />);
     expect(frames.size).toBe(0);

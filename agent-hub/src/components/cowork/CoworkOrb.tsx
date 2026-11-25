@@ -8,7 +8,7 @@ import { makeOrbGeometry, type OrbGeometry } from './coworkOrbGeometry';
 
 export type { ActivityTone } from './coworkOrbFrame';
 
-const SPEED = { thinking: .86, executing: 1.3, repair: 1.05, rest: .42 };
+const ORB_CLOCK_RATE = .48;
 let geometry: OrbGeometry | undefined;
 
 function fitCanvas(el: HTMLCanvasElement) {
@@ -19,7 +19,7 @@ function fitCanvas(el: HTMLCanvasElement) {
 export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?: ActivityTone; activity?: string; work?: OrbWork }) {
     const [marks, setMarks] = useState<(NeuralGlyph | null)[]>([]);
     const canvas = useRef<HTMLCanvasElement>(null);
-    const clock = useRef({ time: 0, speed: SPEED[tone], beat: 0 });
+    const clock = useRef({ time: 0, beat: 0 });
     const layers = useRef<OrbPattern[]>([]);
     const reduced = useReducedMotion();
     const target = Math.max(0, Math.min(work?.focus ?? marks.length - 1, marks.length - 1));
@@ -55,10 +55,9 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         let last: number | undefined;
         const tick = (now: number) => {
             const elapsed = last === undefined ? 0 : now - last;
-            const seconds = Math.min(elapsed / 1000, .1);
+            const seconds = Math.min(elapsed / 1000, 1 / 30);
             const { target, tone } = controls.current;
-            state.speed += (SPEED[tone] - state.speed) * (1 - Math.exp(-seconds * 3));
-            state.time += seconds * state.speed;
+            state.time += seconds * ORB_CLOCK_RATE;
             state.beat += ((tone === 'rest' ? 0 : .5) - state.beat) * (1 - Math.exp(-seconds * 3));
             advanceLayers(layers.current, target, seconds);
             last = now;

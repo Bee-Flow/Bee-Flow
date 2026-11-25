@@ -213,7 +213,8 @@ function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site
 }
 
 function siteAt(i: number, count: number, pattern: OrbPattern, time: number, project: Project) {
-    const angle = (i - pattern.focus) * TAU / count;
+    // A step change shifts the light, while each icon keeps its orbit.
+    const angle = i * TAU / count;
     const drift = time * .71 + i * 2.4;
     const world = {
         x: .59 * Math.sin(angle) + .08 * Math.sin(drift),
