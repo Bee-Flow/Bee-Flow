@@ -148,25 +148,27 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
 
     return (
         <section aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
-            <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
-                {t('cowork_home.ask', 'What should be done for you?')}
-            </h1>
-            <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
-                <label htmlFor="cowork-brief" className="sr-only">{t('cowork_home.brief_label', 'Describe the task in one sentence')}</label>
-                <textarea
-                    id="cowork-brief"
-                    ref={box}
-                    rows={2}
-                    value={text}
-                    data-testid="cowork-brief-input"
-                    onChange={(e) => edit(e.target.value)}
-                    onKeyDown={onKey}
-                    placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
-                    className="w-full min-h-[56px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
-                />
-                <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
-            </form>
-            {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
+            <div className="flex flex-col gap-4 rounded-[var(--radius-lg)] border-s-4 border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_16%,var(--bg-secondary))] p-4 sm:p-5">
+                <h1 id="cowork-ask-heading" className="m-0 text-[24px] leading-8 font-semibold text-[var(--text-primary)]">
+                    {t('cowork_home.ask', 'What should be done for you?')}
+                </h1>
+                <form className={`${CARD} px-4 pt-4 pb-3 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-[var(--focus-ring)]`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
+                    <label htmlFor="cowork-brief" className="sr-only">{t('cowork_home.brief_label', 'Describe the task in one sentence')}</label>
+                    <textarea
+                        id="cowork-brief"
+                        ref={box}
+                        rows={2}
+                        value={text}
+                        data-testid="cowork-brief-input"
+                        onChange={(e) => edit(e.target.value)}
+                        onKeyDown={onKey}
+                        placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
+                        className="w-full min-h-[56px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+                    />
+                    <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
+                </form>
+                {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
+            </div>
             {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
             {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (

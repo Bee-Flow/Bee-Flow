@@ -22,7 +22,7 @@ import CoworkTaskRows, { CoworkSharedRows } from './CoworkTaskRows';
 import { ENTER, LEAVE, useLeave } from './coworkMotion';
 import type { NeedCardData } from './coworkNeedsModel';
 import { pageName, type CoworkSheetPanel } from './coworkSheetPanels';
-import { ALERT, CARD, LINK_BUTTON, LIST_ROW, META, SECTION_HEADING } from './coworkUi';
+import { ALERT, CARD, LINK_BUTTON, LIST_ROW, META } from './coworkUi';
 import useCoworkList from './useCoworkList';
 import useCoworkNeedCards from './useCoworkNeedCards';
 import useTaskSetup from './useTaskSetup';
@@ -50,7 +50,7 @@ function NeedsSection({ cards, onOpenTask, onDone }: NeedsSectionProps) {
     const shown = all ? cards : cards.slice(0, NEEDS_SHOWN);
     return (
         <section aria-labelledby="cowork-needs-heading" className="flex flex-col gap-2" data-testid="cowork-needs">
-            <h2 id="cowork-needs-heading" className={SECTION_HEADING}>{t('cowork_home.needs.heading', 'Needs you · {count}', { count: cards.length })}</h2>
+            <h2 id="cowork-needs-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.needs.heading', 'Needs you · {count}', { count: cards.length })}</h2>
             <div className={`${CARD} overflow-hidden divide-y divide-[var(--border-subtle)]`}>
                 {shown.map((need) => <CoworkNeedCard key={need.key} need={need} onOpenTask={onOpenTask} onDone={onDone} />)}
             </div>
@@ -66,7 +66,7 @@ function NeedsSection({ cards, onOpenTask, onDone }: NeedsSectionProps) {
 function Section({ id, heading, children }: { id: string; heading: string; children: ReactNode }) {
     return (
         <section aria-labelledby={`cowork-${id}-heading`} className="flex flex-col gap-2">
-            <h2 id={`cowork-${id}-heading`} className={SECTION_HEADING}>{heading}</h2>
+            <h2 id={`cowork-${id}-heading`} className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{heading}</h2>
             {children}
         </section>
     );
@@ -163,7 +163,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
         void begin({ id: item.id, title: item.title });
     }, [client, begin]);
     return (
-        <div className="flex flex-col gap-6" data-testid="cowork-home">
+        <div className="flex flex-col gap-7" data-testid="cowork-home">
             <CoworkHomeComposer atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed} onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
             <FlashLine flash={flash} />
             <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
