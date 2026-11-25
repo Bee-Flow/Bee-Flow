@@ -96,12 +96,35 @@ describe('CoworkTaskView', () => {
         ]);
         expect(within(steps).getAllByTestId('cowork-task-step-word').at(-1)).toHaveTextContent('Sends to you');
         expect(within(steps).getAllByTestId('cowork-task-step')[0].querySelector('svg')).toHaveAttribute('viewBox', '0 0 48 48');
-        await user.click(within(steps).getByRole('button', { name: 'Show 1 in-between step' }));
-        expect(within(steps).getAllByTestId('cowork-task-step').map((li) => li.textContent)).toEqual([
-            expect.stringContaining('Read the mail'), expect.stringContaining('Keep this weekIn-between step'), expect.stringContaining('Write the digest'), expect.stringContaining('Tell me'),
-        ]);
+        await user.click(within(steps).getByRole('button', { name: 'Details' }));
+        expect(within(steps).getByText('Keep this week')).toBeVisible();
+        expect(within(steps).getAllByTestId('cowork-task-step')).toHaveLength(3);
         expect(within(steps).getByRole('button', { name: 'Test, sends nothing' })).toBeEnabled();
         expect(within(steps).getByRole('button', { name: 'Compare with last month' })).toBeEnabled();
+    });
+
+    it('groups mail reads around a mapped script and keeps the write visible as its own stage', async () => {
+        const plan = structuredClone(PLAN_WAITING);
+        const view = plan.draft.view;
+        const read = view.steps.find(step => step.id === 'read')!;
+        view.steps.push(
+            { ...read, id: 'search', title: 'Search messages' },
+            { ...read, id: 'save', title: 'Save the digest', effect: 'writes' },
+        );
+        Object.assign(view.steps.find(step => step.id === 'trim')!, {
+            type: 'code', title: 'Select messages', inputNames: ['messages'], description: 'Filter by date.',
+        });
+        view.runOrder = ['read', 'trim', 'search', 'sum', 'save', 'tell'];
+        const { user } = openTask({ plan }, { kind: 'task', id: 'w1', focus: 'steps' });
+        const panel = within(await screen.findByRole('tabpanel', { name: 'Steps' }));
+        await panel.findByText('Read from Outlook');
+        expect(panel.getAllByTestId('cowork-task-step')).toHaveLength(4);
+        expect(panel.getByText('Save the digest')).toBeVisible();
+        expect(panel.queryByText('Select messages')).toBeNull();
+        await user.click(panel.getByRole('button', { name: 'Details' }));
+        expect(panel.getByText('Filter by date.')).toBeVisible();
+        expect(panel.getByText('Inputs: messages')).toBeVisible();
+        expect(panel.getByText('Search messages')).toBeVisible();
     });
 
     it('shows the Fireflies logo and keeps the action icon for an app without a registered icon', async () => {

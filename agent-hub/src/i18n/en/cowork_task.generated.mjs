@@ -6,6 +6,11 @@
  */
 
 export default {
+    "cowork_task.flow.step_count": "{count} steps",
+    "cowork_task.flow.prepare": "Prepare data",
+    "cowork_task.flow.read_app": "Read from {app}",
+    "cowork_task.flow.details": "Details",
+    "cowork_task.flow.inputs": "Inputs: {fields}",
     "cowork_task.steps.replace_notebook": "Rebuild and test for delivery in Cowork",
     "cowork_task.steps.script_inputs": "Processes {fields}.",
     "cowork_task.steps.script_number": "Script {number}",

@@ -3,6 +3,11 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_task.flow.step_count": "{count} steps",
+    "cowork_task.flow.prepare": "Prepare data",
+    "cowork_task.flow.read_app": "Read from {app}",
+    "cowork_task.flow.details": "Details",
+    "cowork_task.flow.inputs": "Inputs: {fields}",
     "cowork_task.steps.replace_notebook": "Rebuild and test for delivery in Cowork",
     "cowork_task.steps.script_inputs": "Processes {fields}.",
     "cowork_task.steps.script_number": "Script {number}",

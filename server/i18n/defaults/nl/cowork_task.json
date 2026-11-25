@@ -1,5 +1,10 @@
 {
   "translations": {
+    "cowork_task.flow.step_count": "{count} stappen",
+    "cowork_task.flow.prepare": "Gegevens voorbereiden",
+    "cowork_task.flow.read_app": "Lezen uit {app}",
+    "cowork_task.flow.details": "Bekijk stappen",
+    "cowork_task.flow.inputs": "Invoer: {fields}",
     "cowork_task.steps.replace_notebook": "Opnieuw opbouwen en testen voor aflevering in Cowork",
     "cowork_task.steps.script_inputs": "Verwerkt {fields}.",
     "cowork_task.uses.auto_model": "Automatisch",
