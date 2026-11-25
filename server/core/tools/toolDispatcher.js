@@ -28,16 +28,7 @@ registerBuiltinToolFamilies();
  * identity, so it cannot look up the Privacy Shield token map itself — every
  * caller runs `untokeniseToolArgs` before handing the args over, or the tool
  * writes the literal `[email_1]` placeholder wherever the real value belonged
- * (BFSF-171). The callers that do it today:
- *
- *   - core/agentRuntime/toolRoundExecutor.js — every tool, with the tool-PII
- *     block policy (on the REAL values) as the only thing that withholds PII;
- *   - routes/ai/directChat/toolExec.js       — every tool except web/agent
- *     search, whose queries deliberately keep their tokens;
- *   - routes/ai/webpageChat.js               — same carve-out as direct chat.
- *
- * routes/ai/notebookChat.js is the deliberate exception: it dispatches in token
- * space and restores at the document write boundary instead.
+ * (BFSF-171). Apply the tool policy to the restored values before dispatch.
  *
  * @param {string} toolName - Name of the tool to execute
  * @param {Object} toolArgs - Arguments for the tool

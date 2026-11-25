@@ -94,8 +94,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // Only a name offered this turn is dispatched, ahead of the DLP restore (./offeredToolGate.mts).
     const unoffered = require('./offeredToolGate.mts').refuseUnofferedTool(toolCall, toolName, ctx);
     if (unoffered) return unoffered;
-    // Search queries keep their tokens, so PII is not leaked to external search providers.
-    toolArgs = restoreDlpTokens(toolName, toolArgs, ctx.convId, ctx.orgShield);
+    toolArgs = restoreDlpTokens(toolArgs, ctx.convId);
 
     const notebookRefusal = notebookWriteRefusal(toolCall, toolName, toolArgs, ctx);
     if (notebookRefusal) return notebookRefusal;
@@ -105,7 +104,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"), the
     // same check the agent tool loop runs. Args hold real values
-    // here for every tool except web search, which keeps its tokens.
+    // here for every tool, including search.
     const _piiGate = await _checkToolPiiPolicy(toolName, toolArgs, ctx);
     if (_piiGate) {
         ctx.send('tool_end', { name: toolName, result: _piiGate.uiResult });

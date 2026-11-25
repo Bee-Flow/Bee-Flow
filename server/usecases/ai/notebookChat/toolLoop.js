@@ -171,9 +171,7 @@ function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId
             // to save as a new source. Restore to real values before ingest so the
             // stored source + its embeddings hold real text (sources are stored
             // raw/real; tokenization happens at query-time in step B4).
-            const { restoreTokens } = require('../../../core/privacy/piiDetection');
-            const _srcMap = dlpRunner.getConversationTokenMap(notebookId) || {};
-            const sourceContent = restoreTokens(toolArgs.content || '', _srcMap);
+            const sourceContent = toolArgs.content || '';
             const sourceMeta = toolArgs.metadata || {};
             if (!sourceContent.trim()) return { error: 'Content is required to add a source.' };
             if (sourceContent.length > MAX_SOURCE_TEXT_CHARS) return { error: `That text is too long to add as one source (over ${MAX_SOURCE_TEXT_CHARS.toLocaleString('en-US')} characters). Add it in smaller parts.` };
@@ -332,13 +330,9 @@ async function runToolLoop({
                 const m = dlpRunner.getConversationTokenMap(notebookId) || {};
                 return (Object.keys(m).length && typeof s === 'string') ? _rt(s, m) : s;
             };
-            send('tool_start', { name: toolName, args: untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId) || {}) });
-            // Privacy Shield tool block lists, on the values the
-            // call carries: real ones for every tool the notebook restores
-            // (document writes, new sources), the tokens a web search keeps.
-            // The same split direct chat makes.
-            const refusal = await shieldGate.refuse(toolName, isWebTool(toolName)
-                ? toolArgs : untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId) || {}));
+            const realArgs = untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId));
+            send('tool_start', { name: toolName, args: realArgs });
+            const refusal = await shieldGate.refuse(toolName, realArgs);
             if (refusal) {
                 send('tool_end', { name: toolName, result: refusal.uiResult });
                 toolResults.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: refusal.modelError }) });
@@ -351,7 +345,7 @@ async function runToolLoop({
                 toolResult = { message: 'Already retrieved earlier in this answer — use that result instead of calling again.' };
                 skipScan = true;
             } else {
-                try { toolResult = await executeNotebookTool(toolName, toolArgs); }
+                try { toolResult = await executeNotebookTool(toolName, toolName.startsWith('notebook_doc_') ? toolArgs : realArgs); }
                 catch (err) { toolResult = { error: err.message }; }
                 if (toolName === 'notebook_doc_write' || toolName === 'notebook_doc_replace') repeatGuard.forget('notebook_doc_read');
                 if (toolName === 'notebook_kb_search' && Array.isArray(toolResult?.results)) {

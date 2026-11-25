@@ -3150,7 +3150,7 @@
     {
      "name": "gmail_send",
      "args": {
-      "to": "[email_1]"
+      "to": "someone@example.test"
      }
     }
    ],
@@ -3178,7 +3178,7 @@
    {
     "name": "gmail_send",
     "args": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3201,7 +3201,7 @@
    {
     "toolName": "gmail_send",
     "toolArgs": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3225,7 +3225,7 @@
    {
     "name": "gmail_send",
     "args": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -3303,7 +3303,7 @@
     {
      "name": "gmail_send",
      "args": {
-      "to": "[email_1]"
+      "to": "someone@example.test"
      }
     }
    ],
@@ -3331,7 +3331,7 @@
    {
     "name": "gmail_send",
     "args": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3354,7 +3354,7 @@
    {
     "toolName": "gmail_send",
     "toolArgs": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3378,7 +3378,7 @@
    {
     "name": "gmail_send",
     "args": {
-     "to": "[email_1]"
+     "to": "someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -3440,7 +3440,7 @@
    "info [DirectChat] Executing streamed tool: gmail_send(to)"
   ]
  },
- "tokens stay in agent_search (pre-check)": {
+ "tokens restored in agent_search (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -3456,8 +3456,8 @@
     {
      "name": "agent_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -3485,8 +3485,8 @@
    {
     "name": "agent_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3509,8 +3509,8 @@
    {
     "toolName": "agent_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3534,8 +3534,8 @@
    {
     "name": "agent_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -3577,7 +3577,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -3588,7 +3598,7 @@
    "info [DirectChat] Executing tool: agent_search(query, url)"
   ]
  },
- "tokens stay in agent_search (streamed)": {
+ "tokens restored in agent_search (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -3604,8 +3614,8 @@
     {
      "name": "agent_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -3633,8 +3643,8 @@
    {
     "name": "agent_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3657,8 +3667,8 @@
    {
     "toolName": "agent_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3682,8 +3692,8 @@
    {
     "name": "agent_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -3725,7 +3735,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -3736,7 +3756,7 @@
    "info [DirectChat] Executing streamed tool: agent_search(query, url)"
   ]
  },
- "tokens stay in web_search (pre-check)": {
+ "tokens restored in web_search (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -3752,8 +3772,8 @@
     {
      "name": "web_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -3781,8 +3801,8 @@
    {
     "name": "web_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3805,8 +3825,8 @@
    {
     "toolName": "web_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3830,8 +3850,8 @@
    {
     "name": "web_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -3873,7 +3893,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -3884,7 +3914,7 @@
    "info [DirectChat] Executing tool: web_search(query, url)"
   ]
  },
- "tokens stay in web_search (streamed)": {
+ "tokens restored in web_search (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -3900,8 +3930,8 @@
     {
      "name": "web_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -3929,8 +3959,8 @@
    {
     "name": "web_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -3953,8 +3983,8 @@
    {
     "toolName": "web_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -3978,8 +4008,8 @@
    {
     "name": "web_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4021,7 +4051,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4032,7 +4072,7 @@
    "info [DirectChat] Executing streamed tool: web_search(query, url)"
   ]
  },
- "tokens stay in search (pre-check)": {
+ "tokens restored in search (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4048,8 +4088,8 @@
     {
      "name": "search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4077,8 +4117,8 @@
    {
     "name": "search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4101,8 +4141,8 @@
    {
     "toolName": "search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4126,8 +4166,8 @@
    {
     "name": "search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4169,7 +4209,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4180,7 +4230,7 @@
    "info [DirectChat] Executing tool: search(query, url)"
   ]
  },
- "tokens stay in search (streamed)": {
+ "tokens restored in search (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4196,8 +4246,8 @@
     {
      "name": "search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4225,8 +4275,8 @@
    {
     "name": "search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4249,8 +4299,8 @@
    {
     "toolName": "search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4274,8 +4324,8 @@
    {
     "name": "search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4317,7 +4367,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4328,7 +4388,7 @@
    "info [DirectChat] Executing streamed tool: search(query, url)"
   ]
  },
- "tokens stay in brave_search (pre-check)": {
+ "tokens restored in brave_search (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4344,8 +4404,8 @@
     {
      "name": "brave_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4373,8 +4433,8 @@
    {
     "name": "brave_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4397,8 +4457,8 @@
    {
     "toolName": "brave_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4422,8 +4482,8 @@
    {
     "name": "brave_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4465,7 +4525,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4476,7 +4546,7 @@
    "info [DirectChat] Executing tool: brave_search(query, url)"
   ]
  },
- "tokens stay in brave_search (streamed)": {
+ "tokens restored in brave_search (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4492,8 +4562,8 @@
     {
      "name": "brave_search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4521,8 +4591,8 @@
    {
     "name": "brave_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4545,8 +4615,8 @@
    {
     "toolName": "brave_search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4570,8 +4640,8 @@
    {
     "name": "brave_search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4613,7 +4683,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4624,7 +4704,7 @@
    "info [DirectChat] Executing streamed tool: brave_search(query, url)"
   ]
  },
- "tokens stay in browse_web (pre-check)": {
+ "tokens restored in browse_web (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4640,8 +4720,8 @@
     {
      "name": "browse_web",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4669,8 +4749,8 @@
    {
     "name": "browse_web",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4693,8 +4773,8 @@
    {
     "toolName": "browse_web",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4718,8 +4798,8 @@
    {
     "name": "browse_web",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4761,7 +4841,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4772,7 +4862,7 @@
    "info [DirectChat] Executing tool: browse_web(query, url)"
   ]
  },
- "tokens stay in browse_web (streamed)": {
+ "tokens restored in browse_web (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4788,8 +4878,8 @@
     {
      "name": "browse_web",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4817,8 +4907,8 @@
    {
     "name": "browse_web",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4841,8 +4931,8 @@
    {
     "toolName": "browse_web",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -4866,8 +4956,8 @@
    {
     "name": "browse_web",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -4909,7 +4999,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -4920,7 +5020,7 @@
    "info [DirectChat] Executing streamed tool: browse_web(query, url)"
   ]
  },
- "tokens stay in read_url (pre-check)": {
+ "tokens restored in read_url (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -4936,8 +5036,8 @@
     {
      "name": "read_url",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -4965,8 +5065,8 @@
    {
     "name": "read_url",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -4989,8 +5089,8 @@
    {
     "toolName": "read_url",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -5014,8 +5114,8 @@
    {
     "name": "read_url",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -5057,7 +5157,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -5068,7 +5178,7 @@
    "info [DirectChat] Executing tool: read_url(query, url)"
   ]
  },
- "tokens stay in read_url (streamed)": {
+ "tokens restored in read_url (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -5084,8 +5194,8 @@
     {
      "name": "read_url",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -5113,8 +5223,8 @@
    {
     "name": "read_url",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -5137,8 +5247,8 @@
    {
     "toolName": "read_url",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -5162,8 +5272,8 @@
    {
     "name": "read_url",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -5205,7 +5315,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -5216,7 +5336,7 @@
    "info [DirectChat] Executing streamed tool: read_url(query, url)"
   ]
  },
- "tokens stay in Agent_Search (pre-check)": {
+ "tokens restored in Agent_Search (pre-check)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -5232,8 +5352,8 @@
     {
      "name": "Agent_Search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -5261,8 +5381,8 @@
    {
     "name": "Agent_Search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -5285,8 +5405,8 @@
    {
     "toolName": "Agent_Search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -5310,8 +5430,8 @@
    {
     "name": "Agent_Search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -5353,7 +5473,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
@@ -5364,7 +5494,7 @@
    "info [DirectChat] Executing tool: Agent_Search(query, url)"
   ]
  },
- "tokens stay in Agent_Search (streamed)": {
+ "tokens restored in Agent_Search (streamed)": {
   "out": {
    "_toolResult": {
     "ok": 1
@@ -5380,8 +5510,8 @@
     {
      "name": "Agent_Search",
      "args": {
-      "query": "[email_1]",
-      "url": "https://example.test/[email_1]"
+      "query": "someone@example.test",
+      "url": "https://example.test/someone@example.test"
      }
     }
    ],
@@ -5409,8 +5539,8 @@
    {
     "name": "Agent_Search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "status": "done",
     "resultPreview": "{\"ok\":1}"
@@ -5433,8 +5563,8 @@
    {
     "toolName": "Agent_Search",
     "toolArgs": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "result": {
      "ok": 1
@@ -5458,8 +5588,8 @@
    {
     "name": "Agent_Search",
     "args": {
-     "query": "[email_1]",
-     "url": "https://example.test/[email_1]"
+     "query": "someone@example.test",
+     "url": "https://example.test/someone@example.test"
     },
     "opts": {
      "userId": "user-1",
@@ -5501,7 +5631,17 @@
     }
    }
   ],
-  "restored": [],
+  "restored": [
+   {
+    "args": {
+     "query": "[email_1]",
+     "url": "https://example.test/[email_1]"
+    },
+    "map": {
+     "[email_1]": "someone@example.test"
+    }
+   }
+  ],
   "kinds": [],
   "local": [],
   "documentCtx": null,
