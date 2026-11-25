@@ -179,7 +179,7 @@ function studioNavItem(sections: StudioSection[], user: StudioNavUser | null | u
     };
 }
 
-export interface PublishedApp { id: string; name?: string; description?: string | null; icon?: string; accentColor?: string }
+interface PublishedApp { id: string; name?: string; description?: string | null; icon?: string; accentColor?: string }
 export interface PublishedForm { id: string; title?: string; description?: string | null; live?: boolean }
 
 const pathIs = (test: (path: string) => boolean) => typeof window !== 'undefined' && test(window.location.pathname);

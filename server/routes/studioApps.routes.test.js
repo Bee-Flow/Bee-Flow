@@ -60,8 +60,8 @@ const EXPECTED = [
     'get /:id/runs requireAuth validateRequest <anonymous>',
     'get /:id/runs/:runId requireAuth validateRequest <anonymous>',
     'get /:id/runtime requireAuth validateRequest <anonymous>',
-    'get /:id/triggers requireAuth gateOwnedApp <anonymous>',
-    'get /:id/triggers/:triggerId/webhook requireAuth gateOwnedApp validateRequest <anonymous>',
+    'get /:id/triggers requireAuth <anonymous> gateOwnedApp <anonymous>',
+    'get /:id/triggers/:triggerId/webhook requireAuth <anonymous> gateOwnedApp validateRequest <anonymous>',
     'get /:id/versions requireAuth <anonymous>',
     'get /catalog requireAuth <anonymous>',
     'get /mine requireAuth <anonymous>',
@@ -75,14 +75,14 @@ const EXPECTED = [
     'post /:id/check requireAuth validateRequest <anonymous>',
     'post /:id/public-pages requireAuth <anonymous> validateRequest <anonymous>',
     'post /:id/template-upgrade requireAuth <anonymous> validateRequest <anonymous>',
-    'post /:id/triggers/:triggerId/webhook/rotate requireAuth gateOwnedApp validateRequest <anonymous>',
-    'post /:id/triggers/:triggerId/webhook/secret requireAuth gateOwnedApp validateRequest <anonymous>',
+    'post /:id/triggers/:triggerId/webhook/rotate requireAuth <anonymous> gateOwnedApp validateRequest <anonymous>',
+    'post /:id/triggers/:triggerId/webhook/secret requireAuth <anonymous> gateOwnedApp validateRequest <anonymous>',
     'post /:id/versions/:versionId/restore requireAuth <anonymous> validateRequest <anonymous>',
     'post /import requireAuth <anonymous> rateLimitMiddleware <anonymous>',
     'post /templates/import requireAuth <anonymous> rateLimitMiddleware <anonymous>',
     'put /:id requireAuth <anonymous> validateRequest <anonymous>',
     'put /:id/definition requireAuth <anonymous> validateRequest <anonymous>',
-    'put /:id/triggers/:triggerId requireAuth gateOwnedApp validateRequest <anonymous>',
+    'put /:id/triggers/:triggerId requireAuth <anonymous> gateOwnedApp validateRequest <anonymous>',
 ];
 
 test('the router answers exactly the same routes with the same middleware chain', () => {
@@ -102,20 +102,22 @@ test('a literal path is matched before the parameter route of the same method th
     }
 });
 
-test('the write routes share ONE manage_apps gate, the second link of their chain', () => {
-    const WRITES = [
+test('the authoring routes share ONE manage_apps gate, the second link of their chain', () => {
+    const AUTHORING = [
         'delete /:id', 'delete /:id/public-pages/:token', 'delete /templates/:templateId',
         'get /templates/:templateId/export', 'patch /:id/nextcloud-menu', 'patch /:id/publish',
         'post /', 'post /:id/public-pages', 'post /:id/template-upgrade',
         'post /:id/versions/:versionId/restore', 'post /import', 'post /templates/import',
-        'put /:id', 'put /:id/definition',
+        'put /:id', 'put /:id/definition', 'get /:id/triggers', 'get /:id/triggers/:triggerId/webhook',
+        'put /:id/triggers/:triggerId', 'post /:id/triggers/:triggerId/webhook/secret',
+        'post /:id/triggers/:triggerId/webhook/rotate',
     ];
-    const gates = new Set(WRITES.map((key) => {
+    const gates = new Set(AUTHORING.map((key) => {
         const r = table.find((x) => `${x.method} ${x.path}` === key);
         assert.ok(r, `${key} is gone`);
         return r.chain[1];
     }));
-    assert.strictEqual(gates.size, 1, 'every write route goes through the same requireManageApps instance');
+    assert.strictEqual(gates.size, 1, 'every authoring route goes through the same requireManageApps instance');
     // And the reads do not: using an app is not building one.
     for (const key of ['get /:id', 'get /:id/runtime', 'get /', 'get /catalog']) {
         const r = table.find((x) => `${x.method} ${x.path}` === key);
