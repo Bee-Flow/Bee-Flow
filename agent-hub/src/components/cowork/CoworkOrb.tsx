@@ -1,3 +1,4 @@
+import { advanceLayers, updatePattern } from './coworkOrbPattern';
 import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
 import type { NeuralGlyph } from './coworkOrbGlyph';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -9,17 +10,6 @@ export type { ActivityTone } from './coworkOrbFrame';
 
 const SPEED = { thinking: .86, executing: 1.3, repair: 1.05, rest: .42 };
 let geometry: OrbGeometry | undefined;
-
-function advanceLayers(layers: OrbPattern[], target: number, seconds: number) {
-    const current = layers.at(-1);
-    if (!current) return;
-    const blend = 1 - Math.exp(-seconds * 5);
-    for (const layer of layers) layer.opacity += ((layer === current ? 1 : 0) - layer.opacity) * blend;
-    current.focus += (target - current.focus) * (1 - Math.exp(-seconds * 3.5));
-    for (let i = layers.length - 2; i >= 0; i--) {
-        if (layers[i].opacity < .005) layers.splice(i, 1);
-    }
-}
 
 function fitCanvas(el: HTMLCanvasElement) {
     const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(3, Math.max(2, window.devicePixelRatio || 1))));
@@ -34,23 +24,20 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
     const reduced = useReducedMotion();
     const target = Math.max(0, Math.min(work?.focus ?? marks.length - 1, marks.length - 1));
     const ordered = !!work?.flow?.length;
+    const progress = useRef({ id: '' });
+    const step = work?.flow?.[work?.focus ?? -1];
     const controls = useRef({ target, tone });
     const repaint = useRef<() => void>(() => {});
     useLayoutEffect(() => {
         controls.current = { target, tone };
-        const last = layers.current.at(-1);
-        if (last && last.ordered === ordered && last.marks.length === marks.length && marks.every((m, i) => m?.id === last.marks[i]?.id)) {
-            last.marks = marks;
-        } else {
-            layers.current.push({ marks, ordered, focus: target, opacity: last && !reduced ? 0 : 1 });
-        }
+        updatePattern(layers.current, marks, { ordered, target, step, reduced }, progress.current);
         if (reduced) {
             const current = layers.current.at(-1)!;
             Object.assign(current, { opacity: 1, focus: target });
             layers.current = [current];
             repaint.current();
         }
-    }, [marks, ordered, reduced, target, tone, activity]);
+    }, [marks, ordered, reduced, target, tone, activity, step]);
     useEffect(() => {
         const el = canvas.current;
         if (!el || typeof CanvasRenderingContext2D === 'undefined') return;

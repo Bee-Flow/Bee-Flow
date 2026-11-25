@@ -1,11 +1,11 @@
 import type { OrbStep } from '@/api/coworkPlan.types';
 import { useEffect, useRef } from 'react';
-import { Brain, Workflow, Save, ScanLine, Play, Wrench, ClipboardCheck, Pencil, CircleX, Boxes, Send, Hand } from 'lucide-react';
+import { Brain, Workflow, Save, ScanLine, Play, Wrench, Eye, Pencil, CircleX, Boxes, Send, Hand } from 'lucide-react';
 import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import { paletteItemForType } from '@/components/automation/Builder/flow/stepPalette';
 import { readOrbGlyph, type NeuralGlyph } from './coworkOrbGlyph';
 
-const ICONS = { thinking: Brain, creating: Workflow, saving: Save, testing: ScanLine, executing: Play, repair: Wrench, rest: ClipboardCheck, edit: Pencil, discard: CircleX, deliver: Send, ask: Hand };
+const ICONS = { thinking: Brain, creating: Workflow, saving: Save, testing: ScanLine, executing: Play, repair: Wrench, rest: Eye, edit: Pencil, discard: CircleX, deliver: Send, ask: Hand };
 export interface OrbWork { flow?: OrbStep[]; focus?: number; action?: keyof typeof ICONS; apps?: (string | null | undefined)[] | null; stepType?: string }
 
 export default function CoworkOrbSources({ action = 'thinking', apps, flow, focus, stepType, onRead }: OrbWork & { onRead: (marks: (NeuralGlyph | null)[]) => void }) {

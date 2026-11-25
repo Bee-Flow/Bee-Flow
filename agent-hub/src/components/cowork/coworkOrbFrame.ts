@@ -155,33 +155,33 @@ function drawImpulse(ctx: CanvasRenderingContext2D, project: Project, axon: Axon
     if (age < axon.duration) lightPoint(ctx, x, y, 1.4, light);
 }
 
-function drawAxon(ctx: CanvasRenderingContext2D, project: Project, axon: Axon, time: number) {
+function drawAxon(ctx: CanvasRenderingContext2D, project: Project, axon: Axon, time: number, intensity: number) {
     const depth = project(axon.path[8]).z;
     const light = Math.max(.07, .45 + depth * .62);
     const age = impulseAge(time, axon.arrival);
     ctx.strokeStyle = '#a3c9f4';
     ctx.lineWidth = .55 + light * .42;
-    ctx.globalAlpha = light * (.29 + .22 * Math.max(0, 1 - age));
+    ctx.globalAlpha = light * (.29 + intensity * .22 * Math.max(0, 1 - age));
     trace(ctx, project, axon.path);
     ctx.stroke();
     ctx.lineWidth = .46;
     ctx.globalAlpha = light * .21;
     trace(ctx, project, axon.twig);
     ctx.stroke();
-    if (age < axon.duration + .24) drawImpulse(ctx, project, axon, age, light);
+    if (intensity > .01 && age < axon.duration + .24) drawImpulse(ctx, project, axon, age, light * intensity);
 }
 
 function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: NeuralNetwork, time: number, beat: number) {
-    for (const axon of network.axons) drawAxon(ctx, project, axon, time);
+    for (const axon of network.axons) drawAxon(ctx, project, axon, time, beat * 2);
     for (const neuron of network.neurons) {
         const { x, y, z } = project(neuron.position);
-        const pulse = Math.max(0, 1 - impulseAge(time, neuron.arrival) / .6);
+        const pulse = beat * 2 * Math.max(0, 1 - impulseAge(time, neuron.arrival) / .6);
         const light = Math.max(.07, .40 + z * .57);
         lightPoint(ctx, x, y, neuron.radius * (1.10 + pulse * 1.6), Math.min(1, light * (.42 + pulse * .60 + beat * .12)));
     }
 }
 
-export interface OrbPattern { marks: (NeuralGlyph | null)[]; focus: number; ordered: boolean; opacity: number }
+export interface OrbPattern { marks: (NeuralGlyph | null)[]; focus: number; ordered: boolean; opacity: number; active: number; from: number; phase: number; converge: boolean }
 interface Site { x: number; y: number; depth: number; scale: number }
 
 function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site, time: number) {
@@ -253,26 +253,44 @@ function drawStrand(ctx: CanvasRenderingContext2D, ends: [Point, Point], project
     }
 }
 
+function drawStepSignal(ctx: CanvasRenderingContext2D, scene: { pattern: OrbPattern; sites: ReturnType<typeof siteAt>[]; network: NeuralNetwork }, project: Project, time: number) {
+    const { pattern, sites, network } = scene;
+    const active = sites[pattern.active];
+    if (!active || pattern.phase >= 1) return;
+    const previous = sites[pattern.from];
+    ctx.globalAlpha = pattern.opacity * .8 * Math.sin(Math.PI * pattern.phase);
+    if (previous) drawStrand(ctx, [previous.world, active.world], project, time + pattern.from, pattern.phase);
+    const opacity = pattern.opacity * .65 * Math.sin(Math.PI * pattern.phase);
+    for (let i = 0; i < (pattern.converge ? 3 : 1); i++) {
+        const root = network.neurons[(30 + 19 * i + pattern.active) % network.neurons.length].position;
+        ctx.globalAlpha = opacity;
+        drawStrand(ctx, [root, active.world], project, time + i, pattern.converge ? pattern.phase : 1 - pattern.phase);
+    }
+}
+
 function drawWork(ctx: CanvasRenderingContext2D, pattern: OrbPattern, time: number, network: NeuralNetwork, project: Project) {
     const { marks, ordered } = pattern;
     const sites = marks.map((_, i) => siteAt(i, marks.length, pattern, time, project));
-    const pulse = (time * 1.35) % Math.max(1, sites.length - 1);
+
     for (let i = 1; i < sites.length; i++) {
         const end = sites[ordered ? i : sites.length - 1];
         ctx.globalAlpha = pattern.opacity * (.24 + .46 * end.depth);
-        drawStrand(ctx, [sites[i - 1].world, end.world], project, time * .87 + i * 2, pulse - (i - 1));
+        drawStrand(ctx, [sites[i - 1].world, end.world], project, time * .87 + i * 2, -1);
     }
-    const order = sites.map((_, i) => i).sort((a, b) => (sites[a].depth + sites[a].emphasis) - (sites[b].depth + sites[b].emphasis));
+    drawStepSignal(ctx, { pattern, sites, network }, project, time);
+    const order = sites.map((_, i) => i).sort((a, b) => Number(a === pattern.active) - Number(b === pattern.active) || (sites[a].depth + sites[a].emphasis) - (sites[b].depth + sites[b].emphasis));
     for (const [layer, i] of order.entries()) {
         const site = sites[i], mark = marks[i];
         if (!mark) continue;
         const root = network.neurons[(30 + i) % network.neurons.length].position;
         ctx.globalAlpha = pattern.opacity * .11;
         drawStrand(ctx, [root, site.world], project, time * .63 + i, -1);
+        const active = sites[pattern.active];
+        const space = active && active !== site ? Math.min(1, Math.max(0, (Math.hypot(site.x - active.x, site.y - active.y) - 24) / 24)) * .55 : 1;
         const clearance = order.slice(layer + 1).reduce((alpha, j) => Math.min(alpha,
             1 - Math.min(1, 4 * (sites[j].depth + sites[j].emphasis - site.depth - site.emphasis)) *
             Math.max(0, 1 - Math.hypot(site.x - sites[j].x, site.y - sites[j].y) / (18 * (site.scale + sites[j].scale)))), 1);
-        ctx.globalAlpha = pattern.opacity * (.16 + .44 * site.depth + .40 * site.emphasis) * clearance;
+        ctx.globalAlpha = pattern.opacity * (.16 + .44 * site.depth + .40 * site.emphasis) * clearance * space;
         paintMark(ctx, mark, site, time);
     }
 }
