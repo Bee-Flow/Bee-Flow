@@ -1,3 +1,4 @@
+import { drawDeepSky } from './coworkOrbDeepSky';
 import type { NeuralGlyph } from './coworkOrbGlyph';
 import type { Fibre, OrbGeometry, Point } from './coworkOrbGeometry';
 import { impulseAge, type Axon, type NeuralNetwork } from './coworkOrbNetwork';
@@ -9,8 +10,8 @@ const COLOURS = ['#3e4a89', '#566baa', '#8494d3', '#9dbbed', '#c1ddfa', '#e1f4ff
 function drawCore(ctx: CanvasRenderingContext2D, project: Project) {
     const light = project({ x: -.42, y: -.27, z: .47 });
     const mist = ctx.createRadialGradient(light.x * .78, light.y * .78, 3, 0, 0, 104);
-    mist.addColorStop(0, 'rgba(46,57,113,.96)');
-    mist.addColorStop(.48, 'rgba(18,24,58,.99)');
+    mist.addColorStop(0, 'rgba(12,17,42,.99)');
+    mist.addColorStop(.48, 'rgba(16,22,51,.99)');
     mist.addColorStop(.79, 'rgba(27,32,70,.91)');
     mist.addColorStop(.90, 'rgba(56,70,130,.36)');
     mist.addColorStop(1, 'rgba(112,133,194,0)');
@@ -304,6 +305,7 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     ctx.setTransform(size / 256 * breath, 0, 0, size / 256 * breath, size / 2, size / 2);
     const project = projector(time);
     drawCore(ctx, project);
+    drawDeepSky(ctx, time);
     drawNebula(ctx, project);
     ctx.lineCap = 'round';
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
