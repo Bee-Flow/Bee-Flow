@@ -26,7 +26,9 @@ it('advances one scene through successive steps and keeps moving after completio
     const lastTime = () => vi.mocked(drawOrbFrame).mock.lastCall![2];
     const first = lastTime();
     expect(first).toBeGreaterThan(0);
+    const scheduled = [...frames.keys()];
     rerender(<CoworkOrb tone="executing" activity="Reading" />);
+    expect([...frames.keys()]).toEqual(scheduled);
     expect(lastTime()).toBe(first);
     frame(80); frame(130);
     expect(lastTime()).toBeGreaterThan(first);

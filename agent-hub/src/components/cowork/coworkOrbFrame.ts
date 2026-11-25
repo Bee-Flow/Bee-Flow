@@ -181,7 +181,7 @@ function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: N
     }
 }
 
-interface Pattern { marks: (NeuralGlyph | null)[]; focus: number; ordered: boolean; echo?: { since: number; glyph: NeuralGlyph } }
+export interface OrbPattern { marks: (NeuralGlyph | null)[]; focus: number; ordered: boolean; opacity: number }
 interface Site { x: number; y: number; depth: number; scale: number }
 
 function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site, time: number) {
@@ -204,14 +204,15 @@ function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site
         ctx.fillStyle = colour;
         ctx.fill(nodes);
     }
+    const opacity = ctx.globalAlpha;
     for (const [i, p] of glyph.sparks.entries()) {
         const pulse = Math.max(0, Math.sin(time * 1.7 + i * 2.4));
-        if (pulse > .6) lightPoint(ctx, p.x, p.y, .95, pulse * .7 * site.depth);
+        if (pulse > .6) lightPoint(ctx, p.x, p.y, .95, pulse * .7 * site.depth * opacity);
     }
     ctx.restore();
 }
 
-function siteAt(i: number, count: number, pattern: Pattern, time: number, project: Project) {
+function siteAt(i: number, count: number, pattern: OrbPattern, time: number, project: Project) {
     const angle = (i - pattern.focus) * TAU / count;
     const drift = time * .71 + i * 2.4;
     const world = {
@@ -248,40 +249,35 @@ function drawStrand(ctx: CanvasRenderingContext2D, ends: [Point, Point], project
     ctx.stroke();
     if (pulse >= 0 && pulse <= 1) {
         const head = project(strandPoint(a, b, pulse, wave));
-        lightPoint(ctx, head.x, head.y, 1.8, .95);
+        lightPoint(ctx, head.x, head.y, 1.8, ctx.globalAlpha);
     }
 }
 
-function drawWork(ctx: CanvasRenderingContext2D, pattern: Pattern, time: number, network: NeuralNetwork, project: Project) {
+function drawWork(ctx: CanvasRenderingContext2D, pattern: OrbPattern, time: number, network: NeuralNetwork, project: Project) {
     const { marks, ordered } = pattern;
     const sites = marks.map((_, i) => siteAt(i, marks.length, pattern, time, project));
     const pulse = (time * 1.35) % Math.max(1, sites.length - 1);
     for (let i = 1; i < sites.length; i++) {
         const end = sites[ordered ? i : sites.length - 1];
-        ctx.globalAlpha = .24 + .46 * end.depth;
+        ctx.globalAlpha = pattern.opacity * (.24 + .46 * end.depth);
         drawStrand(ctx, [sites[i - 1].world, end.world], project, time * .87 + i * 2, pulse - (i - 1));
-    }
-    if (pattern.echo && time - pattern.echo.since < 2.5) {
-        const fade = (time - pattern.echo.since) / 2.5;
-        const { x, y } = project({ x: -.48 * fade, y: .26 - .60 * fade, z: .45 - fade });
-        ctx.globalAlpha = .55 * (1 - fade);
-        paintMark(ctx, pattern.echo.glyph, { x, y, depth: 0, scale: 1.2 - .88 * fade }, time);
     }
     const order = sites.map((_, i) => i).sort((a, b) => (sites[a].depth + sites[a].emphasis) - (sites[b].depth + sites[b].emphasis));
     for (const [layer, i] of order.entries()) {
         const site = sites[i], mark = marks[i];
         if (!mark) continue;
         const root = network.neurons[(30 + i) % network.neurons.length].position;
-        ctx.globalAlpha = .11;
+        ctx.globalAlpha = pattern.opacity * .11;
         drawStrand(ctx, [root, site.world], project, time * .63 + i, -1);
         const clearance = order.slice(layer + 1).reduce((alpha, j) => Math.min(alpha,
-            Math.hypot(site.x - sites[j].x, site.y - sites[j].y) / (18 * (site.scale + sites[j].scale))), 1);
-        ctx.globalAlpha = (.16 + .44 * site.depth + .40 * site.emphasis) * clearance;
+            1 - Math.min(1, 4 * (sites[j].depth + sites[j].emphasis - site.depth - site.emphasis)) *
+            Math.max(0, 1 - Math.hypot(site.x - sites[j].x, site.y - sites[j].y) / (18 * (site.scale + sites[j].scale)))), 1);
+        ctx.globalAlpha = pattern.opacity * (.16 + .44 * site.depth + .40 * site.emphasis) * clearance;
         paintMark(ctx, mark, site, time);
     }
 }
 
-export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, pattern: Pattern) {
+export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, patterns: OrbPattern[]) {
     const size = ctx.canvas.width;
     ctx.resetTransform();
     ctx.clearRect(0, 0, size, size);
@@ -295,6 +291,6 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     drawGrains(ctx, project, geometry.dust);
     drawStarBand(ctx, project, geometry.stars);
     drawNetwork(ctx, project, geometry.network, time, beat);
-    drawWork(ctx, pattern, time, geometry.network, project);
+    for (const pattern of patterns) drawWork(ctx, pattern, time, geometry.network, project);
     ctx.globalAlpha = 1;
 }

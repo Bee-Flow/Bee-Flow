@@ -1,8 +1,8 @@
 import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
 import type { NeuralGlyph } from './coworkOrbGlyph';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { drawOrbFrame, type ActivityTone } from './coworkOrbFrame';
+import { drawOrbFrame, type ActivityTone, type OrbPattern } from './coworkOrbFrame';
 import { makeOrbGeometry, type OrbGeometry } from './coworkOrbGeometry';
 
 export type { ActivityTone } from './coworkOrbFrame';
@@ -10,22 +10,42 @@ export type { ActivityTone } from './coworkOrbFrame';
 const SPEED = { thinking: .86, executing: 1.3, repair: 1.05, rest: .42 };
 let geometry: OrbGeometry | undefined;
 
+function advanceLayers(layers: OrbPattern[], target: number, seconds: number) {
+    const current = layers.at(-1);
+    if (!current) return;
+    const blend = 1 - Math.exp(-seconds * 5);
+    for (const layer of layers) layer.opacity += ((layer === current ? 1 : 0) - layer.opacity) * blend;
+    current.focus += (target - current.focus) * (1 - Math.exp(-seconds * 3.5));
+    for (let i = layers.length - 2; i >= 0; i--) {
+        if (layers[i].opacity < .005) layers.splice(i, 1);
+    }
+}
+
 export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?: ActivityTone; activity?: string; work?: OrbWork }) {
     const [marks, setMarks] = useState<(NeuralGlyph | null)[]>([]);
     const canvas = useRef<HTMLCanvasElement>(null);
-    const clock = useRef({ focus: 0, time: 0, speed: SPEED[tone], beat: 0 });
-    const previous = useRef<NeuralGlyph | null>(null);
-    const echo = useRef<{ glyph: NeuralGlyph; since: number } | undefined>(undefined);
+    const clock = useRef({ time: 0, speed: SPEED[tone], beat: 0 });
+    const layers = useRef<OrbPattern[]>([]);
     const reduced = useReducedMotion();
     const target = Math.max(0, Math.min(work?.focus ?? marks.length - 1, marks.length - 1));
     const ordered = !!work?.flow?.length;
-    useEffect(() => {
-        const old = previous.current;
-        if (old && marks.length && !marks.some(mark => mark?.id === old.id)) {
-            echo.current = { glyph: old, since: clock.current.time };
+    const controls = useRef({ target, tone });
+    const repaint = useRef<() => void>(() => {});
+    useLayoutEffect(() => {
+        controls.current = { target, tone };
+        const last = layers.current.at(-1);
+        if (last && last.ordered === ordered && last.marks.length === marks.length && marks.every((m, i) => m?.id === last.marks[i]?.id)) {
+            last.marks = marks;
+        } else {
+            layers.current.push({ marks, ordered, focus: target, opacity: last && !reduced ? 0 : 1 });
         }
-        previous.current = marks[target] ?? null;
-    }, [marks, target]);
+        if (reduced) {
+            const current = layers.current.at(-1)!;
+            Object.assign(current, { opacity: 1, focus: target });
+            layers.current = [current];
+            repaint.current();
+        }
+    }, [marks, ordered, reduced, target, tone, activity]);
     useEffect(() => {
         const el = canvas.current;
         if (!el || typeof CanvasRenderingContext2D === 'undefined') return;
@@ -33,9 +53,8 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         if (!ctx) return;
         const model = geometry ??= makeOrbGeometry();
         const state = clock.current;
-        state.beat = reduced || tone === 'rest' ? 0 : 1;
-        if (reduced) state.focus = target;
-        const draw = () => drawOrbFrame(ctx, model, state.time, state.beat, { marks, focus: state.focus, ordered, echo: reduced ? undefined : echo.current });
+        const draw = () => drawOrbFrame(ctx, model, state.time, state.beat, layers.current);
+        repaint.current = draw;
         const resize = () => {
             const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(3, Math.max(2, window.devicePixelRatio || 1))));
             if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
@@ -46,15 +65,14 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         let last: number | undefined;
         const tick = (now: number) => {
             const elapsed = last === undefined ? 0 : now - last;
-            if (last === undefined || elapsed >= 32) {
-                const seconds = Math.min(elapsed / 1000, .10);
-                state.speed += (SPEED[tone] - state.speed) * Math.min(1, seconds * 3);
-                state.time += seconds * state.speed;
-                state.focus += (target - state.focus) * (1 - Math.exp(-seconds * 3.5));
-                state.beat = Math.max(0, state.beat - seconds * .8);
-                last = now;
-                draw();
-            }
+            const seconds = Math.min(elapsed / 1000, .1);
+            const { target, tone } = controls.current;
+            state.speed += (SPEED[tone] - state.speed) * (1 - Math.exp(-seconds * 3));
+            state.time += seconds * state.speed;
+            state.beat += ((tone === 'rest' ? 0 : .5) - state.beat) * (1 - Math.exp(-seconds * 3));
+            advanceLayers(layers.current, target, seconds);
+            last = now;
+            draw();
             frame = requestAnimationFrame(tick);
         };
         const update = () => {
@@ -74,11 +92,12 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         document.addEventListener('visibilitychange', update);
         return () => {
             cancelAnimationFrame(frame);
+            repaint.current = () => {};
             viewport?.disconnect();
             size?.disconnect();
             document.removeEventListener('visibilitychange', update);
         };
-    }, [tone, activity, reduced, marks, target, ordered]);
+    }, [reduced]);
 
     return <div aria-hidden="true" className="cowork-orb" data-tone={tone}>
         <CoworkOrbSources action={tone} {...work} onRead={setMarks} />

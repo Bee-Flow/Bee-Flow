@@ -20,7 +20,7 @@ function observeSize(inner: HTMLElement, updated: () => void) {
 export default function CoworkSurface({ scene, children }: { scene: string; children: ReactNode }) {
     const frame = useRef<HTMLDivElement>(null);
     const content = useRef<HTMLDivElement>(null);
-    const previous = useRef<{ height: number; scene: string } | null>(null);
+    const previous = useRef<{ height: number; scene: string; hasOrb: boolean } | null>(null);
     const resize = useRef<Animation | null>(null);
     useLayoutEffect(() => {
         const outer = frame.current;
@@ -31,7 +31,8 @@ export default function CoworkSurface({ scene, children }: { scene: string; chil
         const from = resize.current ? outer.getBoundingClientRect().height : last?.height;
         resize.current?.cancel();
         resize.current = null;
-        previous.current = { height, scene };
+        const hasOrb = !!inner.querySelector('.cowork-orb');
+        previous.current = { height, scene, hasOrb };
         const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
         let arrival: Animation | undefined;
         const stop = () => { resize.current?.cancel(); resize.current = null; arrival?.cancel(); };
@@ -41,7 +42,7 @@ export default function CoworkSurface({ scene, children }: { scene: string; chil
             const move = resizeTo(outer, from, height, easing);
             resize.current = move;
             if (move) move.onfinish = () => { if (resize.current === move) resize.current = null; };
-            arrival = inner.animate([{ opacity: .58, transform: 'translateY(5px)' }, { opacity: 1, transform: 'none' }], { duration: 230, easing });
+            if (!(last?.hasOrb && hasOrb)) arrival = inner.animate([{ opacity: .58, transform: 'translateY(5px)' }, { opacity: 1, transform: 'none' }], { duration: 230, easing });
         }
         const observer = observeSize(inner, () => {
             const next = inner.getBoundingClientRect().height;
