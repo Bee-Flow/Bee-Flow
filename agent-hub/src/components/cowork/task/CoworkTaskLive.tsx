@@ -5,7 +5,6 @@
  * of making the steps.
  */
 import CoworkProgress from '../CoworkProgress';
-import CoworkStatusPill from '../CoworkStatusPill';
 import { plainStepTitle } from '../coworkOverviewModel';
 import { inRunOrder } from './coworkTaskModel';
 import { CARD, CARD_HEAD } from './taskUi';
@@ -37,10 +36,10 @@ function makingPhases(making: PlanMaking, t: TranslateFn): { labels: string[]; p
     };
 }
 
-function LiveCard({ heading, testing, labels, phase }: { heading: string; testing: boolean; labels: string[]; phase: number }) {
+function LiveCard({ heading, labels, phase }: { heading: string; labels: string[]; phase: number }) {
     return (
         <section className={CARD} data-testid="cowork-task-live" aria-label={heading}>
-            <div className={CARD_HEAD}><CoworkStatusPill status={testing ? 'testing' : 'running'} />{heading}</div>
+            <div className={CARD_HEAD}>{heading}</div>
             <CoworkProgress labels={labels} phase={phase} testId="cowork-task-progress" />
         </section>
     );
@@ -50,7 +49,7 @@ function LiveCard({ heading, testing, labels, phase }: { heading: string; testin
 function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: TranslateFn }) {
     const trace = useCoworkRunTrace(coworkId, run.id).data;
     const parts = trace?.recorded && trace.steps.length > 0 ? stepPhases(trace.steps, t) : { labels: [t('cowork_task.live.working', 'Working on it')], phase: 0 };
-    return <LiveCard heading={t('cowork_task.live.running', 'Running now')} testing={false} {...parts} />;
+    return <LiveCard heading={t('cowork_task.live.running', 'Running now')} {...parts} />;
 }
 
 interface CoworkTaskLiveProps {
@@ -69,9 +68,9 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
 }
 
 export default function CoworkTaskLive({ coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <LiveCard heading={t('cowork_task.live.setting_up', 'Setting up')} testing {...makingPhases(making, t)} />;
+    if (making.running) return <LiveCard heading={t('cowork_task.live.setting_up', 'Setting up')} {...makingPhases(making, t)} />;
     if (tryState && !tryState.done) {
-        return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} testing {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
+        return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
     }
     if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} t={t} />;
     return null;
