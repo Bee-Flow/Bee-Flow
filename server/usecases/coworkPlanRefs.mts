@@ -87,8 +87,8 @@ export function refFindings(definition: Definition | null | undefined, lookups: 
 
 /** What the planner and the amend mode hear about a draft: the findings, and the advice (a read nobody uses). */
 export function draftFindings(definition: Definition | null | undefined, lookups: ToolLookups): PlanFinding[] {
-    const advice = wiringFindings(definition, lookups, { ...WIRING_OPTIONS, advice: true }).filter((f) => !WIRING_BLOCKING.has(f.code)).map(({ code, stepId, message }) => ({ code, stepId, message }));
-    return [...refFindings(definition, lookups), ...advice];
+    const wiring = wiringFindings(definition, lookups, { ...WIRING_OPTIONS, advice: true }).map(({ code, stepId, message }) => ({ code, stepId, message }));
+    return [...listFindings(definition, lookups), ...wiring];
 }
 
 /** The list references that do not resolve on the described output of the step they read. */

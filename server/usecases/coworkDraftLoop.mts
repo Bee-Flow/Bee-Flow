@@ -112,9 +112,13 @@ export interface DraftSpec { userId: string; userOrgId: string | null; catalog: 
 /** An empty draft of the owner's, with their tables, tools and model tiers. */
 export async function newDraft(spec: DraftSpec, deps: Pick<LoopDeps, 'tiersFor' | 'builder'>): Promise<DraftWrap> {
     const { userId, userOrgId, catalog } = spec;
-    const tiers = await deps.tiersFor({ userOrgId, userId });
-    let datatables: unknown = null;
-    try { datatables = await deps.builder.datatablesFor(userId); } catch (e) { log.warn(`[CoworkPlanner] datatable catalog unavailable: ${(e as Error).message}`); }
+    const [tiers, datatables] = await Promise.all([
+        deps.tiersFor({ userOrgId, userId }),
+        deps.builder.datatablesFor(userId).catch((err: Error) => {
+            log.warn(`[CoworkPlanner] datatable catalog unavailable: ${err.message}`);
+            return null;
+        }),
+    ]);
     catalog.datatables = datatables;
     return {
         userId,

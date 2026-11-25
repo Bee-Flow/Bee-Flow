@@ -105,6 +105,8 @@ export type PlannerProgress = TryProgress;
 
 export interface MakeInput {
     item: Item;
+    /** Result of this request's server-side preflight, when checked before opening the stream. */
+    prepared?: { brief: string; modelId: string };
     /** The caller's session: which apps they have connected is read through it. */
     session?: unknown;
     userOrgId?: string | null;
@@ -171,17 +173,19 @@ async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps): Pro
 export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps()): Promise<MadePlan> {
     const { item } = input;
     const userOrgId = input.userOrgId ?? null;
-    const { brief, modelId } = await readyToPlan({ item, userOrgId }, deps);
+    const { brief, modelId } = input.prepared ?? await readyToPlan({ item, userOrgId }, deps);
 
-    const catalog = await deps.builder.catalogFor(item.userId, input.session ?? null);
+    const owner = { userId: item.userId, organizationId: userOrgId };
+    const [catalog, approvals] = await Promise.all([
+        deps.builder.catalogFor(item.userId, input.session ?? null),
+        deps.mayAsk(owner),
+    ]);
     const draft = await newDraft({
         userId: item.userId, userOrgId, catalog,
         // Its own prefix, so a plan Cowork drafted is recognisable next to the builder's `bs_` sessions.
         sessionId: `cw_${item.id}_${deps.now().toString(36)}`,
         title: item.title || 'Cowork plan', description: 'Drafted by Cowork from the brief of this item.',
     }, deps);
-    const owner = { userId: item.userId, organizationId: userOrgId };
-    const approvals = await deps.mayAsk(owner);
     // What Cowork would not run, the licence included: what is returned and what stops a try-out. The model is also told
     // the advice (a read that no step uses).
     const blockingOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];

@@ -85,8 +85,9 @@ function mountPlannerRoutes(router, overrides = {}) {
         const userId = userIdOf(req);
         const item = await loadItem(req.params.id, userId);
         const userOrgId = await orgOf(req, userId);
+        let prepared;
         try {
-            await planner().readyToPlan({ item, userOrgId });
+            prepared = await planner().readyToPlan({ item, userOrgId });
             await spendLeft(item); // drafting a plan is AI too: it counts against the budgets (core/cowork/spendGate.mts)
         } catch (err) {
             // A task that waits for its steps keeps waiting, and says why (usecases/coworkSetup.mts): never the AI by itself.
@@ -101,7 +102,7 @@ function mountPlannerRoutes(router, overrides = {}) {
         const stream = openSse(res, { heartbeat: true, flush: true });
         try {
             const made = await planner().makePlan({
-                item, session: req.session, userOrgId, signal: stream.signal, hints,
+                item, prepared, session: req.session, userOrgId, signal: stream.signal, hints,
                 onProgress: (progress) => stream.send('progress', progress),
             });
             // The trail (usecases/coworkAudit.mts): written here, once the plan exists.

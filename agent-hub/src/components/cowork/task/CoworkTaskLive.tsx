@@ -30,7 +30,7 @@ function makingPhases(making: PlanMaking, t: TranslateFn): { labels: string[]; p
         labels: [
             t('cowork_task.live.make_think', 'Working out the steps'),
             t('cowork_task.live.make_save', 'Saving them'),
-            t('cowork_task.live.make_test', 'Testing them once. Nothing is changed or sent.'),
+            making.phase === 'repairing' ? t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') : t('cowork_task.live.make_test', 'Testing them once. Nothing is changed or sent.'),
             t('cowork_task.live.make_ready', 'Ready for your check'),
         ],
     };
