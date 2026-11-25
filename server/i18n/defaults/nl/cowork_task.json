@@ -363,5 +363,6 @@
     "cowork_task.when.webhook_hint": "Elk systeem dat haar adres aanroept, start de taak. Het adres wordt gemaakt als je opslaat, en één keer getoond."
   },
   "sameAsEnglish": [
-    "cowork_task.steps.script_number",]
+    "cowork_task.steps.script_number"
+  ]
 }
