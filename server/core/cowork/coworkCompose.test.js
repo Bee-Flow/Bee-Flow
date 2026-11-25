@@ -191,3 +191,13 @@ test('the compose prompt copes with a user who has no agents', () => {
     const prompt = buildComposePrompt({ agents: [], timezone: 'UTC', nowLabel: 'now' });
     assert.match(prompt, /no agents/);
 });
+
+test('delivery uses the quoted send request, excluding source addresses and unrequested recipients', () => {
+    const quote = 'Mail de samenvatting naar team@example.nl';
+    const brief = 'Lees mails van bron@example.nl. ' + quote;
+    const spec = normaliseSpec({ delivery: { quote, to: ['bron@example.nl', 'team@example.nl'] } }, { brief });
+    assert.deepEqual(spec.delivery, { quote, to: ['team@example.nl'] });
+    const local = normaliseSpec({ missingTarget: 'recipient', delivery: { quote: 'stuur mij een mail', to: ['me'] } }, { brief: 'Vat mijn e-mails samen.' });
+    assert.equal(local.delivery, undefined);
+    assert.equal(local.missingTarget, undefined);
+});

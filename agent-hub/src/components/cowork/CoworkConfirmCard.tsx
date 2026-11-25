@@ -117,7 +117,7 @@ function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, cat
     const clock = isClockPayload(view.payload);
     return (
         <dl className="grid grid-cols-1 sm:grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 items-start m-0">
-            <dt className={ROW_LABEL}><label htmlFor="cowork-confirm-name">{t('cowork_home.confirm.what', 'What')}</label></dt>
+            <dt className={ROW_LABEL}><label htmlFor="cowork-confirm-name">{t('cowork_home.confirm.what', 'Task name')}</label></dt>
             <dd className={ROW_VALUE}>
                 <input id="cowork-confirm-name" type="text" maxLength={500} className={FIELD_WIDE} value={view.title} onChange={(e) => onChoose({ title: e.target.value })} data-testid="cowork-confirm-name" />
             </dd>
@@ -125,12 +125,15 @@ function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, cat
             <dd className={ROW_VALUE}><WhenField payload={view.payload} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} /></dd>
             <dt className={ROW_LABEL}>{t('cowork_home.confirm.uses', 'Uses')}</dt>
             <dd className={ROW_VALUE}><UsesRow view={view} onChoose={onChoose} t={t} catalogue={catalogue} /></dd>
+            {view.deliveryRequested && clock ? <>
             <dt className={ROW_LABEL}>{t('cowork_home.confirm.sends_to', 'Sends to')}</dt>
             <dd className={`${ROW_VALUE} mb-0`}>
-                {clock
-                    ? <SendsToRow view={view} onChoose={onChoose} t={t} steps={steps} />
-                    : <span data-testid="cowork-confirm-sends">{t('cowork_home.confirm.sends_sender', 'The sender of each mail, as a draft')}</span>}
+                <SendsToRow view={view} onChoose={onChoose} t={t} steps={steps} />
             </dd>
+            </> : <>
+                <dt className={ROW_LABEL}>{t('cowork_home.confirm.result', 'Result')}</dt>
+                <dd className={ROW_VALUE}>{clock ? t('cowork_home.confirm.in_task', 'Available in this Cowork task') : t('cowork_home.confirm.sends_sender', 'The sender of each mail, as a draft')}</dd>
+            </>}
         </dl>
     );
 }
@@ -161,7 +164,11 @@ export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose,
     const busy = cowork.submitting || rereading;
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">
-            <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'This is what I understood')}</h2>
+            <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'Review your task')}</h2>
+            <details className="rounded-lg bg-[var(--bg-secondary)] px-3 py-2 text-[13px]">
+                <summary className="cursor-pointer font-medium">{t('cowork_home.confirm.instructions', 'View task instructions')}</summary>
+                <p className="mt-2 whitespace-pre-wrap break-words text-[var(--text-secondary)]">{view.payload.prompt}</p>
+            </details>
             <ConfirmRows view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
             {question && <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
                 e.preventDefault();

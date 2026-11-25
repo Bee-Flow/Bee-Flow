@@ -18,7 +18,7 @@ function examples(t: TranslateFn) {
     ];
 }
 
-export default function CoworkExamples({ onPick, t }: { onPick: (text: string, supplierFilter?: boolean) => void; t: TranslateFn }) {
+export default function CoworkExamples({ onPick, t }: { onPick: (text: string) => void; t: TranslateFn }) {
     const [selected, select] = useState<number | null>(null);
     const [answers, setAnswers] = useState<string[]>([]);
     const [answer, setAnswer] = useState('');
@@ -38,7 +38,7 @@ export default function CoworkExamples({ onPick, t }: { onPick: (text: string, s
         if (!current || !answer.trim()) return;
         const filled = [...answers, answer.trim()];
         if (filled.length === current.questions.length) {
-            onPick(current.sentence.replace(/\[(\d)\]/g, (_, n: string) => filled[Number(n) - 1]), selected === 1);
+            onPick(current.sentence.replace(/\[(\d)\]/g, (_, n: string) => filled[Number(n) - 1]));
             select(null);
         }
         setAnswers(filled);

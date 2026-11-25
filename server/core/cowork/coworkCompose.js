@@ -58,6 +58,7 @@ Fields:
 - "daysOfWeek": array of "sun","mon","tue","wed","thu","fri","sat" when the user named specific days; otherwise null.
 - "timeOfDay": "HH:MM" (24h) when a time is stated or clearly implied; otherwise null.
     Vague parts of day map to: morning/ochtend = "08:00", midday/middag = "12:00", afternoon = "14:00", evening/avond = "18:00", night/nacht = "21:00".
+- "delivery": omit unless the user explicitly requests an outgoing message (send, email, notify, or equivalent in their language). Reading mail, preparing drafts, and returning a result in Cowork do not request delivery. When requested, return {"quote":"exact words requesting delivery copied from the brief","to":["me","literal@example.com"]}. Include "me" only if the owner asks to receive it. Include the recipients in the quoted request. Copy only destination addresses, never a sender, search filter or example address. If the destination is unclear use an empty list and missingTarget "recipient".
 - "missingTarget": only when a required destination for a write or send is missing, return "folder", "table", or "recipient". Choose the first missing destination only. A sender filter is not a recipient. A result for the owner already has its recipient. Otherwise omit this field. Never invent the missing destination.
 - "runOnce": true when this should run a single time, false when it repeats.
 - "agentId": the id of the agent that should run this, ONLY when the brief clearly asks for a specific agent. Otherwise null.
@@ -126,7 +127,7 @@ function titleFromBrief(brief) {
  */
 /**
  * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
- *   missingTarget?: string, timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
+ *   delivery?: {quote?: string, to?: unknown[]}, missingTarget?: string, timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
  *   what the model replied; every field is untrusted
  */
 /**
@@ -171,6 +172,23 @@ function normaliseDays(value) {
     return VALID_DOW_TOKENS.filter(d => unique.includes(d));
 }
 
+/** @param {ModelSpec} spec @param {string} brief */
+function deliveryOf(spec, brief) {
+    const quote = spec.delivery?.quote;
+    if (typeof quote !== 'string' || !quote.trim() || !brief.includes(quote.trim())) return null;
+    const addresses = new Set((quote.match(/[\w.%+-]+@[\w.-]+\.[a-z]{2,}/gi) || []).map(value => value.toLowerCase()));
+    const to = Array.isArray(spec.delivery.to) ? spec.delivery.to.filter(value =>
+        typeof value === 'string' && (value === 'me' || addresses.has(value.toLowerCase()))) : [];
+    return { quote: quote.trim(), to };
+}
+
+/** @param {ModelSpec} spec @param {string} brief */
+function destinationFields(spec, brief) {
+    const delivery = deliveryOf(spec, String(brief || ''));
+    const needsTarget = ['folder', 'table'].includes(spec.missingTarget) || (delivery && spec.missingTarget === 'recipient');
+    return { ...(delivery ? { delivery } : {}), ...(needsTarget ? { missingTarget: spec.missingTarget } : {}) };
+}
+
 /**
  * Coerce one model reply into a spec that is safe to persist.
  * Pure — no model, no DB. `raw` may be null (model failed entirely).
@@ -198,9 +216,9 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
     const { agentId, agentReason } = resolveAgent(obj, { brief, agents });
 
     return {
+        ...destinationFields(obj, brief),
         title: cleanText(obj.title, MAX_TITLE) || titleFromBrief(brief),
         prompt: cleanText(obj.prompt, MAX_PROMPT) || String(brief || '').trim(),
-        ...(['folder', 'table', 'recipient'].includes(obj.missingTarget) ? { missingTarget: obj.missingTarget } : {}),
         repeatInterval,
         daysOfWeek,
         timeOfDay,

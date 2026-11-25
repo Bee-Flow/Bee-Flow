@@ -87,13 +87,13 @@ function useReread(cowork: UseCoworkComposerReturn, modelTier: string | undefine
 }
 
 /** Under the box: "Start from a template", and the button that reads the sentence. */
-function ComposerButtons({ reading, disabled, onTemplates, t }: { reading: boolean; disabled: boolean; onTemplates: () => void; t: TranslateFn }) {
+function ComposerButtons({ reading, disabled, previewOpen, onTemplates, t }: { previewOpen: boolean; reading: boolean; disabled: boolean; onTemplates: () => void; t: TranslateFn }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-2 sm:px-5">
             <button type="button" className={LINK_BUTTON} onClick={onTemplates}>{t('cowork_home.from_template', 'Start from a template')}</button>
-            <button type="submit" className={BUTTON_PRIMARY} data-testid="cowork-continue" disabled={disabled}>
-                {reading ? t('cowork_home.reading', 'Reading…') : t('cowork_home.show_understood', 'Show what I understood')}
-            </button>
+            {!previewOpen && <button type="submit" className={BUTTON_PRIMARY} data-testid="cowork-continue" disabled={disabled}>
+                {reading ? t('cowork_home.reading', 'Reading…') : t('cowork_home.show_understood', 'Preview task')}
+            </button>}
         </div>
     );
 }
@@ -131,7 +131,7 @@ export default function CoworkHomeComposer({ atLimit, maxItems, stepTypes, seed 
     const ready = canRead(text, atLimit, cowork);
     const go = () => { if (ready) void cowork.submit(text, { modelTier: selectedTier }); };
     const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); go(); }
     };
     const edit = (next: string) => {
         setText(next);
@@ -155,26 +155,26 @@ export default function CoworkHomeComposer({ atLimit, maxItems, stepTypes, seed 
                 {t('cowork_home.ask', 'What should be done for you?')}
             </h1>
             <form className={`${CARD} overflow-hidden flex flex-col focus-within:ring-2 focus-within:ring-[var(--focus-ring)]`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); go(); }}>
-                <label htmlFor="cowork-brief" className="sr-only">{t('cowork_home.brief_label', 'Describe the task in one sentence')}</label>
+                <label htmlFor="cowork-brief" className="px-4 pt-4 sm:px-5 text-[13px] font-semibold text-[var(--text-secondary)]">{t('cowork_home.brief_label', 'Task instructions')}</label>
                 <textarea
                     id="cowork-brief"
                     ref={box}
-                    rows={2}
+                    rows={4}
                     value={text}
                     data-testid="cowork-brief-input"
                     onChange={(e) => edit(e.target.value)}
                     onKeyDown={onKey}
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
-                    className="w-full px-4 pt-4 pb-3 sm:px-5 min-h-[88px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
+                    className="w-full px-4 pt-2 pb-4 sm:px-5 min-h-32 max-h-[50vh] [field-sizing:content] overflow-y-auto resize-y border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 />
                 {!atLimit && <CoworkStepPicker types={stepTypes} t={t} onPick={(label) => {
                     edit([text.trimEnd(), t('cowork_home.use_step', 'Use the {step} step.', { step: label })].filter(Boolean).join('\n'));
                     box.current?.focus();
                 }} />}
                 {Object.keys(modelTiers).length > 0 && <div className="px-4 pb-2"><CoworkModelPicker tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} t={t} /></div>}
-                <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
+                <ComposerButtons previewOpen={!!cowork.draft} reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>
-            {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
+            {showExamples(atLimit, text, cowork) && <CoworkExamples onPick={(brief) => { setText(brief); setChoices({}); box.current?.focus(); }} t={t} />}
             {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
             {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (

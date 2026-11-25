@@ -138,16 +138,6 @@ export interface Recipients { me: boolean; others: string[] }
 
 const sameAddress = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
 
-/**
- * Who a new task sends to, as far as its sentence says: its owner, and every address written in it, in order and once
- * each. "Me" is always there: "send it to me and sam@example.com" is both, and only the owner takes themselves off.
- */
-export function recipientsIn(text: string): Recipients {
-    const others: string[] = [];
-    for (const word of wordsOf(text)) if (isAddress(word) && !others.some((o) => sameAddress(o, word))) others.push(word);
-    return { me: true, others };
-}
-
 /** With one more address; the same list when it is there already or is no address. */
 export function withRecipient(to: Recipients, address: string): Recipients {
     const next = address.trim();
@@ -214,10 +204,20 @@ export interface ConfirmView {
     payload: CoworkPayload | CoworkTriggerPayload;
     /** The ids of the apps the task may use; null while nobody chose and the sentence names none (Cowork picks them). */
     apps: string[] | null;
+    deliveryRequested: boolean;
     recipients: Recipients;
     /** Someone other than the owner gets it: "Show me each message first" is offered. */
     sendsToOthers: boolean;
     showFirst: boolean;
+}
+
+function deliveryIn(draft: CoworkDraft, sentence: string, choices: ConfirmChoices) {
+    const delivery = draft.spec?.delivery;
+    const deliveryRequested = !!delivery?.quote && sentence.includes(delivery.quote);
+    const to = deliveryRequested ? delivery.to : [];
+    const parsed = to.reduce<Recipients>(withRecipient, { me: to.includes('me'), others: [] });
+    const recipients = deliveryRequested ? choices.recipients ?? parsed : { me: false, others: [] };
+    return { deliveryRequested, recipients };
 }
 
 /**
@@ -229,12 +229,13 @@ export function confirmView(draft: CoworkDraft, choices: ConfirmChoices, sentenc
     const said = [sentence, payload.prompt ?? ''].join(' ');
     const named = appsNamedIn(said, catalogue).map((a) => a.id);
     const own = Array.isArray(payload.enabledApps) ? payload.enabledApps : null;
-    const recipients = choices.recipients ?? recipientsIn(said);
+    const { deliveryRequested, recipients } = deliveryIn(draft, sentence, choices);
     const sendsToOthers = isClockPayload(payload) && recipients.others.length > 0;
     return {
         title: choices.title ?? payload.title,
         payload: choices.schedule && isClockPayload(payload) ? withSchedule(payload, choices.schedule) : payload,
         apps: choices.apps ?? own ?? (named.length > 0 ? named : null),
+        deliveryRequested,
         recipients,
         sendsToOthers,
         showFirst: sendsToOthers && (choices.showFirst ?? true),
