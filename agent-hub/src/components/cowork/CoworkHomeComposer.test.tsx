@@ -37,10 +37,10 @@ const entitled = (steps: boolean): EntitlementsValue => ({
 });
 const inOrg = (ui: ReactElement, steps = true) => <EntitlementsContext.Provider value={entitled(steps)}>{ui}</EntitlementsContext.Provider>;
 
-function renderComposer({ steps = true } = {}) {
+function renderComposer({ steps = true, stepTypes = [] as string[] } = {}) {
     const onCreated = vi.fn();
     const onTemplates = vi.fn();
-    renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
+    renderWithClient(inOrg(<CoworkHomeComposer stepTypes={stepTypes} atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
     return { onCreated, onTemplates };
 }
 
@@ -56,6 +56,17 @@ async function write(text: string) {
 const WEEKLY: CoworkSpec = { title: 'Weekly meeting summary', prompt: 'Summarise last week’s meetings and mail the summary', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00' };
 
 describe('CoworkHomeComposer', () => {
+    it('adds a selected Automations step to the existing task description', async () => {
+        serve({});
+        renderComposer({ stepTypes: ['condition'] });
+        const user = userEvent.setup();
+        await user.type(box(), 'Review my emails');
+        await user.click(screen.getByText('Choose a step'));
+        await user.click(screen.getByRole('button', { name: 'Condition' }));
+        expect(box()).toHaveValue('Review my emails\nUse the Condition step.');
+        expect(box()).toHaveFocus();
+    });
+
     it('asks first, offers templates, and waits for a sentence', async () => {
         serve({});
         const { onTemplates } = renderComposer();

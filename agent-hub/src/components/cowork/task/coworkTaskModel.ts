@@ -32,6 +32,7 @@ type StepSort = 'read' | 'change' | 'send' | 'ai' | 'ask';
 export interface TaskStep {
     id: string;
     title: string;
+    type?: string;
     script?: boolean;
     description?: string | null;
     sort: StepSort;
@@ -70,6 +71,7 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
     return inRunOrder(view.steps, view.runOrder).map((step) => ({
         id: step.id,
         title: plainStepTitle(step, t),
+        type: step.type,
         sort: sortOfPlanStep(step),
         app: step.app ? appLabel(step.app) : null,
         integrationId: step.app ?? null,

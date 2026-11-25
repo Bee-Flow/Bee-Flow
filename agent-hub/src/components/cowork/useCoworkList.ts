@@ -12,7 +12,7 @@ import type { CoworkItem } from '@/api/cowork.types';
 const COWORK_LIST_KEY = ['cowork', 'list'] as const;
 
 export default function useCoworkList() {
-    return useQuery<{ items: CoworkItem[]; maxItems: number }>({
+    return useQuery<Awaited<ReturnType<typeof listCowork>>>({
         queryKey: COWORK_LIST_KEY,
         staleTime: 0,
         retry: false,

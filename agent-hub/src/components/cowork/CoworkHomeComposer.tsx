@@ -13,6 +13,7 @@
  * week on the day it was asked; a template's sentence (`seed`) fills it too.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import CoworkStepPicker from './CoworkStepPicker';
 import CoworkExamples from './CoworkExamples';
 import CoworkConfirmCard from './CoworkConfirmCard';
 import CoworkProgress from './CoworkProgress';
@@ -31,6 +32,7 @@ export interface CoworkHomeComposerProps {
     /** No room for another task: the box says so instead of offering to read the sentence. */
     atLimit: boolean;
     maxItems: number;
+    stepTypes?: string[];
     /** A sentence to put in the box (a template's), with a counter so the same one can be put twice. */
     seed?: { text: string; n: number } | null;
     onTemplates: () => void;
@@ -104,7 +106,7 @@ function showExamples(atLimit: boolean, text: string, cowork: UseCoworkComposerR
     return !atLimit && !text && !cowork.draft;
 }
 
-export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onTemplates, onCreated, setup }: CoworkHomeComposerProps) {
+export default function CoworkHomeComposer({ atLimit, maxItems, stepTypes, seed = null, onTemplates, onCreated, setup }: CoworkHomeComposerProps) {
     const { t } = useTranslation();
     const [handed] = useState(takeHandedBrief);
     const [text, setText] = useState(handed.brief);
@@ -165,6 +167,10 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                     placeholder={t('cowork_home.brief_placeholder', 'Every Monday at 09:00, summarise last week’s meetings and send it to me')}
                     className="w-full px-4 pt-4 pb-3 sm:px-5 min-h-[88px] resize-none border-0 bg-transparent text-[16px] leading-6 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 />
+                {!atLimit && <CoworkStepPicker types={stepTypes} t={t} onPick={(label) => {
+                    edit([text.trimEnd(), t('cowork_home.use_step', 'Use the {step} step.', { step: label })].filter(Boolean).join('\n'));
+                    box.current?.focus();
+                }} />}
                 {Object.keys(modelTiers).length > 0 && <div className="px-4 pb-2"><TierSlider tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} variant="input" /></div>}
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!ready} onTemplates={onTemplates} t={t} />
             </form>

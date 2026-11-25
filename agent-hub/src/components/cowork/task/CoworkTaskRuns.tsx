@@ -6,7 +6,8 @@
  *
  * A run's raw error is shown only under "Technical details" in its opened row, never in a line a person reads.
  */
-import { Code2, Workflow, Sparkles, Send } from 'lucide-react';
+import { paletteItemForType } from '@/components/automation/Builder/flow/stepPalette';
+import { Workflow, Sparkles, Send } from 'lucide-react';
 import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import { useId, useState } from 'react';
 import { fullTimestamp } from '../coworkFormat';
@@ -43,7 +44,7 @@ function RunSteps({ coworkId, runId, t }: { coworkId: string; runId: string; t: 
     if (trace.isPending) return <p role="status">{t('cowork_task.trace.loading', 'Loading run steps…')}</p>;
     if (!trace.data?.recorded) return <p>{t('cowork_task.trace.missing', 'Step details are unavailable for this run.')}</p>;
     return <ol className="list-none space-y-2 p-0">{trace.data.steps.map((step) => {
-        const Icon = step.type === 'code' ? Code2 : step.kind === 'ai' ? Sparkles : step.kind === 'deliver' ? Send : Workflow;
+        const Icon = paletteItemForType(step.type ?? '')?.icon ?? (step.kind === 'ai' ? Sparkles : step.kind === 'deliver' ? Send : Workflow);
         return (
             <li className="flex items-start gap-2" key={step.id}>
                 <span aria-hidden="true" className="mt-0.5">

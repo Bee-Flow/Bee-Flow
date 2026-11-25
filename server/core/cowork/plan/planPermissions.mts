@@ -49,7 +49,7 @@ function triplesOf(step: DefStep, type: string, lookups: ToolLookups): Array<[st
         const op = typeof step.op === 'string' && step.op ? step.op : 'read';
         return [[DATATABLES_APP, DATATABLE_WRITE_OPS.has(step.op) ? 'writes' : 'reads', `datatable.${op}`]];
     }
-    if (type === 'generate_document') return [[DOCUMENTS_APP, 'writes', 'generate_document']];
+    if (['generate_document', 'fill_document', 'presentation', 'write_table'].includes(type)) return [[DOCUMENTS_APP, 'writes', type]];
     return [];
 }
 

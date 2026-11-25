@@ -6,6 +6,8 @@
  */
 
 export default {
+    "cowork_home.choose_step": "Choose a step",
+    "cowork_home.use_step": "Use the {step} step.",
     "cowork_home.confirm.target_folder": "Which folder should receive the files?",
     "cowork_home.confirm.target_recipient": "Who should receive the result?",
     "cowork_home.confirm.target_table": "Which table should receive the rows?",

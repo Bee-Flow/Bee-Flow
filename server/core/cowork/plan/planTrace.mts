@@ -136,9 +136,9 @@ export function traceSteps(definition: Definition | null | undefined, rows: RunS
         const row = last.get(step.id);
         const acts = step.effect !== 'reads';
         return {
-            id: step.id, title: step.title, kind: step.kind, effect: step.effect,
+            id: step.id, type: step.type, title: step.title, kind: step.kind, effect: step.effect,
             ...(step.app ? { app: step.app } : {}),
-            ...(step.type === 'code' ? { type: step.type, description: step.description, scriptNumber: step.scriptNumber, inputNames: step.inputNames } : {}),
+            ...(step.type === 'code' ? { description: step.description, scriptNumber: step.scriptNumber, inputNames: step.inputNames } : {}),
             status: statusOf(step.id),
             depth: step.depth,
             durationMs: row ? durationOf(row) : null,

@@ -130,6 +130,8 @@ export async function newDraft(spec: DraftSpec, deps: Pick<LoopDeps, 'tiersFor' 
         description: spec.description,
         def: deps.builder.emptyDefinition(),
         _datatables: datatables,
+        _documents: [],
+        _documentDiscoveryRequired: true,
         _inputSchemasByTool: deps.builder.inputSchemasByTool(catalog),
         _availableToolNames: catalog.toolNames instanceof Set ? catalog.toolNames : null,
         _inspectedTools: new Set<string>(),

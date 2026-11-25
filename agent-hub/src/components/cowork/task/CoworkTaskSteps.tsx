@@ -11,7 +11,7 @@
  *     month" (no app at all, ./CoworkTaskReplay.tsx).
  */
 import { useState } from 'react';
-import { Check, Code2, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
+import { Check, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
 import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
@@ -20,6 +20,7 @@ import CoworkTaskReplay from './CoworkTaskReplay';
 import { TechnicalDetails } from './taskRows';
 import { BTN_LINK, BTN_QUIET, Failure, META, ROW_ACTIONS, TAG_WARN } from './taskUi';
 import { useCoworkPlanReplay } from '@/api/coworkReplay';
+import { paletteItemForType } from '@/components/automation/Builder/flow/stepPalette';
 import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import type { CoworkRun } from '@/api/cowork.types';
 import type { PlanState, PlanTryState } from '@/api/coworkPlan.types';
@@ -38,10 +39,8 @@ const AI_MARK = 'AI';
 
 function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
-    if (step.script) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-secondary)]`}><Code2 size={16} /></span>;
-    if (step.helper) return <span aria-hidden="true" className={`${base} border-[var(--border-subtle)] text-[var(--text-tertiary)]`}>·</span>;
     const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
-    const Icon = step.sort === 'ai' ? null : ICON[step.sort];
+    const Icon = paletteItemForType(step.type ?? '')?.icon ?? (step.sort === 'ai' ? null : ICON[step.sort]);
     const fallback = Icon ? <Icon size={16} /> : AI_MARK;
     return (
         <span aria-hidden="true" className={tone}>

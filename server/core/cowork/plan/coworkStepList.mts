@@ -33,13 +33,14 @@ const KINDS: Readonly<Record<string, StepKind>> = Object.freeze({
     // The organisation's own tables and documents.
     datatable: 'fixed',
     generate_document: 'fixed',
-    // The Privacy Shield as steps.
-    guard: 'fixed',
+    fill_document: 'fixed',
+    write_table: 'fixed',
+    slide: 'fixed',
+    presentation: 'fixed',
     // A script: a calculation on the data of earlier steps, run outside the API process with no network, no apps and
     // no secrets (./planRunCopy.mts withIsolatedScripts, automation/codeSandboxProcess.js).
     code: 'fixed',
-    tokenize: 'fixed',
-    untokenize: 'fixed',
+
     // A model reads, judges or writes.
     ai_step: 'ai',
     data_extraction: 'ai',
@@ -48,6 +49,8 @@ const KINDS: Readonly<Record<string, StepKind>> = Object.freeze({
     // The result reaches the owner.
     notification: 'deliver',
 });
+
+export const isPrivacyStep = (type: string): boolean => type === 'guard' || type === 'tokenize' || type === 'untokenize';
 
 const REFUSED: Readonly<Record<string, string>> = Object.freeze({
     http_request: 'A plan reaches the outside world through a connected app, not through a free web address.',
@@ -60,10 +63,9 @@ const REFUSED: Readonly<Record<string, string>> = Object.freeze({
     return_to_app: 'A plan is not started by a Studio App.',
     knowledge_write: 'A plan cannot write into a knowledge base: what it stores there is later stated as fact.',
     kb_query_log: 'A plan cannot read or review a knowledge base log.',
-    write_table: 'A plan cannot write a table file yet.',
-    fill_document: 'A plan cannot fill a designed document yet.',
-    slide: 'A plan cannot build a presentation yet.',
-    presentation: 'A plan cannot build a presentation yet.',
+    guard: 'Privacy Shield is managed outside the Cowork step list.',
+    tokenize: 'Privacy Shield is managed outside the Cowork step list.',
+    untokenize: 'Privacy Shield is managed outside the Cowork step list.',
     parse_json: 'This step type is retired.',
     ai_tool: 'A plan uses an AI step, not a single AI tool call.',
 });
@@ -95,7 +97,7 @@ export function refusalOfStepType(type: unknown): string {
  * them, and sees them behind "Show N helper steps". Every one of them is a fixed step that changes and sends nothing.
  */
 const HELPERS: ReadonlySet<string> = new Set([
-    'set', 'datetime', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'code', 'tokenize', 'untokenize', 'guard',
+    'set', 'datetime', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten', 'code',
 ]);
 
 /** Does this step type only reshape or guard data on the way (a helper step)? */

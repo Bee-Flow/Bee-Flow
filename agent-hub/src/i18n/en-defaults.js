@@ -39749,6 +39749,8 @@ const EN_DEFAULTS = {
     "cowork_habits.offer": "You ask this every {day}. Let Cowork do it for you?",
     "cowork_habits.switch": "Notice what I ask again and again",
     "cowork_habits.switch_hint": "Cowork keeps only which apps a chat used and on which weekday, never what you asked. After four weeks in a row it offers once to do it for you. Switching it off forgets it all.",
+    "cowork_home.choose_step": "Choose a step",
+    "cowork_home.use_step": "Use the {step} step.",
     "cowork_home.confirm.target_folder": "Which folder should receive the files?",
     "cowork_home.confirm.target_recipient": "Who should receive the result?",
     "cowork_home.confirm.target_table": "Which table should receive the rows?",

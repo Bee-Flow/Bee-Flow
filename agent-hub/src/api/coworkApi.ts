@@ -42,11 +42,11 @@ async function readError(res: Response, fallback: string): Promise<Error> {
     return new CoworkRequestError(body.error || fallback, typeof body.code === 'string' ? body.code : undefined);
 }
 
-export async function listCowork(): Promise<{ items: CoworkItem[]; maxItems: number }> {
+export async function listCowork(): Promise<{ items: CoworkItem[]; maxItems: number; stepTypes?: string[] }> {
     const res = await authFetch(BASE());
     if (!res.ok) throw await readError(res, 'Could not load your work');
     const data = await res.json();
-    return { items: data.schedules || [], maxItems: data.maxSchedules || 10 };
+    return { items: data.schedules || [], maxItems: data.maxSchedules || 10, ...(Array.isArray(data.stepTypes) ? { stepTypes: data.stepTypes } : {}) };
 }
 
 /** The mail apps (`gmail`, `msgraph`) the signed-in user has connected: what a mail trigger can watch. */

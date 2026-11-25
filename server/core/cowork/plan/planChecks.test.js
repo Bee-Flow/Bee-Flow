@@ -24,6 +24,14 @@ test('an unattended task cannot rely on the notebook of a chat, including its le
     }
 });
 
+test('Privacy Shield steps are excluded from new plans while approved plans remain executable', () => {
+    for (const type of ['guard', 'tokenize', 'untokenize']) {
+        const plan = planOf([{ id: 'privacy', type }]);
+        assert.deepStrictEqual(codes(plan), ['step.not_allowed']);
+        assert.deepStrictEqual(checkPlan(plan, lookups, true), []);
+    }
+});
+
 test('the running example is a plan: no finding', () => {
     assert.deepStrictEqual(checkPlan(supplierRadar(), lookups), []);
 });

@@ -165,7 +165,7 @@ async function runnablePlan(task: PlanTask, store: PlanRunStore, lookups: ToolLo
         throw new PlanRefusedError('The stored plan is not the one that was approved. Approve the plan again.');
     }
     // Checked as the item starts: an event's data is outside text (./startKinds.mts).
-    const findings = checkPlan(asStartedBy(definition, task), lookups);
+    const findings = checkPlan(asStartedBy(definition, task), lookups, true);
     if (findings.length > 0) {
         throw new PlanRefusedError(`This plan may not run as it is: ${firstFinding(findings)} Change the plan and approve it again.`);
     }
