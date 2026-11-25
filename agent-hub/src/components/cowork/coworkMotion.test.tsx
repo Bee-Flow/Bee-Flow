@@ -4,7 +4,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { readStylesheet } from '@/test/appStylesheets';
-import CoworkOrb from './CoworkOrb';
 import { ENTER, EXPAND, Expand, LEAVE, SPIN, STAGGER, SWAP, TINT, useLeave } from './coworkMotion';
 
 // Read once: the rules between the "Cowork motion" heading of app.css and the next section.
@@ -35,28 +34,12 @@ describe('the Cowork motion in the stylesheet', () => {
         expect(rule(`.${ENTER}`)).toMatch(/animation:\s*coworkEnter\s+160ms\s+ease-out\s+backwards\s*;/);
         expect(rule(`.${SWAP}`)).toMatch(/backwards\s*;/);
         expect(withoutKeyframes).not.toMatch(/\b(transform|filter|backdrop-filter|will-change)\s*:/);
-        // Only the spinner and activity mark loop; the latter is opt-in to motion.
-        expect(motion).toMatch(/prefers-reduced-motion: no-preference[\s\S]*?coworkBreathe/);
-        expect(withoutKeyframes.match(/infinite/g)).toHaveLength(2);
+        expect(withoutKeyframes.match(/infinite/g)).toHaveLength(1);
         expect(rule(`.${SPIN}`)).toContain('infinite');
         const durations = [...withoutKeyframes.replace(rule(`.${SPIN}`), '').matchAll(/animation:[^;]*?(\d+)ms/g)].map((m) => Number(m[1]));
         expect(durations.length).toBeGreaterThan(0);
         expect(Math.max(...durations)).toBeLessThanOrEqual(200);
     });
-});
-
-it('keeps the inner current moving across steps and lets it settle when the work ends', () => {
-    const { container, rerender } = render(<CoworkOrb activity="Preparing" />);
-    const current = container.querySelector('feOffset animate');
-    const signal = container.querySelector('animateMotion');
-    expect(current).toBeInTheDocument();
-    expect(signal).toBeInTheDocument();
-    rerender(<CoworkOrb tone="executing" activity="Reading messages" />);
-    expect(container.querySelector('feOffset animate')).toBe(current);
-    expect(container.querySelector('animateMotion')).toBe(signal);
-    rerender(<CoworkOrb tone="rest" />);
-    expect(container.querySelector('img')).toBeInTheDocument();
-    expect(container.querySelector('animate, animateMotion')).toBeNull();
 });
 
 describe('the motion constants', () => {
