@@ -13,6 +13,9 @@
  * its card only after a try-out of exactly that plan passed. A plan that never passed says honestly what still fails.
  */
 
+import { planFingerprint } from '../core/cowork/plan/planPermissions.mts';
+import { REF_FINDING } from './coworkPlanRefs.mts';
+import { planReport } from './coworkPlannerPrompt.mts';
 import type { Definition, PlanFinding } from '../core/cowork/plan/planTypes.mts';
 import type { SourceRow } from '../core/cowork/plan/planSource.mts';
 import type { PlanTryRecord } from '../stores/coworkPlanTries.mts';
@@ -63,12 +66,15 @@ export interface TriedPlan {
 const tooLong = { code: 'cowork_planner_timeout', message: 'Making the plan took too long. Try again, or write a shorter brief.' };
 
 /** One repair of the draft from the facts of a try-out, stored on the plan automation. */
-async function repair(input: TryRoundsInput, verdict: TryVerdict, round: number, deps: TryRoundDeps): Promise<void> {
+async function repair(input: TryRoundsInput, report: string, round: number, deps: TryRoundDeps): Promise<boolean> {
     input.onProgress?.({ phase: 'repairing', round });
-    input.loop.messages.push({ role: 'user', content: tryReport(verdict.facts) });
-    await draftWithin({ ...input.loop, maxRounds: REPAIR_ROUNDS }, input.signal, tooLong, deps);
+    input.loop.messages.push({ role: 'user', content: report });
+    const before = planFingerprint(input.draft.def);
+    await draftWithin({ ...input.loop, onProgress: undefined, maxRounds: REPAIR_ROUNDS }, input.signal, tooLong, deps);
+    if (planFingerprint(input.draft.def) === before) return false;
     const stored = await deps.builder.persistDraft(input.draft, { finalize: true });
     if (stored?.error) throw new Error(`the planner could not store its repaired draft: ${stored.error}`);
+    return true;
 }
 
 /** Keep the outcome on the item and answer it. */
@@ -82,21 +88,32 @@ export async function tryAndRepair(input: TryRoundsInput, deps: TryRoundDeps): P
     const extra = (rounds: number) => ({ required: true, rounds });
     let last: TryVerdict | null = null;
     let tried = 0;
-    for (let round = 1; round <= MAX_TRY_ROUNDS; round++) {
+    let attemptedStaticRepair = false;
+    while (tried < MAX_TRY_ROUNDS) {
+        const round = tried + 1;
         input.signal?.throwIfAborted();
         const def = input.draft.def;
         const blocking = await input.blockingOf(def);
-        if (blocking.length > 0) return kept(input, untriedRecord(input.automationId, def, blocking.map((f) => f.message), extra(round - 1)), deps);
+        const report = blocking.every((f) => f.code === REF_FINDING || f.code === 'step.chat_notebook') ? planReport([], blocking) : null;
+        if (blocking.length && (!report || attemptedStaticRepair)) {
+            return kept(input, untriedRecord(input.automationId, def, blocking.map((f) => f.message), extra(tried)), deps);
+        }
         try { await deps.spendLeft(input.item); } catch (e) {
-            return kept(input, untriedRecord(input.automationId, def, [`Not tried: ${(e as Error).message}`], extra(round - 1)), deps);
+            return kept(input, untriedRecord(input.automationId, def, [`Not tried: ${(e as Error).message}`], extra(tried)), deps);
+        }
+        if (report) {
+            attemptedStaticRepair = true;
+            await repair(input, report, round, deps);
+            // Revalidate the draft and check the budget again before testing it.
+            continue;
         }
         const automation = await deps.getAutomation(input.automationId);
-        if (!automation) return kept(input, untriedRecord(input.automationId, def, ['The plan could not be tried: its automation is gone.'], extra(round - 1)), deps);
+        if (!automation) return kept(input, untriedRecord(input.automationId, def, ['The plan could not be tried: its automation is gone.'], extra(tried)), deps);
         input.onProgress?.({ phase: 'trying', round });
         last = await deps.tryOut({ item: input.item, automation, definition: def });
         tried = round;
         if (last.passed || round === MAX_TRY_ROUNDS) break;
-        await repair(input, last, round, deps);
+        if (!await repair(input, tryReport(last.facts), round, deps)) break;
     }
     return kept(input, recordFor(input.automationId, input.draft.def, last as TryVerdict, extra(tried)), deps);
 }

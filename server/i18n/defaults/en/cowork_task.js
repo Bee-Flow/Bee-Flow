@@ -3,6 +3,12 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_task.steps.replace_notebook": "Rebuild and test for delivery in Cowork",
+    "cowork_task.steps.script_inputs": "Processes {fields}.",
+    "cowork_task.steps.script_number": "Script {number}",
+    "cowork_task.uses.auto_model": "Automatic",
+    "cowork_task.uses.model": "AI model",
+    "cowork_task.steps.script_fallback": "Runs a script on task data.",
     "cowork_task.param.choose": "What do you want to change?",
     "cowork_task.param.describe": "Describe a change",
     "cowork_task.param.folder": "Folder",

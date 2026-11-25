@@ -1,5 +1,7 @@
 {
   "translations": {
+    "cowork_home.choose_step": "Kies een stap",
+    "cowork_home.use_step": "Gebruik de stap {step}.",
     "cowork_home.ask": "Wat moet er voor je gedaan worden?",
     "cowork_home.at_limit": "Je hebt {count} taken, het maximum. Verwijder er een om een nieuwe toe te voegen.",
     "cowork_home.brief_label": "Beschrijf de taak in één zin",

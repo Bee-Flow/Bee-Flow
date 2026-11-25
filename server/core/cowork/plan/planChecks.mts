@@ -31,12 +31,13 @@
 
 import { createRequire } from 'node:module';
 import type { Definition, DefStep, Effect, PlanFinding, ToolLookups } from './planTypes.mts';
-import { PLAN_TRIGGER_KINDS, isAnnotation, kindOfStepType, refusalOfStepType } from './coworkStepList.mts';
+import { PLAN_TRIGGER_KINDS, isAnnotation, isPrivacyStep, kindOfStepType, refusalOfStepType } from './coworkStepList.mts';
 import { outsideTextOf, startsOnMail, type OutsideText } from './outsideText.mts';
 import { stepsOf, inputsOf, aiToolsOf, refsOfStep, refsOfValue, type WalkedStep } from './planWalk.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { stepEffect } = nodeRequire('../../automationModel/stepEffect.js') as { stepEffect: (step: DefStep) => Effect };
+const { NOTEBOOK_TOOLS } = nodeRequire('../../integrations/notebookToolNames.js') as { NOTEBOOK_TOOLS: ReadonlySet<string> };
 const { MAIL_APPS } = nodeRequire('../../agentRuntime/toolPolicy/mailAccess.js') as { MAIL_APPS: Record<string, { draft: string; reply: string }> };
 
 /**
@@ -181,30 +182,38 @@ function asShownFindings(s: WalkedStep): PlanFinding[] {
     return out;
 }
 
-function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText, onMail: boolean): PlanFinding[] {
+// Already approved snapshots retain their explicit privacy processing on subsequent runs.
+function checkedKind(type: string, approved: boolean) {
+    return approved && isPrivacyStep(type) ? 'fixed' : kindOfStepType(type);
+}
+
+function stepFindings(s: WalkedStep, lookups: ToolLookups, outside: OutsideText, context: { onMail: boolean; approved: boolean }): PlanFinding[] {
     if (isAnnotation(s.type)) return [];
-    const kind = kindOfStepType(s.type);
+    const kind = checkedKind(s.type, context.approved);
     if (kind === null) return [finding('step.not_allowed', s.id, refusalOfStepType(s.type))];
     const out: PlanFinding[] = kind === 'ai' ? aiFindings(s, outside) : kind === 'ask' ? askFindings(s) : [];
     out.push(...asShownFindings(s));
     const tool = typeof s.step.tool === 'string' ? s.step.tool : '';
+    if (NOTEBOOK_TOOLS.has(tool)) {
+        out.push(finding('step.chat_notebook', s.id, 'This notebook action requires an open chat notebook. Deliver the result in Cowork with a notification step.'));
+    }
     if (s.type === 'integration_action' && tool && lookups.isOpenWebRead(tool) && outside.refsReadIt(refsOfStep(s.step), s)) {
         out.push(finding('web.input_from_outside', s.id, 'This step goes to the open web with an address or a query built from text written outside the workspace. That would carry the text out.'));
     }
     const effect = stepEffect(s.step);
     // A question and a result for the owner "send" only to the owner (the bell, their own mail): those stay.
-    if (onMail && effect === 'sends' && kind !== 'ask' && kind !== 'deliver') {
+    if (context.onMail && effect === 'sends' && kind !== 'ask' && kind !== 'deliver') {
         out.push(finding('mail.sends', s.id, 'This plan starts on a new mail, and this step sends. A plan a mail starts saves a draft for its owner to send; it never sends itself.'));
     }
     return out.concat(fieldFindings(s, effect, outside), tableFindings(s, effect, outside));
 }
 
 /** Why this definition is not a plan Cowork runs; an empty list when it is one. */
-export function checkPlan(definition: Definition | null | undefined, lookups: ToolLookups): PlanFinding[] {
+export function checkPlan(definition: Definition | null | undefined, lookups: ToolLookups, approved = false): PlanFinding[] {
     const steps = stepsOf(definition);
     const shape = shapeFindings(definition, steps);
     if (shape.some((f) => f.code === 'plan.shape')) return shape;
     const outside = outsideTextOf(definition, lookups);
     const onMail = startsOnMail(definition);
-    return shape.concat(steps.flatMap((s) => stepFindings(s, lookups, outside, onMail)));
+    return shape.concat(steps.flatMap((s) => stepFindings(s, lookups, outside, { onMail, approved })));
 }

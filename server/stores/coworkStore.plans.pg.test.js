@@ -210,6 +210,8 @@ test('a drafted plan is named only on an item that still has none', async () => 
     assert.strictEqual(await store.attachPlanAutomation(id, 'auto-x', { onlyIfNone: true }), true);
     assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y', { onlyIfNone: true }), false);
     assert.strictEqual((await store.getSchedule(id))?.planAutomationId, 'auto-x');
+    assert.strictEqual(await store.attachPlanAutomation(id, 'replacement', { replaceId: 'stale' }), false);
+    assert.strictEqual(await store.attachPlanAutomation(id, 'replacement', { replaceId: 'auto-x' }), true);
     assert.strictEqual(await store.attachPlanAutomation(id, 'auto-y'), true, 'naming one by hand replaces it');
 });
 

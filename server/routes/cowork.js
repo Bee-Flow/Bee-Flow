@@ -168,7 +168,9 @@ router.get('/', async (req, res) => {
         for (const s of schedules) withCurrentRun(s, openRuns[s.id]);
         await withReviewCounts(schedules, userId); // the same for the runs that wait for review
 
-        res.json({ schedules, maxSchedules: await getMaxSchedules() });
+        const { planStepTypes } = require('../core/cowork/plan/coworkStepList.mts');
+        const stepTypes = planStepTypes().filter((type) => type !== 'code' || require('../automation/codeSandbox').isAvailable());
+        res.json({ schedules, maxSchedules: await getMaxSchedules(), stepTypes });
     } catch (err) {
         fail(res, err, 'List');
     }

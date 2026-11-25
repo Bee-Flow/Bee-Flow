@@ -8,7 +8,7 @@
  *     reads and the keys the list really has; never a meeting title;
  *   - the second draft reads the summary by id and passes its try-out: the plan arrives with how that went (a read of 2
  *     meetings and their 2 summaries, the AI's answer, nothing changed or sent), and it can be approved;
- *   - a draft that never passes is tried three times, says what still fails, and gets no Approve;
+ *   - an unchanged draft is tried once, says what still fails, and gets no Approve;
  *   - every try-out first asks the budget.
  *
  * Run: cd server && node --test usecases/coworkPlanner.tryOut.engine.pg.test.js
@@ -25,7 +25,6 @@ const world = require('../core/cowork/firefliesWorld.testkit').firefliesWorld();
 const automationStore = require('../stores/automationStore');
 const { makePlan, plannerDeps, builderPort } = require('./coworkPlanner.mts');
 const { planStateOf, approvePlan } = require('./coworkPlan.mts');
-const { MAX_TRY_ROUNDS } = require('./coworkPlannerTry.mts');
 
 const OWNER = 'u-planner-try';
 const TOOLS = world.TOOLS;
@@ -109,7 +108,7 @@ test('the first draft fails its try-out, the facts go back without a meeting tit
     assert.deepStrictEqual([result.tried.status, result.tried.rounds, result.findings], ['passed', 2, []]);
     assert.deepStrictEqual(result.tried.summary.reads, [{ title: 'List meetings', items: 2 }, { title: 'Get summaries', items: 2 }]);
     assert.strictEqual(result.tried.summary.ai, 1);
-    assert.deepStrictEqual(seen.progress.filter((p) => p === 'trying' || p === 'repairing'), ['trying', 'repairing', 'trying']);
+    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('trying')), ['trying', 'repairing', 'trying']);
     assert.strictEqual(seen.spends, 2, 'one try-out per round, each through the budget');
 
     const [report] = reports;
@@ -144,12 +143,12 @@ test('the plan is shown with its try-out, and it can be approved', async () => {
     assert.strictEqual(approved.approved.version, 1);
 });
 
-test('a draft that never passes is tried three times, says what fails, and gets no Approve', async () => {
+test('an unchanged draft is tried once, says what fails, and gets no Approve', async () => {
     const item = await newItem('Never passes');
     const { deps, seen } = planner([INSPECT, calls(['builder_add_steps', { steps: BATCH }]), DONE, DONE, DONE]);
     const result = await makePlan({ item, userOrgId: null }, deps);
-    assert.deepStrictEqual([result.tried.status, result.tried.rounds], ['failed', MAX_TRY_ROUNDS]);
-    assert.strictEqual(seen.spends, MAX_TRY_ROUNDS);
+    assert.deepStrictEqual([result.tried.status, result.tried.rounds], ['failed', 1]);
+    assert.strictEqual(seen.spends, 1);
     assert.ok(result.tried.problems.some((p) => p.startsWith('\'Get summaries\' failed')), result.tried.problems.join(' | '));
     assert.ok(!JSON.stringify(result.tried).includes(world.MARKER));
 
@@ -157,4 +156,21 @@ test('a draft that never passes is tried three times, says what fails, and gets 
     const state = await planStateOf(fresh);
     assert.deepStrictEqual([state.draft.findings, state.tried.blocksApproval], [[], true]);
     await assert.rejects(approvePlan({ item: fresh, fingerprint: state.draft.fingerprint }), (e) => e.status === 422 && e.code === 'cowork_plan_untried');
+});
+
+test('a bad list reference gets a targeted repair before the first dry run', async () => {
+    const item = await newItem('Repair before testing');
+    const steps = structuredClone(BATCH);
+    steps[3].spec.forEach.overRef = 'steps.$list.output.transcripts';
+    steps[3].spec.inputs.transcriptId = ref('loop.t.id');
+    const fixReference = ({ messages }) => {
+        assert.match(messages.at(-1).content, /ref.missing/);
+        return calls(['builder_update_step', { stepId: idOf(messages, 'sums'), patch: {
+            forEach: { overRef: `steps.${idOf(messages, 'list')}.output.results`, itemVar: 't' },
+        } }]);
+    };
+    const { deps, seen } = planner([INSPECT, calls(['builder_add_steps', { steps }]), DONE, fixReference, DONE]);
+    const result = await makePlan({ item, onProgress: (p) => seen.progress.push(p.phase) }, deps);
+    assert.deepStrictEqual([result.tried.status, result.tried.rounds], ['passed', 1]);
+    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('saving')), ['saving', 'repairing', 'trying']);
 });

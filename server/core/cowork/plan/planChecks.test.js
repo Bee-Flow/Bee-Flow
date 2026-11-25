@@ -18,6 +18,20 @@ const lookups = fakeLookups();
 const codes = (plan) => checkPlan(plan, lookups).map((f) => f.code);
 const mailStep = { id: 'mail', type: 'integration_action', tool: 'outlook_read', inputs: { id: literal('m1') } };
 
+test('an unattended task cannot rely on the notebook of a chat, including its legacy name', () => {
+    for (const tool of ['notebook_write', 'workspace_write']) {
+        assert.deepStrictEqual(codes(planOf([{ ...mailStep, tool }])), ['step.chat_notebook']);
+    }
+});
+
+test('Privacy Shield steps are excluded from new plans while approved plans remain executable', () => {
+    for (const type of ['guard', 'tokenize', 'untokenize']) {
+        const plan = planOf([{ id: 'privacy', type }]);
+        assert.deepStrictEqual(codes(plan), ['step.not_allowed']);
+        assert.deepStrictEqual(checkPlan(plan, lookups, true), []);
+    }
+});
+
 test('the running example is a plan: no finding', () => {
     assert.deepStrictEqual(checkPlan(supplierRadar(), lookups), []);
 });

@@ -116,6 +116,16 @@ describe('CoworkTaskSettings', () => {
         await waitFor(() => expect(sent('PUT', TASK)?.body).toEqual({ agentId: null, enabledApps: ['outlook', 'onedrive'] }));
     });
 
+    it('saves a chosen model tier and tests the replacement of the current fixed steps', async () => {
+        const { user, sent } = openTask();
+        const uses = await openRow(user, 'uses');
+        const option = await within(uses).findByRole('option', { name: 'Fast · mail-model' });
+        await user.selectOptions(within(uses).getByLabelText('AI model'), option);
+        await user.click(within(uses).getByRole('button', { name: 'Save and test' }));
+        await waitFor(() => expect(sent('POST', `${TASK}/plan/make`)?.body).toMatchObject({ replaceId: expect.any(String) }));
+        expect(sent('PUT', TASK)?.body).toMatchObject({ modelTier: 'fast' });
+    });
+
     it('Uses: other apps for fixed steps are "Save and test"', async () => {
         const { user, sent } = openTask();
         const uses = await openRow(user, 'uses');

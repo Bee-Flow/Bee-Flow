@@ -2712,6 +2712,7 @@ export interface ApiOperations {
     }>;
     'POST /api/cowork/{id}/plan/make': Op<{ id: string | number }, UndeclaredQuery, {
         fromRuns?: boolean;
+        replaceId?: string;
     }>;
     'POST /api/cowork/{id}/plan/replay': Op<{ id: string | number }, UndeclaredQuery, {
         limit?: number;

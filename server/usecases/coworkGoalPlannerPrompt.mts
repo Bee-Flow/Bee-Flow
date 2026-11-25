@@ -12,7 +12,7 @@ import { kindOfStepType, planStepTypes, refusalOfStepType } from '../core/cowork
 import { menuRefusal, type MenuWords } from './coworkPlannerPrompt.mts';
 
 /** Fixed step types that may still leave something behind: never on a check's menu. */
-const LEAVES_SOMETHING: ReadonlySet<string> = new Set(['generate_document']);
+const LEAVES_SOMETHING: ReadonlySet<string> = new Set(['generate_document', 'fill_document', 'presentation', 'write_table', 'slide']);
 /** Batch entries that build a fixed step (a filter, a limit, a dedupe, an aggregate, a summarize). */
 const BATCH_ONLY_TYPES: ReadonlySet<string> = new Set(['array_op']);
 

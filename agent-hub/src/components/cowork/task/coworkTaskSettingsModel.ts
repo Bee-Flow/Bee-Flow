@@ -40,6 +40,7 @@ export interface TaskDraft {
     tableId: string;
     folder: string;
     mode: TaskMode;
+    modelTier?: string;
     agentId: string;
     /** The apps it may use; null while it has no list of its own (it then uses the workspace's). */
     apps: string[] | null;
@@ -88,6 +89,7 @@ export function draftOf(item: CoworkItem, start: StartState | null | undefined, 
         mail: item.triggerKind === 'app_event' && item.trigger ? item.trigger : defaultMailTrigger(),
         ...targetsOf(start),
         mode,
+        modelTier: item.modelTier || undefined,
         agentId: item.agentId ?? '',
         apps: Array.isArray(item.enabledApps) ? item.enabledApps : null,
     };
@@ -97,7 +99,7 @@ export function draftOf(item: CoworkItem, start: StartState | null | undefined, 
 const ROW_FIELDS: Readonly<Record<DraftRowId, ReadonlyArray<keyof TaskDraft>>> = {
     what: ['title', 'prompt'],
     when: ['kind', 'repeat', 'days', 'date', 'time', 'mail', 'afterId', 'tableId', 'folder'],
-    uses: ['apps', 'mode', 'agentId'],
+    uses: ['apps', 'mode', 'agentId', 'modelTier'],
 };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(typeof a === 'string' ? a.trim() : a) === JSON.stringify(typeof b === 'string' ? b.trim() : b);
@@ -119,7 +121,7 @@ function appsChanged(draft: TaskDraft, initial: TaskDraft): boolean {
  */
 export function mustRebuild(draft: TaskDraft, initial: TaskDraft): boolean {
     if (draft.mode !== 'steps') return false;
-    return draft.prompt.trim() !== initial.prompt.trim() || initial.mode !== 'steps' || draft.kind !== initial.kind || appsChanged(draft, initial);
+    return draft.prompt.trim() !== initial.prompt.trim() || initial.mode !== 'steps' || draft.kind !== initial.kind || appsChanged(draft, initial) || draft.modelTier !== initial.modelTier;
 }
 
 /**
@@ -182,7 +184,7 @@ function whenChange(draft: TaskDraft, now: Date): CoworkItemChange | null {
 export function changeOf(row: DraftRowId, draft: TaskDraft, now: Date = new Date()): CoworkItemChange | null {
     if (row === 'what') return { title: draft.title.trim(), prompt: draft.prompt.trim() };
     if (row === 'when') return whenChange(draft, now);
-    return { agentId: draft.mode === 'agent' && draft.agentId ? draft.agentId : null, ...(draft.apps === null ? {} : { enabledApps: draft.apps }) };
+    return { ...(draft.modelTier ? { modelTier: draft.modelTier } : {}), agentId: draft.mode === 'agent' && draft.agentId ? draft.agentId : null, ...(draft.apps === null ? {} : { enabledApps: draft.apps }) };
 }
 
 /**

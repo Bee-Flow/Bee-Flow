@@ -119,14 +119,23 @@ export function overviewSentence(facts: OverviewFacts, t: TranslateFn): string {
     return [stoppedPart(facts, t), main, holdsPart(facts, t)].filter(Boolean).join(' ');
 }
 
+export function scriptSummary(step: { description?: string | null; inputNames?: string[] }, t: TranslateFn): string {
+    if (step.description) return step.description;
+    if (step.inputNames?.length) return t('cowork_task.steps.script_inputs', 'Processes {fields}.', { fields: step.inputNames.join(', ') });
+    return t('cowork_task.steps.script_fallback', 'Runs a script on task data.');
+}
+
 const KIND_FALLBACK: Record<PlanStepKind, string> = { fixed: 'A fixed step', ai: 'An AI step', ask: 'A question for you', deliver: 'A result for you' };
 
 /**
  * A step's title as a person reads it: its own title; words instead of a tool name ("outlook_create_draft" → "Outlook
  * create draft"); and the kind of step when the title is only an id.
  */
-export function plainStepTitle(step: { id: string; title: string; kind: PlanStepKind }, t: TranslateFn): string {
+export function plainStepTitle(step: { id: string; title: string; kind: PlanStepKind; type?: string; scriptNumber?: number }, t: TranslateFn): string {
     const title = String(step.title ?? '').trim();
+    if (step.type === 'code' && (!title || title === step.id || title.toLowerCase() === 'code')) {
+        return t('cowork_task.steps.script_number', 'Script {number}', { number: step.scriptNumber ?? '' }).trim();
+    }
     if (!title || title === step.id || /^[a-z]{1,3}_[0-9a-f]{4,}$/i.test(title)) return t(`cowork_overview.step.${step.kind}`, KIND_FALLBACK[step.kind] ?? KIND_FALLBACK.fixed);
     if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(title)) {
         const words = title.replaceAll('_', ' ');

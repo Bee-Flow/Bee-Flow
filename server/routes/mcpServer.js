@@ -60,7 +60,7 @@ const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpA
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
-const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+const { NOTEBOOK_TOOLS } = require('../core/integrations/notebookToolNames');
 const { fallback } = require('../utils/bestEffort');
 // The datatable row tools live in their own module; this file only lists and dispatches them.
 const datatableTools = require('../usecases/mcpDatatableTools');

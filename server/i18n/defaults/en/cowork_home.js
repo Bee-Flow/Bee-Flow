@@ -3,6 +3,8 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_home.choose_step": "Choose a step",
+    "cowork_home.use_step": "Use the {step} step.",
     "cowork_home.confirm.target_folder": "Which folder should receive the files?",
     "cowork_home.confirm.target_recipient": "Who should receive the result?",
     "cowork_home.confirm.target_table": "Which table should receive the rows?",

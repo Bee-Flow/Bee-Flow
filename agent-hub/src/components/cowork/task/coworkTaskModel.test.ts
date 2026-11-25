@@ -27,6 +27,14 @@ describe('coworkTaskModel', () => {
         expect(planSteps(plan, t).map((s) => s.title)).toEqual(['Read the mail', 'Write the digest', 'Tell me']);
     });
 
+    it('shows scripts between the app steps with their name and purpose, including older unnamed scripts', () => {
+        const plan = planOf([step('read'), step('script', { type: 'code', title: 'Code', helper: true, scriptNumber: 1, inputNames: ['messages'] }),
+            step('group', { type: 'code', title: 'Group by thread', helper: true, description: 'Keeps related messages together.' })]);
+        expect(planSteps(plan, t).filter((s) => !s.helper).map((s) => [s.title, s.description])).toEqual([
+            ['A fixed step', undefined], ['Script 1', 'Processes messages.'], ['Group by thread', 'Keeps related messages together.'],
+        ]);
+    });
+
     it('keeps the definition order from a server that sends no run order, and puts unknown ids last', () => {
         expect(inRunOrder([{ id: 'a' }, { id: 'b' }], undefined).map((s) => s.id)).toEqual(['a', 'b']);
         expect(inRunOrder([{ id: 'x' }, { id: 'b' }, { id: 'a' }], ['a', 'b']).map((s) => s.id)).toEqual(['a', 'b', 'x']);

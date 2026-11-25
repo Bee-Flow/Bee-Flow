@@ -11,7 +11,7 @@
  */
 import { parseJsonText } from '@shared/expr/path.mjs';
 import { appLabel, appsByEffect } from '../coworkPlanModel';
-import { plainStepTitle } from '../coworkOverviewModel';
+import { plainStepTitle, scriptSummary } from '../coworkOverviewModel';
 import { recipientWord } from './coworkTaskSendsModel';
 import type { TaskStatus } from '../coworkTaskStatus';
 import type { CoworkItem, CoworkRun, CoworkRunTool } from '@/api/cowork.types';
@@ -32,6 +32,9 @@ type StepSort = 'read' | 'change' | 'send' | 'ai' | 'ask';
 export interface TaskStep {
     id: string;
     title: string;
+    type?: string;
+    script?: boolean;
+    description?: string | null;
     sort: StepSort;
     /** The app's name ("Outlook"), or null for a step no app does. */
     app: string | null;
@@ -68,10 +71,12 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
     return inRunOrder(view.steps, view.runOrder).map((step) => ({
         id: step.id,
         title: plainStepTitle(step, t),
+        type: step.type,
         sort: sortOfPlanStep(step),
         app: step.app ? appLabel(step.app) : null,
         integrationId: step.app ?? null,
-        helper: !!step.helper,
+        helper: !!step.helper && step.type !== 'code',
+        ...(step.type === 'code' ? { script: true, description: scriptSummary(step, t) } : {}),
         changed: changed.has(step.id),
         to: state.draft?.recipients?.[step.id] ?? null,
     }));

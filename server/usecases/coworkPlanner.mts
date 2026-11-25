@@ -56,13 +56,13 @@ export const MAX_PLANNER_ROUNDS = 8;
 /** The whole making of a plan, in ms. */
 export const PLANNER_MAX_MS = 180_000;
 
-interface Item { id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null; enabledApps?: string[] | null; setup?: Pick<TaskSetup, 'sendsTo'> | null }
+interface Item { modelTier?: string | null; id: string; userId: string; title?: string | null; prompt?: string | null; triggerKind?: string | null; planAutomationId?: string | null; monthlyBudget?: number | null; enabledApps?: string[] | null; setup?: Pick<TaskSetup, 'sendsTo'> | null }
 
 export interface PlannerDeps extends LoopDeps {
-    store: { attachPlanAutomation: (scheduleId: string, automationId: string, opts?: { onlyIfNone?: boolean }) => Promise<boolean> };
+    store: { attachPlanAutomation: (scheduleId: string, automationId: string, opts?: { onlyIfNone?: boolean; replaceId?: string }) => Promise<boolean> };
     ownerRefusal: (owner: { userId: string; organizationId?: string | null }) => Promise<'inactive' | 'not_entitled' | null>;
     /** The model the planner thinks with, or null when the workspace has none. */
-    resolveModel: (who: { userOrgId: string | null; userId: string }) => Promise<string | null>;
+    resolveModel: (who: { modelTier?: string | null; userOrgId: string | null; userId: string }) => Promise<string | null>;
     /** The owner's licence covers a step that waits for a decision (core/cowork/plan/planLicence.mts). */
     mayAsk: MayAsk;
     /** The try-out of every draft (./coworkPlannerTry.mts); without it the draft is not tried. */
@@ -81,7 +81,15 @@ export function plannerDeps(): PlannerDeps {
         store: nodeRequire('../stores/coworkStore.js') as PlannerDeps['store'],
         ownerRefusal: (owner) => (nodeRequire('../core/automationRunner/ownerGate.mts') as { ownerRefusal: PlannerDeps['ownerRefusal'] }).ownerRefusal(owner),
         // The model a sub-agent of the builder thinks with: the thinking tier, else the fast one.
-        resolveModel: (who) => flowlet().resolveLayerAgentModel(who),
+        resolveModel: async (who) => {
+            const tier = who.modelTier;
+            if (!tier || tier === 'auto') return flowlet().resolveLayerAgentModel(who);
+            const { getPermittedTierKeys } = nodeRequire('../core/entitlements/userTiers.js');
+            const allowed = await getPermittedTierKeys({ userId: who.userId, taskType: 'automation' });
+            if (!allowed.has(tier)) return null;
+            const { getUserTierMap } = nodeRequire('../core/llm/modelResolver.js');
+            return (await getUserTierMap(who))[tier]?.modelId ?? null;
+        },
         tiersFor: (who) => (nodeRequire('../core/llm/modelResolver.js') as { getUserTierMap: PlannerDeps['tiersFor'] }).getUserTierMap(who),
         chat: (modelId, messages, options) => plannerChat(modelId, messages, options),
         logUsage: (call) => (nodeRequire('../core/llm/surfaceUsage.js') as { logSurfaceUsage: (c: unknown) => void }).logSurfaceUsage(call),
@@ -104,7 +112,10 @@ export function plannerDeps(): PlannerDeps {
 export type PlannerProgress = TryProgress;
 
 export interface MakeInput {
+    replaceId?: string;
     item: Item;
+    /** Result of this request's server-side preflight, when checked before opening the stream. */
+    prepared?: { brief: string; modelId: string };
     /** The caller's session: which apps they have connected is read through it. */
     session?: unknown;
     userOrgId?: string | null;
@@ -135,8 +146,9 @@ const REFUSAL_TEXT = Object.freeze({
  * the confirmation closes it (core/cowork/taskSetup.mts): the apps to build with, and who it sends to as its last
  * line, so the plan is drafted for exactly them.
  */
-function briefOf(item: Item): string {
-    if (item.planAutomationId) throw new HttpError(409, 'cowork_plan_refused', 'This item already has a plan. Take it off to make a new one.');
+function briefOf(item: Item, replaceId?: string): string {
+    if (replaceId && item.planAutomationId !== replaceId) throw new HttpError(409, 'cowork_plan_refused', 'The plan changed. Open the task again.');
+    if (item.planAutomationId && !replaceId) throw new HttpError(409, 'cowork_plan_refused', 'This item already has a plan. Take it off to make a new one.');
     const brief = typeof item.prompt === 'string' ? item.prompt.trim() : '';
     if (!brief) throw new HttpError(422, 'cowork_plan_refused', 'Write what this work should do first: a plan is made from that.');
     return briefForPlanner(brief, item);
@@ -146,22 +158,22 @@ function briefOf(item: Item): string {
  * May a plan be made for this item now? Answers the brief and the model it would be made with; throws the reason when
  * not. The route asks this before it opens its stream, so a refusal is an ordinary answer with its status.
  */
-export async function readyToPlan({ item, userOrgId = null }: Pick<MakeInput, 'item' | 'userOrgId'>, deps: PlannerDeps = plannerDeps()): Promise<{ brief: string; modelId: string }> {
-    const brief = briefOf(item);
+export async function readyToPlan({ item, userOrgId = null, replaceId }: Pick<MakeInput, 'item' | 'userOrgId' | 'replaceId'>, deps: PlannerDeps = plannerDeps()): Promise<{ brief: string; modelId: string }> {
+    const brief = briefOf(item, replaceId);
     const refusal = await deps.ownerRefusal({ userId: item.userId, organizationId: userOrgId });
     if (refusal) throw new HttpError(403, 'cowork_plan_refused', REFUSAL_TEXT[refusal]);
-    const modelId = await deps.resolveModel({ userOrgId, userId: item.userId });
+    const modelId = await deps.resolveModel({ userOrgId, userId: item.userId, modelTier: item.modelTier });
     if (!modelId) throw new HttpError(409, 'cowork_planner_no_model', 'No AI model is configured for this workspace, so a plan cannot be made yet.');
     return { brief, modelId };
 }
 
 /** Store the draft as an automation of its owner's and name it as the item's plan; answers the automation's id. */
-async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps): Promise<string> {
+async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps, replaceId?: string): Promise<string> {
     const stored = await deps.builder.persistDraft(draft, { finalize: true });
     const automationId = stored?.id ?? draft.automationId;
     if (!automationId || stored?.error) throw new Error(`the planner could not store its draft: ${stored?.error ?? 'no automation id'}`);
     // Only onto an item that still has no plan: a second making at the same time does not replace the first.
-    if (!(await deps.store.attachPlanAutomation(item.id, automationId, { onlyIfNone: true }))) {
+    if (!(await deps.store.attachPlanAutomation(item.id, automationId, replaceId ? { replaceId } : { onlyIfNone: true }))) {
         throw new HttpError(409, 'cowork_plan_refused', 'This item got a plan while this one was being made. The new draft is kept among your automations.');
     }
     return automationId;
@@ -171,17 +183,19 @@ async function storeAsPlan(item: Item, draft: DraftWrap, deps: PlannerDeps): Pro
 export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps()): Promise<MadePlan> {
     const { item } = input;
     const userOrgId = input.userOrgId ?? null;
-    const { brief, modelId } = await readyToPlan({ item, userOrgId }, deps);
+    const { brief, modelId } = input.prepared ?? await readyToPlan({ item, userOrgId, replaceId: input.replaceId }, deps);
 
-    const catalog = await deps.builder.catalogFor(item.userId, input.session ?? null);
+    const owner = { userId: item.userId, organizationId: userOrgId };
+    const [catalog, approvals] = await Promise.all([
+        deps.builder.catalogFor(item.userId, input.session ?? null),
+        deps.mayAsk(owner),
+    ]);
     const draft = await newDraft({
         userId: item.userId, userOrgId, catalog,
         // Its own prefix, so a plan Cowork drafted is recognisable next to the builder's `bs_` sessions.
         sessionId: `cw_${item.id}_${deps.now().toString(36)}`,
         title: item.title || 'Cowork plan', description: 'Drafted by Cowork from the brief of this item.',
     }, deps);
-    const owner = { userId: item.userId, organizationId: userOrgId };
-    const approvals = await deps.mayAsk(owner);
     // What Cowork would not run, the licence included: what is returned and what stops a try-out. The model is also told
     // the advice (a read that no step uses).
     const blockingOf = async (def: Definition) => [...checkPlan(asStartedBy(def, item), deps.lookups), ...refFindings(def, deps.lookups), ...await licenceFindings(def, owner, async () => approvals)];
@@ -194,7 +208,7 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
     const menu = { tools: plannerTools(deps.builder.toolSchemas), refusal: plannerRefusal };
     const ask = 'Make the plan for this work.';
     const messages: Message[] = [{ role: 'system', content: system }, { role: 'user', content: ask }];
-    const spec = { draft, modelId, system, ask, menu, findingsOf, onProgress: input.onProgress, messages };
+    const spec = { draft, preferredTier: item.modelTier, modelId, system, ask, menu, findingsOf, onProgress: input.onProgress, messages };
     const loop: LoopResult = await draftWithin(
         { ...spec, maxRounds: MAX_PLANNER_ROUNDS },
         input.signal, { code: 'cowork_planner_timeout', message: 'Making the plan took too long. Try again, or write a shorter brief.' }, deps,
@@ -205,7 +219,7 @@ export async function makePlan(input: MakeInput, deps: PlannerDeps = plannerDeps
         throw new HttpError(422, 'cowork_planner_empty', loop.summary ? `No plan could be made for this brief. ${loop.summary}` : 'No plan could be made for this brief. Try describing the work step by step.');
     }
     input.onProgress?.({ phase: 'saving' });
-    const automationId = await storeAsPlan(item, draft, deps);
+    const automationId = await storeAsPlan(item, draft, deps, input.replaceId);
     log.info(`[CoworkPlanner] ${item.id}: drafted ${steps.length} step(s) in ${loop.rounds} round(s) as automation ${automationId}`);
     const tried = deps.tries ? await tryAndRepair({ item, draft, automationId, loop: spec, blockingOf, signal: input.signal, onProgress: input.onProgress }, { ...deps, ...deps.tries }) : undefined;
     if (tried) log.info(`[CoworkPlanner] ${item.id}: ${tried.status} after ${tried.rounds} try-out(s)`);

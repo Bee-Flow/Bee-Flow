@@ -671,6 +671,11 @@ export function pickItem(items: PaletteItem[] | null | undefined, id: string) {
     return (items || []).find(it => it.id === id) || null;
 }
 
+export function paletteItemForType(type: string, t?: TranslateFn) {
+    const item = type === 'switch' ? ROUTE_ITEM : ALL_STATIC_ITEMS.find((entry) => entry.payload.kind === type);
+    return item ? localised(item, t) : null;
+}
+
 const ALL_STATIC_ITEMS = [...AI_ITEMS, ...DATA_ITEMS, ...COLLECTION_ITEMS, ...LOGIC_ITEMS, ...INTEGRATION_ITEMS, CODE_ITEM];
 
 /**
@@ -710,25 +715,9 @@ export function itemForKey(key?: unknown, { catalog = null, layers = [] }: { cat
         // history would silently stop resolving and quietly drop out of
         // "Frequently used".
         if (rest === 'guard' || rest === 'tokenize' || rest === 'untokenize') return asResult(PRIVACY_SHIELD_ITEM);
-        // Code is the one static item whose availability the SERVER decides
-        // (codeItemFor above: is the sandbox installed). These rows
-        // resolved it straight out of ALL_STATIC_ITEMS, with no flag consulted
-        // at all, so the "Frequently used" shortcut kept handing out an
-        // addable Code step on an install whose runs execCode refuses: the
-        // same trap the palette listing was fixed for, reached one row higher
-        // up. It only takes a user who used code steps on another install
-        // or before an upgrade that dropped the sandbox.
-        //
-        // Dropped rather than stamped `disabled`: the reco rows render in two
-        // places, and only one of them honours the stamp. AddStepMenu's
-        // SearchResultRow does (it is the same row the search uses), but
-        // AddStepRibbon's "Frequent" cluster maps these items straight into an
-        // always-clickable, always-draggable CmdButton — a disabled Code entry
-        // there would still add the step. Until that row learns the stamp, not
-        // offering the shortcut is the only answer that is true on BOTH
-        // surfaces, and the step itself stays visible-with-its-reason in the
-        // palette's Flow control section, which is where the capability and
-        // the rule behind it are meant to be discoverable (BFSF-348).
+        // The server decides whether Code can run. Omit unavailable Code shortcuts altogether:
+        // AddStepRibbon's frequent items can be clicked or dragged even when disabled. The full
+        // palette still shows the reason when the sandbox is missing.
         if (rest === 'code') {
             const code = codeItemFor(catalog);
             return (!code || code.disabled) ? null : asResult(code);

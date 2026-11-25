@@ -1,5 +1,10 @@
 {
   "translations": {
+    "cowork_task.steps.replace_notebook": "Opnieuw opbouwen en testen voor aflevering in Cowork",
+    "cowork_task.steps.script_inputs": "Verwerkt {fields}.",
+    "cowork_task.uses.auto_model": "Automatisch",
+    "cowork_task.uses.model": "AI-model",
+    "cowork_task.steps.script_fallback": "Voert een script uit op de taakgegevens.",
     "cowork_task.action.pause": "Pauzeren",
     "cowork_task.action.resume": "Hervatten",
     "cowork_task.action.run_for_real": "Nu echt uitvoeren",
@@ -357,5 +362,7 @@
     "cowork_task.when.webhook": "Als een ander systeem haar aanroept (webhook)",
     "cowork_task.when.webhook_hint": "Elk systeem dat haar adres aanroept, start de taak. Het adres wordt gemaakt als je opslaat, en één keer getoond."
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "cowork_task.steps.script_number"
+  ]
 }
