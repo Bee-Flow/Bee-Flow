@@ -139,9 +139,9 @@ function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: N
     }
 }
 
-function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, x: number, y: number, scale: number, time: number) {
+function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, point: { x: number; y: number }, scale: number, time: number) {
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(point.x, point.y);
     ctx.scale(scale, scale);
     ctx.translate(-20, -20);
     ctx.strokeStyle = '#bfd9f4';
@@ -171,7 +171,7 @@ function drawWork(ctx: CanvasRenderingContext2D, marks: (NeuralGlyph | null)[], 
         ctx.globalAlpha = 1;
         ctx.lineWidth = .72;
         ctx.stroke();
-        paintMark(ctx, glyph, x, y, i ? .64 : .8, time);
+        paintMark(ctx, glyph, { x, y }, i ? .64 : .8, time);
     }
 }
 

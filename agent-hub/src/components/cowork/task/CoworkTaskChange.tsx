@@ -61,6 +61,13 @@ function resultMessage(open: CoworkProposal | undefined, applied: boolean, disca
     return null;
 }
 
+function proposalVisual(preparing: boolean, discarding: boolean, discarded: boolean, draft?: PlanDraft | null) {
+    const apps = draft?.permissions.grants.map(grant => grant.app);
+    const action = preparing ? 'edit' : discarding ? 'discard' : 'saving';
+    const tone = preparing ? 'thinking' : 'executing';
+    return { apps, action, tone, done: discarded ? 'discard' : 'rest' } as const;
+}
+
 export default function CoworkTaskChange({ coworkId, approved, draft, live, onSetting, t }: {
     coworkId: string; approved: boolean; draft?: PlanDraft | null; live: boolean; onSetting: (row: SettingRowId) => void; t: TranslateFn;
 }) {
@@ -73,17 +80,17 @@ export default function CoworkTaskChange({ coworkId, approved, draft, live, onSe
     const proposal = proposals.data?.find((p) => p.reasonCode === 'owner_request' && p.status === 'open');
     const activity = proposalActivity(requestChange.isPending, approve.isPending, dismiss.isPending, t);
     const result = resultMessage(proposal, approve.isSuccess, dismiss.isSuccess, t);
-    const apps = draft?.permissions.grants.map(grant => grant.app);
+    const visual = proposalVisual(requestChange.isPending, dismiss.isPending, dismiss.isSuccess, draft);
     const scene = changeScene(activity, result, proposal);
     return <details className="peer/change rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3">
         <summary className="cursor-pointer font-medium">{t('cowork_task.edit.task', 'Adjust this task')}</summary>
         <CoworkSurface scene={scene}>
             <div className="mt-3 flex flex-col gap-3">
-                {activity ? <CoworkActivity message={activity} tone={requestChange.isPending ? 'thinking' : 'executing'} work={{ apps, action: requestChange.isPending ? 'edit' : dismiss.isPending ? 'discard' : 'saving' }} /> : result ? <CoworkActivity message={result} work={{ apps, action: dismiss.isSuccess ? 'discard' : 'rest' }} tone="rest">
+                {activity ? <CoworkActivity message={activity} tone={visual.tone} work={visual} /> : result ? <CoworkActivity message={result} work={{ apps: visual.apps, action: visual.done }} tone="rest">
                     <button className={BTN_QUIET} onClick={() => { approve.reset(); dismiss.reset(); }}>{t('cowork_task.edit.task', 'Adjust this task')}</button>
                 </CoworkActivity> : <>
                     {proposal ? <>
-                        <CoworkOrb tone="rest" work={{ apps }} />
+                        <CoworkOrb tone="rest" work={{ apps: visual.apps }} />
                         <ProposalPreview proposal={proposal} label={label} t={t} />
                         <div className={ROW_ACTIONS}>
                             <button className={BTN_QUIET} disabled={live} onClick={() => approve.mutate({ proposalId: proposal.id, fingerprint: proposal.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>
