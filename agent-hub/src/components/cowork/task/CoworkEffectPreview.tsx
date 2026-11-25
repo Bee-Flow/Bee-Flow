@@ -6,7 +6,11 @@ export interface EffectPreview { id: string; title: string; effect: string; prev
 /** Render a recorded input as labelled fields, or as Markdown when it is already text. */
 function Preview({ value }: { value: string }) {
     let fields: unknown;
-    try { fields = JSON.parse(value); } catch { /* Plain text or a shortened preview. */ }
+    try {
+        fields = JSON.parse(value);
+    } catch {
+        return <MarkdownRenderer content={value} />;
+    }
     if (fields && typeof fields === 'object' && !Array.isArray(fields)) {
         return <dl>{Object.entries(fields).map(([name, v]) => <div key={name}>
             <dt className="font-medium">{name}</dt>
