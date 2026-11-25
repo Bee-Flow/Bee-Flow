@@ -1,17 +1,21 @@
 // Sample both the outline and changes of colour inside a mark. This retains
 // details such as an envelope drawn on an opaque, single-colour app tile.
 export interface NeuralGlyph { id: string; outline: Path2D; ink: string; colours: Map<string, Path2D>; links: Path2D; sparks: { x: number; y: number }[] }
-const SIZE = 40;
+const SIZE = 80;
+const GLYPH_UNITS = 40;
 
 export function sampleMark(data: Uint8ClampedArray) {
     const dots: { x: number; y: number }[] = [];
-    for (let y = 1; y < SIZE - 1; y += 2) {
-        for (let x = 1; x < SIZE - 1; x += 2) {
-            const i = 4 * (y * SIZE + x);
+    const width = Math.sqrt(data.length / 4);
+    const stride = Math.max(1, Math.round(width / 20));
+    const scale = GLYPH_UNITS / width;
+    for (let y = stride / 2; y < width - stride / 2; y += stride) {
+        for (let x = stride / 2; x < width - stride / 2; x += stride) {
+            const i = 4 * (y * width + x);
             if (data[i + 3] < 45) continue;
-            const edge = [-8, 8, -4 * SIZE, 4 * SIZE].some(offset =>
+            const edge = [-4, 4, -4 * width, 4 * width].some(offset =>
                 [0, 1, 2, 3].some(channel => Math.abs(data[i + channel] - (data[i + offset + channel] ?? 0)) > 38));
-            if (edge || (x + 3 * y) % 6 !== 0) dots.push({ x: x + .37 * Math.sin(x * 17 + y * 7), y: y + .37 * Math.sin(y * 11 - x * 5) });
+            if (edge || (x + 3 * y) % 6 !== 0) dots.push({ x: x * scale + .37 * Math.sin(x * 17 + y * 7), y: y * scale + .37 * Math.sin(y * 11 - x * 5) });
         }
     }
     return dots;
@@ -31,7 +35,7 @@ function traceSilhouette(data: Uint8ClampedArray) {
                 const t = (96 - alpha[i]) / (alpha[j] - alpha[i]);
                 const px = x + corners[i][0] + t * (corners[j][0] - corners[i][0]);
                 const py = y + corners[i][1] + t * (corners[j][1] - corners[i][1]);
-                if (start) outline.moveTo(px, py); else outline.lineTo(px, py);
+                if (start) outline.moveTo(px * GLYPH_UNITS / SIZE, py * GLYPH_UNITS / SIZE); else outline.lineTo(px * GLYPH_UNITS / SIZE, py * GLYPH_UNITS / SIZE);
                 start = !start;
             }
         }
@@ -43,7 +47,7 @@ function network(data: Uint8ClampedArray, id: string): NeuralGlyph {
     const dots = sampleMark(data);
     const colours = new Map<string, Path2D>(), links = new Path2D();
     for (const [i, p] of dots.entries()) {
-        const pixel = 4 * (Math.round(p.y) * SIZE + Math.round(p.x));
+        const pixel = 4 * (Math.round(p.y * SIZE / GLYPH_UNITS) * SIZE + Math.round(p.x * SIZE / GLYPH_UNITS));
         const rgb = [data[pixel], data[pixel + 1], data[pixel + 2]];
         const coloured = Math.max(...rgb) - Math.min(...rgb) > 28;
         const colour = coloured ? 'rgb(' + rgb.map(v => Math.min(255, 50 + 32 * Math.round(v / 40))).join(',') + ')' : '#dcefff';
@@ -65,22 +69,22 @@ async function drawSource(ctx: CanvasRenderingContext2D, element: Element) {
     const svg = element.querySelector('svg');
     const img = element.querySelector('img');
     if (!svg && !img) {
-        ctx.font = 'bold 30px sans-serif';
+        ctx.font = 'bold 60px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(element.textContent?.trim() || '·', 20, 20, 36);
+        ctx.fillText(element.textContent?.trim() || '·', 40, 40, 72);
         return;
     }
     const image = new Image();
     image.crossOrigin = 'anonymous';
     if (svg) {
         const copy = svg.cloneNode(true) as SVGSVGElement;
-        copy.setAttribute('width', '40');
-        copy.setAttribute('height', '40');
+        copy.setAttribute('width', String(SIZE));
+        copy.setAttribute('height', String(SIZE));
         image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
     } else image.src = img!.currentSrc || img!.src;
     await image.decode();
-    ctx.drawImage(image, 2, 2, 36, 36);
+    ctx.drawImage(image, 4, 4, SIZE - 8, SIZE - 8);
 }
 
 export async function readOrbGlyph(element: Element): Promise<NeuralGlyph | null> {

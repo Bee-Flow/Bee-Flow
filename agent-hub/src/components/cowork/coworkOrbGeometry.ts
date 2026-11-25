@@ -39,14 +39,14 @@ function ribbonEdge(points: Point[], spread: number) {
 }
 
 function addBundle(bundle: number, random: () => number, fibres: Fibre[], dust: Point[]) {
-    const y = 1 - 2 * (bundle + .5) / 104;
+    const y = 1 - 2 * (bundle + .5) / 64;
     const longitude = bundle * 2.399963 + .19 * random();
     const rim = Math.sqrt(1 - y * y);
     const x = rim * Math.cos(longitude), z = rim * Math.sin(longitude);
     const depth = .62 + .36 * Math.cbrt(random());
     const phase = random() * TAU;
     const length = 25 + Math.floor(random() * 44);
-    for (let thread = 0; thread < 5; thread++) {
+    for (let thread = 0; thread < 3; thread++) {
         let point = unit(x + .055 * (random() - .5), y + .07 * (random() - .5), z + .065 * (random() - .5));
         const points = [];
         for (let i = 0; i < length; i++) {
@@ -73,14 +73,22 @@ export function makeOrbGeometry() {
     };
     const fibres: Fibre[] = [];
     const dust: Point[] = [];
-    for (let i = 0; i < 104; i++) addBundle(i, random, fibres, dust);
+    for (let i = 0; i < 64; i++) addBundle(i, random, fibres, dust);
     for (let i = 0; i < 1300; i++) {
         const y = 2 * random() - 1, angle = TAU * random();
         const rim = Math.sqrt(1 - y * y);
         const radius = .78 + .25 * random();
         dust.push({ x: radius * rim * Math.cos(angle), y: radius * y, z: radius * rim * Math.sin(angle) });
     }
-    return { fibres, dust, network: makeNeuralNetwork(random) };
+    // A tilted stellar disc with a thin, irregular midplane and diffuse outer rim.
+    const stars: Point[] = [];
+    for (let i = 0; i < 9000; i++) {
+        const r = .95 * Math.sqrt(random()), angle = TAU * random();
+        const x = r * Math.cos(angle), z = r * Math.sin(angle);
+        const spread = (random() + random() + random() - 1.5) * (.08 + .12 * (1 - r));
+        stars.push({ x, y: -.35 * x + .12 * z + .075 * Math.sin(4 * x + 2 * z) + spread, z });
+    }
+    return { fibres, dust, stars, network: makeNeuralNetwork(random) };
 }
 
 export type OrbGeometry = ReturnType<typeof makeOrbGeometry>;

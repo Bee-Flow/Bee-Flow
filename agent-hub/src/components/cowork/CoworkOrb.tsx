@@ -37,7 +37,7 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         if (reduced) state.focus = target;
         const draw = () => drawOrbFrame(ctx, model, state.time, state.beat, { marks, focus: state.focus, ordered, echo: reduced ? undefined : echo.current });
         const resize = () => {
-            const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(window.devicePixelRatio || 1, 2)));
+            const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(3, Math.max(2, window.devicePixelRatio || 1))));
             if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
             draw();
         };

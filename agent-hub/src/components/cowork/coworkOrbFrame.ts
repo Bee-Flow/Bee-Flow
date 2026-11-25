@@ -9,9 +9,9 @@ const COLOURS = ['#3e4a89', '#566baa', '#8494d3', '#9dbbed', '#c1ddfa', '#e1f4ff
 function drawCore(ctx: CanvasRenderingContext2D, project: Project) {
     const light = project({ x: -.42, y: -.27, z: .47 });
     const mist = ctx.createRadialGradient(light.x * .78, light.y * .78, 3, 0, 0, 104);
-    mist.addColorStop(0, 'rgba(51,71,142,.91)');
-    mist.addColorStop(.48, 'rgba(25,37,87,.97)');
-    mist.addColorStop(.79, 'rgba(32,41,92,.85)');
+    mist.addColorStop(0, 'rgba(46,57,113,.96)');
+    mist.addColorStop(.48, 'rgba(18,24,58,.99)');
+    mist.addColorStop(.79, 'rgba(27,32,70,.91)');
     mist.addColorStop(.90, 'rgba(56,70,130,.36)');
     mist.addColorStop(1, 'rgba(112,133,194,0)');
     ctx.fillStyle = mist;
@@ -66,13 +66,13 @@ function drawFibre(ctx: CanvasRenderingContext2D, project: Project, fibre: Fibre
         sheen.addColorStop(.43, 'rgba(145,177,243,.85)');
         sheen.addColorStop(.64, 'rgba(111,134,210,.60)');
         sheen.addColorStop(1, 'rgba(78,86,169,.05)');
-        ctx.globalAlpha = light * .48;
+        ctx.globalAlpha = light * .21;
         ctx.fillStyle = sheen;
         trace(ctx, project, ribbon);
         ctx.fill();
     }
     ctx.strokeStyle = COLOURS[Math.min(5, Math.floor(light * 5.1))];
-    ctx.globalAlpha = (.10 + .40 * light) * fibre.bright;
+    ctx.globalAlpha = (.05 + .22 * light) * fibre.bright;
     ctx.lineWidth = .28 + .32 * light;
     trace(ctx, project, points);
     ctx.stroke();
@@ -89,9 +89,43 @@ function drawGrains(ctx: CanvasRenderingContext2D, project: Project, dust: Point
     }
     for (const [i, path] of grains.entries()) {
         ctx.fillStyle = COLOURS[i];
-        ctx.globalAlpha = .30 + i * .11;
+        ctx.globalAlpha = .14 + i * .048;
         ctx.fill(path);
     }
+}
+
+function drawNebula(ctx: CanvasRenderingContext2D, project: Project) {
+    for (let i = -5; i <= 5; i++) {
+        const u = i / 6;
+        const { x, y } = project({ x: u, y: -.35 * u + .07 * Math.sin(4 * u), z: .18 * Math.cos(3 * u) });
+        const radius = 15 + 12 * (1 - Math.abs(u));
+        const haze = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        haze.addColorStop(0, i % 3 === 0 ? 'rgba(173,144,212,.23)' : 'rgba(138,161,218,.19)');
+        haze.addColorStop(.5, 'rgba(112,127,193,.09)');
+        haze.addColorStop(1, 'rgba(97,109,172,0)');
+        ctx.fillStyle = haze;
+        ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+}
+
+function drawStarBand(ctx: CanvasRenderingContext2D, project: Project, stars: Point[]) {
+    const fine = new Path2D(), bright = new Path2D();
+    for (const [i, star] of stars.entries()) {
+        const { x, y, z } = project(star);
+        const standout = i % 29 === 0;
+        const radius = (standout ? .48 : .19) * (1 + .23 * z);
+        if (standout) {
+            bright.moveTo(x + radius, y);
+            bright.arc(x, y, radius, 0, TAU);
+        } else fine.rect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+    ctx.globalAlpha = .64;
+    ctx.fillStyle = '#abb4e6';
+    ctx.fill(fine);
+    ctx.globalAlpha = .74;
+    ctx.fillStyle = '#e2dff8';
+    ctx.fill(bright);
+    ctx.globalAlpha = 1;
 }
 
 function lightPoint(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, light: number) {
@@ -127,11 +161,11 @@ function drawAxon(ctx: CanvasRenderingContext2D, project: Project, axon: Axon, t
     const age = impulseAge(time, axon.arrival);
     ctx.strokeStyle = '#a3c9f4';
     ctx.lineWidth = .55 + light * .42;
-    ctx.globalAlpha = light * (.60 + .32 * Math.max(0, 1 - age));
+    ctx.globalAlpha = light * (.29 + .22 * Math.max(0, 1 - age));
     trace(ctx, project, axon.path);
     ctx.stroke();
     ctx.lineWidth = .46;
-    ctx.globalAlpha = light * .48;
+    ctx.globalAlpha = light * .21;
     trace(ctx, project, axon.twig);
     ctx.stroke();
     if (age < axon.duration + .24) drawImpulse(ctx, project, axon, age, light);
@@ -143,7 +177,7 @@ function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: N
         const { x, y, z } = project(neuron.position);
         const pulse = Math.max(0, 1 - impulseAge(time, neuron.arrival) / .6);
         const light = Math.max(.07, .40 + z * .57);
-        lightPoint(ctx, x, y, neuron.radius * (1.10 + pulse * 1.6), Math.min(1, light * (.79 + pulse * .65 + beat * .12)));
+        lightPoint(ctx, x, y, neuron.radius * (1.10 + pulse * 1.6), Math.min(1, light * (.42 + pulse * .60 + beat * .12)));
     }
 }
 
@@ -188,7 +222,7 @@ function siteAt(i: number, count: number, pattern: Pattern, time: number, projec
     const { x, y, z } = project(world);
     const depth = Math.max(.08, Math.min(1, .53 + .51 * z));
     const emphasis = 1 / (1 + 3 * Math.abs(i - pattern.focus));
-    return { world, x, y, depth, scale: .54 + .52 * depth + .41 * emphasis };
+    return { world, x, y, depth, emphasis, scale: .48 + .50 * depth + .52 * emphasis };
 }
 
 // Waves have zero displacement at either end: a fibre can curl and pass through
@@ -224,7 +258,7 @@ function drawWork(ctx: CanvasRenderingContext2D, pattern: Pattern, time: number,
     const pulse = (time * 1.35) % Math.max(1, sites.length - 1);
     for (let i = 1; i < sites.length; i++) {
         const end = sites[ordered ? i : sites.length - 1];
-        ctx.globalAlpha = .47 + .50 * end.depth;
+        ctx.globalAlpha = .24 + .46 * end.depth;
         drawStrand(ctx, [sites[i - 1].world, end.world], project, time * .87 + i * 2, pulse - (i - 1));
     }
     if (pattern.echo && time - pattern.echo.since < 2.5) {
@@ -233,13 +267,16 @@ function drawWork(ctx: CanvasRenderingContext2D, pattern: Pattern, time: number,
         ctx.globalAlpha = .55 * (1 - fade);
         paintMark(ctx, pattern.echo.glyph, { x, y, depth: 0, scale: 1.2 - .88 * fade }, time);
     }
-    for (const i of sites.map((_, i) => i).sort((a, b) => sites[a].depth - sites[b].depth)) {
+    const order = sites.map((_, i) => i).sort((a, b) => (sites[a].depth + sites[a].emphasis) - (sites[b].depth + sites[b].emphasis));
+    for (const [layer, i] of order.entries()) {
         const site = sites[i], mark = marks[i];
         if (!mark) continue;
         const root = network.neurons[(30 + i) % network.neurons.length].position;
-        ctx.globalAlpha = .26;
+        ctx.globalAlpha = .11;
         drawStrand(ctx, [root, site.world], project, time * .63 + i, -1);
-        ctx.globalAlpha = .34 + .66 * site.depth;
+        const clearance = order.slice(layer + 1).reduce((alpha, j) => Math.min(alpha,
+            Math.hypot(site.x - sites[j].x, site.y - sites[j].y) / (18 * (site.scale + sites[j].scale))), 1);
+        ctx.globalAlpha = (.16 + .44 * site.depth + .40 * site.emphasis) * clearance;
         paintMark(ctx, mark, site, time);
     }
 }
@@ -252,9 +289,11 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     ctx.setTransform(size / 256 * breath, 0, 0, size / 256 * breath, size / 2, size / 2);
     const project = projector(time);
     drawCore(ctx, project);
+    drawNebula(ctx, project);
     ctx.lineCap = 'round';
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
     drawGrains(ctx, project, geometry.dust);
+    drawStarBand(ctx, project, geometry.stars);
     drawNetwork(ctx, project, geometry.network, time, beat);
     drawWork(ctx, pattern, time, geometry.network, project);
     ctx.globalAlpha = 1;
