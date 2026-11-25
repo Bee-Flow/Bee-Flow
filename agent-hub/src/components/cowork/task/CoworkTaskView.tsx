@@ -63,10 +63,11 @@ function useTaskFacts(item: CoworkItem) {
     const all = useCoworkNeedCards(items);
     const cards = useMemo(() => all.filter((c) => c.itemId === item.id).map((c) => (c.kind === 'check' && fingerprint ? { ...c, fingerprint } : c)), [all, item.id, fingerprint]);
     const liveRun = liveRunOf(runs);
-    const testing = maker.making.running || (!!tryOut.state && !tryOut.state.done);
-    const live = isLive({ making: maker.making, tryState: tryOut.state, liveRun }) || item.lastStatus === 'running';
+    const startingTest = tryOut.start.isPending || (!!tryOut.started && !tryOut.state && !tryOut.error);
+    const testing = maker.making.running || startingTest || (!!tryOut.state && !tryOut.state.done);
+    const live = startingTest || isLive({ making: maker.making, tryState: tryOut.state, liveRun }) || item.lastStatus === 'running';
     return {
-        plan, runs: runs ?? [], maker, tryOut, cards, liveRun, latest: latestRunOf(runs), live,
+        plan, runs: runs ?? [], maker, tryOut, startingTest, cards, liveRun, latest: latestRunOf(runs), live,
         mode: taskModeOf(item, plan),
         blocked: holding(cards).length > 0,
         heldBy: heldByOf(live, cards),
@@ -140,7 +141,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
                     onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />,
                 steps: <><CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate} live={facts.live} onSetting={(row) => { setSetting(row); openTab('settings'); }} t={t} /><CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t} live={facts.live} readOnly={false} onRebuild={rebuild}
                     agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
-                    tryOut={{ state: facts.tryOut.state, starting: facts.tryOut.start.isPending, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} /></>,
+                    tryOut={{ state: facts.tryOut.state, starting: facts.startingTest, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} /></>,
                 people: <CoworkTaskPeople coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,
                 history: <CoworkTaskHistory onSteps={() => openTab('steps')} item={item} runs={facts.runs} plan={facts.plan} onGone={close} t={t} />,
             }} />

@@ -1,6 +1,10 @@
 {
   "translations": {
     "cowork_task.flow.step_count": "{count} stappen",
+    "cowork_task.test.active": "Bezig",
+    "cowork_task.test.waiting": "Wacht",
+    "cowork_task.test.current": "Test stap {number} van {total}: {title}",
+    "cowork_task.test.wait": "Wachten op de volgende teststap…",
     "cowork_task.flow.prepare": "Gegevens voorbereiden",
     "cowork_task.flow.read_app": "Lezen uit {app}",
     "cowork_task.flow.details": "Bekijk stappen",

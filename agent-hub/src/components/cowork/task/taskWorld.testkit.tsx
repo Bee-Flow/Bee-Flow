@@ -60,6 +60,7 @@ export interface World {
     plan?: unknown;
     runs?: unknown[];
     needs?: unknown[];
+    testProgress?: () => unknown;
     proposals?: unknown[];
     shared?: unknown;
     independence?: unknown;
@@ -100,12 +101,20 @@ function otherRead(world: World): Record<string, unknown> {
     };
 }
 
+function testResponse(progress: World['testProgress'], path: string, method: string) {
+    if (progress && path === TASK + '/plan/try' && method === 'POST') return jsonResponse({ tryId: 'try-1', fingerprint: FINGERPRINT });
+    if (progress && path === TASK + '/plan/try/try-1') return jsonResponse(progress());
+    return null;
+}
+
 /** Serve the world; answers with the calls made so far and a way to find one. */
 function serveTask(world: World = {}) {
     const reads = taskRead(world);
     const others = otherRead(world);
     const calls = stubRecordingFetch(({ url, method, body }) => {
         const path = pathOf(url);
+        const testReply = testResponse(world.testProgress, path, method);
+        if (testReply) return testReply;
         if (method === 'PUT' && path === `${TASK}/plan/independence`) return jsonResponse({ ...INDEPENDENCE, chosen: (body as { level?: string }).level });
         if (method !== 'GET') return jsonResponse(method === 'DELETE' ? { success: true } : {});
         if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);

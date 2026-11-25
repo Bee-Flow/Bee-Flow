@@ -103,6 +103,23 @@ describe('CoworkTaskView', () => {
         expect(within(steps).getByRole('button', { name: 'Compare with last month' })).toBeEnabled();
     });
 
+    it('shows the running test step on the Steps tab and follows it to completion', async () => {
+        let done = false;
+        const testProgress = () => ({ tryId: 'try-1', done, steps: [
+            { id: 'read', title: 'Read the mail', status: 'success' },
+            { id: 'trim', title: 'Keep this week', status: done ? 'success' : 'running' },
+            { id: 'tell', title: 'Tell me', status: done ? 'success' : 'pending' },
+        ] });
+        const { user } = openTask({ testProgress }, { kind: 'task', id: 'w1', focus: 'steps' });
+        const panel = within(await screen.findByRole('tabpanel', { name: 'Steps' }));
+        await user.click(await panel.findByRole('button', { name: 'Test, sends nothing' }));
+        expect(await panel.findByText('Testing step 2 of 3: Keep this week')).toBeVisible();
+        expect(panel.getByText('Keep this week').closest('li')).toHaveAttribute('aria-current', 'step');
+        expect(panel.getByText('Tell me').closest('li')).toHaveTextContent('Waiting');
+        done = true;
+        await waitFor(() => expect(panel.getByTestId('cowork-task-tested')).toHaveTextContent('Tested just now'), { timeout: 4000 });
+    });
+
     it('groups mail reads around a mapped script and keeps the write visible as its own stage', async () => {
         const plan = structuredClone(PLAN_WAITING);
         const view = plan.draft.view;

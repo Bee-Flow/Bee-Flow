@@ -7,6 +7,10 @@
 
 export default {
     "cowork_task.flow.step_count": "{count} steps",
+    "cowork_task.test.active": "Testing",
+    "cowork_task.test.waiting": "Waiting",
+    "cowork_task.test.current": "Testing step {number} of {total}: {title}",
+    "cowork_task.test.wait": "Waiting for the next test step…",
     "cowork_task.flow.prepare": "Prepare data",
     "cowork_task.flow.read_app": "Read from {app}",
     "cowork_task.flow.details": "Details",
