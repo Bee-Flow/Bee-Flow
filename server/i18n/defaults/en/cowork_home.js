@@ -3,6 +3,23 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_home.confirm.target_folder": "Which folder should receive the files?",
+    "cowork_home.confirm.target_recipient": "Who should receive the result?",
+    "cowork_home.confirm.target_table": "Which table should receive the rows?",
+    "cowork_home.examples.alert": "Report exceptions in a table",
+    "cowork_home.examples.alert_brief": "Every weekday at 09:00, check the Datatables table [1]. Notify me only when a row meets this condition: [2]. Include the matching rows.",
+    "cowork_home.examples.files": "Register Nextcloud files",
+    "cowork_home.examples.files_brief": "Every weekday at 09:00, check the Nextcloud folder [1]. Add the name and path of each new file to the Datatables table [2], skipping paths already registered.",
+    "cowork_home.examples.folder": "Which Nextcloud folder should Cowork check?",
+    "cowork_home.examples.mail": "Draft supplier replies",
+    "cowork_home.examples.mail_brief": "Every weekday at 09:00, check [1] for new messages from [2]. Prepare a draft reply for each message that still needs one and leave it for my review.",
+    "cowork_home.examples.mailbox": "Which connected mail app should Cowork read?",
+    "cowork_home.examples.meetings": "Weekly Fireflies summary",
+    "cowork_home.examples.meetings_brief": "Every Monday at 09:00, summarise last week’s Fireflies meetings with decisions and action items per meeting. Send the summary to me.",
+    "cowork_home.examples.next": "Continue",
+    "cowork_home.examples.rule": "Which values should trigger a notification?",
+    "cowork_home.examples.supplier": "Which supplier email address should it look for?",
+    "cowork_home.examples.table": "Which table should Cowork use?",
     "cowork_home.ask": "What should be done for you?",
     "cowork_home.at_limit": "You have {count} tasks, the most you can have. Delete one to add another.",
     "cowork_home.brief_label": "Describe the task in one sentence",

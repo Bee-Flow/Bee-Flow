@@ -3,6 +3,7 @@
 // approved fixed step can be undone (POST /api/cowork/:id/plan/restore).
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { PlanParameter } from './coworkPlan.types';
 import { apiJson } from './typedRequest';
 import { coworkPlanKey } from './queries/coworkPlan';
 
@@ -29,6 +30,8 @@ export interface CoworkProposal {
     replay: ProposalReplay | null;
     undoVersion: number | null;
     /** An automatic fix of the wiring that is still the plan: who waits for whom, who reads from whom now (step titles). */
+    recipients?: string[];
+    parameterChanges?: Array<PlanParameter & { before: string }>;
     wiring?: Array<{ kind: 'waits' | 'reads'; step: string; other: string }>;
 }
 
@@ -74,5 +77,10 @@ export function useCoworkProposalActions(coworkId: string) {
         mutationFn: (version) => apiJson<'POST /api/cowork/{id}/plan/restore'>('POST /api/cowork/{id}/plan/restore', { params: { id: coworkId }, body: { version } }),
         onSuccess: settle,
     });
-    return { approve, dismiss, restore };
+    const requestChange = useMutation<ProposalList, Error, { instruction: string } | { parameter: PlanParameter & { before: string } }>({
+        mutationFn: (body) => apiJson<'POST /api/cowork/{id}/proposals', ProposalList>(
+            'POST /api/cowork/{id}/proposals', { params: { id: coworkId }, body }),
+        onSuccess: settle,
+    });
+    return { approve, dismiss, restore, requestChange };
 }

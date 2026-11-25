@@ -35,6 +35,8 @@ import { toolLookups } from '../core/cowork/plan/planLookups.mts';
 import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/plan/planSource.mts';
 import { AUTO_FIX_REASONS, WIRING_FIX_REASON } from '../core/cowork/repairs/autoResolve.mts';
 import { wiringChangesOf } from '../core/cowork/plan/planWiringFix.mts';
+import { changeParameter, parametersOf, type ParameterEdit } from '../core/cowork/plan/planParameters.mts';
+import { sendsToOf } from '../core/cowork/planTrust.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -61,6 +63,7 @@ export interface ProposalDeps {
     isManaged: (automation: SourceRow) => Promise<boolean>;
     /** The plan as approval would judge it (./coworkPlan.mts draftOf). */
     judge: (automation: SourceRow, item: Item) => Promise<PlanDraft>;
+    tryDefinition: typeof import('./coworkPlanTryOut.mts').tryDefinition;
     amend: (input: AmendInput) => Promise<Amended>;
     /** Replay a definition on the past runs and wait until it is done; the state of an earlier replay. */
     replay: { run: (input: { item: Item } & ReplayOptions) => Promise<ReplayState>; stateOf: (item: Item, replayId: string) => Promise<ReplayState | null> };
@@ -98,6 +101,7 @@ export function proposalDeps(): ProposalDeps {
             const { policyOfOwner } = nodeRequire('../core/entitlements/coworkPolicy.mts') as typeof import('../core/entitlements/coworkPolicy.mts');
             return plan().draftOf(automation, { lookups, mayAsk: mayAskByLicence, policyOf: (u) => policyOfOwner(u) }, item);
         },
+        tryDefinition: (input) => (nodeRequire('./coworkPlanTryOut.mts') as typeof import('./coworkPlanTryOut.mts')).tryDefinition(input),
         amend: (input) => (nodeRequire('./coworkPlanAmend.mts') as typeof import('./coworkPlanAmend.mts')).amendPlan(input),
         replay: {
             run: replayAndWait,
@@ -111,7 +115,9 @@ export function proposalDeps(): ProposalDeps {
 /** What a proposal asks: the change to work out, and what to replay it on. */
 export interface ProposalRequest {
     kind: ProposalKind;
-    reasonCode: 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved' | 'wiring_broken';
+    parameter?: ParameterEdit;
+    ownerRequest?: string;
+    reasonCode: 'owner_request' | 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved' | 'wiring_broken';
     stepId: string | null;
     stepTitle: string | null;
     facts: AmendFacts;
@@ -130,14 +136,23 @@ export function replayPasses(state: ReplayState | null): boolean {
 
 /** The change worked out, and judged as approval would judge it; null with the reason it is not offered. */
 async function workedOut(item: Item, approved: Approved, automation: SourceRow, request: ProposalRequest, deps: ProposalDeps): Promise<{ definition: Definition; draft: PlanDraft } | ProposeOutcome> {
-    let amended: Amended;
+    let definition: Definition;
     try {
-        amended = await deps.amend({ item, approved: approved.definition as Definition, facts: request.facts, userOrgId: request.userOrgId ?? null, bookOn: request.bookOn ?? null });
+        if (request.parameter) {
+            const changed = changeParameter(approved.definition as Definition, request.parameter);
+            if (!changed) return 'unchanged';
+            definition = changed;
+        } else {
+            const amended = await deps.amend({
+                item, approved: approved.definition as Definition, facts: request.facts, ownerRequest: request.ownerRequest,
+                userOrgId: request.userOrgId ?? null, bookOn: request.bookOn ?? null,
+            });
+            definition = amended.definition;
+        }
     } catch (e) {
         log.warn(`[Cowork] no ${request.kind} could be worked out for ${item.id}: ${(e as Error).message}`);
         return 'failed';
     }
-    const { definition } = amended;
     if (planFingerprint(definition) === approved.fingerprint) return 'unchanged';
     if (request.kind === 'fixed_step' && !onlyStepMadeFixed(approved.definition as Definition, definition, request.stepId ?? '', deps.lookups)) return 'not_fixed';
     const draft = await deps.judge({ ...automation, definition }, item);
@@ -152,6 +167,10 @@ export async function propose(item: Item, request: ProposalRequest, deps: Propos
     if (!approved || !automation) return 'no_plan';
     const made = await workedOut(item, approved, automation, request, deps);
     if (typeof made === 'string') return made;
+    if (request.reasonCode === 'owner_request') {
+        const tried = await deps.tryDefinition({ item, automation, definition: made.definition });
+        if (!tried.passed) throw new HttpError(422, 'cowork_change_test_failed', tried.problems.join(' ') || 'The changed steps did not pass their test.');
+    }
     const fixed = request.kind === 'fixed_step' && request.stepId ? { onlyPlan: approved.fingerprint, outputOnly: [request.stepId] } : {};
     const replay = await deps.replay.run({ item, definition: made.definition, ...fixed }).catch((e: Error) => {
         log.info(`[Cowork] the ${request.kind} of ${item.id} was not replayed: ${e.message}`);
@@ -164,6 +183,16 @@ export async function propose(item: Item, request: ProposalRequest, deps: Propos
         fingerprint: made.draft.fingerprint, widens: widens(made.draft.permissions, approved.permissions as PlanPermissions), replayId: replay?.replayId ?? null,
     });
     return stored ? 'proposed' : 'open_exists';
+}
+
+/** A request from the authenticated task owner, tested on a copy before it is offered. */
+export async function requestChange(item: Item, edit: { instruction?: string; parameter?: ParameterEdit }, deps: ProposalDeps = proposalDeps()) {
+    const existing = await deps.store.openProposalOf(item.id, 'repair');
+    if (existing) throw new HttpError(409, 'cowork_open_change', 'Review the open change first.');
+    const outcome = await propose(item, { kind: 'repair', reasonCode: 'owner_request', stepId: null, stepTitle: null,
+        facts: { kind: 'owner_request' }, ownerRequest: edit.instruction, parameter: edit.parameter, userOrgId: await orgOfOwner(item.userId) }, deps);
+    if (outcome !== 'proposed') throw new HttpError(409, 'cowork_change_unavailable', outcome === 'unchanged' ? 'The requested change produced the same steps.' : 'No tested change is available. Review the current steps and try again.');
+    return proposalsOf(item, deps);
 }
 
 /** One proposal as its owner sees it. */
@@ -185,6 +214,8 @@ export interface ProposalView {
     /** An approved fixed step that is still the plan: the version "Undo" brings back. */
     undoVersion: number | null;
     /** An automatic fix of the wiring that is still the plan: who waits for whom, who reads from whom now (titles). */
+    recipients?: string[];
+    parameterChanges?: ParameterEdit[];
     wiring?: Array<{ kind: 'waits' | 'reads'; step: string; other: string }>;
 }
 
@@ -204,12 +235,20 @@ async function viewOf(item: Item, p: Proposal, approved: Approved | null, deps: 
     const current = p.status === 'approved' && (p.kind === 'fixed_step' || AUTO_FIX_REASONS.has(p.reasonCode)) && approved?.fingerprint === p.fingerprint;
     const undoVersion = current ? await deps.plans.versionWithFingerprint(item.id, p.baseFingerprint) : null;
     const wiring = await wiringOf(item, p, undoVersion, deps);
+    const ownerEdit = open && approved && p.reasonCode === 'owner_request';
+    const before = ownerEdit ? parametersOf(approved.definition as Definition) : [];
+    const parameterChanges = ownerEdit ? parametersOf(p.definition as Definition).flatMap((param) => {
+        const old = before.find((b) => b.stepId === param.stepId && b.field === param.field);
+        return old && old.value !== param.value ? [{ ...param, before: old.value }] : [];
+    }) : [];
     return {
+        ...(parameterChanges.length ? { parameterChanges } : {}),
         id: p.id, kind: p.kind, reasonCode: p.reasonCode, stepId: p.stepId, stepTitle: p.stepTitle, status: p.status, fingerprint: p.fingerprint,
         createdAt: p.createdAt, decidedAt: p.decidedAt, widens: p.widens,
         changes: open && approved ? changesOf(approved.definition as Definition, p.definition as Definition, deps.lookups) : [],
         replay: replay ? { done: replay.done, total: replay.total, same: replay.same, differs: replay.differs, partial: replay.partial, notReplayable: replay.notReplayable } : null,
         undoVersion,
+        ...(open && p.reasonCode === 'owner_request' ? { recipients: [...new Set(Object.values(sendsToOf(p.definition as Definition, deps.lookups)))] } : {}),
         ...(wiring ? { wiring } : {}),
     };
 }
@@ -268,7 +307,7 @@ export async function dismissProposal({ item, proposalId }: { item: Item; propos
 export async function openRepairOf(item: Item, approvedFingerprint: string | null, deps: Pick<ProposalDeps, 'store'> = proposalDeps()): Promise<{ proposalId: string; reasonCode: string; stepTitle: string | null } | null> {
     if (!approvedFingerprint) return null;
     const p = await deps.store.openProposalOf(item.id, 'repair');
-    return p && p.baseFingerprint === approvedFingerprint ? { proposalId: p.id, reasonCode: p.reasonCode, stepTitle: p.stepTitle } : null;
+    return p && p.reasonCode !== 'owner_request' && p.baseFingerprint === approvedFingerprint ? { proposalId: p.id, reasonCode: p.reasonCode, stepTitle: p.stepTitle } : null;
 }
 
 /** The organisation of an item's owner: the model and tiers a change is worked out with. */

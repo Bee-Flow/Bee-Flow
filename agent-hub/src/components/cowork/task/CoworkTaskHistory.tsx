@@ -138,6 +138,7 @@ function DeleteTask({ item, onGone, t }: { item: Pick<CoworkItem, 'id' | 'title'
 interface CoworkTaskHistoryProps {
     item: Pick<CoworkItem, 'id' | 'title'>;
     runs: CoworkRun[];
+    onSteps?: () => void;
     plan: PlanState | undefined;
     /** The task is gone (deleted): the page closes. */
     onGone: () => void;
@@ -146,13 +147,13 @@ interface CoworkTaskHistoryProps {
 
 type HistoryRowId = 'changes' | 'proof';
 
-export default function CoworkTaskHistory({ item, runs, plan, onGone, t }: CoworkTaskHistoryProps) {
+export default function CoworkTaskHistory({ item, runs, plan, onGone, onSteps, t }: CoworkTaskHistoryProps) {
     const [open, setOpen] = useState<HistoryRowId | null>(null);
     const proof = chainWords(useReceipts(item.id).data, t);
     const row = (id: HistoryRowId) => ({ id, open: open === id, onToggle: (next: string | null) => setOpen(next as HistoryRowId | null) });
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-history">
-            <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />
+            <CoworkTaskRuns coworkId={item.id} runs={runs} onSteps={onSteps} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />
             <div className={ROWS}>
                 <FoldRow {...row('changes')} label={t('cowork_task.history.changes', 'Changes')}>
                     <ChangesBody coworkId={item.id} plan={plan} t={t} />

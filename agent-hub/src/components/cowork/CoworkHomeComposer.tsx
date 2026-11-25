@@ -13,6 +13,7 @@
  * week on the day it was asked; a template's sentence (`seed`) fills it too.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import CoworkExamples from './CoworkExamples';
 import CoworkConfirmCard from './CoworkConfirmCard';
 import CoworkProgress from './CoworkProgress';
 import type { ConfirmChoices } from './coworkConfirmModel';
@@ -122,9 +123,9 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
     };
     const edit = (next: string) => {
         setText(next);
+        if (!next.trim()) { close(); return; }
         if (!cowork.draft) return;
-        if (next.trim()) reread.edit(next);
-        else close();
+        reread.edit(next);
     };
     const start = async (payload: CoworkPayload | CoworkTriggerPayload) => {
         stop();
@@ -157,12 +158,14 @@ export default function CoworkHomeComposer({ atLimit, maxItems, seed = null, onT
                 />
                 <ComposerButtons reading={cowork.submitting && !cowork.draft} disabled={!text.trim() || !!cowork.draft || cowork.submitting || atLimit} onTemplates={onTemplates} t={t} />
             </form>
+            {!atLimit && !text && !cowork.draft && <CoworkExamples onPick={(brief, supplierFilter) => { setText(brief); setChoices(supplierFilter ? { recipients: { me: true, others: [] } } : {}); box.current?.focus(); }} t={t} />}
             {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
             {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (
                 <CoworkConfirmCard
                     cowork={cowork} sentence={text} choices={choices} rereading={reread.waiting || (cowork.submitting && !starting)}
                     onChoose={(change) => setChoices((was) => ({ ...was, ...change }))}
+                    onClarify={(detail) => edit(text.trimEnd() + '\n' + detail)}
                     onStart={(payload) => { void start(payload); }} onCancel={close}
                 />
             )}

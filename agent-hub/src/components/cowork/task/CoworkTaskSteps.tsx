@@ -15,6 +15,7 @@ import { Check, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-re
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
 import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
+import CoworkEffectPreview from './CoworkEffectPreview';
 import CoworkTaskReplay from './CoworkTaskReplay';
 import { TechnicalDetails } from './taskRows';
 import { BTN_LINK, BTN_QUIET, Failure, META, ROW_ACTIONS, TAG_WARN } from './taskUi';
@@ -198,6 +199,7 @@ export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agent
                 : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}
             <BetweenToggle count={steps.filter((s) => s.helper).length} open={between} onToggle={() => setBetween((v) => !v)} t={t} />
             {tested && <TestedLine tested={tested} t={t} />}
+            {tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter((s) => s.held && s.status !== 'not_reached')} t={t} />}
             <MayList may={may} t={t} />
             {fixed && !readOnly && <TestAndCompare coworkId={coworkId} plan={plan} tryOut={tryOut} live={live} titleOf={titleOf} t={t} />}
         </div>

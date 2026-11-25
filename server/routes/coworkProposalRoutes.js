@@ -19,6 +19,14 @@ const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, wholeNumber } = require('../core/http/schemaParts');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 
+const { requireModule } = require('../modules');
+const { perUserRateLimit } = require('../utils/perUserRateLimit');
+const instruction = z.string().trim().min(1).max(2000);
+const ChangeBody = z.union([
+    bodyOf({ instruction }, 'Changing the steps'),
+    bodyOf({ parameter: z.object({ stepId: z.string().min(1).max(200), field: z.enum(['query', 'folder', 'path', 'subject', 'to']),
+        before: z.string().max(2000), value: instruction }).strict() }, 'Changing a step setting'),
+]);
 const FINGERPRINT_TEXT = 'fingerprint is the fingerprint of the proposal you looked at (64 characters).';
 const VERSION_TEXT = 'version is the number of an approved version of the plan.';
 const ApproveBody = bodyOf({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }, 'Approving a proposal');
@@ -33,7 +41,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
 /**
  * @typedef {{
  *   loadItem: typeof loadOwnedItem,
- *   proposals: () => Pick<typeof import('../usecases/coworkProposals.mts'), 'proposalsOf' | 'approveProposal' | 'dismissProposal'>,
+ *   proposals: () => Pick<typeof import('../usecases/coworkProposals.mts'), 'proposalsOf' | 'approveProposal' | 'dismissProposal' | 'requestChange'>,
  *   versions: () => Pick<typeof import('../usecases/coworkPlanVersions.mts'), 'restoreVersion'>,
  * }} ProposalRouteDeps
  */
@@ -51,6 +59,12 @@ const defaults = () => ({
  */
 function mountProposalRoutes(router, overrides = {}) {
     const { loadItem, proposals, versions } = { ...defaults(), ...overrides };
+    const limit = perUserRateLimit({ windowMs: 60_000, max: 3, name: 'cowork-owner-change' });
+    router.post('/:id/proposals', requireModule('automation'), limit, validate({ params: ItemParams, body: ChangeBody }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        await require('../core/cowork/spendGate.mts').assertSpendLeft(item);
+        res.json(await proposals().requestChange(item, req.body));
+    });
     router.get('/:id/proposals', validate({ params: ItemParams }), async (req, res) => {
         res.json(await proposals().proposalsOf(await loadItem(req.params.id, userIdOf(req))));
     });

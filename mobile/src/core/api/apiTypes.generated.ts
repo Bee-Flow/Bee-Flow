@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2029 operations. */
+/** 2030 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2730,6 +2730,16 @@ export interface ApiOperations {
     'GET /api/cowork/{id}/plan/try/{tryId}': Op<{ id: string | number; tryId: string | number }>;
     'GET /api/cowork/{id}/plan/try/{tryId}/compare': Op<{ id: string | number; tryId: string | number }>;
     'GET /api/cowork/{id}/proposals': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/proposals': Op<{ id: string | number }, UndeclaredQuery, {
+        instruction: string;
+    } | {
+        parameter: {
+            before: string;
+            field: 'query' | 'folder' | 'path' | 'subject' | 'to';
+            stepId: string;
+            value: string;
+        };
+    }>;
     'POST /api/cowork/{id}/proposals/{proposalId}/approve': Op<{ id: string | number; proposalId: string | number }, UndeclaredQuery, {
         fingerprint: string;
     }>;

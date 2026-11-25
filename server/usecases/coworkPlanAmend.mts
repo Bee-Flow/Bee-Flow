@@ -49,6 +49,7 @@ export interface AmendInput {
     /** The approved definition; it is copied, never changed. */
     approved: Definition;
     facts: AmendFacts;
+    ownerRequest?: string;
     userOrgId?: string | null;
     /** The Cowork run this change is booked on. */
     bookOn?: string | null;
@@ -88,7 +89,7 @@ export async function amendPlan(input: AmendInput, deps: AmendDeps = amendDeps()
     });
     const menu = { tools: plannerTools(deps.builder.toolSchemas), refusal: plannerRefusal };
     const loop = await draftWithin(
-        { draft, modelId, system, ask: 'Change the plan as the facts call for.', menu, maxRounds: MAX_AMEND_ROUNDS, findingsOf, bookOn: input.bookOn ?? null },
+        { draft, modelId, system, ask: input.facts.kind === 'owner_request' ? input.ownerRequest || '' : 'Change the plan as the facts call for.', menu, maxRounds: MAX_AMEND_ROUNDS, findingsOf, bookOn: input.bookOn ?? null },
         input.signal, { code: 'cowork_amend_timeout', message: 'Working out a change took too long.' }, deps,
     );
     return { definition: draft.def, summary: loop.summary, rounds: loop.rounds };

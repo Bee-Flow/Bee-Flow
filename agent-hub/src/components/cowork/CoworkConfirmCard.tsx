@@ -107,6 +107,7 @@ export interface CoworkConfirmCardProps {
     /** The sentence was edited and is being read again. */
     rereading?: boolean;
     onStart: (payload: CoworkPayload | CoworkTriggerPayload) => void;
+    onClarify: (detail: string) => void;
     onCancel: () => void;
 }
 
@@ -134,28 +135,42 @@ function ConfirmRows({ view, steps, asking, mustPick, setChanging, onChoose, cat
     );
 }
 
-export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose, rereading = false, onStart, onCancel }: CoworkConfirmCardProps) {
+export default function CoworkConfirmCard({ cowork, sentence, choices, onChoose, rereading = false, onStart, onClarify, onCancel }: CoworkConfirmCardProps) {
     const { t } = useTranslation();
     const steps = useMayHaveSteps();
     const { availableApps } = useCoworkApps();
     const [changing, setChanging] = useState(false);
+    const [answer, setAnswer] = useState('');
     const draft = cowork.draft;
     if (!draft) return null;
     const catalogue = availableApps.filter((a) => !a.isStep);
     const view = confirmView(draft, choices, sentence, catalogue);
     // Only a sentence that said no day holds the start back; changing a day the card understood does not.
     const mustPick = needsDay(draft) && !choices.schedule;
+    const target = draft.spec?.missingTarget;
+    const question = target && {
+        folder: t('cowork_home.confirm.target_folder', 'Which folder should receive the files?'),
+        table: t('cowork_home.confirm.target_table', 'Which table should receive the rows?'),
+        recipient: t('cowork_home.confirm.target_recipient', 'Who should receive the result?'),
+    }[target];
     const asking = changing || mustPick;
     const busy = cowork.submitting || rereading;
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">
             <h2 id="cowork-confirm-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.confirm.heading', 'This is what I understood')}</h2>
             <ConfirmRows view={view} steps={steps} asking={asking} mustPick={mustPick} setChanging={setChanging} onChoose={onChoose} catalogue={catalogue} t={t} />
+            {question && <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
+                e.preventDefault();
+                if (answer.trim() && !busy) { onClarify(question + ' ' + answer.trim()); setAnswer(''); }
+            }}>
+                <label>{question}<input className={FIELD_WIDE} value={answer} maxLength={300} onChange={(e) => setAnswer(e.target.value)} /></label>
+                <button className={LINK_INLINE} disabled={busy || !answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
+            </form>}
             <p className={META}>{hintOf(mustPick, steps, t)}</p>
             {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
             {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}
             <div className="flex flex-wrap items-center gap-2">
-                <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={mustPick || busy} onClick={() => onStart(startPayload(view, steps))}>
+                <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={!!question || mustPick || busy} onClick={() => onStart(startPayload(view, steps))}>
                     {startLabel(cowork.submitting && !rereading, steps, t)}
                 </button>
                 <button type="button" className={BUTTON_SECONDARY} disabled={cowork.submitting && !rereading} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
