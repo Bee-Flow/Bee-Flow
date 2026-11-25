@@ -4,13 +4,15 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 
 import CoworkOrb, { type ActivityTone } from './CoworkOrb';
 
+import type { OrbWork } from './CoworkOrbSources';
+
 interface ActivityProps {
-    message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
+    work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
 }
 
-export default function CoworkActivity({ message, title, tone, testId, children }: ActivityProps) {
+export default function CoworkActivity({ message, title, tone, work, testId, children }: ActivityProps) {
     return <div className="cowork-activity" data-testid={testId}>
-        <CoworkOrb tone={tone} activity={message} />
+        <CoworkOrb tone={tone} work={work} activity={message} />
         <div className="cowork-activity-caption">
             {title && <p className="m-0 mb-1 break-words text-[13px] font-medium text-[var(--text-secondary)]">{title}</p>}
             <div role="status" aria-atomic="true" className="cowork-activity-current">
@@ -21,16 +23,17 @@ export default function CoworkActivity({ message, title, tone, testId, children 
     </div>;
 }
 
-export function setupActivity(phase: PlanMakeProgress['phase'] | 'checking' | null, t: TranslateFn, step?: PlanningTestStep): ActivityProps {
+export function setupActivity(phase: PlanMakeProgress['phase'] | 'checking' | null, t: TranslateFn, step?: PlanningTestStep, apps?: string[] | null): ActivityProps {
     switch (phase) {
-        case 'checking': return { message: t('cowork_home.activity.checking', 'Checking task setup…') };
-        case 'saving': return { tone: 'executing', message: t('cowork_home.activity.saving', 'Saving task steps…') };
+        case 'checking': return { work: { action: 'testing', apps }, message: t('cowork_home.activity.checking', 'Checking task setup…') };
+        case 'saving': return { work: { action: 'saving', apps }, tone: 'executing', message: t('cowork_home.activity.saving', 'Saving task steps…') };
         case 'trying': return step && step.total > 0 ? {
+            work: { action: step.kind === 'ai' ? 'thinking' : 'testing', apps: step.app ? [step.app] : [], stepType: step.type },
             tone: step.kind === 'ai' ? 'thinking' : 'executing',
             message: t('cowork_task.test.current', 'Testing step {number} of {total}: {title}', { ...step }),
-        } : { tone: 'executing', message: t('cowork_home.setup.testing', 'Testing once, nothing is sent') };
-        case 'repairing': return { tone: 'repair', message: t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') };
-        case 'drafted': return { message: t('cowork_home.activity.check_draft', 'Checking the proposed steps…') };
-        default: return { message: t('cowork_task.live.make_think', 'Working out the steps') };
+        } : { work: { action: 'testing', apps }, tone: 'executing', message: t('cowork_home.setup.testing', 'Testing once, nothing is sent') };
+        case 'repairing': return { work: { action: 'repair', apps }, tone: 'repair', message: t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') };
+        case 'drafted': return { work: { action: 'creating', apps }, message: t('cowork_home.activity.check_draft', 'Checking the proposed steps…') };
+        default: return { work: { action: 'thinking', apps }, message: t('cowork_task.live.make_think', 'Working out the steps') };
     }
 }

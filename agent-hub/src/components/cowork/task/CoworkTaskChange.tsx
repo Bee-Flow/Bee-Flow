@@ -41,10 +41,6 @@ function ParameterPicker({ fields, parameter, label, t, onPick }: {
     </label>;
 }
 
-function ProposalActivity({ message, preparing }: { message: string; preparing: boolean }) {
-    return <CoworkActivity message={message} tone={preparing ? 'thinking' : 'executing'} />;
-}
-
 function changeScene(activity: string | null, result: string | null, proposal: CoworkProposal | undefined) {
     if (activity) return activity;
     if (result) return 'done';
@@ -77,16 +73,17 @@ export default function CoworkTaskChange({ coworkId, approved, draft, live, onSe
     const proposal = proposals.data?.find((p) => p.reasonCode === 'owner_request' && p.status === 'open');
     const activity = proposalActivity(requestChange.isPending, approve.isPending, dismiss.isPending, t);
     const result = resultMessage(proposal, approve.isSuccess, dismiss.isSuccess, t);
+    const apps = draft?.permissions.grants.map(grant => grant.app);
     const scene = changeScene(activity, result, proposal);
     return <details className="peer/change rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 py-3">
         <summary className="cursor-pointer font-medium">{t('cowork_task.edit.task', 'Adjust this task')}</summary>
         <CoworkSurface scene={scene}>
             <div className="mt-3 flex flex-col gap-3">
-                {activity ? <ProposalActivity message={activity} preparing={requestChange.isPending} /> : result ? <CoworkActivity message={result} tone="rest">
+                {activity ? <CoworkActivity message={activity} tone={requestChange.isPending ? 'thinking' : 'executing'} work={{ apps, action: requestChange.isPending ? 'edit' : dismiss.isPending ? 'discard' : 'saving' }} /> : result ? <CoworkActivity message={result} work={{ apps, action: dismiss.isSuccess ? 'discard' : 'rest' }} tone="rest">
                     <button className={BTN_QUIET} onClick={() => { approve.reset(); dismiss.reset(); }}>{t('cowork_task.edit.task', 'Adjust this task')}</button>
                 </CoworkActivity> : <>
                     {proposal ? <>
-                        <CoworkOrb tone="rest" />
+                        <CoworkOrb tone="rest" work={{ apps }} />
                         <ProposalPreview proposal={proposal} label={label} t={t} />
                         <div className={ROW_ACTIONS}>
                             <button className={BTN_QUIET} disabled={live} onClick={() => approve.mutate({ proposalId: proposal.id, fingerprint: proposal.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>

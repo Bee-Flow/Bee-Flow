@@ -17,10 +17,10 @@ import type { PlanMakeProgress, PlanningTestStep } from '@/api/coworkPlan.types'
 import type { CoworkItem } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export interface TaskSetup { id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
+export interface TaskSetup { apps?: string[] | null; id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
 
 /** The task to set up: the new task itself, or just its id and name (it is then read first). */
-export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup'>>;
+export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup' | 'enabledApps'>>;
 
 /** Does the task wait for its steps? Read from the task itself when the caller did not hand its set-up in. */
 async function wantsSteps(task: TaskToSetUp): Promise<boolean | null> {
@@ -44,14 +44,15 @@ export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp
         running.current?.abort();
         const control = new AbortController();
         running.current = control;
+        let apps = task.enabledApps;
         const settle = async (message: string) => {
             await client.invalidateQueries({ queryKey: ['cowork'] });
             if (control.signal.aborted) return;
             running.current = null;
             setSetup(null);
-            onDone(message, task);
+            onDone(message, { ...task, enabledApps: apps });
         };
-        setSetup({ id: task.id, title: task.title, phase: 'checking' });
+        setSetup({ apps, id: task.id, title: task.title, phase: 'checking' });
         const wanted = await wantsSteps(task);
         if (control.signal.aborted) return;
         if (wanted === null) {
@@ -62,8 +63,11 @@ export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp
             if (!control.signal.aborted) await settle(t('cowork_home.setup.ai', 'Started. The AI works this task out on every run.'));
             return;
         }
-        setSetup({ id: task.id, title: task.title, phase: 'thinking' });
-        const progress = (p: PlanMakeProgress) => setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
+        setSetup({ apps, id: task.id, title: task.title, phase: 'thinking' });
+        const progress = (p: PlanMakeProgress) => {
+            if (p.phase === 'drafted') apps = p.steps.flatMap(step => step.app ? [step.app] : []);
+            setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, apps, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
+        };
         let ready = false;
         try {
             const outcome = await makeCoworkPlan(task.id, { signal: control.signal, onProgress: progress });

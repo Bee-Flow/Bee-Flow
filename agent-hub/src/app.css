@@ -1653,7 +1653,7 @@ pre.hljs {
 .cowork-orb {
     position: relative;
     isolation: isolate;
-    width: min(100%, clamp(14rem, 29vw, 20rem));
+    width: min(100%, clamp(15rem, 33vw, 23rem));
     aspect-ratio: 1;
     margin-inline: auto;
     pointer-events: none;

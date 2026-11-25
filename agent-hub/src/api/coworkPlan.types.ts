@@ -215,11 +215,11 @@ export interface PlanRunTrace {
 }
 
 /** What the planner says while it drafts a plan (server/usecases/coworkPlanner.mts). */
-export interface PlanningTestStep { kind?: PlanStepKind; title: string; number: number; total: number }
+export interface PlanningTestStep { app?: string | null; type?: string; kind?: PlanStepKind; title: string; number: number; total: number }
 
 export type PlanMakeProgress =
     | { phase: 'thinking'; round: number }
-    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'>> }
+    | { phase: 'drafted'; round: number; steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'> & { app?: string | null }> }
     | { phase: 'saving' }
     | { phase: 'trying'; round: number; step?: PlanningTestStep }
     | { phase: 'repairing'; round: number };

@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
+import type { NeuralGlyph } from './coworkOrbGlyph';
+import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { drawOrbFrame, type ActivityTone } from './coworkOrbFrame';
 import { makeOrbGeometry, type OrbGeometry } from './coworkOrbGeometry';
@@ -8,7 +10,8 @@ export type { ActivityTone } from './coworkOrbFrame';
 const SPEED = { thinking: .86, executing: 1.3, repair: 1.05, rest: .42 };
 let geometry: OrbGeometry | undefined;
 
-export default function CoworkOrb({ tone = 'thinking', activity }: { tone?: ActivityTone; activity?: string }) {
+export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?: ActivityTone; activity?: string; work?: OrbWork }) {
+    const [marks, setMarks] = useState<(NeuralGlyph | null)[]>([]);
     const canvas = useRef<HTMLCanvasElement>(null);
     const clock = useRef({ time: 0, speed: SPEED[tone], beat: 0 });
     const reduced = useReducedMotion();
@@ -20,7 +23,7 @@ export default function CoworkOrb({ tone = 'thinking', activity }: { tone?: Acti
         const model = geometry ??= makeOrbGeometry();
         const state = clock.current;
         state.beat = reduced || tone === 'rest' ? 0 : 1;
-        const draw = () => drawOrbFrame(ctx, model, state.time, state.beat);
+        const draw = () => drawOrbFrame(ctx, model, state.time, state.beat, marks);
         const resize = () => {
             const pixels = Math.max(1, Math.round(el.clientWidth * Math.min(window.devicePixelRatio || 1, 2)));
             if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
@@ -62,9 +65,10 @@ export default function CoworkOrb({ tone = 'thinking', activity }: { tone?: Acti
             size?.disconnect();
             document.removeEventListener('visibilitychange', update);
         };
-    }, [tone, activity, reduced]);
+    }, [tone, activity, reduced, marks]);
 
     return <div aria-hidden="true" className="cowork-orb" data-tone={tone}>
+        <CoworkOrbSources action={tone} {...work} onRead={setMarks} />
         <canvas ref={canvas} width="256" height="256" />
     </div>;
 }

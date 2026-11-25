@@ -1,3 +1,4 @@
+import type { NeuralGlyph } from './coworkOrbGlyph';
 import type { Fibre, OrbGeometry, Point } from './coworkOrbGeometry';
 import { impulseAge, type Axon, type NeuralNetwork } from './coworkOrbNetwork';
 
@@ -138,7 +139,43 @@ function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: N
     }
 }
 
-export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number) {
+function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, x: number, y: number, scale: number, time: number) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.translate(-20, -20);
+    ctx.strokeStyle = '#bfd9f4';
+    ctx.fillStyle = '#e2efff';
+    ctx.lineWidth = .57;
+    ctx.stroke(glyph.links);
+    ctx.fill(glyph.nodes);
+    for (const [i, p] of glyph.sparks.entries()) {
+        const pulse = Math.max(0, Math.sin(time * 1.7 + i * 2.4));
+        if (pulse > .6) lightPoint(ctx, p.x, p.y, 1.2, pulse * .8);
+    }
+    ctx.restore();
+}
+
+// Keep the marks facing the viewer while their junctions drift with the volume.
+function drawWork(ctx: CanvasRenderingContext2D, marks: (NeuralGlyph | null)[], time: number, network: NeuralNetwork, project: Project) {
+    const sites = [[0, -5], [-46, 26], [46, 23], [15, -53]];
+    for (const [i, glyph] of marks.entries()) {
+        if (!glyph) continue;
+        const x = sites[i][0] + 3 * Math.sin(time * .52 + i), y = sites[i][1] + 2 * Math.cos(time * .46 + i);
+        const root = project(network.neurons[30 + i].position);
+        ctx.beginPath();
+        ctx.moveTo(root.x, root.y);
+        ctx.bezierCurveTo(root.x + 7, root.y - 8, x - 12, y + 14, x, y);
+        if (i) ctx.quadraticCurveTo(x * .32, y + 5, 3 * Math.sin(time * .52), -5 + 2 * Math.cos(time * .46));
+        ctx.strokeStyle = 'rgba(184,222,255,.72)';
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = .72;
+        ctx.stroke();
+        paintMark(ctx, glyph, x, y, i ? .64 : .8, time);
+    }
+}
+
+export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, marks: (NeuralGlyph | null)[]) {
     const size = ctx.canvas.width;
     ctx.resetTransform();
     ctx.clearRect(0, 0, size, size);
@@ -150,5 +187,6 @@ export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometr
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
     drawGrains(ctx, project, geometry.dust);
     drawNetwork(ctx, project, geometry.network, time, beat);
+    drawWork(ctx, marks, time, geometry.network, project);
     ctx.globalAlpha = 1;
 }

@@ -43,7 +43,7 @@ export interface TryRoundDeps extends LoopDeps {
 }
 
 /** What a draft is told when a try-out found something, and what the page hears. */
-export type TryProgress = DraftProgress | { phase: 'trying'; round: number; step?: { number: number; total: number; title: string; kind: StepKind } } | { phase: 'repairing'; round: number };
+export type TryProgress = DraftProgress | { phase: 'trying'; round: number; step?: { number: number; total: number; title: string; kind: StepKind; app: string | null; type: string } } | { phase: 'repairing'; round: number };
 
 export interface TryRoundsInput {
     item: Item;
@@ -94,7 +94,7 @@ function testObserver(input: TryRoundsInput, round: number, deps: TryRoundDeps) 
     return (id: string) => {
         const number = positions.get(id);
         const step = byId.get(id);
-        if (number && step && !input.signal?.aborted) publish({ phase: 'trying', round, step: { number, total: runOrder.length, title: step.title, kind: step.kind } });
+        if (number && step && !input.signal?.aborted) publish({ phase: 'trying', round, step: { number, total: runOrder.length, title: step.title, kind: step.kind, app: step.app, type: step.type } });
     };
 }
 

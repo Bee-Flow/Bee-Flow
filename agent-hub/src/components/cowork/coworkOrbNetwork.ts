@@ -1,7 +1,7 @@
 import type { Point } from './coworkOrbGeometry';
 
 const PERIOD = 6.4;
-export interface Neuron { position: Point; arrival: number; radius: number }
+interface Neuron { position: Point; arrival: number; radius: number }
 export interface Axon { path: Point[]; arrival: number; duration: number; twig: Point[] }
 export interface NeuralNetwork { neurons: Neuron[]; axons: Axon[] }
 

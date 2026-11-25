@@ -39,7 +39,7 @@ export interface CoworkHomeComposerProps {
     onCreated: (item: CoworkItem) => void;
     /** The task whose steps are being set up now, if any. */
     setup: TaskSetup | null;
-    finished?: { title: string; message: string; onOpen: () => void; onReset: () => void };
+    finished?: { apps?: string[] | null; title: string; message: string; onOpen: () => void; onReset: () => void };
 
 }
 
@@ -224,14 +224,14 @@ export default function CoworkHomeComposer(props: CoworkHomeComposerProps) {
     const { setup, finished } = props;
     const scene = finished ? 'finished' : setup || brief.starting ? 'setup' : brief.cowork.draft ? 'review' : brief.cowork.submitting ? 'preview' : 'write';
     let content: ReactNode;
-    if (finished) content = <CoworkActivity title={finished.title} message={finished.message} tone="rest">
+    if (finished) content = <CoworkActivity title={finished.title} message={finished.message} tone="rest" work={{ apps: finished.apps }}>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <button type="button" className={BUTTON_PRIMARY} onClick={finished.onOpen}>{t('cowork_home.activity.open', 'Open task')}</button>
             <button type="button" className={LINK_BUTTON} onClick={finished.onReset}>{t('cowork_home.activity.another', 'Create another task')}</button>
         </div>
     </CoworkActivity>;
-    else if (setup) content = <CoworkActivity title={setup.title} {...setupActivity(setup.phase, t, setup.step)} testId="cowork-setup" />;
-    else if (brief.starting) content = <CoworkActivity title={brief.cowork.draft?.payload.title} message={t('cowork_home.activity.creating', 'Creating your task…')} />;
+    else if (setup) content = <CoworkActivity title={setup.title} {...setupActivity(setup.phase, t, setup.step, setup.apps)} testId="cowork-setup" />;
+    else if (brief.starting) content = <CoworkActivity work={{ action: 'creating', apps: brief.cowork.draft?.payload.enabledApps }} title={brief.cowork.draft?.payload.title} message={t('cowork_home.activity.creating', 'Creating your task…')} />;
     else if (scene === 'preview') content = <CoworkActivity message={brief.quick ? t('cowork_home.activity.thinking', 'Thinking through your task…') : t('cowork_home.activity.preview', 'Preparing your task preview…')} />;
     else content = <TaskEditor props={props} brief={brief} t={t} />;
     return <div data-cowork-engaged={scene !== 'write'}><CoworkSurface scene={scene}>{content}</CoworkSurface></div>;

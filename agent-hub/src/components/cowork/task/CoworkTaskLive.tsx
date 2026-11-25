@@ -19,7 +19,7 @@ function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: Tr
     const steps = trace?.recorded ? trace.steps : [];
     const active = steps.findLast((step) => step.status === 'running');
     return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
-        tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
+        work={{ apps: [active?.app], stepType: active?.type }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
         message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 
@@ -40,7 +40,7 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
 }
 
 export default function CoworkTaskLive({ startingTest, coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep)} />;
+    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep, making.steps.flatMap(s => s.app ? [s.app] : []))} />;
     if (startingTest || (tryState && !tryState.done)) {
         return <CoworkTestProgress state={tryState} runOrder={runOrder} t={t} />;
     }

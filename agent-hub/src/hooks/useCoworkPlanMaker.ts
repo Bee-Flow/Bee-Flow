@@ -17,7 +17,7 @@ export interface PlanMaking {
     phase: PlanMakeProgress['phase'] | null;
     testStep?: PlanningTestStep;
     /** The steps of the draft so far. */
-    steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'>>;
+    steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'> & { app?: string | null }>;
     /** What the planner said about the plan it made. */
     summary: string;
     /** The sentence of a failure; '' when it failed without one; null when it did not fail. */
