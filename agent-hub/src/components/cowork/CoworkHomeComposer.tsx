@@ -14,6 +14,7 @@ import type { OrbStep } from '@/api/coworkPlan.types';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import CoworkStepPicker from './CoworkStepPicker';
 import CoworkExistingTasks, { ExistingSubmit, useExistingTaskAction } from './CoworkExistingTasks';
+import { type ExampleId, useExampleAccess } from './coworkExampleAccess';
 import CoworkExamples from './CoworkExamples';
 import CoworkConfirmCard, { useMayHaveSteps } from './CoworkConfirmCard';
 import CoworkOrb from './CoworkOrb';
@@ -231,24 +232,32 @@ function TaskHeading({ welcome, t }: { welcome: boolean; t: TranslateFn }) {
     </>;
 }
 
+function useExamplePicker(offerExamples: boolean) {
+    const [example, selectExample] = useState<ExampleId | null>(null);
+    const [templatesOpen, setTemplatesOpen] = useState(false);
+    const access = useExampleAccess(offerExamples && templatesOpen);
+    const askingExample = offerExamples && example !== null && access.ids.has(example);
+    return { example, selectExample, access, askingExample, setTemplatesOpen };
+}
+
 function TaskEditor({ props, brief, t }: EditorProps) {
     const { atLimit, maxItems, onTemplates } = props;
-    const [example, selectExample] = useState<number | null>(null);
-    const askingExample = example !== null && showExamples(atLimit, brief.text, brief.cowork);
-    const { advanced, setAdvanced, text, box, choices, setChoices, cowork, reread, clarify, start, close, setText } = brief;
+    const offerExamples = showExamples(atLimit, brief.text, brief.cowork);
+    const { example, selectExample, access, askingExample, setTemplatesOpen } = useExamplePicker(offerExamples);
+    const { advanced, setAdvanced, box, choices, setChoices, cowork, reread, clarify, start, close, setText } = brief;
     return (
         <section data-cowork-engaged={askingExample} aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
             <TaskHeading welcome={!cowork.draft && !askingExample} t={t} />
             {!askingExample && (!cowork.draft || advanced) && <BriefForm props={props} brief={brief} t={t} />}
-            {showExamples(atLimit, text, cowork) && <details><summary className={askingExample ? 'hidden' : 'w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]'}>{t('cowork_home.from_template', 'Start from a template')}</summary>
-                <CoworkExamples selected={example} select={selectExample} onPick={(brief) => { setText(brief); setChoices({}); box.current?.focus(); }} t={t} />
+            {offerExamples && <details onToggle={event => setTemplatesOpen(event.currentTarget.open)}><summary className={askingExample ? 'hidden' : 'w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]'}>{t('cowork_home.from_template', 'Start from a template')}</summary>
+                <CoworkExamples key={JSON.stringify([Array.from(access.ids), access.mail.map(app => app.id), access.tables.map(table => table.id)])} access={access} selected={example} select={selectExample} onPick={(brief) => { setText(brief); setChoices({}); box.current?.focus(); }} t={t} />
                 {!askingExample && <button className={LINK_BUTTON} onClick={onTemplates}>{t('cowork_home.activity.all_templates', 'All templates')}</button>}
             </details>}
             {atLimit && <p role="status" className={META}>{t('cowork_home.at_limit', 'You have {count} tasks, the most you can have. Delete one to add another.', { count: maxItems })}</p>}
             {cowork.error && !cowork.draft && <p role="alert" className={ALERT}>{cowork.error}</p>}
             {cowork.draft && (
                 <CoworkConfirmCard
-                    advanced={advanced} onAdvanced={() => setAdvanced(!advanced)} cowork={cowork} sentence={text} choices={choices} rereading={reread.waiting || cowork.submitting}
+                    advanced={advanced} onAdvanced={() => setAdvanced(!advanced)} cowork={cowork} sentence={brief.text} choices={choices} rereading={reread.waiting || cowork.submitting}
                     onChoose={(change) => setChoices((was) => ({ ...was, ...change }))}
                     onClarify={clarify}
                     onStart={(payload) => { void start(payload); }} onCancel={close}

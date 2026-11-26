@@ -19,9 +19,12 @@ const created = (): RecordedCall | undefined => calls.find((c) => c.method === '
 const composed = (): RecordedCall[] => calls.filter((c) => pathOf(c) === '/api/cowork/compose');
 
 /** The server: what it makes of the sentence (per call, so an edit can be read differently), and a workspace with Fireflies and Gmail. */
-function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec), tiers = {}) {
+function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec), tiers = {}, catalog = { apps: [{ id: 'outlook', label: 'Outlook', available: true }], degraded: false }, allowed: string[] | null = null) {
     calls = stubRecordingFetch((call) => {
         const path = pathOf(call);
+        if (path.endsWith('/agents/tool-catalog')) return jsonResponse(catalog);
+        if (path.endsWith('/policy/mine')) return jsonResponse({ unattendedApps: allowed, readOnly: false });
+        if (path === '/api/datatables') return jsonResponse({ datatables: [{ id: 't1', name: 'Incoming', grade: 'editor' }] });
         if (path.endsWith('/config/tiers-for-user')) return jsonResponse(tiers);
         if (path === '/api/cowork/compose') return jsonResponse(typeof spec === 'function' ? spec((call.body as { brief: string }).brief) : spec);
         if (path === '/api/cowork' && call.method === 'POST') return jsonResponse({ id: 'new', title: (call.body as { title: string }).title, runCount: 0 });
@@ -34,7 +37,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 /** An organisation with fixed steps (automations), or without. */
 const entitled = (steps: boolean): EntitlementsValue => ({
     loading: false, degraded: false, tier: 'full', mode: 'cloud', effective: { core: [], beta: [], integration: [] }, ceiling: { core: [], beta: [], integration: [] },
-    can: (id) => steps && id === 'automations', inCeiling: () => true, lockReason: () => null, hasTier: () => true, reload: () => {},
+    can: (id) => steps && ['automations', 'datatables'].includes(id), inCeiling: () => true, lockReason: () => null, hasTier: () => true, reload: () => {},
 });
 const inOrg = (ui: ReactElement, steps = true) => <EntitlementsContext.Provider value={entitled(steps)}>{ui}</EntitlementsContext.Provider>;
 
@@ -451,16 +454,45 @@ it('reads the table answer and starts the held test directly', async () => {
 });
 
 it('the file example asks for the folder and table in turn and leaves the result editable', async () => {
-    serve(WEEKLY);
+    serve(WEEKLY, {}, { apps: [{ id: 'nextcloud', label: 'Nextcloud', available: true }], degraded: false });
     renderComposer();
     const user = userEvent.setup();
     await user.click(screen.getByText('Start from a template'));
-    await user.click(screen.getByRole('button', { name: 'Register Nextcloud files' }));
+    await user.click(await screen.findByRole('button', { name: 'Register Nextcloud files' }));
     await user.type(screen.getByLabelText('Which Nextcloud folder should Cowork check?'), '/Intake');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.type(screen.getByLabelText('Which table should Cowork use?'), 'Incoming');
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Incoming' }));
     expect((box() as HTMLTextAreaElement).value).toContain('folder /Intake');
     expect((box() as HTMLTextAreaElement).value).toContain('table Incoming');
     expect(composed()).toHaveLength(0);
+});
+
+
+it('offers only connected and permitted integrations and skips the mail app question for Outlook alone', async () => {
+    const apps = [
+        { id: 'outlook', label: 'Outlook', available: true },
+        { id: 'nextcloud', label: 'Nextcloud', available: false },
+        { id: 'fireflies', label: 'Fireflies', available: true },
+    ];
+    serve(WEEKLY, {}, { apps, degraded: false }, ['outlook', 'nextcloud']);
+    renderComposer();
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Start from a template'));
+    const mail = await screen.findByRole('button', { name: 'Draft supplier replies' });
+    for (const name of ['Weekly Fireflies summary', 'Register Nextcloud files', 'Report exceptions in a table']) {
+        expect(screen.queryByRole('button', { name })).toBeNull();
+    }
+    await user.click(mail);
+    await user.type(screen.getByRole('textbox', {name: 'Which supplier email address should it look for?'}), 'supplier@example.com');
+    await user.click(screen.getByRole('button', {name: 'Continue'}));
+    expect((box() as HTMLTextAreaElement).value).toContain('Outlook');
+});
+
+it('keeps external templates hidden if the catalog could not verify connections', async () => {
+    serve(WEEKLY, {}, { apps: [{ id: 'fireflies', label: 'Fireflies', available: true }], degraded: true });
+    renderComposer();
+    await userEvent.setup().click(screen.getByText('Start from a template'));
+    expect(await screen.findByRole('button', { name: 'Report exceptions in a table' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Weekly Fireflies summary' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Draft supplier replies' })).toBeNull();
 });

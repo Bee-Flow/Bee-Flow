@@ -23,7 +23,7 @@ export type StartChoice =
 /** A webhook's address, shown once. */
 export interface HookAddress { url: string; token: string }
 
-interface Table { id: string; name?: string }
+interface Table { id: string; name?: string; grade?: string; managedKind?: string | null }
 
 export function useCoworkStart(coworkId: string, enabled: boolean) {
     const client = useQueryClient();
