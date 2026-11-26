@@ -13,7 +13,6 @@ export default function useConversationClock(item: CoworkItem, live: boolean, up
     const [draft, setDraft] = useState<{ before: string; schedule: ClockProposal } | null>(null);
     const cancel = () => setDraft(null);
     const propose = (schedule: ClockProposal) => {
-        setReply('');
         setDraft({ before: currentClock(item), schedule });
     };
     const confirm = () => {

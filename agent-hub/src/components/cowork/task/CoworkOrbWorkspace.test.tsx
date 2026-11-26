@@ -48,6 +48,10 @@ it('keeps talking while reading the result and opens a requested setting in the 
     expect(await screen.findByTestId('cowork-task-result-text')).toBeVisible();
     await user.type(input, 'Change the schedule{Enter}');
     expect(await screen.findByTestId('cowork-task-settings')).toBeVisible();
+    const transcript = screen.getByRole('log');
+    for (const line of ['Show the result', 'Here is the latest run.', 'Change the schedule', 'Choose when to run it.']) {
+        expect(within(transcript).getByText(line)).toBeVisible();
+    }
     expect(all('POST', '/api/cowork/w1/conversation')[1]?.body).toMatchObject({
         view: 'result', history: [{ role: 'user', text: 'Show the result' }, { role: 'assistant', text: 'Here is the latest run.' }],
     });

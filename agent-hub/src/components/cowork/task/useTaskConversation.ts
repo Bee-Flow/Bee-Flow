@@ -17,7 +17,8 @@ export default function useTaskConversation({ item, plan, view, live, select, op
     const [text, setText] = useState('');
     const [history, setHistory] = useState<CoworkMessage[]>([]);
     const destinations = useOrbDestinations(select, openTask, t);
-    const [reply, setReply] = useState('');
+    const [messages, setMessages] = useState<CoworkMessage[]>([]);
+    const setReply = (line: string) => setMessages(previous => [...previous, {role: 'assistant', text: line}]);
     const [selection, setSelection] = useState<{ fingerprint?: string; ids: string[] }>({ ids: [] });
     const [pendingBrief, setPendingBrief] = useState<{ prompt: string; fingerprint?: string } | null>(null);
     const dialog = useCoworkConversation(item.id);
@@ -31,7 +32,6 @@ export default function useTaskConversation({ item, plan, view, live, select, op
     const toggle = (id: string) => {
         destinations.clear();
         setSelection({ fingerprint, ids: selected.includes(id) ? selected.filter(v => v !== id) : [...selected, id] });
-        setReply('');
     };
     const scope = fingerprint && selected.length ? { stepIds: selected, fingerprint } : undefined;
     const busy = edit.requestChange.isPending || edit.approve.isPending || edit.dismiss.isPending || update.isPending;
@@ -41,7 +41,6 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         if (proposal) return setReply(t('cowork_task.orb.review', 'Apply this tested change?'));
         if (remove && remove.fingerprint !== fingerprint) return setReply(t('cowork_task.orb.steps_changed', 'The steps changed. Select them again.'));
         if (plan?.upToDate) {
-            setReply('');
             edit.requestChange.mutate(remove ? {remove} : { instruction, scope }, {
                 onError: err => setHistory(prev => [...prev.slice(-5), {role: 'assistant', text: err.message.slice(0, 2000)}]),
             });
@@ -57,7 +56,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         clock.cancel();
         destinations.clear();
         setText('');
-        setReply('');
+        setMessages(previous => [...previous, {role: 'user', text: message}]);
         dialog.mutate({ message, view, scope, history: history.slice(-6) }, {
             onSuccess: answer => {
                 const shown = destinations.receive(answer);
@@ -87,7 +86,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         } });
     };
     const error = [dialog, edit.requestChange, edit.approve, edit.dismiss, update, proposals].find(operation => operation.error)?.error;
-    return { destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, reply, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
+    return { destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, messages, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
         pendingBrief: pendingBrief?.fingerprint === fingerprint ? pendingBrief : null, saveBrief, cancel: () => setPendingBrief(null) };
 }
 export type TaskConversation = ReturnType<typeof useTaskConversation>;

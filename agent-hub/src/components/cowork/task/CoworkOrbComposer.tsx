@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { ArrowUp, Mic, Square } from 'lucide-react';
 import useDictation from '@/components/chat/useDictation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
@@ -19,6 +20,37 @@ function ClockReview({ clock }: {clock: TaskConversation['clock']}) {
     </div>;
 }
 
+function ConversationHistory({ messages }: Pick<TaskConversation, 'messages'>) {
+    const { t } = useTranslation();
+    const log = useRef<HTMLDivElement>(null);
+    const following = useRef(true);
+    useLayoutEffect(() => {
+        const box = log.current;
+        if (!box) return;
+        if (messages.at(-1)?.role === 'user') following.current = true;
+        const follow = () => { if (following.current) box.scrollTop = box.scrollHeight; };
+        follow();
+        if (typeof ResizeObserver === 'undefined') return;
+        const resize = new ResizeObserver(follow);
+        resize.observe(box);
+        if (box.firstElementChild) resize.observe(box.firstElementChild);
+        return () => resize.disconnect();
+    }, [messages]);
+    if (!messages.length) return null;
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users can scroll the transcript independently of the composer.
+    return <div ref={log} className="cowork-transcript" role="log" aria-label={t('cowork_task.history.heading', 'History')} tabIndex={0}
+        onScroll={e => {
+            const box = e.currentTarget;
+            following.current = box.scrollHeight - box.clientHeight - box.scrollTop < 24;
+        }}>
+        <div className="cowork-transcript-lines">{messages.map((message, index) => (
+            <div key={index} className={'cowork-turn cowork-turn-' + message.role}>
+                {message.role === 'user' ? message.text : <MarkdownRenderer content={message.text} />}
+            </div>
+        ))}</div>
+    </div>;
+}
+
 export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) {
     const { t, locale } = useTranslation();
     const mic = useDictation({ language: locale, onText: words => chat.setText(current => [current.trim(), words].filter(Boolean).join(' ').slice(0, 2000)) });
@@ -27,7 +59,7 @@ export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) 
     const label = t('cowork_task.orb.talk', 'Ask Bee…');
     const disabled = !chat.text.trim() || chat.dialog.isPending || chat.selected.length > 100 || mic.state !== 'idle';
     return <div className="cowork-conversation">
-        {chat.reply && <div aria-live="polite" className="cowork-chat-reply"><MarkdownRenderer content={chat.reply} /></div>}
+        <ConversationHistory messages={chat.messages} />
         <ClockReview clock={chat.clock} />
         <Failure error={chat.error} t={t} />
         {chat.selected.length > 100 && <p role="alert">{t('cowork_task.orb.shorten', 'Select fewer steps or shorten the change.')}</p>}

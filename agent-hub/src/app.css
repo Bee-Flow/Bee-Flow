@@ -2231,3 +2231,20 @@ pre.hljs {
     .cowork-orb-choices { animation: cowork-surface-arrival 280ms ease-out backwards; }
     @keyframes cowork-surface-arrival { from { opacity: 0; translate: 0 .4rem; } }
 }
+
+/* The transcript takes the space between Bee and the composer as the conversation grows. */
+.cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll {
+    flex: 0 0 auto;
+    max-height: min(68%, calc(100% - 13rem));
+    margin-block-start: auto;
+}
+.cowork-conversation:has(.cowork-transcript) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.cowork-conversation > :not(.cowork-transcript) { flex-shrink: 0; }
+.cowork-transcript { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-secondary) 32%, transparent) transparent; }
+.cowork-transcript-lines { display: grid; gap: .65rem; padding: .25rem .5rem .85rem; }
+.cowork-turn { min-width: 0; overflow-wrap: anywhere; }
+.cowork-turn-user { justify-self: end; max-width: 85%; padding: .5rem .85rem; border-radius: 1rem; background: var(--bg-secondary); white-space: pre-wrap; }
+.cowork-turn-assistant { justify-self: start; max-width: 100%; padding: .25rem .25rem; }
+@container (max-width: 47.99rem) {
+    .cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll { max-height: 50%; }
+}
