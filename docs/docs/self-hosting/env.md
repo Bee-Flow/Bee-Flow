@@ -86,6 +86,8 @@ Postgres instance.
 |----------|---------|---------|
 | `DEPLOYMENT_MODE` | `cloud` | `cloud` (Bee Flow SaaS — Stripe subscriptions, consumer accounts) or `self-hosted` (customer-run — licence keys, no billing, Community tier by default, organisation domain allow-lists). These are the only two valid values; the retired `private-cloud` is treated as `self-hosted`. |
 | `STUDIO_APP_ENGINE` | `sqlite` | Where App Studio keeps the records of an app. `sqlite`: one SQLite file per app in object storage, written by **one** server process, so it fits a single server container (the compose install). `pg`: a Postgres schema per app in `beeflow_core`, required as soon as more than one server replica runs. Apps made under `sqlite` have to be moved before the switch (`node scripts/migrateStudioAppsToPg.js --all`, with `--dry-run` first); an app is only served by the engine it is marked for. See [Kubernetes](kubernetes.md#server-replicas). |
+| `BEEFLOW_MODULE_ROOTS` | `modules/` beside `server/`, when it exists | Development layout only; a production image does not need it. Directories that hold `<id>/server` for first-party modules, separated like `PATH` (`:`, `;` on Windows). Empty means core only. |
+| `BEEFLOW_HIDE_MODULES` | — | Development and CI only. `all`, or a comma-separated list of module ids whose files count as absent, to run the server as core without them. |
 
 ## Download size limits
 
