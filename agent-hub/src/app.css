@@ -2180,16 +2180,25 @@ pre.hljs {
     .cowork-orb-workspace.has-steps .cowork-workspace-steps { grid-column: 3; align-self: center; padding-top: 0; min-width: 0; }
 }
 
-.cowork-orb-workspace[data-choosing] .cowork-activity-caption { display: none; }
+.cowork-orb-workspace[data-choosing="true"] .cowork-activity-caption { display: none; }
 @container (max-width: 35.99rem) {
-    .cowork-orb-workspace[data-choosing] { gap: .5rem; padding-block: .25rem; }
-    .cowork-orb-workspace[data-choosing] .cowork-orb { width: min(100%, 19dvh, 11rem); }
+    .cowork-orb-workspace[data-choosing="true"] { gap: .5rem; padding-block: .25rem; }
+    .cowork-orb-workspace[data-choosing="true"] .cowork-orb { width: min(100%, 19dvh, 11rem); }
 }
 
 .cowork-task-identity { width: min(100%, 42rem); margin-inline: auto; }
 .cowork-task-identity header { align-items: center; text-align: center; }
 .cowork-task-identity h1 { order: -1; font-size: clamp(1.125rem, 2.2cqw, 1.45rem); text-wrap: balance; }
 .cowork-task-footer { display: flex; flex: none; justify-content: space-between; align-items: center; width: min(100%, 42rem); margin-inline: auto; }
+.cowork-task-guided .cowork-activity-caption:has(> :nth-child(2)) { display: grid; justify-items: center; gap: .65rem; }
+.cowork-task-guided .cowork-activity-caption > .flex { justify-content: center; }
+.cowork-task-guided .cowork-activity-current { font-size: 1rem; font-weight: 500; line-height: 1.5; text-wrap: balance; }
+@container (min-width: 48rem) {
+    .cowork-task-guided:has(.cowork-orb-workspace) .cowork-task-scroll { flex: 0 1 auto; margin-block-start: auto; gap: .5rem; }
+    .cowork-task-guided:has(.cowork-orb-workspace) .cowork-task-footer { margin-block-start: auto; }
+    .cowork-task-identity header { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: .5rem .75rem; }
+    .cowork-task-guided .cowork-orb-workspace { padding-block: .5rem; }
+}
 .cowork-task-footer button { color: var(--text-secondary); }
 .cowork-task-guided[data-status="failed"] { --cowork-event-color: var(--error); }
 .cowork-task-guided[data-status="needs"] { --cowork-event-color: var(--warning); }

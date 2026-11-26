@@ -89,7 +89,7 @@ it('keeps an explicit clock change in the conversation and saves it only after c
     await waitFor(() => expect(all('PUT', '/api/cowork/w1').map(call => call.body)).toEqual([schedule]));
 });
 
-it('places the sign-in notice above the orb and opens integrations directly from its side', async () => {
+it('places the sign-in notice above the orb and opens integrations from the same notice', async () => {
     openTask({needs: [{...NEEDS_APPROVAL, kind: 'sign_in', plan: null}], runs: []});
     const notice = await screen.findByText(/The task is paused for sign-in/);
     const orb = notice.closest('.cowork-activity')?.querySelector('.cowork-orb');
@@ -97,7 +97,7 @@ it('places the sign-in notice above the orb and opens integrations directly from
     expect(notice.compareDocumentPosition(orb as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const action = screen.getByRole('link', {name: 'Sign in again'});
     expect(action.getAttribute('href')).toContain('integrations');
-    expect(action.closest('.cowork-workspace-steps')).not.toBeNull();
+    expect(action.closest('.cowork-activity-caption')).toContainElement(notice);
     expect(screen.queryByRole('button', {name: 'Review task'})).toBeNull();
 });
 

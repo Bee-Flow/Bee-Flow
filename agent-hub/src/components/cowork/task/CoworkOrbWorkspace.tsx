@@ -113,10 +113,11 @@ function orbWork({ item, plan, chat }: Props, thinking: boolean): OrbWork {
     return { flow, apps: item.enabledApps, focus: focus < 0 ? undefined : focus, action: thinking ? 'thinking' : 'rest' };
 }
 
-function sidebarContent({chat, live}: Props, insight: OrbInsight, review: boolean, count: number) {
+function sidebarContent({chat, live, need}: Props, insight: OrbInsight, review: boolean, count: number) {
     const choosing = hasDestinations(chat) || !!chat.pendingBrief;
     const showControls = !live && !review && !chat.busy && !chat.dialog.isPending && !!(choosing || insight.primary || insight.hasResult);
-    return {showControls, showSteps: count > 0 && !choosing};
+    const recovery = showControls && !choosing && ['sign_in', 'fix'].includes(need?.kind ?? '');
+    return {recovery, sideControls: showControls && !recovery, showSteps: count > 0 && !choosing};
 }
 
 function StepList({rows, review, active, chat, t}: Props & {rows: ReturnType<typeof planSteps>; review: boolean}) {
@@ -139,13 +140,13 @@ export default function CoworkOrbWorkspace(props: Props) {
     const review = !!chat.proposal && !live && !chat.busy;
     const insight = orbInsight(props);
     const work = orbWork(props, thinking);
-    const {showSteps, showControls} = sidebarContent(props, insight, review, rows.length);
-    const sidebar = showControls || showSteps;
+    const {showSteps, sideControls, recovery} = sidebarContent(props, insight, review, rows.length);
+    const sidebar = sideControls || showSteps;
     return <>
-        <div data-choosing={choosing || undefined} className={'cowork-orb-workspace' + (sidebar ? ' has-steps' : '') + (review ? ' is-review' : '')}>
-            <div className="min-w-0">{live || <CoworkActivity captionAbove message={caption(props, insight)} tone={thinking ? 'thinking' : 'rest'} work={work} />}</div>
+        <div data-choosing={choosing} className={'cowork-orb-workspace' + (sidebar ? ' has-steps' : '') + (review ? ' is-review' : '')}>
+            <div className="min-w-0">{live || <CoworkActivity captionAbove captionAction={recovery && <Controls {...props} insight={insight} />} message={caption(props, insight)} tone={thinking ? 'thinking' : 'rest'} work={work} />}</div>
             {sidebar && <div className="cowork-workspace-steps flex flex-col gap-4">
-                {showControls && <Controls {...props} insight={insight} />}
+                {sideControls && <Controls {...props} insight={insight} />}
                 {showSteps && <StepList {...props} rows={rows} review={review} />}
             </div>}
         </div>

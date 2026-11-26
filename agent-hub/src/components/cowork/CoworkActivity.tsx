@@ -7,18 +7,19 @@ import CoworkOrb, { type ActivityTone } from './CoworkOrb';
 import type { OrbWork } from './CoworkOrbSources';
 
 interface ActivityProps {
-    captionAbove?: boolean; work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
+    captionAction?: ReactNode; captionAbove?: boolean; work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
 }
 
 export function ActivityLine({message}: {message: string}) {
     return <span key={message} className="cowork-activity-label">{message}</span>;
 }
 
-export default function CoworkActivity({ message, title, tone, work, testId, children, captionAbove }: ActivityProps) {
+export default function CoworkActivity({ message, title, tone, work, testId, children, captionAbove, captionAction }: ActivityProps) {
     const caption = <div className="cowork-activity-caption">
         <div role="status" aria-label={title} aria-atomic="true" className="cowork-activity-current">
             <ActivityLine key={title} message={message} />
         </div>
+        {captionAction}
     </div>;
     return <div className="cowork-activity" data-testid={testId}>
         {captionAbove && caption}
