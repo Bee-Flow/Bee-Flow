@@ -6,16 +6,19 @@ function mix(a: string, b: string, weight: number) {
     return '#' + [1,3,5].map(pos => Math.round(channel(a,pos)*(1-weight)+channel(b,pos)*weight).toString(16).padStart(2,'0')).join('');
 }
 
+function themeColor(css: CSSStyleDeclaration, name: string, fallback: string) {
+    const raw = css.getPropertyValue(name).trim().toLowerCase();
+    if (!raw.startsWith('#') || (raw.length !== 4 && raw.length !== 7)) return fallback;
+    const digits = [...raw.slice(1)];
+    if (!digits.every(c => '0123456789abcdef'.includes(c))) return fallback;
+    return digits.length === 3 ? '#' + digits.map(c => c + c).join('') : raw;
+}
+
 function readOrbPalette() {
     const css = getComputedStyle(document.documentElement);
-    const token = (name: string, fallback: string) => {
-        const raw = css.getPropertyValue(name).trim();
-        if (/^#[\da-f]{3}$/i.test(raw)) return '#' + [...raw.slice(1)].map(c=>c+c).join('');
-        return /^#[\da-f]{6}$/i.test(raw) ? raw : fallback;
-    };
-    const accent = token('--accent-primary',orbDefaults.rimColor);
-    const ink = token('--text-primary',orbDefaults.coreColor);
-    const ai = token('--type-ai',orbDefaults.mistColor);
+    const accent = themeColor(css, '--accent-primary',orbDefaults.rimColor);
+    const ink = themeColor(css, '--text-primary',orbDefaults.coreColor);
+    const ai = themeColor(css, '--type-ai',orbDefaults.mistColor);
     const hue = mix(accent, ai, .22);
     const preset = document.documentElement.dataset.theme || 'light';
     const lightSurface = ['light','glass','paper','sepia'].includes(preset);
