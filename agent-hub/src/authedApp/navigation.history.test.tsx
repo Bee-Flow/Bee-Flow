@@ -49,7 +49,6 @@ describe('the history edges', () => {
     it('a page of Cowork opened from the Cowork home has its own address; Back returns to the home, Forward to the page', async () => {
         await bootAt('/app/cowork', { testId: 'cowork-page' });
         const user = userEvent.setup();
-        await user.click(await screen.findByRole('button', { name: 'Ask Bee…' }));
         await user.click(await screen.findByRole('button', { name: 'Advanced' }));
         await user.click(await screen.findByRole('button', { name: 'Cowork preferences' }));
         await expectAt('/app/cowork/preferences');

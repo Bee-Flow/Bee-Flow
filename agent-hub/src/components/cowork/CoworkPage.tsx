@@ -12,7 +12,6 @@
  */
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { Settings } from 'lucide-react';
-import CoworkOrb from './CoworkOrb';
 import { beeTransition } from './beeTransition';
 import CoworkHome from './CoworkHome';
 import { GuidedPanelContext } from './panels/panelGuidance';
@@ -98,7 +97,6 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
     const { t } = useTranslation();
     const [page, setPage] = usePageOfAddress(initialCoworkId);
     const [seed, setSeed] = useState<{ text: string; n: number } | null>(null);
-    const [engaged, setEngaged] = useState(!!initialCoworkId);
     const [dashboard, setDashboard] = useState(false);
     const label = usePageLabel(page);
     const { scroller, fallback, remember, pressed } = useHomePlace(page ? pageSegment(page) : null);
@@ -121,7 +119,6 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
     const openTask = useCallback((id: string, focus?: TaskFocus) => open({ kind: 'task', id, ...(focus ? { focus } : {}) }), [open]);
     const close = useCallback(() => {
         beeTransition(() => {
-            setEngaged(true);
             setPage(null);
             onNavigate?.('cowork');
         });
@@ -132,18 +129,12 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
     }, [close]);
 
     useEffect(() => {
-        if (engaged && !page && document.activeElement === document.body) scroller.current?.querySelector<HTMLTextAreaElement>('#cowork-brief')?.focus({preventScroll: true});
-    }, [engaged, page, scroller]);
-    const resting = !engaged && !page;
+        if (!page && document.activeElement === document.body) scroller.current?.querySelector<HTMLTextAreaElement>('#cowork-brief')?.focus({preventScroll: true});
+    }, [page, scroller]);
     const Page = page ? COWORK_SHEET_PANELS[page.kind].component : null;
     return (
         <div ref={scroller} className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)] text-[14px] leading-5 text-[var(--text-primary)]" data-testid="cowork-page">
-            {resting && <div className="cowork-arrival">
-                <button type="button" className="cowork-wake" aria-label={t('cowork_task.orb.talk', 'Ask Bee…')} onClick={() => beeTransition(() => setEngaged(true))}>
-                    <CoworkOrb tone="rest" />
-                </button>
-            </div>}
-            {!resting && <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : homeLayout(dashboard)}>
+            <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : homeLayout(dashboard)}>
                 <div hidden={!!page} className={page ? 'hidden' : `${ENTER} flex flex-col gap-6`} onClickCapture={pressed}>
                     {dashboard && <header className="flex items-center gap-2">
                         <p ref={fallback} tabIndex={-1} className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{t('sidebar.cowork', 'Cowork')}</p>
@@ -168,7 +159,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                         </Suspense>
                     </CoworkPageFrame>
                 )}
-            </div>}
+            </div>
         </div>
     );
 }

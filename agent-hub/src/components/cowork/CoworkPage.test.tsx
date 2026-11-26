@@ -66,24 +66,14 @@ beforeAll(async () => {
     ]);
 }, 60_000);
 
-async function wakeBee() {
-    await userEvent.setup().click(screen.getByRole('button', {name: 'Ask Bee…'}));
-}
-
 async function openDashboard() {
-    await wakeBee();
     await userEvent.setup().click(screen.getByRole('button', {name: 'Advanced'}));
 }
 
 describe('CoworkPage', () => {
-    it('starts with only Bee and opens the task input from the keyboard', async () => {
+    it('opens with Bee and a focused input ready for a keyboard request', async () => {
         serve();
         renderWithClient(<CoworkPage />);
-        const orb = screen.getByRole('button', {name: 'Ask Bee…'});
-        expect(screen.getAllByRole('button')).toEqual([orb]);
-        expect(screen.queryByRole('textbox')).toBeNull();
-        orb.focus();
-        await userEvent.setup().keyboard('{Enter}');
         expect(await screen.findByTestId('cowork-brief-input')).toHaveFocus();
         expect(screen.queryByText('Your tasks')).toBeNull();
         expect(screen.queryByText('Start from a template')).toBeNull();
@@ -96,7 +86,6 @@ describe('CoworkPage', () => {
     it('carries a question about a named task into its conversation once', async () => {
         serve();
         renderWithClient(<CoworkPage />);
-        await wakeBee();
         const user = userEvent.setup();
         const question = 'Why did Weekly digest stop?';
         await user.type(screen.getByTestId('cowork-brief-input'), question);
@@ -232,7 +221,6 @@ describe('CoworkPage', () => {
         serve([]);
         const user = userEvent.setup();
         renderWithClient(<EntitlementsProvider><CoworkPage /></EntitlementsProvider>);
-        await wakeBee();
         await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9, summarise my meetings');
         await user.keyboard('{Enter}');
         expect(screen.queryByText('Review your task')).toBeNull();
