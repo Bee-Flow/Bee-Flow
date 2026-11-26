@@ -2248,3 +2248,11 @@ pre.hljs {
 @container (max-width: 47.99rem) {
     .cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll { max-height: 50%; }
 }
+
+.cowork-guided-home { max-width: 46rem; min-height: 100%; display: grid; align-content: center; padding-block: 2rem; }
+.cowork-bee-dialog { display: grid; gap: 1rem; justify-items: center; }
+.cowork-bee-dialog .cowork-welcome-orb { width: min(100%, 50dvh, 28rem); }
+.cowork-bee-dialog .cowork-orb { width: 100%; }
+.cowork-bee-options { display: grid; width: min(100%, 42rem); max-height: 30dvh; overflow: auto; scrollbar-width: thin; }
+.cowork-bee-options button { justify-content: space-between; text-align: start; }
+.cowork-bee-options small { color: var(--text-secondary); }

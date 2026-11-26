@@ -6,6 +6,7 @@
  */
 
 export default {
+    "cowork_home.dialog.help": "Describe a new task, ask to see your tasks, or mention a task by name.",
     "cowork_home.existing.ask_task": "Ask Bee about {title}",
     "cowork_home.existing.create_new": "Create a new task",
     "cowork_home.existing.choose": "Choose a task",

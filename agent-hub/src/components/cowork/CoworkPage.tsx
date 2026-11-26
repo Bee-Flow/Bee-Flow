@@ -90,11 +90,16 @@ function useHomePlace(pageKey: string | null) {
     return { scroller, fallback, remember, pressed };
 }
 
+function homeLayout(dashboard: boolean) {
+    return dashboard ? 'max-w-[760px] mx-auto px-4 pt-6 pb-24' : 'cowork-guided-home mx-auto px-4';
+}
+
 export default function CoworkPage({ user = null, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
     const [page, setPage] = usePageOfAddress(initialCoworkId);
     const [seed, setSeed] = useState<{ text: string; n: number } | null>(null);
     const [engaged, setEngaged] = useState(!!initialCoworkId);
+    const [dashboard, setDashboard] = useState(false);
     const label = usePageLabel(page);
     const { scroller, fallback, remember, pressed } = useHomePlace(page ? pageSegment(page) : null);
 
@@ -138,9 +143,9 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                     <CoworkOrb tone="rest" />
                 </button>
             </div>}
-            {!resting && <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : 'max-w-[760px] mx-auto px-4 pt-6 pb-24'}>
+            {!resting && <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : homeLayout(dashboard)}>
                 <div hidden={!!page} className={page ? 'hidden' : `${ENTER} flex flex-col gap-6`} onClickCapture={pressed}>
-                    <header className="flex items-center gap-2">
+                    {dashboard && <header className="flex items-center gap-2">
                         <p ref={fallback} tabIndex={-1} className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{t('sidebar.cowork', 'Cowork')}</p>
                         {administersOrg(user) && (
                             <button type="button" className={LINK_INLINE} onClick={() => open({ kind: 'org' })} data-testid="cowork-admin-rules">
@@ -150,8 +155,11 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                         <button type="button" className={ICON_BUTTON} aria-label={pageName('settings', t)} title={pageName('settings', t)} onClick={() => open({ kind: 'settings' })} data-testid="cowork-preferences">
                             <Settings aria-hidden="true" size={16} />
                         </button>
-                    </header>
-                    <CoworkHome onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+                    </header>}
+                    <CoworkHome guided={!dashboard} onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+                    <button type="button" className={LINK_INLINE + ' self-center'} onClick={() => beeTransition(() => setDashboard(!dashboard))}>
+                        {dashboard ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
+                    </button>
                 </div>
                 {page && Page && (
                     <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close} ownBack={page.kind === 'task'}>

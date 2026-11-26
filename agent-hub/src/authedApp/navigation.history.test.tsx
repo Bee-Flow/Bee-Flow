@@ -50,6 +50,7 @@ describe('the history edges', () => {
         await bootAt('/app/cowork', { testId: 'cowork-page' });
         const user = userEvent.setup();
         await user.click(await screen.findByRole('button', { name: 'Ask Bee…' }));
+        await user.click(await screen.findByRole('button', { name: 'Advanced' }));
         await user.click(await screen.findByRole('button', { name: 'Cowork preferences' }));
         await expectAt('/app/cowork/preferences');
         await expectShows({ testId: 'cowork-settings-panel' });

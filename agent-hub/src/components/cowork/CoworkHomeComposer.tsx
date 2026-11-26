@@ -12,6 +12,7 @@ import type { OrbStep } from '@/api/coworkPlan.types';
  * week on the day it was asked; a template's sentence (`seed`) fills it too.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import CoworkBeeInput from './CoworkBeeInput';
 import CoworkStepPicker from './CoworkStepPicker';
 import CoworkExistingTasks, { ExistingSubmit, useExistingTaskAction } from './CoworkExistingTasks';
 import { type ExampleId, useExampleAccess } from './coworkExampleAccess';
@@ -32,6 +33,8 @@ import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { CoworkItem, CoworkPayload, CoworkTriggerPayload } from '@/api/cowork.types';
 
 export interface CoworkHomeComposerProps {
+    guided?: boolean;
+    openTask?: (id: string) => void;
     items?: CoworkItem[];
     onAskTask?: (id: string, message: string) => void;
     /** No room for another task: the box says so instead of offering to read the sentence. */
@@ -121,7 +124,7 @@ function useBriefSeed(seed: CoworkHomeComposerProps['seed'], setText: (value: st
     return box;
 }
 
-function useTaskBrief({ atLimit, seed = null, onCreated }: CoworkHomeComposerProps) {
+function useTaskBrief({ guided, atLimit, seed = null, onCreated }: CoworkHomeComposerProps) {
     const [handed] = useState(takeHandedBrief);
     const [text, setText] = useState(handed.brief);
     const [choices, setChoices] = useState<ConfirmChoices>({});
@@ -135,7 +138,7 @@ function useTaskBrief({ atLimit, seed = null, onCreated }: CoworkHomeComposerPro
 
     const box = useBriefSeed(seed, setText, close);
     const ready = canRead(text, atLimit, cowork);
-    const { quick, prepareTest } = useQuickTest(advanced, choices, setStarting);
+    const { quick, prepareTest } = useQuickTest(!guided && advanced, choices, setStarting);
     const pending = useRef(false);
     const perform = async (request: () => Promise<CoworkItem | null>) => {
         if (pending.current) return;
@@ -240,11 +243,21 @@ function useExamplePicker(offerExamples: boolean) {
     return { example, selectExample, access, askingExample, setTemplatesOpen };
 }
 
-function TaskEditor({ props, brief, t }: EditorProps) {
+function TaskEditor(editor: EditorProps) {
+    const { props, brief } = editor;
+    if (props.guided && !brief.cowork.draft) {
+        return <CoworkBeeInput text={brief.text} edit={brief.edit} go={brief.go} inputRef={brief.box}
+            items={props.items ?? []} ask={props.onAskTask} open={props.openTask} error={brief.cowork.error} atLimit={props.atLimit} />;
+    }
+    return <TaskReviewEditor {...editor} />;
+}
+
+function TaskReviewEditor({ props, brief, t }: EditorProps) {
     const { atLimit, maxItems, onTemplates } = props;
     const offerExamples = showExamples(atLimit, brief.text, brief.cowork);
     const { example, selectExample, access, askingExample, setTemplatesOpen } = useExamplePicker(offerExamples);
-    const { advanced, setAdvanced, box, choices, setChoices, cowork, reread, clarify, start, close, setText } = brief;
+    const { setAdvanced, box, choices, setChoices, cowork, reread, clarify, start, close, setText } = brief;
+    const advanced = props.guided ? false : brief.advanced;
     return (
         <section data-cowork-engaged={askingExample} aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
             <TaskHeading welcome={!cowork.draft && !askingExample} t={t} />
