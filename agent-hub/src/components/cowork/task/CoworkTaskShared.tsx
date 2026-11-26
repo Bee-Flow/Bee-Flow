@@ -4,9 +4,11 @@
  * usecases/coworkShares.mts sharedView). No actions: only its owner changes it, and a reader who may answer does so
  * where its questions arrive.
  */
-import { useId, useState } from 'react';
-import CoworkActivity from '../CoworkActivity';
-import { BUTTON_PRIMARY, LINK_INLINE } from '../coworkUi';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import CoworkOrb from '../CoworkOrb';
+import { TaskBack } from '../CoworkPageFrame';
+import { errorStatus } from '@/utils/caughtError';
+import { LINK_INLINE } from '../coworkUi';
 import CoworkTaskHeader from './CoworkTaskHeader';
 import CoworkSharedConversation from './CoworkSharedConversation';
 import CoworkTaskResult from './CoworkTaskResult';
@@ -17,7 +19,7 @@ import { whenLine } from '../coworkOverviewModel';
 import { taskStatus } from '../coworkTaskStatus';
 import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { META } from './taskUi';
-import { useSharedItem, useSharedWithMe, type SharedView } from '@/api/coworkShares';
+import { useSharedItem, useSharedWithMe, type SharedView, type ShareRole } from '@/api/coworkShares';
 import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -40,44 +42,73 @@ function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] }
     return { item, runs };
 }
 
-function SharedTaskTabs({ item, runs, open, fillComposer, takeQuestion }: { takeQuestion?: () => string; item: CoworkItem; runs: CoworkRun[] } & Pick<CoworkSheetPanelProps, 'open' | 'fillComposer'>) {
-    const { t, locale } = useTranslation();
-    const tabId = useId();
-    const [tab, setTab] = useState<TaskTab>('result');
-    const [advanced, setAdvanced] = useState(false);
-    const [view, setView] = useState<'result' | 'history' | null>(null);
-    if (!advanced) return <div className="cowork-task-guided">
-        <button className={LINK_INLINE} onClick={() => setAdvanced(true)}>{t('cowork_overview.advanced', 'Advanced')}</button>
-        <CoworkActivity tone="rest" message={view === 'history' ? t('cowork_task.history.heading', 'History') : t('cowork_task.tabs.result', 'Result')}>
-            {view === 'result' && <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />}
-            {view === 'history' && <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />}
-            <div className="flex gap-2">
-                {view !== 'result' && <button className={BUTTON_PRIMARY} onClick={() => setView('result')}>{t('cowork_task.orb.open_result', 'Open result')}</button>}
-                {view !== 'history' && <button className={LINK_INLINE} onClick={() => setView('history')}>{t('cowork_task.history.heading', 'History')}</button>}
-            </div>
-        </CoworkActivity>
-        <CoworkSharedConversation takeQuestion={takeQuestion} item={item} open={open} fillComposer={fillComposer} show={setView}/>
-    </div>;
-    return <><button className={LINK_INLINE} onClick={() => setAdvanced(false)}>{t('cowork_task.orb.back', 'Back to the orb')}</button><CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={{
-        result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
-        history: <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />,
-    }} /></>;
+interface SharedContentProps {
+    item: CoworkItem;
+    runs: CoworkRun[];
+    role: ShareRole;
+    owner: string;
+    tab: TaskTab;
+    setTab: (tab: TaskTab) => void;
 }
 
-export default function CoworkTaskShared({ panel, open, fillComposer }: CoworkSheetPanelProps) {
+function SharedContent({item, runs, role, owner, tab, setTab}: SharedContentProps) {
+    const {t, locale} = useTranslation();
+    const tabId = useId();
+    const [advanced, setAdvanced] = useState(false);
+    const panels = {
+        result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
+        history: <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />,
+    };
+    const showingHistory = tab === 'history';
+    return <>
+        <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
+        {advanced ? <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={panels} /> : <>
+            {showingHistory ? panels.history : panels.result}
+            {runs.length > 0 && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => setTab(showingHistory ? 'result' : 'history')}>
+                {showingHistory ? t('cowork_task.orb.open_result', 'Open result') : t('cowork_task.history.heading', 'History')}
+            </button>}
+        </>}
+        <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => setAdvanced(!advanced)}>
+            {advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
+        </button>
+    </>;
+}
+
+function SharedReadStatus({loading, retry}: { loading: boolean; retry?: () => void }) {
+    const {t} = useTranslation();
+    if (loading) return <p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>;
+    if (retry) return <>
+        <p role="alert" className={META}>{t('cowork_task.load_failed', 'I couldn’t open this task.')}</p>
+        <button type="button" className={LINK_INLINE + ' self-start'} onClick={retry}>{t('cowork_task.retry', 'Try again')}</button>
+    </>;
+    return <p className={META} role="status" data-testid="cowork-task-gone">{t('cowork_task.gone', 'This task is gone, or it is not shared with you.')}</p>;
+}
+
+function SharedWorkspace({ itemId, panel, user, open, close, fillComposer }: CoworkSheetPanelProps & { itemId: string }) {
     const { t } = useTranslation();
-    const itemId = panel.kind === 'shared' || panel.kind === 'task' ? panel.id : '';
-    const view = useSharedItem(itemId);
-    const owner = (useSharedWithMe().data ?? []).find((s) => s.id === itemId)?.ownerName ?? t('cowork_task.shared.someone', 'a colleague');
-    if (view.isPending) return <p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>;
-    const shared = view.data ? sharedAsItem(view.data) : null;
-    if (!view.data || !shared) return <p className={META} role="status" data-testid="cowork-task-gone">{t('cowork_task.gone', 'This task is gone, or it is not shared with you.')}</p>;
-    const { item, runs } = shared;
-    const role = view.data.role === 'approver' ? 'approver' : 'viewer';
-    return (
-        <div className="flex flex-col gap-6" data-testid="cowork-task-shared">
-            <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
-            <SharedTaskTabs takeQuestion={'takeQuestion' in panel ? panel.takeQuestion : undefined} key={item.id} item={item} runs={runs} open={open} fillComposer={fillComposer} />
+    const [tab, setTab] = useState<TaskTab>('result');
+    const content = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        if (content.current) content.current.scrollTop = 0;
+    }, [tab]);
+    const query = useSharedItem(itemId);
+    const owner = (useSharedWithMe().data ?? []).find(s => s.id === itemId)?.ownerName ?? t('cowork_task.shared.someone', 'a colleague');
+    const forbidden = [403, 404].includes(errorStatus(query.error) ?? 0);
+    const shared = !forbidden && query.data ? sharedAsItem(query.data) : null;
+    return <div className="cowork-task-guided cowork-side-shared" data-testid="cowork-task-shared">
+        <div className="cowork-side-orb"><CoworkOrb tone="rest" /></div>
+        <div ref={content} className="cowork-side-content flex flex-col gap-3">
+            {shared ? <SharedContent {...shared} owner={owner} role={query.data?.role === 'approver' ? 'approver' : 'viewer'} tab={tab} setTab={setTab} />
+                : <SharedReadStatus loading={query.isPending} retry={query.isError && !forbidden ? () => void query.refetch() : undefined} />}
         </div>
-    );
+        <CoworkSharedConversation user={user} itemId={itemId} item={shared?.item} loading={query.isPending}
+            takeQuestion={'takeQuestion' in panel ? panel.takeQuestion : undefined} open={open} fillComposer={fillComposer} show={setTab}/>
+        {panel.kind === 'task' && <TaskBack onBack={close} />}
+    </div>;
+}
+
+export default function CoworkTaskShared(props: CoworkSheetPanelProps) {
+    const { panel } = props;
+    const itemId = panel.kind === 'shared' || panel.kind === 'task' ? panel.id : '';
+    return <SharedWorkspace key={itemId} {...props} itemId={itemId} />;
 }

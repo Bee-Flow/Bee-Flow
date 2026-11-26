@@ -6,12 +6,13 @@
  * administrator is told so and sees nothing else.
  */
 import { useState } from 'react';
+import { errorStatus } from '@/utils/caughtError';
 import { ShieldCheck } from 'lucide-react';
 import { receiptsAuditDownloadUrl, useCoworkOrgOverview, useOrgCoworkPolicy, useReceiptsAudit, type OrgCoworkPolicy, type OrgPolicyPatch } from '@/api/coworkOrgPanel';
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { ALERT, BUTTON_SECONDARY } from '../coworkUi';
-import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
+import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelReadProblem, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
 
 type Level = 'fine' | 'close' | 'over';
 const CLOSE_AT = 80;
@@ -171,14 +172,15 @@ export default function CoworkOrgPanel() {
     if (overview.isError) {
         return (
             <PanelShell testId="cowork-org-panel" tag={tag} title={title}>
-                <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
+                {errorStatus(overview.error) === 403 ? <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
+                    : <PanelReadProblem error={overview.error} retry={() => void overview.refetch()} />}
             </PanelShell>
         );
     }
     return (
         <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined}>
             {!policy && !query.isError && <p className={`m-0 ${META}`}>{t('cowork_panels.loading', 'Loading…')}</p>}
-            <Problem error={query.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+            <PanelReadProblem error={query.error} retry={() => void query.refetch()} />
             {policy && overview.data && (
                 <>
                     <BudgetSection policy={policy} spent={overview.data.spent} saving={save.isPending} onSave={(monthlyBudget, done) => save.mutate({ monthlyBudget }, { onSuccess: done })} />

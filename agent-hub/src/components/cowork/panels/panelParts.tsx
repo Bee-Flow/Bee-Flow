@@ -4,9 +4,9 @@
  * style. The look is ../coworkUi.ts, so these pages and an opened task read as one product.
  */
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { createContext, useContext, useId, useState } from 'react';
+import { createContext, useContext, useId, useLayoutEffect, useRef, useState } from 'react';
 import { GuidedPanelContext, PanelFocusContext } from './panelGuidance';
-import CoworkActivity from '../CoworkActivity';
+import CoworkOrb from '../CoworkOrb';
 import { useTranslation } from '@/hooks/useTranslation';
 import Toggle from '@/components/shared/Toggle';
 import { errorMessage } from '@/utils/caughtError';
@@ -39,25 +39,56 @@ export function PanelButton({ look = 'primary', busy = false, disabled, classNam
 
 const PanelSectionsContext = createContext<string | null>(null);
 
-/** A page: its heading (the page frame moves the focus to it), a one-line meta, then its sections. */
+/** The orb stays in place while the active form or advanced sections scroll. */
+export function PanelLayout({ title, tag, meta, action, testId, viewKey, children }: { title: string; tag?: string; meta?: string; action?: ReactNode; testId: string; viewKey?: string | number; children: ReactNode }) {
+    const content = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        if (content.current) content.current.scrollTop = 0;
+    }, [viewKey]);
+    return <section className="cowork-task-guided cowork-side-panel" data-testid={testId}>
+        <div className="cowork-side-orb"><CoworkOrb tone="rest" work={{ action: 'ask' }} /></div>
+        <div ref={content} className="cowork-side-content flex flex-col gap-4">
+            <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{title}</h1>
+                {tag && <span className={TAG_PLAIN}>{tag}</span>}
+                {action}
+                {meta && <p className={`${META_LINE} basis-full`}>{meta}</p>}
+            </header>
+            {children}
+        </div>
+    </section>;
+}
+
 export function PanelShell({ title, meta, tag, testId, children }: { title: string; meta?: string; tag?: string; testId: string; children: ReactNode }) {
     const guided = useContext(GuidedPanelContext);
-    const [advanced, setAdvanced] = useState(false);
+    const focus = useContext(PanelFocusContext);
+    const [expandedAt, setExpandedAt] = useState<string | null>(null);
+    const section = focus ?? '';
+    const advanced = expandedAt === section;
     const group = useId();
     const { t } = useTranslation();
-    return (
-        <div className="cowork-task-guided flex flex-col gap-6" data-testid={testId}>
-            <header className="flex flex-col items-start gap-1">
-                {tag && <span className={TAG_PLAIN}>{tag}</span>}
-                <h1 className="m-0 text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{title}</h1>
-                {guided && <button className={LINK_INLINE} onClick={() => setAdvanced(!advanced)}>{advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}</button>}
-                {meta && (!guided || advanced) && <p className={META_LINE}>{meta}</p>}
-            </header>
-            {guided && !advanced ? <CoworkActivity tone="rest" work={{ action: 'ask' }} message={meta || title}>
-                <div className="flex w-full max-w-lg flex-col gap-2 text-left"><PanelSectionsContext.Provider value={group}>{children}</PanelSectionsContext.Provider></div>
-            </CoworkActivity> : children}
-        </div>
-    );
+    return <PanelLayout title={title} meta={meta} tag={tag} testId={testId}
+        viewKey={advanced ? 'expanded' : section}
+        action={guided && <button type="button" className={LINK_INLINE} onClick={() => setExpandedAt(advanced ? null : section)}>
+            {advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
+        </button>}>
+        <PanelSectionsContext.Provider value={guided && !advanced ? group : null}>{children}</PanelSectionsContext.Provider>
+    </PanelLayout>;
+}
+
+export function PanelLoading() {
+    const { t } = useTranslation();
+    return <p role="status" className={META_LINE}>{t('cowork_panels.loading', 'Loading…')}</p>;
+}
+
+/** A read failure leaves a retry next to the setting that could not be opened. */
+export function PanelReadProblem({ error, retry }: { error: Error | null; retry: () => void }) {
+    const { t } = useTranslation();
+    if (!error) return null;
+    return <div className="flex flex-wrap items-baseline gap-2">
+        <p role="alert" className={ALERT}>{t('cowork_panels.failed_read', 'I couldn’t load this information.')}</p>
+        <PanelButton look="inline" onClick={retry}>{t('cowork_task.retry', 'Try again')}</PanelButton>
+    </div>;
 }
 
 export function PanelOverview({children}: {children: ReactNode}) {

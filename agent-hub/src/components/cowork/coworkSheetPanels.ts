@@ -34,7 +34,7 @@ export type CoworkSheetPanel =
 
 export type CoworkSheetKind = CoworkSheetPanel['kind'];
 
-export type HomeTransfer = 'create' | 'attention' | 'shared';
+export type HomeTransfer = 'ask' | 'create' | 'attention' | 'shared';
 export type ComposerSeed = {text: string; n: number; takeAction?: () => HomeTransfer | undefined};
 
 /** What every page receives. */

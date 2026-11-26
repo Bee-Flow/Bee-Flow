@@ -3,7 +3,7 @@ import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
 import type { NeuralGlyph } from './coworkOrbGlyph';
 import { OrbAppearanceContext } from './coworkOrbAppearance';
 import { useOrbTheme } from './useOrbTheme';
-import { useContext, useMemo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createContext, useContext, useMemo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { drawOrbFrame, type ActivityTone, type OrbPattern } from './coworkOrbFrame';
 import { makeOrbGeometry, type OrbGeometry } from './coworkOrbGeometry';
@@ -18,7 +18,17 @@ function fitCanvas(el: HTMLCanvasElement) {
     if (pixels !== el.width || pixels !== el.height) el.width = el.height = pixels;
 }
 
-export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?: ActivityTone; activity?: string; work?: OrbWork }) {
+interface OrbProps { tone?: ActivityTone; activity?: string; work?: OrbWork }
+
+/** A pinned Bee already represents the activity of the detail panel below it. */
+export const HasTaskOrb = createContext(false);
+
+export default function CoworkOrb(props: OrbProps) {
+    const anchored = useContext(HasTaskOrb);
+    return anchored ? null : <AnimatedOrb {...props} />;
+}
+
+function AnimatedOrb({ tone = 'thinking', activity, work }: OrbProps) {
     const [marks, setMarks] = useState<(NeuralGlyph | null)[]>([]);
     const canvas = useRef<HTMLCanvasElement>(null);
     const clock = useRef({ time: 0, beat: 0 });

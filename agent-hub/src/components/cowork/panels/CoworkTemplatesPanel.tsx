@@ -15,7 +15,7 @@ import { MayDo } from '../CoworkPlanCard';
 import { repeatLabel } from '../coworkSchedule';
 import { STAGGER } from '../coworkMotion';
 import { ALERT, BUTTON_SECONDARY } from '../coworkUi';
-import { BODY, CARD, EYEBROW, META, PanelButton, PanelOverview, PanelSection, PanelShell, Problem } from './panelParts';
+import { BODY, CARD, EYEBROW, META, PanelButton, PanelLoading, PanelOverview, PanelReadProblem, PanelSection, PanelShell, Problem } from './panelParts';
 
 const MAX_FILE_BYTES = 1_000_000;
 
@@ -50,7 +50,7 @@ function PackagePreviewCard({ pkg, shown, onOpenTask, onCancel }: { pkg: Record<
             <p className={`m-0 ${META}`}>{t('cowork_panels.templates.paused_note', 'It is added as a paused task and starts with a test. Nothing runs until you approve the steps.')}</p>
             <div className="flex flex-wrap gap-2">
                 <PanelButton busy={add.isPending} onClick={() => add.mutate(pkg, { onSuccess: (used) => onOpenTask(used.item.id) })}>{t('cowork_panels.templates.add_paused', 'Add as a paused task')}</PanelButton>
-                <PanelButton look="inline" onClick={onCancel}>{t('cowork_panels.cancel', 'Cancel')}</PanelButton>
+                <PanelButton look="inline" disabled={add.isPending} onClick={onCancel}>{t('cowork_panels.cancel', 'Cancel')}</PanelButton>
             </div>
             <Problem error={add.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
         </div>
@@ -101,8 +101,8 @@ export default function CoworkTemplatesPanel({ open, fillComposer }: CoworkSheet
     const templates = list.data ?? [];
     return (
         <PanelShell testId="cowork-templates-panel" title={t('cowork_panels.templates.title', 'Start from a template')} meta={t('cowork_panels.templates.meta', 'Made by colleagues. You get your own copy, with your own apps.')}>
-            <PanelOverview>{list.isSuccess && templates.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.templates.none_yet', 'Your organisation has no templates yet. Save one from a task’s People section.')}</p>}
-            <Problem error={list.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+            <PanelOverview>{list.isPending && <PanelLoading />}{list.isSuccess && templates.length === 0 && <p className={`m-0 ${META}`}>{guided ? t('cowork_panels.templates.none_guided', 'No templates yet. Open a task and ask Bee to save it as a template.') : t('cowork_panels.templates.none_yet', 'Your organisation has no templates yet. Save one from a task’s People section.')}</p>}
+            <PanelReadProblem error={list.error} retry={() => void list.refetch()} />
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
                 {templates.map((tpl, i) => (
                     <li key={tpl.id} className={`${CARD} ${STAGGER(i)} flex-row items-center justify-between`} data-testid="cowork-panels-template">

@@ -51,13 +51,13 @@ export default function useTaskConversation({ item, plan, view, live, select, op
             setPendingBrief({ prompt: [item.prompt, context, instruction].filter(Boolean).join('\n\n'), fingerprint });
         }
     };
-    const send = (messageOverride?: string) => {
+    const send = (messageOverride?: string, options?: {keepDraft: boolean}) => {
         const message = (messageOverride ?? text).trim();
         if (!message || dialog.isPending || selected.length > 100) return;
         setResponses([]);
         clock.cancel();
         destinations.clear();
-        setText('');
+        if (!options?.keepDraft) setText('');
         setMessages(previous => [...previous, {role: 'user', text: message}]);
         dialog.mutate({message, view, scope, history: history.slice(-6)}, {
             onSuccess: answer => {

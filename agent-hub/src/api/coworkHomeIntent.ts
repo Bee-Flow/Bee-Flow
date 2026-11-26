@@ -1,7 +1,8 @@
+import { useMutation } from '@tanstack/react-query';
 import { readCoworkReply } from './readCoworkReply';
 import { apiRequest } from './typedRequest';
 
-export type HomeAction = 'answer' | 'create' | 'open' | 'task' | 'tasks' | 'attention' | 'shared' | 'teamwork' | 'preferences' | 'templates' | 'org';
+export type HomeAction = 'answer' | 'refine' | 'create' | 'open' | 'task' | 'tasks' | 'attention' | 'shared' | 'teamwork' | 'preferences' | 'templates' | 'org';
 interface HomeReply {action: HomeAction; answer: string; indices: number[]; section?: string; responses?: string[]; brief?: string}
 
 interface HomeQuestion {message: string; titles: string[]; tier: string; previous: string}
@@ -11,4 +12,11 @@ export async function locateCoworkRequest({message, titles, tier, previous}: Hom
         body: {message, titles: titles.slice(0, 100).map(title => title.slice(0, 200)), tier, previous: previous.slice(-4000)}, init: {signal, headers: {Accept: 'text/event-stream'}},
     });
     return readCoworkReply<HomeReply>(response, signal, partial);
+}
+
+export function useCoworkHomeRequest() {
+    return useMutation({
+        mutationFn: ({question, signal, partial}: {question: HomeQuestion; signal: AbortSignal; partial: (answer: string) => void}) =>
+            locateCoworkRequest(question, signal, partial),
+    });
 }

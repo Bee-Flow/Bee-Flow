@@ -1,8 +1,10 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useCoworkConversation, type CoworkMessage } from '@/api/coworkProposals';
+import { useCoworkConversation, type CoworkMessage, type CoworkReply } from '@/api/coworkProposals';
 import type { CoworkItem } from '@/api/cowork.types';
+import { useTakePendingQuestion } from '../usePendingBeeDraft';
 import { whenLine } from '../coworkOverviewModel';
+import { administersOrg } from '../coworkViewer';
 import { teamworkRequest } from '../coworkTeamworkRequest';
 import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import { LINK_INLINE } from '../coworkUi';
@@ -13,7 +15,7 @@ import { Failure } from './taskUi';
 type SharedView = 'result' | 'history';
 interface Props {
     takeQuestion?: () => string;
-    item: CoworkItem; fillComposer: CoworkSheetPanelProps['fillComposer']; open: CoworkSheetPanelProps['open']; show: (view: SharedView) => void;
+    user: CoworkSheetPanelProps['user']; itemId: string; item?: CoworkItem; loading: boolean; fillComposer: CoworkSheetPanelProps['fillComposer']; open: CoworkSheetPanelProps['open']; show: (view: SharedView) => void;
 }
 
 /** Only unambiguous commands bypass the read-only conversation. Questions about content go to Bee. */
@@ -26,18 +28,39 @@ function sharedShortcut(message: string) {
     return null;
 }
 
-export default function CoworkSharedConversation({item, open, show, fillComposer, takeQuestion}: Props) {
+function openReply(reply: CoworkReply, message: string, {show, open, fillComposer}: Pick<Props, 'show' | 'open' | 'fillComposer'>) {
+    switch (reply.action) {
+        case 'result': case 'history': return show(reply.action);
+        case 'teamwork': return open(teamworkRequest(message, undefined, true) ?? {kind: 'teamwork'});
+        case 'attention': return fillComposer('', 'attention');
+        case 'shared_tasks': return fillComposer('', 'shared');
+        case 'new_task': return fillComposer(message, 'create');
+        case 'preferences': return open({kind: 'settings', section: reply.section});
+        case 'templates': case 'org': return open({kind: reply.action, section: reply.section});
+    }
+}
+
+export default function CoworkSharedConversation({itemId, item, user, loading, open, show, fillComposer, takeQuestion}: Props) {
     const {t} = useTranslation();
     const [text, setText] = useState('');
+    const [queued, setQueued] = useState('');
     const [messages, setMessages] = useState<CoworkMessage[]>([]);
-    const dialog = useCoworkConversation(item.id);
+    const takePendingQuestion = useTakePendingQuestion();
+    const dialog = useCoworkConversation(itemId);
     const destinations = useOrbDestinations(() => {}, (id, shared) => open({kind: shared ? 'shared' : 'task', id}), t);
-    function submit(incoming?: string) {
+    function submit(incoming?: string, preserveDraft = false) {
         const message = (incoming ?? text).trim();
         if (!message || dialog.isPending) return;
+        if (loading) {
+            setQueued(message);
+            setText('');
+            return;
+        }
+        if (queued === message) setQueued('');
+        if (!item) return fillComposer(message, 'ask');
         const question: CoworkMessage = {role: 'user', text: message};
         const answer = (reply: string) => setMessages(previous => [...previous, question, {role: 'assistant', text: reply}]);
-        setText('');
+        if (!preserveDraft) setText('');
         destinations.clear();
         const desk = teamworkRequest(message);
         if (desk) return open(desk);
@@ -50,29 +73,34 @@ export default function CoworkSharedConversation({item, open, show, fillComposer
         setMessages(previous => [...previous, question]);
         dialog.mutate({view:'shared', message, history: messages.slice(-6)}, {
             onSuccess: reply => {
+                if (reply.action === 'org' && !administersOrg(user)) {
+                    setMessages(previous => [...previous, {role: 'assistant', text: t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}]);
+                    return;
+                }
                 const line = reply.ownerOnly ? t('cowork_task.shared.owner_only', 'Only the owner can change this shared task.') : destinations.receive(reply);
                 setMessages(previous => [...previous, {role:'assistant', text:line}]);
-                switch (reply.action) {
-                    case 'result': case 'history': return show(reply.action);
-                    case 'teamwork': return open(teamworkRequest(message, undefined, true) ?? {kind:'teamwork'});
-                    case 'attention': return fillComposer('', 'attention');
-                    case 'shared_tasks': return fillComposer('', 'shared');
-                    case 'new_task': return fillComposer(message, 'create');
-                }
+                if (!reply.ownerOnly) openReply(reply, message, {show, open, fillComposer});
             },
             onError: () => setText(current => current || message),
         });
     }
-    const sendIncoming = useEffectEvent(submit);
+    const sendIncoming = useEffectEvent((message: string) => submit(message, true));
     useEffect(() => {
-        const incoming = takeQuestion?.();
+        if (loading || dialog.isPending) return;
+        const incoming = queued || takePendingQuestion() || takeQuestion?.();
         if (incoming) sendIncoming(incoming);
-    }, [takeQuestion]);
+    }, [takeQuestion, takePendingQuestion, dialog.isPending, loading, queued]);
     const transcript = dialog.partial ? [...messages, {role:'assistant' as const, text:dialog.partial}] : messages;
     return <div className="cowork-conversation">
-        <ConversationHistory messages={transcript}/>
-        {destinations.tasks.map(task => <button key={task.id} className={LINK_INLINE} onClick={() => destinations.openTask(task.id, task.shared)}>{task.title}</button>)}
-        <Failure error={dialog.error} t={t}/>
-        <TaskMessageInput text={text} setText={setText} send={submit} busy={dialog.isPending}/>
+        <div className="cowork-chat-context">
+            {item && <ConversationHistory messages={transcript}/>}
+            {item && destinations.tasks.length > 0 && <div className="cowork-bee-options">{destinations.tasks.map(task =>
+                <button type="button" key={task.id} className={LINK_INLINE} onClick={() => destinations.openTask(task.id, task.shared)}>
+                    {task.title}<small>{task.detail}</small>
+                </button>)}</div>}
+            {queued && <p role="status">{t('cowork_home.dialog.queued', 'I’ll take this up with your task in a moment.')}</p>}
+            <Failure error={dialog.error} t={t}/>
+        </div>
+        <TaskMessageInput text={text} setText={setText} send={submit} busy={!!queued || dialog.isPending}/>
     </div>;
 }

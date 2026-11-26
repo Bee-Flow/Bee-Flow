@@ -3,6 +3,7 @@
 // on it. A test replaces only the part of the world it is about.
 import type { ReactNode } from 'react';
 import { screen } from '@testing-library/react';
+import CoworkPageFrame from '../CoworkPageFrame';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithClient } from '@/test/render';
@@ -71,6 +72,8 @@ export interface World {
     colleagues?: unknown[];
     /** The organisation has automations (fixed steps can be chosen). */
     automations?: boolean;
+    failRuns?: (offset: number) => boolean;
+    failItem?: () => boolean;
 }
 
 /** What the world answers to a read of one task's own data, by the path after its id. */
@@ -125,6 +128,14 @@ function serveTask(world: World = {}) {
         if (testReply) return testReply;
         if (method === 'PUT' && path === `${TASK}/plan/independence`) return jsonResponse({ ...INDEPENDENCE, chosen: (body as { level?: string }).level });
         if (method !== 'GET') return jsonResponse(method === 'DELETE' ? { success: true } : {});
+        if (path === TASK && world.failItem?.()) return jsonResponse({ error: 'Offline' }, 503);
+        if (path === TASK + '/runs') {
+            const query = new URL(url, 'http://x').searchParams;
+            const offset = Number(query.get('offset') ?? '0');
+            if (world.failRuns?.(offset)) return jsonResponse({ error: 'Offline' }, 503);
+            const runs = world.runs ?? [RUN];
+            return jsonResponse({runs: runs.slice(offset, offset + Number(query.get('limit') ?? '25')), total: runs.length});
+        }
         if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
         if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
         // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
@@ -151,7 +162,7 @@ export function openTask(world: World = {}, panel: CoworkSheetPanel = { kind: 't
     const fillComposer = vi.fn();
     const props: CoworkSheetPanelProps = { panel, user: null, close, open, fillComposer };
     const page = panel.kind === 'shared' ? <CoworkTaskShared {...props} /> : <CoworkTaskView {...props} />;
-    renderWithClient(world.automations ? <WithAutomations>{page}</WithAutomations> : page);
+    renderWithClient(<CoworkPageFrame label="Cowork" onBack={close} ownBack>{world.automations ? <WithAutomations>{page}</WithAutomations> : page}</CoworkPageFrame>);
     return { ...served, close, open, fillComposer, user: userEvent.setup() };
 }
 
@@ -160,4 +171,10 @@ export async function openAdvancedTask(...args: Parameters<typeof openTask>) {
     const world = openTask(...args);
     await world.user.click(await screen.findByRole('button', { name: 'Advanced' }));
     return world;
+}
+
+/** Wait for the task context before sending a question about it. Loading has its own working home composer. */
+export async function readyTaskInput() {
+    await screen.findByTestId('cowork-task-header');
+    return screen.getByRole('textbox', {name: 'Ask Bee…'});
 }

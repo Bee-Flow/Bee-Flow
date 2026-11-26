@@ -11,11 +11,10 @@
  * "Delete this task" is at the very bottom and asks in the page itself; once the task is gone the page closes. The
  * server keeps no deleted task, so there is no Undo for it.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { fullTimestamp } from '../coworkFormat';
 import { ENTER } from '../coworkMotion';
 import { trailLine } from '../coworkTrailModel';
-import CoworkTaskRuns from './CoworkTaskRuns';
 import { ROWS } from './taskRows';
 import { BTN_DANGER, BTN_LINK, BTN_QUIET, CARD, Failure, FoldRow, META, ROW_ACTIONS, TAG_ACCENT, TAG_PLAIN } from './taskUi';
 import { useCoworkProposalActions } from '@/api/coworkProposals';
@@ -23,7 +22,7 @@ import { receiptsUrl, useReceipts, type ReceiptsView } from '@/api/coworkReceipt
 import { useCoworkItemActions } from '@/api/coworkTask';
 import { useCoworkTrail, type TrailEntry } from '@/api/coworkTrail';
 import type { PlanState } from '@/api/coworkPlan.types';
-import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
+import type { CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 const PROBLEMS: Record<string, [string, string]> = {
@@ -137,8 +136,7 @@ export function DeleteTask({ item, onGone, onCancel, t }: { item: Pick<CoworkIte
 
 interface CoworkTaskHistoryProps {
     item: Pick<CoworkItem, 'id' | 'title'>;
-    runs: CoworkRun[];
-    onSteps?: () => void;
+    children: ReactNode;
     plan: PlanState | undefined;
     /** The task is gone (deleted): the page closes. */
     onGone: () => void;
@@ -147,13 +145,13 @@ interface CoworkTaskHistoryProps {
 
 type HistoryRowId = 'changes' | 'proof';
 
-export default function CoworkTaskHistory({ item, runs, plan, onGone, onSteps, t }: CoworkTaskHistoryProps) {
+export default function CoworkTaskHistory({ item, children, plan, onGone, t }: CoworkTaskHistoryProps) {
     const [open, setOpen] = useState<HistoryRowId | null>(null);
     const proof = chainWords(useReceipts(item.id).data, t);
     const row = (id: HistoryRowId) => ({ id, open: open === id, onToggle: (next: string | null) => setOpen(next as HistoryRowId | null) });
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-history">
-            <CoworkTaskRuns coworkId={item.id} runs={runs} onSteps={onSteps} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />
+            {children}
             <div className={ROWS}>
                 <FoldRow {...row('changes')} label={t('cowork_task.history.changes', 'Changes')}>
                     <ChangesBody coworkId={item.id} plan={plan} t={t} />

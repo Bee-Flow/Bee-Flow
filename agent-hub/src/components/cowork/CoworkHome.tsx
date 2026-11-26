@@ -176,40 +176,56 @@ export default function CoworkHome({ guided, admin = false, embedded = false, co
     const needsQuery = useCoworkNeedsYou();
     const shared = sharedQuery.data ?? [];
     const [flash, say] = useFlash();
+    const openedDuringSetup = useRef('');
+    const [readyTask, setReadyTask] = useState<TaskToSetUp | null>(null);
     const homeElement = useRef<HTMLDivElement>(null);
     const finish = useCallback((_message: string, task: TaskToSetUp) => {
         // Home stays mounted behind other pages while setup finishes.
-        if (homeElement.current && !homeElement.current.closest('[hidden], [data-bee-embedded=true]')) onOpenTask(task.id);
+        const home = homeElement.current;
+        if (openedDuringSetup.current === task.id || !home || home.closest('[hidden], [data-bee-embedded=true]')) return;
+        const composer = home.querySelector<HTMLTextAreaElement>('.cowork-conversation textarea');
+        if (composer?.value.trim() || home.querySelector('[data-bee-pending=true], [data-dictating=true]')) setReadyTask(task);
+        else onOpenTask(task.id);
     }, [onOpenTask]);
     const { setup, begin } = useTaskSetup(finish);
     const created = useCallback((item: CoworkItem) => {
+        openedDuringSetup.current = '';
+        setReadyTask(null);
         void client.invalidateQueries({ queryKey: ['cowork'] });
         void begin(item);
     }, [client, begin]);
+    const openFromBee = (id: string) => { setReadyTask(null); onOpenTask(id); };
+    const askFromBee = (id: string, text: string, isShared?: boolean) => {
+        openedDuringSetup.current = id;
+        setReadyTask(null);
+        onAskTask?.(id, text, isShared);
+    };
     const needs = <NeedsSection cards={cards} onOpenTask={onOpenTask} onDone={say} />;
     const sharedRows = <CoworkSharedRows items={shared} onOpen={id => onOpenPanel({kind: 'shared', id})} />;
     const loading = t('cowork_pages.loading', 'Loading…');
     const hasSharedTasks = shared.length > 0;
     const destinations = {panel: onOpenPanel, admin, embedded, context, returnHome, sharedItems: shared,
+        emptyTasks: readSurface(list, <p role="status">{t('cowork_home.dialog.no_tasks', 'You have no tasks yet. What would you like me to do?')}</p>, loading),
         attention: readSurface(needsQuery, orEmpty(cards.length, needs, t('cowork_panels.settings.digest_none', 'Nothing needs you right now.')), loading),
         shared: readSurface(sharedQuery, orEmpty(shared.length, sharedRows, t('cowork_home.dialog.no_shared', 'Nobody has shared a task with you yet.')), loading),
     };
     return (
         <div ref={homeElement} className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
-            <CoworkHomeComposer destinations={destinations} guided={guided} openTask={onOpenTask} items={items} onAskTask={onAskTask} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
-                onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
-            {!guided && <div className="cowork-home-sections flex flex-col gap-9">
-                <FlashLine flash={flash} />
-                <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
-                {needs}
-                <TasksSection list={list} items={items} cards={cards} home={home} testingId={null} onOpen={(id) => onOpenTask(id)} />
-                {hasSharedTasks && (
-                    <Section id="shared" heading={t('cowork_home.shared.heading', 'Shared with you')}>
-                        {sharedRows}
-                    </Section>
-                )}
-                <TeamworkEntry onOpen={() => onOpenPanel({ kind: 'teamwork' })} />
-            </div>}
+            <CoworkHomeComposer destinations={destinations} guided={guided} openTask={openFromBee} items={items} onAskTask={onAskTask && askFromBee} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
+                onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} readyTask={readyTask}>
+                {!guided && <div className="cowork-home-sections flex flex-col gap-9">
+                    <FlashLine flash={flash} />
+                    <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
+                    {needs}
+                    <TasksSection list={list} items={items} cards={cards} home={home} testingId={null} onOpen={(id) => onOpenTask(id)} />
+                    {hasSharedTasks && (
+                        <Section id="shared" heading={t('cowork_home.shared.heading', 'Shared with you')}>
+                            {sharedRows}
+                        </Section>
+                    )}
+                    <TeamworkEntry onOpen={() => onOpenPanel({ kind: 'teamwork' })} />
+                </div>}
+            </CoworkHomeComposer>
         </div>
     );
 }

@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDraftDesk, type HelperResult } from '@/api/coworkDeskHelper';
 import { useDeskView, useItemDesk, useItemDeskActions, useMyDesks, useRemoveDesk, type DeskSummary, type DeskMember, type DeskView, type PlannedStart } from '@/api/coworkDesks';
 
 import useCoworkList from '../useCoworkList';
-import CoworkActivity from '../CoworkActivity';
 import type { TeamworkTurn } from '../coworkTeamworkRequest';
 import CoworkTeamworkDesk, { AcceptDeskInvitation, DeskStartStatus } from './CoworkTeamworkDesks';
 import { DeskProposalForm, DeskSetupResult } from './CoworkTeamworkSetup';
 import { CreateDeskForm, DeskRoles, MemberRole } from './CoworkDeskAdministration';
-import { INPUT, LabeledField, PanelButton, Problem } from './panelParts';
+import { INPUT, LabeledField, PanelButton, PanelLayout, PanelLoading, PanelReadProblem, Problem } from './panelParts';
 
 function Draft({words, itemId, onBack}: {words: string; itemId?: string; onBack: () => void}) {
     const { t } = useTranslation();
@@ -21,8 +20,8 @@ function Draft({words, itemId, onBack}: {words: string; itemId?: string; onBack:
         started.current = true;
         mutate({text: words, itemId});
     }, [mutate, words, itemId]);
-    if (sent) return <DeskSetupResult result={sent} onAgain={onBack} />;
-    if (data) return <DeskProposalForm proposal={data} itemId={itemId} onBack={onBack} onDone={setSent} />;
+    if (sent) return <DeskSetupResult result={sent} />;
+    if (data) return <DeskProposalForm proposal={data} itemId={itemId} onBack={onBack} backLabel={t('cowork_panels.cancel', 'Cancel')} onDone={setSent} />;
     if (isPending) return <p role="status">{t('cowork_teamwork.thinking', 'Working it out…')}</p>;
     return <Problem error={error} fallback={t('cowork_desks.failed', 'That did not work. Try again.')} />;
 }
@@ -79,8 +78,8 @@ function Membership({desk, turn, done}: {desk: DeskSummary; turn: TeamworkTurn; 
     const [started, setStarted] = useState<PlannedStart | null>(null);
     if (started) return <DeskStartStatus start={started}/>;
     const problem = detail.error ?? tasks.error;
-    if (problem) return <Problem error={problem} fallback={t('cowork_desks.failed', 'That did not work. Try again.')} />;
-    if (!tasks.data || !detail.data) return null;
+    if (problem) return <PanelReadProblem error={problem} retry={() => { if (detail.error) void detail.refetch(); if (tasks.error) void tasks.refetch(); }} />;
+    if (!tasks.data || !detail.data) return <PanelLoading />;
     const eligible = memberChoices(tasks.data.items, detail.data.members, turn, desk.isOwner);
     if (!eligible.length) return <p>{t('cowork_teamwork.no_matching_tasks', 'None of your tasks can make this change on this desk.')}</p>;
     const id = chosen || preselectTask(turn, eligible);
@@ -93,11 +92,12 @@ function Membership({desk, turn, done}: {desk: DeskSummary; turn: TeamworkTurn; 
 function DraftForDesk({desk, turn, done}: {desk?: DeskSummary; turn: TeamworkTurn; done: () => void}) {
     const {t} = useTranslation();
     const view = useDeskView(desk?.id ?? null);
-    if (desk && !view.data) return <Problem error={view.error} fallback={t('cowork_desks.failed', 'That did not work. Try again.')} />;
-    const own = view.data?.members.filter(member => member.mine && member.accepted);
-    const anchor = desk ? (own?.find(member => member.scheduleId === turn.itemId) ?? own?.[0])?.scheduleId : turn.itemId;
-    if (desk && !desk.isOwner) return <p>{t('cowork_teamwork.owner_anchor', 'To change this setup, the desk owner needs an accepted task on the desk.')}</p>;
-    if (desk && !anchor) return <><p>{t('cowork_teamwork.pick_anchor', 'Which of your tasks should join this desk?')}</p>
+    if (!desk) return <Draft words={turn.message} itemId={turn.itemId} onBack={done} />;
+    if (!view.data) return view.error ? <Problem error={view.error} fallback={t('cowork_desks.failed', 'That did not work. Try again.')} /> : <PanelLoading />;
+    const own = view.data.members.filter(member => member.mine && member.accepted);
+    const anchor = (own.find(member => member.scheduleId === turn.itemId) ?? own[0])?.scheduleId;
+    if (!desk.isOwner) return <p>{t('cowork_teamwork.owner_anchor', 'To change this setup, the desk owner needs an accepted task on the desk.')}</p>;
+    if (!anchor) return <><p>{t('cowork_teamwork.pick_anchor', 'Which of your tasks should join this desk?')}</p>
         <Membership desk={desk} turn={{...turn, mode:'join'}} done={() => { void view.refetch(); }} /></>;
     return <Draft words={turn.message} itemId={anchor} onBack={done} />;
 }
@@ -173,7 +173,7 @@ function GuideForm({turn, desks, target, chosen, currentDesk, choose, showDesk, 
     </LabeledField>;
 }
 
-export default function GuidedTeamwork({initial, onOpenTask}: {initial: TeamworkTurn; onOpenTask: (id: string) => void}) {
+export default function GuidedTeamwork({initial, onOpenTask, action}: {action: ReactNode; initial: TeamworkTurn; onOpenTask: (id: string) => void}) {
     const {t} = useTranslation();
     const [turn, setTurn] = useState(initial);
     const [chosen, choose] = useState('');
@@ -197,13 +197,10 @@ export default function GuidedTeamwork({initial, onOpenTask}: {initial: Teamwork
     const problem = mine.error ?? current.error;
     const ready = !mine.isLoading && !current.isLoading && !problem;
     const title = t('cowork_panels.team.title', 'Teamwork');
-    return <section className="cowork-task-guided" data-testid="cowork-teamwork-panel"><h1 className="sr-only">{title}</h1>
-        <CoworkActivity tone="rest" work={{action:'ask'}} message={target?.name ?? title}>
-            <div className="flex w-full max-w-lg flex-col gap-3 text-left">
-                <Problem error={problem} fallback={t('cowork_desks.failed', 'That did not work. Try again.')} />
-                {ready && <GuideForm key={round} turn={turn} desks={desks} target={target} chosen={chosen} currentDesk={current.data?.id}
-                    choose={choose} showDesk={showDesk} onOpenTask={onOpenTask} />}
-            </div>
-        </CoworkActivity>
-    </section>;
+    return <PanelLayout testId="cowork-teamwork-panel" title={title} action={action} viewKey={round} meta={turn.mode === 'browse' ? undefined : target?.name}>
+        <PanelReadProblem error={problem} retry={() => { if (mine.error) void mine.refetch(); if (current.error) void current.refetch(); }} />
+        {!ready && !problem && <PanelLoading />}
+        {ready && <GuideForm key={round} turn={turn} desks={desks} target={target} chosen={chosen} currentDesk={current.data?.id}
+            choose={choose} showDesk={showDesk} onOpenTask={onOpenTask} />}
+    </PanelLayout>;
 }

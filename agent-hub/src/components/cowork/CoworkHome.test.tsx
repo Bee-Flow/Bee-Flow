@@ -1,7 +1,7 @@
 // The Cowork home (./CoworkHome.tsx): the composer first, the notices only when they hold, Needs you at most three
 // with the rest behind "Show N more", Your tasks with their status and next run, Shared with you only when it has
 // something, and Teamwork always, as one quiet row. The network is the seam (a recording fetch); no module is mocked.
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -40,6 +40,37 @@ const home = (onOpenTask = vi.fn(), onOpenPanel = vi.fn()) => {
 };
 
 describe('CoworkHome', () => {
+    it('does not navigate away from an unfinished sentence when the task finishes setup', async () => {
+        const open = vi.fn();
+        const ask = vi.fn();
+        const trial = new TransformStream();
+        const writer = trial.writable.getWriter();
+        stubRecordingFetch(({url, method}) => {
+            const path = new URL(url, 'http://x').pathname;
+            if (path === '/api/cowork' && method === 'GET') return jsonResponse({schedules: [], maxSchedules: 10});
+            if (path === '/api/cowork/compose') return jsonResponse({title: 'Inbox', repeatInterval: 'daily', timeOfDay: '09:00'});
+            if (path === '/api/cowork' && method === 'POST') return jsonResponse({id: 'new', title: 'Inbox', setup: {steps: 'wanted'}});
+            if (path === '/api/cowork/new/plan/make') return new Response(trial.readable, {headers: {'content-type': 'text/event-stream'}});
+            return jsonResponse({});
+        });
+        renderWithClient(<CoworkHome guided onOpenTask={open} onOpenPanel={() => {}} onAskTask={ask} />);
+        const user = userEvent.setup();
+        const composer = screen.getByRole('textbox', {name: 'Ask Bee…'});
+        await user.type(composer, 'Every day at 9, summarise my mail{Enter}');
+        await user.click(await screen.findByRole('button', {name: 'Start'}));
+        await screen.findByTestId('cowork-setup');
+        await user.type(composer, 'How many messages');
+        await act(async () => {
+            await writer.write(new TextEncoder().encode('event: done\ndata: {"summary":"ok","state":{"automationId":"auto-1"}}\n\n'));
+            await writer.close();
+        });
+        await screen.findByText('Your next message will go to “Inbox”.');
+        expect(composer).toHaveValue('How many messages');
+        expect(open).not.toHaveBeenCalled();
+        await user.type(composer, ' did you read?{Enter}');
+        expect(ask).toHaveBeenCalledWith('new', 'How many messages did you read?', undefined);
+    });
+
     it('your tasks: title, status and the next run; a row opens the task', async () => {
         serve({ outcomes: { w1: 'nothing_to_do' } });
         const { onOpenTask } = home();

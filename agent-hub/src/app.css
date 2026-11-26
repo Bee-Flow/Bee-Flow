@@ -2144,8 +2144,6 @@ pre.hljs {
     .cowork-orb-detail .cowork-activity-caption { grid-column: 1; grid-row: 2; }
     .cowork-orb-detail .cowork-detail-content { grid-column: 2; grid-row: 1 / span 2; }
 }
-.cowork-open-page:has(.cowork-task-scroll) { height: 100%; padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
-.cowork-open-page:has(.cowork-task-scroll) > section { height: 100%; }
 .cowork-task-guided:has(.cowork-task-scroll) { flex: 1; min-height: 0; }
 .cowork-task-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: clip; display: flex; flex-direction: column; gap: 1rem; padding: .2rem; }
 .cowork-review { width: min(100%, 42rem); margin-inline: auto; display: grid; gap: .75rem; padding-block: .25rem; }
@@ -2194,8 +2192,6 @@ pre.hljs {
 .cowork-task-guided .cowork-activity-caption > .flex { justify-content: center; }
 .cowork-task-guided .cowork-activity-current { font-size: 1rem; font-weight: 500; line-height: 1.5; text-wrap: balance; }
 @container (min-width: 48rem) {
-    .cowork-task-guided:has(.cowork-orb-workspace) .cowork-task-scroll { flex: 0 1 auto; margin-block-start: auto; gap: .5rem; }
-    .cowork-task-guided:has(.cowork-orb-workspace) .cowork-task-footer { margin-block-start: auto; }
     .cowork-task-identity header { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: .5rem .75rem; }
     .cowork-task-guided .cowork-orb-workspace { padding-block: .5rem; }
 }
@@ -2219,37 +2215,21 @@ pre.hljs {
 /* Bee is the entry point. The Cowork pane owns the transition, so surrounding navigation stays still. */
 @media (prefers-reduced-motion: no-preference) {
     :root:active-view-transition-type(cowork) { view-transition-name: none; }
-    :root:active-view-transition-type(cowork) [data-testid="cowork-page"] { view-transition-name: cowork-pane; }
-    :root:active-view-transition-type(cowork) :is(.cowork-welcome-orb, .cowork-task-guided .cowork-activity) > .cowork-orb { view-transition-name: cowork-bee; }
+    :root:active-view-transition-type(cowork) .cowork-viewport .cowork-orb { view-transition-name: cowork-bee; }
+    :root:active-view-transition-type(cowork)::view-transition { pointer-events: none; }
     ::view-transition-group(cowork-bee) { animation-duration: 480ms; animation-timing-function: cubic-bezier(.22,.75,.22,1); }
-    ::view-transition-group(cowork-pane) { animation-duration: 300ms; }
     .cowork-open-page [data-testid="cowork-page-frame"] > :not([role="status"]),
     .cowork-orb-choices { animation: cowork-surface-arrival 280ms ease-out backwards; }
     @keyframes cowork-surface-arrival { from { opacity: 0; translate: 0 .4rem; } }
 }
 
-/* Let the overview use the page's own scroll area until a conversation starts. */
-.cowork-task-guided:has(.cowork-orb-workspace):not(:has(.cowork-transcript)) .cowork-task-scroll {
-    flex: 0 0 auto;
-    overflow: visible;
-}
-
-/* The transcript takes the space between Bee and the composer as the conversation grows. */
-.cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll {
-    flex: 0 0 auto;
-    max-height: min(68%, calc(100% - 13rem));
-    margin-block-start: auto;
-}
 .cowork-conversation:has(.cowork-transcript) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-.cowork-conversation > :not(.cowork-transcript) { flex-shrink: 0; }
+.cowork-conversation > form { flex-shrink: 0; }
 .cowork-transcript { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-secondary) 32%, transparent) transparent; }
 .cowork-transcript-lines { display: grid; gap: .65rem; padding: .25rem .5rem .85rem; }
 .cowork-turn { min-width: 0; overflow-wrap: anywhere; }
 .cowork-turn-user { justify-self: end; max-width: 85%; padding: .5rem .85rem; border-radius: 1rem; background: var(--bg-secondary); white-space: pre-wrap; }
 .cowork-turn-assistant { justify-self: start; max-width: 100%; padding: .25rem .25rem; }
-@container (max-width: 47.99rem) {
-    .cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll { max-height: 50%; }
-}
 
 .cowork-guided-home { max-width: 46rem; min-height: 100%; display: grid; align-content: center; padding-block: 2rem; }
 .cowork-bee-dialog { display: grid; gap: 1rem; justify-items: center; }

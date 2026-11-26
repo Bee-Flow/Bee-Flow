@@ -8,9 +8,10 @@ interface Props {
     clarification: NonNullable<CoworkSpec['clarification']>;
     onAnswer: (answer: string) => void;
     onCancel: () => void;
+    useConversation?: boolean;
 }
 
-export default function CoworkBriefQuestion({ clarification, onAnswer, onCancel }: Props) {
+export default function CoworkBriefQuestion({ clarification, onAnswer, onCancel, useConversation }: Props) {
     const { t } = useTranslation();
     const [answer, setAnswer] = useState('');
     const label = t('cowork_home.confirm.your_answer', 'Your answer');
@@ -19,13 +20,13 @@ export default function CoworkBriefQuestion({ clarification, onAnswer, onCancel 
             {clarification.options.length > 0 && <div className="flex flex-wrap justify-center gap-2">
                 {clarification.options.map(option => <button type="button" className={BUTTON_SECONDARY} key={option} onClick={() => onAnswer(option)}>{option}</button>)}
             </div>}
-            <form className="flex items-center gap-2" onSubmit={event => {
+            {!useConversation && <form className="flex items-center gap-2" onSubmit={event => {
                 event.preventDefault();
                 if (answer.trim()) onAnswer(answer.trim());
             }}>
                 <input aria-label={label} placeholder={label} className={FIELD_WIDE} value={answer} maxLength={500} onChange={event => setAnswer(event.target.value)} />
                 <button className={BUTTON_PRIMARY} disabled={!answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
-            </form>
+            </form>}
             <button type="button" className={LINK_INLINE + ' justify-self-center'} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
         </div>
     </CoworkActivity>;

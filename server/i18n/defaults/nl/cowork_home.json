@@ -1,6 +1,10 @@
 {
   "translations": {
     "cowork_home.dialog.no_shared": "Er zijn nog geen taken met je gedeeld.",
+    "cowork_home.dialog.no_tasks": "Je hebt nog geen taken. Wat zal ik voor je doen?",
+    "cowork_home.dialog.other_draft": "Rond dit concept af of annuleer het voordat je een andere taak start.",
+    "cowork_home.dialog.queued": "Ik neem je bericht zo mee naar je taak.",
+    "cowork_home.activity.finish_turn": "Je volgende bericht hoort bij ‘{title}’.",
     "cowork_home.dialog.greeting": "Hoi! Waar kan ik je mee helpen?",
     "cowork_home.dialog.help": "Beschrijf een nieuwe taak, vraag naar je taken of noem de taak waarover je iets wilt weten.",
     "cowork_home.existing.ask_task": "Vraag Bee over {title}",

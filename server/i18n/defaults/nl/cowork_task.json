@@ -1,5 +1,9 @@
 {
   "translations": {
+    "cowork_task.load_failed": "Ik kon deze taak niet openen.",
+    "cowork_task.runs.load_failed": "Ik kon de uitvoeringen van deze taak niet laden.",
+    "cowork_task.runs.in_progress": "De huidige uitvoering is nog bezig.",
+    "cowork_task.runs.more": "Eerdere uitvoeringen tonen",
     "cowork_task.steps.needs_plan": "Hiervoor heeft de taak vaste stappen nodig.",
     "cowork_task.shared.owner_only": "Alleen de eigenaar kan deze gedeelde taak aanpassen.",
     "cowork_task.operation.run": "“{title}” nu één keer uitvoeren met de huidige instellingen?",

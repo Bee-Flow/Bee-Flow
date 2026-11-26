@@ -3,6 +3,10 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_task.load_failed": "I couldn’t open this task.",
+    "cowork_task.runs.load_failed": "I couldn’t load the runs for this task.",
+    "cowork_task.runs.in_progress": "The current run is still in progress.",
+    "cowork_task.runs.more": "Show earlier runs",
     "cowork_task.steps.needs_plan": "This requires a task with fixed steps.",
     "cowork_task.shared.owner_only": "Only the owner can change this shared task.",
     "cowork_task.operation.run": "Run “{title}” once now using its current settings?",

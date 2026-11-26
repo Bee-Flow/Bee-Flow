@@ -45,3 +45,12 @@ test('an unsupported or mutating action from a shared conversation never opens o
     assert.deepEqual(received, []);
     assert.deepEqual(reply,{action:'answer',ownerOnly:true,answer:'Only the owner can change this shared task.',instruction:''});
 });
+
+test('opens the reader’s own settings or imports with a valid section, without granting rights on a shared task', async () => {
+    for (const [action, section, expected] of [['preferences', 'mail', 'mail'], ['templates', 'import', 'import'], ['org', 'budget', 'budget'], ['org', 'delete', undefined]]) {
+        const deps = {model: async () => JSON.stringify({action, section, answer: 'Here it is.'})};
+        const reply = await answerShared(view, {userId:'reader'}, turn, undefined, deps);
+        assert.equal(reply.action, action);
+        assert.equal(reply.section, expected);
+    }
+});

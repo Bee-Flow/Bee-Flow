@@ -162,10 +162,35 @@ describe('CoworkPage', () => {
         serve([ITEM], undefined, () => jsonResponse({action: 'attention', answer: 'Here are your requests.'}));
         renderWithClient(<CoworkPage initialCoworkId="w1" />);
         const user = userEvent.setup();
-        await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Which invitations need my approval?{Enter}');
+        const task = await screen.findByTestId('cowork-task-view');
+        await user.type(within(task).getByRole('textbox', {name: 'Ask Bee…'}), 'Which invitations need my approval?{Enter}');
         expect(await screen.findByText('Nothing needs you right now.')).toBeVisible();
         expect(screen.getByTestId('cowork-brief-input')).toBeVisible();
         expect(calls.filter(call => call.method === 'POST').map(path)).toEqual(['/api/cowork/w1/conversation']);
+    });
+
+    it('retains a question sent during loading and the follow-up being typed when the task opens', async () => {
+        serve();
+        const fetch = globalThis.fetch;
+        let release!: () => void;
+        const waiting = new Promise<void>(resolve => { release = resolve; });
+        vi.stubGlobal('fetch', async (...args: Parameters<typeof fetch>) => {
+            if (new URL(String(args[0]), 'http://x').pathname === '/api/cowork/w1') await waiting;
+            return fetch(...args);
+        });
+        renderWithClient(<CoworkPage initialCoworkId="w1" />);
+        await screen.findByText('Opening the task…');
+        const user = userEvent.setup();
+        const input = screen.getByRole('textbox', {name: 'Ask Bee…'});
+        await user.type(input, 'How did this run go?{Enter}');
+        await user.type(input, 'And the follow-up');
+        expect(calls.some(c => c.method === 'POST')).toBe(false);
+        release();
+        expect(await screen.findByText('Your digest is ready.')).toBeVisible();
+        const ready = screen.getByRole('textbox', {name: 'Ask Bee…'});
+        expect(ready).toHaveValue('And the follow-up');
+        expect(ready).toHaveFocus();
+        expect(calls.filter(c => c.method === 'POST').map(path)).toEqual(['/api/cowork/w1/conversation']);
     });
 
     it('carries a question from home straight into the named shared task as its reader', async () => {

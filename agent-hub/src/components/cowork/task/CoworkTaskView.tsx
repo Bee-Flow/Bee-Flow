@@ -6,6 +6,9 @@ import { beeTransition } from '../beeTransition';
 /** An owned Cowork task, with its status and actions above the task's detail tabs. */
 import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
 import { TaskBack } from '../CoworkPageFrame';
+import CoworkPendingPage from '../CoworkPendingPage';
+import { useTakePendingQuestion } from '../usePendingBeeDraft';
+import { HasTaskOrb } from '../CoworkOrb';
 import CoworkNeedCard from '../CoworkNeedCard';
 import { BLOCKS, type NeedCardData } from '../coworkNeedsModel';
 import { taskStatus } from '../coworkTaskStatus';
@@ -14,7 +17,7 @@ import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
 import CoworkOrbComposer from './CoworkOrbComposer';
 import useTaskConversation, { type TaskConversation } from './useTaskConversation';
 import CoworkOrbWorkspace from './CoworkOrbWorkspace';
-import CoworkTaskOrb, { isSetting, type OrbView } from './CoworkTaskOrb';
+import CoworkTaskOrb, { TaskAnchor, isSetting, type OrbView } from './CoworkTaskOrb';
 import { LINK_INLINE } from '../coworkUi';
 import CoworkTaskChange from './CoworkTaskChange';
 import CoworkTaskHeader, { CoworkTaskActions, type HeldBy } from './CoworkTaskHeader';
@@ -29,13 +32,15 @@ import TaskSetTarget from './TaskSetTarget';
 import { MemoryPart, SpendingPart } from './TaskSetKeeps';
 import CoworkTaskShared from './CoworkTaskShared';
 import CoworkTaskSteps from './CoworkTaskSteps';
+import CoworkStepRail from './CoworkStepRail';
 import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
 import CoworkTaskTested, { triedResultOf } from './CoworkTaskTested';
 import { canTry } from '../coworkPlanModel';
-import { inRunOrder, latestRunOf, liveRunOf, runFailed, runStatus, taskModeOf } from './coworkTaskModel';
-import { BTN_LINK, Failure, META } from './taskUi';
+import { inRunOrder, planSteps, latestRunOf, liveRunOf, runFailed, runStatus, taskModeOf } from './coworkTaskModel';
+import { Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useCoworkItem, useCoworkItemActions } from '@/api/coworkTask';
+import type { PlanState } from '@/api/coworkPlan.types';
 import { useCoworkPlanQuery, useCoworkPlanTry, useCoworkRunTrace } from '@/api/queries/coworkPlan';
 import { useCoworkAgents, useCoworkRunsQuery } from '@/api/queries/coworkReads';
 import useCoworkPlanMaker from '@/hooks/useCoworkPlanMaker';
@@ -69,7 +74,8 @@ function heldByOf(live: boolean, cards: readonly NeedCardData[]): HeldBy {
 function useTaskFacts(item: CoworkItem) {
     const plan = useCoworkPlanQuery(item.id).data;
     // Read the runs again when a run starts or ends (the task itself is read again while it runs).
-    const runs = useCoworkRunsQuery(item.id, item.runCount * 2 + (item.lastStatus === 'running' ? 1 : 0)).data?.runs;
+    const runHistory = useCoworkRunsQuery(item.id, item.runCount * 2 + (item.lastStatus === 'running' ? 1 : 0));
+    const runs = runHistory.data?.runs;
     const maker = useCoworkPlanMaker(item.id);
     const tryOut = useCoworkPlanTry(item.id);
     const items = useMemo(() => [item], [item]);
@@ -81,7 +87,7 @@ function useTaskFacts(item: CoworkItem) {
     const testing = maker.making.running || startingTest || (!!tryOut.state && !tryOut.state.done);
     const live = startingTest || isLive({ making: maker.making, tryState: tryOut.state, liveRun }) || item.lastStatus === 'running';
     return {
-        plan, runs: runs ?? [], maker, tryOut, startingTest, cards, liveRun, latest: latestRunOf(runs), live,
+        plan, runHistory, runs: runs ?? [], maker, tryOut, startingTest, cards, liveRun, latest: latestRunOf(runs), live,
         mode: taskModeOf(item, plan),
         blocked: holding(cards).length > 0,
         heldBy: heldByOf(live, cards),
@@ -90,6 +96,21 @@ function useTaskFacts(item: CoworkItem) {
 }
 
 type Facts = ReturnType<typeof useTaskFacts>;
+
+function RunRead({ facts, t, children }: { facts: Facts; t: TranslateFn; children: ReactNode }) {
+    const query = facts.runHistory;
+    if (query.data) return <>{children}</>;
+    return query.isError ? <div className="flex flex-wrap items-center gap-2">
+        <p role="alert">{t('cowork_task.runs.load_failed', 'I couldn’t load the runs for this task.')}</p>
+        <button type="button" className={LINK_INLINE} disabled={query.isFetching} onClick={() => { void query.refetch(); }}>{t('cowork_task.retry', 'Try again')}</button>
+    </div> : <p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>;
+}
+
+function RunHistory({itemId, facts, onSteps, t}: {itemId: string; facts: Facts; onSteps?: () => void; t: TranslateFn}) {
+    return <RunRead facts={facts} t={t}>
+        <CoworkTaskRuns coworkId={itemId} runs={facts.runs} total={facts.runHistory.data?.total} onSteps={onSteps} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />
+    </RunRead>;
+}
 
 function TopOfTask({ item, facts, onRun, onShare, t }: { item: CoworkItem; facts: Facts; onRun: () => void; onShare: () => void; t: TranslateFn }) {
     const actions = useCoworkItemActions(item.id);
@@ -130,7 +151,7 @@ function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: 
             {quiet && (
                 <>
                     <AutoFixNote coworkId={item.id} t={t} />
-                    <CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} />
+                    <RunRead facts={facts} t={t}><CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} /></RunRead>
                     <CoworkTaskOffer coworkId={item.id} hasSteps={facts.mode === 'steps'} mayPlan={mayPlan} making={facts.maker.making.running} onMakeFromRuns={() => { void facts.maker.start(true); }} t={t} />
                 </>
             )}
@@ -184,10 +205,13 @@ function TaskMain({ item, facts, panel, open, close, user, fillComposer }: OwnPr
     const chat = useTaskConversation({ item, plan: facts.plan, view: advanced ? tab : view, live: facts.live,
         select: conversationView, openTask: (id, shared) => open({kind: shared ? 'shared' : 'task', id}), rebuild, t });
     const send = chat.send;
+    const takePending = useTakePendingQuestion();
+    const dialogPending = chat.dialog.isPending;
     useEffect(() => {
-        const question = panel.kind === 'task' && panel.takeQuestion?.();
-        if (question) send(question);
-    }, [panel, send]);
+        if (dialogPending || panel.kind !== 'task') return;
+        const question = panel.takeQuestion?.() || takePending();
+        if (question) send(question, {keepDraft: true});
+    }, [panel, send, takePending, dialogPending]);
     const header = <CoworkTaskHeader item={item} status={facts.status} t={t} />;
     const actions = <TopOfTask item={item} facts={facts} onRun={() => openTab('result')} onShare={() => { setPeople('share'); openTab('people'); }} t={t} />;
     const change = <CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate}
@@ -207,17 +231,37 @@ function TaskMain({ item, facts, panel, open, close, user, fillComposer }: OwnPr
             </div>
         </>,
         people: <CoworkTaskPeople onAccessSaved={() => { setView('overview'); chat.setReply(t('cowork_task.share.saved', 'Access updated.')); }} onTeamwork={(mode, message) => open({kind: 'teamwork', request: {mode, message, itemId: item.id}})} focused={!advanced} key={advanced ? 'advanced' : accessTurn.n} request={accessTurn.message} coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,
-        history: <CoworkTaskHistory onSteps={() => openTab('steps')} item={item} runs={facts.runs} plan={facts.plan} onGone={close} t={t} />,
+        history: <CoworkTaskHistory item={item} plan={facts.plan} onGone={close} t={t}>
+            <RunHistory itemId={item.id} facts={facts} onSteps={() => openTab('steps')} t={t} />
+        </CoworkTaskHistory>,
     };
-    if (advanced) return <div className="flex flex-col gap-6" data-testid="cowork-task-view">
-        <div className="flex justify-between gap-3">{header}<button className={LINK_INLINE} onClick={() => setAdvanced(false)}>{t('cowork_task.orb.back', 'Back to the orb')}</button></div>
+    if (advanced) return <AdvancedTask heading={header} facts={facts} item={item} chat={chat} onBack={close} onGuided={() => setAdvanced(false)} t={t}>
         {actions}
         <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={panels} />
-        <CoworkOrbComposer chat={chat} />
-        <TaskBack onBack={close} />
-    </div>;
+    </AdvancedTask>;
     return <GuidedTask onGone={close} back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => beeTransition(() => setAdvanced(true))}
-        panels={panels} header={header} actions={actions} t={t} />;
+        panels={panels} header={header} actions={<CoworkTaskActions item={item} heldBy={facts.heldBy} expanded busy={chat.busy}
+            onRunNow={() => conversationView('run')} onToggle={() => conversationView(item.isActive === false ? 'resume' : 'pause')} onShare={() => conversationView('share')} t={t} />} t={t} />;
+}
+
+function AdvancedTask({heading, facts, item, chat, onBack, onGuided, children, t}: {
+    heading: ReactNode; facts: Facts; item: CoworkItem; chat: TaskConversation;
+    onBack: () => void; onGuided: () => void; children: ReactNode; t: TranslateFn;
+}) {
+    const draft = facts.plan?.draft;
+    const flow = draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [];
+    const activeStep = useActiveStep(item.id, facts);
+    const index = flow.findIndex(step => step.id === activeStep);
+    const tone = chat.dialog.isPending || chat.busy ? 'thinking' : facts.live ? (flow[index]?.kind === 'ai' ? 'thinking' : 'executing') : 'rest';
+    return <div className="cowork-task-guided is-detail flex flex-col gap-4" data-testid="cowork-task-view" data-status={facts.status}>
+        <TaskAnchor heading={heading} work={{ flow, apps: item.enabledApps, focus: index < 0 ? undefined : index, action: tone }} tone={tone} />
+        <div className="cowork-task-scroll"><HasTaskOrb.Provider value>{children}</HasTaskOrb.Provider></div>
+        <CoworkOrbComposer chat={chat} />
+        <footer className="cowork-task-footer">
+            <TaskBack onBack={onBack} />
+            <button className={LINK_INLINE} onClick={onGuided}>{t('cowork_task.orb.back', 'Back to the orb')}</button>
+        </footer>
+    </div>;
 }
 
 function useActiveStep(itemId: string, facts: Facts) {
@@ -231,13 +275,18 @@ function GuidedResult({ item, facts, onChange, t }: { item: CoworkItem; facts: F
     const plan = facts.plan;
     if (!facts.live && !facts.latest && plan && triedResultOf(plan)) {
         const check = facts.cards.find(card => card.kind === 'check');
-        return <CoworkTaskTested coworkId={item.id} plan={plan} fingerprint={check?.fingerprint ?? null} changed={check?.changed}
-            onApproved={setNotice} onChange={onChange} onTest={() => facts.tryOut.start.mutate()} testing={!canTry(plan)} t={t} />;
+        return <>{notice && <p role="status">{notice}</p>}<CoworkTaskTested coworkId={item.id} plan={plan} fingerprint={check?.fingerprint ?? null} changed={check?.changed}
+            onApproved={setNotice} onChange={onChange} onTest={() => facts.tryOut.start.mutate()} testing={facts.startingTest || !canTry(plan)} t={t} /></>;
     }
     if (facts.latest && runFailed(facts.latest)) return <CoworkTaskRuns
         key={facts.latest.id} coworkId={item.id} runs={[facts.latest]} initialRunId={facts.latest.id} withReceipts
         heading={t('cowork_task.orb.run_details', 'See run details')} t={t} />;
     return <>{notice && <p role="status">{notice}</p>}<CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} /></>;
+}
+
+function SelectableSteps({plan, chat, t}: {plan: PlanState | undefined; chat: TaskConversation; t: TranslateFn}) {
+    if (!plan?.draft) return null;
+    return <CoworkStepRail steps={planSteps(plan, t)} selected={chat.selected} toggle={chat.toggle} disabled={chat.dialog.isPending} t={t} />;
 }
 
 function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvanced, chat, panels, header, actions, t }: {
@@ -251,8 +300,8 @@ function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvance
         need={facts.cards[0]} latest={facts.latest} live={live}
         active={active} t={t} />;
     const current = view === 'edit' && facts.plan && !draft ? 'what' : view;
-    const result = <GuidedResult item={item} facts={facts} onChange={() => setView('edit')} t={t} />;
-    const history = <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />;
+    const result = <RunRead facts={facts} t={t}><GuidedResult item={item} facts={facts} onChange={() => setView('edit')} t={t} /></RunRead>;
+    const history = <RunHistory itemId={item.id} facts={facts} t={t} />;
     const operation = (name: TaskOperation) => <CoworkOperationReview operation={name} item={item} heldBy={facts.heldBy} t={t} onDone={() => setView('overview')} />;
     const {locale} = useTranslation();
     const views = { ...panels,
@@ -262,10 +311,11 @@ function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvance
         changes: <ChangesBody coworkId={item.id} plan={facts.plan} t={t} />,
         proof: <ProofBody coworkId={item.id} t={t} />,
         test: panels.steps, compare: panels.steps, run: operation('run'), pause: operation('pause'), resume: operation('resume'), delete: <DeleteTask item={item} onGone={onGone} onCancel={() => setView('overview')} t={t} />, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
+    const detail = current === 'steps' ? <>{!facts.live && <SelectableSteps plan={facts.plan} chat={chat} t={t} />}{views.steps}</> : views[current];
     const showLive = facts.live && ['overview', 'review', 'edit', 'test'].includes(current);
-    return <CoworkTaskOrb back={back} status={facts.status} coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
+    return <CoworkTaskOrb back={back} status={facts.status} coworkId={item.id} view={current} thinking={chat.busy || chat.dialog.isPending} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
         heading={header} work={{ flow: draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [], apps: item.enabledApps, action: isSetting(current) ? 'edit' : 'rest' }} t={t}>
-        {showLive ? workspace : views[current]}
+        {showLive ? workspace : detail}
     </CoworkTaskOrb>;
 }
 
@@ -296,18 +346,11 @@ function CoworkTaskView(props: CoworkSheetPanelProps) {
     const id = props.panel.kind === 'task' ? props.panel.id : '';
     const item = useCoworkItem(id);
     const back = <TaskBack onBack={props.close} />;
-    if (item.isPending) return <><p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>{back}</>;
+    const ask = (message: string) => props.fillComposer(message, 'ask');
+    if (item.isPending) return <CoworkPendingPage waitForTask message={t('cowork_task.loading', 'Opening the task…')} ask={ask}>{back}</CoworkPendingPage>;
     // Not the reader's own: a task a colleague shared with them, or one that is gone.
-    if (item.data === null) return <><CoworkTaskShared {...props} />{back}</>;
-    if (!item.data) {
-        return (
-            <div className="flex flex-col gap-2">
-                <Failure error={item.error} t={t} />
-                <div><button type="button" className={BTN_LINK} onClick={() => { void item.refetch(); }}>{t('cowork_task.retry', 'Try again')}</button></div>
-                {back}
-            </div>
-        );
-    }
+    if (item.data === null) return <CoworkTaskShared {...props} />;
+    if (!item.data) return <CoworkPendingPage key="unavailable" message={t('cowork_task.load_failed', 'I couldn’t open this task.')} ask={ask} retry={() => { void item.refetch(); }}>{back}</CoworkPendingPage>;
     return <OwnTask key={id} {...props} item={item.data} />;
 }
 

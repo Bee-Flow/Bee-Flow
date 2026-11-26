@@ -94,7 +94,7 @@ function RoleFields({ role, people, onChange, onRemove }: { role: EditRole; peop
     );
 }
 
-export function DeskProposalForm({ proposal, itemId, onBack, onDone }: { proposal: DeskProposal; itemId?: string; onBack: () => void; onDone: (r: HelperResult) => void }) {
+export function DeskProposalForm({ proposal, itemId, onBack, onDone, backLabel }: { proposal: DeskProposal; itemId?: string; backLabel?: string; onBack: () => void; onDone: (r: HelperResult) => void }) {
     const { t } = useTranslation();
     const apply = useApplyDeskDraft();
     const [draft, setDraft] = useState<EditDraft>(() => editableOf(proposal));
@@ -122,14 +122,14 @@ export function DeskProposalForm({ proposal, itemId, onBack, onDone }: { proposa
             {waits && <p className={`m-0 ${META}`} data-testid="cowork-team-not-ready">{whyNot(waits, t)}</p>}
             <div className="flex flex-wrap gap-2">
                 <PanelButton busy={apply.isPending} disabled={!!waits} onClick={() => apply.mutate({ itemId, expectedDeskId: itemId ? proposal.deskId : undefined, draft: bodyOf(draft) }, { onSuccess: onDone })}>{t('cowork_panels.team.send', 'Send invitations')}</PanelButton>
-                <PanelButton look="inline" disabled={apply.isPending} onClick={onBack}>{t('cowork_panels.team.start_over', 'Start over')}</PanelButton>
+                <PanelButton look="inline" disabled={apply.isPending} onClick={onBack}>{backLabel ?? t('cowork_panels.team.start_over', 'Start over')}</PanelButton>
             </div>
             <Problem error={apply.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
         </div>
     );
 }
 
-export function DeskSetupResult({ result, onAgain }: { result: HelperResult; onAgain: () => void }) {
+export function DeskSetupResult({ result, onAgain }: { result: HelperResult; onAgain?: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-2" role="status" data-testid="cowork-team-sent">
@@ -137,7 +137,7 @@ export function DeskSetupResult({ result, onAgain }: { result: HelperResult; onA
             <ul className={`m-0 flex list-disc flex-col gap-1 pl-5 ${META}`}>
                 {[...result.done, ...result.waiting].map((n, i) => <li key={i}>{noteText(n, t)}</li>)}
             </ul>
-            <PanelButton look="link" className="self-start" onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</PanelButton>
+            {onAgain && <PanelButton look="link" className="self-start" onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</PanelButton>}
         </div>
     );
 }

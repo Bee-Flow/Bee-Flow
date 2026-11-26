@@ -4,6 +4,10 @@
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
     "cowork_home.dialog.no_shared": "Nobody has shared a task with you yet.",
+    "cowork_home.dialog.no_tasks": "You have no tasks yet. What would you like me to do?",
+    "cowork_home.dialog.other_draft": "Finish or cancel this draft before starting another task.",
+    "cowork_home.dialog.queued": "I’ll take this up with your task in a moment.",
+    "cowork_home.activity.finish_turn": "Your next message will go to “{title}”.",
     "cowork_home.dialog.greeting": "Hi! How can I help?",
     "cowork_home.dialog.help": "Describe a new task, ask to see your tasks, or mention a task by name.",
     "cowork_home.existing.ask_task": "Ask Bee about {title}",

@@ -4,7 +4,7 @@ import {afterEach, expect, it, vi} from 'vitest';
 import {renderWithClient} from '@/test/render';
 import {jsonResponse, stubRecordingFetch} from '@/test/recordingFetch';
 import {useTranslation} from '@/hooks/useTranslation';
-import {openTask} from './taskWorld.testkit';
+import {openTask, readyTaskInput } from './taskWorld.testkit';
 import {namedColleague} from './coworkColleagueSelection';
 import type {Share} from '@/api/coworkShares';
 import CoworkTaskPeople, {type PeopleRowId} from './CoworkTaskPeople';
@@ -85,7 +85,7 @@ it('opens the named sharing form from the task conversation and preserves the ap
     const {user, sent} = openTask({colleagues: [{id:'s', name:'Sam'}], conversation: () => ({
         action: 'share', answer: 'Please check access for Sam.', instruction: '',
     })});
-    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Share this task with Sam{Enter}');
+    await user.type(await readyTaskInput(), 'Share this task with Sam{Enter}');
     expect(await screen.findByRole('combobox', {name:'Colleague'})).toHaveValue('s');
     expect(screen.queryByText('Give this task away')).toBeNull();
     expect(sent('PUT', '/api/cowork/w1/shares')).toBeUndefined();
@@ -117,7 +117,7 @@ it('describes and confirms replacing the current approver in one atomic update',
 
 it('discards an unconfirmed edit on Back and can handle the same spoken request again', async () => {
     const {user, all} = openTask({colleagues:[{id:'s',name:'Sam'}], conversation: () => ({action:'share', answer:'Review access.', instruction:''})});
-    const ask = async () => user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Share with Sam{Enter}');
+    const ask = async () => user.type(await readyTaskInput(), 'Share with Sam{Enter}');
     await ask();
     await user.selectOptions(await screen.findByRole('combobox',{name:'What Sam can do'}),'approver');
     await user.click(screen.getByRole('button',{name:'Back to the orb'}));

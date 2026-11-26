@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useTaskInteractionBusy } from '@/api/coworkProposals';
-import CoworkActivity from '../CoworkActivity';
+import CoworkOrb, { HasTaskOrb, type ActivityTone } from '../CoworkOrb';
 import type { OrbWork } from '../CoworkOrbSources';
 import { LINK_INLINE } from '../coworkUi';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -44,32 +44,37 @@ function labels(t: TranslateFn): Record<OrbView, string> {
 
 interface Props {
     back: ReactNode; status: TaskStatus; coworkId: string; view: OrbView; select: (view: OrbView) => void; onAdvanced: () => void;
-    work: OrbWork; composer: ReactNode; live: boolean; saved: boolean; heading: ReactNode;
+    work: OrbWork; composer: ReactNode; live: boolean; thinking: boolean; saved: boolean; heading: ReactNode;
     children: ReactNode; t: TranslateFn;
 }
 
-/** Keep only the selected task action on screen. Plan edits and live runs render their own evolving orb. */
-export default function CoworkTaskOrb({ back, status, coworkId, view, select, onAdvanced, work, composer, live, saved, heading, children, t }: Props) {
+/** Detailed results, forms and Advanced can grow independently of Bee and the conversation. */
+export function TaskAnchor({ heading, work, tone = 'rest' }: {heading: ReactNode; work: OrbWork; tone?: ActivityTone}) {
+    return <div className="cowork-task-anchor">
+        <div className="cowork-task-identity">{heading}</div>
+        <CoworkOrb work={work} tone={tone} />
+    </div>;
+}
+
+export default function CoworkTaskOrb({ back, status, coworkId, view, select, onAdvanced, work, composer, live, thinking, saved, heading, children, t }: Props) {
     const names = labels(t);
     const busy = useTaskInteractionBusy(coworkId);
-
-    const ownOrb = live || view === 'edit' || view === 'overview';
-    const message = saved ? t('cowork_task.edit.saved', 'Saved') : names[view];
-    return <div className="cowork-task-guided flex flex-col gap-4" data-testid="cowork-task-view" data-status={status}>
-        <div className="cowork-task-scroll">
-        <div className="cowork-task-identity">{heading}</div>
-        {!ownOrb && !['run', 'pause', 'resume'].includes(view) && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => select('overview')}><ArrowLeft size={14}/>{names.overview}</button>}
-        <section aria-label={names[view]} className={ownOrb ? undefined : 'cowork-orb-detail'}>
-            {ownOrb ? children : <CoworkActivity message={message} work={work} tone="rest">
-                <div className="cowork-detail-content w-full min-w-0 text-left">{children}</div>
-            </CoworkActivity>}
-        </section>
+    const workspace = live || view === 'edit' || view === 'overview';
+    const hasCancel = ['run', 'pause', 'resume', 'delete'].includes(view);
+    return <div className={'cowork-task-guided flex flex-col gap-4' + (workspace ? '' : ' is-detail')} data-testid="cowork-task-view" data-status={status}>
+        {!workspace && <TaskAnchor heading={heading} work={thinking ? {...work, action: 'thinking'} : work} tone={thinking ? 'thinking' : 'rest'} />}
+        <div key={workspace ? 'workspace' : view} className="cowork-task-scroll">
+            {workspace && <div className="cowork-task-identity">{heading}</div>}
+            <section aria-label={names[view]} className={workspace ? undefined : 'cowork-detail-content w-full min-w-0 text-left'}>
+                {!workspace && <h2 className="text-base font-semibold">{names[view]}</h2>}
+                {saved && !workspace && <p role="status">{t('cowork_task.edit.saved', 'Saved')}</p>}
+                <HasTaskOrb.Provider value={!workspace}>{children}</HasTaskOrb.Provider>
+            </section>
         </div>
         {composer}
         <footer className="cowork-task-footer">
-            {back}
+            {workspace || hasCancel ? back : <button type="button" className={LINK_INLINE} onClick={() => select('overview')}><ArrowLeft size={14}/>{names.overview}</button>}
             <button type="button" className={LINK_INLINE} disabled={busy} onClick={onAdvanced}>{t('cowork_overview.advanced', 'Advanced')}</button>
         </footer>
-
     </div>;
 }

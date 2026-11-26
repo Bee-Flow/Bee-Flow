@@ -12,14 +12,17 @@ import { useCoworkDailyMail, useCoworkNeedsYou } from '@/api/coworkNeedsYou';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ENTER } from '../coworkMotion';
 import { CARD_INSET } from '../coworkUi';
-import { CARD, EYEBROW, META, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
+import { CARD, EYEBROW, META, PanelLoading, PanelReadProblem, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
 
 const EXAMPLE_ROWS = 3;
 
 /** What tomorrow's e-mail would hold right now: the list of what waits for the person. */
 function MorningExample() {
     const { t } = useTranslation();
-    const needs = useCoworkNeedsYou().data ?? [];
+    const query = useCoworkNeedsYou();
+    if (query.isPending) return <PanelLoading />;
+    if (query.error) return <PanelReadProblem error={query.error} retry={() => void query.refetch()} />;
+    const needs = query.data ?? [];
     return (
         <div className={`${CARD_INSET} ${ENTER} flex flex-col gap-1 p-3 text-[14px] leading-5 text-[var(--text-primary)]`} data-testid="cowork-digest-example">
             <span className={EYEBROW}>{t('cowork_panels.settings.morning_example', 'What tomorrow’s e-mail would say now')}</span>
@@ -37,7 +40,7 @@ function MorningSection() {
     const mail = query.data;
     return (
         <PanelSection section="mail" title={t('cowork_panels.settings.morning_heading', 'E-mail')}>
-            <div className={CARD}>
+            {query.isPending ? <PanelLoading /> : query.error ? <PanelReadProblem error={query.error} retry={() => void query.refetch()} /> : <div className={CARD}>
                 <SwitchRow
                     id="cowork-panels-digest"
                     label={t('cowork_panels.settings.morning_mail', 'E-mail me each morning what needs me')}
@@ -48,7 +51,7 @@ function MorningSection() {
                 />
                 {mail?.enabled && <MorningExample />}
                 <Problem error={save.error} fallback={t('cowork_panels.failed', 'That did not save. Try again.')} />
-            </div>
+            </div>}
         </PanelSection>
     );
 }
@@ -60,7 +63,7 @@ function SuggestSection() {
     const allowed = state?.allowed ?? false;
     return (
         <PanelSection section="suggestions" title={t('cowork_panels.settings.suggest_heading', 'Suggestions')}>
-            <div className={CARD}>
+            {query.isPending ? <PanelLoading /> : query.error ? <PanelReadProblem error={query.error} retry={() => void query.refetch()} /> : <div className={CARD}>
                 <SwitchRow
                     id="cowork-panels-notice"
                     label={t('cowork_panels.settings.suggest', 'Suggest a task when I repeat a question')}
@@ -78,7 +81,7 @@ function SuggestSection() {
                     <li>{t('cowork_panels.settings.notice_how_4', 'Nobody else sees it, not even an admin.')}</li>
                 </ul>
                 <Problem error={set.error} fallback={t('cowork_panels.failed', 'That did not save. Try again.')} />
-            </div>
+            </div>}
         </PanelSection>
     );
 }

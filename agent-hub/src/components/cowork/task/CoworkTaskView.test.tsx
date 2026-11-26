@@ -53,7 +53,8 @@ describe('CoworkTaskView', () => {
         await openAdvancedTask({ item: { ...ITEM, lastStatus: 'running' }, runs: [{ ...RUN, status: 'running' }] });
         const progress = await screen.findByTestId('cowork-task-progress');
         expect(screen.getByTestId('cowork-task-header')).toHaveTextContent('Running');
-        expect(progress.querySelector('.cowork-orb')).toBeVisible();
+        expect(progress).toBeVisible();
+        expect(screen.getByTestId('cowork-task-view').querySelector('.cowork-task-anchor .cowork-orb')).toBeVisible();
         expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-orb')).toHaveLength(1);
     });
 

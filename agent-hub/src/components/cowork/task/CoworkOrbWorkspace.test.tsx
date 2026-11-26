@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { NEEDS_APPROVAL, openTask, PLAN_WAITING, RUN } from './taskWorld.testkit';
+import { NEEDS_APPROVAL, openTask, PLAN_WAITING, RUN, readyTaskInput } from './taskWorld.testkit';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -41,7 +41,7 @@ it('keeps talking while reading the result and opens a requested setting in the 
         return message === 'Show the result' ? { action: 'result', answer: 'Here is the latest run.' }
             : { action: 'when', answer: 'Choose when to run it.' };
     } });
-    const input = await screen.findByRole('textbox', { name: 'Ask Bee…' });
+    const input = await readyTaskInput();
     expect(screen.queryByRole('button', { name: 'Adjust this task' })).toBeNull();
     expect(screen.queryByRole('combobox', { name: 'Other task options' })).toBeNull();
     await user.type(input, 'Show the result{Enter}');
@@ -84,7 +84,7 @@ it('keeps the actual output and a pending test preview distinct', async () => {
 it('keeps an explicit clock change in the conversation and saves it only after confirmation', async () => {
     const schedule = { repeatInterval: 'weekly', timeOfDay: '15:00', daysOfWeek: ['fri'], timezone: 'Europe/Amsterdam', nextRunAt: '2099-11-27T14:00:00.000Z' };
     const {user, all} = openTask({conversation: () => ({action: 'when', answer: 'Here is the new schedule.', schedule})});
-    const input = await screen.findByRole('textbox', {name: 'Ask Bee…'});
+    const input = await readyTaskInput();
     await user.type(input, 'Every Friday at 15:00 please{Enter}');
     const apply = await screen.findByRole('button', {name: 'Apply schedule'});
     expect(screen.queryByTestId('cowork-task-settings')).toBeNull();
@@ -107,7 +107,7 @@ it('places the sign-in notice above the orb and opens integrations from the same
 
 it('shows the requested settings beside Bee until the user chooses one', async () => {
     const {user} = openTask({conversation: () => ({action:'answer', answer:'Which setting?', choices:['when','uses']})});
-    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Adjust the settings{Enter}');
+    await user.type(await readyTaskInput(), 'Adjust the settings{Enter}');
     const menu = within(await screen.findByRole('navigation', {name:'Settings'}));
     expect(menu.getAllByRole('button')).toHaveLength(2);
     expect(screen.queryByRole('complementary', {name:'Steps'})).toBeNull();
@@ -119,7 +119,7 @@ it('shows the requested settings beside Bee until the user chooses one', async (
 it('sends a named removal to the proposal endpoint without modifying the task directly', async () => {
     const remove = {stepIds:['tell'], fingerprint:'f'.repeat(64)};
     const {user, sent} = openTask({conversation: () => ({action:'change', answer:'Preparing a change.', instruction:'Remove Tell me', remove})});
-    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Remove the notification step{Enter}');
+    await user.type(await readyTaskInput(), 'Remove the notification step{Enter}');
     await waitFor(() => expect(sent('POST', '/api/cowork/w1/proposals')?.body).toEqual({remove}));
     expect(sent('PUT','/api/cowork/w1')).toBeUndefined();
 });
@@ -133,8 +133,85 @@ it('resumes a task paused for an unrelated account from beside Bee', async () =>
 
 it('shows other work in place and opens a chosen shared task in its own view', async () => {
     const {user, open} = openTask({conversation: () => ({action:'answer', answer:'', tasks:[{id:'shared',title:'Meeting digest',detail:'Noor',shared:true}]})});
-    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'What other tasks are there?{Enter}');
+    await user.type(await readyTaskInput(), 'What other tasks are there?{Enter}');
     expect(open).not.toHaveBeenCalled();
     await user.click(within(await screen.findByRole('navigation', {name:'Tasks'})).getByRole('button', {name:/Meeting digest/}));
     expect(open).toHaveBeenCalledWith({kind:'shared', id:'shared'});
+});
+
+it('keeps a single Bee and its composer outside the scrolling result and Advanced tabs', async () => {
+    const {user} = openTask({runs: [{ ...RUN, result: 'Long result. '.repeat(800) }]});
+    await user.click(await screen.findByRole('button', {name: 'Open result'}));
+    const assertAnchor = () => {
+        const page = screen.getByTestId('cowork-task-view');
+        expect(page.querySelectorAll('.cowork-orb')).toHaveLength(1);
+        expect(page.querySelector('.cowork-task-anchor .cowork-orb')).toBeVisible();
+        expect(page.querySelector('.cowork-task-scroll .cowork-orb')).toBeNull();
+        expect(screen.getByRole('textbox', {name: 'Ask Bee…'}).closest('.cowork-task-scroll')).toBeNull();
+    };
+    assertAnchor();
+    await user.click(screen.getByRole('button', {name: 'Advanced'}));
+    for (const tab of ['Result','Settings','Steps','People','History']) {
+        await user.click(screen.getByRole('tab', {name: tab}));
+        assertAnchor();
+    }
+});
+
+it('keeps Bee available when the task cannot load and restores the task on retry', async () => {
+    let failed = true;
+    const {user, fillComposer} = openTask({failItem: () => failed});
+    await screen.findByText('I couldn’t open this task.');
+    const input = screen.getByRole('textbox', {name: 'Ask Bee…'});
+    await user.type(input, 'Show my other tasks{Enter}');
+    expect(fillComposer).toHaveBeenCalledWith('Show my other tasks', 'ask');
+    failed = false;
+    await user.type(input, 'What did my task');
+    await user.click(screen.getByRole('button', {name: 'Try again'}));
+    expect(await readyTaskInput()).toHaveValue('What did my task');
+    expect(screen.getByTestId('cowork-task-view').querySelectorAll('.cowork-orb')).toHaveLength(1);
+});
+
+it('distinguishes unavailable history from an empty history and can retry it in place', async () => {
+    let failed = true;
+    const {user} = openTask({failRuns: () => failed, conversation: () => ({action:'history', answer:'Here are your runs.'})});
+    await user.type(await readyTaskInput(), 'Show my history{Enter}');
+    expect(await screen.findByRole('alert')).toHaveTextContent('I couldn’t load the runs');
+    expect(screen.queryByText('It has not run yet.')).toBeNull();
+    failed = false;
+    await user.click(screen.getByRole('button',{name:'Try again'}));
+    expect(await screen.findByTestId('cowork-task-run-line')).toHaveTextContent(RUN.result);
+});
+
+it('reveals destructive or external actions without executing them from the actions menu', async () => {
+    const {user, all} = openTask({conversation: () => ({action:'actions', answer:'Choose your action.'})});
+    await user.type(await readyTaskInput(),'What can I do with this task?{Enter}');
+    await user.click(await screen.findByRole('button', {name:'Run for real now'}));
+    expect(await screen.findByRole('group', {name:'Run for real now'})).toHaveTextContent('Weekly digest');
+    expect(all('POST','/api/cowork/w1/run-now')).toHaveLength(0);
+    await user.click(screen.getByRole('button',{name:'Cancel'}));
+    expect(all('POST','/api/cowork/w1/run-now')).toHaveLength(0);
+});
+
+it('reads older runs on demand, keeps existing rows on failure and opens the oldest retained result', async () => {
+    const runs = Array.from({length: 53}, (_, i) => ({...RUN, id: 'r' + i, result: 'Report ' + i}));
+    let offline = true;
+    const {user, all} = openTask({runs, failRuns: offset => offset > 0 && offline, conversation: () => ({action: 'history', answer: 'Here are your runs.'})});
+    await user.type(await readyTaskInput(), 'Open history{Enter}');
+    const history = within(await screen.findByTestId('cowork-task-runs'));
+    const more = () => user.click(history.getByRole('button', {name:'Show earlier runs'}));
+    expect(history.getAllByTestId('cowork-task-run')).toHaveLength(10);
+    await more();
+    expect(history.getAllByTestId('cowork-task-run')).toHaveLength(20);
+    expect(all('GET', '/api/cowork/w1/runs')).toHaveLength(1);
+    await more();
+    expect(await history.findByRole('alert')).toBeVisible();
+    expect(history.getAllByTestId('cowork-task-run')).toHaveLength(20);
+    offline = false;
+    for (const count of [30, 40, 50, 53]) {
+        await more();
+        await waitFor(() => expect(history.getAllByTestId('cowork-task-run')).toHaveLength(count));
+    }
+    expect(history.queryByRole('button', {name:'Show earlier runs'})).toBeNull();
+    await user.click(history.getByRole('button', {name:/Report 52/}));
+    expect(history.getByRole('button', {name:/Report 52/})).toHaveAttribute('aria-expanded','true');
 });

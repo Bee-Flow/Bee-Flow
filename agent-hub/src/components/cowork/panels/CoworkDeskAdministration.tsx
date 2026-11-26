@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useCreateDesk, useDeskView, useItemDeskActions, useSaveDeskRoles, type DeskSummary, type DeskView, type DeskMember, type RoleInput } from '@/api/coworkDesks';
-import { INPUT, LabeledField, PanelButton, Problem } from './panelParts';
+import { INPUT, LabeledField, PanelButton, PanelLoading, Problem } from './panelParts';
 
 export function CreateDeskForm({message, onCreated}: {message:string; onCreated:(id:string)=>void}) {
     const {t} = useTranslation();
@@ -53,7 +53,7 @@ export function DeskRoles({desk,message,done}: {desk: DeskSummary; message:strin
     const {t} = useTranslation();
     if (view.error) return <Problem error={view.error} fallback={t('cowork_desks.failed','That did not work. Try again.')}/>;
     if (!desk.isOwner) return <p>{t('cowork_teamwork.roles_owner','Only the desk owner can change its roles.')}</p>;
-    return view.data ? <RoleForm view={view.data} message={message} done={done}/> : null;
+    return view.data ? <RoleForm view={view.data} message={message} done={done}/> : <PanelLoading />;
 }
 
 export function MemberRole({deskId, member, roles, done}: {deskId: string; member: DeskMember; roles: DeskView['roles']; done: () => void}) {

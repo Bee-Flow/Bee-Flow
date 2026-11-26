@@ -1,5 +1,4 @@
 import { ActivityLine } from '../CoworkActivity';
-import { useEffect, useRef } from 'react';
 import { Check, Circle, CircleAlert, Play } from 'lucide-react';
 import type { PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -23,8 +22,6 @@ function stateLabel(status: string, t: TranslateFn) {
 }
 
 export default function CoworkTestProgress({ state, runOrder, t }: Props) {
-    const heading = useRef<HTMLHeadingElement>(null);
-    useEffect(() => { heading.current?.focus(); }, []);
     const steps = inRunOrder(state?.steps ?? [], runOrder);
     const current = steps.findLast(step => step.status === 'running');
     const summary = current
@@ -34,7 +31,7 @@ export default function CoworkTestProgress({ state, runOrder, t }: Props) {
         : t('cowork_task.test.wait', 'I’m waiting for the next test step.');
     return <section className="cowork-activity">
         <CoworkOrb work={{ action: 'testing', apps: [current?.app], stepType: current?.type, flow: steps, focus: current ? steps.indexOf(current) : undefined }} activity={summary} tone={current?.kind === 'ai' ? 'thinking' : 'executing'} />
-        <h3 ref={heading} tabIndex={-1} className="cowork-activity-current" aria-live="polite" aria-atomic="true"><ActivityLine message={summary} /></h3>
+        <h3 className="cowork-activity-current" aria-live="polite" aria-atomic="true"><ActivityLine message={summary} /></h3>
         {steps.length > 0 && <details className="mt-2 w-full text-left"><summary className="mx-auto w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]">{t('cowork_task.flow.details', 'Details')}</summary>
         <ol className="m-0 mt-2 list-none p-0">
             {steps.map(step => {

@@ -3,7 +3,7 @@ import { useId, useState } from 'react';
 import { useReadableTables } from '@/api/coworkStart';
 import { SendsToRow, UsesRow } from './CoworkConfirmRows';
 import { ENTER } from './coworkMotion';
-import { ALERT, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FIELD, FIELD_WIDE, LINK_INLINE, META } from './coworkUi';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FIELD, FIELD_WIDE, LINK_INLINE, META } from './coworkUi';
 import {
     canTestDraft, dayChoiceOf, WEEK_DAYS, confirmView, dayWords, hasTimeOfDay, isAddress, isClockPayload, scheduleInputs, missingDestination, needsScheduleAnswer, schedulePartOf, startPayload, timeOf, withDay, withTime,
     type ConfirmChoices, type ConfirmView, type DayChoice,
@@ -86,6 +86,7 @@ export function useMayHaveSteps(): boolean {
 }
 
 export interface CoworkConfirmCardProps {
+    guided?: boolean;
     advanced: boolean;
     onAdvanced: () => void;
     cowork: UseCoworkComposerReturn;
@@ -207,7 +208,6 @@ function DraftReview({ advanced, onAdvanced, cowork, view, steps, catalogue, onC
     if (!advanced) return <CoworkActivity message={fixed ? view.title : t('cowork_home.confirm.start_question', 'Start “{title}” on this schedule?', { title: view.title })} work={{ action: 'ask' }} tone="rest" testId="cowork-confirm">
         <div className="grid gap-3 text-center">
             <ReviewSummary view={view} steps={fixed} t={t} />
-            {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}
             <div className="flex justify-center gap-2">
                 <button className={LINK_INLINE} onClick={onCancel}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
                 <button className={BUTTON_PRIMARY} disabled={busy} onClick={() => onStart(startPayload(view, fixed))}>{startLabel(false, fixed, t)}</button>
@@ -221,7 +221,6 @@ function DraftReview({ advanced, onAdvanced, cowork, view, steps, catalogue, onC
             <button type="button" aria-expanded={advanced} className={LINK_INLINE + ' self-start'} onClick={onAdvanced}>{t('cowork_overview.advanced', 'Advanced')}</button>
             <p className={META}>{hintOf(fixed, t)}</p>
             {rereading && <p role="status" className={META}>{t('cowork_home.confirm.rereading', 'Reading your sentence again…')}</p>}
-            {cowork.error && <p role="alert" className={ALERT}>{cowork.error}</p>}
             <div className="flex flex-wrap items-center gap-2">
                 <button type="button" className={BUTTON_PRIMARY} data-testid="cowork-confirm-start" disabled={busy} onClick={() => onStart(startPayload(view, fixed))}>
                     {startLabel(cowork.submitting && !rereading, fixed, t)}
@@ -267,7 +266,7 @@ export default function CoworkConfirmCard(props: CoworkConfirmCardProps) {
     const clarification = draft.spec?.clarification;
     if (clarification && !props.advanced) {
         if (props.rereading) return <CoworkActivity message={t('cowork_home.activity.thinking', 'I’m working out what your task needs.')} testId="cowork-confirm" />;
-        return <CoworkBriefQuestion key={clarification.question} clarification={clarification} onAnswer={props.onClarify} onCancel={props.onCancel} />;
+        return <CoworkBriefQuestion useConversation={props.guided} key={clarification.question} clarification={clarification} onAnswer={props.onClarify} onCancel={props.onCancel} />;
     }
     const catalogue = availableApps.filter(app => !app.isStep);
     const view = confirmView(draft, props.choices, props.sentence, catalogue);

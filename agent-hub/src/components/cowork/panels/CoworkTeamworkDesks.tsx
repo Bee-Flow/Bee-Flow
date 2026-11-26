@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useItemDesk, type PlannedStart, useDeskHandOff, useDeskView, useItemDeskActions, type DeskMember, type DeskView } from '@/api/coworkDesks';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { CARD_INSET } from '../coworkUi';
-import { BODY, CARD, META, PanelButton, Problem } from './panelParts';
+import { BODY, CARD, META, PanelButton, PanelLoading, PanelReadProblem, Problem } from './panelParts';
 
 const ownerOf = (m: DeskMember, t: TranslateFn): string => (m.mine ? t('cowork_panels.team.you', 'you') : m.ownerName);
 
@@ -103,10 +103,11 @@ export default function CoworkTeamworkDesk({ deskId, name, isOwner, onOpenTask }
                 <h3 className="m-0 text-[14px] leading-5 font-semibold text-[var(--text-primary)]">{name}</h3>
                 <span className={META}>{isOwner
                     ? t('cowork_panels.team.set_up_by_you', 'Set up by you')
-                    : t('cowork_panels.team.set_up_by', 'Set up by {name}', { name: view.data?.desk.ownerName ?? '' })}</span>
+                    : view.data?.desk.ownerName && t('cowork_panels.team.set_up_by', 'Set up by {name}', { name: view.data.desk.ownerName })}</span>
             </div>
+            {view.isPending && <PanelLoading />}
             {view.data && <DeskBody view={view.data} onOpenTask={onOpenTask} />}
-            <Problem error={view.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+            <PanelReadProblem error={view.error} retry={() => void view.refetch()} />
         </article>
     );
 }

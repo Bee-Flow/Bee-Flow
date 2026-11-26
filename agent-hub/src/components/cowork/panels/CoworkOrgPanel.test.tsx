@@ -100,4 +100,18 @@ describe('CoworkOrgPanel', () => {
         expect(await screen.findByText('Only administrators of your organisation can see and change these rules.')).toBeInTheDocument();
         expect(screen.queryByRole('switch')).toBeNull();
     });
+    it('lets an administrator retry an unavailable service without claiming access was denied', async () => {
+        let available = false;
+        stubRecordingFetch(({url}) => {
+            if (url.endsWith('/mine/org')) return available ? jsonResponse({orgId: 'org1', name: 'Northwind', spent: 0}) : jsonResponse({}, 503);
+            return jsonResponse(POLICY);
+        });
+        renderWithClient(<CoworkOrgPanel />);
+        const retry = await screen.findByRole('button', {name: 'Try again'});
+        expect(screen.queryByText(/Only administrators of your organisation/)).toBeNull();
+        available = true;
+        await userEvent.setup().click(retry);
+        expect(await screen.findByRole('switch', {name: 'Read-only mode'})).toBeVisible();
+    });
+
 });

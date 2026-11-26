@@ -8,7 +8,8 @@
  * hands it on to the heading once that is there, unless the reader moved on first.
  */
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPendingBeeDraft, PendingBeeDraft } from './usePendingBeeDraft';
 import { ENTER } from './coworkMotion';
 import { LINK_BUTTON } from './coworkUi';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -42,6 +43,7 @@ export function TaskBack({ onBack }: { onBack: () => void }) {
 }
 
 export default function CoworkPageFrame({ label, onBack, children, ownBack }: CoworkPageFrameProps) {
+    const [draft] = useState(createPendingBeeDraft);
     const frame = useRef<HTMLElement>(null);
     useEffect(() => {
         const el = frame.current;
@@ -56,7 +58,7 @@ export default function CoworkPageFrame({ label, onBack, children, ownBack }: Co
     return (
         <section ref={frame} tabIndex={-1} aria-label={label} className={`${ENTER} flex flex-col gap-4 outline-none`} data-testid="cowork-page-frame">
             {!ownBack && <TaskBack onBack={onBack} />}
-            {children}
+            <PendingBeeDraft.Provider value={draft}>{children}</PendingBeeDraft.Provider>
         </section>
     );
 }

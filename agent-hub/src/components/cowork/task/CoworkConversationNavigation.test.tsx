@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { ITEM, openTask, RUN } from './taskWorld.testkit';
+import { ITEM, openTask, RUN, readyTaskInput } from './taskWorld.testkit';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -12,7 +12,7 @@ it('retains the delivery question when the user replies with only an address', a
         return message === address ? {action: 'change', instruction, answer: 'I will prepare this change.'}
             : {action: 'sends', instruction: '', answer: 'Here are the delivery settings.'};
     } });
-    const input = await screen.findByRole('textbox', {name: 'Ask Bee…'});
+    const input = await readyTaskInput();
     await user.type(input, 'Open delivery settings{Enter}');
     await user.click(await screen.findByRole('button', {name: 'Change recipient'}));
     expect(await screen.findByText('Who should receive the result?')).toBeVisible();
@@ -27,7 +27,7 @@ it('opens the sharing controls directly while leaving the access decision to the
     const { user, sent } = openTask({ colleagues: [{id: 'noor', name: 'Noor'}], conversation: () => ({
         action: 'share', answer: 'Choose who may see the task.', instruction: '',
     }) });
-    await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Share this task{Enter}');
+    await user.type(await readyTaskInput(), 'Share this task{Enter}');
     expect(await screen.findByRole('combobox', {name: 'Colleague'})).toBeVisible();
     expect(sent('PUT', '/api/cowork/w1/shares')).toBeUndefined();
 });
@@ -36,7 +36,7 @@ it('can read finished work and return to live progress during another run', asyn
     const { user } = openTask({ item: {...ITEM, lastStatus: 'running'}, runs: [{...RUN, id: 'live', status: 'running'}, RUN],
         conversation: body => ({action: (body as {message:string}).message.includes('history') ? 'history' : 'result', answer: 'Here it is.', instruction: ''}),
     });
-    const input = await screen.findByRole('textbox', {name: 'Ask Bee…'});
+    const input = await readyTaskInput();
     await user.type(input, 'Read my result{Enter}');
     expect(await screen.findByTestId('cowork-task-result-text')).toHaveTextContent(RUN.result);
     await user.type(input, 'Open history{Enter}');
@@ -48,7 +48,7 @@ it('can read finished work and return to live progress during another run', asyn
 
 it('only deletes the named task after explicit approval at the orb', async () => {
     const { user, all } = openTask({conversation: () => ({action: 'delete', answer: 'Please confirm.', instruction: ''})});
-    const ask = async () => user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Delete the whole task{Enter}');
+    const ask = async () => user.type(await readyTaskInput(), 'Delete the whole task{Enter}');
     await ask();
     expect(await screen.findByTestId('cowork-task-delete-confirm')).toHaveTextContent(ITEM.title);
     await user.click(screen.getByRole('button', {name: 'Keep it'}));
@@ -62,7 +62,7 @@ it('renders an answer while the stream is still open, then commits the final rep
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
     const {user} = openTask({conversation: () => new Response(stream.readable, {headers: {'Content-Type': 'text/event-stream'}})});
-    await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'What happened?{Enter}');
+    await user.type(await readyTaskInput(), 'What happened?{Enter}');
     const send = (frame: string) => writer.write(new TextEncoder().encode(frame + '\n\n'));
     await send('event: answer\ndata: "Reading mail"');
     expect(await screen.findByText('Reading mail')).toBeVisible();
@@ -76,7 +76,7 @@ it('uses a short answer as a reply, then opens just the requested proof of runs'
     const {user, all} = openTask({conversation: body => (body as {message: string}).message === 'Signed receipts'
         ? {action: 'proof', answer: 'Here are your receipts.'}
         : {action: 'answer', answer: 'Which evidence do you want?', responses: ['Signed receipts', 'Change history']}});
-    await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Show the evidence{Enter}');
+    await user.type(await readyTaskInput(), 'Show the evidence{Enter}');
     await user.click(await screen.findByRole('button', {name: 'Signed receipts'}));
     expect(await screen.findByRole('link', {name: 'Export receipts'})).toBeVisible();
     expect(screen.queryByRole('button', {name: 'Delete this task'})).toBeNull();
