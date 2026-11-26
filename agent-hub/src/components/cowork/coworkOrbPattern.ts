@@ -32,4 +32,3 @@ export function advanceLayers(layers: OrbPattern[], target: number, seconds: num
         if (layers[i].opacity < .005) layers.splice(i, 1);
     }
 }
-
