@@ -1,0 +1,6 @@
+{
+  "name": "beeflow-modules",
+  "private": true,
+  "type": "commonjs",
+  "description": "First-party Bee Flow modules (modules/<id>/server, modules/<id>/frontend). No dependencies: a module root links to the core's node_modules. This file only makes .js files here CommonJS, like server/."
+}

@@ -160,6 +160,9 @@ services:
       - beeflow-server-modules:/app/node_modules
       - beeflow-data-dev:/app/data
       - ./components:/components
+      # First-party module roots (modules/<id>/server). The resolver in
+      # server/moduleRoots.cjs looks for ../modules beside the core root (/app).
+      - ./modules:/modules
       # PII guard install fallback — when the GHCR pull is blocked, the
       # installer shells out `docker build -t … /guard-service`. Read-only.
       - ./guard-service:/guard-service:ro
@@ -187,6 +190,8 @@ services:
     volumes:
       - ./agent-hub:/app
       - /app/node_modules # Prevent host node_modules from overwriting container's
+      # First-party module roots (modules/<id>/frontend), beside the core root.
+      - ./modules:/modules
     networks:
       - beeflow-network
     depends_on:

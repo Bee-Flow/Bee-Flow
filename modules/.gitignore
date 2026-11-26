@@ -1,0 +1,86 @@
+# modules/<id>/server/ mirrors server/ and modules/<id>/frontend/ mirrors agent-hub/
+# (see README.md). The rules of server/.gitignore and agent-hub/.gitignore are
+# repeated here at the module paths: `*/server/**/x` is what an unanchored `x`
+# in server/.gitignore means, `*/server/x` what an anchored one means. A change
+# to either of those files needs the same line here.
+# scripts/modules-gitignore.test.mjs proves that no tracked file of server/ or
+# agent-hub/ below a data/ directory would be ignored at its module path.
+
+# ── Everywhere under modules/ ───────────────────────────────────
+node_modules
+node_modules/
+coverage/
+dist/
+*.log
+.DS_Store
+
+# ── data/ ───────────────────────────────────────────────────────
+# The root .gitignore ignores every directory named data/ and re-includes the
+# tracked ones by their core paths. Re-include the same directories by name at
+# their module paths (git does not descend into an excluded directory).
+*/server/data/
+!*/server/migrations/data/
+!*/frontend/src/components/admin/compliance/data/
+
+# ── server/.gitignore at */server ───────────────────────────────
+*/server/**/__pycache__/
+*/server/**/*.pyc
+*/server/**/.env
+*/server/**/.env.local
+*/server/**/.env.development
+*/server/**/.env.production
+*/server/**/.env.staging
+*/server/**/.env.services
+*/server/**/*.ppk
+*/server/**/*.pem
+*/server/**/*.key
+*/server/**/ssh-key-*
+*/server/**/*-vpn-key*
+*/server/**/config.json
+*/server/config/users.json
+*/server/config/users.*.json
+*/server/data/users.json
+*/server/**/test-bench-*.js
+*/server/**/test-huge*.js
+*/server/**/retry-test*.js
+*/server/**/bench-*.js
+*/server/**/scratch-*.js
+*/server/**/*.db
+*/server/**/*.db-shm
+*/server/**/*.db-wal
+*/server/**/*.db-journal
+*/server/**/*.sqlite
+*/server/**/*.sqlite3
+*/server/**/backups/
+*/server/**/*.zip
+*/server/**/*.tar.gz
+*/server/**/*.tgz
+*/server/**/npm-debug.log*
+*/server/**/Thumbs.db
+*/server/**/.vscode/
+*/server/**/.idea/
+*/server/**/*.swp
+*/server/**/*.swo
+*/server/**/*~
+*/server/vendor/app-runtime/
+*/server/**/docker-data/
+*/server/**/pgdata/
+*/server/**/.pytest_cache/
+*/server/**/.coverage
+*/server/**/htmlcov/
+*/server/**/coverage-shard/
+*/server/**/coverage-shards/
+*/server/**/shard-files.json
+*/server/**/tmp/
+*/server/**/deploy-*.sh
+*/server/**/deploy/
+*/server/**/test-services.sh
+*/server/**/.typecheck.tsconfig.json
+*/server/**/.typecheck.*.tsconfig.json
+*/server/**/shard-durations.json
+*/server/**/*.whl
+
+# ── agent-hub/.gitignore at */frontend ──────────────────────────
+*/frontend/**/dist-runtime/
+*/frontend/**/.vitest-reports/
+*/frontend/dist-embed/

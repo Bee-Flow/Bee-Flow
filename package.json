@@ -91,6 +91,7 @@
     "gen:api-types": "node scripts/gen-api-types.mjs",
     "gen:row-types": "node scripts/gen-row-types.mjs",
     "gen:scripts-index": "node scripts/gen-scripts-index.mjs",
+    "modules:link": "node scripts/link-module-node-modules.mjs",
     "count:source-text": "node scripts/source-text-tests.mjs server",
     "check:fast": "node scripts/check-fast.mjs",
     "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs",

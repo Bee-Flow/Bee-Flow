@@ -40,6 +40,14 @@
             "reason": "release-notes drafter run by hand by a maintainer; no entry yet (candidate for the monthly satellite entry)"
         },
         {
+            "dir": "modules",
+            "ecosystem": "npm",
+            "role": "service",
+            "lockfile": "none",
+            "dependabot": "none",
+            "reason": "type marker only (makes .js under modules/ CommonJS like server/); no dependencies and no lockfile, module roots use the core's node_modules"
+        },
+        {
             "dir": "docs/cms-auth",
             "ecosystem": "npm",
             "role": "tooling",
